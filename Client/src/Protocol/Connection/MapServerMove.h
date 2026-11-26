@@ -17,11 +17,6 @@
 // cliente, *estático*.
 namespace Client::Protocol::Connection
 {
-inline constexpr std::uint8_t MapServerOpcode = 0xB1;
-// 0x4e506a: el dispatcher solo atiende el 00 (el subcódigo, pkt[3] en un C1 y pkt[4] en los demás).
-inline constexpr std::uint8_t MapServerMoveSubcode = 0x00;
-// 0x412c5f: el que arma 0x412bb0.
-inline constexpr std::uint8_t MapServerAuthSubcode = 0x01;
 // 0x4e5073..0x4e5080: los 0x24 bytes desde pkt+4 que 0x412aa0 copia a +0x18 del objeto de 0x6eed7c: el host en
 // +0x18 (pkt+4), el puerto en +0x28 (pkt+0x14) y los cuatro dwords de +0x2c..+0x3b (pkt+0x18..0x27) que 0x412bb0
 // devuelve tal cual. +0x2a y +0x2b (pkt+0x16 y 0x17) no los lee nadie.

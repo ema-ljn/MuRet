@@ -59,14 +59,14 @@ bool IsEncrypted(PacketType type)
 }
 
 // For the log, without its data: the type and, if plain, the opcode ("C1 F4", "C3").
-std::string KindOf(PacketType type, std::optional<std::uint8_t> opcode)
+std::string KindOf(PacketType type, std::optional<Opcode> opcode)
 {
     const auto typeByte = static_cast<std::uint8_t>(type);
     if (!opcode)
     {
         return std::format("{:02X}", typeByte);
     }
-    return std::format("{:02X} {:02X}", typeByte, *opcode);
+    return std::format("{:02X} {:02X}", typeByte, ByteOf(*opcode));
 }
 
 std::string KindOf(const Packet& packet)
@@ -271,7 +271,7 @@ bool Connection::TakePackets(std::vector<Event>& events)
 std::optional<Event> Connection::Translate(Packet packet)
 {
     const PacketType type = packet.Type();
-    const std::optional<std::uint8_t> opcode = packet.Opcode();
+    const std::optional<Opcode> opcode = packet.Opcode();
     Core::Expected<Packet, ObfuscationError> cut = m_obfuscation.AfterCut(std::move(packet));
     if (!cut.HasValue())
     {

@@ -3,6 +3,7 @@
 
 #include "Network/Delivery.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
@@ -202,7 +203,7 @@ TEST(NpcWindowsProtocolTest, ReadsTheWarehouseStateTheClosesAndTheMix)
     EXPECT_EQ(state.Value().state, 0x0c);
     const auto closed = NpcWindows::ReadNpcWindowClosed(PacketOf(Bytes({0xc1, 0x03, 0x87})));
     ASSERT_TRUE(closed.HasValue());
-    EXPECT_EQ(closed.Value().opcode, 0x87);
+    EXPECT_EQ(closed.Value().opcode, Client::Protocol::ChaosBoxCloseOpcode);
     EXPECT_EQ(ErrorOf(NpcWindows::ReadNpcWindowClosed(PacketOf(Bytes({0xc1, 0x03, 0x83})))),
               ProtocolError::WrongPacket);
     const auto mixed =

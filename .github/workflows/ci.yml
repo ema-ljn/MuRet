@@ -186,12 +186,13 @@ jobs:
         run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
       # The reference tools (.github/workflows/referencia.yml): its summary, the anchors of the hand-classified
-      # cuts and the matrix's commit waves (AR0.2), with made-up tables and git repos.
+      # cuts and the matrix's commit waves (AR0.2), with made-up tables and git repos; and the dispatcher's cases.
       - name: Reference tools tests
         if: matrix.kind == 'build'
         run: |
           python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_*.py' -v
           python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_commit_waves.py' -v
+          python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_dispatcher_cases.py' -v
 
       # Client refactor (AR0.1): a new include that breaks the module layers, or a file without a module, fails.
       # Since AR1.1 the engine has none at all: its violations fail even if the baseline lists them.
@@ -209,6 +210,9 @@ jobs:
           python3 -I Client/tools/architecture/check_named_values.py --src Client/src --modules Client/modules.tsv \
             --map Client/docs/research/coverage/module-map.tsv --spaces Client/tools/architecture/named-values.tsv \
             --baseline Client/tools/architecture/named-values-baseline.tsv --clean-root engine
+          python3 -I Client/docs/research/scripts/tools/dispatcher_cases.py check \
+            --cases Client/docs/research/coverage/dispatcher-cases.tsv \
+            --lists Client/src/Protocol/Opcodes.h Client/src/Protocol/Connection/Opcodes.h
 
       # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
       - name: Client rounded math

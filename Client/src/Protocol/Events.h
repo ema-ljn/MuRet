@@ -17,51 +17,9 @@
 // Cada lector pide los bytes que el original lee siempre; los que lee según un campo se miran al aplicar.
 namespace Client::Protocol::Events
 {
-inline constexpr std::uint8_t EventStateOpcode = 0x0b;
-inline constexpr std::uint8_t MapAttributesOpcode = 0x46;
-inline constexpr std::uint8_t ItemAcquiredOpcode = 0x47;
-inline constexpr std::uint8_t DevilSquareEntryOpcode = 0x90;
-inline constexpr std::uint8_t EventOpenTimeOpcode = 0x91;
-inline constexpr std::uint8_t EventCountdownOpcode = 0x92;
-inline constexpr std::uint8_t EventResultOpcode = 0x93;
-inline constexpr std::uint8_t EventChipInfoOpcode = 0x94;
-inline constexpr std::uint8_t EventChipCountOpcode = 0x95;
-inline constexpr std::uint8_t MutoNumbersOpcode = 0x96;
 // C→S: 0x5e65f6, el C1 04 98 01 del botón de la ventana de 0x78abb00 con el 4 (el GS lo atiende en
 // CGEventChip98Request y no lee el 01).
-inline constexpr std::uint8_t MutoNumberRequestOpcode = 0x98;
 inline constexpr std::uint8_t MutoNumberRequestByte = 0x01;
-// C→S: 0x56b4e8, el C1 03 97 de SendMove con 0x78abb00 (el GS lo atiende en CGEventChip97Request).
-inline constexpr std::uint8_t EventWindowLeaveOpcode = 0x97;
-inline constexpr std::uint8_t EventDialogOpcode = 0x99;
-inline constexpr std::uint8_t BloodCastleEntryOpcode = 0x9a;
-inline constexpr std::uint8_t EventPlayStateOpcode = 0x9b;
-inline constexpr std::uint8_t SerialResultOpcode = 0x9d;
-inline constexpr std::uint8_t EventSoundOpcode = 0x9e;
-inline constexpr std::uint8_t ChaosCastleOpcode = 0xaf;
-// 0x4e5032: el dispatcher solo lee el AF con pkt[3] en 1.
-inline constexpr std::uint8_t ChaosCastleEntrySubcode = 0x01;
-// C→S: 0x4fbee8, el C1 06 AF 02 x y de 0x4fbe10 (en el original, MOV CL,0x2 en 0x4fbf6a: no es el AF 01).
-inline constexpr std::uint8_t ChaosCastleRepositionSubcode = 0x02;
-inline constexpr std::uint8_t JewelMixOpcode = 0xbc;
-inline constexpr std::uint8_t JewelMixSubcode = 0x00;
-inline constexpr std::uint8_t JewelUnmixSubcode = 0x01;
-inline constexpr std::uint8_t CrywolfOpcode = 0xbd;
-inline constexpr std::uint8_t CrywolfStateSubcode = 0x00;
-// 0x4e620c, la tabla del BD por pkt[3] (0 a 0xc): el 1, el 6, el 0xa y el 0xb no hacen nada (0x4e5b4a).
-inline constexpr std::uint8_t CrywolfAltarsSubcode = 0x02;
-inline constexpr std::uint8_t CrywolfContractSubcode = 0x03;
-inline constexpr std::uint8_t CrywolfTimerSubcode = 0x04;
-inline constexpr std::uint8_t CrywolfBossSubcode = 0x05;
-inline constexpr std::uint8_t CrywolfRankSubcode = 0x07;
-inline constexpr std::uint8_t CrywolfRankingSubcode = 0x08;
-inline constexpr std::uint8_t CrywolfChaosBoxSubcode = 0x09;
-inline constexpr std::uint8_t CrywolfEffectSubcode = 0x0c;
-inline constexpr std::uint8_t WorldOpcode = 0xf3;
-inline constexpr std::uint8_t EventTimeSubcode = 0x22;
-inline constexpr std::uint8_t SoccerScoreSubcode = 0x23;
-inline constexpr std::uint8_t GuildWarOutcomeSubcode = 0x24;
-inline constexpr std::uint8_t ServerCommandSubcode = 0x40;
 
 // 0x4e3594: C1 05 0B estado evento (PMSG_EVENTSTATE).
 struct EventState
@@ -202,7 +160,7 @@ struct ChaosCastleEntryResult
 // 0x4e4547 (BC 00) y 0x4da540 (BC 01): pkt[3] y pkt[4].
 struct JewelMixResult
 {
-    std::uint8_t subcode = 0;
+    Network::Subcode subcode{};
     std::uint8_t result = 0;
 };
 
@@ -368,6 +326,7 @@ using SerialPieces = std::array<std::array<std::uint8_t, SerialPieceBytes>, Seri
 [[nodiscard]] Outgoing WriteSerialNumber(const SerialPieces& pieces);
 
 // 0x4fbeed..0x4fc2c9: C1 06 AF 02 x y, con el XOR32 y en claro (el send del paso, sin C3).
+// 0x4fbe10 writes the 02 with MOV CL,0x2 at 0x4fbf6a: it is not the AF 01.
 [[nodiscard]] Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y);
 
 // 0x435d1c..0x4361a2: C1 06 BD 03 alto bajo, el botón Sí de la ventana del contrato de Crywolf con 0x723be0 (la clave

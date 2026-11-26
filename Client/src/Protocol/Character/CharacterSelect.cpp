@@ -9,6 +9,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstddef>
 #include <optional>
@@ -27,7 +28,7 @@ constexpr std::size_t SelectResultPaddingSize = 2; // pkt[0x26..0x27], antes del
 
 Outgoing WriteCharacterSelect(std::span<const std::byte, NameSize> name)
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode).PutU8(SelectSubcode).PutBytes(name));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, SelectSubcode).PutBytes(name));
 }
 
 Core::Expected<CharacterSelectResult, Network::ProtocolError> ReadCharacterSelectResult(const Network::Packet& packet)

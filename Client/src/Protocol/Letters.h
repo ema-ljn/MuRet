@@ -19,11 +19,6 @@
 // cliente (*estático*). El dispatcher (0x4e2b10) no tiene caso para el C9.
 namespace Client::Protocol::Letters
 {
-inline constexpr std::uint8_t LetterSendOpcode = 0xc5;
-inline constexpr std::uint8_t LetterListOpcode = 0xc6;
-inline constexpr std::uint8_t LetterReadOpcode = 0xc7;
-inline constexpr std::uint8_t LetterDeleteOpcode = 0xc8;
-inline constexpr std::uint8_t LetterListRequestOpcode = 0xc9;
 // El nombre en 10 bytes, el asunto en 0x20 y el cuerpo hasta 1000 (0x3e8).
 inline constexpr std::size_t LetterNameSize = 10;
 inline constexpr std::size_t LetterSubjectSize = 0x20;

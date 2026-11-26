@@ -48,10 +48,10 @@ public:
     // Un handler para todo el opcode. false si ya había uno (para el opcode o sus subcódigos): no
     // se pisa, porque registrar dos veces es un error de quien arma la tabla. También false, sin
     // registrar nada, si `handler` está vacío.
-    [[nodiscard]] bool On(std::uint8_t opcode, Handler handler);
+    [[nodiscard]] bool On(Network::Opcode opcode, Handler handler);
     // Un handler para el opcode y el byte que lo sigue. false si ya había uno para los dos, o uno
     // para todo el opcode, o si `handler` está vacío.
-    [[nodiscard]] bool On(std::uint8_t opcode, std::uint8_t subcode, Handler handler);
+    [[nodiscard]] bool On(Network::Opcode opcode, Network::Subcode subcode, Handler handler);
     // Llama al handler del paquete, si tiene.
     DispatchResult Dispatch(const Network::Packet& packet);
 

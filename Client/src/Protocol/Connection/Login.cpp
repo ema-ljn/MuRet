@@ -5,13 +5,12 @@
 #include "Network/Field.h"
 #include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketCode.h"
 #include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/BuildConstants.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -27,7 +26,7 @@ namespace
 using LoginResult = Network::Field<std::uint8_t, 4>;
 // 0x4e2b6e: the dispatcher reads the result itself.
 constexpr Network::PacketLayout LoginResultLayout{
-    {Network::PacketType::C1, Network::Opcode{JoinOpcode}, Network::Subcode{LoginSubcode}}, LoginResult::End, 0x4e2b6e};
+    {Network::PacketType::C1, JoinOpcode, Join::LoginSubcode}, LoginResult::End, 0x4e2b6e};
 
 // Lo que lleva el aviso después del subcódigo, 06 00 (03 § C3/C4). El GameServer los lee como dos
 // bytes sueltos (CGClientHackLogRecv, 0x4172e0, en el research del servidor); qué significan para
@@ -36,7 +35,7 @@ constexpr std::uint8_t DecryptErrorFirst = 0x06;
 constexpr std::uint8_t DecryptErrorSecond = 0x00;
 // 0x4c396a..0x4c3d14: lo que manda la respuesta del F3 03 que llega sin cifrar.
 constexpr std::uint8_t ClearReplyFirst = 0x00;
-constexpr std::uint8_t ClearWorldEntryHead = 0xF3;
+constexpr std::uint8_t ClearWorldEntryHead = Network::ByteOf(CharacterOpcode);
 
 using CredentialField = std::array<std::byte, CredentialSize>;
 
@@ -65,9 +64,8 @@ Core::Expected<Outgoing, Network::ProtocolError> WriteLoginRequest(const LoginRe
     }
     const CredentialField account = Credential(request.account);
     const CredentialField password = Credential(request.password);
-    Network::PacketWriter writer = Network::PacketWriter::C1(JoinOpcode);
-    writer.PutU8(LoginSubcode)
-        .PutBytes(account)
+    Network::PacketWriter writer = Network::PacketWriter::C1(JoinOpcode, Join::LoginSubcode);
+    writer.PutBytes(account)
         .PutBytes(password)
         .PutU32Le(request.tick)
         .PutBytes(BytesOf(ClientVersion))
@@ -83,16 +81,14 @@ Core::Expected<std::uint8_t, Network::ProtocolError> ReadLoginResult(const Netwo
 
 Outgoing WriteDecryptErrorReport()
 {
-    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode)
-                           .PutU8(DecryptErrorSubcode)
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode)
                            .PutU8(DecryptErrorFirst)
                            .PutU8(DecryptErrorSecond));
 }
 
 Outgoing WriteClearWorldEntryReport()
 {
-    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode)
-                           .PutU8(DecryptErrorSubcode)
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode)
                            .PutU8(ClearReplyFirst)
                            .PutU8(ClearWorldEntryHead));
 }

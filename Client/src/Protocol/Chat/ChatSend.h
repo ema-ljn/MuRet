@@ -3,7 +3,6 @@
 #include "Protocol/Outgoing.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <span>
 #include <string_view>
 
@@ -16,8 +15,6 @@
 // Lo que lleva lo escribió el jugador: no va al log.
 namespace Client::Protocol::Chat
 {
-inline constexpr std::uint8_t ChatSendOpcode = 0x00;
-inline constexpr std::uint8_t WhisperSendOpcode = 0x02;
 // El nombre del que habla (+0x1d9 del héroe) o el del destinatario (0x7798cf8): diez bytes, con lo que haya
 // detrás del '\0'.
 inline constexpr std::size_t ChatNameSize = 10;

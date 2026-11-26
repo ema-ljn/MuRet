@@ -2,16 +2,16 @@
 #include "Protocol/Combat.h"
 
 #include "Network/Delivery.h"
+#include "Network/Packet.h"
 #include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
+#include "Protocol/Opcodes.h"
 
 #include <gtest/gtest.h>
-
-#include <cstdint>
 
 namespace
 {
@@ -51,11 +51,13 @@ TEST(CombatProtocolTest, TheElfCellIsAFiveByteDf)
 // 0x4cf2aa..0x4cf4a5 y 0x4cfd12..0x4cff5c: con el flag de descifrado en 0, C1 06 F1 03 00 y el opcode, en C3.
 TEST(CombatProtocolTest, AClearKillReplyIsReportedWithItsOpcode)
 {
-    for (const std::uint8_t opcode : {Combat::KillExperienceOpcode, Combat::ExtendedKillExperienceOpcode})
+    for (const Client::Network::Opcode opcode :
+         {Client::Protocol::KillExperienceOpcode, Client::Protocol::ExtendedKillExperienceOpcode})
     {
         const auto report = Combat::WriteClearKillReport(opcode);
         EXPECT_EQ(report.delivery, Client::Network::Delivery::Encrypted);
-        EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(), Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, opcode})));
+        EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(),
+                              Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, Client::Network::ByteOf(opcode)})));
     }
 }
 

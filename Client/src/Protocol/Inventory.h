@@ -14,14 +14,6 @@
 // mandar el 24.
 namespace Client::Protocol::Inventory
 {
-inline constexpr std::uint8_t ItemMoveOpcode = 0x24;
-inline constexpr std::uint8_t LifeOpcode = 0x26;
-inline constexpr std::uint8_t ManaOpcode = 0x27;
-inline constexpr std::uint8_t ItemDeleteOpcode = 0x28;
-inline constexpr std::uint8_t DurabilityOpcode = 0x2a;
-inline constexpr std::uint8_t WorldOpcode = 0xf3;
-inline constexpr std::uint8_t EquipmentChangeSubcode = 0x13;
-inline constexpr std::uint8_t ItemPutSubcode = 0x14;
 // Los siete bytes de un ítem, como en el F3 10 (Protocol::Character::InventoryItemDataSize).
 inline constexpr std::size_t ItemDataSize = 7;
 // 0x4d167f: el byte que cierra el aviso del 24 sin cifrar.

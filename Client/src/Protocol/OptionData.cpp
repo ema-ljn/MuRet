@@ -4,10 +4,10 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstdint>
 #include <optional>
@@ -18,7 +18,7 @@ namespace Client::Protocol::OptionData
 Core::Expected<OptionData, Network::ProtocolError> ReadOptionData(const Network::Packet& packet)
 {
     auto fields = Network::FieldsAfterSubcode(
-        packet, Network::PacketKind{Network::PacketType::C1, Character::CharacterOpcode, OptionDataSubcode});
+        packet, Network::PacketKind{Network::PacketType::C1, CharacterOpcode, Character::OptionDataSubcode});
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -50,8 +50,7 @@ Core::Expected<OptionData, Network::ProtocolError> ReadOptionData(const Network:
 
 Outgoing WriteOptionData(const OptionBody& body)
 {
-    return Xor32C1(Network::PacketWriter::C1(Character::CharacterOpcode)
-                       .PutU8(OptionDataSubcode)
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::OptionDataSubcode)
                        .PutBytes(std::as_bytes(std::span<const std::uint8_t>(body))));
 }
 } // namespace Client::Protocol::OptionData

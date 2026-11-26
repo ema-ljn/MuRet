@@ -5,6 +5,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
@@ -223,7 +224,7 @@ TEST(EventsProtocolTest, ReadsTheSubcodedOnes)
 {
     EXPECT_EQ(Read<Events::ChaosCastleEntryResult>(Bytes({0xC1, 0x05, 0xAF, 0x01, 0x07})).result, 7);
     const auto mix = Read<Events::JewelMixResult>(Bytes({0xC1, 0x05, 0xBC, 0x01, 0x08}));
-    EXPECT_EQ(mix.subcode, 1);
+    EXPECT_EQ(mix.subcode, Client::Protocol::JewelMix::UnmixSubcode);
     EXPECT_EQ(mix.result, 8);
     const auto crywolf = Read<Events::CrywolfState>(Bytes({0xC1, 0x06, 0xBD, 0x00, 0x02, 0x05}));
     EXPECT_EQ(crywolf.state, 2);

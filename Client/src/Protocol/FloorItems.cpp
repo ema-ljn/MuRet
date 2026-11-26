@@ -7,6 +7,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -24,7 +25,7 @@ constexpr std::size_t KeySize = 2;
 
 // Un paquete de `type` y `opcode`: el lector desde el byte que sigue al opcode (pkt[3] en un C1, pkt[4] en un C2).
 Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet,
-                                                                  Network::PacketType type, std::uint8_t opcode)
+                                                                  Network::PacketType type, Network::Opcode opcode)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -41,7 +42,7 @@ Inventory::ItemData ItemFrom(std::span<const std::byte> bytes)
 
 Core::Expected<FloorItemsCreate, Network::ProtocolError> ReadFloorItemsCreate(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C2, CreateOpcode);
+    auto fields = FieldsOf(packet, Network::PacketType::C2, FloorItemCreateOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -65,7 +66,7 @@ Core::Expected<FloorItemsCreate, Network::ProtocolError> ReadFloorItemsCreate(co
 
 Core::Expected<FloorItemsDelete, Network::ProtocolError> ReadFloorItemsDelete(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C2, DeleteOpcode);
+    auto fields = FieldsOf(packet, Network::PacketType::C2, FloorItemDeleteOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();

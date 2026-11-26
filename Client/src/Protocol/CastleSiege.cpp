@@ -5,6 +5,7 @@
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -532,35 +533,35 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadMinimapPoints(cons
 }
 
 // El B2 por su subcódigo, la tabla 0x4e6140.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastle(const Fields& fields, std::uint8_t subcode)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastle(const Fields& fields, Network::Subcode subcode)
 {
-    switch (subcode)
+    switch (Network::ByteOf(subcode))
     {
-    case StateSubcode:
+    case Network::ByteOf(Castle::StateSubcode):
         return ReadState(fields);
-    case RegisterSubcode:
+    case Network::ByteOf(Castle::RegisterSubcode):
         return OnlyTheResult<RegisterResult>(fields);
-    case GiveUpSubcode:
+    case Network::ByteOf(Castle::GiveUpSubcode):
         return OnlyTheResult<GiveUpResult>(fields);
-    case RegistrationSubcode:
+    case Network::ByteOf(Castle::RegistrationSubcode):
         return ReadRegistration(fields);
-    case RegisterMarkSubcode:
+    case Network::ByteOf(Castle::RegisterMarkSubcode):
         return ReadRegisterMark(fields);
-    case NpcBuySubcode:
+    case Network::ByteOf(Castle::NpcBuySubcode):
         return ReadNpcBuy(fields);
-    case NpcRepairSubcode:
+    case Network::ByteOf(Castle::NpcRepairSubcode):
         return ReadNpcRepair(fields);
-    case NpcUpgradeSubcode:
+    case Network::ByteOf(Castle::NpcUpgradeSubcode):
         return ReadNpcUpgrade(fields);
-    case TaxInfoSubcode:
+    case Network::ByteOf(Castle::TaxInfoSubcode):
         return ReadTaxInfo(fields);
-    case TaxRateSubcode:
+    case Network::ByteOf(Castle::TaxRateSubcode):
         return ReadTaxRate(fields);
-    case MoneyOutSubcode:
+    case Network::ByteOf(Castle::MoneyOutSubcode):
         return ReadMoneyOut(fields);
-    case SiegeFlagsSubcode:
+    case Network::ByteOf(Castle::SiegeFlagsSubcode):
         return ReadSiegeFlags(fields);
-    case HuntZoneGateSubcode:
+    case Network::ByteOf(Castle::HuntZoneGateSubcode):
         return ReadHuntZoneGate(fields);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -568,9 +569,9 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastle(const Field
 }
 
 // El writer del original para un C1 con el subcódigo: cifra desde el byte 3, como todo lo que mandan las ventanas.
-Network::PacketWriter Castle(std::uint8_t subcode)
+Network::PacketWriter Castle(Network::Subcode subcode)
 {
-    return Network::PacketWriter::C1(CastleOpcode).PutU8(subcode);
+    return Network::PacketWriter::C1(CastleOpcode, subcode);
 }
 } // namespace
 
@@ -582,10 +583,10 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     const Fields fields(packet.Bytes());
-    switch (*opcode)
+    switch (Network::ByteOf(*opcode))
     {
-    case CastleOpcode:
-    case KillCountOpcode:
+    case Network::ByteOf(CastleOpcode):
+    case Network::ByteOf(KillCountOpcode):
     {
         auto subcode = fields.U8(Network::MinPacketSize(packet.Type()));
         if (!subcode.HasValue())
@@ -594,9 +595,9 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
         }
         if (*opcode == CastleOpcode)
         {
-            return ReadCastle(fields, subcode.Value());
+            return ReadCastle(fields, Network::Subcode{subcode.Value()});
         }
-        if (subcode.Value() != KillCountSubcode)
+        if (Network::Subcode{subcode.Value()} != Protocol::KillCount::CountSubcode)
         {
             return Core::Unexpected(Network::ProtocolError::WrongPacket);
         }
@@ -607,13 +608,13 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
         }
         return CastleSiegePacket{KillCount{.value = value.Value()}};
     }
-    case NpcListOpcode:
+    case Network::ByteOf(CastleNpcListOpcode):
         return ReadNpcList(fields);
-    case SiegeGuildListOpcode:
+    case Network::ByteOf(SiegeGuildListOpcode):
         return ReadSiegeGuildList(fields);
-    case RegisteredGuildListOpcode:
+    case Network::ByteOf(RegisteredGuildListOpcode):
         return ReadRegisteredGuildList(fields);
-    case MinimapOpcode:
+    case Network::ByteOf(SiegeMinimapOpcode):
         return ReadMinimapPoints(fields);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -622,52 +623,52 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
 
 Outgoing WriteStateRequest()
 {
-    return Xor32C1(Castle(StateSubcode));
+    return Xor32C1(Castle(Castle::StateSubcode));
 }
 
 Outgoing WriteRegister()
 {
-    return Xor32C1(Castle(RegisterSubcode));
+    return Xor32C1(Castle(Castle::RegisterSubcode));
 }
 
 Outgoing WriteGiveUp()
 {
-    return Xor32C1(Castle(GiveUpSubcode).PutU8(1));
+    return Xor32C1(Castle(Castle::GiveUpSubcode).PutU8(1));
 }
 
 Outgoing WriteRegistrationRequest()
 {
-    return Xor32C1(Castle(RegistrationSubcode));
+    return Xor32C1(Castle(Castle::RegistrationSubcode));
 }
 
 Outgoing WriteRegisterMark(std::uint8_t slot)
 {
-    return Xor32C1(Castle(RegisterMarkSubcode).PutU8(slot));
+    return Xor32C1(Castle(Castle::RegisterMarkSubcode).PutU8(slot));
 }
 
 Outgoing WriteNpcBuy(std::uint32_t type, std::uint32_t index)
 {
-    return Xor32C1(Castle(NpcBuySubcode).PutU32Le(type).PutU32Le(index));
+    return Xor32C1(Castle(Castle::NpcBuySubcode).PutU32Le(type).PutU32Le(index));
 }
 
 Outgoing WriteNpcRepair(std::uint32_t type, std::uint32_t index)
 {
-    return Xor32C1(Castle(NpcRepairSubcode).PutU32Le(type).PutU32Le(index));
+    return Xor32C1(Castle(Castle::NpcRepairSubcode).PutU32Le(type).PutU32Le(index));
 }
 
 Outgoing WriteNpcUpgrade(std::uint32_t type, std::uint32_t index, std::uint32_t kind, std::uint32_t value)
 {
-    return Xor32C1(Castle(NpcUpgradeSubcode).PutU32Le(type).PutU32Le(index).PutU32Le(kind).PutU32Le(value));
+    return Xor32C1(Castle(Castle::NpcUpgradeSubcode).PutU32Le(type).PutU32Le(index).PutU32Le(kind).PutU32Le(value));
 }
 
 Outgoing WriteTaxInfoRequest()
 {
-    return Xor32C1(Castle(TaxInfoSubcode));
+    return Xor32C1(Castle(Castle::TaxInfoSubcode));
 }
 
 Outgoing WriteTaxRate(std::uint8_t kind, std::uint32_t value)
 {
-    return Xor32C1(Castle(TaxRateSubcode)
+    return Xor32C1(Castle(Castle::TaxRateSubcode)
                        .PutU8(kind)
                        .PutU8(static_cast<std::uint8_t>(value >> 24u))
                        .PutU8(static_cast<std::uint8_t>(value >> 16u))
@@ -677,17 +678,17 @@ Outgoing WriteTaxRate(std::uint8_t kind, std::uint32_t value)
 
 Outgoing WriteMoneyOut(std::uint32_t amount)
 {
-    return Xor32C1(Castle(MoneyOutSubcode).PutU32Le(amount));
+    return Xor32C1(Castle(Castle::MoneyOutSubcode).PutU32Le(amount));
 }
 
 Outgoing WriteHuntZoneGate(std::uint8_t allowed)
 {
-    return Xor32C1(Castle(HuntZoneGateSubcode).PutU8(allowed));
+    return Xor32C1(Castle(Castle::HuntZoneGateSubcode).PutU8(allowed));
 }
 
 Outgoing WriteNpcListRequest(std::uint8_t kind)
 {
-    return Xor32C1(Network::PacketWriter::C1(NpcListOpcode).PutU8(kind));
+    return Xor32C1(Network::PacketWriter::C1(CastleNpcListOpcode).PutU8(kind));
 }
 
 Outgoing WriteSiegeGuildListRequest()
@@ -702,6 +703,6 @@ Outgoing WriteRegisteredGuildListRequest()
 
 Outgoing WriteHuntZoneEntry(std::uint32_t fee)
 {
-    return Xor32C1(Network::PacketWriter::C1(HuntZoneOpcode).PutU8(HuntZoneEntrySubcode).PutU32Le(fee));
+    return Xor32C1(Network::PacketWriter::C1(CastleInfoOpcode, CastleInfo::HuntZoneEntrySubcode).PutU32Le(fee));
 }
 } // namespace Client::Protocol::CastleSiege

@@ -3,6 +3,7 @@
 #include "Tables/PlayerModels.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActionSend.h"
@@ -146,8 +147,10 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
             [&resources](std::uint8_t hi, std::uint8_t lo)
         {
             if (resources.sendGamePacket)
-                resources.sendGamePacket(
-                    Protocol::Xor32C1(Network::PacketWriter::C1(0xb7).PutU8(1).PutU8(hi).PutU8(lo)));
+                resources.sendGamePacket(Protocol::Xor32C1(
+                    Network::PacketWriter::C1(Protocol::SiegeWeaponOpcode, Protocol::SiegeWeapon::UseSubcode)
+                        .PutU8(hi)
+                        .PutU8(lo)));
         },
         .deform = [&world](float x, float y, std::int32_t tx, std::int32_t ty)
         { return World::DeformTheSiegeTerrain(world.Map().terrain, x, y, tx, ty); },

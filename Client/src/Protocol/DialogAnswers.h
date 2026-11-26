@@ -11,11 +11,6 @@
 // (CloseClient). El ASM es el oráculo.
 namespace Client::Protocol::DialogAnswers
 {
-inline constexpr std::uint8_t ChaosCastleOpcode = 0xaf;
-inline constexpr std::uint8_t ChaosCastleEnterSubcode = 0x01;
-inline constexpr std::uint8_t NoticeAnswerOpcode = 0xd0;
-inline constexpr std::uint8_t NoticeYesSubcode = 0x00;
-
 // 0x628594..0x628947: C1 06 AF 01 con el nivel del ítem de los diálogos ((0x78a59cc >> 3) & 0xf, 0x628702..0x628710)
 // y el byte bajo de 0x78a6758 (el lugar del ítem del cursor, 0x6287f7).
 [[nodiscard]] Outgoing WriteChaosCastleEntry(std::uint8_t level, std::uint8_t slot);

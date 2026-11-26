@@ -3,9 +3,9 @@
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/Character/Opcodes.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>

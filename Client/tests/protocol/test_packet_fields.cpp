@@ -31,8 +31,8 @@ using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 
 // El saludo del GameServer, F1 00, y la lista que deja FoxAnti, F4 06.
-constexpr PacketKind Hello{PacketType::C1, 0xF1, 0x00};
-constexpr PacketKind List{PacketType::C2, 0xF4, 0x06};
+constexpr PacketKind Hello{PacketType::C1, Client::Network::Opcode{0xF1}, Client::Network::Subcode{0x00}};
+constexpr PacketKind List{PacketType::C2, Client::Network::Opcode{0xF4}, Client::Network::Subcode{0x06}};
 
 // Si FieldsAfterSubcode acepta este argumento. Como con el constructor de ByteReader, un Packet
 // temporal no compila: el lector quedaría mirando los bytes de un paquete muerto.

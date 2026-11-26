@@ -83,12 +83,12 @@ constexpr std::uint16_t GameServerPort = 55901;
 constexpr std::byte FoxAntiMask{0xAA};
 
 // Los opcodes y subcódigos que se buscan en el cable (04, "El flujo de conexión").
-constexpr std::uint8_t ConnectOpcode = 0xF1;   // F1: saludo, login, cierre y aviso
-constexpr std::uint8_t HelloSubcode = 0x00;    // F1 00, el saludo
-constexpr std::uint8_t LoginSubcode = 0x01;    // F1 01, el login y su respuesta
-constexpr std::uint8_t CloseSubcode = 0x02;    // F1 02, que el research del servidor llama cierre
-constexpr std::uint8_t KeepaliveOpcode = 0x0E; // 0E, el keepalive
-constexpr std::uint8_t ServerListOpcode = 0xF4;
+constexpr Client::Network::Opcode ConnectOpcode{0xF1};   // F1: saludo, login, cierre y aviso
+constexpr std::uint8_t HelloSubcode = 0x00;              // F1 00, el saludo
+constexpr std::uint8_t LoginSubcode = 0x01;              // F1 01, el login y su respuesta
+constexpr std::uint8_t CloseSubcode = 0x02;              // F1 02, que el research del servidor llama cierre
+constexpr Client::Network::Opcode KeepaliveOpcode{0x0E}; // 0E, el keepalive
+constexpr Client::Network::Opcode ServerListOpcode{0xF4};
 constexpr std::uint8_t ListRequestSubcode = 0x02; // F4 02, pedir la lista, y la del laboratorio
 constexpr std::uint8_t AddressSubcode = 0x03;     // F4 03, elegir y la respuesta
 

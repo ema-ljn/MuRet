@@ -73,6 +73,7 @@
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
 #include "test_server_session_support.h"
+#include "Protocol/Opcodes.h"
 
 #include <gtest/gtest.h>
 
@@ -4229,14 +4230,16 @@ TEST(ServerSessionTest, TheKillsAndTheDeathReachTheWorldAndTheClearOnesAreReport
     EXPECT_EQ(died->skill, 0);
     EXPECT_EQ(died->killer, 0);
 
-    for (const std::uint8_t opcode : {Combat::KillExperienceOpcode, Combat::ExtendedKillExperienceOpcode})
+    for (const Client::Network::Opcode opcode :
+         {Client::Protocol::KillExperienceOpcode, Client::Protocol::ExtendedKillExperienceOpcode})
     {
         const auto before = tested.GameServerReads().packets.size();
-        tested.socket.reads = {Bytes({0xc1, 9, opcode, 0, 1, 0, 2, 0, 3})};
+        tested.socket.reads = {Bytes({0xc1, 9, Client::Network::ByteOf(opcode), 0, 1, 0, 2, 0, 3})};
         ASSERT_TRUE(tested.session.Poll().HasValue());
         const auto reported = tested.GameServerReads();
         ASSERT_EQ(reported.packets.size(), before + 1);
-        EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, opcode})));
+        EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(),
+                              Bytes({0xc1, 6, 0xf1, 3, 0, Client::Network::ByteOf(opcode)})));
         EXPECT_TRUE(reported.packets.back().WasDecrypted());
         EXPECT_TRUE(tested.eventSink.world.empty());
     }
@@ -4549,13 +4552,13 @@ TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
     ASSERT_NE(first, nullptr);
     const auto* unmixed = std::get_if<Events::JewelMixResult>(first);
     ASSERT_NE(unmixed, nullptr);
-    EXPECT_EQ(unmixed->subcode, 1);
+    EXPECT_EQ(unmixed->subcode, Client::Protocol::JewelMix::UnmixSubcode);
     EXPECT_EQ(unmixed->result, 7);
     const auto* second = std::get_if<Events::EventPacket>(&events[1]);
     ASSERT_NE(second, nullptr);
     const auto* mixed = std::get_if<Events::JewelMixResult>(second);
     ASSERT_NE(mixed, nullptr);
-    EXPECT_EQ(mixed->subcode, 0);
+    EXPECT_EQ(mixed->subcode, Client::Protocol::JewelMix::MixSubcode);
     EXPECT_EQ(mixed->result, 4);
 }
 
@@ -5034,7 +5037,7 @@ TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
     ASSERT_EQ(events.size(), 1u);
     const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
     ASSERT_NE(packet, nullptr);
-    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x0d}});
+    EXPECT_EQ(packet->packet.Opcode(), Client::Network::Opcode{0x0d});
     EXPECT_EQ(rooms.tested.CountLogged(LogLevel::Warning, "de la sala 772 del chat con un amigo"), 5u);
     EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "queso"));
     EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "Hor"));

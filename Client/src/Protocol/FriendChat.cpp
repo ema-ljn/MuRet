@@ -7,6 +7,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <array>
 #include <cstddef>
@@ -39,7 +40,7 @@ constexpr std::size_t TicketSize = 10;
 constexpr std::array<std::byte, 3> ChatTextKey{std::byte{0xfc}, std::byte{0xcf}, std::byte{0xab}};
 
 Core::Expected<std::span<const std::byte>, Network::ProtocolError> BytesOf(const Network::Packet& packet,
-                                                                           std::uint8_t opcode, std::size_t size)
+                                                                           Network::Opcode opcode, std::size_t size)
 {
     if (packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -50,7 +51,7 @@ Core::Expected<std::span<const std::byte>, Network::ProtocolError> BytesOf(const
 }
 
 Core::Expected<std::span<const std::byte>, Network::ProtocolError> C1BytesOf(const Network::Packet& packet,
-                                                                             std::uint8_t opcode, std::size_t size)
+                                                                             Network::Opcode opcode, std::size_t size)
 {
     if (packet.Type() != Network::PacketType::C1)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -118,7 +119,7 @@ Core::Expected<RoomAnswer, Network::ProtocolError> ReadRoomAnswer(const Network:
 
 Core::Expected<InviteResult, Network::ProtocolError> ReadInviteResult(const Network::Packet& packet)
 {
-    auto read = C1BytesOf(packet, InviteOpcode, InviteResultSize);
+    auto read = C1BytesOf(packet, RoomInviteOpcode, InviteResultSize);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     return InviteResult{.result = U8At(read.Value(), 3), .window = U32At(read.Value(), 4)};
@@ -126,7 +127,7 @@ Core::Expected<InviteResult, Network::ProtocolError> ReadInviteResult(const Netw
 
 Core::Expected<JoinResult, Network::ProtocolError> ReadJoinResult(const Network::Packet& packet)
 {
-    auto read = BytesOf(packet, JoinOpcode, JoinResultSize);
+    auto read = BytesOf(packet, RoomJoinOpcode, JoinResultSize);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     return JoinResult{.result = U8At(read.Value(), 3)};
@@ -135,7 +136,7 @@ Core::Expected<JoinResult, Network::ProtocolError> ReadJoinResult(const Network:
 Core::Expected<Member, Network::ProtocolError> ReadMember(const Network::Packet& packet)
 {
     // 0x4dd20d..0x4dd262: el nombre (strncpy de 10) y después pkt[3]; pkt[4], con el 0.
-    auto read = BytesOf(packet, MemberOpcode, MemberNameAt);
+    auto read = BytesOf(packet, RoomMemberOpcode, MemberNameAt);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     const std::span<const std::byte> bytes = read.Value();
@@ -148,7 +149,7 @@ Core::Expected<Member, Network::ProtocolError> ReadMember(const Network::Packet&
 Core::Expected<Members, Network::ProtocolError> ReadMembers(const Network::Packet& packet)
 {
     // 0x4dd367: pkt[6]; con 0 no lee más. Cada miembro, el nombre (strncpy de 10, 0x4dd382) y su número (0x4dd391).
-    auto read = BytesOf(packet, MembersOpcode, MembersCountAt + 1);
+    auto read = BytesOf(packet, RoomMembersOpcode, MembersCountAt + 1);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     const std::span<const std::byte> bytes = read.Value();
@@ -168,7 +169,7 @@ Core::Expected<Members, Network::ProtocolError> ReadMembers(const Network::Packe
 
 Core::Expected<Message, Network::ProtocolError> ReadMessage(const Network::Packet& packet)
 {
-    auto read = BytesOf(packet, MessageOpcode, MessageHeaderSize);
+    auto read = BytesOf(packet, RoomMessageOpcode, MessageHeaderSize);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     const std::span<const std::byte> bytes = read.Value();
@@ -190,7 +191,7 @@ Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet&
 {
     // 0x4dd540 lee pkt[5], escribe el 0 en pkt[0x68] (fuera de un paquete más corto: MuRet no lo escribe) y usa el
     // texto hasta el primer '\0'.
-    auto read = BytesOf(packet, NoticeOpcode, NoticeTextAt + 1);
+    auto read = BytesOf(packet, RoomNoticeOpcode, NoticeTextAt + 1);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     std::optional<std::string> text = CStringAt(read.Value(), NoticeTextAt, NoticeEnd - NoticeTextAt);
@@ -207,20 +208,20 @@ Core::Expected<void, Network::ProtocolError> CheckRoomPacket(const Network::Pack
             return Core::Unexpected(read.Error());
         return {};
     };
-    const std::optional<std::uint8_t> opcode = packet.Opcode();
+    const std::optional<Network::Opcode> opcode = packet.Opcode();
     if (!opcode)
         return {};
-    switch (*opcode)
+    switch (Network::ByteOf(*opcode))
     {
-    case JoinOpcode:
+    case Network::ByteOf(RoomJoinOpcode):
         return readable(ReadJoinResult(packet));
-    case MemberOpcode:
+    case Network::ByteOf(RoomMemberOpcode):
         return readable(ReadMember(packet));
-    case MembersOpcode:
+    case Network::ByteOf(RoomMembersOpcode):
         return readable(ReadMembers(packet));
-    case MessageOpcode:
+    case Network::ByteOf(RoomMessageOpcode):
         return readable(ReadMessage(packet));
-    case NoticeOpcode:
+    case Network::ByteOf(RoomNoticeOpcode):
         return readable(ReadNotice(packet));
     default:
         return {};
@@ -234,7 +235,7 @@ Outgoing WriteRoomRequest(std::string_view name)
 
 Outgoing WriteInvite(std::string_view name, std::uint16_t room, std::uint32_t window)
 {
-    return Xor32C1(Network::PacketWriter::C1(InviteOpcode)
+    return Xor32C1(Network::PacketWriter::C1(RoomInviteOpcode)
                        .PutBytes(Letters::FixedText(name, ChatNameSize))
                        .PutU8(0)
                        .PutU16Le(room)
@@ -247,7 +248,7 @@ Outgoing WriteJoin(std::uint16_t room, std::uint32_t ticket)
     const auto value = static_cast<std::int32_t>(ticket);
     std::vector<std::byte> digits = Letters::FixedText(std::to_string(value), TicketSize);
     FlipChatText(digits);
-    return Xor32C1(Network::PacketWriter::C1(JoinOpcode).PutU8(0).PutU16Le(room).PutBytes(digits));
+    return Xor32C1(Network::PacketWriter::C1(RoomJoinOpcode).PutU8(0).PutU16Le(room).PutBytes(digits));
 }
 
 Outgoing WriteMessage(std::string_view text)
@@ -257,17 +258,19 @@ Outgoing WriteMessage(std::string_view text)
     for (std::size_t at = 0; at < cut.size(); ++at)
         bytes[at] = static_cast<std::byte>(cut[at]);
     FlipChatText(bytes);
-    return Xor32C1(
-        Network::PacketWriter::C1(MessageOpcode).PutU8(0).PutU8(static_cast<std::uint8_t>(cut.size())).PutBytes(bytes));
+    return Xor32C1(Network::PacketWriter::C1(RoomMessageOpcode)
+                       .PutU8(0)
+                       .PutU8(static_cast<std::uint8_t>(cut.size()))
+                       .PutBytes(bytes));
 }
 
 Outgoing WriteLeave()
 {
-    return ClearC1(Network::PacketWriter::C1(MemberOpcode));
+    return ClearC1(Network::PacketWriter::C1(RoomMemberOpcode));
 }
 
 Outgoing WritePing()
 {
-    return ClearC1(Network::PacketWriter::C1(PingOpcode));
+    return ClearC1(Network::PacketWriter::C1(RoomPingOpcode));
 }
 } // namespace Client::Protocol::FriendChat

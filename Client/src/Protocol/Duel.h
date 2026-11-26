@@ -16,11 +16,6 @@
 // y 0x5ebca0 (AC).
 namespace Client::Protocol::Duel
 {
-inline constexpr std::uint8_t StartOpcode = 0xaa;
-inline constexpr std::uint8_t EndOpcode = 0xab;
-inline constexpr std::uint8_t RequestOpcode = 0xac;
-inline constexpr std::uint8_t ScoreOpcode = 0xad;
-
 using Name = std::array<std::byte, Character::NameSize>;
 
 // El AA del GS (0x4dac90): C1 10 AA, el resultado en pkt[3] (distinto de 0, empezó), la clave del rival en pkt[4..5]

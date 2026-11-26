@@ -3,19 +3,10 @@
 #include "Network/Packet.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <optional>
 
 namespace Client::Network
 {
-enum class Opcode : std::uint8_t
-{
-};
-
-enum class Subcode : std::uint8_t
-{
-};
-
 // What 0x4e2b10 dispatches on. A packet without a subcode is dispatched on its opcode alone.
 struct PacketCode
 {

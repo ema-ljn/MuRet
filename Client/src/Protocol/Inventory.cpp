@@ -4,10 +4,10 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -19,13 +19,14 @@ namespace Client::Protocol::Inventory
 {
 namespace
 {
-constexpr Network::PacketKind EquipmentChangeKind{Network::PacketType::C1, WorldOpcode, EquipmentChangeSubcode};
-constexpr Network::PacketKind ItemPutKind{Network::PacketType::C1, WorldOpcode, ItemPutSubcode};
+constexpr Network::PacketKind EquipmentChangeKind{Network::PacketType::C1, CharacterOpcode,
+                                                  Character::EquipmentChangeSubcode};
+constexpr Network::PacketKind ItemPutKind{Network::PacketType::C1, CharacterOpcode, Character::ItemPutSubcode};
 // 0x4e316e: pkt[6] no lo lee nadie.
 constexpr std::size_t EquipmentChangeGap = 1;
 
 // Un C1 de `opcode`: el lector desde pkt[3].
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -62,10 +63,8 @@ Outgoing WriteItemMove(const ItemMove& move)
 
 Outgoing WriteClearItemMoveReport()
 {
-    return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)
-                           .PutU8(Connection::DecryptErrorSubcode)
-                           .PutU8(0)
-                           .PutU8(ClearItemMoveHead));
+    return EncryptedC1(
+        Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode).PutU8(0).PutU8(ClearItemMoveHead));
 }
 
 Core::Expected<ItemMoveResult, Network::ProtocolError> ReadItemMoveResult(const Network::Packet& packet)

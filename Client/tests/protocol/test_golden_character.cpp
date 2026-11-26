@@ -9,6 +9,7 @@
 #include "support/SameBytes.h"
 #include "support/WireCapture.h"
 #include "support/WirePackets.h"
+#include "Protocol/Opcodes.h"
 
 #include <gtest/gtest.h>
 
@@ -33,8 +34,8 @@ namespace
 using Client::Network::Packet;
 using Client::Network::PacketType;
 using Client::Network::Xor32Decode;
+using Client::Protocol::CharacterOpcode;
 using Client::Protocol::Character::CharacterList;
-using Client::Protocol::Character::CharacterOpcode;
 using Client::Protocol::Character::EntrySize;
 using Client::Protocol::Character::ListSubcode;
 using Client::Protocol::Character::MaxCharacterSlot;
@@ -72,11 +73,11 @@ constexpr std::size_t ListHeaderSize = 7;
 constexpr std::size_t ListCountOffset = 6;
 
 // Si `packet` es un C1 F3 con el subcódigo `subcode`.
-bool IsCharacterPacket(const Packet& packet, std::uint8_t subcode)
+bool IsCharacterPacket(const Packet& packet, Client::Network::Subcode subcode)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     return packet.Type() == PacketType::C1 && packet.Opcode() == CharacterOpcode && bytes.size() > SubcodeOffset &&
-           std::to_integer<std::uint8_t>(bytes[SubcodeOffset]) == subcode;
+           Client::Network::Subcode{std::to_integer<std::uint8_t>(bytes[SubcodeOffset])} == subcode;
 }
 
 class GoldenCharacterPackets : public Client::Tests::WireDataTest

@@ -9,6 +9,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -27,8 +28,7 @@ constexpr std::uint8_t ClassShift = 4;
 
 Outgoing WriteCharacterCreate(std::span<const std::byte, NameSize> name, std::uint8_t characterClass)
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode)
-                       .PutU8(CreateSubcode)
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, CreateSubcode)
                        .PutBytes(NameUpToItsEnd(name))
                        .PutU8(static_cast<std::uint8_t>(characterClass << ClassShift)));
 }

@@ -7,7 +7,6 @@
 #include "Network/ProtocolError.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <span>
 #include <string>
 
@@ -20,8 +19,8 @@ namespace Client::Network
 struct PacketKind
 {
     Network::PacketType type;
-    std::uint8_t opcode;
-    std::uint8_t subcode;
+    Opcode opcode;
+    Subcode subcode;
 };
 
 // WrongPacket if the type, opcode or subcode is not `kind`'s, TooShort if the packet ends before the subcode.

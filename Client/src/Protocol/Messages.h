@@ -16,12 +16,6 @@
 // TooShort. Los bytes sobrantes se ignoran.
 namespace Client::Protocol::Messages
 {
-inline constexpr std::uint8_t ChatOpcode = 0x00;
-inline constexpr std::uint8_t KeyChatOpcode = 0x01;
-inline constexpr std::uint8_t WhisperOpcode = 0x02;
-inline constexpr std::uint8_t WhisperResultOpcode = 0x0c;
-inline constexpr std::uint8_t NoticeOpcode = 0x0d;
-
 // pkt[3..12]: el nombre de quien habla. Con los diez llenos no trae '\0'; 0x4c6070 y 0x4e34ea le agregan uno.
 inline constexpr std::size_t SpeakerNameSize = 10;
 // 0x4c6070 y 0x4e34ea: los textos van a un buffer de 61 bytes en cero, y la copia más larga es de 60 desde pkt[0xd].

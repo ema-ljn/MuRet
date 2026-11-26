@@ -4,6 +4,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <array>
 #include <cstddef>
@@ -15,19 +16,6 @@
 // lectores, WrongPacket con otro tipo u opcode, TooShort si faltan campos, y los bytes de más se ignoran.
 namespace Client::Protocol::Skill
 {
-inline constexpr std::uint8_t ActorStateOpcode = 0x07;
-inline constexpr std::uint8_t MagicAttackOpcode = 0x19;
-inline constexpr std::uint8_t MagicCancelOpcode = 0x1b;
-inline constexpr std::uint8_t DurationMagicOpcode = 0x1e;
-inline constexpr std::uint8_t ActorEffectOpcode = 0x48;
-inline constexpr std::uint8_t SkillTargetOpcode = 0x69;
-inline constexpr std::uint8_t Report73Opcode = 0x73;
-// Del F3 (Character::CharacterOpcode).
-// 0x4e30b9: la subida de nivel del héroe.
-inline constexpr std::uint8_t LevelUpSubcode = 0x05;
-inline constexpr std::uint8_t SkillListSubcode = 0x11;
-inline constexpr std::uint8_t SummonLifeSubcode = 0x20;
-
 // 0x4cc530: C1/C3 08 19 [skill] [fuente H L] [blanco H L], en big endian. El bit 15 del blanco dice si la skill
 // salió (va a +0x38d de la fuente) y el original busca el blanco con los 15 de abajo; la fuente, con los 16.
 struct MagicAttack
@@ -135,17 +123,15 @@ struct SummonLife
 // El aviso de los que no llegaron cifrados: C1 06 F1 03 00 [cabeza] con el XOR32 y en C3, sin leer el paquete. La
 // cabeza es la del opcode en el 19 (0x4cc562..0x4cce21) y en el 1E (0x4ce032..), y 0xf1 en el 73 (0x4d5d8c),
 // *estático*.
-[[nodiscard]] Outgoing WriteClearSkillReport(std::uint8_t head);
+[[nodiscard]] Outgoing WriteClearSkillReport(Network::Opcode head);
 
-inline constexpr std::uint8_t Report73Head = 0xf1;
+inline constexpr Network::Opcode Report73Head = JoinOpcode;
 
 // Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que salen). Las arman 0x57cfc0, las
 // funciones por clase y 0x55cbc0 en línea, con el XOR32 desde pkt[3] y cifradas como C3: el rand() del relleno y el
 // serial (0x5767913) los saca quien manda, antes de send(). La rama del Wizard (0x58c1b6 y los demás) y 0x55cbc0
 // también mandan el 1E (DurationMagicSend, abajo): [hacia] en 0, [espalda] en 0 salvo con la 0x4c (la celda de
 // 0x4e9920, como el caballero) y la clave de la magia (0x77f3bad) en la 8, la 9 y la 0x4c (08, P-C221).
-inline constexpr std::uint8_t TeleportMagicOpcode = 0x1c;
-inline constexpr std::uint8_t TargetTeleportOpcode = 0xb0;
 // La clave que va sin blanco (0xffff en 0x58c8f0, 0x591865 y 0x55e683).
 inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
 
@@ -167,7 +153,6 @@ inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
 // pkt[3] y en C3 como el 19. FoxAnti lo manda como 1D (03, "La capa de FoxAnti"). El GameServer 0.97
 // (CGBeattackRecv, 0x426db0) lee la cabecera igual (PMSG_BEATTACK_COUNT: la skill, x, y, el serial y la cuenta) pero
 // entradas de dos bytes: desde el segundo blanco lee otra clave (07, Q-C1219).
-inline constexpr std::uint8_t SkillHitsOpcode = 0x10;
 inline constexpr std::size_t MaxSkillHits = 5;
 struct SkillHitsSend
 {

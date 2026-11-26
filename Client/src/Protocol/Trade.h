@@ -16,15 +16,6 @@
 // los escritores, lo que arman 0x406050 y 0x56c440 (36), 0x623e70 (37, 3A y 3C), 0x5ecde0 (3C y 3D) y 0x657ab0 (3D).
 namespace Client::Protocol::Trade
 {
-inline constexpr std::uint8_t RequestOpcode = 0x36;
-inline constexpr std::uint8_t ResponseOpcode = 0x37;
-inline constexpr std::uint8_t ItemRemovedOpcode = 0x38;
-inline constexpr std::uint8_t ItemAddedOpcode = 0x39;
-inline constexpr std::uint8_t MoneyOpcode = 0x3a;
-inline constexpr std::uint8_t OtherMoneyOpcode = 0x3b;
-inline constexpr std::uint8_t OkButtonOpcode = 0x3c;
-inline constexpr std::uint8_t ResultOpcode = 0x3d;
-
 using Name = std::array<std::byte, Character::NameSize>;
 
 // El 36 del GS (0x4d4af0): C1 0D 36 y el nombre del que pide, 10 bytes desde pkt[3].

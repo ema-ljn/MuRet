@@ -2,12 +2,14 @@
 #include "Protocol/Skill.h"
 
 #include "Network/Delivery.h"
+#include "Network/Packet.h"
 #include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
+#include "Protocol/Opcodes.h"
 
 #include <gtest/gtest.h>
 
@@ -259,11 +261,13 @@ TEST(SkillProtocolTest, TheReadersRejectOtherPacketKinds)
 // 0x4cc562..0x4cce21 y 0x4d5d8c: el aviso de los que no llegaron cifrados, C1 06 F1 03 00 [cabeza], para cifrar.
 TEST(SkillProtocolTest, TheClearReportIsF103WithTheHead)
 {
-    for (const auto head : {Skill::MagicAttackOpcode, Skill::DurationMagicOpcode, Skill::Report73Head})
+    for (const auto head :
+         {Client::Protocol::MagicAttackOpcode, Client::Protocol::DurationMagicOpcode, Skill::Report73Head})
     {
         const auto report = Skill::WriteClearSkillReport(head);
         EXPECT_EQ(report.delivery, Delivery::Encrypted);
-        EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(), Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, head})));
+        EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(),
+                              Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, Client::Network::ByteOf(head)})));
     }
 }
 

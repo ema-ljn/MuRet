@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Network/Packet.h"
 #include "Network/XorRemap/XorRemapTables.h"
-#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Opcodes.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstddef>
 
@@ -17,15 +17,18 @@ constexpr Network::XorRemap::XorRemapTables LabXorRemapTables()
         // fox_xor_aa, 0x341140
         .inboundXor = std::byte{0xAA},
         // send_forward, 0x3416A0
-        .encryptedRemaps = {{{0x10, 0x1D}, {0x19, 0xA5}, {0x1E, 0xA6}}},
+        .encryptedRemaps = {{{Network::ByteOf(Protocol::SkillHitsOpcode), 0x1D},
+                             {Network::ByteOf(Protocol::MagicAttackOpcode), 0xA5},
+                             {Network::ByteOf(Protocol::DurationMagicOpcode), 0xA6}}},
         // encode_outbound, 0x341540
-        .clearRemaps = {{{0xD3, 0xA3}, {0xD7, 0xA4}}},
+        .clearRemaps = {{{Network::ByteOf(Protocol::WalkOpcode), 0xA3},
+                         {Network::ByteOf(Protocol::AttackOpcode), 0xA4}}},
         .serverOpcode = Protocol::Connection::ServerListOpcode,
-        .labServerListSub = 0x02,
+        .labServerListSub = Protocol::Connection::ServerListRequestSubcode,
         .serverListSub = Protocol::Connection::ServerListSubcode,
         .serverSelectSub = Protocol::Connection::ServerSelectSubcode,
-        .characterOpcode = Protocol::Character::CharacterOpcode,
-        .skillListSub = Protocol::Skill::SkillListSubcode,
+        .characterOpcode = Protocol::CharacterOpcode,
+        .skillListSub = Protocol::Character::SkillListSubcode,
         // parse_f4_02's deltas by (code + 1) / 11, 0x34129C
         .codeGroupSize = 11,
         .listCodeDeltas = {0x190, 0x172, 0x154, 0x136, 0x118, 0xFA, 0xDC, 0xBE, 0xA0},

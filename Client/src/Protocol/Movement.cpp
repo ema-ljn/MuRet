@@ -6,6 +6,7 @@
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -127,7 +128,7 @@ Core::Expected<Walk, Network::ProtocolError> ReadWalk(const Network::Packet& pac
 
 Core::Expected<Damage, Network::ProtocolError> ReadDamage(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != DamageOpcode)
+    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != AttackOpcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto id = reader.ReadU16Be();

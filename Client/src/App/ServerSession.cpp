@@ -62,6 +62,7 @@
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -232,16 +233,16 @@ void ServerSession::RegisterConnectServerHandlers()
 
 void ServerSession::RegisterGameServerHandlers()
 {
-    using Protocol::Character::CharacterOpcode;
+    using Protocol::CharacterOpcode;
+    using Protocol::JoinOpcode;
     using Protocol::Character::CreateSubcode;
     using Protocol::Character::DeleteSubcode;
     using Protocol::Character::InventoryListSubcode;
     using Protocol::Character::ListSubcode;
     using Protocol::Character::SelectSubcode;
-    using Protocol::Connection::HelloSubcode;
-    using Protocol::Connection::JoinOpcode;
-    using Protocol::Connection::LoginSubcode;
-    using Protocol::Connection::LogoutSubcode;
+    using Protocol::Join::HelloSubcode;
+    using Protocol::Join::LoginSubcode;
+    using Protocol::Join::LogoutSubcode;
     const auto npcWindow = [this](const Network::Packet& packet) { OnNpcWindow(packet); };
     [[maybe_unused]] const bool registered =
         m_gameServer.On(JoinOpcode, HelloSubcode, [this](const Network::Packet& packet) { OnGameHello(packet); }) &&
@@ -256,122 +257,97 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnWorldEntryReply(packet); }) &&
         m_gameServer.On(CharacterOpcode, InventoryListSubcode,
                         [this](const Network::Packet& packet) { OnInventoryReply(packet); }) &&
-        m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
-        m_gameServer.On(Protocol::Movement::DamageOpcode,
-                        [this](const Network::Packet& packet) { OnDamage(packet); }) &&
-        m_gameServer.On(Protocol::Movement::ActionOpcode,
-                        [this](const Network::Packet& packet) { OnAction(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::PlayersOpcode,
+        m_gameServer.On(Protocol::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
+        m_gameServer.On(Protocol::AttackOpcode, [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::ActionOpcode, [this](const Network::Packet& packet) { OnAction(packet); }) &&
+        m_gameServer.On(Protocol::ViewportPlayersOpcode,
                         [this](const Network::Packet& packet) { OnViewportPlayers(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::LeaveOpcode,
+        m_gameServer.On(Protocol::ViewportLeaveOpcode,
                         [this](const Network::Packet& packet) { OnViewportLeave(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::TransformedOpcode,
+        m_gameServer.On(Protocol::TransformedOpcode,
                         [this](const Network::Packet& packet) { OnTransformed(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::EquipmentShownOpcode,
+        m_gameServer.On(Protocol::EquipmentShownOpcode,
                         [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::PositionOpcode,
+        m_gameServer.On(Protocol::PositionOpcode,
                         [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::MonstersOpcode,
+        m_gameServer.On(Protocol::ViewportMonstersOpcode,
                         [this](const Network::Packet& packet) { OnViewportMonsters(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::SummonsOpcode,
+        m_gameServer.On(Protocol::ViewportSummonsOpcode,
                         [this](const Network::Packet& packet) { OnSummons(packet); }) &&
-        m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
+        m_gameServer.On(Protocol::ViewportObjectsOpcode,
                         [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
         // CL9 hito 2: el 1A, la skill que pega a varios.
-        m_gameServer.On(Protocol::Viewport::MagicAttackCountOpcode,
+        m_gameServer.On(Protocol::MagicAttackCountOpcode,
                         [this](const Network::Packet& packet) { OnMagicAttackCount(packet); }) &&
-        m_gameServer.On(Protocol::World::TeleportOpcode,
-                        [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
-        m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
+        m_gameServer.On(Protocol::TeleportOpcode, [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
+        m_gameServer.On(Protocol::CharacterOpcode, Protocol::Character::RegenSubcode,
                         [this](const Network::Packet& packet) { OnRegen(packet); }) &&
-        m_gameServer.On(Protocol::World::WeatherOpcode, [this](const Network::Packet& packet) { OnWeather(packet); }) &&
-        m_gameServer.On(Protocol::Messages::ChatOpcode, [this](const Network::Packet& packet) { OnChat(packet); }) &&
-        m_gameServer.On(Protocol::Messages::KeyChatOpcode,
-                        [this](const Network::Packet& packet) { OnKeyChat(packet); }) &&
-        m_gameServer.On(Protocol::Messages::WhisperOpcode,
-                        [this](const Network::Packet& packet) { OnWhisper(packet); }) &&
-        m_gameServer.On(Protocol::Messages::WhisperResultOpcode,
+        m_gameServer.On(Protocol::WeatherOpcode, [this](const Network::Packet& packet) { OnWeather(packet); }) &&
+        m_gameServer.On(Protocol::ChatOpcode, [this](const Network::Packet& packet) { OnChat(packet); }) &&
+        m_gameServer.On(Protocol::KeyChatOpcode, [this](const Network::Packet& packet) { OnKeyChat(packet); }) &&
+        m_gameServer.On(Protocol::WhisperOpcode, [this](const Network::Packet& packet) { OnWhisper(packet); }) &&
+        m_gameServer.On(Protocol::WhisperResultOpcode,
                         [this](const Network::Packet& packet) { OnWhisperResult(packet); }) &&
-        m_gameServer.On(Protocol::Messages::NoticeOpcode,
-                        [this](const Network::Packet& packet) { OnNotice(packet); }) &&
-        m_gameServer.On(CharacterOpcode, Protocol::OptionData::OptionDataSubcode,
+        m_gameServer.On(Protocol::NoticeOpcode, [this](const Network::Packet& packet) { OnNotice(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Protocol::Character::OptionDataSubcode,
                         [this](const Network::Packet& packet) { OnOptionData(packet); }) &&
-        m_gameServer.On(Protocol::Inventory::ItemMoveOpcode,
-                        [this](const Network::Packet& packet) { OnItemMove(packet); }) &&
-        m_gameServer.On(Protocol::Inventory::LifeOpcode,
-                        [this](const Network::Packet& packet) { OnLifeRefill(packet); }) &&
-        m_gameServer.On(Protocol::Inventory::ManaOpcode,
-                        [this](const Network::Packet& packet) { OnManaRefill(packet); }) &&
-        m_gameServer.On(Protocol::Inventory::ItemDeleteOpcode,
-                        [this](const Network::Packet& packet) { OnItemDelete(packet); }) &&
-        m_gameServer.On(Protocol::Inventory::DurabilityOpcode,
-                        [this](const Network::Packet& packet) { OnDurability(packet); }) &&
-        m_gameServer.On(CharacterOpcode, Protocol::Inventory::EquipmentChangeSubcode,
+        m_gameServer.On(Protocol::ItemMoveOpcode, [this](const Network::Packet& packet) { OnItemMove(packet); }) &&
+        m_gameServer.On(Protocol::LifeOpcode, [this](const Network::Packet& packet) { OnLifeRefill(packet); }) &&
+        m_gameServer.On(Protocol::ManaOpcode, [this](const Network::Packet& packet) { OnManaRefill(packet); }) &&
+        m_gameServer.On(Protocol::ItemDeleteOpcode, [this](const Network::Packet& packet) { OnItemDelete(packet); }) &&
+        m_gameServer.On(Protocol::DurabilityOpcode, [this](const Network::Packet& packet) { OnDurability(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Protocol::Character::EquipmentChangeSubcode,
                         [this](const Network::Packet& packet) { OnEquipmentChange(packet); }) &&
-        m_gameServer.On(CharacterOpcode, Protocol::Inventory::ItemPutSubcode,
+        m_gameServer.On(CharacterOpcode, Protocol::Character::ItemPutSubcode,
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
         // CL9 hito 6: las ventanas de los NPC. El 30 (0x4d1e00) y los casos 31..34, 81..83, 86, 87 y BC del
         // dispatcher 0x4e2b10.
-        m_gameServer.On(Protocol::NpcWindows::TalkOpcode,
-                        [this](const Network::Packet& packet) { OnTalkResult(packet); }) &&
-        m_gameServer.On(Protocol::NpcWindows::ItemListOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::BuyOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::SellOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::RepairOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::WarehouseMoneyOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::WarehouseCloseOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::WarehouseStateOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::ChaosMixOpcode, npcWindow) &&
-        m_gameServer.On(Protocol::NpcWindows::ChaosBoxCloseOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::TalkOpcode, [this](const Network::Packet& packet) { OnTalkResult(packet); }) &&
+        m_gameServer.On(Protocol::NpcItemListOpcode, npcWindow) && m_gameServer.On(Protocol::BuyOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::SellOpcode, npcWindow) && m_gameServer.On(Protocol::RepairOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::WarehouseMoneyOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::WarehouseCloseOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::WarehouseStateOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::ChaosMixOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::ChaosBoxCloseOpcode, npcWindow) &&
         // CL9 hito 5: los ítems del piso (0x4d0ba0, 0x4e3849, 0x4d0cc0, 0x4d10d0) y la fruta de stats (0x4de500). El
         // dispatcher (0x4e3831..0x4e3bdb) no mira si llegaron cifrados.
-        m_gameServer.On(Protocol::FloorItems::CreateOpcode,
+        m_gameServer.On(Protocol::FloorItemCreateOpcode,
                         [this](const Network::Packet& packet) { OnFloorItemsCreate(packet); }) &&
-        m_gameServer.On(Protocol::FloorItems::DeleteOpcode,
+        m_gameServer.On(Protocol::FloorItemDeleteOpcode,
                         [this](const Network::Packet& packet) { OnFloorItemsDelete(packet); }) &&
-        m_gameServer.On(Protocol::FloorItems::PickUpOpcode,
-                        [this](const Network::Packet& packet) { OnPickUpResult(packet); }) &&
-        m_gameServer.On(Protocol::FloorItems::DropOpcode,
-                        [this](const Network::Packet& packet) { OnDropResult(packet); }) &&
-        m_gameServer.On(Protocol::FloorItems::StatFruitOpcode,
-                        [this](const Network::Packet& packet) { OnStatFruit(packet); }) &&
+        m_gameServer.On(Protocol::PickUpOpcode, [this](const Network::Packet& packet) { OnPickUpResult(packet); }) &&
+        m_gameServer.On(Protocol::DropOpcode, [this](const Network::Packet& packet) { OnDropResult(packet); }) &&
+        m_gameServer.On(Protocol::StatFruitOpcode, [this](const Network::Packet& packet) { OnStatFruit(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
-        m_gameServer.On(Protocol::Connection::MainCheckOpcode,
-                        [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        m_gameServer.On(Protocol::MainCheckOpcode, [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
         // Las misiones (CL9 hito 2): 0x4e4b3a, 0x4e4b6d, 0x4e4b9f, 0x4e4ba9 y 0x4e4bf2 del dispatcher.
-        m_gameServer.On(Protocol::Quest::QuestFlagOpcode,
-                        [this](const Network::Packet& packet) { OnQuestFlag(packet); }) &&
-        m_gameServer.On(Protocol::Quest::QuestListOpcode,
-                        [this](const Network::Packet& packet) { OnQuestList(packet); }) &&
-        m_gameServer.On(Protocol::Quest::QuestStateOpcode,
-                        [this](const Network::Packet& packet) { OnQuestState(packet); }) &&
-        m_gameServer.On(Protocol::Quest::SetQuestOpcode,
+        m_gameServer.On(Protocol::QuestFlagOpcode, [this](const Network::Packet& packet) { OnQuestFlag(packet); }) &&
+        m_gameServer.On(Protocol::QuestListOpcode, [this](const Network::Packet& packet) { OnQuestList(packet); }) &&
+        m_gameServer.On(Protocol::QuestStateOpcode, [this](const Network::Packet& packet) { OnQuestState(packet); }) &&
+        m_gameServer.On(Protocol::SetQuestOpcode,
                         [this](const Network::Packet& packet) { OnSetQuestResult(packet); }) &&
-        m_gameServer.On(Protocol::Quest::QuestResultOpcode,
+        m_gameServer.On(Protocol::QuestResultOpcode,
                         [this](const Network::Packet& packet) { OnQuestResult(packet); }) &&
         // CL9 hito 9: los amigos.
-        m_gameServer.On(Protocol::Friends::FriendListOpcode,
-                        [this](const Network::Packet& packet) { OnFriendList(packet); }) &&
-        m_gameServer.On(Protocol::Friends::FriendAddOpcode,
+        m_gameServer.On(Protocol::FriendListOpcode, [this](const Network::Packet& packet) { OnFriendList(packet); }) &&
+        m_gameServer.On(Protocol::FriendAddOpcode,
                         [this](const Network::Packet& packet) { OnFriendAddResult(packet); }) &&
-        m_gameServer.On(Protocol::Friends::FriendRequestOpcode,
+        m_gameServer.On(Protocol::FriendRequestOpcode,
                         [this](const Network::Packet& packet) { OnFriendRequest(packet); }) &&
-        m_gameServer.On(Protocol::Friends::FriendDeleteOpcode,
+        m_gameServer.On(Protocol::FriendDeleteOpcode,
                         [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
-        m_gameServer.On(Protocol::Friends::FriendStateOpcode,
+        m_gameServer.On(Protocol::FriendStateOpcode,
                         [this](const Network::Packet& packet) { OnFriendState(packet); }) &&
         // CL9 hito 10: las cartas y el chat con un amigo.
-        m_gameServer.On(Protocol::Letters::LetterSendOpcode,
+        m_gameServer.On(Protocol::LetterSendOpcode,
                         [this](const Network::Packet& packet) { OnLetterSendResult(packet); }) &&
-        m_gameServer.On(Protocol::Letters::LetterListOpcode,
-                        [this](const Network::Packet& packet) { OnLetterRow(packet); }) &&
-        m_gameServer.On(Protocol::Letters::LetterReadOpcode,
-                        [this](const Network::Packet& packet) { OnLetterRead(packet); }) &&
-        m_gameServer.On(Protocol::Letters::LetterDeleteOpcode,
+        m_gameServer.On(Protocol::LetterListOpcode, [this](const Network::Packet& packet) { OnLetterRow(packet); }) &&
+        m_gameServer.On(Protocol::LetterReadOpcode, [this](const Network::Packet& packet) { OnLetterRead(packet); }) &&
+        m_gameServer.On(Protocol::LetterDeleteOpcode,
                         [this](const Network::Packet& packet) { OnLetterDeleteResult(packet); }) &&
-        m_gameServer.On(Protocol::FriendChat::RoomRequestOpcode,
-                        [this](const Network::Packet& packet) { OnRoomAnswer(packet); }) &&
-        m_gameServer.On(Protocol::FriendChat::InviteOpcode,
+        m_gameServer.On(Protocol::RoomRequestOpcode, [this](const Network::Packet& packet) { OnRoomAnswer(packet); }) &&
+        m_gameServer.On(Protocol::RoomInviteOpcode,
                         [this](const Network::Packet& packet) { OnInviteResult(packet); }) &&
         RegisterGuildHandlers() &&
         // CL9 hito 11: los eventos.
@@ -383,11 +359,11 @@ void ServerSession::RegisterGameServerHandlers()
     // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
     // en el default (0x4e5b4a) y no hace nada, como acá. El D7 que llega ya lo atiende OnDamage.
     [[maybe_unused]] const bool combatRegistered =
-        m_gameServer.On(Protocol::Combat::KillExperienceOpcode,
+        m_gameServer.On(Protocol::KillExperienceOpcode,
                         [this](const Network::Packet& packet) { OnKillExperience(packet); }) &&
-        m_gameServer.On(Protocol::Combat::ExtendedKillExperienceOpcode,
+        m_gameServer.On(Protocol::ExtendedKillExperienceOpcode,
                         [this](const Network::Packet& packet) { OnExtendedKillExperience(packet); }) &&
-        m_gameServer.On(Protocol::Combat::DeathOpcode, [this](const Network::Packet& packet) { OnDeath(packet); });
+        m_gameServer.On(Protocol::DeathOpcode, [this](const Network::Packet& packet) { OnDeath(packet); });
     assert(combatRegistered && "los handlers del combate se registran una vez");
     RegisterSkillHandlers();
 }
@@ -396,20 +372,24 @@ void ServerSession::RegisterGameServerHandlers()
 // descifrados con el opcode de la tabla (0xa5 → 0x19 y 0xa6 → 0x1e), como los demás.
 void ServerSession::RegisterSkillHandlers()
 {
-    using Protocol::Character::CharacterOpcode;
+    using Protocol::CharacterOpcode;
     namespace Skill = Protocol::Skill;
     [[maybe_unused]] const bool registered =
-        m_gameServer.On(Skill::MagicAttackOpcode, [this](const Network::Packet& packet) { OnMagicAttack(packet); }) &&
-        m_gameServer.On(Skill::DurationMagicOpcode,
+        m_gameServer.On(Protocol::MagicAttackOpcode,
+                        [this](const Network::Packet& packet) { OnMagicAttack(packet); }) &&
+        m_gameServer.On(Protocol::DurationMagicOpcode,
                         [this](const Network::Packet& packet) { OnDurationMagic(packet); }) &&
-        m_gameServer.On(Skill::MagicCancelOpcode, [this](const Network::Packet& packet) { OnMagicCancel(packet); }) &&
-        m_gameServer.On(Skill::ActorStateOpcode, [this](const Network::Packet& packet) { OnActorState(packet); }) &&
-        m_gameServer.On(Skill::ActorEffectOpcode, [this](const Network::Packet& packet) { OnActorEffect(packet); }) &&
-        m_gameServer.On(Skill::SkillTargetOpcode, [this](const Network::Packet& packet) { OnSkillTarget(packet); }) &&
-        m_gameServer.On(Skill::Report73Opcode, [this](const Network::Packet& packet) { OnReport73(packet); }) &&
-        m_gameServer.On(CharacterOpcode, Skill::SkillListSubcode,
+        m_gameServer.On(Protocol::MagicCancelOpcode,
+                        [this](const Network::Packet& packet) { OnMagicCancel(packet); }) &&
+        m_gameServer.On(Protocol::ActorStateOpcode, [this](const Network::Packet& packet) { OnActorState(packet); }) &&
+        m_gameServer.On(Protocol::ActorEffectOpcode,
+                        [this](const Network::Packet& packet) { OnActorEffect(packet); }) &&
+        m_gameServer.On(Protocol::SkillTargetOpcode,
+                        [this](const Network::Packet& packet) { OnSkillTarget(packet); }) &&
+        m_gameServer.On(Protocol::Report73Opcode, [this](const Network::Packet& packet) { OnReport73(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Protocol::Character::SkillListSubcode,
                         [this](const Network::Packet& packet) { OnSkillList(packet); }) &&
-        m_gameServer.On(CharacterOpcode, Skill::LevelUpSubcode,
+        m_gameServer.On(CharacterOpcode, Protocol::Character::LevelUpSubcode,
                         [this](const Network::Packet& packet) { OnLevelUp(packet); }) &&
         // 0x4e30cd: la respuesta al punto de subir de nivel (0x4d3200).
         m_gameServer.On(CharacterOpcode, Protocol::Character::LevelUpPointSubcode,
@@ -417,12 +397,11 @@ void ServerSession::RegisterSkillHandlers()
         // 0x4e30cd: el estado de PK de un personaje (0x4d3b50).
         m_gameServer.On(CharacterOpcode, Protocol::Character::PkLevelSubcode,
                         [this](const Network::Packet& packet) { OnPkLevel(packet); }) &&
-        m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
+        m_gameServer.On(CharacterOpcode, Protocol::Character::SummonLifeSubcode,
                         [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
-        m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
-        m_gameServer.On(Protocol::Pet::PetAttackOpcode,
-                        [this](const Network::Packet& packet) { OnPetAttack(packet); }) &&
-        m_gameServer.On(Protocol::Pet::PetInfoOpcode, [this](const Network::Packet& packet) { OnPetInfo(packet); });
+        m_gameServer.On(Protocol::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
+        m_gameServer.On(Protocol::PetAttackOpcode, [this](const Network::Packet& packet) { OnPetAttack(packet); }) &&
+        m_gameServer.On(Protocol::PetInfoOpcode, [this](const Network::Packet& packet) { OnPetInfo(packet); });
     assert(registered && "los handlers de las skills se registran una vez");
 }
 
@@ -433,37 +412,37 @@ bool ServerSession::RegisterTheEventPackets()
 {
     namespace Events = Protocol::Events;
     const auto handler = [this](const Network::Packet& packet) { OnEventPacket(packet); };
-    constexpr std::array<std::uint8_t, 15> Opcodes{
-        Events::EventStateOpcode,       Events::MapAttributesOpcode, Events::ItemAcquiredOpcode,
-        Events::DevilSquareEntryOpcode, Events::EventOpenTimeOpcode, Events::EventCountdownOpcode,
-        Events::EventResultOpcode,      Events::EventChipInfoOpcode, Events::EventChipCountOpcode,
-        Events::MutoNumbersOpcode,      Events::EventDialogOpcode,   Events::BloodCastleEntryOpcode,
-        Events::EventPlayStateOpcode,   Events::SerialResultOpcode,  Events::EventSoundOpcode};
+    constexpr std::array<Network::Opcode, 15> Opcodes{
+        Protocol::EventStateOpcode,       Protocol::MapAttributesOpcode, Protocol::ItemAcquiredOpcode,
+        Protocol::DevilSquareEntryOpcode, Protocol::EventOpenTimeOpcode, Protocol::EventCountdownOpcode,
+        Protocol::EventResultOpcode,      Protocol::EventChipInfoOpcode, Protocol::EventChipCountOpcode,
+        Protocol::MutoNumbersOpcode,      Protocol::EventDialogOpcode,   Protocol::BloodCastleEntryOpcode,
+        Protocol::EventPlayStateOpcode,   Protocol::SerialResultOpcode,  Protocol::EventSoundOpcode};
     struct WithSubcode
     {
-        std::uint8_t opcode;
-        std::uint8_t subcode;
+        Network::Opcode opcode;
+        Network::Subcode subcode;
     };
     constexpr std::array<WithSubcode, 16> Subcodes{{
-        {Events::ChaosCastleOpcode, Events::ChaosCastleEntrySubcode},
-        {Events::JewelMixOpcode, Events::JewelMixSubcode},
-        {Events::JewelMixOpcode, Events::JewelUnmixSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfStateSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfAltarsSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfContractSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfTimerSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfBossSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfRankSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfRankingSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfChaosBoxSubcode},
-        {Events::CrywolfOpcode, Events::CrywolfEffectSubcode},
-        {Events::WorldOpcode, Events::EventTimeSubcode},
-        {Events::WorldOpcode, Events::SoccerScoreSubcode},
-        {Events::WorldOpcode, Events::GuildWarOutcomeSubcode},
-        {Events::WorldOpcode, Events::ServerCommandSubcode},
+        {Protocol::ChaosCastleOpcode, Protocol::ChaosCastle::EntrySubcode},
+        {Protocol::JewelMixOpcode, Protocol::JewelMix::MixSubcode},
+        {Protocol::JewelMixOpcode, Protocol::JewelMix::UnmixSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::StateSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::AltarsSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::ContractSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::TimerSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::BossSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::RankSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::RankingSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::ChaosBoxSubcode},
+        {Protocol::CrywolfOpcode, Protocol::Crywolf::EffectSubcode},
+        {Protocol::CharacterOpcode, Protocol::Character::EventTimeSubcode},
+        {Protocol::CharacterOpcode, Protocol::Character::SoccerScoreSubcode},
+        {Protocol::CharacterOpcode, Protocol::Character::GuildWarOutcomeSubcode},
+        {Protocol::CharacterOpcode, Protocol::Character::ServerCommandSubcode},
     }};
     bool registered = true;
-    for (const std::uint8_t opcode : Opcodes)
+    for (const Network::Opcode opcode : Opcodes)
         registered = m_gameServer.On(opcode, handler) && registered;
     for (const WithSubcode& entry : Subcodes)
         registered = m_gameServer.On(entry.opcode, entry.subcode, handler) && registered;
@@ -475,26 +454,16 @@ bool ServerSession::RegisterTheEventPackets()
 bool ServerSession::RegisterGuildHandlers()
 {
     using namespace Protocol::Guild;
-    for (const std::uint8_t opcode : {JoinRequestOpcode,
-                                      JoinResultOpcode,
-                                      MemberListOpcode,
-                                      LeaveResultOpcode,
-                                      MasterQuestionOpcode,
-                                      CreateResultOpcode,
-                                      ViewportGuildDeleteOpcode,
-                                      WarRequestResultOpcode,
-                                      WarRequestOpcode,
-                                      WarStartOpcode,
-                                      WarEndOpcode,
-                                      WarScoreOpcode,
-                                      ViewportGuildOpcode,
-                                      GuildInfoOpcode,
-                                      ViewportUnionOpcode,
-                                      AssignResultOpcode,
-                                      RelationshipRequestOpcode,
-                                      RelationshipResultOpcode,
-                                      UnionListOpcode,
-                                      UnionListRefreshOpcode})
+    for (const Network::Opcode opcode : {Protocol::GuildJoinRequestOpcode,    Protocol::GuildJoinResultOpcode,
+                                         Protocol::GuildMemberListOpcode,     Protocol::GuildLeaveResultOpcode,
+                                         Protocol::GuildMasterQuestionOpcode, Protocol::GuildCreateResultOpcode,
+                                         Protocol::ViewportGuildDeleteOpcode, Protocol::GuildWarRequestResultOpcode,
+                                         Protocol::GuildWarRequestOpcode,     Protocol::GuildWarStartOpcode,
+                                         Protocol::GuildWarEndOpcode,         Protocol::GuildWarScoreOpcode,
+                                         Protocol::ViewportGuildOpcode,       Protocol::GuildInfoOpcode,
+                                         Protocol::ViewportUnionOpcode,       Protocol::GuildAssignResultOpcode,
+                                         Protocol::RelationshipRequestOpcode, Protocol::RelationshipResultOpcode,
+                                         Protocol::UnionListOpcode,           Protocol::UnionKickOpcode})
     {
         if (!m_gameServer.On(opcode, [this](const Network::Packet& packet) { OnGuild(packet); }))
             return false;
@@ -511,67 +480,71 @@ void ServerSession::RegisterSocialHandlers()
     namespace Shop = Protocol::PersonalShop;
     using Network::Packet;
     [[maybe_unused]] const bool registered =
-        m_gameServer.On(Trade::RequestOpcode, [this](const Packet& packet) { OnTradeRequest(packet); }) &&
-        m_gameServer.On(Trade::ResponseOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::TradeRequestOpcode, [this](const Packet& packet) { OnTradeRequest(packet); }) &&
+        m_gameServer.On(Protocol::TradeResponseOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Trade::ReadTradeResponse, "la respuesta del comercio (37)"); }) &&
-        m_gameServer.On(Trade::ItemRemovedOpcode,
+        m_gameServer.On(Protocol::TradeItemRemovedOpcode,
                         [this](const Packet& packet) {
                             ApplyWorldPacket(packet, Trade::ReadTradeItemRemoved, "el ítem que sale del comercio (38)");
                         }) &&
-        m_gameServer.On(Trade::ItemAddedOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::TradeItemAddedOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Trade::ReadTradeItemAdded, "el ítem del comercio (39)"); }) &&
-        m_gameServer.On(Trade::MoneyOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::TradeMoneyOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Trade::ReadTradeMoneyResult, "el zen del comercio (3A)"); }) &&
-        m_gameServer.On(Trade::OtherMoneyOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::TradeOtherMoneyOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Trade::ReadTradeOtherMoney, "el zen del otro (3B)"); }) &&
-        m_gameServer.On(Trade::OkButtonOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::TradeOkButtonOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Trade::ReadTradeOkState, "el OK del comercio (3C)"); }) &&
-        m_gameServer.On(Trade::ResultOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::TradeResultOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Trade::ReadTradeResult, "el resultado del comercio (3D)"); }) &&
-        m_gameServer.On(Party::RequestOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PartyRequestOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Party::ReadPartyRequest, "la invitación a la party (40)"); }) &&
-        m_gameServer.On(Party::RequestResultOpcode,
+        m_gameServer.On(Protocol::PartyRequestResultOpcode,
                         [this](const Packet& packet) {
                             ApplyWorldPacket(packet, Party::ReadPartyRequestResult, "la respuesta de la party (41)");
                         }) &&
-        m_gameServer.On(Party::PartyListOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PartyListOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Party::ReadPartyList, "la lista de la party (42)"); }) &&
-        m_gameServer.On(Party::LeaveOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PartyLeaveOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Party::ReadPartyLeft, "la salida de la party (43)"); }) &&
-        m_gameServer.On(Party::LifeOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PartyLifeOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Party::ReadPartyLife, "la vida de la party (44)"); }) &&
-        m_gameServer.On(Duel::StartOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::DuelStartOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelStart, "el comienzo del duelo (AA)"); }) &&
-        m_gameServer.On(Duel::EndOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::DuelEndOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelEnd, "el fin del duelo (AB)"); }) &&
-        m_gameServer.On(Duel::RequestOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::DuelRequestOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelRequest, "el pedido de duelo (AC)"); }) &&
-        m_gameServer.On(Duel::ScoreOpcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::DuelScoreOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelScore, "los puntos del duelo (AD)"); }) &&
         // Las tiendas personales (hito 7, fases 3 y 4): los carteles, los avisos y las listas de ítems del 3F.
-        m_gameServer.On(Shop::Opcode, Shop::TitlesSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::TitlesSubcode,
+                        [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopTitles, "los carteles de las tiendas (3F 00)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::CreatedSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::OpenSubcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopCreated, "la tienda propia abierta (3F 02)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::ClosedSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::CloseSubcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopClosed, "la tienda cerrada (3F 03)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::NoticeSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::NoticeSubcode,
+                        [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopNotice, "el aviso de la tienda (3F 08)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::TitleSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::TitleSubcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopTitle, "el cartel de otro (3F 10)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::OwnerLeftSubcode,
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::OwnerLeftSubcode,
                         [this](const Packet& packet) {
                             ApplyWorldPacket(packet, Shop::ReadShopOwnerLeft, "la tienda ajena que se cierra (3F 12)");
                         }) &&
-        m_gameServer.On(Shop::Opcode, Shop::PriceResultSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::SetPriceSubcode,
+                        [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadPriceResult, "el precio que no se puso (3F 01)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::ItemListSubcode,
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::ItemListSubcode,
                         [this](const Packet& packet) {
                             ApplyWorldPacket(packet, Shop::ReadShopItemList, "la lista de la tienda de otro (3F 05)");
                         }) &&
-        m_gameServer.On(Shop::Opcode, Shop::PurchaseSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::BuySubcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopPurchase, "la compra en una tienda (3F 06)"); }) &&
-        m_gameServer.On(Shop::Opcode, Shop::RefreshSubcode, [this](const Packet& packet)
+        m_gameServer.On(Protocol::PersonalShopOpcode, Protocol::PersonalShop::RefreshSubcode,
+                        [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopRefresh, "la lista que se renueva (3F 13)"); });
     assert(registered && "los handlers del comercio, la party, el duelo y las tiendas se registran una vez");
 }
@@ -614,18 +587,18 @@ bool ServerSession::RegisterCastleSiegeHandlers()
 {
     namespace Castle = Protocol::CastleSiege;
     const auto onCastle = [this](const Network::Packet& packet) { OnCastleSiege(packet); };
-    for (const std::uint8_t subcode : Castle::WindowSubcodes)
+    for (const Network::Subcode subcode : Castle::WindowSubcodes)
     {
-        if (!m_gameServer.On(Castle::CastleOpcode, subcode, onCastle))
+        if (!m_gameServer.On(Protocol::CastleOpcode, subcode, onCastle))
             return false;
     }
-    for (const std::uint8_t opcode : {Castle::NpcListOpcode, Castle::SiegeGuildListOpcode,
-                                      Castle::RegisteredGuildListOpcode, Castle::MinimapOpcode})
+    for (const Network::Opcode opcode : {Protocol::CastleNpcListOpcode, Protocol::SiegeGuildListOpcode,
+                                         Protocol::RegisteredGuildListOpcode, Protocol::SiegeMinimapOpcode})
     {
         if (!m_gameServer.On(opcode, onCastle))
             return false;
     }
-    return m_gameServer.On(Castle::KillCountOpcode, Castle::KillCountSubcode, onCastle);
+    return m_gameServer.On(Protocol::KillCountOpcode, Protocol::KillCount::CountSubcode, onCastle);
 }
 
 // CL9 hito 13: la batalla del castillo. Del B9 que llega, el 01, 02, 03 y 05 (0x4e58b0, tabla 0x4e61f8; el 04 y desde
@@ -635,20 +608,20 @@ bool ServerSession::RegisterCastleBattleHandlers()
 {
     namespace Battle = Protocol::CastleBattle;
     const auto onBattle = [this](const Network::Packet& packet) { OnCastleBattle(packet); };
-    for (const std::uint8_t subcode : Battle::BattleSubcodes)
+    for (const Network::Subcode subcode : Battle::BattleSubcodes)
     {
-        if (!m_gameServer.On(Battle::BattleOpcode, subcode, onBattle))
+        if (!m_gameServer.On(Protocol::CastleInfoOpcode, subcode, onBattle))
             return false;
     }
-    for (const std::uint8_t subcode : Battle::CastleSubcodes)
-        if (!m_gameServer.On(Battle::CastleOpcode, subcode, onBattle))
+    for (const Network::Subcode subcode : Battle::CastleSubcodes)
+        if (!m_gameServer.On(Protocol::CastleOpcode, subcode, onBattle))
             return false;
-    for (const std::uint8_t subcode : Battle::WeaponSubcodes)
-        if (!m_gameServer.On(Battle::WeaponOpcode, subcode, onBattle))
+    for (const Network::Subcode subcode : Battle::WeaponSubcodes)
+        if (!m_gameServer.On(Protocol::SiegeWeaponOpcode, subcode, onBattle))
             return false;
-    return m_gameServer.On(Battle::ActorFieldOpcode, onBattle) &&
-           m_gameServer.On(Battle::MinimapMembersOpcode, onBattle) &&
-           m_gameServer.On(Protocol::Connection::MapServerOpcode, Protocol::Connection::MapServerMoveSubcode,
+    return m_gameServer.On(Protocol::ActorFieldOpcode, onBattle) &&
+           m_gameServer.On(Protocol::SiegeMinimapMembersOpcode, onBattle) &&
+           m_gameServer.On(Protocol::MapServerOpcode, Protocol::MapServer::MoveSubcode,
                            [this](const Network::Packet& packet) { OnMapServerMove(packet); });
 }
 
@@ -1453,12 +1426,13 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
 // guarda antes su copia en la cola de 0x77f27b4 (0x4e3594..0x4e361c), como el 1C, aunque llegue corto.
 void ServerSession::OnEventPacket(const Network::Packet& packet)
 {
-    if (packet.Opcode() == Protocol::Events::EventStateOpcode)
+    if (packet.Opcode() == Protocol::EventStateOpcode)
         m_eventSink.CopyToPacketRing(packet.Bytes());
     auto event = Protocol::Events::ReadEventPacket(packet);
     if (!event.HasValue())
     {
-        m_log.Warning("se ignora el paquete de evento {:02X}: {}", packet.Opcode().value_or(0), Unreadable);
+        m_log.Warning("se ignora el paquete de evento {:02X}: {}",
+                      Network::ByteOf(packet.Opcode().value_or(Network::Opcode{})), Unreadable);
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(event).Value(), *this)));
@@ -1752,21 +1726,21 @@ template <typename Value> std::optional<WorldEvent> EventOf(const Core::Expected
 std::optional<WorldEvent> ReadNpcWindowEvent(const Network::Packet& packet)
 {
     namespace Npc = Protocol::NpcWindows;
-    switch (packet.Opcode().value_or(0))
+    switch (Network::ByteOf(packet.Opcode().value_or(Network::Opcode{})))
     {
-    case Npc::ItemListOpcode:
+    case Network::ByteOf(Protocol::NpcItemListOpcode):
         return EventOf(Npc::ReadItemList(packet));
-    case Npc::BuyOpcode:
+    case Network::ByteOf(Protocol::BuyOpcode):
         return EventOf(Npc::ReadBuyResult(packet));
-    case Npc::SellOpcode:
+    case Network::ByteOf(Protocol::SellOpcode):
         return EventOf(Npc::ReadSellResult(packet));
-    case Npc::RepairOpcode:
+    case Network::ByteOf(Protocol::RepairOpcode):
         return EventOf(Npc::ReadRepairResult(packet));
-    case Npc::WarehouseMoneyOpcode:
+    case Network::ByteOf(Protocol::WarehouseMoneyOpcode):
         return EventOf(Npc::ReadWarehouseMoney(packet));
-    case Npc::WarehouseStateOpcode:
+    case Network::ByteOf(Protocol::WarehouseStateOpcode):
         return EventOf(Npc::ReadWarehouseState(packet));
-    case Npc::ChaosMixOpcode:
+    case Network::ByteOf(Protocol::ChaosMixOpcode):
         return EventOf(Npc::ReadChaosMixResult(packet));
     default:
         return EventOf(Npc::ReadNpcWindowClosed(packet));
@@ -1779,7 +1753,8 @@ void ServerSession::OnNpcWindow(const Network::Packet& packet)
     const std::optional<WorldEvent> event = ReadNpcWindowEvent(packet);
     if (!event)
     {
-        m_log.Warning("se ignora el {:02X} de las ventanas de los NPC: {}", packet.Opcode().value_or(0), Unreadable);
+        m_log.Warning("se ignora el {:02X} de las ventanas de los NPC: {}",
+                      Network::ByteOf(packet.Opcode().value_or(Network::Opcode{})), Unreadable);
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(*event, *this)));
@@ -2238,7 +2213,7 @@ void ServerSession::PollTheChatRooms()
                 if (!Protocol::FriendChat::CheckRoomPacket(*packet).HasValue())
                 {
                     m_log.Warning("se ignora el {:02X} de la sala {} del chat con un amigo: {}",
-                                  packet->Opcode().value_or(0), room, Unreadable);
+                                  Network::ByteOf(packet->Opcode().value_or(Network::Opcode{})), room, Unreadable);
                     continue;
                 }
                 if (!CheckApplication(m_eventSink.ApplyWorld(
@@ -2286,7 +2261,7 @@ void ServerSession::OnMagicAttack(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("la skill (19) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::MagicAttackOpcode);
+        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::MagicAttackOpcode);
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
@@ -2305,7 +2280,7 @@ void ServerSession::OnDurationMagic(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("la skill con duración (1E) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::DurationMagicOpcode);
+        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::DurationMagicOpcode);
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
@@ -2469,7 +2444,7 @@ void ServerSession::OnKillExperience(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("la experiencia (16) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::Combat::KillExperienceOpcode);
+        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::KillExperienceOpcode);
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
@@ -2487,8 +2462,7 @@ void ServerSession::OnExtendedKillExperience(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("la experiencia (9C) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report =
-            Protocol::Combat::WriteClearKillReport(Protocol::Combat::ExtendedKillExperienceOpcode);
+        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::ExtendedKillExperienceOpcode);
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }

@@ -1,5 +1,6 @@
 #include "test_game_t16_support.h"
 
+#include "Network/Packet.h"
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
 #include "Scenes/ActorState.h"
@@ -53,7 +54,7 @@ TEST_P(GameT16GateTransport, EveryArchivedEntrySendsItsOwnEncryptedRequestBefore
     const auto sent = Sent();
     ASSERT_EQ(sent.packets.size(), 1u);
     ASSERT_EQ(sent.serials.size(), 1u); // C3 real, descifrado por el fakeGS con su serial.
-    EXPECT_EQ(sent.packets[0].Opcode(), 0x1c);
+    EXPECT_EQ(sent.packets[0].Opcode(), Client::Network::Opcode{0x1c});
     ASSERT_EQ(sent.packets[0].Bytes().size(), 6u);
     EXPECT_EQ(sent.packets[0].Bytes()[3], std::byte{index});
     EXPECT_EQ(m_world->Runtime().warpCounter, 9'999'999);

@@ -4,12 +4,11 @@
 #include "Network/Field.h"
 #include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketCode.h"
 #include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
 #include "Network/ProtocolError.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -27,7 +26,7 @@ constexpr std::uint32_t MainCheckKeyMask = 0xB479;
 // pkt[3] is the padding that aligns the key to two bytes in the GS's struct.
 using MainCheckKey = Network::Field<std::uint16_t, 4>;
 constexpr Network::PacketLayout MainCheckKeyLayout{
-    {Network::PacketType::C1, Network::Opcode{MainCheckOpcode}, std::nullopt}, MainCheckKey::End, 0x4e16c0};
+    {Network::PacketType::C1, MainCheckOpcode, std::nullopt}, MainCheckKey::End, 0x4e16c0};
 // 0x4e1762..0x4e178a: el byte que alinea la suma a cuatro, en 0.
 constexpr std::uint8_t MainCheckReplyPadding = 0;
 

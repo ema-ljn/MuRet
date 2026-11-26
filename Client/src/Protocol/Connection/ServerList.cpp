@@ -5,7 +5,6 @@
 #include "Network/Field.h"
 #include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketCode.h"
 #include "Network/PacketFields.h"
 #include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
@@ -29,9 +28,7 @@ namespace
 // The list FoxAnti leaves is a C2; the reply with the address, a C1.
 using ServerCount = Network::Field<std::uint16_t, 5, std::endian::big>;
 constexpr Network::PacketLayout ListLayout{
-    {Network::PacketType::C2, Network::Opcode{ServerListOpcode}, Network::Subcode{ServerListSubcode}},
-    ServerCount::End,
-    0x4c1860};
+    {Network::PacketType::C2, ServerListOpcode, ServerListSubcode}, ServerCount::End, 0x4c1860};
 
 // The entries follow the count: the code, the load and a byte 0x4c1860 does not read.
 constexpr std::size_t ServerEntrySize = 4;
@@ -40,9 +37,7 @@ constexpr std::size_t HostFieldSize = 16;
 using AddressHost = Network::Field<std::array<std::byte, HostFieldSize>, 4>;
 using AddressPort = Network::Field<std::uint16_t, AddressHost::End>;
 constexpr Network::PacketLayout AddressLayout{
-    {Network::PacketType::C1, Network::Opcode{ServerListOpcode}, Network::Subcode{ServerSelectSubcode}},
-    AddressPort::End,
-    0x4e3341};
+    {Network::PacketType::C1, ServerListOpcode, ServerSelectSubcode}, AddressPort::End, 0x4e3341};
 
 // 0x4e3341 copies pkt[4..18] to a 16-byte buffer in 0 and the last stays \0: pkt[19] is never read.
 constexpr std::size_t HostReadSize = HostFieldSize - 1;
@@ -71,12 +66,12 @@ ServerAddress ReadAddress(Network::LayoutReader& reader)
 
 Outgoing WriteServerListRequest()
 {
-    return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListRequestSubcode));
+    return ClearC1(Network::PacketWriter::C1(ServerListOpcode, ServerListRequestSubcode));
 }
 
 Outgoing WriteCreditsNotice()
 {
-    return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListSubcode));
+    return ClearC1(Network::PacketWriter::C1(ServerListOpcode, ServerListSubcode));
 }
 
 Core::Expected<std::vector<ServerEntry>, Network::ProtocolError> ReadServerList(const Network::Packet& packet)
@@ -86,7 +81,7 @@ Core::Expected<std::vector<ServerEntry>, Network::ProtocolError> ReadServerList(
 
 Outgoing WriteServerSelect(std::uint16_t code)
 {
-    return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerSelectSubcode).PutU16Le(code));
+    return ClearC1(Network::PacketWriter::C1(ServerListOpcode, ServerSelectSubcode).PutU16Le(code));
 }
 
 Core::Expected<ServerAddress, Network::ProtocolError> ReadServerAddress(const Network::Packet& packet)

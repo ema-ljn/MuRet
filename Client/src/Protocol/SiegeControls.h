@@ -7,10 +7,6 @@
 // 04 § Castle Siege, batalla: órdenes de 0x44dd50, 0x44f810 y 0x4105f0.
 namespace Client::Protocol::SiegeControls
 {
-inline constexpr std::uint8_t WeaponOpcode = 0xb7;
-inline constexpr std::uint8_t CastleOpcode = 0xb2;
-inline constexpr std::uint8_t UseSubcode = 1;
-inline constexpr std::uint8_t CommandSubcode = 0x1d;
 [[nodiscard]] Outgoing WriteWeapon(std::uint16_t key, std::uint8_t choice);
 [[nodiscard]] Outgoing WriteGate(std::uint8_t open, std::uint16_t key);
 [[nodiscard]] Outgoing WriteCommand(std::uint8_t row, std::uint8_t x, std::uint8_t y, std::uint8_t command);

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -131,17 +132,17 @@ Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadHuntZoneEntryResu
 }
 
 Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadBattle(std::span<const std::byte> bytes,
-                                                                      std::uint8_t subcode)
+                                                                      Network::Subcode subcode)
 {
-    switch (subcode)
+    switch (Network::ByteOf(subcode))
     {
-    case NpcLevelSubcode:
+    case Network::ByteOf(CastleInfo::NpcLevelSubcode):
         return ReadNpcLevel(bytes);
-    case OwnerMarkSubcode:
+    case Network::ByteOf(CastleInfo::OwnerMarkSubcode):
         return ReadOwnerMark(bytes);
-    case HuntZoneInfoSubcode:
+    case Network::ByteOf(CastleInfo::HuntZoneInfoSubcode):
         return ReadHuntZoneInfo(bytes);
-    case HuntZoneEntrySubcode:
+    case Network::ByteOf(CastleInfo::HuntZoneEntrySubcode):
         return ReadHuntZoneEntryResult(bytes);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -212,9 +213,9 @@ Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadSwitchHolder(std:
 Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastle(std::span<const std::byte> bytes,
                                                                       std::uint8_t subcode)
 {
-    if (subcode == SwitchHolderSubcode)
+    if (Network::Subcode{subcode} == Castle::SwitchHolderSubcode)
         return ReadSwitchHolder(bytes);
-    if (std::ranges::find(CastleSubcodes, subcode) == CastleSubcodes.end())
+    if (std::ranges::find(CastleSubcodes, Network::Subcode{subcode}) == CastleSubcodes.end())
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const auto value = U8(bytes, 4);
     if (!value)
@@ -370,28 +371,28 @@ Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastleBattlePacke
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     const std::span<const std::byte> bytes = packet.Bytes();
-    switch (*opcode)
+    switch (Network::ByteOf(*opcode))
     {
-    case BattleOpcode:
-    case CastleOpcode:
-    case WeaponOpcode:
+    case Network::ByteOf(CastleInfoOpcode):
+    case Network::ByteOf(CastleOpcode):
+    case Network::ByteOf(SiegeWeaponOpcode):
     {
         const auto subcode = U8(bytes, Network::MinPacketSize(packet.Type()));
         if (!subcode)
         {
             return TooShort();
         }
-        if (*opcode == BattleOpcode)
+        if (*opcode == CastleInfoOpcode)
         {
-            return ReadBattle(bytes, *subcode);
+            return ReadBattle(bytes, Network::Subcode{*subcode});
         }
-        if (*opcode == WeaponOpcode)
+        if (*opcode == SiegeWeaponOpcode)
             return ReadWeapon(bytes, *subcode);
         return ReadCastle(bytes, *subcode);
     }
-    case ActorFieldOpcode:
+    case Network::ByteOf(ActorFieldOpcode):
         return ReadActorField(bytes);
-    case MinimapMembersOpcode:
+    case Network::ByteOf(SiegeMinimapMembersOpcode):
         return ReadMinimapMembers(bytes);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);

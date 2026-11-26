@@ -1104,7 +1104,8 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
         "la vaquita para la parrilla se junta el viernes a la noche y cada uno trae algo para compartir, che!";
     ASSERT_EQ(Said.size(), 100u);
     auto bytes =
-        Joined(Bytes({0xc1, 5 + 100, Client::Protocol::FriendChat::MessageOpcode, 1, 100}), ChatTextOf(Said, 100));
+        Joined(Bytes({0xc1, 5 + 100, Client::Network::ByteOf(Client::Protocol::FriendChat::RoomMessageOpcode), 1, 100}),
+               ChatTextOf(Said, 100));
     auto packet = Client::Network::Packet::FromBytes(std::move(bytes));
     ASSERT_TRUE(packet.HasValue());
     const auto applied = Client::Scenes::ApplyRoomPacket(chatId, packet.Value(), Context());

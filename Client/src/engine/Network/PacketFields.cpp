@@ -27,7 +27,7 @@ Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network
     {
         return Core::Unexpected(ProtocolError::TooShort);
     }
-    if (*subcode != kind.subcode)
+    if (Subcode{*subcode} != kind.subcode)
     {
         return Core::Unexpected(ProtocolError::WrongPacket);
     }

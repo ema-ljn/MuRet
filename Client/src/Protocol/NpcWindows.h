@@ -4,6 +4,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <array>
 #include <cstddef>
@@ -16,19 +17,7 @@
 // de la tienda (C1 03 31) es Protocol::Connection::WriteWindowClose.
 namespace Client::Protocol::NpcWindows
 {
-inline constexpr std::uint8_t TalkOpcode = 0x30;
-inline constexpr std::uint8_t ItemListOpcode = 0x31;
-inline constexpr std::uint8_t BuyOpcode = 0x32;
-inline constexpr std::uint8_t SellOpcode = 0x33;
-inline constexpr std::uint8_t RepairOpcode = 0x34;
-inline constexpr std::uint8_t WarehouseMoneyOpcode = 0x81;
-inline constexpr std::uint8_t WarehouseCloseOpcode = 0x82;
-inline constexpr std::uint8_t WarehouseStateOpcode = 0x83;
-inline constexpr std::uint8_t ChaosMixOpcode = 0x86;
-inline constexpr std::uint8_t ChaosBoxCloseOpcode = 0x87;
-inline constexpr std::uint8_t PersonalNumberOpcode = 0x99;
-// 0x65a986..0x65a9d5: abrir la caja del caos manda C1 04 BD 09 (el opcode de Crywolf, Protocol::World).
-inline constexpr std::uint8_t ChaosRateSubcode = 0x09;
+inline constexpr Network::Opcode PersonalNumberOpcode = EventDialogOpcode;
 
 // Los siete bytes de un ítem, como en el F3 10 y el 24.
 inline constexpr std::size_t ItemDataSize = 7;
@@ -116,7 +105,7 @@ struct WarehouseMoney
 // El 82 y el 87 (0x4e4819..0x4e4862): el fin del almacén y de la caja del caos, sin campos.
 struct NpcWindowClosed
 {
-    std::uint8_t opcode = 0;
+    Network::Opcode opcode{};
 };
 
 [[nodiscard]] Core::Expected<NpcWindowClosed, Network::ProtocolError>

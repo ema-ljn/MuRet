@@ -6,15 +6,14 @@
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
-
-#include <cstdint>
+#include "Protocol/Opcodes.h"
 
 namespace Client::Protocol::Pet
 {
 namespace
 {
 // Un C1 de `opcode`, el lector desde pkt[4] (pkt[3] no lo lee nadie).
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);

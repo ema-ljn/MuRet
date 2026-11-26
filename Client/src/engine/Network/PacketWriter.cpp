@@ -24,17 +24,27 @@ std::size_t MaxSize(PacketType type)
 }
 } // namespace
 
-PacketWriter PacketWriter::C1(std::uint8_t opcode)
+PacketWriter PacketWriter::C1(Opcode opcode)
 {
     return PacketWriter(PacketType::C1, opcode);
 }
 
-PacketWriter PacketWriter::C2(std::uint8_t opcode)
+PacketWriter PacketWriter::C2(Opcode opcode)
 {
     return PacketWriter(PacketType::C2, opcode);
 }
 
-PacketWriter::PacketWriter(PacketType type, std::uint8_t opcode) : m_type(type), m_opcode(opcode) {}
+PacketWriter PacketWriter::C1(Opcode opcode, Subcode subcode)
+{
+    return C1(opcode).PutU8(ByteOf(subcode));
+}
+
+PacketWriter PacketWriter::C2(Opcode opcode, Subcode subcode)
+{
+    return C2(opcode).PutU8(ByteOf(subcode));
+}
+
+PacketWriter::PacketWriter(PacketType type, Opcode opcode) : m_type(type), m_opcode(opcode) {}
 
 PacketWriter& PacketWriter::PutU8(std::uint8_t value) &
 {
@@ -116,7 +126,7 @@ Core::Expected<Packet, PacketError> PacketWriter::Finish() const
     std::vector<std::byte> packet;
     packet.reserve(size);
     AppendHeader(packet, m_type, size);
-    packet.push_back(static_cast<std::byte>(m_opcode));
+    packet.push_back(std::byte{ByteOf(m_opcode)});
     packet.insert(packet.end(), m_fields.begin(), m_fields.end());
     return Packet::FromBytes(std::move(packet));
 }

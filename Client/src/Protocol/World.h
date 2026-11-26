@@ -11,15 +11,6 @@
 // Network entrega los C3 entrantes ya descifrados como C1; la escena decide cuándo enviar.
 namespace Client::Protocol::World
 {
-inline constexpr std::uint8_t TeleportOpcode = 0x1c;
-inline constexpr std::uint8_t WorldOpcode = 0xf3;
-inline constexpr std::uint8_t RegenSubcode = 0x04;
-inline constexpr std::uint8_t TeleportDoneSubcode = 0x12;
-inline constexpr std::uint8_t CrywolfOpcode = 0xbd;
-inline constexpr std::uint8_t CastleSiegeOpcode = 0xb9;
-inline constexpr std::uint8_t CastleSiegeStateSubcode = 0x02;
-inline constexpr std::uint8_t WeatherOpcode = 0x0f;
-
 // 0x4e36b5: pkt[3] entero. El nibble alto selecciona la rama; >1 no cambia la meta.
 struct Weather
 {

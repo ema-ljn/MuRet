@@ -7,6 +7,7 @@
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -21,7 +22,7 @@ namespace
 // Los dos bytes de un miembro del 42 que 0x4d67e0 no copia (+0xe y +0xf).
 constexpr std::size_t MemberGap = 2;
 
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -53,7 +54,7 @@ Outgoing WritePartyListRequest()
 
 Core::Expected<PartyRequest, Network::ProtocolError> ReadPartyRequest(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, RequestOpcode);
+    auto fields = FieldsOf(packet, PartyRequestOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto key = fields.Value().ReadU16Be();
@@ -64,7 +65,7 @@ Core::Expected<PartyRequest, Network::ProtocolError> ReadPartyRequest(const Netw
 
 Core::Expected<PartyRequestResult, Network::ProtocolError> ReadPartyRequestResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, RequestResultOpcode);
+    auto fields = FieldsOf(packet, PartyRequestResultOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto result = fields.Value().ReadU8();
@@ -97,7 +98,7 @@ Core::Expected<PartyList, Network::ProtocolError> ReadPartyList(const Network::P
 
 Core::Expected<PartyLeft, Network::ProtocolError> ReadPartyLeft(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, LeaveOpcode);
+    auto fields = FieldsOf(packet, PartyLeaveOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     return PartyLeft{};
@@ -105,7 +106,7 @@ Core::Expected<PartyLeft, Network::ProtocolError> ReadPartyLeft(const Network::P
 
 Core::Expected<PartyLife, Network::ProtocolError> ReadPartyLife(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, LifeOpcode);
+    auto fields = FieldsOf(packet, PartyLifeOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -124,16 +125,16 @@ Core::Expected<PartyLife, Network::ProtocolError> ReadPartyLife(const Network::P
 
 Outgoing WritePartyRequest(std::uint16_t key)
 {
-    return EncryptedC1(Network::PacketWriter::C1(RequestOpcode).PutU16Be(key));
+    return EncryptedC1(Network::PacketWriter::C1(PartyRequestOpcode).PutU16Be(key));
 }
 
 Outgoing WritePartyRequestResult(std::uint8_t accepted, std::uint16_t key)
 {
-    return EncryptedC1(Network::PacketWriter::C1(RequestResultOpcode).PutU8(accepted).PutU16Be(key));
+    return EncryptedC1(Network::PacketWriter::C1(PartyRequestResultOpcode).PutU8(accepted).PutU16Be(key));
 }
 
 Outgoing WritePartyLeave(std::uint8_t number)
 {
-    return Xor32C1(Network::PacketWriter::C1(LeaveOpcode).PutU8(number));
+    return Xor32C1(Network::PacketWriter::C1(PartyLeaveOpcode).PutU8(number));
 }
 } // namespace Client::Protocol::Party

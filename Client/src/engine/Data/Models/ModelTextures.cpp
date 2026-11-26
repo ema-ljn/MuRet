@@ -14,14 +14,14 @@ namespace
 {
 using Textures::TextureLoader;
 
-// La letra del OZT, después de tolower (0x60d6eb).
+// The OZT letter, after tolower (0x60d6eb).
 constexpr char OztLetter = 't';
 constexpr char ScriptStart = '_';
 constexpr char ScriptEnd = '.';
-// 0x45999d: de lo que va del '_' al punto mira cinco caracteres, el '_' y cuatro letras.
+// 0x45999d: from the '_' to the dot it looks at five characters, the '_' and four letters.
 constexpr std::size_t ScriptLetters = 4;
 
-// El tolower de la "C" del original, para ASCII: no cambia los bytes de 0x80 en adelante.
+// The original's tolower in the "C" locale: bytes 0x80 and up stay as they are.
 constexpr char LowerAscii(char letter)
 {
     return letter >= 'A' && letter <= 'Z' ? static_cast<char>(letter - 'A' + 'a') : letter;
@@ -33,7 +33,7 @@ struct SkinPrefix
     std::uint16_t slot = 0;
 };
 
-// En el orden en que los mira 0x60d5f0.
+// In the order 0x60d5f0 checks them.
 constexpr std::array<SkinPrefix, 4> SkinPrefixes = {{
     {"ski", SkinTextureSlot},
     {"level", SkinTextureSlot},
@@ -41,7 +41,7 @@ constexpr std::array<SkinPrefix, 4> SkinPrefixes = {{
     {"hair", HairTextureSlot},
 }};
 
-// Prende en `script` lo que pide `letter`. false si no es una de las cuatro.
+// false if it is not one of the four.
 bool ApplyScriptLetter(char letter, TextureScript& script)
 {
     switch (letter)
@@ -66,8 +66,8 @@ bool ApplyScriptLetter(char letter, TextureScript& script)
 
 TextureLoader ModelTextureLoaderOf(std::string_view textureName)
 {
-    // Sin punto, el original lee el byte que sigue al 0 del nombre, que el string no tiene: el OZJ,
-    // como con ese byte en 0 (Q-C107). Con el punto al final, la letra es el 0.
+    // Without a dot, the original reads the byte after the name's 0, which the string lacks: the OZJ, as with that byte
+    // at 0 (Q-C107). With the dot at the end, the letter is the 0.
     const std::size_t dot = textureName.find(ScriptEnd);
     if (dot == std::string_view::npos || dot + 1 >= textureName.size())
     {

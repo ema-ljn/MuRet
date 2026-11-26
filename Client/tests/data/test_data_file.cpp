@@ -17,8 +17,6 @@
 #include <system_error>
 #include <vector>
 
-// Client::Data::ReadDataFile, ReadDataFilePrefix y DescribeDataError: archivos enteros con tope,
-// prefijos sin limitar la cola y errores en palabras. Los usan texturas, Text.bmd y Gate.bmd.
 namespace
 {
 using Client::Data::DataError;
@@ -46,7 +44,6 @@ TEST(DataFileTest, ReadsEveryByte)
     EXPECT_EQ(read.Value(), (std::vector<char>{'\x01', '\x00', '\x7f', '\xff'}));
 }
 
-// Un archivo más grande que el tope no es del formato que se pide, y no se lee entero a memoria.
 TEST(DataFileTest, AFileOverTheCapIsNotRead)
 {
     const TemporaryFolder folder("data-file");
@@ -177,7 +174,7 @@ TEST(DataFileTest, APrefixBeyondTheContainerLimitIsAnErrorWithoutAllocating)
     const std::size_t containerLimit = std::vector<char>{}.max_size();
     ASSERT_LT(containerLimit, std::numeric_limits<std::size_t>::max());
 
-    // No aísla la guarda de max_size(): streamsize puede rechazar la misma cantidad antes.
+    // It does not isolate the max_size() guard: streamsize may reject the same count first.
     const auto read = ReadDataFilePrefix(path, containerLimit + 1);
 
     ASSERT_FALSE(read.HasValue());

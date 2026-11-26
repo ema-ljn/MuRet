@@ -22,8 +22,8 @@ constexpr std::string_view NpcFolder = "Npc\\";
 constexpr std::string_view BowFolder = "Item\\Bow\\";
 constexpr std::string_view EffectFolder = "Effect\\";
 
-// Las llamadas de un cargador, armadas en compilación con los lazos del decompilado: una de más no
-// compila, y una de menos la ve el static_assert de la cuenta.
+// Built at compile time from the decompiled loops: an extra call does not compile, and a missing one fails the
+// count's static_assert.
 template <std::size_t Size> struct CallList
 {
     std::array<ModelTextureCall, Size> calls{};
@@ -43,7 +43,7 @@ template <std::size_t Size> struct CallList
         }
     }
 
-    // De `first` a `last`, los dos incluidos.
+    // Both ends included.
     constexpr void AddRange(int first, int last, std::string_view folder)
     {
         for (int model = first; model <= last; ++model)
@@ -52,8 +52,7 @@ template <std::size_t Size> struct CallList
         }
     }
 
-    // Un lazo con varias llamadas por vuelta: para cada base de `first` a `last`, la base más cada
-    // corrimiento, en su orden.
+    // For each base from `first` to `last`, the base plus each offset, in their order.
     constexpr void AddEach(int first, int last, std::initializer_list<int> offsets, std::string_view folder)
     {
         for (int base = first; base <= last; ++base)
@@ -66,17 +65,17 @@ template <std::size_t Size> struct CallList
     }
 };
 
-// Las partes de un ítem del cuerpo desde su pantalón: el casco (0x200 antes), la armadura, el
-// pantalón, los guantes y las botas (grupos 7 a 11, ItemModel). Las de las clases van de a 8.
+// A body item's parts from its pants: helm (0x200 before), armor, pants, gloves and boots (groups 7 to 11,
+// ItemModel). The classes' parts go 8 apart.
 constexpr std::initializer_list<int> ItemParts = {-0x200, 0, 0x200, 0x400, 0x600};
 constexpr std::initializer_list<int> ClassParts = {-8, 0, 8, 0x10, 0x18};
 
 constexpr CallList<214> MakePlayerCalls()
 {
     CallList<214> list;
-    list.AddEach(0x221a, 0x221e, ClassParts, PlayerFolder); // 0x60f97f: las clases 1 a 5
-    list.AddEach(0x1212, 0x1222, ItemParts, PlayerFolder);  // los ítems 0 a 16
-    for (int base = 0x1227; base <= 0x122a; ++base)         // los 21 a 24, sin el casco 23
+    list.AddEach(0x221a, 0x221e, ClassParts, PlayerFolder); // 0x60f97f: classes 1 to 5
+    list.AddEach(0x1212, 0x1222, ItemParts, PlayerFolder);  // items 0 to 16
+    for (int base = 0x1227; base <= 0x122a; ++base)         // 21 to 24, without helm 23
     {
         if (base != 0x1229)
         {
@@ -84,19 +83,19 @@ constexpr CallList<214> MakePlayerCalls()
         }
         list.Add({base, base + 0x200, base + 0x400, base + 0x600}, PlayerFolder);
     }
-    list.AddEach(0x122b, 0x122e, ItemParts, PlayerFolder);  // los 25 a 28
-    list.AddEach(0x221f, 0x2221, ClassParts, PlayerFolder); // las clases 6 a 8
-    list.AddEach(0x1223, 0x1226, ItemParts, PlayerFolder);  // los 17 a 20
+    list.AddEach(0x122b, 0x122e, ItemParts, PlayerFolder);  // 25 to 28
+    list.AddEach(0x221f, 0x2221, ClassParts, PlayerFolder); // classes 6 to 8
+    list.AddEach(0x1223, 0x1226, ItemParts, PlayerFolder);  // 17 to 20
     list.Add({0x429d, 0x42a2, 0x42a3, 0x42a5, 0x42a6, 0x20b}, PlayerFolder);
-    list.AddEach(0x142f, 0x1433, {-0x200, 0, 0x200, 0x400}, PlayerFolder); // los 29 a 33, sin casco
-    list.Add({0x102f, 0x1030, 0x1031, 0x1033}, PlayerFolder);              // y cuatro de sus cascos
+    list.AddEach(0x142f, 0x1433, {-0x200, 0, 0x200, 0x400}, PlayerFolder); // 29 to 33, no helm
+    list.Add({0x102f, 0x1030, 0x1031, 0x1033}, PlayerFolder);              // and four of their helms
     return list;
 }
 
 constexpr CallList<291> MakeItemCalls()
 {
     CallList<291> list;
-    list.AddRange(0x1c22, 0x1c24, ItemFolder); // 0x611886: i < 3 da 0x1c22 + i, y si no 0x2242 + i
+    list.AddRange(0x1c22, 0x1c24, ItemFolder); // 0x611886: i < 3 gives 0x1c22 + i, else 0x2242 + i
     list.Add(0x2245, ItemFolder);
     list.AddRange(0x2246, 0x2249, ItemFolder);
     list.AddRange(0x1a15, 0x1a18, ItemFolder);
@@ -108,11 +107,11 @@ constexpr CallList<291> MakeItemCalls()
     list.AddRange(0x1c20, 0x1c21, ItemFolder);
     list.Add({0x223, 0x224, 0xc1b, 0xa23}, ItemFolder);
     list.Add(0x1c15, SkillFolder);
-    list.AddRange(0x1e29, 0x1e2f, ItemFolder); // tres lazos seguidos: 0x1e29 a 0x1e2c, 0x1e2d y los dos que siguen
+    list.AddRange(0x1e29, 0x1e2f, ItemFolder); // three loops in a row: 0x1e29 to 0x1e2c, 0x1e2d and the next two
     list.Add(0x1c2f, NpcFolder);
     list.Add({0x225, 0xc1c, 0xa24, 0xa25, 0x231, 0xe21, 0xe22, 0x81c, 0x619}, ItemFolder);
-    // 0x611c85: los ítems 0 a 16 de los grupos 0, 1, 2, 3, 5, 6, 4, 13, 12, 14 y 15, en ese orden. 0x1c12 a 0x1c14 son
-    // los Helper de Player\, y 0x1c15 vuelve a pedirse con Item\.
+    // 0x611c85: items 0 to 16 of groups 0, 1, 2, 3, 5, 6, 4, 13, 12, 14 and 15, in that order. 0x1c12 to 0x1c14 are
+    // Player\'s Helpers, and 0x1c15 is requested again with Item\.
     list.AddEach(0x412, 0x422, {-0x200, 0, 0x200, 0x400, 0x800, 0xa00, 0x600, 0x1800, 0x1600, 0x1a00, 0x1c00},
                  ItemFolder);
     list.AddRange(0x1c27, 0x1c2e, ItemFolder);
@@ -136,8 +135,8 @@ constexpr CallList<291> ItemCalls = MakeItemCalls();
 static_assert(PlayerCalls.count == PlayerCalls.calls.size(), "las llamadas de 0x60f7d0");
 static_assert(ItemCalls.count == ItemCalls.calls.size(), "las llamadas de 0x611850");
 
-// 0x616953..0x616e0b: las 45 consultas explícitas después del reset a 0x3b8.
-// El primer nombre registrado fija la carpeta y el muestreo antes del barrido final.
+// 0x616953..0x616e0b: the 45 explicit lookups after the reset to 0x3b8. The first registered name fixes the folder
+// and the sampling before the final sweep.
 constexpr std::array<ModelTextureCall, 45> SkillCalls{{{0x145, "Skill\\"},
                                                        {0x146, "Skill\\"},
                                                        {0x147, "Skill\\"},
@@ -184,8 +183,8 @@ constexpr std::array<ModelTextureCall, 45> SkillCalls{{{0x145, "Skill\\"},
                                                        {0x137, "Effect\\"},
                                                        {0x140, "Item\\"}}};
 
-// 0x615f77, 0x615fab y 0x615fdc: los tres Fenrir, las primeras de 0x615700, donde dejó 0x611850; 0x616010: el rayo
-// 0x14d de su dibujo, con Effect\. 0x616181 consulta la flecha eléctrica con Skill\ en el mismo bloque.
+// 0x615f77, 0x615fab and 0x615fdc: the three Fenrir, the first of 0x615700, where 0x611850 left off; 0x616010: the
+// bolt 0x14d of its drawing, with Effect\. 0x616181 looks up the electric arrow with Skill\ in the same block.
 constexpr std::array<ModelTextureCall, 5> FenrirCalls{{
     {0x14a, SkillFolder},
     {0x14b, SkillFolder},
@@ -194,7 +193,7 @@ constexpr std::array<ModelTextureCall, 5> FenrirCalls{{
     {0xf9, SkillFolder},
 }};
 
-// 0x2600 y 0x2900 en las trece.
+// 0x2600 and 0x2900 in all thirteen.
 constexpr Textures::Sampling FixedSampling{Textures::Filter::Nearest, Textures::Wrap::Clamp};
 constexpr std::array<Textures::TextureSetEntry, 13> FixedTextures{{
     {"Player\\skin_barbarian_01.jpg", 0x12e, FixedSampling},

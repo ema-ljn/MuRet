@@ -7,7 +7,6 @@
 #include <optional>
 #include <string_view>
 
-// Client::Data::Models: lo que dice el nombre de la textura de una malla.
 namespace
 {
 using Client::Data::Models::HairTextureSlot;
@@ -19,7 +18,7 @@ using Client::Data::Models::TextureScript;
 using Client::Data::Models::TextureScriptOf;
 using Client::Data::Textures::TextureLoader;
 
-// 0x60d5f0: la letra después del primer punto, con tolower, y no la extensión.
+// 0x60d5f0: the letter after the first dot, with tolower, not the extension.
 TEST(ModelTexturesTest, TheLoaderIsTheLetterAfterTheFirstDot)
 {
     EXPECT_EQ(ModelTextureLoaderOf("hair_r.tga"), TextureLoader::Ozt);
@@ -28,14 +27,13 @@ TEST(ModelTexturesTest, TheLoaderIsTheLetterAfterTheFirstDot)
     EXPECT_EQ(ModelTextureLoaderOf("bossmap1_R.jpg.jpg"), TextureLoader::Ozj);
     EXPECT_EQ(ModelTextureLoaderOf("x.tga.jpg"), TextureLoader::Ozt);
     EXPECT_EQ(ModelTextureLoaderOf("x.jpg.tga"), TextureLoader::Ozj);
-    // Otra letra cualquiera es el OZJ, también una extensión que no es de textura.
+    // Any other letter is the OZJ, also an extension that is not a texture's.
     EXPECT_EQ(ModelTextureLoaderOf("x.bmp"), TextureLoader::Ozj);
 }
 
-// Sin punto, el original lee el byte que sigue al 0 que termina el nombre (0x60d68a deja el índice en
-// el largo y 0x60d6dd mira el de después), lo que haya en el archivo. MuRet no lo lee: sin punto es el
-// OZJ, como el original con ese byte en 0 (Q-C107). Ninguna malla del laboratorio tiene un nombre sin
-// punto. Con el punto al final, la letra es el 0 que termina el nombre.
+// Without a dot the original reads the byte after the name's terminating 0 (0x60d68a leaves the index at the length
+// and 0x60d6dd looks at the next one), whatever the file has. MuRet does not: without a dot it is the OZJ, like the
+// original with that byte at 0 (Q-C107). No lab mesh has a name without a dot. With the dot last, the letter is the 0.
 TEST(ModelTexturesTest, WithoutADotItIsAnOzj)
 {
     EXPECT_EQ(ModelTextureLoaderOf("ataque"), TextureLoader::Ozj);
@@ -46,7 +44,7 @@ TEST(ModelTexturesTest, WithoutADotItIsAnOzj)
     EXPECT_EQ(ModelTextureLoaderOf("ataque."), TextureLoader::Ozj);
 }
 
-// 0x60d5f0: cuatro principios en minúscula, byte a byte, mandan la malla a la piel o al pelo.
+// 0x60d5f0: four lowercase prefixes, byte by byte, send the mesh to the skin or the hair.
 TEST(ModelTexturesTest, SkinPrefixesGoToTheirSlots)
 {
     EXPECT_EQ(SkinSlotOf("skin_barbarian_01.jpg"), std::optional{SkinTextureSlot});
@@ -62,7 +60,7 @@ TEST(ModelTexturesTest, SkinPrefixesGoToTheirSlots)
     }
 }
 
-// 0x459940: lo que va del primer '_' al primer punto, hasta cuatro letras R, H, S y N.
+// 0x459940: from the first '_' to the first dot, up to four letters R, H, S and N.
 TEST(ModelTexturesTest, TheScriptIsBetweenTheUnderscoreAndTheDot)
 {
     const std::optional<TextureScript> blend = TextureScriptOf("Monster_R.jpg");
@@ -76,13 +74,13 @@ TEST(ModelTexturesTest, TheScriptIsBetweenTheUnderscoreAndTheDot)
     ASSERT_TRUE(all.has_value());
     EXPECT_TRUE(all->blendMesh && all->hidden && all->scrollUv && all->withoutShine);
 
-    // Sin punto, hasta el final.
+    // Without a dot, to the end.
     const std::optional<TextureScript> hidden = TextureScriptOf("Object01_H");
     ASSERT_TRUE(hidden.has_value());
     EXPECT_TRUE(hidden->hidden);
 }
 
-// Solo mira cuatro letras: lo que sigue no cuenta, aunque no sea del script (0x45999d).
+// What follows does not count, even if it is not part of the script (0x45999d).
 TEST(ModelTexturesTest, OnlyFourLettersCount)
 {
     const std::optional<TextureScript> script = TextureScriptOf("x_RRRRzz.jpg");
@@ -90,8 +88,7 @@ TEST(ModelTexturesTest, OnlyFourLettersCount)
     EXPECT_TRUE(script->blendMesh);
 }
 
-// Una letra que no es del script, en minúscula, o nada después del '_', y la malla queda sin script:
-// el llamador (0x4f17f3) solo lo guarda si 0x459940 vuelve 1.
+// The caller (0x4f17f3) keeps it only if 0x459940 returns 1.
 TEST(ModelTexturesTest, AnyOtherLetterLeavesNoScript)
 {
     for (const std::string_view name :

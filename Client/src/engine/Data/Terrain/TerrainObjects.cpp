@@ -18,8 +18,7 @@ namespace
 {
 using Core::ByteReader;
 
-// Un float: 4 bytes little-endian que std::bit_cast pasa a float sin tocar un bit, también si son
-// un NaN. std::nullopt si se acabó el archivo.
+// 4 little-endian bytes that std::bit_cast turns into a float without changing a bit, NaNs too.
 std::optional<float> ReadFloat(ByteReader& reader)
 {
     const std::optional<std::uint32_t> bits = reader.ReadU32Le();
@@ -30,7 +29,6 @@ std::optional<float> ReadFloat(ByteReader& reader)
     return std::bit_cast<float>(*bits);
 }
 
-// Lee los floats de `values`, uno detrás del otro. Devuelve false si se acaba el archivo antes.
 bool ReadFloats(ByteReader& reader, std::span<float> values)
 {
     for (float& value : values)
@@ -45,7 +43,6 @@ bool ReadFloats(ByteReader& reader, std::span<float> values)
     return true;
 }
 
-// Lee el objeto que empieza donde está `reader`, o std::nullopt si no entra entero.
 std::optional<TerrainObject> ReadObject(ByteReader& reader)
 {
     const std::optional<std::uint16_t> type = reader.ReadU16Le();
@@ -78,12 +75,12 @@ Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::sp
         return Core::Unexpected(DataError::FileTooShort);
     }
 
-    // Se descifra todo, como en el original. Hasta leer la cabecera no se sabe cuántos objetos hay.
+    // Everything is decrypted, as in the original: the count is unknown until the header is read.
     std::vector<std::byte> plain(file.begin(), file.end());
     Crypto::DecryptK16(plain);
     const std::span<const std::byte> decrypted = plain;
 
-    // La cabecera ya se midió arriba: la cantidad siempre está, y el 0 no se usa nunca.
+    // The header was measured above: the count is always there, and the 0 is never used.
     ByteReader header(decrypted.subspan(TerrainObjectsCountOffset));
     const std::int16_t count = std::bit_cast<std::int16_t>(header.ReadU16Le().value_or(0));
 

@@ -16,8 +16,6 @@
 #include <string_view>
 #include <vector>
 
-// EncTerrain.map reales: los de la carpeta golden y, si está, el volcado de la memoria del original
-// (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Data::Terrain::LoadTerrainMapping;
@@ -33,7 +31,7 @@ using Client::Tests::ReadFileBytes;
 
 using GoldenTerrainMapping = Client::Tests::GoldenDataTest;
 
-// La ruta que arma el original: "Data\\%s\\EncTerrain%d.map" con "World%d" (0x6d12e8, en 0x61a560).
+// The path the original builds: "Data\\%s\\EncTerrain%d.map" with "World%d" (0x6d12e8, at 0x61a560).
 std::string MappingFile(std::uint8_t world)
 {
     const std::string number = std::to_string(world);
@@ -56,9 +54,8 @@ TEST_F(GoldenTerrainMapping, LoadsEveryWorldOfTheLab)
     }
 }
 
-// Los conteos de Lorencia que midió el research con su propio descifrado
-// (005f87b0-encterrain-map.md §8): las celdas de agua (tile 5), las que no tienen capa 2, las que
-// tienen alfa, y las que tienen alfa sin capa 2.
+// Lorencia's counts the research measured with its own decryption (005f87b0-encterrain-map.md §8): water cells
+// (tile 5), cells without layer 2, cells with alpha, and cells with alpha but no layer 2.
 TEST_F(GoldenTerrainMapping, LorenciaHasTheCountsOfTheResearch)
 {
     const auto path = DataFile(MappingFile(1));
@@ -87,10 +84,8 @@ TEST_F(GoldenTerrainMapping, LorenciaHasTheCountsOfTheResearch)
 class MemoryTerrainMapping : public Client::Tests::MemoryDumpTest
 {
 protected:
-    // Las capas del .map de la captura son las que tenía en memoria el main.exe original después
-    // de cargar el mismo archivo. El original guarda la capa 2 en 0x07AACC8C y la capa 1 justo
-    // después, en 0x07ABCC8C: `layers` es las dos en ese orden. `alpha` son los floats de
-    // 0x07CCCCC4.
+    // The layers the original main.exe had after loading the same file. It keeps layer 2 at 0x07AACC8C and layer 1
+    // right after, at 0x07ABCC8C: `layers` is both in that order. `alpha` is the floats at 0x07CCCCC4.
     void ExpectTheOriginalsMemory(const MemoryCapture& capture, std::string_view layers, std::string_view alpha)
     {
         const auto path = DataFile(MappingFile(capture.world));

@@ -24,11 +24,9 @@
 #include <system_error>
 #include <vector>
 
-// DecodeJpeg contra la IJG libjpeg 6b en los OZJ reales. lab-6b.txt dice lo que da la 6b de cada
-// OZJ de la carpeta golden, decodificado como lo hace el original: el tamaño, los bytes por píxel y
-// un hash de los píxeles (Client/tests/vectors/jpeg/README.md). Acá se le pide lo mismo a
-// DecodeJpeg, que usa libjpeg-turbo: es la prueba de que turbo da los bytes de la 6b en el
-// laboratorio (CODING_RULES.md §10), y la que tiene que pasar al cambiar de versión de turbo.
+// lab-6b.txt holds what 6b gives for each golden OZJ decoded as the original does: size, bytes per pixel and a pixel
+// hash (Client/tests/vectors/jpeg/README.md). It proves turbo gives 6b's bytes in the lab (CODING_RULES.md §10), and
+// must pass when turbo's version changes.
 namespace
 {
 using Client::Data::DataError;
@@ -42,12 +40,11 @@ using Client::Tests::ReadFileBytes;
 
 using GoldenJpegImage = Client::Tests::GoldenDataTest;
 
-// Sin tope de tamaño: se compara también skill/null.OZJ, de 800 × 600, que la 6b decodifica y que
-// después el cargador de texturas rechaza por pasar de 512.
+// skill/null.OZJ, 800 × 600, is compared too: 6b decodes it and the texture loader then rejects it for exceeding 512.
 constexpr int NoSideLimit = std::numeric_limits<int>::max();
 
-// Una línea de lab-6b.txt: "ruta ancho alto componentes fnv", o "ruta ERR código" si la 6b cortó
-// con un error antes de la última fila (el msg_code de su jerror.h).
+// "path width height components fnv", or "path ERR code" if 6b stopped with an error before the last row (the
+// msg_code of its jerror.h).
 struct LabEntry
 {
     std::string path;
@@ -55,11 +52,11 @@ struct LabEntry
     int width = 0;
     int height = 0;
     int components = 0;
-    // El FNV-1a de 64 bits de los píxeles, fila por fila de arriba hacia abajo (Fnv1a.h).
+    // 64-bit FNV-1a of the pixels, row by row from the top (Fnv1a.h).
     std::uint64_t hash = 0;
 };
 
-// Las partes de `line` separadas por espacios. Las rutas del laboratorio no tienen espacios.
+// The lab's paths have no spaces.
 std::vector<std::string_view> Fields(std::string_view line)
 {
     std::vector<std::string_view> fields;
@@ -79,7 +76,7 @@ std::vector<std::string_view> Fields(std::string_view line)
     return fields;
 }
 
-// El número de `text` entero, en base `base`, o std::nullopt si sobra o falta algo.
+// std::nullopt if anything is left over or missing.
 template <typename Number> std::optional<Number> ParseNumber(std::string_view text, int base = 10)
 {
     Number value{};
@@ -115,7 +112,7 @@ std::optional<LabEntry> ParseLine(std::string_view line)
         .path = std::string(fields[0]), .width = *width, .height = *height, .components = *components, .hash = *hash};
 }
 
-// Las líneas de lab-6b.txt. Si falta o tiene una línea que no se entiende, el test falla.
+// A missing file or a line it cannot parse fails the test.
 std::vector<LabEntry> ReadLab6b()
 {
     const std::filesystem::path path = JpegVectorsDir() / "lab-6b.txt";
@@ -150,7 +147,6 @@ std::string Hex(std::uint64_t value)
     return text.str();
 }
 
-// lab-6b.txt habla de todos los OZJ de la carpeta golden, y de nada más.
 TEST_F(GoldenJpegImage, TheLab6bListHasEveryOzjOfTheLab)
 {
     std::vector<std::string> listed;
@@ -159,8 +155,8 @@ TEST_F(GoldenJpegImage, TheLab6bListHasEveryOzjOfTheLab)
         listed.push_back(entry.path);
     }
     std::vector<std::string> found;
-    // Sin error_code: si no se puede recorrer la carpeta, el iterador tira filesystem_error y el
-    // test falla con su mensaje.
+    // Without error_code: if the folder cannot be walked, the iterator throws filesystem_error and the test fails with
+    // its message.
     for (const auto& entry : std::filesystem::recursive_directory_iterator(m_dataRoot))
     {
         if (entry.is_regular_file() && HasExtension(entry.path(), ".ozj"))
@@ -175,9 +171,8 @@ TEST_F(GoldenJpegImage, TheLab6bListHasEveryOzjOfTheLab)
     EXPECT_EQ(listed, found);
 }
 
-// Cada OZJ, sin sus 24 bytes repetidos (el fseek de 0x18 del original), da lo mismo que en la 6b:
-// el mismo tamaño, los mismos bytes por píxel y los mismos píxeles. Los 7 TGA de Q-C14, que la 6b
-// rechaza con JERR_NO_SOI, son InvalidData.
+// Without its 24 repeated bytes (the original's fseek of 0x18). The 7 TGAs of Q-C14, which 6b rejects with
+// JERR_NO_SOI, are InvalidData.
 TEST_F(GoldenJpegImage, DecodesEveryOzjOfTheLabLikeTheLibjpeg6b)
 {
     const std::vector<LabEntry> entries = ReadLab6b();

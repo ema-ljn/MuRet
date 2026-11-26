@@ -8,17 +8,16 @@
 #include <cstddef>
 #include <vector>
 
-// Client::Crypto::DecryptK16: el cifrado de los archivos de terreno.
 namespace
 {
 using Client::Crypto::DecryptK16;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptK16;
 
-// A mano, con dos bytes cifrados en cero:
-//   plano[0] = (D1 ^ 00) - 5E = 73, y el previo pasa a ser 00 + 3D = 3D;
-//   plano[1] = (73 ^ 00) - 3D = 36.
-// Si el previo saliera del byte en claro (73 + 3D = B0), el segundo daría C3.
+// By hand, with two encrypted zero bytes:
+//   plain[0] = (D1 ^ 00) - 5E = 73, and the previous becomes 00 + 3D = 3D;
+//   plain[1] = (73 ^ 00) - 3D = 36.
+// If the previous came from the plain byte (73 + 3D = B0), the second would give C3.
 TEST(K16Test, TwoBytesByHand)
 {
     std::vector<std::byte> bytes(2);
@@ -28,8 +27,7 @@ TEST(K16Test, TwoBytesByHand)
     EXPECT_EQ(bytes, (std::vector{std::byte{0x73}, std::byte{0x36}}));
 }
 
-// La clave vuelve a empezar en el byte 16, pero la semilla no: sobre ceros, el byte 16 es
-// D1 - 3D = 94, no el 73 del byte 0.
+// The key restarts at byte 16 but the seed does not: over zeros, byte 16 is D1 - 3D = 94, not byte 0's 73.
 TEST(K16Test, TheKeyRepeatsEvery16Bytes)
 {
     std::vector<std::byte> bytes(17);
@@ -40,8 +38,8 @@ TEST(K16Test, TheKeyRepeatsEvery16Bytes)
     EXPECT_EQ(bytes[16], std::byte{0x94});
 }
 
-// La cabecera cifrada del EncTerrain1.att real, 8B E5 24 92 (005f8390-encterrain-att.md, en el
-// repo de research). K16 la deja en FC CE 54 03, que con el XOR3 del .att da 00 01 FF FF.
+// The real EncTerrain1.att's encrypted header, 8B E5 24 92 (005f8390-encterrain-att.md, in the research repo). K16
+// leaves FC CE 54 03, which the .att's XOR3 turns into 00 01 FF FF.
 TEST(K16Test, MatchesTheResearchVector)
 {
     std::vector<std::byte> bytes = {std::byte{0x8B}, std::byte{0xE5}, std::byte{0x24}, std::byte{0x92}};
@@ -62,10 +60,9 @@ TEST(K16Test, GivesBackWhatTheExporterEncrypted)
     EXPECT_EQ(bytes, plain);
 }
 
-// La segunda mitad descifrada sola, con la semilla del principio, sale mal en su primer byte y
-// bien en el resto: desde el segundo, `previo` sale de un byte cifrado que está en el archivo. Y
-// como la mitad empieza en un múltiplo de 16, la clave coincide. Si `previo` saliera del byte en
-// claro, el error del primero se arrastraría a todos.
+// The second half decrypted alone, with the initial seed, is wrong in its first byte only: from the second on,
+// `previous` comes from an encrypted byte in the file, and since the half starts at a multiple of 16 the key lines up.
+// If `previous` came from the plain byte, the first error would carry to all of them.
 TEST(K16Test, ASecondHalfAloneIsWrongOnlyInItsFirstByte)
 {
     const std::vector<std::byte> plain = BytePattern(32, 37, 11);

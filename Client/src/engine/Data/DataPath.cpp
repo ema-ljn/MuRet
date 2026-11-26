@@ -18,13 +18,12 @@ bool IsSeparator(char c)
     return c == '\\' || c == '/';
 }
 
-// Como una cadena de C: hasta el primer '\0', si hay.
 std::string_view UpToFirstNul(std::string_view text)
 {
     return text.substr(0, text.find('\0'));
 }
 
-// "\\x", "/x" y "C:\\x" no son rutas relativas a Data\, y "x\\" nombra una carpeta, no un archivo.
+// "\\x", "/x" and "C:\\x" are not relative to Data\, and "x\\" names a folder, not a file.
 bool IsDataRelative(std::string_view path)
 {
     return !path.empty() && !IsSeparator(path.front()) && !IsSeparator(path.back()) &&
@@ -49,22 +48,22 @@ std::vector<std::string_view> SplitComponents(std::string_view path)
     return components;
 }
 
-// Los nombres del original son bytes; en std::filesystem van como UTF-8. Sin el u8string, en
-// Windows un std::string se interpretaría con la página de códigos del sistema.
+// The original's names are bytes; std::filesystem takes them as UTF-8. Without the u8string, Windows would read a
+// std::string with the system code page.
 std::filesystem::path PathFromBytes(std::string_view bytes)
 {
     return std::filesystem::path(std::u8string(bytes.begin(), bytes.end()));
 }
 
-// El nombre tal como está en el disco, en bytes (UTF-8 también en Windows).
+// The on-disk name as bytes (UTF-8 on Windows too).
 std::string FileNameBytes(const std::filesystem::path& path)
 {
     const std::u8string name = path.filename().u8string();
     return std::string(name.begin(), name.end());
 }
 
-// Recorre `directory` buscando `name` sin distinguir mayúsculas; si hay varias, la menor en bytes.
-// Un symlink roto aparece al recorrer pero no existe: no cuenta.
+// With several matches, the lowest in bytes. A broken symlink shows up in the walk but does not exist, so it does not
+// count.
 std::optional<std::filesystem::path> FindIgnoringCase(const std::filesystem::path& directory, std::string_view name,
                                                       std::error_code& error)
 {
@@ -79,8 +78,8 @@ std::optional<std::filesystem::path> FindIgnoringCase(const std::filesystem::pat
         {
             continue;
         }
-        // La función libre, no directory_entry::exists: esa deja `error` puesto cuando el
-        // destino del symlink no existe, y eso no es un error de E/S.
+        // The free function, not directory_entry::exists: that one leaves `error` set when the symlink's target does
+        // not exist, which is not an I/O error.
         const bool entryExists = std::filesystem::exists(entries->path(), error);
         if (error)
         {
@@ -99,7 +98,6 @@ std::optional<std::filesystem::path> FindIgnoringCase(const std::filesystem::pat
     return found;
 }
 
-// Busca `name` dentro de `directory`: primero tal cual y, si no está, sin distinguir mayúsculas.
 std::optional<std::filesystem::path> FindEntry(const std::filesystem::path& directory, std::string_view name,
                                                std::error_code& error)
 {
@@ -153,7 +151,7 @@ std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path
         current = std::move(*next);
         resolvedAny = true;
     }
-    // "." o ".\." nombran la carpeta Data\ misma, no algo adentro.
+    // "." or ".\." name the Data\ folder itself, not something inside it.
     if (!resolvedAny)
     {
         return std::nullopt;

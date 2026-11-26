@@ -8,16 +8,13 @@
 #include <span>
 #include <string_view>
 
-// Las texturas de los modelos del arranque, como las piden 0x60f7d0 (el avance 2 de la carga,
-// 0x61ccb0) y 0x611850 (el avance 4) (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en
-// el binario"). No salen de las tablas de los modelos: cada cargador elige a qué modelos les da
-// texturas, en qué orden y de qué carpeta, que no siempre es la del .bmd (los Helper de Player\ las
-// toman de Item\; 0x1c16, de Skill\). Las listas repiten los lazos del decompilado, y una emulación
-// de los dos cargadores sobre el main.exe de c32bbd5f da las mismas 505 llamadas, en el mismo orden.
+// As 0x60f7d0 (load step 2 of 0x61ccb0) and 0x611850 (step 4) ask for them
+// (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario"). Each loader picks which models get
+// textures, in which order and from which folder, not always the .bmd's (Player\'s Helpers take them from Item\;
+// 0x1c16, from Skill\). An emulation of both loaders on main.exe c32bbd5f gives the same 505 calls in the same order.
 namespace Client::Data::Models
 {
-// Una llamada a 0x60d5f0: el modelo y la carpeta donde se buscan sus texturas, con la barra del
-// final.
+// A call to 0x60d5f0; the folder keeps its trailing slash.
 struct ModelTextureCall
 {
     std::uint16_t model = 0;
@@ -25,28 +22,28 @@ struct ModelTextureCall
     Textures::Wrap wrap = Textures::Wrap::Repeat;
 };
 
-// El muestreo por defecto: 0x2901 y 0x2600, repitiendo y sin filtro. Las OZT van siempre
-// sin filtro (0x60d5f0 le pasa 0x2600 a 0x63bd00).
+// The default: 0x2901 and 0x2600, repeating and unfiltered. OZTs are always unfiltered (0x60d5f0 passes 0x2600 to
+// 0x63bd00).
 inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Nearest, Textures::Wrap::Repeat};
 
-// Las 214 de 0x60f7d0, después de su 0x60d530(0x138), todas con Player\.
+// The 214 of 0x60f7d0, after its 0x60d530(0x138), all with Player\.
 [[nodiscard]] ENGINE_API std::span<const ModelTextureCall> PlayerTextureCalls();
 
-// Las 291 de 0x611850, después de su 0x60d530(0x25a): con Item\, salvo 0x1c16, 0x1c17 y 0x1c15
-// (Skill\), 0x224c (Monster\), 0x1c2f (Npc\) y 0xdb (Item\Bow\, antes de cargar el BMD de 0x616095).
-// 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
+// The 291 of 0x611850, after its 0x60d530(0x25a): with Item\, except 0x1c16, 0x1c17 and 0x1c15 (Skill\), 0x224c
+// (Monster\), 0x1c2f (Npc\) and 0xdb (Item\Bow\, before loading the BMD of 0x616095). 26 models are requested twice,
+// and the second call finds the first one's names.
 [[nodiscard]] ENGINE_API std::span<const ModelTextureCall> ItemTextureCalls();
 
-// Las 45 consultas explícitas de 0x615700 después del reset a 0x3b8, antes del barrido be..150.
-// Las de 0x113, 0x11a y 0x11b usan GL_CLAMP; las otras, GL_REPEAT.
+// The 45 explicit lookups of 0x615700 after the reset to 0x3b8, before the be..150 sweep. 0x113, 0x11a and 0x11b use
+// GL_CLAMP; the rest, GL_REPEAT.
 [[nodiscard]] ENGINE_API std::span<const ModelTextureCall> SkillTextureCalls();
 
-// Los Fenrir (0x14a a 0x14c), su rayo (0x14d) y la flecha eléctrica (0xf9) en el bloque que sigue a
-// 0x611850 (0x371), antes de los cambios de slot de 0x615700.
+// The Fenrir (0x14a to 0x14c), their bolt (0x14d) and the electric arrow (0xf9) in the block after 0x611850 (0x371),
+// before 0x615700's slot changes.
 [[nodiscard]] ENGINE_API std::span<const ModelTextureCall> FenrirTextureCalls();
 
-// Lo que 0x60f7d0 sube a mano con 0x63b870 y 0x63bd00, sin filtro y sin repetir, en slots fijos que
-// no guardan el nombre ni corren el próximo: la piel y el segundo nivel de cada clase y el pelo
-// (0x12e a 0x137; 0x12d y 0x135 quedan vacíos) y las cuatro capas (0x250, 0x251, 0x252 y 0x257).
+// What 0x60f7d0 uploads by hand with 0x63b870 and 0x63bd00, unfiltered and clamped, in fixed slots that neither keep
+// the name nor advance the next slot: each class's skin and second level and the hair (0x12e to 0x137; 0x12d and 0x135
+// stay empty) and the four layers (0x250, 0x251, 0x252 and 0x257).
 [[nodiscard]] ENGINE_API std::span<const Textures::TextureSetEntry> PlayerFixedTextures();
 } // namespace Client::Data::Models

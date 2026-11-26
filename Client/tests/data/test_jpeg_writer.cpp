@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-// WriteJpegFile (0x63b150) contra los vectores de la captura, que escribió la IJG libjpeg 6b con las mismas llamadas
-// (Client/tests/vectors/jpeg/README.md, shot6b.c). Los archivos van a una carpeta temporal.
+// The capture vectors were written by the IJG libjpeg 6b with the same calls as 0x63b150
+// (Client/tests/vectors/jpeg/README.md, shot6b.c).
 namespace
 {
 using Client::Data::Textures::JpegWrite;
@@ -28,10 +28,10 @@ using Client::Tests::ReadJpegVector;
 using Client::Tests::SameBytes;
 using Client::Tests::TemporaryFolder;
 
-// La calidad que pide 0x6202e0.
+// 0x6202e0's.
 constexpr int ScreenshotQuality = 100;
 
-// La imagen `detailed` de shot6b.c como la deja glReadPixels: la fila de abajo primero. y cuenta desde arriba.
+// shot6b.c's `detailed` image as glReadPixels leaves it: the bottom row first. y counts from the top.
 std::vector<std::uint8_t> DetailedBottomUp(int width, int height)
 {
     std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 3);
@@ -49,7 +49,6 @@ std::vector<std::uint8_t> DetailedBottomUp(int width, int height)
     return pixels;
 }
 
-// Los bytes de `path`, como std::byte.
 std::vector<std::byte> FileBytesOf(const std::filesystem::path& path)
 {
     const auto read = ReadFileBytes(path);
@@ -62,8 +61,8 @@ std::vector<std::byte> FileBytesOf(const std::filesystem::path& path)
     return {bytes.begin(), bytes.end()};
 }
 
-// Con la calidad 100, los parámetros por defecto y las filas dadas vuelta, los mismos bytes que la 6b: un tamaño que
-// no es múltiplo del bloque de 16 del 4:2:0 y uno que lo es en alto.
+// Quality 100, default parameters and flipped rows: a size that is not a multiple of the 4:2:0 16-pixel block and
+// one that is in height.
 TEST(JpegWriterTest, WritesTheBytesOfThe6b)
 {
     const TemporaryFolder folder("jpeg-writer");
@@ -85,8 +84,8 @@ TEST(JpegWriterTest, WritesTheBytesOfThe6b)
     }
 }
 
-// 0x63b220..0x63b23a: la fila de arriba del JPEG es la última del buffer. Arriba blanco y abajo negro, en el buffer de
-// abajo hacia arriba: primero el negro.
+// 0x63b220..0x63b23a: the JPEG's top row is the buffer's last. White on top and black below, so in the bottom-up
+// buffer black comes first.
 TEST(JpegWriterTest, TheTopRowIsTheLastOfTheBuffer)
 {
     const TemporaryFolder folder("jpeg-writer");
@@ -106,7 +105,7 @@ TEST(JpegWriterTest, TheTopRowIsTheLastOfTheBuffer)
     EXPECT_LE(image.back(), 5);
 }
 
-// fopen("wb") vacía el archivo que había: no queda nada del de antes.
+// fopen("wb") empties the file that was there.
 TEST(JpegWriterTest, TruncatesTheFileThatWasThere)
 {
     const TemporaryFolder folder("jpeg-writer");
@@ -119,7 +118,7 @@ TEST(JpegWriterTest, TruncatesTheFileThatWasThere)
     EXPECT_TRUE(SameBytes(FileBytesOf(file), ReadJpegVector("screenshot-13x11.6b.jpg")));
 }
 
-// 0x63b197: sin el archivo, 0 sin escribir nada; no es un error.
+// 0x63b197: without the file, 0 and nothing written; not an error.
 TEST(JpegWriterTest, AFileThatDoesNotOpenIsNotWritten)
 {
     const TemporaryFolder folder("jpeg-writer");
@@ -130,7 +129,7 @@ TEST(JpegWriterTest, AFileThatDoesNotOpenIsNotWritten)
     EXPECT_FALSE(std::filesystem::exists(file));
 }
 
-// Un buffer que no es el de la pantalla es el error, sin abrir el archivo.
+// Without opening the file.
 TEST(JpegWriterTest, ABufferOfAnotherSizeIsTheError)
 {
     const TemporaryFolder folder("jpeg-writer");

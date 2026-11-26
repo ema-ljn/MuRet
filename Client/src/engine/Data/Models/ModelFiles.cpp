@@ -23,15 +23,14 @@ namespace
 {
 using Core::Unexpected;
 
-// El número que 0x60da30 escribe sin nada ("%s.bmd"), y el primero que ya no lleva el 0 adelante
-// ("%s%d.bmd").
+// The number 0x60da30 writes as nothing ("%s.bmd"), and the first one without the leading 0 ("%s%d.bmd").
 constexpr int NoNumber = -1;
 constexpr int FirstTwoDigitNumber = 10;
-// Lo que el original pone delante de la carpeta: pide "Data\\Player\\Player.bmd".
+// The original asks for "Data\\Player\\Player.bmd".
 constexpr std::string_view DataFolder = "Data\\";
 constexpr std::string_view BmdExtension = ".bmd";
 
-// 0x6c9e54, 0x6c9e4c y 0x6c9e40: los nombres que 0x60da30 compara con el del que falta.
+// 0x6c9e54, 0x6c9e4c and 0x6c9e40: the names 0x60da30 compares with the missing one's.
 constexpr std::array<std::string_view, 3> RequiredModels = {"Monster", "Player", "PlayerTest"};
 
 ModelLoadError MakeError(ModelLoadErrorKind kind, std::string path)
@@ -45,7 +44,7 @@ std::string ModelFileName(std::string_view name, int number)
     std::string fileName(name);
     if (number != NoNumber)
     {
-        // "%s0%d" con cualquier número menor que 10, también los negativos: -2 da "0-2".
+        // "%s0%d" with any number below 10, negatives too: -2 gives "0-2".
         if (number < FirstTwoDigitNumber)
         {
             fileName += '0';

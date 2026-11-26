@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Data::Terrain::LoadTerrainHeights: TerrainHeight.OZB, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -29,7 +28,6 @@ using Client::Tests::StandardBitmapHeaderSize;
 constexpr std::uint8_t Devias = 3;
 constexpr std::uint8_t World56 = 56;
 
-// Cada celda con HeightPattern por `scale`.
 void ExpectThePattern(const TerrainHeights& heights, float scale)
 {
     for (std::size_t cell = 0; cell < TerrainCellCount; ++cell)
@@ -46,7 +44,7 @@ TEST(TerrainHeightsTest, EachByteTimes1Point5)
     ExpectThePattern(*loaded.Value(), 1.5f);
 }
 
-// Solo el mundo de World56 (el 0x37 del original) multiplica por 3; todos los demás, por 1,5.
+// Only World56 (the original's 0x37) multiplies by 3; all others by 1.5.
 TEST(TerrainHeightsTest, OnlyWorld56TimesThree)
 {
     const std::vector<std::byte> file = PlainTerrainHeights();
@@ -64,8 +62,7 @@ TEST(TerrainHeightsTest, OnlyWorld56TimesThree)
     ExpectThePattern(*world56.Value(), 3.0f);
 }
 
-// Los 256 valores de un byte dan alturas justas: el 255 es 382.5, el máximo que midió el research
-// en Lorencia, y por 3, 765.
+// 255 gives 382.5, the maximum the research measured in Lorencia, and times 3, 765.
 TEST(TerrainHeightsTest, EveryByteGivesAnExactHeight)
 {
     std::vector<std::byte> file = PlainTerrainHeights();
@@ -87,8 +84,8 @@ TEST(TerrainHeightsTest, EveryByteGivesAnExactHeight)
     EXPECT_EQ(normal.Value()->cells[255], 382.5f);
 }
 
-// La celda (x, y) es la y * 256 + x desde 0x43C. El original no da vuelta las filas, aunque un BMP
-// guarda la de abajo primero.
+// Cell (x, y) is y * 256 + x from 0x43C. The original does not flip the rows, though a BMP stores the bottom one
+// first.
 TEST(TerrainHeightsTest, CellXYIsRowByRow)
 {
     constexpr std::uint8_t x = 3;
@@ -102,9 +99,9 @@ TEST(TerrainHeightsTest, CellXYIsRowByRow)
     EXPECT_EQ(loaded.Value()->cells[CellIndex(x, y)], 381.0f);
 }
 
-// Q-C02: un BMP estándar dice en bfOffBits que sus píxeles empiezan en 0x436, pero el original
-// lee desde 0x438. Con los píxeles donde dice el BMP, cada altura es la del píxel que está dos
-// lugares después, y las dos últimas celdas son los dos bytes del final del archivo.
+// Q-C02: a standard BMP says in bfOffBits that its pixels start at 0x436, but the original reads from 0x438. With
+// the pixels where the BMP says, each height is that of the pixel two places later, and the last two cells are the
+// file's last two bytes.
 TEST(TerrainHeightsTest, IgnoresBfOffBits)
 {
     constexpr std::size_t OffBits = TerrainHeightsPrefixSize + BitmapOffBitsOffset;
@@ -129,8 +126,7 @@ TEST(TerrainHeightsTest, IgnoresBfOffBits)
     EXPECT_EQ(heights.cells[TerrainCellCount - 1], 253.0f * 1.5f);
 }
 
-// Q-C02: no mira la cabecera. Un archivo todo en cero, como el de World19, carga, con todas las
-// alturas en cero.
+// Q-C02: the header is ignored. An all-zero file, like World19's, loads with every height zero.
 TEST(TerrainHeightsTest, DoesNotLookAtTheHeader)
 {
     const auto loaded = LoadTerrainHeights(std::vector<std::byte>(TerrainHeightsSize), Devias);
@@ -142,7 +138,7 @@ TEST(TerrainHeightsTest, DoesNotLookAtTheHeader)
     }
 }
 
-// Q-C24: si falta un byte, aunque sea el de la última celda, es un error.
+// Q-C24: a missing byte, even the last cell's, is an error.
 TEST(TerrainHeightsTest, AShortFileIsAnError)
 {
     for (const std::size_t size : {std::size_t{0}, TerrainHeightsValuesOffset, TerrainHeightsSize - 1})

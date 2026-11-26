@@ -11,7 +11,6 @@
 #include <optional>
 #include <vector>
 
-// Client::Data::Terrain::LoadTerrainAttributes: EncTerrain.att, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -37,7 +36,6 @@ void ExpectThePattern(const TerrainAttributes& attributes)
     }
 }
 
-// El error de cargar `plain` ya cifrado, o std::nullopt si cargó.
 std::optional<DataError> LoadError(const std::vector<std::byte>& plain)
 {
     const auto loaded = LoadTerrainAttributes(EncryptTerrainAttributes(plain), Devias);
@@ -48,8 +46,8 @@ std::optional<DataError> LoadError(const std::vector<std::byte>& plain)
     return loaded.Error();
 }
 
-// El research da la cabecera cifrada del EncTerrain1.att real, 8B E5 24 92, para 00 01 FF FF
-// (005f8390-encterrain-att.md). Sale igual si el XOR3 va primero y el K16 encima.
+// The research gives the real EncTerrain1.att's encrypted header, 8B E5 24 92, for 00 01 FF FF
+// (005f8390-encterrain-att.md): XOR3 first and K16 on top.
 TEST(TerrainAttributesTest, TheHeaderEncryptsLikeTheRealFile)
 {
     const std::vector<std::byte> encrypted = EncryptTerrainAttributes(PlainTerrainAttributes(1, AttributeCells::Bytes));
@@ -68,7 +66,7 @@ TEST(TerrainAttributesTest, ReadsOneBytePerCell)
     ExpectThePattern(*loaded.Value());
 }
 
-// Con dos bytes por celda queda el de abajo, aunque el de arriba no sea cero.
+// Even when the high one is not zero.
 TEST(TerrainAttributesTest, KeepsTheLowByteOfEachWord)
 {
     const auto loaded =
@@ -78,7 +76,7 @@ TEST(TerrainAttributesTest, KeepsTheLowByteOfEachWord)
     ExpectThePattern(*loaded.Value());
 }
 
-// La celda (x, y) está en el lugar y * 256 + x después de la cabecera, también con WORDs.
+// Cell (x, y) is at y * 256 + x after the header, with WORDs too.
 TEST(TerrainAttributesTest, CellXYIsRowByRow)
 {
     constexpr std::uint8_t x = 3;
@@ -92,7 +90,7 @@ TEST(TerrainAttributesTest, CellXYIsRowByRow)
     EXPECT_EQ(loaded.Value()->cells[CellIndex(x, y)], 0x7F);
 }
 
-// Q-C25: el original devuelve -1 sin avisar y el mundo se queda con los atributos del anterior.
+// Q-C25: the original returns -1 silently and the world keeps the previous one's attributes.
 TEST(TerrainAttributesTest, AnyOtherSizeIsAnError)
 {
     for (const std::size_t size : {std::size_t{0}, TerrainAttributesHeaderSize, TerrainAttributesSizeWithByteCells - 1,
@@ -106,7 +104,7 @@ TEST(TerrainAttributesTest, AnyOtherSizeIsAnError)
     }
 }
 
-// La cabecera es 00 N FF FF: cualquier otro byte en el 0, el 2 o el 3 es un error.
+// 00 N FF FF: any other byte at 0, 2 or 3 is an error.
 TEST(TerrainAttributesTest, TheHeaderIs00WorldFFFF)
 {
     for (const std::size_t offset : {std::size_t{0}, std::size_t{2}, std::size_t{3}})
@@ -118,8 +116,8 @@ TEST(TerrainAttributesTest, TheHeaderIs00WorldFFFF)
     }
 }
 
-// 0x7F es el atributo más alto que acepta el original; 0x80 ya es un error, en cualquier celda.
-// En un WORD cuenta el byte de abajo: un 0x80 arriba se descarta como cualquier otro.
+// 0x7F is the highest the original accepts; 0x80 is an error, in any cell. In a WORD the low byte counts: a high
+// 0x80 is dropped like any other.
 TEST(TerrainAttributesTest, AnAttributeOf0x80IsAnError)
 {
     const std::size_t last = TerrainCellCount - 1;
@@ -140,9 +138,8 @@ TEST(TerrainAttributesTest, AnotherWorldIsAnError)
     EXPECT_EQ(LoadError(PlainTerrainAttributes(2, AttributeCells::Bytes)), DataError::WrongWorld);
 }
 
-// Si el archivo es de otro mundo y además trae un dato malo, gana el dato malo. En el original,
-// el cargador muestra su "Data error" y devuelve -1, y el que llama solo mira el mundo de un
-// archivo que no dio -1 (0x61a759).
+// In the original the loader shows its "Data error" and returns -1, and the caller only checks the world of a file
+// that did not give -1 (0x61a759).
 TEST(TerrainAttributesTest, InvalidDataComesBeforeAnotherWorld)
 {
     std::vector<std::byte> badHeader = PlainTerrainAttributes(2, AttributeCells::Bytes);
@@ -154,8 +151,8 @@ TEST(TerrainAttributesTest, InvalidDataComesBeforeAnotherWorld)
     EXPECT_EQ(LoadError(badCell), DataError::InvalidData);
 }
 
-// Q-C26: el original espera un 5 en la celda 0x7B87 de World1 (005f8390-encterrain-att.md,
-// "Centinelas") y, si no está, es "Data error". MuRet no mira esa celda.
+// Q-C26: the original expects a 5 in World1's cell 0x7B87 (005f8390-encterrain-att.md, "Centinelas") and otherwise
+// it is a "Data error". MuRet does not check it.
 TEST(TerrainAttributesTest, TheWitnessCellIsNotChecked)
 {
     constexpr std::size_t WitnessCellOfWorld1 = 0x7B87;

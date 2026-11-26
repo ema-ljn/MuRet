@@ -15,17 +15,15 @@ namespace Client::Data::Terrain
 {
 namespace
 {
-// El tamaño que acepta MuRet: el de la tabla del original.
+// The size of the original's table.
 constexpr int TerrainLightSide = static_cast<int>(TerrainSide);
 
-// Si `image` es una luz que entra justa en la tabla: 256 × 256 y en color.
 bool FitsTheTable(const Textures::JpegImage& image)
 {
     return image.width == TerrainLightSide && image.height == TerrainLightSide &&
            image.components == static_cast<int>(TerrainLightChannels);
 }
 
-// El color del píxel x de la fila `row` de la imagen: cada byte por TerrainLightScale.
 TerrainLightColor ColorOf(const Textures::JpegImage& image, std::size_t x, std::size_t row)
 {
     const std::size_t pixel = (row * TerrainSide + x) * TerrainLightChannels;
@@ -55,7 +53,7 @@ Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::s
         return Core::Unexpected(DataError::InvalidData);
     }
 
-    // La fila y de la tabla es la TerrainSide - 1 - y de la imagen (0063b490 §1).
+    // The table's row y is the image's row TerrainSide - 1 - y (0063b490 §1).
     auto light = std::make_unique<TerrainLight>();
     for (std::size_t y = 0; y < TerrainSide; ++y)
     {

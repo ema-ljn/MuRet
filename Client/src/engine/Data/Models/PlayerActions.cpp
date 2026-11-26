@@ -9,9 +9,8 @@ namespace Client::Data::Models
 {
 namespace
 {
-// Cada escritura de 0x60dbe0 en +4 de una acción de Player.bmd, con la dirección de la instrucción que
-// escribe (la de un bucle, una vez). Cada float tiene los bits que escribe el original: 0.28f es
-// 0x3E8F5C29, el inmediato de 0x60f326.
+// Each write of 0x60dbe0 at +4 of a Player.bmd action, with the address of the instruction that writes it (a loop's,
+// once). Each float has the bits the original writes: 0.28f is 0x3E8F5C29, the immediate of 0x60f326.
 constexpr std::array<ActionSpeedWrite, 47> SpeedWrites = {{
     {1, 12, 0.28f},    // 0x60f349
     {3, 3, 0.26f},     // 0x60f35f

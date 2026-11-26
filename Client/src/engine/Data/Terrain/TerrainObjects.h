@@ -10,60 +10,42 @@
 #include <span>
 #include <vector>
 
-// EncTerrain<N>.obj, los objetos de un mundo: árboles, casas, rocas (Client/docs/research/
-// 05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador de 0x607370). Se lee
-// de Data\World<N>\EncTerrain<N>.obj.
-//
-// Cifrado con K16 de punta a punta, en un solo flujo y sin XOR3, como el .map. En claro:
-//
-//   offset        qué es
-//   0             no se lee (¿la versión?)
-//   1             el número del mundo: el N de la carpeta World<N>
-//   2             cuántos objetos hay: un int16 little-endian
-//   4 + 30 * k    el objeto k, sin relleno entre uno y otro
-//
-// Cada objeto: el tipo (int16), la posición (3 floats), el ángulo (3 floats) y la escala (1 float),
-// todo little-endian. Qué modelo es cada tipo y qué hace el original con el ángulo es de la CL7.
+// EncTerrain<N>.obj, a world's trees, houses and rocks (Client/docs/research/05-formatos-de-datos.md, "Terreno de un
+// mundo"; the loader at 0x607370). Under K16 end to end, one stream, no XOR3, like the .map. Byte 0 is not read
+// (the version?). Each object is 30 bytes with no padding between them: the type (int16), the position (3 floats),
+// the angle (3 floats) and the scale (1 float), all little-endian.
 namespace Client::Data::Terrain
 {
-// El byte con el número del mundo, el que devuelve el cargador del original (0x6074ad).
+// The original's loader returns it (0x6074ad).
 inline constexpr std::size_t TerrainObjectsWorldOffset = 1;
-// Dónde está la cantidad de objetos. El original la lee con signo (`movsx` en 0x6074a9).
+// The original reads it signed (`movsx` at 0x6074a9).
 inline constexpr std::size_t TerrainObjectsCountOffset = 2;
-// La cabecera entera: el byte que no se lee, el mundo y la cantidad. Los objetos van después
-// (00607370-encterrain-obj.md §2).
+// The unread byte, the world and the count; the objects follow (00607370-encterrain-obj.md §2).
 inline constexpr std::size_t TerrainObjectsHeaderSize = TerrainObjectsCountOffset + sizeof(std::int16_t);
 static_assert(TerrainObjectsHeaderSize == 4, "la cabecera que mide el research (00607370 §2)");
-// Lo que ocupa un objeto en el archivo: un int16 y siete floats. El original avanza de a 30 bytes
-// (00607370-encterrain-obj.md §2).
+// An int16 and seven floats: the original steps 30 bytes (00607370-encterrain-obj.md §2).
 inline constexpr std::size_t TerrainObjectSize = sizeof(std::int16_t) + 7 * sizeof(float);
 static_assert(TerrainObjectSize == 30, "el registro que mide el research (00607370 §2)");
 
 struct TerrainObject
 {
-    // Qué objeto es. En los archivos reales va de 0 a 153; World7 trae uno en -515 (Q-C28).
+    // 0 to 153 in real files; World7 has one at -515 (Q-C28).
     std::int16_t type = 0;
-    // Dónde está, en las unidades del mundo: 100 por celda. x e y van sobre la grilla y z es la
-    // altura.
+    // In world units, 100 per cell: x and y over the grid, z is the height.
     std::array<float, 3> position{};
-    // Cuánto está girado sobre cada eje, probablemente en grados.
+    // Probably in degrees.
     std::array<float, 3> angle{};
-    // Cuánto se agranda el modelo: 1.0f es su tamaño. Los archivos reales traen alguna negativa o
-    // en cero (Q-C28).
+    // 1.0f is the model's size. Real files have some negative or zero (Q-C28).
     float scale = 0.0f;
 };
 
-// Descifra `file`, el EncTerrain.obj de la carpeta World<world>, y devuelve sus objetos en el orden
-// del archivo.
-//   - Cada float queda con los bits del archivo, aunque sea un NaN: Devias trae dos (Q-C28). Qué
-//     objetos se crean y cuáles se descartan lo decide la CL7, como el 0x606660 del original.
-//   - Si la cantidad es cero o negativa, no hay objetos. El original guarda igual el número
-//     negativo (0x6074b0), y el research no encontró quién lo lee (00607370 §1 y §7).
-//   - Si `file` no llega a la cabecera o a todos los objetos que dice, devuelve
-//     DataError::FileTooShort. El original no mira el tamaño y leería después del buffer (Q-C24).
-//   - Si es más largo, el resto se ignora, como en el original.
-//   - Si el byte 1 no es `world`, devuelve DataError::WrongWorld. El original crea los objetos
-//     igual, y es el que llama el que muestra "%s file corrupted." y cierra el juego.
+// In file order. Each float keeps the file's bits, even a NaN: Devias has two (Q-C28). Which objects are created and
+// which dropped is decided later, like the original's 0x606660. A zero or negative count means no objects; the
+// original still stores the negative number (0x6074b0) and the research found no reader (00607370 §1 and §7). A
+// `file` short of the header or of the objects it declares is DataError::FileTooShort: the original ignores the size
+// and would read past the buffer (Q-C24). Anything longer is ignored, as in the original. If byte 1 is not `world`,
+// DataError::WrongWorld: the original creates the objects anyway, and its caller shows "%s file corrupted." and
+// closes the game.
 ENGINE_API Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::span<const std::byte> file,
                                                                                     std::uint8_t world);
 } // namespace Client::Data::Terrain

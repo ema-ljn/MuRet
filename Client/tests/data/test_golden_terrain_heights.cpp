@@ -18,8 +18,6 @@
 #include <string_view>
 #include <vector>
 
-// TerrainHeight.OZB reales: los de la carpeta golden y, si está, el volcado de la memoria del
-// original (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Core::ByteReader;
@@ -41,8 +39,8 @@ using Client::Tests::StandardBitmapHeaderSize;
 
 using GoldenTerrainHeights = Client::Tests::GoldenDataTest;
 
-// La ruta que pide el original: "%s\\TerrainHeight.bmp" con "World%d" (0x6d12a0, en 0x61a560), y
-// el cargador cambia la extensión por "OZB".
+// The path the original asks for: "%s\\TerrainHeight.bmp" with "World%d" (0x6d12a0, at 0x61a560); the loader changes
+// the extension to "OZB".
 std::string HeightFile(std::uint8_t world)
 {
     return "World" + std::to_string(world) + "\\TerrainHeight.OZB";
@@ -64,9 +62,9 @@ TEST_F(GoldenTerrainHeights, LoadsEveryWorldOfTheLab)
     }
 }
 
-// Lo que midió el research en el TerrainHeight.OZB de Lorencia, el mismo archivo que el del
-// laboratorio (005f9020-terrainheight-ozb.md §6, con su SHA-256): la altura más alta es 382.5
-// (255 por 1,5) y las dos últimas celdas, los dos bytes del final del archivo, son 0.
+// What the research measured in Lorencia's TerrainHeight.OZB, the same file as the lab's
+// (005f9020-terrainheight-ozb.md §6, with its SHA-256): the highest is 382.5 (255 times 1.5) and the last two cells,
+// the file's last two bytes, are 0.
 TEST_F(GoldenTerrainHeights, LorenciaHasWhatTheResearchMeasured)
 {
     const auto path = DataFile(HeightFile(1));
@@ -83,7 +81,7 @@ TEST_F(GoldenTerrainHeights, LorenciaHasWhatTheResearchMeasured)
     EXPECT_EQ(heights[TerrainCellCount - 1], 0.0f);
 }
 
-// El de World56 llega a 765, el byte 255 por 3: es el único mundo que multiplica por 3.
+// 255 times 3: the only world that multiplies by 3.
 TEST_F(GoldenTerrainHeights, World56ReachesThreeTimes255)
 {
     const auto path = DataFile(HeightFile(56));
@@ -97,7 +95,7 @@ TEST_F(GoldenTerrainHeights, World56ReachesThreeTimes255)
     EXPECT_EQ(std::ranges::max(loaded.Value()->cells), 765.0f);
 }
 
-// El de World19 son 66.620 ceros, sin BMP: el original lo carga igual, plano (Q-C02).
+// World19's is 66,620 zeros, no BMP: the original loads it anyway, flat (Q-C02).
 TEST_F(GoldenTerrainHeights, World19IsFlat)
 {
     const auto path = DataFile(HeightFile(19));
@@ -114,9 +112,8 @@ TEST_F(GoldenTerrainHeights, World19IsFlat)
 class MemoryTerrainHeights : public Client::Tests::MemoryDumpTest
 {
 protected:
-    // Las alturas del TerrainHeight.OZB de la captura son las que tenía en memoria el main.exe
-    // original, en 0x07ACCCA4 (`heights`), y `header` es la cabecera que copió a 0x07D0CED8: los
-    // 0x438 bytes que siguen al prefijo de 4.
+    // The heights the original main.exe had at 0x07ACCCA4 (`heights`); `header` is the header it copied to 0x07D0CED8,
+    // the 0x438 bytes after the 4-byte prefix.
     void ExpectTheOriginalsMemory(const MemoryCapture& capture, std::string_view heights, std::string_view header)
     {
         const auto path = DataFile(HeightFile(capture.world));
@@ -153,9 +150,8 @@ TEST_F(MemoryTerrainHeights, EqualsTheOriginalsMemoryInLorencia)
     ExpectTheOriginalsMemory(LorenciaCapture, "lor_height.bin", "lor_bmphdr.bin");
 }
 
-// Q-C02, con la memoria: leer las alturas desde donde dice bfOffBits da 52.139 de las 65.536
-// distintas de las que tenía el original. Una biblioteca de BMP, además, da vuelta las filas: con
-// SDL_LoadBMP_IO de SDL3 son 64.500 (TerrainHeights.h).
+// Q-C02 with the memory: reading from bfOffBits gives 52,139 of the 65,536 heights different from the original's. A
+// BMP library also flips the rows: SDL3's SDL_LoadBMP_IO gives 64,500 (TerrainHeights.h).
 TEST_F(MemoryTerrainHeights, ReadingFromBfOffBitsWouldNotMatch)
 {
     const auto path = DataFile(HeightFile(3));

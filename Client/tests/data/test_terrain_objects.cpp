@@ -12,7 +12,6 @@
 #include <optional>
 #include <vector>
 
-// Client::Data::Terrain::LoadTerrainObjects: EncTerrain.obj, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -26,17 +25,17 @@ using Client::Tests::PlainTerrainObjects;
 using Client::Tests::SampleTerrainObjects;
 
 constexpr std::uint8_t Devias = 3;
-// Los objetos del EncTerrain1.obj real (00607370-encterrain-obj.md §8).
+// The real EncTerrain1.obj's (00607370-encterrain-obj.md §8).
 constexpr std::size_t ObjectsOfLorencia = 2870;
 
-// Un archivo de Devias con `objects` y su cantidad, ya cifrado.
+// A Devias file, already encrypted.
 std::vector<std::byte> ObjectsFile(const std::vector<TerrainObject>& objects)
 {
     return EncryptK16(PlainTerrainObjects(Devias, static_cast<std::int16_t>(objects.size()), objects));
 }
 
-// Con un tamaño distinto corta acá; el que llama la envuelve en ASSERT_NO_FATAL_FAILURE para cortar él
-// también antes de mirar un objeto que no está.
+// A different size stops here; the caller wraps it in ASSERT_NO_FATAL_FAILURE to stop too before reading a missing
+// object.
 void ExpectTheSameObjects(const std::vector<TerrainObject>& loaded, const std::vector<TerrainObject>& expected)
 {
     ASSERT_EQ(loaded.size(), expected.size());
@@ -46,7 +45,6 @@ void ExpectTheSameObjects(const std::vector<TerrainObject>& loaded, const std::v
     }
 }
 
-// El error de cargar `plain` ya cifrado, o std::nullopt si cargó.
 std::optional<DataError> LoadError(const std::vector<std::byte>& plain)
 {
     const auto loaded = LoadTerrainObjects(EncryptK16(plain), Devias);
@@ -57,9 +55,8 @@ std::optional<DataError> LoadError(const std::vector<std::byte>& plain)
     return loaded.Error();
 }
 
-// Los primeros bytes descifrados del EncTerrain1.obj real que da el research
-// (00607370-encterrain-obj.md §8): la cabecera 00 01 y 2870 (0x0B36), y el primer objeto, de tipo
-// 30 (0x001E), con x en 0x44AEA35C.
+// The research's first decrypted bytes of the real EncTerrain1.obj (00607370-encterrain-obj.md §8): the header 00 01
+// and 2870 (0x0B36), and the first object, type 30 (0x001E), with x at 0x44AEA35C.
 TEST(TerrainObjectsTest, ReadsTheBytesOfTheResearch)
 {
     const std::vector<std::byte> plain{std::byte{0x00}, std::byte{0x01}, std::byte{0x36}, std::byte{0x0B},
@@ -76,8 +73,7 @@ TEST(TerrainObjectsTest, ReadsTheBytesOfTheResearch)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(loaded.Value()[0].position[0]), 0x44AEA35Cu);
 }
 
-// Cada campo en su lugar, en el orden tipo, posición, ángulo y escala, y cada objeto 30 bytes
-// después del anterior.
+// Type, position, angle and scale, each object 30 bytes after the previous.
 TEST(TerrainObjectsTest, ReadsEachFieldOfEachObject)
 {
     const std::vector<TerrainObject> objects = SampleTerrainObjects(5);
@@ -91,7 +87,7 @@ TEST(TerrainObjectsTest, ReadsEachFieldOfEachObject)
     EXPECT_EQ(loaded.Value()[1].scale, 100.875f);
 }
 
-// El tipo y la cantidad son int16 con signo: 0xFFFF es -1, no 65535.
+// Signed int16: 0xFFFF is -1, not 65535.
 TEST(TerrainObjectsTest, TheTypeHasASign)
 {
     std::vector<TerrainObject> objects = SampleTerrainObjects(1);
@@ -103,10 +99,9 @@ TEST(TerrainObjectsTest, TheTypeHasASign)
     EXPECT_EQ(loaded.Value()[0].type, -515);
 }
 
-// Q-C28: cada float llega con sus bits, aunque no sea un número común. Un NaN como el 0xFFFFFFFF de
-// los dos objetos de Devias, uno de señal (0x7F800001 y 0xFFA00001: son los que cambiarían si
-// pasaran por una operación de punto flotante, que los vuelve silenciosos), el -0, el float más
-// chico de todos (un subnormal, como los del objeto 18 de World7) e infinito.
+// Q-C28: every float keeps its bits, uncommon ones too: a NaN like the two Devias objects' 0xFFFFFFFF, a signaling
+// one (0x7F800001 and 0xFFA00001, which a floating-point operation would quiet), -0, the smallest float (a subnormal,
+// like World7's object 18) and infinity.
 TEST(TerrainObjectsTest, KeepsTheBitsOfEveryFloat)
 {
     const auto from = [](std::uint32_t bits) { return std::bit_cast<float>(bits); };
@@ -121,7 +116,7 @@ TEST(TerrainObjectsTest, KeepsTheBitsOfEveryFloat)
     ASSERT_NO_FATAL_FAILURE(ExpectTheSameObjects(loaded.Value(), objects));
 }
 
-// El .obj de World6 es solo la cabecera, con cantidad 0. Con una negativa tampoco hay objetos.
+// World6's .obj is only the header, with count 0.
 TEST(TerrainObjectsTest, AFileWithOnlyTheHeaderHasNoObjects)
 {
     for (const std::int16_t count : {std::int16_t{0}, std::int16_t{-1}})
@@ -136,7 +131,7 @@ TEST(TerrainObjectsTest, AFileWithOnlyTheHeaderHasNoObjects)
     }
 }
 
-// Con una cantidad negativa el original no crea ningún objeto, aunque detrás haya.
+// The original creates none, even with objects behind.
 TEST(TerrainObjectsTest, ZeroOrANegativeCountHasNoObjects)
 {
     const std::vector<TerrainObject> objects = SampleTerrainObjects(3);
@@ -149,8 +144,7 @@ TEST(TerrainObjectsTest, ZeroOrANegativeCountHasNoObjects)
     }
 }
 
-// Q-C24: el original no mira el tamaño. Falta la cabecera, o un objeto, o el último byte del
-// último.
+// Q-C24: the original ignores the size. Missing: the header, an object, or the last object's last byte.
 TEST(TerrainObjectsTest, AShortFileIsAnError)
 {
     const std::vector<std::byte> whole = PlainTerrainObjects(Devias, 3, SampleTerrainObjects(3));
@@ -163,7 +157,7 @@ TEST(TerrainObjectsTest, AShortFileIsAnError)
     }
 }
 
-// Lo que sigue al último objeto se ignora, como en el original.
+// As in the original.
 TEST(TerrainObjectsTest, IgnoresTheBytesAfterTheLastObject)
 {
     const std::vector<TerrainObject> objects = SampleTerrainObjects(3);
@@ -175,7 +169,6 @@ TEST(TerrainObjectsTest, IgnoresTheBytesAfterTheLastObject)
     ASSERT_NO_FATAL_FAILURE(ExpectTheSameObjects(loaded.Value(), {objects[0], objects[1]}));
 }
 
-// El byte 0 no se lee: con cualquier valor, el archivo carga.
 TEST(TerrainObjectsTest, DoesNotReadTheFirstByte)
 {
     std::vector<std::byte> plain = PlainTerrainObjects(Devias, 1, SampleTerrainObjects(1));
@@ -189,7 +182,7 @@ TEST(TerrainObjectsTest, AnotherWorldIsAnError)
     EXPECT_EQ(LoadError(PlainTerrainObjects(2, 1, SampleTerrainObjects(1))), DataError::WrongWorld);
 }
 
-// Un archivo corto es corto, sea del mundo que sea, como en el .map.
+// As in the .map.
 TEST(TerrainObjectsTest, AShortFileComesBeforeAnotherWorld)
 {
     std::vector<std::byte> plain = PlainTerrainObjects(2, 2, SampleTerrainObjects(2));

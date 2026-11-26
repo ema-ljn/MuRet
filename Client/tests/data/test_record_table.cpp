@@ -15,17 +15,16 @@
 #include <utility>
 #include <vector>
 
-// Client::Data::Tables::RecordTable: los registros de largo fijo de las tablas .bmd.
 namespace
 {
 using Client::Crypto::Xor3;
 using Client::Data::Tables::RecordTable;
 using Client::Tests::BytePattern;
 
-// Un largo que no es múltiplo de 3, para que se note que la clave vuelve a empezar en cada registro.
+// Not a multiple of 3, so the key restarting on each record shows.
 using SmallTable = RecordTable<4>;
 
-// Record() se puede pedir a una tabla que sigue viva, y no a una temporal.
+// Record() works on a live table, not on a temporary.
 template <typename Table>
 concept ReadsRecords = requires(Table&& table) { std::forward<Table>(table).Record(0); };
 static_assert(ReadsRecords<SmallTable&>);
@@ -33,7 +32,7 @@ static_assert(ReadsRecords<const SmallTable&>);
 static_assert(!ReadsRecords<SmallTable>);
 static_assert(!ReadsRecords<const SmallTable>);
 
-// El registro tiene el largo en el tipo: un std::span de 4 bytes, no de los que vengan.
+// The length is in the type: a 4-byte std::span.
 static_assert(std::is_same_v<decltype(std::declval<const SmallTable&>().Record(0)),
                              std::optional<std::span<const std::byte, 4>>>);
 
@@ -42,9 +41,8 @@ bool HasBytes(std::optional<std::span<const std::byte, 4>> record, std::array<st
     return record.has_value() && std::ranges::equal(*record, expected);
 }
 
-// Sobre ceros, cada registro queda en FC CF AB FC: el original descifra registro por registro
-// (0x5496c0 con el largo del registro), así que la clave arranca de nuevo. De punta a punta, el
-// segundo registro daría CF AB FC CF.
+// Over zeros each record is FC CF AB FC: the original decrypts record by record (0x5496c0 with the record length), so
+// the key restarts. End to end, the second record would be CF AB FC CF.
 TEST(RecordTableTest, TheKeyStartsAgainOnEachRecord)
 {
     const std::vector<std::byte> zeros(8);
@@ -57,7 +55,6 @@ TEST(RecordTableTest, TheKeyStartsAgainOnEachRecord)
     EXPECT_TRUE(HasBytes(table.Record(1), key));
 }
 
-// Lo que se cifró registro por registro vuelve a estar en claro.
 TEST(RecordTableTest, GivesBackThePlainRecords)
 {
     const std::vector<std::byte> plain = BytePattern(12, 37, 11);
@@ -78,7 +75,6 @@ TEST(RecordTableTest, GivesBackThePlainRecords)
     }
 }
 
-// Los bytes que no llegan a un registro no se copian, y no hay registro para ellos.
 TEST(RecordTableTest, AnIncompleteRecordIsLeftOut)
 {
     const std::vector<std::byte> bytes(4 + 3);
@@ -90,7 +86,7 @@ TEST(RecordTableTest, AnIncompleteRecordIsLeftOut)
     EXPECT_FALSE(table.Record(1).has_value());
 }
 
-// Tampoco hay registro para un índice que, multiplicado por el largo, da la vuelta y caería adentro.
+// An index whose product with the length wraps around and would land inside.
 TEST(RecordTableTest, IndexPastTheTableHasNoRecord)
 {
     constexpr std::size_t Largest = std::numeric_limits<std::size_t>::max();

@@ -21,8 +21,8 @@ Core::Expected<std::unique_ptr<TerrainMapping>, DataError> LoadTerrainMapping(st
         return Core::Unexpected(DataError::FileTooShort);
     }
 
-    // K16 es un solo flujo: cada byte depende solo de los anteriores, así que descifrar los
-    // primeros TerrainMappingSize da lo mismo que descifrar todo y quedarse con ellos.
+    // K16 is a single stream: each byte depends only on the previous ones, so decrypting the first TerrainMappingSize
+    // equals decrypting everything and keeping those.
     const std::span<const std::byte> encrypted = file.first(TerrainMappingSize);
     std::vector<std::byte> plain(encrypted.begin(), encrypted.end());
     Crypto::DecryptK16(plain);

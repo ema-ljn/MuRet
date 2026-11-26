@@ -28,11 +28,11 @@ namespace
 using Core::EqualsIgnoringAsciiCase;
 using Core::Unexpected;
 
-// Más que cualquier textura del laboratorio (un OZT de 512 × 512 son 1 MB y poco): un archivo más
-// grande no es una textura, y no se lee entero a memoria.
+// More than any lab texture (a 512 × 512 OZT is just over 1 MB): a larger file is not a texture and is not read whole
+// into memory.
 constexpr std::uintmax_t MaxTextureFileBytes = 16u * 1024u * 1024u;
 
-// La extensión que le pone cada cargador al nombre (DAT_006d6538 y DAT_006d6570), sin el punto.
+// DAT_006d6538 and DAT_006d6570, without the dot.
 constexpr std::string_view LoaderExtension(TextureLoader loader)
 {
     return loader == TextureLoader::Ozj ? "OZJ" : "OZT";
@@ -43,7 +43,6 @@ TextureSetError MakeError(TextureSetErrorKind kind, std::string_view path)
     return TextureSetError{kind, std::string(path), std::nullopt, {}};
 }
 
-// Busca, lee y carga una entrada.
 Core::Expected<LoadedTexture, TextureSetError> LoadEntry(const std::filesystem::path& dataRoot,
                                                          const TextureSetEntry& entry)
 {
@@ -102,7 +101,7 @@ std::optional<TextureLoader> TextureLoaderOf(std::string_view originalPath)
 
 std::string TextureFileName(std::string_view originalPath, TextureLoader loader)
 {
-    // Los dos cargadores copian hasta el primer punto, con él (0x63b8e4..0x63b8fd en el del OZJ).
+    // Both loaders copy up to the first dot, with it (0x63b8e4..0x63b8fd in the OZJ's).
     const std::size_t dot = originalPath.find('.');
     std::string name(originalPath.substr(0, dot));
     name += '.';

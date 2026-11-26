@@ -68,7 +68,7 @@ TEST(ModelLoadCallsTest, TheFinalSkillQueriesKeepTheFirstTextureFolderThroughThe
     slots.SetNext(Client::Render::TextureSlot{0x3b8});
     for (const auto& call : Models::SiegeTextureCalls())
         bindings[call.model] = slots.Assign(models.at(call.model), call.folder, Models::ModelTextureSampling);
-    ASSERT_EQ(slots.ToLoad().size(), 16u); // Una por modelo y Gate02, pese a las consultas repetidas.
+    ASSERT_EQ(slots.ToLoad().size(), 16u); // One per model and Gate02, despite the repeated lookups.
     for (const auto& file : Models::SiegeModelFiles())
     {
         const std::string name = "castle" + std::to_string(file.model) + ".jpg";

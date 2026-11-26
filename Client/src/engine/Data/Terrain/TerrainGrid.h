@@ -4,23 +4,20 @@
 #include <cstddef>
 #include <cstdint>
 
-// La grilla del terreno de un mundo (Client/docs/research/05-formatos-de-datos.md, "Terreno de un
-// mundo"): 256 × 256 celdas, guardadas fila por fila. La celda (x, y) es la y * 256 + x, como la
-// cuenta el original (0x5fac90).
+// 256 × 256 cells, stored row by row (Client/docs/research/05-formatos-de-datos.md, "Terreno de un mundo"). Cell
+// (x, y) is y * 256 + x, as the original counts it (0x5fac90).
 namespace Client::Data::Terrain
 {
-// Celdas por lado. Una coordenada va de 0 a 255: entra justa en un byte.
+// A coordinate goes from 0 to 255: it fits a byte exactly.
 inline constexpr std::size_t TerrainSide = 256;
-// Las celdas de la grilla. Cada capa del .map y el .att tiene un valor por celda.
 inline constexpr std::size_t TerrainCellCount = TerrainSide * TerrainSide;
 static_assert(TerrainCellCount == 0x10000, "lo que ocupa una capa de un byte (05, Terreno de un mundo)");
 
-// Una capa: un valor por celda, en el orden de CellIndex. Es un std::array y no un std::vector
-// porque el tamaño es parte del formato: está en el tipo y nadie lo puede cambiar.
+// A std::array and not a std::vector because the size is part of the format: it is in the type and nobody can change
+// it.
 template <typename T> using TerrainLayer = std::array<T, TerrainCellCount>;
 
-// El lugar de la celda (x, y) en una capa. Con coordenadas de un byte no hay forma de salirse de
-// la grilla: la última celda, (255, 255), es la TerrainCellCount - 1.
+// With one-byte coordinates there is no way out of the grid: the last cell, (255, 255), is TerrainCellCount - 1.
 constexpr std::size_t CellIndex(std::uint8_t x, std::uint8_t y)
 {
     return std::size_t{y} * TerrainSide + std::size_t{x};

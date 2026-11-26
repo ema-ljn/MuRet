@@ -22,8 +22,6 @@
 #include <system_error>
 #include <vector>
 
-// Los modelos que piden los cargadores del original, contra la carpeta golden
-// (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Data::ResolveDataPath;
@@ -51,8 +49,8 @@ using Client::Models::MakePlayerSkeleton;
 using Client::Models::ModelTextureSlots;
 using Client::Render::TextureSlot;
 
-// Los modelos de la selección que carga 0x61ca30: Logo05 en el 0xa4 y los NewFace en el 0xa8 a 0xac
-// (0x61cb92 y el bucle de 0x61cbb1).
+// The selection models 0x61ca30 loads: Logo05 at 0xa4 and the NewFace at 0xa8 to 0xac (0x61cb92 and the loop at
+// 0x61cbb1).
 constexpr std::array<ModelFile, 6> SelectionModels = {{
     {0xa4, "Logo\\", "Logo", 5},
     {0xa8, "Logo\\", "NewFace", 1},
@@ -61,7 +59,7 @@ constexpr std::array<ModelFile, 6> SelectionModels = {{
     {0xab, "Logo\\", "NewFace", 4},
     {0xac, "Logo\\", "NewFace", 5},
 }};
-// El primer slot de las partes del personaje y el muestreo con que las pide 0x60f7d0 (06).
+// As 0x60f7d0 asks for them (06).
 constexpr TextureSlot PlayerPartsFirstSlot{0x138};
 constexpr Sampling PlayerPartsSampling{Filter::Linear, Wrap::Repeat};
 
@@ -72,7 +70,7 @@ std::string Named(const ModelFile& file)
 
 using GoldenModelFiles = Client::Tests::GoldenDataTest;
 
-// Los 213 que pide 0x60dbe0 están en el laboratorio y se leen.
+// 0x60dbe0
 TEST_F(GoldenModelFiles, EveryModelOfThePlayerLoaderExists)
 {
     for (const ModelFile& file : PlayerModelFiles())
@@ -81,7 +79,7 @@ TEST_F(GoldenModelFiles, EveryModelOfThePlayerLoaderExists)
     }
 }
 
-// De los 243 de 0x60ff50, faltan los tres giftbox (09): el original los saltea sin avisar.
+// The original skips the three giftbox (09) silently.
 TEST_F(GoldenModelFiles, TheItemLoaderMissesOnlyTheGiftBoxes)
 {
     std::vector<std::string> missing;
@@ -98,7 +96,7 @@ TEST_F(GoldenModelFiles, TheItemLoaderMissesOnlyTheGiftBoxes)
               (std::vector<std::string>{"Item\\giftbox_bp.bmd", "Item\\giftbox_br.bmd", "Item\\giftbox_bb.bmd"}));
 }
 
-// Cada malla que marca 0x60ff50 existe en el modelo del laboratorio.
+// 0x60ff50
 TEST_F(GoldenModelFiles, TheMeshesWithoutShineExist)
 {
     for (const ModelMesh& marked : MeshesWithoutShine)
@@ -111,8 +109,7 @@ TEST_F(GoldenModelFiles, TheMeshesWithoutShineExist)
     }
 }
 
-// El hueso de cada vértice de cada parte está en los 60 de Player.bmd y no es dummy: las partes se
-// dibujan con la pose del cuerpo, y un dummy no se posa (CL6.2).
+// The parts are drawn with the body's pose, and a dummy is not posed.
 TEST_F(GoldenModelFiles, EveryPartVertexHangsFromAPosedBone)
 {
     const auto skeleton = LoadModelFile(m_dataRoot, PlayerModelFiles().front());
@@ -134,8 +131,8 @@ TEST_F(GoldenModelFiles, EveryPartVertexHangsFromAPosedBone)
     }
 }
 
-// La textura de cada malla de cada parte está en Player\, la carpeta de 0x60f7d0, con el cargador que
-// elige la letra después del primer punto: lo que ModelTextureSlots manda a subir se encuentra.
+// In Player\, 0x60f7d0's folder, with the loader the letter after the first dot picks: what ModelTextureSlots uploads
+// is found.
 TEST_F(GoldenModelFiles, EveryMeshTextureOfThePlayerResolves)
 {
     ModelTextureSlots slots(PlayerPartsFirstSlot);
@@ -156,7 +153,6 @@ TEST_F(GoldenModelFiles, EveryMeshTextureOfThePlayerResolves)
     }
 }
 
-// Logo05 y los cinco NewFace de la selección están en Logo\.
 TEST_F(GoldenModelFiles, TheSelectionModelsExist)
 {
     for (const ModelFile& file : SelectionModels)
@@ -167,7 +163,7 @@ TEST_F(GoldenModelFiles, TheSelectionModelsExist)
     }
 }
 
-// Cada velocidad que escribe 0x60dbe0, y las cuatro que no repiten, son acciones de Player.bmd.
+// 0x60dbe0
 TEST_F(GoldenModelFiles, ThePlayerActionsFitTheSkeleton)
 {
     const auto skeleton = LoadModelFile(m_dataRoot, PlayerModelFiles().front());
@@ -183,9 +179,9 @@ TEST_F(GoldenModelFiles, ThePlayerActionsFitTheSkeleton)
     }
 }
 
-// Las dos acciones de las trazas de GL, como las deja 0x60dbe0 en Player.bmd: la 3 de la selección
-// (siete keys a 0,26) y la 1 de Lorencia (seis a 0,28), las dos repiten y sin lock_positions. Son las
-// de AnimationTest.TheSelectionJumpsAreThoseOfTheTrace y TheLorenciaJumpsAreThoseOfTheTrace.
+// The two actions of the GL traces as 0x60dbe0 leaves them in Player.bmd: the selection's 3 (seven keys at 0.26) and
+// Lorencia's 1 (six at 0.28), both repeating and without lock_positions. AnimationTest's
+// TheSelectionJumpsAreThoseOfTheTrace and TheLorenciaJumpsAreThoseOfTheTrace use them.
 TEST_F(GoldenModelFiles, TheActionsOfTheTracesAreThoseOfTheJumpTests)
 {
     const auto model = LoadModelFile(m_dataRoot, PlayerModelFiles().front());

@@ -9,68 +9,42 @@
 #include <cstdint>
 #include <span>
 
-// El .bmd de un modelo, como lo lee 0x4f13d0 (Client/docs/research/05-formatos-de-datos.md, "Modelos
-// .bmd"). Las tablas .bmd (Item, Skill, Gate) son otro formato con la misma extensión: no empiezan
-// con "BMD".
-//
-//   offset   qué es
-//   0        "BMD", que el original no mira (Q-C86)
-//   3        la versión
-//   4        con 0x0C, el tamaño del bloque cifrado (u32) y el bloque, cifrado con K16 desde +8;
-//            con cualquier otra, el contenido en claro
-//
-// El contenido, sin relleno entre una parte y otra y todo little-endian:
-//
-//   nombre[32], mallas, huesos y acciones (int16 cada uno)
-//   por malla:  vértices, normales, UV, triángulos y textura (int16 cada uno), los vértices (16 B),
-//               las normales (20 B), las UV (8 B), los triángulos (64 B) y el nombre de la
-//               textura[32]
-//   por acción: las keys (int16), lock_positions (u8) y, con lock, una posición (12 B) por key
-//   por hueso:  dummy (u8); si es 0, nombre[32], el padre (int16) y por cada acción sus keys
-//               posiciones (12 B) y después sus keys rotaciones (12 B)
+// The model .bmd as 0x4f13d0 reads it (Client/docs/research/05-formatos-de-datos.md, "Modelos .bmd"). The .bmd tables
+// (Item, Skill, Gate) are another format with the same extension: they do not start with "BMD".
 namespace Client::Data::Models
 {
-// El byte de la versión y la que va cifrada (0x4f13d0).
+// 0x4f13d0
 inline constexpr std::size_t BmdVersionOffset = 3;
 inline constexpr std::uint8_t EncryptedBmdVersion = 0x0C;
-// En claro, el contenido empieza después de la versión. Cifrado, después del tamaño.
+// Plain content starts after the version; encrypted content, after the size.
 inline constexpr std::size_t BmdPlainOffset = 4;
 inline constexpr std::size_t BmdEncryptedSizeOffset = 4;
 inline constexpr std::size_t BmdEncryptedOffset = BmdEncryptedSizeOffset + sizeof(std::uint32_t);
 
-// Los largos de cada parte, los que recorre el script del research en los 1.962 modelos sin bytes de
-// sobra (05).
+// The research script walks the 1,962 models with these and no bytes are left over (05).
 inline constexpr std::size_t BmdNameSize = 32;
-inline constexpr std::size_t BmdVertexSize = 16;   // hueso, relleno y la posición
-inline constexpr std::size_t BmdNormalSize = 20;   // hueso, relleno, la normal, el vértice y relleno
-inline constexpr std::size_t BmdTexCoordSize = 8;  // u y v
-inline constexpr std::size_t BmdTriangleSize = 64; // de los que 0x4f13d0 copia 36
+inline constexpr std::size_t BmdVertexSize = 16;   // bone, padding and position
+inline constexpr std::size_t BmdNormalSize = 20;   // bone, padding, normal, vertex and padding
+inline constexpr std::size_t BmdTexCoordSize = 8;  // u and v
+inline constexpr std::size_t BmdTriangleSize = 64; // 0x4f13d0 copies 36 of them
 inline constexpr std::size_t BmdVectorSize = 3 * sizeof(float);
 static_assert(BmdVertexSize == 2 * sizeof(std::int16_t) + BmdVectorSize, "el vértice de 05");
 static_assert(BmdNormalSize == 4 * sizeof(std::int16_t) + BmdVectorSize, "la normal de 05");
 
-// Dónde está cada cosa dentro de un triángulo: el tipo, y los juegos de cuatro índices de vértices,
-// normales y UV (05).
+// (05)
 inline constexpr std::size_t BmdTriangleVerticesOffset = 2;
 inline constexpr std::size_t BmdTriangleNormalsOffset = 10;
 inline constexpr std::size_t BmdTriangleTexCoordsOffset = 18;
 
-// Lo más que LoadBmd acepta de huesos que se posan por acciones: cada uno lleva un BoneKeys por
-// acción aunque la acción no tenga keys, que no ocupan bytes, y así un archivo chico pediría mucha
-// memoria. El original no tiene tope; el modelo del laboratorio que más tiene es Player.bmd.
+// Each posed bone takes one BoneKeys per action even when the action has no keys, which take no bytes, so a small
+// file could ask for a lot of memory. The original has no cap; the lab model with the most is Player.bmd.
 inline constexpr std::size_t MaxPosedBoneActions = std::size_t{1} << 16;
 
-// Bytes → Model, como 0x4f13d0. A propósito, también como él:
-//   - no mira el "BMD" (Q-C86) y lee en claro cualquier versión que no sea 0x0C;
-//   - con 0x0C, descifra con K16 el bloque de +8, desde su primer byte;
-//   - lo que sobra después del último hueso no se lee (Model::trailingBytes).
-// Distinto del original, que no mira los tamaños y sigue con la memoria que haya después del buffer:
-//   - si una parte no entra en lo que queda, o el tamaño cifrado de +4 pasa del archivo,
-//     DataError::FileTooShort;
-//   - si una cantidad (de mallas, huesos, acciones, de cada parte de una malla o de keys) es
-//     negativa, DataError::InvalidData: el original pediría memoria con las de las mallas y las keys,
-//     y las tres del modelo las saltea como un 0 (0x4f1882) pero las guarda;
-//   - si los huesos que se posan por las acciones pasan de MaxPosedBoneActions,
-//     DataError::InvalidData.
+// As 0x4f13d0, on purpose: ignores "BMD" (Q-C86) and reads any version other than 0x0C in clear; 0x0C is decrypted
+// with K16 from the first byte of the block at +8; nothing after the last bone is read (Model::trailingBytes).
+// Unlike the original, which never checks sizes and reads past the buffer: a part that does not fit, or an encrypted
+// size past the file, is DataError::FileTooShort; a negative count is DataError::InvalidData (the original would
+// allocate with the mesh and key counts, and skips the model's three as 0 at 0x4f1882 but stores them); posed bones
+// over MaxPosedBoneActions are DataError::InvalidData.
 [[nodiscard]] ENGINE_API Core::Expected<Model, DataError> LoadBmd(std::span<const std::byte> file);
 } // namespace Client::Data::Models

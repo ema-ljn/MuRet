@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-// Los .bmd de modelos reales, todos los de la carpeta golden (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Core::ByteReader;
@@ -47,10 +46,9 @@ using Client::Tests::ReadFileBytes;
 
 namespace fs = std::filesystem;
 
-// Los modelos del Data\ del laboratorio, recorridos por el script del research (05, 09).
+// Walked by the research script (05, 09).
 constexpr std::size_t ModelsOfTheLab = 1962;
 
-// Un modelo del laboratorio: su ruta dentro de Data\, su archivo y lo que leyó LoadBmd.
 struct LabModel
 {
     fs::path path;
@@ -58,7 +56,7 @@ struct LabModel
     Model model;
 };
 
-// Si `file` es un modelo: los .bmd de las tablas (Item, Skill, Gate) no empiezan con "BMD".
+// The .bmd tables (Item, Skill, Gate) do not start with "BMD".
 bool IsModelFile(const std::vector<char>& file)
 {
     return file.size() >= 3 && file[0] == 'B' && file[1] == 'M' && file[2] == 'D';
@@ -67,7 +65,7 @@ bool IsModelFile(const std::vector<char>& file)
 class GoldenBmd : public Client::Tests::GoldenDataTest
 {
 protected:
-    // Cada .bmd de la carpeta golden, en orden de ruta: el recorrido de una carpeta no tiene orden.
+    // Sorted by path: walking a folder has no order.
     std::vector<fs::path> BmdPaths() const
     {
         std::vector<fs::path> paths;
@@ -85,7 +83,7 @@ protected:
         return paths;
     }
 
-    // Cada modelo, leído con LoadBmd. Uno que no se lee hace fallar el test y no está en la lista.
+    // One that does not load fails the test and is left out.
     std::vector<LabModel> LabModels() const
     {
         std::vector<LabModel> models;
@@ -118,7 +116,6 @@ protected:
     }
 };
 
-// Si los primeros `polygon` índices de un juego entran en `count`.
 bool IndicesFit(const std::array<std::int16_t, 4>& indices, std::uint8_t polygon, std::size_t count)
 {
     const auto used = std::span(indices).first(std::min<std::size_t>(polygon, indices.size()));
@@ -126,7 +123,6 @@ bool IndicesFit(const std::array<std::int16_t, 4>& indices, std::uint8_t polygon
                                { return index >= 0 && static_cast<std::size_t>(index) < count; });
 }
 
-// Un hueso del laboratorio, por el archivo y su número.
 struct BonePlace
 {
     std::string path;
@@ -134,14 +130,13 @@ struct BonePlace
     bool operator==(const BonePlace&) const = default;
 };
 
-// GoogleTest lo usa para mostrar una lista distinta de la esperada.
+// GoogleTest uses it to show a list that differs from the expected one.
 [[maybe_unused]] void PrintTo(const BonePlace& place, std::ostream* out)
 {
     *out << place.path << " #" << place.bone;
 }
 
-// Los 1.962 se leen y ninguno deja bytes de más: ni después del último hueso ni, en los cifrados,
-// después del bloque de +8.
+// No bytes left over: not after the last bone, nor after the +8 block in the encrypted ones.
 TEST_F(GoldenBmd, ReadsEveryModelOfTheLab)
 {
     const std::vector<LabModel> models = LabModels();
@@ -159,8 +154,7 @@ TEST_F(GoldenBmd, ReadsEveryModelOfTheLab)
     }
 }
 
-// 816 cifrados, 1.142 en claro con 0x0A y los cuatro de 0x00 de Object3, que también van en claro
-// (05, Q-C86).
+// 816 encrypted, 1,142 plain with 0x0A and Object3's four with 0x00, also plain (05, Q-C86).
 TEST_F(GoldenBmd, CountsTheVersionsOfTheLab)
 {
     std::map<int, std::size_t> versions;
@@ -180,8 +174,8 @@ TEST_F(GoldenBmd, CountsTheVersionsOfTheLab)
                                                      "Object3/Object33.bmd", "Object3/Object90.bmd"}));
 }
 
-// El esqueleto del personaje, pedido como 0x60dbe0 ("Data\\Player\\Player.bmd", en player\ en el
-// laboratorio): 60 huesos, 10 dummy, 205 acciones y ninguna malla (05, Q-C88).
+// Asked for as 0x60dbe0 does ("Data\\Player\\Player.bmd", in player\ in the lab): 60 bones, 10 dummy, 205 actions and
+// no mesh (05, Q-C88).
 TEST_F(GoldenBmd, ThePlayerIsASkeleton)
 {
     const auto player = LoadModelFile(m_dataRoot, ModelFile{0x20a, "Player\\", "Player", -1});
@@ -193,8 +187,8 @@ TEST_F(GoldenBmd, ThePlayerIsASkeleton)
     EXPECT_EQ(player.Value().actions.size(), 205u);
 }
 
-// El padre de cada hueso va antes que él, y la pose de 0x4eb860, que los recorre en orden, ya lo
-// posó. Salvo en NPC\BloodCastle01.bmd, donde el 43 y el 44 cuelgan del 45 (Q-C108).
+// 0x4eb860 poses them in order, so the parent is already posed. Except NPC\BloodCastle01.bmd, where 43 and 44 hang
+// from 45 (Q-C108).
 TEST_F(GoldenBmd, ParentsComeBeforeChildren)
 {
     std::vector<BonePlace> parentAfter;
@@ -220,7 +214,6 @@ TEST_F(GoldenBmd, ParentsComeBeforeChildren)
     EXPECT_EQ(parentAfter, (std::vector<BonePlace>{{"NPC/BloodCastle01.bmd", 43}, {"NPC/BloodCastle01.bmd", 44}}));
 }
 
-// Cada triángulo es de tres vértices, y sus índices de vértices, normales y UV entran en su malla.
 TEST_F(GoldenBmd, EveryIndexOfATriangleIsInItsMesh)
 {
     std::size_t triangles = 0;
@@ -243,7 +236,7 @@ TEST_F(GoldenBmd, EveryIndexOfATriangleIsInItsMesh)
     EXPECT_EQ(triangles, 450338u);
 }
 
-// El int16 de +16 de cada normal es un vértice de su malla (P-C01 d: los 301.367 entran).
+// P-C01 d: all 301,367 fit.
 TEST_F(GoldenBmd, EveryNormalPointsAtAVertexOfItsMesh)
 {
     std::size_t normals = 0;
@@ -263,7 +256,6 @@ TEST_F(GoldenBmd, EveryNormalPointsAtAVertexOfItsMesh)
     EXPECT_EQ(normals, 301367u);
 }
 
-// Ningún modelo pasa del tope con que LoadModelFile los lee del disco.
 TEST_F(GoldenBmd, EveryModelFitsTheReadLimit)
 {
     std::uintmax_t largest = 0;
@@ -275,7 +267,6 @@ TEST_F(GoldenBmd, EveryModelFitsTheReadLimit)
     EXPECT_EQ(largest, 2414277u) << "el más grande del laboratorio, player\\playerTest.bmd";
 }
 
-// Ningún modelo pasa del tope de huesos que se posan por acciones con que LoadBmd los lee.
 TEST_F(GoldenBmd, EveryModelFitsThePosedBoneLimit)
 {
     std::size_t largest = 0;
@@ -295,9 +286,9 @@ TEST_F(GoldenBmd, EveryModelFitsThePosedBoneLimit)
     EXPECT_EQ(largestPath.generic_string(), "player/Player.bmd");
 }
 
-// 05: 142 mallas del laboratorio tienen script (0x459940), 135 con R, 6 con H (las de Object11\Object01
-// a 06) y 1 con S (Item\Quest03), y ninguna con N. 17 son de partes del personaje, todas con R: el
-// pelo de los cascos (hair_R.jpg) y otras tres texturas (CL6.1; antes 05 decía que ninguna).
+// 05: 142 lab meshes have a script (0x459940), 135 with R, 6 with H (Object11\Object01 to 06's) and 1 with S
+// (Item\Quest03), none with N. 17 belong to character parts, all with R: the helms' hair (hair_R.jpg) and three other
+// textures.
 TEST_F(GoldenBmd, TheTextureScriptsOfTheLab)
 {
     std::size_t scripts = 0;

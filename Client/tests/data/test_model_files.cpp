@@ -16,8 +16,6 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Models: el nombre del archivo de un modelo, los que no pueden faltar y la lectura desde
-// un Data\ sintético en una carpeta temporal.
 namespace
 {
 using Client::Data::DataError;
@@ -34,12 +32,11 @@ using Client::Tests::TemporaryFolder;
 
 namespace fs = std::filesystem;
 
-// El esqueleto del personaje, como lo pide 0x60dbe0: el modelo 0x20a, "Data\\Player\\Player.bmd".
+// As 0x60dbe0 asks for it: model 0x20a, "Data\\Player\\Player.bmd".
 constexpr ModelFile PlayerSkeleton{0x20a, "Player\\", "Player", -1};
-// Un casco, como los pide 0x60dbe0: "Data\\Player\\HelmMale01.bmd".
+// As 0x60dbe0 asks for it: "Data\\Player\\HelmMale01.bmd".
 constexpr ModelFile FirstMaleHelm{0x20b, "Player\\", "HelmMale", 1};
 
-// Escribe `bytes` en `root / relative`, con sus carpetas.
 void WriteFile(const fs::path& root, const fs::path& relative, std::span<const std::byte> bytes)
 {
     const fs::path path = root / relative;
@@ -52,7 +49,7 @@ void WriteFile(const fs::path& root, const fs::path& relative, std::span<const s
     ASSERT_TRUE(file.good()) << "no se pudo escribir " << relative.generic_string();
 }
 
-// El modelo de los tests sin mallas: así viene el esqueleto (Q-C88).
+// The skeleton comes that way (Q-C88).
 Model SampleSkeleton()
 {
     Model skeleton = SampleModel();
@@ -60,8 +57,8 @@ Model SampleSkeleton()
     return skeleton;
 }
 
-// 0x60da30: -1 sin número, uno de un dígito con un 0 adelante, y los demás tal cual. Con signo, como
-// el %d del original: -2 da "0-2".
+// 0x60da30: -1 without a number, one digit with a leading 0, the rest as is. Signed, like the original's %d: -2
+// gives "0-2".
 TEST(ModelFileNameTest, FollowsTheThreeFormats)
 {
     EXPECT_EQ(ModelFileName("Player", -1), "Player.bmd");
@@ -73,8 +70,7 @@ TEST(ModelFileNameTest, FollowsTheThreeFormats)
     EXPECT_EQ(ModelFileName("Wing", -2), "Wing0-2.bmd");
 }
 
-// Q-C23: solo Monster, Player y PlayerTest cierran el juego si faltan, comparados byte a byte como en
-// 0x60daec. El número no cuenta: Monster50.bmd es "Monster".
+// Q-C23: compared byte by byte as at 0x60daec. The number does not count: Monster50.bmd is "Monster".
 TEST(ModelFilesTest, OnlyMonsterPlayerAndPlayerTestAreRequired)
 {
     EXPECT_TRUE(IsRequiredModel("Monster"));
@@ -87,7 +83,7 @@ TEST(ModelFilesTest, OnlyMonsterPlayerAndPlayerTestAreRequired)
     }
 }
 
-// El que falta dice la ruta como la pide el original, con Data\ y las barras de Windows.
+// As the original asks for it, with Data\ and Windows separators.
 TEST(ModelFilesTest, AMissingFileSaysItsPath)
 {
     const TemporaryFolder data("model-files-missing");
@@ -101,7 +97,7 @@ TEST(ModelFilesTest, AMissingFileSaysItsPath)
     EXPECT_FALSE(loaded.Error().system);
 }
 
-// Sin la carpeta de datos no se puede buscar: falta, con lo que dijo el sistema.
+// Missing, with what the system said.
 TEST(ModelFilesTest, AFolderThatCannotBeSearchedSaysWhy)
 {
     const TemporaryFolder data("model-files-no-root");
@@ -113,8 +109,7 @@ TEST(ModelFilesTest, AFolderThatCannotBeSearchedSaysWhy)
     EXPECT_TRUE(loaded.Error().system);
 }
 
-// Q-C88: el esqueleto tiene que venir sin mallas. Con mallas es un error; otro modelo con mallas, no,
-// y PlayerTest tampoco es el esqueleto.
+// Q-C88: another model with meshes is fine, and PlayerTest is not the skeleton either.
 TEST(ModelFilesTest, TheSkeletonWithMeshesIsAnError)
 {
     const TemporaryFolder data("model-files-skeleton");
@@ -134,7 +129,6 @@ TEST(ModelFilesTest, TheSkeletonWithMeshesIsAnError)
     EXPECT_TRUE(helm.HasValue());
 }
 
-// El esqueleto sin mallas carga, con sus huesos y sus acciones.
 TEST(ModelFilesTest, TheSkeletonWithoutMeshesLoads)
 {
     const TemporaryFolder data("model-files-bones");
@@ -148,8 +142,7 @@ TEST(ModelFilesTest, TheSkeletonWithoutMeshesLoads)
     EXPECT_EQ(skeleton.Value().actions.size(), 2u);
 }
 
-// La copia del Data\ del laboratorio tiene player\ en minúscula: se busca como en Windows
-// (ResolveDataPath).
+// The lab's Data\ copy has player\ lowercase: it is found as on Windows (ResolveDataPath).
 TEST(ModelFilesTest, FindsTheFileInAnyCase)
 {
     const TemporaryFolder data("model-files-case");
@@ -162,7 +155,6 @@ TEST(ModelFilesTest, FindsTheFileInAnyCase)
     ASSERT_EQ(helm.Value().meshes.size(), 1u);
 }
 
-// Uno que está y LoadBmd no acepta: no se lee, con lo que dijo LoadBmd.
 TEST(ModelFilesTest, AnUnreadableFileSaysWhatLoadBmdSaid)
 {
     const TemporaryFolder data("model-files-short");

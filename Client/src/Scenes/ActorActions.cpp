@@ -234,7 +234,7 @@ Core::Expected<bool, std::string> IsFlying(const ActorState& actor, const ActorS
             return Core::Unexpected(std::string("0x4f23c1: la posición no es representable como celda"));
         }
         const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(*x), static_cast<std::uint8_t>(*y));
-        flyingCell = ((*context.terrainWalls)[cell] & World::SafeZoneWallBit) == 0;
+        flyingCell = ((*context.terrainWalls)[cell] & Pathfinding::SafeZoneWallBit) == 0;
     }
     const bool withWings = actor.safeZone == 0 && actor.wings.model != NoItemModel;
     return withWings || actor.word376 == FlyingWord376 || flyingCell;
@@ -374,7 +374,7 @@ Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, con
                                                 "(0x5f82a0, 0x4f366e)"));
         }
         const std::size_t cell = Data::Terrain::CellIndex(cellX, cellY);
-        if (((*context.terrainWalls)[cell] & World::SafeZoneWallBit) != 0)
+        if (((*context.terrainWalls)[cell] & Pathfinding::SafeZoneWallBit) != 0)
         {
             stand = WallStandAction;
         }

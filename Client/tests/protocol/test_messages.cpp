@@ -22,7 +22,7 @@
 // 04 § El chat que llega (CL8 hito 3). Los nombres y los textos son inventados.
 namespace
 {
-using Client::Protocol::ProtocolError;
+using Client::Network::ProtocolError;
 using Client::Protocol::Messages::ReadChat;
 using Client::Protocol::Messages::ReadKeyChat;
 using Client::Protocol::Messages::ReadNotice;

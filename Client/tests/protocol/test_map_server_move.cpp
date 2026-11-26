@@ -28,11 +28,11 @@ namespace
 {
 using Client::Network::Delivery;
 using Client::Network::Packet;
+using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
 using Client::Protocol::ClientSerial;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Outgoing;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::MapServerAuth;
 using Client::Protocol::Connection::MapServerCodes;
 using Client::Protocol::Connection::MapServerMove;

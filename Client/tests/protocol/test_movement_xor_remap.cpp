@@ -15,7 +15,7 @@
 namespace
 {
 using Client::App::LabXorRemapTables;
-using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapObfuscation;
 using Client::Protocol::Movement::Cell;
 using Client::Protocol::Movement::WriteWalk;
 using Client::Tests::Bytes;

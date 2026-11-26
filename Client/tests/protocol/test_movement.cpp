@@ -22,8 +22,8 @@
 
 namespace
 {
+using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Movement::Cell;
 using Client::Protocol::Movement::FacingAction;
 using Client::Protocol::Movement::ReadAction;

@@ -21,10 +21,10 @@ namespace
 // Los dos bytes de un miembro del 42 que 0x4d67e0 no copia (+0xe y +0xf).
 constexpr std::size_t MemberGap = 2;
 
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
@@ -51,29 +51,29 @@ Outgoing WritePartyListRequest()
     return ClearC1(Network::PacketWriter::C1(PartyListOpcode));
 }
 
-Core::Expected<PartyRequest, ProtocolError> ReadPartyRequest(const Network::Packet& packet)
+Core::Expected<PartyRequest, Network::ProtocolError> ReadPartyRequest(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, RequestOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto key = fields.Value().ReadU16Be();
     if (!key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return PartyRequest{*key};
 }
 
-Core::Expected<PartyRequestResult, ProtocolError> ReadPartyRequestResult(const Network::Packet& packet)
+Core::Expected<PartyRequestResult, Network::ProtocolError> ReadPartyRequestResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, RequestResultOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto result = fields.Value().ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return PartyRequestResult{*result};
 }
 
-Core::Expected<PartyList, ProtocolError> ReadPartyList(const Network::Packet& packet)
+Core::Expected<PartyList, Network::ProtocolError> ReadPartyList(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, PartyListOpcode);
     if (!fields.HasValue())
@@ -82,20 +82,20 @@ Core::Expected<PartyList, ProtocolError> ReadPartyList(const Network::Packet& pa
     const auto result = reader.ReadU8();
     const auto count = reader.ReadU8();
     if (!result || !count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     PartyList list{.result = *result, .members = {}};
     list.members.reserve(*count);
     for (std::uint8_t at = 0; at < *count; ++at)
     {
         const auto member = ReadMember(reader);
         if (!member)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         list.members.push_back(*member);
     }
     return list;
 }
 
-Core::Expected<PartyLeft, ProtocolError> ReadPartyLeft(const Network::Packet& packet)
+Core::Expected<PartyLeft, Network::ProtocolError> ReadPartyLeft(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, LeaveOpcode);
     if (!fields.HasValue())
@@ -103,7 +103,7 @@ Core::Expected<PartyLeft, ProtocolError> ReadPartyLeft(const Network::Packet& pa
     return PartyLeft{};
 }
 
-Core::Expected<PartyLife, ProtocolError> ReadPartyLife(const Network::Packet& packet)
+Core::Expected<PartyLife, Network::ProtocolError> ReadPartyLife(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, LifeOpcode);
     if (!fields.HasValue())
@@ -111,10 +111,10 @@ Core::Expected<PartyLife, ProtocolError> ReadPartyLife(const Network::Packet& pa
     Core::ByteReader& reader = fields.Value();
     const auto count = reader.ReadU8();
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto bytes = reader.ReadBytes(*count);
     if (!bytes)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     PartyLife life{};
     life.entries.reserve(bytes->size());
     std::ranges::transform(*bytes, std::back_inserter(life.entries),

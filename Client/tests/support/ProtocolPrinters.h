@@ -16,23 +16,6 @@
 // Credentials de AppPrinters.h: es del jugador.
 namespace Client::Protocol
 {
-inline void PrintTo(ProtocolError error, std::ostream* out)
-{
-    switch (error)
-    {
-    case ProtocolError::WrongPacket:
-        *out << "WrongPacket";
-        return;
-    case ProtocolError::TooShort:
-        *out << "TooShort";
-        return;
-    case ProtocolError::FieldTooLong:
-        *out << "FieldTooLong";
-        return;
-    }
-    *out << "ProtocolError fuera del enum";
-}
-
 inline void PrintTo(DispatchResult result, std::ostream* out)
 {
     switch (result)
@@ -51,10 +34,31 @@ inline void PrintTo(DispatchResult result, std::ostream* out)
 }
 } // namespace Client::Protocol
 
+namespace Client::Network
+{
+inline void PrintTo(ProtocolError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case ProtocolError::WrongPacket:
+        *out << "WrongPacket";
+        return;
+    case ProtocolError::TooShort:
+        *out << "TooShort";
+        return;
+    case ProtocolError::FieldTooLong:
+        *out << "FieldTooLong";
+        return;
+    }
+    *out << "ProtocolError fuera del enum";
+}
+} // namespace Client::Network
+
 namespace Client::Protocol::Character
 {
 inline void PrintTo(const CharacterEntry& entry, std::ostream* out)
 {
-    *out << "CharacterEntry{lugar " << int{entry.slot} << ", nombre de " << TextField(entry.name).size() << " bytes}";
+    *out << "CharacterEntry{lugar " << int{entry.slot} << ", nombre de " << Network::TextField(entry.name).size()
+         << " bytes}";
 }
 } // namespace Client::Protocol::Character

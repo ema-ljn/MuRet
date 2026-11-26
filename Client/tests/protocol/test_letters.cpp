@@ -24,7 +24,7 @@
 namespace
 {
 using Client::Network::Delivery;
-using Client::Protocol::ProtocolError;
+using Client::Network::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

@@ -19,9 +19,9 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Character::AgilityPoint;
 using Client::Protocol::Character::CommandPoint;
 using Client::Protocol::Character::EnergyPoint;

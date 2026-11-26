@@ -20,8 +20,8 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
 using Client::Protocol::Outgoing;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::LogoutQuitsTheGame;
 using Client::Protocol::Connection::LogoutReturnsToSelection;
 using Client::Protocol::Connection::LogoutReturnsToServerList;

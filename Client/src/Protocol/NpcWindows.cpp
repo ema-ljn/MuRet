@@ -27,14 +27,14 @@ constexpr std::size_t ListGridField = 4;
 constexpr std::uint8_t ClearTalkHead = TalkOpcode;
 
 // Un paquete de `opcode`, sin mirar si es C1 o C2: el lector desde `field`.
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode,
-                                                         std::size_t field = FirstField)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode,
+                                                                  std::size_t field = FirstField)
 {
     if (packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::span<const std::byte> bytes = packet.Bytes();
     if (bytes.size() < field)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Core::ByteReader(bytes.subspan(field));
 }
 
@@ -55,7 +55,7 @@ Outgoing EmptyClearC1(std::uint8_t opcode)
 }
 } // namespace
 
-Core::Expected<TalkResult, ProtocolError> ReadTalkResult(const Network::Packet& packet)
+Core::Expected<TalkResult, Network::ProtocolError> ReadTalkResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, TalkOpcode);
     if (!fields.HasValue())
@@ -63,7 +63,7 @@ Core::Expected<TalkResult, ProtocolError> ReadTalkResult(const Network::Packet& 
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     TalkResult talk{.result = *result};
     for (std::uint8_t& rate : talk.rates)
     {
@@ -75,7 +75,7 @@ Core::Expected<TalkResult, ProtocolError> ReadTalkResult(const Network::Packet& 
     }
     constexpr std::uint8_t SeniorReply = 12; // 0x4d25bc: pkt4 decide el cierre87 frente a31.
     if (talk.result == SeniorReply && talk.ratesInPacket == 0)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return talk;
 }
 
@@ -87,7 +87,7 @@ Outgoing WriteClearTalkReport()
                            .PutU8(ClearTalkHead));
 }
 
-Core::Expected<ItemList, ProtocolError> ReadItemList(const Network::Packet& packet)
+Core::Expected<ItemList, Network::ProtocolError> ReadItemList(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, ItemListOpcode, ListGridField);
     if (!fields.HasValue())
@@ -96,7 +96,7 @@ Core::Expected<ItemList, ProtocolError> ReadItemList(const Network::Packet& pack
     const auto grid = reader.ReadU8();
     const auto count = reader.ReadU8();
     if (!grid || !count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     ItemList list{.grid = *grid, .items = {}};
     list.items.reserve(*count);
     for (std::uint8_t entry = 0; entry < *count; ++entry)
@@ -104,13 +104,13 @@ Core::Expected<ItemList, ProtocolError> ReadItemList(const Network::Packet& pack
         const auto slot = reader.ReadU8();
         const auto item = ReadItem(reader);
         if (!slot || !item)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         list.items.push_back(ListedItem{.slot = *slot, .item = *item});
     }
     return list;
 }
 
-Core::Expected<BuyResult, ProtocolError> ReadBuyResult(const Network::Packet& packet)
+Core::Expected<BuyResult, Network::ProtocolError> ReadBuyResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, BuyOpcode);
     if (!fields.HasValue())
@@ -118,16 +118,16 @@ Core::Expected<BuyResult, ProtocolError> ReadBuyResult(const Network::Packet& pa
     Core::ByteReader& reader = fields.Value();
     const auto slot = reader.ReadU8();
     if (!slot)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     if (*slot == BuyRejected)
         return BuyResult{.slot = *slot, .item = {}};
     const auto item = ReadItem(reader);
     if (!item)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return BuyResult{.slot = *slot, .item = *item};
 }
 
-Core::Expected<SellResult, ProtocolError> ReadSellResult(const Network::Packet& packet)
+Core::Expected<SellResult, Network::ProtocolError> ReadSellResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, SellOpcode);
     if (!fields.HasValue())
@@ -135,28 +135,28 @@ Core::Expected<SellResult, ProtocolError> ReadSellResult(const Network::Packet& 
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     if (*result == 0)
         return SellResult{.result = 0, .money = 0};
     // pkt[4..7], el int que sigue al byte del resultado (Money en +4 del PMSG_SELLRESULT).
     const auto money = reader.ReadU32Le();
     if (!money)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return SellResult{.result = *result, .money = *money};
 }
 
-Core::Expected<RepairResult, ProtocolError> ReadRepairResult(const Network::Packet& packet)
+Core::Expected<RepairResult, Network::ProtocolError> ReadRepairResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, RepairOpcode, FirstField + 1);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto money = fields.Value().ReadU32Le();
     if (!money)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return RepairResult{.money = *money};
 }
 
-Core::Expected<WarehouseMoney, ProtocolError> ReadWarehouseMoney(const Network::Packet& packet)
+Core::Expected<WarehouseMoney, Network::ProtocolError> ReadWarehouseMoney(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, WarehouseMoneyOpcode);
     if (!fields.HasValue())
@@ -164,36 +164,36 @@ Core::Expected<WarehouseMoney, ProtocolError> ReadWarehouseMoney(const Network::
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     if (*result == 0)
         return WarehouseMoney{};
     const auto warehouse = reader.ReadU32Le();
     const auto inventory = reader.ReadU32Le();
     if (!warehouse || !inventory)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return WarehouseMoney{.result = *result, .warehouseMoney = *warehouse, .inventoryMoney = *inventory};
 }
 
-Core::Expected<NpcWindowClosed, ProtocolError> ReadNpcWindowClosed(const Network::Packet& packet)
+Core::Expected<NpcWindowClosed, Network::ProtocolError> ReadNpcWindowClosed(const Network::Packet& packet)
 {
     const auto opcode = packet.Opcode();
     if (opcode != WarehouseCloseOpcode && opcode != ChaosBoxCloseOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return NpcWindowClosed{.opcode = *opcode};
 }
 
-Core::Expected<WarehouseState, ProtocolError> ReadWarehouseState(const Network::Packet& packet)
+Core::Expected<WarehouseState, Network::ProtocolError> ReadWarehouseState(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, WarehouseStateOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto state = fields.Value().ReadU8();
     if (!state)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return WarehouseState{.state = *state};
 }
 
-Core::Expected<ChaosMixResult, ProtocolError> ReadChaosMixResult(const Network::Packet& packet)
+Core::Expected<ChaosMixResult, Network::ProtocolError> ReadChaosMixResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, ChaosMixOpcode);
     if (!fields.HasValue())
@@ -201,13 +201,13 @@ Core::Expected<ChaosMixResult, ProtocolError> ReadChaosMixResult(const Network::
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     // 0x4da2ff y 0x4da378: solo el 1 y el 100 leen el ítem desde pkt[4].
     if (*result != ChaosMixSucceeded && *result != TrainerMixResult)
         return ChaosMixResult{.result = *result, .item = {}};
     const auto item = ReadItem(reader);
     if (!item)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return ChaosMixResult{.result = *result, .item = *item};
 }
 

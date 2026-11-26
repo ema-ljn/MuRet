@@ -12,7 +12,7 @@
 namespace
 {
 using Client::App::LabXorRemapTables;
-using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapObfuscation;
 namespace Combat = Client::Protocol::Combat;
 
 // The D7 of the attack leaves as A4, the GS's PMSG_ATTACK (CGAttack 0x4254d0).

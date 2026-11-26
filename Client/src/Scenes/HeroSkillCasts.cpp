@@ -464,7 +464,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
                                             *cellX, *cellY));
     // 0x55980f: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance distinto de 0
     // no cuenta (0x4eadd4).
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
                           .Find({x, y}, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)},
                                 CrywolfAltarGoal(world), reach);
     if (!path)

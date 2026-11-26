@@ -87,7 +87,7 @@ struct Damage
 
 // Ya pasaron por el framing y la decodificación de Network. WrongPacket para tipo/opcode
 // distintos, TooShort si faltan campos; como los demás lectores, ignoran bytes sobrantes.
-[[nodiscard]] Core::Expected<Walk, ProtocolError> ReadWalk(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Action, ProtocolError> ReadAction(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Walk, Network::ProtocolError> ReadWalk(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Damage, Network::ProtocolError> ReadDamage(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Action, Network::ProtocolError> ReadAction(const Network::Packet& packet);
 } // namespace Client::Protocol::Movement

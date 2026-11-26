@@ -38,22 +38,22 @@ constexpr std::size_t TicketSize = 10;
 // 0x6c82e4.
 constexpr std::array<std::byte, 3> ChatTextKey{std::byte{0xfc}, std::byte{0xcf}, std::byte{0xab}};
 
-Core::Expected<std::span<const std::byte>, ProtocolError> BytesOf(const Network::Packet& packet, std::uint8_t opcode,
-                                                                  std::size_t size)
+Core::Expected<std::span<const std::byte>, Network::ProtocolError> BytesOf(const Network::Packet& packet,
+                                                                           std::uint8_t opcode, std::size_t size)
 {
     if (packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::span<const std::byte> bytes = packet.Bytes();
     if (bytes.size() < size)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return bytes;
 }
 
-Core::Expected<std::span<const std::byte>, ProtocolError> C1BytesOf(const Network::Packet& packet, std::uint8_t opcode,
-                                                                    std::size_t size)
+Core::Expected<std::span<const std::byte>, Network::ProtocolError> C1BytesOf(const Network::Packet& packet,
+                                                                             std::uint8_t opcode, std::size_t size)
 {
     if (packet.Type() != Network::PacketType::C1)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return BytesOf(packet, opcode, size);
 }
 
@@ -74,7 +74,7 @@ std::uint32_t U32At(std::span<const std::byte> bytes, std::size_t at)
 
 std::string TextAt(std::span<const std::byte> bytes, std::size_t at, std::size_t size)
 {
-    return TextField(bytes.subspan(at, size));
+    return Network::TextField(bytes.subspan(at, size));
 }
 
 // strncpy(destino, pkt + at, tope) de los handlers de la sala, o el texto hasta el 0 que 0x4dd540 pone en pkt[0x68]:
@@ -102,7 +102,7 @@ void FlipChatText(std::vector<std::byte>& bytes)
         bytes[at] ^= ChatTextKey[at % ChatTextKey.size()];
 }
 
-Core::Expected<RoomAnswer, ProtocolError> ReadRoomAnswer(const Network::Packet& packet)
+Core::Expected<RoomAnswer, Network::ProtocolError> ReadRoomAnswer(const Network::Packet& packet)
 {
     auto read = C1BytesOf(packet, RoomRequestOpcode, RoomAnswerSize);
     if (!read.HasValue())
@@ -116,7 +116,7 @@ Core::Expected<RoomAnswer, ProtocolError> ReadRoomAnswer(const Network::Packet& 
                       .result = U8At(bytes, 0x23)};
 }
 
-Core::Expected<InviteResult, ProtocolError> ReadInviteResult(const Network::Packet& packet)
+Core::Expected<InviteResult, Network::ProtocolError> ReadInviteResult(const Network::Packet& packet)
 {
     auto read = C1BytesOf(packet, InviteOpcode, InviteResultSize);
     if (!read.HasValue())
@@ -124,7 +124,7 @@ Core::Expected<InviteResult, ProtocolError> ReadInviteResult(const Network::Pack
     return InviteResult{.result = U8At(read.Value(), 3), .window = U32At(read.Value(), 4)};
 }
 
-Core::Expected<JoinResult, ProtocolError> ReadJoinResult(const Network::Packet& packet)
+Core::Expected<JoinResult, Network::ProtocolError> ReadJoinResult(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, JoinOpcode, JoinResultSize);
     if (!read.HasValue())
@@ -132,7 +132,7 @@ Core::Expected<JoinResult, ProtocolError> ReadJoinResult(const Network::Packet& 
     return JoinResult{.result = U8At(read.Value(), 3)};
 }
 
-Core::Expected<Member, ProtocolError> ReadMember(const Network::Packet& packet)
+Core::Expected<Member, Network::ProtocolError> ReadMember(const Network::Packet& packet)
 {
     // 0x4dd20d..0x4dd262: el nombre (strncpy de 10) y después pkt[3]; pkt[4], con el 0.
     auto read = BytesOf(packet, MemberOpcode, MemberNameAt);
@@ -141,11 +141,11 @@ Core::Expected<Member, ProtocolError> ReadMember(const Network::Packet& packet)
     const std::span<const std::byte> bytes = read.Value();
     std::optional<std::string> name = CStringAt(bytes, MemberNameAt, ChatNameSize);
     if (!name)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Member{.kind = U8At(bytes, 3), .index = U8At(bytes, 4), .name = std::move(*name)};
 }
 
-Core::Expected<Members, ProtocolError> ReadMembers(const Network::Packet& packet)
+Core::Expected<Members, Network::ProtocolError> ReadMembers(const Network::Packet& packet)
 {
     // 0x4dd367: pkt[6]; con 0 no lee más. Cada miembro, el nombre (strncpy de 10, 0x4dd382) y su número (0x4dd391).
     auto read = BytesOf(packet, MembersOpcode, MembersCountAt + 1);
@@ -160,13 +160,13 @@ Core::Expected<Members, ProtocolError> ReadMembers(const Network::Packet& packet
         const std::size_t at = MembersFirstRow + (row * MemberRowSize);
         std::optional<std::string> name = CStringAt(bytes, at + 1, ChatNameSize);
         if (!name)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         members.members.push_back(MemberRow{.index = U8At(bytes, at), .name = std::move(*name)});
     }
     return members;
 }
 
-Core::Expected<Message, ProtocolError> ReadMessage(const Network::Packet& packet)
+Core::Expected<Message, Network::ProtocolError> ReadMessage(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, MessageOpcode, MessageHeaderSize);
     if (!read.HasValue())
@@ -177,16 +177,16 @@ Core::Expected<Message, ProtocolError> ReadMessage(const Network::Packet& packet
     if (message.length > MessageLimit)
         return message;
     if (bytes.size() < MessageHeaderSize + message.length)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     // Copia el largo a un buffer de 101 en cero, le saca el XOR de 3 bytes y lo usa hasta el primer '\0'.
     std::vector<std::byte> text(bytes.begin() + MessageHeaderSize,
                                 bytes.begin() + static_cast<std::ptrdiff_t>(MessageHeaderSize + message.length));
     FlipChatText(text);
-    message.text = TextField(text);
+    message.text = Network::TextField(text);
     return message;
 }
 
-Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet)
+Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet)
 {
     // 0x4dd540 lee pkt[5], escribe el 0 en pkt[0x68] (fuera de un paquete más corto: MuRet no lo escribe) y usa el
     // texto hasta el primer '\0'.
@@ -195,13 +195,13 @@ Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet)
         return Core::Unexpected(read.Error());
     std::optional<std::string> text = CStringAt(read.Value(), NoticeTextAt, NoticeEnd - NoticeTextAt);
     if (!text)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Notice{.text = std::move(*text)};
 }
 
-Core::Expected<void, ProtocolError> CheckRoomPacket(const Network::Packet& packet)
+Core::Expected<void, Network::ProtocolError> CheckRoomPacket(const Network::Packet& packet)
 {
-    const auto readable = [](const auto& read) -> Core::Expected<void, ProtocolError>
+    const auto readable = [](const auto& read) -> Core::Expected<void, Network::ProtocolError>
     {
         if (!read.HasValue())
             return Core::Unexpected(read.Error());

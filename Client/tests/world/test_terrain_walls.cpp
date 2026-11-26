@@ -19,7 +19,7 @@ namespace
 {
 TEST(TerrainWallsTest, TheWallsLoseTheCharacterBitEveryStep)
 {
-    Client::World::TerrainWalls walls;
+    Client::Pathfinding::TerrainWalls walls;
     walls.cells.fill(0xffff);
     walls.Rebuild({});
     for (std::size_t i = 0; i < walls.cells.size(); ++i)
@@ -30,14 +30,14 @@ TEST(TerrainWallsTest, TheWallsLoseTheCharacterBitEveryStep)
 
 TEST(TerrainWallsTest, OnlyTheLiveNonDyingCharactersOutsideKindEightOccupyTheirLogicalCell)
 {
-    Client::World::TerrainWalls walls;
+    Client::Pathfinding::TerrainWalls walls;
     walls.cells.fill(0x104);
     const std::array occupants{
-        Client::World::TerrainOccupant{.logicalX = 1, .logicalY = 2, .live = true},
-        Client::World::TerrainOccupant{.logicalX = 3, .logicalY = 4, .live = false},
-        Client::World::TerrainOccupant{.logicalX = 5, .logicalY = 6, .live = true, .dying = true},
-        Client::World::TerrainOccupant{.logicalX = 7, .logicalY = 8, .live = true, .kind = 8},
-        Client::World::TerrainOccupant{.logicalX = -1, .logicalY = 256, .live = true},
+        Client::Pathfinding::TerrainOccupant{.logicalX = 1, .logicalY = 2, .live = true},
+        Client::Pathfinding::TerrainOccupant{.logicalX = 3, .logicalY = 4, .live = false},
+        Client::Pathfinding::TerrainOccupant{.logicalX = 5, .logicalY = 6, .live = true, .dying = true},
+        Client::Pathfinding::TerrainOccupant{.logicalX = 7, .logicalY = 8, .live = true, .kind = 8},
+        Client::Pathfinding::TerrainOccupant{.logicalX = -1, .logicalY = 256, .live = true},
     };
     walls.Rebuild(occupants);
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(1, 2)], 0x106);
@@ -62,7 +62,7 @@ TEST_F(GoldenTerrainWalls, TheLorenciaFileCharacterBitDisappearsOnTheFirstStep)
     ASSERT_TRUE(file);
     const auto attributes = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*file)), 1);
     ASSERT_TRUE(attributes.HasValue());
-    Client::World::TerrainWalls walls{.cells = attributes.Value()->cells};
+    Client::Pathfinding::TerrainWalls walls{.cells = attributes.Value()->cells};
     ASSERT_EQ(walls.cells[Client::Data::Terrain::CellIndex(221, 11)], 2);
     walls.Rebuild({});
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(221, 11)], 0);
@@ -75,8 +75,8 @@ TEST(TerrainWallsTest, TheGatesOpenOnlyBelowAWalledGateCell)
     auto cells = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
     cells->fill(0x104);
     (*cells)[Client::Data::Terrain::CellIndex(93, 115)] = 0x400;
-    Client::World::OpenTheGates(*cells);
-    for (const Client::World::GateCell& gate : Client::World::GateCells)
+    Client::Pathfinding::OpenTheGates(*cells);
+    for (const Client::Pathfinding::GateCell& gate : Client::Pathfinding::GateCells)
     {
         const auto below = static_cast<std::uint8_t>(gate.y + 1);
         const bool walled = !(gate.x == 93 && gate.y == 114);
@@ -122,16 +122,16 @@ TEST_F(GoldenTerrainWalls, TheGatesOpenInLorenciaAndDevias)
         const auto original =
             std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>(attributes.Value()->cells);
         auto cells = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>(*original);
-        Client::World::OpenTheGates(*cells);
+        Client::Pathfinding::OpenTheGates(*cells);
         std::size_t walled = 0;
-        for (std::size_t k = 0; k < Client::World::GateCells.size(); ++k)
+        for (std::size_t k = 0; k < Client::Pathfinding::GateCells.size(); ++k)
         {
             if (!probe.walled[k])
             {
                 continue;
             }
             ++walled;
-            const Client::World::GateCell& gate = Client::World::GateCells[k];
+            const Client::Pathfinding::GateCell& gate = Client::Pathfinding::GateCells[k];
             const auto below = static_cast<std::uint8_t>(gate.y + 1);
             for (int dx = -1; dx <= 2; ++dx)
             {
@@ -154,35 +154,35 @@ TEST_F(GoldenTerrainWalls, TheGatesOpenInLorenciaAndDevias)
 // mueve la corta cuando pasa de la mitad de la larga.
 TEST(TerrainWallsTest, TheLineOfSightStopsAtTheFirstWall)
 {
-    Client::World::TerrainWalls walls;
+    Client::Pathfinding::TerrainWalls walls;
     const auto at = [&](int x, int y) -> std::uint16_t& { return walls.cells[static_cast<std::size_t>(y * 256 + x)]; };
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{true});
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{true});
     for (const std::uint16_t word :
          {std::uint16_t{3}, std::uint16_t{0x24}, std::uint16_t{0x44}, std::uint16_t{0x84}, std::uint16_t{0x104}})
     {
         SCOPED_TRACE(word);
         at(12, 10) = word;
         const bool seen = word == 3 || (word & 0xe0) != 0;
-        EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{seen});
-        EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{seen});
+        EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{seen});
+        EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{seen});
     }
     at(12, 10) = 0;
     at(14, 10) = 4;
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{false});
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{false});
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{false});
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{false});
     at(14, 10) = 0;
     // (10, 10) a (14, 12): la X es la larga; el error suma 2 por paso y pasa de 2 en el segundo y el cuarto, así que
     // recorre (10, 10), (11, 10), (12, 11), (13, 11) y (14, 12).
     at(12, 10) = 4;
     at(11, 11) = 4;
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{true});
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{true});
     at(12, 11) = 4;
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{false});
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{false});
     // Con dx = dy, la Y es la larga y la diagonal pasa por (11, 11).
     at(12, 11) = 0;
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 13, 13), std::optional<bool>{false});
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 13, 13), std::optional<bool>{false});
     // Fuera de la grilla: la punta de llegada se lee del índice lineal y sale del arreglo.
-    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 5, 255, 5, 257), std::nullopt);
+    EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 5, 255, 5, 257), std::nullopt);
 }
 
 } // namespace

@@ -36,24 +36,24 @@ Key SplitKey(std::uint16_t word)
 }
 
 // Un paquete de `type` y `opcode`: el lector desde el primer byte después del opcode.
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, Network::PacketType type,
-                                                         std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet,
+                                                                  Network::PacketType type, std::uint8_t opcode)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(type)));
 }
 
 // Los `count` registros de `size` bytes desde pkt[5], con al menos `read` bytes el último.
-Core::Expected<std::span<const std::byte>, ProtocolError> RecordsOf(const Network::Packet& packet, std::size_t count,
-                                                                    std::size_t size, std::size_t read)
+Core::Expected<std::span<const std::byte>, Network::ProtocolError>
+RecordsOf(const Network::Packet& packet, std::size_t count, std::size_t size, std::size_t read)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     if (count == 0)
         return std::span<const std::byte>{};
     const std::size_t needed = C2RecordsOffset + (count - 1) * size + read;
     if (bytes.size() < needed)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return bytes.subspan(C2RecordsOffset);
 }
 
@@ -188,15 +188,15 @@ ObjectRecord ReadObjectRecord(std::span<const std::byte> record)
 
 // Los `count` registros de un C2 con la cuenta en pkt[4], leídos con `read`.
 template <typename Record, typename Reader>
-Core::Expected<std::vector<Record>, ProtocolError> ReadRecords(const Network::Packet& packet, std::uint8_t opcode,
-                                                               std::size_t size, std::size_t lastRead, Reader read)
+Core::Expected<std::vector<Record>, Network::ProtocolError>
+ReadRecords(const Network::Packet& packet, std::uint8_t opcode, std::size_t size, std::size_t lastRead, Reader read)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C2, opcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto count = fields.Value().ReadU8();
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto records = RecordsOf(packet, *count, size, lastRead);
     if (!records.HasValue())
         return Core::Unexpected(records.Error());
@@ -208,7 +208,7 @@ Core::Expected<std::vector<Record>, ProtocolError> ReadRecords(const Network::Pa
 }
 } // namespace
 
-Core::Expected<Players, ProtocolError> ReadPlayers(const Network::Packet& packet)
+Core::Expected<Players, Network::ProtocolError> ReadPlayers(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C2, PlayersOpcode);
     if (!fields.HasValue())
@@ -216,7 +216,7 @@ Core::Expected<Players, ProtocolError> ReadPlayers(const Network::Packet& packet
     // pkt[4], el primer byte después del opcode (0x4c8870).
     const auto count = fields.Value().ReadU8();
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto records = RecordsOf(packet, *count, PlayerRecordSize, PlayerRecordRead);
     if (!records.HasValue())
         return Core::Unexpected(records.Error());
@@ -229,7 +229,7 @@ Core::Expected<Players, ProtocolError> ReadPlayers(const Network::Packet& packet
     return players;
 }
 
-Core::Expected<Leave, ProtocolError> ReadLeave(const Network::Packet& packet)
+Core::Expected<Leave, Network::ProtocolError> ReadLeave(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, LeaveOpcode);
     if (!fields.HasValue())
@@ -237,20 +237,20 @@ Core::Expected<Leave, ProtocolError> ReadLeave(const Network::Packet& packet)
     Core::ByteReader& reader = fields.Value();
     const auto count = reader.ReadU8();
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     Leave leave;
     leave.keys.reserve(*count);
     for (std::size_t index = 0; index < *count; ++index)
     {
         const auto key = reader.ReadU16Be();
         if (!key)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         leave.keys.push_back(*key);
     }
     return leave;
 }
 
-Core::Expected<Transformed, ProtocolError> ReadTransformed(const Network::Packet& packet)
+Core::Expected<Transformed, Network::ProtocolError> ReadTransformed(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C2, TransformedOpcode);
     if (!fields.HasValue())
@@ -258,7 +258,7 @@ Core::Expected<Transformed, ProtocolError> ReadTransformed(const Network::Packet
     // pkt[4] (0x4c92b1).
     const auto count = fields.Value().ReadU8();
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto records = RecordsOf(packet, *count, TransformedRecordSize, TransformedRecordRead);
     if (!records.HasValue())
         return Core::Unexpected(records.Error());
@@ -269,7 +269,7 @@ Core::Expected<Transformed, ProtocolError> ReadTransformed(const Network::Packet
     return transformed;
 }
 
-Core::Expected<EquipmentShown, ProtocolError> ReadEquipmentShown(const Network::Packet& packet)
+Core::Expected<EquipmentShown, Network::ProtocolError> ReadEquipmentShown(const Network::Packet& packet)
 {
     // pkt[5..10]: el ítem hasta el byte 5, el último que lee 0x54b3a0.
     constexpr std::size_t ReadItemBytes = 6;
@@ -280,14 +280,14 @@ Core::Expected<EquipmentShown, ProtocolError> ReadEquipmentShown(const Network::
     const auto key = reader.ReadU16Be();
     const auto item = reader.ReadBytes(ReadItemBytes);
     if (!key || !item)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     EquipmentShown shown;
     shown.key = *key;
     std::ranges::copy(*item, shown.item.begin());
     return shown;
 }
 
-Core::Expected<Position, ProtocolError> ReadPosition(const Network::Packet& packet)
+Core::Expected<Position, Network::ProtocolError> ReadPosition(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, PositionOpcode);
     if (!fields.HasValue())
@@ -297,14 +297,14 @@ Core::Expected<Position, ProtocolError> ReadPosition(const Network::Packet& pack
     const auto x = reader.ReadU8();
     const auto y = reader.ReadU8();
     if (!key || !x || !y)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Position{*key, *x, *y};
 }
 } // namespace Client::Protocol::Viewport
 
 namespace Client::Protocol::Viewport
 {
-Core::Expected<Monsters, ProtocolError> ReadMonsters(const Network::Packet& packet)
+Core::Expected<Monsters, Network::ProtocolError> ReadMonsters(const Network::Packet& packet)
 {
     // Hasta +0xc, la dirección (0x4c9d3c).
     constexpr std::size_t LastRead = 0xd;
@@ -314,7 +314,7 @@ Core::Expected<Monsters, ProtocolError> ReadMonsters(const Network::Packet& pack
     return Monsters{std::move(records).Value()};
 }
 
-Core::Expected<Summons, ProtocolError> ReadSummons(const Network::Packet& packet)
+Core::Expected<Summons, Network::ProtocolError> ReadSummons(const Network::Packet& packet)
 {
     // Hasta +0x16, el último byte del dueño.
     constexpr std::size_t LastRead = 0x17;
@@ -324,7 +324,7 @@ Core::Expected<Summons, ProtocolError> ReadSummons(const Network::Packet& packet
     return Summons{std::move(records).Value()};
 }
 
-Core::Expected<Objects, ProtocolError> ReadObjects(const Network::Packet& packet)
+Core::Expected<Objects, Network::ProtocolError> ReadObjects(const Network::Packet& packet)
 {
     // Hasta +0x1b, el último byte de los estados.
     constexpr std::size_t LastRead = ObjectRecordSize;
@@ -334,7 +334,7 @@ Core::Expected<Objects, ProtocolError> ReadObjects(const Network::Packet& packet
     return Objects{std::move(records).Value()};
 }
 
-Core::Expected<MagicAttackCount, ProtocolError> ReadMagicAttackCount(const Network::Packet& packet)
+Core::Expected<MagicAttackCount, Network::ProtocolError> ReadMagicAttackCount(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, MagicAttackCountOpcode);
     if (!fields.HasValue())
@@ -347,14 +347,14 @@ Core::Expected<MagicAttackCount, ProtocolError> ReadMagicAttackCount(const Netwo
     const auto cell = reader.ReadBytes(CellBytes);
     const auto count = reader.ReadU8();
     if (!key || !magic || !cell || !count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     MagicAttackCount attack{.key = *key, .magic = *magic, .targets = {}};
     attack.targets.reserve(*count);
     for (std::size_t index = 0; index < *count; ++index)
     {
         const auto target = reader.ReadU16Be();
         if (!target)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         attack.targets.push_back(*target);
     }
     return attack;

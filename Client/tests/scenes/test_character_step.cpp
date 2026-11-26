@@ -149,7 +149,7 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     EXPECT_EQ(preview.headTurn.target, (glm::vec2{0.0f, 0.0f}));
     // X/Y de 0x508ba0, el rand del cuerpo, Y/X de efectos, cabeza común, rand de efectos.
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 19).State());
-    EXPECT_EQ(terrain.attributes->cells[0] & Client::World::CharacterWallBit, 0u);
+    EXPECT_EQ(terrain.attributes->cells[0] & Client::Pathfinding::CharacterWallBit, 0u);
     EXPECT_FALSE(world.Actors()[0].alive);
 }
 
@@ -586,7 +586,7 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.safeZone, 1);
-    EXPECT_NE(sceneTerrain.attributes->cells[cell] & Client::World::CharacterWallBit, 0);
+    EXPECT_NE(sceneTerrain.attributes->cells[cell] & Client::Pathfinding::CharacterWallBit, 0);
     EXPECT_FALSE(tested.world.Map().terrain.attributes);
 }
 
@@ -865,9 +865,9 @@ TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_TRUE(hero.seen);
             EXPECT_EQ(hero.safeZone, walk.safeZone);
-            EXPECT_EQ(tested.Cell(walk.logicalX, walk.logicalY) & Client::World::CharacterWallBit,
-                      Client::World::CharacterWallBit);
-            EXPECT_EQ(tested.Cell(walk.drawnX, walk.drawnY) & Client::World::CharacterWallBit, 0);
+            EXPECT_EQ(tested.Cell(walk.logicalX, walk.logicalY) & Client::Pathfinding::CharacterWallBit,
+                      Client::Pathfinding::CharacterWallBit);
+            EXPECT_EQ(tested.Cell(walk.drawnX, walk.drawnY) & Client::Pathfinding::CharacterWallBit, 0);
             EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
         }
     }
@@ -950,7 +950,7 @@ TEST(CharacterStepTest, AnUnseenHeroKeepsItsSafeZone)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(hero.seen);
     EXPECT_EQ(hero.safeZone, 1);
-    EXPECT_EQ(tested.Cell(100, 100), Client::World::CharacterWallBit);
+    EXPECT_EQ(tested.Cell(100, 100), Client::Pathfinding::CharacterWallBit);
     EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws + OwnRecordDraws + BodyDraws).State());
 }
 
@@ -995,7 +995,7 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
     actors[1].cellX = 1;
     actors[1].cellY = 1;
     actors[2].alive = true;
-    actors[2].byte88 = Client::World::NonBlockingKind;
+    actors[2].byte88 = Client::Pathfinding::NonBlockingKind;
     actors[2].cellX = 2;
     actors[2].cellY = 2;
     actors[3].alive = true;
@@ -1015,8 +1015,8 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
     EXPECT_EQ(tested.Cell(200, 201), 0x0104);
     EXPECT_EQ(tested.Cell(1, 1), 0);
     EXPECT_EQ(tested.Cell(2, 2), 0);
-    EXPECT_EQ(tested.Cell(3, 4), Client::World::CharacterWallBit);
-    EXPECT_EQ(tested.Cell(30, 40), Client::World::CharacterWallBit);
+    EXPECT_EQ(tested.Cell(3, 4), Client::Pathfinding::CharacterWallBit);
+    EXPECT_EQ(tested.Cell(30, 40), Client::Pathfinding::CharacterWallBit);
     EXPECT_EQ(tested.Cell(50, 50), 0);
     EXPECT_TRUE(actors[0].seen);
     EXPECT_TRUE(actors[399].seen);
@@ -1047,7 +1047,7 @@ TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
 {
     GameWorld tested;
     tested.Hero().alive = false;
-    tested.Cell(5, 5) = Client::World::CharacterWallBit;
+    tested.Cell(5, 5) = Client::Pathfinding::CharacterWallBit;
 
     ASSERT_TRUE(tested.Step(Everything).HasValue());
 
@@ -1087,7 +1087,7 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     GameWorld castle(30);
     GameWorld lorencia(0);
     for (GameWorld* tested : {&castle, &lorencia})
-        tested->Cell(5, 5) = Client::World::CharacterWallBit;
+        tested->Cell(5, 5) = Client::Pathfinding::CharacterWallBit;
     const auto inCastle = castle.Step(Everything);
     ASSERT_TRUE(inCastle.HasValue()) << ErrorOf(inCastle);
     ASSERT_TRUE(lorencia.Step(Everything).HasValue());
@@ -1103,7 +1103,7 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     GameWorld guild(30);
     guild.world.Runtime().guild.heroGuildStatus = 0x80;
     guild.world.Runtime().guild.heroGuildIndex = 0;
-    guild.Cell(5, 5) = Client::World::CharacterWallBit;
+    guild.Cell(5, 5) = Client::Pathfinding::CharacterWallBit;
     const auto inGuild = guild.Step(Everything);
     ASSERT_TRUE(inGuild.HasValue()) << ErrorOf(inGuild);
     EXPECT_EQ(guild.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{2}});
@@ -1848,7 +1848,7 @@ TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
         EXPECT_TRUE(other.seen);
         EXPECT_EQ(other.cellXAccesses, 0);
         EXPECT_EQ(other.cellYAccesses, 0);
-        EXPECT_EQ(tested.Cell(3, 4), Client::World::CharacterWallBit);
+        EXPECT_EQ(tested.Cell(3, 4), Client::Pathfinding::CharacterWallBit);
         EXPECT_EQ(other.headTurn.angles, head.angles);
         EXPECT_EQ(other.headTurn.target, head.target);
         EXPECT_EQ(tested.random.State(), expected.State());
@@ -1869,7 +1869,7 @@ TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
         tested.world.Actors()[9].type = 0x205;
         ActorState& other = tested.Other(3);
         other.targetX = 7;
-        tested.Cell(7, 4) = Client::World::BlockedWallBit;
+        tested.Cell(7, 4) = Client::Pathfinding::BlockedWallBit;
 
         const auto stepped = tested.Step(Everything);
 
@@ -1877,7 +1877,7 @@ TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
         EXPECT_EQ(other.movement, 1);
         ASSERT_GT(other.path.count, 1);
         const auto& last = other.path.cells[other.path.count - 1U];
-        EXPECT_EQ(tested.Cell(7, 4), map == 34 ? 0 : Client::World::BlockedWallBit);
+        EXPECT_EQ(tested.Cell(7, 4), map == 34 ? 0 : Client::Pathfinding::BlockedWallBit);
         EXPECT_EQ(last.x, map == 34 ? 7 : 6);
         EXPECT_EQ(last.y, map == 34 ? 4 : 3);
     }
@@ -2289,7 +2289,7 @@ TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
     }
     EXPECT_GT(sorted, 0);
     const std::uint16_t origin = tested.world.Map().terrain.attributes->cells[0];
-    EXPECT_EQ(origin & Client::World::CharacterWallBit, Client::World::CharacterWallBit);
+    EXPECT_EQ(origin & Client::Pathfinding::CharacterWallBit, Client::Pathfinding::CharacterWallBit);
 }
 
 // Sin Item.bmd, el héroe de la selección corta en las alas del tipo 0 de su registro en cero (0x54efe0, desde

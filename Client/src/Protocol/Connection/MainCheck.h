@@ -21,7 +21,7 @@ namespace Client::Protocol::Connection
 // La clave: C1 06 03, un byte de relleno y la clave (u16 little-endian) en pkt[4..5], que 0x4e16c0
 // lee sin mirar el tamaño (0x4e1843..0x4e1846). WrongPacket si no es un C1 03, y TooShort si no
 // trae la clave: el original la lee igual, de lo que haya en su buffer.
-[[nodiscard]] Core::Expected<std::uint16_t, ProtocolError> ReadMainCheckKey(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<std::uint16_t, Network::ProtocolError> ReadMainCheckKey(const Network::Packet& packet);
 
 // 0x4ad3d0: la tabla que esconde la clave. El GS la arma con la tabla en los bits 0..3 y 6..15 y seis
 // bits de rand() en el medio (EncryptCheckSumKey), y la cifra con 0xB479; el cliente la descifra y

@@ -35,7 +35,7 @@ TEST(ActorMotionStopTest, SwimmingMapReadsTheVisiblePositionAttributeWithoutLogi
     ASSERT_TRUE(flying.HasValue()) << (flying.HasValue() ? "" : flying.Error());
     EXPECT_EQ(actor.animation.action, 9);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 1).State());
-    (*walls)[Client::Data::Terrain::CellIndex(10, 20)] = Client::World::SafeZoneWallBit;
+    (*walls)[Client::Data::Terrain::CellIndex(10, 20)] = Client::Pathfinding::SafeZoneWallBit;
     const auto standing = Client::Scenes::SetActorStop(actor, context);
     ASSERT_TRUE(standing.HasValue()) << (standing.HasValue() ? "" : standing.Error());
     EXPECT_EQ(actor.animation.action, 1);

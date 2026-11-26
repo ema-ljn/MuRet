@@ -249,7 +249,7 @@ using GuildPacket =
 
 // El paquete del gremio que es, por su opcode. 52, 65, 67 y E9 son C2; los demás, C1. Otro opcode u otro tipo:
 // WrongPacket.
-[[nodiscard]] Core::Expected<GuildPacket, ProtocolError> ReadGuildPacket(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<GuildPacket, Network::ProtocolError> ReadGuildPacket(const Network::Packet& packet);
 
 // 0x4d6b60 y 0x4d754d..: C1 06 51 [sí] [clave alta] [clave baja], con el XOR32 y en claro. Con 8 (Confirmar) el 1; con
 // cualquier otro motivo, y con el diálogo ocupado al llegar el 50, el 0.

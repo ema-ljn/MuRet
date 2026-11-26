@@ -10,7 +10,7 @@ namespace
 {
 struct MovingState
 {
-    Client::GameLogic::Path path{0, 0, 3, {{{0, 0}, {1, 0}, {2, 0}}}};
+    Client::Pathfinding::Path path{0, 0, 3, {{{0, 0}, {1, 0}, {2, 0}}}};
     glm::vec3 position{50.0f, 50.0f, 77.0f};
     float yaw = 0.0f;
     std::uint32_t logicalX = 0;

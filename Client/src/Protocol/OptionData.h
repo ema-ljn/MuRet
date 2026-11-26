@@ -32,7 +32,7 @@ struct OptionData
     std::uint8_t chatWindow = 0;
 };
 
-[[nodiscard]] Core::Expected<OptionData, ProtocolError> ReadOptionData(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<OptionData, Network::ProtocolError> ReadOptionData(const Network::Packet& packet);
 
 // Los bytes que 0x61c210 arma en su pila (EBP − 0x4c .. EBP − 0x35), en cero y con lo que pone: [k] el byte de la
 // skill de cada tecla k, [10] las banderas, [11..13] Q, W y E y [14] el registro del chat. Lo demás va en 0.

@@ -19,7 +19,7 @@ namespace
 {
 using Client::App::LabXorRemapTables;
 using Client::App::SessionState;
-using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapObfuscation;
 using Client::Tests::Bytes;
 using Client::Tests::Hello;
 using Client::Tests::Join;

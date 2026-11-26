@@ -143,10 +143,10 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     return StepHeroMovement(context);
 }
 
-Core::Expected<std::optional<GameLogic::PathCell>, std::string> GameScene::GroundUnderTheMouse()
+Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::GroundUnderTheMouse()
 {
     if (!m_mouseRay)
-        return std::optional<GameLogic::PathCell>{};
+        return std::optional<Pathfinding::PathCell>{};
     WorldState& world = *m_context.world;
     const auto& terrain = world.Map().terrain;
     World::TerrainView view;
@@ -162,8 +162,9 @@ Core::Expected<std::optional<GameLogic::PathCell>, std::string> GameScene::Groun
     if (!picked.HasValue())
         return Core::Unexpected(picked.Error());
     if (!picked.Value())
-        return std::optional<GameLogic::PathCell>{};
-    return std::optional{GameLogic::PathCell{static_cast<std::uint8_t>(target.x), static_cast<std::uint8_t>(target.y)}};
+        return std::optional<Pathfinding::PathCell>{};
+    return std::optional{
+        Pathfinding::PathCell{static_cast<std::uint8_t>(target.x), static_cast<std::uint8_t>(target.y)}};
 }
 
 Core::Expected<void, std::string> GameScene::StepTheFauna()

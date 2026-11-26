@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Network
+namespace Client::Network::XorRemap
 {
 namespace
 {
@@ -236,4 +236,4 @@ Packet XorRemapObfuscation::BeforeSend(Packet packet) const
     body[0] = static_cast<std::byte>(Remap(m_tables.clearRemaps, std::to_integer<std::uint8_t>(body[0])));
     return Xor32Encode(std::move(packet));
 }
-} // namespace Client::Network
+} // namespace Client::Network::XorRemap

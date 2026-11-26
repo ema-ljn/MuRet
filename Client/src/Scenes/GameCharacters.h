@@ -150,8 +150,8 @@ inline constexpr std::uint8_t UndrawnHeroControlBit = 0x04;
 // Los demás, vivos y vistos (+0x16c), necesitan los recursos del overload anterior: corta ahí
 // (0x510ea1), con los de antes ya mirados. Al final,
 // 0x42da60 (FinishTheCastleFrame): 0x7239dc y 0x7239e0 en 0 y, con 0x7239d9 en 0 (solo el 277 del mapa 30 lo pone en
-// 1, 0x42db10), World::OpenTheGates sobre `walls` (Q-C276); después 0x7239d9 en 0. Sin `runtime`, como con los tres
-// en 0.
+// 1, 0x42db10), Pathfinding::OpenTheGates sobre `walls` (Q-C276); después 0x7239d9 en 0. Sin `runtime`, como con los
+// tres en 0.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,
                                                                    Data::Terrain::TerrainLayer<std::uint16_t>& walls,
                                                                    WorldRuntime* runtime = nullptr,

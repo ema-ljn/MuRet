@@ -50,12 +50,12 @@ struct Regen
 
 // Tipo/opcode/subcódigo distintos → WrongPacket; campos incompletos → TooShort.
 // Ignoran bytes sobrantes y devuelven la dirección cruda, sin convertirla a yaw.
-[[nodiscard]] Core::Expected<Teleport, ProtocolError> ReadTeleport(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Regen, ProtocolError> ReadRegen(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Teleport, Network::ProtocolError> ReadTeleport(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Regen, Network::ProtocolError> ReadRegen(const Network::Packet& packet);
 
 // 04 § El clima y Crywolf: C1 04 0F xy. Conserva el byte crudo, incluso ramas >1; no aplica estado.
 // Tipo/opcode distintos -> WrongPacket; sin xy -> TooShort. Los bytes sobrantes se ignoran.
-[[nodiscard]] Core::Expected<Weather, ProtocolError> ReadWeather(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Weather, Network::ProtocolError> ReadWeather(const Network::Packet& packet);
 
 // 0x599ef0: C1 06 1C gate 00 00, con XOR32 y Delivery::Encrypted (C3).
 [[nodiscard]] Outgoing WriteGateRequest(std::uint8_t gate);

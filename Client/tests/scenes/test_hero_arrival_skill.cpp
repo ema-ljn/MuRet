@@ -377,7 +377,7 @@ TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
             ASSERT_TRUE(tested->Arrive().HasValue());
             EXPECT_EQ(tested->random.State(), expected.State());
             EXPECT_TRUE(tested->sent.empty());
-            const auto path = Client::GameLogic::PathFinder(tested->world.Map().terrain.attributes->cells)
+            const auto path = Client::Pathfinding::PathFinder(tested->world.Map().terrain.attributes->cells)
                                   .Find({182, 115}, {192, 115}, false, probe.distance);
             ASSERT_TRUE(path.has_value());
             EXPECT_EQ(tested->Hero().movement, 1);
@@ -391,8 +391,8 @@ TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
     }
     const auto walls = Arriving(0x1, 0);
     auto& cells = walls->world.Map().terrain.attributes->cells;
-    const auto near = Client::GameLogic::PathFinder(cells).Find({182, 115}, {192, 115}, false, 5.0f);
-    const auto far = Client::GameLogic::PathFinder(cells).Find({182, 115}, {192, 115}, false, 6.0f);
+    const auto near = Client::Pathfinding::PathFinder(cells).Find({182, 115}, {192, 115}, false, 5.0f);
+    const auto far = Client::Pathfinding::PathFinder(cells).Find({182, 115}, {192, 115}, false, 6.0f);
     ASSERT_TRUE(near && far);
     EXPECT_NE(near->count, far->count);
 }
@@ -446,7 +446,7 @@ TEST(HeroArrivalSkillTest, InTheSafeZoneTheHeroWalksInstead)
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_TRUE(tested->sent.empty());
         const float distance = skill == 0x13 ? 4.8f : 4.0f;
-        const auto path = Client::GameLogic::PathFinder(tested->world.Map().terrain.attributes->cells)
+        const auto path = Client::Pathfinding::PathFinder(tested->world.Map().terrain.attributes->cells)
                               .Find({182, 115}, {184, 117}, false, distance);
         EXPECT_FALSE(path.has_value());
         EXPECT_EQ(tested->Hero().movement, 0);

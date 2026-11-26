@@ -38,7 +38,8 @@ struct ServerEntry
 // una entrada de 4 bytes por servidor: el código (u16 little-endian), la carga y un byte que no se
 // lee. TooShort si la cantidad dice más entradas que las que entran en el paquete; lo que sobra
 // detrás de la última no se lee.
-[[nodiscard]] Core::Expected<std::vector<ServerEntry>, ProtocolError> ReadServerList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<std::vector<ServerEntry>, Network::ProtocolError>
+ReadServerList(const Network::Packet& packet);
 
 // F4 03: C1 06 F4 03 y el código, u16 little-endian, en claro. main.exe manda el de la lista (400
 // para el 0 del laboratorio) y FoxAnti lo pasa de vuelta al del ConnectServer.
@@ -54,5 +55,5 @@ struct ServerAddress
 // La respuesta F4 03: C1 16 F4 03, el host en 16 bytes y el puerto, u16 little-endian. Del host se
 // leen los primeros 15 bytes, como el original (0x4e3341), hasta el primer \0, o los 15 si no hay
 // ninguno: el byte 16 no se lee nunca.
-[[nodiscard]] Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ServerAddress, Network::ProtocolError> ReadServerAddress(const Network::Packet& packet);
 } // namespace Client::Protocol::Connection

@@ -21,7 +21,7 @@
 namespace
 {
 namespace Battle = Client::Protocol::CastleBattle;
-using Client::Protocol::ProtocolError;
+using Client::Network::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

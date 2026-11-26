@@ -40,8 +40,8 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
-using Client::GameLogic::PathCell;
 using Client::Network::Xor32Decode;
+using Client::Pathfinding::PathCell;
 using Client::Protocol::FloorItems::Drop;
 using Client::Protocol::Inventory::ItemMove;
 using Client::Scenes::EmptyOwnItemId;

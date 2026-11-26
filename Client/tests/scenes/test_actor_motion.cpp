@@ -44,7 +44,7 @@ protected:
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Crt::CrtRandom m_random{1};
     Client::Scenes::PlayerActionSpeeds m_speeds;
-    std::unique_ptr<Client::World::TerrainWalls> m_walls = std::make_unique<Client::World::TerrainWalls>();
+    std::unique_ptr<Client::Pathfinding::TerrainWalls> m_walls = std::make_unique<Client::Pathfinding::TerrainWalls>();
 };
 
 TEST_F(ActorMotionTest, BeginningStoresCellAheadAndLeavesTheAuthoritativeTarget)
@@ -117,7 +117,7 @@ TEST_F(ActorMotionTest, RetryIsRepeatedOnFailureAndSuccessfulSearchWaitsOneStep)
     actor.targetX = 12;
     actor.targetY = 20;
     actor.position = {1050.0f, 2050.0f, 0.0f};
-    m_walls->cells.fill(Client::World::BlockedWallBit);
+    m_walls->cells.fill(Client::Pathfinding::BlockedWallBit);
     Step(actor);
     EXPECT_EQ(actor.movement, 0);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(1, 12).State());
@@ -152,8 +152,8 @@ TEST(ActorMotionPathFinderTest, RawTerrainGridConstructorClearsTheLiveGoal)
 {
     auto cells = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
     const auto goal = Client::Data::Terrain::CellIndex(12, 20);
-    (*cells)[goal] = Client::World::BlockedWallBit;
-    const auto path = Client::GameLogic::PathFinder(*cells).Find({10, 20}, {12, 20}, true);
+    (*cells)[goal] = Client::Pathfinding::BlockedWallBit;
+    const auto path = Client::Pathfinding::PathFinder(*cells).Find({10, 20}, {12, 20}, true);
     ASSERT_TRUE(path.has_value());
     EXPECT_EQ((*cells)[goal], 0);
 }

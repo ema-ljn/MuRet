@@ -15,10 +15,10 @@ Outgoing WritePetInfoRequest(const PetInfoRequest& request)
         Network::PacketWriter::C1(PetInfoOpcode).PutU8(request.pet).PutU8(request.place).PutU8(request.slot));
 }
 
-Core::Expected<PetInfoReply, ProtocolError> ReadPetInfoReply(const Network::Packet& packet)
+Core::Expected<PetInfoReply, Network::ProtocolError> ReadPetInfoReply(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != PetInfoOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto pet = reader.ReadU8();
     const auto kind = reader.ReadU8();
@@ -27,7 +27,7 @@ Core::Expected<PetInfoReply, ProtocolError> ReadPetInfoReply(const Network::Pack
     const auto padding = reader.ReadU8();
     const auto experience = reader.ReadU32Le();
     if (!pet || !kind || !slot || !level || !padding || !experience)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return PetInfoReply{.pet = *pet, .kind = *kind, .slot = *slot, .level = *level, .experience = *experience};
 }
 } // namespace Client::Protocol::Pet

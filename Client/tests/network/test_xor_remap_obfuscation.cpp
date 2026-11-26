@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::XorRemapObfuscation: la capa de paquetes de FoxAnti, con los ejemplos del cable
+// Client::Network::XorRemap::XorRemapObfuscation: la capa de paquetes de FoxAnti, con los ejemplos del cable
 // del 03, la máscara por paquete en el PacketReader (Q-C18), los remapeos, la ida y vuelta de los
 // códigos de servidor (Q-C17) y los largos que el original no mira (Q-C09). Plan de la CL2, CL2.4.
 //
@@ -56,8 +56,8 @@ using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::Xor32Decode;
 using Client::Network::Xor32Encode;
-using Client::Network::XorRemapObfuscation;
-using Client::Network::XorRemapTables;
+using Client::Network::XorRemap::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapTables;
 using Client::Tests::BytePattern;
 using Client::Tests::Bytes;
 using Client::Tests::IdentityPair;

@@ -73,7 +73,7 @@ struct InventoryServices
     std::function<Core::Expected<void, std::string>(const Protocol::FloorItems::UseItem&)> sendUseItem{};
     // 0x5fc260(1) y 0x5fac90 con el rayo del mouse, como MoveHero (0x59de04..0x59de78): la celda del terreno bajo el
     // mouse (0x7d366e0 y 0x7d366e4 · 0,01) o nada.
-    std::function<Core::Expected<std::optional<GameLogic::PathCell>, std::string>()> pickTheGround{};
+    std::function<Core::Expected<std::optional<Pathfinding::PathCell>, std::string>()> pickTheGround{};
     // CL9 hito 7. Otro paquete del juego por la sesión, sin rand() (los dos del C3 los saca quien lo arma): el C1 04 3C
     // 00 del comercio que manda soltar un ítem del inventario en su grilla (0x5cf438).
     std::function<void(Protocol::Outgoing)> sendGamePacket{};

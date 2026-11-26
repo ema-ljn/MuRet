@@ -19,12 +19,12 @@ namespace Client::Protocol::Character
 namespace
 {
 // C4 rearmado como C2 por el transporte de MuRet (ADR0003), no por 0x4c55a0.
-constexpr PacketKind InventoryKind{Network::PacketType::C2, CharacterOpcode, InventoryListSubcode};
+constexpr Network::PacketKind InventoryKind{Network::PacketType::C2, CharacterOpcode, InventoryListSubcode};
 } // namespace
 
-Core::Expected<InventoryList, ProtocolError> ReadInventoryList(const Network::Packet& packet)
+Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, InventoryKind);
+    auto fields = Network::FieldsAfterSubcode(packet, InventoryKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -33,7 +33,7 @@ Core::Expected<InventoryList, ProtocolError> ReadInventoryList(const Network::Pa
     const std::optional<std::uint8_t> count = reader.ReadU8();
     if (!count || *count > reader.Remaining() / InventoryEntrySize)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     InventoryList list;
     list.items.reserve(*count);

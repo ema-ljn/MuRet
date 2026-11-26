@@ -185,5 +185,6 @@ using CastleBattlePacket =
 
 // El paquete de la batalla que es, por su opcode y, en el B9 y el B2, su subcódigo. Otro opcode, otro subcódigo del B9
 // (el 04 y desde el 06 caen al default, 0x4e58c8) o del B2: WrongPacket.
-[[nodiscard]] Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<CastleBattlePacket, Network::ProtocolError>
+ReadCastleBattlePacket(const Network::Packet& packet);
 } // namespace Client::Protocol::CastleBattle

@@ -49,7 +49,7 @@ void RetryPath(ActorState& actor, Crt::CrtRandom& random, Data::Terrain::Terrain
     }
     const auto startY = ReadCell(actor.cellYAccesses, actor.cellY, random);
     const auto startX = ReadCell(actor.cellXAccesses, actor.cellX, random);
-    const auto path = GameLogic::PathFinder(walls).Find({startX, startY}, {actor.targetX, actor.targetY}, altarGoal);
+    const auto path = Pathfinding::PathFinder(walls).Find({startX, startY}, {actor.targetX, actor.targetY}, altarGoal);
     if (path)
     {
         actor.path = *path;

@@ -5,12 +5,15 @@
 #include <cstdint>
 #include <functional>
 
-namespace Client::GameLogic
+namespace Client::Pathfinding
 {
 struct Path;
+} // namespace Client::Pathfinding
+namespace Client::GameLogic
+{
 struct MovePathState
 {
-    Path& path;
+    Pathfinding::Path& path;
     glm::vec3& position;
     float& yaw;
     std::uint32_t& logicalX;

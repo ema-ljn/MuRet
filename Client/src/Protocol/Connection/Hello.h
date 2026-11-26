@@ -26,5 +26,5 @@ struct ServerHello
 // F1 00: C1 0C F1 00, el resultado, el índice en dos bytes big-endian (0x4c1e20 lo arma como
 // pkt[5] * 0x100 + pkt[6]) y la versión, 5 bytes sin \0. Compararla con ClientVersion es de quien
 // lo usa (CL4): el original lo hace aunque el resultado no sea HelloAccepted.
-[[nodiscard]] Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ServerHello, Network::ProtocolError> ReadServerHello(const Network::Packet& packet);
 } // namespace Client::Protocol::Connection

@@ -48,13 +48,14 @@ constexpr std::size_t ListEntryPriceAt = 8;
 constexpr std::size_t PurchaseItemAt = 7;
 constexpr std::size_t PurchaseSlotAt = 0xe;
 
-Core::Expected<std::span<const std::byte>, ProtocolError> BytesOf(const Network::Packet& packet, std::size_t needed)
+Core::Expected<std::span<const std::byte>, Network::ProtocolError> BytesOf(const Network::Packet& packet,
+                                                                           std::size_t needed)
 {
     if (packet.Opcode() != Opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::span<const std::byte> bytes = packet.Bytes();
     if (bytes.size() < needed)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return bytes;
 }
 
@@ -106,7 +107,7 @@ std::int32_t PriceAt(std::span<const std::byte> bytes, std::size_t at)
 }
 
 // Lo común del 05 y el 0x13: con el resultado 1, la cuenta y las entradas; el 05 lee además la clave y el título.
-Core::Expected<ShopItemList, ProtocolError> ReadList(const Network::Packet& packet, bool withOwner)
+Core::Expected<ShopItemList, Network::ProtocolError> ReadList(const Network::Packet& packet, bool withOwner)
 {
     auto read = BytesOf(packet, ListResultAt + 1);
     if (!read.HasValue())
@@ -117,10 +118,10 @@ Core::Expected<ShopItemList, ProtocolError> ReadList(const Network::Packet& pack
     if (list.result != ListedResult)
         return list;
     if (bytes.size() < FirstListEntryAt)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const std::size_t count = ByteAt(bytes, ListCountAt);
     if (bytes.size() < FirstListEntryAt + count * ListEntrySize)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     if (withOwner)
     {
         list.key = KeyAt(bytes, ListKeyAt);
@@ -136,7 +137,7 @@ Core::Expected<ShopItemList, ProtocolError> ReadList(const Network::Packet& pack
 }
 } // namespace
 
-Core::Expected<ShopTitles, ProtocolError> ReadShopTitles(const Network::Packet& packet)
+Core::Expected<ShopTitles, Network::ProtocolError> ReadShopTitles(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, FirstEntryAt);
     if (!read.HasValue())
@@ -144,7 +145,7 @@ Core::Expected<ShopTitles, ProtocolError> ReadShopTitles(const Network::Packet& 
     const std::span<const std::byte> bytes = read.Value();
     const std::size_t count = ByteAt(bytes, CountAt);
     if (bytes.size() < FirstEntryAt + count * EntrySize)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     ShopTitles titles;
     for (std::size_t entry = 0; entry < count; ++entry)
     {
@@ -154,7 +155,7 @@ Core::Expected<ShopTitles, ProtocolError> ReadShopTitles(const Network::Packet& 
     return titles;
 }
 
-Core::Expected<ShopCreated, ProtocolError> ReadShopCreated(const Network::Packet& packet)
+Core::Expected<ShopCreated, Network::ProtocolError> ReadShopCreated(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, ResultAt + 1);
     if (!read.HasValue())
@@ -162,7 +163,7 @@ Core::Expected<ShopCreated, ProtocolError> ReadShopCreated(const Network::Packet
     return ShopCreated{.result = ByteAt(read.Value(), ResultAt)};
 }
 
-Core::Expected<ShopClosed, ProtocolError> ReadShopClosed(const Network::Packet& packet)
+Core::Expected<ShopClosed, Network::ProtocolError> ReadShopClosed(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, ResultAt + 1);
     if (!read.HasValue())
@@ -173,13 +174,13 @@ Core::Expected<ShopClosed, ProtocolError> ReadShopClosed(const Network::Packet& 
     if (closed.result == 1)
     {
         if (bytes.size() < ClosedKeyAt + 2)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         closed.key = KeyAt(bytes, ClosedKeyAt);
     }
     return closed;
 }
 
-Core::Expected<ShopNotice, ProtocolError> ReadShopNotice(const Network::Packet& packet)
+Core::Expected<ShopNotice, Network::ProtocolError> ReadShopNotice(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, NoticeNameAt + Character::NameSize);
     if (!read.HasValue())
@@ -187,7 +188,7 @@ Core::Expected<ShopNotice, ProtocolError> ReadShopNotice(const Network::Packet& 
     return ShopNotice{.name = NameAt(read.Value(), NoticeNameAt)};
 }
 
-Core::Expected<ShopTitle, ProtocolError> ReadShopTitle(const Network::Packet& packet)
+Core::Expected<ShopTitle, Network::ProtocolError> ReadShopTitle(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, TitleNameAt + Character::NameSize);
     if (!read.HasValue())
@@ -197,7 +198,7 @@ Core::Expected<ShopTitle, ProtocolError> ReadShopTitle(const Network::Packet& pa
         .key = KeyAt(bytes, TitleKeyAt), .title = TitleAt36(bytes, TitleAt), .name = NameAt(bytes, TitleNameAt)};
 }
 
-Core::Expected<ShopOwnerLeft, ProtocolError> ReadShopOwnerLeft(const Network::Packet& packet)
+Core::Expected<ShopOwnerLeft, Network::ProtocolError> ReadShopOwnerLeft(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, 0);
     if (!read.HasValue())
@@ -205,7 +206,7 @@ Core::Expected<ShopOwnerLeft, ProtocolError> ReadShopOwnerLeft(const Network::Pa
     return ShopOwnerLeft{};
 }
 
-Core::Expected<PriceResult, ProtocolError> ReadPriceResult(const Network::Packet& packet)
+Core::Expected<PriceResult, Network::ProtocolError> ReadPriceResult(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, PriceSlotAt + 1);
     if (!read.HasValue())
@@ -213,12 +214,12 @@ Core::Expected<PriceResult, ProtocolError> ReadPriceResult(const Network::Packet
     return PriceResult{.result = ByteAt(read.Value(), ResultAt), .slot = ByteAt(read.Value(), PriceSlotAt)};
 }
 
-Core::Expected<ShopItemList, ProtocolError> ReadShopItemList(const Network::Packet& packet)
+Core::Expected<ShopItemList, Network::ProtocolError> ReadShopItemList(const Network::Packet& packet)
 {
     return ReadList(packet, true);
 }
 
-Core::Expected<ShopRefresh, ProtocolError> ReadShopRefresh(const Network::Packet& packet)
+Core::Expected<ShopRefresh, Network::ProtocolError> ReadShopRefresh(const Network::Packet& packet)
 {
     auto list = ReadList(packet, false);
     if (!list.HasValue())
@@ -226,7 +227,7 @@ Core::Expected<ShopRefresh, ProtocolError> ReadShopRefresh(const Network::Packet
     return ShopRefresh{.result = list.Value().result, .entries = std::move(list.Value().entries)};
 }
 
-Core::Expected<ShopPurchase, ProtocolError> ReadShopPurchase(const Network::Packet& packet)
+Core::Expected<ShopPurchase, Network::ProtocolError> ReadShopPurchase(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, ResultAt + 1);
     if (!read.HasValue())
@@ -237,7 +238,7 @@ Core::Expected<ShopPurchase, ProtocolError> ReadShopPurchase(const Network::Pack
     if (purchase.result != 1)
         return purchase;
     if (bytes.size() < PurchaseSlotAt + 1)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     purchase.item = ItemAt(bytes, PurchaseItemAt);
     purchase.slot = ByteAt(bytes, PurchaseSlotAt);
     return purchase;

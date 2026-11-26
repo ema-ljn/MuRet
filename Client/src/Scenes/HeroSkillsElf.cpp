@@ -307,7 +307,7 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
     const auto path =
-        GameLogic::PathFinder(terrain.attributes->cells)
+        Pathfinding::PathFinder(terrain.attributes->cells)
             .Find({start.x, start.y}, {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)},
                   CrywolfAltarGoal(m_world), distance);
     if (!path)
@@ -364,10 +364,10 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
     const World::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
-    const bool seen =
-        World::CanSeeTheCell(terrain.attributes->cells, cell.x, cell.y, std::bit_cast<std::int32_t>(m_state.targetX),
-                             std::bit_cast<std::int32_t>(m_state.targetY))
-            .value_or(false);
+    const bool seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, cell.x, cell.y,
+                                                 std::bit_cast<std::int32_t>(m_state.targetX),
+                                                 std::bit_cast<std::int32_t>(m_state.targetY))
+                          .value_or(false);
     if (seen && m_runtime.selectedTargets[2] != -1)
     {
         const auto target = ActorAt(m_runtime.selectedTargets[2], "0x57f211");

@@ -8,19 +8,19 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::Pathfinding
 {
 struct TerrainWalls;
 }
 
 // PathFinding2 (0x4eac00) y el A* de 0x4ead70; 06 § Caminar. Con distancia 0, la meta es la celda; con otra, las
 // celdas del radio (0x4eae7c..0x4eb054, el elfo que se acerca a pegar, 0x566271; 06 § Pegar al llegar).
-namespace Client::GameLogic
+namespace Client::Pathfinding
 {
 class ENGINE_API PathFinder
 {
 public:
-    explicit PathFinder(World::TerrainWalls& walls);
+    explicit PathFinder(TerrainWalls& walls);
     explicit PathFinder(Data::Terrain::TerrainLayer<std::uint16_t>& walls);
 
     // Exacto (500 extracciones), luego el más cercano (50). Cero en x/y del inicio falla
@@ -43,4 +43,4 @@ private:
 
     Data::Terrain::TerrainLayer<std::uint16_t>& m_walls;
 };
-} // namespace Client::GameLogic
+} // namespace Client::Pathfinding

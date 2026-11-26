@@ -39,11 +39,11 @@ void StoreBeginningCell(MovePathState state, std::size_t index, const LogicalCel
 {
     // §5.1: k se captura antes de los helpers; cada componente se lee después de su prehelper.
     Notify(effects, LogicalAxis::X, LogicalStoreStage::BeginningBefore, state.logicalX);
-    assert(index < MaxPathCells);
+    assert(index < Pathfinding::MaxPathCells);
     state.logicalX = state.path.cells[index].x;
     Notify(effects, LogicalAxis::X, LogicalStoreStage::BeginningAfter, state.logicalX);
     Notify(effects, LogicalAxis::Y, LogicalStoreStage::BeginningBefore, state.logicalY);
-    assert(index < MaxPathCells);
+    assert(index < Pathfinding::MaxPathCells);
     state.logicalY = state.path.cells[index].y;
     Notify(effects, LogicalAxis::Y, LogicalStoreStage::BeginningAfter, state.logicalY);
 }
@@ -52,18 +52,18 @@ void StoreArrivalCell(MovePathState state, const LogicalCellEffects& effects)
 {
     // §6.3: current se relee por eje, tras su prehelper; el objetivo del snap ya está guardado.
     Notify(effects, LogicalAxis::X, LogicalStoreStage::ArrivalBefore, state.logicalX);
-    assert(state.path.current < MaxPathCells);
+    assert(state.path.current < Pathfinding::MaxPathCells);
     state.logicalX = state.path.cells[state.path.current].x;
     Notify(effects, LogicalAxis::X, LogicalStoreStage::ArrivalAfter, state.logicalX);
     Notify(effects, LogicalAxis::Y, LogicalStoreStage::ArrivalBefore, state.logicalY);
-    assert(state.path.current < MaxPathCells);
+    assert(state.path.current < Pathfinding::MaxPathCells);
     state.logicalY = state.path.cells[state.path.current].y;
     Notify(effects, LogicalAxis::Y, LogicalStoreStage::ArrivalAfter, state.logicalY);
 }
 
-glm::vec2 Target(const Path& path)
+glm::vec2 Target(const Pathfinding::Path& path)
 {
-    assert(path.count > 0 && path.count <= MaxPathCells && path.progress <= LastQuarter);
+    assert(path.count > 0 && path.count <= Pathfinding::MaxPathCells && path.progress <= LastQuarter);
     std::array<glm::vec2, 4> points{};
     const int first = static_cast<int>(path.current) - 1;
     for (int r = 0; r < static_cast<int>(points.size()); ++r)
@@ -131,7 +131,7 @@ bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects
     {
         return false;
     }
-    assert(state.path.count <= MaxPathCells && state.path.progress <= LastQuarter);
+    assert(state.path.count <= Pathfinding::MaxPathCells && state.path.progress <= LastQuarter);
     if (state.path.progress == 0)
     {
         const auto next =

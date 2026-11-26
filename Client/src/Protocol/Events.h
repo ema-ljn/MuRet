@@ -344,7 +344,7 @@ using EventPacket =
 
 // Uno de los paquetes de arriba por su opcode (y su subcódigo en AF, BC, BD y F3). Otro tipo que C1, otro opcode u
 // otro subcódigo → WrongPacket; sin los bytes que el original lee siempre → TooShort. Los bytes de más se ignoran.
-[[nodiscard]] Core::Expected<EventPacket, ProtocolError> ReadEventPacket(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<EventPacket, Network::ProtocolError> ReadEventPacket(const Network::Packet& packet);
 
 // 0x56b4e8..0x56b5a0: C1 03 97 en claro, sin XOR32 ni cifrado, con send directo.
 [[nodiscard]] Outgoing WriteEventWindowLeave();

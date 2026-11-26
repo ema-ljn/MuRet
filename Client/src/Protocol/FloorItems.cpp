@@ -23,11 +23,11 @@ constexpr std::size_t CreateEntrySize = 4 + Inventory::ItemDataSize;
 constexpr std::size_t KeySize = 2;
 
 // Un paquete de `type` y `opcode`: el lector desde el byte que sigue al opcode (pkt[3] en un C1, pkt[4] en un C2).
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, Network::PacketType type,
-                                                         std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet,
+                                                                  Network::PacketType type, std::uint8_t opcode)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(type)));
 }
 
@@ -39,7 +39,7 @@ Inventory::ItemData ItemFrom(std::span<const std::byte> bytes)
 }
 } // namespace
 
-Core::Expected<FloorItemsCreate, ProtocolError> ReadFloorItemsCreate(const Network::Packet& packet)
+Core::Expected<FloorItemsCreate, Network::ProtocolError> ReadFloorItemsCreate(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C2, CreateOpcode);
     if (!fields.HasValue())
@@ -47,7 +47,7 @@ Core::Expected<FloorItemsCreate, ProtocolError> ReadFloorItemsCreate(const Netwo
     Core::ByteReader& reader = fields.Value();
     const std::optional<std::uint8_t> count = reader.ReadU8();
     if (!count || *count > reader.Remaining() / CreateEntrySize)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     FloorItemsCreate create;
     create.items.reserve(*count);
     // Se comprobó toda la lista antes de leerla: ninguna lectura puede quedar incompleta.
@@ -63,7 +63,7 @@ Core::Expected<FloorItemsCreate, ProtocolError> ReadFloorItemsCreate(const Netwo
     return create;
 }
 
-Core::Expected<FloorItemsDelete, ProtocolError> ReadFloorItemsDelete(const Network::Packet& packet)
+Core::Expected<FloorItemsDelete, Network::ProtocolError> ReadFloorItemsDelete(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C2, DeleteOpcode);
     if (!fields.HasValue())
@@ -71,7 +71,7 @@ Core::Expected<FloorItemsDelete, ProtocolError> ReadFloorItemsDelete(const Netwo
     Core::ByteReader& reader = fields.Value();
     const std::optional<std::uint8_t> count = reader.ReadU8();
     if (!count || *count > reader.Remaining() / KeySize)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     FloorItemsDelete deleted;
     deleted.keys.reserve(*count);
     for (std::size_t index = 0; index < *count; ++index)
@@ -79,7 +79,7 @@ Core::Expected<FloorItemsDelete, ProtocolError> ReadFloorItemsDelete(const Netwo
     return deleted;
 }
 
-Core::Expected<PickUpResult, ProtocolError> ReadPickUpResult(const Network::Packet& packet)
+Core::Expected<PickUpResult, Network::ProtocolError> ReadPickUpResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, PickUpOpcode);
     if (!fields.HasValue())
@@ -87,7 +87,7 @@ Core::Expected<PickUpResult, ProtocolError> ReadPickUpResult(const Network::Pack
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     PickUpResult pickUp{.result = *result};
     if (*result == NothingPickedUp)
         return pickUp;
@@ -95,7 +95,7 @@ Core::Expected<PickUpResult, ProtocolError> ReadPickUpResult(const Network::Pack
     // bytes en cualquier caso (los del zen son sus cuatro y lo que sigue).
     const auto item = reader.ReadBytes(Inventory::ItemDataSize);
     if (!item)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     pickUp.item = ItemFrom(*item);
     if (*result == ZenPickedUp)
     {
@@ -106,7 +106,7 @@ Core::Expected<PickUpResult, ProtocolError> ReadPickUpResult(const Network::Pack
     return pickUp;
 }
 
-Core::Expected<DropResult, ProtocolError> ReadDropResult(const Network::Packet& packet)
+Core::Expected<DropResult, Network::ProtocolError> ReadDropResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, DropOpcode);
     if (!fields.HasValue())
@@ -114,15 +114,15 @@ Core::Expected<DropResult, ProtocolError> ReadDropResult(const Network::Packet& 
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     // 0x4d10d9..0x4d10e4: pkt[4] solo con pkt[3] distinto de 0.
     const auto slot = reader.ReadU8();
     if (!slot && *result != DropRejected)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return DropResult{.result = *result, .slot = slot.value_or(0)};
 }
 
-Core::Expected<ShortZenPickUp, ProtocolError> ReadShortZenPickUp(const Network::Packet& packet)
+Core::Expected<ShortZenPickUp, Network::ProtocolError> ReadShortZenPickUp(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, PickUpOpcode);
     if (!fields.HasValue())
@@ -130,22 +130,22 @@ Core::Expected<ShortZenPickUp, ProtocolError> ReadShortZenPickUp(const Network::
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     if (*result != ZenPickedUp)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     // 0x4d0d9b..0x4d0dc7: pkt[4] es el byte alto.
     ShortZenPickUp zen;
     for (std::size_t index = 0; index < 4; ++index)
     {
         const auto byte = reader.ReadU8();
         if (!byte)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         zen.zen = (zen.zen << 8) | *byte;
     }
     return zen;
 }
 
-Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network::Packet& packet)
+Core::Expected<ShortDropResult, Network::ProtocolError> ReadShortDropResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, DropOpcode);
     if (!fields.HasValue())
@@ -153,7 +153,7 @@ Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network
     return ShortDropResult{.result = fields.Value().ReadU8()};
 }
 
-Core::Expected<StatFruit, ProtocolError> ReadStatFruit(const Network::Packet& packet)
+Core::Expected<StatFruit, Network::ProtocolError> ReadStatFruit(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, StatFruitOpcode);
     if (!fields.HasValue())
@@ -164,7 +164,7 @@ Core::Expected<StatFruit, ProtocolError> ReadStatFruit(const Network::Packet& pa
     const auto points = reader.ReadU8();
     const auto stat = reader.ReadU8();
     if (!result || !points || !stat)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return StatFruit{.result = *result, .points = *points, .stat = *stat};
 }
 

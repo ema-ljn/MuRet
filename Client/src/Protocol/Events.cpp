@@ -55,11 +55,11 @@ private:
     std::span<const std::byte> m_bytes;
 };
 
-using Read = Core::Expected<EventPacket, ProtocolError>;
+using Read = Core::Expected<EventPacket, Network::ProtocolError>;
 
 Read TooShort()
 {
-    return Core::Unexpected(ProtocolError::TooShort);
+    return Core::Unexpected(Network::ProtocolError::TooShort);
 }
 
 // 0x4dab90: el tipo 0 lee 4 bytes por rectángulo y el 1, 2 por celda, desde pkt[7]; otro tipo, nada.
@@ -188,7 +188,7 @@ Read ReadWorld(const Fields& fields, std::uint8_t subcode)
             return TooShort();
         return EventPacket{ServerCommand{fields.U8(4), fields.U8(5), fields.U8(6)}};
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
@@ -255,7 +255,7 @@ Read ReadByOpcode(const Fields& fields, std::uint8_t opcode)
             return TooShort();
         return EventPacket{EventSound{fields.U16(4)}};
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
@@ -331,18 +331,18 @@ Read ReadCrywolf(const Fields& fields, std::uint8_t subcode)
         return EventPacket{CrywolfUnported{subcode, std::vector<std::byte>(all.begin(), all.end())}};
     }
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 } // namespace
 
-Core::Expected<EventPacket, ProtocolError> ReadEventPacket(const Network::Packet& packet)
+Core::Expected<EventPacket, Network::ProtocolError> ReadEventPacket(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::optional<std::uint8_t> read = packet.Opcode();
     if (!read)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const Fields fields(packet.Bytes());
     const std::uint8_t opcode = *read;
     const bool withSubcode =
@@ -359,7 +359,7 @@ Core::Expected<EventPacket, ProtocolError> ReadEventPacket(const Network::Packet
     const bool known = (opcode == ChaosCastleOpcode && subcode == ChaosCastleEntrySubcode) ||
                        (opcode == JewelMixOpcode && (subcode == JewelMixSubcode || subcode == JewelUnmixSubcode));
     if (!known)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     if (!fields.Has(5))
         return TooShort();
     if (opcode == ChaosCastleOpcode)

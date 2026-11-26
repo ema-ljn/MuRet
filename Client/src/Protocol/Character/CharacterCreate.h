@@ -42,6 +42,6 @@ struct CharacterCreateResult
 
 // La respuesta: C1, F3 01 y pkt[4]; con CharacterCreated, el resto hasta pkt[0x12]. TooShort si falta
 // algo: 0x4c2290 no mira el largo y leería fuera.
-[[nodiscard]] Core::Expected<CharacterCreateResult, ProtocolError>
+[[nodiscard]] Core::Expected<CharacterCreateResult, Network::ProtocolError>
 ReadCharacterCreateResult(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

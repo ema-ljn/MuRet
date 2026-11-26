@@ -29,7 +29,7 @@ inline constexpr std::uint8_t LogoutReturnsToServerList = 2;
 // La respuesta F1 02: C1 05 F1 02 y el resultado. El GS la manda como C3, y llega acá ya
 // descifrada como C1 (Q-C10). WrongPacket si no es un C1 F1 02, y TooShort si no trae el
 // resultado: el original lee pkt[4] igual, lo que haya en su buffer.
-[[nodiscard]] Core::Expected<std::uint8_t, ProtocolError> ReadLogoutResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<std::uint8_t, Network::ProtocolError> ReadLogoutResult(const Network::Packet& packet);
 
 // F1 02: C1 05 F1 02 y el tipo, con el XOR32 y para cifrar (0x647f60: lo arma con la clave de 0x648025 y
 // lo manda como C3). El GS contesta con la respuesta F1 02 del mismo tipo (CL8, hito 8).

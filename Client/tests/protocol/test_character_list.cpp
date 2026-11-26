@@ -27,10 +27,10 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
+using Client::Network::TextField;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::ProtocolError;
-using Client::Protocol::TextField;
 using Client::Protocol::Character::CharacterClassOf;
 using Client::Protocol::Character::CharacterEntry;
 using Client::Protocol::Character::CharacterList;

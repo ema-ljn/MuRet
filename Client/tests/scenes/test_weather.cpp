@@ -59,14 +59,14 @@ TEST(WeatherProtocolTest, RejectsWrongOpcodesAndContainersBeforeReadingTheField)
                        Bytes({0xc4, 0, 5, 0x0f, 0x17})})
     {
         EXPECT_EQ(Client::Tests::ErrorOf(Client::Protocol::World::ReadWeather(PacketOf(std::move(bytes)))),
-                  Client::Protocol::ProtocolError::WrongPacket);
+                  Client::Network::ProtocolError::WrongPacket);
     }
 }
 
 TEST(WeatherProtocolTest, RequiresTheWeatherByte)
 {
     EXPECT_EQ(Client::Tests::ErrorOf(Client::Protocol::World::ReadWeather(PacketOf(Bytes({0xc1, 3, 0x0f})))),
-              Client::Protocol::ProtocolError::TooShort);
+              Client::Network::ProtocolError::TooShort);
 }
 
 TEST(WeatherProtocolTest, IgnoresTrailingBytes)

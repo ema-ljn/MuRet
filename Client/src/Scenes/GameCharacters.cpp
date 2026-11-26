@@ -707,13 +707,13 @@ void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std
     // 0x42da60..0x42da79: 0x42da40 abre las puertas (0x42a110(0, 0, 0, 1)) solo con 0x7239d9 en 0.
     if (runtime == nullptr)
     {
-        World::OpenTheGates(walls);
+        Pathfinding::OpenTheGates(walls);
         return;
     }
     runtime->castleMarkX = 0.0f;
     runtime->castleMarkY = 0.0f;
     if (runtime->castleGatesClosed == 0)
-        World::OpenTheGates(walls);
+        Pathfinding::OpenTheGates(walls);
     runtime->castleGatesClosed = 0;
 }
 

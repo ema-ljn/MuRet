@@ -18,15 +18,15 @@ namespace Client::Protocol::World
 {
 namespace
 {
-constexpr PacketKind RegenKind{Network::PacketType::C1, WorldOpcode, RegenSubcode};
+constexpr Network::PacketKind RegenKind{Network::PacketType::C1, WorldOpcode, RegenSubcode};
 // 0x4c4b80: los bytes +0xe/+0xf no se leen; +0x10 es la experiencia.
 constexpr std::size_t RegenPaddingSize = 2;
 } // namespace
 
-Core::Expected<Teleport, ProtocolError> ReadTeleport(const Network::Packet& packet)
+Core::Expected<Teleport, Network::ProtocolError> ReadTeleport(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != TeleportOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto gate = reader.ReadU8();
     const auto map = reader.ReadU8();
@@ -34,13 +34,13 @@ Core::Expected<Teleport, ProtocolError> ReadTeleport(const Network::Packet& pack
     const auto y = reader.ReadU8();
     const auto direction = reader.ReadU8();
     if (!gate || !map || !x || !y || !direction)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Teleport{*gate, *map, *x, *y, *direction};
 }
 
-Core::Expected<Regen, ProtocolError> ReadRegen(const Network::Packet& packet)
+Core::Expected<Regen, Network::ProtocolError> ReadRegen(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, RegenKind);
+    auto fields = Network::FieldsAfterSubcode(packet, RegenKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -56,18 +56,18 @@ Core::Expected<Regen, ProtocolError> ReadRegen(const Network::Packet& packet)
     const auto experience = reader.ReadU32Le();
     const auto zen = reader.ReadU32Le();
     if (!x || !y || !map || !direction || !life || !mana || !bp || !padding || !experience || !zen)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Regen{*x, *y, *map, *direction, *life, *mana, *bp, *experience, *zen};
 }
 
-Core::Expected<Weather, ProtocolError> ReadWeather(const Network::Packet& packet)
+Core::Expected<Weather, Network::ProtocolError> ReadWeather(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != WeatherOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto code = reader.ReadU8();
     if (!code)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Weather{*code};
 }
 

@@ -189,10 +189,10 @@ TEST(GameMovementTest, AShiftClickIsConsumedWithoutPicking)
     context.input.leftDown = true;
     context.input.shiftDown = true;
     int picks = 0;
-    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
     {
         ++picks;
-        return std::optional{Client::GameLogic::PathCell{179, 116}};
+        return std::optional{Client::Pathfinding::PathCell{179, 116}};
     };
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -227,8 +227,8 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     auto context = tested.Context();
     context.input.leftPressed = true;
     context.input.leftDown = true;
-    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-    { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+    { return std::optional{Client::Pathfinding::PathCell{179, 116}}; };
     std::vector<std::byte> bytes;
     context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell> path,
                            Client::Protocol::Movement::Cell target,
@@ -287,8 +287,8 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         context.input.mouseX = 130;
         context.input.mouseY = 240;
         context.screen = {800, 600};
-        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+        { return std::optional{Client::Pathfinding::PathCell{179, 116}}; };
         context.sendWalk = [&out](auto, auto, float) -> Client::Core::Expected<void, std::string>
         {
             out.sent.emplace_back("D3");
@@ -353,8 +353,8 @@ TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
-        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+        { return std::optional{Client::Pathfinding::PathCell{179, 116}}; };
         context.sendWalk = [&sent](auto, auto, float) -> Client::Core::Expected<void, std::string>
         {
             sent.push_back({std::byte{0xd3}});
@@ -392,8 +392,8 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
-        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+        { return std::optional{Client::Pathfinding::PathCell{179, 116}}; };
         context.sendWalk = [&sent](auto, auto, float) -> Client::Core::Expected<void, std::string>
         {
             sent.push_back({std::byte{0xd3}});
@@ -450,8 +450,9 @@ TEST(GameMovementTest, AWalkWithAnNpcWindowOpenClosesItAfterTheD3)
             auto context = tested->Context();
             context.input.leftPressed = true;
             context.input.leftDown = true;
-            context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-            { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+            context.pickTarget =
+                []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+            { return std::optional{Client::Pathfinding::PathCell{179, 116}}; };
             context.sendWalk = [&sent](auto, auto, float) -> Client::Core::Expected<void, std::string>
             {
                 sent.push_back({std::byte{0xd3}});
@@ -491,8 +492,8 @@ TEST(GameMovementTest, ATransformedHeroUsesItsSevenActionModelFromClickThroughAr
     context.playerSkeleton = nullptr;
     context.input.leftPressed = true;
     context.input.leftDown = true;
-    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+    { return std::optional{Client::Pathfinding::PathCell{183, 115}}; };
     bool sentD3 = false;
     context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
                            float) -> Client::Core::Expected<void, std::string>
@@ -540,8 +541,8 @@ TEST(GameMovementTest, ATransformedHeroUsesTheBaseLibrarySkeletonWhenAttackingOn
     context.playerSkeleton = nullptr;
     context.input.leftPressed = true;
     context.input.leftDown = true;
-    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+    { return std::optional{Client::Pathfinding::PathCell{183, 115}}; };
     context.sendWalk = [](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
                           float) -> Client::Core::Expected<void, std::string> { return {}; };
     bool sentAttack = false;
@@ -838,8 +839,9 @@ TEST(GameMovementTest, AClickOnAPlayerWithCtrlWalksToItAndRemembersIt)
             context.input.leftPressed = true;
             context.input.leftDown = true;
             context.input.controlDown = control;
-            context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-            { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+            context.pickTarget =
+                []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+            { return std::optional{Client::Pathfinding::PathCell{179, 116}}; };
             const CrtRandom start = tested->random;
             Walk walk;
             context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>,
@@ -1228,10 +1230,10 @@ TEST(GameMovementTest, TheShockActionConsumesTheClickWithoutStartingAnotherPath)
     context.input.leftPressed = true;
     context.input.leftDown = true;
     int picks = 0;
-    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
     {
         ++picks;
-        return std::optional<Client::GameLogic::PathCell>{};
+        return std::optional<Client::Pathfinding::PathCell>{};
     };
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1301,10 +1303,10 @@ TEST(GameMovementTest, AClickClosesBeforePickingAndReadsTwoWindowsAfterSending)
     CrtRandom expected = tested.random;
     for (int i = 0; i < 8 + 3848; ++i)
         static_cast<void>(expected.Next());
-    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
     {
         EXPECT_EQ(tested.random.State(), expected.State());
-        return std::optional{Client::GameLogic::PathCell{183, 115}};
+        return std::optional{Client::Pathfinding::PathCell{183, 115}};
     };
     context.sendWalk = [&](auto, auto, float) -> Client::Core::Expected<void, std::string>
     {
@@ -1339,8 +1341,8 @@ HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32
     context.inventory = inventory;
     context.input.leftPressed = true;
     context.input.leftDown = true;
-    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+    { return std::optional{Client::Pathfinding::PathCell{183, 115}}; };
     HandsClick click;
     context.sendWalk = [&](auto, auto, float) -> Client::Core::Expected<void, std::string>
     {
@@ -1434,10 +1436,10 @@ TEST(GameMovementTest, AContinuouslyHeldClickExpiresAtOneHourUntilReleased)
     context.input.leftDown = true;
     context.input.worldTime = 3'600'000.0f;
     int picks = 0;
-    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
     {
         ++picks;
-        return std::optional<Client::GameLogic::PathCell>{};
+        return std::optional<Client::Pathfinding::PathCell>{};
     };
     ASSERT_TRUE(StepHeroMovement(context).HasValue());
     EXPECT_EQ(picks, 0);

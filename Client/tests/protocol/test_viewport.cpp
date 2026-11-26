@@ -17,7 +17,7 @@
 
 namespace
 {
-using Client::Protocol::ProtocolError;
+using Client::Network::ProtocolError;
 using Client::Protocol::Viewport::ReadEquipmentShown;
 using Client::Protocol::Viewport::ReadLeave;
 using Client::Protocol::Viewport::ReadMagicAttackCount;

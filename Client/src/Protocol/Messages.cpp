@@ -16,10 +16,10 @@ namespace Client::Protocol::Messages
 namespace
 {
 // El C1 del opcode, con el lector parado en pkt[3].
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
@@ -38,7 +38,7 @@ std::string RawText(Core::ByteReader& reader, std::size_t limit)
 }
 
 template <typename Spoken>
-Core::Expected<Spoken, ProtocolError> ReadSpoken(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Spoken, Network::ProtocolError> ReadSpoken(const Network::Packet& packet, std::uint8_t opcode)
 {
     auto fields = FieldsOf(packet, opcode);
     if (!fields.HasValue())
@@ -49,7 +49,7 @@ Core::Expected<Spoken, ProtocolError> ReadSpoken(const Network::Packet& packet, 
     const bool wholeName = reader.Remaining() >= SpeakerNameSize;
     const auto name = reader.ReadBytes(std::min(SpeakerNameSize, reader.Remaining()));
     if (!name)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     Spoken spoken;
     std::copy(name->begin(), name->end(), spoken.name.begin());
     if (wholeName)
@@ -58,17 +58,17 @@ Core::Expected<Spoken, ProtocolError> ReadSpoken(const Network::Packet& packet, 
 }
 } // namespace
 
-Core::Expected<Chat, ProtocolError> ReadChat(const Network::Packet& packet)
+Core::Expected<Chat, Network::ProtocolError> ReadChat(const Network::Packet& packet)
 {
     return ReadSpoken<Chat>(packet, ChatOpcode);
 }
 
-Core::Expected<Whisper, ProtocolError> ReadWhisper(const Network::Packet& packet)
+Core::Expected<Whisper, Network::ProtocolError> ReadWhisper(const Network::Packet& packet)
 {
     return ReadSpoken<Whisper>(packet, WhisperOpcode);
 }
 
-Core::Expected<KeyChat, ProtocolError> ReadKeyChat(const Network::Packet& packet)
+Core::Expected<KeyChat, Network::ProtocolError> ReadKeyChat(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, KeyChatOpcode);
     if (!fields.HasValue())
@@ -77,22 +77,22 @@ Core::Expected<KeyChat, ProtocolError> ReadKeyChat(const Network::Packet& packet
     // 0x4e3403..0x4e340c: pkt[3] << 8 + pkt[4].
     const auto key = reader.ReadU16Be();
     if (!key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return KeyChat{.key = *key, .text = RawText(reader, reader.Remaining())};
 }
 
-Core::Expected<WhisperResult, ProtocolError> ReadWhisperResult(const Network::Packet& packet)
+Core::Expected<WhisperResult, Network::ProtocolError> ReadWhisperResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, WhisperResultOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto result = fields.Value().ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return WhisperResult{*result};
 }
 
-Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet)
+Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, NoticeOpcode);
     if (!fields.HasValue())
@@ -106,7 +106,7 @@ Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet)
     const auto color = reader.ReadU32Le();
     const auto speed = reader.ReadU8();
     if (!type || !byte4 || !byte5 || !word6 || !color || !speed)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Notice{.type = *type,
                   .byte4 = *byte4,
                   .word6 = *word6,

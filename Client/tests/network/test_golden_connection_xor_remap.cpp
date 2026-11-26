@@ -32,7 +32,7 @@ using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::SerialCheck;
-using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapObfuscation;
 using Client::Tests::CutPackets;
 using Client::Tests::SameBytesWithoutValues;
 using Client::Tests::WireDirection;

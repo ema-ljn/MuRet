@@ -27,8 +27,8 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Character::CharacterClassOf;
 using Client::Protocol::Character::CharacterCreated;
 using Client::Protocol::Character::NameAsText;

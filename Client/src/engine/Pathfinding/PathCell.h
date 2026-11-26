@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Client::GameLogic
+namespace Client::Pathfinding
 {
 struct PathCell
 {
@@ -11,4 +11,4 @@ struct PathCell
 
     friend bool operator==(const PathCell&, const PathCell&) = default;
 };
-} // namespace Client::GameLogic
+} // namespace Client::Pathfinding

@@ -50,7 +50,7 @@ inline constexpr std::uint8_t RavenPet = 0;
 inline constexpr std::uint8_t StopTheAttackCommand = 0x78;
 inline constexpr std::uint16_t NoTargetKey = 0xffff;
 
-[[nodiscard]] Core::Expected<PetOrder, ProtocolError> ReadPetOrder(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<PetAttack, ProtocolError> ReadPetAttack(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PetOrder, Network::ProtocolError> ReadPetOrder(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PetAttack, Network::ProtocolError> ReadPetAttack(const Network::Packet& packet);
 [[nodiscard]] Outgoing WritePetCommand(const PetCommand& command);
 } // namespace Client::Protocol::Pet

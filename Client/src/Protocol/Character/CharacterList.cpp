@@ -21,7 +21,7 @@ namespace Client::Protocol::Character
 namespace
 {
 // La lista es un C1: con cinco personajes mide 7 + 5 · 0x22 = 177.
-constexpr PacketKind ListKind{Network::PacketType::C1, CharacterOpcode, ListSubcode};
+constexpr Network::PacketKind ListKind{Network::PacketType::C1, CharacterOpcode, ListSubcode};
 
 // Dónde va cada campo en una entrada.
 constexpr std::size_t NameOffset = 1;
@@ -52,9 +52,9 @@ Outgoing WriteCharacterListRequest()
     return Xor32C1(Network::PacketWriter::C1(CharacterOpcode).PutU8(ListSubcode));
 }
 
-Core::Expected<CharacterList, ProtocolError> ReadCharacterList(const Network::Packet& packet)
+Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, ListKind);
+    auto fields = Network::FieldsAfterSubcode(packet, ListKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -65,7 +65,7 @@ Core::Expected<CharacterList, ProtocolError> ReadCharacterList(const Network::Pa
     const std::optional<std::uint8_t> count = reader.ReadU8();
     if (!count || *count > reader.Remaining() / EntrySize)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     CharacterList list{*creatableClasses, *notice, {}};
     list.characters.reserve(*count);

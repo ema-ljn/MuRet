@@ -420,7 +420,7 @@ Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_
     auto& attributes = resources.world.Map().terrain.attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
-    GameLogic::PathFinder finder(attributes->cells);
+    Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el camino de otro.
     const auto path = finder.Find({x, y}, {targetX, targetY}, CrywolfAltarGoal(resources.world));
     if (!path)

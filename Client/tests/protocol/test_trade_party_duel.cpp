@@ -23,8 +23,8 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

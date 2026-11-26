@@ -238,7 +238,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     EXPECT_EQ(std::ranges::count_if(world.Leaves().All(), [](const auto& leaf) { return leaf.alive; }), 80);
     EXPECT_EQ(selection.Terrain(), selectionTerrain);
     EXPECT_EQ(selectionTerrain->heights->cells[0], heightBefore);
-    EXPECT_EQ(selectionTerrain->attributes->cells[0], cellBefore | Client::World::CharacterWallBit);
+    EXPECT_EQ(selectionTerrain->attributes->cells[0], cellBefore | Client::Pathfinding::CharacterWallBit);
     EXPECT_EQ(selection.Terrain(), &world.Map().terrain);
     EXPECT_EQ(world.Runtime().map, 54);
     EXPECT_EQ(world.Runtime().terrainPolygon.x, polygon.x);

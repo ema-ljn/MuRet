@@ -22,6 +22,6 @@ namespace Client::Protocol::Character
 // Recibe el C1 rearmado de Network, sin acreditar que haya llegado cifrado. Lee hasta pkt[0x33]
 // en little-endian e ignora el padding 0x26..0x27 y los bytes sobrantes (04, "La entrada al mundo",
 // y 07, Q-C144). TooShort si faltan campos; WrongPacket si cambia tipo, opcode o subcódigo.
-[[nodiscard]] Core::Expected<CharacterSelectResult, ProtocolError>
+[[nodiscard]] Core::Expected<CharacterSelectResult, Network::ProtocolError>
 ReadCharacterSelectResult(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

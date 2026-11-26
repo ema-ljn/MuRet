@@ -15,10 +15,10 @@
 
 namespace
 {
-using Client::GameLogic::Path;
-using Client::GameLogic::PathCell;
-using Client::GameLogic::PathFinder;
-using Client::World::TerrainWalls;
+using Client::Pathfinding::Path;
+using Client::Pathfinding::PathCell;
+using Client::Pathfinding::PathFinder;
+using Client::Pathfinding::TerrainWalls;
 
 void ExpectCells(const std::optional<Path>& path, std::initializer_list<PathCell> expected)
 {
@@ -46,16 +46,16 @@ void MakeCorridor(TerrainWalls& walls)
 
 TEST(PathFinderTest, CrossesTheDiagonalEvenWhenBothSideCellsAreWalls)
 {
-    Client::World::TerrainWalls walls;
+    Client::Pathfinding::TerrainWalls walls;
     walls.cells.fill(4);
     walls.cells[10 * 256 + 10] = 0;
     walls.cells[11 * 256 + 11] = 0;
-    Client::GameLogic::PathFinder finder(walls);
+    Client::Pathfinding::PathFinder finder(walls);
     const auto path = finder.Find({10, 10}, {11, 11});
     ASSERT_TRUE(path);
     ASSERT_EQ(path->count, 2);
-    EXPECT_EQ(path->cells[0], (Client::GameLogic::PathCell{10, 10}));
-    EXPECT_EQ(path->cells[1], (Client::GameLogic::PathCell{11, 11}));
+    EXPECT_EQ(path->cells[0], (Client::Pathfinding::PathCell{10, 10}));
+    EXPECT_EQ(path->cells[1], (Client::Pathfinding::PathCell{11, 11}));
     EXPECT_EQ(path->current, 0);
     EXPECT_EQ(path->progress, 0);
 }

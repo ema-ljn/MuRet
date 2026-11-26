@@ -267,7 +267,7 @@ struct ActorState
     std::uint16_t key = 0;
     std::uint8_t pk = 0; // +0x375: 3 desde 0x511290, después el de la respuesta del F3 03
     // Caminar: +0x3e8.., +0x39a/+0x39b (blanco, separado de la celda adelantada), +0x388 y +0x3e5.
-    GameLogic::Path path;
+    Pathfinding::Path path;
     std::uint8_t targetX = 0;
     std::uint8_t targetY = 0;
     std::uint8_t direction = 0;

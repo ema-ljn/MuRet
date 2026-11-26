@@ -122,15 +122,15 @@ struct SummonLife
     std::uint8_t life = 0;
 };
 
-[[nodiscard]] Core::Expected<MagicAttack, ProtocolError> ReadMagicAttack(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<DurationMagic, ProtocolError> ReadDurationMagic(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<MagicCancel, ProtocolError> ReadMagicCancel(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<ActorState, ProtocolError> ReadActorState(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<ActorEffect, ProtocolError> ReadActorEffect(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<SkillTarget, ProtocolError> ReadSkillTarget(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<LevelUp, ProtocolError> ReadLevelUp(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<SummonLife, ProtocolError> ReadSummonLife(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<MagicAttack, Network::ProtocolError> ReadMagicAttack(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<DurationMagic, Network::ProtocolError> ReadDurationMagic(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<MagicCancel, Network::ProtocolError> ReadMagicCancel(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ActorState, Network::ProtocolError> ReadActorState(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ActorEffect, Network::ProtocolError> ReadActorEffect(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<SkillTarget, Network::ProtocolError> ReadSkillTarget(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<SkillList, Network::ProtocolError> ReadSkillList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LevelUp, Network::ProtocolError> ReadLevelUp(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<SummonLife, Network::ProtocolError> ReadSummonLife(const Network::Packet& packet);
 
 // El aviso de los que no llegaron cifrados: C1 06 F1 03 00 [cabeza] con el XOR32 y en C3, sin leer el paquete. La
 // cabeza es la del opcode en el 19 (0x4cc562..0x4cce21) y en el 1E (0x4ce032..), y 0xf1 en el 73 (0x4d5d8c),

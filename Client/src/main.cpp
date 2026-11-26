@@ -1,18 +1,16 @@
-#include "App/AutoLogin.h"
 #include "App/CommandLine.h"
 #include "App/Config.h"
 #include "App/ConnectionKeyFiles.h"
 #include "App/Credentials.h"
 #include "App/FontFiles.h"
 #include "App/FrameRateMeter.h"
+#include "App/GameClient.h"
 #include "App/GameLoop.h"
-#include "App/ISessionEventSink.h"
 #include "App/LoopTiming.h"
 #include "App/MakeObfuscation.h"
 #include "Platform/Resolution.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
-#include "App/SessionState.h"
 #include "Platform/VSyncMode.h"
 #include "Platform/WindowState.h"
 #include "Sound/SoundCatalog.h"
@@ -25,10 +23,8 @@
 #include "Core/PixelSize.h"
 #include "Core/StderrSink.h"
 #include "Core/TeeSink.h"
-#include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Input/InputState.h"
-#include "Input/Key.h"
 #include "Network/Connection.h"
 #include "Network/IObfuscation.h"
 #include "Network/SocketApi.h"
@@ -51,39 +47,11 @@
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/Gl/GlScreenReader.h"
 #include "Render/Gl/TextureTable.h"
-#include "Models/Cloth.h"
-#include "Models/Animation.h"
 #include "Render/Text/FreeTypeRasterizer.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/CharacterSelectScene.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameModels.h"
-#include "Scenes/GameItemRenderState.h"
-#include "Scenes/GameMessages.h"
-#include "Scenes/GameScene.h"
-#include "Scenes/IScene.h"
-#include "Scenes/LoadingScene.h"
-#include "Scenes/LoginScene.h"
-#include "Scenes/NpcNames.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Render/Frame/SceneCanvas.h"
-#include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
-#include "Scenes/SceneManager.h"
 #include "Render/Frame/SceneText.h"
-#include "Scenes/SceneTransitions.h"
-#include "Scenes/Screenshots.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/SessionEventApplier.h"
 #include "Scenes/TestScene.h"
-#include "Scenes/WinMainLoop.h"
-#include "Scenes/WorldEntry.h"
-#include "Scenes/WorldLoadingScene.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
-#include "UI/GameUiState.h"
-#include "UI/SlideBanner.h"
-#include "World/GameCamera.h"
 
 #include <chrono>
 #include <cstdint>
@@ -94,7 +62,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <ratio>
 #include <random>
 #include <string>
 #include <string_view>
@@ -123,14 +90,14 @@
 //      Con un host, también la red del sistema (NetworkInit).
 //   3. SDL (SdlContext) y OpenWindow: la resolución de la config, que tiene que valer
 //      (CheckResolution), y la ventana con el contexto GL.
-//   4. Con la carpeta de datos, RunScenes: la tabla de texturas, el frame de GL, con un host la
-//      sesión (Online), y el SceneManager desde la carga (CL5.4), con el texto tecleado de SDL
-//      prendido mientras la escena lo pide. Sin ella, la escena de prueba de la CL3.2. Las dos con
-//      RunLoop, hasta que se cierre la ventana, se llegue a --frames, una escena no pueda entrar o
-//      el OK de un aviso cierre el juego (Q-C69).
-// El cierre es el orden de las declaraciones al revés: el bucle, el SceneManager (la escena de
-// ahora suelta sus texturas), la sesión y su socket, el frame (con la caché del texto), la tabla de
-// texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y sus salidas, para que
+//   4. Con la carpeta de datos, RunScenes: los dispositivos (la tabla de texturas, el frame de GL,
+//      el audio y, con un host, el socket) y App::GameClient, que arma la sesión y el SceneManager
+//      desde la carga (CL5.4), con el texto tecleado de SDL prendido mientras la escena lo pide. Sin ella, la escena de
+//      prueba de la CL3.2. Las dos con RunLoop, hasta que se cierre la ventana, se llegue a --frames, una escena no
+//      pueda entrar o el OK de un aviso cierre el juego (Q-C69).
+// El cierre es el orden de las declaraciones al revés: el bucle, el GameClient (la escena de ahora
+// suelta sus texturas y la sesión se cierra), el socket, el frame (con la caché del texto), la tabla
+// de texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y sus salidas, para que
 // lo que se cierra antes pueda escribir, y al final el manejador de caídas.
 //
 // Con un host, la LoginScene empieza la sesión al entrar y muestra su UI (CL5.5): la lista cuando
@@ -341,56 +308,6 @@ std::optional<Platform::Sdl::Window> OpenWindow(const Platform::Sdl::SdlContext&
     return window;
 }
 
-// Fase 4, con un servidor: el socket, la conexión con la ofuscación del build, la sesión, que
-// empieza la LoginScene al entrar, y con --auto-login el AutoLogin. Los miembros mueren al revés de
-// como se declaran (el AutoLogin antes que la sesión que guarda), y todo antes que el NetworkInit,
-// declarado antes en main.
-//
-// El relleno de lo que cifra la conexión sale de std::random_device: solo tiene que cambiar de una
-// corrida a otra (Network/Connection.h), y los tests le dan uno fijo. Las salas del chat con un amigo abren sus
-// sockets con el mismo resolver, que muere después de la sesión que los guarda.
-struct Online
-{
-    Online(const ServerStartup& server, const Network::IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
-           App::ISessionEventSink& eventSink)
-        : connection(socket, obfuscation, clock, log, std::random_device{}()),
-          session(connection, clock, log, server.keys,
-                  App::SessionSettings{.connectServer = server.connectServer, .mainCheckFile = server.mainCheckFile},
-                  eventSink)
-    {
-        if (server.credentials)
-        {
-            autoLogin.emplace(session, *server.credentials, log);
-        }
-        // Las salas del chat con un amigo (0x49de50): un socket por sala, con la ofuscación del build.
-        session.EnableChatRooms(
-            App::ChatRoomSockets{.make = [this] { return std::make_unique<Network::SystemSocket>(resolver); },
-                                 .obfuscation = &obfuscation,
-                                 .paddingSeed = std::random_device{}()});
-    }
-
-    // El pollNetwork del SceneManager: la sesión y, después, el AutoLogin, que mira lo que llegó.
-    Core::Expected<void, std::string> Poll()
-    {
-        const auto polled = session.Poll();
-        if (!polled.HasValue())
-        {
-            return polled;
-        }
-        if (autoLogin)
-        {
-            autoLogin->Poll();
-        }
-        return {};
-    }
-
-    Network::SystemResolver resolver;
-    Network::SystemSocket socket{resolver};
-    Network::Connection connection;
-    App::ServerSession session;
-    std::optional<App::AutoLogin> autoLogin;
-};
-
 // El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (App::EffectiveMaxFps).
 int LoopMaxFps(const App::ClientConfig& config, const Platform::Sdl::Window& window, Core::Log& log)
 {
@@ -512,38 +429,6 @@ Client::Render::Frame::RasterizerFactory FontFactory(const App::ClientConfig& co
     };
 }
 
-// Las cinco escenas (CL5.4 y CL6.3). Los modelos los lee la carga y los usan el login, la selección y el
-// caballo del juego.
-Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const Client::Tables::GameData& data,
-                                      Scenes::GameModels& models, App::ServerSession* session)
-{
-    return [context, &data, &models, session](Scenes::SceneId id) -> std::unique_ptr<Scenes::IScene>
-    {
-        switch (id)
-        {
-        case Scenes::SceneId::Loading:
-            return std::make_unique<Scenes::LoadingScene>(context, &models);
-        case Scenes::SceneId::Login:
-            return std::make_unique<Scenes::LoginScene>(context, data, models, session, Version, std::random_device{}(),
-                                                        &models.TextureSlots());
-        case Scenes::SceneId::CharacterSelect:
-            return std::make_unique<Scenes::CharacterSelectScene>(context, data, models, session);
-        case Scenes::SceneId::WorldLoading:
-            return std::make_unique<Scenes::WorldLoadingScene>(context);
-        case Scenes::SceneId::Game:
-            return std::make_unique<Scenes::GameScene>(
-                context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots(),
-                data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr,
-                data.text ? &*data.text : nullptr,
-                Scenes::GameChatTables{.filter = data.filter,
-                                       .filterName = data.filterName,
-                                       .setOptions = data.itemSets ? &data.itemSets->options : nullptr,
-                                       .itemSetTables = data.itemSets ? &*data.itemSets : nullptr});
-        }
-        return nullptr;
-    };
-}
-
 // Lo que lee la fase 2 con una carpeta de datos.
 struct SceneStartup
 {
@@ -618,18 +503,89 @@ private:
     bool m_on;
 };
 
-// Si el GameServer ordenó cerrar el juego (F1 02 con 0, Q-C106), en cualquier escena: el original
-// hace WM_DESTROY apenas lo lee. Sin sesión, nunca.
-bool GameServerOrderedTheQuit(const App::ServerSession* session)
+// Fase 4, con un host: el resolver y el socket del GameServer. Viven más que el GameClient, que guarda la sesión.
+struct HostDevices
 {
-    return session != nullptr && session->State() == App::SessionState::QuitOrdered;
+    Network::SystemResolver resolver;
+    Network::SystemSocket socket{resolver};
+};
+
+// Fase 4, con un host: lo que GameClient necesita para la sesión. El relleno de lo que cifra la conexión sale de
+// std::random_device: solo tiene que cambiar de una corrida a otra (Network/Connection.h). Las salas del chat con un
+// amigo abren un socket por sala con el mismo resolver y la ofuscación del build.
+App::GameClientServer ServerOf(const ServerStartup& server, HostDevices& host, const Network::IObfuscation& obfuscation)
+{
+    return App::GameClientServer{
+        .socket = host.socket,
+        .obfuscation = obfuscation,
+        .keys = server.keys,
+        .settings = App::SessionSettings{.connectServer = server.connectServer, .mainCheckFile = server.mainCheckFile},
+        .autoLogin = server.credentials,
+        .paddingSeed = std::random_device{}(),
+        .chatRooms =
+            App::ChatRoomSockets{.make = [&host] { return std::make_unique<Network::SystemSocket>(host.resolver); },
+                                 .obfuscation = &obfuscation,
+                                 .paddingSeed = std::random_device{}()}};
 }
 
-// Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión si hay un host,
-// y el SceneManager desde la carga, con el texto tecleado mientras la escena lo pide. Un error
-// antes del bucle, o una escena que no puede entrar, cierra con EXIT_FAILURE y el error en el log;
-// el OK de un aviso que cierra el juego (Q-C69) y la orden del GameServer (Q-C106), con
-// EXIT_SUCCESS, al final del frame en que llegan.
+// Fase 4: el audio de SDL, o ninguno con el aviso en el log.
+std::unique_ptr<Audio::Sdl::SdlAudio> OpenAudio(const App::ClientConfig& config, Core::Log& log)
+{
+    auto created = Audio::Sdl::SdlAudio::Create(*config.dataPath, Client::Sound::GameSoundCatalog(), config.soundOnOff,
+                                                config.musicOnOff);
+    if (!created.HasValue())
+    {
+        log.Warning("{}", created.Error());
+        return nullptr;
+    }
+    std::unique_ptr<Audio::Sdl::SdlAudio> audio = std::move(created).Value();
+    if (const auto driver = audio->DriverName(); !driver.empty())
+    {
+        log.Info("el audio usa el controlador SDL {}", driver);
+    }
+    return audio;
+}
+
+// Fase 4, después del bucle y con el cliente y la ventana vivos: el código de salida de lo que lo cortó.
+int ExitCodeOf(const std::optional<App::GameExit>& exit, Platform::Sdl::Window& window, Core::Log& log)
+{
+    if (!exit)
+    {
+        return EXIT_SUCCESS;
+    }
+    switch (exit->kind)
+    {
+    case App::GameExitKind::DataError:
+    {
+        // Q-C180: primero MessageBox, después WM_DESTROY. Se cierra también si SDL no logró mostrarlo.
+        const auto shown = window.ShowErrorMessage(exit->message);
+        if (!shown.HasValue())
+        {
+            log.Error("{}", shown.Error());
+        }
+        return EXIT_FAILURE;
+    }
+    case App::GameExitKind::SceneFailure:
+        // El SceneManager ya registró el diagnóstico de Enter o de aplicación de la sesión.
+        return EXIT_FAILURE;
+    case App::GameExitKind::SelectionFailure:
+        log.Error("no se puede construir la selección: {}", exit->message);
+        return EXIT_FAILURE;
+    case App::GameExitKind::ServerOrder:
+        log.Info("se cierra el juego, como ordenó el GameServer");
+        return EXIT_SUCCESS;
+    case App::GameExitKind::PlayerQuit:
+        log.Info("se cierra el juego, como pidió el aviso");
+        return EXIT_SUCCESS;
+    }
+    return EXIT_FAILURE;
+}
+
+// Fase 4 con una carpeta de datos: los dispositivos (la tabla de texturas, el frame de GL, el audio, el portapapeles,
+// la lectura de la pantalla y, con un host, el socket y la ofuscación), después el GameClient, y el bucle con el texto
+// tecleado mientras la escena lo pide. Un error antes del bucle, o una escena que no puede entrar, cierra con
+// EXIT_FAILURE y el error en el log; el OK de un aviso que cierra el juego (Q-C69) y la orden del GameServer (Q-C106),
+// con EXIT_SUCCESS, al final del frame en que llegan.
 int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl::Window& window, Core::IClock& clock,
               Core::Log& log)
 {
@@ -642,243 +598,60 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
         log.Error("{}", frame.Error());
         return EXIT_FAILURE;
     }
-    // Lo global de la tela: el rand() de la CRT sembrado una vez con la hora, como srand(time(NULL)) en
-    // 0x4bad9a, el viento base y el contador de pasos de lógica.
-    Client::Models::ClothWorld clothWorld{.random =
-                                              Client::Crt::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
-    // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
     Client::Input::InputState input;
-    Client::World::GameCamera camera;
-    // 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
-    // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
-    // en curso.
-    std::unique_ptr<Audio::Sdl::SdlAudio> audio;
-    Scenes::WorldState world;
-    world.Runtime().music.SetEnabled(startup.config.musicOnOff);
-    auto audioCreated = Audio::Sdl::SdlAudio::Create(*startup.config.dataPath, Client::Sound::GameSoundCatalog(),
-                                                     startup.config.soundOnOff, startup.config.musicOnOff);
-    if (audioCreated.HasValue())
-    {
-        audio = std::move(audioCreated).Value();
-        world.Runtime().audio = audio.get();
-        world.Runtime().SetSoundVolume(static_cast<std::uint8_t>(world.Runtime().ui.volume));
-        if (const auto driver = audio->DriverName(); !driver.empty())
-        {
-            log.Info("el audio usa el controlador SDL {}", driver);
-        }
-    }
-    else
-    {
-        log.Warning("{}", audioCreated.Error());
-    }
-    // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
-    world.Runtime().chat.input.macros = scenes.data.macros;
-    // 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
-    world.Runtime().moves = scenes.data.moves;
-    // 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
-    world.Runtime().dialogTable = scenes.data.dialogs;
-    world.Runtime().quest.records = scenes.data.quests;
-    // 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
-    world.Runtime().monsterSkills = scenes.data.monsterSkills;
-    // 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
-    world.Runtime().npcNames = Scenes::NpcNameTableOf(scenes.data.npcNames);
-    // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
-    if (scenes.data.slides)
-    {
-        Client::UI::LoadTheSlides(world.Runtime().hud.slides, *scenes.data.slides);
-    }
-    // 4bada2..4bade0: la tabla global de ángulos se publica una vez con la CRT de WinMain.
-    Scenes::InitializeGameItemRenderState(world.Runtime().itemRender, clothWorld.random);
-    // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
-    // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
-    Client::World::GameCameraInput cameraInput;
-    Scenes::SelectionState selection(world);
-    // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
-    // La respuesta del F3 03 toma de acá Player.bmd para la acción de parado.
-    Scenes::GameModels models;
-    // La escena en curso (0x6d5dc8) que leen el 00 y el 0D: la del SceneManager, que se arma después.
-    const Scenes::SceneManager* sceneManager = nullptr;
-    // Lo que usan las respuestas del mundo y, para levantar, soltar y equipar, el juego.
-    const Scenes::WorldEntryResources worldEntry{
-        .world = world,
-        .selection = selection,
-        .dataRoot = *startup.config.dataPath,
-        .cloth = clothWorld,
-        .camera = camera,
-        .cameraInput = cameraInput,
-        .models = models,
-        .items = scenes.data.items ? &scenes.data.items->table : nullptr,
-        .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
-        .log = log,
-        .clock = &clock,
-        .textMeasure = &frame.Value()->TextMeasure(),
-        .screen = [&window] { return window.PixelSize(); },
-        .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
-        { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
-        .texts = scenes.data.text ? &*scenes.data.text : nullptr,
-        .skills = scenes.data.skills ? &*scenes.data.skills : nullptr};
-    Scenes::SessionEventApplier eventApplier(worldEntry);
+    const std::unique_ptr<Audio::Sdl::SdlAudio> audio = OpenAudio(startup.config, log);
+    Platform::Sdl::Clipboard clipboard;
+    Client::Render::Gl::GlScreenReader screenReader(window.Gl());
     // The server's packet shape is chosen when building (MU_XOR_REMAP); it outlives the connection.
     const std::unique_ptr<const Network::IObfuscation> obfuscation = App::MakeObfuscation();
-    std::optional<Online> online;
+    std::optional<HostDevices> host;
+    std::optional<App::GameClientServer> server;
     if (startup.server)
     {
-        online.emplace(*startup.server, *obfuscation, clock, log, eventApplier);
+        host.emplace();
+        server.emplace(ServerOf(*startup.server, *host, *obfuscation));
     }
-    App::ServerSession* session = online ? &online->session : nullptr;
-    Platform::Sdl::Clipboard clipboard;
-    const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
-                                       .textures = textures,
-                                       .log = log,
-                                       .clock = &clock,
-                                       .cloth = &clothWorld,
-                                       .input = &input,
-                                       .pacing = startup.config.pacing,
-                                       .camera = &camera,
-                                       .cameraInput = &cameraInput,
-                                       .selection = &selection,
-                                       .world = &world,
-                                       .textMeasure = &frame.Value()->TextMeasure(),
-                                       .worldEntry = &worldEntry,
-                                       .clipboard = &clipboard};
+    App::GameClient client(
+        scenes.data,
+        App::GameClientDevices{.frame = *frame.Value(),
+                               .textures = textures,
+                               .textMeasure = frame.Value()->TextMeasure(),
+                               .screenReader = screenReader,
+                               .clock = clock,
+                               .log = log,
+                               .input = input,
+                               .screen = [&window] { return window.PixelSize(); },
+                               .localTime = Platform::Sdl::ReadLocalTime,
+                               .playback = audio.get(),
+                               .clipboard = &clipboard},
+        App::GameClientOptions{.dataRoot = *startup.config.dataPath,
+                               .version = std::string(Version),
+                               .pacing = startup.config.pacing,
+                               .music = startup.config.musicOnOff,
+                               .crtSeed = static_cast<std::uint32_t>(std::time(nullptr)),
+                               .loginSeed = [] { return static_cast<std::uint32_t>(std::random_device{}()); },
+                               .screenshotFolder = {}},
+        std::move(server));
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
     {
         log.Warning("{}", hidden.Error());
     }
-    // 0x4bee60 lee las velocidades del keepalive del personaje propio ([0x7681eb0]: +0x3c, +0x4c y
-    // +0x58) cada vez que lo arma: la sesión las toma del registro antes de cada Poll.
-    const auto pollNetwork = [&online, &world]() -> Core::Expected<void, std::string>
-    {
-        if (!online)
-        {
-            return {};
-        }
-        const Scenes::OwnCharacterRecord& own = world.OwnCharacter();
-        online->session.SetKeepaliveSpeeds(App::KeepaliveSpeeds{
-            .attackSpeed = own.attackSpeed, .magicSpeed = own.magicSpeed, .characterFlags = own.speedAdjustBits});
-        return online->Poll();
-    };
-    // La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
-    const auto takeSceneOrder = [&world]() -> std::optional<Scenes::SceneId>
-    { return std::exchange(world.Runtime().orderedScene, std::nullopt); };
-    Client::Models::OriginalFrameCarry itemFrameCarry;
-    const auto beforeSceneFrame = [&world, &itemFrameCarry, &startup](Core::Duration now)
-    {
-        if (itemFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing)) == 0)
-            return;
-        const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
-        Scenes::UpdateGameItemGlowPulse(world.Runtime().itemRender, worldClock);
-    };
-    Scenes::WinMainLoopState winMainLoop;
-    // Mientras conecta, el original no corre ningún frame: el connect bloquea (Q-C85).
-    const auto connecting = [session]
-    {
-        return session != nullptr && (session->State() == App::SessionState::ConnectingConnectServer ||
-                                      session->State() == App::SessionState::ConnectingGameServer);
-    };
-    // La captura de pantalla de Impr Pant (0x637700 en todas las escenas): sus globales y la lectura de GL.
-    Scenes::Screenshots screenshots;
-    Client::Render::Gl::GlScreenReader screenReader(window.Gl());
-    const auto afterSceneFrame =
-        [&winMainLoop, &clothWorld, &startup, &world, &sceneManager, &screenshots, &connecting](Core::Duration now)
-    {
-        const bool gameScene = sceneManager != nullptr && sceneManager->Current() == Scenes::SceneId::Game;
-        Scenes::FinishTheWinMainLoop(winMainLoop, world, clothWorld.random, now,
-                                     Scenes::OriginalFramePaceOf(startup.config.pacing), gameScene);
-        // Un frame retenido con la captura pedida corta en el paso o el dibujo que siguen (P-C110).
-        screenshots.FinishTheLoop(connecting());
-    };
-    // 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
-    // Mientras conecta, el original no corre ningún paso.
-    const auto afterSceneStep = [&world, &frame, &window, &input, &screenshots,
-                                 &connecting]() -> Core::Expected<void, std::string>
-    {
-        if (connecting())
-        {
-            return {};
-        }
-        if (auto clocks =
-                Scenes::StepTheMessageClocks(world.Runtime(), frame.Value()->TextMeasure(), window.PixelSize());
-            !clocks.HasValue())
-        {
-            return clocks;
-        }
-        return screenshots.StepTheKey(world.Runtime().ui, input);
-    };
-    // 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
-    // GetAsyncKeyState(0x10) de 0x638303, la hora la de GetLocalTime y el archivo va a la carpeta de trabajo, como el
-    // nombre solo del fopen de 0x63b150.
-    const auto screenshotFrame = [&world, &frame, &window, &input, &scenes, session]
-    {
-        return Scenes::ScreenshotFrameContext{.world = world,
-                                              .measure = frame.Value()->TextMeasure(),
-                                              .screen = window.PixelSize(),
-                                              .shiftDown = input.IsDown(Client::Input::Key::Shift),
-                                              .localTime = Platform::Sdl::ReadLocalTime,
-                                              .texts = scenes.data.text ? &*scenes.data.text : nullptr,
-                                              .chosenServer =
-                                                  session != nullptr ? session->ChosenServer() : std::nullopt,
-                                              .folder = {}};
-    };
-    const auto beforeSceneDraw = [&screenshots, &screenshotFrame]() -> Core::Expected<void, std::string>
-    { return screenshots.BeforeTheDraw(screenshotFrame()); };
-    const auto afterSceneDraw = [&screenshots, &screenshotFrame, &screenReader](
-                                    Client::Render::Frame::SceneCanvas& canvas) -> Core::Expected<void, std::string>
-    { return screenshots.AfterTheDraw(screenshotFrame(), canvas, screenReader); };
-    Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep,
-                                 beforeSceneDraw, afterSceneDraw);
-    sceneManager = &manager;
-    // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
-    Scenes::StepTheWinMainLoop(winMainLoop.counters, clothWorld.random);
-    if (!manager.Start(Scenes::FirstScene).HasValue())
+    if (!client.Start().HasValue())
     {
         return EXIT_FAILURE;
     }
-    App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
+    App::GameLoop loop{clock, client.Loop(), startup.config.pacing, LoopMaxFps(startup.config, window, log)};
     TextInputFollower textInput(window, log);
-    // Lo que corta el bucle además de la ventana y el --frames.
-    const auto stop = [&manager, &selection, &world, session]
-    {
-        return world.Runtime().fatalDataMessage.has_value() || manager.Failure().has_value() ||
-               selection.Failure().has_value() || manager.WantsToQuit() || GameServerOrderedTheQuit(session);
-    };
-    const App::FrameStats stats = RunLoop(window, clock, loop, input, startup.commandLine, log, stop,
-                                          [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
+    const App::FrameStats stats = RunLoop(
+        window, clock, loop, input, startup.commandLine, log, [&client] { return client.Exit().has_value(); },
+        [&textInput, &client] { textInput.Follow(client.WantsTextInput()); });
     // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla, el OK o la
     // orden del GameServer.
     textInput.Follow(false);
     PrintFrames(stats);
-    if (world.Runtime().fatalDataMessage)
-    {
-        // Q-C180: primero MessageBox, después WM_DESTROY. La ventana y las capas siguen vivas
-        // hasta que el modal vuelve; también se cierra si SDL no logró mostrarlo.
-        const auto shown = window.ShowErrorMessage(*world.Runtime().fatalDataMessage);
-        if (!shown.HasValue())
-            log.Error("{}", shown.Error());
-        return EXIT_FAILURE;
-    }
-    if (manager.Failure())
-    {
-        // El manager ya registró el diagnóstico de Enter o de aplicación de la sesión.
-        return EXIT_FAILURE;
-    }
-    if (selection.Failure())
-    {
-        log.Error("no se puede construir la selección: {}", *selection.Failure());
-        return EXIT_FAILURE;
-    }
-    if (GameServerOrderedTheQuit(session))
-    {
-        log.Info("se cierra el juego, como ordenó el GameServer");
-    }
-    else if (manager.WantsToQuit())
-    {
-        log.Info("se cierra el juego, como pidió el aviso");
-    }
-    return EXIT_SUCCESS;
+    return ExitCodeOf(client.Exit(), window, log);
 }
 } // namespace
 

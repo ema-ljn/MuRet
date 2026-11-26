@@ -560,6 +560,21 @@ jobs:
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/bin/main --frames 60 --vsync off
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/bin/main --frames 60 --pacing faithful
 
+      # The real composition of the scenes, which no test builds: the data folder of the repo, no host, the loading
+      # scene and the login on Mesa, until --frames. The font is the DejaVu that the GL tests use.
+      - name: Main with the data folder in Xvfb (Linux)
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
+        run: |
+          config="$RUNNER_TEMP/main-with-data.ini"
+          output="$RUNNER_TEMP/main-with-data.txt"
+          printf '[Video]\nFontFile = "%s"\n' "$MU_CLIENT_FONT_FILE" > "$config"
+          status=0
+          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/bin/main \
+            --config "$config" --data "$PWD/Client/assets/Data" --frames 300 > "$output" || status=$?
+          cat "$output"
+          test "$status" -eq 0
+          grep -q '^frames: 300,' "$output"
+
       # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7): el check
       # misc-include-cleaner de clang-tidy 18, con las opciones y el WarningsAsErrors de
       # .clang-tidy, así que un hallazgo corta el job. Solo ese check: los otros de .clang-tidy

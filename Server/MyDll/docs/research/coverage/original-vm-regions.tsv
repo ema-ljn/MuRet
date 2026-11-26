@@ -1,0 +1,10 @@
+region_id	parent_va	anchor_va	feature	edge_attributed_trampolines	evidence
+vm:cad3:1000cad3	0x1000c6a7	0x1000cad3	protocol.c2s	81	docs/vm_spans.tsv
+vm:citywar:10019898	0x10019898	0x10019b45	siege	6	VM_ISLA_10019898.md
+vm:client-f5-f9:1000c6a7	0x1000c6a7	0x1000c7f7	protocol.client_f5_f9	18	docs/vm_spans.tsv; docs/vm_entries.tsv
+vm:d0c14:1002632f	0x1002632f	0x10026363	customdb.shell	12	ORIGINAL_TRAMPOLINE_FEATURE_MAP.tsv; static/asm/0x1002632f.asm
+vm:hidden:f4dc	0x1000f4dc	0x1000f50f	command.hidden	6	ORIGINAL_TRAMPOLINE_FEATURE_MAP.tsv; static/asm/0x1000f4dc.asm
+vm:hidden:f5be	0x1000f5be	0x1000f5f1	command.hidden	14	ORIGINAL_TRAMPOLINE_FEATURE_MAP.tsv; static/asm/0x1000f5be.asm
+vm:hidden:f775	0x1000f775	0x1000f7a8	command.hidden	13	ORIGINAL_TRAMPOLINE_FEATURE_MAP.tsv; static/asm/0x1000f775.asm
+vm:hidden:f91c	0x1000f91c	0x1000f94a	command.hidden	7	ORIGINAL_TRAMPOLINE_FEATURE_MAP.tsv; static/asm/0x1000f91c.asm
+vm:init:10001d14	0x10001d14	0x10002162	config.gameplay	7	docs/vm_spans.tsv

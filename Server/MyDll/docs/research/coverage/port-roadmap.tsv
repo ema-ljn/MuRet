@@ -1,0 +1,7 @@
+order	work_item	original_function_id	depends_on	state	evidence	next_gate
+1	native_boot	mydll!0x00001d14		pending_native_acceptance	01-gameserver-boot.md	Check the same process at 30 seconds, a post-map boot milestone, and no error dialog in the Windows Server 2003 R2 lab.
+2	selection_readiness	mydll!0x00001d14	native_boot	blocked	01-gameserver-boot.md#callback-sites	Check the selection build on the native map-loader path; prove healthy dependencies and listener before connecting a client.
+3	login_and_character_list	mydll!0x0000c6a7	selection_readiness	blocked	01-gameserver-boot.md#callback-sites; 02-observation.md	Validate login and list end to end in the lab; publication and blocked traffic are not acceptance.
+4	mg_dl_creation	mydll!0x0000c6a7	login_and_character_list	blocked	01-gameserver-boot.md#callback-sites	Verify creation of one MG and one DL and confirm persistence after reconnect without logging identities or payload.
+5	gameplay_receive	mydll!0x0000c6a7	mg_dl_creation	deferred	original-vm-regions.tsv#vm:cad3:1000cad3	Specify the next gameplay feature from its wire and host behavior before adding a route.
+6	citywar	mydll!0x00019898	gameplay_receive	deferred	original-vm-regions.tsv#vm:citywar:10019898	Scope and verify observable siege behavior separately; do not port the protection mechanism.

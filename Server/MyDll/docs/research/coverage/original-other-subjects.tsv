@@ -1,0 +1,4 @@
+subject_id	subject_kind	classification	feature_id	evidence_ids
+external:d10-peer:44444	external	external_pending	backend.d10	contracts/INSTALLED_CUSTOM_DB_CENSUS.md#161-169
+0x10060d44	table	irrecoverable	command.move	CONTRACTS.md#663-692
+0x10060ec0	table	irrecoverable	command.erased_3int	CONTRACTS.md#663-692

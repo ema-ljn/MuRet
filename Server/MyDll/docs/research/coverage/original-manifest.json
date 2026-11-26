@@ -1,0 +1,143 @@
+{
+  "archived_asm_inventory_sha256": "f9b93f3db4b5eed86f6109e4eb2036e162c216d66e59ccbed5ccdd74677ec6a2",
+  "counts": {
+    "address_kinds": {
+      "cataloged_fragment": 14,
+      "cataloged_vm_support": 14,
+      "fragment": 2,
+      "jump_site": 388,
+      "label_or_excluded_code": 3,
+      "procedure_candidate": 1685,
+      "undelimited_entry": 360,
+      "vm_dispatch_target": 47,
+      "vm_trampoline": 258
+    },
+    "address_union": 2771,
+    "application_body_modes": {
+      "mixed": 3,
+      "native_vm_entry": 5,
+      "no_vm_boundary_observed": 362,
+      "undetermined": 28
+    },
+    "archived_ghidra": 1737,
+    "archived_ghidra_only": [],
+    "candidate_origins": {
+      "cataloged_application": 398,
+      "cataloged_compiler_support": 3,
+      "cataloged_generated": 67,
+      "cataloged_static_library": 1094,
+      "cataloged_stl_instantiation": 98,
+      "protection_excluded": 25
+    },
+    "changed_bytes_in_common_prefix": 1,
+    "coverage": 2477,
+    "coverage_only": 740,
+    "coverage_only_buckets": {
+      "app": 2,
+      "mfc_crt": 360,
+      "thunk": 365,
+      "vm": 13
+    },
+    "direct_call_targets_outside_coverage": [
+      "0x100367a0",
+      "0x1003680e"
+    ],
+    "file_alignment_original": 4096,
+    "file_size_installed": 729088,
+    "file_size_original": 729088,
+    "generated_catalog_status": {
+      "identificada": 5,
+      "validada": 160
+    },
+    "ghidra_only_vs_coverage": 0,
+    "installed_trampoline_sections": {
+      ".Crack": 255,
+      ".text": 3
+    },
+    "jump_mechanisms": {
+      "iat_jump": 375,
+      "relative_jump": 13
+    },
+    "ledger": 2489,
+    "matching_trampoline_windows": 258,
+    "matching_vm_dispatch_table": true,
+    "original_exports": [
+      [
+        "Init",
+        1,
+        "0x00001d14"
+      ]
+    ],
+    "original_imports": 373,
+    "original_trampoline_sections": {
+      ".Crack": 255,
+      ".text": 3
+    },
+    "procedure_candidates": 1685,
+    "raw_text_bytes": 323584,
+    "rea_externals": 372,
+    "rea_ghidra": 1737,
+    "rea_ghidra_only": [],
+    "region_relations": 9,
+    "section_alignment_original": 4096,
+    "trampoline_attributions": {
+      "static_closure_edge": 164,
+      "static_layout_probable": 79,
+      "static_pending_boundary": 11,
+      "static_pending_non_crack": 4
+    },
+    "verified_asm_bytes_in_text": 294943,
+    "verified_ghidra_instructions": 89480,
+    "vm_dispatch_slots": 256,
+    "vm_dispatch_table_sha256": "a0fd27d7649fb3612a549789691e9d16956baf9adddaf39a2d3d440519d2bd2f",
+    "vm_dispatch_targets": 47
+  },
+  "inputs": {
+    "additional_callback_asm": "97da1441f486a1390c58f8d8bf216a7b684e5f0474dc4c33c61f973f98f3d217",
+    "archived_ghidra": "d7de121db832d61298f6454082d48d5c9df3cb446b5115eee24089d2a593f6a9",
+    "citywar_contract": "8e0f57ae2089ad4b321aa6ee7b6235b4f1639dc84eedaf1092bf56267c53b28a",
+    "coverage": "b50c6203aa42bfd0113e3bdeed8eea31bf8d7ec7e95b84f961221eb85cabfc73",
+    "entry_manifest": "edf5b0ba987159770da0cb23206670ae9d540a42d03a96893a1474f837594726",
+    "generator": "6730e72ddb1bbc5e65be7cedc779711830fd8b75521afb3cd77b1994cf6588ed",
+    "init_continuation_asm": "6f43babd2c03fefb6bf90b10ce0a65278c45ab58b69a55d7fb144795b99b8a25",
+    "installed_dll": "8b39364e6720632b308e48246043668d6a0db0d74f05260763ce8d40919d16e9",
+    "ledger": "61432e832baa379009226c3f69c778f2ca5fbcfcfeb66e76dde173b0fe111dfb",
+    "original_dll": "910966f738797b0508483c12c9619346c8760243df24d6db3d36780b43870fa1",
+    "original_trampoline_attributions": "1f934a923e28d74c194f3a4102654f600334735f20429def111c9070cfb63a93",
+    "original_trampolines": "5a1a5eb2a2a51a93b39c41c6a3eb721209587197853827b4edac438075bdd450",
+    "rea": "0735a71a2beb398456c626bb960c65dc1fc103ca6b3dadf268a9d5bc81c19e5c",
+    "relations": "4c2b8d49e10042e0f12b9077abbea905aa14507aa395f6b512ce64b2a8577aeb",
+    "spans": "88ad1b0809771b28b2edc02496091122de4d1aabd6fa276e20d24d76be799298"
+  },
+  "outputs": {
+    "original-addresses.tsv": "af0f8a915ade96e8cb6de7293a13629ddeb5f44dc67ce400452359b485e297b3",
+    "original-functions.tsv": "502aea6518fb55f24aad64e7958cd2e91fc243a72470e7728c00aec05265203a",
+    "original-other-subjects.tsv": "f531f5099b8c75507a3a7135f89a32737ab6fb03214b4d151481cbaa861b1658",
+    "original-toolchain.tsv": "cadcb516b5ce130f67e8f0d00ce40fb99bada0931163d0b7d8ff8bcc4d74fdde",
+    "original-vm-regions.tsv": "1974c7ee197f14f7cd99d33ff15bd4746b25d87f8cf135afda94a642aa784faa",
+    "original-vm-trampolines.tsv": "dd190e86200bc173d2cf3271c7777f66619ee766c90fc0a2ca6f18935c7fcdf4"
+  },
+  "pefile": "2024.8.26",
+  "rea_evidence_id": "ev_843780da345cd0b6308b734d56b8c2e9c4c61ea497c9717d24d1ab7b1760057d",
+  "rea_profile": {
+    "digest": "00edee77ec5313f1900e3f6977a54898d806b0e656a9d7cad601a1b098ebf51b",
+    "parameters": {
+      "analyzer_preset": "ghidra-default",
+      "architecture": "x86",
+      "available_architectures": [
+        "x86"
+      ],
+      "compiler_spec_id": "auto-default",
+      "import_mode": "ephemeral-read-only",
+      "language_id": "auto-from-header",
+      "loader": "auto-from-header",
+      "target_format": "pe",
+      "target_kind": "executable"
+    },
+    "provider": {
+      "id": "ghidra",
+      "name": "Ghidra",
+      "version": "12.1.4"
+    }
+  }
+}

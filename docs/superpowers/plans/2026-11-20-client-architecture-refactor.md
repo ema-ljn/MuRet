@@ -727,6 +727,8 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 
 ## Epic AR3: state per module
 
+Detailed plan: [`2026-11-26-ar3-state-per-module.md`](2026-11-26-ar3-state-per-module.md).
+
 ### AR3.1 (design): the globals registry and the `GameContext`
 
 - The reference generates `globals.tsv` from the data citations in `trazas.tsv` (the `datos` section, from

@@ -1,6 +1,7 @@
 #include "Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
+#include "Assets/PlayerSkeleton.h"
 #include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
@@ -45,6 +46,7 @@
 // posiciones y UV, y el lote no tiene nada más: uno a uno.
 namespace
 {
+using Client::Assets::MakePlayerSkeleton;
 using Client::Core::PixelSize;
 using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::LoadModelFile;
@@ -55,7 +57,6 @@ using Client::GameLogic::CharacterAppearance;
 using Client::GameLogic::WornItem;
 using Client::Models::AnimationState;
 using Client::Models::IModelLibrary;
-using Client::Models::MakePlayerSkeleton;
 using Client::Models::MakeSkeleton;
 using Client::Models::ObjectTransform;
 using Client::Models::Skeleton;

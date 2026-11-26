@@ -1,5 +1,6 @@
 #include "Scenes/CharacterDrawing.h"
 
+#include "Assets/PlayerSkeleton.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -139,7 +140,7 @@ private:
             return false;
         }
         Model read = std::move(loaded).Value();
-        auto skeleton = model == Client::Data::Models::PlayerSkeletonModel ? Client::Models::MakePlayerSkeleton(read)
+        auto skeleton = model == Client::Data::Models::PlayerSkeletonModel ? Client::Assets::MakePlayerSkeleton(read)
                                                                            : Client::Models::MakeSkeleton(read);
         if (!skeleton.HasValue())
         {

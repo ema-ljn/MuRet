@@ -60,9 +60,4 @@ struct SkeletonError
 // Each key's quaternions, like 0x4f13d0. A parent that is neither −1 nor an earlier bone is an error:
 // NPC\BloodCastle01.bmd has two (Q-C108), and what to do with them belongs to CL9.
 [[nodiscard]] ENGINE_API Core::Expected<Skeleton, SkeletonError> MakeSkeleton(const Data::Models::Model& model);
-
-// MakeSkeleton plus what 0x60dbe0 sets on Player.bmd: each action's speed (Data::Models::PlayerActionSpeed; the 57
-// unwritten ones stay at 0, Q-C87), the four that do not repeat (PlayerActionsWithoutRepeat) and the head bone
-// (PlayerHeadBone).
-[[nodiscard]] ENGINE_API Core::Expected<Skeleton, SkeletonError> MakePlayerSkeleton(const Data::Models::Model& model);
 } // namespace Client::Models

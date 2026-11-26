@@ -49,6 +49,8 @@ engine/Platform/WindowState.cpp	39	engine/Platform	engine/Platform	high	included
 engine/Platform/WindowState.h	44	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 App/WorldEvent.h	153	App	game/Session	medium	the session with the servers
 Assets/ModelIds.h	23	Assets	game/Assets	high	the model slots the fauna uses, each named after the file the loader puts there (AR1.1)
+Assets/PlayerSkeleton.cpp	37	Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
+Assets/PlayerSkeleton.h	14	Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 engine/Audio/ISoundCatalog.h	19	engine/Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
 engine/Audio/Music.cpp	185	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/Music.h	41	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
@@ -121,16 +123,16 @@ engine/Data/Models/Bmd.h	75	engine/Data/Models	engine/Data/Models	high	engine or
 engine/Data/Models/Model.h	105	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelFiles.cpp	106	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelFiles.h	68	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/ModelLoadCalls.cpp	51	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/ModelLoadCalls.h	18	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/ModelTextureCalls.cpp	240	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/ModelTextureCalls.h	51	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
+engine/Data/Models/ModelLoadCalls.cpp	51	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+engine/Data/Models/ModelLoadCalls.h	18	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+engine/Data/Models/ModelTextureCalls.cpp	240	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+engine/Data/Models/ModelTextureCalls.h	51	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 engine/Data/Models/ModelTextures.cpp	114	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelTextures.h	42	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/PlayerActions.cpp	83	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/PlayerActions.h	35	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/PlayerModels.cpp	610	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/PlayerModels.h	72	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
+engine/Data/Models/PlayerActions.cpp	83	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+engine/Data/Models/PlayerActions.h	35	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+engine/Data/Models/PlayerModels.cpp	610	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+engine/Data/Models/PlayerModels.h	72	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/GateRecord.cpp	24	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/GateRecord.h	29	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/GateTable.cpp	19	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
@@ -431,8 +433,8 @@ engine/Render/ModelFog.h	23	engine/Render	engine/Render	high	engine or protocol 
 engine/Render/ModelVertex.h	23	engine/Render	engine/Render	high	engine or protocol layer, no game state
 engine/Models/Animation.cpp	143	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Animation.h	87	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
-engine/Models/Attachment.cpp	43	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
-engine/Models/Attachment.h	73	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
+engine/Models/Attachment.cpp	43	engine/Models	game/Actors	high	which Player.bmd bone holds what, and the pet and cape ids, are MU's content (item vocabulary)
+engine/Models/Attachment.h	73	engine/Models	game/Actors	high	which Player.bmd bone holds what, and the pet and cape ids, are MU's content (item vocabulary)
 engine/Models/Cloth.cpp	870	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Cloth.h	292	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Math/HalfLifeMath.cpp	175	engine/Math	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
@@ -464,8 +466,8 @@ engine/Math/RoundedTransforms.cpp	39	engine/Math	engine/Math	high	glm's rotation
 engine/Math/RoundedTransforms.h	13	engine/Math	engine/Math	high	glm's rotation and perspective with the rounded sine, cosine and tangent; used by Render and Scenes
 engine/Models/Shine.cpp	95	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Shine.h	36	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
-engine/Models/Skeleton.cpp	98	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
-engine/Models/Skeleton.h	69	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
+engine/Models/Skeleton.cpp	72	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
+engine/Models/Skeleton.h	63	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Skinning.cpp	164	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Skinning.h	63	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Render/OriginalQuad.cpp	29	engine/Render	engine/Render	high	engine or protocol layer, no game state

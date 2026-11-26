@@ -2,47 +2,68 @@
 
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/CharacterName.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <optional>
+#include <span>
 
 namespace Client::Protocol::Party
 {
 namespace
 {
-// Los dos bytes de un miembro del 42 que 0x4d67e0 no copia (+0xe y +0xf).
-constexpr std::size_t MemberGap = 2;
+using RequesterKey = Network::Field<std::uint16_t, 3, std::endian::big>;
+constexpr Network::PacketLayout PartyRequestLayout{
+    {Network::PacketType::C1, PartyRequestOpcode, std::nullopt}, RequesterKey::End, 0x4e3f41};
 
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
-{
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-}
+using RequestResult = Network::Field<std::uint8_t, 3>;
+constexpr Network::PacketLayout PartyRequestResultLayout{
+    {Network::PacketType::C1, PartyRequestResultOpcode, std::nullopt}, RequestResult::End, 0x4e3f6f};
 
-std::optional<PartyMember> ReadMember(Core::ByteReader& reader)
+using ListResult = Network::Field<std::uint8_t, 3>;
+using MemberCount = Network::Field<std::uint8_t, 4>;
+constexpr Network::PacketLayout PartyListLayout{
+    {Network::PacketType::C1, PartyListOpcode, std::nullopt}, MemberCount::End, 0x4d67e0};
+constexpr std::size_t NumberOffset = 0xa;
+constexpr std::size_t MapOffset = 0xb;
+constexpr std::size_t XOffset = 0xc;
+constexpr std::size_t YOffset = 0xd;
+// 0x4d67e0 does not copy +0xe and +0xf.
+constexpr std::size_t LifeOffset = 0x10;
+constexpr std::size_t LivesSize = 8;
+
+// C1 03 43.
+constexpr std::size_t PartyLeftSize = 3;
+constexpr Network::PacketLayout PartyLeftLayout{
+    {Network::PacketType::C1, PartyLeaveOpcode, std::nullopt}, PartyLeftSize, 0x4e409b};
+
+using LifeCount = Network::Field<std::uint8_t, 3>;
+constexpr Network::PacketLayout PartyLifeLayout{
+    {Network::PacketType::C1, PartyLifeOpcode, std::nullopt}, LifeCount::End, 0x4e4174};
+
+PartyMember ReadMember(std::span<const std::byte, MemberWireSize> bytes)
 {
-    const auto name = reader.ReadBytes(FrontEnd::NameSize);
-    const auto number = reader.ReadU8();
-    const auto map = reader.ReadU8();
-    const auto x = reader.ReadU8();
-    const auto y = reader.ReadU8();
-    const auto gap = reader.ReadBytes(MemberGap);
-    const auto life = reader.ReadU32Le();
-    const auto maxLife = reader.ReadU32Le();
-    if (!name || !number || !map || !x || !y || !gap || !life || !maxLife)
-        return std::nullopt;
-    PartyMember member{.number = *number, .map = *map, .x = *x, .y = *y, .life = *life, .maxLife = *maxLife};
-    std::ranges::copy(*name, member.name.begin());
+    PartyMember member{.number = std::to_integer<std::uint8_t>(bytes[NumberOffset]),
+                       .map = std::to_integer<std::uint8_t>(bytes[MapOffset]),
+                       .x = std::to_integer<std::uint8_t>(bytes[XOffset]),
+                       .y = std::to_integer<std::uint8_t>(bytes[YOffset])};
+    std::ranges::copy(bytes.first<FrontEnd::NameSize>(), member.name.begin());
+    Core::ByteReader lives(bytes.subspan<LifeOffset, LivesSize>());
+    member.life = *lives.ReadU32Le();
+    member.maxLife = *lives.ReadU32Le();
     return member;
 }
 } // namespace
@@ -54,73 +75,46 @@ Outgoing WritePartyListRequest()
 
 Core::Expected<PartyRequest, Network::ProtocolError> ReadPartyRequest(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PartyRequestOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto key = fields.Value().ReadU16Be();
-    if (!key)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return PartyRequest{*key};
+    return Network::ReadPacket(packet, PartyRequestLayout,
+                               [](Network::LayoutReader& reader) { return PartyRequest{reader.Read<RequesterKey>()}; });
 }
 
 Core::Expected<PartyRequestResult, Network::ProtocolError> ReadPartyRequestResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PartyRequestResultOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto result = fields.Value().ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return PartyRequestResult{*result};
+    return Network::ReadPacket(packet, PartyRequestResultLayout, [](Network::LayoutReader& reader)
+                               { return PartyRequestResult{reader.Read<RequestResult>()}; });
 }
 
 Core::Expected<PartyList, Network::ProtocolError> ReadPartyList(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PartyListOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    const auto count = reader.ReadU8();
-    if (!result || !count)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    PartyList list{.result = *result, .members = {}};
-    list.members.reserve(*count);
-    for (std::uint8_t at = 0; at < *count; ++at)
-    {
-        const auto member = ReadMember(reader);
-        if (!member)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        list.members.push_back(*member);
-    }
-    return list;
+    return Network::ReadPacket(
+        packet, PartyListLayout,
+        [](Network::LayoutReader& reader)
+        {
+            return PartyList{.result = reader.Read<ListResult>(),
+                             .members = Network::ReadList<MemberWireSize>(reader, MemberCount::End,
+                                                                          reader.Read<MemberCount>(), ReadMember)};
+        });
 }
 
 Core::Expected<PartyLeft, Network::ProtocolError> ReadPartyLeft(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PartyLeaveOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    return PartyLeft{};
+    return Network::ReadPacket(packet, PartyLeftLayout, [](Network::LayoutReader&) { return PartyLeft{}; });
 }
 
 Core::Expected<PartyLife, Network::ProtocolError> ReadPartyLife(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PartyLifeOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto count = reader.ReadU8();
-    if (!count)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto bytes = reader.ReadBytes(*count);
-    if (!bytes)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    PartyLife life{};
-    life.entries.reserve(bytes->size());
-    std::ranges::transform(*bytes, std::back_inserter(life.entries),
-                           [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
-    return life;
+    return Network::ReadPacket(packet, PartyLifeLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   PartyLife life{};
+                                   const std::span<const std::byte> bytes =
+                                       reader.Bytes(LifeCount::End, reader.Read<LifeCount>());
+                                   life.entries.reserve(bytes.size());
+                                   std::ranges::transform(bytes, std::back_inserter(life.entries),
+                                                          [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
+                                   return life;
+                               });
 }
 
 Outgoing WritePartyRequest(std::uint16_t key)

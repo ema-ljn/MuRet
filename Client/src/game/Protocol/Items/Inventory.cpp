@@ -1,56 +1,71 @@
 #include "Protocol/Items/Inventory.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
-#include <algorithm>
+#include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <span>
 
 namespace Client::Protocol::Items
 {
 namespace
 {
-constexpr Network::PacketKind EquipmentChangeKind{Network::PacketType::C1, CharacterOpcode,
-                                                  Character::EquipmentChangeSubcode};
-constexpr Network::PacketKind ItemPutKind{Network::PacketType::C1, CharacterOpcode, Character::ItemPutSubcode};
-// 0x4e316e: pkt[6] no lo lee nadie.
-constexpr std::size_t EquipmentChangeGap = 1;
+using MoveResult = Network::Field<std::uint8_t, 3>;
+using MoveSlot = Network::Field<std::uint8_t, 4>;
+using MoveItem = Network::Field<ItemData, 5>;
+constexpr Network::PacketLayout ItemMoveResultLayout{
+    {Network::PacketType::C1, ItemMoveOpcode, std::nullopt}, MoveItem::End, 0x4d1400};
 
-// Un C1 de `opcode`: el lector desde pkt[3].
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
-{
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-}
+using DeleteSlot = Network::Field<std::uint8_t, 3>;
+using DeleteEndsTheWait = Network::Field<std::uint8_t, 4>;
+constexpr Network::PacketLayout ItemDeleteLayout{
+    {Network::PacketType::C1, ItemDeleteOpcode, std::nullopt}, DeleteEndsTheWait::End, 0x4c5ec0};
 
-std::optional<ItemData> ReadItem(Core::ByteReader& reader)
-{
-    const auto bytes = reader.ReadBytes(ItemDataSize);
-    if (!bytes)
-        return std::nullopt;
-    ItemData item{};
-    std::ranges::copy(*bytes, item.begin());
-    return item;
-}
+using RefillPlace = Network::Field<std::uint8_t, 3>;
+using Life = Network::Field<std::uint16_t, 4, std::endian::big>;
+constexpr Network::PacketLayout LifeRefillLayout{
+    {Network::PacketType::C1, LifeOpcode, std::nullopt}, RefillPlace::End, 0x4d3510};
 
-// 0x4d36eb..0x4d3719 y 0x4d3a0c..0x4d3a5d: los lugares que traen los valores en vez de ser una casilla.
+using Mana = Network::Field<std::uint16_t, 4, std::endian::big>;
+using Bp = Network::Field<std::uint16_t, 6, std::endian::big>;
+constexpr Network::PacketLayout ManaRefillLayout{
+    {Network::PacketType::C1, ManaOpcode, std::nullopt}, Mana::End, 0x4d3820};
+
+using DurabilitySlot = Network::Field<std::uint8_t, 3>;
+using DurabilityValue = Network::Field<std::uint8_t, 4>;
+using DurabilityEndsTheWait = Network::Field<std::uint8_t, 5>;
+constexpr Network::PacketLayout DurabilityLayout{
+    {Network::PacketType::C1, DurabilityOpcode, std::nullopt}, DurabilityEndsTheWait::End, 0x4d3cc0};
+
+// 0x4e316e: nobody reads pkt[6].
+using ChangeKey = Network::Field<std::uint16_t, 4, std::endian::big>;
+using ChangeEquipment = Network::Field<std::array<std::byte, EquipmentChangeSize>, 7>;
+constexpr Network::PacketLayout EquipmentChangeLayout{
+    {Network::PacketType::C1, CharacterOpcode, Character::EquipmentChangeSubcode}, ChangeEquipment::End, 0x4e316e};
+
+using PutSlot = Network::Field<std::uint8_t, 4>;
+using PutItem = Network::Field<ItemData, 5>;
+constexpr Network::PacketLayout ItemPutLayout{
+    {Network::PacketType::C1, CharacterOpcode, Character::ItemPutSubcode}, PutItem::End, 0x4e31a3};
+
+// 0x4d36eb..0x4d3719 and 0x4d3a0c..0x4d3a5d: the places that carry the values instead of naming a slot.
 bool CarriesTheValues(std::uint8_t place)
 {
     return place == MaximumPlace || place == CurrentPlace;
 }
 } // namespace
 
-// 0x449d80, y en línea 0x5ca46c.. y 0x5bf294..: el tipo, el opcode y doce bytes, con el XOR32 desde pkt[3].
+// 0x449d80, and inline 0x5ca46c.. and 0x5bf294..: the kind, the opcode and twelve bytes, with the XOR32 from pkt[3].
 Outgoing WriteItemMove(const ItemMove& move)
 {
     return EncryptedC1(Network::PacketWriter::C1(ItemMoveOpcode)
@@ -69,108 +84,60 @@ Outgoing WriteClearItemMoveReport()
 
 Core::Expected<ItemMoveResult, Network::ProtocolError> ReadItemMoveResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ItemMoveOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    const auto slot = reader.ReadU8();
-    const auto item = ReadItem(reader);
-    if (!result || !slot || !item)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ItemMoveResult{*result, *slot, *item};
+    return Network::ReadPacket(
+        packet, ItemMoveResultLayout, [](Network::LayoutReader& reader)
+        { return ItemMoveResult{reader.Read<MoveResult>(), reader.Read<MoveSlot>(), reader.Read<MoveItem>()}; });
 }
 
 Core::Expected<ItemDelete, Network::ProtocolError> ReadItemDelete(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ItemDeleteOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto slot = reader.ReadU8();
-    const auto ends = reader.ReadU8();
-    if (!slot || !ends)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ItemDelete{*slot, *ends};
+    return Network::ReadPacket(packet, ItemDeleteLayout, [](Network::LayoutReader& reader)
+                               { return ItemDelete{reader.Read<DeleteSlot>(), reader.Read<DeleteEndsTheWait>()}; });
 }
 
 Core::Expected<LifeRefill, Network::ProtocolError> ReadLifeRefill(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, LifeOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto place = reader.ReadU8();
-    if (!place)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    if (!CarriesTheValues(*place))
-        return LifeRefill{.place = *place, .life = 0};
-    const auto life = reader.ReadU16Be();
-    if (!life)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return LifeRefill{.place = *place, .life = *life};
+    return Network::ReadPacket(
+        packet, LifeRefillLayout,
+        [](Network::LayoutReader& reader)
+        {
+            const std::uint8_t place = reader.Read<RefillPlace>();
+            return LifeRefill{.place = place, .life = CarriesTheValues(place) ? reader.Read<Life>() : std::uint16_t{0}};
+        });
 }
 
 Core::Expected<ManaRefill, Network::ProtocolError> ReadManaRefill(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ManaOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto place = reader.ReadU8();
-    const auto mana = reader.ReadU16Be();
-    if (!place || !mana)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    if (!CarriesTheValues(*place))
-        return ManaRefill{.place = *place, .mana = *mana, .bp = 0};
-    const auto bp = reader.ReadU16Be();
-    if (!bp)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ManaRefill{.place = *place, .mana = *mana, .bp = *bp};
+    return Network::ReadPacket(
+        packet, ManaRefillLayout,
+        [](Network::LayoutReader& reader)
+        {
+            const std::uint8_t place = reader.Read<RefillPlace>();
+            const std::uint16_t mana = reader.Read<Mana>();
+            return ManaRefill{
+                .place = place, .mana = mana, .bp = CarriesTheValues(place) ? reader.Read<Bp>() : std::uint16_t{0}};
+        });
 }
 
 Core::Expected<Durability, Network::ProtocolError> ReadDurability(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, DurabilityOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto slot = reader.ReadU8();
-    const auto durability = reader.ReadU8();
-    const auto ends = reader.ReadU8();
-    if (!slot || !durability || !ends)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Durability{*slot, *durability, *ends};
+    return Network::ReadPacket(packet, DurabilityLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return Durability{reader.Read<DurabilitySlot>(), reader.Read<DurabilityValue>(),
+                                                     reader.Read<DurabilityEndsTheWait>()};
+                               });
 }
 
 Core::Expected<EquipmentChange, Network::ProtocolError> ReadEquipmentChange(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, EquipmentChangeKind);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto high = reader.ReadU8();
-    const auto low = reader.ReadU8();
-    const auto gap = reader.ReadBytes(EquipmentChangeGap);
-    const auto equipment = reader.ReadBytes(EquipmentChangeSize);
-    if (!high || !low || !gap || !equipment)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    EquipmentChange change{};
-    change.key = static_cast<std::uint16_t>((*high << 8) | *low);
-    std::ranges::copy(*equipment, change.equipment.begin());
-    return change;
+    return Network::ReadPacket(packet, EquipmentChangeLayout, [](Network::LayoutReader& reader)
+                               { return EquipmentChange{reader.Read<ChangeKey>(), reader.Read<ChangeEquipment>()}; });
 }
 
 Core::Expected<ItemPut, Network::ProtocolError> ReadItemPut(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, ItemPutKind);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto slot = reader.ReadU8();
-    const auto item = ReadItem(reader);
-    if (!slot || !item)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ItemPut{*slot, *item};
+    return Network::ReadPacket(packet, ItemPutLayout, [](Network::LayoutReader& reader)
+                               { return ItemPut{reader.Read<PutSlot>(), reader.Read<PutItem>()}; });
 }
 } // namespace Client::Protocol::Items

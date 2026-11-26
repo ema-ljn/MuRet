@@ -2,20 +2,19 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
-#include "Network/ProtocolError.h"
 
 #include <cstdint>
 
-// 04 § El duelo: del AA al AD en los dos sentidos (CL9 hito 7). El GameServer 0.97 no los tiene (08 P-C200): el
-// oráculo es el ASM del cliente. Los lectores son los campos que leen 0x4dac90 (AA) y los casos del dispatcher
-// 0x4e2b10 (AB 0x4e4d10, AC 0x4e4d75, AD 0x4e4dd1); los escritores, lo que arman 0x406050 (AA y AB), 0x56c440 (AA y AB)
-// y 0x5ebca0 (AC).
+// The duel (04, "El duelo"): the AA to the AD both ways. The GameServer 0.97 does not have them (08 P-C200): the oracle
+// is the client's ASM. The readers are the fields 0x4dac90 (AA) and the dispatcher 0x4e2b10's cases (AB 0x4e4d10, AC
+// 0x4e4d75, AD 0x4e4dd1) read; the writers, what 0x406050 (AA and AB), 0x56c440 (AA and AB) and 0x5ebca0 (AC) build.
 namespace Client::Protocol::Social
 {
-// El AA del GS (0x4dac90): C1 10 AA, el resultado en pkt[3] (distinto de 0, empezó), la clave del rival en pkt[4..5]
-// (big-endian) y su nombre en pkt[6..15]. Con 0 solo lee el nombre.
+// The GS's AA (0x4dac90): C1 10 AA, the result at pkt[3] (other than 0, it started), the rival's key at pkt[4..5]
+// (big-endian) and their name at pkt[6..15]. With 0 it only reads the name.
 struct DuelStart
 {
     std::uint8_t result = 0;
@@ -25,7 +24,7 @@ struct DuelStart
 
 [[nodiscard]] Core::Expected<DuelStart, Network::ProtocolError> ReadDuelStart(const Network::Packet& packet);
 
-// El AB del GS (0x4e4d10), el fin: C1 0F AB, la clave en pkt[3..4] (big-endian) y el nombre en pkt[5..14].
+// The GS's AB (0x4e4d10), the end: C1 0F AB, the key at pkt[3..4] (big-endian) and the name at pkt[5..14].
 struct DuelEnd
 {
     std::uint16_t key = 0;
@@ -34,7 +33,7 @@ struct DuelEnd
 
 [[nodiscard]] Core::Expected<DuelEnd, Network::ProtocolError> ReadDuelEnd(const Network::Packet& packet);
 
-// El AC del GS (0x4e4d75), el pedido de otro: los mismos campos que el AB.
+// The GS's AC (0x4e4d75), another's request: the same fields as the AB.
 struct DuelRequest
 {
     std::uint16_t key = 0;
@@ -43,7 +42,8 @@ struct DuelRequest
 
 [[nodiscard]] Core::Expected<DuelRequest, Network::ProtocolError> ReadDuelRequest(const Network::Packet& packet);
 
-// El AD (0x4e4dd1): C1 09 AD, dos claves (pkt[3..4] y pkt[5..6], big-endian) y sus dos puntos (pkt[7] y pkt[8]).
+// The AD (0x4e4dd1): C1 09 AD, two keys (pkt[3..4] and pkt[5..6], big-endian) and their two scores (pkt[7] and
+// pkt[8]).
 struct DuelScore
 {
     std::uint16_t firstKey = 0;
@@ -54,14 +54,14 @@ struct DuelScore
 
 [[nodiscard]] Core::Expected<DuelScore, Network::ProtocolError> ReadDuelScore(const Network::Packet& packet);
 
-// El AA del cliente (0x406050 desde 0x4079e3; /duelstart en 0x56c440): C1 0F AA, la clave del otro en big-endian y su
-// nombre (+0x1d9, 10 bytes), con el XOR32 y en C3.
+// The client's AA (0x406050 from 0x4079e3; /duelstart at 0x56c440): C1 0F AA, the other's key big-endian and their
+// name (+0x1d9, 10 bytes), with the XOR32 and as a C3.
 [[nodiscard]] Outgoing WriteDuelStart(std::uint16_t key, const FrontEnd::NameBytes& name);
 
-// El AB del cliente (0x406050 desde 0x408141; /duelend en 0x56c440): C1 03 AB, en C3.
+// The client's AB (0x406050 from 0x408141; /duelend at 0x56c440): C1 03 AB, as a C3.
 [[nodiscard]] Outgoing WriteDuelEnd();
 
-// El AC del cliente (0x5ebca0: sí 0x5ebd3f, no 0x5ec55d): C1 10 AC, la respuesta (1 sí, 0 no), la clave de 0x78abadc
-// en big-endian y el nombre de 0x78abae0, con el XOR32 y en C3.
+// The client's AC (0x5ebca0: yes 0x5ebd3f, no 0x5ec55d): C1 10 AC, the answer (1 yes, 0 no), 0x78abadc's key
+// big-endian and 0x78abae0's name, with the XOR32 and as a C3.
 [[nodiscard]] Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const FrontEnd::NameBytes& name);
 } // namespace Client::Protocol::Social

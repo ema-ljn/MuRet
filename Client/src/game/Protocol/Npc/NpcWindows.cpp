@@ -1,12 +1,15 @@
 #include "Protocol/Npc/NpcWindows.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -18,36 +21,37 @@ namespace Client::Protocol::Npc
 {
 namespace
 {
-// Los handlers leen el paquete por su posición, como el original: pkt[3] es el primer campo de un C1.
-constexpr std::size_t FirstField = 3;
-// 0x4c5f60: la grilla en pkt[4], la cuenta en pkt[5] y las entradas de 8 bytes (el lugar y el ítem) desde pkt[6].
-constexpr std::size_t ListGridField = 4;
-// 0x4d1e30..0x4d24fb: el byte que cierra el aviso, el opcode que no llegó cifrado.
+// pkt[3]: the first field of a C1, which the handlers read by its place, as the original does.
+using Code = Network::Field<std::uint8_t, 3>;
+// 0x4d1e30..0x4d24fb: the byte that closes the report, the opcode that did not arrive encrypted.
 constexpr std::uint8_t ClearTalkHead = Network::ByteOf(TalkOpcode);
+constexpr std::size_t RatesAt = 4;
+// 0x4d25bc: pkt[4] decides between closing with the 87 and with the 31.
+constexpr std::uint8_t SeniorReply = 12;
+// 0x4c5f60: the grid at pkt[4], the count at pkt[5] and the 8-byte entries (the place and the item) from pkt[6].
+using ListGrid = Network::Field<std::uint8_t, 4>;
+using ListCount = Network::Field<std::uint8_t, 5>;
+constexpr std::size_t ListedItemSize = 1 + ItemDataSize;
+using ItemAfterCode = Network::Field<ItemData, 4>;
+// pkt[4..7], the int after the result's byte (Money at +4 of PMSG_SELLRESULT).
+using Money = Network::Field<std::uint32_t, 4>;
+using InventoryMoney = Network::Field<std::uint32_t, 8>;
 
-// Un paquete de `opcode`, sin mirar si es C1 o C2: el lector desde `field`.
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode,
-                                                                  std::size_t field = FirstField)
+// A packet of `opcode`, whether a C1 or a C2: the handlers read its fields at fixed places.
+Network::PacketLayout LayoutOf(const Network::Packet& packet, Network::Opcode opcode, std::size_t minimumSize,
+                               std::uint32_t address)
 {
-    if (packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    const std::span<const std::byte> bytes = packet.Bytes();
-    if (bytes.size() < field)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Core::ByteReader(bytes.subspan(field));
+    return {{packet.Type(), opcode, std::nullopt}, minimumSize, address};
 }
 
-std::optional<ItemData> ReadItem(Core::ByteReader& reader)
+ListedItem ReadListedItem(std::span<const std::byte, ListedItemSize> bytes)
 {
-    const auto bytes = reader.ReadBytes(ItemDataSize);
-    if (!bytes)
-        return std::nullopt;
-    ItemData item{};
-    std::ranges::copy(*bytes, item.begin());
-    return item;
+    ListedItem listed{.slot = std::to_integer<std::uint8_t>(bytes[0])};
+    std::ranges::copy(bytes.subspan<1, ItemDataSize>(), listed.item.begin());
+    return listed;
 }
 
-// Un C1 de `opcode` sin campos, en claro.
+// A C1 of `opcode` with no fields, in the clear.
 Outgoing EmptyClearC1(Network::Opcode opcode)
 {
     return ClearC1(Network::PacketWriter::C1(opcode));
@@ -56,25 +60,21 @@ Outgoing EmptyClearC1(Network::Opcode opcode)
 
 Core::Expected<TalkResult, Network::ProtocolError> ReadTalkResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, TalkOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    TalkResult talk{.result = *result};
-    for (std::uint8_t& rate : talk.rates)
+    Network::ProtocolResult<Network::LayoutReader> opened =
+        Network::LayoutReader::Open(packet, LayoutOf(packet, TalkOpcode, Code::End, 0x4d1e00));
+    if (!opened.HasValue())
     {
-        const auto value = reader.ReadU8();
-        if (!value)
-            break;
-        rate = *value;
-        ++talk.ratesInPacket;
+        return Core::Unexpected(opened.Error());
     }
-    constexpr std::uint8_t SeniorReply = 12; // 0x4d25bc: pkt4 decide el cierre87 frente a31.
+    Network::LayoutReader& reader = opened.Value();
+    TalkResult talk{.result = reader.Read<Code>()};
+    talk.ratesInPacket = std::min(ChaosRateCount, reader.Size() - RatesAt);
+    std::ranges::transform(reader.Bytes(RatesAt, talk.ratesInPacket), talk.rates.begin(),
+                           [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
     if (talk.result == SeniorReply && talk.ratesInPacket == 0)
+    {
         return Core::Unexpected(Network::ProtocolError::TooShort);
+    }
     return talk;
 }
 
@@ -85,126 +85,98 @@ Outgoing WriteClearTalkReport()
 
 Core::Expected<ItemList, Network::ProtocolError> ReadItemList(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, NpcItemListOpcode, ListGridField);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto grid = reader.ReadU8();
-    const auto count = reader.ReadU8();
-    if (!grid || !count)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    ItemList list{.grid = *grid, .items = {}};
-    list.items.reserve(*count);
-    for (std::uint8_t entry = 0; entry < *count; ++entry)
-    {
-        const auto slot = reader.ReadU8();
-        const auto item = ReadItem(reader);
-        if (!slot || !item)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        list.items.push_back(ListedItem{.slot = *slot, .item = *item});
-    }
-    return list;
+    return Network::ReadPacket(packet, LayoutOf(packet, NpcItemListOpcode, ListCount::End, 0x4c5f60),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return ItemList{.grid = reader.Read<ListGrid>(),
+                                                   .items = Network::ReadList<ListedItemSize>(reader, ListCount::End,
+                                                                                              reader.Read<ListCount>(),
+                                                                                              ReadListedItem)};
+                               });
 }
 
 Core::Expected<BuyResult, Network::ProtocolError> ReadBuyResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, BuyOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto slot = reader.ReadU8();
-    if (!slot)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    if (*slot == BuyRejected)
-        return BuyResult{.slot = *slot, .item = {}};
-    const auto item = ReadItem(reader);
-    if (!item)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return BuyResult{.slot = *slot, .item = *item};
+    return Network::ReadPacket(packet, LayoutOf(packet, BuyOpcode, Code::End, 0x4e3c33),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   BuyResult bought{.slot = reader.Read<Code>()};
+                                   if (bought.slot != BuyRejected)
+                                   {
+                                       bought.item = reader.Read<ItemAfterCode>();
+                                   }
+                                   return bought;
+                               });
 }
 
 Core::Expected<SellResult, Network::ProtocolError> ReadSellResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, SellOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    if (*result == 0)
-        return SellResult{.result = 0, .money = 0};
-    // pkt[4..7], el int que sigue al byte del resultado (Money en +4 del PMSG_SELLRESULT).
-    const auto money = reader.ReadU32Le();
-    if (!money)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return SellResult{.result = *result, .money = *money};
+    return Network::ReadPacket(packet, LayoutOf(packet, SellOpcode, Code::End, 0x4e3c8a),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   SellResult sold{.result = reader.Read<Code>()};
+                                   if (sold.result != 0)
+                                   {
+                                       sold.money = reader.Read<Money>();
+                                   }
+                                   return sold;
+                               });
 }
 
 Core::Expected<RepairResult, Network::ProtocolError> ReadRepairResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, RepairOpcode, FirstField + 1);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto money = fields.Value().ReadU32Le();
-    if (!money)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return RepairResult{.money = *money};
+    return Network::ReadPacket(packet, LayoutOf(packet, RepairOpcode, Money::End, 0x4e3cc1),
+                               [](Network::LayoutReader& reader)
+                               { return RepairResult{.money = reader.Read<Money>()}; });
 }
 
 Core::Expected<WarehouseMoney, Network::ProtocolError> ReadWarehouseMoney(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, WarehouseMoneyOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    if (*result == 0)
-        return WarehouseMoney{};
-    const auto warehouse = reader.ReadU32Le();
-    const auto inventory = reader.ReadU32Le();
-    if (!warehouse || !inventory)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return WarehouseMoney{.result = *result, .warehouseMoney = *warehouse, .inventoryMoney = *inventory};
+    return Network::ReadPacket(packet, LayoutOf(packet, WarehouseMoneyOpcode, Code::End, 0x4e4692),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   const std::uint8_t result = reader.Read<Code>();
+                                   if (result == 0)
+                                   {
+                                       return WarehouseMoney{};
+                                   }
+                                   return WarehouseMoney{.result = result,
+                                                         .warehouseMoney = reader.Read<Money>(),
+                                                         .inventoryMoney = reader.Read<InventoryMoney>()};
+                               });
 }
 
+// Reads no field: only the opcode, 0x82 or 0x87.
 Core::Expected<NpcWindowClosed, Network::ProtocolError> ReadNpcWindowClosed(const Network::Packet& packet)
 {
     const auto opcode = packet.Opcode();
     if (opcode != WarehouseCloseOpcode && opcode != ChaosBoxCloseOpcode)
+    {
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
+    }
     return NpcWindowClosed{.opcode = *opcode};
 }
 
 Core::Expected<WarehouseState, Network::ProtocolError> ReadWarehouseState(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, WarehouseStateOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto state = fields.Value().ReadU8();
-    if (!state)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return WarehouseState{.state = *state};
+    return Network::ReadPacket(packet, LayoutOf(packet, WarehouseStateOpcode, Code::End, 0x4e46df),
+                               [](Network::LayoutReader& reader)
+                               { return WarehouseState{.state = reader.Read<Code>()}; });
 }
 
+// 0x4da2ff and 0x4da378: only the 1 and the 100 read the item from pkt[4].
 Core::Expected<ChaosMixResult, Network::ProtocolError> ReadChaosMixResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ChaosMixOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    // 0x4da2ff y 0x4da378: solo el 1 y el 100 leen el ítem desde pkt[4].
-    if (*result != ChaosMixSucceeded && *result != TrainerMixResult)
-        return ChaosMixResult{.result = *result, .item = {}};
-    const auto item = ReadItem(reader);
-    if (!item)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ChaosMixResult{.result = *result, .item = *item};
+    return Network::ReadPacket(packet, LayoutOf(packet, ChaosMixOpcode, Code::End, 0x4da280),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   ChaosMixResult mixed{.result = reader.Read<Code>()};
+                                   if (mixed.result == ChaosMixSucceeded || mixed.result == TrainerMixResult)
+                                   {
+                                       mixed.item = reader.Read<ItemAfterCode>();
+                                   }
+                                   return mixed;
+                               });
 }
 
 Outgoing WriteBuy(std::uint8_t slot)

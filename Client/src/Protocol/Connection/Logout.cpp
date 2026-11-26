@@ -1,22 +1,28 @@
 #include "Protocol/Connection/Logout.h"
 
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketCode.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
-#include "Network/ProtocolError.h"
 
 #include <cstdint>
-#include <optional>
 
 namespace Client::Protocol::Connection
 {
 namespace
 {
-// La respuesta de la salida llega en un C1, ya descifrada.
-constexpr Network::PacketKind LogoutResultKind{Network::PacketType::C1, JoinOpcode, LogoutSubcode};
+using LogoutResult = Network::Field<std::uint8_t, 4>;
+// It arrives as a C1, already decrypted.
+constexpr Network::PacketLayout LogoutResultLayout{
+    {Network::PacketType::C1, Network::Opcode{JoinOpcode}, Network::Subcode{LogoutSubcode}},
+    LogoutResult::End,
+    0x4c2710};
 // 0x4c30ce y 0x4c31b9: lo que manda el F1 02 con 1 que llega sin cifrar, el 0 y el F1 de su paquete.
 constexpr std::uint8_t ClearLogoutFirst = 0x00;
 constexpr std::uint8_t ClearLogoutHead = JoinOpcode;
@@ -24,17 +30,8 @@ constexpr std::uint8_t ClearLogoutHead = JoinOpcode;
 
 Core::Expected<std::uint8_t, Network::ProtocolError> ReadLogoutResult(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, LogoutResultKind);
-    if (!fields.HasValue())
-    {
-        return Core::Unexpected(fields.Error());
-    }
-    const std::optional<std::uint8_t> result = fields.Value().ReadU8();
-    if (!result)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    return *result;
+    return Network::ReadPacket(packet, LogoutResultLayout,
+                               [](Network::LayoutReader& reader) { return reader.Read<LogoutResult>(); });
 }
 
 Outgoing WriteLogoutRequest(std::uint8_t kind)

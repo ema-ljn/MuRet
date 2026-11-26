@@ -325,20 +325,20 @@ Protocol/Chat/ChatSend.cpp	42	Protocol	game/Protocol	high	engine or protocol lay
 Protocol/Chat/ChatSend.h	35	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Combat.cpp	98	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Combat.h	62	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/Connection/Hello.cpp	46	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Connection/Hello.cpp	45	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/Hello.h	30	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/Keepalive.cpp	50	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/Keepalive.h	39	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/Connection/Login.cpp	105	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Connection/Login.cpp	99	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/Login.h	56	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/Connection/Logout.cpp	57	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Connection/Logout.cpp	54	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/Logout.h	48	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/Connection/MainCheck.cpp	114	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Connection/MainCheck.cpp	111	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/MainCheck.h	47	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/Connection/MapServerMove.cpp	100	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Connection/MapServerMove.cpp	101	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/MapServerMove.h	66	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/Opcodes.h	37	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/Connection/ServerList.cpp	101	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Connection/ServerList.cpp	96	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Connection/ServerList.h	58	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/DialogAnswers.cpp	20	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/DialogAnswers.h	25	Protocol	game/Protocol	high	engine or protocol layer, no game state
@@ -374,6 +374,12 @@ Protocol/Outgoing.cpp	23	Protocol	game/Protocol	high	engine or protocol layer, n
 Protocol/Outgoing.h	35	Protocol	game/Protocol	high	engine or protocol layer, no game state
 engine/Network/PacketFields.cpp	50	engine/Network	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
 engine/Network/PacketFields.h	42	engine/Network	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
+engine/Network/Field.h	31	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
+engine/Network/LayoutReader.cpp	82	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
+engine/Network/LayoutReader.h	82	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
+engine/Network/PacketCode.h	32	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
+engine/Network/PacketLayout.h	17	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
+engine/Network/ReadList.h	35	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
 Protocol/Party.cpp	139	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Party.h	100	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/PersonalShop.cpp	280	Protocol	game/Protocol	high	engine or protocol layer, no game state
@@ -382,7 +388,7 @@ Protocol/Pet/PetInfo.cpp	33	Protocol	game/Protocol	high	engine or protocol layer
 Protocol/Pet/PetInfo.h	65	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Pet/PetOrders.cpp	60	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Pet/PetOrders.h	56	Protocol	game/Protocol	high	engine or protocol layer, no game state
-engine/Network/ProtocolError.h	15	engine/Network	engine/Network	high	the errors of reading or writing a packet, no game knowledge (AR1.1)
+engine/Network/ProtocolError.h	17	engine/Network	engine/Network	high	the errors of reading or writing a packet, no game knowledge (AR1.1)
 Protocol/Quest.cpp	117	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Quest.h	80	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/SiegeControls.cpp	31	Protocol	game/Protocol	high	engine or protocol layer, no game state

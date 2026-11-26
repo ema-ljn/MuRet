@@ -2,11 +2,15 @@
 
 #include "Core/Expected.h"
 #include "Crypto/Xor3.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketCode.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Outgoing.h"
-#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <array>
@@ -19,11 +23,36 @@ namespace Client::Protocol::Connection
 {
 namespace
 {
-// 0x4e5076: los 0x24 bytes empiezan en pkt+4; el host ocupa los primeros 0x10, el puerto va en +0x10 y los
-// códigos en +0x14.
-constexpr std::size_t MoveBytesAt = 4;
-constexpr std::size_t PortAt = 0x10;
-constexpr std::size_t CodesAt = 0x14;
+// 0x4e5076: the 0x24 bytes start at pkt+4; the host takes the first 0x10, the port is at +0x10 and the codes at +0x14.
+using MovedBytes = Network::Field<std::array<std::byte, MapServerMoveBytes>, 4>;
+using MovedPort = Network::Field<std::uint16_t, MovedBytes::Offset + 0x10>;
+using MovedCodes = Network::Field<MapServerCodes, MovedBytes::Offset + 0x14>;
+
+// 0x4e506a: the subcode is pkt[3] in a C1 and pkt[4] otherwise; the rest is at the same offsets in both.
+constexpr Network::PacketLayout MoveC1Layout{
+    {Network::PacketType::C1, Network::Opcode{MapServerOpcode}, Network::Subcode{MapServerMoveSubcode}},
+    MovedBytes::End,
+    0x4e5056};
+constexpr Network::PacketLayout MoveC2Layout{
+    {Network::PacketType::C2, Network::Opcode{MapServerOpcode}, Network::Subcode{MapServerMoveSubcode}},
+    MovedBytes::End,
+    0x4e5056};
+
+MapServerMove ReadMove(Network::LayoutReader& reader)
+{
+    const std::array<std::byte, MapServerMoveBytes> moved = reader.Read<MovedBytes>();
+    MapServerMove move;
+    const auto end = std::ranges::find(moved, std::byte{0});
+    move.hostEnds = end != moved.end();
+    for (auto at = moved.begin(); at != end; ++at)
+    {
+        move.host.push_back(std::to_integer<char>(*at));
+    }
+    move.port = reader.Read<MovedPort>();
+    move.codes = reader.Read<MovedCodes>();
+    return move;
+}
+
 // 0x412da3..0x412dba: la cuenta y el nombre van cada uno en 12 bytes en 0 (EBP − 0x40 y EBP − 0x4c); entran 10.
 // 0x412c1e corta el nombre en 10 (MOV byte [EBP − 0x4e], 0 sobre la copia de EBP − 0x58); la cuenta no.
 constexpr std::size_t AuthNameField = 12;
@@ -46,36 +75,8 @@ std::span<const std::byte> BytesOf(std::string_view text)
 
 Core::Expected<MapServerMove, Network::ProtocolError> ReadMapServerMove(const Network::Packet& packet)
 {
-    const std::span<const std::byte> bytes = packet.Bytes();
-    const std::size_t subcodeAt = Network::MinPacketSize(packet.Type());
-    if (packet.Opcode() != MapServerOpcode)
-    {
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    }
-    if (bytes.size() <= subcodeAt)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    if (std::to_integer<std::uint8_t>(bytes[subcodeAt]) != MapServerMoveSubcode)
-    {
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    }
-    if (bytes.size() < MoveBytesAt + MapServerMoveBytes)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    const std::span<const std::byte> moved = bytes.subspan(MoveBytesAt, MapServerMoveBytes);
-    MapServerMove move;
-    const auto end = std::ranges::find(moved, std::byte{0});
-    move.hostEnds = end != moved.end();
-    for (auto at = moved.begin(); at != end; ++at)
-    {
-        move.host.push_back(std::to_integer<char>(*at));
-    }
-    move.port = static_cast<std::uint16_t>(std::to_integer<std::uint16_t>(moved[PortAt]) |
-                                           (std::to_integer<std::uint16_t>(moved[PortAt + 1]) << 8u));
-    std::ranges::copy(moved.subspan(CodesAt, MapServerCodesSize), move.codes.begin());
-    return move;
+    const Network::PacketLayout& layout = packet.Type() == Network::PacketType::C2 ? MoveC2Layout : MoveC1Layout;
+    return Network::ReadPacket(packet, layout, ReadMove);
 }
 
 Core::Expected<Outgoing, Network::ProtocolError> WriteMapServerAuth(const MapServerAuth& auth)

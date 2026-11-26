@@ -6,12 +6,12 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Dispatcher.h"
 #include "Network/PacketFields.h"
-#include "Network/ProtocolError.h"
+#include "support/NetworkPrinters.h"
 
 #include <ostream>
 
 // Cómo imprime GoogleTest los enums de Client::Protocol en un mensaje: sin esto, un
-// std::optional<ProtocolError> sale como "(1-byte object <01>)". Como NetworkPrinters.h. Y una
+// std::optional<DispatchResult> sale como "(1-byte object <01>)". Como NetworkPrinters.h. Y una
 // entrada de la lista de personajes, con el largo del nombre y nunca el nombre, como las
 // Credentials de AppPrinters.h: es del jugador.
 namespace Client::Protocol
@@ -33,26 +33,6 @@ inline void PrintTo(DispatchResult result, std::ostream* out)
     *out << "DispatchResult fuera del enum";
 }
 } // namespace Client::Protocol
-
-namespace Client::Network
-{
-inline void PrintTo(ProtocolError error, std::ostream* out)
-{
-    switch (error)
-    {
-    case ProtocolError::WrongPacket:
-        *out << "WrongPacket";
-        return;
-    case ProtocolError::TooShort:
-        *out << "TooShort";
-        return;
-    case ProtocolError::FieldTooLong:
-        *out << "FieldTooLong";
-        return;
-    }
-    *out << "ProtocolError fuera del enum";
-}
-} // namespace Client::Network
 
 namespace Client::Protocol::Character
 {

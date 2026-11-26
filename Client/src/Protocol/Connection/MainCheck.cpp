@@ -1,12 +1,15 @@
 #include "Protocol/Connection/MainCheck.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketCode.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
-#include "Network/ProtocolError.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -21,8 +24,10 @@ namespace
 {
 // 0x4ad3d6: la clave del GS va cifrada con este XOR (EncryptCheckSumKey, 0x415546 del GS).
 constexpr std::uint32_t MainCheckKeyMask = 0xB479;
-// El relleno de pkt[3] que alinea la clave a dos bytes en el struct del GS.
-constexpr std::size_t MainCheckKeyOffset = 4;
+// pkt[3] is the padding that aligns the key to two bytes in the GS's struct.
+using MainCheckKey = Network::Field<std::uint16_t, 4>;
+constexpr Network::PacketLayout MainCheckKeyLayout{
+    {Network::PacketType::C1, Network::Opcode{MainCheckOpcode}, std::nullopt}, MainCheckKey::End, 0x4e16c0};
 // 0x4e1762..0x4e178a: el byte que alinea la suma a cuatro, en 0.
 constexpr std::uint8_t MainCheckReplyPadding = 0;
 
@@ -36,16 +41,8 @@ std::uint32_t LoadU32Le(std::span<const std::byte> image, std::size_t offset)
 
 Core::Expected<std::uint16_t, Network::ProtocolError> ReadMainCheckKey(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != MainCheckOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    const std::span<const std::byte> bytes = packet.Bytes();
-    if (bytes.size() < MainCheckKeyOffset + sizeof(std::uint16_t))
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    Core::ByteReader reader(bytes.subspan(MainCheckKeyOffset));
-    const std::optional<std::uint16_t> key = reader.ReadU16Le();
-    if (!key)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return *key;
+    return Network::ReadPacket(packet, MainCheckKeyLayout,
+                               [](Network::LayoutReader& reader) { return reader.Read<MainCheckKey>(); });
 }
 
 std::uint16_t MainCheckTable(std::uint16_t key)

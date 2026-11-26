@@ -107,4 +107,46 @@ TEST(ReadListTest, IsTooShortForACountWhoseSizeOverflows)
     EXPECT_EQ(calls.count, 0);
     EXPECT_EQ(ErrorOf(reader.Value().Finish(list)), ProtocolError::TooShort);
 }
+
+// The second record ends at its third byte, the last one read.
+Packet OneServerAndAShortOne()
+{
+    return PacketOf({0xC2, 0x00, 0x0E, 0xF4, 0x06, 0x00, 0x02, 0x90, 0x01, 0x05, 0x00, 0x91, 0x01, 0x07});
+}
+
+constexpr std::size_t ReadBytes = 3;
+
+auto FirstAndThirdOfThree(Calls& calls)
+{
+    return [&calls](std::span<const std::byte, ReadBytes> record)
+    {
+        ++calls.count;
+        return std::to_integer<int>(record[0]) + (std::to_integer<int>(record[2]) << 8);
+    };
+}
+
+TEST(ReadListTest, ReadsTheLastRecordOnlyUpToItsLastReadByte)
+{
+    const Packet packet = OneServerAndAShortOne();
+    auto reader = LayoutReader::Open(packet, ServerList);
+    ASSERT_TRUE(reader.HasValue());
+    Calls calls;
+    const std::vector<int> list =
+        ReadList<RecordSize, ReadBytes>(reader.Value(), First, 2, FirstAndThirdOfThree(calls));
+    EXPECT_EQ(list, (std::vector<int>{0x0590, 0x0791}));
+    EXPECT_EQ(calls.count, 2);
+    EXPECT_TRUE(reader.Value().Finish(list).HasValue());
+}
+
+TEST(ReadListTest, IsTooShortWhenTheLastRecordEndsBeforeItsLastReadByte)
+{
+    const Packet packet = OneServerAndAShortOne();
+    auto reader = LayoutReader::Open(packet, ServerList);
+    ASSERT_TRUE(reader.HasValue());
+    Calls calls;
+    const std::vector<int> list = ReadList<RecordSize>(reader.Value(), First, 2, FirstAndThirdByte(calls));
+    EXPECT_TRUE(list.empty());
+    EXPECT_EQ(calls.count, 0);
+    EXPECT_EQ(ErrorOf(reader.Value().Finish(list)), ProtocolError::TooShort);
+}
 } // namespace

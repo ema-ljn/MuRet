@@ -5,6 +5,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -55,5 +56,11 @@ TEST(PetOrdersTest, TheStopCommandIsTheXoredA7OfTheStep)
         Pet::WritePetCommand({.pet = Pet::RavenPet, .command = Pet::StopTheAttackCommand, .key = Pet::NoTargetKey});
     EXPECT_EQ(command.delivery, Client::Network::Delivery::Clear);
     EXPECT_TRUE(Client::Tests::SameBytes(command.packet.Bytes(), Bytes({0xc1, 7, 0xa7, 0x2e, 0xea, 0xa7, 0xc7})));
+}
+
+TEST(PetOrdersTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(Pet::ReadPetOrder, Bytes({0xc1, 0x07, 0xa7, 0x00, 0x03, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(Pet::ReadPetAttack, Bytes({0xc1, 0x09, 0xa8, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03}));
 }
 } // namespace

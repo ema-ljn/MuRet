@@ -2,31 +2,32 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
-// 04 § Las skills (CL9 hito 4): lo que llega de las skills y de los estados de los personajes. Los lectores son la
-// parte pura de los handlers de 0x4e2b10; lo que hacen con el mundo es de Scenes (SkillReplies). Como los demás
-// lectores, WrongPacket con otro tipo u opcode, TooShort si faltan campos, y los bytes de más se ignoran.
+// The skills (04, "Las skills"): what arrives about the skills and the characters' states. The readers are the pure
+// part of the handlers of 0x4e2b10; what they do with the world is Scenes' (SkillReplies). WrongPacket with another
+// type or opcode, TooShort without a field, and extra bytes are ignored.
 namespace Client::Protocol::Skills
 {
-// 0x4cc530: C1/C3 08 19 [skill] [fuente H L] [blanco H L], en big endian. El bit 15 del blanco dice si la skill
-// salió (va a +0x38d de la fuente) y el original busca el blanco con los 15 de abajo; la fuente, con los 16.
+// 0x4cc530: C1/C3 08 19 [skill] [source H L] [target H L], big-endian. The target's bit 15 says whether the skill
+// landed (it goes to the source's +0x38d); the original looks the target up with the low 15 bits and the source with
+// all 16.
 struct MagicAttack
 {
     std::uint8_t skill = 0;
     std::uint16_t source = 0;
-    std::uint16_t target = 0; // ya sin el bit 15
+    std::uint16_t target = 0; // without bit 15
     bool succeeded = false;
 };
 
-// 0x4ce000: C1/C3 09 1E [skill] [clave H L] [x] [y] [rumbo].
+// 0x4ce000: C1/C3 09 1E [skill] [key H L] [x] [y] [heading].
 struct DurationMagic
 {
     std::uint8_t skill = 0;
@@ -36,15 +37,15 @@ struct DurationMagic
     std::uint8_t direction = 0;
 };
 
-// 0x4cbe90: C1 06 1B [skill] [clave H L], el fin de una skill con duración.
+// 0x4cbe90: C1 06 1B [skill] [key H L], the end of a skill with a duration.
 struct MagicCancel
 {
     std::uint8_t skill = 0;
     std::uint16_t key = 0;
 };
 
-// 0x4cbe00: C1 0A 07 [tipo] [máscara, 4 bytes en little endian] [clave H L]. El GS 0.97 arma otro, de 8 bytes, y no lo
-// manda (08, P-C260).
+// 0x4cbe00: C1 0A 07 [type] [mask, 4 bytes little-endian] [key H L]. The GS 0.97 builds another one, of 8 bytes, and
+// does not send it (08, P-C260).
 struct ActorState
 {
     std::uint8_t type = 0;
@@ -52,26 +53,26 @@ struct ActorState
     std::uint16_t key = 0;
 };
 
-// 0x4dbf50: C1 06 48 [clave H L] [tipo]. El GS 0.97 no lo manda (08, P-C262).
+// 0x4dbf50: C1 06 48 [key H L] [type]. The GS 0.97 does not send it (08, P-C262).
 struct ActorEffect
 {
     std::uint16_t key = 0;
     std::uint8_t kind = 0;
 };
 
-// 0x4cc290: C1 08 69 [skill] [fuente, 2 bytes] [blanco, 2 bytes], las claves en little endian y sin máscara: un
-// blanco con el bit 15 no lo encuentra 0x5110d0 (07, Q-C1205). El GS 0.97 no lo manda (08, P-C262).
+// 0x4cc290: C1 08 69 [skill] [source, 2 bytes] [target, 2 bytes], the keys little-endian and unmasked: 0x5110d0 does
+// not find a target with bit 15 (07, Q-C1205). The GS 0.97 does not send it (08, P-C262).
 struct SkillTarget
 {
     std::uint8_t skill = 0;
     std::uint16_t source = 0;
-    std::uint16_t target = 0; // entero, con el bit 15
+    std::uint16_t target = 0; // whole, with bit 15
 };
 
-// 0x4c5070: C1 .. F3 11 [cantidad] [lista] y desde pkt[6] lo que dice la cantidad: con 0xff, el lugar a vaciar; con
-// 0xfe, el lugar y la skill; si no, con la lista en 2, el lugar a vaciar; y si no, `cantidad` entradas de tres bytes
-// (lugar, skill y el tercero, que el cliente no lee). El GS arma la entrada desde pkt[5]: el byte de pkt[5] lo mete el
-// FoxAnti del repack (08, P-C261).
+// 0x4c5070: C1 .. F3 11 [count] [list] and from pkt[6] what the count says: with 0xff, the place to empty; with 0xfe,
+// the place and the skill; otherwise, with the list at 2, the place to empty; otherwise `count` entries of three bytes
+// (the place, the skill and a third the client does not read). The GS builds the entry from pkt[5]: the repack's
+// FoxAnti adds the byte at pkt[5] (08, P-C261).
 struct SkillListEntry
 {
     std::uint8_t slot = 0;
@@ -81,7 +82,7 @@ struct SkillList
 {
     std::uint8_t count = 0;
     std::uint8_t list = 0;
-    // Con 0xff, 0xfe o la lista en 2: pkt[6] y pkt[7] (este solo con 0xfe). Si no, las entradas.
+    // With 0xff, 0xfe or the list at 2: pkt[6] and pkt[7] (this one only with 0xfe). Otherwise, the entries.
     std::uint8_t slot = 0;
     std::uint8_t skill = 0;
     std::vector<SkillListEntry> entries;
@@ -90,7 +91,7 @@ inline constexpr std::uint8_t SkillListRemoveOne = 0xff;
 inline constexpr std::uint8_t SkillListAddOne = 0xfe;
 inline constexpr std::uint8_t SkillListClearSlot = 2;
 
-// 0x4d30d0: siete WORD del GS 1.02i; pkt[0x12/0x14] sólo si están completos (Q-C144).
+// 0x4d30d0: the GS 1.02i's seven WORDs; pkt[0x12] and pkt[0x14] only if they are whole (Q-C144).
 struct LevelUp
 {
     std::uint16_t level = 0;
@@ -104,7 +105,7 @@ struct LevelUp
     std::uint16_t word4a = 0;
 };
 
-// 0x4e31e1: C1 05 F3 20 [vida], la vida del invocado (0x5767960).
+// 0x4e31e1: C1 05 F3 20 [life], the summon's life (0x5767960).
 struct SummonLife
 {
     std::uint8_t life = 0;
@@ -120,76 +121,76 @@ struct SummonLife
 [[nodiscard]] Core::Expected<LevelUp, Network::ProtocolError> ReadLevelUp(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<SummonLife, Network::ProtocolError> ReadSummonLife(const Network::Packet& packet);
 
-// El aviso de los que no llegaron cifrados: C1 06 F1 03 00 [cabeza] con el XOR32 y en C3, sin leer el paquete. La
-// cabeza es la del opcode en el 19 (0x4cc562..0x4cce21) y en el 1E (0x4ce032..), y 0xf1 en el 73 (0x4d5d8c),
-// *estático*.
+// The report of the ones that did not arrive encrypted: C1 06 F1 03 00 [head] with the XOR32 and as a C3, without
+// reading the packet. The head is the opcode's in the 19 (0x4cc562..0x4cce21) and in the 1E (0x4ce032..), and 0xf1 in
+// the 73 (0x4d5d8c).
 [[nodiscard]] Outgoing WriteClearSkillReport(Network::Opcode head);
 
 inline constexpr Network::Opcode Report73Head = JoinOpcode;
 
-// Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que salen). Las arman 0x57cfc0, las
-// funciones por clase y 0x55cbc0 en línea, con el XOR32 desde pkt[3] y cifradas como C3: el rand() del relleno y el
-// serial (0x5767913) los saca quien manda, antes de send(). La rama del Wizard (0x58c1b6 y los demás) y 0x55cbc0
-// también mandan el 1E (DurationMagicSend, abajo): [hacia] en 0, [espalda] en 0 salvo con la 0x4c (la celda de
-// 0x4e9920, como el caballero) y la clave de la magia (0x77f3bad) en la 8, la 9 y la 0x4c (08, P-C221).
-// La clave que va sin blanco (0xffff en 0x58c8f0, 0x591865 y 0x55e683).
+// What the hero's skills send (04, "Las skills que salen"). 0x57cfc0, the per-class functions and 0x55cbc0 inline
+// build them, with the XOR32 from pkt[3] and encrypted as C3s: the sender draws the padding's rand() and the serial
+// (0x5767913) before send(). The Wizard's branch (0x58c1b6 and the others) and 0x55cbc0 also send the 1E
+// (DurationMagicSend, below): [towards] at 0, [back] at 0 except with 0x4c (the cell of 0x4e9920, like the knight) and
+// the magic's key (0x77f3bad) in 8, 9 and 0x4c (08, P-C221).
+// The key sent without a target (0xffff at 0x58c8f0, 0x591865 and 0x55e683).
 inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
 
-// C1 06 1C 00 [x] [y] (0x593151..0x59350e): el Teleport (la skill 6) a una celda. El GS 0.97 (CGTeleportMagicRecv,
-// 0x426450) toma el 0 como la skill 6.
+// C1 06 1C 00 [x] [y] (0x593151..0x59350e): Teleport (skill 6) to a cell. The GS 0.97 (CGTeleportMagicRecv, 0x426450)
+// takes the 0 as skill 6.
 [[nodiscard]] Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y);
 
-// C1 07 B0 [clave L H] [x] [y] (0x59293b..0x592d1b): el Teleport Ally (0xf) del elegido a una celda, con la clave en
-// little endian (el WORD de +0x1f4 tal cual), como la lee el GS 0.97 (CGTargetTeleportRecv, 0x426870).
+// C1 07 B0 [key L H] [x] [y] (0x59293b..0x592d1b): Teleport Ally (0xf) of the chosen one to a cell, with the key
+// little-endian (the WORD of +0x1f4 as is), as the GS 0.97 reads it (CGTargetTeleportRecv, 0x426870).
 [[nodiscard]] Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y);
 
-// El 19 que manda el cliente (0x55b6f0, 0x559890, 0x55cbc0, 0x55faa0 y las ramas de 0x57cfc0): C1 06 19 [skill]
-// [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
-// quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
+// The 19 the client sends (0x55b6f0, 0x559890, 0x55cbc0, 0x55faa0 and the branches of 0x57cfc0): C1 06 19 [skill]
+// [key H] [key L], with the XOR32 over bytes 3 to 5 and as a C3 (its sender draws its two rand(), the padding and the
+// serial). The key is the target's whole +0x1f4. It is the GameServer's PMSG_MAGICATTACK (CGMagicAttack).
 [[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
 
-// El 10 de 0x517a20 (los blancos de una skill alrededor de un punto; lo llama el choque de las flechas de skill,
-// 0x520497): C1 [8 + 3n] 10 [skill] [x] [y] [tanda] [n] y, por blanco, [clave H] [clave L] [extra], con el XOR32 desde
-// pkt[3] y en C3 como el 19. FoxAnti lo manda como 1D (03, "La capa de FoxAnti"). El GameServer 0.97
-// (CGBeattackRecv, 0x426db0) lee la cabecera igual (PMSG_BEATTACK_COUNT: la skill, x, y, el serial y la cuenta) pero
-// entradas de dos bytes: desde el segundo blanco lee otra clave (07, Q-C1219).
+// The 10 of 0x517a20 (a skill's targets around a point; the skill arrows' hit calls it, 0x520497): C1 [8 + 3n] 10
+// [skill] [x] [y] [volley] [n] and, per target, [key H] [key L] [extra], with the XOR32 from pkt[3] and as a C3 like
+// the 19. FoxAnti sends it as 1D (03, "La capa de FoxAnti"). The GameServer 0.97 (CGBeattackRecv, 0x426db0) reads the
+// header the same (PMSG_BEATTACK_COUNT: the skill, x, y, the serial and the count) but two-byte entries: from the
+// second target on it reads another key (07, Q-C1219).
 inline constexpr std::size_t MaxSkillHits = 5;
 struct SkillHitsSend
 {
     std::uint8_t skill = 0;
-    // ftol(posición · 0,01) & 0xff, la celda del punto.
+    // ftol(position · 0.01) & 0xff, the point's cell.
     std::uint8_t x = 0;
     std::uint8_t y = 0;
-    // +0x8c de la flecha: la cuenta +0xf04 del registro propio de su tanda.
+    // The arrow's +0x8c: the count +0xf04 of its volley's own record.
     std::uint8_t volley = 0;
-    // Las claves (+0x1f4) de los blancos, `hits` de ellas (hasta MaxSkillHits).
+    // The targets' keys (+0x1f4), `hits` of them (up to MaxSkillHits).
     std::array<std::uint16_t, MaxSkillHits> keys{};
     std::uint8_t hits = 0;
-    // El sexto argumento de 0x517a20, detrás de cada clave (0 desde la flecha).
+    // The sixth argument of 0x517a20, after each key (0 from the arrow).
     std::uint8_t extra = 0;
 };
 [[nodiscard]] Outgoing WriteSkillHits(const SkillHitsSend& send);
 
-// El 1E que manda el cliente (el elfo, 0x561f60 en 0x562b36 y 0x563f5a, las ramas del caballero, 0x582439..0x5896a3, y
-// la 0x43 de la cola de 0x57cfc0, 0x594137..0x594de1):
-// C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L] [clave de la magia], con el XOR32 sobre los
-// bytes 3 a 11 y en C3 como el 19. El GameServer lee solo los 7 primeros (PMSG_DURATION_MAGIC_RECV,
-// CGDurationMagicRecv 0x427870).
+// The 1E the client sends (the elf, 0x561f60 at 0x562b36 and 0x563f5a, the knight's branches, 0x582439..0x5896a3, and
+// the 0x43 of the tail of 0x57cfc0, 0x594137..0x594de1):
+// C1 0C 1E [skill] [X] [Y] [heading] [towards] [back] [key H] [key L] [magic's key], with the XOR32 over bytes 3 to 11
+// and as a C3 like the 19. The GameServer reads only the first 7 (PMSG_DURATION_MAGIC_RECV, CGDurationMagicRecv
+// 0x427870).
 struct DurationMagicSend
 {
     std::uint8_t skill = 0;
     std::uint8_t x = 0;
     std::uint8_t y = 0;
     std::uint8_t direction = 0;
-    // ((dx + 8) << 4) | ((dy − 8) & 0xf), con la distancia de la celda lógica al blanco entre −8 y 7 (en la 0x43 de la
-    // cola, 0x5ae300).
+    // ((dx + 8) << 4) | ((dy − 8) & 0xf), with the distance from the logical cell to the target between −8 and 7 (in
+    // the tail's 0x43, 0x5ae300).
     std::uint8_t towards = 0;
-    // El rumbo dado vuelta (+180°) en la misma escala de 0 a 255; las 0x2a, 0x3e, 0x41 y 0x4c del caballero y la 0x43
-    // de la cola ponen la celda de 0x4e9920.
+    // The heading turned around (+180°) on the same 0 to 255 scale; the knight's 0x2a, 0x3e, 0x41 and 0x4c and the
+    // tail's 0x43 put the cell of 0x4e9920.
     std::uint8_t back = 0;
     std::uint16_t key = 0;
-    // La clave de la magia (0x57cf90, +0x1bd) de la 0x4c del caballero; 0 en las demás (la 0x43 de la cola la pide a
-    // 0x57cf90 con un puntero nulo: 0).
+    // The magic's key (0x57cf90, +0x1bd) of the knight's 0x4c; 0 in the others (the tail's 0x43 asks 0x57cf90 for it
+    // with a null pointer: 0).
     std::uint8_t magicKey = 0;
 };
 [[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicSend& send);

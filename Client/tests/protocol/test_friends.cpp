@@ -6,6 +6,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -205,5 +206,25 @@ TEST(FriendsTest, TheStateReadsTheNameAndTheState)
     ASSERT_TRUE(state.HasValue());
     EXPECT_EQ(state.Value().name, "Golondrina");
     EXPECT_EQ(state.Value().state, 0xfc);
+}
+
+TEST(FriendsTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> list = Bytes({0xc2, 0x00, 0x12, 0xc0, 0x00, 0x00, 0x01});
+    list.resize(0x12);
+    std::vector<std::byte> added = Bytes({0xc1, 0x0f, 0xc1, 0x01});
+    added.resize(0x0f);
+    std::vector<std::byte> request = Bytes({0xc1, 0x0d, 0xc2});
+    request.resize(0x0d);
+    std::vector<std::byte> deleted = Bytes({0xc1, 0x0e, 0xc3, 0x01});
+    deleted.resize(0x0e);
+    std::vector<std::byte> state = Bytes({0xc1, 0x0e, 0xc4});
+    state.resize(0x0e);
+    Client::Tests::ExpectMinimumSize(ReadFriendList, Bytes({0xc2, 0x00, 0x07, 0xc0, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadFriendList, list);
+    Client::Tests::ExpectMinimumSize(ReadFriendAddResult, added);
+    Client::Tests::ExpectMinimumSize(ReadFriendRequest, request);
+    Client::Tests::ExpectMinimumSize(ReadFriendDeleteResult, deleted);
+    Client::Tests::ExpectMinimumSize(ReadFriendState, state);
 }
 } // namespace

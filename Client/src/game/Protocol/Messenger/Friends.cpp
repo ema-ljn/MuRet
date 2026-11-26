@@ -1,13 +1,16 @@
 #include "Protocol/Messenger/Friends.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
+#include "Network/PacketLayout.h"
+#include "Network/PacketWriter.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <array>
 #include <cstddef>
@@ -16,7 +19,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <utility>
 
 namespace Client::Protocol::Messenger
 {
@@ -24,25 +26,45 @@ namespace
 {
 using NameBytes = std::array<std::byte, FriendNameSize>;
 
-// El paquete del tipo y el opcode, con el lector después del opcode: pkt[3] en un C1, pkt[4] en un C2.
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet,
-                                                                  Network::PacketType type, Network::Opcode opcode)
+using Letters = Network::Field<std::uint8_t, 4>;
+using MaxLetters = Network::Field<std::uint8_t, 5>;
+using FriendCount = Network::Field<std::uint8_t, 6>;
+constexpr Network::PacketLayout FriendListLayout{
+    {Network::PacketType::C2, FriendListOpcode, std::nullopt}, FriendCount::End, 0x4dc010};
+
+using AddResult = Network::Field<std::uint8_t, 3>;
+using AddName = Network::Field<NameBytes, 4>;
+using AddState = Network::Field<std::uint8_t, 0xe>;
+constexpr Network::PacketLayout FriendAddResultLayout{
+    {Network::PacketType::C1, FriendAddOpcode, std::nullopt}, AddState::End, 0x4dc3d0};
+
+using RequesterName = Network::Field<NameBytes, 3>;
+constexpr Network::PacketLayout FriendRequestLayout{
+    {Network::PacketType::C1, FriendRequestOpcode, std::nullopt}, RequesterName::End, 0x4dc5b0};
+
+using DeleteResult = Network::Field<std::uint8_t, 3>;
+using DeleteName = Network::Field<NameBytes, 4>;
+constexpr Network::PacketLayout FriendDeleteResultLayout{
+    {Network::PacketType::C1, FriendDeleteOpcode, std::nullopt}, DeleteName::End, 0x4dc690};
+
+using StateName = Network::Field<NameBytes, 3>;
+using State = Network::Field<std::uint8_t, 0xd>;
+constexpr Network::PacketLayout FriendStateLayout{
+    {Network::PacketType::C1, FriendStateOpcode, std::nullopt}, State::End, 0x4dc720};
+
+// strncpy of 10 to a zeroed buffer of 11: up to the first '\0'.
+template <typename F> std::string ReadName(Network::LayoutReader& reader)
 {
-    if (packet.Type() != type || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(type)));
+    return Network::TextField(reader.Read<F>());
 }
 
-// strncpy de 10 a un buffer de 11 en cero: hasta el primer '\0'.
-std::optional<std::string> ReadName(Core::ByteReader& reader)
+FriendRow ReadRow(std::span<const std::byte, FriendRowSize> row)
 {
-    const auto bytes = reader.ReadBytes(FriendNameSize);
-    if (!bytes)
-        return std::nullopt;
-    return Network::TextField(*bytes);
+    return {.name = Network::TextField(row.first<FriendNameSize>()),
+            .state = std::to_integer<std::uint8_t>(row[FriendNameSize])};
 }
 
-// El nombre en 10 bytes. MuRet completa con ceros lo que el original deja con lo que había en su buffer (Q-C882).
+// MuRet fills with zeros what the original leaves with whatever was in its buffer (Q-C882).
 NameBytes NameField(std::string_view name)
 {
     NameBytes bytes{};
@@ -56,77 +78,46 @@ NameBytes NameField(std::string_view name)
 
 Core::Expected<FriendList, Network::ProtocolError> ReadFriendList(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C2, FriendListOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto letters = reader.ReadU8();
-    const auto maxLetters = reader.ReadU8();
-    const auto count = reader.ReadU8();
-    if (!letters || !maxLetters || !count)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    FriendList list{.letters = *letters, .maxLetters = *maxLetters, .friends = {}};
-    list.friends.reserve(*count);
-    for (std::uint8_t at = 0; at < *count; ++at)
-    {
-        auto name = ReadName(reader);
-        const auto state = reader.ReadU8();
-        if (!name || !state)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        list.friends.push_back(FriendRow{.name = std::move(*name), .state = *state});
-    }
-    return list;
+    return Network::ReadPacket(
+        packet, FriendListLayout,
+        [](Network::LayoutReader& reader)
+        {
+            return FriendList{.letters = reader.Read<Letters>(),
+                              .maxLetters = reader.Read<MaxLetters>(),
+                              .friends = Network::ReadList<FriendRowSize>(reader, FriendCount::End,
+                                                                          reader.Read<FriendCount>(), ReadRow)};
+        });
 }
 
 Core::Expected<FriendAddResult, Network::ProtocolError> ReadFriendAddResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C1, FriendAddOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    auto name = ReadName(reader);
-    const auto state = reader.ReadU8();
-    if (!result || !name || !state)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return FriendAddResult{.result = *result, .name = std::move(*name), .state = *state};
+    return Network::ReadPacket(packet, FriendAddResultLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return FriendAddResult{.result = reader.Read<AddResult>(),
+                                                          .name = ReadName<AddName>(reader),
+                                                          .state = reader.Read<AddState>()};
+                               });
 }
 
 Core::Expected<FriendRequest, Network::ProtocolError> ReadFriendRequest(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C1, FriendRequestOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    auto name = ReadName(fields.Value());
-    if (!name)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return FriendRequest{.name = std::move(*name)};
+    return Network::ReadPacket(packet, FriendRequestLayout, [](Network::LayoutReader& reader)
+                               { return FriendRequest{.name = ReadName<RequesterName>(reader)}; });
 }
 
 Core::Expected<FriendDeleteResult, Network::ProtocolError> ReadFriendDeleteResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C1, FriendDeleteOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto result = reader.ReadU8();
-    auto name = ReadName(reader);
-    if (!result || !name)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return FriendDeleteResult{.result = *result, .name = std::move(*name)};
+    return Network::ReadPacket(
+        packet, FriendDeleteResultLayout, [](Network::LayoutReader& reader)
+        { return FriendDeleteResult{.result = reader.Read<DeleteResult>(), .name = ReadName<DeleteName>(reader)}; });
 }
 
 Core::Expected<FriendState, Network::ProtocolError> ReadFriendState(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C1, FriendStateOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    auto name = ReadName(reader);
-    const auto state = reader.ReadU8();
-    if (!name || !state)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return FriendState{.name = std::move(*name), .state = *state};
+    return Network::ReadPacket(
+        packet, FriendStateLayout, [](Network::LayoutReader& reader)
+        { return FriendState{.name = ReadName<StateName>(reader), .state = reader.Read<State>()}; });
 }
 
 Outgoing WriteFriendListRequest()

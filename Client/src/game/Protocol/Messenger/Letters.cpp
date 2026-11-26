@@ -2,17 +2,21 @@
 
 #include "Core/Expected.h"
 #include "Network/Delivery.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketWriter.h"
-#include "Network/Xor32Packet.h"
-#include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
+#include "Network/PacketLayout.h"
+#include "Network/PacketWriter.h"
 #include "Network/ProtocolError.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -22,22 +26,29 @@ namespace Client::Protocol::Messenger
 {
 namespace
 {
-// Los handlers de 0x4dc840..0x4dcd90 leen el paquete por su lugar desde pkt[0].
-constexpr std::size_t SendResultSize = 8;
-constexpr std::size_t RowSize = 0x4f;
-constexpr std::size_t ReadHeaderSize = 0x1c;
-constexpr std::size_t DeleteResultSize = 6;
+// The handlers of 0x4dc840..0x4dcd90 read the packet by position from pkt[0].
+using SendResult = Network::Field<std::uint8_t, 3>;
+using SendWindow = Network::Field<std::uint32_t, 4>;
+constexpr Network::PacketLayout LetterSendResultLayout{
+    {Network::PacketType::C1, LetterSendOpcode, std::nullopt}, SendWindow::End, 0x4dc840};
 
-Core::Expected<std::span<const std::byte>, Network::ProtocolError>
-BytesOf(const Network::Packet& packet, Network::PacketType type, Network::Opcode opcode, std::size_t size)
-{
-    if (packet.Type() != type || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    const std::span<const std::byte> bytes = packet.Bytes();
-    if (bytes.size() < size)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return bytes;
-}
+using RowIndex = Network::Field<std::uint16_t, 4>;
+using RowType = Network::Field<std::uint8_t, 0x4e>;
+constexpr std::size_t RowNameAt = 6;
+constexpr std::size_t RowDateAt = 0x10;
+constexpr std::size_t RowTimeAt = 0x1b;
+constexpr std::size_t RowSubjectAt = 0x2e;
+constexpr Network::PacketLayout LetterRowLayout{
+    {Network::PacketType::C1, LetterListOpcode, std::nullopt}, RowType::End, 0x4dc9e0};
+
+constexpr std::size_t ReadHeaderSize = 0x1c;
+constexpr Network::PacketLayout LetterReadLayout{
+    {Network::PacketType::C2, LetterReadOpcode, std::nullopt}, ReadHeaderSize, 0x4dcb70};
+
+using DeleteResult = Network::Field<std::uint8_t, 3>;
+using DeleteIndex = Network::Field<std::uint16_t, 4>;
+constexpr Network::PacketLayout LetterDeleteResultLayout{
+    {Network::PacketType::C1, LetterDeleteOpcode, std::nullopt}, DeleteIndex::End, 0x4dcd90};
 
 std::uint16_t U16At(std::span<const std::byte> bytes, std::size_t at)
 {
@@ -45,23 +56,18 @@ std::uint16_t U16At(std::span<const std::byte> bytes, std::size_t at)
                                       (std::to_integer<std::uint16_t>(bytes[at + 1]) << 8U));
 }
 
-std::uint32_t U32At(std::span<const std::byte> bytes, std::size_t at)
-{
-    return static_cast<std::uint32_t>(U16At(bytes, at)) | (static_cast<std::uint32_t>(U16At(bytes, at + 2)) << 16U);
-}
-
 std::uint8_t U8At(std::span<const std::byte> bytes, std::size_t at)
 {
     return std::to_integer<std::uint8_t>(bytes[at]);
 }
 
-// strncpy de `size` a un buffer en cero: hasta el primer '\0'.
+// strncpy of `size` to a zeroed buffer: up to the first '\0'.
 std::string TextAt(std::span<const std::byte> bytes, std::size_t at, std::size_t size)
 {
     return Network::TextField(bytes.subspan(at, size));
 }
 
-// Un C2 con el XOR32 desde el byte 4, que la Connection cifra como C4.
+// A C2 with the XOR32 from byte 4, which the Connection encrypts as a C4.
 Outgoing EncryptedC2(const Network::PacketWriter& writer)
 {
     return {Network::Xor32Encode(writer.Finish().Value()), Network::Delivery::Encrypted};
@@ -79,32 +85,32 @@ std::vector<std::byte> FixedText(std::string_view text, std::size_t size)
 
 Core::Expected<LetterSendResult, Network::ProtocolError> ReadLetterSendResult(const Network::Packet& packet)
 {
-    auto bytes = BytesOf(packet, Network::PacketType::C1, LetterSendOpcode, SendResultSize);
-    if (!bytes.HasValue())
-        return Core::Unexpected(bytes.Error());
-    return LetterSendResult{.result = U8At(bytes.Value(), 3), .window = U32At(bytes.Value(), 4)};
+    return Network::ReadPacket(
+        packet, LetterSendResultLayout, [](Network::LayoutReader& reader)
+        { return LetterSendResult{.result = reader.Read<SendResult>(), .window = reader.Read<SendWindow>()}; });
 }
 
 Core::Expected<LetterRow, Network::ProtocolError> ReadLetterRow(const Network::Packet& packet)
 {
-    auto read = BytesOf(packet, Network::PacketType::C1, LetterListOpcode, RowSize);
-    if (!read.HasValue())
-        return Core::Unexpected(read.Error());
-    const std::span<const std::byte> bytes = read.Value();
-    return LetterRow{.index = U16At(bytes, 4),
-                     .name = TextAt(bytes, 6, LetterNameSize),
-                     .date = TextAt(bytes, 0x10, LetterDateSize),
-                     .time = TextAt(bytes, 0x1b, LetterTimeSize),
-                     .subject = TextAt(bytes, 0x2e, LetterSubjectSize),
-                     .type = U8At(bytes, 0x4e)};
+    return Network::ReadPacket(packet, LetterRowLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return LetterRow{
+                                       .index = reader.Read<RowIndex>(),
+                                       .name = Network::TextField(reader.Bytes(RowNameAt, LetterNameSize)),
+                                       .date = Network::TextField(reader.Bytes(RowDateAt, LetterDateSize)),
+                                       .time = Network::TextField(reader.Bytes(RowTimeAt, LetterTimeSize)),
+                                       .subject = Network::TextField(reader.Bytes(RowSubjectAt, LetterSubjectSize)),
+                                       .type = reader.Read<RowType>()};
+                               });
 }
 
 Core::Expected<LetterRead, Network::ProtocolError> ReadLetterRead(const Network::Packet& packet)
 {
-    auto read = BytesOf(packet, Network::PacketType::C2, LetterReadOpcode, ReadHeaderSize);
-    if (!read.HasValue())
-        return Core::Unexpected(read.Error());
-    return ReadLetterCopy(read.Value());
+    const auto opened = Network::LayoutReader::Open(packet, LetterReadLayout);
+    if (!opened.HasValue())
+        return Core::Unexpected(opened.Error());
+    return ReadLetterCopy(packet.Bytes());
 }
 
 Core::Expected<LetterRead, Network::ProtocolError> ReadLetterCopy(std::span<const std::byte> bytes)
@@ -119,8 +125,8 @@ Core::Expected<LetterRead, Network::ProtocolError> ReadLetterCopy(std::span<cons
                       .action = U8At(bytes, 0x1b),
                       .body = {},
                       .copy = {}};
-    // 0x4dcb8a: pkt[0x1c + largo] = 0 sin mirar el tamaño. Un cuerpo que llena justo el paquete (el C5 lo manda sin el
-    // 0) o la copia de 0x404 (una carta de 1000) se lee; uno que pasa del paquete, MuRet lo rechaza (Q-C1000).
+    // 0x4dcb8a: pkt[0x1c + length] = 0 without looking at the size. A body that fills the packet exactly (the C5 sends
+    // it without the 0) or 0x404's copy (a letter of 1000) is read; one past the packet, MuRet rejects (Q-C1000).
     if (ReadHeaderSize + letter.length > bytes.size())
         return Core::Unexpected(Network::ProtocolError::TooShort);
     std::copy_n(bytes.begin() + 9, PortraitEquipmentSize, letter.equipment.begin());
@@ -128,7 +134,7 @@ Core::Expected<LetterRead, Network::ProtocolError> ReadLetterCopy(std::span<cons
                        bytes.begin() + static_cast<std::ptrdiff_t>(std::min(bytes.size(), LetterCopySize)));
     if (ReadHeaderSize + letter.length < letter.copy.size())
         letter.copy[ReadHeaderSize + letter.length] = std::byte{0};
-    // strncpy(buf, pkt + 0x1c, 1000) con el 0 en el largo.
+    // strncpy(buf, pkt + 0x1c, 1000) with the 0 at the length.
     const std::size_t bodySize = std::min<std::size_t>(letter.length, LetterBodyLimit);
     letter.body = TextAt(bytes, ReadHeaderSize, bodySize);
     return letter;
@@ -136,10 +142,9 @@ Core::Expected<LetterRead, Network::ProtocolError> ReadLetterCopy(std::span<cons
 
 Core::Expected<LetterDeleteResult, Network::ProtocolError> ReadLetterDeleteResult(const Network::Packet& packet)
 {
-    auto bytes = BytesOf(packet, Network::PacketType::C1, LetterDeleteOpcode, DeleteResultSize);
-    if (!bytes.HasValue())
-        return Core::Unexpected(bytes.Error());
-    return LetterDeleteResult{.result = U8At(bytes.Value(), 3), .index = U16At(bytes.Value(), 4)};
+    return Network::ReadPacket(
+        packet, LetterDeleteResultLayout, [](Network::LayoutReader& reader)
+        { return LetterDeleteResult{.result = reader.Read<DeleteResult>(), .index = reader.Read<DeleteIndex>()}; });
 }
 
 Outgoing WriteLetterSend(const LetterToSend& letter)

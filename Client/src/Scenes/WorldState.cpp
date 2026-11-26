@@ -1,5 +1,7 @@
 #include "Scenes/WorldState.h"
 
+#include "Kernel/GameContext.h"
+
 #include "Tables/PlayerModels.h"
 
 #include "Crt/CrtRandom.h"
@@ -30,14 +32,24 @@
 
 namespace Client::Scenes
 {
+Kernel::GameContext& WorldState::Context()
+{
+    return m_context;
+}
+
+const Kernel::GameContext& WorldState::Context() const
+{
+    return m_context;
+}
+
 std::span<ActorState, ActorPoolSize> WorldState::Actors()
 {
-    return *m_actors;
+    return m_context.Actors();
 }
 
 std::span<const ActorState, ActorPoolSize> WorldState::Actors() const
 {
-    return *m_actors;
+    return m_context.Actors();
 }
 
 std::span<CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
@@ -52,42 +64,42 @@ std::span<const CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
 
 OwnCharacterRecord& WorldState::OwnCharacter()
 {
-    return m_own;
+    return m_context.OwnCharacter();
 }
 
 const OwnCharacterRecord& WorldState::OwnCharacter() const
 {
-    return m_own;
+    return m_context.OwnCharacter();
 }
 
 OwnInventory& WorldState::Inventory()
 {
-    return m_inventory;
+    return m_context.Inventory();
 }
 
 const OwnInventory& WorldState::Inventory() const
 {
-    return m_inventory;
+    return m_context.Inventory();
 }
 
 WorldRuntime& WorldState::Runtime()
 {
-    return m_runtime;
+    return m_context.Runtime();
 }
 
 const WorldRuntime& WorldState::Runtime() const
 {
-    return m_runtime;
+    return m_context.Runtime();
 }
 
 WorldMap& WorldState::Map()
 {
-    return m_map;
+    return m_context.Map();
 }
 
 const WorldMap& WorldState::Map() const
 {
-    return m_map;
+    return m_context.Map();
 }
 
 ItemSetState& WorldState::ItemSets()
@@ -242,21 +254,23 @@ const World::Leaves& WorldState::Leaves() const
 // el nivel de [0xc] y los diez bytes del nombre con el cero de +0x1e3. MuRet los toma de la entrada.
 void WorldState::PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& chosen, Crt::CrtRandom& random)
 {
+    WorldRuntime& runtime = m_context.Runtime();
     {
-        const Models::LogicalAccess access(m_runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        m_own.level = chosen.level;
-        m_own.characterClass = Protocol::FrontEnd::CharacterClassOf(chosen.classByte);
-        m_own.skin = 0;
+        OwnCharacterRecord& own = m_context.OwnCharacter();
+        const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
+        own.level = chosen.level;
+        own.characterClass = Protocol::FrontEnd::CharacterClassOf(chosen.classByte);
+        own.skin = 0;
         // 0x634433..0x63444e: un strcpy desde +0x1d9. Copia hasta el primer cero, incluido, y lo que
         // sigue en el registro queda como estaba.
         std::size_t length = 0;
         while (length < chosen.name.size() && chosen.name[length] != std::byte{0})
         {
-            m_own.name[length] = chosen.name[length];
+            own.name[length] = chosen.name[length];
             ++length;
         }
-        m_own.name[length] = std::byte{0};
+        own.name[length] = std::byte{0};
     }
-    m_runtime.loadingOnceFlag = 0;
+    runtime.loadingOnceFlag = 0;
 }
 } // namespace Client::Scenes

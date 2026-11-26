@@ -158,7 +158,7 @@ Core::Expected<void, std::string> RebuildRegenHero(const Protocol::World::Regen&
     const ActorConstructionContext construction{world.Map().terrain, world.Runtime().map, World::CullingScene::Game,
                                                 resources.camera.fixedHeight};
     const auto built =
-        ConstructActor(hero, Data::Models::PlayerSkeletonModel,
+        ConstructActor(hero, Tables::PlayerSkeletonModel,
                        {reply.x, reply.y, (static_cast<float>(reply.direction) - 1.0f) * DirectionDegrees},
                        construction, resources.cloth);
     if (!built.HasValue())

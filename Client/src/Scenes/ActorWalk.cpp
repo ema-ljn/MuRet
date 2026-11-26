@@ -98,7 +98,7 @@ Core::Expected<bool, std::string> Marked(int model, const Tables::ItemTable* ite
     {
         return Core::Unexpected(std::string("0x4f3b5f: falta Item.bmd para la marca +0x1e del arma"));
     }
-    const auto record = items->Record(static_cast<std::size_t>(model - Data::Models::FirstItemModel));
+    const auto record = items->Record(static_cast<std::size_t>(model - Tables::FirstItemModel));
     if (!record)
     {
         return Core::Unexpected(std::string("0x4f3b5f: falta el registro del arma en Item.bmd"));
@@ -196,7 +196,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Acto
 {
     const bool safe = actor.safeZone != 0;
     const auto chosen = [](std::uint8_t action) { return std::optional{action}; };
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         return chosen(2);
     }
@@ -293,7 +293,7 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     const int mask = context.hero ? 63 : 15;
     const bool selected = (random.Next() & mask) == 0;
     const bool modelSound = actor.subtype >= 209 && actor.subtype <= 211;
-    if (!selected || (actor.type == Data::Models::PlayerSkeletonModel && !modelSound))
+    if (!selected || (actor.type == Tables::PlayerSkeletonModel && !modelSound))
     {
         return ActorWalkResult{};
     }
@@ -324,7 +324,7 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
 Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, const ActorWalkContext& context)
 {
     UpdateRun(actor, context.stop.runtime);
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
     {
         context.actionSpeeds.SetWalking((actor.flags78 & SlowFlag) != 0);
     }
@@ -335,7 +335,7 @@ Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, con
     }
     if (action.Value())
     {
-        if (actor.type == Data::Models::PlayerSkeletonModel)
+        if (actor.type == Tables::PlayerSkeletonModel)
         {
             Models::SetAction(actor.animation, context.stop.playerSkeleton, *action.Value());
         }
@@ -356,7 +356,7 @@ std::array<std::optional<std::int32_t>, 2> TakeActorFootstepSounds(ActorState& a
     constexpr std::uint8_t HorseWalkAction = 0x4b;
     std::array<std::optional<std::int32_t>, 2> sounds{};
     const auto action = actor.animation.action;
-    if (actor.type != Data::Models::PlayerSkeletonModel ||
+    if (actor.type != Tables::PlayerSkeletonModel ||
         !((action >= FirstWalkAction && action <= LastWalkAction) || action == SpecialWalkAction ||
           action == SpecialRunAction || action == HorseWalkAction))
     {

@@ -120,8 +120,7 @@ Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
     }
     ActorState& actor = world.Actors()[entry.slot];
     const CharacterSlot& place = CharacterSlots[entry.slot];
-    const auto built =
-        ConstructActor(actor, Data::Models::PlayerSkeletonModel, {.angle = place.angle}, construction, cloth);
+    const auto built = ConstructActor(actor, Tables::PlayerSkeletonModel, {.angle = place.angle}, construction, cloth);
     if (!built.HasValue())
     {
         return built;

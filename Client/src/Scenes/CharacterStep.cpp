@@ -198,7 +198,7 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 const Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
 {
     static const Models::Skeleton ZeroRecord;
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
@@ -221,7 +221,7 @@ std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& 
 Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::size_t slot,
                                                      const CharacterStepContext& context)
 {
-    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* own = ModelSkeletonOf(actor, context);
     if (actor.movement != 0 && own == nullptr)
     {
@@ -320,7 +320,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
                                                  const CharacterStepContext& context)
 {
     // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
-    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
@@ -447,7 +447,7 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const Characte
         const Models::Skeleton* playerSkeleton = context.playerSkeleton;
         if (playerSkeleton == nullptr)
             playerSkeleton = &emptyPlayerSkeleton;
-        const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+        const bool player = actor.type == Tables::PlayerSkeletonModel;
         const Models::Skeleton* actorSkeleton = player ? nullptr : ModelSkeletonOf(actor, context);
         const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
         const auto stopped = SetActorStop(
@@ -501,7 +501,7 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
         actor.firstFootstepSound = 0;
         actor.secondFootstepSound = 0;
         // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
-        if (actor.type == Data::Models::PlayerSkeletonModel)
+        if (actor.type == Tables::PlayerSkeletonModel)
         {
             return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
@@ -720,7 +720,7 @@ glm::vec3 SharedBonePoint(const ActorState& actor, std::size_t bone, const glm::
 
 const Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
 {
-    if (actor.type != Data::Models::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
+    if (actor.type != Tables::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
     {
         if (const auto* loaded = context.models->SkeletonOf(actor.type); loaded != nullptr)
             return loaded;
@@ -1099,7 +1099,7 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, s
         return {};
     }
     constexpr glm::vec3 HeadOffset{0.0f, 20.0f, -10.0f};
-    const glm::vec3 point = OwnBonePoint(actor, static_cast<std::size_t>(Data::Models::PlayerHeadBone), HeadOffset);
+    const glm::vec3 point = OwnBonePoint(actor, static_cast<std::size_t>(Tables::PlayerHeadBone), HeadOffset);
     if (context.particles == nullptr)
     {
         return Core::Unexpected(
@@ -1162,7 +1162,7 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
     // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15 y sale.
-    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {

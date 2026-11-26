@@ -57,7 +57,7 @@ protected:
     {
         Client::Tests::GoldenDataTest::SetUp();
         ASSERT_FALSE(HasFatalFailure());
-        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         m_data.items =
             Client::Tables::LoadedItemTable{.table = Client::Tests::ItemsMarking({}), .checksumMatches = true};
         const Client::Scenes::SceneContext context{.dataRoot = m_dataRoot,

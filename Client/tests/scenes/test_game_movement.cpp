@@ -62,7 +62,7 @@ public:
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        if (model == Client::Data::Models::PlayerSkeletonModel)
+        if (model == Client::Tables::PlayerSkeletonModel)
             return &player;
         return model == TransformedModel ? &transformed : nullptr;
     }
@@ -87,7 +87,7 @@ public:
         terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
         auto& hero = world.Actors()[0];
         hero.alive = true;
-        hero.type = Client::Data::Models::PlayerSkeletonModel;
+        hero.type = Client::Tables::PlayerSkeletonModel;
         hero.cellX = hero.targetX = 182;
         hero.cellY = hero.targetY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
@@ -802,7 +802,7 @@ std::unique_ptr<MovingHero> AHeroClickingAPlayer(std::uint8_t cellX)
     runtime.selectedTargets[2] = static_cast<std::int32_t>(ChosenSlot);
     auto& chosen = tested->world.Actors()[ChosenSlot];
     chosen.alive = true;
-    chosen.type = Client::Data::Models::PlayerSkeletonModel;
+    chosen.type = Client::Tables::PlayerSkeletonModel;
     chosen.byte88 = 1;
     chosen.key = ChosenKey;
     chosen.position = {static_cast<float>(cellX) * 100.0f + 50.0f, 11550.0f, 0.0f};

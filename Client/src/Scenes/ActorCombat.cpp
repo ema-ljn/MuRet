@@ -87,7 +87,7 @@ Core::Expected<bool, std::string> IsMarked(int model, const ActorCombatContext& 
 {
     if (context.items == nullptr)
         return Core::Unexpected(std::string("0x4f4a10: falta Item.bmd para leer la marca +0x1e del arma"));
-    const auto record = context.items->Record(static_cast<std::size_t>(model - Data::Models::FirstItemModel));
+    const auto record = context.items->Record(static_cast<std::size_t>(model - Tables::FirstItemModel));
     if (!record)
         return Core::Unexpected(std::string("0x4f4a10: Item.bmd no tiene el registro del arma de la derecha"));
     return (*record)[WeaponMarkOffset] != std::byte{0};
@@ -98,7 +98,7 @@ Core::Expected<void, std::string> SetTheAction(ActorState& actor, const ActorCom
                                                std::uint8_t action)
 {
     const Models::Skeleton* skeleton = nullptr;
-    if (actor.type == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
+    if (actor.type == Tables::PlayerSkeletonModel && context.playerSkeleton != nullptr)
         skeleton = context.playerSkeleton;
     else
     {
@@ -408,7 +408,7 @@ void AttackSound(const ActorState& actor, const ActorCombatContext& context)
 {
     if (!FrameIsZero(actor))
         return;
-    if (actor.type == Data::Models::PlayerSkeletonModel && !HasModelSoundSubtype(actor))
+    if (actor.type == Tables::PlayerSkeletonModel && !HasModelSoundSubtype(actor))
     {
         PlayerAttackSound(actor, context);
         return;
@@ -436,7 +436,7 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
         requestSound(static_cast<std::int32_t>((context.random.Next() & 1) + 0x5e));
         return;
     }
-    if (actor.type != Data::Models::PlayerSkeletonModel || HasModelSoundSubtype(actor))
+    if (actor.type != Tables::PlayerSkeletonModel || HasModelSoundSubtype(actor))
     {
         // 0x4f5aa8..0x4f5ae8: la WORD 4 de la tabla del modelo; 0xffff, nada; si no, con signo, más 5 con el subtipo 9
         // y más 0xd2. Sin la tabla, la WORD en 0 de 0x60dc80 (SoundsOrZeros): el 0xd2. No saca rand().
@@ -488,7 +488,7 @@ ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
 {
     return ActorCombatContext{.world = resources.world,
                               .random = resources.cloth.random,
-                              .playerSkeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+                              .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
                               .models = &resources.models,
                               .items = resources.items};
 }
@@ -497,7 +497,7 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
 {
     switch (actor.type)
     {
-    case Data::Models::PlayerSkeletonModel:
+    case Tables::PlayerSkeletonModel:
         if (auto attacked = PlayerAttack(actor, context); !attacked.HasValue())
             return attacked;
         break;
@@ -560,12 +560,12 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
                                         Models::OwnRecordCloseRandoms);
         context.world.OwnCharacter().life = 0;
     }
-    if (actor.type == Data::Models::PlayerSkeletonModel && !HasModelSoundSubtype(actor))
+    if (actor.type == Tables::PlayerSkeletonModel && !HasModelSoundSubtype(actor))
     {
         if (auto set = SetTheAction(actor, context, 0xc3); !set.HasValue())
             return set;
     }
-    else if (actor.type == Data::Models::PlayerSkeletonModel || actor.type == 0x16b || actor.type == 0x170)
+    else if (actor.type == Tables::PlayerSkeletonModel || actor.type == 0x16b || actor.type == 0x170)
     {
         // 0x4f58a7, 0x4f5942 y 0x4f599e apagan +0 antes del primer creador de efectos.
         actor.alive = false;
@@ -586,7 +586,7 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
         }
         else
         {
-            const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+            const bool player = actor.type == Tables::PlayerSkeletonModel;
             if (auto bones =
                     ScatterTheBones(actor, context, player ? 0x4f58c2u : 0x4f595du, player ? 0x4f58e7u : 0x4f5982u);
                 !bones.HasValue())

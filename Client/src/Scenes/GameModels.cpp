@@ -115,8 +115,8 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
                     continue;
                 }
                 Data::Models::Model model = std::move(loaded).Value();
-                auto skeleton = file.model == Data::Models::PlayerSkeletonModel ? Assets::MakePlayerSkeleton(model)
-                                                                                : Models::MakeSkeleton(model);
+                auto skeleton = file.model == Tables::PlayerSkeletonModel ? Assets::MakePlayerSkeleton(model)
+                                                                          : Models::MakeSkeleton(model);
                 if (skeleton.HasValue())
                 {
                     m_skeletons.insert_or_assign(file.model, std::move(skeleton).Value());
@@ -126,15 +126,15 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
         }
         return {};
     };
-    const auto playerAndItems = loadTables({Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles()});
+    const auto playerAndItems = loadTables({Tables::PlayerModelFiles(), Tables::ItemModelFiles()});
     if (!playerAndItems.HasValue())
         return playerAndItems;
     m_slots.SetNext(PlayerTexturesStart);
-    AssignTextures(Data::Models::PlayerTextureCalls());
+    AssignTextures(Tables::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
-    AssignTextures(Data::Models::ItemTextureCalls());
+    AssignTextures(Tables::ItemTextureCalls());
     // 0x611850 consulta 0xdb con Item\Bow\ antes de que 0x616095 cargue su BMD.
-    const auto skills = loadTables({Data::Models::SkillModelFiles()});
+    const auto skills = loadTables({Tables::SkillModelFiles()});
     if (!skills.HasValue())
         return skills;
     // 0x61606f/0x61607f: el cargador cambia la acción 0 de HellGate después de leer su BMD.
@@ -148,11 +148,11 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     if (const auto ball = m_skeletons.find(0xf1); ball != m_skeletons.end() && !ball->second.actions.empty())
         ball->second.actions.front().speed = 0.5f;
     m_slots.SetNext(FenrirTexturesStart);
-    AssignTextures(Data::Models::FenrirTextureCalls());
+    AssignTextures(Tables::FenrirTextureCalls());
     // 61613a consulta 109 y 61619f consulta 10f antes de cargar sus BMD. En el perfil sin Data2/SMD no hay mallas
     // en ese punto: no asignar ahora el BMD futuro. Su consulta efectiva llega con el barrido de 616e46.
     m_slots.SetNext(GateTexturesStart);
-    AssignTextures(Data::Models::SiegeBeforeSkillTextureCalls());
+    AssignTextures(Tables::SiegeBeforeSkillTextureCalls());
     // 0x6164a0..0x6164bb: LaceArrow pisa los slots 0x138 y 0x139, con Item\ y GL_CLAMP (Q-C89).
     if (const auto* laceArrow = Find(0x11c); laceArrow != nullptr)
     {
@@ -161,10 +161,10 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
         m_meshTextures.insert_or_assign(0x11c, m_slots.Assign(*laceArrow, "Item\\", sampling));
     }
     m_slots.SetNext(SkillTexturesStart);
-    AssignTextures(Data::Models::SkillTextureCalls());
+    AssignTextures(Tables::SkillTextureCalls());
     for (std::uint16_t model = 0xbe; model < 0x151; ++model)
     {
-        const std::array<Data::Models::ModelTextureCall, 1> call{{{model, "Skill\\"}}};
+        const std::array<Tables::ModelTextureCall, 1> call{{{model, "Skill\\"}}};
         AssignTextures(call);
     }
     UploadEach(dataRoot, DamageTextureSet, textures, log, &m_textureMetadata);
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
         m_startupTextureStore = &textures;
     UploadEach(dataRoot, FaunaJointTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, GameTailTextureSet, textures, log, &m_textureMetadata);
-    UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
+    UploadEach(dataRoot, Tables::PlayerFixedTextures(), textures, log);
     UploadEach(dataRoot, m_slots.ToLoad(), textures, log, &m_textureMetadata);
     log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.size());
     return {};
@@ -186,9 +186,9 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
 
 // 0x60d5f0 por cada llamada: el modelo que no se leyó no tiene mallas, y no pide nada. El que se pide
 // dos veces se queda con los slots de la segunda.
-void GameModels::AssignTextures(std::span<const Data::Models::ModelTextureCall> calls)
+void GameModels::AssignTextures(std::span<const Tables::ModelTextureCall> calls)
 {
-    for (const Data::Models::ModelTextureCall& call : calls)
+    for (const Tables::ModelTextureCall& call : calls)
     {
         const auto found = m_models.find(call.model);
         if (found != m_models.end())

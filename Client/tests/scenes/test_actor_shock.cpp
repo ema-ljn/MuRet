@@ -70,7 +70,7 @@ protected:
             const auto loaded = m_world->FaunaResources().LoadMonster(number, 0, *context);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         }
-        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         Monster().alive = true;
         Monster().type = 0x152;
         Monster().pet.model = Client::Scenes::NoItemModel;

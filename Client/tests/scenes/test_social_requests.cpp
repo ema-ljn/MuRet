@@ -75,8 +75,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Models::PlayerSkeletonModel;
 using Client::Scenes::ActorState;
+using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
 
 constexpr std::uint32_t Seed = 0x5eed;

@@ -101,7 +101,7 @@ void RemoveActorFlag(std::uint32_t mask, ActorState& actor, WorldState& world)
     // 0x4e6a4f: el joint 0x10f/0 solo en un jugador.
     case 0x100:
         Lower(actor.flags78, mask);
-        if (actor.type == Data::Models::PlayerSkeletonModel)
+        if (actor.type == Tables::PlayerSkeletonModel)
             KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 0);
         return;
     case 0x400:
@@ -159,7 +159,7 @@ void SettleMonsterFlags(ActorState& actor)
 {
     constexpr std::uint32_t Stunned = 0x100;
     constexpr std::uint32_t Frozen = 0x8;
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
         return;
     if ((actor.flags78 & Stunned) == Stunned)
     {

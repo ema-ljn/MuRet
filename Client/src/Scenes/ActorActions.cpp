@@ -105,10 +105,10 @@ int Signed(std::uint16_t model)
     return static_cast<std::int16_t>(model);
 }
 
-// El primer modelo de un grupo de ítems (Data::Models::ItemModel).
+// El primer modelo de un grupo de ítems (Tables::ItemModel).
 int GroupStart(int group)
 {
-    return Data::Models::FirstItemModel + group * Data::Models::ItemModelsPerGroup;
+    return Tables::FirstItemModel + group * Tables::ItemModelsPerGroup;
 }
 
 bool InGroups(int model, int firstGroup, int lastGroup)
@@ -152,7 +152,7 @@ Core::Expected<bool, std::string> IsMarked(int model, const Tables::ItemTable* i
     {
         return Core::Unexpected(std::string("0x4f2250: falta Item.bmd para leer la marca +0x1e del arma"));
     }
-    const auto record = items->Record(static_cast<std::size_t>(model - Data::Models::FirstItemModel));
+    const auto record = items->Record(static_cast<std::size_t>(model - Tables::FirstItemModel));
     if (!record)
     {
         return Core::Unexpected(std::string("0x4f2250: Item.bmd no tiene el registro del arma de la derecha"));
@@ -305,7 +305,7 @@ Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, con
         return ActorStopResult{};
     }
     const bool modelSoundSubtype = actor.subtype >= FirstModelSoundSubtype && actor.subtype <= LastModelSoundSubtype;
-    if (actor.type != Data::Models::PlayerSkeletonModel || modelSoundSubtype)
+    if (actor.type != Tables::PlayerSkeletonModel || modelSoundSubtype)
     {
         if (context.modelSounds.empty())
         {
@@ -340,7 +340,7 @@ Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, con
 Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, const ActorStopContext& context)
 {
     actor.run = 0;
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
     {
         const auto stand = ChooseStand(actor, context);
         if (!stand.HasValue())

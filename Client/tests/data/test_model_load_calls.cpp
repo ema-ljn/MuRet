@@ -22,6 +22,7 @@
 namespace
 {
 namespace Models = Client::Data::Models;
+namespace Tables = Client::Tables;
 
 TEST(ModelLoadCallsTest, SiegeModelPathsAndNumbersFollowTheNativeBmdCalls)
 {
@@ -31,7 +32,7 @@ TEST(ModelLoadCallsTest, SiegeModelPathsAndNumbersFollowTheNativeBmdCalls)
         "Skill\\FlyBigStone1.bmd",     "Skill\\FlyBigStone2.bmd", "Skill\\FlySmallStone1.bmd",
         "Skill\\FlySmallStone2.bmd",   "Skill\\WallStone1.bmd",   "Skill\\WallStone2.bmd",
         "Skill\\GatePart1.bmd",        "Skill\\GatePart2.bmd",    "Skill\\GatePart3.bmd"};
-    const auto files = Models::SiegeModelFiles();
+    const auto files = Tables::SiegeModelFiles();
     ASSERT_EQ(files.size(), expected.size());
     for (std::size_t i = 0; i < files.size(); ++i)
         EXPECT_EQ(std::string(files[i].folder) + Models::ModelFileName(files[i].name, files[i].number), expected[i]);
@@ -39,7 +40,7 @@ TEST(ModelLoadCallsTest, SiegeModelPathsAndNumbersFollowTheNativeBmdCalls)
 
 TEST(ModelLoadCallsTest, CoffinsFollowTheRepeatedGateCallBeforeTheSkillSlotReset)
 {
-    const auto calls = Models::SiegeBeforeSkillTextureCalls();
+    const auto calls = Tables::SiegeBeforeSkillTextureCalls();
     const std::array<std::uint16_t, 4> expected{0x10d, 0x10a, 0x10d, 0x10b};
     ASSERT_EQ(calls.size(), expected.size());
     for (std::size_t i = 0; i < calls.size(); ++i)
@@ -52,7 +53,7 @@ TEST(ModelLoadCallsTest, CoffinsFollowTheRepeatedGateCallBeforeTheSkillSlotReset
 TEST(ModelLoadCallsTest, TheFinalSkillQueriesKeepTheFirstTextureFolderThroughTheNativeNameCache)
 {
     std::map<std::uint16_t, Models::Model> models;
-    for (const auto& file : Models::SiegeModelFiles())
+    for (const auto& file : Tables::SiegeModelFiles())
     {
         Models::Mesh mesh;
         mesh.textureName = "castle" + std::to_string(file.model) + ".jpg";
@@ -63,13 +64,13 @@ TEST(ModelLoadCallsTest, TheFinalSkillQueriesKeepTheFirstTextureFolderThroughThe
     models[0x10d].meshes.push_back(std::move(gate));
     Client::Models::ModelTextureSlots slots(Client::Render::TextureSlot{0x69});
     std::map<std::uint16_t, std::vector<Client::Render::TextureSlot>> bindings;
-    for (const auto& call : Models::SiegeBeforeSkillTextureCalls())
-        bindings[call.model] = slots.Assign(models.at(call.model), call.folder, Models::ModelTextureSampling);
+    for (const auto& call : Tables::SiegeBeforeSkillTextureCalls())
+        bindings[call.model] = slots.Assign(models.at(call.model), call.folder, Tables::ModelTextureSampling);
     slots.SetNext(Client::Render::TextureSlot{0x3b8});
-    for (const auto& call : Models::SiegeTextureCalls())
-        bindings[call.model] = slots.Assign(models.at(call.model), call.folder, Models::ModelTextureSampling);
+    for (const auto& call : Tables::SiegeTextureCalls())
+        bindings[call.model] = slots.Assign(models.at(call.model), call.folder, Tables::ModelTextureSampling);
     ASSERT_EQ(slots.ToLoad().size(), 16u); // One per model and Gate02, despite the repeated lookups.
-    for (const auto& file : Models::SiegeModelFiles())
+    for (const auto& file : Tables::SiegeModelFiles())
     {
         const std::string name = "castle" + std::to_string(file.model) + ".jpg";
         ASSERT_EQ(bindings.at(file.model).size(), 1u);
@@ -85,8 +86,8 @@ TEST(ModelLoadCallsTest, TheFinalSkillQueriesKeepTheFirstTextureFolderThroughThe
         else if (file.model == 0x12f || file.model == 0x130)
             folder = "Object31\\";
         EXPECT_EQ(entry->path, folder + name);
-        EXPECT_EQ(entry->sampling.filter, Models::ModelTextureSampling.filter);
-        EXPECT_EQ(entry->sampling.wrap, Models::ModelTextureSampling.wrap);
+        EXPECT_EQ(entry->sampling.filter, Tables::ModelTextureSampling.filter);
+        EXPECT_EQ(entry->sampling.wrap, Tables::ModelTextureSampling.wrap);
     }
 }
 } // namespace

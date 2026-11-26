@@ -87,7 +87,7 @@ class PartModels final : public IModelLibrary
 public:
     [[nodiscard]] bool Load(const std::filesystem::path& dataRoot, std::uint16_t model)
     {
-        return LoadOne(dataRoot, Client::Data::Models::PlayerSkeletonModel) && LoadOne(dataRoot, model);
+        return LoadOne(dataRoot, Client::Tables::PlayerSkeletonModel) && LoadOne(dataRoot, model);
     }
 
     [[nodiscard]] const Model* Find(std::uint16_t model) const override
@@ -112,7 +112,7 @@ private:
     static std::optional<ModelFile> FileOf(std::uint16_t model)
     {
         for (const std::span<const ModelFile> table :
-             {Client::Data::Models::PlayerModelFiles(), Client::Data::Models::ItemModelFiles()})
+             {Client::Tables::PlayerModelFiles(), Client::Tables::ItemModelFiles()})
         {
             for (const ModelFile& file : table)
             {
@@ -140,8 +140,8 @@ private:
             return false;
         }
         Model read = std::move(loaded).Value();
-        auto skeleton = model == Client::Data::Models::PlayerSkeletonModel ? Client::Assets::MakePlayerSkeleton(read)
-                                                                           : Client::Models::MakeSkeleton(read);
+        auto skeleton = model == Client::Tables::PlayerSkeletonModel ? Client::Assets::MakePlayerSkeleton(read)
+                                                                     : Client::Models::MakeSkeleton(read);
         if (!skeleton.HasValue())
         {
             ADD_FAILURE() << "the skeleton of model " << model;

@@ -164,7 +164,7 @@ TEST(GameCharactersTest, TheFirstSeenCharacterStopsThePass)
     EXPECT_EQ((*walls)[Client::Data::Terrain::CellIndex(119, 115)], 0x05);
 }
 
-constexpr std::uint16_t Boots = Client::Data::Models::ItemModel(11, 0);
+constexpr std::uint16_t Boots = Client::Tables::ItemModel(11, 0);
 
 class UnarmedModels final : public Client::Models::IModelLibrary
 {
@@ -186,11 +186,11 @@ public:
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
     {
-        return model == Boots || model == Client::Data::Models::PlayerShadowModel ? &m_model : nullptr;
+        return model == Boots || model == Client::Tables::PlayerShadowModel ? &m_model : nullptr;
     }
     [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == Client::Data::Models::PlayerSkeletonModel ? &m_skeleton : nullptr;
+        return model == Client::Tables::PlayerSkeletonModel ? &m_skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {
@@ -566,7 +566,7 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     EXPECT_EQ(m_cloth.random.State(), 0x3d6c1037u); // seis rand: (cuerpo + dos manos) por dos frames
     EXPECT_EQ(Actor().byte38eAccesses, 0);
     // 0x509340 deja la pose del cuerpo en los huesos propios (+0x120) para el paso siguiente (0x506d25).
-    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModel)->bones.size());
 }
 
 // Q-C412: 0x6001b0 copia la escala y la posición del personaje al modelo compartido de Player.bmd antes de posar,
@@ -655,7 +655,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         Actor().byte1a1 = probe.byte1a1;
         Actor().dying = probe.dying;
         Actor().position = {150.0f, 150.0f, probe.z};
-        m_world->PlaceModel(Client::Data::Models::PlayerShadowModel, {});
+        m_world->PlaceModel(Client::Tables::PlayerShadowModel, {});
         m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
@@ -665,8 +665,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         EXPECT_EQ(Actor().position.x, 150.0f);
         EXPECT_EQ(Actor().position.y, 150.0f);
         EXPECT_TRUE(SameZ(Actor().position.z, probe.grounded)) << Actor().position.z;
-        const Client::Scenes::SharedModelPlacement shadow =
-            m_world->ModelPlacement(Client::Data::Models::PlayerShadowModel);
+        const Client::Scenes::SharedModelPlacement shadow = m_world->ModelPlacement(Client::Tables::PlayerShadowModel);
         EXPECT_TRUE(SameZ(shadow.origin.z, probe.grounded)) << shadow.origin.z;
         EXPECT_EQ(shadow.scale, 1.0f);
         const auto boots = BootVertices(m_batch);
@@ -703,15 +702,14 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         Actor().pet.model = guard.pet;
         Actor().safeZone = guard.safeZone;
         Actor().position = {150.0f, 150.0f, 10.0f};
-        m_world->PlaceModel(Client::Data::Models::PlayerShadowModel, {});
+        m_world->PlaceModel(Client::Tables::PlayerShadowModel, {});
         m_batch.Begin({});
 
         const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(Actor().position.z, guard.grounded);
-        const Client::Scenes::SharedModelPlacement shadow =
-            m_world->ModelPlacement(Client::Data::Models::PlayerShadowModel);
+        const Client::Scenes::SharedModelPlacement shadow = m_world->ModelPlacement(Client::Tables::PlayerShadowModel);
         EXPECT_EQ(shadow.scale, guard.grounded == 4.0f ? 1.0f : 0.0f);
         const auto boots = BootVertices(m_batch);
         ASSERT_EQ(boots.size(), 3u);
@@ -724,14 +722,14 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
 
     // Entre frames del original, el cuerpo va al suelo pero la z no queda ni el 0x20b se toca.
     Actor().position = {150.0f, 150.0f, 10.0f};
-    m_world->PlaceModel(Client::Data::Models::PlayerShadowModel, {});
+    m_world->PlaceModel(Client::Tables::PlayerShadowModel, {});
     m_batch.Begin({});
     auto between = Pass();
     between.originalFrames = 0;
     const auto projected = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, between);
     ASSERT_TRUE(projected.HasValue()) << projected.Error();
     EXPECT_EQ(Actor().position.z, 10.0f);
-    EXPECT_EQ(m_world->ModelPlacement(Client::Data::Models::PlayerShadowModel).scale, 0.0f);
+    EXPECT_EQ(m_world->ModelPlacement(Client::Tables::PlayerShadowModel).scale, 0.0f);
     const auto boots = BootVertices(m_batch);
     ASSERT_EQ(boots.size(), 3u);
     EXPECT_EQ(boots[0].position.z, 4.0f);
@@ -782,8 +780,7 @@ TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereThe
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(actor.position.z, 4.0f);
     EXPECT_EQ(m_world->PlayerModel().origin, (glm::vec3{150.0f, 150.0f, 10.0f}));
-    EXPECT_EQ(m_world->ModelPlacement(Client::Data::Models::PlayerShadowModel).origin,
-              (glm::vec3{150.0f, 150.0f, 4.0f}));
+    EXPECT_EQ(m_world->ModelPlacement(Client::Tables::PlayerShadowModel).origin, (glm::vec3{150.0f, 150.0f, 4.0f}));
     const auto boots = BootVertices(m_batch);
     ASSERT_EQ(boots.size(), 3u);
     EXPECT_EQ(boots[0].position.z, 4.0f);
@@ -979,7 +976,7 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithou
     ASSERT_TRUE(tail.HasValue()) << tail.Error();
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
     EXPECT_EQ(Actor().byte38eAccesses, 0);
-    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModel)->bones.size());
 }
 
 // Entre frames del original, sobre copias: ni el rand(), ni los huesos propios, ni el modelo compartido.

@@ -52,7 +52,7 @@ struct Replies
     {
         world.Runtime().hero = 7;
         // 0x4ea030 y 0x4f2250 leen las acciones de Player.bmd (los jugadores de 0x513100).
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         Hero().alive = true;
         Hero().key = HeroKey;
         Other().alive = true;
@@ -349,7 +349,7 @@ TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
 {
     auto tested = MakeReplies();
     auto& hero = tested->Hero();
-    hero.type = Client::Data::Models::PlayerSkeletonModel;
+    hero.type = Client::Tables::PlayerSkeletonModel;
     hero.characterClass = 1;
     hero.animation.action = 0x22;
     hero.position = {1000.0f, 2000.0f, 150.0f};
@@ -379,7 +379,7 @@ TEST(QuestRepliesTest, AClassPrizeWithoutPlayerBmdCutsBeforeTheClothes)
     auto tested = MakeReplies();
     tested->models.Clear();
     auto& hero = tested->Hero();
-    hero.type = Client::Data::Models::PlayerSkeletonModel;
+    hero.type = Client::Tables::PlayerSkeletonModel;
     hero.animation.action = 0x22;
     hero.body[0].model = 0x2212;
     const auto applied = Client::Scenes::ApplyQuestResult(

@@ -135,7 +135,7 @@ struct WizardHero
         world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
-        hero.type = Client::Data::Models::PlayerSkeletonModel;
+        hero.type = Client::Tables::PlayerSkeletonModel;
         hero.characterClass = heroClass;
         hero.cellX = 182;
         hero.cellY = 115;
@@ -172,7 +172,7 @@ struct WizardHero
     void ChooseAnAlly()
     {
         auto& chosen = Chosen();
-        chosen.type = Client::Data::Models::PlayerSkeletonModel;
+        chosen.type = Client::Tables::PlayerSkeletonModel;
         chosen.byte88 = 1;
         chosen.byte370 = 0;
         chosen.hands[0].model = chosen.hands[1].model = Client::Scenes::NoItemModel;
@@ -820,7 +820,7 @@ TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
                 for (Client::Scenes::ActorState* actor : {&user, &turned})
                 {
                     actor->alive = true;
-                    actor->type = Client::Data::Models::PlayerSkeletonModel;
+                    actor->type = Client::Tables::PlayerSkeletonModel;
                     actor->hands[0].model = actor->hands[1].model = actor->wings.model = actor->pet.model =
                         Client::Scenes::NoItemModel;
                     actor->animation.action = 1;

@@ -101,14 +101,14 @@ Core::Expected<ActorStopContext, std::string> StopContextForActor(const ActorSta
 {
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = context.playerSkeleton;
-    if (actor.type == Data::Models::PlayerSkeletonModel && playerSkeleton == nullptr)
+    if (actor.type == Tables::PlayerSkeletonModel && playerSkeleton == nullptr)
         return Core::Unexpected(std::string(missingPlayer));
     if (playerSkeleton == nullptr)
         playerSkeleton = &EmptySkeleton;
 
     const Models::Skeleton* actorSkeleton = nullptr;
     const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         actorSkeleton = context.world.FaunaResources().SkeletonOf(actor.type);
         if (actorSkeleton == nullptr && context.models != nullptr)

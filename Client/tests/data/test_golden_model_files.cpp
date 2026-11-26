@@ -28,17 +28,11 @@ namespace
 using Client::Assets::MakePlayerSkeleton;
 using Client::Data::ResolveDataPath;
 using Client::Data::Models::Bone;
-using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::Mesh;
-using Client::Data::Models::MeshesWithoutShine;
 using Client::Data::Models::ModelFile;
 using Client::Data::Models::ModelFileName;
 using Client::Data::Models::ModelLoadErrorKind;
-using Client::Data::Models::ModelMesh;
-using Client::Data::Models::PlayerActionSpeeds;
-using Client::Data::Models::PlayerActionsWithoutRepeat;
-using Client::Data::Models::PlayerModelFiles;
 using Client::Data::Models::Vertex;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::Sampling;
@@ -49,6 +43,12 @@ using Client::Data::Textures::Wrap;
 using Client::Models::ActionInfo;
 using Client::Models::ModelTextureSlots;
 using Client::Render::TextureSlot;
+using Client::Tables::ItemModelFiles;
+using Client::Tables::MeshesWithoutShine;
+using Client::Tables::ModelMesh;
+using Client::Tables::PlayerActionSpeeds;
+using Client::Tables::PlayerActionsWithoutRepeat;
+using Client::Tables::PlayerModelFiles;
 
 // The selection models 0x61ca30 loads: Logo05 at 0xa4 and the NewFace at 0xa8 to 0xac (0x61cb92 and the loop at
 // 0x61cbb1).

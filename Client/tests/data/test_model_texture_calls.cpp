@@ -20,21 +20,21 @@
 // hand (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario").
 namespace
 {
-using Client::Data::Models::FenrirTextureCalls;
-using Client::Data::Models::ItemModelFiles;
-using Client::Data::Models::ItemTextureCalls;
 using Client::Data::Models::ModelFile;
-using Client::Data::Models::ModelTextureCall;
-using Client::Data::Models::ModelTextureSampling;
-using Client::Data::Models::PlayerFixedTextures;
-using Client::Data::Models::PlayerModelFiles;
-using Client::Data::Models::PlayerSkeletonModel;
-using Client::Data::Models::PlayerTextureCalls;
-using Client::Data::Models::SkillModelFiles;
-using Client::Data::Models::SkillTextureCalls;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
+using Client::Tables::FenrirTextureCalls;
+using Client::Tables::ItemModelFiles;
+using Client::Tables::ItemTextureCalls;
+using Client::Tables::ModelTextureCall;
+using Client::Tables::ModelTextureSampling;
+using Client::Tables::PlayerFixedTextures;
+using Client::Tables::PlayerModelFiles;
+using Client::Tables::PlayerSkeletonModel;
+using Client::Tables::PlayerTextureCalls;
+using Client::Tables::SkillModelFiles;
+using Client::Tables::SkillTextureCalls;
 
 bool Calls(std::span<const ModelTextureCall> calls, std::uint16_t model)
 {

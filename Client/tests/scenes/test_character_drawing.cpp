@@ -449,7 +449,7 @@ TEST(CharacterDrawingTest, TheShadowGoesFirstBlackAndFlat)
     DrawnCharacter character;
     character.appearance = Client::GameLogic::ClassAppearance(0, 0);
     character.object.position = {100.0f, 200.0f, 163.0f};
-    const OneModel models(Client::Data::Models::PlayerShadowModel, "hide_m.jpg", 1, TextureSlot{0x12d});
+    const OneModel models(Client::Tables::PlayerShadowModel, "hide_m.jpg", 1, TextureSlot{0x12d});
 
     const ModelBatch batch = Drawn(models, character);
 
@@ -469,7 +469,7 @@ TEST(CharacterDrawingTest, ThePlayerShadowWidensOnlyInCastleSiege)
     DrawnCharacter character;
     character.appearance = Client::GameLogic::ClassAppearance(0, 0);
     character.object.position = {100.0f, 200.0f, 163.0f};
-    OneModel models(Client::Data::Models::PlayerShadowModel);
+    OneModel models(Client::Tables::PlayerShadowModel);
     models.FirstMesh().vertices[0].position = {100.0f, 0.0f, 50.0f};
 
     for (std::int32_t map = 0; map <= 255; ++map)
@@ -500,7 +500,7 @@ TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)
         }
         [[nodiscard]] const Model* Find(std::uint16_t model) const override
         {
-            return model == m_drawn || model == Client::Data::Models::PlayerShadowModel ? &m_model : nullptr;
+            return model == m_drawn || model == Client::Tables::PlayerShadowModel ? &m_model : nullptr;
         }
         [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
         {
@@ -535,7 +535,7 @@ TEST(CharacterDrawingTest, ARiddenPetHasNoShadow)
         DrawnCharacter character;
         character.appearance = Client::GameLogic::ClassAppearance(0, 0);
         character.appearance.pet = pet;
-        const OneModel models(Client::Data::Models::PlayerShadowModel);
+        const OneModel models(Client::Tables::PlayerShadowModel);
 
         const ModelBatch batch = Drawn(models, character);
 

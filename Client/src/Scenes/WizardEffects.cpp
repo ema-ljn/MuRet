@@ -153,7 +153,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
                 const Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
                 if (skeleton == nullptr && models != nullptr)
                     skeleton = models->SkeletonOf(actor.type);
-                if (actor.type != Data::Models::PlayerSkeletonModel)
+                if (actor.type != Tables::PlayerSkeletonModel)
                 {
                     // 0x524b0a: 0x4ea030(personaje, 5).
                     if (skeleton != nullptr)

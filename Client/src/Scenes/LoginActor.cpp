@@ -53,7 +53,7 @@ void PrepareLoginPresentationActor(ActorState& actor, const Models::Skeleton& sk
     EquipTheLoginActor(actor);
     actor.alive = true;
     actor.seen = true;
-    actor.type = Data::Models::PlayerSkeletonModel;
+    actor.type = Tables::PlayerSkeletonModel;
     actor.safeZone = 0;
     actor.alphaTarget = 1.0f;
     actor.alpha = 1.0f;
@@ -70,7 +70,7 @@ Core::Expected<void, std::string> ConstructLoginActor(ActorState& actor, const A
                                                       WorldRuntime& runtime, Models::ClothWorld& cloth,
                                                       const Models::Skeleton& skeleton)
 {
-    const auto built = ConstructActor(actor, Data::Models::PlayerSkeletonModel, {}, construction, cloth);
+    const auto built = ConstructActor(actor, Tables::PlayerSkeletonModel, {}, construction, cloth);
     if (!built.HasValue())
     {
         return built;

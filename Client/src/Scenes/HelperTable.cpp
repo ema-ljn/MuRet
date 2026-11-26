@@ -771,7 +771,7 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const ActorSta
     {
         return {};
     }
-    if (rider.type != Data::Models::PlayerSkeletonModel && helper.type != RiderlessHelper)
+    if (rider.type != Tables::PlayerSkeletonModel && helper.type != RiderlessHelper)
     {
         return {};
     }
@@ -875,7 +875,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
 {
     const std::int32_t map = world.Runtime().map;
     const ActorState& riding = world.Actors()[rider];
-    if (IsChaosCastle(map) || (riding.type != Data::Models::PlayerSkeletonModel && type != RiderlessHelper))
+    if (IsChaosCastle(map) || (riding.type != Tables::PlayerSkeletonModel && type != RiderlessHelper))
     {
         return std::optional<std::size_t>{};
     }

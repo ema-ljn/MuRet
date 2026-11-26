@@ -75,7 +75,7 @@ struct Applier
                                                       .log = log,
                                                       .scene = [this] { return scene; }})
     {
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
     Client::Scenes::WorldState world;

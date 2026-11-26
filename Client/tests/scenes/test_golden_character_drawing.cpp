@@ -48,11 +48,9 @@ namespace
 {
 using Client::Assets::MakePlayerSkeleton;
 using Client::Core::PixelSize;
-using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::Model;
 using Client::Data::Models::ModelFile;
-using Client::Data::Models::PlayerModelFiles;
 using Client::GameLogic::CharacterAppearance;
 using Client::GameLogic::WornItem;
 using Client::Models::AnimationState;
@@ -68,6 +66,8 @@ using Client::Scenes::DrawCharacter;
 using Client::Scenes::DrawnCharacter;
 using Client::Scenes::SelectionCamera;
 using Client::Scenes::WorldViewport;
+using Client::Tables::ItemModelFiles;
+using Client::Tables::PlayerModelFiles;
 using Client::Tests::GlTrace;
 using Client::Tests::GlTraceBlock;
 using Client::Tests::ReadGlTrace;

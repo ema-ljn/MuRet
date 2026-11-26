@@ -25,10 +25,10 @@
 // D+0x10 y D+0x12 son los +0x28 y +0x29 del mismo registro (3 y 1, 9, 10), como los copia 0x54bf40.
 namespace
 {
-using Client::Data::Models::FirstItemModel;
-using Client::Data::Models::ItemModel;
 using Client::Scenes::ItemSetOptionList;
 using Client::Scenes::OwnCharacterRecord;
+using Client::Tables::FirstItemModel;
+using Client::Tables::ItemModel;
 using Client::World::ItemState;
 
 constexpr std::string_view ItemFile = "Local\\Item.bmd";

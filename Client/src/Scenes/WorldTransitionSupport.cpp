@@ -50,8 +50,8 @@ ActorState& PublishedHero(const WorldEntryResources& resources)
 Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorState& actor,
                                                                     const WorldEntryResources& resources)
 {
-    const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    const bool isPlayer = actor.type == Data::Models::PlayerSkeletonModel;
+    const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const bool isPlayer = actor.type == Tables::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
         return Core::Unexpected(std::string("0x4f2250: falta Player.bmd en la transición"));
     static const Models::Skeleton EmptySkeleton;
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, cons
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
     constexpr std::uint8_t TeleportAction = 0x93;
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
         Models::SetAction(actor.animation, stop.Value().playerSkeleton, TeleportAction);
     else if (stop.Value().actorSkeleton != nullptr)
         Models::SetAction(actor.animation, *stop.Value().actorSkeleton, TeleportAction);

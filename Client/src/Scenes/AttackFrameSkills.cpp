@@ -56,7 +56,7 @@ Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArgum
     return {};
 }
 
-constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 // 0x4fab0a, 0x4fab4a y 0x4fb0dc: +0x381 en 15, que la cabeza del paso (0x4fdbda) toma como habilidad terminada.
 constexpr std::uint8_t AttackDone = 15;
 // [0x6c88ac]: el 15 de 0x4f987d (y de 0x4fa47e, 0x4fa5c3, 0x4faa29 y 0x4faaba) y el 5 de la 0x34 (0x4f9ee2).

@@ -117,12 +117,12 @@ Trail MonsterTrail(const ActorState& actor, Trail trail)
 Trail TrailOf(const ActorState& actor)
 {
     const bool left = actor.animation.action == 0x25 || actor.animation.action == 0x26;
-    const std::size_t hand = actor.type == Data::Models::PlayerSkeletonModel && left ? 1 : 0;
+    const std::size_t hand = actor.type == Tables::PlayerSkeletonModel && left ? 1 : 0;
     Trail trail{.model = static_cast<std::int16_t>(actor.hands[hand].model),
                 .level = actor.hands[hand].level,
                 .firstHand = hand,
                 .secondHand = hand};
-    return actor.type == Data::Models::PlayerSkeletonModel ? PlayerTrail(actor, trail) : MonsterTrail(actor, trail);
+    return actor.type == Tables::PlayerSkeletonModel ? PlayerTrail(actor, trail) : MonsterTrail(actor, trail);
 }
 
 // 4fd2e4..4fd3a4: el arma roja prevalece sobre nivel99 y sobre el tipo de cinta.
@@ -182,7 +182,7 @@ Result Append(ActorState& actor, const Trail& trail, const glm::vec3& first, con
 
 bool SingleSample(const ActorState& actor, int model)
 {
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
         return actor.type != 0x194 && actor.type != 0x195 && actor.type != 0x197;
     return model == 0x215 || model == 0x218 || model == 0x21b || model == 0x21d || model == 0x816;
 }
@@ -210,7 +210,7 @@ Result SampleRibbon(ActorState& actor, const Trail& trail, const Models::Skeleto
         return Core::Unexpected(std::string("0x4fd487: la acción compartida de la estela pasa su tabla"));
     const auto& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
     const float base = skeleton.actions[placement.action].speed;
-    const float speed = actor.type == Data::Models::PlayerSkeletonModel ? speeds.Speed(placement.action, base) : base;
+    const float speed = actor.type == Tables::PlayerSkeletonModel ? speeds.Speed(placement.action, base) : base;
     float frame = F32(static_cast<double>(actor.animation.frame) - speed);
     const float step = F32(static_cast<double>(speed) * SampleStep);
     const auto offsets = OffsetsOf(trail.mode);

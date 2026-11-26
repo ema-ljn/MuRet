@@ -153,7 +153,7 @@ Core::Expected<void, std::string> SharedTail::Use()
     if (!cost.HasValue())
         return Core::Unexpected(cost.Error());
     // 0x580916..0x580922: el héroe de 0x57cfc0 tiene que ser un jugador; si no, 0x599d4c (solo el cierre).
-    if (m_hero.type != Data::Models::PlayerSkeletonModel)
+    if (m_hero.type != Tables::PlayerSkeletonModel)
         return {};
     if (auto paid = PayForTheSkill(cost.Value()); !paid.HasValue())
         return paid;

@@ -295,8 +295,8 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
         return Core::Unexpected(initialized.Error());
     }
     ActorState& hero = world.Actors()[runtime.hero];
-    const Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    const bool isPlayer = hero.type == Data::Models::PlayerSkeletonModel;
+    const Models::Skeleton* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const bool isPlayer = hero.type == Tables::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
     {
         return Core::Unexpected(std::string("0x5bc740 (0x5bc886): 0x512a30 necesita Player.bmd (0x20a) para 0x4f2250"));

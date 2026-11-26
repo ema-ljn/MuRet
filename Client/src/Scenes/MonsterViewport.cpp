@@ -357,7 +357,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Viewport::Ob
     auto& random = resources.cloth.random;
     const ActorConstructionContext construction{world.Map().terrain, runtime.map, World::CullingScene::Game,
                                                 resources.camera.fixedHeight};
-    const auto created = CreateActor(world, record.key, Data::Models::PlayerSkeletonModel, {record.x, record.y, 0.0f},
+    const auto created = CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
                                      construction, resources.cloth);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
@@ -453,12 +453,12 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     }
     // 0x4c9acb..0x4c9af7.
     constexpr std::uint8_t ArrivalAction = 0xc1;
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         actor.alpha = 0.0f;
         return {};
     }
-    const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (skeleton == nullptr)
         return Core::Unexpected(std::string("0x4c9ad9: falta Player.bmd para la acción 0xc1 del recién llegado"));
     Models::SetAction(actor.animation, *skeleton, ArrivalAction);

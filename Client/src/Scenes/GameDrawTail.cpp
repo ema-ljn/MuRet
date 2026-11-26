@@ -760,7 +760,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
             if (blendMesh == -1 || blendMesh < -2)
                 continue;
             const auto modelId = static_cast<std::uint16_t>(effect.type);
-            if (modelId >= Data::Models::ModelTableSize)
+            if (modelId >= Tables::ModelTableSize)
                 return Core::Unexpected(std::format("0x52d68c: modelo {:#x} fuera de la tabla", modelId));
             const auto* model = models.Find(modelId);
             // 0x60dbe0 inicializa la tabla a cero. Un BMD ausente deja en cero su cuenta de mallas.

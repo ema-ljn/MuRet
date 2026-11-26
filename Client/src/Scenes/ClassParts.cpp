@@ -38,7 +38,7 @@ const ActorItemPart& ComparedPart(const ActorState& actor, std::size_t part)
 Core::Expected<ActorStopResult, std::string> ApplyTheClassParts(ActorState& actor, const ActorStopContext& stop)
 {
     // 0x513107: CMP word [esi+2], 0x20a.
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
         return ActorStopResult{};
     ActorStopResult result;
     const std::uint8_t action = actor.animation.action;

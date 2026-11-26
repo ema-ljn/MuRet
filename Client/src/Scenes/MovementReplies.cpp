@@ -62,13 +62,13 @@ void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt:
 }
 Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& actor, const WorldEntryResources& resources)
 {
-    const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (skeleton == nullptr && actor.type == Data::Models::PlayerSkeletonModel)
+    const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    if (skeleton == nullptr && actor.type == Tables::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4c6790: falta Player.bmd para la acción del personaje"));
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Data::Models::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     return ActorStopContext{.runtime = resources.world.Runtime(),
                             .scene = SceneId::Game,
                             .playerSkeleton = *playerSkeleton,
@@ -266,7 +266,7 @@ Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Dam
         {
             SubtractHeroLife(reply.amount, resources);
             constexpr std::uint32_t DefensiveEffectFlag = 0x100;
-            if ((actor->flags78 & DefensiveEffectFlag) != 0 && actor->type == Data::Models::PlayerSkeletonModel)
+            if ((actor->flags78 & DefensiveEffectFlag) != 0 && actor->type == Tables::PlayerSkeletonModel)
                 if (auto shielded = RaiseTheShield(*actor, resources); !shielded.HasValue())
                     return shielded;
         }

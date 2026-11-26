@@ -420,7 +420,7 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
     // 0x565278..0x5652a6: el segundo argumento (el héroe) pegando ya no vuelve a pegar; de 0x22 a 0x97, sólo con la
     // 0x8d (Q-C1162).
     const std::uint8_t action = hero.animation.action;
-    if (hero.type == Data::Models::PlayerSkeletonModel)
+    if (hero.type == Tables::PlayerSkeletonModel)
     {
         if (action >= 0x22 && action <= 0x97 && action == 0x8d)
             return {};

@@ -153,8 +153,8 @@ Core::Expected<void, std::string> DrawWornParts(Render::ModelBatch& batch, const
             if (owner.blendMeshLight != nullptr)
                 *owner.blendMeshLight = light.Value();
             // 0x50d470..0x50d4a4
-            if (std::ranges::find(Data::Models::HelmsWithMask, part.model) != Data::Models::HelmsWithMask.end())
-                part.model = static_cast<std::uint16_t>(part.model + Data::Models::MaskHelmOffset);
+            if (std::ranges::find(Tables::HelmsWithMask, part.model) != Tables::HelmsWithMask.end())
+                part.model = static_cast<std::uint16_t>(part.model + Tables::MaskHelmOffset);
         }
         if (auto drawn = DrawItemPart(batch, models, owner, part, frameClock, context, onPartBox); !drawn.HasValue())
             return drawn;

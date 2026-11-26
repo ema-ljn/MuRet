@@ -43,7 +43,7 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
                                                     const Models::IModelLibrary& models, WorldState& world,
                                                     World::ModelEffects& effects, Crt::CrtRandom& random)
 {
-    constexpr std::uint16_t Shadow = Data::Models::PlayerShadowModel;
+    constexpr std::uint16_t Shadow = Tables::PlayerShadowModel;
     const Data::Models::Model* model = models.Find(Shadow);
     const Models::Skeleton* skeleton = models.SkeletonOf(Shadow);
     if (model == nullptr || skeleton == nullptr)

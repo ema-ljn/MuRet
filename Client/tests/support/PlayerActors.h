@@ -33,7 +33,7 @@ inline Models::Skeleton PlayerActionsSkeleton()
 inline Scenes::ActorState UnarmedPlayer(std::uint8_t characterClass = 0)
 {
     Scenes::ActorState actor;
-    actor.type = Data::Models::PlayerSkeletonModel;
+    actor.type = Tables::PlayerSkeletonModel;
     actor.characterClass = characterClass;
     actor.hands[0].model = Scenes::NoItemModel;
     actor.hands[1].model = Scenes::NoItemModel;
@@ -53,7 +53,7 @@ inline Tables::ItemTable ItemsMarking(std::initializer_list<std::uint16_t> marke
     std::vector<std::byte> plain(Tables::ItemTableSize);
     for (const std::uint16_t model : markedModels)
     {
-        const auto type = static_cast<std::size_t>(model - Data::Models::FirstItemModel);
+        const auto type = static_cast<std::size_t>(model - Tables::FirstItemModel);
         plain[type * Tables::ItemRecordSize + MarkOffset] = std::byte{1};
     }
     const std::vector<std::byte> encrypted = EncryptRecords(std::move(plain), Tables::ItemRecordSize);

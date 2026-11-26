@@ -793,7 +793,7 @@ protected:
 // Player.bmd del Data\ del repo, con sus 205 acciones (P-C14 a).
 std::optional<Skeleton> LoadPlayerSkeleton(const std::filesystem::path& dataRoot)
 {
-    for (const Client::Data::Models::ModelFile& file : Client::Data::Models::PlayerModelFiles())
+    for (const Client::Data::Models::ModelFile& file : Client::Tables::PlayerModelFiles())
     {
         if (file.name != Client::Data::Models::PlayerSkeletonName)
         {
@@ -2128,7 +2128,7 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         std::string_view cut;
         int draws;
     };
-    constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
+    constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
     for (const Case& probe :
          {Case{"se muere", Player, 1, 0, FrameSkillCut, WallDraws + BodyDraws + SkillReadDraws + FrameSkillDraws},
           Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
@@ -2437,8 +2437,8 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
         hero.angles = {0.0f, 0.0f, 45.0f};
         if (probe.drawn)
         {
-            hero.bodyPose.assign(Client::Data::Models::PlayerHeadBone + 1, Client::Math::BoneTransform(0.0f));
-            Client::Math::BoneTransform& head = hero.bodyPose[Client::Data::Models::PlayerHeadBone];
+            hero.bodyPose.assign(Client::Tables::PlayerHeadBone + 1, Client::Math::BoneTransform(0.0f));
+            Client::Math::BoneTransform& head = hero.bodyPose[Client::Tables::PlayerHeadBone];
             head = Client::Math::BoneTransform(1.0f);
             head[3] = glm::vec3(5.0f, 6.0f, 7.0f);
         }

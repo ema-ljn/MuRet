@@ -333,7 +333,7 @@ CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& e
     // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
     character.appearance = entry.withoutEquipment ? GameLogic::ClassAppearance(characterClass, 0)
                                                   : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
-    if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+    if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel))
     {
         Models::SetAction(character.animation.body, *skeleton, StandingAction);
     }
@@ -505,7 +505,7 @@ CharacterStepContext CharacterSelectScene::CharacterContext()
     return {.world = *m_context.world,
             .random = m_context.cloth->random,
             .scene = SceneId::CharacterSelect,
-            .playerSkeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+            .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel),
             .items = m_items,
             .terrain = m_context.selection->Terrain(),
             .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
@@ -1635,7 +1635,7 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
         if (poseCarry != nullptr)
             drawn.poseBones = [poseCarry, actor](std::uint16_t model)
             {
-                if (model != Data::Models::PlayerSkeletonModel)
+                if (model != Tables::PlayerSkeletonModel)
                     return std::span<const Math::BoneTransform>(poseCarry->bones);
                 return actor != nullptr ? std::span<const Math::BoneTransform>(actor->bodyPose)
                                         : std::span<const Math::BoneTransform>();
@@ -1644,7 +1644,7 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
             drawn.onPose = [this, poseCarry](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                                              const Models::ObjectTransform& transform, bool translated)
             {
-                if (model == Data::Models::PlayerSkeletonModel)
+                if (model == Tables::PlayerSkeletonModel)
                     return;
                 if (auto result = PublishFaunaPoseRaw(*poseCarry, m_models, model, bones, transform, translated);
                     !result.HasValue())
@@ -1694,7 +1694,7 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
 
 bool CharacterSelectScene::HasTheSkeleton() const
 {
-    const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
     return skeleton != nullptr && !skeleton->actions.empty();
 }
 
@@ -1750,7 +1750,7 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Actor
 FullSetScan CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
 {
     if (m_context.world == nullptr || m_context.cloth == nullptr ||
-        m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
+        m_models.SkeletonOf(Tables::PlayerSkeletonModel) == nullptr)
     {
         return {};
     }

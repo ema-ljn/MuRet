@@ -141,7 +141,7 @@ Core::Expected<void, std::string> StepOtherActorMotion(ActorState& actor, const 
         actor.movement = 0;
         ActorStopContext stop = walk.stop;
         stop.modelSounds = walk.modelSounds;
-        if (actor.type != Data::Models::PlayerSkeletonModel)
+        if (actor.type != Tables::PlayerSkeletonModel)
             stop.actorSkeleton = walk.actorSkeleton;
         const auto stopped = SetActorStop(actor, stop);
         if (!stopped.HasValue())

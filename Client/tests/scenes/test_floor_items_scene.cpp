@@ -169,7 +169,7 @@ struct Stage
                                               {103, "Anillo"}}))
     {
         sprites.Begin(Client::Core::PixelSize{640, 480});
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
         Scenes::WorldRuntime& runtime = world.Runtime();

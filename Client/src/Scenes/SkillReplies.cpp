@@ -77,7 +77,7 @@ bool RidingAPegasus(const ActorState& actor)
 
 bool IsPlayer(const ActorState& actor)
 {
-    return actor.type == Data::Models::PlayerSkeletonModel;
+    return actor.type == Tables::PlayerSkeletonModel;
 }
 
 // 0x4ea030 con el modelo del tipo del personaje (+2): sin él en MuRet, corta.

@@ -88,7 +88,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Client::Scenes::GameModels models;
     const auto loadedModels = models.Load(m_dataRoot, textures, online.log);
     ASSERT_TRUE(loadedModels.HasValue()) << loadedModels.Error();
-    const auto* player = models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel);
+    const auto* player = models.SkeletonOf(Client::Tables::PlayerSkeletonModel);
     ASSERT_NE(player, nullptr);
 
     // El constructor de la lista lee el terreno del login anterior; InitializeSelection carga
@@ -120,7 +120,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_TRUE(world.Runtime().drawingEnabled);
     auto& hero = world.Actors()[world.Runtime().hero];
     ASSERT_TRUE(hero.alive);
-    ASSERT_EQ(hero.type, Client::Data::Models::PlayerSkeletonModel);
+    ASSERT_EQ(hero.type, Client::Tables::PlayerSkeletonModel);
     const auto revision = hero.revision;
     const auto position = hero.position;
     const auto animation = hero.animation;

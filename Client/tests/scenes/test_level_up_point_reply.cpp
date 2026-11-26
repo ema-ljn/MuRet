@@ -51,7 +51,7 @@ struct Stage
 {
     Stage()
     {
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
         world.Runtime().hero = HeroSlot;

@@ -76,7 +76,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
-    models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+    models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
     const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     LetterMeasure letters;

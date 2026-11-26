@@ -79,7 +79,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     world->OwnCharacter().ClearEquipmentForEntry();
     // El cuerpo del héroe (0x4f9580) pide el esqueleto de Player.bmd.
     Client::Scenes::SingleModelLibrary models;
-    models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+    models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     LetterMeasure letters;
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = dataRoot,
                                                                  .textures = store,

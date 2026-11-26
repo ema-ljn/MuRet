@@ -155,7 +155,7 @@ public:
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == Client::Data::Models::PlayerSkeletonModel ? &player : nullptr;
+        return model == Client::Tables::PlayerSkeletonModel ? &player : nullptr;
     }
     std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
     {
@@ -194,7 +194,7 @@ protected:
         Runtime().hero = 0;
         ActorState& hero = Actor(0, "Hornero", 0x0042);
         hero.word1f2 = 0xffff;
-        hero.type = Client::Data::Models::PlayerSkeletonModel;
+        hero.type = Client::Tables::PlayerSkeletonModel;
     }
 
     ActorState& Actor(std::size_t index, std::string_view name, std::uint16_t key)

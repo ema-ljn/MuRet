@@ -17,10 +17,10 @@ using Client::Assets::MakePlayerSkeleton;
 using Client::Data::Models::Action;
 using Client::Data::Models::Bone;
 using Client::Data::Models::Model;
-using Client::Data::Models::PlayerActionSpeed;
-using Client::Data::Models::PlayerActionsWithoutRepeat;
-using Client::Data::Models::PlayerHeadBone;
 using Client::Models::MakeSkeleton;
+using Client::Tables::PlayerActionSpeed;
+using Client::Tables::PlayerActionsWithoutRepeat;
+using Client::Tables::PlayerHeadBone;
 using Client::Tests::SampleModel;
 
 // A model with the 205 actions of Player.bmd, two keys each, and one bone.

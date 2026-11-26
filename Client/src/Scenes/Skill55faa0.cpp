@@ -57,7 +57,7 @@ bool CrossbowInTheRight(const ActorState& actor)
 // acción, de cualquier tipo, +0x38f sube.
 Core::Expected<void, std::string> SetTheShotAction(ActorState& actor, const ActorCombatContext& context)
 {
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
     {
         RefreshCombatActionSpeeds(context.world, context.random);
         const bool riding = (actor.pet.model == UniriaModel || actor.pet.model == DinorantModel) && actor.safeZone == 0;

@@ -171,7 +171,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     constexpr std::uint32_t Bit100 = 0x100;
     if (Has(flags, Bit100))
     {
-        if (!Has(actor.flags78, Bit100) && actor.type == Data::Models::PlayerSkeletonModel)
+        if (!Has(actor.flags78, Bit100) && actor.type == Tables::PlayerSkeletonModel)
         {
             constexpr std::int32_t Bit100Sound = 0x84;
             requestSound(Bit100Sound);

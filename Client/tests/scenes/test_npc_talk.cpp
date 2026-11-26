@@ -106,7 +106,7 @@ public:
         terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
         ActorState& hero = Hero();
         hero.alive = true;
-        hero.type = Client::Data::Models::PlayerSkeletonModel;
+        hero.type = Client::Tables::PlayerSkeletonModel;
         hero.cellX = hero.targetX = 182;
         hero.cellY = hero.targetY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};

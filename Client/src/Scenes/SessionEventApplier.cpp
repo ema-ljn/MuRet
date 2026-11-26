@@ -249,8 +249,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
                                                                       const App::ServerSession&)
 {
     return m_resources.selection.Apply(std::span(&event, 1), m_resources.camera, m_resources.cameraInput,
-                                       &m_resources.cloth,
-                                       m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel));
+                                       &m_resources.cloth, m_resources.models.SkeletonOf(Tables::PlayerSkeletonModel));
 }
 
 // Lo que las ventanas de los chats dejaron para sus salas (un chat que se soltó sale de la suya) sale al final de cada
@@ -686,7 +685,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .measure = m_resources.textMeasure,
             .screen = m_resources.screen ? m_resources.screen() : Core::PixelSize{640, 480},
             .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
-            .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+            .playerSkeleton = m_resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
             .models = &m_resources.models,
             .sendWindowClose = [&session] { session.SendWindowClose(); },
             // SendChat manda cualquier paquete de mundo, como el de los demás pasos.

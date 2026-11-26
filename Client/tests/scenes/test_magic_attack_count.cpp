@@ -73,7 +73,7 @@ public:
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == Client::Data::Models::PlayerSkeletonModel ? &player : nullptr;
+        return model == Client::Tables::PlayerSkeletonModel ? &player : nullptr;
     }
     std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {

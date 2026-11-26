@@ -114,7 +114,7 @@ Core::Expected<ActorStopContext, std::string> StopContextForHero(const ActorStat
                                                                  const HeroMovementContext& context)
 {
     static const Models::Skeleton EmptySkeleton;
-    const bool player = hero.type == Data::Models::PlayerSkeletonModel;
+    const bool player = hero.type == Tables::PlayerSkeletonModel;
     if (player && context.playerSkeleton == nullptr)
         return Core::Unexpected(std::string("0x5674e5: falta Player.bmd"));
 

@@ -654,7 +654,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
         value = actor.byte38e;
     }
     // 0x509926: con '4', un jugador entre las acciones 0x22 y 0x97 y del frame 5 al 10.
-    if (value == 0x34 && actor.type == Data::Models::PlayerSkeletonModel && actor.animation.action >= 0x22 &&
+    if (value == 0x34 && actor.type == Tables::PlayerSkeletonModel && actor.animation.action >= 0x22 &&
         actor.animation.action <= 0x97 && actor.animation.frame >= 5.0f && actor.animation.frame <= 10.0f)
     {
         part.animation.previousKey = 2;
@@ -757,7 +757,7 @@ BackItem BackItemOf(const ActorState& actor, bool back)
 
 float PlayerActionSpeed(const GameHangingPass& pass, std::size_t action)
 {
-    const Models::Skeleton* player = pass.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = pass.models.SkeletonOf(Tables::PlayerSkeletonModel);
     return player != nullptr && action < player->actions.size() ? player->actions[action].speed : 0.0f;
 }
 
@@ -1315,7 +1315,7 @@ Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameH
     Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f)), actor.scale};
     // 0x50dcc2: lo que no es un jugador 0x20a salta a 0x50e060, sin la espalda, el arma del evento, la capa ni las
     // alas.
-    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const bool player = actor.type == Tables::PlayerSkeletonModel;
     if (SomethingHangs(actor) && (pass.carry == nullptr || pass.sprites == nullptr))
         return Core::Unexpected<std::string>(
             "0x509340: faltan el buffer global de la pose (0x68b181c) o la tabla de sprites (0x5491e0)");

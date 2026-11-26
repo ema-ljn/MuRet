@@ -66,7 +66,7 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 
 bool IsPlayer(const ActorState& actor)
 {
-    return actor.type == Data::Models::PlayerSkeletonModel;
+    return actor.type == Tables::PlayerSkeletonModel;
 }
 
 // 0x57e162..0x57e1b1 y 0x57f9d1..0x57fa1c: el arma de tiro del héroe publicado (los CMP de WORD con signo): la derecha

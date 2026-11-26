@@ -137,8 +137,8 @@ protected:
     {
         SetTheHeroName("Heroe");
         world.OwnCharacter().level = 10;
-        world.Actors()[world.Runtime().hero].type = Client::Data::Models::PlayerSkeletonModel;
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        world.Actors()[world.Runtime().hero].type = Client::Tables::PlayerSkeletonModel;
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
     void SetTheHeroName(std::string_view name)

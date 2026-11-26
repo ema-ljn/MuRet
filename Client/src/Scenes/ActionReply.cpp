@@ -109,13 +109,13 @@ std::uint8_t AnimationOf(const ActorState& actor, std::uint8_t action)
 Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEntryResources& resources,
                                                const ActionSender& sendAction)
 {
-    const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (player == nullptr && actor.type == Data::Models::PlayerSkeletonModel)
+    const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    if (player == nullptr && actor.type == Tables::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4cb813: falta Player.bmd para 0x4f2250"));
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Data::Models::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     const ActorStopContext context{.runtime = resources.world.Runtime(),
                                    .scene = SceneId::Game,
                                    .playerSkeleton = *playerSkeleton,
@@ -178,9 +178,9 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
     // 0x4ea030 lee las acciones del modelo del personaje (0x5769ad8 + tipo · 0xe0): un monstruo o un NPC, el que
     // cargó su alta; un modelo que no está es el registro sin acciones y no pone nada (0x4ea056). Sin Player.bmd, el
     // jugador es una guarda de contrato.
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
     {
-        const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
         if (player == nullptr)
             return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
         Models::SetAction(actor.animation, *player, AnimationOf(actor, action));

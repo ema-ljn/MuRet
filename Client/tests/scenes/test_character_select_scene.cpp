@@ -2556,7 +2556,7 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     static_cast<void>(tested.Frame());
 
-    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Tables::PlayerSkeletonModel));
     EXPECT_TRUE(world.PoseCarry().models.contains(std::uint16_t{0x1a12}));
     // Q-C412: el último de la lista deja su escala y su posición en el modelo compartido de Player.bmd.
     EXPECT_EQ(world.PlayerModel().scale, world.Actors()[3].scale);
@@ -2570,7 +2570,7 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     static_cast<void>(tested.Frame());
 
-    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Tables::PlayerSkeletonModel));
     for (const std::size_t slot : Slots)
         EXPECT_EQ(world.Actors()[slot].bodyPose[0][3], glm::vec3(7, 8, 9));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
@@ -2582,7 +2582,7 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 {
     using Client::Models::OriginalFrameTime;
-    constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
+    constexpr std::uint16_t Shadow = Client::Tables::PlayerShadowModel;
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState selection(*world);
     Client::Models::ClothWorld cloth;

@@ -5,7 +5,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Data::Models
+namespace Client::Tables
 {
 namespace
 {
@@ -79,4 +79,4 @@ std::optional<float> PlayerActionSpeed(std::size_t action)
     }
     return speed;
 }
-} // namespace Client::Data::Models
+} // namespace Client::Tables

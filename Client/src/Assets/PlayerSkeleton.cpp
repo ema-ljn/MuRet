@@ -22,16 +22,16 @@ Core::Expected<Models::Skeleton, Models::SkeletonError> MakePlayerSkeleton(const
     Models::Skeleton skeleton = std::move(made).Value();
     for (std::size_t action = 0; action < skeleton.actions.size(); ++action)
     {
-        skeleton.actions[action].speed = Data::Models::PlayerActionSpeed(action).value_or(0.0f);
+        skeleton.actions[action].speed = Tables::PlayerActionSpeed(action).value_or(0.0f);
     }
-    for (const std::uint8_t action : Data::Models::PlayerActionsWithoutRepeat)
+    for (const std::uint8_t action : Tables::PlayerActionsWithoutRepeat)
     {
         if (action < skeleton.actions.size())
         {
             skeleton.actions[action].repeats = false;
         }
     }
-    skeleton.headBone = Data::Models::PlayerHeadBone;
+    skeleton.headBone = Tables::PlayerHeadBone;
     return skeleton;
 }
 } // namespace Client::Assets

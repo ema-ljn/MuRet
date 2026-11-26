@@ -22,11 +22,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Models::ItemModel;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::FullSetScan;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::ScannedCharacter;
+using Client::Tables::ItemModel;
 using Client::Tests::AfterDraws;
 
 constexpr std::uint32_t Seed = 0x505820;

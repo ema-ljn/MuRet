@@ -134,7 +134,7 @@ protected:
         auto data = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
-        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, LoginMap);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
         m_loginConstructorHeight = static_cast<float>(Client::World::TerrainHeightAt(
@@ -661,7 +661,7 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
         for (auto& keys : bone.actions)
             keys.resize(1);
     }
-    m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, std::move(skeleton), {});
+    m_models.Set(Client::Tables::PlayerSkeletonModel, {}, std::move(skeleton), {});
     m_online.clock.Advance(Client::Models::OriginalFrameTime);
     m_manager->Render(0.0f);
 

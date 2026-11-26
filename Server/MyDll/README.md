@@ -11,14 +11,14 @@ The installed reference is a separate artifact, SHA-256
 
 ## Current scope
 
-Three native byte-order functions are linked and proved exact against both
-references: 33, 31, and 31 instructions, totaling 275 bytes without relocations.
-The linked bodies match the original too. Ninety-seven behavioral cases pass.
-`cmd_is_slash` and `f60` have exact object bodies but are not linked yet.
+Five native functions are linked and proved exact against both references:
+three byte-order helpers, `cmd_is_slash`, and the `f60` output XOR. Their bodies
+total 370 bytes without relocations. Ninety-seven byte-order cases and the
+command/wire cases pass with VC6.
 
 The port ledger is [native-functions.tsv](research/native-functions.tsv).
 `exact` means the measured instructions match, not merely equivalent behavior.
-`not_linked` or `pending` never means accepted. This is not whole-DLL identity:
+This is not whole-DLL identity:
 imports, CRT/MFC, sections, timestamps, and pending functions differ by design.
 License, protection, and virtual-machine mechanisms remain out of scope.
 
@@ -30,6 +30,7 @@ From the repository root in a Visual C++ 6.0 command prompt:
 Server\MyDll\build_vc6.bat dll
 Server\MyDll\build_vc6.bat test
 build\mydll-vc6\test_byte_order.exe
+build\mydll-vc6\test_commands_wire.exe
 ```
 
 The standalone build uses VC6 `/W3 /Od /GX /MT` for the native bodies. Its

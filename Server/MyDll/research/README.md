@@ -14,10 +14,8 @@ function is implemented. The port ledger is separate:
 an independent byte comparison passes. `linked_exact` additionally means the
 same body appears in the linked DLL. `pending` and `not_linked` remain open.
 
-Current exact object coverage includes three linked byte-order helpers,
-`cmd_is_slash`, and `f60`. The three linked helpers total 275 bytes. The other
-two exact object bodies remain outside the DLL. This is not whole-file or
-whole-feature parity.
+Five functions are linked exactly: three byte-order helpers, `cmd_is_slash`,
+and `f60`, totaling 370 bytes. This is not whole-file or whole-feature parity.
 
 From the repository root:
 

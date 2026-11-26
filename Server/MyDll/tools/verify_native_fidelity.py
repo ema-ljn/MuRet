@@ -17,13 +17,15 @@ NATIVE = {
     0x10004B4F: ("?mydll_util_bswap64@@YA_K_K@Z", 107),
     0x10004BBA: ("?mydll_util_bswap64_inplace@@YAXPAE@Z", 84),
     0x10004C0E: ("?mydll_util_bswap32_inplace@@YAXPAE@Z", 84),
+    0x1000E2F1: ("_mydll_cmd_is_slash@12", 39),
+    0x1002C651: ("?mydll_net_xor_aa@@YGXPAEH@Z", 56),
 }
 LEDGER_STATES = {
     0x10004B4F: ("exact", "not_applicable", "passed", "linked_exact"),
     0x10004BBA: ("exact", "not_applicable", "passed", "linked_exact"),
     0x10004C0E: ("exact", "not_applicable", "passed", "linked_exact"),
-    0x1000E2F1: ("exact", "not_applicable", "pending", "not_linked"),
-    0x1002C651: ("exact", "not_applicable", "pending", "not_linked"),
+    0x1000E2F1: ("exact", "not_applicable", "passed", "linked_exact"),
+    0x1002C651: ("exact", "not_applicable", "passed", "linked_exact"),
 }
 
 

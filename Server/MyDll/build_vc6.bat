@@ -24,9 +24,11 @@ exit /b 0
 :dll
 call "%SRC%\build_vc6.bat" native
 if errorlevel 1 exit /b %ERRORLEVEL%
-cl %FLAGS% "%SRC%\src\Init.cpp" "%OUT%\ByteOrder.obj" /LD /Fe"%OUT%\MyDll.dll" /link /INCREMENTAL:NO /OPT:NOREF /OPT:NOICF /BASE:0x20000000 /DEF:"%SRC%\src\MyDll.def" /MAP:"%OUT%\MyDll.map"
+cl %FLAGS% "%SRC%\src\Init.cpp" "%OUT%\ByteOrder.obj" "%OUT%\Commands.obj" "%OUT%\Wire.obj" /LD /Fe"%OUT%\MyDll.dll" /link /INCREMENTAL:NO /OPT:NOREF /OPT:NOICF /BASE:0x20000000 /DEF:"%SRC%\src\MyDll.def" /MAP:"%OUT%\MyDll.map"
 exit /b %ERRORLEVEL%
 
 :test
 cl %FLAGS% "%SRC%\tests\test_byte_order.cpp" "%SRC%\src\Native\ByteOrder.cpp" /Fe"%OUT%\test_byte_order.exe"
+if errorlevel 1 exit /b %ERRORLEVEL%
+cl %FLAGS% "%SRC%\tests\test_commands_wire.cpp" "%SRC%\src\Native\Commands.cpp" "%SRC%\src\Native\Wire.cpp" /Fe"%OUT%\test_commands_wire.exe"
 exit /b %ERRORLEVEL%

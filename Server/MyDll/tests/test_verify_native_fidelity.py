@@ -34,7 +34,7 @@ class NativeVerifierTest(unittest.TestCase):
 
     def test_linked_bytes_and_ledger_are_verified(self):
         result = fidelity.compare(self.dll, self.link_map, self.original, self.installed)
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 5)
         fidelity.check_ledger(Path(__file__).parents[1] / "research/native-functions.tsv")
 
     def test_a_changed_linked_byte_is_rejected(self):

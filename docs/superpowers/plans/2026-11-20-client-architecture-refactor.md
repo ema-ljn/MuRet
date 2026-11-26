@@ -671,6 +671,8 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 
 ## Epic AR2: protocol and dispatch
 
+Detailed plan: [`2026-11-26-ar2-protocol-and-dispatch.md`](2026-11-26-ar2-protocol-and-dispatch.md).
+
 ### AR2.1 (design): packet layouts
 
 - `engine/Network/Field.h` (`Client::Network`): `Field<T, Offset, Endian>` and a `PacketLayout` with type (C1 to C4),

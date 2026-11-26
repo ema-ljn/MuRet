@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -15,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace
 {
@@ -150,5 +152,29 @@ TEST(FloorItemsProtocolTest, TheDropAndTheUseAreEncryptedC1s)
     const auto use = FloorItems::WriteUseItem(FloorItems::UseItem{.slot = 0x0e, .target = 0, .kind = 1});
     EXPECT_EQ(use.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(use.packet).Bytes(), Bytes({0xc1, 0x06, 0x26, 0x0e, 0x00, 0x01})));
+}
+
+// The lists read their count and every entry; the 22 reads the item but with 0xff, and the 23 the place but with 0.
+TEST(FloorItemsProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> created = Bytes({0xc2, 0x00, 0x10, 0x20, 0x01});
+    created.resize(0x10);
+    std::vector<std::byte> picked = Bytes({0xc1, 0x0b, 0x22, 0x0c});
+    picked.resize(0x0b);
+    std::vector<std::byte> zen = Bytes({0xc1, 0x0b, 0x22, 0xfe});
+    zen.resize(0x0b);
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadFloorItemsCreate, Bytes({0xc2, 0x00, 0x05, 0x20, 0x00}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadFloorItemsCreate, created);
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadFloorItemsDelete, Bytes({0xc2, 0x00, 0x05, 0x21, 0x00}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadFloorItemsDelete,
+                                     Bytes({0xc2, 0x00, 0x07, 0x21, 0x01, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadPickUpResult, Bytes({0xc1, 0x04, 0x22, 0xff}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadPickUpResult, picked);
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadPickUpResult, zen);
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadDropResult, Bytes({0xc1, 0x04, 0x23, 0x00}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadDropResult, Bytes({0xc1, 0x05, 0x23, 0x01, 0x0c}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadShortZenPickUp,
+                                     Bytes({0xc1, 0x08, 0x22, 0xfe, 0x00, 0x00, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(FloorItems::ReadStatFruit, Bytes({0xc1, 0x06, 0x2c, 0x00, 0x00, 0x00}));
 }
 } // namespace

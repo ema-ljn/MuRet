@@ -26,6 +26,7 @@
 #include "World/GameCamera.h"
 
 #include "support/ItemFiles.h"
+#include "support/MinimumSize.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 
@@ -427,4 +428,35 @@ TEST_P(PersonalShopsTest, TheNoticesGoToTheMessages)
 }
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, PersonalShopsTest, ::testing::Values(Lorencia, Devias));
+
+// Each case reads its fields at fixed places, up to the last one it reads.
+TEST(PersonalShopsProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> titles = Bytes({0xc2, 0x00, 0x2c, 0x3f, 0x00, 0x01});
+    titles.resize(0x2c);
+    std::vector<std::byte> notice = Bytes({0xc1, 0x0f, 0x3f, 0x08});
+    notice.resize(0x0f);
+    std::vector<std::byte> title = Bytes({0xc1, 0x34, 0x3f, 0x10});
+    title.resize(0x34);
+    std::vector<std::byte> list = Bytes({0xc2, 0x00, 0x37, 0x3f, 0x05, 0x01});
+    list.resize(0x37);
+    std::vector<std::byte> refresh = Bytes({0xc2, 0x00, 0x37, 0x3f, 0x13, 0x01});
+    refresh.resize(0x37);
+    std::vector<std::byte> purchase = Bytes({0xc1, 0x0f, 0x3f, 0x06, 0x01});
+    purchase.resize(0x0f);
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopTitles, Bytes({0xc2, 0x00, 0x06, 0x3f, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopTitles, titles);
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopCreated, Bytes({0xc1, 0x05, 0x3f, 0x02, 0x01}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopClosed, Bytes({0xc1, 0x05, 0x3f, 0x03, 0x00}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopClosed, Bytes({0xc1, 0x07, 0x3f, 0x03, 0x01, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopNotice, notice);
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopTitle, title);
+    Client::Tests::ExpectMinimumSize(Shop::ReadPriceResult, Bytes({0xc1, 0x06, 0x3f, 0x01, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopItemList, Bytes({0xc2, 0x00, 0x06, 0x3f, 0x05, 0x00}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopItemList, list);
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopRefresh, Bytes({0xc2, 0x00, 0x06, 0x3f, 0x13, 0x00}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopRefresh, refresh);
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopPurchase, Bytes({0xc1, 0x05, 0x3f, 0x06, 0x00}));
+    Client::Tests::ExpectMinimumSize(Shop::ReadShopPurchase, purchase);
+}
 } // namespace

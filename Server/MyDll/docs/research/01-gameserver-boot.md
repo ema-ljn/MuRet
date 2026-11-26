@@ -122,6 +122,11 @@ wrong foreign-host disposition both failed the loader fixture. The real PE32 DLL
 passed the loader fixture and had only `Init @1` and `KERNEL32.dll` imports.
 The rejected-host child exited `2` with a diagnostic and no active marker.
 
+An independent raw stack probe failed when the charlist callback was built with
+`__cdecl` in both its declaration and definition. The boot-log fixture also caught
+the old PID-only marker and verified that a blocked publication path exits `2`
+without presenting a new active marker.
+
 These results are from the VC6 toolchain under isolated Wine, not a real
 GameServer run. The native bootstrap, observed pre-images at `Init`, stock
 map-loader fallback and post-map milestone remain unverified.

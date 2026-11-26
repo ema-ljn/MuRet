@@ -46,8 +46,12 @@ bool CheckForeignLoader(const char* path)
     typedef BOOL(__cdecl * InitProc)();
     InitProc init;
     memcpy(&init, &named, sizeof(init));
-    char marker[48];
-    sprintf(marker, "mydll-boot-%lu.log", GetCurrentProcessId());
+    FILETIME created, exited, kernel, user;
+    if (!GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user))
+        return false;
+    char marker[64];
+    sprintf(marker, "mydll-boot-%lu-%08lx%08lx.log", GetCurrentProcessId(), created.dwHighDateTime,
+            created.dwLowDateTime);
     if (GetFileAttributesA(marker) != MAXDWORD || init() != FALSE || GetFileAttributesA(marker) != MAXDWORD)
     {
         puts("FAIL foreign host disposition");

@@ -16,16 +16,19 @@ Server\MyDll\build_vc6.bat dll
 Server\MyDll\build_vc6.bat hooks
 Server\MyDll\build_vc6.bat host
 Server\MyDll\build_vc6.bat load
+Server\MyDll\build_vc6.bat log
 build\mydll-vc6\test_boot_hooks.exe
 build\mydll-vc6\test_host_boot.exe
 build\mydll-vc6\test_library_load.exe build\mydll-vc6\MyDll.dll
+build\mydll-vc6\test_boot_log.exe
 dumpbin /headers /exports /imports build\mydll-vc6\MyDll.dll
 ```
 
 The x86 build is independent of MuRet's CMake and vcpkg configuration. The
 fixtures do not load or launch the GameServer. For the terminal failure fixture,
 `test_host_boot.exe --reject-child` should exit `2` with a fresh
-`mydll-boot-<pid>.log` containing `MYDLL_BOOT_REJECT` and `stage=operand_preimage`.
+`mydll-boot-<pid>-<creation-filetime>.log` containing `MYDLL_BOOT_REJECT` and
+`stage=operand_preimage`.
 
 ## Boot evidence
 
@@ -33,8 +36,9 @@ Use only a separate copy of the audited host in an isolated environment. Never r
 the active DLL or hot-swap this one. An unrelated loader receives `FALSE` without
 a marker; the recognized GS exits nonzero on a rejected boot.
 
-`MYDLL_BOOT_ACTIVE` in `mydll-boot-<pid>.log` shows that `Init` published
-the backing and callbacks. It does not show that the GameServer reached the map or
+`MYDLL_BOOT_ACTIVE` in `mydll-boot-<pid>-<creation-filetime>.log` shows that `Init` published
+the backing and callbacks. The working directory needs to be writable for a complete
+marker to be published. It does not show that the GameServer reached the map or
 shop load, opened a port, or accepts logins. This change was built with VC6 and tested
 with synthetic fixtures under isolated Wine. Native Windows Server 2003 R2 build
 and GameServer boot acceptance remain open.

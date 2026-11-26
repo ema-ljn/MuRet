@@ -113,6 +113,34 @@ bool CheckShortFrame()
     return before == after && result == 0;
 }
 
+bool CheckStackPurge(DWORD hook, DWORD words, DWORD bytesRemoved)
+{
+    DWORD before;
+    DWORD after;
+    __asm {
+        mov before, esp
+        mov ecx, words
+    arguments:
+        push 0
+        loop arguments
+        call dword ptr [hook]
+        mov after, esp
+        mov esp, before
+    }
+    return after == before - words * sizeof(DWORD) + bytesRemoved;
+}
+
+bool CheckCallbackConventions()
+{
+    using namespace MyDll::Boot;
+    return CheckStackPurge(reinterpret_cast<DWORD>(&DiscardCharacterList), 1, 4) &&
+           CheckStackPurge(reinterpret_cast<DWORD>(&RejectSetCharacter), 2, 8) &&
+           CheckStackPurge(reinterpret_cast<DWORD>(&DiscardReceive), 6, 0) &&
+           CheckStackPurge(reinterpret_cast<DWORD>(&NoDuel), 1, 4) &&
+           CheckStackPurge(reinterpret_cast<DWORD>(&DiscardSend), 3, 0) &&
+           CheckStackPurge(reinterpret_cast<DWORD>(&LeaveBytesUnchanged), 2, 8);
+}
+
 bool CheckInertCallbacks()
 {
     using namespace MyDll::Boot;
@@ -172,6 +200,11 @@ int main()
     if (!CheckShortFrame() || !CheckInertCallbacks())
     {
         puts("FAIL f08 two-DWORD frame or inert callbacks");
+        return 1;
+    }
+    if (!CheckCallbackConventions())
+    {
+        puts("FAIL non-area callback stack conventions");
         return 1;
     }
     puts("PASS boot hooks");

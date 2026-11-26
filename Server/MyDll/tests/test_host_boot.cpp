@@ -27,6 +27,7 @@ enum Fault
     NoFault,
     SecondProtectFails,
     RestoreFails,
+    RestoreCrossingPageFails,
     FlushFails,
     SlotConflict
 };
@@ -58,7 +59,8 @@ DWORD Protection(DWORD address)
 BOOL WINAPI Protect(LPVOID page, DWORD size, DWORD access, PDWORD previous)
 {
     ++s_protectCalls;
-    if ((s_fault == SecondProtectFails && s_protectCalls == 4) || (s_fault == RestoreFails && s_protectCalls == 2))
+    if ((s_fault == SecondProtectFails && s_protectCalls == 4) || (s_fault == RestoreFails && s_protectCalls == 2) ||
+        (s_fault == RestoreCrossingPageFails && s_protectCalls == 5))
         return FALSE;
     return VirtualProtect(page, size, access, previous);
 }

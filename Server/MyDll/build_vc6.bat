@@ -11,8 +11,9 @@ if "%~1"=="hooks" goto hooks
 if "%~1"=="host-red" goto host_red
 if "%~1"=="host" goto host
 if "%~1"=="load" goto load
+if "%~1"=="log" goto log
 if "%~1"=="dll" goto dll
-echo Usage: Server\MyDll\build_vc6.bat dll^|hooks^|host^|load
+echo Usage: Server\MyDll\build_vc6.bat dll^|hooks^|host^|load^|log
 exit /b 2
 
 :hooks_red
@@ -33,6 +34,10 @@ exit /b %ERRORLEVEL%
 
 :load
 cl %FLAGS% "%SRC%\tests\test_library_load.cpp" /Fe"%OUT%\test_library_load.exe"
+exit /b %ERRORLEVEL%
+
+:log
+cl %FLAGS% "%SRC%\tests\test_boot_log.cpp" "%SRC%\src\BootOutcome.cpp" /Fe"%OUT%\test_boot_log.exe"
 exit /b %ERRORLEVEL%
 
 :dll

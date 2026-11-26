@@ -13,6 +13,8 @@ Salidas (en --out, por defecto Client/docs/research/coverage/referencia):
                    cortes, 07/08, VM, llamadores y lo que dijo la auditoría
   trazas.tsv       cada cita de una VA en Client/src y Client/tests, con la función que la contiene
   trazas-docs.tsv  lo mismo en Client/docs/research y docs/ (sin los TSV derivados)
+  globals.tsv      each address of the .data that Client/src cites, with the data member that holds it
+                   (reference_globals.py)
   archivos.tsv     cada archivo de Client/src: qué funciones cita, de qué ola, sus cortes y su último commit
   ids.tsv          cada fila Q-C de 07 y P-C de 08: estado, clase u ola, y las funciones que nombra
   huecos.tsv       los bloques contiguos de funciones vivas sin citar ni explicar, con quién las llama desde código
@@ -48,6 +50,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from client_reference_symbols import symbols  # noqa: E402
 from reference_anchors import cut_sites, resolve_entries  # noqa: E402
+import reference_globals  # noqa: E402
 import reference_modules  # noqa: E402
 
 REF_DIR = 'Client/docs/research/coverage/referencia'
@@ -55,7 +58,9 @@ REF_DIR = 'Client/docs/research/coverage/referencia'
 SELF = {'Client/docs/research/scripts/tools/build_client_reference.py',
         'Client/docs/research/scripts/tools/client_reference_symbols.py',
         'Client/docs/research/scripts/tools/reference_anchors.py',
-        'Client/docs/research/scripts/tools/test_reference_anchors.py'}
+        'Client/docs/research/scripts/tools/test_reference_anchors.py',
+        'Client/docs/research/scripts/tools/reference_globals.py',
+        'Client/docs/research/scripts/tools/test_reference_globals.py'}
 STRING = re.compile(r'"((?:[^"\\\n]|\\.){3,})"')
 
 ADDR = re.compile(r'0[xX](?:00)?([4-6][0-9a-fA-F]{5})\b')
@@ -581,6 +586,13 @@ def main():
     write_tsv(os.path.join(a.out, 'trazas-docs.tsv'), [c for c in COLS_T if c not in ('en', 'simbolo')],
               sorted(traz_docs, key=key))
 
+    # --- globals.tsv ---
+    sources = {f: t for f, t in texts.items()
+               if f.startswith('Client/src/') and f.endswith(('.h', '.cpp', '.inc', '.hpp'))}
+    globals_rows = reference_globals.build_globals(
+        sources, lambda path: reference_modules.module_of_file(path, module_map))
+    reference_globals.write(os.path.join(a.out, 'globals.tsv'), globals_rows)
+
     # --- archivos.tsv ---
     last = {}
     log = git(a.muret, 'log', '--format=%x01%h%x00%cs%x00%s', '--name-only', ref, '--', 'Client/src')
@@ -847,10 +859,10 @@ def main():
     write_tsv(os.path.join(a.out, 'metricas.tsv'), COLS_M, M)
     with open(os.path.join(a.out, 'generado.json'), 'w') as fh:
         json.dump(dict(ref=ref, fecha_commit=fecha, funciones=len(out_rows), trazas=len(traz),
-                       trazas_docs=len(traz_docs), archivos=len(arch), ids=len(ids_rows), metricas=len(M)), fh,
-                  indent=1)
+                       trazas_docs=len(traz_docs), globals=len(globals_rows), archivos=len(arch), ids=len(ids_rows),
+                       metricas=len(M)), fh, indent=1)
     print(json.dumps(dict(ref=short, funciones=len(out_rows), trazas=len(traz), trazas_docs=len(traz_docs),
-                          archivos=len(arch), ids=len(ids_rows), metricas=len(M))))
+                          globals=len(globals_rows), archivos=len(arch), ids=len(ids_rows), metricas=len(M))))
 
 
 if __name__ == '__main__':

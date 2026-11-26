@@ -11,6 +11,7 @@
 #include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
 #include "Network/PacketSerials.h"
+#include "Network/ProtocolError.h"
 #include "Network/SendQueue.h"
 #include "Network/SocketApi.h"
 #include "Network/SocketError.h"
@@ -158,6 +159,23 @@ inline void PrintTo(CloseReason reason, std::ostream* out)
         return;
     }
     *out << "CloseReason fuera del enum";
+}
+
+inline void PrintTo(ProtocolError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case ProtocolError::WrongPacket:
+        *out << "WrongPacket";
+        return;
+    case ProtocolError::TooShort:
+        *out << "TooShort";
+        return;
+    case ProtocolError::FieldTooLong:
+        *out << "FieldTooLong";
+        return;
+    }
+    *out << "ProtocolError fuera del enum";
 }
 
 inline void PrintTo(LinkState state, std::ostream* out)

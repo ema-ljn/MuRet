@@ -1,21 +1,22 @@
 #include "Protocol/Connection/Login.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
 #include "Crypto/Xor3.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketCode.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
-#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string_view>
 
@@ -23,8 +24,10 @@ namespace Client::Protocol::Connection
 {
 namespace
 {
-// La respuesta del login llega en un C1.
-constexpr Network::PacketKind LoginResultKind{Network::PacketType::C1, JoinOpcode, LoginSubcode};
+using LoginResult = Network::Field<std::uint8_t, 4>;
+// 0x4e2b6e: the dispatcher reads the result itself.
+constexpr Network::PacketLayout LoginResultLayout{
+    {Network::PacketType::C1, Network::Opcode{JoinOpcode}, Network::Subcode{LoginSubcode}}, LoginResult::End, 0x4e2b6e};
 
 // Lo que lleva el aviso después del subcódigo, 06 00 (03 § C3/C4). El GameServer los lee como dos
 // bytes sueltos (CGClientHackLogRecv, 0x4172e0, en el research del servidor); qué significan para
@@ -74,17 +77,8 @@ Core::Expected<Outgoing, Network::ProtocolError> WriteLoginRequest(const LoginRe
 
 Core::Expected<std::uint8_t, Network::ProtocolError> ReadLoginResult(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, LoginResultKind);
-    if (!fields.HasValue())
-    {
-        return Core::Unexpected(fields.Error());
-    }
-    const std::optional<std::uint8_t> result = fields.Value().ReadU8();
-    if (!result)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    return *result;
+    return Network::ReadPacket(packet, LoginResultLayout,
+                               [](Network::LayoutReader& reader) { return reader.Read<LoginResult>(); });
 }
 
 Outgoing WriteDecryptErrorReport()

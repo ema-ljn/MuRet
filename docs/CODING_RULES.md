@@ -1,5 +1,7 @@
 # Reglas de código
 
+**Compiler exception: `Server/MyDll/` only.** Its native fidelity port uses the subset of C++ accepted by Visual C++ 6.0 and a standalone x86 build for Windows Server 2003 R2. Modernization starts only after that reimplementation is complete. Modern language and test tooling requirements do not apply to that legacy build. Naming, formatting, ownership, documentation and test coverage still apply. All other components keep the C++20 baseline.
+
 Estas reglas valen para todo cambio de código en MuRet, lo escriba una persona o un agente. Leelas
 antes de commitear.
 

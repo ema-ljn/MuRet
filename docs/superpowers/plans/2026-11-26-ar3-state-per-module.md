@@ -78,7 +78,7 @@ Measured on `main` at 736b5544 (2026-11-26), after AR1.
 | --- | --- | --- |
 | 17 fields used by a single module | 12 today: `previousSiegeActive`, `siegePanelKind`, `siegePanel` (CastleSiege), `byte6c8e4d` (Session), `trialsAmbientTime` (Scenes), the three `reportedCell*` (Actors), `terrainPolygonState` (Camera), `namedLineTime`, `namedLineFirst`, `modelPatches` (Monsters) | measured at 736b5544 by module; AR1 moved files between modules after the master plan counted. Task 7 measures again and moves what it finds |
 | 210 `Actors()[…hero]` | 213, in 98 files | measured at 736b5544 |
-| `GameContext` in `Kernel/` owns every module's state | decided in Task 3 (see Decisions) | `game/Kernel` is layer 7 and the module states are layer 9: Kernel cannot hold them by value without the include `check_layers.py` forbids |
+| `GameContext` in `Kernel/` owns every module's state | `Kernel::GameContext` owns the shared core and `game/Session/SessionState.h` the module states (Task 3) | `game/Kernel` is layer 7 and the module states are layer 9: Kernel cannot hold them by value without the include `check_layers.py` forbids |
 | the shared state stays where it is | the actor, the player and the map's number move down to `game/Kernel` (Task 2) | `ActorState.h`, `OwnCharacterRecord.h`, `OwnInventory.h` and `WorldMap.h` reach 12 headers of six upper modules; while they do, nothing in Kernel can own them |
 
 ## AR3.1 (design): the registry, the shared core and the `GameContext`
@@ -165,11 +165,13 @@ PR `refactor(AR3.1): the GameContext owns the world's state`, branch `refactor/a
 `clean-architecture`, `refactoring` (*Extract Class*).
 
 **Files:**
-- Create: `game/Kernel/GameContext.{h,cpp}`, and the owner of the module states the decision picks.
+- Create:
+  - `game/Kernel/GameContext.{h,cpp}`: the shared core.
+  - `game/Session/SessionState.h`: each module's state by value, filled by Tasks 6 to 8.
 - Modify:
   - `Scenes/WorldState.{h,cpp}`: a facade over the `GameContext` while the migration lasts; its accessors return the
     context's parts.
-  - `App/GameClient.{h,cpp}`: owns the `GameContext` instead of `Scenes::WorldState m_world`.
+  - `App/GameClient.{h,cpp}`: owns the `GameContext` and the `SessionState` instead of `Scenes::WorldState m_world`.
   - `Scenes/LoginScene.{h,cpp}`: its local world, when it has none, is a local `GameContext`.
 - Test: `Client/tests/kernel/test_game_context.cpp`.
 
@@ -239,7 +241,7 @@ enum class CharacterClass : std::uint8_t { DarkWizard, DarkKnight, Elf, MagicGla
 
 ## AR3.2 (design): the first parts of `WorldRuntime` to their modules
 
-Each task moves its fields out of `WorldRuntime` into the owner Task 3 set up, rewrites their uses, and fills their
+Each task moves its fields out of `WorldRuntime` into `SessionState`, rewrites their uses, and fills their
 `globals.tsv` rows.
 
 ### Task 6: the states that already belong to one module
@@ -289,7 +291,9 @@ PR `refactor(AR3.2): split Crywolf's globals and the mouse's arbitration`, branc
 - `game/Kernel` has fewer rows in `layers-baseline.tsv` than the 80 of 736b5544.
 - No `Actors()[…hero]` is left.
 
-## Decisions for Emanuel
+## Decisions
+
+Emanuel took the three as written, with option A for the first (2026-11-26).
 
 1. **Who owns the module states** (Task 3). `game/Kernel` is layer 7 and the modules are layer 9.
    - **A: `Kernel::GameContext` keeps only the shared core** (the actors, the hero, the player, the map) and

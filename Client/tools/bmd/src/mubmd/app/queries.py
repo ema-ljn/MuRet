@@ -45,7 +45,7 @@ class GetResult:
 @dataclass(frozen=True, slots=True)
 class FormatInfo:
     name: str
-    size: int
+    size: int | None
     files: tuple[CatalogFile, ...]
 
 

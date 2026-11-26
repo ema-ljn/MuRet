@@ -24,14 +24,55 @@ def test_a_test_twin_is_not_read_by_the_client(text_bytes: bytes) -> None:
 
 def test_a_file_of_a_later_stage_is_unknown(text_bytes: bytes) -> None:
     with pytest.raises(MubmdError) as caught:
-        identify("Skill.bmd", text_bytes)
+        identify("Player.bmd", text_bytes)
     assert caught.value.code is ErrorCode.UNKNOWN_FORMAT
     assert caught.value.suggestion == "mubmd formats"
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Data/Item/item.bmd",
+        "data/ITEM/Item.bmd",
+        "Data/Item/Itemtest.bmd",
+        "Data/skill/skill.bmd",
+        "DATA/Skill/SKILL.BMD",
+    ],
+)
+def test_a_table_name_inside_a_model_folder_is_unknown(name: str) -> None:
+    with pytest.raises(MubmdError) as caught:
+        identify(name, b"")
+    assert caught.value.code is ErrorCode.UNKNOWN_FORMAT
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Data/Local/skill.bmd", "skill"),
+        ("Data/Local/item.bmd", "item"),
+        ("skill/skill.bmd", "skill"),
+        ("Skill.bmd", "skill"),
+    ],
+)
+def test_a_table_outside_its_model_folder_is_found(name: str, expected: str) -> None:
+    assert identify(name, b"").format.name == expected
+
+
 def test_formats_are_listed_and_found_by_name() -> None:
-    assert [spec.name for spec in all_formats()] == ["text", "item"]
+    assert [spec.name for spec in all_formats()] == [
+        "text",
+        "item",
+        "skill",
+        "gate",
+        "filter",
+        "filter_name",
+        "item_set_type",
+        "item_set_option",
+        "credit",
+    ]
     assert format_by_name("text").size == 614_400
+    assert format_by_name("skill").size == 256 * 0x3C + 4
+    assert format_by_name("gate").size == 256 * 9
 
 
 def test_an_unknown_format_name_is_reported() -> None:

@@ -61,15 +61,15 @@ class RecordTableFormat:
         if sum(map(span, schema.fields)) != schema.record_size:
             raise ValueError(f"The {schema.name} fields do not cover its record size")
         self.name = schema.name
-        self._schema = schema
+        self.schema = schema
         self._has_client_ranges = any(map(has_client_range, schema.fields))
         footer_size = 0 if schema.checksum_key is None else CHECKSUM_WORD.size
         self.file_size = None if schema.count is None else schema.count * schema.record_size + footer_size
 
     def _records_span(self, data: bytes, file: CatalogFile) -> tuple[int, int]:
-        size = self._schema.record_size
-        if self._schema.count is not None:
-            end = self._schema.count * size
+        size = self.schema.record_size
+        if self.schema.count is not None:
+            end = self.schema.count * size
             if len(data) < end:
                 raise MubmdError(ErrorCode.CORRUPT_FILE, f"{file.name} has {len(data)} bytes, its records need {end}")
             return 0, end
@@ -86,23 +86,23 @@ class RecordTableFormat:
 
     def decode(self, data: bytes, file: CatalogFile) -> RecordTable:
         start, end = self._records_span(data, file)
-        size = self._schema.record_size
+        size = self.schema.record_size
         records = tuple(xor3(data[offset : offset + size]) for offset in range(start, end, size))
         footer = data[end:]
         encoding = file.encoding or DEFAULT_ENCODING
-        if self._schema.checksum_key is None or len(footer) < CHECKSUM_WORD.size:
+        if self.schema.checksum_key is None or len(footer) < CHECKSUM_WORD.size:
             return RecordTable(records, encoding, None, footer)
         (stored,) = CHECKSUM_WORD.unpack_from(footer)
         return RecordTable(records, encoding, stored, footer[CHECKSUM_WORD.size :])
 
     def encode(self, document: RecordTable) -> bytes:
-        count = b"" if self._schema.count is not None else COUNT_WORD.pack(len(document.records))
+        count = b"" if self.schema.count is not None else COUNT_WORD.pack(len(document.records))
         checksum = b"" if document.stored_checksum is None else CHECKSUM_WORD.pack(document.stored_checksum)
         return count + b"".join(map(xor3, document.records)) + checksum + document.trailing
 
     def to_view(self, document: RecordTable) -> JsonObject:
         records: list[JsonValue] = [
-            fields_view(self._schema.fields, record, document.encoding) for record in document.records
+            fields_view(self.schema.fields, record, document.encoding) for record in document.records
         ]
         view: JsonObject = {
             "format_version": VIEW_VERSION,
@@ -110,7 +110,7 @@ class RecordTableFormat:
             "encoding": document.encoding,
             "records": records,
         }
-        if self._schema.checksum_key is not None:
+        if self.schema.checksum_key is not None:
             view["records_sha256"] = sha256(b"".join(document.records)).hexdigest()
             view["stored_checksum"] = document.stored_checksum
         view["trailing"] = document.trailing.hex()
@@ -119,18 +119,18 @@ class RecordTableFormat:
     def from_view(self, view: JsonObject) -> RecordTable:
         encoding = _view_encoding(view, self.name)
         values = view.get("records")
-        count = self._schema.count
+        count = self.schema.count
         if not isinstance(values, list) or (count is not None and len(values) != count):
             expected = "The records must be a list" if count is None else f"The table must contain {count} records"
             raise invalid(expected, "/records")
-        fields = self._schema.fields
+        fields = self.schema.fields
         records = tuple(
             fields_bytes(fields, value, encoding, f"/records/{index}") for index, value in enumerate(values)
         )
         trailing = read_hex(view.get("trailing"), "/trailing")
-        if self._schema.checksum_key is None:
+        if self.schema.checksum_key is None:
             return RecordTable(records, encoding, None, trailing)
-        checksum = self._view_checksum(view, records, self._schema.checksum_key)
+        checksum = self._view_checksum(view, records, self.schema.checksum_key)
         if checksum is None and len(trailing) >= CHECKSUM_WORD.size:
             raise invalid("Bytes after the records must follow the checksum", "/trailing")
         return RecordTable(records, encoding, checksum, trailing)
@@ -147,12 +147,12 @@ class RecordTableFormat:
         return stored
 
     def _checksum(self, records: tuple[bytes, ...], key: int) -> int:
-        return table_checksum(b"".join(map(xor3, records)), key, xor_odd_words=self._schema.xor_odd_words)
+        return table_checksum(b"".join(map(xor3, records)), key, xor_odd_words=self.schema.xor_odd_words)
 
     def _checksum_findings(self, document: RecordTable) -> Iterator[Finding]:
-        if self._schema.checksum_key is None:
+        if self.schema.checksum_key is None:
             return
-        expected = self._checksum(document.records, self._schema.checksum_key)
+        expected = self._checksum(document.records, self.schema.checksum_key)
         stored = document.stored_checksum
         if expected != stored:
             message = (
@@ -165,7 +165,7 @@ class RecordTableFormat:
     def _range_findings(self, document: RecordTable) -> Iterator[Finding]:
         if not self._has_client_ranges:
             return
-        fields = self._schema.fields
+        fields = self.schema.fields
         for index, record in enumerate(document.records):
             yield from out_of_range(fields, fields_view(fields, record, document.encoding), f"/records/{index}")
 
@@ -181,16 +181,16 @@ class RecordTableFormat:
                 f"No value at {pointer!r}: the table has records 0 to {len(original.records) - 1}",
                 pointer=pointer,
             )
-        leaf = leaf_at(self._schema.fields, tokens[RECORD_POINTER_TOKENS:], pointer)
+        leaf = leaf_at(self.schema.fields, tokens[RECORD_POINTER_TOKENS:], pointer)
         leaf_bytes(leaf, value, original.encoding, pointer)
         limit = leaf.size - 1 if leaf.kind == "text" else None
         return ValueCheck(limit, tuple(value_out_of_range(leaf, value, pointer)))
 
     def describe_fields(self) -> tuple[FieldInfo, ...]:
-        count = self._schema.count
+        count = self.schema.count
         indices = "n" if count is None else f"0..{count - 1}"
-        return describe(self._schema.fields, f"/records/<{indices}>", self._schema.reference)
+        return describe(self.schema.fields, f"/records/<{indices}>", self.schema.reference)
 
     def summarize(self, document: RecordTable) -> Summary:
         used = sum(1 for record in document.records if any(record))
-        return Summary("XOR3 per record", len(document.records), used, self._schema.section_size)
+        return Summary("XOR3 per record", len(document.records), used, self.schema.section_size)

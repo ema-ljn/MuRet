@@ -10,24 +10,28 @@ from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.patch import Change
 from tests.app.conftest import TEXT, WORK
 from tests.app.fake_store import FakeStore
+from tests.conftest import TABLE_FILES
 
 
 def test_roundtrip_of_a_working_copy_is_identical(working_copy: Path) -> None:
-    (working_copy / "Local" / "skill.bmd").write_bytes(b"later stage")
+    (working_copy / "Local" / "Player.bmd").write_bytes(b"later stage")
     result = roundtrip(LocalFileStore(), working_copy)
-    assert (result.checked, result.identical, result.differing, result.skipped) == (3, 3, (), 1)
+    tables = len(TABLE_FILES)
+    assert (result.checked, result.identical, result.differing, result.skipped) == (tables, tables, (), 1)
 
 
 def test_validate_a_folder_reports_the_files_with_findings(working_copy: Path) -> None:
-    (working_copy / "Local" / "skill.bmd").write_bytes(b"later stage")
+    (working_copy / "Local" / "Player.bmd").write_bytes(b"later stage")
     result = validate(LocalFileStore(), working_copy)
     by_file = {Path(entry.path).name: [finding.code for finding in entry.findings] for entry in result.files}
     assert by_file == {
         "Text.bmd": ["TEXT_FILLS_RECORD"],
         "Texttest.bmd": ["TEXT_FILLS_RECORD", "TEXT_FILLS_RECORD"],
         "TKOU.bmd": ["TEXT_HAS_TAIL"],
+        "item.bmd": ["CHECKSUM_MISMATCH"],
+        "n380.bmd": ["CHECKSUM_MISMATCH"],
     }
-    assert (result.checked, result.skipped) == (3, 1)
+    assert (result.checked, result.skipped) == (len(TABLE_FILES), 1)
 
 
 def test_validate_one_file_always_reports_it(store: FakeStore) -> None:

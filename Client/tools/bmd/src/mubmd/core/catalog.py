@@ -3,7 +3,13 @@ from pathlib import Path
 from typing import Any
 
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.formats.item_format import ITEM_FORMAT, ITEM_TABLE_SIZE
+from mubmd.core.formats.credit_format import CREDIT_FORMAT
+from mubmd.core.formats.filter_format import FILTER_FORMAT, FILTER_NAME_FORMAT
+from mubmd.core.formats.gate_format import GATE_FORMAT
+from mubmd.core.formats.item_format import ITEM_FORMAT
+from mubmd.core.formats.item_set_format import ITEM_SET_OPTION_FORMAT, ITEM_SET_TYPE_FORMAT
+from mubmd.core.formats.record_table_format import RecordTableFormat
+from mubmd.core.formats.skill_format import SKILL_FORMAT
 from mubmd.core.formats.text_format import TEXT_TABLE_SIZE, TextFormat
 from mubmd.core.ports import CatalogFile, FormatCodec
 
@@ -11,9 +17,10 @@ from mubmd.core.ports import CatalogFile, FormatCodec
 @dataclass(frozen=True, slots=True)
 class FormatSpec:
     name: str
-    size: int
+    size: int | None
     files: tuple[CatalogFile, ...]
     codec: FormatCodec[Any]
+    model_folder: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,27 +29,45 @@ class Identified:
     file: CatalogFile
 
 
+def _client_file(name: str, encoding: str | None = None) -> CatalogFile:
+    return CatalogFile(name, encoding, read_by_client=True)
+
+
+def _other_file(name: str, encoding: str | None = None) -> CatalogFile:
+    return CatalogFile(name, encoding, read_by_client=False)
+
+
+def _table(codec: RecordTableFormat, *files: CatalogFile, model_folder: str | None = None) -> FormatSpec:
+    return FormatSpec(codec.name, codec.file_size, files, codec, model_folder)
+
+
 _FORMATS = (
     FormatSpec(
         "text",
         TEXT_TABLE_SIZE,
-        (
-            CatalogFile("Text.bmd", "cp1252", read_by_client=True),
-            CatalogFile("Texttest.bmd", "cp1252", read_by_client=False),
-            CatalogFile("TKOU.bmd", "gb2312", read_by_client=False),
-        ),
+        (_client_file("Text.bmd", "cp1252"), _other_file("Texttest.bmd", "cp1252"), _other_file("TKOU.bmd", "gb2312")),
         TextFormat(),
     ),
-    FormatSpec(
-        "item",
-        ITEM_TABLE_SIZE,
-        (
-            CatalogFile("item.bmd", "cp1252", read_by_client=True),
-            CatalogFile("itemtest.bmd", "cp949", read_by_client=False),
-            CatalogFile("n380.bmd", "gb2312", read_by_client=False),
-        ),
+    _table(
         ITEM_FORMAT,
+        _client_file("item.bmd", "cp1252"),
+        _other_file("itemtest.bmd", "cp949"),
+        _other_file("n380.bmd", "gb2312"),
+        model_folder="item",
     ),
+    _table(
+        SKILL_FORMAT, _client_file("skill.bmd", "cp1252"), _other_file("Skilltest.bmd", "cp949"), model_folder="skill"
+    ),
+    _table(GATE_FORMAT, _client_file("Gate.bmd"), _other_file("Gatetest.bmd")),
+    _table(FILTER_FORMAT, _client_file("Filter.bmd", "cp1252")),
+    _table(FILTER_NAME_FORMAT, _client_file("FilterName.bmd", "cp1252")),
+    _table(ITEM_SET_TYPE_FORMAT, _client_file("itemsettype.bmd"), _other_file("itemsettypetest.bmd")),
+    _table(
+        ITEM_SET_OPTION_FORMAT,
+        _client_file("itemsetoption.bmd", "cp1252"),
+        _other_file("itemsetoptiontest.bmd", "cp949"),
+    ),
+    _table(CREDIT_FORMAT, _client_file("credit.bmd", "cp1252"), _other_file("credittest.bmd", "cp1252")),
 )
 
 
@@ -61,9 +86,9 @@ def format_by_name(name: str) -> FormatSpec:
 def identify(file_name: str | Path, data: bytes) -> Identified:
     path = Path(file_name)
     wanted = path.name.casefold()
-    in_item_assets = tuple(part.casefold() for part in path.parts[-3:-1]) == ("data", "item")
+    folders = tuple(part.casefold() for part in path.parts[-3:-1])
     for spec in _FORMATS:
-        if spec.name == "item" and in_item_assets:
+        if spec.model_folder is not None and folders == ("data", spec.model_folder):
             continue
         for file in spec.files:
             if file.name.casefold() == wanted:

@@ -47,8 +47,8 @@ def test_a_missing_file_is_not_found(cli: Cli, tmp_path: Path) -> None:
 
 
 def test_a_file_of_a_later_stage_is_an_unknown_format(cli: Cli, working_copy: Path) -> None:
-    (working_copy / "Local" / "skill.bmd").write_bytes(b"x")
-    error = check(cli("info", working_copy / "Local" / "skill.bmd"), "UNKNOWN_FORMAT", 20)
+    (working_copy / "Local" / "Player.bmd").write_bytes(b"x")
+    error = check(cli("info", working_copy / "Local" / "Player.bmd"), "UNKNOWN_FORMAT", 20)
     assert error["suggestion"] == "mubmd formats"
 
 

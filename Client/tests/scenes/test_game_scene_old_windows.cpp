@@ -1,6 +1,6 @@
 #include "Scenes/GameScene.h"
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Core/Expected.h"
 #include "Tables/SkillTable.h"
 #include "Input/InputEvent.h"
@@ -11,7 +11,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"

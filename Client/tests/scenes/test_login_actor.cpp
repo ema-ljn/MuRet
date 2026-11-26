@@ -7,7 +7,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"

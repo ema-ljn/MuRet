@@ -18,11 +18,11 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Scenes/WorldTransitionSupport.h"
+#include "Session/WorldTransitionSupport.h"
 #include "World/ItemState.h"
 #include "World/ModelEffects.h"
 

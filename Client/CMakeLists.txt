@@ -124,7 +124,7 @@ target_link_libraries(ClientLib PRIVATE CLI11::CLI11)
 mu_set_warnings(ClientLib)
 mu_set_fidelity_flags(ClientLib)
 mu_precompile_headers(ClientLib)
-# MSVC: App/ServerSession.cpp, con los handlers que suman las ventanas de los NPC (hito 6 de la CL9) y el asedio
+# MSVC: game/Session/ServerSession.cpp, con los handlers que suman las ventanas de los NPC (hito 6 de la CL9) y el asedio
 # (hito 12), pasa el tope de secciones de un .obj (C1128). /bigobj para toda la biblioteca, así su precompiled header
 # compila con las mismas opciones que sus archivos, como en tests/.
 if(MSVC)

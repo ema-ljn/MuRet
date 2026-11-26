@@ -1,7 +1,7 @@
 #include "App/AutoLogin.h"
 
-#include "App/Credentials.h"
-#include "App/ServerSession.h"
+#include "Session/Credentials.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Log.h"
 

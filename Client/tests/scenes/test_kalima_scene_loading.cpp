@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TerrainTiles.h"

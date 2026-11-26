@@ -15,7 +15,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SendQueue.h"
 #include "Network/SocketError.h"
-#include "Protocol/Dispatcher.h"
+#include "Session/Dispatcher.h"
 
 #include "support/Bytes.h"
 #include "support/ClaimsMoreSocket.h"

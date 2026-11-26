@@ -11,7 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/MonsterCreation.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"

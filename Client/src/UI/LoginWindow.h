@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "Core/PixelSize.h"
 #include "Tables/TextTable.h"
 #include "Input/InputState.h"

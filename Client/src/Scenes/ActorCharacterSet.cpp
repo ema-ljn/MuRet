@@ -8,10 +8,10 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Scenes/WorldTransitionSupport.h"
+#include "Session/WorldTransitionSupport.h"
 
 #include <cstddef>
 #include <cstdint>

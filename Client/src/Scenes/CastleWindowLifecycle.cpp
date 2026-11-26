@@ -7,7 +7,7 @@
 #include "App/FaithfulPacer.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/Session/Logout.h"
 #include "Protocol/Npc/NpcWindows.h"

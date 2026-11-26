@@ -1,7 +1,7 @@
 file	lines	current_folder	target	confidence	why
 App/AutoLogin.cpp	89	App	app/App	high	engine or protocol layer, no game state
 App/AutoLogin.h	54	App	app/App	high	engine or protocol layer, no game state
-App/CharacterEvent.h	27	App	game/Session	medium	the session with the servers
+game/Session/CharacterEvent.h	27	game/Session	game/Session	medium	the session with the servers
 App/CommandLine.cpp	255	App	app/App	high	engine or protocol layer, no game state
 App/CommandLine.h	60	App	app/App	high	engine or protocol layer, no game state
 App/CommandLinePosix.cpp	37	App	app/App	high	engine or protocol layer, no game state
@@ -12,10 +12,10 @@ App/CommandLineWindows.cpp	103	App	app/App	high	engine or protocol layer, no gam
 App/Config.cpp	628	App	app/App	high	engine or protocol layer, no game state
 App/Config.h	125	App	app/App	high	engine or protocol layer, no game state
 App/ConfigError.h	16	App	app/App	high	engine or protocol layer, no game state
-App/ConnectionKeyFiles.cpp	117	App	game/Session	medium	the session with the servers
-App/ConnectionKeyFiles.h	29	App	game/Session	medium	the session with the servers
-App/Credentials.cpp	62	App	game/Session	medium	the session with the servers
-App/Credentials.h	49	App	game/Session	medium	the session with the servers
+game/Session/ConnectionKeyFiles.cpp	117	game/Session	game/Session	medium	the session with the servers
+game/Session/ConnectionKeyFiles.h	29	game/Session	game/Session	medium	the session with the servers
+game/Session/Credentials.cpp	62	game/Session	game/Session	medium	the session with the servers
+game/Session/Credentials.h	49	game/Session	game/Session	medium	the session with the servers
 App/FaithfulPacer.cpp	83	App	app/App	high	engine or protocol layer, no game state
 App/FaithfulPacer.h	41	App	app/App	high	engine or protocol layer, no game state
 App/FixedStep.cpp	42	App	app/App	high	engine or protocol layer, no game state
@@ -30,7 +30,7 @@ App/GameLoop.cpp	166	App	app/App	high	engine or protocol layer, no game state
 App/GameLoop.h	82	App	app/App	high	engine or protocol layer, no game state
 App/IChatRoomLinks.h	37	App	app/App	high	engine or protocol layer, no game state
 App/ILoopClient.h	40	App	app/App	high	engine or protocol layer, no game state
-App/ISessionEventSink.h	41	App	game/Session	medium	the session with the servers
+game/Session/ISessionEventSink.h	41	game/Session	game/Session	medium	the session with the servers
 App/LabXorRemapTables.h	46	App	app/App	high	composition root: the lab server's values for the XOR and remap layer (AR1.1)
 App/LoopTiming.h	43	App	app/App	high	engine or protocol layer, no game state
 App/MakeObfuscation.h	12	App	app/App	high	composition root: the build's choice of obfuscation layer (AR1.1)
@@ -41,13 +41,13 @@ engine/Platform/Resolution.cpp	36	engine/Platform	engine/Platform	high	included 
 engine/Platform/Resolution.h	36	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 App/ServerAddress.cpp	75	App	app/App	high	engine or protocol layer, no game state
 App/ServerAddress.h	38	App	app/App	high	engine or protocol layer, no game state
-App/ServerSession.cpp	2878	App	game/Session	medium	the session with the servers
-App/ServerSession.h	603	App	game/Session	medium	the session with the servers
+game/Session/ServerSession.cpp	2878	game/Session	game/Session	medium	the session with the servers
+game/Session/ServerSession.h	603	game/Session	game/Session	medium	the session with the servers
 App/SessionState.h	49	App	app/App	high	engine or protocol layer, no game state
 engine/Platform/VSyncMode.h	19	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 engine/Platform/WindowState.cpp	39	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 engine/Platform/WindowState.h	44	engine/Platform	engine/Platform	high	included by Render, UI and Platform
-App/WorldEvent.h	153	App	game/Session	medium	the session with the servers
+game/Session/WorldEvent.h	153	game/Session	game/Session	medium	the session with the servers
 Assets/ModelIds.h	23	Assets	game/Assets	high	the model slots the fauna uses, each named after the file the loader puts there (AR1.1)
 Assets/PlayerSkeleton.cpp	37	Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 Assets/PlayerSkeleton.h	14	Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
@@ -341,8 +341,8 @@ game/Protocol/Session/ServerList.cpp	96	game/Protocol/Session	game/Protocol/Sess
 game/Protocol/Session/ServerList.h	58	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
 game/Protocol/Npc/DialogAnswers.cpp	20	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
 game/Protocol/Npc/DialogAnswers.h	25	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
-Protocol/Dispatcher.cpp	94	Protocol	game/Session	high	routes the packets that arrive; the session owns it
-Protocol/Dispatcher.h	79	Protocol	game/Session	high	routes the packets that arrive; the session owns it
+game/Session/Dispatcher.cpp	94	game/Session	game/Session	high	routes the packets that arrive; the session owns it
+game/Session/Dispatcher.h	79	game/Session	game/Session	high	routes the packets that arrive; the session owns it
 game/Protocol/Social/Duel.cpp	104	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
 game/Protocol/Social/Duel.h	76	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
 game/Protocol/Events/Events.cpp	424	game/Protocol/Events	game/Protocol/Events	high	the packets of Events
@@ -858,8 +858,8 @@ Scenes/HudText.h	21	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), 
 engine/Render/Frame/IFrameTarget.h	20	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IScene.h	63	Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 2 own)
 engine/Render/Frame/ITextDrawer.h	35	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
-Scenes/IWorldEntryPublisher.h	14	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/IWorldTransitionPublisher.h	12	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/IWorldEntryPublisher.h	14	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/IWorldTransitionPublisher.h	12	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 engine/Render/Frame/IWorldView.h	28	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IcarusObjectFrame.cpp	79	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/IcarusObjectFrame.h	27	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
@@ -937,14 +937,14 @@ Scenes/MagicAttackCount.cpp	104	Scenes	game/Combat	high	character attack step (a
 Scenes/MagicAttackCount.h	27	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
 Scenes/MapBanner.cpp	191	Scenes	game/Hud	medium	the map name banner the HUD draws on arrival (AR0.1, file added after the annex)
 Scenes/MapBanner.h	88	Scenes	game/Hud	medium	the map name banner the HUD draws on arrival (AR0.1, file added after the annex)
-Scenes/MapLoad.cpp	380	Scenes	game/Session	medium	the map load run by the world entry and the transitions; it reaches actors, events, fauna and world objects, so it sits above them (AR0.1 review)
-Scenes/MapLoad.h	74	Scenes	game/Session	medium	the map load run by the world entry and the transitions; it reaches actors, events, fauna and world objects, so it sits above them (AR0.1 review)
+game/Session/MapLoad.cpp	380	game/Session	game/Session	medium	the map load run by the world entry and the transitions; it reaches actors, events, fauna and world objects, so it sits above them (AR0.1 review)
+game/Session/MapLoad.h	74	game/Session	game/Session	medium	the map load run by the world entry and the transitions; it reaches actors, events, fauna and world objects, so it sits above them (AR0.1 review)
 Scenes/MapModelEffectServices.cpp	33	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/MapModelEffectServices.h	27	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 game/Maps/MapNames.cpp	31	game/Maps	game/Maps	medium	the Text.bmd name of each map id (AR0.1, file added after the annex)
 game/Maps/MapNames.h	14	game/Maps	game/Maps	medium	the Text.bmd name of each map id (AR0.1, file added after the annex)
-Scenes/MapServerMoveApply.cpp	59	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: B1 00 map-server move: session lifecycle
-Scenes/MapServerMoveApply.h	27	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: B1 00 map-server move: session lifecycle
+game/Session/MapServerMoveApply.cpp	59	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: B1 00 map-server move: session lifecycle
+game/Session/MapServerMoveApply.h	27	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: B1 00 map-server move: session lifecycle
 Scenes/MeteorEffects.cpp	312	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/MeteorEffects.h	74	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/ModelBody.cpp	258	Scenes	game/Monsters	medium	body step of non-0x20a models (monsters/NPCs): (addr.)/(addr.)/(addr.)
@@ -1061,8 +1061,8 @@ Scenes/QuestWindowDrawing.cpp	644	Scenes	game/Quests	high	quests (2026-11-21 rev
 Scenes/QuestWindowStep.cpp	316	Scenes	game/Quests	high	quests (2026-11-21 review)
 Scenes/Quests.cpp	637	Scenes	game/Quests	high	quests (2026-11-21 review)
 Scenes/Quests.h	116	Scenes	game/Quests	high	quests (2026-11-21 review)
-Scenes/ReturnToSelection.cpp	197	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
-Scenes/ReturnToSelection.h	36	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
+game/Session/ReturnToSelection.cpp	197	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
+game/Session/ReturnToSelection.h	36	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
 Scenes/RingEffects.cpp	177	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/RingEffects.h	51	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/SceneCameras.cpp	57	Scenes	game/Camera	medium	the camera (2026-11-21 review)
@@ -1090,8 +1090,8 @@ Scenes/SelectionState.cpp	262	Scenes	game/FrontEnd	medium	login and selection lo
 Scenes/SelectionState.h	95	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/SelectionWorld.cpp	520	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/SelectionWorld.h	171	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-Scenes/SessionEventApplier.cpp	716	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/SessionEventApplier.h	50	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/SessionEventApplier.cpp	716	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/SessionEventApplier.h	50	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/ShopSigns.cpp	445	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
 Scenes/ShopSigns.h	165	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
 Scenes/SiegeBattleUi.cpp	404	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
@@ -1179,8 +1179,8 @@ Scenes/WizardEffectDrawing.cpp	107	Scenes	game/Effects	high	model effects; uses 
 Scenes/WizardEffectDrawing.h	40	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/WizardEffects.cpp	210	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/WizardEffects.h	77	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
-Scenes/WorldEntry.cpp	349	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/WorldEntry.h	145	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldEntry.cpp	349	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldEntry.h	145	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/WorldLoadingScene.cpp	130	Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 Scenes/WorldLoadingScene.h	50	Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 Scenes/WorldMap.h	37	Scenes	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
@@ -1198,10 +1198,10 @@ Scenes/WorldState.cpp	264	Scenes	game/Kernel	medium	durable globals, map load, w
 Scenes/WorldState.h	165	Scenes	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 Scenes/WorldTexts.cpp	92	Scenes	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 Scenes/WorldTexts.h	60	Scenes	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
-Scenes/WorldTransitionSupport.cpp	225	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/WorldTransitionSupport.h	40	Scenes	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/WorldTransitions.cpp	271	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/WorldTransitions.h	24	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldTransitionSupport.cpp	225	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldTransitionSupport.h	40	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldTransitions.cpp	271	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldTransitions.h	24	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/ZenText.cpp	33	Scenes	game/Ui	high	zen text and color shared by windows; no game state, below every user (AR0.1 review)
 Scenes/ZenText.h	18	Scenes	game/Ui	high	zen text and color shared by windows; no game state, below every user (AR0.1 review)
 UI/Button.cpp	189	UI	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont

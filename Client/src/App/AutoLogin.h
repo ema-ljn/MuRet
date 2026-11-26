@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/Credentials.h"
-#include "App/ServerSession.h"
+#include "Session/Credentials.h"
+#include "Session/ServerSession.h"
 #include "Core/Log.h"
 
 #include <cstdint>

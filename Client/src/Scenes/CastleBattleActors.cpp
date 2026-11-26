@@ -8,7 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/MonsterCreation.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

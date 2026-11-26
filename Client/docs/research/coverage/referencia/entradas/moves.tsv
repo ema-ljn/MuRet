@@ -473,3 +473,30 @@ b7e0e91f2514d5aa32376f495c24dc6de9d77f50	Client/src/engine/Data/Models/PlayerMod
 	Client/src/Protocol/Viewport.h	Client/src/game/Protocol/Actors/Viewport.h
 	Client/src/Protocol/World.cpp	Client/src/game/Protocol/Movement/World.cpp
 	Client/src/Protocol/World.h	Client/src/game/Protocol/Movement/World.h
+	Client/src/App/CharacterEvent.h	Client/src/game/Session/CharacterEvent.h
+	Client/src/App/ConnectionKeyFiles.cpp	Client/src/game/Session/ConnectionKeyFiles.cpp
+	Client/src/App/ConnectionKeyFiles.h	Client/src/game/Session/ConnectionKeyFiles.h
+	Client/src/App/Credentials.cpp	Client/src/game/Session/Credentials.cpp
+	Client/src/App/Credentials.h	Client/src/game/Session/Credentials.h
+	Client/src/App/ISessionEventSink.h	Client/src/game/Session/ISessionEventSink.h
+	Client/src/App/ServerSession.cpp	Client/src/game/Session/ServerSession.cpp
+	Client/src/App/ServerSession.h	Client/src/game/Session/ServerSession.h
+	Client/src/App/WorldEvent.h	Client/src/game/Session/WorldEvent.h
+	Client/src/Protocol/Dispatcher.cpp	Client/src/game/Session/Dispatcher.cpp
+	Client/src/Protocol/Dispatcher.h	Client/src/game/Session/Dispatcher.h
+	Client/src/Scenes/IWorldEntryPublisher.h	Client/src/game/Session/IWorldEntryPublisher.h
+	Client/src/Scenes/IWorldTransitionPublisher.h	Client/src/game/Session/IWorldTransitionPublisher.h
+	Client/src/Scenes/MapLoad.cpp	Client/src/game/Session/MapLoad.cpp
+	Client/src/Scenes/MapLoad.h	Client/src/game/Session/MapLoad.h
+	Client/src/Scenes/MapServerMoveApply.cpp	Client/src/game/Session/MapServerMoveApply.cpp
+	Client/src/Scenes/MapServerMoveApply.h	Client/src/game/Session/MapServerMoveApply.h
+	Client/src/Scenes/ReturnToSelection.cpp	Client/src/game/Session/ReturnToSelection.cpp
+	Client/src/Scenes/ReturnToSelection.h	Client/src/game/Session/ReturnToSelection.h
+	Client/src/Scenes/SessionEventApplier.cpp	Client/src/game/Session/SessionEventApplier.cpp
+	Client/src/Scenes/SessionEventApplier.h	Client/src/game/Session/SessionEventApplier.h
+	Client/src/Scenes/WorldEntry.cpp	Client/src/game/Session/WorldEntry.cpp
+	Client/src/Scenes/WorldEntry.h	Client/src/game/Session/WorldEntry.h
+	Client/src/Scenes/WorldTransitionSupport.cpp	Client/src/game/Session/WorldTransitionSupport.cpp
+	Client/src/Scenes/WorldTransitionSupport.h	Client/src/game/Session/WorldTransitionSupport.h
+	Client/src/Scenes/WorldTransitions.cpp	Client/src/game/Session/WorldTransitions.cpp
+	Client/src/Scenes/WorldTransitions.h	Client/src/game/Session/WorldTransitions.h

@@ -21,7 +21,7 @@
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/PetTrainer.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

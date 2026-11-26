@@ -1,10 +1,10 @@
 #include "support/FrameDigest.h"
 
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "App/GameClient.h"
 #include "App/ILoopClient.h"
 #include "App/ServerAddress.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Core/Environment.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"

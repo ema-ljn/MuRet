@@ -1,6 +1,6 @@
 #include "Scenes/SelectionState.h"
 
-#include "App/CharacterEvent.h"
+#include "Session/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -11,7 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/GuildReceive.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionActor.h"

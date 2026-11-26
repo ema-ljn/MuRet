@@ -7,7 +7,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "World/GameCamera.h"
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"

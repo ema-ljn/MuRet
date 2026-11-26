@@ -1,7 +1,7 @@
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 
 #include "App/AutoLogin.h"
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "App/FaithfulPacer.h"
 #include "App/LabXorRemapTables.h"
 #include "App/ServerAddress.h"

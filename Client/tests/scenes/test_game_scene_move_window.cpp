@@ -13,7 +13,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/LoginModels.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"

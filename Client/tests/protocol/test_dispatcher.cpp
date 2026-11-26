@@ -1,4 +1,4 @@
-#include "Protocol/Dispatcher.h"
+#include "Session/Dispatcher.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

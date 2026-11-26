@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Network/Xor32Packet.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneManager.h"
@@ -22,8 +22,8 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/SessionEventApplier.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/SessionEventApplier.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"

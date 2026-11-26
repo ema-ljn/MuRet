@@ -1,9 +1,9 @@
 #include "Scenes/GameScene.h"
 
-#include "App/CharacterEvent.h"
+#include "Session/CharacterEvent.h"
 #include "App/GameLoop.h"
 #include "App/PacingMode.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Platform/WindowState.h"
 #include "Crt/CrtRandom.h"

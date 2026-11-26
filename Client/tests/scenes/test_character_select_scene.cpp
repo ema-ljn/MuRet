@@ -47,7 +47,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Protocol/Outgoing.h"
 #include "Models/TextureMetadata.h"
 #include "Scenes/TextureSets.h"

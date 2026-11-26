@@ -1,7 +1,7 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/GameScene.h"
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"

@@ -1,7 +1,7 @@
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 
 #include "test_game_t16_support.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Scenes/SceneManager.h"
 #include "support/Bytes.h"

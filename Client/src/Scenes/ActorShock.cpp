@@ -8,7 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterCreation.h"
 #include "Sound/MonsterSounds.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"

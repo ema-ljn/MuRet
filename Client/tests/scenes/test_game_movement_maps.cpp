@@ -18,7 +18,7 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameMovementState.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"

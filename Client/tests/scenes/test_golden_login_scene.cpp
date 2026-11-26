@@ -6,7 +6,7 @@
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldState.h"
-#include "App/CharacterEvent.h"
+#include "Session/CharacterEvent.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Data/DataPath.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -20,7 +20,7 @@
 #include "support/SessionPackets.h"
 
 #include "App/PacingMode.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "App/ILoopClient.h"
 #include "App/PacingMode.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/LocalTime.h"
@@ -27,9 +27,9 @@
 #include "Scenes/SceneManager.h"
 #include "Scenes/Screenshots.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/SessionEventApplier.h"
+#include "Session/SessionEventApplier.h"
 #include "Scenes/WinMainLoop.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 

@@ -1,6 +1,6 @@
 #include "support/AppPrinters.h"
 
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "Platform/Resolution.h"
 #include "App/SessionState.h"
 

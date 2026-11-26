@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// En qué está la ServerSession (App/ServerSession.h) y por qué falló, aparte de la sesión: así los
+// En qué está la ServerSession (game/Session/ServerSession.h) y por qué falló, aparte de la sesión: así los
 // PrintTo de los tests (tests/support/AppPrinters.h) no traen la Connection ni el Dispatcher.
 // Contrato: el plan de la CL4, "Interfaces" y el diagrama de estados de la CL4.3, paso 1, y la
 // CL4.4, "Contrato"; los dos estados que esperan a la UI, el de la CL5 (CL5.5); los de la

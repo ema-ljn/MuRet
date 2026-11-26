@@ -17,10 +17,10 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/Quests.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Scenes/WorldTransitionSupport.h"
+#include "Session/WorldTransitionSupport.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 

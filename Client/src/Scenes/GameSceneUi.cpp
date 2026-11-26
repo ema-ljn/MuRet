@@ -1,7 +1,7 @@
 #include "Scenes/GameScene.h"
 
 #include "App/FaithfulPacer.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"

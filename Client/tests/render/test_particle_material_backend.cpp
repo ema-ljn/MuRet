@@ -182,7 +182,7 @@ TEST(ParticleMaterialBackendTest, NegativeHighBitSelectorsKeepRawBindingWithoutP
     Client::Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(models),
                                                       Client::Render::ModelBatchParticleState::ForModelPass());
     ASSERT_TRUE(backend.SubtractivePrefix().HasValue());
-    // NEG32 no consulta la tabla pública: 0xfedcba98 produce nombre físico0x01234568.
+    // NEG32 does not consult the public table: 0xfedcba98 gives physical name 0x01234568.
     ASSERT_TRUE(backend.BindTexture(-0x01234568).HasValue());
     ASSERT_TRUE(backend.State().textureSelector.has_value());
     EXPECT_EQ(static_cast<std::uint32_t>(*backend.State().textureSelector), 0xfedcba98U);
@@ -201,7 +201,7 @@ TEST(ParticleMaterialBackendTest, NegativeHighBitSelectorsKeepRawBindingWithoutP
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// Detecta forzar620890 en raw0 o rechazar depthWrite0: expectativa del contrato620a00.
+// Catches forcing 620890 on raw 0 or rejecting depthWrite 0: the expectation of the 620a00 contract.
 TEST(ParticleMaterialBackendTest, RawZeroInheritsDisabledDepthWrite)
 {
     Client::Render::ModelBatch batch;
@@ -217,7 +217,7 @@ TEST(ParticleMaterialBackendTest, RawZeroInheritsDisabledDepthWrite)
     EXPECT_FALSE(batch.Commands().empty());
 }
 
-// Detecta adelantar f0/b0/tail al prefijo o dejarlo como Unsupported.
+// Catches moving f0/b0/tail into the prefix or leaving it as Unsupported.
 TEST(ParticleMaterialBackendTest, SubtractivePrefixPreservesSuffixState)
 {
     Client::Render::ModelBatch batch;
@@ -375,7 +375,7 @@ TEST(ParticleMaterialBackendTest, MissingTextureKeepsCacheAndDoesNotUndoMaterial
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// Cada snapshot representa sólo el prefijo alcanzado; Fog no0 falla incluso si el tail hace hit.
+// Each snapshot represents only the prefix reached; a nonzero Fog fails even if the tail hits.
 TEST(ParticleMaterialBackendTest, SubtractiveFogMissAndHitKeepExactOperationTraceAndSerial)
 {
     using Client::Render::ModelStateOperation;
@@ -449,8 +449,9 @@ TEST(ParticleMaterialBackendTest, KalimaSixEnablesDepthAfterMaterialWithoutChang
     EXPECT_EQ(batch.StateSerial(), serial);
 }
 
-// 0x5489eb: glTexEnvi va fuera del quad y no es del material: publica su eje sin cambiar el serial, y el quad
-// que sigue lleva GL_ADD hasta que vuelve GL_MODULATE. Adentro del quad es un error de GL y no cambia nada.
+// 0x5489eb: glTexEnvi goes outside the quad and is not part of the material: it publishes its axis without changing
+// the serial, and the quad that follows carries GL_ADD until GL_MODULATE comes back. Inside the quad it is a GL error
+// and changes nothing.
 TEST(ParticleMaterialBackendTest, TextureEnvIsOutsideTheQuadAndTravelsWithIt)
 {
     using Client::Render::TextureEnvMode;

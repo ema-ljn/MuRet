@@ -19,10 +19,10 @@
 #include <utility>
 #include <vector>
 
-// Client::Models::ModelTextureSlots: 0x60d530, 0x60d550 y 0x60d5f0 como datos.
+// 0x60d530, 0x60d550 and 0x60d5f0 as data.
 namespace Client::Render
 {
-// Para los mensajes de GoogleTest: el slot en hexadecimal, como el research.
+// For GoogleTest messages: the slot in hex, like the research.
 void PrintTo(const TextureSlot& slot, std::ostream* out)
 {
     *out << std::format("{:#x}", slot.value);
@@ -40,13 +40,13 @@ using Client::Data::Textures::Wrap;
 using Client::Models::ModelTextureSlots;
 using Client::Render::TextureSlot;
 
-// El primer slot de las partes del personaje (0x60f7d0) y el de los ítems (0x611850).
+// The first slot of the character parts (0x60f7d0) and of the items (0x611850).
 constexpr TextureSlot PlayerParts{0x138};
 constexpr TextureSlot Items{0x25a};
-// El muestreo de los cargadores de los modelos: GL_LINEAR y GL_REPEAT.
+// The sampling of the model loaders.
 constexpr Sampling ModelSampling{Filter::Linear, Wrap::Repeat};
 
-// Un modelo con una malla por textura, sin vértices: el asignador solo mira los nombres.
+// One mesh per texture, without vertices: the assigner only looks at the names.
 Model ModelWith(std::vector<std::string_view> textures)
 {
     Model model;
@@ -69,7 +69,6 @@ std::vector<TextureSlot> Slots(std::vector<std::uint16_t> values)
     return slots;
 }
 
-// Un nombre nuevo va al próximo libre, que se corre.
 TEST(ModelTextureSlotsTest, ANewNameTakesTheNextSlot)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -85,7 +84,7 @@ TEST(ModelTextureSlotsTest, ANewNameTakesTheNextSlot)
     EXPECT_EQ(slots.ToLoad()[1].path, "Player\\armor_b.jpg");
 }
 
-// Uno que ya tiene slot lo reusa, en el mismo modelo o en otro, y no pide nada.
+// In the same model or in another, without a request.
 TEST(ModelTextureSlotsTest, ARepeatedNameReusesItsSlot)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -126,7 +125,7 @@ TEST(ModelTextureSlotsTest, AReusedSlotKeepsEachRequestsExactTextureKey)
     EXPECT_EQ(slots.NameOf(PlayerParts), "replacement.jpg");
 }
 
-// Q-C90: se busca el nombre desnudo, sin la carpeta: el de otra carpeta se reusa.
+// Q-C90: the bare name is searched, without the folder: one from another folder is reused.
 TEST(ModelTextureSlotsTest, ANameIsFoundInAnyFolder)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -139,7 +138,7 @@ TEST(ModelTextureSlotsTest, ANameIsFoundInAnyFolder)
     EXPECT_EQ(slots.ToLoad()[0].path, "Skill\\flag.jpg");
 }
 
-// Q-C90: con strcmp, distinguiendo mayúsculas.
+// Q-C90: with strcmp, case-sensitive.
 TEST(ModelTextureSlotsTest, TheSearchIsCaseSensitive)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -150,8 +149,8 @@ TEST(ModelTextureSlotsTest, TheSearchIsCaseSensitive)
     EXPECT_EQ(assigned, Slots({0x138, 0x139}));
 }
 
-// 0x60d530 pone la búsqueda en el 0, no en el primer slot ni en el último que se puso: lo que pidió
-// otro cargador más abajo se reusa.
+// 0x60d530 sets the search at 0, not at the first slot or at the last one set: what another loader requested lower
+// down is reused.
 TEST(ModelTextureSlotsTest, TheSearchStartsAtSlotZero)
 {
     ModelTextureSlots slots(Items);
@@ -165,8 +164,8 @@ TEST(ModelTextureSlotsTest, TheSearchStartsAtSlotZero)
     EXPECT_EQ(assigned, Slots({0x138, 0x25b}));
 }
 
-// Un cargador que sigue a otro con su tabla (0x61ca30 con 0x60d530(0x6f8)): ve los nombres de antes,
-// empieza en su próximo y no tiene nada que subir de los otros.
+// A loader that follows another with its table (0x61ca30 with 0x60d530(0x6f8)): it sees the earlier names, starts at
+// its next and has nothing of the others to upload.
 TEST(ModelTextureSlotsTest, AContinuedTableKeepsTheNamesAndNothingToLoad)
 {
     ModelTextureSlots game(PlayerParts);
@@ -185,8 +184,8 @@ TEST(ModelTextureSlotsTest, AContinuedTableKeepsTheNamesAndNothingToLoad)
     EXPECT_EQ(game.ToLoad().size(), 1u);
 }
 
-// La búsqueda llega hasta el próximo libre: con él para atrás (0x615700 vuelve al 0x138, Q-C89), un
-// nombre de más arriba ya no se encuentra y se pide otra vez, encima.
+// The search goes up to the next free slot: with it moved back (0x615700 goes back to 0x138, Q-C89), a name higher up
+// is no longer found and is requested again, on top.
 TEST(ModelTextureSlotsTest, TheSearchStopsAtNext)
 {
     ModelTextureSlots slots(Items);
@@ -199,7 +198,7 @@ TEST(ModelTextureSlotsTest, TheSearchStopsAtNext)
     EXPECT_EQ(slots.ToLoad().size(), 2u);
 }
 
-// El próximo libre tampoco se mira: vuelto justo sobre un nombre, ese nombre se pide otra vez en él.
+// The next free slot is not searched either: moved back exactly onto a name, that name is requested again in it.
 TEST(ModelTextureSlotsTest, TheNextSlotItselfIsNotSearched)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -213,8 +212,8 @@ TEST(ModelTextureSlotsTest, TheNextSlotItselfIsNotSearched)
     EXPECT_EQ(slots.Next(), TextureSlot{0x13a});
 }
 
-// Las rutas de ToLoad apuntan a las que guarda el asignador: una copia apuntaría a las del otro, así
-// que no se copia. Movido sí, y las rutas siguen valiendo después de que el de antes se va.
+// ToLoad's paths point to the ones the assigner stores: a copy would point to the other's, so it is not copied. It
+// moves, and the paths stay valid after the old one is gone.
 TEST(ModelTextureSlotsTest, MovesButDoesNotCopy)
 {
     EXPECT_FALSE(std::is_copy_constructible_v<ModelTextureSlots>);
@@ -229,8 +228,8 @@ TEST(ModelTextureSlotsTest, MovesButDoesNotCopy)
     EXPECT_EQ(moved.ToLoad()[0].path, "Player\\armor_with_a_long_name.jpg");
 }
 
-// Las OZT van siempre con GL_NEAREST; el wrap es el de quien pide. La ruta lleva la extensión del
-// cargador que eligió la letra, para que LoadTextureSet abra el mismo archivo.
+// OZTs always use GL_NEAREST; the wrap is the requester's. The path carries the extension of the loader the letter
+// chose, so that LoadTextureSet opens the same file.
 TEST(ModelTextureSlotsTest, OztIsAlwaysNearest)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -248,7 +247,7 @@ TEST(ModelTextureSlotsTest, OztIsAlwaysNearest)
     EXPECT_EQ(toLoad[2].sampling.filter, Filter::Nearest);
 }
 
-// Las de la piel y el pelo van a sus slots fijos después de cargarse: el que se pidió queda ocupado.
+// Skin and hair go to their fixed slots after loading: the requested one stays taken.
 TEST(ModelTextureSlotsTest, TheSkinMeshesPointAtTheSkinSlots)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -261,7 +260,7 @@ TEST(ModelTextureSlotsTest, TheSkinMeshesPointAtTheSkinSlots)
     EXPECT_EQ(slots.ToLoad().size(), 5u);
 }
 
-// Una de la piel que ya se pidió no se pide otra vez, pero va igual a su slot fijo.
+// A skin texture already requested is not requested again, but it still goes to its fixed slot.
 TEST(ModelTextureSlotsTest, ASkinNameStillTakesASlot)
 {
     ModelTextureSlots slots(PlayerParts);
@@ -274,8 +273,8 @@ TEST(ModelTextureSlotsTest, ASkinNameStillTakesASlot)
     EXPECT_EQ(slots.ToLoad().size(), 1u);
     EXPECT_EQ(slots.Next(), TextureSlot{0x139});
 }
-// El nombre que guarda cada slot, como la tabla de 0x7d3a198: el de la malla, sin la carpeta; el que
-// se pide encima de otro (Q-C89) se queda con el último; vacío el que nadie pidió y el de fuera.
+// The name each slot keeps, like the table at 0x7d3a198: the mesh's, without the folder; one requested on top of
+// another (Q-C89) keeps the last one; empty for one nobody requested and for one outside.
 TEST(ModelTextureSlotsTest, EachSlotKeepsTheNameOfItsMesh)
 {
     ModelTextureSlots slots(PlayerParts);

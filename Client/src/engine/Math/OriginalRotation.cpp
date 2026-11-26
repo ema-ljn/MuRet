@@ -13,7 +13,7 @@ namespace Client::Math
 {
 namespace
 {
-// π/180 en float (0x6ba360).
+// π/180 as a float (0x6ba360).
 constexpr float Degrees = Math::DegreesToRadians;
 
 using Math::F32;
@@ -45,8 +45,8 @@ BoneTransform BoneTransformOf(const OriginalMatrix& rows)
     return m;
 }
 
-// 0x5fca90: a es el padre y b el hijo, por filas. La primera fila suma a0·b, a1·b y a2·b en ese orden
-// en la columna 0 y a1·b, a0·b, a2·b en las otras; la segunda y la tercera, de la columna 2 a la 0.
+// 0x5fca90: a is the parent and b the child, by rows. The first row sums a0·b, a1·b and a2·b in that order in column
+// 0 and a1·b, a0·b, a2·b in the others; the second and third rows, from column 2 to 0.
 OriginalMatrix OriginalConcatTransforms(const OriginalMatrix& parent, const OriginalMatrix& child)
 {
     const auto a = [&parent](std::size_t k) { return static_cast<double>(parent[k]); };
@@ -70,8 +70,8 @@ OriginalMatrix OriginalConcatTransforms(const OriginalMatrix& parent, const Orig
     return out;
 }
 
-// 0x5fc8f0 como la x87: el seno y el coseno de y y de x guardados en float, el coseno de z en el
-// registro, cada producto en 53 bits y cada elemento guardado en float. Por filas: m[i · 4 + j].
+// 0x5fc8f0 as the x87 does it: the sine and cosine of y and x stored as floats, the cosine of z in the register, each
+// product in 53 bits and each element stored as float. By rows: m[i · 4 + j].
 OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees)
 {
     const double z = static_cast<double>(degrees.z) * static_cast<double>(Degrees);
@@ -98,7 +98,7 @@ OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees)
     return m;
 }
 
-// 0x5fcbd0: el vector por el giro, cada componente en 53 bits con el orden de sus sumas.
+// 0x5fcbd0: each component in 53 bits with the order of its sums.
 glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m)
 {
     const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
@@ -112,13 +112,13 @@ glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m)
 void OriginalVectorRotateInPlace(glm::vec3& v, const OriginalMatrix& m)
 {
     const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
-    // 0x5fcbf0/0x5fcc07: cada fila se guarda antes de que la siguiente relea [eax].
+    // 0x5fcbf0/0x5fcc07: each row is stored before the next one rereads [eax].
     v.x = F32(((at(1) * v.y) + (at(2) * v.z)) + (static_cast<double>(v.x) * at(0)));
     v.y = F32(((at(4) * v.x) + (at(5) * v.y)) + (at(6) * v.z));
     v.z = F32(((at(8) * v.x) + (at(9) * v.y)) + (at(10) * v.z));
 }
 
-// 0x5fcc30: las columnas del giro; el orden de las sumas también fija los bits de la cámara.
+// 0x5fcc30: the rotation's columns; the order of the sums also fixes the camera's bits.
 glm::vec3 OriginalVectorIRotate(const glm::vec3& v, const OriginalMatrix& m)
 {
     const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
@@ -129,7 +129,7 @@ glm::vec3 OriginalVectorIRotate(const glm::vec3& v, const OriginalMatrix& m)
             F32(((at(2) * x) + (at(10) * z)) + (at(6) * y))};
 }
 
-// 0x5fccc0: como 0x5fcbd0 más la traslación de cada fila, sumada al final en 53 bits.
+// 0x5fccc0: like 0x5fcbd0 plus each row's translation, added last in 53 bits.
 glm::vec3 OriginalVectorTransform(const glm::vec3& v, const OriginalMatrix& m)
 {
     const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
@@ -141,8 +141,8 @@ glm::vec3 OriginalVectorTransform(const glm::vec3& v, const OriginalMatrix& m)
             F32((((at(8) * x) + (at(9) * y)) + (at(10) * z)) + at(11))};
 }
 
-// 0x4ec110: los tres productos por la escala en la pila; el de y y el de z se guardan en float antes de
-// sumarles el origen, el de x no.
+// 0x4ec110: the three products by the scale stay on the x87 stack; the y and z ones are stored as floats before the
+// origin is added, the x one is not.
 glm::vec3 OriginalTransformPosition(const OriginalMatrix& bone, const glm::vec3& offset, float bodyScale,
                                     const glm::vec3& bodyOrigin)
 {

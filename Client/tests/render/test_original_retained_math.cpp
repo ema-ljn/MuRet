@@ -29,8 +29,8 @@ struct WaveCase
     bool secondRetained;
     Math::RetainedClass classification;
 };
-// 1020 entradas y 2040 conversiones PC53/RN archivadas. No exige igualdad FSIN:
-// sus discrepancias de valor retenido/proyecciones se registran en ADR0014.
+// 1020 inputs and 2040 archived PC53/RN conversions. Does not require FSIN equality:
+// its retained-value/projection discrepancies are recorded in ADR0014.
 // references.json SHA256: 5bfd7be7e163c3a9637cd8656ff4f88d209dbd938ac82e5f11932d6d11de0c3f
 constexpr std::array<WaveCase, 1020> WaveCases{
     WaveCase{0x0U, 0LL, 0LL, true, true, false, false, Math::RetainedClass::Finite},
@@ -1179,8 +1179,8 @@ TEST(OriginalRetainedMathTest, MatchesNativeAtanProductsBeforeAngleSums)
 }
 TEST(OriginalRetainedMathTest, KeepsTheLiveYawSumBeforeIntegerConversion)
 {
-    // Composición analítica: el retorno nativo diagonal está debajo de135 y su S32 es135.
-    // Yaw se lee después de CreateAngle, como en el caller double; no prueba gameplay.
+    // Analytic composition: the diagonal native return is below 135 and its S32 is 135.
+    // Yaw is read after CreateAngle, as in the double caller; it does not test gameplay.
     float yaw = 0.0f;
     const double heading = Client::Math::CreateAngle(0.0f, 0.0f, 1.0f, 1.0f);
     yaw = 1.0f;
@@ -1197,9 +1197,9 @@ TEST(OriginalRetainedMathTest, RepresentsExceptionalAtanInputsNumerically)
     EXPECT_EQ(Math::AtanDegreesProductPC53(-0.0), 0.0);
     EXPECT_TRUE(std::signbit(Math::AtanDegreesProductPC53(-0.0)));
 }
-// Esperados independientes de la implementación, con enteros de Python: pi por Machin a 3064 bits,
-// x - k·pi/2 y Taylor en punto fijo de 3000 bits; después RN64, producto exacto y RN53. También
-// coinciden con el perfil Boost113 al que reemplaza la aritmética propia (ADR0014).
+// Expected values independent of the implementation, from Python integers: pi by Machin at 3064 bits, x - k·pi/2 and
+// Taylor in 3000-bit fixed point; then RN64, exact product and RN53. They also match the Boost113 profile that the own
+// arithmetic replaces (ADR0014).
 struct TrigonometricCase
 {
     double argument;
@@ -1220,8 +1220,8 @@ void ExpectTrigonometricProducts(std::span<const TrigonometricCase> cases)
 }
 TEST(OriginalRetainedMathTest, ReducesArgumentsNearQuarterTurnMultiples)
 {
-    // Los doubles más cercanos a pi/2, pi y -2pi, y 0x1.6c6cbc45dc8dep+5, el double debajo de 2^63
-    // más cercano a un múltiplo de pi/2 (|x·2/pi - 29| = 2^-61.14, por fracciones continuas).
+    // The doubles nearest to pi/2, pi and -2pi, and 0x1.6c6cbc45dc8dep+5, the double below 2^63 nearest to a multiple
+    // of pi/2 (|x·2/pi - 29| = 2^-61.14, by continued fractions).
     constexpr std::array cases{
         TrigonometricCase{0x1.921fb54442d18p+0, 40.0f, true, 0x1.60fafbfd97309p-49},
         TrigonometricCase{0x1.921fb54442d18p+1, 40.0f, false, 0x1.60fafbfd97309p-48},
@@ -1236,7 +1236,7 @@ TEST(OriginalRetainedMathTest, ReducesArgumentsNearQuarterTurnMultiples)
 }
 TEST(OriginalRetainedMathTest, ReducesHugeArgumentsExactly)
 {
-    // Cerca de 2^63 el cuadrante ya pide 64 bits de 2/pi y el retenido, más de 128.
+    // Near 2^63 the quadrant already needs 64 bits of 2/pi, and the retained value more than 128.
     constexpr std::array cases{
         TrigonometricCase{0x1.fffffffffffffp+62, 40.0f, false, 0x1.3c87a00ee9686p+5},
         TrigonometricCase{0x1.fffffffffffffp+62, 40.0f, true, -0x1.77fdb3d2492fap+2},
@@ -1244,7 +1244,7 @@ TEST(OriginalRetainedMathTest, ReducesHugeArgumentsExactly)
         TrigonometricCase{0x1.bc16d674ec8p+59, 40.0f, true, 0x1.2f08447b84981p+2}, // 1e18
     };
     ExpectTrigonometricProducts(cases);
-    // Las hojas Wave dejan ver los 64 bits del retenido, sin producto.
+    // The Wave leaves expose the 64 bits of the retained value, without a product.
     struct LeafCase
     {
         float time;
@@ -1272,10 +1272,10 @@ TEST(OriginalRetainedMathTest, ReducesHugeArgumentsExactly)
         EXPECT_EQ(leaf.value.negative, row.expected.negative);
     }
 }
-// SineSumPC53: el FSIN de 64 bits más un double (el FADD después del FSIN de 0x509340), un solo RN53.
-// Esperados con enteros de Python, independientes de la implementación: π por Machin y Taylor en punto
-// fijo de 3000 bits, RN64 del seno, suma exacta y RN53. En los cuatro, ni
-// sin(x) + a en double ni RN53(sin(x) + a) de una vez dan el mismo double.
+// SineSumPC53: the 64-bit FSIN plus a double (the FADD after the FSIN of 0x509340), a single RN53.
+// Expected values from Python integers, independent of the implementation: π by Machin and Taylor in 3000-bit fixed
+// point, RN64 of the sine, exact sum and RN53. In all four, neither sin(x) + a in double nor RN53(sin(x) + a) at once
+// gives the same double.
 TEST(OriginalRetainedMathTest, TheRetainedSinePlusAnAddendRoundsOnce)
 {
     struct SumCase
@@ -1297,7 +1297,7 @@ TEST(OriginalRetainedMathTest, TheRetainedSinePlusAnAddendRoundsOnce)
         ASSERT_TRUE(sum.has_value());
         EXPECT_EQ(std::bit_cast<std::uint64_t>(*sum), std::bit_cast<std::uint64_t>(row.sum));
     }
-    // FSIN(±0) es ±0, y la suma de dos ceros sigue la regla del signo de la FPU.
+    // FSIN(±0) is ±0, and the sum of two zeros follows the FPU's sign rule.
     EXPECT_EQ(Math::SineSumPC53(0.0, 0.5), 0.5);
     ASSERT_TRUE(Math::SineSumPC53(-0.0, -0.0).has_value());
     EXPECT_TRUE(std::signbit(*Math::SineSumPC53(-0.0, -0.0)));

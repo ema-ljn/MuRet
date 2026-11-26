@@ -13,28 +13,25 @@
 #include <span>
 #include <vector>
 
-// La tela del personaje: la clase de la vtable 0x6b8cd8 del original (la capa del Dark Lord y la de la
-// clase 3), una grilla de partículas con resortes, la fila 0 anclada a un hueso, esferas que la
-// empujan, viento y gravedad (Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase
-// 4"). Cada cuenta sigue el orden de la x87 del original con la precisión en 53 bits: lo que el
-// original guarda en un float se redondea a float acá, y lo que deja en la pila sigue en double. Los
-// tests comparan cada paso, bit a bit, con el código real del main.exe emulado (tests/vectors/cloth).
+// The original's cloth class (vtable 0x6b8cd8; the Dark Lord's cape and class 3's):
+// Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4". Each computation follows the original's
+// x87 order at 53-bit precision: what the original stores in a float is rounded to float here, and what it leaves on
+// the stack stays double. The tests compare each step, bit by bit, with the emulated main.exe (tests/vectors/cloth).
 namespace Client::Models
 {
-// Lo que la tela lee de los globales del original, y su rand(): el viento base (0x7245f0), el viento
-// de este paso (0x7245f4..0x7245fc; la z no la escribe nadie y queda en 0) y el contador protegido de
-// pasos de lógica (0x7d3a0f0).
+// What the cloth reads from the original's globals, and its rand(): the base wind (0x7245f0), this step's wind
+// (0x7245f4..0x7245fc; nobody writes z and it stays 0) and the protected logic-step counter (0x7d3a0f0).
 struct ClothWorld
 {
     Crt::CrtRandom random;
     float windBase = 0.0f;
     glm::vec3 wind{};
     std::int32_t logicSteps = 0;
-    // Cuántos accesos al contador están abiertos (la tabla de 0x57630c8): con 0, cada paso de una tela
-    // lo vuelve a cifrar y saca 4 rand() que no usa. En el dibujo no hay otro abierto.
+    // Open counter accesses (the table at 0x57630c8): with 0, each cloth step encrypts it again and draws 4 unused
+    // rand(). No other access is open while drawing.
     std::int32_t openCounterAccesses = 0;
-    // DAT_07d2d360 está en .bss:0.637d63/637d7c avanza el ciclo32 después del viento,
-    // antes del contador lógico. El owner sólo publica valores0..31 y sobrevive a mapas/escenas.
+    // DAT_07d2d360 is in .bss: 0. 637d63/637d7c advance the 32-cycle after the wind, before the logic counter. The
+    // owner only publishes values 0..31 and survives maps and scenes.
     std::uint32_t waterTextureFrame = 0;
 };
 
@@ -44,15 +41,15 @@ enum class ClothWindSource
     Randomized,
 };
 
-// 0x456b10: el paseo del viento base, b = f(b + (rand() % 200 − 100) · 0,001), entre −0,2 y 1.
+// 0x456b10: the base wind walk, b = f(b + (rand() % 200 − 100) · 0.001), between −0.2 and 1.
 ENGINE_API void WalkTheWind(ClothWorld& world);
 
-// Lo que hace 0x637700 en cada paso de lógica de las escenas 2, 4 y 5 para la tela: el paseo del
-// viento cinco veces (0x637cec) y el contador más 1 (0x637f8c), que al cerrar su acceso saca otros
-// 4 rand(). Los demás rand() de 0x637700 son de otras cosas y MuRet no los saca de acá.
+// What 0x637700 does for the cloth on each logic step of scenes 2, 4 and 5: the wind walk five times (0x637cec) and the
+// counter plus 1 (0x637f8c), which draws another 4 rand() when its access closes. The other rand() calls of 0x637700
+// are for other things and MuRet does not draw them here.
 ENGINE_API void StepTheClothWorld(ClothWorld& world);
 
-// Una partícula (0x3c bytes, vtable 0x6b8cbc). La posición va en el mundo.
+// A particle (0x3c bytes, vtable 0x6b8cbc). The position is in world space.
 struct ClothParticle
 {
     glm::vec3 force{};
@@ -63,8 +60,8 @@ struct ClothParticle
     glm::vec3 correction{};
 };
 
-// Un resorte (0x10 bytes, 0x455140): las dos partículas, el largo mínimo f(L · 0,8), el de reposo L
-// y sus banderas: 1 relaja, 2 tira y 4 restringe.
+// A spring (0x10 bytes, 0x455140): the two particles, the minimum length f(L · 0.8), the rest length L and its flags:
+// 1 relaxes, 2 pulls and 4 restrains.
 struct ClothSpring
 {
     std::int16_t a = 0;
@@ -74,8 +71,7 @@ struct ClothSpring
     std::uint8_t flags = 0;
 };
 
-// Una esfera (0x24 bytes, vtable 0x6b8ccc): su lugar en el hueso, el radio y el centro en el mundo
-// del último paso.
+// A sphere (0x24 bytes, vtable 0x6b8ccc): its place on the bone, the radius and the world center from the last step.
 struct ClothSphere
 {
     glm::vec3 local{};
@@ -84,8 +80,7 @@ struct ClothSphere
     glm::vec3 world{};
 };
 
-// Los argumentos del armado (0x454a50(objeto, hueso, x, y, z, columnas, filas, ancho, alto, frente,
-// atrás, banderas)).
+// The build arguments (0x454a50(object, bone, x, y, z, columns, rows, width, height, front, back, flags)).
 struct ClothShape
 {
     std::int32_t bone = 0;
@@ -99,30 +94,29 @@ struct ClothShape
     std::uint32_t flags = 0;
 };
 
-// El objeto del que cuelga: sus huesos (objeto + 0x120, como los posa PoseSkeleton: sin la escala ni
-// la posición y con la raíz girada), sus ángulos (+0x1c) y la escala y la posición del modelo
-// (+0x68 y +0x6c..+0x74, que 0x6001b0 copia del objeto).
+// The object it hangs from: its bones (object + 0x120, as PoseSkeleton poses them: no scale or position, root
+// rotated), its angles (+0x1c) and the model's scale and position (+0x68 and +0x6c..+0x74, which 0x6001b0 copies from
+// the object).
 struct ClothBody
 {
     std::span<const Math::BoneTransform> bones;
     glm::vec3 angles{};
     float scale = 1.0f;
     glm::vec3 position{};
-    // Solo la tela sobre la malla: los vértices de su malla en el mundo, como los dejó el último 0x4ebc80 en
-    // 0x5786f9c (la malla por 15.000 vértices). Los lee su anclaje (0x4564c0).
+    // Mesh cloth only: its mesh's world vertices as the last 0x4ebc80 left them in 0x5786f9c (mesh × 15000 vertices).
+    // Read by its anchoring (0x4564c0).
     std::span<const glm::vec3> meshVertices{};
 };
 
-// Las banderas de la tela que mira el dibujo (06 § La tela de la clase 4).
+// The cloth flags the drawing looks at (06 § La tela de la clase 4).
 inline constexpr std::uint32_t ClothBlendMask = 0x3000;
 inline constexpr std::uint32_t ClothAlphaBlend = 0x1000;
 inline constexpr std::uint32_t ClothAdditiveBlend = 0x2000;
 inline constexpr std::uint32_t ClothKeepsTheBlend = 0x3000;
 inline constexpr std::uint32_t ClothGlows = 0x40000000;
 
-// La mezcla con la que se dibujan las caras (0x455930): por `& 0x3000`, 0x620980 (opaca), 0x620a00(1)
-// (la normal, con alpha test) o 0x620a90 (aditiva), y con 0x3000 la que estaba; con el brillo, además,
-// la aditiva.
+// The blend the faces are drawn with (0x455930): by `& 0x3000`, 0x620980 (opaque), 0x620a00(1) (normal, with alpha
+// test) or 0x620a90 (additive), and with 0x3000 the one already set; with the glow, the additive one as well.
 enum class ClothBlend : std::uint8_t
 {
     Opaque,
@@ -132,15 +126,15 @@ enum class ClothBlend : std::uint8_t
 };
 [[nodiscard]] ENGINE_API ClothBlend FaceBlendOf(std::uint32_t flags);
 
-// Un vértice de una cara, como lo manda 0x455c40: la partícula y sus UV.
+// A face vertex as 0x455c40 sends it: the particle and its UV.
 struct ClothCorner
 {
     std::int32_t particle = 0;
     glm::vec2 uv{};
 };
 
-// Uno de los sprites del brillo (0x5491e0(0x5ac, …)): Effect\flare01.jpg en la posición de una
-// partícula, con su escala y su luz. Los dibuja más tarde el administrador de efectos (0x549440).
+// One of the glow sprites (0x5491e0(0x5ac, …)): Effect\flare01.jpg at a particle's position, with its scale and light.
+// The effect manager (0x549440) draws them later.
 struct ClothFlare
 {
     glm::vec3 position{};
@@ -151,56 +145,54 @@ struct ClothFlare
 class ENGINE_API Cloth
 {
 public:
-    // 0x454a00: todo en 0, el ancho, el alto, dx y dy en 1 y los bytes del viento en 1.
+    // 0x454a00: everything at 0, width, height, dx and dy at 1 and the wind bytes at 1.
     Cloth() = default;
 
-    // 0x454a50: las partículas en una grilla provisoria (con los ángulos del objeto y la traslación del
-    // hueso), los resortes medidos en ella y la fila 0 anclada en esa misma matriz. Las banderas se
-    // suman con OR a las que ya tenía, y las esferas quedan: así lo arma 0x50ba30 otra vez sobre la
-    // cuarta tela.
+    // 0x454a50: the particles in a provisional grid (with the object's angles and the bone's translation), the springs
+    // measured in it and row 0 anchored to that same matrix. The flags are ORed into the existing ones and the spheres
+    // stay: that is how 0x50ba30 builds the fourth cloth again.
     void Build(const ClothShape& shape, const ClothBody& body);
-    // 0x455ea0 (la vtable 0x6b8d04 + 0x24), la tela sobre la malla (08 P-C22 f): una partícula por vértice de
-    // `mesh` en `vertices` (0x5786f9c, en el mundo), anclada si su hueso es `bone`; por cada lado (a, b) de cada
-    // triángulo, en su orden, un resorte con L = f(|a − b|), el mínimo f(L · 0,5) y las banderas 3 si |a.x − b.x|
-    // pasa de 10 (en double) o 6 si no; y, si el triángulo vecino que lo recorre al revés (0x4563c0) tiene su
-    // tercer vértice d (desde 1: el 0 no cuenta, Q-C861) y f(|c − d|) < L · 1,2f, con c el tercero de este, otro
-    // de c a d con las mismas banderas si no hay ya uno de c a d (0x456470, en ese sentido). `meshIndex` es el
-    // +0x60 que lee el dibujo. Sin el modelo, las columnas en 0: la restricción mira todos los resortes.
+    // 0x455ea0 (vtable 0x6b8d04 + 0x24), the mesh cloth (08 P-C22 f): one particle per vertex of `mesh` in `vertices`
+    // (0x5786f9c, world space), anchored if its bone is `bone`; for each edge (a, b) of each triangle, in order, a
+    // spring with L = f(|a − b|), minimum f(L · 0.5) and flags 3 if |a.x − b.x| exceeds 10 (in double) or 6 otherwise;
+    // and, if the neighbouring triangle that walks it backwards (0x4563c0) has its third vertex d (from 1: 0 does not
+    // count, Q-C861) and f(|c − d|) < L · 1.2f, with c this triangle's third, another from c to d with the same flags
+    // unless one from c to d already exists (0x456470, in that direction). `meshIndex` is the +0x60 the drawing reads.
+    // Without the model, columns at 0: the constraint looks at every spring.
     void BuildOnTheMesh(const Data::Models::Mesh& mesh, std::int32_t meshIndex, std::int32_t bone, std::uint32_t flags,
                         std::span<const glm::vec3> vertices);
     // 0x455cd0.
     void AddSphere(const glm::vec3& local, float radius, std::int32_t bone);
-    // Los bytes +0x49 y +0x48: el mínimo y el rango del viento de las capas con 0x200.
+    // Bytes +0x49 and +0x48: the wind minimum and range of the capes with 0x200.
     void SetWindBytes(std::uint8_t minimum, std::uint8_t range);
-    // 0x454f80: suelta las esferas, los resortes y las partículas, y vuelve a 0x454a00.
+    // 0x454f80: releases the spheres, the springs and the particles, and goes back to 0x454a00.
     void Release();
 
-    // 0x455190(dt, steps): los pasos de 0x4551d0 hasta el primero que da false (la tela se rompió).
+    // 0x455190(dt, steps): the steps of 0x4551d0 until the first that returns false (the cloth tore).
     [[nodiscard]] bool Simulate(float dt, int steps, const ClothBody& body, ClothWorld& world,
                                 ClothWindSource fallbackWind);
-    // 0x4551d0: el viento, las fuerzas, los resortes que tiran, el anclaje, la integración, las
-    // esferas, la relajación y la restricción. false si un resorte pasó de 20 veces su largo.
+    // 0x4551d0: the wind, the forces, the pulling springs, the anchoring, the integration, the spheres, the relaxation
+    // and the constraint. false if a spring exceeded 20 times its length.
     [[nodiscard]] bool Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSource fallbackWind);
 
-    // El dibujo de la tela sobre la malla (0x4568f0, la vtable 0x6b8d04 + 0x18): cada partícula a su vértice de
-    // 0x5786f9c, que dibuja después el RenderBody del modelo. Nada si `vertices` es más corto.
+    // Draws the mesh cloth (0x4568f0, vtable 0x6b8d04 + 0x18): each particle to its vertex in 0x5786f9c, which the
+    // model's RenderBody draws afterwards. Nothing if `vertices` is shorter.
     void WriteTheMesh(std::span<glm::vec3> vertices) const;
-    // La malla de la tela sobre la malla (+0x60), o −1 en la de la grilla.
+    // The mesh of the mesh cloth (+0x60), or −1 for the grid cloth.
     [[nodiscard]] std::int32_t Mesh() const
     {
         return m_mesh;
     }
 
-    // El dibujo (0x455930): las cuatro esquinas de cada cuadrado, de adelante (i, j), (i+1, j),
-    // (i+1, j+1), (i, j+1) y de atrás al revés, con u = f(i / (columnas − 1)) y v = j / (filas − 1)
-    // hasta 0,99.
+    // The drawing (0x455930): the four corners of each square, front (i, j), (i+1, j), (i+1, j+1), (i, j+1) and back
+    // reversed, with u = f(i / (columns − 1)) and v = j / (rows − 1) up to 0.99.
     [[nodiscard]] std::vector<ClothCorner> Corners(bool front) const;
-    // El brillo de 0x40000000 con el reloj T en ms (DAT_05767b88): t = f(sin(T · 0,001) · 0,1 + 0,4).
+    // The glow of 0x40000000 with the clock T in ms (DAT_05767b88): t = f(sin(T · 0.001) · 0.1 + 0.4).
     [[nodiscard]] static float GlowAt(float worldTime);
-    // Los 30 sprites del brillo: k recorre las partículas por filas, y la escala y la luz cambian
-    // cada `filas` sprites, como el original.
+    // The 30 glow sprites: k walks the particles by rows, and the scale and the light change every `rows` sprites, like
+    // the original.
     [[nodiscard]] std::vector<ClothFlare> Flares(float glow) const;
-    // Si dibuja la cara de atrás: no con la mezcla aditiva y el brillo juntos.
+    // Not with the additive blend and the glow together.
     [[nodiscard]] bool DrawsTheBack() const;
 
     [[nodiscard]] std::span<const ClothParticle> Particles() const
@@ -235,7 +227,7 @@ public:
     {
         return m_columns;
     }
-    // El hueso de la fila anclada, el `bone` de su ClothShape.
+    // The anchored row's bone, the `bone` of its ClothShape.
     [[nodiscard]] std::int32_t Bone() const
     {
         return m_bone;
@@ -249,9 +241,9 @@ private:
     void Reset();
     void AnchorTheTopRow(const Math::BoneTransform& matrix, const ClothBody& body);
     void AddForces(ClothWorld& world);
-    // 0x454240: la fuerza de una partícula con su distancia de Manhattan al centro del viento.
+    // 0x454240: a particle's force from its Manhattan distance to the wind center.
     void PushTheParticle(ClothParticle& particle, std::int32_t distance, const ClothWorld& world) const;
-    // 0x4565f0 y 0x4564c0, la tela sobre la malla sin 0x10000000.
+    // 0x4565f0 and 0x4564c0, the mesh cloth without 0x10000000.
     void AddForcesOnTheMesh(ClothWorld& world);
     void AnchorTheMesh(const ClothBody& body);
     void PullTheSprings();
@@ -274,7 +266,7 @@ private:
     float m_dx = 1.0f;
     float m_dy = 1.0f;
     std::vector<ClothSphere> m_spheres;
-    // La tela sobre la malla: su malla (+0x60) y el hueso de cada vértice, que mira su anclaje.
+    // Mesh cloth: its mesh (+0x60) and each vertex's bone, read by its anchoring.
     std::int32_t m_mesh = -1;
     std::vector<std::int16_t> m_vertexBones;
 };

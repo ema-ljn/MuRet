@@ -23,9 +23,8 @@ glm::vec3 ToVec3(const std::array<float, 3>& value)
     return {value[0], value[1], value[2]};
 }
 
-// Las keys de un hueso en una acción, con el cuaternión de cada una (0x4f13d0 llama a 0x5fcd20 por
-// key). Las posiciones y los ángulos vienen del mismo largo: LoadBmd lee los dos con la cantidad de
-// keys de la acción.
+// A bone's keys in an action, each with its quaternion (0x4f13d0 calls 0x5fcd20 per key). Positions and angles have
+// the same length: LoadBmd reads both with the action's key count.
 std::vector<BoneKey> MakeKeys(const Data::Models::BoneKeys& keys)
 {
     std::vector<BoneKey> made;
@@ -56,7 +55,7 @@ Core::Expected<Skeleton, SkeletonError> MakeSkeleton(const Data::Models::Model& 
         made.dummy = bone.dummy;
         if (!bone.dummy)
         {
-            // La pose concatena cada hueso con la matriz de su padre ya calculada: tiene que ir antes.
+            // The pose concatenates each bone with its parent's already computed matrix: the parent must come first.
             if (bone.parent < -1 || (bone.parent >= 0 && static_cast<std::size_t>(bone.parent) >= index))
             {
                 return Core::Unexpected(SkeletonError{index, bone.parent});

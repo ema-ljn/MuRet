@@ -15,7 +15,7 @@
 #include <numbers>
 #include <vector>
 
-// Client::Models::PoseSkeleton: 0x4eb860 sobre un esqueleto armado a mano.
+// 0x4eb860 on a hand-built skeleton.
 namespace
 {
 using Client::Math::AngleMatrix;
@@ -50,9 +50,8 @@ BoneKey Key(glm::vec3 position, glm::vec3 degrees)
     return BoneKey{position, radians, AngleQuaternion(radians)};
 }
 
-// Tres huesos: una raíz, su hijo y un dummy. La acción 0 tiene dos keys; la 1, tres y
-// lock_positions. La raíz gira 90° en z de una key a la otra de la acción 0; el hijo está a 10 en
-// x de la raíz.
+// Three bones: a root, its child and a dummy. Action 0 has two keys; action 1, three and lock_positions. The root
+// turns 90° about z from one key of action 0 to the other; the child is 10 in x from the root.
 Skeleton SampleSkeleton()
 {
     Skeleton skeleton;
@@ -89,7 +88,7 @@ std::vector<BoneTransform> Pose(const Skeleton& skeleton, const AnimationState& 
     return bones;
 }
 
-// El hijo cuelga del padre: su posición relativa gira con la raíz.
+// Its relative position turns with the root.
 TEST(PoseTest, AChildFollowsItsParent)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -101,8 +100,8 @@ TEST(PoseTest, AChildFollowsItsParent)
     ExpectNear(VectorTransform({1, 0, 0}, bones[1]), {0, 11, 0});
 }
 
-// La raíz gira con los ángulos del objeto, en grados. La escala y la posición del objeto no entran en
-// los huesos: las pone SkinMesh. La posición de la key va en la traslación, m[3].
+// The root turns with the object's angles, in degrees. The object's scale and position do not enter the bones: SkinMesh
+// applies them. The key's position goes in the translation, m[3].
 TEST(PoseTest, TheRootTurnsWithTheObjectButDoesNotMoveWithIt)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -115,8 +114,8 @@ TEST(PoseTest, TheRootTurnsWithTheObjectButDoesNotMoveWithIt)
     ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {0, 1, 0});
 }
 
-// La raíz mundial escala sus nueve componentes de orientación y conserva la posición del objeto sin
-// escalarla; después concatena la pose local antes de posar al hijo.
+// The world root scales its nine orientation components and keeps the object's position unscaled; then it
+// concatenates the local pose before posing the child.
 TEST(PoseTest, WorldRootScalesAndTranslatesBeforePosingChildren)
 {
     Skeleton skeleton;
@@ -148,7 +147,7 @@ TEST(PoseTest, WorldRootScalesAndTranslatesBeforePosingChildren)
     EXPECT_EQ(bones[2], BoneTransform(7.0f));
 }
 
-// lock_positions calcula la posición local del hueso 0 antes de aplicar la transformación mundial.
+// lock_positions computes bone 0's local position before the world transform is applied.
 TEST(PoseTest, WorldRootAppliesScaleAndPositionToLockedRoot)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -158,14 +157,14 @@ TEST(PoseTest, WorldRootAppliesScaleAndPositionToLockedRoot)
 
     ASSERT_TRUE(PoseWorldSkeleton(skeleton, animation, object, NoHead, bones));
 
-    // lock_positions conserva x/y de la key cero y suma 2 a z interpolada (seis y medio).
-    // La raíz mundial rota y escala ese vector, y luego suma la posición sin escalar.
+    // lock_positions keeps x/y of key zero and adds 2 to the interpolated z (six and a half).
+    // The world root rotates and scales that vector, then adds the unscaled position.
     ExpectNear(bones[0][3], {96.0f, 202.0f, 313.0f});
     EXPECT_EQ(bones[2], BoneTransform(7.0f));
 }
 
-// Entre la key anterior y la de ahora, con la parte fraccionaria: un cuarto del camino de 0° a 90°
-// es 22,5°, y la posición va lineal.
+// Between the previous key and the current one, with the fractional part: a quarter of the way from 0° to 90° is
+// 22.5°, and the position goes linearly.
 TEST(PoseTest, InterpolatesBetweenThePreviousKeyAndTheCurrent)
 {
     const AnimationState animation{0, 1.25f, 0, 0};
@@ -176,7 +175,7 @@ TEST(PoseTest, InterpolatesBetweenThePreviousKeyAndTheCurrent)
     ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {RoundedCos(Radians(22.5f)), RoundedSin(Radians(22.5f)), 0});
 }
 
-// La key anterior puede ser de otra acción: la que guardó el avance al cambiar.
+// The previous key can belong to another action: the one the advance stored when changing.
 TEST(PoseTest, ThePreviousKeyCanBeOfAnotherAction)
 {
     const AnimationState animation{0, 0.5f, 1, 2};
@@ -185,11 +184,11 @@ TEST(PoseTest, ThePreviousKeyCanBeOfAnotherAction)
 
     const std::vector<BoneTransform> bones = Pose(skeleton, animation);
 
-    // De la key 2 de la acción 1 (7, 8, 9) a la key 0 de la 0 (0, 0, 0), en la mitad.
+    // From key 2 of action 1 (7, 8, 9) to key 0 of action 0 (0, 0, 0), halfway.
     ExpectNear(bones[0][3], {3.5f, 4.0f, 4.5f});
 }
 
-// El hueso de la cabeza resta headAngles.x a su x y headAngles.y a su z (no a la y), en grados.
+// The head bone subtracts headAngles.x from its x and headAngles.y from its z (not from its y), in degrees.
 TEST(PoseTest, TheHeadSubtractsXAndZ)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -202,12 +201,11 @@ TEST(PoseTest, TheHeadSubtractsXAndZ)
     {
         ExpectNear(bones[1][column], expected[column]);
     }
-    // Los otros huesos no giran con la cabeza.
     ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {1, 0, 0});
 }
 
-// La cabeza pasa sus grados a radianes con el float de 0x6ba140 (0x3c8efa36), un ulp más que el más
-// cercano a π/180, que es el de la raíz (0x6ba360). Con 3.600° la diferencia se ve.
+// The head converts its degrees to radians with the float at 0x6ba140 (0x3c8efa36), one ulp above the one nearest to
+// π/180, which is the root's (0x6ba360). With 3600° the difference shows.
 TEST(PoseTest, TheHeadUsesTheDegreeFloatOfTheOriginal)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -224,8 +222,8 @@ TEST(PoseTest, TheHeadUsesTheDegreeFloatOfTheOriginal)
     }
 }
 
-// Con lock_positions, el hueso 0 toma x e y de la key 0 de la acción de ahora, y su z es la
-// interpolada más la altura del modelo (+0x84).
+// With lock_positions, bone 0 takes x and y from key 0 of the current action, and its z is the interpolated one plus
+// the model's height (+0x84).
 TEST(PoseTest, LockPositionsTakesXAndYFromKeyZero)
 {
     const AnimationState animation{1, 2.5f, 1, 1};
@@ -234,13 +232,13 @@ TEST(PoseTest, LockPositionsTakesXAndYFromKeyZero)
 
     const std::vector<BoneTransform> bones = Pose(SampleSkeleton(), animation, object);
 
-    // x e y de (1, 2, 3); z de 6 a 9 en la mitad, más 10.
+    // x and y from (1, 2, 3); z from 6 to 9 halfway, plus 10.
     ExpectNear(bones[0][3], {1.0f, 2.0f, 17.5f});
-    // El hijo no: entre (20, 0, 0) y (30, 0, 0).
+    // Not the child: between (20, 0, 0) and (30, 0, 0).
     ExpectNear(bones[1][3], bones[0][3] + glm::vec3{25.0f, 0.0f, 0.0f});
 }
 
-// Alcanza con que la tenga la acción anterior, y es el hueso 0 por su índice, no por ser raíz.
+// It is enough for the previous action to have it, and it is bone 0 by its index, not by being a root.
 TEST(PoseTest, LockPositionsIsBoneZeroWithEitherAction)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -249,13 +247,12 @@ TEST(PoseTest, LockPositionsIsBoneZeroWithEitherAction)
 
     const std::vector<BoneTransform> bones = Pose(skeleton, animation);
 
-    // x e y de la key 0 de la acción 0 (0, 0); z de 9 a 0 en la mitad.
+    // x and y from key 0 of action 0 (0, 0); z from 9 to 0 halfway.
     ExpectNear(bones[0][3], {0.0f, 0.0f, 4.5f});
-    // El hueso 1, también raíz, va lineal: de (30, 0, 0) a (10, 0, 0).
+    // Bone 1, also a root, goes linearly: from (30, 0, 0) to (10, 0, 0).
     ExpectNear(bones[1][3], {20.0f, 0.0f, 0.0f});
 }
 
-// Un dummy no se posa: su matriz queda como estaba.
 TEST(PoseTest, DummyBonesAreNotPosed)
 {
     const Skeleton skeleton = SampleSkeleton();
@@ -267,7 +264,7 @@ TEST(PoseTest, DummyBonesAreNotPosed)
     EXPECT_NE(bones[0], BoneTransform(7.0f));
 }
 
-// 0x5fc700: con las dos keys a 0,001 o menos, la pose copia la anterior y no hace el slerp.
+// 0x5fc700: with both keys within 0.001, the pose copies the previous one and does not slerp.
 TEST(PoseTest, AlmostEqualKeysCopyTheFirst)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -280,8 +277,8 @@ TEST(PoseTest, AlmostEqualKeysCopyTheFirst)
     EXPECT_EQ(bones[0][1], QuaternionMatrix(glm::quat::wxyz(1.0f, 0.0f, 0.0f, 0.0f))[1]);
 }
 
-// Una acción que el esqueleto no tiene es la 0, y una key de más, la 0. La parte fraccionaria sale
-// del frame antes de cortarlo: con 5 en una acción de dos keys es 0.
+// An action the skeleton lacks is 0, and a key beyond range, 0. The fractional part comes from the frame before it is
+// cut: with 5 in a two-key action it is 0.
 TEST(PoseTest, AnActionOrAKeyOutOfRangeIsTheFirst)
 {
     const std::vector<BoneTransform> outOfRange = Pose(SampleSkeleton(), AnimationState{7, 5.0f, 9, 9});
@@ -290,8 +287,7 @@ TEST(PoseTest, AnActionOrAKeyOutOfRangeIsTheFirst)
     EXPECT_EQ(outOfRange, first);
 }
 
-// Justo en el borde también: la acción que es la cantidad de acciones, y la key que es la cantidad de
-// keys, son la 0.
+// Exactly at the edge too: the action equal to the action count, and the key equal to the key count, are 0.
 TEST(PoseTest, AnActionOrAKeyJustOutOfRangeIsTheFirst)
 {
     const std::vector<BoneTransform> atTheEdge = Pose(SampleSkeleton(), AnimationState{2, 2.0f, 2, 2});
@@ -300,7 +296,7 @@ TEST(PoseTest, AnActionOrAKeyJustOutOfRangeIsTheFirst)
     EXPECT_EQ(atTheEdge, first);
 }
 
-// La cabeza resta sus ángulos en las dos keys que interpola, y el slerp va entre las dos.
+// The head subtracts its angles in both keys it interpolates, and the slerp goes between the two.
 TEST(PoseTest, TheHeadInterpolatesBothKeys)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -320,7 +316,7 @@ TEST(PoseTest, TheHeadInterpolatesBothKeys)
     }
 }
 
-// Si un hueso que se posa no tiene la key que toca, no se escribe nada.
+// If a posed bone lacks the key it needs, nothing is written.
 TEST(PoseTest, AMissingKeyIsRefused)
 {
     Skeleton skeleton = SampleSkeleton();
@@ -331,8 +327,8 @@ TEST(PoseTest, AMissingKeyIsRefused)
     EXPECT_EQ(bones[0], BoneTransform(7.0f));
 }
 
-// Un Skeleton armado a mano con un padre que no es −1 ni un hueso de antes: no se posa, como el que
-// rechaza MakeSkeleton.
+// A hand-built Skeleton with a parent that is neither −1 nor an earlier bone: not posed, like the one MakeSkeleton
+// rejects.
 TEST(PoseTest, ABadParentIsRefused)
 {
     for (const int parent : {1, 2, 5, -2})
@@ -346,8 +342,8 @@ TEST(PoseTest, ABadParentIsRefused)
     }
 }
 
-// Con un frame que pasa de las keys, la key es la 0 pero la parte fraccionaria es la del frame: de la
-// key 1 de antes a la 0, un cuarto del camino.
+// With a frame beyond the keys, the key is 0 but the fractional part is the frame's: from the earlier key 1 to 0, a
+// quarter of the way.
 TEST(PoseTest, AFrameOutOfRangeKeepsItsFraction)
 {
     const std::vector<BoneTransform> bones = Pose(SampleSkeleton(), AnimationState{0, 5.25f, 0, 1});
@@ -355,7 +351,7 @@ TEST(PoseTest, AFrameOutOfRangeKeepsItsFraction)
     ExpectNear(bones[0][3], {7.5f, 0, 0});
 }
 
-// Sin el tamaño del esqueleto no escribe nada.
+// Without the skeleton's size it writes nothing.
 TEST(PoseTest, TheBonesMustBeThoseOfTheSkeleton)
 {
     const Skeleton skeleton = SampleSkeleton();

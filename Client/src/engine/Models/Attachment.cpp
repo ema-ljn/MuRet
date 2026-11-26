@@ -30,8 +30,8 @@ Math::BoneTransform AttachmentRoot(const Math::BoneTransform& parent, const glm:
     return root;
 }
 
-// 0x5fc8f0 en el buffer local de 0x509340 (ebp−0x64), la traslación en sus +0xc, +0x1c y +0x2c, y
-// 0x5fca90 con el hueso, todo con los bits de la x87.
+// 0x5fc8f0 into the local buffer of 0x509340 (ebp−0x64), the translation at its +0xc, +0x1c and +0x2c, and 0x5fca90
+// with the bone, all with the x87's bits.
 Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent, const HangingPlacement& placement)
 {
     Math::OriginalMatrix local = Math::OriginalAngleMatrix(placement.angles);

@@ -18,14 +18,14 @@ namespace Client::Math
 {
 namespace
 {
-// Los doubles del original: 1 en 0x6b8d60, 1e-8 en 0x6ba728 y 0,001 en 0x6b8a88. El de 0x6ba720 es
-// π/2 redondeado a float y guardado en double (los bits 0x3ff921fb60000000).
+// The original's doubles: 1 at 0x6b8d60, 1e-8 at 0x6ba728 and 0.001 at 0x6b8a88. The one at 0x6ba720 is
+// π/2 rounded to float and stored as a double (bits 0x3ff921fb60000000).
 constexpr double One = 1.0;
 constexpr double Epsilon = 1e-8;
 constexpr double QuarterTurn = 1.5707963705062866;
 constexpr double Tolerance = 0.001;
 
-// Los cuaterniones como los recorre el original: x, y, z y w.
+// Quaternion components in the order the original walks them: x, y, z and w.
 using Components = std::array<float, 4>;
 
 Components ToComponents(const glm::quat& q)
@@ -38,8 +38,8 @@ glm::quat FromComponents(const Components& c)
     return glm::quat::wxyz(c[3], c[0], c[1], c[2]);
 }
 
-// El lazo de 0x5fceb2: las dos sumas quedan en la pila de la x87, sin redondear, y se comparan ahí.
-// Σ(p + q)² − Σ(p − q)² es 4 · p·q: q se da vuelta cuando el producto es negativo.
+// The loop at 0x5fceb2: both sums stay unrounded on the x87 stack and are compared there.
+// Σ(p + q)² − Σ(p − q)² is 4 · p·q: q flips when the product is negative.
 Components FlipTowards(const Components& p, Components q)
 {
     double minus = 0;
@@ -61,23 +61,22 @@ Components FlipTowards(const Components& p, Components q)
     return q;
 }
 
-// 0x5fcef4: el producto en el orden del binario, z, y, w y x, también en la pila.
+// 0x5fcef4: the product in the binary's order, z, y, w and x, also on the x87 stack.
 double Dot(const Components& p, const Components& q)
 {
     const double zy = static_cast<double>(q[2]) * p[2] + static_cast<double>(q[1]) * p[1];
     return zy + static_cast<double>(q[3]) * p[3] + static_cast<double>(p[0]) * q[0];
 }
 
-// Por dónde sale el slerp.
 enum class SlerpCase
 {
-    Sines,    // sin((1 − t)·ω)/sin ω y sin(t·ω)/sin ω
-    Linear,   // 1 − t y t, con 1 − cos ≤ 1e-8 y el cos en float
-    Opposite, // 1 + cos ≤ 1e-8: hacia un cuaternión perpendicular a p
+    Sines,    // sin((1 − t)·ω)/sin ω and sin(t·ω)/sin ω
+    Linear,   // 1 − t and t, with 1 − cos ≤ 1e-8 and the cos in float
+    Opposite, // 1 + cos ≤ 1e-8: towards a quaternion perpendicular to p
 };
 
-// Las dos comparaciones de 0x5fcf13 y 0x5fcf26: la primera con el cos que quedó en la pila, la
-// segunda con el float que guardó el FST de 0x5fcf10.
+// The two comparisons at 0x5fcf13 and 0x5fcf26: the first with the cos left on the x87 stack, the second with the
+// float stored by the FST at 0x5fcf10.
 SlerpCase Branch(double cosine)
 {
     if (!(cosine + One > Epsilon))
@@ -107,8 +106,8 @@ glm::quat QuaternionSlerp(const glm::quat& p, const glm::quat& q, float t)
 
     if (branch == SlerpCase::Opposite)
     {
-        // 0x5fcf9f: un cuaternión perpendicular a p, y de p hacia él con los senos de π/2. El lazo es
-        // de tres: la w queda en p.z, como en Half-Life.
+        // 0x5fcf9f: a quaternion perpendicular to p, and from p towards it with the sines of π/2. The loop covers three
+        // components: w stays p.z, as in Half-Life.
         Components result{-first[1], first[0], -first[3], first[2]};
         const double fromP = RoundedSin((One - t) * QuarterTurn);
         const double toResult = RoundedSin(t * QuarterTurn);
@@ -123,8 +122,8 @@ glm::quat QuaternionSlerp(const glm::quat& p, const glm::quat& q, float t)
     double toQ = t;
     if (branch == SlerpCase::Sines)
     {
-        // 0x5fcf3c: acos del cos en float; ω se guarda en float y su seno también. Los dos pesos
-        // quedan en la pila.
+        // 0x5fcf3c: acos of the cos in float; ω is stored as a float and so is its sine. Both weights stay on the x87
+        // stack.
         const double omega = RoundedAcos(static_cast<double>(static_cast<float>(cosine)));
         const auto roundedOmega = static_cast<double>(static_cast<float>(omega));
         const auto sinOmega = static_cast<double>(static_cast<float>(RoundedSin(omega)));

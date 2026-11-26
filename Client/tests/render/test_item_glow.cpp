@@ -9,8 +9,7 @@
 #include <optional>
 #include <vector>
 
-// Client::Models::ItemGlowOf: los pases de brillo de una parte por su nivel, como 0x60b3d0
-// (06 § El modelo en el binario, Q-C97).
+// Like 0x60b3d0 (06 § El modelo en el binario, Q-C97).
 namespace
 {
 using Client::Models::GlowPass;
@@ -29,8 +28,8 @@ std::vector<GlowPass> Shines(std::initializer_list<ShinePass> passes)
     return glow;
 }
 
-// La tabla del 06, una fila por nivel: el factor del color base y los pases después del base, en
-// orden. El 13 es el de la traza: el 141, el 115 y el 120. Q-C97: el 14 y el 15 no brillan.
+// 06's table, one row per level: the base color factor and the passes after the base, in order. 13 is the trace's:
+// 141, 115 and 120. Q-C97: 14 and 15 do not glow.
 TEST(ItemGlowTest, LevelSetsThePasses)
 {
     struct Row
@@ -63,7 +62,7 @@ TEST(ItemGlowTest, LevelSetsThePasses)
     }
 }
 
-// Con el byte de las opciones (DAT_006c9dcc) menor que 4, el nivel se recorta a 2 · byte + 5.
+// With the options byte (DAT_006c9dcc) below 4, the level is clamped to 2 · byte + 5.
 TEST(ItemGlowTest, DetailCapsTheLevel)
 {
     EXPECT_EQ(ItemGlowOf(13, false, false, 1).passes, Shines({ShinePass::Chrome}));
@@ -73,8 +72,8 @@ TEST(ItemGlowTest, DetailCapsTheLevel)
               Shines({ShinePass::Chrome4, ShinePass::Shiny, ShinePass::Chrome}));
 }
 
-// Un ítem excelente suma el pase 0x42 (la textura de la malla, aditiva), y uno de set el 0x840. Son
-// excluyentes: 0x60b3d0 vuelve después del 0x42 (LAB_0060cb3b), así que el de set solo va sin él.
+// An excellent item adds pass 0x42 (the mesh's texture, additive), and a set item 0x840. They are exclusive: 0x60b3d0
+// returns after 0x42 (LAB_0060cb3b), so the set one only goes without it.
 TEST(ItemGlowTest, ExcellentAndAncientAreExclusive)
 {
     const std::vector<GlowPass> excellent = ItemGlowOf(0, true, false).passes;
@@ -87,8 +86,8 @@ TEST(ItemGlowTest, ExcellentAndAncientAreExclusive)
     EXPECT_EQ(both[0], GlowPass{ShinePass::Chrome});
     EXPECT_FALSE(both[1].shine.has_value());
 }
-// 0x60b3d0 con las saetas (0xa19) y las flechas (0xa21): el nivel 0 queda en 0 y los demás van a
-// 2 · nivel + 1; de 14 para arriba, sin pases (LAB_0060cb0f).
+// 0x60b3d0 with bolts (0xa19) and arrows (0xa21): level 0 stays 0 and the rest go to 2 · level + 1; from 14 up, no
+// passes (LAB_0060cb0f).
 TEST(ItemGlowTest, TheQuiverGlowsAtTwiceItsLevelPlusOne)
 {
     EXPECT_EQ(QuiverGlowLevel(0), 0);

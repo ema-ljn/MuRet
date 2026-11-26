@@ -9,8 +9,8 @@
 
 namespace
 {
-// Simulado matemático independiente: mpmath100dps → R64(sin/cos) → producto exacto → R53.
-// Cada caso difiere de multiplicar dos resultados redondeados prematuramente a double.
+// Independent mathematical simulation: mpmath100dps → R64(sin/cos) → exact product → R53.
+// Each case differs from multiplying two results rounded prematurely to double.
 TEST(FaunaRetainedMathTest, MultipliesBothRetainedResultsBeforeTheFirstBinary53Round)
 {
     struct Case

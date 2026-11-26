@@ -18,8 +18,8 @@
 #include <span>
 #include <vector>
 
-// Client::Math: la mathlib de Half-Life que usa la pose del original (0x5fcd20, 0x5fce90,
-// 0x5fc700, 0x5fcdb0, 0x5fc8f0, 0x5fca90, 0x5fccc0 y 0x5fcbd0).
+// Client::Math: the Half-Life mathlib the original's pose uses (0x5fcd20, 0x5fce90, 0x5fc700, 0x5fcdb0, 0x5fc8f0,
+// 0x5fca90, 0x5fccc0 and 0x5fcbd0).
 namespace
 {
 using Client::Math::AngleMatrix;
@@ -38,8 +38,8 @@ using Client::Tests::FloatFromBits;
 using Client::Tests::Fnv1a64;
 using Client::Tests::WithoutSign;
 
-// Lo que separa una cuenta en float de la del original en la x87 (la CL6.0 lo midió: 5,4e-7 o
-// menos). Un error de verdad (un signo, un eje, la traslación en otro lado) mueve mucho más.
+// What separates a float computation from the original's on the x87 (CL6.0 measured it: 5.4e-7 or less). A real error
+// (a sign, an axis, the translation elsewhere) moves much more.
 constexpr float Tolerance = 1e-5f;
 
 void ExpectNear(const glm::vec3& actual, const glm::vec3& expected)
@@ -57,8 +57,8 @@ void ExpectNear(const glm::quat& actual, const glm::quat& expected)
     EXPECT_NEAR(actual.w, expected.w, Tolerance);
 }
 
-// Un cuarto de vuelta alrededor de z: (x, y, z) = (0, 0, sin 45°) y w = cos 45°, en ese orden de
-// memoria. Con glm::quat(x, y, z, w) en vez de wxyz es otro giro: el personaje sale retorcido.
+// A quarter turn about z: (x, y, z) = (0, 0, sin 45°) and w = cos 45°, in that memory order. With glm::quat(x, y, z, w)
+// instead of wxyz it is another rotation: the character comes out twisted.
 TEST(HalfLifeMathTest, AQuarterTurnAroundZ)
 {
     const glm::quat turn = AngleQuaternion({0.0f, 0.0f, std::numbers::pi_v<float> / 2});
@@ -68,7 +68,7 @@ TEST(HalfLifeMathTest, AQuarterTurnAroundZ)
     ExpectNear(VectorRotate({1.0f, 0.0f, 0.0f}, QuaternionMatrix(turn)), {0.0f, 1.0f, 0.0f});
 }
 
-// 0x5fcd20, como lo escribe Half-Life: el medio ángulo de cada eje, y Rz · Ry · Rx.
+// 0x5fcd20, as Half-Life writes it: each axis's half angle, and Rz · Ry · Rx.
 TEST(HalfLifeMathTest, AngleQuaternionIsTheHalfLifeFormula)
 {
     for (const glm::vec3 angles : {glm::vec3{0.3f, -1.2f, 2.5f}, glm::vec3{-2.9f, 0.7f, -0.4f},
@@ -87,7 +87,7 @@ TEST(HalfLifeMathTest, AngleQuaternionIsTheHalfLifeFormula)
     }
 }
 
-// 0x5fc700: cada componente a 0,001 o menos. Una sola que pasa ya no es "igual".
+// 0x5fc700: each component within 0.001. A single one beyond that is no longer "equal".
 TEST(HalfLifeMathTest, AlmostEqualIsAThousandthPerComponent)
 {
     const glm::quat p = glm::quat::wxyz(0.9f, 0.1f, 0.2f, 0.3f);
@@ -98,8 +98,8 @@ TEST(HalfLifeMathTest, AlmostEqualIsAThousandthPerComponent)
     EXPECT_FALSE(QuaternionsAlmostEqual(p, glm::quat::wxyz(0.8989f, 0.1f, 0.2f, 0.3f)));
 }
 
-// Con el producto negativo, Half-Life da vuelta q y va hacia −q: con t = 1 llega a −q, el mismo giro.
-// Sin dar vuelta, el camino sería el largo.
+// With a negative product Half-Life flips q and goes towards −q: with t = 1 it reaches −q, the same rotation. Without
+// the flip the path would be the long one.
 TEST(HalfLifeMathTest, SlerpFlipsLikeHalfLife)
 {
     const glm::quat p = AngleQuaternion({0.0f, 0.0f, 0.2f});
@@ -110,7 +110,7 @@ TEST(HalfLifeMathTest, SlerpFlipsLikeHalfLife)
     ExpectNear(QuaternionSlerp(p, q, 0.5f), AngleQuaternion({0.0f, 0.0f, 0.4f}));
 }
 
-// Con los dos casi iguales (el cos en float da 1), los pesos son 1 − t y t, sin senos.
+// With both almost equal (the cos in float gives 1), the weights are 1 − t and t, without sines.
 TEST(HalfLifeMathTest, SlerpIsLinearBelowOneInAHundredMillion)
 {
     const glm::quat p = glm::quat::wxyz(1.0f, 0.0f, 0.0f, 0.0f);
@@ -122,7 +122,7 @@ TEST(HalfLifeMathTest, SlerpIsLinearBelowOneInAHundredMillion)
     EXPECT_FLOAT_EQ(middle.z, 0.25f * 1e-5f);
 }
 
-// El giro va en las tres primeras columnas y la traslación en m[3]: VectorTransform la suma.
+// The rotation goes in the first three columns and the translation in m[3]: VectorTransform adds it.
 TEST(HalfLifeMathTest, TheMatrixIsColumnMajor)
 {
     BoneTransform m = QuaternionMatrix(AngleQuaternion({0.0f, 0.0f, std::numbers::pi_v<float> / 2}));
@@ -130,13 +130,13 @@ TEST(HalfLifeMathTest, TheMatrixIsColumnMajor)
     m[3] = glm::vec3(10.0f, 20.0f, 30.0f);
 
     ExpectNear(VectorTransform({1.0f, 0.0f, 0.0f}, m), {10.0f, 21.0f, 30.0f});
-    // Una fila de la 3 × 4 de Half-Life es una fila de la matriz, no una columna de glm: m[0][1] es
-    // la fila 1 de la columna 0, el seno del giro.
+    // A row of Half-Life's 3 × 4 is a row of the matrix, not a glm column: m[0][1] is row 1 of column 0, the rotation's
+    // sine.
     EXPECT_NEAR(m[0][1], 1.0f, Tolerance);
     EXPECT_NEAR(m[1][0], -1.0f, Tolerance);
 }
 
-// 0x5fc8f0, en grados: 90 alrededor de z lleva x a y.
+// 0x5fc8f0, in degrees: 90 about z takes x to y.
 TEST(HalfLifeMathTest, AngleMatrixIsInDegrees)
 {
     const BoneTransform m = AngleMatrix({0.0f, 0.0f, 90.0f});
@@ -145,7 +145,7 @@ TEST(HalfLifeMathTest, AngleMatrixIsInDegrees)
     EXPECT_EQ(m[3], glm::vec3(0.0f));
 }
 
-// 0x5fc8f0 como lo escribe Half-Life, con el π/180 en float, contra AngleMatrix.
+// 0x5fc8f0 as Half-Life writes it, with π/180 in float, against AngleMatrix.
 TEST(HalfLifeMathTest, AngleMatrixIsTheHalfLifeFormula)
 {
     constexpr float DegreesToRadians = 0.017453292f;
@@ -158,7 +158,7 @@ TEST(HalfLifeMathTest, AngleMatrixIsTheHalfLifeFormula)
         const float cp = RoundedCos(degrees.y * DegreesToRadians);
         const float sy = RoundedSin(degrees.z * DegreesToRadians);
         const float cy = RoundedCos(degrees.z * DegreesToRadians);
-        // matrix[fila][columna] de Half-Life.
+        // Half-Life's matrix[row][column].
         const std::array<std::array<float, 3>, 3> matrix = {{
             {cp * cy, sr * sp * cy - cr * sy, sr * sy + cr * sp * cy},
             {cp * sy, cr * cy + sr * sp * sy, cr * sp * sy - sr * cy},
@@ -178,7 +178,7 @@ TEST(HalfLifeMathTest, AngleMatrixIsTheHalfLifeFormula)
     }
 }
 
-// 0x5fca90: el hijo primero y el padre después, como llevar un punto del hueso al mundo.
+// 0x5fca90: the child first and the parent after, like taking a point from the bone to the world.
 TEST(HalfLifeMathTest, ConcatIsParentTimesChild)
 {
     BoneTransform parent = AngleMatrix({0.0f, 0.0f, 90.0f});
@@ -192,7 +192,7 @@ TEST(HalfLifeMathTest, ConcatIsParentTimesChild)
     ExpectNear(VectorTransform(point, both), VectorTransform(VectorTransform(point, child), parent));
 }
 
-// 0x5fcbd0 no suma la traslación: una normal no se mueve con el hueso.
+// 0x5fcbd0 does not add the translation: a normal does not move with the bone.
 TEST(HalfLifeMathTest, VectorRotateDoesNotMove)
 {
     BoneTransform m = AngleMatrix({0.0f, 0.0f, 90.0f});

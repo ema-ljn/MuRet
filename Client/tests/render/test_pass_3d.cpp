@@ -16,9 +16,8 @@
 #include <optional>
 #include <utility>
 
-// Client::Render::MakePass3D: el viewport de 0x620db0, la perspectiva de gluPerspective con el far
-// × 1,4 y la vista de los tres glRotatef y el glTranslatef; y el rayo del mouse de 0x620480 (06 §
-// Cámara y § El picking).
+// The viewport of 0x620db0, the gluPerspective perspective with the far × 1.4 and the view of the three glRotatef and
+// the glTranslatef; and the mouse ray of 0x620480 (06 § Cámara and § El picking).
 namespace
 {
 using Client::Core::PixelSize;
@@ -32,13 +31,13 @@ using Client::Render::ViewportRect;
 constexpr PixelSize Window1024{1024, 768};
 constexpr PixelSize Window800{800, 600};
 
-// El pase del mundo de la selección y del login (0x620db0(0, 25, 640, 430)).
+// The world pass of the selection and the login (0x620db0(0, 25, 640, 430)).
 constexpr ViewportRect WorldRect{0, 25, 640, 430};
 
-// cot(17,5°): la [1][1] de la perspectiva de 35° (06 § Cámara, la traza de la selección).
+// cot(17.5°): the [1][1] of the 35° perspective (06 § Cámara, the selection trace).
 constexpr float CotangentOf17_5 = 3.171595f;
 
-// Una cámara cualquiera, con ángulos en los tres ejes para que se note el orden.
+// Any camera, with angles on all three axes so that the order shows.
 Camera3D SomeCamera()
 {
     Camera3D camera;
@@ -50,7 +49,7 @@ Camera3D SomeCamera()
     return camera;
 }
 
-// La matriz de glRotatef(degrees, eje), como la da la especificación de GL 1.x, por columnas.
+// The glRotatef(degrees, axis) matrix as the GL 1.x specification gives it, column-major.
 glm::mat4 GlRotation(float degrees, int axis)
 {
     const double radians = static_cast<double>(degrees) * std::numbers::pi / 180.0;
@@ -61,8 +60,8 @@ glm::mat4 GlRotation(float degrees, int axis)
     const int b = (axis + 2) % 3;
     m[a][a] = c;
     m[b][b] = c;
-    m[a][b] = s;  // columna a, fila b
-    m[b][a] = -s; // columna b, fila a
+    m[a][b] = s;  // column a, row b
+    m[b][a] = -s; // column b, row a
     return m;
 }
 
@@ -84,16 +83,15 @@ void ExpectNear(const glm::mat4& actual, const glm::mat4& expected, float tolera
     }
 }
 
-// x · W / 640 e y · H / 480 en enteros: en 800 × 600, 25 · 600 / 480 = 31 y 430 · 600 / 480 = 537,
-// y la y de GL es 600 − 31 − 537 = 32.
+// x · W / 640 and y · H / 480 in integers: at 800 × 600, 25 · 600 / 480 = 31 and 430 · 600 / 480 = 537, and GL's y
+// is 600 − 31 − 537 = 32.
 TEST(Pass3DTest, ScalesTheViewportInIntegers)
 {
     EXPECT_EQ(MakePass3D(Window1024, WorldRect, SomeCamera()).viewport, glm::ivec4(0, 40, 1024, 688));
     EXPECT_EQ(MakePass3D(Window800, WorldRect, SomeCamera()).viewport, glm::ivec4(0, 32, 800, 537));
 }
 
-// 0x620d10: glViewport(x, H − y − h, w, h). La franja de arriba, 0x620db0(0, 0, 640, 48), da el
-// 0,692,1024,76 de la traza.
+// 0x620d10: glViewport(x, H − y − h, w, h). The top strip, 0x620db0(0, 0, 640, 48), gives the trace's 0,692,1024,76.
 TEST(Pass3DTest, TheGlYIsFromTheBottom)
 {
     EXPECT_EQ(MakePass3D(Window1024, ViewportRect{0, 0, 640, 48}, SomeCamera()).viewport, glm::ivec4(0, 692, 1024, 76));
@@ -101,7 +99,7 @@ TEST(Pass3DTest, TheGlYIsFromTheBottom)
               glm::ivec4(100, 330, 200, 100));
 }
 
-// gluPerspective con el ancho y el alto del viewport, no los de la ventana: 1024/688.
+// gluPerspective with the viewport's width and height, not the window's: 1024/688.
 TEST(Pass3DTest, TheAspectIsThatOfTheViewport)
 {
     const Pass3D pass = MakePass3D(Window1024, WorldRect, SomeCamera());
@@ -110,14 +108,14 @@ TEST(Pass3DTest, TheAspectIsThatOfTheViewport)
     EXPECT_NEAR(pass.projection[0][0], CotangentOf17_5 / (1024.0f / 688.0f), 1e-5f);
 }
 
-// 0x6b8c00: el far que llega a gluPerspective es el de la cámara por 1,4.
+// 0x6b8c00: the far that reaches gluPerspective is the camera's times 1.4.
 TEST(Pass3DTest, TheFarIsOnePointFourTimesTheCamera)
 {
     Camera3D camera = SomeCamera();
     camera.farPlane = 2000.0f;
     const Pass3D pass = MakePass3D(Window1024, WorldRect, camera);
 
-    // No se llaman `near` ni `far`: windows.h los define como macros vacías.
+    // Not named `near` or `far`: windows.h defines them as empty macros.
     const float farPlane = 2000.0f * 1.4f;
     const float nearPlane = 20.0f;
     EXPECT_NEAR(pass.projection[2][2], -(farPlane + nearPlane) / (farPlane - nearPlane), 1e-6f);
@@ -125,9 +123,9 @@ TEST(Pass3DTest, TheFarIsOnePointFourTimesTheCamera)
     EXPECT_FLOAT_EQ(pass.farPlane, 2000.0f);
 }
 
-// La cámara de la selección en 1024 × 768, contra la traza (06 § Cámara): el viewport, la
-// cotangente de 17,5°, el aspect 1024/688, el far de unos 11.520 por 1,4, y las rotaciones Y 0°,
-// X −84,5° y Z −45°, en ese orden, con la posición restada al final.
+// The selection camera at 1024 × 768, against the trace (06 § Cámara): the viewport, the cotangent of 17.5°, the
+// aspect 1024/688, the far of about 11520 times 1.4, and the rotations Y 0°, X −84.5° and Z −45°, in that order, with
+// the position subtracted at the end.
 TEST(Pass3DTest, MatchesTheMatricesOfTheSelectionTrace)
 {
     Camera3D camera = SomeCamera();
@@ -145,8 +143,8 @@ TEST(Pass3DTest, MatchesTheMatricesOfTheSelectionTrace)
     ExpectNear(pass.view, expected, 2e-3f);
 }
 
-// Con los tres ángulos distintos de 0 se ve el orden: Y, X y Z, como los tres glRotatef de
-// 0x620db0. Las trazas tienen la Y en 0, y ahí X e Y conmutan.
+// With all three angles nonzero the order shows: Y, X and Z, like the three glRotatef of 0x620db0. The traces have Y
+// at 0, and there X and Y commute.
 TEST(Pass3DTest, TheRotationsGoInTheOrderYXZ)
 {
     const Pass3D pass = MakePass3D(Window1024, WorldRect, SomeCamera());
@@ -156,7 +154,7 @@ TEST(Pass3DTest, TheRotationsGoInTheOrderYXZ)
     ExpectNear(pass.view, expected, 2e-3f);
 }
 
-// DAT_07d36899: sin la rotación en X, solo Y y Z.
+// DAT_07d36899: without the X rotation, only Y and Z.
 TEST(Pass3DTest, SkipXRotationLeavesOnlyYAndZ)
 {
     Camera3D camera = SomeCamera();
@@ -168,8 +166,8 @@ TEST(Pass3DTest, SkipXRotationLeavesOnlyYAndZ)
     ExpectNear(pass.view, expected, 2e-3f);
 }
 
-// 0x620480: el segmento va de la cámara al punto del píxel a la distancia del far de la cámara (sin
-// el × 1,4), medida sobre su eje.
+// 0x620480: the segment goes from the camera to the pixel's point at the camera's far distance (without the × 1.4),
+// measured along its axis.
 TEST(Pass3DTest, TheRayGoesThroughThePixel)
 {
     const Camera3D camera = SomeCamera();
@@ -185,9 +183,9 @@ TEST(Pass3DTest, TheRayGoesThroughThePixel)
     EXPECT_NEAR(projected->x, 300.0f, 0.01f);
 }
 
-// Q-C109: 0x6203c0 multiplica la tangente vertical por el alto de la pantalla sobre el del viewport
-// (DAT_006d5d64 / DAT_07d36860, 0x62045c..0x62046c), y la horizontal no: el rayo de una fila que no
-// es la del centro sale más lejos del centro que el píxel, 768 / 688 en este viewport.
+// Q-C109: 0x6203c0 multiplies the vertical tangent by the screen height over the viewport's (DAT_006d5d64 /
+// DAT_07d36860, 0x62045c..0x62046c), and not the horizontal one: the ray of a row other than the center one comes out
+// further from the center than the pixel, 768 / 688 in this viewport.
 TEST(Pass3DTest, TheRayIsStretchedVerticallyLikeTheOriginal)
 {
     const Pass3D pass = MakePass3D(Window1024, WorldRect, SomeCamera());
@@ -195,17 +193,16 @@ TEST(Pass3DTest, TheRayIsStretchedVerticallyLikeTheOriginal)
     const auto [origin, end] = pass.RayThrough(300.0f, 400.0f);
 
     const glm::vec4 endInCamera = pass.view * glm::vec4(end, 1.0f);
-    // El viewport es (0, 40, 1024, 688): la fila 400 desde arriba es la 368 de GL.
+    // The viewport is (0, 40, 1024, 688): row 400 from the top is GL's 368.
     const float dy = 2.0f * (368.0f - 40.0f) / 688.0f - 1.0f;
     const float exact = dy * pass.farPlane / pass.projection[1][1];
     EXPECT_NEAR(endInCamera.y, exact * 768.0f / 688.0f, 0.05f);
 }
 
-// En el centro del viewport, el rayo va por el eje de la cámara.
 TEST(Pass3DTest, TheRayThroughTheCentreGoesStraightAhead)
 {
     const Pass3D pass = MakePass3D(Window1024, WorldRect, SomeCamera());
-    // El centro del viewport (0, 40, 1024, 688) con la y desde arriba: 768 − 40 − 344.
+    // The center of the viewport (0, 40, 1024, 688) with y from the top: 768 − 40 − 344.
     const auto [origin, end] = pass.RayThrough(512.0f, 384.0f);
 
     const glm::vec4 endInCamera = pass.view * glm::vec4(end, 1.0f);
@@ -213,9 +210,8 @@ TEST(Pass3DTest, TheRayThroughTheCentreGoesStraightAhead)
     EXPECT_NEAR(endInCamera.y, 0.0f, 0.05f);
 }
 
-// Project da, con la y desde arriba, el píxel por el que pasa el rayo: el mismo x, y la y corrida
-// desde el centro del viewport por el alto de la pantalla sobre el del viewport (Q-C109). Un punto
-// detrás de la cámara no cae en la pantalla.
+// Project gives, with y from the top, the pixel the ray goes through: the same x, and y shifted from the viewport
+// center by the screen height over the viewport's (Q-C109). A point behind the camera does not land on the screen.
 TEST(Pass3DTest, ProjectIsTheInverseOfTheRay)
 {
     const Camera3D camera = SomeCamera();

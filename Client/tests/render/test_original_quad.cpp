@@ -10,9 +10,8 @@
 #include <array>
 #include <cstddef>
 
-// Client::Render::FanCorners y SkewedFanCorners: las cuatro esquinas de 0x621b60 y de 0x622000, con
-// las cuentas de la x87 que el decompilado no muestra (06 § Primitivas 2D). Lo que hace el
-// SpriteBatch con ellas, en test_sprite_batch.cpp.
+// The four corners of 0x621b60 and 0x622000, with the x87 math the decompilation does not show
+// (06 § Primitivas 2D).
 namespace
 {
 using Client::Core::PixelSize;
@@ -27,11 +26,11 @@ constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
 constexpr PixelSize Screen1280{1280, 1024};
 
-// El fondo 0x15 del login: 0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0) en 0x6350b0.
+// The login's 0x15 background: 0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0) in 0x6350b0.
 constexpr OriginalQuad LoginLeftBackground{
     .slot = {0x15}, .x = 0, .y = 25, .width = 320, .height = 320, .scaleSize = true, .scalePosition = true};
 
-// Las cuatro de (x, y, u, v), en el orden del fan.
+// The four (x, y, u, v), in fan order.
 using Expected = std::array<std::array<float, 4>, 4>;
 
 void ExpectCorners(const QuadCorners& corners, const Expected& expected)
@@ -46,8 +45,8 @@ void ExpectCorners(const QuadCorners& corners, const Expected& expected)
     }
 }
 
-// En 1280 × 1024 el borde de arriba es 1024 − 53,333336 = 970,66669, y el de abajo, ese menos
-// 682,66669 sin redondear: 287,99997. Restando del float de arriba daría 288 justos.
+// At 1280 × 1024 the top edge is 1024 − 53.333336 = 970.66669, and the bottom one, that minus 682.66669 unrounded:
+// 287.99997. Subtracting from the top float would give exactly 288.
 TEST(OriginalQuadTest, TheBottomComesFromTheUnroundedTop)
 {
     const QuadCorners corners = FanCorners(LoginLeftBackground, Screen1280);
@@ -57,8 +56,8 @@ TEST(OriginalQuadTest, TheBottomComesFromTheUnroundedTop)
     EXPECT_EQ(corners[0].y - ScaleY(LoginLeftBackground.height, Screen1280), 288.0f);
 }
 
-// La v crece hacia abajo: la esquina de arriba lleva v y la de abajo v + dv, así que la fila 0 del
-// buffer queda arriba. Las UV no se escalan, y sin banderas todo va en píxeles.
+// v grows downwards: the top corner has v and the bottom one v + dv, so buffer row 0 ends up at the top. The UVs are
+// not scaled, and without flags everything is in pixels.
 TEST(OriginalQuadTest, TheUvGoesDownTheTexture)
 {
     const OriginalQuad quad{
@@ -69,9 +68,9 @@ TEST(OriginalQuadTest, TheUvGoesDownTheTexture)
         Expected{{{10, 748, 0.25f, 0.5f}, {10, 708, 0.25f, 0.75f}, {40, 708, 0.75f, 0.75f}, {40, 748, 0.75f, 0.5f}}});
 }
 
-// La arena va siempre escalada: (0, 25, 640, 430) en 1024 × 768 es la pantalla entera de ancho y
-// de 728 a 39,999935 de alto (el 430 escalado da 688,00006). La v de la izquierda se corre un
-// cuarto de dv: (u, v + 0,25 dv) arriba y (u, v + 0,75 dv) abajo.
+// The sand is always scaled: (0, 25, 640, 430) at 1024 × 768 is the whole screen width and from 728 to 39.999935 in
+// height (the scaled 430 gives 688.00006). The left v shifts by a quarter of dv: (u, v + 0.25 dv) at the top and
+// (u, v + 0.75 dv) at the bottom.
 TEST(OriginalSkewedQuadTest, IsAlwaysScaledAndSkewsTheLeftSide)
 {
     const OriginalSkewedQuad quad{
@@ -83,9 +82,9 @@ TEST(OriginalSkewedQuadTest, IsAlwaysScaledAndSkewsTheLeftSide)
                                                                 {1024, 728, 0.75f, 0.5f}}});
 }
 
-// 0x6220b7..0x6220c2: la x87 suma v + dv, lo guarda en float para la esquina de abajo a la derecha
-// y le resta 0,25 dv al valor de la pila, sin redondear. Con v = 0,01 y dv = 0,2 la de abajo a la
-// izquierda da 0,15999999; restando del float guardado, o sumando v + 0,75 dv, daría 0,16000001.
+// 0x6220b7..0x6220c2: the x87 adds v + dv, stores it as a float for the lower-right corner and subtracts 0.25 dv from
+// the stack value, unrounded. With v = 0.01 and dv = 0.2 the lower-left gives 0.15999999; subtracting from the stored
+// float, or adding v + 0.75 dv, would give 0.16000001.
 TEST(OriginalSkewedQuadTest, TheLowerLeftVComesFromTheUnroundedSum)
 {
     const OriginalSkewedQuad quad{.width = 640, .height = 480, .v = 0.01f, .dv = 0.2f};

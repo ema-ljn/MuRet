@@ -16,8 +16,7 @@
 #include <cstddef>
 #include <optional>
 
-// Client::Render::ModelBatch: los triángulos de un pase 3D en el mundo y sus tramos, en el orden en
-// que llegan, como el SpriteBatch del 2D (CL5.2).
+// The triangles of a 3D world pass and their spans, in arrival order, like the 2D SpriteBatch (CL5.2).
 namespace
 {
 using Client::Core::PixelSize;
@@ -45,7 +44,7 @@ Pass3D SomePass(ViewportRect rect = {0, 25, 640, 430})
     return MakePass3D(PixelSize{1024, 768}, rect, camera);
 }
 
-// Un triángulo cualquiera con la x en `x`, para reconocerlo.
+// x identifies the triangle.
 std::array<ModelVertex, 3> TriangleAt(float x)
 {
     return {ModelVertex{{x, 0, 0}, {0, 0}, {}}, ModelVertex{{x, 1, 0}, {0, 1}, {}}, ModelVertex{{x, 0, 1}, {1, 0}, {}}};
@@ -68,8 +67,8 @@ TEST(ModelBatchTest, TrianglesWithTheSameStateShareACommand)
     EXPECT_EQ(batch.Vertices().size(), 9u);
 }
 
-// Otra textura, otra mezcla o la profundidad apagada son otro tramo, y vuelven a ser otro aunque el
-// estado sea el de antes: lo que va después se dibuja después.
+// Another texture, another blend or depth off make another span, and again another one even if the state is the
+// earlier one: what comes after is drawn after.
 TEST(ModelBatchTest, NeverReorders)
 {
     ModelBatch batch;
@@ -99,7 +98,6 @@ TEST(ModelBatchTest, NeverReorders)
     }
 }
 
-// Un estado sin triángulos no deja un tramo vacío.
 TEST(ModelBatchTest, AStateWithoutTrianglesAddsNothing)
 {
     ModelBatch batch;
@@ -126,12 +124,12 @@ TEST(ModelBatchTest, BeginEmptiesTheBatch)
     EXPECT_EQ(batch.Pass().viewport, glm::ivec4(0, 692, 1024, 76));
     ASSERT_EQ(batch.Commands().size(), 1u);
     EXPECT_EQ(batch.Vertices().size(), 3u);
-    // El estado vuelve al de un pase recién empezado: opaco, sin textura y con profundidad.
+    // The state of a freshly begun pass: opaque, untextured and with depth.
     EXPECT_EQ(batch.Commands()[0].state, ModelDrawState{});
 }
 
-// La niebla de 0x42b0a0 no es del material: cada tramo lleva la que había al dibujarlo, prenderla o apagarla abre
-// otro tramo con el mismo estado, y un estado nuevo, aunque sea ModelDrawState{}, no la saca.
+// The fog of 0x42b0a0 is not part of the material: each span carries the one in effect when drawn, turning it on or
+// off opens another span with the same state, and a new state, even ModelDrawState{}, does not remove it.
 TEST(ModelBatchTest, EachCommandCarriesTheFogOfItsTriangles)
 {
     const ModelFog fog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
@@ -160,8 +158,8 @@ TEST(ModelBatchTest, EachCommandCarriesTheFogOfItsTriangles)
     EXPECT_EQ(batch.Commands()[5].firstVertex, 9u);
 }
 
-// 0x620db0 apaga la niebla (Begin con el material) y 0x6213e0 o un flush la conservan (Begin sin él). Las
-// operaciones y los tramos sin triángulos también la llevan.
+// 0x620db0 turns fog off (Begin with the material) and 0x6213e0 or a flush keep it (Begin without it). Operations and
+// spans without triangles carry it too.
 TEST(ModelBatchTest, OnlyAPassThatInitializesTheMaterialTurnsTheFogOff)
 {
     const ModelFog fog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
@@ -180,8 +178,8 @@ TEST(ModelBatchTest, OnlyAPassThatInitializesTheMaterialTurnsTheFogOff)
     EXPECT_EQ(batch.Fog(), std::nullopt);
 }
 
-// glTexEnvi tampoco es del material: el modo va en cada tramo, cambiarlo abre otro, y Begin no lo toca, con o sin
-// material.
+// glTexEnvi is not part of the material either: the mode goes in each span, changing it opens another, and Begin does
+// not touch it, with or without material.
 TEST(ModelBatchTest, EachCommandCarriesTheTextureEnvOfItsTriangles)
 {
     ModelBatch batch;

@@ -13,10 +13,9 @@
 #include <numbers>
 #include <vector>
 
-// Client::Models::Attachment: de qué hueso cuelga cada cosa del personaje y con qué
-// desplazamiento (0x511290, 0x50ba30), la raíz de 0x4ec190 y la pose de 0x4eb860 con su séptimo
-// argumento en 1, que es la de 0x509340 (06 § El modelo en el binario). La espada del hueso 33 y la
-// mascota del 34 están verificadas contra la traza (GoldenSkinningTrace).
+// Which bone each thing hangs from and with what offset (0x511290, 0x50ba30), the root of 0x4ec190 and the pose of
+// 0x4eb860 with its seventh argument at 1, which is that of 0x509340 (06 § El modelo en el binario). The sword on bone
+// 33 and the pet on 34 are verified against the trace (GoldenSkinningTrace).
 namespace
 {
 using Client::Math::AngleMatrix;
@@ -58,7 +57,7 @@ TEST(AttachmentTest, WingsAreBone47)
     EXPECT_EQ(AttachmentOf(AttachmentSlot::Wings).offset, glm::vec3(0.0f, 0.0f, 15.0f));
 }
 
-// Q-C98: la mascota cuelga del 34, con (20, 0, 0), y solo se dibuja si es 0x1c13 (Helper02).
+// Q-C98: the pet hangs from 34, with (20, 0, 0), and is drawn only if it is 0x1c13 (Helper02).
 TEST(AttachmentTest, PetIsBone34OnlyFor0x1c13)
 {
     const Attachment pet = AttachmentOf(AttachmentSlot::Pet);
@@ -72,16 +71,16 @@ TEST(AttachmentTest, PetIsBone34OnlyFor0x1c13)
     }
 }
 
-// 0x509340 con su bandera, en el carcaj (las saetas 0xa19 y las flechas 0xa21): AngleMatrix(70, 0, 90)
-// con la traslación (−10, 5, 10).
+// 0x509340 with its flag, on the quiver (bolts 0xa19 and arrows 0xa21): AngleMatrix(70, 0, 90) with the translation
+// (−10, 5, 10).
 TEST(AttachmentTest, TheQuiverPlacementIsThatOf0x509340)
 {
     EXPECT_EQ(QuiverPlacement.angles, glm::vec3(70.0f, 0.0f, 90.0f));
     EXPECT_EQ(QuiverPlacement.translation, glm::vec3(-10.0f, 5.0f, 10.0f));
 }
 
-// La raíz es el hueso por esa matriz (R_ConcatTransforms): con el hueso girado 90° en z y en
-// (1, 2, 3), la traslación gira con él, y los ejes llevan los dos giros.
+// The root is the bone times that matrix (R_ConcatTransforms): with the bone rotated 90° about z and at (1, 2, 3), the
+// translation turns with it, and the axes carry both rotations.
 TEST(AttachmentTest, ThePlacedRootIsTheBoneByTheAngleMatrix)
 {
     BoneTransform parent = AngleMatrix({0.0f, 0.0f, 90.0f});
@@ -95,8 +94,8 @@ TEST(AttachmentTest, ThePlacedRootIsTheBoneByTheAngleMatrix)
     ExpectNear(root[1], {0.0f, -RoundedCos(seventy), RoundedSin(seventy)});
 }
 
-// 0x4ec190: el desplazamiento gira con el hueso y no lleva la escala del personaje, que va en cada
-// vértice: con el hueso girado 90° en z y en (1, 2, 3), (20, 0, 0) suma (0, 20, 0).
+// 0x4ec190: the offset turns with the bone and does not carry the character's scale, which goes on each vertex: with
+// the bone rotated 90° about z and at (1, 2, 3), (20, 0, 0) adds (0, 20, 0).
 TEST(AttachmentTest, TheOffsetTurnsWithTheBone)
 {
     BoneTransform parent = AngleMatrix({0.0f, 0.0f, 90.0f});
@@ -110,8 +109,7 @@ TEST(AttachmentTest, TheOffsetTurnsWithTheBone)
     ExpectNear(root[2], parent[2]);
 }
 
-// 0x4eb860 con el séptimo argumento en 1: los huesos sin padre van con la raíz que da quien llama,
-// no con el giro del objeto.
+// 0x4eb860 with the seventh argument at 1: parentless bones use the caller's root, not the object's rotation.
 TEST(AttachmentTest, AnAttachedPoseHangsFromTheRoot)
 {
     Skeleton skeleton;

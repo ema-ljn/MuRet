@@ -19,7 +19,7 @@ double MillisecondsOf(Core::Duration clock)
     return std::chrono::duration<double, std::milli>(clock).count();
 }
 
-// sin(T · speed) · amplitude + offset, con los floats del original y el seno en la FPU.
+// sin(T · speed) · amplitude + offset, with the original's floats and the sine on the FPU.
 float PulseAt(Core::Duration clock, float speed, float amplitude, float offset)
 {
     return static_cast<float>(Math::RoundedSin(MillisecondsOf(clock) * static_cast<double>(speed)) *
@@ -27,9 +27,9 @@ float PulseAt(Core::Duration clock, float speed, float amplitude, float offset)
                               static_cast<double>(offset));
 }
 
-// Las luces que late 0x607b60: 0,004 (0x6b89e8) con 0,3 y 0,7 (0x6b89dc, 0x6b8a5c), con 0,2 y 0,8
-// (0x6b8854, 0x6b8a38) o con 0,2 y 0,9 (0x6b8a1c); y 0,001 (0x6b89c8) con 0,4 y 0,6 (0x6b87b4,
-// 0x6b8a20), la de los FShoots_R.
+// The lights 0x607b60 pulses: 0.004 (0x6b89e8) with 0.3 and 0.7 (0x6b89dc, 0x6b8a5c), with 0.2 and 0.8
+// (0x6b8854, 0x6b8a38) or with 0.2 and 0.9 (0x6b8a1c); and 0.001 (0x6b89c8) with 0.4 and 0.6 (0x6b87b4,
+// 0x6b8a20), the FShoots_R one.
 float FastPulse(Core::Duration clock)
 {
     return PulseAt(clock, 0.004f, 0.3f, 0.7f);
@@ -47,13 +47,13 @@ float ShootsPulse(Core::Duration clock)
     return PulseAt(clock, 0.001f, 0.4f, 0.6f);
 }
 
-// rand() % count · 0,1 (0x6b87b8).
+// rand() % count · 0.1 (0x6b87b8).
 float RandomTenth(int random, int count)
 {
     return static_cast<float>(random % count) * 0.1f;
 }
 
-// La V de Spear10: (T truncado % 2000) · −0,0005 (0x6ba19c), que la corre una vez cada 2 s.
+// Spear10's V: (truncated T % 2000) · −0.0005 (0x6ba19c), which scrolls it once every 2 s.
 float ScrollingV(Core::Duration clock)
 {
     constexpr long long Period = 2000;
@@ -61,7 +61,7 @@ float ScrollingV(Core::Duration clock)
     return static_cast<float>(milliseconds % Period) * -0.0005f;
 }
 
-// 0x607b60: el objeto de siempre y, por tipo, lo que cambia. Los nombres son los de 0x60ff50.
+// 0x607b60: the usual object and, per type, what changes. The names are those of 0x60ff50.
 ObjectState InitialObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms)
 {
     ObjectState state;
@@ -153,18 +153,18 @@ ObjectState InitialObjectState(std::uint16_t type, Core::Duration clock, ObjectR
     return state;
 }
 
-// La luz que 0x60b3d0 escribe por el tipo del objeto (0x60c2c7..0x60c343 → 0x60c5c0).
+// The light 0x60b3d0 writes per object type (0x60c2c7..0x60c343 → 0x60c5c0).
 std::optional<float> TypeLightOf(std::uint16_t type, Core::Duration clock)
 {
     switch (type)
     {
-    case 0x1a16: // Wing05: sin(0,001 · T) + 1,1 (0x6b8830)
+    case 0x1a16: // Wing05: sin(0.001 · T) + 1.1 (0x6b8830)
         return PulseAt(clock, 0.001f, 1.0f, 1.1f);
-    case 0x1a17: // Wing06: (sin(0,001 · T) + 1) · 0,25 (0x6b87d4, 0x6b89e0)
+    case 0x1a17: // Wing06: (sin(0.001 · T) + 1) · 0.25 (0x6b87d4, 0x6b89e0)
         return static_cast<float>(
             (Math::RoundedSin(MillisecondsOf(clock) * static_cast<double>(0.001f)) + static_cast<double>(1.0f)) *
             static_cast<double>(0.25f));
-    case 0xc1d: // Staff12: la misma de 0x607b60
+    case 0xc1d: // Staff12: the same as 0x607b60
         return FastPulse(clock);
     default:
         return std::nullopt;

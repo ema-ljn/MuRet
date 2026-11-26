@@ -17,8 +17,8 @@ Box PlayerBoxAt(const glm::vec3& position)
     return {position + PlayerBoxMin, position + PlayerBoxMax};
 }
 
-// Con el centro de la caja en el origen: el punto medio del segmento m, su mitad d y la media caja e.
-// Un eje separa si la proyección de la caja y la del segmento sobre él no se tocan.
+// With the box center at the origin: the segment's midpoint m, its half d and the half box e. An axis separates if
+// the box's projection and the segment's onto it do not touch.
 bool SegmentHitsBox(const glm::vec3& origin, const glm::vec3& end, const Box& box)
 {
     const glm::vec3 halfBox = (box.max - box.min) * 0.5f;
@@ -26,7 +26,7 @@ bool SegmentHitsBox(const glm::vec3& origin, const glm::vec3& end, const Box& bo
     const glm::vec3 half = (end - origin) * 0.5f;
     const glm::vec3 middle = origin + half - centre;
     const glm::vec3 absHalf = glm::abs(half);
-    // Los 3 ejes de la caja.
+    // The box's 3 axes.
     for (int axis = 0; axis < 3; ++axis)
     {
         if (std::fabs(middle[axis]) > halfBox[axis] + absHalf[axis])
@@ -34,7 +34,7 @@ bool SegmentHitsBox(const glm::vec3& origin, const glm::vec3& end, const Box& bo
             return false;
         }
     }
-    // Los 3 productos de los ejes de la caja con el segmento.
+    // The 3 cross products of the box axes with the segment.
     if (std::fabs(middle.y * half.z - middle.z * half.y) > halfBox.y * absHalf.z + halfBox.z * absHalf.y)
     {
         return false;

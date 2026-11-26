@@ -31,11 +31,10 @@
 #include <utility>
 #include <vector>
 
-// La pose y el skinning de MuRet contra lo que el original le mandó a GL en las trazas del
-// laboratorio (Client/docs/research/06-render-escenas-y-ui.md, "El personaje, vértice a vértice").
-// Cada triángulo de una malla manda sus tres UV en orden, así que la secuencia de UV de un bloque
-// identifica la malla; los números de cada escena (la acción, los frames, el lugar, el giro y la
-// escala) son los del 06.
+// MuRet's pose and skinning against what the original sent to GL in the lab traces
+// (Client/docs/research/06-render-escenas-y-ui.md, "El personaje, vértice a vértice"). Each triangle of a mesh sends
+// its three UVs in order, so a block's UV sequence identifies the mesh; each scene's numbers (the action, the frames,
+// the place, the rotation and the scale) are those of 06.
 namespace
 {
 using Client::Data::Models::HiddenTextureSlot;
@@ -62,18 +61,17 @@ using Client::Tests::ReadGlTrace;
 
 constexpr std::string_view SelectionTrace = "character-selection-Frame_003207.txt";
 constexpr std::string_view LorenciaTrace = "lorencia-Frame_016215.txt";
-// El reloj T de cada swap de Lorencia, en ms (06): lo usan los pases de brillo de sus dos personajes.
+// The clock T of each Lorencia swap, in ms (06): the glow passes of its two characters use it.
 constexpr std::array<std::int64_t, 5> LorenciaClocks = {30530748, 30531530, 30532328, 30533092, 30533858};
-// La traza escribe las UV con seis decimales.
+// The trace writes the UVs with six decimals.
 constexpr float UvTolerance = 1e-5f;
-// Lo más que un vértice de MuRet puede quedar del de la traza, en unidades del mundo (una celda del
-// terreno son 100). Con el frame justo da 0,001: lo que redondea un float en coordenadas de 15.000.
+// The most a MuRet vertex may be off the trace's, in world units (a terrain cell is 100). With the exact frame it gives
+// 0.001: what a float rounds at coordinates of 15000.
 constexpr float MaxError = 0.005f;
-// Cuánto puede estar corrido el frame de la tabla del 06, en keys (SearchSteps pasos de SearchStep
-// para cada lado), y de a cuánto se busca. La búsqueda absorbe un error que equivale a correr el
-// frame, como una t corrida pareja en todos los huesos: ese lo atrapan los PoseTest. Lo que no se
-// arregla corriendo el frame unas centésimas (sin el + 1 del original, la interpolación al revés, un
-// eje cambiado) lo atrapa este.
+// How far the frame of 06's table may be off, in keys (SearchSteps steps of SearchStep each way), and the search step.
+// The search absorbs an error equivalent to shifting the frame, like a t shifted evenly in all bones: the PoseTests
+// catch that one. This test catches what shifting the frame a few hundredths does not fix (without the original's
+// + 1, the interpolation reversed, a swapped axis).
 constexpr float SearchStep = 0.0005f;
 constexpr int SearchSteps = 60;
 
@@ -83,8 +81,7 @@ struct Part
     int number = -1;
 };
 
-// Una malla en el orden en que el original la manda, triángulo por triángulo: la UV, el vértice y la
-// normal de cada esquina.
+// A mesh in the order the original sends it, triangle by triangle: the UV, the vertex and the normal of each corner.
 struct MeshSequence
 {
     std::vector<glm::vec2> texCoords;
@@ -126,8 +123,8 @@ bool SameTexCoords(const GlTraceBlock& block, const MeshSequence& sequence)
     return true;
 }
 
-// Una malla que el original dibuja, con los bloques de cada frame de la traza que tienen sus UV: puede
-// haber más de uno (una sombra, otro personaje con la misma parte), y vale el que más se acerca.
+// A mesh the original draws, with the blocks of each trace frame that have its UVs: there can be more than one (a
+// shadow, another character with the same part), and the closest one counts.
 struct TracedMesh
 {
     std::string label;
@@ -137,8 +134,8 @@ struct TracedMesh
     int partNumber = -1;
 };
 
-// Un personaje de una traza, con los números del 06: sus partes, su acción, el frame de cada swap, el
-// objeto y los ángulos de la cabeza en cada swap (los de `+0x28` y `+0x2c` del objeto, en grados).
+// A character of a trace, with 06's numbers: its parts, its action, each swap's frame, the object and the head angles
+// at each swap (`+0x28` and `+0x2c` of the object, in degrees).
 struct Scene
 {
     std::vector<Part> parts;
@@ -149,7 +146,6 @@ struct Scene
     std::array<glm::vec2, 5> headAngles{};
 };
 
-// El error más grande de `block` contra `positions` en el orden de `sequence`.
 float BlockError(const GlTraceBlock& block, const MeshSequence& sequence, const std::vector<glm::vec3>& positions)
 {
     float worst = 0.0f;
@@ -160,15 +156,14 @@ float BlockError(const GlTraceBlock& block, const MeshSequence& sequence, const 
     return worst;
 }
 
-// La animación en `frame` (uno de la tabla del 06), como la guarda el original: más 1, módulo las keys,
-// y su parte entera como la key anterior (06, "Cuánto avanza la animación").
+// The animation at `frame` (one of 06's table), as the original stores it: plus 1, modulo the keys, and its integer
+// part as the previous key (06, "Cuánto avanza la animación").
 AnimationState StateAt(const Scene& scene, float frame)
 {
     return {scene.action, std::fmod(frame + 1.0f, static_cast<float>(scene.keyCount)), scene.action,
             static_cast<std::int16_t>(std::floor(frame))};
 }
 
-// El peor vértice de todas las mallas en el swap `f` de la traza, con la animación en `frame`.
 float FrameError(const Skeleton& skeleton, const std::vector<TracedMesh>& meshes, std::size_t f, float frame,
                  const Scene& scene)
 {
@@ -195,8 +190,8 @@ float FrameError(const Skeleton& skeleton, const std::vector<TracedMesh>& meshes
     return worst;
 }
 
-// Cada malla que se dibuja de cada parte, con los bloques de cada frame de la traza que tienen sus UV.
-// La que el original manda al slot 0x12d no se dibuja (CL6.1, SkinSlotOf).
+// Each drawn mesh of each part, with the blocks of each trace frame that have its UVs. The one the original sends to
+// slot 0x12d is not drawn (CL6.1, SkinSlotOf).
 std::vector<TracedMesh> TraceMeshes(const GlTrace& trace, const std::vector<Part>& parts,
                                     const std::vector<Model>& models)
 {
@@ -235,7 +230,7 @@ std::vector<TracedMesh> TraceMeshes(const GlTrace& trace, const std::vector<Part
     return meshes;
 }
 
-// El frame que más se acerca al swap `f`: cuántos pasos de SearchStep está del de la tabla, y su error.
+// The frame closest to swap `f`: how many SearchStep steps it is from the table's, and its error.
 struct FrameFit
 {
     int step = 0;
@@ -287,8 +282,8 @@ protected:
         return std::move(trace).Value();
     }
 
-    // Player.bmd con su cabeza (el hueso 20, como lo deja 0x60dbe0): en Lorencia gira con los ángulos
-    // de cada swap, y en la selección, con 0, sigue la animación.
+    // Player.bmd with its head (bone 20, as 0x60dbe0 leaves it): in Lorencia it turns with each swap's angles, and in
+    // the selection, with 0, it follows the animation.
     std::optional<Skeleton> LoadPlayerSkeleton() const
     {
         const std::optional<Model> player = LoadPlayerModel("Player", -1);
@@ -323,9 +318,8 @@ protected:
         return models;
     }
 
-    // Posa Player.bmd con cada frame del 06 y compara las partes con la traza. El 06 da los frames con
-    // tres decimales: el de cada swap se busca cerca del de la tabla, y con él cada vértice tiene que
-    // caer a menos de MaxError del de la traza, sin que el mejor quede en el borde de la búsqueda.
+    // 06 gives the frames with three decimals: each swap's frame is searched near the table's, and with it every vertex
+    // must land within MaxError of the trace's, without the best one at the edge of the search.
     void ExpectTheTrace(std::string_view traceName, const Scene& scene)
     {
         const std::optional<GlTrace> trace = LoadTrace(traceName);
@@ -349,14 +343,13 @@ protected:
     }
 };
 
-// El personaje de las dos trazas: HelmMale17, ArmorMale17, PantMale02, GloveMale17 y BootMale17.
 std::vector<Part> TracedPlayerParts()
 {
     return {{"HelmMale", 17}, {"ArmorMale", 17}, {"PantMale", 2}, {"GloveMale", 17}, {"BootMale", 17}};
 }
 
-// La selección: el personaje del lugar 0 de 0x4c20a0 en z = 163, con la escala 0,9 de su clase, en la
-// acción 3 (siete keys) de Player.bmd. La cabeza sigue la animación: sus ángulos, en 0.
+// The selection: the character of place 0 of 0x4c20a0 at z = 163, with its class's 0.9 scale, in action 3 (seven
+// keys) of Player.bmd. The head follows the animation: its angles, at 0.
 Scene SelectionPlayer()
 {
     return {TracedPlayerParts(),
@@ -367,9 +360,9 @@ Scene SelectionPlayer()
             {}};
 }
 
-// La cabeza de un personaje de Lorencia como la gira 0x505de0 (06, "La cabeza gira aparte"): en el
-// swap 0 está en `first`, medida en la traza, y en cada paso de la animación se acerca un 20 % a
-// `target`, con los pasos que da el cuerpo entre swaps (20, 19, 19 y 19).
+// The head of a Lorencia character as 0x505de0 turns it (06, "La cabeza gira aparte"): at swap 0 it is at `first`,
+// measured in the trace, and at each animation step it gets 20 % closer to `target`, with the steps the body takes
+// between swaps (20, 19, 19 and 19).
 std::array<glm::vec2, 5> TurningHead(glm::vec2 first, glm::vec2 target)
 {
     constexpr float TurnPerStep = 0.2f;
@@ -387,9 +380,8 @@ std::array<glm::vec2, 5> TurningHead(glm::vec2 first, glm::vec2 target)
     return angles;
 }
 
-// Lorencia: el personaje en el centro de la celda (143, 120), a z = 165, en la acción 1 (seis keys),
-// girado 116°. La cabeza no sigue la animación: mira a (0, −0,65)°, y en el swap 0 le falta llegar
-// 0,0065° en x.
+// Lorencia: the character at the center of cell (143, 120), at z = 165, in action 1 (six keys), rotated 116°. The head
+// does not follow the animation: it looks at (0, −0.65)°, and at swap 0 it is still 0.0065° short in x.
 Scene LorenciaPlayer()
 {
     return {TracedPlayerParts(),
@@ -400,10 +392,10 @@ Scene LorenciaPlayer()
             TurningHead({-0.0065f, -0.65f}, {0.0f, -0.65f})};
 }
 
-// Lorencia: el guardia con partes de jugador, en el centro de la celda (143, 128), a z = 165, en la
-// acción 1, girado 90°. Su cabeza va hacia (−18, 4)°, un objetivo al azar de los de 0x505de0, y en el
-// swap 0 está en (−22,399, 0,0205)°. MaskHelmMale10 no va: de sus cuatro mallas solo guard_hair tiene
-// un bloque en la traza, y es el de la malla igual de HelmMale10 (06).
+// Lorencia: the guard with player parts, at the center of cell (143, 128), at z = 165, in action 1, rotated 90°. Its
+// head goes towards (−18, 4)°, one of the random targets of 0x505de0, and at swap 0 it is at (−22.399, 0.0205)°.
+// MaskHelmMale10 is left out: of its four meshes only guard_hair has a block in the trace, and it is the one of the
+// identical HelmMale10 mesh (06).
 Scene LorenciaGuard()
 {
     return {{{"HelmMale", 10}, {"ArmorMale", 10}, {"PantMale", 10}, {"GloveMale", 10}, {"BootMale", 10}},
@@ -429,10 +421,10 @@ TEST_F(GoldenSkinningTrace, MatchesTheGuardOfLorencia)
     ExpectTheTrace(LorenciaTrace, LorenciaGuard());
 }
 
-// Lo que cuelga en la selección (CL6.3): Sword17 de la mano derecha (el hueso 33, sin desplazamiento)
-// y Helper02 del 34 con (20, 0, 0) girado por el hueso, cada uno posado desde esa raíz (0x509340)
-// y llevado al mundo con el objeto del personaje. La espada tiene una key; la mascota avanza 0,5 por
-// frame (Q-C20), y en los cinco swaps está en 1,5 · 2 · 2,5 · 3 · 3,5 (06).
+// What hangs in the selection (CL6.3): Sword17 from the right hand (bone 33, no offset) and Helper02 from 34 with
+// (20, 0, 0) rotated by the bone, each posed from that root (0x509340) and taken to the world with the character's
+// object. The sword has one key; the pet advances 0.5 per frame (Q-C20), and over the five swaps it is at 1.5, 2, 2.5,
+// 3 and 3.5 (06).
 struct HangingModel
 {
     ModelFile file;
@@ -491,7 +483,7 @@ TEST_F(GoldenSkinningTrace, TheSwordAndThePetHangFromTheirBones)
     }
 }
 
-// Los pases de brillo de la selección por su textura en la traza (06): 115, 120 y 141.
+// The selection's glow passes by their texture in the trace (06): 115, 120 and 141.
 struct TracedShinePass
 {
     std::uint32_t texture = 0;
@@ -502,9 +494,9 @@ constexpr std::array<TracedShinePass, 3> ShinePasses = {{
     {120, ShinePass::Chrome},
     {141, ShinePass::Chrome4},
 }};
-// Un pase de brillo repite las posiciones de su malla.
+// A glow pass repeats its mesh's positions.
 constexpr float SamePosition = 0.01f;
-// Lo más que una UV de MuRet puede quedar de la de la traza: da 0,00003.
+// The most a MuRet UV may be off the trace's: it gives 0.00003.
 constexpr float MaxUvError = 0.001f;
 
 const TracedShinePass* ShinePassOf(std::uint32_t texture)
@@ -535,8 +527,8 @@ bool SamePositions(const GlTraceBlock& a, const GlTraceBlock& b)
     return true;
 }
 
-// Cuántos pases de brillo de una malla hay en el frame, y la UV que más se aleja de la de MuRet: un pase
-// repite las posiciones del bloque `base` de la malla, con la textura de su pase.
+// How many glow passes of a mesh are in the frame, and the UV furthest from MuRet's: a pass repeats the positions of
+// the mesh's `base` block, with its pass's texture.
 struct ShineResult
 {
     std::size_t passes = 0;
@@ -566,8 +558,8 @@ ShineResult CompareShine(const GlTraceFrame& frame, const GlTraceBlock& base, co
     return result;
 }
 
-// Cuántos pases de brillo muestran las trazas en cada juego de partes: las Male17 del personaje, los
-// tres (un nivel 13, 06); las Male10 del guardia, uno (el 120); el pantalón 02, ninguno.
+// How many glow passes the traces show for each part set: the character's Male17, three (a level 13, 06); the guard's
+// Male10, one (the 120); pants 02, none.
 std::size_t TracedShinePassesOf(int partNumber)
 {
     switch (partNumber)
@@ -584,9 +576,8 @@ std::size_t TracedShinePassesOf(int partNumber)
 class GoldenShineTrace : public GoldenSkinningTrace
 {
 protected:
-    // Los pases de brillo de las mallas de `scene`: con las normales que da SkinMesh en los frames del
-    // 06 (giradas por los huesos, sin la escala del objeto) y el reloj T de cada swap (también del 06),
-    // las UV de MuRet caen sobre las de la traza.
+    // The glow passes of the meshes of `scene`: with the normals SkinMesh gives at 06's frames (rotated by the bones,
+    // without the object's scale) and each swap's clock T (also from 06), MuRet's UVs land on the trace's.
     void ExpectTheShine(std::string_view traceName, const Scene& scene, const std::array<std::int64_t, 5>& clocks)
     {
         const std::optional<GlTrace> trace = LoadTrace(traceName);

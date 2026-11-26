@@ -27,10 +27,9 @@
 #include <tuple>
 #include <vector>
 
-// Client::Render::Text::TextCache: los textos rasterizados una vez y reusados (CL5.3), con un tope
-// en slots y la regla de sacar el que hace más tiempo que no se dibuja. Corre sin GL: la tabla es
-// la falsa, que anota lo que se sube y lo que se suelta, y el rasterizador, el falso (6 columnas
-// por letra, 13 filas, la tinta en el bloque de 3 × 4 de arriba a la izquierda de cada letra).
+// Texts rasterized once and reused (CL5.3), with a cap in slots and the rule of evicting the one drawn longest ago.
+// Runs without GL: the table is the fake one, which records what is uploaded and what is released, and the rasterizer
+// is the fake one (6 columns per letter, 13 rows, the ink in the 3 × 4 block at the top left of each letter).
 namespace
 {
 using Client::Core::PixelSize;
@@ -56,12 +55,11 @@ using Client::Tests::FakeTextureStore;
 
 constexpr PixelSize Screen{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
-// Los slots de las cachés de estos tests: cuatro desde el primero del texto.
+// The slots of these tests' caches: four from the first text slot.
 constexpr TextureSlot First{0x735};
 constexpr std::size_t FourSlots = 4;
 constexpr TextStyle Login{FontKind::Normal, TextColors{0xffffffff, 0x80000000}};
 
-// Los slots de los tramos del lote, en orden.
 std::vector<std::uint16_t> SlotsOf(const SpriteBatch& batch)
 {
     std::vector<std::uint16_t> slots;
@@ -88,14 +86,14 @@ protected:
         m_batch.Begin(Screen);
     }
 
-    // Dibuja `text` y falla el test si la caché devuelve un error.
+    // Fails the test if the cache returns an error.
     void Draw(TextCache& cache, std::string_view text, const TextStyle& style = Login, int x = 10, int y = 20)
     {
         const auto drawn = cache.Draw(m_batch, x, y, text, style);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     }
 
-    // El modo 2 como lo piden las escenas: CenterInBox con el rasterizador de la caché y DrawColumns.
+    // Mode 2 as the scenes request it: CenterInBox with the cache's rasterizer and DrawColumns.
     Client::Core::Expected<void, std::string> DrawCentered(TextCache& cache, int x, int y, std::string_view text,
                                                            int box)
     {
@@ -108,8 +106,8 @@ protected:
     SpriteBatch m_batch;
 };
 
-// El mismo texto con la misma fuente y los mismos colores se rasteriza y se sube una vez, y se
-// dibuja cada vez con su caja.
+// The same text with the same font and the same colors is rasterized and uploaded once, and drawn each time with its
+// box.
 TEST_F(TextCacheTest, TheSameTextIsRasterizedOnce)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -124,7 +122,7 @@ TEST_F(TextCacheTest, TheSameTextIsRasterizedOnce)
     EXPECT_EQ(SlotsOf(m_batch), (std::vector<std::uint16_t>{First.value, First.value}));
 }
 
-// La clave es el texto, la fuente y los dos colores: cambiar cualquiera es otra entrada.
+// The key is the text, the font and both colors: changing any of them makes another entry.
 TEST_F(TextCacheTest, ADifferentColorIsAnotherEntry)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -136,14 +134,14 @@ TEST_F(TextCacheTest, ADifferentColorIsAnotherEntry)
 
     EXPECT_EQ(m_rasterizer.drawCalls, 4);
     EXPECT_EQ(cache.Size(), 4u);
-    // En otro lote: los cuatro de este no salen (ATextOfThisBatchIsNotEvicted).
+    // In another batch: the four of this one are not evicted (ATextOfThisBatchIsNotEvicted).
     m_batch.Begin(Screen);
     Draw(cache, "abd");
     EXPECT_EQ(m_rasterizer.drawCalls, 5);
 }
 
-// Otro ancho de pantalla trae otras fuentes (FontSet.h): la caché se vacía, suelta sus slots y
-// rasteriza con el rasterizador nuevo.
+// Another screen width brings other fonts (FontSet.h): the cache empties, releases its slots and rasterizes with the
+// new rasterizer.
 TEST_F(TextCacheTest, ResizingEmptiesIt)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -162,9 +160,8 @@ TEST_F(TextCacheTest, ResizingEmptiesIt)
     EXPECT_EQ(cache.Measure(FontKind::Normal, "abc"), (TextExtent{21, 14}));
 }
 
-// Con los cuatro slots ocupados, el texto nuevo saca al que hace más tiempo que no se dibuja: A,
-// B, C y D en un lote, A otra vez en el siguiente, y E saca a B, no a A. Después B vuelve y saca a
-// C.
+// With the four slots taken, the new text evicts the one drawn longest ago: A, B, C and D in one batch, A again in the
+// next, and E evicts B, not A. Then B comes back and evicts C.
 TEST_F(TextCacheTest, KeepsAtMostItsCap)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -193,9 +190,9 @@ TEST_F(TextCacheTest, KeepsAtMostItsCap)
     EXPECT_EQ(m_store.released.back(), static_cast<std::uint16_t>(First.value + 2));
 }
 
-// El lote guarda el slot de cada quad, y GlSpriteRenderer lo busca recién al dibujarlo: un texto
-// que ya está en el lote no sale, porque su slot dibujaría otra caja. Con los cuatro slots en
-// textos del lote, el quinto es un error y no suelta nada; en el lote siguiente, saca al más viejo.
+// The batch stores each quad's slot, and GlSpriteRenderer only looks it up when drawing: a text already in the batch
+// is not evicted, because its slot would draw another box. With the four slots holding texts of the batch, the fifth
+// is an error and releases nothing; in the next batch, it evicts the oldest.
 TEST_F(TextCacheTest, ATextOfThisBatchIsNotEvicted)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -221,8 +218,8 @@ TEST_F(TextCacheTest, ATextOfThisBatchIsNotEvicted)
     EXPECT_EQ(SlotsOf(m_batch), (std::vector<std::uint16_t>{First.value}));
 }
 
-// Un texto de más de 256 columnas ocupa una caja por cada 256, y cada quad de TextPieces va con la
-// suya: la segunda caja es el texto desde la columna 256.
+// A text of more than 256 columns takes one box per 256, and each TextPieces quad goes with its own: the second box is
+// the text from column 256.
 TEST_F(TextCacheTest, AWideTextUsesABoxPer256Columns)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -234,7 +231,7 @@ TEST_F(TextCacheTest, AWideTextUsesABoxPer256Columns)
     EXPECT_EQ(SlotsOf(m_batch), (std::vector<std::uint16_t>{First.value, static_cast<std::uint16_t>(First.value + 1)}));
     const auto second = m_store.Find(TextureSlot{static_cast<std::uint16_t>(First.value + 1)});
     ASSERT_TRUE(second.has_value());
-    // La letra 43 empieza en la columna 258: la 2 de la segunda caja.
+    // Letter 43 starts at column 258: column 2 of the second box.
     const auto pixelAt = [&](int column)
     {
         const auto offset = static_cast<std::size_t>(column * 4);
@@ -245,8 +242,7 @@ TEST_F(TextCacheTest, AWideTextUsesABoxPer256Columns)
     EXPECT_EQ(pixelAt(2), (std::array<std::uint8_t, 4>{0xff, 0xff, 0xff, 0xff}));
 }
 
-// Una caja por cada 256 columnas, redondeando para arriba: un texto de 256 justas es una, y uno de
-// 257, dos.
+// One box per 256 columns, rounding up: a text of exactly 256 is one, and one of 257, two.
 TEST_F(TextCacheTest, ATextOf256ColumnsIsOneBox)
 {
     const FakeGlyphRasterizer eightWide(8, 13);
@@ -258,9 +254,9 @@ TEST_F(TextCacheTest, ATextOf256ColumnsIsOneBox)
     EXPECT_EQ(cache.UsedSlots(), 3u);
 }
 
-// El DIB de 0x467060 mide 1.280 columnas, y 0x465a00 no mira dónde termina: la caja que empieza en
-// la columna 1.280 lee la fila de abajo (Q-C78). MuRet dibuja cada caja desde su columna, sin el
-// DIB: la sexta caja tiene las letras que van desde la 1.280.
+// The DIB of 0x467060 is 1280 columns wide, and 0x465a00 does not check where it ends: the box that starts at column
+// 1280 reads the row below (Q-C78). MuRet draws each box from its column, without the DIB: the sixth box has the
+// letters from 1280 on.
 TEST_F(TextCacheTest, ABoxPastTheColumn1280HasItsLetters)
 {
     TextCache cache(m_rasterizer, m_store, First, 8);
@@ -274,20 +270,20 @@ TEST_F(TextCacheTest, ABoxPastTheColumn1280HasItsLetters)
     const auto sixth = m_store.Find(TextureSlot{static_cast<std::uint16_t>(First.value + 5)});
     ASSERT_TRUE(sixth.has_value());
     const auto alphaAt = [&](int column) { return sixth->texture.pixels[static_cast<std::size_t>(column * 4) + 3]; };
-    // La letra 213 va de la 1.278 a la 1.280 (la columna 0 de la caja), y la 214 empieza en la
-    // 1.284: la 4. Entre las dos, fondo.
+    // Letter 213 goes from 1278 to 1280 (column 0 of the box), and 214 starts at 1284: column 4. Between the two,
+    // background.
     EXPECT_EQ(alphaAt(0), 0xff);
     EXPECT_EQ(alphaAt(1), 0x80);
     EXPECT_EQ(alphaAt(3), 0x80);
     EXPECT_EQ(alphaAt(4), 0xff);
     EXPECT_EQ(alphaAt(6), 0xff);
-    // La caja tiene 160 columnas del texto: la 159 es fondo, la 160 ya no es del texto.
+    // The box has 160 columns of the text: 159 is background, 160 is no longer the text's.
     EXPECT_EQ(alphaAt(159), 0x80);
     EXPECT_EQ(alphaAt(160), 0);
 }
 
-// La caja es la del original: 256 × 32 en RGBA, con GL_NEAREST y GL_CLAMP como sube 0x63bd00 la
-// FontInput.tga del slot 0 (0x2600 y 0x2900), y el texto arriba a la izquierda en sus colores.
+// The box is the original's: 256 × 32 RGBA, with GL_NEAREST and GL_CLAMP as 0x63bd00 uploads FontInput.tga in slot 0
+// (0x2600 and 0x2900), and the text at the top left in its colors.
 TEST_F(TextCacheTest, TheBoxIsTheTextOnItsColors)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -309,12 +305,12 @@ TEST_F(TextCacheTest, TheBoxIsTheTextOnItsColors)
               (std::array<std::uint8_t, 4>{0xaa, 0x22, 0x33, 0xff}));
     EXPECT_EQ((std::array{pixels[12], pixels[13], pixels[14], pixels[15]}),
               (std::array<std::uint8_t, 4>{0, 0, 0, 0x80}));
-    // La columna 12 ya no es del texto, que mide 12.
+    // Column 12 is no longer the text's, which is 12 wide.
     EXPECT_EQ((std::array{pixels[48], pixels[49], pixels[50], pixels[51]}), (std::array<std::uint8_t, 4>{0, 0, 0, 0}));
 }
 
-// Los quads son los de TextPieces para (x, y) y la pantalla del lote, cada uno con el slot de su
-// caja: con x = 400 en 640 × 480, el texto de 300 columnas se corta en el borde.
+// The quads are those of TextPieces for (x, y) and the batch's screen, each with its box's slot: with x = 400 at
+// 640 × 480, the 300-column text is cut at the edge.
 TEST_F(TextCacheTest, TheQuadsAreThoseOfTextPieces)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -340,7 +336,7 @@ TEST_F(TextCacheTest, TheQuadsAreThoseOfTextPieces)
     EXPECT_EQ(SlotsOf(m_batch), SlotsOf(expected));
 }
 
-// Un texto vacío no dibuja nada, como 0x467060 sin tope, y no entra a la caché.
+// An empty text draws nothing, like 0x467060 without a cap, and does not enter the cache.
 TEST_F(TextCacheTest, AnEmptyTextDrawsNothing)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -352,7 +348,7 @@ TEST_F(TextCacheTest, AnEmptyTextDrawsNothing)
     EXPECT_TRUE(m_batch.Vertices().empty());
 }
 
-// Un texto que pide más cajas que los slots de la caché es un error, y no saca a nadie.
+// A text that needs more boxes than the cache's slots is an error, and evicts nobody.
 TEST_F(TextCacheTest, ATextWiderThanTheCacheIsAnError)
 {
     TextCache cache(m_rasterizer, m_store, First, 1);
@@ -366,7 +362,7 @@ TEST_F(TextCacheTest, ATextWiderThanTheCacheIsAnError)
     EXPECT_TRUE(m_store.released.empty());
 }
 
-// Si la tabla no sube, el error llega al que dibuja, y los slots vuelven a estar libres.
+// If the table does not upload, the error reaches the caller that draws, and the slots are free again.
 TEST_F(TextCacheTest, AStoreThatFailsIsAnError)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -383,7 +379,7 @@ TEST_F(TextCacheTest, AStoreThatFailsIsAnError)
     EXPECT_EQ(cache.UsedSlots(), 1u);
 }
 
-// Al morir, y con Clear, suelta los slots que usa.
+// On destruction, and with Clear, it releases the slots it uses.
 TEST_F(TextCacheTest, ItReleasesItsSlots)
 {
     {
@@ -399,8 +395,8 @@ TEST_F(TextCacheTest, ItReleasesItsSlots)
     EXPECT_EQ(m_store.Size(), 0u);
     EXPECT_EQ(m_store.released.size(), 3u);
 }
-// Un renglón de un globo es una caja de un slot con su forma en la clave: la misma se reusa, otra columna de adelante
-// es otra entrada. El quad es el de BoxedQuad, aunque el texto esté vacío; sin ancho no dibuja.
+// A bubble line is a one-slot box with its shape in the key: the same one is reused, another leading column is another
+// entry. The quad is BoxedQuad's, even if the text is empty; without a width it does not draw.
 TEST_F(TextCacheTest, ABubbleLineIsOneBoxWithItsShape)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -440,9 +436,9 @@ TEST_F(TextCacheTest, ABubbleLineIsOneBoxWithItsShape)
     EXPECT_EQ(SlotsOf(m_batch).size(), 4u);
 }
 
-// 0x467060 con un ancho: la caja tiene las columnas pedidas, con el fondo entero y la columna `firstColumn` del texto
-// en su columna 0. Centrado (el modo 2), "ab" (12 columnas) en 20 empieza con 4 de fondo; con el ancho menor que cx (el
-// modo 1), "abcd" en 10 muestra desde la columna 14. La misma caja se reusa; sin columnas no dibuja.
+// 0x467060 with a width: the box has the requested columns, with the whole background and column `firstColumn` of the
+// text at its column 0. Centered (mode 2), "ab" (12 columns) in 20 starts with 4 of background; with the width below cx
+// (mode 1), "abcd" in 10 shows from column 14. The same box is reused; without columns it does not draw.
 TEST_F(TextCacheTest, AWindowOfColumnsHasTheBackgroundAndTheTextFromItsColumn)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -499,7 +495,7 @@ TEST_F(TextCacheTest, AWindowOfColumnsHasTheBackgroundAndTheTextFromItsColumn)
     EXPECT_EQ(SlotsOf(m_batch).size(), SlotsOf(expected).size() + 1);
 }
 
-// El EDIT conserva el origen en píxeles y el recorte de texto usa el buffer cacheado de texto completo.
+// The EDIT keeps its origin in pixels, and the text clip uses the cached buffer of the full text.
 TEST_F(TextCacheTest, DrawColumnsAtPixelsKeepsExactOriginAndUsesTheWindowedFullText)
 {
     m_batch.Begin(Screen1024);
@@ -547,9 +543,9 @@ TEST_F(TextCacheTest, DrawColumnsAtPixelsRejectsNegativeWidth)
     EXPECT_TRUE(m_batch.Vertices().empty());
 }
 
-// El modo 2 de 0x467060 (el título del inventario): "ab" (12 columnas) en una caja de 40 va en la columna 14, y la caja
-// entera es del fondo: 14 columnas antes, la tinta de la a en la 14, la de la b en la 20 y fondo hasta la 39. Las filas
-// son las de la celda; lo que pasa de la caja queda en 0. El quad es el de TextPieces con el ancho de la caja, desde x.
+// Mode 2 of 0x467060 (the inventory title): "ab" (12 columns) in a box of 40 goes at column 14, and the whole box is
+// background: 14 columns before, the ink of the a at 14, that of the b at 20 and background up to 39. The rows are the
+// cell's; what goes past the box stays at 0. The quad is that of TextPieces with the box width, from x.
 TEST_F(TextCacheTest, TheModeTwoBoxIsTheBackgroundWithTheTextInTheMiddle)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -586,9 +582,9 @@ TEST_F(TextCacheTest, TheModeTwoBoxIsTheBackgroundWithTheTextInTheMiddle)
     }
 }
 
-// La caja del título en 1.600 × 1.200 mide 300 columnas: con "ab", (300 − 12) / 2 = 144 y la caja queda en 300, en
-// dos cajas de 256 y 44. Desde x = 485 (1.212,5 píxeles) no pasa del borde: los quads van en 1.212 y 1.468. La
-// tinta de la a está en la columna 144 de la primera; la segunda es toda fondo.
+// The title box at 1600 × 1200 is 300 columns: with "ab", (300 − 12) / 2 = 144 and the box ends up at 300, in two
+// boxes of 256 and 44. From x = 485 (1212.5 pixels) it does not pass the edge: the quads go at 1212 and 1468. The ink
+// of the a is at column 144 of the first; the second is all background.
 TEST_F(TextCacheTest, AModeTwoBoxPast256ColumnsGoesInBoxesOf256)
 {
     constexpr PixelSize Screen1600{1600, 1200};
@@ -631,8 +627,8 @@ TEST_F(TextCacheTest, AModeTwoBoxPast256ColumnsGoesInBoxesOf256)
     EXPECT_EQ(alphaAt(second->texture.pixels, 44), 0);
 }
 
-// Pasados los 256, la caja se corta en el borde derecho como un texto ancho (0x46721f): en 640 × 480, desde x = 400,
-// quedan 240 columnas, en un solo quad.
+// Past 256, the box is cut at the right edge like a wide text (0x46721f): at 640 × 480, from x = 400, 240 columns
+// remain, in a single quad.
 TEST_F(TextCacheTest, AWideModeTwoBoxIsCutAtTheRightEdge)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -644,9 +640,8 @@ TEST_F(TextCacheTest, AWideModeTwoBoxIsCutAtTheRightEdge)
     EXPECT_EQ(m_batch.Vertices()[2].x, 640.0f);
 }
 
-// Un texto más ancho que su caja va en una columna negativa y TextOutA corta la izquierda: "abcdefgh" (48) en 30 va en
-// la −9 y la caja queda en 30. La a y la b quedan afuera, la c en la columna 3 y la g en la 27; la h, después de la
-// caja.
+// A text wider than its box goes at a negative column and TextOutA clips the left: "abcdefgh" (48) in 30 goes at −9
+// and the box ends up at 30. The a and the b fall outside, the c at column 3 and the g at 27; the h, past the box.
 TEST_F(TextCacheTest, AModeTwoTextWiderThanItsBoxIsCutOnBothSides)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -665,8 +660,9 @@ TEST_F(TextCacheTest, AModeTwoTextWiderThanItsBoxIsCutOnBothSides)
     EXPECT_EQ(m_batch.Vertices()[2].x - m_batch.Vertices()[0].x, 30.0f);
 }
 
-// Un texto vacío con caja mide el "0" de 0x6c7ae4 (6 columnas): (20 − 6) / 2 = 7, y la caja de 20 es todo fondo. Uno
-// que empieza con un salto de línea no llega a TextOutA (0x4671e1): fondo también. Sin caja, uno vacío no dibuja.
+// An empty text with a box measures the "0" of 0x6c7ae4 (6 columns): (20 − 6) / 2 = 7, and the box of 20 is all
+// background. One that starts with a newline does not reach TextOutA (0x4671e1): background too. Without a box, an
+// empty one does not draw.
 TEST_F(TextCacheTest, AnEmptyModeTwoTextIsItsBackground)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -692,8 +688,8 @@ TEST_F(TextCacheTest, AnEmptyModeTwoTextIsItsBackground)
     EXPECT_EQ(m_batch.Vertices().size(), 12u);
 }
 
-// La clave es la caja que queda, no la pedida: 40 y 41 dan la misma con "ab" (la columna 14 y 40 columnas), y 42 es
-// otra. Draw es otra entrada aunque el texto sea el mismo.
+// The key is the resulting box, not the requested one: 40 and 41 give the same one with "ab" (column 14 and 40
+// columns), and 42 another. Draw is another entry even if the text is the same.
 TEST_F(TextCacheTest, TheModeTwoBoxIsInTheKey)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -707,8 +703,8 @@ TEST_F(TextCacheTest, TheModeTwoBoxIsInTheKey)
     EXPECT_EQ(m_rasterizer.drawCalls, 3);
 }
 
-// Una caja que da menos de 0 columnas (una caja negativa) es un error con la dirección del rep stos que limpiaría fuera
-// del DIB; una que da 0 no dibuja nada.
+// A box that gives fewer than 0 columns (a negative box) is an error with the address of the rep stos that would clear
+// outside the DIB; one that gives 0 draws nothing.
 TEST_F(TextCacheTest, ANegativeModeTwoBoxIsAnError)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);

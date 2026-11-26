@@ -8,8 +8,8 @@
 
 namespace Client::Models
 {
-// Research05 § Texturas: +20/+24 son los lados del buffer y +28 sus componentes. Se copian
-// del Texture realmente decodificado; esta metadata CPU no describe el estado ni el packing GL.
+// Research05 § Texturas: +20/+24 are the buffer's sides and +28 its components. They are copied from the actually
+// decoded Texture; this CPU metadata does not describe the GL state or packing.
 struct TextureMetadata
 {
     explicit TextureMetadata(const Data::Textures::Texture& texture)

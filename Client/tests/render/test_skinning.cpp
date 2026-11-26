@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Models::SkinMesh: 0x4ebc80, un hueso por vértice y sin pesos.
+// 0x4ebc80, one bone per vertex and no weights.
 namespace
 {
 using Client::Data::Models::Mesh;
@@ -36,7 +36,7 @@ void ExpectNear(const glm::vec3& actual, const glm::vec3& expected)
     EXPECT_NEAR(actual.z, expected.z, Tolerance);
 }
 
-// Dos huesos: el 0 corrido a (1, 2, 3), y el 1 girado 90° en z y corrido a (10, 0, 0).
+// Two bones: 0 shifted to (1, 2, 3), and 1 rotated 90° about z and shifted to (10, 0, 0).
 std::vector<BoneTransform> TwoBones()
 {
     BoneTransform moved(1.0f);
@@ -46,7 +46,7 @@ std::vector<BoneTransform> TwoBones()
     return {moved, turned};
 }
 
-// Un vértice y una normal en cada hueso.
+// One vertex and one normal on each bone.
 Mesh TwoVertexMesh()
 {
     Mesh mesh;
@@ -55,7 +55,6 @@ Mesh TwoVertexMesh()
     return mesh;
 }
 
-// Cada vértice por la matriz de su hueso, giro y traslación.
 TEST(SkinningTest, AVertexFollowsItsBone)
 {
     SkinnedMesh skinned;
@@ -67,8 +66,8 @@ TEST(SkinningTest, AVertexFollowsItsBone)
     ExpectNear(skinned.positions[1], {10, 1, 0});
 }
 
-// La escala y la posición del objeto van en cada vértice, después del hueso (0x4ebc80 con su último
-// argumento en 1, como el cuerpo de un personaje).
+// The object's scale and position go on each vertex, after the bone (0x4ebc80 with its last argument at 1, like a
+// character's body).
 TEST(SkinningTest, TheObjectScalesAndMovesTheVertices)
 {
     const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};
@@ -80,9 +79,8 @@ TEST(SkinningTest, TheObjectScalesAndMovesTheVertices)
     ExpectNear(skinned.positions[1], {120, 202, 300});
 }
 
-// 0x4ebc80 con DAT_006c881c distinto de 1, como lo pone 0x60cd60 para el contorno: el vértice girado
-// por su hueso y por la escala, más la traslación del hueso; después la escala y la posición del
-// objeto.
+// 0x4ebc80 with DAT_006c881c other than 1, as 0x60cd60 sets it for the outline: the vertex rotated by its bone and
+// times the scale, plus the bone's translation; then the object's scale and position.
 TEST(SkinningTest, TheOutlineScalesAroundTheBone)
 {
     const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};
@@ -90,13 +88,13 @@ TEST(SkinningTest, TheOutlineScalesAroundTheBone)
 
     ASSERT_TRUE(SkinMeshAroundBones(TwoVertexMesh(), TwoBones(), object, 1.5f, skinned));
 
-    // (1, 0, 0) · 1,5 + (1, 2, 3), por 2 y más el objeto.
+    // (1, 0, 0) · 1.5 + (1, 2, 3), times 2 plus the object.
     ExpectNear(skinned.positions[0], {105, 204, 306});
-    // Girado 90°: (0, 1,5, 0) + (10, 0, 0), por 2 y más el objeto.
+    // Rotated 90°: (0, 1.5, 0) + (10, 0, 0), times 2 plus the object.
     ExpectNear(skinned.positions[1], {120, 203, 300});
 }
 
-// Con la escala en 1 justo, el original toma el camino de siempre (0x5fccc0).
+// With the scale exactly 1, the original takes the usual path (0x5fccc0).
 TEST(SkinningTest, AnOutlineScaleOfOneIsTheNormalSkinning)
 {
     const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};
@@ -118,8 +116,8 @@ TEST(SkinningTest, TheCallerSuppliesTheShadowSpread)
     EXPECT_FALSE(ProjectsWithoutSpread<glm::vec3>);
 }
 
-// 0x4eff40, la sombra: con x' y z' desde la posición del objeto, X = (x' + 2000) · z' / (z' − 4000) +
-// x' + px, la y queda, y Z = pz + 5.
+// 0x4eff40, the shadow: with x' and z' from the object's position, X = (x' + 2000) · z' / (z' − 4000) + x' + px, y
+// stays, and Z = pz + 5.
 TEST(SkinningTest, TheShadowFlattensOnTheGround)
 {
     const glm::vec3 flat = FlattenOnTheGround({110.0f, 77.0f, 80.0f}, {10.0f, 20.0f, 30.0f}, 2000.0f);
@@ -129,8 +127,8 @@ TEST(SkinningTest, TheShadowFlattensOnTheGround)
     EXPECT_FLOAT_EQ(flat.z, 35.0f);
 }
 
-// 0x4f0040..0x4f0074: la X sale de la pila x87 en double con un solo FSTP. Con este vértice, hacer las cuentas
-// en float da 0x1.f8c508p+9, un ULP más; la y pasa por float antes de sumarle py y la z es pz + 5.
+// 0x4f0040..0x4f0074: X comes off the x87 stack in double with a single FSTP. With this vertex, doing the math in float
+// gives 0x1.f8c508p+9, one ULP more; y goes through float before py is added and z is pz + 5.
 TEST(SkinningTest, TheShadowXIsRoundedOnceFromDouble)
 {
     const glm::vec3 flat = FlattenOnTheGround({0x1.00b06cp+10f, 77.0f, 0x1.31a20cp+8f},
@@ -141,10 +139,9 @@ TEST(SkinningTest, TheShadowXIsRoundedOnceFromDouble)
     EXPECT_EQ(flat.z, 0x1.1374c8p+8f);
 }
 
-// La luz por vértice de 0x4ebc80 (con +0x44 del modelo): max(0,2; 0,8 · L·n + 0,4) con L = (1,3; 0; 2),
-// la de DAT_006c8818, que vale 1 desde el .data y nadie escribe. La normal que mira a z da 2; la de x,
-// 1,44; una de costado en y, 0,4; la de −z, el piso de 0,2. Una normal que viene con la escala del
-// objeto (1,6) da 0,8 · 1,6 · 2 + 0,4.
+// The per-vertex light of 0x4ebc80 (with model +0x44): max(0.2; 0.8 · L·n + 0.4) with L = (1.3; 0; 2), the
+// DAT_006c8818 one, which is 1 from .data and nobody writes. The normal facing z gives 2; the x one, 1.44; a sideways
+// one in y, 0.4; the −z one, the 0.2 floor. A normal carrying the object's scale (1.6) gives 0.8 · 1.6 · 2 + 0.4.
 TEST(SkinningTest, TheVertexLightComesFromXAndZ)
 {
     EXPECT_FLOAT_EQ(NormalLight({0.0f, 0.0f, 1.0f}), 2.0f);
@@ -152,11 +149,11 @@ TEST(SkinningTest, TheVertexLightComesFromXAndZ)
     EXPECT_FLOAT_EQ(NormalLight({0.0f, -1.0f, 0.0f}), 0.4f);
     EXPECT_FLOAT_EQ(NormalLight({0.0f, 0.0f, -1.0f}), 0.2f);
     EXPECT_NEAR(NormalLight({0.0f, 0.0f, 1.6f}), (0.8f * 1.6f * 2.0f) + 0.4f, 1e-6f);
-    // Justo en el piso: 0,8 · (−0,25) + 0,4 = 0,2, con n = (0; 0; −0,125).
+    // Exactly at the floor: 0.8 · (−0.25) + 0.4 = 0.2, with n = (0; 0; −0.125).
     EXPECT_NEAR(NormalLight({0.0f, 0.0f, -0.125f}), 0.2f, 1e-6f);
 }
 
-// Una normal solo gira: ni la traslación del hueso, ni la escala, ni la posición del objeto.
+// Neither the bone's translation, nor the scale, nor the object's position.
 TEST(SkinningTest, TheNormalOnlyRotates)
 {
     const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};
@@ -174,9 +171,9 @@ glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
     return {std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)};
 }
 
-// 0x4ebc80 con Translate en 0 sobre un hueso del mundo de 0x4eb860 con la bandera en 1 (el de (−10, 0, 30) por 0,7f en
-// (1050, 1060, 300)): cada vértice por 0x5fccc0 y cada normal por 0x5fcbd0 con esa matriz, la escala dentro de la
-// normal. Los bits salen de una emulación aparte de la x87 (fracciones exactas, PC53, cada FSTP en float).
+// 0x4ebc80 with Translate at 0 on a world bone of 0x4eb860 with the flag at 1 (the one at (−10, 0, 30) times 0.7f at
+// (1050, 1060, 300)): each vertex through 0x5fccc0 and each normal through 0x5fcbd0 with that matrix, the scale inside
+// the normal. The bits come from a separate x87 emulation (exact fractions, PC53, each FSTP to float).
 TEST(SkinningTest, InTheWorldVerticesAndNormalsGoThroughTheWorldBoneLikeTheX87)
 {
     const Client::Math::OriginalMatrix rows{
@@ -207,7 +204,7 @@ TEST(SkinningTest, InTheWorldVerticesAndNormalsGoThroughTheWorldBoneLikeTheX87)
     EXPECT_EQ(skinned.positions, std::vector<glm::vec3>{glm::vec3(7.0f)});
 }
 
-// Un hueso que no está, también justo en el borde: no escribe nada.
+// A missing bone, also exactly at the edge: nothing is written.
 TEST(SkinningTest, ABoneOutOfRangeIsRefused)
 {
     struct Case
@@ -228,7 +225,7 @@ TEST(SkinningTest, ABoneOutOfRangeIsRefused)
     }
 }
 
-// El SkinnedMesh se puede usar frame tras frame: queda con lo de la última malla, no lo de antes.
+// The SkinnedMesh can be reused frame after frame: it holds the last mesh's data, not the earlier one's.
 TEST(SkinningTest, ReusesItsBuffers)
 {
     Mesh small = TwoVertexMesh();

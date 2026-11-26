@@ -19,14 +19,13 @@ namespace Client::Models
 {
 namespace
 {
-// El float de 0x6ba140, con el que la cabeza pasa sus grados a radianes: los bits 0x3c8efa36, un ulp
-// más que el float más cercano a π/180 (0x3c8efa35, el de 0x6ba360, que usa AngleMatrix).
+// The float at 0x6ba140 the head converts its degrees to radians with: bits 0x3c8efa36, one ulp above the float
+// nearest to π/180 (0x3c8efa35, the one at 0x6ba360 that AngleMatrix uses).
 constexpr float HeadDegreesToRadians = Math::DegreesToRadiansRoundedUp;
 
-// El frame truncado que entra en el short de la key de 0x4eb860; fuera de eso, la 0.
+// The truncated frame that fits in the short of 0x4eb860's key; otherwise, key 0.
 constexpr float ShortLimit = 32768.0f;
 
-// Las dos keys entre las que interpola cada hueso, cuánto, y lo que vale para todos los huesos.
 struct Keys
 {
     std::size_t previousAction = 0;
@@ -47,8 +46,8 @@ std::size_t KeyOrFirst(int key, std::int16_t keyCount)
     return key >= 0 && key < keyCount ? static_cast<std::size_t>(key) : 0;
 }
 
-// Como el principio de 0x4eb860: la parte fraccionaria sale del frame truncado antes de cortarlo, y
-// una acción o una key de más es la 0.
+// Like the start of 0x4eb860: the fractional part comes from the truncated frame before it is cut, and an action or
+// key out of range is 0.
 Keys ChooseKeys(const Skeleton& skeleton, const AnimationState& animation)
 {
     Keys keys;
@@ -63,9 +62,9 @@ Keys ChooseKeys(const Skeleton& skeleton, const AnimationState& animation)
     return keys;
 }
 
-// Si cada hueso que se posa tiene las dos keys que se van a leer, y un padre que es −1 o un hueso de
-// antes, ya calculado: así no se escribe a medias ni se lee fuera de `bones`. Un Skeleton armado a
-// mano no pasó por MakeSkeleton.
+// Whether every posed bone has both keys that will be read, and a parent that is −1 or an earlier, already computed
+// bone: that way nothing is half written and nothing is read outside `bones`. A hand-built Skeleton did not go through
+// MakeSkeleton.
 bool CanPose(const Skeleton& skeleton, const Keys& keys)
 {
     for (std::size_t index = 0; index < skeleton.bones.size(); ++index)
@@ -89,7 +88,7 @@ bool CanPose(const Skeleton& skeleton, const Keys& keys)
     return true;
 }
 
-// El cuaternión de una key; en el hueso de la cabeza, de sus ángulos menos los de la cabeza.
+// A key's quaternion; on the head bone, from its angles minus the head's.
 glm::quat KeyRotation(const BoneKey& key, bool isHead, const glm::vec2& headAngles)
 {
     if (!isHead)
@@ -102,7 +101,6 @@ glm::quat KeyRotation(const BoneKey& key, bool isHead, const glm::vec2& headAngl
     return Math::AngleQuaternion(angles);
 }
 
-// La matriz de un hueso relativa a su padre, entre las dos keys.
 Math::BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const Keys& keys,
                                    const Skeleton& skeleton, const ObjectTransform& object, const glm::vec2& headAngles)
 {
@@ -145,7 +143,7 @@ Math::BoneTransform WorldRoot(const ObjectTransform& object)
     return Math::BoneTransformOf(root);
 }
 
-// La pose con la raíz `root` para los huesos sin padre.
+// The pose with `root` as the root of the parentless bones.
 bool PoseFromRoot(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
                   const Math::BoneTransform& root, const glm::vec2& headAngles, std::span<Math::BoneTransform> bones,
                   bool originalConcat = false)

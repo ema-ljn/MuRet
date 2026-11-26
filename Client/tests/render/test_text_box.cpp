@@ -16,9 +16,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Render::Text::PaintTextBox y StoreColor: 0x465a00, que pasa la tinta del DIB a la caja
-// RGBA de 256 × 32 con el color del texto y el del fondo (06 § Texto). La tinta la pone el
-// rasterizador falso: un bloque de 3 × 4 arriba a la izquierda de cada letra de 6 columnas.
+// 0x465a00, which copies the DIB's ink into the 256 × 32 RGBA box with the text and background colors (06 § Texto).
+// The fake rasterizer puts the ink: a 3 × 4 block at the top left of each 6-column letter.
 namespace
 {
 using Client::Render::Text::BoxShape;
@@ -50,7 +49,7 @@ std::vector<std::uint8_t> Paint(std::string_view text, int firstColumn, int widt
     return box;
 }
 
-// 0xAABBGGRR: el byte de abajo es el rojo, como lee glTexImage2D el dword con GL_RGBA.
+// 0xAABBGGRR: the low byte is red, as glTexImage2D reads the dword with GL_RGBA.
 TEST(TextBoxTest, AColorIsRedGreenBlueAlpha)
 {
     std::array<std::uint8_t, 4> pixel{};
@@ -60,7 +59,6 @@ TEST(TextBoxTest, AColorIsRedGreenBlueAlpha)
     EXPECT_EQ(pixel, (Rgba{0xaa, 0x22, 0x33, 0xff}));
 }
 
-// Donde hay tinta, el color del texto; en el resto de lo que se ve, el del fondo.
 TEST(TextBoxTest, InkIsTextAndTheRestIsBackground)
 {
     const auto box = Paint("ab", 0, 12, 13);
@@ -75,8 +73,7 @@ TEST(TextBoxTest, InkIsTextAndTheRestIsBackground)
     EXPECT_EQ(PixelAt(box, 11, 12), Background);
 }
 
-// Fuera de las columnas y las filas que se ven, la caja queda en 0, aunque el que llama la dé con
-// otra cosa.
+// Outside the visible columns and rows the box stays at 0, even if the caller passes it with something else.
 TEST(TextBoxTest, OutsideWhatIsSeenTheBoxIsEmpty)
 {
     const auto box = Paint("abcd", 0, 12, 13);
@@ -87,8 +84,8 @@ TEST(TextBoxTest, OutsideWhatIsSeenTheBoxIsEmpty)
     EXPECT_EQ(PixelAt(box, 255, 31), (Rgba{0, 0, 0, 0}));
 }
 
-// La caja k de un texto ancho empieza en la columna 256 k: la letra 43 empieza en 258, que es la
-// columna 2 de la segunda caja, y la tinta de la 42 (de 252 a 254) queda en la primera.
+// Box k of a wide text starts at column 256 k: letter 43 starts at 258, which is column 2 of the second box, and the
+// ink of 42 (from 252 to 254) stays in the first.
 TEST(TextBoxTest, ABoxStartsAtItsFirstColumn)
 {
     const std::string text(50, 'x');
@@ -103,8 +100,8 @@ TEST(TextBoxTest, ABoxStartsAtItsFirstColumn)
     EXPECT_EQ(PixelAt(box, 5, 0), Background);
 }
 
-// 0x467060 no le pasa a TextOutA un texto que empieza con un salto de línea (cmp byte, 0x0a en
-// 0x4671e1): la caja que se ve queda toda con el fondo, sin letras.
+// 0x467060 does not pass TextOutA a text that starts with a newline (cmp byte, 0x0a at 0x4671e1): the visible box is
+// all background, without letters.
 TEST(TextBoxTest, ATextThatStartsWithANewLineIsOnlyItsBackground)
 {
     const auto box = Paint("\nab", 0, 18, 13);
@@ -118,12 +115,11 @@ TEST(TextBoxTest, ATextThatStartsWithANewLineIsOnlyItsBackground)
         }
     }
     EXPECT_EQ(PixelAt(box, 18, 0), (Rgba{0, 0, 0, 0}));
-    // Un salto de línea en el medio no cambia nada: se dibuja como cualquier byte.
+    // A newline in the middle changes nothing: it is drawn like any byte.
     EXPECT_EQ(PixelAt(Paint("a\nb", 0, 18, 13), 0, 0), (Rgba{0xaa, 0x22, 0x33, 0xff}));
 }
 
-// Solo 0xff es letra, como en 0x465a00 (cmp byte, 0xff): un gris de un rasterizador con suavizado
-// es fondo.
+// Only 0xff is a letter, as in 0x465a00 (cmp byte, 0xff): a gray from an antialiasing rasterizer is background.
 TEST(TextBoxTest, OnlyFullInkIsText)
 {
     class GrayRasterizer final : public Client::Render::Text::IGlyphRasterizer
@@ -148,8 +144,8 @@ TEST(TextBoxTest, OnlyFullInkIsText)
     EXPECT_EQ(PixelAt(box, 1, 0), (Rgba{0xaa, 0x22, 0x33, 0xff}));
 }
 
-// 0x553e50: la tinta antes de las columnas de adelante va con su color y la otra con el del texto; el resto de la caja,
-// el ancho del globo por las filas del paso, con el fondo, y afuera 0.
+// 0x553e50: the ink before the leading columns goes in their color and the rest in the text color; the rest of the box,
+// the bubble width over the step's rows, with the background, and 0 outside.
 TEST(TextBoxTest, ABubbleBoxHasItsPrefixColumns)
 {
     const FakeGlyphRasterizer rasterizer;
@@ -171,7 +167,7 @@ TEST(TextBoxTest, ABubbleBoxHasItsPrefixColumns)
     EXPECT_EQ(PixelAt(box, 0, 12), (Rgba{0, 0, 0, 0}));
 }
 
-// Sin texto, el fondo solo; con más de 256 columnas (Q-C521), las 256 de la caja, y las filas hasta 32.
+// No text, the background alone; with more than 256 columns (Q-C521), the box's 256, and the rows up to 32.
 TEST(TextBoxTest, AnEmptyOrWideBubbleBoxIsItsBackground)
 {
     const FakeGlyphRasterizer rasterizer;

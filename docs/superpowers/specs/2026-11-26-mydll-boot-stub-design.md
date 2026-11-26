@@ -8,7 +8,7 @@ stay running after bootstrap. A DLL that merely links or exports `Init` does not
 this goal.
 
 The supported host is the GameServer identified in the [boot research](../../../Server/MyDll/docs/research/01-gameserver-boot.md).
-Do not add login, packet parsing or forwarding, packet obfuscation, character or gameplay
+Do not add login, packet handling or forwarding, packet obfuscation, character or gameplay
 logic, custom databases, new threads, or protector compatibility. Do not alter the client,
 the active installation, or `labs/`.
 
@@ -37,6 +37,9 @@ separate and starts only after the full reimplementation is complete.
   `DataSend`. `f60` has the required stack contract and leaves every byte unchanged.
   Other mandatory slots do no feature work. Keep the native GS Winsock initialization
   and map-loader continuation rather than importing the historical DLL versions.
+- An optional observer, disabled by default and selected by `debug_mydll.ini`, may record
+  bounded header metadata without changing the closed decision. See
+  [the observation contract](../../../Server/MyDll/docs/research/02-observation.md).
 - A foreign host is rejected without writes. If initialization fails after identifying the
   supported caller, stop the boot with an explicit failure: the GS does not check the
   return from `Init`. A repeated successful `Init` does not publish twice. Do not support

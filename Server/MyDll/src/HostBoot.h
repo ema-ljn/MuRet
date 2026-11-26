@@ -69,11 +69,16 @@ enum BootState
     Failed
 };
 
+typedef DWORD(__cdecl* ReceiveHook)(DWORD, DWORD, DWORD, int, DWORD, DWORD);
+typedef DWORD(__cdecl* SendHook)(int, char*, DWORD);
+
 struct BootSession
 {
     BootState state;
     unsigned char* backing;
     DWORD backingSize;
+    ReceiveHook receive;
+    SendHook send;
 };
 
 struct BootFailure

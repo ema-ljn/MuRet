@@ -1,0 +1,7 @@
+[Observer]
+Enabled=0
+Receive=1
+Send=0
+IncludeSubcode=1
+LogMalformed=1
+MaxRows=4096

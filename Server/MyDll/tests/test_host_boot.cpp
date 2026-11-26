@@ -85,6 +85,8 @@ public:
         session.state = Cold;
         session.backing = m_backing;
         session.backingSize = sizeof(m_backing);
+        session.receive = NULL;
+        session.send = NULL;
         s_prepareAllowed = true;
         s_prepareCount = 0;
         s_protectCalls = 0;
@@ -186,17 +188,31 @@ private:
     Signature m_signature;
 };
 
-bool CheckInstall()
+DWORD __cdecl FixtureReceive(DWORD, DWORD, DWORD, int, DWORD, DWORD)
+{
+    return 0x80004005UL;
+}
+
+DWORD __cdecl FixtureSend(int, char*, DWORD)
+{
+    return 1;
+}
+
+bool CheckInstall(bool overrideReceive, bool overrideSend)
 {
     Fixture fixture;
+    if (overrideReceive)
+        fixture.session.receive = &FixtureReceive;
+    if (overrideSend)
+        fixture.session.send = &FixtureSend;
     if (!fixture.Seal() || fixture.Install() != Installed || s_prepareCount != 1)
         return false;
     const DWORD hooks[] = {reinterpret_cast<DWORD>(&AreaStub),
                            reinterpret_cast<DWORD>(&DiscardCharacterList),
                            reinterpret_cast<DWORD>(&RejectSetCharacter),
-                           reinterpret_cast<DWORD>(&DiscardReceive),
+                           reinterpret_cast<DWORD>(overrideReceive ? &FixtureReceive : &DiscardReceive),
                            reinterpret_cast<DWORD>(&NoDuel),
-                           reinterpret_cast<DWORD>(&DiscardSend),
+                           reinterpret_cast<DWORD>(overrideSend ? &FixtureSend : &DiscardSend),
                            reinterpret_cast<DWORD>(&LeaveBytesUnchanged),
                            0};
     for (unsigned i = 0; i < SlotCount; ++i)
@@ -347,7 +363,7 @@ int main(int argc, char* argv[])
     (void)argc;
     (void)argv;
 #endif
-    if (!CheckInstall())
+    if (!CheckInstall(false, false) || !CheckInstall(true, false) || !CheckInstall(false, true))
     {
         puts("FAIL host boot installation");
         return 1;

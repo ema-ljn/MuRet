@@ -14,7 +14,7 @@
 ## Global Constraints
 
 - Keep VC6 compatibility throughout the MyDll reimplementation. Leave the root C++20 build, the client, and `labs/` unchanged.
-- Export only `Init` at ordinal 1. No login, packet inspection, forwarding, obfuscation, character handling, gameplay logic, custom database, new threads, or protector compatibility.
+- Export only `Init` at ordinal 1. No login, default packet inspection, forwarding, obfuscation, character handling, gameplay logic, custom database, new threads, or protector compatibility. The optional INI-enabled observer only records bounded metadata and delegates to the closed callbacks.
 - No changes to GS configuration defaults. No binaries, real game data, INIs, or runtime captures in Git. New code and docs use the repository's English naming and style.
 - No guest copy, execution, networking change, or stack startup without the separately approved VMware commands. Do not change the active server or run two GameServers in one environment.
 
@@ -80,3 +80,5 @@
   and terminal fault cases. The deterministic include matched the canonical research census.
 - Task 3: VC6/Wine export and loader checks passed, including the two negative loader doubles and the rejected
   child process. The native VC6 build and matched control/stub acceptance on Windows Server 2003 R2 remain open.
+- Follow-up: [Optional stub observation](../../../Server/MyDll/docs/research/02-observation.md) uses the same DLL
+  and does not change the native acceptance gate.

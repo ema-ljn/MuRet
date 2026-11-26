@@ -4,7 +4,8 @@ Boot-only `MyDll.dll` for the audited MU 1.02i GameServer
 (`b2a4521bd7969c61296531551df31e8741cea8235cf5865702f83c51d52a7d5e`).
 It exports only `Init @1`, installs the host's backing and seven inert callbacks,
 and leaves the native map-loader slot unset. It does not implement login, packet
-parsing, forwarding, obfuscation, gameplay, or a database.
+handling, forwarding, obfuscation, gameplay, or a database. With the observer
+disabled, the callbacks do not inspect packets at all.
 
 ## Build with Visual C++ 6.0
 
@@ -17,10 +18,12 @@ Server\MyDll\build_vc6.bat hooks
 Server\MyDll\build_vc6.bat host
 Server\MyDll\build_vc6.bat load
 Server\MyDll\build_vc6.bat log
+Server\MyDll\build_vc6.bat observer
 build\mydll-vc6\test_boot_hooks.exe
 build\mydll-vc6\test_host_boot.exe
 build\mydll-vc6\test_library_load.exe build\mydll-vc6\MyDll.dll
 build\mydll-vc6\test_boot_log.exe
+build\mydll-vc6\test_observer.exe
 dumpbin /headers /exports /imports build\mydll-vc6\MyDll.dll
 ```
 
@@ -45,3 +48,30 @@ and GameServer boot acceptance remain open.
 
 See the [boot research](docs/research/01-gameserver-boot.md) and the
 [implementation plan](../../docs/superpowers/plans/2026-11-26-mydll-boot-stub.md).
+
+## Observe blocked traffic
+
+Copy [`debug_mydll.ini.example`](debug_mydll.ini.example) to `debug_mydll.ini`
+beside `GameServer.exe` in the isolated copy. Set `Enabled=1` before starting the
+GameServer. The DLL reads it at boot; edits are not reloaded while it runs.
+If the INI is absent or disabled, no observer is installed.
+
+| `[Observer]` option | Default | Effect |
+| --- | ---: | --- |
+| `Enabled` | `0` | Enable observation with `1`. |
+| `Receive` | `1` | Record client-to-GS messages at the receive stub. |
+| `Send` | `0` | Record GS-to-client messages at the send stub. |
+| `IncludeSubcode` | `1` | Include the subcode only for eligible `C1 F1` and `C1 F3` headers. |
+| `LogMalformed` | `1` | Include short, malformed and unreadable headers as diagnostic rows. |
+| `MaxRows` | `4096` | Cap records per run, at most `65536`; zero uses the default. |
+
+The log is `mydll-observe-<pid>-<creation-filetime>.tsv` beside the executable.
+Each row is `BLOCKED_BY_STUB`: direction, frame, opcode, eligible subcode, length
+and header status. It contains no credentials, names, player indices or payload.
+A live reader must allow shared writing. The observer stops at the row limit;
+`busy_drops` counts calls missed under contention since the previous recorded row.
+See the [observation contract](docs/research/02-observation.md) for coverage limits.
+
+Observation does not open login or forward a blocked message. It cannot show
+character creation if the client never reaches it, or report traffic rejected by
+the GS before the hook.

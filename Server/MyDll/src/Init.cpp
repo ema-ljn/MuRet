@@ -1,4 +1,5 @@
 #include "BootOutcome.h"
+#include "Observer.h"
 
 #include <string.h>
 
@@ -55,6 +56,14 @@ bool __cdecl PinOwnModule()
     return pin(PinModule | ModuleFromAddress, reinterpret_cast<LPCSTR>(s_module), &pinned) && pinned == s_module;
 }
 
+bool __cdecl PrepareBoot()
+{
+    if (!PinOwnModule())
+        return false;
+    ConfigureObserver(s_boot);
+    return true;
+}
+
 BOOL __cdecl RunBoot(DWORD returnAddress)
 {
     const HostLayout& layout = GameServer102iLayout();
@@ -66,7 +75,7 @@ BOOL __cdecl RunBoot(DWORD returnAddress)
     if (!s_boot.backing)
         s_boot.backing = GameServer102iBacking(s_boot.backingSize);
     BootFailure failure;
-    const BootResult result = InstallBoot(layout, invocation, s_boot, &PinOwnModule, failure);
+    const BootResult result = InstallBoot(layout, invocation, s_boot, &PrepareBoot, failure);
     return CompleteBoot(result, failure, layout.relocationCount);
 }
 } // namespace

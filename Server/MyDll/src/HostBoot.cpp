@@ -201,16 +201,16 @@ bool Relocate(const HostLayout& layout, const BootSession& session, BootFailure&
     return true;
 }
 
-bool Publish(const HostLayout& layout, BootFailure& failure)
+bool Publish(const HostLayout& layout, const BootSession& session, BootFailure& failure)
 {
     if (!CheckSlots(layout, failure))
         return false;
     const DWORD hooks[NativeMapSlot] = {reinterpret_cast<DWORD>(&AreaStub),
                                         reinterpret_cast<DWORD>(&DiscardCharacterList),
                                         reinterpret_cast<DWORD>(&RejectSetCharacter),
-                                        reinterpret_cast<DWORD>(&DiscardReceive),
+                                        reinterpret_cast<DWORD>(session.receive ? session.receive : &DiscardReceive),
                                         reinterpret_cast<DWORD>(&NoDuel),
-                                        reinterpret_cast<DWORD>(&DiscardSend),
+                                        reinterpret_cast<DWORD>(session.send ? session.send : &DiscardSend),
                                         reinterpret_cast<DWORD>(&LeaveBytesUnchanged)};
     for (unsigned i = 0; i < NativeMapSlot; ++i)
     {
@@ -248,7 +248,7 @@ BootResult InstallBoot(const HostLayout& layout, const BootInvocation& invocatio
     }
     session.state = Installing;
     if (!Preflight(layout, session, failure) || !Prepare(prepareResources, failure) ||
-        !Relocate(layout, session, failure) || !Publish(layout, failure))
+        !Relocate(layout, session, failure) || !Publish(layout, session, failure))
     {
         session.state = Failed;
         return Rejected;

@@ -9,6 +9,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -405,5 +406,70 @@ TEST(EventsProtocolTest, WritesTheEventEntriesWithTheXor32)
     EXPECT_EQ(bridge.delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(bridge.packet.Bytes(), Bytes({0xC1, 0x05, 0x9A, 0x10, 0xB9})));
     EXPECT_TRUE(SameBytes(Xor32Decode(bridge.packet).Bytes(), Bytes({0xC1, 0x05, 0x9A, 0x03, 0x15})));
+}
+
+// What a field picks is read only with it: the 46's cells or rectangles, the 91's values, the F3 24's names.
+TEST(EventsProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> acquired = Bytes({0xc1, 0x0d, 0x47});
+    acquired.resize(0x0d);
+    std::vector<std::byte> muto = Bytes({0xc1, 0x0a, 0x96});
+    muto.resize(0x0a);
+    std::vector<std::byte> play = Bytes({0xc1, 0x0d, 0x9b});
+    play.resize(0x0d);
+    std::vector<std::byte> serial = Bytes({0xc1, 0x44, 0x9d});
+    serial.resize(0x44);
+    std::vector<std::byte> altars = Bytes({0xc1, 0x0d, 0xbd, 0x02});
+    altars.resize(0x0d);
+    std::vector<std::byte> rank = Bytes({0xc1, 0x0c, 0xbd, 0x07});
+    rank.resize(0x0c);
+    std::vector<std::byte> ranking = Bytes({0xc1, 0x19, 0xbd, 0x08, 0x01});
+    ranking.resize(0x19);
+    std::vector<std::byte> effect = Bytes({0xc1, 0x0a, 0xbd, 0x0c});
+    effect.resize(0x0a);
+    std::vector<std::byte> soccer = Bytes({0xc1, 0x16, 0xf3, 0x23});
+    soccer.resize(0x16);
+    std::vector<std::byte> war = Bytes({0xc1, 0x1e, 0xf3, 0x24, 0x00});
+    war.resize(0x1e);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0x0b, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x07, 0x46, 0x02, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket,
+                                     Bytes({0xc1, 0x09, 0x46, 0x01, 0x00, 0x00, 0x01, 0x05, 0x06}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket,
+                                     Bytes({0xc1, 0x0b, 0x46, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02, 0x03, 0x04}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, acquired);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x04, 0x90, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x04, 0x91, 0x03}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0x91, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x07, 0x91, 0x04, 0x01, 0x02, 0x03}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x04, 0x92, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0x93, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x06, 0x94, 0x00, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x06, 0x95, 0x00, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, muto);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x04, 0x99, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x04, 0x9a, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, play);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, serial);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x06, 0x9e, 0x00, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0xaf, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0xbc, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0xbc, 0x01, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x06, 0xbd, 0x00, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, altars);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x08, 0xbd, 0x03, 0x01, 0x02, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x06, 0xbd, 0x04, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket,
+                                     Bytes({0xc1, 0x09, 0xbd, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, rank);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0xbd, 0x08, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, ranking);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0xbd, 0x09, 0x01}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, effect);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x08, 0xf3, 0x22, 0x01, 0x00, 0x02, 0x00}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, soccer);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x05, 0xf3, 0x24, 0x03}));
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, war);
+    Client::Tests::ExpectMinimumSize(Events::ReadEventPacket, Bytes({0xc1, 0x07, 0xf3, 0x40, 0x01, 0x02, 0x03}));
 }
 } // namespace

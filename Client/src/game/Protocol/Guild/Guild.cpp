@@ -1,16 +1,20 @@
 #include "Protocol/Guild/Guild.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/CharacterName.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -22,328 +26,320 @@ namespace Client::Protocol::Guild
 {
 namespace
 {
-// 0x4d7b60: el puntaje en pkt[8], el nombre en pkt[0xd] y las entradas desde pkt[0x18], de 0xd bytes.
-constexpr std::size_t MemberScoreOffset = 8;
-constexpr std::size_t MemberNameOffset = 0xd;
+constexpr Network::PacketLayout C1Layout(Network::Opcode opcode, std::size_t minimumSize, std::uint32_t address)
+{
+    return {{Network::PacketType::C1, opcode, std::nullopt}, minimumSize, address};
+}
+
+constexpr Network::PacketLayout C2Layout(Network::Opcode opcode, std::size_t minimumSize, std::uint32_t address)
+{
+    return {{Network::PacketType::C2, opcode, std::nullopt}, minimumSize, address};
+}
+
+using Result = Network::Field<std::uint8_t, 3>;
+
+// 0x4d7b60: (DWORD < 0) − 1 & DWORD leaves the score at 0 if it is negative (the applier does it).
+using MemberCount = Network::Field<std::uint8_t, 5>;
+using MemberScore = Network::Field<std::uint32_t, 8>;
+using MemberGuildName = Network::Field<GuildName, 0xd>;
 constexpr std::size_t FirstMemberOffset = 0x18;
 constexpr std::size_t MemberEntrySize = 0xd;
-// 0x4e42c7: la clave en pkt[4] y los nombres en pkt[9] y pkt[0x11], la marca en pkt[0x19].
-constexpr std::size_t GuildInfoKeyOffset = 4;
-constexpr std::size_t GuildInfoNameOffset = 9;
-// 0x4d9294 y 0x4e44ba: las entradas del 65 y del 67 desde pkt[5], de 0xc y de 0x14 bytes; los bytes que se leen de
-// cada una (hasta +8 y hasta +0x10).
-constexpr std::size_t FirstViewportEntryOffset = 5;
-constexpr std::size_t ViewportGuildEntrySize = 0xc;
-constexpr std::size_t ViewportUnionEntrySize = 0x14;
-constexpr std::size_t ViewportUnionGuildKey = 4;
-// 0x4d92a2: el bit 7 de la clave alta del 65 no es de la clave.
-constexpr std::uint8_t ViewportKeyMask = 0x7f;
-// 0x4d9e50: las entradas desde pkt[8], de 0x29 bytes.
+static_assert(CharacterNameSize + 3 == MemberEntrySize);
+
+using KeyHigh = Network::Field<std::uint8_t, 3>;
+using KeyLow = Network::Field<std::uint8_t, 4>;
+// 0x4e42fb: the 5D takes bit 7 off the high byte; 0x4d74d6, the 50, does not.
+constexpr std::uint8_t KeyHighMask = 0x7f;
+
+using WarName = Network::Field<GuildName, 3>;
+using WarType = Network::Field<std::uint8_t, 0xb>;
+using WarTeam = Network::Field<std::uint8_t, 0xc>;
+
+using ScoreOurs = Network::Field<std::uint8_t, 3>;
+using ScoreTheirs = Network::Field<std::uint8_t, 4>;
+
+using InfoKey = Network::Field<std::uint32_t, 4>;
+using InfoUnionName = Network::Field<GuildName, 9>;
+using InfoGuildName = Network::Field<GuildName, 0x11>;
+constexpr std::size_t InfoMarkOffset = 0x19;
+
+using AssignType = Network::Field<std::uint8_t, 3>;
+using AssignCode = Network::Field<std::uint8_t, 4>;
+
+using Relation = Network::Field<std::uint8_t, 3>;
+using RelationRequest = Network::Field<std::uint8_t, 4>;
+using RequesterHigh = Network::Field<std::uint8_t, 5>;
+using RequesterLow = Network::Field<std::uint8_t, 6>;
+using RelationResult = Network::Field<std::uint8_t, 5>;
+// 0x4d9ae9: CONCAT11(pkt[6], pkt[7]).
+using RelationKey = Network::Field<std::uint16_t, 6, std::endian::big>;
+
+using UnionCount = Network::Field<std::uint8_t, 4>;
+using UnionResult = Network::Field<std::uint8_t, 5>;
 constexpr std::size_t FirstUnionOffset = 8;
 constexpr std::size_t UnionEntrySize = 0x29;
-// EB: solo pkt[3] == 1 lee pkt[4].
+
+// EB: only pkt[3] at 1 reads pkt[4].
+using RefreshKindField = Network::Field<std::uint8_t, 3>;
+using RefreshResult = Network::Field<std::uint8_t, 4>;
 constexpr std::uint8_t RefreshKind = 1;
 
-// Un lector parado en `offset` del paquete entero (pkt[0] es el C1 o el C2).
-std::optional<Core::ByteReader> At(const Network::Packet& packet, std::size_t offset)
+// 0x4d9289 and 0x4e44af: the count at pkt[4] and the entries of the 65 and the 67 from pkt[5], of 0xc and of 0x14
+// bytes, read up to +8 and up to +0x10.
+using ViewportCount = Network::Field<std::uint8_t, 4>;
+constexpr std::size_t ViewportGuildEntrySize = 0xc;
+constexpr std::size_t ViewportGuildEntryRead = 9;
+constexpr std::size_t ViewportUnionEntrySize = 0x14;
+constexpr std::size_t ViewportUnionEntryRead = 0x11;
+// 0x4d92a2: bit 7 of the 65's high key byte is not the key's.
+constexpr std::uint8_t ViewportKeyMask = 0x7f;
+
+std::uint8_t U8At(std::span<const std::byte> bytes, std::size_t at)
 {
-    const auto bytes = packet.Bytes();
-    if (offset > bytes.size())
-        return std::nullopt;
-    return Core::ByteReader(bytes.subspan(offset));
+    return std::to_integer<std::uint8_t>(bytes[at]);
 }
 
-// Los campos del C1 desde pkt[3].
-Core::ByteReader AfterTheOpcode(const Network::Packet& packet)
+std::uint32_t U32LeAt(std::span<const std::byte> bytes, std::size_t at)
 {
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
+    return static_cast<std::uint32_t>(U8At(bytes, at)) | static_cast<std::uint32_t>(U8At(bytes, at + 1)) << 8U |
+           static_cast<std::uint32_t>(U8At(bytes, at + 2)) << 16U |
+           static_cast<std::uint32_t>(U8At(bytes, at + 3)) << 24U;
 }
 
-template <std::size_t Size> bool CopyTo(Core::ByteReader& reader, std::array<std::byte, Size>& target)
+template <std::size_t Size> void CopyTo(std::span<const std::byte> bytes, std::array<std::byte, Size>& target)
 {
-    const auto bytes = reader.ReadBytes(Size);
-    if (!bytes)
-        return false;
-    std::ranges::copy(*bytes, target.begin());
-    return true;
+    std::ranges::copy(bytes.first(Size), target.begin());
 }
 
-bool CopyMark(Core::ByteReader& reader, GuildMark& mark)
+GuildMark MarkOf(std::span<const std::byte> bytes)
 {
-    const auto bytes = reader.ReadBytes(MarkBytes);
-    if (!bytes)
-        return false;
-    std::ranges::transform(*bytes, mark.begin(), [](std::byte value) { return std::to_integer<std::uint8_t>(value); });
-    return true;
+    GuildMark mark{};
+    std::ranges::transform(bytes.first(MarkBytes), mark.begin(),
+                           [](std::byte value) { return std::to_integer<std::uint8_t>(value); });
+    return mark;
 }
 
-template <typename Result> Core::Expected<GuildPacket, Network::ProtocolError> ReadResult(const Network::Packet& packet)
+template <typename ResultPacket>
+Core::Expected<GuildPacket, Network::ProtocolError> ReadResult(const Network::Packet& packet, Network::Opcode opcode,
+                                                               std::uint32_t address)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto result = reader.ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return GuildPacket{Result{*result}};
+    return Network::ReadPacket(packet, C1Layout(opcode, Result::End, address), [](Network::LayoutReader& reader)
+                               { return GuildPacket{ResultPacket{reader.Read<Result>()}}; });
+}
+
+MemberEntry ReadMemberEntry(std::span<const std::byte, MemberEntrySize> bytes)
+{
+    MemberEntry entry;
+    CopyTo(bytes, entry.name);
+    entry.number = U8At(bytes, CharacterNameSize);
+    entry.server = U8At(bytes, CharacterNameSize + 1);
+    entry.status = U8At(bytes, CharacterNameSize + 2);
+    return entry;
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadMemberList(const Network::Packet& packet)
 {
-    // 0x4d7b60: pkt[5], la cuenta; ((int)DWORD < 0) − 1 & DWORD deja el puntaje en 0 si es negativo (lo hace el
-    // aplicador).
-    auto head = At(packet, Network::MinPacketSize(Network::PacketType::C2) + 1);
-    auto score = At(packet, MemberScoreOffset);
-    auto name = At(packet, MemberNameOffset);
-    if (!head || !score || !name)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto count = head->ReadU8();
-    const auto value = score->ReadU32Le();
-    MemberList list;
-    if (!count || !value || !CopyTo(*name, list.name))
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    list.count = *count;
-    list.score = static_cast<std::int32_t>(*value);
-    auto entries = At(packet, FirstMemberOffset);
-    if (list.count != 0 && !entries)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    for (std::uint8_t i = 0; i < list.count; ++i)
-    {
-        MemberEntry entry;
-        if (!CopyTo(*entries, entry.name))
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        const auto number = entries->ReadU8();
-        const auto server = entries->ReadU8();
-        const auto status = entries->ReadU8();
-        if (!number || !server || !status)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        entry.number = *number;
-        entry.server = *server;
-        entry.status = *status;
-        list.members.push_back(entry);
-    }
-    static_assert(CharacterNameSize + 3 == MemberEntrySize);
-    return GuildPacket{std::move(list)};
+    return Network::ReadPacket(packet, C2Layout(GuildMemberListOpcode, MemberGuildName::End, 0x4d7b60),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   MemberList list{.count = reader.Read<MemberCount>(),
+                                                   .score = static_cast<std::int32_t>(reader.Read<MemberScore>()),
+                                                   .name = reader.Read<MemberGuildName>(),
+                                                   .members = {}};
+                                   if (list.count != 0)
+                                   {
+                                       list.members = Network::ReadList<MemberEntrySize>(reader, FirstMemberOffset,
+                                                                                         list.count, ReadMemberEntry);
+                                   }
+                                   return GuildPacket{std::move(list)};
+                               });
+}
+
+Core::Expected<GuildPacket, Network::ProtocolError> ReadJoinRequest(const Network::Packet& packet)
+{
+    return Network::ReadPacket(packet, C1Layout(GuildJoinRequestOpcode, KeyLow::End, 0x4d74b0),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   const auto key =
+                                       static_cast<std::uint16_t>(reader.Read<KeyHigh>() << 8 | reader.Read<KeyLow>());
+                                   return GuildPacket{JoinRequest{key}};
+                               });
+}
+
+Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportGuildDelete(const Network::Packet& packet)
+{
+    return Network::ReadPacket(packet, C1Layout(ViewportGuildDeleteOpcode, KeyLow::End, 0x4e42f0),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   const auto key = static_cast<std::uint16_t>(
+                                       (reader.Read<KeyHigh>() & KeyHighMask) << 8 | reader.Read<KeyLow>());
+                                   return GuildPacket{ViewportGuildDelete{key}};
+                               });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadWarRequest(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    WarRequest request;
-    if (!CopyTo(reader, request.name))
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto type = reader.ReadU8();
-    if (!type)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    request.type = *type;
-    return GuildPacket{request};
+    return Network::ReadPacket(
+        packet, C1Layout(GuildWarRequestOpcode, WarType::End, 0x4e4382), [](Network::LayoutReader& reader)
+        { return GuildPacket{WarRequest{.name = reader.Read<WarName>(), .type = reader.Read<WarType>()}}; });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadWarStart(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    WarStart start;
-    if (!CopyTo(reader, start.name))
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto type = reader.ReadU8();
-    const auto team = reader.ReadU8();
-    if (!type || !team)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    start.type = *type;
-    start.team = *team;
-    return GuildPacket{start};
+    return Network::ReadPacket(packet, C1Layout(GuildWarStartOpcode, WarTeam::End, 0x4d8260),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return GuildPacket{WarStart{.name = reader.Read<WarName>(),
+                                                               .type = reader.Read<WarType>(),
+                                                               .team = reader.Read<WarTeam>()}};
+                               });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadWarScore(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto ours = reader.ReadU8();
-    const auto theirs = reader.ReadU8();
-    if (!ours || !theirs)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return GuildPacket{WarScore{.ours = *ours, .theirs = *theirs}};
-}
-
-Core::Expected<GuildPacket, Network::ProtocolError> ReadKeyed(const Network::Packet& packet, bool viewport)
-{
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto high = reader.ReadU8();
-    const auto low = reader.ReadU8();
-    if (!high || !low)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    // 0x4e42fb: el 5D le saca el bit 7 al byte alto; 0x4d74d6, el 50, no.
-    constexpr std::uint8_t KeyHighMask = 0x7f;
-    const std::uint8_t keyHigh = viewport ? static_cast<std::uint8_t>(*high & KeyHighMask) : *high;
-    const auto key = static_cast<std::uint16_t>((keyHigh << 8) | *low);
-    if (viewport)
-        return GuildPacket{ViewportGuildDelete{key}};
-    return GuildPacket{JoinRequest{key}};
+    return Network::ReadPacket(
+        packet, C1Layout(GuildWarScoreOpcode, ScoreTheirs::End, 0x4e4400), [](Network::LayoutReader& reader)
+        { return GuildPacket{WarScore{.ours = reader.Read<ScoreOurs>(), .theirs = reader.Read<ScoreTheirs>()}}; });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadGuildInfo(const Network::Packet& packet)
 {
-    auto key = At(packet, GuildInfoKeyOffset);
-    auto rest = At(packet, GuildInfoNameOffset);
-    if (!key || !rest)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto value = key->ReadU32Le();
-    GuildInfo info;
-    if (!value || !CopyTo(*rest, info.unionName) || !CopyTo(*rest, info.guildName) || !CopyMark(*rest, info.mark))
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    info.key = static_cast<std::int32_t>(*value);
-    return GuildPacket{info};
+    return Network::ReadPacket(packet, C1Layout(GuildInfoOpcode, InfoMarkOffset + MarkBytes, 0x4e42c7),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return GuildPacket{
+                                       GuildInfo{.key = static_cast<std::int32_t>(reader.Read<InfoKey>()),
+                                                 .unionName = reader.Read<InfoUnionName>(),
+                                                 .guildName = reader.Read<InfoGuildName>(),
+                                                 .mark = MarkOf(reader.Bytes(InfoMarkOffset, MarkBytes))}};
+                               });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadAssignResult(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto type = reader.ReadU8();
-    const auto result = reader.ReadU8();
-    if (!type || !result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return GuildPacket{AssignResult{.type = *type, .result = *result}};
+    return Network::ReadPacket(
+        packet, C1Layout(GuildAssignResultOpcode, AssignCode::End, 0x4d9810), [](Network::LayoutReader& reader)
+        { return GuildPacket{AssignResult{.type = reader.Read<AssignType>(), .result = reader.Read<AssignCode>()}}; });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadRelationshipRequest(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto relation = reader.ReadU8();
-    const auto request = reader.ReadU8();
-    const auto high = reader.ReadU8();
-    const auto low = reader.ReadU8();
-    if (!relation || !request || !high || !low)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return GuildPacket{
-        RelationshipRequest{.relation = *relation, .request = *request, .keyHigh = *high, .keyLow = *low}};
+    return Network::ReadPacket(packet, C1Layout(RelationshipRequestOpcode, RequesterLow::End, 0x4e4444),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return GuildPacket{RelationshipRequest{.relation = reader.Read<Relation>(),
+                                                                          .request = reader.Read<RelationRequest>(),
+                                                                          .keyHigh = reader.Read<RequesterHigh>(),
+                                                                          .keyLow = reader.Read<RequesterLow>()}};
+                               });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadRelationshipResult(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto relation = reader.ReadU8();
-    const auto request = reader.ReadU8();
-    const auto result = reader.ReadU8();
-    // 0x4d9ae9: CONCAT11(pkt[6], pkt[7]).
-    const auto key = reader.ReadU16Be();
-    if (!relation || !request || !result || !key)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return GuildPacket{RelationshipResult{.relation = *relation, .request = *request, .result = *result, .key = *key}};
+    return Network::ReadPacket(packet, C1Layout(RelationshipResultOpcode, RelationKey::End, 0x4d9940),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return GuildPacket{RelationshipResult{.relation = reader.Read<Relation>(),
+                                                                         .request = reader.Read<RelationRequest>(),
+                                                                         .result = reader.Read<RelationResult>(),
+                                                                         .key = reader.Read<RelationKey>()}};
+                               });
+}
+
+UnionEntry ReadUnionEntry(std::span<const std::byte> bytes)
+{
+    UnionEntry entry{.byte0 = U8At(bytes, 0), .mark = MarkOf(bytes.subspan(1)), .name = {}};
+    CopyTo(bytes.subspan(1 + MarkBytes), entry.name);
+    return entry;
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadUnionList(const Network::Packet& packet)
 {
-    auto head = At(packet, Network::MinPacketSize(Network::PacketType::C2));
-    if (!head)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto count = head->ReadU8();
-    const auto result = head->ReadU8();
-    if (!count || !result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    UnionList list{.count = *count, .result = *result, .entries = {}};
-    // 0x4d9e5f: solo con el resultado en 1 y alguna entrada se leen.
-    if (list.result != 1 || list.count == 0)
-        return GuildPacket{std::move(list)};
-    // 0x4d9e50 lee `count` entradas sin mirar el largo. MyDll (alliance_list_send) anuncia todos los gremios de la
-    // alianza y escribe solo los que encuentra, con una cola de 8 ceros: las que faltan, el original las lee de la cola
-    // y de lo que siga en el buffer. MuRet toma lo que llegó y pone en 0 lo demás: un nombre vacío, que la lista
-    // (0x46d900) no muestra (Q-C1365).
-    std::vector<std::byte> region(list.count * UnionEntrySize);
-    if (const auto bytes = packet.Bytes(); bytes.size() > FirstUnionOffset)
-    {
-        const auto arrived = bytes.subspan(FirstUnionOffset);
-        std::ranges::copy(arrived.first(std::min(arrived.size(), region.size())), region.begin());
-    }
-    Core::ByteReader entries{std::span<const std::byte>(region)};
-    for (std::uint8_t i = 0; i < list.count; ++i)
-    {
-        UnionEntry entry;
-        const auto first = entries.ReadU8();
-        if (!first || !CopyMark(entries, entry.mark) || !CopyTo(entries, entry.name))
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        entry.byte0 = *first;
-        list.entries.push_back(entry);
-    }
-    return GuildPacket{std::move(list)};
+    return Network::ReadPacket(
+        packet, C2Layout(UnionListOpcode, UnionResult::End, 0x4d9e50),
+        [](Network::LayoutReader& reader)
+        {
+            UnionList list{.count = reader.Read<UnionCount>(), .result = reader.Read<UnionResult>(), .entries = {}};
+            // 0x4d9e5f: only with the result at 1 and some entry are they read.
+            if (list.result != 1 || list.count == 0)
+            {
+                return GuildPacket{std::move(list)};
+            }
+            // 0x4d9e50 reads `count` entries without looking at the length. MyDll (alliance_list_send) announces every
+            // guild of the alliance and writes only the ones it finds, with a tail of 8 zeros: the original reads the
+            // missing ones from the tail and whatever follows in the buffer. MuRet takes what arrived and zeroes the
+            // rest: an empty name, which the list (0x46d900) does not show (Q-C1365).
+            std::vector<std::byte> region(list.count * UnionEntrySize);
+            if (reader.Size() > FirstUnionOffset)
+            {
+                const std::size_t arrived = std::min(reader.Size() - FirstUnionOffset, region.size());
+                std::ranges::copy(reader.Bytes(FirstUnionOffset, arrived), region.begin());
+            }
+            const std::span<const std::byte> entries(region);
+            for (std::size_t i = 0; i < list.count; ++i)
+            {
+                list.entries.push_back(ReadUnionEntry(entries.subspan(i * UnionEntrySize, UnionEntrySize)));
+            }
+            return GuildPacket{std::move(list)};
+        });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadUnionListRefresh(const Network::Packet& packet)
 {
-    Core::ByteReader reader = AfterTheOpcode(packet);
-    const auto kind = reader.ReadU8();
-    if (!kind)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    UnionListRefresh refresh{.kind = *kind, .result = 0};
-    if (refresh.kind != RefreshKind)
-        return GuildPacket{refresh};
-    const auto result = reader.ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    refresh.result = *result;
-    return GuildPacket{refresh};
+    return Network::ReadPacket(packet, C1Layout(UnionKickOpcode, RefreshKindField::End, 0x4e4486),
+                               [](Network::LayoutReader& reader)
+                               {
+                                   UnionListRefresh refresh{.kind = reader.Read<RefreshKindField>(), .result = 0};
+                                   if (refresh.kind == RefreshKind)
+                                   {
+                                       refresh.result = reader.Read<RefreshResult>();
+                                   }
+                                   return GuildPacket{refresh};
+                               });
 }
 
-// La cuenta de pkt[4] de un C2 (0x4d9289 y 0x4e44af).
-std::optional<std::uint8_t> CountOf(const Network::Packet& packet)
+ViewportGuildEntry ReadViewportGuildEntry(std::span<const std::byte, ViewportGuildEntryRead> bytes)
 {
-    auto head = At(packet, Network::MinPacketSize(Network::PacketType::C2));
-    if (!head)
-        return std::nullopt;
-    return head->ReadU8();
+    return {.guildKey = static_cast<std::int32_t>(U32LeAt(bytes, 0)),
+            .status = U8At(bytes, 4),
+            .byte369 = U8At(bytes, 5),
+            .relation = U8At(bytes, 6),
+            .key = static_cast<std::uint16_t>((U8At(bytes, 7) & ViewportKeyMask) << 8 | U8At(bytes, 8))};
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportGuild(const Network::Packet& packet)
 {
-    const auto count = CountOf(packet);
-    if (!count)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    ViewportGuild guild;
-    for (std::size_t i = 0; i < *count; ++i)
-    {
-        auto entry = At(packet, FirstViewportEntryOffset + i * ViewportGuildEntrySize);
-        if (!entry)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        const auto guildKey = entry->ReadU32Le();
-        const auto status = entry->ReadU8();
-        const auto byte369 = entry->ReadU8();
-        const auto relation = entry->ReadU8();
-        const auto high = entry->ReadU8();
-        const auto low = entry->ReadU8();
-        if (!guildKey || !status || !byte369 || !relation || !high || !low)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        guild.entries.push_back(ViewportGuildEntry{
-            .guildKey = static_cast<std::int32_t>(*guildKey),
-            .status = *status,
-            .byte369 = *byte369,
-            .relation = *relation,
-            .key = static_cast<std::uint16_t>(((*high & ViewportKeyMask) << 8) | *low),
+    return Network::ReadPacket(
+        packet, C2Layout(ViewportGuildOpcode, ViewportCount::End, 0x4d9260),
+        [](Network::LayoutReader& reader)
+        {
+            return GuildPacket{ViewportGuild{Network::ReadList<ViewportGuildEntrySize, ViewportGuildEntryRead>(
+                reader, ViewportCount::End, reader.Read<ViewportCount>(), ReadViewportGuildEntry)}};
         });
-    }
-    return GuildPacket{std::move(guild)};
+}
+
+ViewportUnionEntry ReadViewportUnionEntry(std::span<const std::byte, ViewportUnionEntryRead> bytes)
+{
+    constexpr std::size_t GuildKeyOffset = 4;
+    constexpr std::size_t RelationOffset = 8;
+    constexpr std::size_t UnionNameOffset = 9;
+    ViewportUnionEntry entry{.key = static_cast<std::uint16_t>(U8At(bytes, 0) << 8 | U8At(bytes, 1)),
+                             .guildKey = static_cast<std::int32_t>(U32LeAt(bytes, GuildKeyOffset)),
+                             .relation = U8At(bytes, RelationOffset),
+                             .unionName = {}};
+    CopyTo(bytes.subspan(UnionNameOffset), entry.unionName);
+    return entry;
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportUnion(const Network::Packet& packet)
 {
-    const auto count = CountOf(packet);
-    if (!count)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    ViewportUnion list;
-    for (std::size_t i = 0; i < *count; ++i)
-    {
-        const std::size_t offset = FirstViewportEntryOffset + i * ViewportUnionEntrySize;
-        auto key = At(packet, offset);
-        auto rest = At(packet, offset + ViewportUnionGuildKey);
-        if (!key || !rest)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        const auto value = key->ReadU16Be();
-        const auto guildKey = rest->ReadU32Le();
-        const auto relation = rest->ReadU8();
-        ViewportUnionEntry entry;
-        if (!value || !guildKey || !relation || !CopyTo(*rest, entry.unionName))
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        entry.key = *value;
-        entry.guildKey = static_cast<std::int32_t>(*guildKey);
-        entry.relation = *relation;
-        list.entries.push_back(entry);
-    }
-    return GuildPacket{std::move(list)};
+    return Network::ReadPacket(
+        packet, C2Layout(ViewportUnionOpcode, ViewportCount::End, 0x4e44aa),
+        [](Network::LayoutReader& reader)
+        {
+            return GuildPacket{ViewportUnion{Network::ReadList<ViewportUnionEntrySize, ViewportUnionEntryRead>(
+                reader, ViewportCount::End, reader.Read<ViewportCount>(), ReadViewportUnionEntry)}};
+        });
 }
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet& packet, Network::Opcode opcode)
@@ -351,25 +347,25 @@ Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet
     switch (Network::ByteOf(opcode))
     {
     case Network::ByteOf(GuildJoinRequestOpcode):
-        return ReadKeyed(packet, false);
+        return ReadJoinRequest(packet);
     case Network::ByteOf(GuildJoinResultOpcode):
-        return ReadResult<JoinResult>(packet);
+        return ReadResult<JoinResult>(packet, GuildJoinResultOpcode, 0x4d7a20);
     case Network::ByteOf(GuildLeaveResultOpcode):
-        return ReadResult<LeaveResult>(packet);
+        return ReadResult<LeaveResult>(packet, GuildLeaveResultOpcode, 0x4d7c30);
     case Network::ByteOf(GuildMasterQuestionOpcode):
         return GuildPacket{MasterQuestion{}};
     case Network::ByteOf(GuildCreateResultOpcode):
-        return ReadResult<CreateResult>(packet);
+        return ReadResult<CreateResult>(packet, GuildCreateResultOpcode, 0x4d7ff0);
     case Network::ByteOf(ViewportGuildDeleteOpcode):
-        return ReadKeyed(packet, true);
+        return ReadViewportGuildDelete(packet);
     case Network::ByteOf(GuildWarRequestResultOpcode):
-        return ReadResult<WarRequestResult>(packet);
+        return ReadResult<WarRequestResult>(packet, GuildWarRequestResultOpcode, 0x4d8150);
     case Network::ByteOf(GuildWarRequestOpcode):
         return ReadWarRequest(packet);
     case Network::ByteOf(GuildWarStartOpcode):
         return ReadWarStart(packet);
     case Network::ByteOf(GuildWarEndOpcode):
-        return ReadResult<WarEnd>(packet);
+        return ReadResult<WarEnd>(packet, GuildWarEndOpcode, 0x4d8870);
     case Network::ByteOf(GuildWarScoreOpcode):
         return ReadWarScore(packet);
     case Network::ByteOf(GuildInfoOpcode):
@@ -427,7 +423,7 @@ Outgoing WriteMasterAnswer(std::uint8_t answer)
     return Xor32C1(Network::PacketWriter::C1(GuildMasterQuestionOpcode).PutU8(answer));
 }
 
-// 0x6553bf..0x6553e8: el byte que sigue al 55, siempre 0.
+// 0x6553bf..0x6553e8: the byte after the 55, always 0.
 constexpr std::uint8_t CreateKindByte = 0;
 
 Outgoing WriteCreate(const GuildName& name, const GuildMark& mark)

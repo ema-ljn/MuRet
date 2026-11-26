@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Protocol/Opcodes.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <array>
 #include <cstddef>
@@ -11,14 +11,14 @@
 #include <variant>
 #include <vector>
 
-// 04 § Castle Siege, la batalla (CL9 hito 13): lo que 0x4e2b10 reparte con el B9 que llega (0x4e58b0, tabla
-// 0x4e61f8: 01 → 0x4e0750, 02 → 0x4e0790, 03 → 0x4e07f0, 05 → 0x4e0860; 04 y lo demás al default), el BA (0x4e5929 →
-// 0x4cf1b0), el BB (0x4e57f5 → 0x4e0f30) y el B2 20 (0x4e572d → 0x4e04e0), sin aplicar nada. El GameServer 0.97 del
-// laboratorio no tiene Castle Siege: cada byte sale del ASM del cliente, *estático*.
+// The castle's battle (04, "Castle Siege"): what 0x4e2b10 dispatches with the B9 that arrives (0x4e58b0, table
+// 0x4e61f8: 01 → 0x4e0750, 02 → 0x4e0790, 03 → 0x4e07f0, 05 → 0x4e0860; 04 and the rest to the default), the BA
+// (0x4e5929 → 0x4cf1b0), the BB (0x4e57f5 → 0x4e0f30), the B7 (0x4e580d) and the battle's B2 (0x4e5099), applying
+// nothing. The lab's GameServer 0.97 has no Castle Siege: each byte comes from the client's ASM, *static*.
 //
-// Como en el hito 12 (Protocol/CastleSiege.h), el subcódigo del B9 y del B2 es pkt[3] en un C1 y pkt[4] en los demás,
-// y después cada handler lee a desplazamientos fijos desde el primer byte, sin mirar el tipo ni el largo. Lo que el
-// caso lee y no llegó es TooShort; los bytes sobrantes se ignoran.
+// As in CastleSiege.h, the subcode of the B9, the B7 and the B2 is pkt[3] in a C1 and pkt[4] in the others, and then
+// each handler reads at fixed offsets from the first byte, without looking at the type or the length. What the case
+// reads and did not arrive is TooShort; extra bytes are ignored.
 namespace Client::Protocol::CastleSiege
 {
 inline constexpr std::array<Network::Subcode, 4> BattleSubcodes{
@@ -26,13 +26,13 @@ inline constexpr std::array<Network::Subcode, 4> BattleSubcodes{
     CastleInfo::HuntZoneEntrySubcode};
 inline constexpr std::array<Network::Subcode, 3> WeaponSubcodes{Network::Subcode{0}, Network::Subcode{1},
                                                                 Network::Subcode{2}};
-// El B2 20, en la tabla 0x4e6140 del B2 del hito 12.
+// The B2 20, in the B2's table 0x4e6140 (CastleSiege.h).
 inline constexpr std::array<Network::Subcode, 12> CastleSubcodes{
     Network::Subcode{0x11}, Network::Subcode{0x12}, Network::Subcode{0x13}, Network::Subcode{0x14},
     Network::Subcode{0x15}, Network::Subcode{0x16}, Network::Subcode{0x17}, Network::Subcode{0x18},
     Network::Subcode{0x19}, Network::Subcode{0x1d}, Network::Subcode{0x1e}, Castle::SwitchHolderSubcode};
 
-// 0x4e55c5..0x4e5776: los casos de batalla de la tabla B2 0x4e6140.
+// 0x4e55c5..0x4e5776: the battle's cases of the B2 table 0x4e6140.
 struct GateOpen
 {
     std::uint8_t result = 0;
@@ -86,7 +86,7 @@ struct SiegeTime
     std::uint8_t hours = 0;
     std::uint8_t minutes = 0;
 };
-// B7 00/01/02: 0x4e08a0, 0x4e08f0 y 0x44efc0.
+// B7 00/01/02: 0x4e08a0, 0x4e08f0 and 0x44efc0.
 struct WeaponOpen
 {
     std::uint8_t result = 0;
@@ -95,9 +95,9 @@ struct WeaponOpen
 };
 struct WeaponFire
 {
-    std::uint8_t kind = 0; // pkt[7], tipo de proyectil en 0x44ef0e.
+    std::uint8_t kind = 0; // pkt[7], the projectile's kind at 0x44ef0e.
     std::uint16_t key = 0;
-    std::uint8_t mode = 0; // pkt[4], cero rechaza y uno conserva destino y clave (0x44eed1).
+    std::uint8_t mode = 0; // pkt[4]: zero rejects, one keeps the target and the key (0x44eed1).
     std::uint8_t x = 0;
     std::uint8_t y = 0;
 };
@@ -108,31 +108,31 @@ struct WeaponImpact
     std::uint8_t y = 0;
 };
 
-// B9 01 (0x4e0750): la clave (pkt[4] << 8 | pkt[5]) y el byte que va a +0x93 de su personaje (pkt[6]). *Inferido*:
-// el nivel de una puerta o una estatua, que el alta del 13 también escribe (0x4c9ee9) y que los dibujos del asedio
-// comparan con 2, 3 y 5 (0x42e3d0, 0x42dfe0, 0x42a2b0).
+// B9 01 (0x4e0750): the key (pkt[4] << 8 | pkt[5]) and the byte that goes to +0x93 of its character (pkt[6]).
+// *Inferred*: the level of a gate or a statue, which the 13's creation also writes (0x4c9ee9) and the siege's draws
+// compare with 2, 3 and 5 (0x42e3d0, 0x42dfe0, 0x42a2b0).
 struct NpcLevel
 {
     std::uint16_t key = 0;
     std::uint8_t level = 0;
 };
 
-// B9 02 (0x4e0790): los 32 bytes de pkt[4..0x23], la marca del gremio dueño en 8 × 8 colores de 4 bits.
+// B9 02 (0x4e0790): the 32 bytes of pkt[4..0x23], the owner guild's mark in 8 × 8 colors of 4 bits.
 inline constexpr std::size_t PackedMarkSize = 32;
 struct OwnerMark
 {
     std::array<std::uint8_t, PackedMarkSize> packed{};
 };
 
-// B9 03 (0x4e07f0): pkt[4]; distinto de 0, también pkt[5] y los dwords de pkt+8, pkt+0xc y pkt+0x10 (MOV r32, el
-// byte de abajo primero), que van a [0x7d53700].
+// B9 03 (0x4e07f0): pkt[4]; other than 0, also pkt[5] and the dwords of pkt+8, pkt+0xc and pkt+0x10 (MOV r32, the low
+// byte first), which go to [0x7d53700].
 struct HuntZoneInfo
 {
-    std::uint8_t mode = 0;    // pkt[4], a +0x16
-    std::uint8_t allowed = 0; // pkt[5], a +0x15 con SETNZ
-    std::uint32_t fee = 0;    // pkt+8, a +0x18 y +0x1c
-    std::uint32_t at0c = 0;   // pkt+0xc, a +0x24
-    std::uint32_t at10 = 0;   // pkt+0x10, a +0x20
+    std::uint8_t mode = 0;    // pkt[4], to +0x16
+    std::uint8_t allowed = 0; // pkt[5], to +0x15 with SETNZ
+    std::uint32_t fee = 0;    // pkt+8, to +0x18 and +0x1c
+    std::uint32_t at0c = 0;   // pkt+0xc, to +0x24
+    std::uint32_t at10 = 0;   // pkt+0x10, to +0x20
 };
 
 // B9 05 (0x4e0860): pkt[4].
@@ -141,8 +141,8 @@ struct HuntZoneEntryResult
     std::uint8_t result = 0;
 };
 
-// BA (0x4cf1b0): la clave (pkt[3] << 8 | pkt[4], también en un C2), cuál (pkt[5]) y, solo con cuál en 0x28, el byte
-// que va a +0x1bc de su personaje (pkt[6]).
+// BA (0x4cf1b0): the key (pkt[3] << 8 | pkt[4], in a C2 too), which (pkt[5]) and, only with which at 0x28, the byte
+// that goes to +0x1bc of its character (pkt[6]).
 inline constexpr std::uint8_t ActorField1bcKind = 0x28;
 struct ActorField
 {
@@ -151,8 +151,9 @@ struct ActorField
     std::uint8_t value = 0;
 };
 
-// BB (0x4e0f30): la cuenta (pkt[4], un byte sin signo) y las ternas (índice, x, y) desde pkt+5, que van a
-// 0x411ed0(índice + 1, x, y) del panel del asedio de la clase 2. Solo las lee con ese panel: acá se leen siempre.
+// BB (0x4e0f30): the count (pkt[4], an unsigned byte) and the (index, x, y) triples from pkt+5, which go to
+// 0x411ed0(index + 1, x, y) of the siege panel of class 2. It reads them only with that panel: here they are always
+// read.
 struct MinimapMember
 {
     std::uint8_t index = 0;
@@ -164,8 +165,9 @@ struct MinimapMembers
     std::vector<MinimapMember> members;
 };
 
-// B2 20 (0x4e04e0): los primeros 0x1b bytes del paquete tal cual (REP MOVSD × 6, MOVSW y MOVSB desde pkt+0), que van a
-// la mitad del objeto de 0x5767924 que elige la clave (pkt[4] << 8 | pkt[5]): 0x13d la primera y otra la segunda.
+// B2 20 (0x4e04e0): the packet's first 0x1b bytes as they are (REP MOVSD × 6, MOVSW and MOVSB from pkt+0), which go to
+// the half of the object of 0x5767924 that the key picks (pkt[4] << 8 | pkt[5]): 0x13d the first and another the
+// second.
 inline constexpr std::size_t SwitchHolderSize = 0x1b;
 struct SwitchHolder
 {
@@ -178,8 +180,8 @@ using CastleBattlePacket =
                  GateOpen, GateCommand, GateState, CrownAccess, CrownRegistration, CrownState, SiegeActivation,
                  CastleOwner, SiegeSide, PanelStatus, SiegeTime, WeaponOpen, WeaponFire, WeaponImpact>;
 
-// El paquete de la batalla que es, por su opcode y, en el B9 y el B2, su subcódigo. Otro opcode, otro subcódigo del B9
-// (el 04 y desde el 06 caen al default, 0x4e58c8) o del B2: WrongPacket.
+// The battle's packet it is, by its opcode and, in the B9, the B7 and the B2, its subcode. Another opcode, or another
+// subcode of the B9 (the 04 and from the 06 on fall to the default, 0x4e58c8), of the B7 or of the B2: WrongPacket.
 [[nodiscard]] Core::Expected<CastleBattlePacket, Network::ProtocolError>
 ReadCastleBattlePacket(const Network::Packet& packet);
 } // namespace Client::Protocol::CastleSiege

@@ -1,11 +1,18 @@
 #include "Protocol/CastleSiege/CastleBattle.h"
 
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketCode.h"
+#include "Network/PacketLayout.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
 #include "Protocol/Opcodes.h"
 
 #include <algorithm>
+#include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -15,351 +22,275 @@ namespace Client::Protocol::CastleSiege
 {
 namespace
 {
-// 0x4e0f30: la cuenta en pkt[4] y las ternas desde pkt+5 (ESI = pkt+6 y lee [ESI − 1], [ESI] y [ESI + 1]).
-constexpr std::size_t MembersCountAt = 4;
+using Result = Core::Expected<CastleBattlePacket, Network::ProtocolError>;
+
+template <std::size_t At> using Byte = Network::Field<std::uint8_t, At>;
+// MOV r32: little-endian.
+template <std::size_t At> using Dword = Network::Field<std::uint32_t, At>;
+// A character's key: the first byte on top (SHL EAX, 8 and ADD).
+template <std::size_t At> using Key = Network::Field<std::uint16_t, At, std::endian::big>;
+template <std::size_t Size, std::size_t At> using Raw = Network::Field<std::array<std::byte, Size>, At>;
+
+using Value = Byte<4>;
+
+// 0x4e0f30: the count at pkt[4] and the triples from pkt+5 (ESI = pkt+6, and it reads [ESI − 1], [ESI] and
+// [ESI + 1]).
+using MembersCount = Byte<4>;
 constexpr std::size_t MembersAt = 5;
 constexpr std::size_t MemberSize = 3;
-// 0x4e07f0: los dwords de pkt+8, pkt+0xc y pkt+0x10.
-constexpr std::size_t HuntZoneFeeAt = 8;
-constexpr std::size_t HuntZoneAt0c = 0xc;
-constexpr std::size_t HuntZoneAt10 = 0x10;
 
-// El byte `at` desde el primero del paquete, si llegó.
-std::optional<std::uint8_t> U8(std::span<const std::byte> bytes, std::size_t at)
+// The handlers read at fixed offsets whatever the type: in a C2 the subcode and pkt[4] are the same byte.
+Network::PacketLayout LayoutOf(const Network::Packet& packet, Network::Opcode opcode,
+                               std::optional<Network::Subcode> subcode, std::size_t minimumSize, std::uint32_t address)
 {
-    if (at >= bytes.size())
-    {
-        return std::nullopt;
-    }
-    return std::to_integer<std::uint8_t>(bytes[at]);
+    return {{packet.Type(), opcode, subcode}, minimumSize, address};
 }
 
-// MOV r32: el byte de abajo primero.
-std::optional<std::uint32_t> U32Le(std::span<const std::byte> bytes, std::size_t at)
+template <typename ReadFields>
+Result ReadAs(const Network::Packet& packet, const Network::PacketLayout& layout, ReadFields read)
 {
-    if (at > bytes.size() || bytes.size() - at < 4)
-    {
-        return std::nullopt;
-    }
-    std::uint32_t value = 0;
-    for (std::size_t i = 4; i-- > 0;)
-    {
-        value = (value << 8u) | std::to_integer<std::uint32_t>(bytes[at + i]);
-    }
-    return value;
+    return Network::ReadPacket(packet, layout,
+                               [&read](Network::LayoutReader& reader) { return CastleBattlePacket{read(reader)}; });
 }
 
-// La clave de un personaje: el primer byte arriba (SHL EAX, 8 y ADD).
-std::optional<std::uint16_t> KeyAt(std::span<const std::byte> bytes, std::size_t at)
+template <std::size_t Size> std::array<std::uint8_t, Size> Unsigned(const std::array<std::byte, Size>& bytes)
 {
-    const auto high = U8(bytes, at);
-    const auto low = U8(bytes, at + 1);
-    if (!high || !low)
-    {
-        return std::nullopt;
-    }
-    return static_cast<std::uint16_t>((*high << 8u) | *low);
+    std::array<std::uint8_t, Size> values{};
+    std::ranges::transform(bytes, values.begin(), [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
+    return values;
 }
 
-Core::Unexpected<Network::ProtocolError> TooShort()
-{
-    return Core::Unexpected(Network::ProtocolError::TooShort);
-}
-
-// B9 01, 0x4e0750.
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadNpcLevel(std::span<const std::byte> bytes)
-{
-    const auto key = KeyAt(bytes, 4);
-    const auto level = U8(bytes, 6);
-    if (!key || !level)
-    {
-        return TooShort();
-    }
-    return CastleBattlePacket{NpcLevel{.key = *key, .level = *level}};
-}
-
-// B9 02, 0x4e0790.
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadOwnerMark(std::span<const std::byte> bytes)
-{
-    constexpr std::size_t MarkAt = 4;
-    if (bytes.size() < MarkAt + PackedMarkSize)
-    {
-        return TooShort();
-    }
-    OwnerMark mark;
-    std::ranges::transform(bytes.subspan(MarkAt, PackedMarkSize), mark.packed.begin(),
-                           [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
-    return CastleBattlePacket{mark};
-}
-
-// B9 03, 0x4e07f0: con pkt[4] en 0 no lee nada más.
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadHuntZoneInfo(std::span<const std::byte> bytes)
-{
-    const auto mode = U8(bytes, 4);
-    if (!mode)
-    {
-        return TooShort();
-    }
-    HuntZoneInfo info{.mode = *mode};
-    if (info.mode == 0)
-    {
-        return CastleBattlePacket{info};
-    }
-    const auto allowed = U8(bytes, 5);
-    const auto fee = U32Le(bytes, HuntZoneFeeAt);
-    const auto at0c = U32Le(bytes, HuntZoneAt0c);
-    const auto at10 = U32Le(bytes, HuntZoneAt10);
-    if (!allowed || !fee || !at0c || !at10)
-    {
-        return TooShort();
-    }
-    info.allowed = *allowed;
-    info.fee = *fee;
-    info.at0c = *at0c;
-    info.at10 = *at10;
-    return CastleBattlePacket{info};
-}
-
-// B9 05, 0x4e0860.
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadHuntZoneEntryResult(std::span<const std::byte> bytes)
-{
-    const auto result = U8(bytes, 4);
-    if (!result)
-    {
-        return TooShort();
-    }
-    return CastleBattlePacket{HuntZoneEntryResult{.result = *result}};
-}
-
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadBattle(std::span<const std::byte> bytes,
-                                                                      Network::Subcode subcode)
+// B9 by its subcode, the table 0x4e61f8.
+Result ReadBattle(const Network::Packet& packet, Network::Subcode subcode)
 {
     switch (Network::ByteOf(subcode))
     {
     case Network::ByteOf(CastleInfo::NpcLevelSubcode):
-        return ReadNpcLevel(bytes);
+        return ReadAs(packet, LayoutOf(packet, CastleInfoOpcode, subcode, Byte<6>::End, 0x4e0750),
+                      [](Network::LayoutReader& reader)
+                      { return NpcLevel{.key = reader.Read<Key<4>>(), .level = reader.Read<Byte<6>>()}; });
     case Network::ByteOf(CastleInfo::OwnerMarkSubcode):
-        return ReadOwnerMark(bytes);
+    {
+        using Mark = Raw<PackedMarkSize, 4>;
+        return ReadAs(packet, LayoutOf(packet, CastleInfoOpcode, subcode, Mark::End, 0x4e0790),
+                      [](Network::LayoutReader& reader) { return OwnerMark{.packed = Unsigned(reader.Read<Mark>())}; });
+    }
     case Network::ByteOf(CastleInfo::HuntZoneInfoSubcode):
-        return ReadHuntZoneInfo(bytes);
+        // 0x4e07f0: with pkt[4] at 0 it reads nothing else.
+        return ReadAs(packet, LayoutOf(packet, CastleInfoOpcode, subcode, Value::End, 0x4e07f0),
+                      [](Network::LayoutReader& reader)
+                      {
+                          HuntZoneInfo info{.mode = reader.Read<Value>()};
+                          if (info.mode != 0)
+                          {
+                              info.allowed = reader.Read<Byte<5>>();
+                              info.fee = reader.Read<Dword<8>>();
+                              info.at0c = reader.Read<Dword<0xc>>();
+                              info.at10 = reader.Read<Dword<0x10>>();
+                          }
+                          return info;
+                      });
     case Network::ByteOf(CastleInfo::HuntZoneEntrySubcode):
-        return ReadHuntZoneEntryResult(bytes);
+        return ReadAs(packet, LayoutOf(packet, CastleInfoOpcode, subcode, Value::End, 0x4e0860),
+                      [](Network::LayoutReader& reader)
+                      { return HuntZoneEntryResult{.result = reader.Read<Value>()}; });
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
-// BA, 0x4cf1b0: pkt[6] solo con cuál en 0x28 (CMP CL, 0x28 y JNZ antes de leerlo).
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadActorField(std::span<const std::byte> bytes)
+// BA, 0x4cf1b0: pkt[6] only with the kind at 0x28 (CMP CL, 0x28 and JNZ before reading it).
+Result ReadActorField(const Network::Packet& packet)
 {
-    const auto key = KeyAt(bytes, 3);
-    const auto kind = U8(bytes, 5);
-    if (!key || !kind)
-    {
-        return TooShort();
-    }
-    ActorField field{.key = *key, .kind = *kind};
-    if (field.kind != ActorField1bcKind)
-    {
-        return CastleBattlePacket{field};
-    }
-    const auto value = U8(bytes, 6);
-    if (!value)
-    {
-        return TooShort();
-    }
-    field.value = *value;
-    return CastleBattlePacket{field};
+    return ReadAs(packet, LayoutOf(packet, ActorFieldOpcode, std::nullopt, Byte<5>::End, 0x4cf1b0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      ActorField field{.key = reader.Read<Key<3>>(), .kind = reader.Read<Byte<5>>()};
+                      if (field.kind == ActorField1bcKind)
+                      {
+                          field.value = reader.Read<Byte<6>>();
+                      }
+                      return field;
+                  });
 }
 
-// BB, 0x4e0f30: la cuenta sin signo (TEST AL, AL y JBE; el lazo vuelve a leer pkt[4] y compara con JL).
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadMinimapMembers(std::span<const std::byte> bytes)
+MinimapMember MemberOf(std::span<const std::byte, MemberSize> bytes)
 {
-    const auto count = U8(bytes, MembersCountAt);
-    if (!count)
-    {
-        return TooShort();
-    }
-    if (bytes.size() < MembersAt + (std::size_t{*count} * MemberSize))
-    {
-        return TooShort();
-    }
-    MinimapMembers members;
-    members.members.reserve(*count);
-    for (std::size_t i = 0; i < *count; ++i)
-    {
-        const std::size_t at = MembersAt + (i * MemberSize);
-        members.members.push_back(MinimapMember{.index = std::to_integer<std::uint8_t>(bytes[at]),
-                                                .x = std::to_integer<std::uint8_t>(bytes[at + 1]),
-                                                .y = std::to_integer<std::uint8_t>(bytes[at + 2])});
-    }
-    return CastleBattlePacket{members};
+    return {.index = std::to_integer<std::uint8_t>(bytes[0]),
+            .x = std::to_integer<std::uint8_t>(bytes[1]),
+            .y = std::to_integer<std::uint8_t>(bytes[2])};
 }
 
-// B2 20, 0x4e04e0: los 0x1b bytes desde pkt+0, con la clave de pkt[4] y pkt[5].
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadSwitchHolder(std::span<const std::byte> bytes)
+// BB, 0x4e0f30: the count is unsigned (TEST AL, AL and JBE; the loop reads pkt[4] again and compares with JL).
+Result ReadMinimapMembers(const Network::Packet& packet)
 {
-    if (bytes.size() < SwitchHolderSize)
-    {
-        return TooShort();
-    }
-    SwitchHolder holder;
-    holder.key = *KeyAt(bytes, 4);
-    std::ranges::transform(bytes.first(SwitchHolderSize), holder.bytes.begin(),
-                           [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
-    return CastleBattlePacket{holder};
+    return ReadAs(packet, LayoutOf(packet, SiegeMinimapMembersOpcode, std::nullopt, MembersCount::End, 0x4e0f30),
+                  [](Network::LayoutReader& reader)
+                  {
+                      return MinimapMembers{.members = Network::ReadList<MemberSize>(
+                                                reader, MembersAt, reader.Read<MembersCount>(), MemberOf)};
+                  });
 }
 
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastle(std::span<const std::byte> bytes,
-                                                                      std::uint8_t subcode)
+// B2 20, 0x4e04e0: the 0x1b bytes from pkt+0, with the key of pkt[4] and pkt[5].
+Result ReadSwitchHolder(const Network::Packet& packet, Network::Subcode subcode)
 {
-    if (Network::Subcode{subcode} == Castle::SwitchHolderSubcode)
-        return ReadSwitchHolder(bytes);
-    if (std::ranges::find(CastleSubcodes, Network::Subcode{subcode}) == CastleSubcodes.end())
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    const auto value = U8(bytes, 4);
-    if (!value)
-        return TooShort();
-    switch (subcode)
+    using Whole = Raw<SwitchHolderSize, 0>;
+    return ReadAs(packet, LayoutOf(packet, CastleOpcode, subcode, Whole::End, 0x4e04e0),
+                  [](Network::LayoutReader& reader)
+                  { return SwitchHolder{.key = reader.Read<Key<4>>(), .bytes = Unsigned(reader.Read<Whole>())}; });
+}
+
+// 0x4e55c5: the key only with 1.
+GateOpen ReadGateOpen(Network::LayoutReader& reader)
+{
+    GateOpen gate{.result = reader.Read<Value>()};
+    if (gate.result == 1)
+    {
+        gate.key = reader.Read<Key<5>>();
+    }
+    return gate;
+}
+
+// 0x4e55fd.
+GateCommand ReadGateCommand(Network::LayoutReader& reader)
+{
+    GateCommand gate{.result = reader.Read<Value>()};
+    if (gate.result == 1)
+    {
+        gate.open = reader.Read<Byte<5>>();
+        gate.key = reader.Read<Key<6>>();
+    }
+    return gate;
+}
+
+// 0x4e00c0: the time only with 0 or 2.
+CrownRegistration ReadCrownRegistration(Network::LayoutReader& reader)
+{
+    CrownRegistration crown{.result = reader.Read<Value>()};
+    if (crown.result == 0 || crown.result == 2)
+    {
+        crown.elapsed = reader.Read<Dword<8>>();
+    }
+    return crown;
+}
+
+// 0x4e0650: the guild only with 0 or 1.
+CastleOwner ReadCastleOwner(Network::LayoutReader& reader)
+{
+    CastleOwner owner{.result = reader.Read<Value>()};
+    if (owner.result <= 1)
+    {
+        owner.guild = Unsigned(reader.Read<Raw<8, 5>>());
+    }
+    return owner;
+}
+
+// The battle's cases of the B2 table 0x4e6140; each reads pkt[4] first.
+Result ReadCastle(const Network::Packet& packet, Network::Subcode subcode)
+{
+    if (subcode == Castle::SwitchHolderSubcode)
+    {
+        return ReadSwitchHolder(packet, subcode);
+    }
+    const auto castle = [&packet, subcode](std::uint32_t address, auto read)
+    { return ReadAs(packet, LayoutOf(packet, CastleOpcode, subcode, Value::End, address), read); };
+    switch (Network::ByteOf(subcode))
     {
     case 0x11:
-    {
-        GateOpen gate{.result = *value};
-        if (gate.result == 1)
-        {
-            const auto key = KeyAt(bytes, 5);
-            if (!key)
-                return TooShort();
-            gate.key = *key;
-        }
-        return CastleBattlePacket{gate};
-    }
+        return castle(0x4e55c5, ReadGateOpen);
     case 0x12:
-    {
-        GateCommand gate{.result = *value};
-        if (gate.result == 1)
-        {
-            const auto open = U8(bytes, 5);
-            const auto key = KeyAt(bytes, 6);
-            if (!open || !key)
-                return TooShort();
-            gate.open = *open;
-            gate.key = *key;
-        }
-        return CastleBattlePacket{gate};
-    }
+        return castle(0x4e55fd, ReadGateCommand);
     case 0x13:
-    {
-        const auto key = KeyAt(bytes, 5);
-        if (!key)
-            return TooShort();
-        return CastleBattlePacket{GateState{.open = *value, .key = *key}};
-    }
+        return castle(0x4e5629, [](Network::LayoutReader& reader)
+                      { return GateState{.open = reader.Read<Value>(), .key = reader.Read<Key<5>>()}; });
     case 0x14:
-    {
-        const auto first = KeyAt(bytes, 4);
-        const auto second = KeyAt(bytes, 6);
-        const auto status = U8(bytes, 8);
-        if (!first || !second || !status)
-            return TooShort();
-        return CastleBattlePacket{CrownAccess{.firstKey = *first, .secondKey = *second, .status = *status}};
-    }
+        return castle(0x4dff10,
+                      [](Network::LayoutReader& reader)
+                      {
+                          return CrownAccess{.firstKey = reader.Read<Key<4>>(),
+                                             .secondKey = reader.Read<Key<6>>(),
+                                             .status = reader.Read<Byte<8>>()};
+                      });
     case 0x15:
-    {
-        CrownRegistration crown{.result = *value};
-        if (crown.result == 0 || crown.result == 2)
-        {
-            const auto elapsed = U32Le(bytes, 8);
-            if (!elapsed)
-                return TooShort();
-            crown.elapsed = *elapsed;
-        }
-        return CastleBattlePacket{crown};
-    }
+        return castle(0x4e00c0, ReadCrownRegistration);
     case 0x16:
-        return CastleBattlePacket{CrownState{.result = *value}};
+        return castle(0x4e0240,
+                      [](Network::LayoutReader& reader) { return CrownState{.result = reader.Read<Value>()}; });
     case 0x17:
-        return CastleBattlePacket{SiegeActivation{.active = *value}};
+        return castle(0x4e56e0,
+                      [](Network::LayoutReader& reader) { return SiegeActivation{.active = reader.Read<Value>()}; });
     case 0x18:
-    {
-        CastleOwner owner{.result = *value};
-        if (owner.result <= 1)
-        {
-            if (bytes.size() < 13)
-                return TooShort();
-            std::ranges::transform(bytes.subspan(5, owner.guild.size()), owner.guild.begin(),
-                                   [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
-        }
-        return CastleBattlePacket{owner};
-    }
+        return castle(0x4e0650, ReadCastleOwner);
     case 0x19:
-        return CastleBattlePacket{SiegeSide{.side = *value}};
+        return castle(0x4e0340, [](Network::LayoutReader& reader) { return SiegeSide{.side = reader.Read<Value>()}; });
     case 0x1d:
-    {
-        if (bytes.size() < 8)
-            return TooShort();
-        PanelStatus status;
-        std::ranges::transform(bytes.subspan(4, status.bytes.size()), status.bytes.begin(),
-                               [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
-        return CastleBattlePacket{status};
-    }
+        return castle(0x4e5742, [](Network::LayoutReader& reader)
+                      { return PanelStatus{.bytes = Unsigned(reader.Read<Raw<4, 4>>())}; });
     case 0x1e:
-    {
-        const auto minutes = U8(bytes, 5);
-        if (!minutes)
-            return TooShort();
-        return CastleBattlePacket{SiegeTime{.hours = *value, .minutes = *minutes}};
-    }
+        return castle(0x4e5776, [](Network::LayoutReader& reader)
+                      { return SiegeTime{.hours = reader.Read<Value>(), .minutes = reader.Read<Byte<5>>()}; });
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
-Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadWeapon(std::span<const std::byte> bytes,
-                                                                      std::uint8_t subcode)
+
+// 0x4e08a0: the mode and the key only with 1.
+WeaponOpen ReadWeaponOpen(Network::LayoutReader& reader)
 {
-    if (subcode > 2)
+    WeaponOpen open{.result = reader.Read<Value>()};
+    if (open.result == 1)
+    {
+        open.mode = reader.Read<Byte<5>>();
+        open.key = reader.Read<Key<6>>();
+    }
+    return open;
+}
+
+// 0x4e08f0 → 0x44eea0(key, mode (pkt[4]), kind (pkt[7]), x, y): the rest only with a mode other than 0.
+WeaponFire ReadWeaponFire(Network::LayoutReader& reader)
+{
+    WeaponFire fire{.mode = reader.Read<Value>()};
+    if (fire.mode != 0)
+    {
+        fire.key = reader.Read<Key<5>>();
+        fire.kind = reader.Read<Byte<7>>();
+        fire.x = reader.Read<Byte<8>>();
+        fire.y = reader.Read<Byte<9>>();
+    }
+    return fire;
+}
+
+// B7 00, 01 and 02.
+Result ReadWeapon(const Network::Packet& packet, Network::Subcode subcode)
+{
+    switch (Network::ByteOf(subcode))
+    {
+    case 0:
+        return ReadAs(packet, LayoutOf(packet, SiegeWeaponOpcode, subcode, Value::End, 0x4e08a0), ReadWeaponOpen);
+    case 1:
+        return ReadAs(packet, LayoutOf(packet, SiegeWeaponOpcode, subcode, Value::End, 0x4e08f0), ReadWeaponFire);
+    case 2:
+        return ReadAs(packet, LayoutOf(packet, SiegeWeaponOpcode, subcode, Byte<6>::End, 0x44efc0),
+                      [](Network::LayoutReader& reader) {
+                          return WeaponImpact{
+                              .kind = reader.Read<Value>(), .x = reader.Read<Byte<5>>(), .y = reader.Read<Byte<6>>()};
+                      });
+    default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    const auto result = U8(bytes, 4);
-    if (!result)
-        return TooShort();
-    if (subcode == 0)
-    {
-        WeaponOpen open{.result = *result};
-        if (open.result == 1)
-        {
-            const auto mode = U8(bytes, 5);
-            const auto key = KeyAt(bytes, 6);
-            if (!mode || !key)
-                return TooShort();
-            open.mode = *mode;
-            open.key = *key;
-        }
-        return CastleBattlePacket{open};
     }
-    if (subcode == 1)
+}
+
+// The byte after the opcode, as the Dispatcher reads it.
+std::optional<Network::Subcode> SubcodeOf(const Network::Packet& packet)
+{
+    const std::span<const std::byte> bytes = packet.Bytes();
+    const std::size_t at = Network::SubcodeOffset(packet.Type());
+    if (bytes.size() <= at)
     {
-        // 0x4e0926: 0x44eea0 recibe clave, modo (pkt[4]), tipo (pkt[7]), X e Y.
-        WeaponFire fire{.mode = *result};
-        if (fire.mode != 0)
-        {
-            const auto key = KeyAt(bytes, 5);
-            const auto kind = U8(bytes, 7);
-            const auto x = U8(bytes, 8);
-            const auto y = U8(bytes, 9);
-            if (!key || !kind || !x || !y)
-                return TooShort();
-            fire.key = *key;
-            fire.kind = *kind;
-            fire.x = *x;
-            fire.y = *y;
-        }
-        return CastleBattlePacket{fire};
+        return std::nullopt;
     }
-    const auto x = U8(bytes, 5);
-    const auto y = U8(bytes, 6);
-    if (!x || !y)
-        return TooShort();
-    return CastleBattlePacket{WeaponImpact{.kind = *result, .x = *x, .y = *y}};
+    return Network::Subcode{std::to_integer<std::uint8_t>(bytes[at])};
 }
 } // namespace
 
@@ -370,30 +301,31 @@ Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastleBattlePacke
     {
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
-    const std::span<const std::byte> bytes = packet.Bytes();
     switch (Network::ByteOf(*opcode))
     {
     case Network::ByteOf(CastleInfoOpcode):
     case Network::ByteOf(CastleOpcode):
     case Network::ByteOf(SiegeWeaponOpcode):
     {
-        const auto subcode = U8(bytes, Network::MinPacketSize(packet.Type()));
+        const auto subcode = SubcodeOf(packet);
         if (!subcode)
         {
-            return TooShort();
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         }
         if (*opcode == CastleInfoOpcode)
         {
-            return ReadBattle(bytes, Network::Subcode{*subcode});
+            return ReadBattle(packet, *subcode);
         }
         if (*opcode == SiegeWeaponOpcode)
-            return ReadWeapon(bytes, *subcode);
-        return ReadCastle(bytes, *subcode);
+        {
+            return ReadWeapon(packet, *subcode);
+        }
+        return ReadCastle(packet, *subcode);
     }
     case Network::ByteOf(ActorFieldOpcode):
-        return ReadActorField(bytes);
+        return ReadActorField(packet);
     case Network::ByteOf(SiegeMinimapMembersOpcode):
-        return ReadMinimapMembers(bytes);
+        return ReadMinimapMembers(packet);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }

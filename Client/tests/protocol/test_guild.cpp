@@ -8,6 +8,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -385,5 +386,52 @@ TEST(GuildProtocolTest, TheWarAnswerCarriesYesOrNo)
     EXPECT_TRUE(SameBytes(PlainOf(yes), Bytes({0xc1, 0x04, 0x61, 0x01})));
     EXPECT_NE(yes.packet.Bytes()[3], std::byte{0x01});
     EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteWarAnswer(false)), Bytes({0xc1, 0x04, 0x61, 0x00})));
+}
+
+// The lists need every entry, the last one of the 65 and the 67 only up to its last byte read; the E9 fills what
+// did not arrive with zeros (Q-C1365).
+TEST(GuildProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> members = Bytes({0xc2, 0x00, 0x15, 0x52, 0x01, 0x00});
+    members.resize(0x15);
+    std::vector<std::byte> oneMember = Bytes({0xc2, 0x00, 0x25, 0x52, 0x01, 0x01});
+    oneMember.resize(0x25);
+    std::vector<std::byte> warRequest = Bytes({0xc1, 0x0c, 0x61});
+    warRequest.resize(0x0c);
+    std::vector<std::byte> warStart = Bytes({0xc1, 0x0d, 0x62});
+    warStart.resize(0x0d);
+    std::vector<std::byte> info = Bytes({0xc1, 0x39, 0x66});
+    info.resize(0x39);
+    std::vector<std::byte> oneGuild = Bytes({0xc2, 0x00, 0x0e, 0x65, 0x01});
+    oneGuild.resize(0x0e);
+    std::vector<std::byte> twoGuilds = Bytes({0xc2, 0x00, 0x1a, 0x65, 0x02});
+    twoGuilds.resize(0x1a);
+    std::vector<std::byte> oneUnion = Bytes({0xc2, 0x00, 0x16, 0x67, 0x01});
+    oneUnion.resize(0x16);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x04, 0x51, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x04, 0x53, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x04, 0x56, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x04, 0x60, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x04, 0x63, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, members);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, oneMember);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x05, 0x50, 0x80, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x05, 0x5d, 0x80, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, warRequest);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, warStart);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x05, 0x64, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, info);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x05, 0xe1, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x07, 0xe5, 0x01, 0x02, 0x03, 0x04}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x08, 0xe6, 0x01, 0x02, 0x03, 0x04, 0x05}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc2, 0x00, 0x06, 0xe9, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc2, 0x00, 0x06, 0xe9, 0x02, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x04, 0xeb, 0x00}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc1, 0x05, 0xeb, 0x01, 0x01}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc2, 0x00, 0x05, 0x65, 0x00}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, oneGuild);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, twoGuilds);
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, Bytes({0xc2, 0x00, 0x05, 0x67, 0x00}));
+    Client::Tests::ExpectMinimumSize(Guild::ReadGuildPacket, oneUnion);
 }
 } // namespace

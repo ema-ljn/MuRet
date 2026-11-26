@@ -3,12 +3,11 @@
 #include <cstdint>
 #include <vector>
 
-// Una fuente TrueType mínima, armada en memoria, para los tests de FreeTypeRasterizer que corren
-// sin MU_CLIENT_FONT_FILE (CL5.3). Trae las tablas que FreeType pide para abrirla (cmap, glyf,
-// head, hhea, hmtx, loca y maxp), sin OS/2 ni programas de hinting, un em de 1.000 unidades con el
-// ascenso en 800 y el descenso en 200, y dos glifos de 600 de avance: el 0, un cuadrado, que es el
-// de todo byte que el cmap no nombra, y el 1, el de FlatGlyphLetter, una raya sin área (sus cuatro
-// puntos sobre la línea de base), como deja el hinting el guion bajo de algunas fuentes reales.
+// A minimal TrueType font, built in memory, for the FreeTypeRasterizer tests that run without MU_CLIENT_FONT_FILE. It
+// has the tables FreeType asks for to open it (cmap, glyf, head, hhea, hmtx, loca and maxp), without OS/2 or hinting
+// programs, an em of 1,000 units with the ascent at 800 and the descent at 200, and two glyphs of 600 advance: 0, a
+// square, the one of every byte the cmap does not name, and 1, FlatGlyphLetter's, a line without area (its four
+// points on the baseline), as hinting leaves the underscore of some real fonts.
 namespace Client::Tests
 {
 inline constexpr char FlatGlyphLetter = '_';

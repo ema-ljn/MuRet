@@ -2,9 +2,9 @@
 
 #include <iosfwd>
 
-// Los fixtures de cámara y giro guardan cada float32 en exactamente ocho dígitos hexadecimales.
+// The camera and rotation fixtures store each float32 in exactly eight hex digits.
 namespace Client::Tests
 {
-// Como operator>>: un token inválido marca failbit; el cero devuelto no debe usarse sin comprobarlo.
+// Like operator>>: an invalid token sets failbit; the returned zero must not be used without checking it.
 [[nodiscard]] float ReadHexFloat(std::istream& input);
 } // namespace Client::Tests

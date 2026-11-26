@@ -16,7 +16,7 @@ namespace Client::Tables
 {
 TextTable::TextTable(std::vector<char> decoded) : m_records(std::move(decoded)) {}
 
-// Mira los registros que tiene y no TextCount: una tabla movida puede no tener ninguno.
+// Checks the records it has, not TextCount: a moved-from table may have none.
 std::optional<std::string_view> TextTable::Text(std::size_t index) const&
 {
     if (index >= m_records.size() / TextRecordSize)
@@ -33,8 +33,7 @@ Core::Expected<TextTable, Data::DataError> LoadTextTable(std::span<const std::by
     {
         return Core::Unexpected(Data::DataError::FileTooShort);
     }
-    // Los textos se guardan como char para dar std::string_view sin casts; se descifran vistos
-    // como bytes.
+    // Stored as char to give std::string_view without casts; decrypted as bytes.
     std::vector<char> records(TextTableSize);
     const std::span<std::byte> decoded = std::as_writable_bytes(std::span(records));
     std::ranges::copy(file.first(TextTableSize), decoded.begin());

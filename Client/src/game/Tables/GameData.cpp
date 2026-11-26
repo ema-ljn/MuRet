@@ -37,12 +37,12 @@ namespace Client::Tables
 {
 namespace
 {
-// Más que la tabla entera (0x96000 bytes): un archivo más grande no es un Text.bmd.
+// More than the whole table (0x96000 bytes): a larger file is not a Text.bmd.
 constexpr std::uintmax_t MaxTextTableFileBytes = 1024u * 1024u;
-// Y más que los 20.004 bytes de un filtro.
+// And more than a filter's 20,004 bytes.
 constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
-// fscanf no tiene tope; MuRet lee hasta 1 MiB de Macro.txt, más que diez palabras de 0xff con cualquier blanco
-// razonable entre ellas.
+// fscanf has no cap; MuRet reads up to 1 MiB of Macro.txt, more than ten 0xff words with any reasonable whitespace
+// between them.
 constexpr std::size_t MaxMacroFileBytes = 1024u * 1024u;
 
 Core::Expected<GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
@@ -58,7 +58,7 @@ Core::Expected<GateTable, std::string> LoadGates(const std::filesystem::path& da
     {
         return Core::Unexpected(std::format("no está {} en {}", GateTableFile, Core::PathText(dataRoot)));
     }
-    // 0x54a360 lee solo 256 registros de nueve bytes: el tamaño de la cola no cambia la carga.
+    // 0x54a360 reads only 256 nine-byte records: the tail's size does not change the load.
     const auto file = Data::ReadDataFilePrefix(*path, GateTableSize);
     if (!file.HasValue())
     {
@@ -72,7 +72,7 @@ Core::Expected<GateTable, std::string> LoadGates(const std::filesystem::path& da
     return std::move(table).Value();
 }
 
-// 0x54b9e0 lee un prefijo fijo y permite cualquier cola tras el checksum (Q-C01).
+// 0x54b9e0 reads a fixed prefix and allows any tail after the checksum (Q-C01).
 Core::Expected<LoadedItemTable, std::string> LoadItems(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -99,7 +99,7 @@ Core::Expected<LoadedItemTable, std::string> LoadItems(const std::filesystem::pa
     return std::move(table).Value();
 }
 
-// Skill y conjuntos: 0x54acf0, 0x40c660 y 0x40c850 leen registros y checksum de un prefijo fijo.
+// 0x54acf0, 0x40c660 and 0x40c850 read records and checksum from a fixed prefix.
 template <typename Table, typename Loader>
 Core::Expected<Table, std::string> LoadCheckedTable(const std::filesystem::path& dataRoot, std::string_view name,
                                                     std::size_t recordsSize, Loader load)
@@ -128,8 +128,7 @@ Core::Expected<Table, std::string> LoadCheckedTable(const std::filesystem::path&
     return std::move(table).Value();
 }
 
-// 0x40c600 desde 0x61ccb0 (0x61ecd5), después de Item.bmd (0x61eb37), con su argumento en 0: los tipos y
-// después los conjuntos.
+// 0x40c600 from 0x61ccb0 (0x61ecd5), after Item.bmd (0x61eb37), with its argument at 0: the types, then the sets.
 Core::Expected<ItemSetTables, std::string> LoadItemSets(const std::filesystem::path& dataRoot)
 {
     auto types =
@@ -147,7 +146,7 @@ Core::Expected<ItemSetTables, std::string> LoadItemSets(const std::filesystem::p
     return ItemSetTables{.types = std::move(types).Value(), .options = std::move(options).Value()};
 }
 
-// Las palabras de `name` en `dataRoot`, o ninguna si no está.
+// Or none if it is missing.
 Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::filesystem::path& dataRoot,
                                                                  std::string_view name, std::uint32_t checksumKey)
 {
@@ -175,8 +174,8 @@ Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::file
     return std::move(words).Value();
 }
 
-// 0x63ff30: sin el archivo, el original avisa con un MessageBox y cierra el juego (WM_DESTROY); MuRet sigue con
-// la tabla vacía, y los créditos se cierran al abrirlos (P-C78).
+// 0x63ff30: without the file, the original shows a MessageBox and closes the game (WM_DESTROY); MuRet goes on with an
+// empty table, and the credits close when opened (P-C78).
 Core::Expected<std::vector<CreditEntry>, std::string> LoadCreditsFile(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -203,7 +202,7 @@ Core::Expected<std::vector<CreditEntry>, std::string> LoadCreditsFile(const std:
     return std::move(credits).Value();
 }
 
-// 0x61c1c0: sin el archivo, o sin poder leerlo, las macros quedan vacías.
+// 0x61c1c0: without the file, or unable to read it, the macros stay empty.
 Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -219,7 +218,7 @@ Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& 
     return std::move(macros).Value();
 }
 
-// 0x46b3b0 lee 0xa030 bytes sin mirar el tamaño: un archivo más largo se lee igual.
+// 0x46b3b0 reads 0xa030 bytes without checking the size: a longer file reads the same.
 Core::Expected<std::optional<SlideTable>, std::string> LoadSlides(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -239,7 +238,7 @@ Core::Expected<std::optional<SlideTable>, std::string> LoadSlides(const std::fil
         return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
     return std::optional<SlideTable>(std::move(table).Value());
 }
-// 0x54b2b0 y 0x418d10: 200 registros de tamaño fijo. Sin el archivo, `empty`; si no, el loader con el prefijo.
+// 0x54b2b0 and 0x418d10: 200 fixed-size records. Without the file, `empty`; otherwise the loader with the prefix.
 template <typename Table, typename Loader>
 Core::Expected<Table, std::string> LoadFixedTable(const std::filesystem::path& dataRoot, std::string_view name,
                                                   std::size_t size, Table empty, Loader load)
@@ -262,10 +261,10 @@ Core::Expected<Table, std::string> LoadFixedTable(const std::filesystem::path& d
     return std::move(table).Value();
 }
 
-// 0x448440 lee la cuenta y cuenta · 0x50 bytes sin tope; MuRet lee hasta 1 MiB (13.107 destinos).
+// 0x448440 reads the count and count · 0x50 bytes with no cap; MuRet reads up to 1 MiB (13,107 destinations).
 constexpr std::size_t MaxMoveRequirementsBytes = 1024u * 1024u;
 
-// 0x448440: sin el archivo, la lista vacía y nada más.
+// 0x448440: without the file, the empty list and nothing else.
 Core::Expected<std::vector<MoveRequirement>, std::string> LoadMoves(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -285,10 +284,10 @@ Core::Expected<std::vector<MoveRequirement>, std::string> LoadMoves(const std::f
         return Core::Unexpected(std::format("{}: {}", MoveRequirementsFile, Data::DescribeDataError(moves.Error())));
     return std::move(moves).Value();
 }
-// 0x54a440 lee la cuenta y cuenta · 0x1c bytes sin tope; MuRet lee hasta 1 MiB.
+// 0x54a440 reads the count and count · 0x1c bytes with no cap; MuRet reads up to 1 MiB.
 constexpr std::size_t MaxMonsterSkillBytes = 1024u * 1024u;
 
-// 0x54a440: sin el archivo, la tabla de la .bss.
+// 0x54a440: without the file, the .bss table.
 Core::Expected<MonsterSkillTable, std::string> LoadMonsterSkills(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -309,10 +308,10 @@ Core::Expected<MonsterSkillTable, std::string> LoadMonsterSkills(const std::file
     return std::move(table).Value();
 }
 
-// 0x54e7f0 lee con getc hasta el final sin tope; MuRet lee hasta 1 MiB (el del laboratorio tiene 10 KB).
+// 0x54e7f0 reads with getc to the end with no cap; MuRet reads up to 1 MiB (the lab's has 10 KB).
 constexpr std::uintmax_t MaxNpcNameFileBytes = 1024u * 1024u;
 
-// 0x54e7f0: sin el archivo (fopen en NULL), la tabla queda como estaba.
+// 0x54e7f0: without the file (fopen gives NULL), the table stays as it was.
 Core::Expected<std::vector<NpcNameRecord>, std::string> LoadNpcNameFile(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
@@ -414,7 +413,7 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(itemSets).Error());
     }
     data.itemSets.emplace(std::move(itemSets).Value());
-    // 0x61ecdf: MonsterSkill.bmd, después de movereq.bmd (0x61ec8f) y de las tablas de los conjuntos (0x61ecd5).
+    // 0x61ecdf: MonsterSkill.bmd, after movereq.bmd (0x61ec8f) and the set tables (0x61ecd5).
     auto monsterSkills = LoadMonsterSkills(dataRoot);
     if (!monsterSkills.HasValue())
     {

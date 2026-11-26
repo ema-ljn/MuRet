@@ -31,7 +31,7 @@ MonsterSkills MonsterSkillTable::Of(std::uint16_t kind) const
     if (const auto found = records.find(kind); found != records.end())
         return found->second;
     MonsterSkills empty;
-    // 0x54a44f..0x54a461: los seis dwords desde 0x7437670, el tipo 0.
+    // 0x54a44f..0x54a461: the six dwords from 0x7437670, type 0.
     if (kind == 0)
     {
         empty.skills.fill(-1);
@@ -44,7 +44,7 @@ Core::Expected<MonsterSkillTable, Data::DataError> LoadMonsterSkillTable(std::sp
 {
     if (file.size() < CountSize)
         return Core::Unexpected(Data::DataError::FileTooShort);
-    // 0x54a490: la cuenta, en claro; 0x54a49b..0x54a4a0 la compara con signo.
+    // 0x54a490: the count, in the clear; 0x54a49b..0x54a4a0 compares it signed.
     const std::int32_t count = Int32At(file, 0);
     MonsterSkillTable table;
     for (std::int32_t i = 0; i < count; ++i)
@@ -52,7 +52,7 @@ Core::Expected<MonsterSkillTable, Data::DataError> LoadMonsterSkillTable(std::sp
         const std::size_t offset = CountSize + static_cast<std::size_t>(i) * MonsterSkillRecordSize;
         if (file.size() < offset + MonsterSkillRecordSize)
             return Core::Unexpected(Data::DataError::FileTooShort);
-        // 0x54a4a8..0x54a4b0: fread de 0x1c en el bloque y 0x5496c0 sobre él.
+        // 0x54a4a8..0x54a4b0: fread of 0x1c into the block and 0x5496c0 over it.
         std::array<std::byte, MonsterSkillRecordSize> block{};
         std::ranges::copy(file.subspan(offset, MonsterSkillRecordSize), block.begin());
         Crypto::Xor3(block);

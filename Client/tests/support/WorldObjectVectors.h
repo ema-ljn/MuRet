@@ -10,13 +10,13 @@
 #include <string>
 #include <vector>
 
-// Los vectores de los objetos del mapa 55 (tests/vectors/world55/objects.txt, de
-// docs/research/scripts/login/make_world55_vectors.py): lo que el código real del main.exe, emulado,
-// deja en cada objeto al crearlo (0x606660), en tres pasos (0x604ab0) y lo que le pasa a RenderBody o a
-// RenderMesh (0x602e90). Cada float viene como los bits que tenía en el binario.
+// The map 55 object vectors (tests/vectors/world55/objects.txt, from
+// docs/research/scripts/login/make_world55_vectors.py): what the main.exe's real code, emulated, leaves in each object
+// when creating it (0x606660), in three steps (0x604ab0) and what it passes to RenderBody or RenderMesh (0x602e90).
+// Each float comes as the bits it had in the binary.
 namespace Client::Tests
 {
-// Los campos del objeto de 0x1d4 bytes que lee el generador, en su orden.
+// The fields of the 0x1d4-byte object the generator reads, in their order.
 struct WorldObjectVectorState
 {
     float scale = 0.0f;          // +0xc
@@ -35,14 +35,14 @@ struct WorldObjectVectorState
     std::uint8_t action = 0;     // +0x111
 };
 
-// Una llamada del dibujo: RenderBody(modo, alpha, blendMesh, luz, U, V, malla oculta, −1) o
-// RenderMesh(malla, banderas, alpha, blendMesh, luz, U, V, −1), con el color del modelo (+0x48) y su
-// luz por vértice (+0x44; la rama del blendMesh de RenderMesh no la usa).
+// A draw call: RenderBody(mode, alpha, blendMesh, light, U, V, hidden mesh, −1) or RenderMesh(mesh, flags, alpha,
+// blendMesh, light, U, V, −1), with the model's color (+0x48) and its per-vertex light (+0x44; RenderMesh's blendMesh
+// branch does not use it).
 struct WorldObjectVectorCall
 {
     std::string name;
-    std::int32_t first = 0; // el modo de RenderBody, o la malla de RenderMesh
-    std::int32_t flags = 0; // las banderas de RenderMesh
+    std::int32_t first = 0; // RenderBody's mode, or RenderMesh's mesh
+    std::int32_t flags = 0; // RenderMesh's flags
     float alpha = 0.0f;
     std::int32_t blendMesh = 0;
     float blendMeshLight = 0.0f;
@@ -64,15 +64,15 @@ struct WorldObjectVector
 
 struct WorldObjectVectors
 {
-    // La luz del terreno fija que el generador le dio a 0x5ffce0.
+    // The fixed terrain light the generator gave 0x5ffce0.
     glm::vec3 terrainLight{};
     std::vector<WorldObjectVector> objects;
 };
 
-// La carpeta de los vectores del mapa 55 (tests/vectors/world55).
+// The map 55 vectors' folder (tests/vectors/world55).
 [[nodiscard]] std::filesystem::path World55VectorsDir();
 
-// Lee `path` en `out`; el error, si no se pudo, con el renglón.
+// Reads `path` into `out`; the error, if it could not, with the line.
 [[nodiscard]] std::optional<std::string> ReadWorldObjectVectors(const std::filesystem::path& path,
                                                                 WorldObjectVectors& out);
 } // namespace Client::Tests

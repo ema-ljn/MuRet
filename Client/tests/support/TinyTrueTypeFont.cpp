@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-// Las tablas son las de la especificación de OpenType (las de TrueType), con los campos en su
-// orden y en big endian; cada una lleva su nombre en un comentario donde el número no se explica.
+// The tables are those of the OpenType specification (TrueType's), with the fields in order and big-endian; each
+// carries its name in a comment where the number is not explained.
 namespace Client::Tests
 {
 namespace
@@ -26,15 +26,15 @@ constexpr std::uint16_t GlyphCount = 2;
 constexpr std::uint16_t FlatGlyph = 1;
 constexpr std::uint32_t Version1 = 0x00010000;
 
-// Un agregado y no un std::pair: el constructor de pair pasaría cada literal int a std::int16_t
-// adentro de <utility>, y MSVC lo avisa (C4242) con /W4 /WX.
+// An aggregate and not a std::pair: pair's constructor would convert each int literal to std::int16_t inside
+// <utility>, and MSVC warns (C4242) with /W4 /WX.
 struct Point
 {
     std::int16_t x = 0;
     std::int16_t y = 0;
 };
-// El .notdef, un cuadrado en el sentido de las agujas del reloj (el de afuera en TrueType), y la
-// raya sin área, con los cuatro puntos en y = 0.
+// The .notdef, a clockwise square (the outer one in TrueType), and the line without area, with its four points at
+// y = 0.
 constexpr std::array<Point, 4> Square = {Point{InkLeft, 0}, Point{InkLeft, InkTop}, Point{InkRight, InkTop},
                                          Point{InkRight, 0}};
 constexpr std::array<Point, 4> Flat = {Point{InkLeft, 0}, Point{300, 0}, Point{InkRight, 0}, Point{300, 0}};
@@ -69,7 +69,7 @@ public:
         m_bytes.insert(m_bytes.end(), bytes.begin(), bytes.end());
     }
 
-    // Las tablas y los glifos empiezan en un múltiplo de 4.
+    // Tables and glyphs start at a multiple of 4.
     void PadTo4()
     {
         while (m_bytes.size() % 4 != 0)
@@ -97,22 +97,22 @@ std::vector<std::uint8_t> Head()
     BigEndian head;
     head.U32(Version1);
     head.U32(Version1);   // fontRevision
-    head.U32(0);          // checkSumAdjustment: FreeType no lo mira
+    head.U32(0);          // checkSumAdjustment: FreeType does not check it
     head.U32(0x5f0f3cf5); // magicNumber
-    head.U16(0x000b);     // la línea de base en y = 0, el lsb en x = 0 y el ppem entero
+    head.U16(0x000b);     // the baseline at y = 0, the lsb at x = 0 and the ppem an integer
     head.U16(UnitsPerEm);
     for (int i = 0; i < 4; ++i)
     {
-        head.U32(0); // created y modified
+        head.U32(0); // created and modified
     }
-    head.I16(InkLeft); // la caja de todos los glifos: xMin, yMin, xMax e yMax
+    head.I16(InkLeft); // the box of all glyphs: xMin, yMin, xMax and yMax
     head.I16(0);
     head.I16(InkRight);
     head.I16(InkTop);
     head.U16(0); // macStyle
     head.U16(8); // lowestRecPPEM
     head.I16(2); // fontDirectionHint
-    head.I16(0); // indexToLocFormat: la loca de uint16, la mitad de cada offset
+    head.I16(0); // indexToLocFormat: uint16 loca, half of each offset
     head.I16(0); // glyphDataFormat
     return head.Take();
 }
@@ -131,7 +131,7 @@ std::vector<std::uint8_t> Hhea()
     hhea.I16(1);                                             // caretSlopeRise
     for (int i = 0; i < 6; ++i)
     {
-        hhea.I16(0); // caretSlopeRun, caretOffset y cuatro reservados
+        hhea.I16(0); // caretSlopeRun, caretOffset and four reserved
     }
     hhea.I16(0); // metricDataFormat
     hhea.U16(GlyphCount);
@@ -150,7 +150,7 @@ std::vector<std::uint8_t> Maxp()
     maxp.U16(2);                                         // maxZones
     for (int i = 0; i < 8; ++i)
     {
-        maxp.U16(0); // de maxTwilightPoints a maxComponentDepth: sin hinting ni compuestos
+        maxp.U16(0); // maxTwilightPoints to maxComponentDepth: no hinting or composites
     }
     return maxp.Take();
 }
@@ -166,7 +166,7 @@ std::vector<std::uint8_t> Hmtx()
     return hmtx.Take();
 }
 
-// Un cmap Unicode con segmentos de formato 4 para FlatGlyphLetter, el codepoint extra y 0xffff.
+// A Unicode cmap with format 4 segments for FlatGlyphLetter, the extra codepoint and 0xffff.
 std::vector<std::uint8_t> Cmap(std::uint16_t extraFlatCodePoint)
 {
     constexpr std::uint16_t Letter = static_cast<std::uint16_t>(FlatGlyphLetter);
@@ -186,7 +186,7 @@ std::vector<std::uint8_t> Cmap(std::uint16_t extraFlatCodePoint)
     cmap.U16(1);  // numTables
     cmap.U16(3);  // platformID
     cmap.U16(1);  // encodingID
-    cmap.U32(12); // offset: el subtable va después de este encabezado
+    cmap.U32(12); // offset: the subtable follows this header
     cmap.U16(4);  // format
     cmap.U16(length);
     cmap.U16(0); // language
@@ -209,7 +209,7 @@ std::vector<std::uint8_t> Cmap(std::uint16_t extraFlatCodePoint)
     {
         cmap.U16(static_cast<std::uint16_t>(FlatGlyph - mapped[index]));
     }
-    cmap.U16(1); // idDelta: 0xffff al glifo 0
+    cmap.U16(1); // idDelta: 0xffff to glyph 0
     for (std::uint16_t index = 0; index < segmentCount; ++index)
     {
         cmap.U16(0); // idRangeOffset
@@ -217,8 +217,8 @@ std::vector<std::uint8_t> Cmap(std::uint16_t extraFlatCodePoint)
     return cmap.Take();
 }
 
-// Un glifo simple de un contorno: la caja, el último punto, sin instrucciones, y cada punto sobre
-// la curva con sus deltas de 16 bits.
+// A simple one-contour glyph: the box, the last point, no instructions, and each point on the curve with its 16-bit
+// deltas.
 void AppendGlyph(BigEndian& glyf, const std::array<Point, 4>& points)
 {
     std::int16_t xMin = points[0].x;
@@ -241,7 +241,7 @@ void AppendGlyph(BigEndian& glyf, const std::array<Point, 4>& points)
     glyf.U16(0);                                             // instructionLength
     for (std::size_t i = 0; i < points.size(); ++i)
     {
-        glyf.U8(0x01); // ON_CURVE_POINT, x e y de 16 bits
+        glyf.U8(0x01); // ON_CURVE_POINT, with x and y as 16-bit values
     }
     Point previous;
     for (const Point& point : points)
@@ -292,7 +292,7 @@ std::uint32_t Tag(std::string_view name)
     return tag;
 }
 
-// La suma de la tabla en uint32 de big endian, con ceros hasta el múltiplo de 4.
+// The table's sum in big-endian uint32, with zeros up to the multiple of 4.
 std::uint32_t Checksum(const std::vector<std::uint8_t>& table)
 {
     std::uint32_t sum = 0;
@@ -311,13 +311,12 @@ std::uint32_t Checksum(const std::vector<std::uint8_t>& table)
 
 std::vector<std::uint8_t> TinyTrueTypeFont(std::uint16_t extraFlatCodePoint)
 {
-    // searchRange es 16 por la potencia de 2 más grande que no pasa de TableCount (4), y
-    // entrySelector, su logaritmo.
+    // searchRange is 16 times the largest power of 2 not above TableCount (4), and entrySelector, its logarithm.
     constexpr std::uint16_t TableCount = 7;
     constexpr std::uint16_t SearchRange = 16 * 4;
     constexpr std::uint16_t EntrySelector = 2;
     GlyphTables glyphs = GlyfAndLoca();
-    // En el orden de sus etiquetas, como pide el directorio.
+    // In their tags' order, as the directory requires.
     const std::array<Table, TableCount> tables = {{
         {"cmap", Cmap(extraFlatCodePoint)},
         {"glyf", std::move(glyphs.glyf)},

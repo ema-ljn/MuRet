@@ -14,13 +14,12 @@
 #include <utility>
 #include <vector>
 
-// Los paquetes del cable del laboratorio (WireCapture.h), cortados con el PacketReader, para los
-// tests golden que miran lo que llevan. Ningún mensaje imprime un byte del cable.
+// The lab's wire packets (WireCapture.h), split with the PacketReader, for the golden tests that look at what they
+// carry. No message prints a wire byte.
 namespace Client::Tests
 {
-// Los paquetes de `reads`, en orden, cortados con un PacketReader con `obfuscation`: un Feed por
-// lectura. Si el corte falla o sobran bytes, el test falla con el número de la conexión, y vuelve
-// lo que haya salido.
+// The packets of `reads`, in order, split with a PacketReader with `obfuscation`: one Feed per read. If the split fails
+// or bytes are left over, the test fails with the connection's number, and it returns what came out.
 inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads,
                                                const Network::IObfuscation& obfuscation, std::size_t connection)
 {
@@ -49,15 +48,15 @@ inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const
     return packets;
 }
 
-// Lo mismo, sin ofuscación.
+// The same, without obfuscation.
 inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads,
                                                std::size_t connection)
 {
     return CutPackets(reads, Network::IdentityObfuscation::Shared(), connection);
 }
 
-// Una copia de cada lectura con cada byte con XOR `mask`: el 0xAA de FoxAnti en todo lo que manda
-// el GameServer del laboratorio, deshecho a mano hasta que lo haga el lector (CL2.4).
+// A copy of each read with each byte XORed with `mask`: FoxAnti's 0xAA on everything the lab's GameServer sends, undone
+// by hand until the reader does it (CL2.4).
 inline std::vector<std::vector<std::byte>> Unmasked(const std::vector<std::span<const std::byte>>& reads,
                                                     std::byte mask)
 {

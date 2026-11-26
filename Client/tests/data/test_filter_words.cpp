@@ -16,8 +16,7 @@
 #include <string>
 #include <vector>
 
-// Client::Tables::LoadFilterWords: FilterName.bmd y Filter.bmd (0x549fa0 y 0x549c60), con
-// palabras sintéticas.
+// FilterName.bmd and Filter.bmd (0x549fa0 and 0x549c60), with synthetic words.
 namespace
 {
 using Client::Data::DataError;
@@ -34,8 +33,8 @@ std::vector<std::byte> FilterFile(const std::vector<std::string>& words,
     return Client::Tests::FilterFileBytes(words, checksumKey);
 }
 
-// La suma es la de las tablas (TableChecksum, con la paridad de Item.bmd) con la clave << 9 de
-// semilla: la del laboratorio da (GoldenFilterWords). La de un archivo no es la del otro.
+// The sum is the tables' (TableChecksum, with Item.bmd's parity) with key << 9 as seed: the lab's matches
+// (GoldenFilterWords). One file's is not the other's.
 TEST(FilterWordsTest, EachFileHasItsChecksumKey)
 {
     EXPECT_EQ(FilterNameChecksumKey << 9, 0x578200u);
@@ -44,8 +43,8 @@ TEST(FilterWordsTest, EachFileHasItsChecksumKey)
     EXPECT_FALSE(LoadFilterWords(FilterFile({"Synth"}, FilterChecksumKey), FilterNameChecksumKey).HasValue());
 }
 
-// Cada registro de 20 lleva el XOR3 desde su primer byte (0x5496c0 por registro): como 20 no es
-// múltiplo de 3, no es lo mismo que de punta a punta.
+// Each 20-byte record carries the XOR3 from its first byte (0x5496c0 per record): since 20 is not a multiple of 3, it
+// is not the same as end to end.
 TEST(FilterWordsTest, EachRecordIsDecodedFromItsStart)
 {
     const auto words = LoadFilterWords(FilterFile({"Synth", "abcdefghijklmnopqrs"}), FilterNameChecksumKey);
@@ -54,11 +53,10 @@ TEST(FilterWordsTest, EachRecordIsDecodedFromItsStart)
     EXPECT_EQ(words.Value(), (std::vector<std::string>{"Synth", "abcdefghijklmnopqrs"}));
 }
 
-// La lectura para en el primer registro vacío: lo que viene después no cuenta.
 TEST(FilterWordsTest, TheWordsEndAtTheFirstEmptyRecord)
 {
     std::vector<std::byte> file = FilterFile({"one", "two"});
-    // Un tercero después del vacío, con la suma rehecha.
+    // A third one after the empty one, with the sum redone.
     std::span<std::byte> fourth(file.data() + 3 * FilterRecordSize, FilterRecordSize);
     std::ranges::fill(fourth, std::byte{0});
     fourth[0] = std::byte{'x'};
@@ -78,7 +76,6 @@ TEST(FilterWordsTest, TheWordsEndAtTheFirstEmptyRecord)
     EXPECT_TRUE(LoadFilterWords(FilterFile({}), FilterNameChecksumKey).Value().empty());
 }
 
-// Un registro lleno, sin cero, es una palabra de 20 bytes.
 TEST(FilterWordsTest, AFullRecordIsAWordOfTwentyBytes)
 {
     const auto words = LoadFilterWords(FilterFile({std::string(20, 'w'), "x"}), FilterNameChecksumKey);
@@ -87,8 +84,7 @@ TEST(FilterWordsTest, AFullRecordIsAWordOfTwentyBytes)
     EXPECT_EQ(words.Value(), (std::vector<std::string>{std::string(20, 'w'), "x"}));
 }
 
-// Con los 1.000 llenos, 0x549fa0 sale por el tope (0x54a139) sin guardar la cuenta, que queda en 0:
-// ninguna palabra.
+// With all 1,000 full, 0x549fa0 exits at the cap (0x54a139) without storing the count, which stays 0: no words.
 TEST(FilterWordsTest, ATableWithoutAnEmptyRecordHasNoWords)
 {
     const std::vector<std::string> all(1000, std::string(20, 'w'));
@@ -99,8 +95,8 @@ TEST(FilterWordsTest, ATableWithoutAnEmptyRecordHasNoWords)
     EXPECT_TRUE(words.Value().empty());
 }
 
-// Con otra suma, ChecksumMismatch (el original avisa "File corrupted" y cierra); corto,
-// FileTooShort; con la clave del otro archivo, tampoco da.
+// With another sum, ChecksumMismatch (the original shows "File corrupted" and closes); short, FileTooShort; with the
+// other file's key, it does not match either.
 TEST(FilterWordsTest, AWrongSumOrAShortFileIsAnError)
 {
     std::vector<std::byte> file = FilterFile({"Synth"});

@@ -13,7 +13,6 @@
 #include <span>
 #include <vector>
 
-// Client::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -34,7 +33,7 @@ std::vector<std::byte> PlainRecords()
     return BytePattern(ItemTableSize, 37, 11);
 }
 
-// Los registros cifrados y, detrás, el checksum que les corresponde más `offBy`: con 0, el bueno.
+// The encrypted records and, after them, their checksum plus `offBy`: with 0, the right one.
 std::vector<std::byte> ItemFile(const std::vector<std::byte>& plain, std::uint32_t offBy = 0)
 {
     const std::vector<std::byte> encrypted = EncryptRecords(plain, ItemRecordSize);
@@ -54,8 +53,8 @@ TEST(ItemTableTest, LoadsTheRecordsAndChecksTheChecksum)
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value().table, plain), std::nullopt);
 }
 
-// Q-C01: con un checksum que no coincide la tabla se carga igual, y el resultado lo dice. Uno
-// que difiere solo en el bit más alto también cuenta: se comparan los 32 bits.
+// Q-C01: with a checksum that does not match the table loads anyway, and the result says so. One that differs only in
+// the top bit also counts: all 32 bits are compared.
 TEST(ItemTableTest, AWrongChecksumStillLoads)
 {
     const std::vector<std::byte> plain = PlainRecords();
@@ -71,7 +70,6 @@ TEST(ItemTableTest, AWrongChecksumStillLoads)
     }
 }
 
-// Un registro cambiado después de calcular el checksum tampoco coincide, y se carga como está.
 TEST(ItemTableTest, AChangedRecordDoesNotMatchButLoads)
 {
     std::vector<std::byte> plain = PlainRecords();
@@ -86,8 +84,7 @@ TEST(ItemTableTest, AChangedRecordDoesNotMatchButLoads)
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value().table, plain), std::nullopt);
 }
 
-// Con todos los registros y sin los 4 bytes del checksum, se carga igual: el original tampoco lo
-// mira (Q-C01).
+// The original does not look at it either (Q-C01).
 TEST(ItemTableTest, WithoutItsChecksumStillLoads)
 {
     const std::vector<std::byte> plain = PlainRecords();
@@ -104,7 +101,7 @@ TEST(ItemTableTest, WithoutItsChecksumStillLoads)
     }
 }
 
-// Q-C24: sin todos los registros es un error y no hay tabla.
+// Q-C24: an error and no table.
 TEST(ItemTableTest, ShortFileIsAnError)
 {
     const std::vector<std::byte> file = ItemFile(PlainRecords());
@@ -119,7 +116,7 @@ TEST(ItemTableTest, ShortFileIsAnError)
     EXPECT_EQ(empty.Error(), DataError::FileTooShort);
 }
 
-// Los bytes de más se ignoran, como los que trae la item.bmd del laboratorio después del checksum.
+// Like the ones the lab's item.bmd carries after the checksum.
 TEST(ItemTableTest, ExtraBytesAreIgnored)
 {
     constexpr std::size_t LabExtraBytes = 0x50;

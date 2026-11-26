@@ -11,8 +11,8 @@
 
 namespace Client::Tests
 {
-// Con el tamaño de antemano y un solo read(): leer con istreambuf_iterator no marca el stream si
-// falla, y libstdc++ tira una excepción en vez de devolver nada.
+// The size up front and a single read(): reading with istreambuf_iterator does not mark the stream if it fails, and
+// libstdc++ throws an exception instead of returning nothing.
 std::optional<std::vector<char>> ReadFileBytes(const std::filesystem::path& path)
 {
     std::error_code error;

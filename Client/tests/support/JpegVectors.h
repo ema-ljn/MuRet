@@ -10,33 +10,32 @@
 #include <string_view>
 #include <vector>
 
-// Los vectores JPEG de CI (Client/tests/vectors/jpeg/README.md): JPEG sintéticos chicos y lo que
-// da decodificarlos con la IJG libjpeg 6b, la del original. Están en el repo, así que corren sin
-// la carpeta golden.
+// The CI JPEG vectors (Client/tests/vectors/jpeg/README.md): small synthetic JPEGs and what decoding them with IJG
+// libjpeg 6b, the original's, gives. They are in the repo, so they run without the golden folder.
 namespace Client::Tests
 {
-// La carpeta de los vectores. CMake la pasa en MU_CLIENT_JPEG_VECTORS_DIR.
+// CMake passes it in MU_CLIENT_JPEG_VECTORS_DIR.
 inline std::filesystem::path JpegVectorsDir()
 {
     return MU_CLIENT_JPEG_VECTORS_DIR;
 }
 
-// Los bytes del vector `name` (por ejemplo "gray.jpg"). Si no está, el test falla y devuelve nada.
+// `name` is like "gray.jpg". If it is missing, the test fails and it returns nothing.
 inline std::vector<std::byte> ReadJpegVector(std::string_view name)
 {
     return ReadVectorFile(JpegVectorsDir(), name);
 }
 
-// Los OZJ de la carpeta golden del laboratorio, contando los 7 TGA (05-formatos-de-datos.md, la
-// tabla de formatos): las líneas de lab-6b.txt.
+// The OZJ files of the lab's golden folder, counting the 7 TGAs (05-formatos-de-datos.md, the formats table): the
+// lines of lab-6b.txt.
 inline constexpr std::size_t OzjFilesOfTheLab = 2387;
 
-// Los bytes que tiene un OZJ antes del JPEG: los 24 primeros del mismo JPEG, que repite el
-// exportador del original (0x63b280).
+// The bytes an OZJ has before the JPEG: the first 24 of the same JPEG, which the original's exporter repeats
+// (0x63b280).
 inline constexpr std::size_t OzjRepeatedBytes = 24;
 
-// Un OZJ con `jpeg` adentro, como lo arma el exportador: los OzjRepeatedBytes primeros bytes del
-// JPEG y después el JPEG entero.
+// An OZJ with `jpeg` inside, as the exporter builds it: the JPEG's first OzjRepeatedBytes bytes and then the whole
+// JPEG.
 inline std::vector<std::byte> OzjOf(std::span<const std::byte> jpeg)
 {
     if (jpeg.size() < OzjRepeatedBytes)

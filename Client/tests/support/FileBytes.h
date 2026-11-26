@@ -4,14 +4,12 @@
 #include <optional>
 #include <vector>
 
-// Leer un archivo entero, para los tests golden. El producto no lee del disco en la capa de datos:
-// sus cargadores reciben los bytes.
+// Reads a whole file, for the golden tests. The product does not read from disk in the data layer: its loaders
+// receive the bytes.
 namespace Client::Tests
 {
-// Todos los bytes de `path`, o std::nullopt si no es un archivo común (una carpeta, por ejemplo) o
-// no se pudo leer entero. Van como char: un cargador los recibe como std::as_bytes(std::span(*file)).
-//
-// Lee tantos bytes como el tamaño que informa el sistema, así que sirve para archivos que no
-// cambian mientras se leen, como los golden. Uno de /proc informa 0 bytes y se lee vacío.
+// std::nullopt if it is not a regular file (a folder, for example) or could not be read whole. As char: a loader
+// receives them as std::as_bytes(std::span(*file)). Reads as many bytes as the size the system reports, so it suits
+// files that do not change while read, like the golden ones. One from /proc reports 0 bytes and reads empty.
 std::optional<std::vector<char>> ReadFileBytes(const std::filesystem::path& path);
 } // namespace Client::Tests

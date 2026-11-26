@@ -7,8 +7,8 @@
 
 namespace Client::Tests
 {
-// Un medidor de texto sin fuentes: 6 × 13 píxeles por letra. Para los tests que pasan por 0x555190 (un mensaje del
-// juego) sin mirar dónde cae.
+// A text measurer without fonts: 6 × 13 pixels per letter. For the tests that go through 0x555190 (a game message)
+// without looking at where it lands.
 class LetterMeasure final : public Render::Text::ITextMeasure
 {
 public:

@@ -26,7 +26,7 @@ namespace
 {
 using Core::Unexpected;
 
-// Una línea de la traza: el nombre de la llamada y lo que va entre sus paréntesis.
+// A trace line: the call's name and what is between its parentheses.
 struct Call
 {
     std::string_view name;
@@ -44,7 +44,7 @@ std::string_view Trim(std::string_view text)
     return text.substr(first, last - first + 1);
 }
 
-// "nombre(argumentos)" con lo que siga después del último paréntesis ("=true"), o std::nullopt.
+// "name(arguments)" with whatever follows the last parenthesis ("=true"), or std::nullopt.
 std::optional<Call> SplitCall(std::string_view line)
 {
     const std::size_t open = line.find('(');
@@ -56,7 +56,7 @@ std::optional<Call> SplitCall(std::string_view line)
     return Call{line.substr(0, open), line.substr(open + 1, close - open - 1)};
 }
 
-// Los argumentos separados por comas, sin los corchetes de los arreglos.
+// The comma-separated arguments, without the array brackets.
 std::vector<std::string_view> SplitArguments(std::string_view arguments)
 {
     std::vector<std::string_view> parts;
@@ -86,7 +86,7 @@ std::vector<std::string_view> SplitArguments(std::string_view arguments)
     }
 }
 
-// Los números de una llamada, si son exactamente `count`.
+// A call's numbers, if there are exactly `count`.
 template <typename T> std::optional<std::vector<T>> Numbers(std::string_view arguments, std::size_t count)
 {
     const std::vector<std::string_view> parts = SplitArguments(arguments);
@@ -112,8 +112,8 @@ template <typename T> std::optional<std::vector<T>> Numbers(std::string_view arg
 // glColor4ub va de 0 a 255.
 constexpr float ByteColorScale = 255.0f;
 
-// Cuántos números lleva cada llamada de las matrices; glMatrixMode, glLoadIdentity, glPushMatrix y
-// glPopMatrix, ninguno (el modo de glMatrixMode va aparte).
+// How many numbers each matrix call takes; glMatrixMode, glLoadIdentity, glPushMatrix and glPopMatrix, none
+// (glMatrixMode's mode goes separately).
 constexpr std::array<std::pair<std::string_view, std::size_t>, 8> MatrixCalls = {{
     {"glMatrixMode", 0},
     {"glLoadIdentity", 0},
@@ -125,12 +125,12 @@ constexpr std::array<std::pair<std::string_view, std::size_t>, 8> MatrixCalls = 
     {"glOrtho", 6},
 }};
 
-// Lo que lleva el lector mientras recorre la traza: el estado de GL que importa y el frame de ahora.
-// Cada llamada que se lee tiene su función, con el nombre y los argumentos; las demás no hacen nada.
+// What the reader carries while walking the trace: the GL state that matters and the current frame. Each call it
+// reads has its function, with the name and the arguments; the others do nothing.
 class Reader
 {
 public:
-    // Una línea; un texto con el error si no se entiende.
+    // One line; an error text if it is not understood.
     std::optional<std::string> Line(std::size_t number, std::string_view line);
     GlTrace Finish()
     {
@@ -165,7 +165,6 @@ private:
     GlTraceState m_state;
 };
 
-// El texto del error de una llamada que no lleva `count` números.
 std::string NotNumbers(std::string_view name, std::size_t count)
 {
     return std::string(name) + " no lleva " + std::to_string(count) + " números";
@@ -291,8 +290,8 @@ std::optional<std::string> Reader::BindTexture(std::string_view, std::string_vie
     return std::nullopt;
 }
 
-// glEnable y glDisable de lo que decide la mezcla; los de otra cosa (GL_TEXTURE_2D, GL_FOG…) no
-// cambian nada.
+// glEnable and glDisable of what decides the blending; those of something else (GL_TEXTURE_2D, GL_FOG…) change
+// nothing.
 std::optional<std::string> Reader::Enable(std::string_view name, std::string_view arguments)
 {
     const std::string_view capability = Trim(arguments);
@@ -375,7 +374,7 @@ std::optional<std::string> Reader::TexCoord(std::string_view name, std::string_v
     return std::nullopt;
 }
 
-// glColor3fv y glColor3f, con alfa 1, y glColor4f.
+// glColor3fv and glColor3f, with alpha 1, and glColor4f.
 std::optional<std::string> Reader::Color(std::string_view name, std::string_view arguments)
 {
     const std::size_t count = name == "glColor4f" ? 4 : 3;
@@ -402,7 +401,7 @@ std::optional<std::string> Reader::ByteColor(std::string_view name, std::string_
     return std::nullopt;
 }
 
-// glVertex3fv y glVertex2f, con z en 0.
+// glVertex3fv and glVertex2f, with z at 0.
 std::optional<std::string> Reader::Vertex(std::string_view name, std::string_view arguments)
 {
     const std::size_t count = name == "glVertex3fv" ? 3 : 2;
@@ -420,8 +419,7 @@ std::optional<std::string> Reader::Vertex(std::string_view name, std::string_vie
     return std::nullopt;
 }
 
-// La cabecera de GLIntercept, antes de la primera llamada: líneas vacías, o que empiezan con "=" o con
-// un espacio.
+// GLIntercept's header, before the first call: empty lines, or lines that start with "=" or a space.
 bool IsHeader(std::string_view line)
 {
     return Trim(line).empty() || line.front() == '=' || line.front() == ' ';

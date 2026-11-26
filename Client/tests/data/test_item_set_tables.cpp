@@ -13,8 +13,8 @@
 #include <span>
 #include <vector>
 
-// Client::Tables::LoadItemSetTypeTable y LoadItemSetOptionTable: ItemSetType.bmd e
-// ItemSetOption.bmd con archivos sintéticos (05, "Las tablas de los conjuntos"; 0x40c660 y 0x40c850).
+// ItemSetType.bmd and ItemSetOption.bmd with synthetic files (05, "Las tablas de los conjuntos"; 0x40c660 and
+// 0x40c850).
 namespace
 {
 using Client::Data::DataError;
@@ -47,7 +47,7 @@ std::vector<std::byte> PlainOptions()
     return BytePattern(ItemSetOptionTableSize, 53, 13);
 }
 
-// 0x40c77e..0x40c79a y 0x40c977..0x40c9a1: el XOR3 vuelve a empezar en cada registro.
+// 0x40c77e..0x40c79a and 0x40c977..0x40c9a1: the XOR3 starts again at each record.
 TEST(ItemSetTablesTest, LoadsBothTablesInTheClear)
 {
     const std::vector<std::byte> types = PlainTypes();
@@ -64,8 +64,8 @@ TEST(ItemSetTablesTest, LoadsBothTablesInTheClear)
     EXPECT_EQ(FirstRecordThatDiffers(loadedOptions.Value(), options), std::nullopt);
 }
 
-// 0x40c6bb..0x40c6fe y 0x40c8ae..0x40c8f1: la clave de cada tabla y la paridad de Item.bmd. Con otra
-// clave, la otra paridad o un byte cambiado, "File corrupted." y no hay tabla.
+// 0x40c6bb..0x40c6fe and 0x40c8ae..0x40c8f1: each table's key and Item.bmd's parity. With another key, the other
+// parity or a changed byte, "File corrupted." and no table.
 TEST(ItemSetTablesTest, EachTableChecksItsOwnKeyAndTheItemParity)
 {
     const std::vector<std::byte> encryptedTypes = EncryptRecords(PlainTypes(), ItemSetTypeRecordSize);
@@ -86,8 +86,8 @@ TEST(ItemSetTablesTest, EachTableChecksItsOwnKeyAndTheItemParity)
     EXPECT_EQ(changedOptions.Error(), DataError::ChecksumMismatch);
 }
 
-// Q-C24: sin todo el checksum o sin todos los registros, error y no hay tabla. El original leería igual
-// y compararía con lo que hubiera en la memoria.
+// Q-C24: without the whole checksum or without all the records. The original would read anyway and compare with
+// whatever was in memory.
 TEST(ItemSetTablesTest, AShortFileIsAnError)
 {
     const std::vector<std::byte> types = ItemSetTypeFileBytes(PlainTypes());
@@ -107,7 +107,7 @@ TEST(ItemSetTablesTest, AShortFileIsAnError)
     EXPECT_EQ(shortOptions.Error(), DataError::FileTooShort);
 }
 
-// Los fread de tamaño fijo no miran lo que sigue.
+// The fixed-size freads do not look at what follows.
 TEST(ItemSetTablesTest, ExtraBytesAreIgnored)
 {
     const std::vector<std::byte> plain = PlainOptions();

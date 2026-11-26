@@ -24,15 +24,13 @@
 #include <utility>
 #include <vector>
 
-// El IFrameTarget de los tests de las escenas (CL5.4), en el lugar del Gl::GlFrameTarget de
-// main.cpp: da un lienzo con un SpriteBatch de verdad, el RecordingTextDrawer y un mundo que anota,
-// y guarda cada frame como una lista de lo que se dibujó, en el orden en que GL lo dibujaría: cada
-// quad del lote (con su textura, su mezcla, su alpha test y sus vértices), cada texto (el quad de
-// marca, con lo que pidió la escena), cada fin del 2D (flushSprites), cada pase 3D del mundo, con su
-// pase, y cada fin del pase de los modelos (flushModels, CL6.3), con sus tramos y sus vértices. Lo
-// del lote se anota al terminar un tramo: en un fin del 2D, en un pase 3D o en el Present. Un
-// BeginFrame con el frame anterior abierto, un Present sin frame o con modelos sin su fin, hacen
-// fallar el test.
+// The scene tests' IFrameTarget, in place of main.cpp's Gl::GlFrameTarget: it gives a canvas with a real SpriteBatch,
+// the RecordingTextDrawer and a recording world, and stores each frame as a list of what was drawn, in the order GL
+// would draw it: each batch quad (with its texture, blending, alpha test and vertices), each text (the marker quad,
+// with what the scene asked for), each 2D end (flushSprites), each world 3D pass, with its pass, and each end of the
+// models pass (flushModels), with its runs and vertices. The batch is recorded when a run ends: at a 2D end, at a 3D
+// pass or at Present. A BeginFrame with the previous frame open, or a Present without a frame or with models without
+// their end, fail the test.
 namespace Client::Tests
 {
 struct FrameEvent
@@ -46,19 +44,19 @@ struct FrameEvent
         Models,
     };
     Kind kind = Kind::Quad;
-    // Quad y Text: el estado del tramo y los seis vértices del quad.
+    // Quad and Text: the run's state and the quad's six vertices.
     std::optional<Render::TextureSlot> texture;
     Render::BlendMode blend = Render::BlendMode::Alpha;
     bool alphaTest = true;
     std::array<Render::SpriteVertex, 6> vertices{};
-    // Text: lo que pidió la escena.
+    // Text: what the scene asked for.
     RecordedText text;
     // World.
     Render::Frame::SceneWorld world{};
     float alpha = 0.0f;
-    // World y Models: el pase.
+    // World and Models: the pass.
     std::optional<Render::Pass3D> pass;
-    // Models: los tramos y los vértices del lote.
+    // Models: the batch's runs and vertices.
     std::vector<Render::ModelDrawCommand> modelCommands;
     std::vector<Render::ModelVertex> modelVertices;
 };
@@ -121,19 +119,19 @@ public:
         frames.back().presented = true;
     }
 
-    // Si hay un frame entre su BeginFrame y su Present.
+    // Whether a frame is between its BeginFrame and its Present.
     [[nodiscard]] bool FrameOpen() const
     {
         return !frames.empty() && !frames.back().presented;
     }
 
-    // El área de dibujo de los frames que siguen, como cuando cambia la ventana.
+    // The drawing area of the following frames, as when the window changes.
     void SetScreen(Core::PixelSize screen)
     {
         m_screen = screen;
     }
 
-    // Los textos que pidieron las escenas, en orden, de todos los frames.
+    // The texts the scenes asked for, in order, from all frames.
     [[nodiscard]] const std::vector<RecordedText>& Texts() const
     {
         return m_text.texts;
@@ -142,7 +140,7 @@ public:
     std::vector<RecordedFrame> frames;
 
 private:
-    // Un mundo que llama a `draw`.
+    // A world that calls `draw`.
     class WorldRecorder final : public Render::Frame::IWorldView
     {
     public:
@@ -157,7 +155,7 @@ private:
         std::function<void(Render::Frame::SceneWorld, const Render::Pass3D&, float)> m_draw;
     };
 
-    // Anota los quads del lote que no se anotaron todavía, en orden.
+    // Records the batch quads not recorded yet, in order.
     void Sync()
     {
         const auto vertices = m_sprites.Vertices();
@@ -192,7 +190,7 @@ private:
         m_synced = vertices.size();
     }
 
-    // El fin del 2D: lo del lote se dibuja y el lote queda vacío, con su estado.
+    // The end of the 2D: the batch is drawn and left empty, with its state.
     void Flush()
     {
         if (!FrameOpen())
@@ -208,7 +206,7 @@ private:
         m_synced = 0;
     }
 
-    // El fin del pase de los modelos: lo del lote se anota y el lote queda vacío, con el mismo pase.
+    // The end of the models pass: the batch is recorded and left empty, with the same pass.
     void FlushModels()
     {
         if (!FrameOpen())
@@ -250,7 +248,7 @@ private:
     RecordingTextDrawer m_text;
     WorldRecorder m_world;
     std::optional<Render::Frame::SceneCanvas> m_canvas;
-    // Cuántos vértices del lote ya se anotaron, y cuántos textos.
+    // How many batch vertices were already recorded, and how many texts.
     std::size_t m_synced = 0;
     std::size_t m_textsSynced = 0;
 };

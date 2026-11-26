@@ -6,14 +6,14 @@
 #include <string_view>
 #include <system_error>
 
-// Una carpeta temporal que se crea vacía y se borra al salir del test. Con un sufijo al azar, dos
-// corridas a la vez (Debug y Release, dos worktrees) no se pisan.
+// A temporary folder created empty and deleted when the test ends. With a random suffix, two runs at once (Debug and
+// Release, two worktrees) do not collide.
 namespace Client::Tests
 {
 class TemporaryFolder
 {
 public:
-    // `name` va en el nombre de la carpeta, para saber de qué test es si queda una.
+    // `name` goes in the folder's name, to know which test it belongs to if one is left over.
     explicit TemporaryFolder(std::string_view name)
         : m_path(std::filesystem::temp_directory_path() /
                  ("muret-" + std::string(name) + "-" + std::to_string(std::random_device{}())))

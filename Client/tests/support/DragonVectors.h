@@ -8,13 +8,12 @@
 #include <string>
 #include <vector>
 
-// Los vectores del dragón del login (tests/vectors/world55/dragon.txt, de
-// docs/research/scripts/login/make_dragon_vectors.py): lo que el código real del main.exe, emulado,
-// deja en el efecto 0xb4 al crearlo (0x518cf0) y después de cada paso (0x5208a0). Cada float viene
-// como los bits que tenía en el binario.
+// The login dragon's vectors (tests/vectors/world55/dragon.txt, from docs/research/scripts/login/
+// make_dragon_vectors.py): what main.exe's real code, emulated, leaves in effect 0xb4 when it is created (0x518cf0)
+// and after each step (0x5208a0). Each float comes as the bits it had in the binary.
 namespace Client::Tests
 {
-// Los campos del efecto de 0x1d4 bytes que lee el generador, en su orden.
+// The fields of the 0x1d4-byte effect the generator reads, in its order.
 struct DragonVectorState
 {
     bool alive = false;          // +0x0
@@ -46,11 +45,10 @@ struct DragonVectors
 {
     DragonVectorState created;
     std::vector<DragonVectorState> steps;
-    // Las llamadas a rand() de todos los pasos (una por paso: una luz que el 0xb4 no usa).
+    // All steps' rand() calls (one per step: a light the 0xb4 does not use).
     std::int32_t randomCalls = 0;
 };
 
-// La carpeta de los vectores del mapa 55 es la de WorldObjectVectors.h (World55VectorsDir).
-// Lee `path` en `out`; el error, si no se pudo, con el renglón.
+// The map 55 vectors' folder is WorldObjectVectors.h's (World55VectorsDir). Returns the error, if any, with the line.
 [[nodiscard]] std::optional<std::string> ReadDragonVectors(const std::filesystem::path& path, DragonVectors& out);
 } // namespace Client::Tests

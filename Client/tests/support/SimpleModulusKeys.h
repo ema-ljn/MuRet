@@ -6,11 +6,10 @@
 
 #include <utility>
 
-// Claves del SimpleModulus para los tests: la identidad de mu-client y dos pares sintéticos,
-// escritos como literales. Las reales están en los archivos de clave (KeyFiles.h).
-//
-// Encryption() y Decryption() arman una clave que tiene que servir: si FromLanes la rechaza, el
-// test falla y Value() corta el programa con un mensaje. Es un error del literal, no del código.
+// SimpleModulus keys for the tests: mu-client's identity key and two synthetic pairs, written as literals. The real
+// ones are in the key files (KeyFiles.h). Encryption() and Decryption() build a key that must be valid: if FromLanes
+// rejects it, the test fails and Value() aborts the program with a message. It is an error of the literal, not of
+// the code.
 namespace Client::Tests
 {
 inline Crypto::EncryptionKey Encryption(const Crypto::Lanes& modulus, const Crypto::Lanes& key,
@@ -29,8 +28,8 @@ inline Crypto::DecryptionKey Decryption(const Crypto::Lanes& modulus, const Cryp
     return std::move(built).Value();
 }
 
-// Un par de claves: las dos con el mismo módulo y el mismo XOR, y en cada carril la de descifrar
-// es la inversa de la de cifrar módulo m (`pow(clave, -1, m)` de Python).
+// A key pair: both with the same modulus and the same XOR, and in each lane the decryption key is the inverse of the
+// encryption key modulo m (Python's `pow(clave, -1, m)`).
 struct KeyPair
 {
     Crypto::EncryptionKey encryption;
@@ -43,17 +42,17 @@ inline KeyPair PairOf(const Crypto::Lanes& modulus, const Crypto::Lanes& encrypt
     return {Encryption(modulus, encryptionKey, xorKey), Decryption(modulus, decryptionKey, xorKey)};
 }
 
-// La clave identidad de mu-client (identity_key, en tests/net/test_net_send.c): módulo 65537,
-// clave 1 y XOR 0 en los cuatro carriles. Multiplicar por 1 módulo 65537 no cambia un carril, pero
-// el encadenamiento con el anterior, la segunda pasada y los 18 bits sí.
+// mu-client's identity key (identity_key, in tests/net/test_net_send.c): modulus 65537, key 1 and XOR 0 in the four
+// lanes. Multiplying by 1 modulo 65537 does not change a lane, but the chaining with the previous one, the second pass
+// and the 18 bits do.
 inline KeyPair IdentityPair()
 {
     return PairOf({65537, 65537, 65537, 65537}, {1, 1, 1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0});
 }
 
-// Dos pares sintéticos, uno con módulos de 17 bits y otro de 18. En los dos, clave de cifrar por
-// 0xFFFF y clave de descifrar por (m - 1) entran en 32 bits, como en las claves reales: así ningún
-// producto da la vuelta con un bloque bien cifrado, y descifrar deshace cifrar.
+// Two synthetic pairs, one with 17-bit moduli and the other with 18. In both, the encryption key times 0xFFFF and the
+// decryption key times (m - 1) fit in 32 bits, as in the real keys: so no product wraps with a well-encrypted block,
+// and decrypting undoes encrypting.
 inline KeyPair Pair17()
 {
     return PairOf({0x1A47D, 0x13273, 0x1CEDF, 0x1E0FF}, {0xE5E9, 0x4BB8, 0x4EC1, 0x8DD9},

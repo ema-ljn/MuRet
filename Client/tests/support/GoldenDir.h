@@ -8,157 +8,142 @@
 #include <string>
 #include <string_view>
 
-// La carpeta golden: el Data\ del cliente original (Enc1.dat, Dec2.dat, Player\, World1\…).
-//
-// Es la del repo, Client/assets/Data, la misma que la del laboratorio
-// (analysis/decompilacion-maxima/assets/original-data de EmaNLJN/mu-online-reverse-lab, por
-// SHA-256). MU_CLIENT_GOLDEN_DIR apunta a otra, si hace falta. La regla:
-//   - si la variable no está o está vacía, el test lee la del repo (D-C9, desde el 2026-11-04);
-//   - si la carpeta no existe, o le falta el archivo que el test pide, el test falla.
-// Las otras carpetas de este archivo (los volcados, el cable, las trazas) están fuera del repo, y
-// sin su variable el test se saltea.
+// The golden folder: the original client's Data\ (Enc1.dat, Dec2.dat, Player\, World1\…).
+// It is the repo's, Client/assets/Data, the same as the lab's (analysis/decompilacion-maxima/assets/original-data of
+// EmaNLJN/mu-online-reverse-lab, by SHA-256). MU_CLIENT_GOLDEN_DIR points to another one if needed. The rule:
+//   - if the variable is unset or empty, the test reads the repo's (D-C9);
+//   - if the folder does not exist, or lacks the file the test asks for, the test fails.
+// The other folders in this file (the dumps, the wire, the traces) are outside the repo, and without their variable
+// the test is skipped.
 namespace Client::Tests
 {
-// La Data del repo, Client/assets/Data.
+// Client/assets/Data.
 std::filesystem::path RepoDataDir();
 
-// El valor de MU_CLIENT_GOLDEN_DIR, o la Data del repo si no está o está vacía.
+// MU_CLIENT_GOLDEN_DIR's value, or the repo's Data if it is unset or empty.
 std::filesystem::path GoldenDir();
 
-// La regla de GoldenDir, separada de la lectura del entorno para poder testearla.
+// GoldenDir's rule, separate from reading the environment so it can be tested.
 std::filesystem::path GoldenDirOrRepoData(const std::optional<std::string>& value);
 
-// La regla, separada de la lectura del entorno para poder testearla (test_golden_dir.cpp).
+// The rule, separate from reading the environment so it can be tested (test_golden_dir.cpp).
 enum class GoldenDirState
 {
-    NotSet,  // sin variable, o vacía: el test se saltea
-    Missing, // la variable apunta a algo que no es una carpeta: el test falla
+    NotSet,  // no variable, or empty: the test is skipped
+    Missing, // the variable points to something that is not a folder: the test fails
     Ready,
 };
 std::optional<std::filesystem::path> GoldenDirFromValue(const std::optional<std::string>& value);
 GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir);
 
-// Si `path` termina en `extension` (por ejemplo ".ozj"), sin distinguir mayúsculas ASCII
-// (Core::EqualsIgnoringAsciiCase): en la carpeta golden hay .OZJ, .ozj y .Ozj.
+// Ignoring ASCII case (Core::EqualsIgnoringAsciiCase): the golden folder has .OZJ, .ozj and .Ozj.
 bool HasExtension(const std::filesystem::path& path, std::string_view extension);
 
-// Base para los tests que leen archivos reales. SetUp() hace fallar el test si la carpeta golden
-// no existe.
+// Base for the tests that read real files. SetUp() fails the test if the golden folder does not exist.
 class GoldenDataTest : public ::testing::Test
 {
 protected:
     void SetUp() override;
 
-    // La ruta del archivo, resuelta como la pide el original (sin distinguir mayúsculas). Si no
-    // está, marca el test como fallado y devuelve std::nullopt.
+    // The file's path, resolved as the original asks for it (case-insensitive). If it is missing, fails the test and
+    // returns std::nullopt.
     std::optional<std::filesystem::path> DataFile(std::string_view originalPath) const;
 
     std::filesystem::path m_dataRoot;
 };
 
-// Una captura de la memoria del main.exe original: su carpeta dentro de memoria-cliente/ (el
-// README de mu-golden dice qué tiene cada una) y el mundo que estaba cargado, como el N de la
-// carpeta World<N> que reciben los cargadores. Valen para la copia de Data\ del laboratorio, que
-// tiene los mismos archivos (mismo SHA-256) que los que estaban cargados.
+// A capture of the original main.exe's memory: its folder inside memoria-cliente/ (mu-golden's README says what each
+// has) and the world that was loaded, as the N of the World<N> folder the loaders receive. They hold for the lab's
+// copy of Data\, which has the same files (same SHA-256) as the ones that were loaded.
 struct MemoryCapture
 {
     std::string_view folder;
     std::uint8_t world = 0;
 };
 
-// Con el personaje en Devias (World3, g_world = 2): las tablas, el terreno y la luz (s31_*.bin).
+// With the character in Devias (World3, g_world = 2): the tables, the terrain and the light (s31_*.bin).
 inline constexpr MemoryCapture DeviasCapture{"2026-10-09-devias", 3};
-// En Lorencia (World1, g_world = 0), en la celda (136, 130): el terreno, la luz y las texturas
-// (lor_*.bin y lor2_*.bin).
+// In Lorencia (World1, g_world = 0), at cell (136, 130): the terrain, the light and the textures (lor_*.bin and
+// lor2_*.bin).
 inline constexpr MemoryCapture LorenciaCapture{"2026-10-09-lorencia", 1};
-// En Lorencia, en otra lectura y en la escena 5: los 2.870 objetos del mapa en sus 256 listas
-// (obj_*.bin).
+// In Lorencia, in another read and in scene 5: the map's 2,870 objects in their 256 lists (obj_*.bin).
 inline constexpr MemoryCapture LorenciaObjectsCapture{"2026-10-09-lorencia-obj", 1};
 
-// Si el volcado `name` de la captura `folder` está en la carpeta de volcados `root`.
+// Whether dump `name` of capture `folder` is in the dump folder `root`.
 enum class DumpState
 {
     Found,
     Missing,
-    // Falta, pero está en `root` mismo: la variable apunta a una captura y no a la carpeta que las
-    // contiene. Hasta la CL1.4 apuntaba a la de Devias.
+    // Missing, but present in `root` itself: the variable points to a capture and not to the folder that holds them.
     RootIsACapture,
 };
 DumpState CheckDump(const std::filesystem::path& root, std::string_view folder, std::string_view name);
 
-// Los volcados de memoria. MU_CLIENT_MEMORY_DIR apunta a la carpeta de las capturas: en el
-// repo de research, client-research/mu-golden/memoria-cliente, fuera de Git.
-//
-// La regla es la de la carpeta golden. Un test de memoria necesita las dos: compara lo que MuRet
-// carga de un archivo con lo que el original cargó del mismo archivo.
+// The memory dumps. MU_CLIENT_MEMORY_DIR points to the captures' folder: in the research repo,
+// client-research/mu-golden/memoria-cliente, outside Git. The rule is the golden folder's. A memory test needs both:
+// it compares what MuRet loads from a file with what the original loaded from the same file.
 class MemoryDumpTest : public GoldenDataTest
 {
 protected:
     void SetUp() override;
 
-    // La ruta del volcado `name` de `capture`. Si no está, marca el test como fallado y devuelve
-    // std::nullopt.
+    // The path of dump `name` of `capture`. If it is missing, fails the test and returns std::nullopt.
     std::optional<std::filesystem::path> DumpFile(const MemoryCapture& capture, std::string_view name) const;
 
     std::filesystem::path m_dumpRoot;
 };
 
-// El cable del laboratorio. MU_CLIENT_WIRE_DIR apunta a una carpeta, fuera de Git, con:
-//   - el muproxy.log que el proxy del laboratorio escribió entre el cliente original y los
-//     servidores (en EmaNLJN/mu-online-reverse-lab, analysis/mainexe/evidence/): lleva el login del
-//     jugador;
-//   - los archivos de clave del servidor con el que se capturó, Dec1.dat y Enc2.dat (en
-//     EmaNLJN/mu-server-repack-research-102i, gameserver/evidence/keyfiles/): con ellos el servidor
-//     descifra lo que manda el cliente y cifra lo que le contesta (CL2.3).
-//
-// La regla es la de la carpeta golden, y la variable va solo en el entorno, como la de los
-// volcados. No necesita Data\: el cable se compara consigo mismo.
+// The lab's wire. MU_CLIENT_WIRE_DIR points to a folder, outside Git, with:
+//   - the muproxy.log the lab's proxy wrote between the original client and the servers (in
+//     EmaNLJN/mu-online-reverse-lab, analysis/mainexe/evidence/): it carries the player's login;
+//   - the key files of the server it was captured with, Dec1.dat and Enc2.dat (in
+//     EmaNLJN/mu-server-repack-research-102i, gameserver/evidence/keyfiles/): with them the server decrypts what the
+//     client sends and encrypts its answers.
+// The rule is the golden folder's, and the variable is only in the environment, like the dumps'. It does not need
+// Data\: the wire is compared with itself.
 class WireDataTest : public ::testing::Test
 {
 protected:
     void SetUp() override;
 
-    // La ruta de `name` en la carpeta del cable. Si no está, marca el test como fallado y devuelve
-    // std::nullopt.
+    // The path of `name` in the wire folder. If it is missing, fails the test and returns std::nullopt.
     std::optional<std::filesystem::path> WireFile(std::string_view name) const;
 
     std::filesystem::path m_wireRoot;
 };
 
-// Los dos: la carpeta golden y la del cable. Un test que compara las claves del cliente, Enc1.dat y
-// Dec2.dat, con las del servidor necesita las dos, y se saltea si falta cualquiera de las variables.
+// Both: the golden folder and the wire's. A test that compares the client's keys, Enc1.dat and Dec2.dat, with the
+// server's needs both, and is skipped if either variable is missing.
 class GoldenAndWireDataTest : public GoldenDataTest
 {
 protected:
     void SetUp() override;
 
-    // Como WireDataTest::WireFile.
+    // Like WireDataTest::WireFile.
     std::optional<std::filesystem::path> WireFile(std::string_view name) const;
 
     std::filesystem::path m_wireRoot;
 };
 
-// Las trazas de GL del laboratorio. MU_CLIENT_GL_TRACE_DIR apunta a una carpeta, fuera de Git, con
-// las trazas de GLIntercept descomprimidas (gunzip -k): character-selection-Frame_003207.txt y
-// lorencia-Frame_016215.txt, de graphics-01/ en el PR #45 de EmaNLJN/mu-online-reverse-lab
-// (pregunta 12 del plan de la CL6). La regla es la de la carpeta golden, y la variable va solo en el
-// entorno. Un test de la traza necesita también Data\: compara lo que MuRet hace con los modelos con
-// lo que el original le mandó a GL.
+// The lab's GL traces. MU_CLIENT_GL_TRACE_DIR points to a folder, outside Git, with the decompressed GLIntercept traces
+// (gunzip -k): character-selection-Frame_003207.txt and lorencia-Frame_016215.txt, from graphics-01/ in PR #45 of
+// EmaNLJN/mu-online-reverse-lab (question 12 of CL6's plan). The rule is the golden folder's, and the variable is only
+// in the environment. A trace test also needs Data\: it compares what MuRet does with the models with what the
+// original sent to GL.
 class GoldenAndGlTraceTest : public GoldenDataTest
 {
 protected:
     void SetUp() override;
 
-    // La ruta de la traza `name`. Si no está, marca el test como fallado y devuelve std::nullopt.
+    // The path of trace `name`. If it is missing, fails the test and returns std::nullopt.
     std::optional<std::filesystem::path> TraceFile(std::string_view name) const;
 
     std::filesystem::path m_traceRoot;
 };
 
-// La fuente de los tests de FreeType (CL5.3). MU_CLIENT_FONT_FILE apunta a un archivo
-// TrueType, fuera de Git: en CI, una fuente del runner (DejaVu en Ubuntu, una de C:\Windows\Fonts
-// en Windows). La regla es la de la carpeta golden: sin la variable, o vacía, el test se saltea; si
-// apunta a algo que no es un archivo, falla.
+// The FreeType tests' font. MU_CLIENT_FONT_FILE points to a TrueType file, outside Git: in CI, a runner font (DejaVu
+// on Ubuntu, one from C:\Windows\Fonts on Windows). The rule is the golden folder's: without the variable, or empty,
+// the test is skipped; if it points to something that is not a file, it fails.
 class FontFileTest : public ::testing::Test
 {
 protected:

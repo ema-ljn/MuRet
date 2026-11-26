@@ -64,9 +64,8 @@ std::filesystem::path GoldenDir()
 
 namespace
 {
-// La regla, para cualquiera de las carpetas (la de los datos, la de los volcados de memoria, la del
-// cable y la de las trazas). GTEST_SKIP() y FAIL() salen de esta función, y GoogleTest no corre el
-// cuerpo de un test que quedó salteado o fallado en su SetUp().
+// The rule, for any of the folders (data, memory dumps, wire and traces). GTEST_SKIP() and FAIL() return from this
+// function, and GoogleTest does not run the body of a test skipped or failed in its SetUp().
 void RequireDirectory(const char* variable, std::filesystem::path& dir)
 {
     const std::optional<std::filesystem::path> value = GoldenDirFromValue(Core::ReadEnvironmentVariable(variable));
@@ -82,8 +81,7 @@ void RequireDirectory(const char* variable, std::filesystem::path& dir)
     dir = *value;
 }
 
-// El archivo `name` de la carpeta `root` (la del cable o la de las trazas, según `what`). Si no está,
-// marca el test como fallado.
+// The file `name` in folder `root` (the wire's or the traces', per `what`). If it is missing, fails the test.
 std::optional<std::filesystem::path> FindFile(const std::filesystem::path& root, std::string_view name,
                                               std::string_view what)
 {
@@ -105,7 +103,7 @@ std::optional<std::filesystem::path> FindWireFile(const std::filesystem::path& r
 
 void GoldenDataTest::SetUp()
 {
-    // Sin la variable no se saltea: lee la Data del repo.
+    // Without the variable it is not skipped: it reads the repo's Data.
     const std::filesystem::path dir = GoldenDir();
     if (CheckGoldenDir(dir) == GoldenDirState::Missing)
     {

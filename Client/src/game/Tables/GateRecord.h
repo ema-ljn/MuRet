@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <optional>
 
-// Los nueve campos de Gate.bmd (05 § Gate.bmd), copiados de la tabla ya descifrada.
+// Gate.bmd's nine fields (05 § Gate.bmd), copied from the decrypted table.
 namespace Client::Tables
 {
 struct GateRecord
@@ -24,6 +24,6 @@ struct GateRecord
     friend bool operator==(const GateRecord&, const GateRecord&) = default;
 };
 
-// El índice es el número de gate. Fuera de la tabla, std::nullopt.
+// The index is the gate number. Outside the table, std::nullopt.
 [[nodiscard]] std::optional<GateRecord> ReadGateRecord(const GateTable& table, std::size_t index);
 } // namespace Client::Tables

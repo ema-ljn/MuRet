@@ -6,8 +6,8 @@
 #include <string_view>
 #include <vector>
 
-// Una salida del log que guarda cada línea con su nivel, para que un test lea lo que se escribió.
-// Se usa desde un solo hilo: no necesita mutex.
+// A log output that stores each line with its level, so that a test reads what was written. Used from a single
+// thread: it needs no mutex.
 namespace Client::Tests
 {
 class RecordingSink final : public Core::ILogSink

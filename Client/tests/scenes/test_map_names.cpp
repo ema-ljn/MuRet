@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-// 0x5f0b40: el texto de Text.bmd con el nombre del mapa, en el orden de sus comparaciones.
+// 0x5f0b40: Text.bmd's text with the map's name, in the order of its comparisons.
 namespace
 {
 using Client::Maps::MapNameText;

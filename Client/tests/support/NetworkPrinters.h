@@ -1,6 +1,6 @@
 #pragma once
-// Lo que trae se usa sin nombrarlo: GoogleTest busca PrintTo por ADL, e include-cleaner no lo
-// ve. Por eso cada include de este header se queda.
+// What it brings in is used without naming it: GoogleTest finds PrintTo by ADL,
+// and include-cleaner does not see it. So every include of this header stays.
 // IWYU pragma: always_keep
 
 #include "Network/CloseReason.h"
@@ -17,9 +17,8 @@
 
 #include <ostream>
 
-// Cómo imprime GoogleTest los enums de Client::Network en un mensaje: sin esto, un
-// std::optional<PacketError> sale como "(1-byte object <01>)". GoogleTest busca PrintTo en el
-// namespace del tipo, así que cada uno va en el suyo.
+// How GoogleTest prints Client::Network's enums in a message: without this, a std::optional<PacketError> comes out as
+// "(1-byte object <01>)". GoogleTest looks for PrintTo in the type's namespace, so each one goes in its own.
 namespace Client::Network
 {
 inline void PrintTo(PacketError error, std::ostream* out)

@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Inventario independiente de Data y del flujo ASM, no resultados obtenidos ejecutando MuRet.
-// Procedencia y límites: docs/superpowers/plans/2026-11-09-cl7/map-sweep-2026-11-10.md.
+// An inventory independent of Data and of the ASM flow, not results obtained by running MuRet.
+// Provenance and limits: docs/superpowers/plans/2026-11-09-cl7/map-sweep-2026-11-10.md.
 namespace Client::Tests
 {
 enum class MapSweepCut : std::uint8_t
@@ -27,8 +27,8 @@ struct MapSweepWorldCase
     std::uint32_t heightByteSum;
 };
 
-// Cabecera y extremos de .obj; CRC-32 de cada capa de bytes del .map ya descifrado;
-// suma de los 65.536 bytes de altura a partir de 0x43c. World36 no existe.
+// .obj header and ends; CRC-32 of each byte layer of the decrypted .map; sum of the 65,536 height bytes from 0x43c.
+// World36 does not exist.
 inline constexpr std::array<MapSweepWorldCase, 21> MapSweepWorlds{{
     {1, 2870, 30, 60, 0x813cf6d6, 0x587696b1, 6969485},
     {2, 4488, 0, 46, 0x55a8df0b, 0x5c5a1dc9, 7533267},
@@ -54,11 +54,11 @@ inline constexpr std::array<MapSweepWorldCase, 21> MapSweepWorlds{{
 }};
 
 inline constexpr std::uint32_t MapSweepSeed = 0x5eed;
-// CRT original: seed*0x343fd+0x269ec3, módulo 2^32, sin ejecutar CrtRandom del port.
-inline constexpr std::uint32_t MapSweepAfterGrass = 0xad6d5eed;  // 65.536 sorteos.
-inline constexpr std::uint32_t MapSweepAfterNoria = 0xb58b8a29;  // 12 de torre + 65.536 de pasto.
-inline constexpr std::uint32_t MapSweepAfterTrials = 0xe254a308; // 65.536 + 205 tipos 27/54 de World32.
-// 65.536 + 24: el rand() % 1000 de cada 0x29 de World31 en la creación (0x42c711).
+// The original's CRT: seed*0x343fd+0x269ec3, modulo 2^32, without running the port's CrtRandom.
+inline constexpr std::uint32_t MapSweepAfterGrass = 0xad6d5eed;  // 65,536 draws.
+inline constexpr std::uint32_t MapSweepAfterNoria = 0xb58b8a29;  // 12 for the tower + 65,536 for the grass.
+inline constexpr std::uint32_t MapSweepAfterTrials = 0xe254a308; // 65,536 + 205 of types 27/54 in World32.
+// 65,536 + 24: the rand() % 1000 of each 0x29 of World31 at creation (0x42c711).
 inline constexpr std::uint32_t MapSweepAfterCastle = 0x141dd1a5;
 
 struct MapSweepCase
@@ -70,18 +70,18 @@ struct MapSweepCase
     std::size_t created;
     std::size_t registrations;
     std::uint32_t randomState;
-    // Cantidades de Gate.bmd para el mapa NOMINAL: flag 0 (/move), 1 (entrada), 2 (llegada).
+    // Gate.bmd counts for the NOMINAL map: flag 0 (/move), 1 (entrance), 2 (arrival).
     std::array<std::size_t, 3> gates;
-    // 0x447d70 arma el objeto de evento (9, 11 a 23 y el 32, que la carga lleva al 9).
+    // 0x447d70 builds the event object (9, 11 to 23 and 32, which the load turns into 9).
     bool eventObject;
 };
 
-// Los alias conservan su mapa efectivo salvo la guarda explícita 32 -> 9 de 0x61a560.
-// Todos los registros de estos .obj pasan el sector nativo, incluidos los NaN de Devias (Q-C186).
-// Los especiales preceden al archivo: dos en Devias y una torre en Noria.
-// Noria crea cinco efectos: cuatro 322/323 toman tres rand cada uno; 324 no toma ninguno.
-// World4 contiene 16 registros de tipo 8 y 53 de 38: 69 entradas auxiliares, contadas desde K16 aparte.
-// World31: cinco lanceros antes de los 3.724 registros; el 0x4d (uno) y el 0x54 (37) se anotan con 0x606630.
+// Aliases keep their effective map except 0x61a560's explicit 32 -> 9 guard.
+// Every record of these .obj passes the native sector, including Devias' NaNs (Q-C186).
+// The specials come before the file: two in Devias and a tower in Noria.
+// Noria creates five effects: four 322/323 take three rand each; 324 takes none.
+// World4 holds 16 records of type 8 and 53 of 38: 69 auxiliary entries, counted apart from K16.
+// World31: five lancers before the 3,724 records; the 0x4d (one) and the 0x54 (37) are registered with 0x606630.
 inline constexpr std::array<MapSweepCase, 39> MapSweepCases{{
     {0, 0, 1, MapSweepCut::None, 2870, 110, MapSweepAfterGrass, {1, 4, 4}, false},
     {1, 1, 2, MapSweepCut::None, 4488, 39, MapSweepAfterGrass, {0, 7, 7}, false},

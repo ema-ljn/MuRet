@@ -50,17 +50,17 @@ std::string_view DialogAnswerOf(const DialogRecord& dialog, std::size_t answer)
 
 Core::Expected<DialogTable, Data::DataError> LoadDialogTable(std::span<const std::byte> file)
 {
-    // Con menos de 0x400 bytes, el resto del primer bloque es el de operator new sin iniciar.
+    // Below 0x400 bytes, the rest of the first block is operator new's, uninitialized.
     if (file.size() < DialogRecordSize)
         return Core::Unexpected(Data::DataError::FileTooShort);
     DialogTable table(DialogCount);
-    // 0x54b32b..0x54b338: un solo bloque de operator new para los 200.
+    // 0x54b32b..0x54b338: a single operator new block for all 200.
     std::array<std::byte, DialogRecordSize> block{};
     for (std::size_t i = 0; i < DialogCount; ++i)
     {
-        // 0x54b343..0x54b37e: fread de 0x400 en el bloque, 0x5496c0 sobre él y la copia a 0x7688ac0 + 0x400 i. El
-        // fread de la CRT (0x69fecb) copia lo que queda del archivo al principio del bloque y deja el resto, que es lo
-        // del registro anterior ya descifrado.
+        // 0x54b343..0x54b37e: fread of 0x400 into the block, 0x5496c0 over it and the copy to 0x7688ac0 + 0x400 i. The
+        // CRT's fread (0x69fecb) copies what is left of the file to the block's start and leaves the rest, the previous
+        // record already decrypted.
         const std::size_t start = std::min(i * DialogRecordSize, file.size());
         std::ranges::copy(file.subspan(start, std::min(DialogRecordSize, file.size() - start)), block.begin());
         Crypto::Xor3(block);

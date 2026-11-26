@@ -8,16 +8,13 @@
 #include <string_view>
 #include <vector>
 
-// El cable del laboratorio: lee el muproxy.log, que el proxy del laboratorio escribió entre el
-// cliente original y los servidores.
-//
-// Una línea por segmento TCP: hora, puerto, sentido (C->S o S->C), len=N y los N bytes en hex. Una
-// línea ACC abre una conexión en ese puerto, y las siguientes de ese puerto son de ella hasta el
-// próximo ACC; sus bytes son un texto del proxy, no del cable, y no se leen. Lo que viene después
-// de los bytes se ignora: el log del laboratorio tiene una marca del proxy en una línea.
-//
-// El cable lleva el login del jugador: quien use esto no imprime un payload, ni al fallar
-// (SameBytesWithoutValues, en SameBytes.h).
+// The lab's wire: reads the muproxy.log the lab's proxy wrote between the original client and the servers.
+// One line per TCP segment: time, port, direction (C->S or S->C), len=N and the N bytes in hex. An ACC line opens a
+// connection on that port, and the following lines of that port belong to it until the next ACC; its bytes are a
+// proxy text, not the wire's, and are not read. What follows the bytes is ignored: the lab's log has a proxy mark on
+// one line.
+// The wire carries the player's login: whoever uses this does not print a payload, not even when failing
+// (SameBytesWithoutValues, in SameBytes.h).
 namespace Client::Tests
 {
 enum class WireDirection : std::uint8_t
@@ -26,39 +23,38 @@ enum class WireDirection : std::uint8_t
     ServerToClient, // S->C
 };
 
-// Lo que trajo un segmento TCP, en un sentido.
+// What a TCP segment brought, in one direction.
 struct WireSegment
 {
     WireDirection direction = WireDirection::ClientToServer;
     std::vector<std::byte> bytes;
 };
 
-// Una conexión, desde su ACC: el puerto del proxy y los segmentos en el orden en que pasaron.
+// A connection, from its ACC: the proxy's port and the segments in the order they passed.
 struct WireConnection
 {
     std::uint16_t port = 0;
     std::vector<WireSegment> segments;
 
-    // Los segmentos de un sentido, en orden: lo que devolvió cada recv del proxy, del lado que
-    // recibe.
+    // One direction's segments, in order: what each recv of the proxy returned, on the receiving side.
     [[nodiscard]] std::vector<std::span<const std::byte>> Reads(WireDirection direction) const;
 };
 
 enum class WireCaptureProblem : std::uint8_t
 {
-    MalformedLine,  // faltan campos, el sentido o el puerto no se entienden, o un \r en el medio
-    BadHex,         // los bytes no son hex de a dos dígitos
-    LengthMismatch, // len=N no es lo que miden los bytes
-    NoConnection,   // un segmento de un puerto sin ACC antes
+    MalformedLine,  // missing fields, the direction or the port cannot be parsed, or a \r in the middle
+    BadHex,         // the bytes are not two-digit hex
+    LengthMismatch, // len=N is not what the bytes measure
+    NoConnection,   // a segment from a port without an ACC before
 };
 
-// Qué línea (desde 1) y qué problema: nunca su contenido.
+// Which line (from 1) and which problem: never its content.
 struct WireCaptureError
 {
     std::size_t line = 0;
     WireCaptureProblem problem = WireCaptureProblem::MalformedLine;
 };
 
-// Las conexiones del log, en el orden de sus ACC.
+// The log's connections, in the order of their ACCs.
 [[nodiscard]] Core::Expected<std::vector<WireConnection>, WireCaptureError> ParseWireCapture(std::string_view text);
 } // namespace Client::Tests

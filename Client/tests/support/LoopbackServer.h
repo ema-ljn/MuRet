@@ -9,42 +9,39 @@
 #include <span>
 #include <vector>
 
-// Un listener de verdad en 127.0.0.1, con el puerto que elige el sistema, no bloqueante, que el
-// test consulta en el mismo hilo que el cliente: sin hilos y sin red de afuera, así corre en CI en
-// los dos sistemas (pregunta 4 del plan de la CL4). Usa las llamadas de Network/SocketApi.h, donde
-// está el único #ifdef. Necesita un SocketApi::NetworkInit vivo, como todo socket.
-//
-// Atiende a un cliente por vez: Accept toma el próximo y suelta el anterior.
+// A real listener on 127.0.0.1, on the port the system picks, non-blocking, polled on the client's thread: no threads
+// and no outside network, so it runs in CI on both systems (question 4 of CL4's plan). It uses Network/SocketApi.h's
+// calls, where the only #ifdef is. Needs a live SocketApi::NetworkInit, like every socket.
+// It serves one client at a time: Accept takes the next one and drops the previous one.
 namespace Client::Tests
 {
-// Cuánto espera un test con sockets de verdad lo que el sistema hace en el fondo: un connect, un
-// accept, unos bytes, un cierre. En Linux, en loopback, casi todo llega en la misma llamada; en
-// Windows un rechazo tarda unos 2 s, por los reintentos (el plan, "Lo que más puede morder").
+// How long a test with real sockets waits for what the system does in the background: a connect, an accept, some
+// bytes, a close. On Linux, on loopback, almost everything arrives in the same call; on Windows a refusal takes about
+// 2 s, because of the retries (the plan, "Lo que más puede morder").
 inline constexpr std::chrono::seconds LoopbackTimeout{5};
 
-// Llama a `attempt` hasta que dé true o pasen LoopbackTimeout segundos reales, sin dormir entre
-// una y otra (cede el hilo). true si llegó.
+// Calls `attempt` until it gives true or LoopbackTimeout real seconds pass, without sleeping between tries (it yields
+// the thread). true if it got there.
 [[nodiscard]] bool RetryUntil(const std::function<bool()>& attempt);
 
 class LoopbackServer
 {
 public:
-    // Si no puede escuchar, el test falla (ADD_FAILURE) y Port() da 0.
+    // If it cannot listen, the test fails (ADD_FAILURE) and Port() gives 0.
     LoopbackServer();
 
     [[nodiscard]] std::uint16_t Port() const;
-    // true si había un cliente esperando, que pasa a ser el de Read, Write y los cierres.
+    // true if a client was waiting, which becomes the one of Read, Write and the closes.
     [[nodiscard]] bool Accept();
-    // Lo que haya llegado del cliente, sin esperar; vacío si no llegó nada o si cerró.
+    // Whatever arrived from the client, without waiting; empty if nothing arrived or if it closed.
     [[nodiscard]] std::vector<std::byte> Read();
-    // Si un Read vio que el cliente cerró (un FIN o un RST). Accept lo vuelve a false.
+    // Whether a Read saw the client close (a FIN or an RST). Accept sets it back to false.
     [[nodiscard]] bool ClientClosed() const;
-    // Lo manda entero, o el test falla: para los pocos bytes de un test, el sistema los toma todos.
+    // Sends it whole, or the test fails: for a test's few bytes, the system takes them all.
     void Write(std::span<const std::byte> bytes);
-    // close: el cliente recibe un FIN, y su recv da 0.
+    // close: the client gets a FIN, and its recv gives 0.
     void CloseClient();
-    // SO_LINGER {1, 0} y close: un RST, como el kick de 0x4e8380; el recv del cliente da
-    // ECONNRESET.
+    // SO_LINGER {1, 0} and close: an RST, like 0x4e8380's kick; the client's recv gives ECONNRESET.
     void ResetClient();
 
 private:

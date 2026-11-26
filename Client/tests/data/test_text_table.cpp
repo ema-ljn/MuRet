@@ -13,7 +13,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Tables: la tabla de Text.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -24,7 +23,7 @@ using Client::Tables::TextRecordSize;
 using Client::Tables::TextTable;
 using Client::Tables::TextTableSize;
 
-// Text() se puede pedir a una tabla que sigue viva, y no a una temporal.
+// Text() can be asked of a table that stays alive, and not of a temporary.
 template <typename Table>
 concept ReadsText = requires(Table&& table) { std::forward<Table>(table).Text(0); };
 static_assert(ReadsText<TextTable&>);
@@ -39,7 +38,7 @@ static_assert(ReadsTextOr<const TextTable&>);
 static_assert(!ReadsTextOr<TextTable>);
 static_assert(!ReadsTextOr<const TextTable>);
 
-// Una tabla en claro, con todos los registros vacíos.
+// A plain table, with all records empty.
 std::vector<std::byte> PlainTable(std::size_t size = TextTableSize)
 {
     return std::vector<std::byte>(size);
@@ -53,7 +52,7 @@ void PutText(std::vector<std::byte>& table, std::size_t index, std::string_view 
     }
 }
 
-// Lo que habría en el archivo: la tabla cifrada con XOR3.
+// What the file would hold: the table encrypted with XOR3.
 std::vector<std::byte> Encrypt(std::vector<std::byte> table)
 {
     Client::Crypto::Xor3(table);
@@ -74,7 +73,6 @@ TEST(TextTableTest, ReadsTheFirstAndTheLastText)
     EXPECT_EQ(loaded.Value().Text(1), "");
 }
 
-// El texto termina en el primer '\0'; lo que queda después en el registro no es parte del texto.
 TEST(TextTableTest, TextEndsAtTheFirstNul)
 {
     std::vector<std::byte> table = PlainTable();
@@ -86,9 +84,9 @@ TEST(TextTableTest, TextEndsAtTheFirstNul)
     EXPECT_EQ(loaded.Value().Text(3), "corto");
 }
 
-// Q-C07: un registro sin '\0' es un texto de 300 bytes, y no sigue en el registro de al lado. El
-// original lo leería como cadena de C y seguiría en el 8. El último registro llega hasta el final
-// del archivo, así que también prueba que se descifró entero.
+// Q-C07: a record without '\0' is a 300-byte text, and does not run into the next record. The original would read it
+// as a C string and go on into the 8. The last record reaches the end of the file, so it also tests that it was
+// decrypted whole.
 TEST(TextTableTest, RecordWithoutNulIsAFullRecord)
 {
     std::vector<std::byte> table = PlainTable();
@@ -104,9 +102,9 @@ TEST(TextTableTest, RecordWithoutNulIsAFullRecord)
     EXPECT_EQ(loaded.Value().Text(TextCount - 1), fullRecord);
 }
 
-// Un índice que viene del servidor puede pasarse de 2047: FUN_004da070 le suma 2020 a un byte del
-// paquete, así que llega hasta 2275, y el original leería después de la tabla. Tampoco hay texto
-// para un índice que, multiplicado por 300, da la vuelta y caería adentro, ni para el más grande.
+// An index from the server can go past 2047: FUN_004da070 adds 2020 to a packet byte, so it reaches 2275, and the
+// original would read past the table. There is no text either for an index that, times 300, wraps and would land
+// inside, nor for the largest.
 TEST(TextTableTest, IndexPastTheTableHasNoText)
 {
     constexpr std::size_t Largest = std::numeric_limits<std::size_t>::max();
@@ -119,9 +117,8 @@ TEST(TextTableTest, IndexPastTheTableHasNoText)
     EXPECT_EQ(loaded.Value().Text(Largest), std::nullopt);
 }
 
-// Sacarle la tabla a un Expected la mueve. El estándar no dice cómo queda un std::vector movido
-// (válido, pero sin especificar; en la práctica, vacío), así que Text() mira los registros que le
-// quedaron a la tabla y no lee fuera de ellos.
+// Taking the table out of an Expected moves it. The standard does not say how a moved std::vector is left (valid but
+// unspecified; in practice, empty), so Text() looks at the records the table kept and does not read outside them.
 TEST(TextTableTest, AMovedTableReadsOnlyWhatItKept)
 {
     std::vector<std::byte> table = PlainTable();
@@ -136,8 +133,7 @@ TEST(TextTableTest, AMovedTableReadsOnlyWhatItKept)
     EXPECT_TRUE(!rest.has_value() || rest->size() <= TextRecordSize);
 }
 
-// Pregunta 2 del plan: un archivo corto es un error y no hay tabla. El original leería igual y
-// dejaría en la tabla lo que hubiera en la memoria.
+// Question 2 of the plan. The original would read anyway and leave in the table whatever was in memory.
 TEST(TextTableTest, ShortFileIsAnError)
 {
     const auto loaded = LoadTextTable(Encrypt(PlainTable(TextTableSize - 1)));
@@ -146,8 +142,7 @@ TEST(TextTableTest, ShortFileIsAnError)
     EXPECT_EQ(loaded.Error(), DataError::FileTooShort);
 }
 
-// Los bytes de más se ignoran, como con el fread de tamaño fijo del original: aunque alcancen para
-// un registro más, no hay texto 2048.
+// Like the original's fixed-size fread: even if they are enough for one more record, there is no text 2048.
 TEST(TextTableTest, ExtraBytesAreIgnored)
 {
     std::vector<std::byte> table = PlainTable(TextTableSize + TextRecordSize);

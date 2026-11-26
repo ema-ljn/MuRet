@@ -9,7 +9,7 @@ namespace Client::Maps
 {
 std::uint16_t WorldFolderNumber(std::uint8_t map)
 {
-    // Proyección byte estable: el resultado está entre 1 y 256, sin pérdida al estrechar.
+    // A stable byte projection: the result is between 1 and 256, with no loss when narrowing.
     const std::int32_t effectiveMap = MapAtWorldLoadStart(map, map);
     return static_cast<std::uint16_t>(WorldFolderAfterModels(effectiveMap));
 }

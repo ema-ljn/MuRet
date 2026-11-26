@@ -34,9 +34,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Tables::LoadGameData: lo que main.cpp lee antes de la primera escena, como WinMain lee
-// Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0, con "Data\Local\Text.bmd" de 0x6d4370), antes de las
-// fuentes y de la escena 1. Con archivos sintéticos: los textos de verdad no van a los tests.
+// What main.cpp reads before the first scene, as WinMain reads Text.bmd at 0x4b9b9f (0x61ee30 and 0x5495e0, with
+// "Data\Local\Text.bmd" from 0x6d4370), before the fonts and scene 1. With synthetic files: the real texts do not go
+// into the tests.
 namespace
 {
 using Client::Tables::LoadGameData;
@@ -63,7 +63,7 @@ TEST(GameDataTest, ReadsTheTextTable)
     EXPECT_EQ(data.Value().text->Text(456), "versión %s");
 }
 
-// Como en Windows, sin mirar mayúsculas: "local\TEXT.BMD" también es el archivo.
+// As on Windows, case-insensitive: "local\TEXT.BMD" is also the file.
 TEST(GameDataTest, FindsTheFileInAnyCase)
 {
     const TemporaryFolder folder("game-data");
@@ -100,7 +100,7 @@ TEST(GameDataTest, AShortTextTableIsAnError)
     EXPECT_NE(data.Error().find("Local\\Text.bmd"), std::string::npos) << data.Error();
     EXPECT_NE(data.Error().find("más corto"), std::string::npos) << data.Error();
 }
-// Un archivo de más de 1 MiB no es un Text.bmd (la tabla mide 0x96000): no se lee entero.
+// A file over 1 MiB is not a Text.bmd (the table is 0x96000): it is not read whole.
 TEST(GameDataTest, AFileFarLargerThanTheTableIsNotRead)
 {
     const TemporaryFolder folder("game-data");
@@ -114,8 +114,7 @@ TEST(GameDataTest, AFileFarLargerThanTheTableIsNotRead)
     EXPECT_NE(data.Error().find(std::make_error_code(std::errc::file_too_large).message()), std::string::npos)
         << data.Error();
 }
-// 0x61ccb0 lee también Filter.bmd y FilterName.bmd (Data\Local): las palabras que no puede tener
-// el nombre de un personaje nuevo.
+// 0x61ccb0 also reads Filter.bmd and FilterName.bmd (Data\Local): the words a new character's name cannot have.
 TEST(GameDataTest, ReadsTheTwoFilters)
 {
     const TemporaryFolder folder("game-data");
@@ -134,7 +133,7 @@ TEST(GameDataTest, ReadsTheTwoFilters)
     EXPECT_EQ(data.Value().filter, (std::vector<std::string>{"word"}));
 }
 
-// Sin los dos, nada que filtrar: el original no arranca, y MuRet sigue sin ellos.
+// Without both, nothing to filter: the original does not start, and MuRet goes on without them.
 TEST(GameDataTest, WithoutTheFiltersNothingIsFiltered)
 {
     const TemporaryFolder folder("game-data");
@@ -151,8 +150,8 @@ TEST(GameDataTest, WithoutTheFiltersNothingIsFiltered)
     EXPECT_TRUE(data.Value().filter.empty());
 }
 
-// 0x61ee30 → 0x61c1c0: Macro.txt, detrás de Text.bmd, sin mirar mayúsculas; sin él, las macros vacías. Las macros
-// son inventadas.
+// 0x61ee30 → 0x61c1c0: Macro.txt, after Text.bmd, case-insensitive; without it, empty macros. The macros are made
+// up.
 TEST(GameDataTest, ReadsTheMacros)
 {
     const TemporaryFolder folder("game-data");
@@ -175,7 +174,7 @@ TEST(GameDataTest, ReadsTheMacros)
     EXPECT_EQ(data.Value().macros[2], "");
 }
 
-// Q-C531: una palabra que no entra en su lugar es un error que nombra el archivo.
+// Q-C531: a word that does not fit in its place is an error that names the file.
 TEST(GameDataTest, AnOverflowingMacroIsNamed)
 {
     const TemporaryFolder folder("game-data");
@@ -190,8 +189,8 @@ TEST(GameDataTest, AnOverflowingMacroIsNamed)
     EXPECT_NE(data.Error().find("0x61c1c0"), std::string::npos) << data.Error();
 }
 
-// 0x61ec8f → 0x448440: movereq.bmd sin mirar mayúsculas; sin él, ningún destino y sin error. Uno corto lo nombra. El
-// destino es inventado.
+// 0x61ec8f → 0x448440: movereq.bmd case-insensitive; without it, no destination and no error. A short one is named.
+// The destination is made up.
 TEST(GameDataTest, ReadsTheMoveRequirements)
 {
     const TemporaryFolder folder("game-data");
@@ -228,9 +227,9 @@ TEST(GameDataTest, ReadsTheMoveRequirements)
     EXPECT_NE(shortFile.Error().find("Local\\movereq.bmd"), std::string::npos) << shortFile.Error();
 }
 
-// 0x61ed05 → 0x54e7f0: NpcName(Eng).txt sin mirar mayúsculas; sin él, la tabla vacía y sin error. main.cpp copia los
-// registros al principio de los 512 de WorldRuntime::npcNames (NpcNameTableOf), donde los busca 0x54ebb0. Uno que el
-// original no terminaría de leer lo nombra. Los nombres son inventados.
+// 0x61ed05 → 0x54e7f0: NpcName(Eng).txt case-insensitive; without it, the empty table and no error. main.cpp copies
+// the records to the start of WorldRuntime::npcNames' 512 (NpcNameTableOf), where 0x54ebb0 looks for them. One the
+// original would not finish reading is named. The names are made up.
 TEST(GameDataTest, ReadsTheNpcNames)
 {
     const TemporaryFolder folder("game-data");
@@ -270,9 +269,9 @@ TEST(GameDataTest, ReadsTheNpcNames)
     EXPECT_NE(hanging.Error().find("Local\\NpcName(Eng).txt"), std::string::npos) << hanging.Error();
 }
 
-// 0x54ebb0 devuelve el puntero a +2 del registro: un nombre sin '\0' en sus 0x34 bytes (el que dejó un nombre largo de
-// 0x54e7f0) sigue por el tipo del registro siguiente (el byte bajo primero) y su nombre, hasta el primer '\0'; en el
-// último registro, hasta el final de la tabla. Los nombres son inventados.
+// 0x54ebb0 returns the pointer to +2 of the record: a name without '\0' in its 0x34 bytes (the one a long name of
+// 0x54e7f0 left) goes on through the next record's type (the low byte first) and its name, up to the first '\0'; in
+// the last record, up to the end of the table. The names are made up.
 TEST(GameDataTest, ANameWithoutItsZeroGoesOnInTheNextRecord)
 {
     Client::Scenes::NpcNameTable table = Client::Scenes::NpcNameTableOf({});
@@ -292,8 +291,8 @@ TEST(GameDataTest, ANameWithoutItsZeroGoesOnInTheNextRecord)
     EXPECT_EQ(Client::Scenes::NpcNameOf(table, 8), std::string(Client::Scenes::NpcNameBytes, 'z'));
 }
 
-// Uno con otra suma (o la del otro archivo) es un error que lo nombra, como el "File corrupted" del
-// original, que se cierra.
+// One with another sum (or the other file's) is an error that names it, like the original's "File corrupted", which
+// closes.
 TEST(GameDataTest, ACorruptFilterIsNamed)
 {
     const TemporaryFolder folder("game-data");
@@ -393,7 +392,7 @@ TEST(GameDataTest, GateTableIgnoresATailLargerThanSixtyFourKiB)
     EXPECT_EQ(data.Value().gates->Count(), Client::Tables::GateCount);
     EXPECT_EQ(Client::Tables::ReadGateRecord(*data.Value().gates, 1), gate);
 }
-// Detecta ausencia de carga, descarte incorrecto del checksum y un techo arbitrario a la cola.
+// Catches a missing load, a wrong drop of the checksum and an arbitrary cap on the tail.
 TEST(GameDataTest, LoadsItemsIgnoringCaseAndAnArbitrarilyLargeTail)
 {
     const TemporaryFolder folder("game-data-items");
@@ -442,8 +441,8 @@ TEST(GameDataTest, NamesMissingAndShortItemTables)
     EXPECT_NE(loaded.Error().find("más corto"), std::string::npos);
 }
 
-// 0x40c600 desde 0x61ccb0 (0x61ecd5): ItemSetType.bmd e ItemSetOption.bmd, de Data\Local y sin mirar
-// las mayúsculas del nombre, con sus registros en claro.
+// 0x40c600 from 0x61ccb0 (0x61ecd5): ItemSetType.bmd and ItemSetOption.bmd, from Data\Local and case-insensitive on
+// the name, with their records in clear.
 TEST(GameDataTest, LoadsTheItemSetTables)
 {
     const TemporaryFolder folder("game-data-item-sets");
@@ -467,8 +466,8 @@ TEST(GameDataTest, LoadsTheItemSetTables)
     EXPECT_EQ((*loaded.Value().itemSets->options.Record(3))[0], std::byte{'H'});
 }
 
-// Sin uno de los dos, o con uno que no pasa su checksum, el original muestra "File not exist." o "File
-// corrupted." y cierra la ventana (0x40c660 y 0x40c850): un error que lo nombra.
+// Without one of the two, or with one that does not pass its checksum, the original shows "File not exist." or "File
+// corrupted." and closes the window (0x40c660 and 0x40c850): an error that names it.
 TEST(GameDataTest, NamesMissingShortAndCorruptItemSetTables)
 {
     const TemporaryFolder folder("game-data-item-sets");
@@ -500,7 +499,7 @@ TEST(GameDataTest, NamesMissingShortAndCorruptItemSetTables)
               std::string::npos)
         << loaded.Error();
 }
-// Un Data completo salvo Skill.bmd: permite probar su obligación sin adelantar otro error de carga.
+// A complete Data except Skill.bmd: tests that it is required without triggering another load error first.
 void WriteGameDataWithoutSkills(const std::filesystem::path& root)
 {
     WriteTextTable(root, {});
@@ -580,7 +579,7 @@ TEST(GameDataTest, NamesAnUnreadableSkillTable)
 
 using GoldenGameData = Client::Tests::GoldenDataTest;
 
-// Datos del archivo real leídos con XOR3 por separado: el byte usado por MoveHero vive en +0x26.
+// Real file data read with XOR3 separately: the byte MoveHero uses lives at +0x26.
 TEST_F(GoldenGameData, LoadsTheRealSkillTableWithItsMovementBytes)
 {
     const auto loaded = LoadGameData(m_dataRoot);

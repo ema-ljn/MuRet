@@ -15,75 +15,67 @@
 #include <string_view>
 #include <vector>
 
-// El ConnectServer y el GameServer falsos de la integración de la CL4.4 (el plan de la CL4, PR C):
-// dos LoopbackServer en 127.0.0.1, con los puertos que elige el sistema, que el test consulta en
-// el mismo hilo que el cliente. Siguen el guion de 04-protocolo.md, "El flujo de conexión", con
-// los bytes del cable del laboratorio y su FoxAnti: el CS manda la lista en la forma del
-// laboratorio y espera la elección ya pasada al código 0, y el GS manda todo cifrado y con el
-// 0xAA en cada byte. El F4 03 da 127.0.0.1 y el puerto del GS falso, no la dirección del cable.
-// El GS acepta keepalives antes y después del login (04 § El flujo de conexión), y los cuenta;
-// después acepta un F3 00, que contesta con una
-// lista de dos personajes en claro (char0001 en el lugar 0 y char0002 en el 2, CL6.3); y un F3 03,
-// que guarda.
-//
-// Cada uno contesta solo lo que sigue en el guion. Con algo que no está en el guion, el servidor lo
-// anota en Complaints(), sin un byte, corta al cliente y deja de contestar: la sesión falla
-// enseguida, sin esperar el tope de tiempo, y el test dice qué vio el servidor. Necesita un
-// SocketApi::NetworkInit vivo.
+// The fake ConnectServer and GameServer: two LoopbackServers on 127.0.0.1, on ports the system picks, polled on the
+// client's thread. They follow 04-protocolo.md, "El flujo de conexión", with the lab's wire bytes and its FoxAnti: the
+// CS sends the list in the lab's form and expects the choice already mapped to code 0, and the GS sends everything
+// encrypted and with the 0xAA on each byte. The F4 03 gives 127.0.0.1 and the fake GS's port, not the wire's address.
+// The GS accepts and counts keepalives before and after the login, answers an F3 00 with a clear list of two
+// characters (char0001 in slot 0 and char0002 in slot 2) and stores an F3 03.
+// Each answers only what comes next in the script. Anything else goes to Complaints(): the server cuts the client
+// without a byte and stops answering, so the session fails at once instead of waiting for the timeout. Needs a live
+// SocketApi::NetworkInit.
 namespace Client::Tests
 {
 class FakeServers
 {
 public:
-    // Las claves del lado del servidor (GameServerKeys() de TestGameServer.h): con ellas el GS
-    // descifra el login y cifra el saludo y el resultado.
+    // The server-side keys (GameServerKeys() in TestGameServer.h): the GS decrypts the login and encrypts the greeting
+    // and the result with them.
     explicit FakeServers(Network::ConnectionKeys serverKeys);
 
-    // Plazo sintético de inactividad para probar la espera humana, sin dormir: un 0E válido lo
-    // renueva. Cero lo desactiva. No representa un plazo medido del GS original. El reloj vive más
-    // que estos servidores y se consulta en el mismo hilo.
+    // A synthetic idle timeout to test the human wait without sleeping: a valid 0E renews it, zero disables it. It is
+    // not a measured timeout of the original GS. The clock outlives these servers and is read on the same thread.
     FakeServers(Network::ConnectionKeys serverKeys, Core::IClock& clock, Core::Duration idleTimeout);
 
     [[nodiscard]] std::uint16_t ConnectServerPort() const;
     [[nodiscard]] std::uint16_t GameServerPort() const;
 
-    // Una vuelta de los dos: acepta, lee lo que mandó el cliente y contesta lo que toca.
+    // One round of both: accept, read what the client sent and answer what comes next.
     void Poll();
 
-    // Si el GS recibió un login que descifra, con el serial que seguía, y lo aceptó.
+    // Whether the GS received a login that decrypts, with the expected serial, and accepted it.
     [[nodiscard]] bool SawLogin() const;
-    // Ese login, descifrado y todavía con su XOR32, para compararlo con WriteLoginRequest con
-    // SameBytesWithoutValues; vacío hasta que llega.
+    // That login, decrypted and still with its XOR32, to compare with WriteLoginRequest using SameBytesWithoutValues;
+    // empty until it arrives.
     [[nodiscard]] const std::optional<Network::Packet>& Login() const;
-    // Los keepalives que le llegaron al GS, cifrados y en orden, antes o después del login.
+    // The keepalives the GS received, encrypted, before or after the login.
     [[nodiscard]] std::size_t Keepalives() const;
-    // Si el plazo sintético cerró el GS por no recibir un 0E válido.
+    // Whether the synthetic timeout closed the GS for lack of a valid 0E.
     [[nodiscard]] bool IdleExpired() const;
-    // El F3 03 que le llegó al GS, en claro y sin el XOR32; vacío hasta que llega.
+    // The F3 03 the GS received, in clear and without the XOR32; empty until it arrives.
     [[nodiscard]] const std::optional<Network::Packet>& CharacterSelect() const;
-    // Si el CS, ya contestada la dirección, vio que el cliente cortó (04: "el cliente corta con el
-    // CS").
+    // Whether the CS, with the address already answered, saw the client leave (04: "el cliente corta con el CS").
     [[nodiscard]] bool ClientLeftTheConnectServer() const;
-    // Lo que vieron fuera del guion, en palabras; vacío si todo fue como dice el 04.
+    // What they saw off the script, in words; empty if everything went as 04 says.
     [[nodiscard]] const std::vector<std::string>& Complaints() const;
 
 private:
     enum class ConnectStep : std::uint8_t
     {
         WaitingClient,
-        WaitingPetInfoRequest, // el A9
-        WaitingListRequest,    // el F4 02
-        WaitingServerSelect,   // el F4 03
-        Answered,              // la dirección salió: lo que sigue es el corte
-        Stopped,               // algo fuera del guion: cortó al cliente
+        WaitingPetInfoRequest, // the A9
+        WaitingListRequest,    // the F4 02
+        WaitingServerSelect,   // the F4 03
+        Answered,              // the address went out: what follows is the disconnect
+        Stopped,               // something off the script: it cut the client
     };
 
     enum class GameStep : std::uint8_t
     {
         WaitingClient,
-        WaitingLogin, // el saludo salió
-        LoggedIn,     // el resultado salió: lo que sigue son keepalives
-        Stopped,      // algo fuera del guion: cortó al cliente
+        WaitingLogin, // the greeting went out
+        LoggedIn,     // the result went out: what follows is keepalives
+        Stopped,      // something off the script: it cut the client
     };
 
     void PollConnectServer();
@@ -91,22 +83,22 @@ private:
     void CheckGameServerIdle();
     void OnConnectServerPacket(const Network::Packet& packet);
     void OnGameServerPacket(const Network::Packet& packet);
-    // Después del login: un keepalive cifrado, o un F3 en claro.
+    // After the login: an encrypted keepalive, or a clear F3.
     void OnAfterLogin(const Network::Packet& packet);
-    // Ya descifrado, con serial validado; antes y después del login usa el mismo contador.
+    // Already decrypted, with a validated serial; before and after the login it uses the same counter.
     void OnKeepalive();
     void OnCharacterPacket(const Network::Packet& packet);
 
-    // El próximo paquete de `reader`, o std::nullopt si no hay uno entero o si el corte falló.
+    // std::nullopt if there is no whole packet or if splitting it failed.
     [[nodiscard]] std::optional<Network::Packet> NextPacket(Network::PacketReader& reader, bool& failed);
-    // Si `packet` es `expected`; si no, el CS para con una queja que nombra `what`.
+    // Whether `packet` is `expected`; otherwise the CS stops with a complaint naming `what`.
     bool Expect(const Network::Packet& packet, const std::vector<std::byte>& expected, std::string_view what);
-    // Anotan `complaint`, cortan al cliente y dejan de contestar.
+    // Record `complaint`, cut the client and stop answering.
     void StopConnectServer(std::string complaint);
     void StopGameServer(std::string complaint);
-    // Lo que contesta el GS: cifrado con su clave y sus seriales, y con el 0xAA de FoxAnti.
+    // What the GS answers: encrypted with its key and serials, and with FoxAnti's 0xAA.
     void SendFromTheGameServer(const std::vector<std::byte>& plain);
-    // Lo que contesta el GS en claro, como la lista de personajes: solo con el 0xAA de FoxAnti.
+    // What the GS answers in clear, like the character list: only with FoxAnti's 0xAA.
     void SendClearFromTheGameServer(std::vector<std::byte> plain);
 
     Network::ConnectionKeys m_keys;
@@ -114,7 +106,7 @@ private:
     LoopbackServer m_gameServer;
     Network::PacketReader m_connectReader;
     Network::PacketReader m_gameReader;
-    Network::PacketSerials m_gameSerials; // los dos sentidos del GS, desde 0
+    Network::PacketSerials m_gameSerials; // both GS directions, from 0
     ConnectStep m_connectStep = ConnectStep::WaitingClient;
     GameStep m_gameStep = GameStep::WaitingClient;
     std::optional<Network::Packet> m_login;

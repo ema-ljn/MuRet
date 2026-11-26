@@ -7,33 +7,24 @@
 #include <cstddef>
 #include <span>
 
-// Skill.bmd, la tabla de skills (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd"; en
-// el original, el cargador de 0x54acf0). Se lee de Data\Local\Skill.bmd.
-//
-// 256 registros de 0x3C bytes, cada uno cifrado con XOR3, y después el checksum de los registros
-// cifrados (TableChecksum.h, clave 0x5A18). A diferencia del de Item, el original sí lo mira.
-//
-// Q-C08: el original guarda los registros en un contenedor "guardia" que, mientras nadie los usa,
-// deja en su lugar bytes de rand(). Es una protección contra trampas y no se porta: MuRet guarda
-// la tabla en claro.
+// Skill.bmd (05-formatos-de-datos.md, "Tablas .bmd"; in the original 0x54acf0's loader), from Data\Local\Skill.bmd:
+// 256 XOR3 records of 0x3C bytes, then the checksum of the encrypted records (TableChecksum.h, key 0x5A18). Unlike
+// Item's, the original does check it. Q-C08: the original keeps the records in a "guard" container that, while
+// nobody uses them, leaves rand() bytes in their place. An anti-cheat measure, not ported: MuRet keeps the table plain.
 namespace Client::Tables
 {
-// Cuántos skills trae la tabla, uno por registro. El original lee siempre 256.
+// The original always reads 256.
 inline constexpr std::size_t SkillCount = 256;
-// Lo que ocupa cada skill, en el archivo y en la memoria del original. Qué hay en cada offset se
-// lee en la CL9.
+// In the file and in the original's memory.
 inline constexpr std::size_t SkillRecordSize = 0x3C;
-// Los registros juntos. En el archivo, después vienen los 4 bytes del checksum.
+// In the file the checksum's 4 bytes follow.
 inline constexpr std::size_t SkillTableSize = SkillCount * SkillRecordSize;
 static_assert(SkillTableSize == 0x3C00, "el tamaño que mide el research (05, Tablas .bmd)");
 
 using SkillTable = Data::Tables::RecordTable<SkillRecordSize>;
 
-// Descifra los primeros SkillTableSize bytes de `file`, si el checksum que les sigue es el suyo.
-//   - Si el checksum no coincide, devuelve DataError::ChecksumMismatch y no hay tabla, como en el
-//     original ("File corrupted.").
-//   - Si `file` no llega a tener los registros y los 4 bytes del checksum, devuelve
-//     DataError::FileTooShort (Q-C24).
-//   - Si es más largo, el resto se ignora, como con los fread de tamaño fijo del original.
+// ChecksumMismatch and no table if the checksum does not match, as in the original ("File corrupted."); FileTooShort if
+// `file` lacks the records and the checksum's 4 bytes (Q-C24); a longer file's rest is ignored, like the original's
+// fixed-size freads.
 Core::Expected<SkillTable, Data::DataError> LoadSkillTable(std::span<const std::byte> file);
 } // namespace Client::Tables

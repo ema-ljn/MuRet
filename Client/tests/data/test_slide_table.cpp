@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Tables::LoadSlideTable: Slide.bmd (0x46b3b0), con textos inventados.
+// Slide.bmd (0x46b3b0), with made-up texts.
 namespace
 {
 using Client::Data::DataError;
@@ -46,7 +46,7 @@ std::size_t TextAt(std::size_t group, std::size_t text)
     return GroupAt(group) + 8 + text * SlideTextSize;
 }
 
-// En claro: el período, la velocidad y los tramos vacíos.
+// In clear: the period, the speed and the empty groups.
 std::vector<std::byte> PlainTable(std::uint32_t period, float speed)
 {
     std::vector<std::byte> bytes(SlideTableSize);
@@ -79,13 +79,13 @@ TEST(SlideTableTest, ReadsThePeriodTheSpeedAndTheGroups)
     EXPECT_EQ(table.Value().groups[0].maxLevel, 12);
     EXPECT_EQ(table.Value().groups[0].count, 2);
     EXPECT_EQ(table.Value().groups[0].texts, (std::vector<std::string>{"first synthetic line", "second one"}));
-    // Una cuenta negativa no lee ningún texto, pero queda para el rand() de 0x46b680.
+    // A negative count reads no text, but it stays for 0x46b680's rand().
     EXPECT_EQ(table.Value().groups[4].maxLevel, 400);
     EXPECT_EQ(table.Value().groups[4].count, -1);
     EXPECT_TRUE(table.Value().groups[4].texts.empty());
 }
 
-// 0x46b4d7..0x46b56b: con más de 32, sigue de a 0x100 en el tramo de al lado, sobre su tope y su cuenta.
+// 0x46b4d7..0x46b56b: with more than 32, it goes on by 0x100 into the next group, over its cap and its count.
 TEST(SlideTableTest, ACountOverThirtyTwoReadsIntoTheNextGroup)
 {
     std::vector<std::byte> plain = PlainTable(10, 2.5f);
@@ -100,7 +100,7 @@ TEST(SlideTableTest, ACountOverThirtyTwoReadsIntoTheNextGroup)
     EXPECT_EQ(table.Value().groups[0].texts[32], "A");
 }
 
-// El original no mira lo que leyó fread (Q-C516).
+// The original does not check what fread read (Q-C516).
 TEST(SlideTableTest, AShortFileIsAnError)
 {
     const std::vector<std::byte> file(SlideTableSize - 1);
@@ -108,7 +108,7 @@ TEST(SlideTableTest, AShortFileIsAnError)
     EXPECT_EQ(ErrorOf(LoadSlideTable(file)), DataError::FileTooShort);
 }
 
-// Un texto sin cero hasta el final seguiría en la pila del original.
+// A text without a zero up to the end would go on into the original's stack.
 TEST(SlideTableTest, ATextPastTheEndIsInvalid)
 {
     std::vector<std::byte> plain = PlainTable(10, 2.5f);
@@ -120,7 +120,7 @@ TEST(SlideTableTest, ATextPastTheEndIsInvalid)
     EXPECT_EQ(ErrorOf(LoadSlideTable(Encoded(plain))), DataError::InvalidData);
 }
 
-// Lo que sobra después de 0xa030 bytes no se lee.
+// Nothing after 0xa030 bytes is read.
 TEST(SlideTableTest, ATailIsIgnored)
 {
     std::vector<std::byte> file = Encoded(PlainTable(7, 1.0f));

@@ -11,8 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Tables::LoadNpcNames: NpcName(%s).txt con el tokenizador 0x54e8d0 y el lazo de 0x54e7f0. Los nombres
-// son inventados.
+// NpcName(%s).txt with the tokenizer 0x54e8d0 and 0x54e7f0's loop. The names are made up.
 namespace
 {
 using Client::Data::DataError;
@@ -64,8 +63,8 @@ void ExpectInvalid(std::string_view file)
     EXPECT_EQ(loaded.Error(), DataError::InvalidData) << file;
 }
 
-// El formato del archivo: comentarios "//" hasta el '\n', el tipo, un número que nadie mira y el nombre entre
-// comillas; el nombre llega con su '\0' y el resto del registro en 0.
+// The file format: "//" comments up to the '\n', the type, a number nobody looks at and the quoted name; the name
+// arrives with its '\0' and the rest of the record at 0.
 TEST(NpcNamesTest, ReadsTheTypeAndTheQuotedName)
 {
     ExpectRecords("//Primera parte\r\n 84 1 \"Rey inventado\"\r\n\t85 1 \"Arquero inventado\"\r\n//fin\r\n",
@@ -82,7 +81,7 @@ TEST(NpcNamesTest, ReadsTheTypeAndTheQuotedName)
     EXPECT_EQ(loaded.Value()[0], expected);
 }
 
-// 0x54e814: el 2 (el final o un 0xff) o el nombre "end", también entre comillas. Un archivo vacío no tiene registros.
+// 0x54e814: the 2 (the end or a 0xff) or the name "end", also quoted. An empty file has no records.
 TEST(NpcNamesTest, StopsAtTheEndOrAtEnd)
 {
     ExpectRecords("", {});
@@ -90,13 +89,13 @@ TEST(NpcNamesTest, StopsAtTheEndOrAtEnd)
     ExpectRecords("3 1 \"Uno\" end 4 1 \"Dos\"", {{3, "Uno"}});
     ExpectRecords("3 1 \"Uno\" \"end\" 4 1 \"Dos\"", {{3, "Uno"}});
     ExpectRecords("3 1 \"Uno\"\xff 4 1 \"Dos\"", {{3, "Uno"}});
-    // "endx" y "End" no son "end": un registro con el último número.
+    // "endx" and "End" are not "end": a record with the last number.
     ExpectRecords("3 1 \"Uno\" endx 9 \"Dos\"", {{3, "Uno"}, {1, "Dos"}});
     ExpectRecords("3 1 \"Uno\" End 9 \"Dos\"", {{3, "Uno"}, {1, "Dos"}});
 }
 
-// 0x54e861: el tipo sale del último número leído, sea cual sea el primer token del registro (0 antes del primero), y
-// el nombre es la cadena que dejó el tercero ("" si fue otra cosa). Los dos tokens del final no miran el 2.
+// 0x54e861: the type comes from the last number read, whatever the record's first token (0 before the first), and the
+// name is the string the third one left ("" if it was something else). The last two tokens do not check for the 2.
 TEST(NpcNamesTest, TheTypeIsTheLastNumberWhateverTheToken)
 {
     ExpectRecords("\"Uno\" 5 \"Dos\"", {{0, "Dos"}});
@@ -107,18 +106,18 @@ TEST(NpcNamesTest, TheTypeIsTheLastNumberWhateverTheToken)
     ExpectRecords("5", {{5, ""}});
 }
 
-// 0x54e9d9: '.', dígitos y '-' con atof a un float y el ftol en un word; el byte que termina el número se pierde.
+// 0x54e9d9: '.', digits and '-' with atof to a float and ftol into a word; the byte that ends the number is lost.
 TEST(NpcNamesTest, NumbersGoThroughAtofAndFtol)
 {
     ExpectRecords("12.9 0 \"A\" -1 0 \"B\" 1-2 0 \"C\" --3 0 \"D\" . 0 \"E\" 70000 0 \"F\" -.5 0 \"G\"",
                   {{12, "A"}, {0xffff, "B"}, {1, "C"}, {0, "D"}, {0, "E"}, {70000 & 0xffff, "F"}, {0, "G"}});
-    // "0x5": el 0 se lleva la x, y el 5 es el segundo token del registro.
+    // "0x5": the 0 takes the x, and the 5 is the record's second token.
     ExpectRecords("0x5 \"H\"", {{0, "H"}});
-    // El '"' que termina el 7 se pierde: Ab es un nombre y la cadena va de su comilla a la del 1.
+    // The '"' that ends the 7 is lost: Ab is a name and the string goes from its quote to the 1's.
     ExpectRecords("7\"Ab\" 1 \"Cd\"", {{7, " 1 "}, {7, ""}});
 }
 
-// 0x54e8f4: un '/' solo se pierde con el byte que sigue en la mano; "//" va hasta el '\n'.
+// 0x54e8f4: a lone '/' is lost along with the byte that follows it in hand; "//" runs to the '\n'.
 TEST(NpcNamesTest, CommentsRunToTheNewline)
 {
     ExpectRecords("/3 1 \"A\"", {{3, "A"}});
@@ -126,7 +125,7 @@ TEST(NpcNamesTest, CommentsRunToTheNewline)
     ExpectRecords("3 1 \"A//B\"", {{3, "A//B"}});
 }
 
-// 0x54e925 mira solo el '\n': un comentario sin él al final del archivo no termina nunca.
+// 0x54e925 checks only the '\n': a comment without it at the end of the file never ends.
 TEST(NpcNamesTest, ACommentWithoutNewlineAtTheEndHangs)
 {
     ExpectInvalid("3 1 \"A\" // sin fin");
@@ -134,8 +133,8 @@ TEST(NpcNamesTest, ACommentWithoutNewlineAtTheEndHangs)
     ExpectInvalid("//");
 }
 
-// Las cadenas no pasan por la CRT: un byte alto entra en el nombre. Fuera de ellas, isspace, isdigit e isalnum
-// recibirían un índice negativo.
+// Strings do not go through the CRT: a high byte enters the name. Outside them, isspace, isdigit and isalnum would get
+// a negative index.
 TEST(NpcNamesTest, HighBytesOnlyInsideStrings)
 {
     ExpectRecords("3 1 \"\xb0\xa1\xc7\xd8\"", {{3, "\xb0\xa1\xc7\xd8"}});
@@ -146,7 +145,7 @@ TEST(NpcNamesTest, HighBytesOnlyInsideStrings)
     ExpectInvalid("3 1 \"A\" /\xb0");
 }
 
-// Una cadena con un '\0' del archivo: strcmp y strcpy se paran en él.
+// A string with a '\0' from the file: strcmp and strcpy stop at it.
 TEST(NpcNamesTest, AZeroByteEndsTheNameForStrcpy)
 {
     using namespace std::string_view_literals;
@@ -154,15 +153,15 @@ TEST(NpcNamesTest, AZeroByteEndsTheNameForStrcpy)
     ExpectRecords("3 1 \"A\" \"end\0x\" 4 1 \"B\""sv, {{3, "A"}});
 }
 
-// 0x54e8b4: el strcpy no tiene tope. Un nombre que no entra con su '\0' en sus 0x34 bytes sigue en el tipo y el nombre
-// del registro que sigue, que se devuelve aunque el archivo no tenga otro; si lo tiene, su tipo y su nombre pisan lo
-// suyo y lo demás queda.
+// 0x54e8b4: the strcpy has no cap. A name that does not fit with its '\0' in its 0x34 bytes goes on into the next
+// record's type and name, which is returned even if the file has no other; if it has one, its type and name overwrite
+// those bytes and the rest stays.
 TEST(NpcNamesTest, ALongNameSpillsIntoTheNextRecord)
 {
     const std::string full(NpcNameBytes, 'n');
     ExpectRecords("3 1 \"" + full + "\"", {{3, full}, {0, ""}});
 
-    // 0x34 + 2 + 3 letras: el '\0' en el cuarto byte del nombre del registro 1.
+    // 0x34 + 2 + 3 letters: the '\0' in the fourth byte of record 1's name.
     const std::string longer(NpcNameBytes + 5, 'n');
     const std::vector<std::byte> alone = Bytes("3 1 \"" + longer + "\"");
     auto loaded = LoadNpcNames(alone);
@@ -182,8 +181,8 @@ TEST(NpcNamesTest, ALongNameSpillsIntoTheNextRecord)
     EXPECT_EQ(loaded.Value()[1].name[3], '\0');
 }
 
-// Lo que escribiría fuera de 0x7681eb8..0x7688ab8 u otra cosa: un nombre que pasa del final de la tabla, 512 registros,
-// la cadena con su '\0' en 0x108 y el número en 0x64.
+// What would write outside 0x7681eb8..0x7688ab8 or elsewhere: a name past the end of the table, 512 records, the
+// string with its '\0' at 0x108 and the number at 0x64.
 TEST(NpcNamesTest, WhatWouldOverflowIsInvalid)
 {
     std::string full;
@@ -195,7 +194,7 @@ TEST(NpcNamesTest, WhatWouldOverflowIsInvalid)
     EXPECT_EQ(loaded.Value().size(), NpcNameCount);
     ExpectInvalid(full + "1 1 \"A\"\n");
     ExpectRecords(full + "end 1 1 \"A\"\n", std::vector<ExpectedRecord>(NpcNameCount, ExpectedRecord{1, "A"}));
-    // En el último registro, 0x33 letras y el '\0' llegan justo a 0x7688ab8; una más pasa.
+    // In the last record, 0x33 letters and the '\0' reach exactly 0x7688ab8; one more goes past.
     std::string last;
     for (std::size_t i = 0; i + 1 < NpcNameCount; ++i)
         last += "1 1 \"A\"\n";
@@ -214,7 +213,7 @@ TEST(NpcNamesTest, WhatWouldOverflowIsInvalid)
     const std::string number = std::string(NpcNameNumberBytes - 2, '0') + "7";
     ExpectRecords(number + " 1 \"A\"", {{7, "A"}});
     ExpectInvalid("0" + number + " 1 \"A\"");
-    // 99 nueves: el float es infinito y el ftol no tiene un resultado portable.
+    // 99 nines: the float is infinite and ftol has no portable result.
     ExpectInvalid(std::string(NpcNameNumberBytes - 1, '9') + " 1 \"A\"");
 }
 } // namespace

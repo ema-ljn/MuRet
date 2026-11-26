@@ -7,12 +7,11 @@
 #include <iterator>
 #include <span>
 
-// Comparar dos buffers byte a byte en un test, y decir dónde difieren: con miles de bytes, "no son
-// iguales" no ayuda a encontrar el bug.
+// Comparing two buffers byte by byte in a test, and saying where they differ: with thousands of bytes, "not equal"
+// does not help find the bug.
 namespace Client::Tests
 {
-// Si `actual` tiene los mismos bytes que `expected`. Si no, el mensaje dice los dos tamaños o el
-// primer byte distinto, con su valor en cada uno.
+// If not, the message gives both sizes or the first different byte, with its value in each.
 inline ::testing::AssertionResult SameBytes(std::span<const std::byte> actual, std::span<const std::byte> expected)
 {
     if (actual.size() != expected.size())
@@ -30,9 +29,9 @@ inline ::testing::AssertionResult SameBytes(std::span<const std::byte> actual, s
                                          << std::to_integer<int>(*expectedByte);
 }
 
-// Como SameBytes, pero el mensaje dice dónde difieren y no qué valen: los tamaños, o la posición del
-// primer byte distinto. Es para los bytes del cable, que llevan el login del jugador
-// (MU_CLIENT_WIRE_DIR): un test que falla no imprime un payload.
+// Like SameBytes, but the message says where they differ and not their values: the sizes, or the position of the first
+// different byte. It is for the wire bytes, which carry the player's login (MU_CLIENT_WIRE_DIR): a failing test does
+// not print a payload.
 inline ::testing::AssertionResult SameBytesWithoutValues(std::span<const std::byte> actual,
                                                          std::span<const std::byte> expected)
 {

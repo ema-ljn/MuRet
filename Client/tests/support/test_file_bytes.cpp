@@ -10,13 +10,12 @@
 #include <string>
 #include <vector>
 
-// ReadFileBytes, el que lee los archivos golden: todo el archivo, o nada si no es un archivo.
 namespace
 {
 namespace fs = std::filesystem;
 using Client::Tests::ReadFileBytes;
 
-// Con un sufijo al azar, para que dos corridas a la vez no compartan el archivo.
+// With a random suffix, so that two runs at once do not share the file.
 fs::path TemporaryPath(const std::string& name)
 {
     return fs::temp_directory_path() / ("muret-filebytes-" + name + "-" + std::to_string(std::random_device{}()));
@@ -49,7 +48,7 @@ TEST(FileBytesTest, EmptyFileHasNoBytes)
     EXPECT_TRUE(bytes->empty());
 }
 
-// Una carpeta o algo que no existe no se lee. ResolveDataPath también devuelve carpetas.
+// ResolveDataPath also returns folders.
 TEST(FileBytesTest, AFolderOrNothingIsNotRead)
 {
     EXPECT_EQ(ReadFileBytes(fs::temp_directory_path()), std::nullopt);

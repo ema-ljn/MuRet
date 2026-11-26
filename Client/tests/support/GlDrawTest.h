@@ -24,12 +24,11 @@
 #include <utility>
 #include <vector>
 
-// Dibujar y leer en los tests de render_gl/: un rectángulo con la UV del quad del original, el
-// framebuffer de 64 × 64 de la pregunta 9 del plan de la CL5 y el color de cada celda de lo leído,
-// mirado como una pantalla. Sale de LabGlTest.h, en el lab de la CL5.0.
+// Drawing and reading in the render_gl/ tests: a rectangle with the original's quad UV, the 64 × 64 framebuffer of
+// question 9 of CL5's plan and the color of each cell of what is read, seen as a screen.
 namespace Client::Render::Gl
 {
-// Para los mensajes de GoogleTest: (r, g, b, a).
+// For GoogleTest's messages: (r, g, b, a).
 inline void PrintTo(const Rgba8& color, std::ostream* out)
 {
     *out << "(" << int{color.red} << ", " << int{color.green} << ", " << int{color.blue} << ", " << int{color.alpha}
@@ -39,13 +38,12 @@ inline void PrintTo(const Rgba8& color, std::ostream* out)
 
 namespace Client::Tests
 {
-// El framebuffer de los tests: 64 × 64, como dice la pregunta 9.
+// 64 × 64, as question 9 says.
 inline constexpr int FramebufferSide = 64;
 
-// Un rectángulo de la pantalla en píxeles, con la y para arriba (gluOrtho2D), y su UV: (u0, v0)
-// arriba a la izquierda y (u1, v1) abajo a la derecha, como el quad de 0x621b60, que le da la v de
-// la fila 0 del buffer al borde de arriba (06 § Primitivas 2D). Por defecto cubre el framebuffer
-// con la textura entera, en blanco.
+// A screen rectangle in pixels, with y up (gluOrtho2D), and its UV: (u0, v0) top left and (u1, v1) bottom right, like
+// 0x621b60's quad, which gives the v of the buffer's row 0 to the top edge (06 § Primitivas 2D). By default it covers
+// the framebuffer with the whole texture, in white.
 struct TestQuad
 {
     float left = 0.0f;
@@ -59,8 +57,7 @@ struct TestQuad
     Render::Color color{};
 };
 
-// Los dos triángulos del rectángulo: el fan del original (arriba a la izquierda, abajo a la
-// izquierda, abajo a la derecha y arriba a la derecha) partido en (0, 1, 2) y (0, 2, 3).
+// The original's fan (top left, bottom left, bottom right and top right) split into (0, 1, 2) and (0, 2, 3).
 inline std::array<Render::SpriteVertex, 6> Triangles(const TestQuad& quad)
 {
     const Render::SpriteVertex topLeft{quad.left, quad.top, quad.u0, quad.v0, quad.color};
@@ -70,9 +67,9 @@ inline std::array<Render::SpriteVertex, 6> Triangles(const TestQuad& quad)
     return {topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight};
 }
 
-// La cámara de los tests del 3D (CL6.3), en el rectángulo `rect` de 640 × 480 de una pantalla de
-// `screen` píxeles: en el origen, sin girar (mira hacia −z con la y para arriba), 90° de fov, near 1
-// y far 100 (71,4 · 1,4). En la profundidad −d, el cuadrado de −d a d llena el viewport.
+// The 3D tests' camera, in the 640 × 480 rectangle `rect` of a `screen`-pixel screen: at the origin, unrotated (it
+// looks toward −z with y up), 90° fov, near 1 and far 100 (71.4 · 1.4). At depth −d, the square from −d to d fills
+// the viewport.
 inline Render::Pass3D TestPass(Core::PixelSize screen, Render::ViewportRect rect = {0, 0, 640, 480})
 {
     Render::Camera3D camera;
@@ -82,8 +79,8 @@ inline Render::Pass3D TestPass(Core::PixelSize screen, Render::ViewportRect rect
     return Render::MakePass3D(screen, rect, camera);
 }
 
-// Ese cuadrado en la profundidad −depth, con `color` en cada vértice, en dos triángulos con `state`:
-// en sentido antihorario visto desde la cámara (la cara de adelante), u horario si `backFacing`.
+// That square at depth −depth, with `color` on each vertex, in two triangles with `state`: counterclockwise seen from
+// the camera (the front face), or clockwise if `backFacing`.
 inline void AddSquare(Render::ModelBatch& batch, const Render::ModelDrawState& state, float depth, Render::Color color,
                       bool backFacing = false)
 {
@@ -99,14 +96,13 @@ inline void AddSquare(Render::ModelBatch& batch, const Render::ModelDrawState& s
     batch.Triangle({vertex(0), vertex(2), vertex(3)});
 }
 
-// El índice del píxel (x, y) en lo leído, con la y desde abajo, como lo da glReadPixels. Se
-// ensancha antes de multiplicar.
+// With y from the bottom, as glReadPixels gives it. Widened before multiplying.
 inline std::size_t PixelIndex(int x, int y, int width)
 {
     return (static_cast<std::size_t>(y) * static_cast<std::size_t>(width)) + static_cast<std::size_t>(x);
 }
 
-// El color del rectángulo [x0, x1) × [y0, y1) de lo leído (la y desde abajo), si es uno solo.
+// The color of the rectangle [x0, x1) × [y0, y1) of what was read (y from the bottom), if it is a single one.
 inline std::optional<Render::Gl::Rgba8> UniformColor(const std::vector<Render::Gl::Rgba8>& pixels, int width, int x0,
                                                      int y0, int x1, int y1)
 {
@@ -124,9 +120,8 @@ inline std::optional<Render::Gl::Rgba8> UniformColor(const std::vector<Render::G
     return first;
 }
 
-// El color de cada celda de una grilla de `columns` × `rows` sobre el framebuffer, mirado como una
-// pantalla: primero la fila de arriba, aunque glReadPixels la dé última, y de izquierda a derecha.
-// std::nullopt en una celda que no es de un solo color.
+// The color of each cell of a `columns` × `rows` grid over the framebuffer, seen as a screen: the top row first,
+// though glReadPixels gives it last, and left to right. std::nullopt in a cell that is not a single color.
 inline std::vector<std::optional<Render::Gl::Rgba8>> UniformCells(const Render::Gl::GlFramebuffer& framebuffer,
                                                                   int columns, int rows)
 {
@@ -147,8 +142,7 @@ inline std::vector<std::optional<Render::Gl::Rgba8>> UniformCells(const Render::
     return cells;
 }
 
-// La base de los tests que dibujan: con el contexto de GlTest, un framebuffer de 64 × 64 atado y
-// el renderer del 2D.
+// The base of the tests that draw: GlTest's context, a bound 64 × 64 framebuffer and the 2D renderer.
 class GlDrawTest : public GlTest
 {
 protected:
@@ -168,7 +162,6 @@ protected:
         m_renderer.emplace(std::move(renderer).Value());
     }
 
-    // Dibuja `quad` con `texture` en el framebuffer.
     void Draw(const Render::Gl::GlTexture& texture, const TestQuad& quad)
     {
         const std::array<Render::SpriteVertex, 6> vertices = Triangles(quad);

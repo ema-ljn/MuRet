@@ -5,7 +5,6 @@
 
 #include <chrono>
 
-// Client::Tests::FakeClock: el reloj falso de los tests del bucle.
 namespace
 {
 using namespace std::chrono_literals;
@@ -40,7 +39,7 @@ TEST(FakeClockTest, AdvanceCanGoBack)
     EXPECT_TRUE(clock.Sleeps().empty());
 }
 
-// Un sueño de 0 o para atrás es un error del bucle: el reloj real dormiría 0 y nadie lo vería.
+// A sleep of 0 or backwards is a loop error: the real clock would sleep 0 and nobody would see it.
 TEST(FakeClockTest, SleepingZeroOrBackIsAFailure)
 {
     EXPECT_NONFATAL_FAILURE(

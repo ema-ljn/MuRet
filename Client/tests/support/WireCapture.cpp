@@ -17,7 +17,7 @@ namespace Client::Tests
 {
 namespace
 {
-// Los campos de una línea: hora, puerto, sentido o ACC, len=N y los bytes.
+// A line's fields: time, port, direction or ACC, len=N and the bytes.
 constexpr std::size_t PortField = 1;
 constexpr std::size_t KindField = 2;
 constexpr std::size_t LengthField = 3;
@@ -29,7 +29,6 @@ constexpr std::string_view ClientToServerKind = "C->S";
 constexpr std::string_view ServerToClientKind = "S->C";
 constexpr std::string_view LengthPrefix = "len=";
 
-// Dígitos hex de un byte, y el valor de un nibble.
 constexpr std::size_t HexDigitsPerByte = 2;
 constexpr unsigned NibbleBits = 4;
 
@@ -108,7 +107,7 @@ std::optional<WireDirection> DirectionOf(std::string_view kind)
     return std::nullopt;
 }
 
-// Lee un segmento: el sentido, len=N y los N bytes. std::nullopt con el problema en `problem`.
+// Reads a segment: the direction, len=N and the N bytes. std::nullopt with the problem in `problem`.
 std::optional<WireSegment> ParseSegment(const std::vector<std::string_view>& fields, WireCaptureProblem& problem)
 {
     const std::optional<WireDirection> direction = DirectionOf(fields[KindField]);
@@ -133,7 +132,7 @@ std::optional<WireSegment> ParseSegment(const std::vector<std::string_view>& fie
     return WireSegment{*direction, std::move(*bytes)};
 }
 
-// Saca la primera línea de `text`, sin el fin de línea (\n o \r\n).
+// Takes the first line of `text`, without the line end (\n or \r\n).
 std::string_view TakeLine(std::string_view& text)
 {
     const std::size_t end = text.find('\n');
@@ -163,14 +162,14 @@ std::vector<std::span<const std::byte>> WireConnection::Reads(WireDirection dire
 Core::Expected<std::vector<WireConnection>, WireCaptureError> ParseWireCapture(std::string_view text)
 {
     std::vector<WireConnection> connections;
-    std::map<std::uint16_t, std::size_t> openByPort; // puerto -> su conexión abierta
+    std::map<std::uint16_t, std::size_t> openByPort; // port -> its open connection
     std::size_t lineNumber = 0;
     while (!text.empty())
     {
         ++lineNumber;
         const std::string_view line = TakeLine(text);
-        // Un \r que no es el del final: un log con fines de línea de Mac viejo, que leído así
-        // sería una sola línea larga.
+        // A \r that is not the final one: a log with old Mac line ends, which read this way would be a single long
+        // line.
         if (line.find('\r') != std::string_view::npos)
         {
             return Core::Unexpected(WireCaptureError{lineNumber, WireCaptureProblem::MalformedLine});

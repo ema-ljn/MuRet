@@ -13,40 +13,32 @@
 #include <optional>
 #include <string>
 
-// Una ventana escondida con un contexto OpenGL 3.3 core, para los tests de render_gl/ (pregunta 9
-// del plan de la CL5): dibujan en un framebuffer y lo leen con glReadPixels. Sale de la
-// HiddenGlWindow del lab de la CL5.0 (labs/cl5.0-pipeline/gl/). No se muestra nunca: lo que se
-// dibuja va al framebuffer del test, no a la ventana.
-//
-// Usa lo que ya tiene el cliente: SdlContext para SDL_Init y SDL_Quit, los deleters de la ventana y
-// del contexto de Platform/Window.h y LoadGlFunctions, que mira la versión y el perfil antes de
-// pedir el resto. No usa Window::Create porque esa ventana se muestra, es de 640 × 480 y pide
-// VSync, que un test no necesita.
+// A hidden window with an OpenGL 3.3 core context, for the render_gl/ tests (question 9 of CL5's plan): they draw into
+// a framebuffer and read it with glReadPixels. It is never shown. It does not use Window::Create because that window
+// is shown, is 640 × 480 and asks for VSync, which a test does not need.
 namespace Client::Tests
 {
-// Con "1", un test que no puede abrir OpenGL falla en vez de saltearse: el paso de Xvfb del CI la
-// pone, para que un Xvfb mal armado no deje los tests salteados en silencio.
+// With "1", a test that cannot open OpenGL fails instead of skipping: the CI's Xvfb step sets it, so that a broken
+// Xvfb does not leave the tests silently skipped.
 inline constexpr const char* RequireGlVariable = "MU_CLIENT_REQUIRE_GL";
 
-// La regla, separada de la lectura del entorno para probarla: solo "1" pide GL.
+// Only "1" asks for GL; separate from reading the environment so it can be tested.
 [[nodiscard]] bool IsGlRequired(const std::optional<std::string>& value);
 
-// Una textura RGBA de (GL_MAX_TEXTURE_SIZE + 1) × 1 con su buffer entero: el buffer está bien, pero
-// glTexImage2D la rechaza con GL_INVALID_VALUE. Es la forma de que el driver diga que no sin
-// quedarse sin memoria de verdad (la auditoría del 2026-11-03, AUD-C03). No usa TextureSide, que
-// no pasa de 512.
+// An RGBA texture of (GL_MAX_TEXTURE_SIZE + 1) × 1 with its whole buffer: the buffer is fine, but glTexImage2D rejects
+// it with GL_INVALID_VALUE. It makes the driver say no without really running out of memory (AUD-C03). It does not
+// use TextureSide, which does not go past 512.
 [[nodiscard]] Data::Textures::Texture TextureOverTheGlLimit(const Platform::Sdl::GlFunctions& gl);
 
 class GlTestContext
 {
 public:
-    // SDL_Init, la ventana escondida y su contexto 3.3 core, que queda como el actual de este hilo,
-    // con la tabla de GL. El error dice qué faltó: la pantalla, el contexto, la versión, el perfil
-    // o una función. Va en un unique_ptr: los nombres de GL (Render::Gl::GlName) guardan un puntero
-    // a Gl(), así que el contexto no puede cambiar de dirección.
+    // SDL_Init, the hidden window and its 3.3 core context, left current on this thread, with GL's table. The error
+    // says what was missing: the display, the context, the version, the profile or a function. In a unique_ptr because
+    // GL names (Render::Gl::GlName) keep a pointer to Gl(), so the context cannot change address.
     [[nodiscard]] static Core::Expected<std::unique_ptr<GlTestContext>, std::string> Create();
 
-    // Ni se copia ni se mueve: moverlo dejaría colgados los punteros a m_gl.
+    // Neither copied nor moved: moving it would leave the pointers to m_gl dangling.
     GlTestContext(const GlTestContext&) = delete;
     GlTestContext& operator=(const GlTestContext&) = delete;
     GlTestContext(GlTestContext&&) = delete;
@@ -62,16 +54,16 @@ private:
 
     GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context, const Platform::Sdl::GlFunctions& gl);
 
-    // Los miembros se destruyen al revés de como se declaran: el contexto antes que la ventana en
-    // la que vive, y la ventana antes que el SDL_Quit.
+    // Members are destroyed in reverse declaration order: the context before the window it lives in, and the window
+    // before SDL_Quit.
     SdlPtr m_sdl;
     WindowPtr m_window;
     GlContextPtr m_context;
     Platform::Sdl::GlFunctions m_gl;
 };
 
-// La base de los tests que abren GL. SetUp() abre el contexto; si no puede, saltea el test o, con
-// MU_CLIENT_REQUIRE_GL=1, lo hace fallar con el motivo.
+// The base of the tests that open GL. SetUp() opens the context; if it cannot, it skips the test or, with
+// MU_CLIENT_REQUIRE_GL=1, fails it with the reason.
 class GlTest : public ::testing::Test
 {
 protected:
@@ -79,8 +71,8 @@ protected:
 
     [[nodiscard]] const Platform::Sdl::GlFunctions& Gl() const;
 
-    // El contexto va primero: lo que el test cree después (texturas, framebuffers, el renderer) se
-    // destruye antes, con el contexto vivo.
+    // The context goes first: what the test creates later (textures, framebuffers, the renderer) is destroyed before
+    // it, with the context alive.
     std::unique_ptr<GlTestContext> m_context;
 };
 } // namespace Client::Tests

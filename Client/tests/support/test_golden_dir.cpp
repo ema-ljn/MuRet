@@ -9,8 +9,6 @@
 #include <string>
 #include <system_error>
 
-// La regla de las carpetas golden (pregunta 2 del plan CL0): sin variable se saltea, con una
-// carpeta que no existe falla. La de Data, sin variable, es la del repo (D-C9).
 namespace
 {
 namespace fs = std::filesystem;
@@ -35,7 +33,7 @@ TEST(GoldenDirTest, WithoutAFolderTheTestIsSkipped)
     EXPECT_EQ(CheckGoldenDir(std::nullopt), GoldenDirState::NotSet);
 }
 
-// Sin la variable, la Data no se saltea: es la del repo, que está en el checkout.
+// Not skipped: the repo's Data is in the checkout.
 TEST(GoldenDirTest, WithoutTheVariableTheDataIsTheOneOfTheRepo)
 {
     EXPECT_EQ(GoldenDirOrRepoData(std::nullopt), RepoDataDir());
@@ -48,7 +46,7 @@ TEST(GoldenDirTest, WithoutTheVariableTheDataIsTheOneOfTheRepo)
 TEST(GoldenDirTest, AFolderThatIsNotThereFailsTheTest)
 {
     const fs::path temp = fs::temp_directory_path();
-    // Con un sufijo al azar, para que dos corridas a la vez no compartan el archivo.
+    // With a random suffix, so that two runs at once do not share the file.
     const fs::path file = temp / ("muret-golden-no-es-carpeta-" + std::to_string(std::random_device{}()) + ".txt");
     std::ofstream(file) << "x";
 
@@ -60,8 +58,7 @@ TEST(GoldenDirTest, AFolderThatIsNotThereFailsTheTest)
     fs::remove(file, error);
 }
 
-// Un volcado se busca en la carpeta de su captura. Si está en la carpeta de volcados misma, la
-// variable apunta a una captura (como antes de la CL1.4) y el test lo dice.
+// If the dump is in the dump folder itself, the variable points to a capture and the test says so.
 TEST(GoldenDirTest, ADumpIsInTheFolderOfItsCapture)
 {
     const fs::path root = fs::temp_directory_path() / ("muret-volcados-" + std::to_string(std::random_device{}()));
@@ -78,7 +75,7 @@ TEST(GoldenDirTest, ADumpIsInTheFolderOfItsCapture)
     fs::remove_all(root, error);
 }
 
-// La extensión se compara sin mayúsculas, entera y con su punto.
+// Case-insensitive, whole and with its dot.
 TEST(GoldenDirTest, TheExtensionIgnoresTheCase)
 {
     EXPECT_TRUE(HasExtension("Skill/null.OZJ", ".ozj"));

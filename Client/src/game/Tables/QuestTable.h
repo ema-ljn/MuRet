@@ -10,16 +10,14 @@
 #include <string_view>
 #include <vector>
 
-// Data\Local\quest.bmd, las misiones del objeto [0x710148] (Client/docs/research/05-formatos-de-datos.md,
-// "quest.bmd"; en el original, 0x418d10, que la carga de los datos del juego, 0x61ccb0, llama en 0x61eb7c con
-// "Data\Local\quest.bmd", después de Dialog.bmd y antes de movereq.bmd).
-//
-// 0x418d10 pone en 0 los 200 registros de +0xc (34.000 dwords) y lee 200 veces 0x2a8 bytes con fread en un bloque de
-// operator new, les pasa el XOR3 desde su primer byte (0x418de0, FC CF AB con la clave de 0x6c64b4) y los copia en su
-// lugar. No mira cuánto leyó: con un archivo corto, el fread de la CRT (0x69fecb) deja en el bloque lo que no leyó,
-// lo del registro anterior ya descifrado, y lo vuelve a descifrar; MuRet hace lo mismo. Con menos de 0x2a8 bytes, eso
-// es el bloque sin iniciar (Q-C1127). Sin el archivo, devuelve 0 sin tocar los registros, y 0x61ccb0 no lo mira.
-// *Verificado* con el del repo: 136.000 bytes, y solo los cuatro primeros registros no están en cero.
+// Data\Local\quest.bmd, the quests of the object [0x710148] (05-formatos-de-datos.md, "quest.bmd"; in the original
+// 0x418d10, which the game data load, 0x61ccb0, calls at 0x61eb7c, after Dialog.bmd and before movereq.bmd).
+// 0x418d10 zeroes the 200 records from +0xc (34,000 dwords) and reads 0x2a8 bytes 200 times with fread into an
+// operator new block, runs XOR3 from its first byte (0x418de0, FC CF AB with 0x6c64b4's key) and copies them in
+// place. It does not check how much it read: with a short file the CRT's fread (0x69fecb) leaves in the block what it
+// did not read, the previous record already decrypted, and decrypts it again; MuRet does the same. Below 0x2a8 bytes
+// that is the uninitialized block (Q-C1127). Without the file it returns 0 without touching the records, and 0x61ccb0
+// does not check. *Verified* with the repo's: 136,000 bytes, and only the first four records are non-zero.
 namespace Client::Tables
 {
 inline constexpr std::size_t QuestCount = 200;
@@ -28,69 +26,69 @@ inline constexpr std::size_t QuestTableSize = QuestCount * QuestRecordSize;
 inline constexpr std::size_t QuestNameSize = 0x20;
 inline constexpr std::size_t QuestEntryCount = 16;
 inline constexpr std::size_t QuestConditionCount = 16;
-// +7 a +0xb de cada pedido: una marca por clase, con la clase & 7 de +4 del objeto como índice (0x418f40 y 0x418fb0).
-// 0x418e20 no la recorta: una clase 5, 6 o 7 lee los bytes de +0xc de la entrada (sus diálogos).
+// +7 to +0xb of each entry: one mark per class, indexed by the object's +4 class & 7 (0x418f40 and 0x418fb0). 0x418e20
+// does not clamp it: a class 5, 6 or 7 reads the entry's +0xc bytes (its dialogs).
 inline constexpr std::size_t QuestClassFlagCount = 5;
 inline constexpr std::size_t QuestDialogCount = 4;
 
-// Un pedido de la misión (16 de 0x14 bytes desde +0x26): qué ítem hay que traer y los diálogos de cada estado.
+// One of the quest's entries (16 of 0x14 bytes from +0x26): the item to bring and each state's dialogs.
 struct QuestEntry
 {
-    // +0: siempre 1 en el archivo; nadie lo lee (*estático*).
+    // +0: always 1 in the file; nobody reads it (*static*).
     std::uint8_t byte0 = 0;
-    // +1: 1 si el pedido es de ítems (0x4194c0 y 0x419b10 solo miran esos).
+    // +1: 1 for an item entry (0x4194c0 and 0x419b10 only look at those).
     std::uint8_t kind = 0;
-    // +2 y +3: el grupo y el índice del ítem (el tipo es grupo · 0x200 + índice, 0x4194e6).
+    // +2 and +3: the item's group and index (the type is group · 0x200 + index, 0x4194e6).
     std::uint8_t itemGroup = 0;
     std::uint8_t itemIndex = 0;
-    // +4: el nivel que pide 0x558410 ((+4 >> 3) & 0xf del ítem).
+    // +4: the level 0x558410 asks for (the item's (+4 >> 3) & 0xf).
     std::uint8_t itemLevel = 0;
-    // +5: cuántos.
+    // +5: how many.
     std::uint8_t itemCount = 0;
-    // +6: el enlace con las condiciones (+1 de cada una; 0xff en la condición vale para todos).
+    // +6: the link to the conditions (each one's +1; 0xff in the condition applies to all).
     std::uint8_t condition = 0;
-    // +7 a +0xb: la marca de cada clase (0 no; en el archivo, 1 o 2).
+    // +7 to +0xb: each class's mark (0 no; in the file, 1 or 2).
     std::array<std::uint8_t, QuestClassFlagCount> classes{};
-    // +0xc: los diálogos de Dialog.bmd (0x418f40 con el lugar): 0 el de antes de aceptar, 1 el de faltan ítems, 2 el de
-    // los tiene y 3 el de terminada.
+    // +0xc: the Dialog.bmd dialogs (0x418f40 with the slot): 0 before accepting, 1 items missing, 2 has them and 3
+    // finished.
     std::array<std::int16_t, QuestDialogCount> dialogs{};
 
     friend bool operator==(const QuestEntry&, const QuestEntry&) = default;
 };
 
-// Una condición (16 de 0x14 bytes desde +0x168), la que mira 0x418fb0.
+// A condition (16 of 0x14 bytes from +0x168), the one 0x418fb0 checks.
 struct QuestCondition
 {
-    // +0: siempre 1 en el archivo; nadie lo lee (*estático*).
+    // +0: always 1 in the file; nobody reads it (*static*).
     std::uint8_t byte0 = 0;
-    // +1: el pedido al que se aplica (+6 de la entrada), o 0xff para todos.
+    // +1: the entry it applies to (the entry's +6), or 0xff for all.
     std::uint8_t link = 0;
-    // +2: la misión que tiene que estar terminada (estado 2), o −1.
+    // +2: the quest that must be finished (state 2), or −1.
     std::int16_t needQuest = 0;
-    // +4 y +6: el nivel mínimo y el máximo (0 es sin tope; los dos se comparan sin signo).
+    // +4 and +6: the minimum and maximum level (0 is no cap; both compared unsigned).
     std::uint16_t minLevel = 0;
     std::uint16_t maxLevel = 0;
-    // +8 a +0xb: en cero en el archivo; nadie lo lee (*estático*).
+    // +8 to +0xb: zero in the file; nobody reads it (*static*).
     std::uint32_t dword8 = 0;
-    // +0xc: el zen (sin signo; 0 es sin pedido).
+    // +0xc: unsigned; 0 asks for none.
     std::uint32_t zen = 0;
-    // +0x10: el diálogo cuando no se cumple.
+    // +0x10: the dialog when it is not met.
     std::int16_t failDialog = 0;
-    // +0x12: en cero en el archivo; nadie lo lee.
+    // +0x12: zero in the file; nobody reads it.
     std::int16_t word12 = 0;
 
     friend bool operator==(const QuestCondition&, const QuestCondition&) = default;
 };
 
-// Un registro de 0x2a8 bytes.
+// 0x2a8 bytes.
 struct QuestRecord
 {
-    // +0 y +2: cuántos pedidos y cuántas condiciones (con signo: 0x418fb0 los compara con JLE y JL).
+    // +0 and +2: how many entries and conditions (signed: 0x418fb0 compares them with JLE and JL).
     std::int16_t entryCount = 0;
     std::int16_t conditionCount = 0;
-    // +4: el tipo del NPC que la da (0xeb, 0xe5 en el archivo).
+    // +4: the type of the NPC that gives it (0xeb, 0xe5 in the file).
     std::uint8_t npcType = 0;
-    // +5: el nombre, tal cual (NameOf corta en el primer cero).
+    // +5: raw (NameOf cuts at the first zero).
     std::array<char, QuestNameSize> name{};
     std::array<QuestEntry, QuestEntryCount> entries{};
     std::array<QuestCondition, QuestConditionCount> conditions{};
@@ -98,13 +96,13 @@ struct QuestRecord
     friend bool operator==(const QuestRecord&, const QuestRecord&) = default;
 };
 
-// Siempre QuestCount registros (en el montón: son 136 KB).
+// Always QuestCount records (on the heap: 136 KB).
 using QuestTable = std::vector<QuestRecord>;
 
-// El nombre hasta su primer cero, o los 32 bytes si no tiene (el original seguiría en +0x25 y en los pedidos).
+// Up to its first zero, or the 32 bytes if it has none (the original would go on into +0x25 and the entries).
 [[nodiscard]] std::string_view NameOf(const QuestRecord& quest);
 
-// Descifra los primeros QuestTableSize bytes de `file` como 0x418d10, con lo que falta como lo deja su fread.
-// FileTooShort con menos de un registro. Lo que sobra se ignora.
+// Decrypts `file`'s first QuestTableSize bytes like 0x418d10, with what is missing as its fread leaves it.
+// FileTooShort below one record. The excess is ignored.
 [[nodiscard]] Core::Expected<QuestTable, Data::DataError> LoadQuestTable(std::span<const std::byte> file);
 } // namespace Client::Tables

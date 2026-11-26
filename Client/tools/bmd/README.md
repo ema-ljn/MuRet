@@ -63,7 +63,9 @@ The client reads the first file of each row; the others are other editions, most
 (gb2312).
 `mubmd formats` lists every file with its encoding and `mubmd schema <format>` every field with its type and size.
 `Data/Item/item.bmd`, `Data/Item/Itemtest.bmd` and `Data/skill/skill.bmd` are named like a table and are not one:
-they answer `UNKNOWN_FORMAT`, as the models do.
+inside a folder called `Item` or `skill`, a file with the table's name that is smaller than the table answers
+`UNKNOWN_FORMAT`, as the models do.
+The client reads the two filters from record 0 up to their first empty record and nothing after it.
 
 ## Commands
 

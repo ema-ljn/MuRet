@@ -141,6 +141,7 @@ def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_r
     unchanged = EditResult(opened.path, changed=False, dry_run=dry_run, changes=(), warnings=())
     refuse_header_changes(diff_views(opened.view, view))
     if view == opened.view:
+        opened.identified.format.codec.from_view(view)
         return unchanged
     refuse_reference(store, opened.path)
     document, data, written = encode_verified(opened.identified, view)

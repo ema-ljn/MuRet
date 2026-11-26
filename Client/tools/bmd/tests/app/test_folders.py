@@ -8,7 +8,7 @@ from mubmd.app.edits import build, set_value
 from mubmd.app.folders import diff, dump, roundtrip, validate
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.patch import Change
-from tests.app.conftest import TEXT, WORK
+from tests.app.conftest import GATE, TEXT, WORK
 from tests.app.fake_store import FakeStore
 from tests.conftest import TABLE_FILES
 
@@ -77,6 +77,20 @@ def test_build_refuses_another_view_version(store: FakeStore) -> None:
     with pytest.raises(MubmdError) as caught:
         build(store, out, WORK / "Local" / "Texttest.bmd", dry_run=False)
     assert caught.value.code is ErrorCode.INVALID_VALUE
+
+
+def test_build_refuses_a_record_of_the_wrong_shape(tables: FakeStore) -> None:
+    out = WORK / "gate.json"
+    dump(tables, GATE, out)
+    view = json.loads(tables.files[out])
+    del view["records"][1]["level"]
+    tables.files[out] = json.dumps(view).encode()
+    writes = tables.writes
+    with pytest.raises(MubmdError) as caught:
+        build(tables, out, GATE, dry_run=False)
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.pointer == "/records/1"
+    assert tables.writes == writes
 
 
 def test_build_writes_only_files_the_catalog_knows(store: FakeStore) -> None:

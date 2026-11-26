@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from mubmd.core.catalog import all_formats, format_by_name, identify
@@ -37,6 +39,10 @@ def test_a_file_of_a_later_stage_is_unknown(text_bytes: bytes) -> None:
         "Data/Item/Itemtest.bmd",
         "Data/skill/skill.bmd",
         "DATA/Skill/SKILL.BMD",
+        "work/Item/item.bmd",
+        "work/skill/skill.bmd",
+        "Item/item.bmd",
+        "Data/Local/../Item/item.bmd",
     ],
 )
 def test_a_table_name_inside_a_model_folder_is_unknown(name: str) -> None:
@@ -50,12 +56,18 @@ def test_a_table_name_inside_a_model_folder_is_unknown(name: str) -> None:
     [
         ("Data/Local/skill.bmd", "skill"),
         ("Data/Local/item.bmd", "item"),
-        ("skill/skill.bmd", "skill"),
+        ("work/Local/skill.bmd", "skill"),
+        ("Data/Item/../Local/item.bmd", "item"),
         ("Skill.bmd", "skill"),
     ],
 )
 def test_a_table_outside_its_model_folder_is_found(name: str, expected: str) -> None:
     assert identify(name, b"").format.name == expected
+
+
+@pytest.mark.parametrize(("name", "size"), [("item/item.bmd", 8192 * 0x54 + 8), ("Skill/skill.bmd", 256 * 0x3C + 4)])
+def test_a_table_inside_a_folder_named_like_its_models_is_known_by_its_size(name: str, size: int) -> None:
+    assert identify(name, bytes(size)).format.name == Path(name).stem
 
 
 def test_formats_are_listed_and_found_by_name() -> None:

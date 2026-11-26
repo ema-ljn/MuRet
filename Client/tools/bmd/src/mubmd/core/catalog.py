@@ -101,9 +101,9 @@ def format_by_name(name: str) -> FormatSpec:
 def identify(file_name: str | Path, data: bytes) -> Identified:
     path = Path(file_name)
     wanted = path.name.casefold()
-    folders = tuple(part.casefold() for part in path.parts[-3:-1])
+    folder = path.parent.name.casefold()
     for spec in _FORMATS:
-        if spec.model_folder is not None and folders == ("data", spec.model_folder):
+        if folder == spec.model_folder and (spec.size is None or len(data) < spec.size):
             continue
         for file in spec.files:
             if file.name.casefold() == wanted:

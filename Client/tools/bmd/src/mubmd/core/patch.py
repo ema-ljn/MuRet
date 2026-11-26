@@ -64,12 +64,22 @@ def _replace(document: JsonObject, path: str, value: JsonValue) -> None:
     raise MubmdError(ErrorCode.POINTER_NOT_FOUND, f"Nothing at {path}", pointer=path)
 
 
+def same_json(left: JsonValue, right: JsonValue) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return left is right
+    if isinstance(left, dict) and isinstance(right, dict):
+        return left.keys() == right.keys() and all(same_json(left[key], right[key]) for key in left)
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(map(same_json, left, right))
+    return left == right
+
+
 def apply_patch(view: JsonObject, ops: Sequence[PatchOp]) -> JsonObject:
     document = copy.deepcopy(view)
     for op in ops:
         if op.op == "test":
             current = resolve(document, op.path)
-            if current != op.value:
+            if not same_json(current, op.value):
                 raise MubmdError(
                     ErrorCode.TEST_FAILED,
                     f"test failed at {op.path}: expected {op.value!r}, found {current!r}",

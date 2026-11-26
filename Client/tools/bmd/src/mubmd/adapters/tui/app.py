@@ -20,6 +20,7 @@ from mubmd.adapters.tui.widgets.record_table_view import RecordTableView, RowLay
 from mubmd.adapters.tui.widgets.status_line import StatusLine
 from mubmd.adapters.tui.widgets.title_bar import TitleBar
 from mubmd.app.rows import (
+    ROW_POINTER_TOKENS,
     RowFilter,
     edit_text,
     findings_by_row,
@@ -34,6 +35,7 @@ from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonValue
 from mubmd.core.leaves import is_leaf
+from mubmd.core.pointer import parse_pointer
 from mubmd.core.ports import FileStore
 
 USED_BAR_CELLS = 9
@@ -244,8 +246,24 @@ class MubmdApp(App[None]):
             if pointer is not None and event.data_table.has_focus:
                 self.status(pointer)
             return
-        self.status(row_pointer(self.session.view, int(event.row_key.value)))
-        self.show_fields()
+        pointer = row_pointer(self.session.view, int(event.row_key.value))
+        if self.leave_editor(pointer):
+            self.status(pointer)
+            self.show_fields()
+
+    def leave_editor(self, row: str) -> bool:
+        editor = self.query_one(RecordEditor)
+        if editor.pointer is None or editor.pointer == row or editor.pointer.startswith(f"{row}/"):
+            return True
+        if self.commit_editor():
+            editor.reset()
+            return True
+        table = self.query_one(RecordTableView)
+        key = str(parse_pointer(editor.pointer)[ROW_POINTER_TOKENS - 1])
+        if key in table.rows:
+            table.move_cursor(row=table.get_row_index(key))
+        editor.focus()
+        return False
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         fields = self.query_one(FieldList)
@@ -272,8 +290,11 @@ class MubmdApp(App[None]):
         if self.session.read_only:
             self.status(READ_ONLY_HINT, error=True)
             return
-        raw = edit_text(self.session.value(pointer))
         editor = self.query_one(RecordEditor)
+        if not self.commit_editor():
+            editor.focus()
+            return
+        raw = edit_text(self.session.value(pointer))
         if raw is None:
             editor.reset()
             self.status(f"{pointer} {RAW_BYTES_HINT}", error=True)

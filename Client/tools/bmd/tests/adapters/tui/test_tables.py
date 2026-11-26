@@ -149,6 +149,64 @@ async def test_enter_goes_into_a_record_and_escape_comes_back(working_copy: Path
         assert table.has_focus
 
 
+async def test_moving_to_another_record_lets_go_of_the_editor(working_copy: Path) -> None:
+    app = MubmdApp(LocalFileStore(), working_copy)
+    async with app.run_test(size=SIZE) as pilot:
+        table = await open_table(app, pilot, working_copy / "Local" / "Dialog.bmd")
+        editor = await open_field(app, pilot, 53, "answers/0")
+        await pilot.press("escape", "escape", "down")
+        await pilot.pause()
+        assert table.index_at_cursor() == 54
+        assert editor.pointer is None
+        assert editor.disabled
+
+
+async def test_moving_to_another_record_keeps_a_typed_edit(working_copy: Path) -> None:
+    app = MubmdApp(LocalFileStore(), working_copy)
+    async with app.run_test(size=SIZE) as pilot:
+        table = await open_table(app, pilot, working_copy / "Local" / "Dialog.bmd")
+        editor = await open_field(app, pilot, 53, "answers/0")
+        editor.value = "Conte de novo."
+        table.focus()
+        await pilot.press("down")
+        await pilot.pause()
+        assert app.session is not None
+        assert app.session.changes == (Change("/records/53/answers/0", "Please repeat the story.", "Conte de novo."),)
+        assert editor.pointer is None
+
+
+async def test_an_edit_that_does_not_fit_holds_its_record(working_copy: Path) -> None:
+    app = MubmdApp(LocalFileStore(), working_copy)
+    async with app.run_test(size=SIZE) as pilot:
+        table = await open_table(app, pilot, working_copy / "Gate.bmd")
+        editor = await open_field(app, pilot, 1, "level")
+        editor.value = "abc"
+        table.focus()
+        await pilot.press("down")
+        await pilot.pause()
+        assert table.index_at_cursor() == 1
+        assert editor.has_focus
+        assert editor.pointer == "/records/1/level"
+        assert app.session is not None
+        assert not app.session.dirty
+
+
+async def test_entering_another_field_keeps_a_typed_edit(working_copy: Path) -> None:
+    app = MubmdApp(LocalFileStore(), working_copy)
+    async with app.run_test(size=SIZE) as pilot:
+        await open_table(app, pilot, working_copy / "Local" / "Dialog.bmd")
+        editor = await open_field(app, pilot, 53, "answers/0")
+        editor.value = "Conte de novo."
+        fields = app.query_one(FieldList)
+        fields.focus()
+        fields.move_cursor(row=fields.get_row_index("answers/1"))
+        await pilot.press("enter")
+        await pilot.pause()
+        assert editor.pointer == "/records/53/answers/1"
+        assert app.session is not None
+        assert app.session.changes == (Change("/records/53/answers/0", "Please repeat the story.", "Conte de novo."),)
+
+
 async def test_editing_a_field_saves_only_that_field(working_copy: Path, reference_data: Path) -> None:
     target = working_copy / "Local" / "Dialog.bmd"
     before = (reference_data / "Local" / "Dialog.bmd").read_bytes()

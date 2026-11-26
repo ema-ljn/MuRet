@@ -322,8 +322,9 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
 - **Left:** the folder as a tree with only `.bmd` files, an icon per kind and a dot on unsaved files.
 - **Right:** the document. Text and record tables are data tables with search, filters (non-empty, changed, with
   findings) and an editor below that counts bytes as you type and flags characters CP1252 cannot hold. A record table
-  lists the fields of the selected record under the table, and item rows show their section. Models show a tree of meshes, actions and bones with their counts and names; names,
-  texture names, a mesh's texture and a bone's parent are editable there, the rest through JSON.
+  lists the fields of the selected record under the table, and item rows show their section. Models show a tree of
+  meshes, actions and bones with their counts and names; names, texture names, a mesh's texture and a bone's parent
+  are editable there, the rest through JSON.
 - **The surprise:** a model's wireframe in the terminal, drawn with braille characters and slowly turning, posed with
   the first key of its first action (Half-Life's angle-to-quaternion order, as research 05 describes). Character parts
   borrow `player/Player.bmd`'s skeleton. It is a preview in float64, not the client's x87 math.

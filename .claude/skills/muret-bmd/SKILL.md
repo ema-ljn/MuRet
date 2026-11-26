@@ -15,7 +15,8 @@ the file is replaced, and its result is what was written. `mubmd <command> --hel
 
 This version reads every table of the game: the 29 files under [The tables](#the-tables). The other `.bmd` files are
 3D models and answer `UNKNOWN_FORMAT` until their stage lands, and so do `Data/Item/item.bmd`,
-`Data/Item/Itemtest.bmd` and `Data/skill/skill.bmd`, which are named like a table and are not one. The tool is in
+`Data/Item/Itemtest.bmd` and `Data/skill/skill.bmd`, which are named like a table and are not one (inside a folder
+called `Item` or `skill`, a file with the table's name is the table only if it is as large as one). The tool is in
 [`Client/tools/bmd`](../../../Client/tools/bmd/README.md) and its contract is the
 [spec](../../../docs/superpowers/specs/2026-11-25-bmd-editor-design.md).
 
@@ -60,6 +61,9 @@ A table is a list of records, and a record's number is the game's own number, fr
   editions, most of them in Korean (cp949) or Chinese (gb2312): change them only when the task names them. `mubmd
   formats` lists every file with its encoding.
 - **A `raw_0xNN` field** is bytes the research has not named yet. Leave it as it is.
+- **The filters end at their first empty record.** The client reads the words of `Filter.bmd` and `FilterName.bmd`
+  from record 0 up to the first empty one, and nothing after it, whatever the file holds there: add a word in that
+  first empty record, and never leave a gap.
 - **Gates.** `flag` 1 is an entrance, 2 an exit and 0 a `/move` destination. An entrance's `target` is the record of
   the exit it leads to, and its `level` is the level it asks for. `map` is a map number: 0 Lorencia, 1 Dungeon, 2
   Devias, 3 Noria. For another map, `find` its name in `movereq.bmd` and read the `map` of that record's `gate`.

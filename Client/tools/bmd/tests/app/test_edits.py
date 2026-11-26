@@ -172,6 +172,14 @@ def test_set_refuses_a_value_its_field_cannot_hold(tables: FakeStore, path: Path
     assert tables.writes == 0
 
 
+@pytest.mark.parametrize("raw", ["true", "1.0"])
+def test_set_refuses_a_wrong_type_that_equals_the_current_value(tables: FakeStore, raw: str) -> None:
+    with pytest.raises(MubmdError) as caught:
+        set_value(tables, GATE, "/records/1/flag", raw, dry_run=False)
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.pointer == "/records/1/flag"
+
+
 def test_set_replaces_a_whole_list(tables: FakeStore) -> None:
     result = set_value(tables, SKILL, "/records/1/classes", "[1, 1, 0, 1, 0]", dry_run=False)
     assert result.changes == (Change("/records/1/classes/1", 0, 1),)

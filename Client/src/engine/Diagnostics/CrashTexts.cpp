@@ -18,9 +18,8 @@ namespace Client::Diagnostics
 {
 namespace
 {
-// Arma un texto de la cabecera sin pedir memoria y lo corta en 127 bytes, como el lstrcpynA que
-// lo copia (0x67f955, 0x67f99b, 0x67ff3c). Los números, con to_chars: sin locale y sin memoria,
-// lo que el manejador puede usar después de la caída.
+// Cut at 127 bytes, like the lstrcpynA that copies it (0x67f955, 0x67f99b, 0x67ff3c). Numbers go through to_chars: no
+// locale and no memory, so the handler can use it after the crash.
 class TextBuilder
 {
 public:
@@ -31,7 +30,7 @@ public:
         m_length += count;
     }
 
-    // Reemplaza lo que había, como el assign de std::string del original.
+    // Replaces the contents, like the original's std::string assign.
     void Assign(std::string_view text)
     {
         m_text.fill('\0');
@@ -47,7 +46,7 @@ public:
         Append(std::string_view(digits.data(), static_cast<std::size_t>(written.ptr - digits.data())));
     }
 
-    // %08X: en mayúsculas y con 8 dígitos al menos.
+    // %08X: uppercase, at least 8 digits.
     void AppendHex(std::uint64_t value)
     {
         constexpr std::string_view HexDigits = "0123456789ABCDEF";
@@ -89,27 +88,26 @@ private:
     static constexpr std::size_t MaxLength = CrashTextSize - 1;
     static constexpr std::size_t DecimalDigits = 24;
     static constexpr std::size_t HexDigitsOf64Bits = 16;
-    // Un double en %.2f con hasta 308 dígitos enteros.
+    // A double in %.2f with up to 308 integer digits.
     static constexpr std::size_t FixedDigits = 320;
 
     CrashText m_text{};
     std::size_t m_length = 0;
 };
 
-// ---- El sistema, 0x683ed0 ----
+// ---- The system, 0x683ed0 ----
 
-// dwPlatformId de OSVERSIONINFO: VER_PLATFORM_WIN32_WINDOWS (95, 98, Me) y VER_PLATFORM_WIN32_NT.
+// OSVERSIONINFO dwPlatformId: VER_PLATFORM_WIN32_WINDOWS (95, 98, Me) and VER_PLATFORM_WIN32_NT.
 constexpr std::uint32_t PlatformWin32Windows = 1;
 constexpr std::uint32_t PlatformWin32Nt = 2;
 
-// La letra de szCSDVersion[1] que nombra la edición: 'B' o 'C' en 95 (0x6844b0) y 'A' en 98
-// (0x6843f5).
+// The szCSDVersion[1] letter that names the edition: 'B' or 'C' on 95 (0x6844b0) and 'A' on 98 (0x6843f5).
 char ServicePackLetter(std::string_view servicePack)
 {
     return servicePack.size() > 1 ? servicePack[1] : '\0';
 }
 
-// El ProductType de Windows 2000 (0x684220..0x6842ab), con _stricmp.
+// The Windows 2000 ProductType (0x684220..0x6842ab), with _stricmp.
 std::string_view ProductSuffix(std::string_view productType)
 {
     if (Core::EqualsIgnoringAsciiCase(productType, "WINNT"))
@@ -135,7 +133,7 @@ void AppendUnknownSystem(TextBuilder& text, const OsVersion& version)
     text.AppendDecimal(static_cast<std::int32_t>(version.minor));
 }
 
-// Windows 95, 98 y Me: true, porque su build va en otro formato.
+// Windows 95, 98 and Me: true, because their build has another format.
 bool AppendVersion4(TextBuilder& text, const OsVersion& version)
 {
     constexpr std::uint32_t Minor95 = 0;
@@ -191,7 +189,7 @@ void AppendVersion5(TextBuilder& text, const OsVersion& version)
     }
 }
 
-// El nombre por la versión (el switch de 0x683f4a). true para 95, 98 y Me.
+// The name by version (the switch at 0x683f4a). true for 95, 98 and Me.
 bool AppendSystemName(TextBuilder& text, const OsVersion& version)
 {
     constexpr std::uint32_t MajorNt3 = 3;
@@ -216,7 +214,7 @@ bool AppendSystemName(TextBuilder& text, const OsVersion& version)
     return false;
 }
 
-// " Build %d.%d.%d " con el build partido en 95, 98 y Me, y " Build %d" con el entero en los otros
+// " Build %d.%d.%d " with the build split on 95, 98 and Me, and " Build %d" with the whole one on the others
 // (0x6845a6..0x6845f1).
 void AppendBuild(TextBuilder& text, std::uint32_t build, bool windows9x)
 {
@@ -238,18 +236,18 @@ void AppendBuild(TextBuilder& text, std::uint32_t build, bool windows9x)
     text.Append(" ");
 }
 
-// ---- El procesador, 0x684730 ----
+// ---- The processor, 0x684730 ----
 
-// EBX de la hoja 0: "Genu" de GenuineIntel y "Auth" de AuthenticAMD (0x6847df, 0x6847eb).
+// Leaf 0 EBX: "Genu" of GenuineIntel and "Auth" of AuthenticAMD (0x6847df, 0x6847eb).
 constexpr std::uint32_t IntelVendorEbx = 0x756e6547;
 constexpr std::uint32_t AmdVendorEbx = 0x68747541;
 
-// La familia y el modelo de la firma, de 4 bits cada uno, sin los extendidos (0x6847d1..0x6847dc).
+// Family and model from the signature, 4 bits each, without the extended ones (0x6847d1..0x6847dc).
 constexpr unsigned FamilyShift = 8;
 constexpr unsigned ModelShift = 4;
 constexpr std::uint32_t NibbleMask = 0xF;
 
-// Los 12 bytes del fabricante, EBX, EDX y ECX, hasta el primer 0 (0x684753..0x684791).
+// The 12 vendor bytes, EBX, EDX and ECX, up to the first 0 (0x684753..0x684791).
 void AppendVendor(TextBuilder& text, const CpuId& cpu)
 {
     constexpr std::size_t VendorBytes = 12;
@@ -270,8 +268,7 @@ void AppendVendor(TextBuilder& text, const CpuId& cpu)
     text.Append(" - ");
 }
 
-// La tabla de Intel (0x684840): la familia 6 por modelo, la 15 es el Pentium 4, y de la 3 a la 5
-// no dice nada.
+// Intel's table (0x684840): family 6 by model, 15 is the Pentium 4, and 3 to 5 say nothing.
 std::string_view IntelModel(std::uint32_t family, std::uint32_t model)
 {
     constexpr std::uint32_t FamilyP6 = 6;
@@ -364,7 +361,7 @@ std::string_view AmdFamily6(std::uint32_t model)
     }
 }
 
-// La tabla de AMD (0x684930).
+// AMD's table (0x684930).
 std::string_view AmdModel(std::uint32_t family, std::uint32_t model)
 {
     constexpr std::uint32_t Family486 = 4;
@@ -383,8 +380,7 @@ std::string_view AmdModel(std::uint32_t family, std::uint32_t model)
     }
 }
 
-// " CPU %.2fGHz" con más de 1000 MHz y " CPU %dMHz" si no, con los 32 bits de abajo
-// (0x684d77..0x684db3).
+// " CPU %.2fGHz" above 1000 MHz and " CPU %dMHz" otherwise, with the low 32 bits (0x684d77..0x684db3).
 void AppendSpeed(TextBuilder& text, std::int64_t megahertz)
 {
     constexpr std::int64_t GigahertzFrom = 1000;
@@ -400,7 +396,7 @@ void AppendSpeed(TextBuilder& text, std::int64_t megahertz)
     text.Append("MHz");
 }
 
-// ---- La excepción, 0x680260 ----
+// ---- The exception, 0x680260 ----
 
 struct ExceptionName
 {
@@ -408,10 +404,10 @@ struct ExceptionName
     std::string_view text;
 };
 
-// El acceso inválido, que suma la dirección.
+// The access violation, which adds the address.
 constexpr std::uint32_t AccessViolationCode = 0xC0000005;
 
-// Los códigos que conoce el switch de 0x680260 y sus dos tablas (0x6807b4 y 0x680834).
+// The codes the switch at 0x680260 and its two tables know (0x6807b4 and 0x680834).
 constexpr std::array ExceptionNames{
     ExceptionName{.code = 0x80000002, .text = "Data type misalignment"},
     ExceptionName{.code = 0x80000003, .text = "Break point"},
@@ -478,7 +474,7 @@ CrashText ProcessorText(const CpuId& cpu, std::int64_t megahertz)
     }
     else
     {
-        // Otro fabricante: el texto entero pasa a ser "Unknown", sin el fabricante (0x6847f3).
+        // Another vendor: the whole text becomes "Unknown", without the vendor (0x6847f3).
         text.Assign("Unknown");
     }
     AppendSpeed(text, megahertz);
@@ -488,13 +484,13 @@ CrashText ProcessorText(const CpuId& cpu, std::int64_t megahertz)
 std::int64_t MegahertzFromSample(std::uint64_t cycles, std::int64_t ticks, std::int64_t ticksPerSecond)
 {
     constexpr std::int64_t HertzPerMegahertz = 1000000;
-    // Lo que entra en un int64: __ftol (0x69fd3c) no da un valor útil fuera de ahí.
+    // What fits in an int64: __ftol (0x69fd3c) gives no useful value outside it.
     constexpr double Int64Limit = 9.2e18;
     if (ticks <= 0 || ticksPerSecond <= 0)
     {
         return 0;
     }
-    // Las dos divisiones de la x87 de 0x684fdc, con los ciclos con signo, como los carga fild.
+    // The two x87 divisions of 0x684fdc, with the cycles signed, as fild loads them.
     const double seconds = static_cast<double>(ticks) / static_cast<double>(ticksPerSecond);
     const double hertz = static_cast<double>(static_cast<std::int64_t>(cycles)) / seconds;
     if (!(std::fabs(hertz) < Int64Limit))
@@ -512,7 +508,7 @@ CrashText ExceptionText(std::uint32_t code, std::uint64_t accessKind, std::uint6
     text.Append(found != ExceptionNames.end() ? found->text : "Unknown exception");
     if (code == AccessViolationCode)
     {
-        // 0 es una lectura; cualquier otro valor, escritura (0x6803a5).
+        // 0 is a read; any other value, a write (0x6803a5).
         text.Append(accessKind == 0 ? " : reading inaccessible 0x" : " : writing inaccessible 0x");
         text.AppendHex(accessAddress);
     }

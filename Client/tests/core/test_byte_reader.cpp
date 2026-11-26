@@ -10,13 +10,11 @@
 #include <span>
 #include <vector>
 
-// Client::Core::ByteReader: enteros little-endian y big-endian, y campos de bytes, leídos en orden,
-// sin pasarse del final.
 namespace
 {
 using Client::Core::ByteReader;
 
-// Se arma sobre bytes que siguen vivos, y no sobre un temporal que es dueño de los suyos.
+// Built over bytes that stay alive, not over a temporary that owns its own.
 static_assert(std::constructible_from<ByteReader, std::span<const std::byte>>);
 static_assert(std::constructible_from<ByteReader, std::vector<std::byte>&>);
 static_assert(std::constructible_from<ByteReader, const std::vector<std::byte>&>);
@@ -29,7 +27,7 @@ template <typename... Values> constexpr std::array<std::byte, sizeof...(Values)>
     return {static_cast<std::byte>(values)...};
 }
 
-// F1 E2 00 00 es la clave del checksum de Item.bmd, 0xE2F1: el byte menos significativo va primero.
+// F1 E2 00 00 is Item.bmd's checksum key, 0xE2F1: the least significant byte goes first.
 TEST(ByteReaderTest, ReadsU32LittleEndian)
 {
     const auto bytes = Bytes(0xF1, 0xE2, 0x00, 0x00);
@@ -39,7 +37,6 @@ TEST(ByteReaderTest, ReadsU32LittleEndian)
     EXPECT_EQ(reader.Remaining(), 0u);
 }
 
-// Cada lectura avanza lo que leyó, ni más ni menos: un u8 con bytes de sobra avanza uno solo.
 TEST(ByteReaderTest, ReadsInOrder)
 {
     const auto bytes = Bytes(0x07, 0x18, 0x5A, 0x09);
@@ -53,8 +50,8 @@ TEST(ByteReaderTest, ReadsInOrder)
     EXPECT_EQ(reader.Remaining(), 0u);
 }
 
-// Con el bit alto prendido no hay signo que se extienda: 0x80 es 128 y no -128, y 0xFF es 255 y
-// no -1. Si se extendiera, los bytes altos se llenarían de unos: 0xFFFFFF80 y 0xFFFF.
+// No sign extension: 0x80 is 128, not -128, and 0xFF is 255, not -1. Extended, the high bytes would fill with ones:
+// 0xFFFFFF80 and 0xFFFF.
 TEST(ByteReaderTest, HighBitStaysUnsigned)
 {
     const auto bytes = Bytes(0x80, 0x00, 0x00, 0x00, 0xFF, 0x00);
@@ -64,7 +61,6 @@ TEST(ByteReaderTest, HighBitStaysUnsigned)
     EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x00FF});
 }
 
-// Una lectura que no entra falla sin leer nada ni avanzar: la que sigue arranca en el mismo lugar.
 TEST(ByteReaderTest, ReadPastTheEndFailsAndKeepsThePosition)
 {
     const auto bytes = Bytes(0x01, 0x02, 0x03);
@@ -78,8 +74,7 @@ TEST(ByteReaderTest, ReadPastTheEndFailsAndKeepsThePosition)
     EXPECT_EQ(reader.ReadU8(), std::nullopt);
 }
 
-// El tamaño de un C2/C4 va en big-endian, el byte más significativo primero (03, "Cadena de
-// recepción"): 01 2C son 300, no 0x2C01.
+// A C2/C4 size is big-endian, most significant byte first (03, "Cadena de recepción"): 01 2C is 300, not 0x2C01.
 TEST(ByteReaderTest, ReadsU16BigEndian)
 {
     const auto bytes = Bytes(0x01, 0x2C);
@@ -89,8 +84,6 @@ TEST(ByteReaderTest, ReadsU16BigEndian)
     EXPECT_EQ(reader.Remaining(), 0u);
 }
 
-// Big-endian y little-endian se mezclan en el mismo buffer, y cada lectura sigue donde terminó la
-// anterior.
 TEST(ByteReaderTest, MixesBigAndLittleEndian)
 {
     const auto bytes = Bytes(0x12, 0x34, 0x56, 0x78);
@@ -101,8 +94,7 @@ TEST(ByteReaderTest, MixesBigAndLittleEndian)
     EXPECT_EQ(reader.Remaining(), 0u);
 }
 
-// En big-endian el bit alto tampoco extiende el signo: 00 FE es el C2 más largo del cable del
-// laboratorio, 254 bytes, y FF 80 es 0xFF80, no un negativo.
+// 00 FE is the longest C2 on the lab's wire, 254 bytes, and FF 80 is 0xFF80, not a negative.
 TEST(ByteReaderTest, HighBitStaysUnsignedInBigEndian)
 {
     const auto bytes = Bytes(0x00, 0xFE, 0xFF, 0x80);
@@ -112,7 +104,6 @@ TEST(ByteReaderTest, HighBitStaysUnsignedInBigEndian)
     EXPECT_EQ(reader.ReadU16Be(), std::uint16_t{0xFF80});
 }
 
-// Con un solo byte, un u16 big-endian falla sin avanzar, como los little-endian.
 TEST(ByteReaderTest, ReadU16BigEndianPastTheEndFails)
 {
     const auto bytes = Bytes(0xC2);
@@ -122,8 +113,7 @@ TEST(ByteReaderTest, ReadU16BigEndianPastTheEndFails)
     EXPECT_EQ(reader.Remaining(), 1u);
 }
 
-// Un campo de largo fijo, como el host de 16 bytes de un F4 03 (04, "El flujo de conexión"): sale
-// sin copiarse, mirando el mismo buffer, y la lectura que sigue arranca después.
+// Like the 16-byte host of an F4 03 (04, "El flujo de conexión").
 TEST(ByteReaderTest, ReadsBytesInOrderWithoutCopying)
 {
     const auto bytes = Bytes(0x31, 0x37, 0x32, 0x00, 0x5D, 0xDA);
@@ -138,7 +128,7 @@ TEST(ByteReaderTest, ReadsBytesInOrderWithoutCopying)
     EXPECT_EQ(reader.Remaining(), 0u);
 }
 
-// Un campo que no entra falla sin avanzar, como un entero; uno de 0 bytes entra siempre, vacío.
+// A 0-byte field always fits, empty.
 TEST(ByteReaderTest, ReadBytesPastTheEndFailsAndKeepsThePosition)
 {
     const auto bytes = Bytes(0x01, 0x02, 0x03);

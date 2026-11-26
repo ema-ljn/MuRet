@@ -2,18 +2,17 @@
 
 #include <cstdint>
 
-// Cómo se pide el swap de la ventana (CL3.1). El original no pide VSync: wglSwapIntervalEXT solo
-// aparece en dos stubs que nadie llama (0x69e830 y 0x69e860). Está en App y no en Platform porque
-// la config (CL3.4) lo lee sin depender de SDL.
+// The original does not request VSync: wglSwapIntervalEXT only appears in two stubs nobody calls (0x69e830 and
+// 0x69e860). Outside Platform/Sdl so the config reads it without depending on SDL.
 namespace Client::Platform
 {
 enum class VSyncMode : std::uint8_t
 {
-    // SDL_GL_SetSwapInterval(1): un swap por retrazo del monitor.
+    // SDL_GL_SetSwapInterval(1): one swap per monitor retrace.
     On,
-    // SDL_GL_SetSwapInterval(-1): como On, pero un frame que llega tarde no espera al próximo.
+    // SDL_GL_SetSwapInterval(-1): like On, but a late frame does not wait for the next retrace.
     Adaptive,
-    // SDL_GL_SetSwapInterval(0): sin espera. Es el del modo fiel, como el original.
+    // SDL_GL_SetSwapInterval(0): no wait. The faithful mode's, like the original.
     Off,
 };
 } // namespace Client::Platform

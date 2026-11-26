@@ -13,54 +13,36 @@
 #include <string>
 #include <string_view>
 
-// Cada línea a un archivo de texto, con su fin de línea, en una sola escritura y con un flush: si
-// el cliente se cae, lo que se logueó hasta ahí ya está en el disco.
-//
-// Agrega al final, como el original: 0x41f7a0 abre MuError.log con OPEN_ALWAYS y se para en
-// FILE_END. Así el log de una caída sigue ahí al volver a abrir el cliente. Dos clientes abiertos a
-// la vez (en el MU es normal) escriben los dos: en modo agregar cada escritura va al final, y las
-// líneas quedan intercaladas pero enteras. El original lo abre compartido solo para leer, y el
-// segundo cliente se queda sin log (Q-C48 de 07). El original lo cifra con un XOR; MuRet lo
-// escribe en claro, a propósito. Para que no crezca sin fin, al abrir se vacía si ya pasa de
-// MaxLogFileBytes.
-//
-// Si una escritura falla después de abrir (el disco se llenó, se fue la unidad), FileSink escribe
-// un aviso que nombra la ruta, una sola vez, cierra el archivo y no vuelve a intentar: el archivo
-// queda corto, pero las líneas siguen en stderr por el TeeSink de main (AUD-C02 de la auditoría
-// del 2026-11-03). Un error que el sistema da recién al cerrar (en una unidad de red, por ejemplo)
-// no se ve: el ofstream lo traga en su destructor.
+// One write and a flush per line, so a crash keeps what was logged. Appends, like 0x41f7a0 (OPEN_ALWAYS, then
+// FILE_END): two clients at once write interleaved but whole lines, where the original opens it shared for reading only
+// and the second client has no log (Q-C48 of 07). The original XORs it; MuRet writes it in clear, on purpose. A failed
+// write warns once with the path and closes the file; the lines go on in stderr through main's TeeSink (AUD-C02). An
+// error the system gives only on close is lost: the ofstream swallows it in its destructor.
 namespace Client::Core
 {
-// El tope del log al abrir. El original no vacía: al arrancar, 0x41f830 lee hasta 0x1ffff bytes
-// y, si leyó 0x7fff o más, se queda con lo que va desde el byte 0x7fff; si no, con las cuatro
-// últimas sesiones ("###### Log Begin ######"). Después borra el archivo y lo reescribe (Q-C48,
-// estático, verificado con objdump). MuRet loguea más por corrida (el arranque, los avisos del
-// bucle, SDL), y vaciarlo entero al pasar 1 MiB es más simple que cortar el principio y deja varias
-// corridas. Se mira solo al abrir: así una corrida no pierde lo suyo a la mitad por su propio
-// tope. Si otro cliente abre el mismo archivo cuando ya pasó el tope, lo vacía, y la corrida que
-// ya estaba pierde lo que había escrito; lo que escribe después sí queda
-// (AppendsFromIndependentSinksAfterTheCap).
+// The original does not empty it: on start 0x41f830 reads up to 0x1ffff bytes and keeps from byte 0x7fff on if it read
+// 0x7fff or more, else the last four sessions, then rewrites the file (Q-C48). MuRet logs more per run, and emptying at
+// 1 MiB is simpler and keeps several runs. Checked only on open, so a run does not lose its own lines to the cap. A
+// client opening the file past the cap empties it, and a running one loses what it had written but not what it writes
+// after (AppendsFromIndependentSinksAfterTheCap).
 inline constexpr std::uintmax_t MaxLogFileBytes = 1024 * 1024;
 
 class ENGINE_API FileSink final : public ILogSink
 {
 public:
-    // Si no se puede abrir (la carpeta no existe, no hay permiso), un error que nombra la ruta:
-    // main lo avisa por stderr y sigue sin archivo. Va en un unique_ptr porque el mutex no se
-    // mueve, y el Expected guarda su valor moviéndolo. `noticeOutput` es adonde va el aviso de una
-    // escritura que falla, con un fwrite y no por el Log; un test pasa un std::tmpfile(), como en
-    // StderrSink. Tiene que vivir más que el FileSink, que no es dueño: no lo cierra.
+    // A unique_ptr because the mutex does not move and Expected stores its value by moving it. `noticeOutput` takes the
+    // failed-write notice with fwrite, not through the Log; it must outlive the FileSink, which does not close it.
     [[nodiscard]] static Expected<std::unique_ptr<FileSink>, std::string> Open(const std::filesystem::path& path,
                                                                                std::FILE* noticeOutput = stderr);
 
     void Write(LogLevel level, std::string_view line) override;
 
 private:
-    // Privado: solo Open, que mira que el archivo haya abierto, arma un FileSink.
+    // Private: only Open builds one, after checking that the file opened.
     FileSink(std::ofstream file, std::string failureNotice, std::FILE* noticeOutput);
 
-    std::ofstream m_file;        // se cierra al primer fallo: is_open() dice si ya falló
-    std::string m_failureNotice; // armado al abrir: escribirlo no necesita memoria nueva
+    std::ofstream m_file;        // closed on the first failure: is_open() tells if it failed
+    std::string m_failureNotice; // built on open: writing it needs no new memory
     std::FILE* m_noticeOutput;
     std::mutex m_mutex;
 };

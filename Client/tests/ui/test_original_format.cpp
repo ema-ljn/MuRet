@@ -7,8 +7,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Crt::FormatOriginal (CL9 hito 11): el sprintf de la CRT (0x69fd9b) y wsprintfA ([0x6b851c]) con los
-// argumentos que pasa el original, para los textos de Text.bmd que usan de formato los paquetes de los eventos.
+// The CRT's sprintf (0x69fd9b) and wsprintfA ([0x6b851c]) with the arguments the original passes, for the Text.bmd
+// texts the event packets use as a format.
 namespace
 {
 using Client::Crt::FormatArgument;
@@ -23,7 +23,7 @@ std::string Formatted(FormatFunction function, std::string_view format, const st
     return formatted.HasValue() ? formatted.Value() : std::string{};
 }
 
-// El texto 828 de Chaos Castle con 1147: el nombre por puntero y los segundos por valor.
+// Chaos Castle's text 828 with 1147: the name by pointer and the seconds by value.
 TEST(OriginalFormatTest, ATextGoesByPointerAndANumberByValue)
 {
     const std::vector<FormatArgument> arguments{TextArgument{.index = 1147, .text = "Chaos Castle"}, 18};
@@ -33,7 +33,7 @@ TEST(OriginalFormatTest, ATextGoesByPointerAndANumberByValue)
               "Chaos Castle abrira (en 18 segundos)");
 }
 
-// 0x69fd9b: "% d" pone un espacio delante de un número sin signo y "% s" no cambia nada.
+// 0x69fd9b: "% d" puts a space before an unsigned number and "% s" changes nothing.
 TEST(OriginalFormatTest, SprintfTakesTheSpaceFlag)
 {
     const std::vector<FormatArgument> arguments{TextArgument{.index = 1146, .text = "Blood Castle"}, 10};
@@ -41,8 +41,8 @@ TEST(OriginalFormatTest, SprintfTakesTheSpaceFlag)
     EXPECT_EQ(Formatted(FormatFunction::Sprintf, "% d", {-3}), "-3");
 }
 
-// P-C290 (inferido): wsprintfA no tiene la bandera ' ': copia el espacio, no toma argumento y la letra sale como
-// texto. "% s ... (en% d segundos)" de los textos 821..825 queda sin el nombre ni los segundos.
+// P-C290 (inferred): wsprintfA has no ' ' flag: it copies the space, takes no argument and the letter comes out as
+// text. "% s ... (en% d segundos)" of texts 821..825 is left without the name and the seconds.
 TEST(OriginalFormatTest, WsprintfCopiesTheSpaceAndTakesNoArgument)
 {
     const std::vector<FormatArgument> arguments{TextArgument{.index = 1146, .text = "Blood Castle"}, 30};
@@ -50,7 +50,7 @@ TEST(OriginalFormatTest, WsprintfCopiesTheSpaceAndTakesNoArgument)
               " s invasion (en d segundos) ");
 }
 
-// Q-C1321: un "%d" que toma un texto imprime su dirección, 0x76bd1dc + índice · 300 (853 con 1146 en el 9A).
+// Q-C1321: a "%d" that takes a text prints its address, 0x76bd1dc + index · 300 (853 with 1146 in the 9A).
 TEST(OriginalFormatTest, ANumberConversionOfATextPrintsItsAddress)
 {
     const std::vector<FormatArgument> arguments{TextArgument{.index = 1146, .text = "Blood Castle"}, 10};
@@ -60,7 +60,6 @@ TEST(OriginalFormatTest, ANumberConversionOfATextPrintsItsAddress)
     EXPECT_EQ(address, 0x077110d4u);
 }
 
-// El ancho, la precisión, el cero, la izquierda, el '#' y el %%.
 TEST(OriginalFormatTest, KeepsWidthPrecisionAndFlags)
 {
     EXPECT_EQ(Formatted(FormatFunction::Sprintf, "[%5d][%-4d][%03d][%.3d][%#x][%%]", {42, 7, 5, 9, 255}),
@@ -69,7 +68,7 @@ TEST(OriginalFormatTest, KeepsWidthPrecisionAndFlags)
               "[ab][A]");
 }
 
-// Lo que el original haría con la pila o con un puntero que no es corta con error.
+// Where the original would read the stack or a pointer that is not one, this stops with an error.
 TEST(OriginalFormatTest, StopsWhereTheOriginalReadsGarbage)
 {
     const auto missing = FormatOriginal(FormatFunction::Sprintf, "%d %d", std::vector<FormatArgument>{1}, "aquí");

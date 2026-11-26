@@ -8,19 +8,15 @@
 #include <cstdint>
 #include <span>
 
-// La lista de frames de MuError.dmp: la cadena de EBP que arma el filtro antes de escribir
-// (0x6829f0 y 0x682890; 02 § El manejador de caídas).
+// The MuError.dmp frame list: the EBP chain the filter builds before writing (0x6829f0 and 0x682890; 02 § El manejador
+// de caídas).
 namespace Client::Diagnostics
 {
-// Recorre la cadena desde `framePointer` (el Ebp del CONTEXT, +0xb4) y llena `frames`: por cada
-// frame que se puede leer, su dirección, la de vuelta (lo que sigue al frame anterior guardado) y
-// hasta 16 dwords desde ahí, de a uno mientras se puedan leer. Sigue con el frame anterior
-// guardado si se puede leer, hasta 64. Devuelve cuántos llenó.
-//
-// `pointerSize` es lo que mide un puntero en el proceso: 4 en el original, 8 en MuRet de 64 bits.
-// Cada dirección se guarda con sus 32 bits de abajo, que es lo que entra en el archivo (Q-C241), y
-// los dwords empiezan después de los dos punteros del frame. La dirección de vuelta que no se puede
-// leer queda en 0: el original la lee sin mirar (0x6828af). No pide memoria.
+// From `framePointer` (the CONTEXT's Ebp, +0xb4), for each readable frame: its address, the return address (what
+// follows the saved previous frame) and up to 16 dwords from there, while readable. Follows the saved previous frame
+// if readable, up to 64. `pointerSize` is 4 in the original, 8 in 64-bit MuRet. Each address keeps its low 32 bits,
+// what fits in the file (Q-C241); the dwords start after the frame's two pointers. An unreadable return address stays
+// 0: the original reads it unchecked (0x6828af). Allocates nothing.
 [[nodiscard]] ENGINE_API std::size_t WalkCrashFrames(std::uint64_t framePointer, std::size_t pointerSize,
                                                      const IMemoryReader& memory,
                                                      std::span<CrashFrame, MaxCrashFrames> frames);

@@ -16,7 +16,6 @@
 #include <string>
 #include <utility>
 
-// Window: la ventana SDL3 y su contexto GL.
 namespace Client::Platform::Sdl
 {
 void WindowDeleter::operator()(SDL_Window* window) const
@@ -36,13 +35,13 @@ Window::Window(WindowPtr window, GlContextPtr context, const GlFunctions& gl, Sw
 
 Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, const WindowOptions& options)
 {
-    // Los atributos del contexto se piden antes de crear la ventana.
+    // The context attributes are requested before creating the window.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, GlMajorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, GlMinorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    // La profundidad de 16 bits que pide el original (cDepthBits en 0x4b8e10), la que SDL3 da por
-    // defecto: explícita, para que la ventana y el framebuffer de los tests tengan la misma (CL6.3).
+    // The original's 16-bit depth (cDepthBits at 0x4b8e10), SDL3's default: explicit, so the window and the tests'
+    // framebuffer have the same one.
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
     WindowPtr window(SDL_CreateWindow(options.title.c_str(), options.width, options.height, SDL_WINDOW_OPENGL));
@@ -50,14 +49,14 @@ Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, co
     {
         return Core::Unexpected(std::string("no se pudo crear la ventana: ") + SDL_GetError());
     }
-    // SDL_GL_CreateContext también lo deja como el contexto actual de este hilo.
+    // SDL_GL_CreateContext also makes it this thread's current context.
     GlContextPtr context(SDL_GL_CreateContext(window.get()));
     if (!context)
     {
         return Core::Unexpected("no se pudo crear el contexto OpenGL " + GlVersionText() + " core: " + SDL_GetError());
     }
 
-    // LoadGlFunctions mira también la versión y el perfil del contexto (3.3 o más, core).
+    // LoadGlFunctions also checks the context's version and profile (3.3 or more, core).
     const Core::Expected<GlFunctions, std::string> gl = LoadGlFunctions();
     if (!gl.HasValue())
     {
@@ -133,7 +132,7 @@ Core::Expected<void, std::string> Window::StopTextInput()
 
 Core::Expected<void, std::string> Window::HideSystemCursor()
 {
-    // SDL_HideCursor es de todo SDL, no de una ventana: lo es de la ventana porque la ventana es la única.
+    // SDL_HideCursor is SDL-wide, not per window: it belongs to the window because the window is the only one.
     if (!SDL_HideCursor())
     {
         return Core::Unexpected(std::string("no se pudo esconder el cursor del sistema: ") + SDL_GetError());

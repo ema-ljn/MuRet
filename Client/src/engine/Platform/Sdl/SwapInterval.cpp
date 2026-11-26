@@ -7,17 +7,15 @@
 
 #include <string>
 
-// SwapIntervalFor y ApplySwapInterval.
 namespace Client::Platform::Sdl
 {
 namespace
 {
-// Los valores de SDL_GL_SetSwapInterval (SDL_video.h): uno por retrazo, adaptativo y sin espera.
+// SDL_GL_SetSwapInterval's values (SDL_video.h): once per retrace, adaptive and no wait.
 constexpr int IntervalOn = 1;
 constexpr int IntervalAdaptive = -1;
 constexpr int IntervalOff = 0;
 
-// El modo de un intervalo que ya está puesto.
 VSyncMode ModeFor(int interval)
 {
     if (interval == IntervalAdaptive)
@@ -27,7 +25,7 @@ VSyncMode ModeFor(int interval)
     return interval == IntervalOff ? VSyncMode::Off : VSyncMode::On;
 }
 
-// Lo que quedó, sin pedir nada: el intervalo según `get`, u Off si no lo sabe.
+// Requests nothing: the interval `get` reports, or Off if it does not know.
 VSyncMode CurrentMode(GetSwapIntervalFunction get)
 {
     int interval = IntervalOff;
@@ -60,8 +58,8 @@ int SwapIntervalFor(VSyncMode vsync)
     case VSyncMode::Off:
         return IntervalOff;
     }
-    // Inalcanzable con los tres modos; GCC lo pide igual (-Wreturn-type), porque un enum class
-    // puede tener otro valor con un cast.
+    // Unreachable with the three modes; GCC still wants it (-Wreturn-type), since an enum class can hold another value
+    // through a cast.
     return IntervalOn;
 }
 
@@ -76,7 +74,7 @@ const char* VSyncModeName(VSyncMode vsync)
     case VSyncMode::Off:
         return "Off";
     }
-    // Inalcanzable, como en SwapIntervalFor.
+    // Unreachable, as in SwapIntervalFor.
     return "?";
 }
 
@@ -86,7 +84,7 @@ SwapIntervalResult ApplySwapInterval(VSyncMode wanted, SetSwapIntervalFunction s
     {
         return SwapIntervalResult{wanted, {}};
     }
-    // El error del pedido, antes de que otra llamada lo pise.
+    // The request's error, before another call overwrites it.
     SwapIntervalResult result{VSyncMode::Off, SDL_GetError()};
     if (wanted == VSyncMode::Adaptive && set(IntervalOn))
     {

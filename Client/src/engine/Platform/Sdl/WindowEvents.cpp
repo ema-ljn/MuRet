@@ -12,14 +12,13 @@
 
 #include <optional>
 
-// PumpEvents: la tabla del contrato de la CL3.1, de los SDL_EVENT_* a los WindowEvent.
 namespace Client::Platform::Sdl
 {
 namespace
 {
 bool IsWindowEvent(const SDL_Event& event)
 {
-    // type es un Uint32: los dos extremos del enum, del mismo tipo (MSVC avisa con o sin signo).
+    // type is a Uint32: both enum ends cast to that same type (MSVC warns on a signed/unsigned mix).
     return event.type >= static_cast<Uint32>(SDL_EVENT_WINDOW_FIRST) &&
            event.type <= static_cast<Uint32>(SDL_EVENT_WINDOW_LAST);
 }
@@ -27,7 +26,7 @@ bool IsWindowEvent(const SDL_Event& event)
 
 std::optional<WindowEvent> WindowEventFor(const SDL_Event& event, SDL_WindowID windowId)
 {
-    // event.window es el miembro activo solo en los eventos de ventana.
+    // event.window is the active member only in window events.
     if (windowId != AnyWindow && IsWindowEvent(event) && event.window.windowID != windowId)
     {
         return std::nullopt;
@@ -72,8 +71,7 @@ void PumpEvents(WindowState& state, Input::InputState& input, SDL_WindowID windo
         {
             continue;
         }
-        // event.window es el miembro activo solo en los eventos de ventana: el tamaño se lee
-        // únicamente en PixelSizeChanged.
+        // event.window is the active member only in window events: the size is read only on PixelSizeChanged.
         Core::PixelSize size;
         if (*windowEvent == WindowEvent::PixelSizeChanged)
         {

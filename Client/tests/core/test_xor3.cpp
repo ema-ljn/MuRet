@@ -8,20 +8,19 @@
 #include <span>
 #include <vector>
 
-// Client::Crypto::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
 namespace
 {
 using Client::Crypto::Xor3;
 using Client::Tests::BytePattern;
 
-// Cualquier contenido sirve; este es el "patrón" de mu-client.
+// Any content works; this is mu-client's "pattern".
 std::vector<std::byte> Pattern(std::size_t size)
 {
     return BytePattern(size, 37, 11);
 }
 
-// Sobre ceros queda la clave misma, repetida: FC CF AB FC. Por eso un registro vacío de Text.bmd
-// se ve así en el archivo.
+// On zeros the key itself remains, repeated: FC CF AB FC. That is why an empty Text.bmd record looks like that in the
+// file.
 TEST(Xor3Test, ZerosBecomeTheKey)
 {
     std::vector<std::byte> bytes(4);
@@ -31,7 +30,7 @@ TEST(Xor3Test, ZerosBecomeTheKey)
     EXPECT_EQ(bytes, (std::vector{std::byte{0xFC}, std::byte{0xCF}, std::byte{0xAB}, std::byte{0xFC}}));
 }
 
-// El mismo vector que mu-client/tests/assets/test_bmd_tables.c, con los bytes 00..08.
+// The same vector as mu-client/tests/assets/test_bmd_tables.c, with the bytes 00..08.
 TEST(Xor3Test, MatchesTheResearchVector)
 {
     std::vector<std::byte> bytes = BytePattern(9, 1, 0);
@@ -56,8 +55,8 @@ TEST(Xor3Test, TwiceGivesBackTheOriginal)
     EXPECT_EQ(bytes, original);
 }
 
-// La posición en la clave se cuenta desde el principio de lo que se pasa. Por registros de 300
-// bytes da lo mismo que de una vez, porque 300 es múltiplo de 3; cortando en 301, no.
+// The key position counts from the start of what is passed. In 300-byte records it equals all at once because 300 is
+// a multiple of 3; split at 301, it does not.
 TEST(Xor3Test, ByRecordsEqualsAllAtOnceWhenRecordsAreMultiplesOfThree)
 {
     std::vector<std::byte> wholeFile = Pattern(600);

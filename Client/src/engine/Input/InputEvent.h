@@ -5,12 +5,9 @@
 #include <cstdint>
 #include <string>
 
-// Un evento de teclado, de mouse o de foco, ya traducido de SDL por Platform (InputEventFor,
-// CL3.3). InputState::Apply lo suma al estado del frame.
-// Contrato: el plan de la CL3, sub-ola CL3.3, y el de la CL5, sub-ola CL5.5 (el texto). Cada tipo
-// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown/Up/DoubleClick el botón, Wheel las
-// muescas, Motion la posición, Text el texto y Composition el texto provisional con su rango. Un
-// InputEvent sin llenar no hace nada: es el KeyDown de Key::Count, que no es tecla.
+// Each kind uses only its fields: KeyDown and KeyUp the key, ButtonDown/Up/DoubleClick the button, Wheel the notches,
+// Motion the position, Text the text and Composition the provisional text with its range. An unfilled InputEvent does
+// nothing: it is the KeyDown of Key::Count, which is not a key.
 namespace Client::Input
 {
 struct InputEvent
@@ -24,51 +21,47 @@ struct InputEvent
         Wheel,
         Motion,
         FocusLost,
-        // Lo tecleado, de SDL_EVENT_TEXT_INPUT (CL5.5): ya con el layout, Shift y las teclas
-        // muertas aplicados, que el campo de texto de la UI no tiene que saber.
+        // From SDL_EVENT_TEXT_INPUT, with the layout, Shift and dead keys already applied, which the UI text field need
+        // not know.
         Text,
-        // El texto UTF-8 provisional del IME y su rango en codepoints; -1 significa que no se indicó.
-        // También incluye el texto vacío que cancela una composición.
+        // The IME's provisional UTF-8 text and its range in code points; -1 means not given. Also the empty text that
+        // cancels a composition.
         Composition,
-        // WM_LBUTTONDBLCLK del juego: el segundo DOWN izquierdo de SDL, sin otro clic ordinario.
+        // The game's WM_LBUTTONDBLCLK: SDL's second left DOWN, without another ordinary click.
         ButtonDoubleClick,
-        // Un evento de plataforma sin otra entrada: igual apaga el doble clic del mensaje anterior (0x4b3444).
+        // A platform event with no other input: it still clears the previous message's double click (0x4b3444).
         Message,
     };
 
     Kind kind = Kind::KeyDown;
-    // Una tecla física: Platform no manda Shift, Ctrl ni Alt, sino sus lados (Key.h).
+    // A physical key: Platform sends the sides of Shift, Ctrl and Alt, not the keys themselves (Key.h).
     Key key = Key::Count;
     MouseButton button{};
-    // Las muescas de la rueda, positivas hacia adelante. Salen de `integer_y`, con el signo de
-    // `direction` (InputEvents.h).
+    // Positive forward. From `integer_y`, with the sign of `direction` (InputEvents.h).
     float wheel = 0.0f;
-    // La posición, en píxeles del framebuffer: Platform multiplica la de la ventana por su
-    // densidad (CL5.5, pregunta 12 del plan de la CL5). Sin acotar (Q-C47): el original tiene dos
-    // posiciones. La de la UI nueva (0x640940) la acota al tamaño de la ventana, en píxeles, sin
-    // escalar (+0x28 y +0x2c, que 0x4ba84a le pasa de [0x6d5d60] y [0x6d5d64]); eso lo hace
-    // UI::MouseInPixels. La del WndProc la escala a 640 x 480 sin acotar (0x4b358f..0x4b35c8):
-    // queda para la CL8. Con el mouse capturado SDL puede dar negativos o más allá del borde.
+    // In framebuffer pixels: Platform multiplies the window's by its density. Unclamped (Q-C47): the original has two
+    // positions. The new UI's (0x640940) clamps it to the window size in unscaled pixels (+0x28 and +0x2c, which
+    // 0x4ba84a passes from [0x6d5d60] and [0x6d5d64]); UI::MouseInPixels does that. The WndProc's scales it to 640 x
+    // 480 unclamped (0x4b358f..0x4b35c8), left for CL8. With the mouse captured SDL can give negatives or values past
+    // the edge.
     float x = 0.0f;
     float y = 0.0f;
-    // El texto de Text o Composition, copiado en UTF-8 sin conversión ANSI: el de SDL vive hasta
-    // el próximo SDL_PollEvent. Va último para que los inicializadores designados no cambien.
+    // Copied in UTF-8 with no ANSI conversion: SDL's lives only until the next SDL_PollEvent. Last so the designated
+    // initializers do not change.
     std::string text{};
-    // Repetición de SDL_KEYDOWN: no es un nuevo flanco físico. Backspace, Tab y Enter usan Text.
+    // SDL_KEYDOWN repeat: not a new physical edge. Backspace, Tab and Enter use Text.
     bool repeat = false;
-    // Rango de SDL_TextEditingEvent en codepoints UTF-8, no bytes; -1 indica que no se indicó.
+    // The SDL_TextEditingEvent range in UTF-8 code points, not bytes; -1 means not given.
     std::int32_t compositionStart = 0;
     std::int32_t compositionLength = 0;
 };
 
-// Los bytes que lleva el texto tecleado por Backspace y por Tab, en el lugar en que llegaron: los
-// WM_CHAR 8 y 9 que Windows le da al EDIT de un campo (0x467b10), con la repetición del teclado.
-// SDL no los manda como texto (SDL_EVENT_TEXT_INPUT trae solo lo imprimible): el apretón lo suma
-// InputState::Apply y la repetición la manda Platform como un Text (InputEvents.h).
+// The bytes Backspace and Tab put in the typed text, where they arrived: the WM_CHAR 8 and 9 Windows gives a field's
+// EDIT (0x467b10), with keyboard repeat. SDL does not send them as text (SDL_EVENT_TEXT_INPUT carries only printable
+// ones): InputState::Apply adds the press and Platform sends the repeat as a Text (InputEvents.h).
 inline constexpr char BackspaceChar = '\b';
 inline constexpr char TabChar = '\t';
-// Y el de Enter: el WM_CHAR 0xd que la ventana del juego atiende en 0x4b50b0 (la entrada del chat, CL8 hito 3) y
-// que la subclase de los EDIT (0x467b10) le pasa. Los campos que no lo toman lo descartan, como cualquier byte de
-// control.
+// And Enter's: the WM_CHAR 0xd the game window handles at 0x4b50b0 (the chat input, CL8 milestone 3), which the EDIT
+// subclass (0x467b10) passes on to it. Fields that do not take it drop it, like any control byte.
 inline constexpr char EnterChar = '\r';
 } // namespace Client::Input

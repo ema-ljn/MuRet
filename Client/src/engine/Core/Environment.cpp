@@ -12,8 +12,7 @@ namespace Client::Core
 {
 namespace
 {
-// Libera la copia de _dupenv_s. Es un tipo y no &std::free porque tomar la dirección de una función
-// de la biblioteca estándar no está garantizado ([namespace.std]).
+// A type and not &std::free: taking the address of a standard library function is not guaranteed ([namespace.std]).
 struct FreeDeleter
 {
     void operator()(char* value) const
@@ -29,7 +28,7 @@ std::optional<std::string> ReadEnvironmentVariable(const char* name)
     char* copy = nullptr;
     std::size_t size = 0;
     const errno_t error = _dupenv_s(&copy, &size, name);
-    // Dueño de la copia desde acá, también si hubo un error.
+    // Owns the copy from here, also on error.
     const std::unique_ptr<char, FreeDeleter> value(copy);
     if (error != 0 || value == nullptr)
     {

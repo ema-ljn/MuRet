@@ -9,7 +9,7 @@ namespace Client::Diagnostics
 {
 namespace
 {
-// Los ContextFlags de x86 de winnt.h.
+// The x86 ContextFlags from winnt.h.
 constexpr std::uint32_t ContextI386 = 0x00010000;
 constexpr std::uint32_t ContextControl = 0x01;
 constexpr std::uint32_t ContextInteger = 0x02;

@@ -10,8 +10,6 @@
 #include <string>
 #include <string_view>
 
-// Client::Diagnostics: lo que el manejador de Linux saca de /proc/self/maps y /proc/self/stat, en
-// vez de las fotos de toolhelp del original, sobre textos inventados.
 namespace
 {
 using Client::Diagnostics::CrashModule;
@@ -38,8 +36,7 @@ constexpr std::string_view Maps =
     "7ffc5a1f0000-7ffc5a1f2000 r-xp 00000000 00:00 0             [vdso]\n";
 } // namespace
 
-// Cada archivo mapeado es un módulo: su nombre, su ruta, dónde empieza y lo que mide hasta el final
-// de su último mapeo seguido. Lo anónimo y los [heap], [stack] y [vdso] no son módulos.
+// Anonymous mappings and [heap], [stack] and [vdso] are not modules.
 TEST(ProcSelfFilesTest, ListsEachMappedFileOnce)
 {
     std::array<CrashModule, MaxCrashModules> modules{};
@@ -47,7 +44,7 @@ TEST(ProcSelfFilesTest, ListsEachMappedFileOnce)
     ASSERT_EQ(ModulesFromProcMaps(Maps, modules), 2u);
     EXPECT_EQ(Text(modules[0].name), "Main");
     EXPECT_EQ(Text(modules[0].path), "/opt/muret/Main");
-    // Los 32 bits de abajo de 0x5581a3a00000, y de ahí hasta 0x5581a3c10000.
+    // The low 32 bits of 0x5581a3a00000, and from there up to 0x5581a3c10000.
     EXPECT_EQ(modules[0].base, 0xa3a00000u);
     EXPECT_EQ(modules[0].size, 0x210000u);
     EXPECT_EQ(Text(modules[1].name), "libc.so.6");
@@ -56,7 +53,7 @@ TEST(ProcSelfFilesTest, ListsEachMappedFileOnce)
     EXPECT_EQ(modules[1].size, 0x1bd000u);
 }
 
-// Una ruta con espacios llega entera, porque es lo último de la línea.
+// Whole, because it is the last field of the line.
 TEST(ProcSelfFilesTest, KeepsSpacesInAPath)
 {
     std::array<CrashModule, MaxCrashModules> modules{};
@@ -66,7 +63,7 @@ TEST(ProcSelfFilesTest, KeepsSpacesInAPath)
     EXPECT_EQ(Text(modules[0].name), "Main");
 }
 
-// Hasta 48, como el original; los demás se pierden.
+// Up to 48, like the original; the rest are lost.
 TEST(ProcSelfFilesTest, StopsAt48Modules)
 {
     std::string maps;
@@ -81,7 +78,6 @@ TEST(ProcSelfFilesTest, StopsAt48Modules)
     EXPECT_EQ(Text(modules[47].name), "module47.so");
 }
 
-// Una ruta de más de 255 bytes se guarda cortada, y sus mapeos siguientes la siguen reconociendo.
 TEST(ProcSelfFilesTest, CutsALongPathAndStillJoinsItsMappings)
 {
     const std::string path = "/" + std::string(300, 'p');
@@ -93,7 +89,6 @@ TEST(ProcSelfFilesTest, CutsALongPathAndStillJoinsItsMappings)
     EXPECT_EQ(modules[0].size, 0x4000u);
 }
 
-// Las líneas que no se entienden se saltean.
 TEST(ProcSelfFilesTest, SkipsMalformedLines)
 {
     std::array<CrashModule, MaxCrashModules> modules{};
@@ -101,8 +96,7 @@ TEST(ProcSelfFilesTest, SkipsMalformedLines)
     EXPECT_EQ(ModulesFromProcMaps("garbage\nzz-10 r--p 0 0:0 1 /x\n2000-1000 r--p 0 0:0 1 /y\n\n", modules), 0u);
 }
 
-// El campo 20 de /proc/self/stat, contado desde el último ')': el nombre puede tener espacios y
-// paréntesis.
+// Counted from the last ')': the name can hold spaces and parentheses.
 TEST(ProcSelfFilesTest, ReadsTheThreadCountFromStat)
 {
     const std::string stat = "4242 (Main (x) y) S 1 4242 4242 0 -1 4194560 2181 0 0 0 12 3 0 0 20 0 7 0 "

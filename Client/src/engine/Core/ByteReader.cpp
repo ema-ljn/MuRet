@@ -8,7 +8,6 @@
 
 namespace
 {
-// Cuánto se corre cada byte del campo para llegar a su lugar en el resultado.
 constexpr std::size_t BitsPerByte = 8;
 } // namespace
 
@@ -67,9 +66,8 @@ std::size_t ByteReader::Remaining() const
     return m_buffer.size() - m_position;
 }
 
-// En little-endian el byte k del campo va en los bits 8k a 8k+7 del resultado; en big-endian, el
-// orden de significancia se da vuelta y el byte k va en el lugar size - 1 - k. std::to_integer lo
-// lee sin signo: 0xFF es 255 y no se extiende como un -1.
+// Little-endian puts byte k at bits 8k to 8k+7; big-endian at place size - 1 - k. std::to_integer reads it unsigned:
+// 0xFF is 255, not a sign-extended -1.
 std::optional<std::uint32_t> ByteReader::ReadUnsigned(std::size_t size, std::endian order)
 {
     if (Remaining() < size)

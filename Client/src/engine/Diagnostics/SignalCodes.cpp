@@ -10,7 +10,7 @@ namespace Client::Diagnostics
 {
 namespace
 {
-// Los códigos de la tabla de 0x680260 (CrashTexts.cpp).
+// The codes of the 0x680260 table (CrashTexts.cpp).
 constexpr std::uint32_t AccessViolation = 0xC0000005;
 constexpr std::uint32_t InPageError = 0xC0000006;
 constexpr std::uint32_t IllegalInstruction = 0xC000001D;
@@ -57,7 +57,7 @@ std::uint32_t ArithmeticCode(int code)
 
 std::uint32_t ExceptionCodeForSignal(int signal, int code)
 {
-    // Los si_code del kernel son positivos; los de raise y kill (SI_USER, SI_TKILL), no.
+    // The kernel's si_code values are positive; those of raise and kill (SI_USER, SI_TKILL) are not.
     const int kernelCode = code > 0 ? code : 0;
     switch (signal)
     {

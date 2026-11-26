@@ -9,21 +9,19 @@
 #include <span>
 #include <string_view>
 
-// Lo que el manejador de caídas de Linux lee de /proc/self, en vez de las fotos de toolhelp del
-// original (CreateToolhelp32Snapshot, 0x67f9c9 y 0x67fdb9; Q-C241). Son funciones puras sobre el
-// texto ya leído, sin memoria nueva, así que se prueban en cualquier sistema.
+// What the Linux crash handler reads from /proc/self instead of the original's toolhelp snapshots
+// (CreateToolhelp32Snapshot, 0x67f9c9 and 0x67fdb9; Q-C241). Pure functions on the text already read, with no new
+// memory, so they are tested on any system.
 namespace Client::Diagnostics
 {
-// Los módulos de /proc/self/maps, como los de Module32First/Module32Next: cada archivo mapeado
-// (una ruta que empieza con '/') es uno, con su nombre (lo que sigue a la última '/'), su ruta, la
-// dirección donde empieza su primer mapeo y lo que mide hasta el final del último. Van en el orden
-// del archivo, que es el de las direcciones, hasta 48; el resto se pierde, como en el original.
-// Una dirección o un tamaño que no entra en 32 bits se guarda con los de abajo y el tamaño, con
-// 0xFFFFFFFF. Devuelve cuántos llenó.
+// Like Module32First/Module32Next: each mapped file (a path starting with '/') is one, with its name (after the last
+// '/'), its path, the start of its first mapping and the size up to the end of its last. In file order, which is
+// address order, up to 48; the rest is lost, as in the original. An address that does not fit in 32 bits keeps its low
+// bits; a size that does not, 0xFFFFFFFF. Returns how many it filled.
 [[nodiscard]] ENGINE_API std::size_t ModulesFromProcMaps(std::string_view maps,
                                                          std::span<CrashModule, MaxCrashModules> modules);
 
-// Los hilos del proceso, el campo 20 (num_threads) de /proc/self/stat: el cntThreads de
-// PROCESSENTRY32 (0x67faf7). Vacío si el texto no tiene ese campo.
+// Field 20 (num_threads) of /proc/self/stat: PROCESSENTRY32's cntThreads (0x67faf7). Empty if the text lacks that
+// field.
 [[nodiscard]] ENGINE_API std::optional<std::uint32_t> ThreadCountFromProcStat(std::string_view stat);
 } // namespace Client::Diagnostics

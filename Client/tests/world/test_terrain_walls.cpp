@@ -44,7 +44,7 @@ TEST(TerrainWallsTest, OnlyTheLiveNonDyingCharactersOutsideKindEightOccupyTheirL
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(3, 4)], 0x104);
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(5, 6)], 0x104);
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(7, 8)], 0x104);
-    // 0x5f82a0 masquea ambas coordenadas con 0xff, también las negativas.
+    // 0x5f82a0 masks both coordinates with 0xff, negative ones too.
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(255, 0)], 0x106);
     walls.Rebuild({});
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(1, 2)], 0x104);
@@ -52,8 +52,8 @@ TEST(TerrainWallsTest, OnlyTheLiveNonDyingCharactersOutsideKindEightOccupyTheirL
 
 using GoldenTerrainWalls = Client::Tests::GoldenDataTest;
 
-// El 2 en (221,11) es un dato del .att original, no una deducción del ASM (06 § Caminar, Q-C170).
-// GoldenDataTest exige los assets del repo; si se elige otra Data, también debe traer este archivo.
+// The 2 at (221,11) is a value from the original .att, not a deduction from the ASM (06 § Caminar, Q-C170).
+// GoldenDataTest requires the repo's assets; another Data must also bring this file.
 TEST_F(GoldenTerrainWalls, TheLorenciaFileCharacterBitDisappearsOnTheFirstStep)
 {
     const auto path = DataFile("World1\\EncTerrain1.att");
@@ -68,8 +68,8 @@ TEST_F(GoldenTerrainWalls, TheLorenciaFileCharacterBitDisappearsOnTheFirstStep)
     EXPECT_EQ(walls.cells[Client::Data::Terrain::CellIndex(221, 11)], 0);
 }
 
-// 0x42a110(0, 0, 0, 1): con cada celda de 0x6c72bc, si la de abajo tiene el 0x04 en su byte bajo, lo saca de
-// las cuatro de x − 1 a x + 2 en esa fila; las demás quedan. El byte alto no cuenta para mirar.
+// 0x42a110(0, 0, 0, 1): for each cell of 0x6c72bc, if the one below has 0x04 in its low byte, it clears it from the
+// four from x − 1 to x + 2 in that row; the rest stay. The high byte does not count for the check.
 TEST(TerrainWallsTest, TheGatesOpenOnlyBelowAWalledGateCell)
 {
     auto cells = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
@@ -95,9 +95,9 @@ TEST(TerrainWallsTest, TheGatesOpenOnlyBelowAWalledGateCell)
     }
 }
 
-// Con el .att del repo (*simulado*): en Lorencia (World1), la puerta (119, 114) tiene la pared en (119, 115) y
-// las cuatro de 118 a 121 pasan de 0x05 a 0x01; en Devias (World3), la misma y la (93, 204), de 0x04 a 0. Las
-// demás no tienen la pared debajo, y no cambia nada más.
+// With the repo's .att (*simulated*): in Lorencia (World1), the gate (119, 114) has the wall at (119, 115) and the four
+// from 118 to 121 go from 0x05 to 0x01; in Devias (World3), the same and (93, 204), from 0x04 to 0. The others have
+// no wall below, and nothing else changes.
 TEST_F(GoldenTerrainWalls, TheGatesOpenInLorenciaAndDevias)
 {
     struct Case
@@ -149,9 +149,9 @@ TEST_F(GoldenTerrainWalls, TheGatesOpenInLorenciaAndDevias)
         EXPECT_EQ(changed, 4u * walled);
     }
 }
-// 0x558800: el Bresenham de la línea de vista, con las dos puntas. Tapa una celda con el WORD en 4 o más sin 0x20,
-// 0x40 ni 0x80 en el byte bajo; la de partida también. Con las dos diferencias iguales el eje largo es la Y, y el error
-// mueve la corta cuando pasa de la mitad de la larga.
+// 0x558800: the line-of-sight Bresenham, with both ends. A cell with the WORD at 4 or more and no 0x20, 0x40 or 0x80 in
+// the low byte blocks, the starting one too. With both differences equal the long axis is Y, and the error moves the
+// short one when it passes half of the long one.
 TEST(TerrainWallsTest, TheLineOfSightStopsAtTheFirstWall)
 {
     Client::Pathfinding::TerrainWalls walls;
@@ -171,17 +171,17 @@ TEST(TerrainWallsTest, TheLineOfSightStopsAtTheFirstWall)
     EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{false});
     EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{false});
     at(14, 10) = 0;
-    // (10, 10) a (14, 12): la X es la larga; el error suma 2 por paso y pasa de 2 en el segundo y el cuarto, así que
-    // recorre (10, 10), (11, 10), (12, 11), (13, 11) y (14, 12).
+    // (10, 10) to (14, 12): X is the long one; the error adds 2 per step and passes 2 on the second and the fourth, so
+    // it walks (10, 10), (11, 10), (12, 11), (13, 11) and (14, 12).
     at(12, 10) = 4;
     at(11, 11) = 4;
     EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{true});
     at(12, 11) = 4;
     EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{false});
-    // Con dx = dy, la Y es la larga y la diagonal pasa por (11, 11).
+    // With dx = dy, Y is the long one and the diagonal goes through (11, 11).
     at(12, 11) = 0;
     EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 10, 10, 13, 13), std::optional<bool>{false});
-    // Fuera de la grilla: la punta de llegada se lee del índice lineal y sale del arreglo.
+    // Off the grid: the end point is read from the linear index and falls outside the array.
     EXPECT_EQ(Client::Pathfinding::CanSeeTheCell(walls.cells, 5, 255, 5, 257), std::nullopt);
 }
 

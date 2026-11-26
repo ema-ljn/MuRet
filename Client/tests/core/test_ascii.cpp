@@ -6,8 +6,6 @@
 #include <string>
 #include <string_view>
 
-// Client::Core::ToLowerAscii y EqualsIgnoringAsciiCase: la comparación sin mayúsculas del cliente,
-// byte a byte y solo de la A a la Z (REF-C01 de la auditoría del 2026-11-03).
 namespace
 {
 using Client::Core::EqualsIgnoringAsciiCase;
@@ -18,7 +16,7 @@ constexpr std::string_view Upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 constexpr std::string_view Lower = "abcdefghijklmnopqrstuvwxyz";
 constexpr int LowercaseBit = 0x20;
 
-// El byte `value` como char, también los >= 0x80, que con un char con signo son negativos.
+// Bytes >= 0x80 too, which are negative with a signed char.
 char Byte(int value)
 {
     return static_cast<char>(static_cast<unsigned char>(value));
@@ -29,7 +27,6 @@ std::string OneByte(int value)
     return std::string(1, Byte(value));
 }
 
-// De los 256 bytes, solo los 26 de la A a la Z cambian, cada uno a su minúscula.
 TEST(AsciiTest, OnlyTheUppercaseLettersChange)
 {
     for (int value = 0; value <= 0xFF; ++value)
@@ -41,7 +38,6 @@ TEST(AsciiTest, OnlyTheUppercaseLettersChange)
     }
 }
 
-// Dos vacíos son iguales; un vacío y uno que no lo es, no.
 TEST(AsciiTest, TwoEmptyTextsAreEqual)
 {
     EXPECT_TRUE(EqualsIgnoringAsciiCase("", ""));
@@ -49,15 +45,12 @@ TEST(AsciiTest, TwoEmptyTextsAreEqual)
     EXPECT_FALSE(EqualsIgnoringAsciiCase("a", ""));
 }
 
-// Con otro tamaño no son iguales, aunque uno empiece como el otro.
 TEST(AsciiTest, DifferentSizesAreNeverEqual)
 {
     EXPECT_FALSE(EqualsIgnoringAsciiCase("TerrainLight", "TerrainLigh"));
     EXPECT_FALSE(EqualsIgnoringAsciiCase("terrainligh", "TERRAINLIGHT"));
 }
 
-// Las letras, de punta a punta del abecedario, se comparan sin mayúsculas; el resto de cada texto,
-// igual que siempre.
 TEST(AsciiTest, TheLettersIgnoreTheCase)
 {
     EXPECT_TRUE(EqualsIgnoringAsciiCase("A", "a"));
@@ -67,8 +60,8 @@ TEST(AsciiTest, TheLettersIgnoreTheCase)
     EXPECT_FALSE(EqualsIgnoringAsciiCase("TerrainLight", "TerrainNight"));
 }
 
-// Los vecinos de la A a la Z ('@' antes y de '[' a '_' después) difieren de '`' y de '{' a DEL en
-// el mismo bit que una mayúscula de su minúscula, pero no son letras: no se juntan.
+// The neighbours of A to Z ('@' before, '[' to '_' after) differ from '`' and '{' to DEL in the same bit as an
+// uppercase from its lowercase, but they are not letters: they do not fold.
 TEST(AsciiTest, TheNeighboursOfTheLettersDoNotFold)
 {
     EXPECT_FALSE(EqualsIgnoringAsciiCase("@", "`"));
@@ -80,8 +73,7 @@ TEST(AsciiTest, TheNeighboursOfTheLettersDoNotFold)
     }
 }
 
-// Los bytes >= 0x80 (UTF-8, o la página de códigos de Windows) se comparan tal cual: 0xC1 (la Á de
-// Latin-1) no es 0xE1 (la á).
+// 0xC1 (Latin-1's Á) is not 0xE1 (á).
 TEST(AsciiTest, BytesFrom0x80AreComparedAsTheyAre)
 {
     for (int value = 0x80; value <= 0xFF; ++value)
@@ -91,7 +83,6 @@ TEST(AsciiTest, BytesFrom0x80AreComparedAsTheyAre)
     }
 }
 
-// Un '\0' adentro es un byte más y no el final: se compara también lo que sigue.
 TEST(AsciiTest, AnEmbeddedNulIsOneMoreByte)
 {
     EXPECT_TRUE(EqualsIgnoringAsciiCase("a\0B"sv, "A\0b"sv));

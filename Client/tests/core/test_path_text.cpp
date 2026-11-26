@@ -6,16 +6,15 @@
 #include <cstddef>
 #include <string_view>
 
-// Client::Core::PathFromUtf8 y PathText: rutas leídas y escritas como UTF-8, también en Windows,
-// donde path(std::string) y path::string() usan la página ANSI.
+// On Windows path(std::string) and path::string() use the ANSI page.
 namespace
 {
 using Client::Core::PathFromUtf8;
 using Client::Core::PathText;
 using Client::Core::ReadUtf8CodePoint;
 
-// Una ruta con letras que no están en la página 1252: "Ł" (U+0141) y "データ" (U+30C7, U+30FC,
-// U+30BF). Con path(std::string), en Windows llegarían cambiadas por "?".
+// Letters not in page 1252: "Ł" (U+0141) and "データ" (U+30C7, U+30FC, U+30BF). With path(std::string), Windows would
+// turn them into "?".
 constexpr std::string_view NonAnsiUtf8 = "C:/Juegos/\xC5\x81ukasz/\xE3\x83\x87\xE3\x83\xBC\xE3\x82\xBF";
 
 TEST(PathTextTest, PathFromUtf8ReadsTheTextAsUtf8)
@@ -35,24 +34,23 @@ TEST(PathTextTest, AnEmptyTextIsAnEmptyPath)
     EXPECT_TRUE(path->empty());
 }
 
-// Lo que rechaza MultiByteToWideChar con MB_ERR_INVALID_CHARS, que usa path en Windows.
+// What MultiByteToWideChar rejects with MB_ERR_INVALID_CHARS, which path uses on Windows.
 TEST(PathTextTest, PathFromUtf8RejectsTextThatIsNotUtf8)
 {
-    // Una Ú de la página 1252, sola: un ini o un nombre guardado como ANSI.
+    // A lone 1252 Ú: an ini or a name saved as ANSI.
     EXPECT_FALSE(PathFromUtf8("C:/MU/\xDA").has_value());
-    // Una continuación sin su primer byte, y una secuencia cortada.
+    // A continuation byte without its lead byte, and a cut sequence.
     EXPECT_FALSE(PathFromUtf8("a\x80").has_value());
     EXPECT_FALSE(PathFromUtf8("\xE2\x82").has_value());
-    // La "/" en dos y en tres bytes, más largos de lo necesario.
+    // "/" in two and in three bytes, longer than needed.
     EXPECT_FALSE(PathFromUtf8("\xC0\xAF").has_value());
     EXPECT_FALSE(PathFromUtf8("\xE0\x80\xAF").has_value());
-    // U+D800, la mitad de un par de UTF-16, y U+110000, más allá de U+10FFFF.
+    // U+D800, half of a UTF-16 pair, and U+110000, past U+10FFFF.
     EXPECT_FALSE(PathFromUtf8("\xED\xA0\x80").has_value());
     EXPECT_FALSE(PathFromUtf8("\xF4\x90\x80\x80").has_value());
 }
 
-// Los bordes que sí son UTF-8: el último de cada largo, el primero del siguiente, y los dos lados
-// de las mitades de UTF-16.
+// The edges that are UTF-8: the last of each length, the first of the next, and both sides of the UTF-16 halves.
 TEST(PathTextTest, PathFromUtf8AcceptsTheLimits)
 {
     for (const std::string_view text : {"\x7F", "\xC2\x80", "\xDF\xBF", "\xE0\xA0\x80", "\xED\x9F\xBF", "\xEE\x80\x80",

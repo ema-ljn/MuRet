@@ -6,27 +6,22 @@
 #include <optional>
 #include <string_view>
 
-// La lista de fuentes del sistema (CL5.3, pregunta 8 del plan de la CL5), para App::ChooseFontFiles
-// sin [Video] FontFile. El original pide la cara por nombre a CreateFontA; MuRet busca su archivo
-// en la lista que lee GDI: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts, y la del
-// usuario en HKCU (las fuentes instaladas sin ser administrador, desde Windows 10 1809). Solo en
-// Windows: en otro sistema no hay lista. La cara es un texto del juego, y no va a ningún mensaje.
+// For App::ChooseFontFiles without [Video] FontFile. The original asks CreateFontA for the face by name; MuRet looks
+// for its file in the list GDI reads: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts, and the user's in HKCU
+// (fonts installed without admin rights, since Windows 10 1809). Windows only: other systems have no list. The face is
+// game text and goes into no message.
 namespace Client::Platform::Sdl
 {
-// true si el valor `entryName` de la lista es de la cara `face`, la normal o con `bold` la
-// negrita: "<cara> (TrueType)" o "<cara> Bold (TrueType)", también "(OpenType)", y en una
-// colección cualquiera de las caras separadas por " & ". Sin mirar mayúsculas (ASCII), como el
-// nombre de la cara en GDI. Una fuente de mapa de bits (sin esos tipos) o una cara vacía no
-// cuentan nunca.
+// "<face> (TrueType)" or "<face> Bold (TrueType)", also "(OpenType)", and in a collection any of the faces separated
+// by " & ". ASCII case-insensitive, like GDI's face name. A bitmap font (without those types) or an empty face never
+// count.
 [[nodiscard]] PLATFORM_API bool FontEntryNamesFace(std::string_view entryName, std::string_view face, bool bold);
 
-// true si este sistema tiene la lista (solo Windows). Sin ella, main.cpp no le pasa una búsqueda a
-// App::ChooseFontFiles, y su error dice que el cliente no busca la cara, en vez de que no la
-// encontró.
+// Windows only. Without it, main.cpp passes App::ChooseFontFiles no search, and its error says the client does not
+// look for the face, rather than that it did not find it.
 [[nodiscard]] PLATFORM_API bool HasSystemFontList();
 
-// El archivo de la cara en la lista del sistema: el del primer valor que la nombra, en HKLM y
-// después en HKCU, con la carpeta Fonts de Windows delante si el valor no trae la ruta entera.
-// std::nullopt si no está, si la cara está vacía o fuera de Windows.
+// The first value naming it, in HKLM and then HKCU, with Windows' Fonts folder in front if the value has no full path.
+// std::nullopt if missing, if the face is empty or outside Windows.
 [[nodiscard]] PLATFORM_API std::optional<std::filesystem::path> FindSystemFontFile(std::string_view face, bool bold);
 } // namespace Client::Platform::Sdl

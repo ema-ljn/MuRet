@@ -18,11 +18,11 @@ struct TextInputEvent
 
     Kind kind = Kind::Text;
     Key key = Key::Count;
-    // Texto de SDL copiado en UTF-8, sin conversión ANSI.
+    // Copied in UTF-8, with no ANSI conversion.
     std::string text;
     bool shift = false;
     bool ctrl = false;
-    // Rango IME en codepoints UTF-8, no bytes; -1 significa que SDL no lo indicó.
+    // In UTF-8 code points, not bytes; -1 means SDL did not give it.
     std::int32_t compositionStart = 0;
     std::int32_t compositionLength = 0;
 };

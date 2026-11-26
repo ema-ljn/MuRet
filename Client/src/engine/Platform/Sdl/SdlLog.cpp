@@ -17,13 +17,12 @@ namespace Client::Platform::Sdl
 {
 namespace
 {
-// Si hay un SdlLog vivo (uno solo a la vez, SdlLog.h).
+// Only one at a time (SdlLog.h).
 std::atomic<bool> s_installed = false;
 
-// Si este hilo ya está adentro del callback: una salida del Log hizo loguear a SDL (SdlLog.h).
+// This thread is already inside the callback: a Log sink made SDL log (SdlLog.h).
 thread_local bool s_writing = false;
 
-// Cada línea del mensaje como una línea del Log, con "SDL: " adelante y el mismo nivel.
 void WriteLines(Core::Log& log, Core::LogLevel level, std::string_view message)
 {
     while (!message.empty())
@@ -39,9 +38,8 @@ void WriteLines(Core::Log& log, Core::LogLevel level, std::string_view message)
     }
 }
 
-// La salida que SDL llama. SDL es C: una excepción (un bad_alloc al armar la línea, o una que
-// tire una salida) que cruzara sus frames es comportamiento indefinido, así que no sale ninguna.
-// La categoría no se usa.
+// SDL is C: an exception (a bad_alloc building the line, or one a sink throws) crossing its frames is undefined
+// behavior, so none escapes. The category is unused.
 void SDLCALL WriteToLog(void* userdata, int /*category*/, SDL_LogPriority priority, const char* message) noexcept
 {
     if (message == nullptr)
@@ -62,7 +60,7 @@ void SDLCALL WriteToLog(void* userdata, int /*category*/, SDL_LogPriority priori
     }
     catch (...)
     {
-        // El mensaje se pierde; queda el aviso en stderr, que no tira.
+        // The message is lost; the notice on stderr remains, which does not throw.
         std::fputs("[error] no se pudo escribir un mensaje de SDL en el log\n", stderr);
     }
     s_writing = false;
@@ -88,7 +86,7 @@ Core::LogLevel LevelOf(SDL_LogPriority priority)
     case SDL_LOG_PRIORITY_COUNT:
         return Core::LogLevel::Error;
     }
-    // Un valor que no está en el enum (un número pasado a SDL_LogMessage): como los de arriba.
+    // A value outside the enum (a number passed to SDL_LogMessage): like the ones above.
     return Core::LogLevel::Error;
 }
 
@@ -96,15 +94,15 @@ SdlLog::SdlLog(Core::Log& log)
 {
     [[maybe_unused]] const bool another = s_installed.exchange(true);
     assert(!another && "un solo SdlLog a la vez");
-    // SDL_SetLogOutputFunction no inicializa el log de SDL, y sin eso su mutex no existe todavía
-    // (lo crea SDL_InitLog, que llaman las funciones de prioridad): así queda creado antes.
+    // SDL_SetLogOutputFunction does not initialize SDL's log, and without that its mutex does not exist yet
+    // (SDL_InitLog creates it, called by the priority functions): this creates it first.
     static_cast<void>(SDL_GetLogPriority(SDL_LOG_CATEGORY_APPLICATION));
     SDL_SetLogOutputFunction(WriteToLog, &log);
 }
 
 SdlLog::~SdlLog()
 {
-    // SDL pide NULL de userdata con la salida por defecto.
+    // SDL wants NULL userdata with the default output.
     SDL_SetLogOutputFunction(SDL_GetDefaultLogOutputFunction(), nullptr);
     s_installed = false;
 }

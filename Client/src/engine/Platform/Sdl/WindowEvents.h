@@ -9,23 +9,20 @@
 
 #include <optional>
 
-// De SDL_Event a Platform::WindowEvent (CL3.1) y a Input::InputEvent (CL3.3, InputEvents.h): lo único
-// que ve SDL del estado de la ventana y del input.
 namespace Client::Platform::Sdl
 {
-// Cualquier ventana: los SDL_WindowID válidos no son 0 (SDL_video.h).
+// Any window: valid SDL_WindowIDs are not 0 (SDL_video.h).
 inline constexpr SDL_WindowID AnyWindow = 0;
 
-// El WindowEvent de un evento de SDL, o nada si no es de la ventana `windowId` (con AnyWindow, de
-// cualquiera). SDL_EVENT_QUIT no tiene ventana y cuenta siempre. No llama a SDL: se prueba con un
-// SDL_Event armado a mano.
+// Nothing if it is not from window `windowId` (with AnyWindow, from any). SDL_EVENT_QUIT has no window and always
+// counts. Does not call SDL: tested with a hand-built SDL_Event.
 [[nodiscard]] PLATFORM_API std::optional<WindowEvent> WindowEventFor(const SDL_Event& event,
                                                                      SDL_WindowID windowId = AnyWindow);
 
-// Vacía la cola de SDL: cada evento de ventana de `windowId` va a `state` con Platform::Apply, cada
-// evento de input a `input` con InputState::Apply, y los demás se descartan. El foco perdido va a
-// los dos: la ventana lo anota y el input suelta todo. `pixelDensity` pasa el mouse a píxeles del
-// framebuffer (InputEventFor, CL5.5): main.cpp le da Window::PixelDensity.
+// Drains SDL's queue: each window event of `windowId` goes to `state` with Platform::Apply, each input event to
+// `input` with InputState::Apply, and the rest are dropped. Focus lost goes to both: the window notes it and the input
+// releases everything. `pixelDensity` converts the mouse to framebuffer pixels (InputEventFor): main.cpp passes
+// Window::PixelDensity.
 PLATFORM_API void PumpEvents(WindowState& state, Input::InputState& input, SDL_WindowID windowId = AnyWindow,
                              float pixelDensity = 1.0f);
 } // namespace Client::Platform::Sdl

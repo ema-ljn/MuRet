@@ -5,34 +5,31 @@
 
 #include <string>
 
-// El intervalo de swap de la ventana (CL3.1): cómo cada VSyncMode se le pide a SDL.
 namespace Client::Platform::Sdl
 {
-// Lo que quedó al pedir un VSyncMode.
+// What stuck after requesting a VSyncMode.
 struct SwapIntervalResult
 {
     VSyncMode mode = VSyncMode::Off;
-    // El SDL_GetError() del primer pedido que falló; vacío si quedó el modo pedido.
+    // The SDL_GetError() of the first failed request; empty if the requested mode stuck.
     std::string error;
 };
 
-// Las dos llamadas de SDL que usa ApplySwapInterval, con su forma, para probarla con dobles.
+// The two SDL calls ApplySwapInterval uses, so the tests can pass doubles.
 using SetSwapIntervalFunction = bool (*)(int interval);
 using GetSwapIntervalFunction = bool (*)(int* interval);
 
-// SDL_GL_SetSwapInterval y SDL_GL_GetSwapInterval, sobre el contexto actual.
+// On the current context.
 bool SdlSetSwapInterval(int interval);
 bool SdlGetSwapInterval(int* interval);
 
-// El intervalo que se le pasa a SDL_GL_SetSwapInterval: 1, -1 o 0.
+// 1, -1 or 0.
 [[nodiscard]] PLATFORM_API int SwapIntervalFor(VSyncMode vsync);
 
-// "On", "Adaptive" u "Off", para los avisos.
 [[nodiscard]] PLATFORM_API const char* VSyncModeName(VSyncMode vsync);
 
-// Pide el intervalo al contexto actual; si Adaptive falla, prueba con On (lo recomienda la
-// documentación de SDL_GL_SetSwapInterval). Si nada entra, el modo es el que el contexto ya tenía
-// según `get`, u Off si `get` también falla (en Xvfb fallan el 1 y el 0).
+// If Adaptive fails, tries On (as SDL_GL_SetSwapInterval's documentation recommends). If nothing sticks, the mode is
+// the one the context already had per `get`, or Off if `get` fails too (on Xvfb 1 and 0 fail).
 [[nodiscard]] PLATFORM_API SwapIntervalResult ApplySwapInterval(VSyncMode wanted,
                                                                 SetSwapIntervalFunction set = SdlSetSwapInterval,
                                                                 GetSwapIntervalFunction get = SdlGetSwapInterval);

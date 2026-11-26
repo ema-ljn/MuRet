@@ -6,16 +6,15 @@
 #include <mutex>
 #include <string_view>
 
-// Escribe la misma línea en dos salidas (stderr y el archivo, en main.cpp). Su std::mutex hace que
-// las dos reciban las líneas en el mismo orden aunque lleguen de dos hilos: cada salida tiene el
-// suyo, pero solo ordena sus propias escrituras. Los mutex se toman siempre en el mismo orden (el
-// del Tee y después el de cada salida), así que no se traban.
+// Its std::mutex makes both sinks get the lines in the same order even from two threads; each sink's own mutex orders
+// only its own writes. The locks are always taken in the same order (the Tee's, then each sink's), so they cannot
+// deadlock.
 namespace Client::Core
 {
 class ENGINE_API TeeSink final : public ILogSink
 {
 public:
-    // Las dos salidas tienen que vivir más que el Tee.
+    // Both sinks must outlive the Tee.
     TeeSink(ILogSink& first, ILogSink& second);
 
     void Write(LogLevel level, std::string_view line) override;

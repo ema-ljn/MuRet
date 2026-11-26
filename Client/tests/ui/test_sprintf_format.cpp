@@ -27,13 +27,13 @@ TEST(SprintfFormat, SpaceFlagPutsASpaceBeforeAPositiveNumber)
     EXPECT_EQ(Sprintf("Tasa:% d", -40), "Tasa:-40");
     EXPECT_EQ(Sprintf("Sube +% d %%", 7), "Sube + 7 %");
     EXPECT_EQ(Sprintf("dura% dseg", 3), "dura 3seg");
-    // El espacio no cambia un %s.
+    // The space does not change a %s.
     EXPECT_EQ(Sprintf("de% s", std::string_view("X")), "deX");
 }
 
 TEST(SprintfFormat, ABrokenMarkWritesOnlyTheCharacterThatBrokeIt)
 {
-    // "25%)": el ')' corta la marca y sale solo; "10% " al final no escribe nada.
+    // "25%)": the ')' ends the mark and comes out alone; "10% " at the end writes nothing.
     EXPECT_EQ(Sprintf("(+ 25%)"), "(+ 25)");
     EXPECT_EQ(Sprintf("+ 10% "), "+ 10");
 }
@@ -67,7 +67,7 @@ TEST(SprintfFormat, AMarkWithoutItsArgumentStaysWritten)
 
 TEST(SprintfFormat, CastleTreasuryConsumesBothWordsOfI64BeforeTheFollowingArgument)
 {
-    // 0x6688bc pasa low/high de 0x7d5c650 al %I64d de Text.bmd[1584], como dos argumentos de la pila x86.
+    // 0x6688bc passes the low/high of 0x7d5c650 to Text.bmd[1584]'s %I64d, as two x86 stack arguments.
     EXPECT_EQ(Sprintf("Zen: %I64d / %u", std::uint32_t{0x89abcdef}, std::uint32_t{0x12345678}, 7),
               "Zen: 1311768467177459183 / 7");
     EXPECT_EQ(Sprintf("%I64d", std::uint32_t{0}, std::uint32_t{0x80000000}), "-9223372036854775808");

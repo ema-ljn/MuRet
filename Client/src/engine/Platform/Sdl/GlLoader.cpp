@@ -14,15 +14,14 @@
 #include <SDL3/SDL_loadso.h>
 #endif
 
-// La tabla de punteros de GL: la de la CL0.3, que desde la CL5.1 arma GlFunctionList.h.
 namespace Client::Platform::Sdl
 {
 namespace
 {
 #ifdef _WIN32
-// SDL busca en opengl32.dll solo cuando wglGetProcAddress da nulo (WIN_GL_GetProcAddress, en
-// SDL_windowsopengl.c). Con los drivers que dan 1, 2, 3 o -1, las funciones de la 1.1
-// (glGetString, glClear) quedarían afuera aunque opengl32.dll las exporta: se piden ahí.
+// SDL looks in opengl32.dll only when wglGetProcAddress gives null (WIN_GL_GetProcAddress, in SDL_windowsopengl.c).
+// With drivers that give 1, 2, 3 or -1, the 1.1 functions (glGetString, glClear) would be left out although
+// opengl32.dll exports them, so they are requested there.
 SDL_FunctionPointer LoadFromOpenGl32(const char* name)
 {
     SDL_SharedObject* opengl32 = SDL_LoadObject("opengl32.dll");
@@ -31,14 +30,13 @@ SDL_FunctionPointer LoadFromOpenGl32(const char* name)
         return nullptr;
     }
     const SDL_FunctionPointer address = SDL_LoadFunction(opengl32, name);
-    // La DLL sigue cargada: SDL tiene su propia referencia mientras viva la ventana GL.
+    // The DLL stays loaded: SDL holds its own reference while the GL window lives.
     SDL_UnloadObject(opengl32);
     return address;
 }
 #endif
 
-// La versión y el perfil del contexto actual, con las dos de MU_GL_QUERY_FUNCTIONS. Vacío si
-// sirve. GL_VERSION va también en el mensaje: antes de la 3.0, GL_MAJOR_VERSION no existe y da 0.0.
+// Empty if usable. GL_VERSION also goes in the message: before 3.0, GL_MAJOR_VERSION does not exist and gives 0.0.
 std::string CheckContext(const GlFunctions& gl)
 {
     GLint major = 0;
@@ -70,7 +68,7 @@ const std::string& GlVersionText()
 
 bool IsValidProcAddress(std::uintptr_t address)
 {
-    // La última dirección chica que esos drivers de Windows dan por una función que no tienen.
+    // The last small address those Windows drivers give for a function they lack.
     constexpr std::uintptr_t LastInvalidAddress = 3;
     return address > LastInvalidAddress && address != UINTPTR_MAX;
 }
@@ -105,7 +103,7 @@ Core::Expected<GlFunctions, std::string> LoadGlFunctions(GlProcLookup lookup)
 {
     GlFunctions gl;
     std::string error;
-    // Una línea por función de la lista: la primera que falta corta.
+    // One line per listed function: the first missing one stops.
 #define MU_GL_LOAD(type, member, name)                                                                                 \
     if (!LoadGlFunction(gl.member, name, error, lookup))                                                               \
     {                                                                                                                  \

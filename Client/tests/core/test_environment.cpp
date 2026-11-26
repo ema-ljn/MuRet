@@ -2,8 +2,7 @@
 
 #include <gtest/gtest.h>
 
-// Client::Core::ReadEnvironmentVariable: lee el entorno de verdad. PATH está siempre, y un nombre
-// inventado no. No se imprime lo que vale PATH.
+// Reads the real environment: PATH is always there and an invented name is not. PATH's value is not printed.
 namespace
 {
 using Client::Core::ReadEnvironmentVariable;

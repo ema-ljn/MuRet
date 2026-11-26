@@ -2,16 +2,13 @@
 
 #include <chrono>
 
-// El reloj del bucle (CL3.2), como interfaz para inyectarlo: Main le pasa el de SDL
-// (Platform/SdlClock) y los tests, uno falso que avanza lo que el test dice
-// (tests/support/FakeClock).
 namespace Client::Core
 {
-// La unidad de tiempo del bucle: nanosegundos enteros, sin redondeos de float.
+// Integer nanoseconds, with no float rounding.
 using Duration = std::chrono::nanoseconds;
 
-// Now() no es negativo, y es monótono en el real; el falso puede ir para atrás a propósito, sin
-// bajar de 0 (la resta de dos Now() no desborda).
+// Now() is never negative and is monotonic in the real clock; the fake one can go back on purpose, never below 0 (the
+// difference of two Now() does not overflow).
 class IClock
 {
 public:

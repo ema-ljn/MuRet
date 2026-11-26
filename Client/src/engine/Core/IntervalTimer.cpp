@@ -27,7 +27,7 @@ bool IntervalTimer::Due(Duration now)
     {
         return false;
     }
-    // Un periodo o más tarde, el siguiente se cuenta desde ahora; si no, sigue en la grilla.
+    // A period or more late, the next one counts from now; otherwise it stays on the grid.
     const Duration next = *m_deadline + m_period;
     m_deadline = now < next ? next : now + m_period;
     return true;

@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-// Client::Platform::Apply: qué cambia cada evento de la ventana (la tabla del paso 1 de la CL3.1).
 namespace
 {
 using Client::Core::PixelSize;
@@ -30,7 +29,7 @@ TEST(WindowStateTest, MinimizedAndRestored)
     EXPECT_TRUE(minimized.minimized);
     EXPECT_TRUE(minimized.running);
     EXPECT_FALSE(restored.minimized);
-    // Un Restored sin Minimized antes no cambia nada.
+    // A Restored without a Minimized before changes nothing.
     EXPECT_FALSE(restoredTwice.minimized);
     EXPECT_TRUE(restoredTwice.running);
 }

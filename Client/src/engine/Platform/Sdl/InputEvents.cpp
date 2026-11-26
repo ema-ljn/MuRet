@@ -21,14 +21,13 @@ using Input::InputEvent;
 using Input::Key;
 using Input::MouseButton;
 
-// La tecla que está `offset` lugares después de `first` en el enum, para los grupos que SDL y Key
-// tienen en el mismo orden (las letras, los dígitos y las F).
+// For the groups SDL and Key have in the same order (letters, digits and F keys).
 Key KeyAfter(Key first, int offset)
 {
     return static_cast<Key>(static_cast<int>(first) + offset);
 }
 
-// Lo que KeyAfter supone: cada grupo, en Key.h, tiene el largo y el orden de SDL_scancode.h.
+// What KeyAfter assumes: each group in Key.h has SDL_scancode.h's length and order.
 static_assert(static_cast<int>(Key::Z) - static_cast<int>(Key::A) == SDL_SCANCODE_Z - SDL_SCANCODE_A);
 static_assert(static_cast<int>(Key::Digit9) - static_cast<int>(Key::Digit1) == SDL_SCANCODE_9 - SDL_SCANCODE_1);
 static_assert(static_cast<int>(Key::F12) - static_cast<int>(Key::F1) == SDL_SCANCODE_F12 - SDL_SCANCODE_F1);
@@ -48,8 +47,8 @@ std::optional<MouseButton> ButtonFor(std::uint8_t button)
     }
 }
 
-// Las teclas de edición repetidas siguen como KeyDown para que InputState adjunte Shift/Ctrl sin
-// crear otro flanco físico ni perder el orden con SDL_TEXTINPUT.
+// Repeated editing keys stay KeyDown so InputState attaches Shift/Ctrl without creating another physical edge or
+// losing the order with SDL_TEXTINPUT.
 std::optional<InputEvent> RepeatEventFor(SDL_Scancode scancode)
 {
     switch (scancode)
@@ -92,7 +91,7 @@ std::optional<InputEvent> ButtonEventFor(const SDL_MouseButtonEvent& button, Inp
     {
         return std::nullopt;
     }
-    // CS_DBLCLKS sustituye cada segundo DOWN por DBLCLK; clicks == 0 conserva los eventos sintéticos ordinarios.
+    // CS_DBLCLKS replaces every second DOWN with DBLCLK; clicks == 0 keeps ordinary synthetic events.
     const bool doubleClick = kind == InputEvent::Kind::ButtonDown && *mapped == MouseButton::Left &&
                              button.clicks != 0 && button.clicks % 2 == 0;
     return InputEvent{.kind = doubleClick ? InputEvent::Kind::ButtonDoubleClick : kind, .button = *mapped};
@@ -125,7 +124,7 @@ InputEvent CompositionEventFor(const SDL_TextEditingEvent& editing)
 
 std::optional<InputEvent> WheelEventFor(const SDL_MouseWheelEvent& wheel)
 {
-    // Negar el mínimo de un int32 es UB; nadie gira tanto en un evento.
+    // Negating int32's minimum is UB; nobody turns that far in one event.
     if (wheel.integer_y == std::numeric_limits<std::int32_t>::min())
     {
         return std::nullopt;
@@ -141,8 +140,7 @@ std::optional<InputEvent> WheelEventFor(const SDL_MouseWheelEvent& wheel)
 
 std::optional<Input::Key> KeyFor(SDL_Scancode scancode)
 {
-    // SDL tiene las letras de la A a la Z, los dígitos del 1 al 9 y después el 0, y las F de la 1 a
-    // la 12, cada grupo seguido (SDL_scancode.h).
+    // SDL has A to Z, the digits 1 to 9 and then 0, and F1 to F12, each group contiguous (SDL_scancode.h).
     if (scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z)
     {
         return KeyAfter(Key::A, scancode - SDL_SCANCODE_A);

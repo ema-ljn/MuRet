@@ -13,7 +13,7 @@ namespace Client::Core
 {
 namespace
 {
-// UTF-8 bien formado, como lo describe PathFromUtf8 en PathText.h.
+// Well-formed as PathFromUtf8 in PathText.h describes.
 bool IsUtf8(std::string_view text)
 {
     std::size_t offset = 0;

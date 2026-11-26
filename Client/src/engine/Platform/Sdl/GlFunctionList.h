@@ -1,39 +1,16 @@
 #pragma once
 
-// La lista de las funciones de OpenGL que pide el cliente (D-C2 del roadmap, pregunta 5 del plan de
-// la CL5), como una X-macro: una línea por función, con su typedef PFNGL...PROC, el nombre del
-// miembro de GlFunctions y el de GL. GlLoader.h la expande para armar el struct, el pedido de
-// LoadGlFunctions y la lista de nombres que prueba test_gl_loader.cpp. Una función nueva es una
-// línea acá, en el grupo de quien la usa.
-//
-// No es glad ni GLEW: el puerto glad de vcpkg trae el perfil de compatibilidad y pide Python, y un
-// glad.c generado son miles de líneas con su propia forma de actualizarse. Con 51 funciones, la
-// tabla propia son pocas líneas, y el pedido (SDL_GL_GetProcAddress, el reintento en opengl32.dll)
-// ya estaba escrito desde la CL0.3 (CODING_RULES §10). Salió de la del lab de la CL5.0
-// (labs/cl5.0-pipeline/gl/LabGl.h), que tenía 41: el lab se queda solo con glDrawElements, que el
-// cliente no usa (dibuja con glDrawArrays, de a dos triángulos por quad).
-//
-// Las dos primeras van aparte: con ellas se pregunta qué contexto dio el driver. Son de la 1.0,
-// así que las tiene cualquiera, y LoadGlFunctions las pide antes que el resto: un driver viejo dice
-// su versión, y no la primera función de la 3.3 que le falta.
+// An X-macro: one line per function, with its PFNGL...PROC typedef, the GlFunctions member name and the GL name.
+// GlLoader.h expands it into the struct, the LoadGlFunctions requests and the name list test_gl_loader.cpp checks. Not
+// glad or GLEW: vcpkg's glad port brings the compatibility profile and needs Python, and a generated glad.c is
+// thousands of lines with its own update path; with 51 functions the own table is a few lines. The first two go apart:
+// they ask which context the driver gave. They are GL 1.0, so any driver has them, and LoadGlFunctions requests them
+// first: an old driver reports its version, not the first 3.3 function it lacks.
 #define MU_GL_QUERY_FUNCTIONS(X)                                                                                       \
     X(PFNGLGETSTRINGPROC, getString, "glGetString")                                                                    \
     X(PFNGLGETINTEGERVPROC, getIntegerv, "glGetIntegerv")
 
-// El resto, en el orden de quién lo usa:
-//   glViewport, glClearColor, glClear     el frame de Main (CL0.3) y el viewport de GlRenderer
-//   glGetError                            los tests, después de cada paso
-//   glEnable, glDisable, glBlendFunc      la mezcla (el lab de la CL5.0 y GlSpriteRenderer)
-//   glDepthFunc, glDepthMask              la profundidad del pase 3D (GlModelRenderer, CL6.3)
-//   glPixelStorei                         GL_UNPACK_ALIGNMENT al subir una textura (GlTexture) y
-//                                         GL_PACK_ALIGNMENT al leer la captura (GlScreenReader)
-//   glReadPixels                          leer lo dibujado (GlFramebuffer y GlScreenReader)
-//   glGenTextures a glTexParameteri       las texturas (GlTexture y el color de GlFramebuffer)
-//   glGenFramebuffers a glCheck...        el framebuffer de los tests (GlFramebuffer)
-//   glCreateShader a glUniform1i          los shaders, el programa, la matriz y las banderas del
-//                                         fragment shader (GlShader y GlRenderer)
-//   glUniform1f, glUniform3f              la niebla del 3D: el inicio, el fin y el color (GlModelRenderer)
-//   glGenVertexArrays a glDrawArrays      el VAO, el VBO y el dibujo (GlRenderer)
+// The rest, in the order of the code that uses them.
 #define MU_GL_RENDER_FUNCTIONS(X)                                                                                      \
     X(PFNGLVIEWPORTPROC, viewport, "glViewport")                                                                       \
     X(PFNGLCLEARCOLORPROC, clearColor, "glClearColor")                                                                 \
@@ -85,5 +62,5 @@
     X(PFNGLENABLEVERTEXATTRIBARRAYPROC, enableVertexAttribArray, "glEnableVertexAttribArray")                          \
     X(PFNGLDRAWARRAYSPROC, drawArrays, "glDrawArrays")
 
-// Todas, en el orden en que se piden.
+// All of them, in request order.
 #define MU_GL_FUNCTIONS(X) MU_GL_QUERY_FUNCTIONS(X) MU_GL_RENDER_FUNCTIONS(X)

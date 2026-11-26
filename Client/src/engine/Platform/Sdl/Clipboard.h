@@ -9,7 +9,7 @@
 
 namespace Client::Platform::Sdl
 {
-// Adaptador SDL3; sus operaciones se llaman desde el hilo principal.
+// Its operations are called from the main thread.
 class PLATFORM_API Clipboard final : public IClipboard
 {
 public:

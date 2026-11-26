@@ -339,7 +339,7 @@ void SdlAudio::RegisterSound(std::int32_t id, std::string_view path)
     {
         return;
     }
-    // 0x41eac0 reserva el ID antes de abrir el WAV. Un fallo conserva el ID sin pista.
+    // 0x41eac0 reserves the ID before opening the WAV. A failure keeps the ID with no track.
     if (const auto [sound, inserted] = m_impl->sounds.try_emplace(id); inserted)
     {
         m_impl->LoadSound(sound->second, definition->path);
@@ -368,7 +368,7 @@ int SdlAudio::MusicProgressPercent() const
     }
     const std::int64_t position = MIX_GetTrackPlaybackPosition(m_impl->musicTrack);
     const std::int64_t duration = MIX_GetAudioDuration(m_impl->music);
-    // wzAudio.dll 0x10002292 reinicia el progreso al terminar. SDL retiene el último cursor.
+    // wzAudio.dll 0x10002292 resets the progress when it ends. SDL keeps the last cursor.
     if (position < 0 || duration <= 0 || !MIX_TrackPlaying(m_impl->musicTrack))
     {
         return 0;
@@ -379,7 +379,7 @@ int SdlAudio::MusicProgressPercent() const
     {
         return 0;
     }
-    // 0x1000489a..0x100048c6 publica el porcentaje truncado, incluso por encima de 100.
+    // 0x1000489a..0x100048c6 publishes the truncated percentage, even above 100.
     return static_cast<int>(
         std::min<std::int64_t>(100 * positionSeconds / durationSeconds, std::numeric_limits<int>::max()));
 }

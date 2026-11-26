@@ -17,7 +17,7 @@ constexpr std::size_t MaxPointerSize = 8;
 constexpr std::size_t DwordSize = 4;
 constexpr unsigned BitsPerByte = 8;
 
-// Un entero little-endian de `size` bytes (4 u 8), si se puede leer.
+// Little-endian, `size` 4 or 8.
 std::optional<std::uint64_t> ReadUnsigned(const IMemoryReader& memory, std::uint64_t address, std::size_t size)
 {
     std::array<std::byte, MaxPointerSize> bytes{};
@@ -38,7 +38,7 @@ std::uint32_t Low32(std::uint64_t value)
     return static_cast<std::uint32_t>(value);
 }
 
-// 0x682890: el frame en `framePointer`, si se puede leer.
+// 0x682890
 std::optional<CrashFrame> ReadFrame(std::uint64_t framePointer, std::size_t pointerSize, const IMemoryReader& memory)
 {
     if (!ReadUnsigned(memory, framePointer, pointerSize))
@@ -54,7 +54,7 @@ std::optional<CrashFrame> ReadFrame(std::uint64_t framePointer, std::size_t poin
         const auto value = ReadUnsigned(memory, arguments + i * DwordSize, DwordSize);
         if (!value)
         {
-            break; // los que faltan quedan en 0 (0x6828ca)
+            break; // the rest stay 0 (0x6828ca)
         }
         frame.arguments[i] = Low32(*value);
     }
@@ -75,7 +75,7 @@ std::size_t WalkCrashFrames(std::uint64_t framePointer, std::size_t pointerSize,
             break;
         }
         frames[count++] = *frame;
-        // El frame anterior guardado; se sigue solo si se puede leer (0x682bc8..0x682bd5).
+        // The saved previous frame; followed only if readable (0x682bc8..0x682bd5).
         const std::optional<std::uint64_t> previous = ReadUnsigned(memory, current, pointerSize);
         if (!previous || !ReadUnsigned(memory, *previous, pointerSize))
         {

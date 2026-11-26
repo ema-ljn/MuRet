@@ -18,15 +18,13 @@ namespace Client::Input
 {
 namespace
 {
-// Los dos lados de una tecla lógica.
 struct Sides
 {
     Key left;
     Key right;
 };
 
-// El índice de la tecla en las tablas, o std::nullopt si no es una tecla (Key::Count, o un valor
-// fuera del enum): esa no se guarda y nunca está abajo.
+// std::nullopt if it is not a key (Key::Count, or a value outside the enum): it is not stored and is never down.
 std::optional<std::size_t> IndexOf(Key key)
 {
     const auto index = static_cast<std::size_t>(key);
@@ -37,7 +35,6 @@ std::optional<std::size_t> IndexOf(Key key)
     return index;
 }
 
-// Lo mismo con un botón.
 std::optional<std::size_t> IndexOf(MouseButton button)
 {
     const auto index = static_cast<std::size_t>(button);
@@ -91,7 +88,7 @@ TextInputEvent KeyTextEvent(Key key, bool shiftDown, bool ctrlDown)
         .kind = TextInputEvent::Kind::Key, .key = key, .text = {}, .shift = shiftDown, .ctrl = ctrlDown};
 }
 
-// El byte que Backspace, Tab y Enter dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
+// The byte Backspace, Tab and Enter leave in the typed text (InputEvent.h); the others, none.
 std::optional<char> TypedCharOf(Key key)
 {
     switch (key)
@@ -107,7 +104,6 @@ std::optional<char> TypedCharOf(Key key)
     }
 }
 
-// La tecla lógica de un lado, o std::nullopt si la tecla no es un lado.
 std::optional<Key> LogicalOf(Key side)
 {
     switch (side)
@@ -126,7 +122,6 @@ std::optional<Key> LogicalOf(Key side)
     }
 }
 
-// Los lados de una tecla lógica (Shift, Ctrl o Alt).
 Sides SidesOf(Key logical)
 {
     switch (logical)
@@ -143,7 +138,7 @@ Sides SidesOf(Key logical)
 
 void InputState::Apply(const InputEvent& event)
 {
-    // 0x4b3444: el siguiente mensaje apaga el doble clic, aunque sea una tecla o un cambio de ventana.
+    // 0x4b3444: the next message clears the double click, even a key or a window change.
     m_mouseMessages.doubleClick = false;
     m_doubleClickMessage = false;
     switch (event.kind)
@@ -214,7 +209,7 @@ void InputState::Apply(const InputEvent& event)
         m_mouseMessages = MouseMessageState{.leftRelease = WasReleased(MouseButton::Left)};
         m_text.clear();
         m_textInputEvents.clear();
-        // El consumidor debe quitar el preedit aunque se descarte el resto de la entrada del pump.
+        // The consumer must clear the preedit even if the rest of the pump's input is discarded.
         m_textInputEvents.push_back(TextInputEvent{.kind = TextInputEvent::Kind::Composition, .text = {}});
         return;
     case InputEvent::Kind::Text:
@@ -391,10 +386,9 @@ void InputState::Release(MouseButton button)
 
 void InputState::ReleaseEverything()
 {
-    // Lo que estaba abajo se suelta con su flanco, como si hubiera llegado cada KeyUp; las teclas
-    // lógicas también, porque están en las mismas tablas. Los apretones y la rueda de antes se
-    // borran: el paso siguiente no ve un clic de antes del alt-tab (como MuMain, Winmain.cpp). Lo
-    // tecleado, lo mismo.
+    // What was down is released with its edge, as if each KeyUp had arrived; logical keys too, since they are in the
+    // same tables. Earlier presses and wheel are cleared: the next step sees no click from before the alt-tab (like
+    // MuMain, Winmain.cpp). Typed text too.
     m_keysReleased |= m_keysDown;
     m_keysDown.reset();
     m_keysPressed.reset();

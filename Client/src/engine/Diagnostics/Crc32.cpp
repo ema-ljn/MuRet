@@ -13,7 +13,7 @@ constexpr std::uint32_t Polynomial = 0xEDB88320;
 constexpr std::size_t TableSize = 256;
 constexpr int BitsPerByte = 8;
 
-// Lo que arma 0x683e00: para cada byte, ocho pasos de corrimiento con el polinomio.
+// As 0x683e00 builds it: for each byte, eight shift steps with the polynomial.
 constexpr std::array<std::uint32_t, TableSize> MakeTable()
 {
     std::array<std::uint32_t, TableSize> table{};
@@ -32,7 +32,7 @@ constexpr std::array<std::uint32_t, TableSize> MakeTable()
 constexpr std::array<std::uint32_t, TableSize> Table = MakeTable();
 } // namespace
 
-// El paso de 0x683e75: el byte con el de abajo del estado elige la entrada de la tabla.
+// The 0x683e75 step: the byte with the state's low byte picks the table entry.
 void Crc32::Update(std::span<const std::byte> bytes)
 {
     constexpr std::uint32_t LowByte = 0xFF;

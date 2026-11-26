@@ -17,7 +17,7 @@ using Client::Core::Windows1252XpCodeUnit;
 
 TEST(Windows1252Test, DecodesTheWindowsExtensionRange)
 {
-    // Valores contrastados con decode1252.csv del probe nativo Windows XP.
+    // Checked against the native Windows XP probe's decode1252.csv.
     constexpr std::array<char32_t, 32> Expected = {
         0x20ac, 0x0081, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030, 0x0160,
         0x2039, 0x0152, 0x008d, 0x017d, 0x008f, 0x0090, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022,

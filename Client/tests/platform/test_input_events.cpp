@@ -19,8 +19,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Platform::Sdl::KeyFor e InputEventFor: de SDL a Input, con el SDL_Event armado a mano, sin
-// SDL_Init y sin ventana (plan de la CL3, sub-ola CL3.3).
 namespace
 {
 using Client::Input::InputEvent;
@@ -99,7 +97,7 @@ TEST(InputEventsTest, EveryPhysicalKeyHasExactlyOneScancode)
     for (std::size_t index = 0; index < KeyCount; ++index)
     {
         const auto key = static_cast<Key>(index);
-        // Shift, Ctrl y Alt son lógicas: las arma InputState con sus lados.
+        // Shift, Ctrl and Alt are logical: InputState builds them from their sides.
         const bool logical = key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
         EXPECT_EQ(scancodesPerKey[index], logical ? 0 : 1) << "tecla " << index;
     }
@@ -124,8 +122,8 @@ TEST(InputEventsTest, RepeatedNavigationAndDeleteRemainEditingEvents)
     }
 }
 
-// Backspace, Tab y Enter se repiten como KeyDown para que InputState adjunte los modificadores
-// actuales sin crear un flanco físico.
+// Backspace, Tab and Enter repeat as KeyDown so InputState attaches the current modifiers without creating a physical
+// edge.
 TEST(InputEventsTest, RepeatedControlKeysRemainEditingKeys)
 {
     for (const auto& [scancode, key] :
@@ -192,7 +190,7 @@ TEST(InputEventsTest, MapsTheMouseButtons)
     EXPECT_EQ(InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_X2)), std::nullopt);
 }
 
-// 0x4b349d -> 0x4b4444: el segundo DOWN de SDL representa WM_LBUTTONDBLCLK y no otro WM_LBUTTONDOWN.
+// 0x4b349d -> 0x4b4444: SDL's second DOWN stands for WM_LBUTTONDBLCLK, not another WM_LBUTTONDOWN.
 TEST(InputEventsTest, EvenLeftPressesCarryADifferentEventFromOrdinaryPresses)
 {
     SDL_Event ordinary = ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT);
@@ -213,7 +211,7 @@ TEST(InputEventsTest, EvenLeftPressesCarryADifferentEventFromOrdinaryPresses)
     EXPECT_EQ(InputEventFor(ordinary)->kind, first->kind);
 }
 
-// La selección sigue viendo el segundo apretón físico; los flags de WM_LBUTTONDOWN del juego no lo ven.
+// The selection still sees the second physical press; the game's WM_LBUTTONDOWN flags do not.
 TEST(InputEventsTest, ADoubleClickKeepsThePhysicalPressWithoutAnotherGamePress)
 {
     Client::Input::InputState input;
@@ -235,7 +233,7 @@ TEST(InputEventsTest, ADoubleClickKeepsThePhysicalPressWithoutAnotherGamePress)
     EXPECT_FALSE(input.MouseMessages().leftPress);
     EXPECT_FALSE(input.MouseMessages().leftDown);
     input.ConsumeEdges();
-    // 0x4b3444 lo borra al llegar otro mensaje, no al consumir los flancos del paso.
+    // 0x4b3444 clears it when another message arrives, not when the step's edges are consumed.
     EXPECT_TRUE(input.MouseMessages().doubleClick);
     EXPECT_FALSE(input.MouseMessages().leftDown);
 }
@@ -286,11 +284,11 @@ TEST(InputEventsTest, TheWheelIsInWholeNotches)
     ASSERT_TRUE(back.has_value());
     EXPECT_FLOAT_EQ(back->wheel, -1.0f);
 
-    // Un touchpad que todavía no juntó una muesca entera.
+    // A touchpad that has not gathered a whole notch yet.
     EXPECT_EQ(InputEventFor(WheelEvent(0.4f, 0, SDL_MOUSEWHEEL_NORMAL)), std::nullopt);
 
-    // Y el que la completa con lo que le sobró del evento anterior: truncar `y` daría 0, y
-    // redondear 0,3 también.
+    // And the one that completes it with the previous event's remainder: truncating `y` would give 0, and so would
+    // rounding 0.3.
     for (const float y : {0.6f, 0.3f})
     {
         const auto completed = InputEventFor(WheelEvent(y, 1, SDL_MOUSEWHEEL_NORMAL));
@@ -301,7 +299,7 @@ TEST(InputEventsTest, TheWheelIsInWholeNotches)
 
 TEST(InputEventsTest, TheLowestWheelIsNotAnEvent)
 {
-    // Negarlo sería UB con FLIPPED; no es un giro real.
+    // Negating it would be UB with FLIPPED; it is not a real turn.
     const std::int32_t lowest = std::numeric_limits<std::int32_t>::min();
     EXPECT_EQ(InputEventFor(WheelEvent(0.0f, lowest, SDL_MOUSEWHEEL_FLIPPED)), std::nullopt);
     EXPECT_EQ(InputEventFor(WheelEvent(0.0f, lowest, SDL_MOUSEWHEEL_NORMAL)), std::nullopt);
@@ -309,12 +307,12 @@ TEST(InputEventsTest, TheLowestWheelIsNotAnEvent)
 
 TEST(InputEventsTest, AFlippedWheelIsTurnedBack)
 {
-    // Con el scroll "natural", SDL da los valores al revés: adelante es negativo.
+    // With the "natural" scroll SDL gives the values reversed: forward is negative.
     const auto forward = InputEventFor(WheelEvent(-1.0f, -1, SDL_MOUSEWHEEL_FLIPPED));
     ASSERT_TRUE(forward.has_value());
     EXPECT_FLOAT_EQ(forward->wheel, 1.0f);
 
-    // Con el resto del evento anterior, también al revés.
+    // With the previous event's remainder, reversed too.
     for (const float y : {-0.6f, -0.3f})
     {
         const auto completed = InputEventFor(WheelEvent(y, -1, SDL_MOUSEWHEEL_FLIPPED));
@@ -337,7 +335,7 @@ TEST(InputEventsTest, MotionCarriesThePosition)
     EXPECT_FLOAT_EQ(motion->y, 40.0f);
 }
 
-// Sin la densidad de la ventana, la posición es la del evento.
+// Without the window's density, the position is the event's.
 TEST(InputEventsTest, TheMouseIsInFramebufferPixels)
 {
     SDL_Event event{};
@@ -345,20 +343,20 @@ TEST(InputEventsTest, TheMouseIsInFramebufferPixels)
     event.motion.x = 12.5f;
     event.motion.y = 40.0f;
 
-    // Con densidad 2 (una ventana de 640 × 480 con un framebuffer de 1280 × 960), el doble.
+    // With density 2 (a 640 × 480 window with a 1280 × 960 framebuffer), double.
     const auto dense = InputEventFor(event, 2.0f);
     ASSERT_TRUE(dense.has_value());
     EXPECT_FLOAT_EQ(dense->x, 25.0f);
     EXPECT_FLOAT_EQ(dense->y, 80.0f);
 
-    // SDL_GetWindowPixelDensity da 0 si falla: la posición queda como llegó.
+    // SDL_GetWindowPixelDensity gives 0 on failure: the position stays as it came.
     const auto failed = InputEventFor(event, 0.0f);
     ASSERT_TRUE(failed.has_value());
     EXPECT_FLOAT_EQ(failed->x, 12.5f);
     EXPECT_FLOAT_EQ(failed->y, 40.0f);
 }
 
-// El texto del SDL_EVENT_TEXT_INPUT, copiado: SDL lo libera en el próximo SDL_PollEvent.
+// Copied: SDL frees it on the next SDL_PollEvent.
 TEST(InputEventsTest, TranslatesTheTextInput)
 {
     std::string typed = "a\xc3\xa1";
@@ -374,7 +372,7 @@ TEST(InputEventsTest, TranslatesTheTextInput)
     EXPECT_EQ(text->text, "a\xc3\xa1");
 }
 
-// Uno sin texto no es una entrada; la composición IME es un evento aparte, incluso al cancelarse.
+// One without text is not input; the IME composition is a separate event, even when cancelled.
 TEST(InputEventsTest, EmptyTextIsIgnoredAndImeCompositionIsCopied)
 {
     SDL_Event empty{};

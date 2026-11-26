@@ -7,7 +7,7 @@
 #include <linux/prctl.h>
 #include <sys/prctl.h>
 
-// El hijo sigue pudiendo terminar por una señal, pero no debe generar avisos del escritorio del usuario.
+// The child can still end by a signal, but must not raise desktop notices for the user.
 TEST(SystemCrashReportsDeathTest, SuppressesTheChildWithoutChangingTheParent)
 {
     const int parentDumpable = prctl(PR_GET_DUMPABLE);

@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-// Client::Core::Log: el prefijo de cada nivel, el mínimo, Write y los formatos rotos.
 namespace
 {
 using Client::Core::Log;
@@ -78,7 +77,7 @@ TEST(LogTest, ABadFormatIsLoggedAsAnError)
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
 
-    // {:c} pasa al compilar, pero 300000 no es una letra: std::vformat tira std::format_error.
+    // {:c} passes at compile time, but 300000 is not a letter: std::vformat throws std::format_error.
     EXPECT_NO_THROW(log.Info("{:c}", 300000));
 
     EXPECT_EQ(sink.lines, (std::vector<std::string>{"[error] formato de log inválido: {:c}"}));
@@ -91,7 +90,7 @@ TEST(LogTest, BelowTheMinimumIsNotFormatted)
 
     EXPECT_NO_THROW(quiet.Debug("{:c}", 300000));
 
-    // Si se formateara antes de mirar el mínimo, el error de formato dejaría una línea.
+    // If it formatted before checking the minimum, the format error would leave a line.
     EXPECT_TRUE(sink.lines.empty());
 }
 } // namespace

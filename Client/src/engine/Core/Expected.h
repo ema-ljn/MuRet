@@ -10,35 +10,13 @@
 #include <utility>
 #include <variant>
 
-// Un resultado que tiene adentro un valor o un error, nunca los dos.
-//
-// Es la idea de std::expected, que llega con C++23; MuRet compila en C++20, y L-3 del camino de
-// aprendizaje pide construir lo que el estándar todavía no trae. Un cargador de Data\ devuelve,
-// por ejemplo, Expected<TextTable, DataError>, y quien llama mira si hay tabla antes de usarla:
-//
-//   if (file.size() < TextTableSize)
-//   {
-//       return Unexpected(DataError::FileTooShort);
-//   }
-//   return table;
-//
-// La clase es [[nodiscard]]: ignorar lo que devuelve un cargador da un warning, y en CI un error.
-// Un código de error suelto se puede ignorar sin que nadie se entere.
-//
-// Los nombres siguen la regla 7 (HasValue, Value, Error), no los de std::expected (has_value,
-// value, error). El día que el repo pase a C++23, cambiar uno por el otro es mecánico.
-//
-// E va como un enum class (DataError, por ejemplo). Con un E numérico, un error se puede volver
-// valor sin que nadie lo note: en un Expected<long, int>, `return error;` con un int convierte a
-// long y da un valor. Y no hay conversiones de más: en un Expected<std::string, E>, `return "x";`
-// no compila (serían dos conversiones), y Unexpected("x") es un Unexpected<const char*>.
-//
-// Pedir Value() de uno que tiene un error, o Error() de uno que tiene un valor, es un bug de quien
-// llama: el programa se corta ahí con un mensaje, también en Release. std::expected tira una
-// excepción, y MuRet no usa excepciones para los errores.
+// std::expected arrives with C++23 and MuRet compiles as C++20. Names follow rule 7 (HasValue, Value, Error). E is
+// meant to be an enum class: with a numeric E, `return error;` in an Expected<long, int> silently becomes a value.
+// Value() on an error, or Error() on a value, aborts with a message, also in Release: MuRet does not use exceptions for
+// errors.
 namespace Client::Core
 {
-// El error, envuelto: así se distingue de un valor aunque T y E sean del mismo tipo.
+// Wrapped, so an error differs from a value even when T and E are the same type.
 template <typename E> class Unexpected
 {
 public:
@@ -76,7 +54,7 @@ template <typename T, typename E> class [[nodiscard]] Expected
     static_assert(!std::is_reference_v<T> && !std::is_reference_v<E>, "Expected guarda valores, no referencias");
 
 public:
-    // Sin explicit, a propósito: un cargador hace `return table;` o `return Unexpected(error);`.
+    // Not explicit, on purpose: a loader does `return table;` or `return Unexpected(error);`.
     Expected(T value) : m_storage(std::in_place_index<ValueIndex>, std::move(value)) {}
 
     Expected(Unexpected<E> error) : m_storage(std::in_place_index<ErrorIndex>, std::move(error).Error()) {}
@@ -98,9 +76,8 @@ public:
         return std::get<ValueIndex>(m_storage);
     }
 
-    // Para sacar el valor sin copiarlo: std::move(loaded).Value(). std::expected devuelve acá una
-    // referencia (T&&); este devuelve el valor movido, así `const T& t = Load().Value();` no queda
-    // colgando cuando el Expected temporal muere al final de la línea.
+    // Returns the moved value, not std::expected's T&&, so `const T& t = Load().Value();` does not dangle when the
+    // temporary Expected dies at the end of the line.
     [[nodiscard]] T Value() &&
     {
         RequireValue();
@@ -145,7 +122,7 @@ public:
     }
 
 private:
-    // Por índice y no por tipo: std::get<int> no sabría cuál elegir en un std::variant<int, int>.
+    // By index, not type: std::get<int> could not choose in a std::variant<int, int>.
     static constexpr std::size_t ValueIndex = 0;
     static constexpr std::size_t ErrorIndex = 1;
 
@@ -157,8 +134,8 @@ private:
         }
     }
 
-    // Mira que haya un error, no que falte el valor: si el move de un T tiró una excepción en una
-    // asignación, el std::variant queda sin ninguno de los dos (valueless_by_exception).
+    // Checks for an error, not for a missing value: if moving a T threw during an assignment, the std::variant holds
+    // neither (valueless_by_exception).
     void RequireError() const
     {
         if (m_storage.index() != ErrorIndex)
@@ -224,9 +201,7 @@ private:
     std::variant<T, E> m_storage;
 };
 
-// Sin valor: lo que solo puede fallar, como subir las texturas de una escena (CL5.1). Como
-// std::expected<void, E>, construido sin nada es el éxito, así una función hace `return {};`. No
-// tiene Value(): no hay nada que sacar.
+// Like std::expected<void, E>: default-constructed is success, so a function does `return {};`.
 template <typename E> class [[nodiscard]] Expected<void, E>
 {
     static_assert(!std::is_reference_v<E>, "Expected guarda valores, no referencias");

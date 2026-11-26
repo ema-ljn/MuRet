@@ -6,26 +6,22 @@
 #include <cstddef>
 #include <span>
 
-// El archivo MuError.dmp de 0x67f840 (02 § El manejador de caídas), byte a byte: la cabecera de
-// 0x516 bytes, el VS_FIXEDFILEINFO si lo hay, los módulos y los frames, en little-endian y con los
-// campos pegados, sin relleno (la cabecera tiene dwords en offsets impares).
+// MuError.dmp as 0x67f840 writes it (02 § El manejador de caídas): the 0x516-byte header, the VS_FIXEDFILEINFO if any,
+// the modules and the frames, little-endian and packed with no padding (the header has dwords at odd offsets).
 namespace Client::Diagnostics
 {
-// La cabecera: el tamaño que escribe en su campo 0x005 (0x67f8f1).
+// The size written in its field 0x005 (0x67f8f1).
 inline constexpr std::size_t CrashHeaderSize = 0x516;
-// Un módulo (0x67ffa2) y un frame (0x680024).
+// A module (0x67ffa2) and a frame (0x680024).
 inline constexpr std::size_t CrashModuleRecordSize = 0x188;
 inline constexpr std::size_t CrashFrameRecordSize = 0x48;
-// El archivo más grande: con la versión, 48 módulos y 64 frames.
 inline constexpr std::size_t MaxCrashDumpSize =
     CrashHeaderSize + VersionInfoSize + MaxCrashModules * CrashModuleRecordSize + MaxCrashFrames * CrashFrameRecordSize;
 
-// Lo que mide el archivo de `report`. Las cuentas de más de 48 módulos o 64 frames se toman como el
-// tope, como lo que el original llega a juntar.
+// Counts over 48 modules or 64 frames are taken as the cap, the most the original collects.
 [[nodiscard]] ENGINE_API std::size_t CrashDumpSize(const CrashReport& report);
 
-// Escribe el archivo de `report` al principio de `output` y devuelve cuántos bytes escribió, o 0
-// si no entra. No pide memoria: el manejador lo llama después de la caída, sobre un buffer
-// estático de MaxCrashDumpSize.
+// Returns the bytes written, or 0 if it does not fit. Allocates nothing: the handler calls it after the crash, on a
+// static buffer of MaxCrashDumpSize.
 [[nodiscard]] ENGINE_API std::size_t WriteCrashDump(const CrashReport& report, std::span<std::byte> output);
 } // namespace Client::Diagnostics

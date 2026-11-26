@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-// DisplayModes: lo que dice SDL del monitor principal.
 namespace Client::Platform::Sdl
 {
 Core::Expected<std::vector<Resolution>, std::string> MonitorResolutions(const SdlContext& /*sdl*/)
@@ -29,7 +28,7 @@ Core::Expected<std::vector<Resolution>, std::string> MonitorResolutions(const Sd
         resolutions.push_back({desktop->w, desktop->h});
     }
     int count = 0;
-    // Una sola reserva que se libera con SDL_free.
+    // One allocation, freed with SDL_free.
     const std::unique_ptr<SDL_DisplayMode*, decltype(&SDL_free)> modes(SDL_GetFullscreenDisplayModes(display, &count),
                                                                        &SDL_free);
     if (modes)

@@ -15,8 +15,6 @@
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
-#include "Protocol/Character/Opcodes.h"
-#include "Protocol/Connection/Opcodes.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
@@ -27,6 +25,7 @@
 #include "support/SameBytes.h"
 #include "support/SessionPackets.h"
 #include "support/TestGameServer.h"
+#include "Protocol/Opcodes.h"
 
 #include <gtest/gtest.h>
 
@@ -60,11 +59,11 @@ using Network::PacketSerials;
 using Network::PacketType;
 using Network::SerialCheck;
 using Network::Xor32Decode;
+using Protocol::CharacterOpcode;
 using Protocol::ClientVersion;
-using Protocol::Character::CharacterOpcode;
+using Protocol::KeepaliveOpcode;
 using Protocol::Character::CharacterSelectResult;
 using Protocol::Character::InventoryList;
-using Protocol::Connection::KeepaliveOpcode;
 
 using std::chrono::milliseconds;
 
@@ -247,14 +246,14 @@ struct Harness
     }
 
     // The F3 `subcode` packets the GS received, without the XOR32, in order.
-    [[nodiscard]] std::vector<Packet> CharacterPacketsSent(std::uint8_t subcode) const
+    [[nodiscard]] std::vector<Packet> CharacterPacketsSent(Client::Network::Subcode subcode) const
     {
         std::vector<Packet> found;
         for (const Packet& packet : GameServerReads().packets)
         {
             Packet clear = Xor32Decode(packet);
             if (clear.Type() == PacketType::C1 && clear.Opcode() == CharacterOpcode && clear.Bytes().size() > 3 &&
-                std::to_integer<std::uint8_t>(clear.Bytes()[3]) == subcode)
+                Client::Network::Subcode{std::to_integer<std::uint8_t>(clear.Bytes()[3])} == subcode)
             {
                 found.push_back(std::move(clear));
             }

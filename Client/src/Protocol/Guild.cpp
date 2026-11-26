@@ -6,6 +6,7 @@
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -344,41 +345,41 @@ Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportUnion(const Netw
     return GuildPacket{std::move(list)};
 }
 
-Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet& packet, Network::Opcode opcode)
 {
     switch (opcode)
     {
-    case JoinRequestOpcode:
+    case GuildJoinRequestOpcode:
         return ReadKeyed(packet, false);
-    case JoinResultOpcode:
+    case GuildJoinResultOpcode:
         return ReadResult<JoinResult>(packet);
-    case LeaveResultOpcode:
+    case GuildLeaveResultOpcode:
         return ReadResult<LeaveResult>(packet);
-    case MasterQuestionOpcode:
+    case GuildMasterQuestionOpcode:
         return GuildPacket{MasterQuestion{}};
-    case CreateResultOpcode:
+    case GuildCreateResultOpcode:
         return ReadResult<CreateResult>(packet);
     case ViewportGuildDeleteOpcode:
         return ReadKeyed(packet, true);
-    case WarRequestResultOpcode:
+    case GuildWarRequestResultOpcode:
         return ReadResult<WarRequestResult>(packet);
-    case WarRequestOpcode:
+    case GuildWarRequestOpcode:
         return ReadWarRequest(packet);
-    case WarStartOpcode:
+    case GuildWarStartOpcode:
         return ReadWarStart(packet);
-    case WarEndOpcode:
+    case GuildWarEndOpcode:
         return ReadResult<WarEnd>(packet);
-    case WarScoreOpcode:
+    case GuildWarScoreOpcode:
         return ReadWarScore(packet);
     case GuildInfoOpcode:
         return ReadGuildInfo(packet);
-    case AssignResultOpcode:
+    case GuildAssignResultOpcode:
         return ReadAssignResult(packet);
     case RelationshipRequestOpcode:
         return ReadRelationshipRequest(packet);
     case RelationshipResultOpcode:
         return ReadRelationshipResult(packet);
-    case UnionListRefreshOpcode:
+    case UnionKickOpcode:
         return ReadUnionListRefresh(packet);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -388,12 +389,12 @@ Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadGuildPacket(const Network::Packet& packet)
 {
-    const std::optional<std::uint8_t> opcode = packet.Opcode();
+    const std::optional<Network::Opcode> opcode = packet.Opcode();
     if (!opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     if (packet.Type() == Network::PacketType::C2)
     {
-        if (*opcode == MemberListOpcode)
+        if (*opcode == GuildMemberListOpcode)
             return ReadMemberList(packet);
         if (*opcode == UnionListOpcode)
             return ReadUnionList(packet);
@@ -410,18 +411,19 @@ Core::Expected<GuildPacket, Network::ProtocolError> ReadGuildPacket(const Networ
 
 Outgoing WriteJoinAnswer(bool accept, std::uint16_t key)
 {
-    return Xor32C1(
-        Network::PacketWriter::C1(JoinResultOpcode).PutU8(accept ? std::uint8_t{1} : std::uint8_t{0}).PutU16Be(key));
+    return Xor32C1(Network::PacketWriter::C1(GuildJoinResultOpcode)
+                       .PutU8(accept ? std::uint8_t{1} : std::uint8_t{0})
+                       .PutU16Be(key));
 }
 
 Outgoing WriteMemberListRequest()
 {
-    return ClearC1(Network::PacketWriter::C1(MemberListOpcode));
+    return ClearC1(Network::PacketWriter::C1(GuildMemberListOpcode));
 }
 
 Outgoing WriteMasterAnswer(std::uint8_t answer)
 {
-    return Xor32C1(Network::PacketWriter::C1(MasterQuestionOpcode).PutU8(answer));
+    return Xor32C1(Network::PacketWriter::C1(GuildMasterQuestionOpcode).PutU8(answer));
 }
 
 // 0x6553bf..0x6553e8: el byte que sigue al 55, siempre 0.
@@ -431,7 +433,8 @@ Outgoing WriteCreate(const GuildName& name, const GuildMark& mark)
 {
     std::array<std::byte, MarkBytes> markBytes{};
     std::ranges::transform(mark, markBytes.begin(), [](std::uint8_t value) { return std::byte{value}; });
-    return Xor32C1(Network::PacketWriter::C1(CreateOpcode).PutU8(CreateKindByte).PutBytes(name).PutBytes(markBytes));
+    return Xor32C1(
+        Network::PacketWriter::C1(GuildCreateOpcode).PutU8(CreateKindByte).PutBytes(name).PutBytes(markBytes));
 }
 
 Outgoing WriteRelationshipAnswer(std::uint8_t relation, std::uint8_t request, std::uint8_t result, std::uint8_t keyHigh,
@@ -457,7 +460,7 @@ Outgoing WriteGuildInfoRequest(std::int32_t guildKey)
 
 Outgoing WriteJoinRequest(std::uint16_t key)
 {
-    return Xor32C1(Network::PacketWriter::C1(JoinRequestOpcode)
+    return Xor32C1(Network::PacketWriter::C1(GuildJoinRequestOpcode)
                        .PutU8(static_cast<std::uint8_t>(key >> 8))
                        .PutU8(static_cast<std::uint8_t>(key & 0xff)));
 }
@@ -473,7 +476,7 @@ Outgoing WriteRelationshipRequest(std::uint8_t relation, std::uint8_t request, s
 
 Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name)
 {
-    return Xor32C1(Network::PacketWriter::C1(AssignResultOpcode).PutU8(type).PutU8(status).PutBytes(name));
+    return Xor32C1(Network::PacketWriter::C1(GuildAssignResultOpcode).PutU8(type).PutU8(status).PutBytes(name));
 }
 
 Outgoing WriteUnionKick(const GuildName& name)
@@ -483,11 +486,11 @@ Outgoing WriteUnionKick(const GuildName& name)
 
 Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number)
 {
-    return Xor32C1(Network::PacketWriter::C1(LeaveResultOpcode).PutBytes(name).PutBytes(number));
+    return Xor32C1(Network::PacketWriter::C1(GuildLeaveResultOpcode).PutBytes(name).PutBytes(number));
 }
 
 Outgoing WriteWarAnswer(bool accept)
 {
-    return Xor32C1(Network::PacketWriter::C1(WarRequestOpcode).PutU8(accept ? std::uint8_t{1} : std::uint8_t{0}));
+    return Xor32C1(Network::PacketWriter::C1(GuildWarRequestOpcode).PutU8(accept ? std::uint8_t{1} : std::uint8_t{0}));
 }
 } // namespace Client::Protocol::Guild

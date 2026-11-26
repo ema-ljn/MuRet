@@ -7,6 +7,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -51,7 +52,7 @@ constexpr std::size_t PurchaseSlotAt = 0xe;
 Core::Expected<std::span<const std::byte>, Network::ProtocolError> BytesOf(const Network::Packet& packet,
                                                                            std::size_t needed)
 {
-    if (packet.Opcode() != Opcode)
+    if (packet.Opcode() != PersonalShopOpcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::span<const std::byte> bytes = packet.Bytes();
     if (bytes.size() < needed)
@@ -246,36 +247,37 @@ Core::Expected<ShopPurchase, Network::ProtocolError> ReadShopPurchase(const Netw
 
 Outgoing WriteInventoryRequest()
 {
-    return EncryptedC1(Network::PacketWriter::C1(Character::CharacterOpcode).PutU8(Character::InventoryListSubcode));
+    return EncryptedC1(Network::PacketWriter::C1(CharacterOpcode, Character::InventoryListSubcode));
 }
 
 Outgoing WriteViewClosed(std::uint16_t key, const Name& name)
 {
-    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(ViewClosedSubcode).PutU16Be(key).PutBytes(name));
+    return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, ViewClosedSubcode).PutU16Be(key).PutBytes(name));
 }
 
 Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name)
 {
-    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(ItemsRequestSubcode).PutU16Be(key).PutBytes(name));
+    return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, ItemListSubcode).PutU16Be(key).PutBytes(name));
 }
 
 Outgoing WriteSetPrice(std::uint8_t slot, std::uint32_t price)
 {
-    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(SetPriceSubcode).PutU8(slot).PutU32Le(price));
+    return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, SetPriceSubcode).PutU8(slot).PutU32Le(price));
 }
 
 Outgoing WriteOpenShop(const std::array<std::byte, TitleSize>& title)
 {
-    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(OpenShopSubcode).PutBytes(title));
+    return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, OpenSubcode).PutBytes(title));
 }
 
 Outgoing WriteCloseShop()
 {
-    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(CloseShopSubcode));
+    return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, CloseSubcode));
 }
 
 Outgoing WriteBuyItem(std::uint16_t key, const Name& name, std::uint8_t slot)
 {
-    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(BuySubcode).PutU16Be(key).PutBytes(name).PutU8(slot));
+    return EncryptedC1(
+        Network::PacketWriter::C1(PersonalShopOpcode, BuySubcode).PutU16Be(key).PutBytes(name).PutU8(slot));
 }
 } // namespace Client::Protocol::PersonalShop

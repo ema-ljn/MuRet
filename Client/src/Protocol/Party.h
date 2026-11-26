@@ -16,11 +16,6 @@
 // arman 0x6599a0(4) (42), 0x406050 y 0x56c440 (40), 0x623e70 (41) y 0x5e3c80 (43).
 namespace Client::Protocol::Party
 {
-inline constexpr std::uint8_t RequestOpcode = 0x40;
-inline constexpr std::uint8_t RequestResultOpcode = 0x41;
-inline constexpr std::uint8_t PartyListOpcode = 0x42;
-inline constexpr std::uint8_t LeaveOpcode = 0x43;
-inline constexpr std::uint8_t LifeOpcode = 0x44;
 // 0x4d67e0: cada miembro ocupa 0x18 bytes desde pkt[5].
 inline constexpr std::size_t MemberWireSize = 0x18;
 

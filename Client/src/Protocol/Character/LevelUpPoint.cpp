@@ -4,10 +4,10 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstdint>
 
@@ -15,7 +15,7 @@ namespace Client::Protocol::Character
 {
 Outgoing WriteLevelUpPoint(std::uint8_t stat)
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode).PutU8(LevelUpPointSubcode).PutU8(stat));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, LevelUpPointSubcode).PutU8(stat));
 }
 
 Core::Expected<LevelUpPointResult, Network::ProtocolError> ReadLevelUpPointResult(const Network::Packet& packet)

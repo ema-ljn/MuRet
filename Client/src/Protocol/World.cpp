@@ -5,9 +5,9 @@
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -18,7 +18,7 @@ namespace Client::Protocol::World
 {
 namespace
 {
-constexpr Network::PacketKind RegenKind{Network::PacketType::C1, WorldOpcode, RegenSubcode};
+constexpr Network::PacketKind RegenKind{Network::PacketType::C1, CharacterOpcode, Character::RegenSubcode};
 // 0x4c4b80: los bytes +0xe/+0xf no se leen; +0x10 es la experiencia.
 constexpr std::size_t RegenPaddingSize = 2;
 } // namespace
@@ -78,15 +78,14 @@ Outgoing WriteGateRequest(std::uint8_t gate)
 
 Outgoing WriteTeleportDone()
 {
-    return Xor32C1(Network::PacketWriter::C1(WorldOpcode).PutU8(TeleportDoneSubcode));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::TeleportDoneSubcode));
 }
 
 Outgoing WriteRejectedTeleport()
 {
-    return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)
-                           .PutU8(Connection::DecryptErrorSubcode)
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode)
                            .PutU8(0)
-                           .PutU8(TeleportOpcode));
+                           .PutU8(Network::ByteOf(TeleportOpcode)));
 }
 
 Outgoing WriteCrywolfState()
@@ -96,6 +95,6 @@ Outgoing WriteCrywolfState()
 
 Outgoing WriteCastleSiegeState()
 {
-    return Xor32C1(Network::PacketWriter::C1(CastleSiegeOpcode).PutU8(CastleSiegeStateSubcode));
+    return Xor32C1(Network::PacketWriter::C1(CastleInfoOpcode, CastleInfo::OwnerMarkSubcode));
 }
 } // namespace Client::Protocol::World

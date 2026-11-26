@@ -146,7 +146,7 @@ bool Is(const Packet& packet, PacketType type, std::uint8_t opcode, std::uint8_t
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     const std::size_t subcodeIndex = type == PacketType::C1 ? 3 : 4;
-    return packet.Type() == type && packet.Opcode() == opcode && bytes.size() > subcodeIndex &&
+    return packet.Type() == type && packet.Opcode() == Client::Network::Opcode{opcode} && bytes.size() > subcodeIndex &&
            bytes[subcodeIndex] == static_cast<std::byte>(subcode);
 }
 

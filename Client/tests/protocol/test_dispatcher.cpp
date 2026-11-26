@@ -31,9 +31,9 @@ using Client::Tests::RecordingSink;
 
 // Los opcodes de los tests: el keepalive (sin subcódigo), la entrada al GameServer y la lista de
 // servidores (con subcódigo), y dos que no tienen handler en ningún test.
-constexpr std::uint8_t Keepalive = 0x0E;
-constexpr std::uint8_t Join = 0xF1;
-constexpr std::uint8_t ServerList = 0xF4;
+constexpr Client::Network::Opcode Keepalive{0x0E};
+constexpr Client::Network::Opcode Join{0xF1};
+constexpr Client::Network::Opcode ServerList{0xF4};
 constexpr std::uint8_t NoHandler = 0x99;
 constexpr std::uint8_t AnotherWithoutHandler = 0x98;
 
@@ -81,8 +81,8 @@ TEST(DispatcherTest, RoutesBySubcode)
     DispatcherWithLog tested;
     Calls hello;
     Calls login;
-    ASSERT_TRUE(tested.dispatcher.On(Join, 0x00, hello.Record()));
-    ASSERT_TRUE(tested.dispatcher.On(Join, 0x01, login.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(Join, Client::Network::Subcode{0x00}, hello.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(Join, Client::Network::Subcode{0x01}, login.Record()));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}))), DispatchResult::Handled);
 
@@ -97,8 +97,8 @@ TEST(DispatcherTest, TheSubcodeOfAC2IsAfterItsOpcode)
     DispatcherWithLog tested;
     Calls list;
     Calls request;
-    ASSERT_TRUE(tested.dispatcher.On(ServerList, 0x06, list.Record()));
-    ASSERT_TRUE(tested.dispatcher.On(ServerList, 0x02, request.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(ServerList, Client::Network::Subcode{0x06}, list.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(ServerList, Client::Network::Subcode{0x02}, request.Record()));
     const std::vector<std::byte> bytes = Bytes({0xC2, 0x00, 0x0B, 0xF4, 0x06, 0x00, 0x01, 0x90, 0x01, 0x00, 0x00});
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(bytes)), DispatchResult::Handled);
@@ -135,7 +135,7 @@ TEST(DispatcherTest, AnUnknownSubcodeIsLoggedOnce)
 {
     DispatcherWithLog tested;
     Calls hello;
-    ASSERT_TRUE(tested.dispatcher.On(Join, 0x00, hello.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(Join, Client::Network::Subcode{0x00}, hello.Record()));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x7F, 0x00}))), DispatchResult::Unknown);
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x7F, 0x00}))), DispatchResult::Unknown);
@@ -157,7 +157,7 @@ TEST(DispatcherTest, AnOpcodeWithoutItsSubcodeIsMalformed)
 {
     DispatcherWithLog tested;
     Calls hello;
-    ASSERT_TRUE(tested.dispatcher.On(Join, 0x00, hello.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(Join, Client::Network::Subcode{0x00}, hello.Record()));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x03, 0xF1}))), DispatchResult::Malformed);
 
@@ -169,7 +169,7 @@ TEST(DispatcherTest, AC2WithoutItsSubcodeIsMalformed)
 {
     DispatcherWithLog tested;
     Calls list;
-    ASSERT_TRUE(tested.dispatcher.On(ServerList, 0x06, list.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(ServerList, Client::Network::Subcode{0x06}, list.Record()));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC2, 0x00, 0x04, 0xF4}))), DispatchResult::Malformed);
 
@@ -212,15 +212,15 @@ TEST(DispatcherTest, RegisteringTwiceKeepsTheFirst)
     Calls second;
     ASSERT_TRUE(tested.dispatcher.On(Keepalive, first.Record()));
     EXPECT_FALSE(tested.dispatcher.On(Keepalive, second.Record()));
-    EXPECT_FALSE(tested.dispatcher.On(Keepalive, 0x00, second.Record()));
+    EXPECT_FALSE(tested.dispatcher.On(Keepalive, Client::Network::Subcode{0x00}, second.Record()));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00}))), DispatchResult::Handled);
     EXPECT_EQ(first.packets.size(), 1u);
     EXPECT_TRUE(second.packets.empty());
 
     Calls login;
-    ASSERT_TRUE(tested.dispatcher.On(Join, 0x01, login.Record()));
-    EXPECT_FALSE(tested.dispatcher.On(Join, 0x01, second.Record()));
+    ASSERT_TRUE(tested.dispatcher.On(Join, Client::Network::Subcode{0x01}, login.Record()));
+    EXPECT_FALSE(tested.dispatcher.On(Join, Client::Network::Subcode{0x01}, second.Record()));
     EXPECT_FALSE(tested.dispatcher.On(Join, second.Record()));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}))), DispatchResult::Handled);
@@ -234,7 +234,7 @@ TEST(DispatcherTest, AnEmptyHandlerIsNotRegistered)
     DispatcherWithLog tested;
 
     EXPECT_FALSE(tested.dispatcher.On(Keepalive, Client::Protocol::Handler{}));
-    EXPECT_FALSE(tested.dispatcher.On(Join, 0x01, Client::Protocol::Handler{}));
+    EXPECT_FALSE(tested.dispatcher.On(Join, Client::Network::Subcode{0x01}, Client::Protocol::Handler{}));
 
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00}))), DispatchResult::Unknown);
     EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}))), DispatchResult::Unknown);

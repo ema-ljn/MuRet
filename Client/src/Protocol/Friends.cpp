@@ -7,6 +7,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <array>
 #include <cstddef>
@@ -25,7 +26,7 @@ using NameBytes = std::array<std::byte, FriendNameSize>;
 
 // El paquete del tipo y el opcode, con el lector después del opcode: pkt[3] en un C1, pkt[4] en un C2.
 Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet,
-                                                                  Network::PacketType type, std::uint8_t opcode)
+                                                                  Network::PacketType type, Network::Opcode opcode)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);

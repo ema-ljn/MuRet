@@ -2,7 +2,6 @@
 
 #include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketCode.h"
 #include "Network/PacketLayout.h"
 #include "Network/ProtocolError.h"
 #include "support/Bytes.h"

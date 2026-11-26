@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Protocol/Opcodes.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
@@ -20,22 +21,16 @@
 // caso lee y no llegó es TooShort; los bytes sobrantes se ignoran.
 namespace Client::Protocol::CastleBattle
 {
-inline constexpr std::uint8_t BattleOpcode = 0xb9;
-inline constexpr std::uint8_t NpcLevelSubcode = 0x01;      // 0x4e0750
-inline constexpr std::uint8_t OwnerMarkSubcode = 0x02;     // 0x4e0790
-inline constexpr std::uint8_t HuntZoneInfoSubcode = 0x03;  // 0x4e07f0
-inline constexpr std::uint8_t HuntZoneEntrySubcode = 0x05; // 0x4e0860
-inline constexpr std::array<std::uint8_t, 4> BattleSubcodes{NpcLevelSubcode, OwnerMarkSubcode, HuntZoneInfoSubcode,
-                                                            HuntZoneEntrySubcode};
-inline constexpr std::uint8_t ActorFieldOpcode = 0xba;
-inline constexpr std::uint8_t MinimapMembersOpcode = 0xbb;
-inline constexpr std::uint8_t WeaponOpcode = 0xb7;
-inline constexpr std::array<std::uint8_t, 3> WeaponSubcodes{0, 1, 2};
+inline constexpr std::array<Network::Subcode, 4> BattleSubcodes{
+    CastleInfo::NpcLevelSubcode, CastleInfo::OwnerMarkSubcode, CastleInfo::HuntZoneInfoSubcode,
+    CastleInfo::HuntZoneEntrySubcode};
+inline constexpr std::array<Network::Subcode, 3> WeaponSubcodes{Network::Subcode{0}, Network::Subcode{1},
+                                                                Network::Subcode{2}};
 // El B2 20, en la tabla 0x4e6140 del B2 del hito 12.
-inline constexpr std::uint8_t CastleOpcode = 0xb2;
-inline constexpr std::uint8_t SwitchHolderSubcode = 0x20;
-inline constexpr std::array<std::uint8_t, 12> CastleSubcodes{0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-                                                             0x17, 0x18, 0x19, 0x1d, 0x1e, SwitchHolderSubcode};
+inline constexpr std::array<Network::Subcode, 12> CastleSubcodes{
+    Network::Subcode{0x11}, Network::Subcode{0x12}, Network::Subcode{0x13}, Network::Subcode{0x14},
+    Network::Subcode{0x15}, Network::Subcode{0x16}, Network::Subcode{0x17}, Network::Subcode{0x18},
+    Network::Subcode{0x19}, Network::Subcode{0x1d}, Network::Subcode{0x1e}, Castle::SwitchHolderSubcode};
 
 // 0x4e55c5..0x4e5776: los casos de batalla de la tabla B2 0x4e6140.
 struct GateOpen

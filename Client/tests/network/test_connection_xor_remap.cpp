@@ -21,7 +21,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -157,7 +156,7 @@ TEST_F(ConnectionXorRemapTest, WhatIsEncryptedIsRemapped)
     PacketSerials server;
     const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
-    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x1D}});
+    EXPECT_EQ(received.packets[0].Opcode(), Client::Network::Opcode{0x1D});
 }
 
 // encode_outbound remaps a clear D3 to A3 and leaves the C3/C4 as they are.
@@ -170,7 +169,7 @@ TEST_F(ConnectionXorRemapTest, AnEncryptedD3IsNotRemapped)
     PacketSerials server;
     const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
-    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0xD3}});
+    EXPECT_EQ(received.packets[0].Opcode(), Client::Network::Opcode{0xD3});
 }
 
 // The mask is decided per packet: a clear one and a masked one can end as the same bytes with different origins.
@@ -221,9 +220,9 @@ TEST_F(ConnectionXorRemapTest, MixedOriginsSurviveEverySplit)
             handledBytes.push_back(HexOf(packet.Bytes()));
             handledOrigins.push_back(packet.WasDecrypted());
         };
-        ASSERT_TRUE(dispatcher.On(0x00, record));
-        ASSERT_TRUE(dispatcher.On(0xF3, 0x03, record));
-        ASSERT_TRUE(dispatcher.On(0xF3, 0x11, record));
+        ASSERT_TRUE(dispatcher.On(Client::Network::Opcode{0x00}, record));
+        ASSERT_TRUE(dispatcher.On(Client::Network::Opcode{0xF3}, Client::Network::Subcode{0x03}, record));
+        ASSERT_TRUE(dispatcher.On(Client::Network::Opcode{0xF3}, Client::Network::Subcode{0x11}, record));
         for (const Event& event : events)
         {
             EXPECT_EQ(dispatcher.Dispatch(std::get<Packet>(event)), Client::Protocol::DispatchResult::Handled);

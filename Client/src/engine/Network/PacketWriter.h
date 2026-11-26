@@ -28,8 +28,11 @@ class ENGINE_API PacketWriter
 {
 public:
     // The size is written in Finish().
-    [[nodiscard]] static PacketWriter C1(std::uint8_t opcode);
-    [[nodiscard]] static PacketWriter C2(std::uint8_t opcode);
+    [[nodiscard]] static PacketWriter C1(Opcode opcode);
+    [[nodiscard]] static PacketWriter C2(Opcode opcode);
+    // The subcode is the first field.
+    [[nodiscard]] static PacketWriter C1(Opcode opcode, Subcode subcode);
+    [[nodiscard]] static PacketWriter C2(Opcode opcode, Subcode subcode);
 
     PacketWriter& PutU8(std::uint8_t value) &;
     PacketWriter& PutU16Le(std::uint16_t value) &;
@@ -50,13 +53,13 @@ public:
     [[nodiscard]] Core::Expected<Packet, PacketError> Finish() const;
 
 private:
-    PacketWriter(PacketType type, std::uint8_t opcode);
+    PacketWriter(PacketType type, Opcode opcode);
 
     template <std::unsigned_integral T> void PutUnsigned(T value, std::endian order);
 
     // Apart from the fields: a writer whose bytes were moved still builds a C1 or C2 with its opcode, without fields.
     PacketType m_type;
-    std::uint8_t m_opcode;
+    Opcode m_opcode;
     std::vector<std::byte> m_fields;
 };
 } // namespace Client::Network

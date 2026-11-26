@@ -4,11 +4,10 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Character/Opcodes.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -23,15 +22,15 @@ constexpr std::uint16_t SucceededBit = 0x8000;
 constexpr std::uint16_t TargetMask = 0x7fff;
 
 // Un C1 de `opcode` (o un C3 descifrado, que llega como C1): el lector desde pkt[3].
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
-constexpr Network::PacketKind SkillListKind{Network::PacketType::C1, Character::CharacterOpcode, SkillListSubcode};
-constexpr Network::PacketKind SummonLifeKind{Network::PacketType::C1, Character::CharacterOpcode, SummonLifeSubcode};
+constexpr Network::PacketKind SkillListKind{Network::PacketType::C1, CharacterOpcode, Character::SkillListSubcode};
+constexpr Network::PacketKind SummonLifeKind{Network::PacketType::C1, CharacterOpcode, Character::SummonLifeSubcode};
 } // namespace
 
 Core::Expected<MagicAttack, Network::ProtocolError> ReadMagicAttack(const Network::Packet& packet)
@@ -171,7 +170,7 @@ Core::Expected<SkillList, Network::ProtocolError> ReadSkillList(const Network::P
 
 Core::Expected<LevelUp, Network::ProtocolError> ReadLevelUp(const Network::Packet& packet)
 {
-    constexpr Network::PacketKind LevelUpKind{Network::PacketType::C1, Character::CharacterOpcode, LevelUpSubcode};
+    constexpr Network::PacketKind LevelUpKind{Network::PacketType::C1, CharacterOpcode, Character::LevelUpSubcode};
     auto fields = Network::FieldsAfterSubcode(packet, LevelUpKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
@@ -204,10 +203,10 @@ Core::Expected<SummonLife, Network::ProtocolError> ReadSummonLife(const Network:
     return SummonLife{*life};
 }
 
-Outgoing WriteClearSkillReport(std::uint8_t head)
+Outgoing WriteClearSkillReport(Network::Opcode head)
 {
     return EncryptedC1(
-        Network::PacketWriter::C1(Connection::JoinOpcode).PutU8(Connection::DecryptErrorSubcode).PutU8(0).PutU8(head));
+        Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode).PutU8(0).PutU8(Network::ByteOf(head)));
 }
 
 Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
@@ -235,7 +234,7 @@ Outgoing WriteSkillHits(const SkillHitsSend& send)
 
 Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y)
 {
-    return EncryptedC1(Network::PacketWriter::C1(TeleportMagicOpcode).PutU8(0).PutU8(x).PutU8(y));
+    return EncryptedC1(Network::PacketWriter::C1(TeleportOpcode).PutU8(0).PutU8(x).PutU8(y));
 }
 
 Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y)

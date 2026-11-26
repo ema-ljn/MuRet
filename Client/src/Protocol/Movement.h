@@ -15,11 +15,8 @@ namespace Client::Protocol::Movement
 {
 inline constexpr std::size_t MaxWalkCells = 15;
 inline constexpr std::size_t MaxWireWalkCells = 14; // 0x56ad8d..0x56ad96: no recorta el camino local.
-inline constexpr std::uint8_t WalkOpcode = 0xd3;
-inline constexpr std::uint8_t DamageOpcode = 0xd7;
 // 04 § La acción: C1 05 18 dir acción del cliente (PMSG_ACTION del GS) y C1 07 18 clave:2 dir acción del servidor
 // (PMSG_ACTIONRESULT).
-inline constexpr std::uint8_t ActionOpcode = 0x18;
 // 0x59b74c: el giro del héroe quieto. 0x4f2416..0x4f2bea y 0x4e137a: sentarse.
 inline constexpr std::uint8_t FacingAction = 0x7a;
 inline constexpr std::uint8_t SittingAction = 0x82;

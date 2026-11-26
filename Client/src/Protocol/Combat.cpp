@@ -4,9 +4,9 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstdint>
 
@@ -17,7 +17,7 @@ namespace
 constexpr std::uint16_t KeyMask = 0x7fff;
 constexpr std::uint16_t ShockMask = 0x8000;
 
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -40,12 +40,10 @@ Outgoing WriteElfCell(std::uint8_t x, std::uint8_t y)
     return Xor32C1(Network::PacketWriter::C1(ElfCellOpcode).PutU8(x).PutU8(y));
 }
 
-Outgoing WriteClearKillReport(std::uint8_t opcode)
+Outgoing WriteClearKillReport(Network::Opcode opcode)
 {
-    return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)
-                           .PutU8(Connection::DecryptErrorSubcode)
-                           .PutU8(0)
-                           .PutU8(opcode));
+    return EncryptedC1(
+        Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode).PutU8(0).PutU8(Network::ByteOf(opcode)));
 }
 
 // 0x4cf2b4..0x4cf2f0: la clave, la experiencia y el daño, de a dos bytes con el alto primero.

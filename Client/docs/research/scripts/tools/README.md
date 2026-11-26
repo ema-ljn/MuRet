@@ -59,6 +59,7 @@ su ola, y la referencia por función de
 | `test_check_roadmap_coverage.py` | sus controles negativos, sobre copias de la matriz del repo; el inventario va en `MU_MAINEXE_INVENTORY` | `MU_MAINEXE_INVENTORY="$INV" python3 -I test_check_roadmap_coverage.py` |
 | `build_client_reference.py` | con la matriz regenerada (`--out` y `--rows` a `/tmp`), arma la referencia: una fila por función, cada cita con su símbolo, los huecos sin citar, los cortes y las métricas | `build_client_reference.py --research "$RESEARCH" --ref origin/main --matriz /tmp/matriz.tsv --filas /tmp/filas.tsv` |
 | `client_reference_symbols.py` | el símbolo de MuRet (función, tabla o caso de test) de cada línea de un `.cpp`/`.h`, contando llaves; lo usa la referencia | — |
+| `dispatcher_cases.py` | `generate` writes the cases of the dispatcher `0x4e2b10` from the research's jump tables; `check` fails if a level 1 case has no name in the opcode lists, a list names a code twice, or names one the dispatcher lacks without `// client only` (CI runs it and `test_dispatcher_cases.py`) | `dispatcher_cases.py generate --tables "$RESEARCH/client-research/analysis/mainexe/evidence/dispatch-tables.json" --out Client/docs/research/coverage/dispatcher-cases.tsv` |
 
 `$INV` es `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv`.
 

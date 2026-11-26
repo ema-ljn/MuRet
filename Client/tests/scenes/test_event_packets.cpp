@@ -16,6 +16,7 @@
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Events.h"
+#include "Protocol/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
@@ -1245,30 +1246,30 @@ TEST_F(EventPacketsTest, TheEventSoundPlaysItsSound)
 // los diálogos 0 y 0xa6. Las tablas enteras, en test_jewel_mix_answers.
 TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndReturnToTheChoice)
 {
-    Applied(Events::JewelMixResult{.subcode = 0, .result = 0});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::MixSubcode, .result = 0});
     ASSERT_FALSE(Runtime().chat.log.entries.empty());
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "mezclapara permitida% d veces");
     EXPECT_EQ(Runtime().dialogs.current, 0xa2);
-    Applied(Events::JewelMixResult{.subcode = 0, .result = 4});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::MixSubcode, .result = 4});
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "faltan");
     Runtime().npcWindows.jewels.mode = 1;
-    Applied(Events::JewelMixResult{.subcode = 1, .result = 5});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::UnmixSubcode, .result = 5});
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "deshacepara permitida% d veces");
     EXPECT_EQ(Runtime().dialogs.current, 0xa4);
-    Applied(Events::JewelMixResult{.subcode = 1, .result = 7});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::UnmixSubcode, .result = 7});
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "sin lugar");
     EXPECT_TRUE(worldPackets.empty());
 
     Runtime().dialogs = {};
-    Applied(Events::JewelMixResult{.subcode = 1, .result = 1});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::UnmixSubcode, .result = 1});
     EXPECT_EQ(Runtime().dialogs.current, 0xa6);
     // 0x6236f0(0) pasa al que espera y el 0xa6 queda esperando detrás.
     Runtime().dialogs = {.current = 0, .pending = 0x55};
-    Applied(Events::JewelMixResult{.subcode = 0, .result = 1});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::MixSubcode, .result = 1});
     EXPECT_EQ(Runtime().dialogs.current, 0x55);
     EXPECT_EQ(Runtime().dialogs.pending, 0xa6);
     const std::size_t entries = Runtime().chat.log.entries.size();
-    Applied(Events::JewelMixResult{.subcode = 0, .result = 9});
+    Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::MixSubcode, .result = 9});
     EXPECT_EQ(Runtime().chat.log.entries.size(), entries);
 }
 

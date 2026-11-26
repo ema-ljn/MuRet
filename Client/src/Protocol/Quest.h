@@ -13,13 +13,6 @@
 // el largo; acá un paquete corto es TooShort y la sesión lo ignora con un aviso, como los demás.
 namespace Client::Protocol::Quest
 {
-inline constexpr std::uint8_t QuestFlagOpcode = 0x9f;
-inline constexpr std::uint8_t QuestListOpcode = 0xa0;
-inline constexpr std::uint8_t QuestStateOpcode = 0xa1;
-inline constexpr std::uint8_t SetQuestOpcode = 0xa2;
-inline constexpr std::uint8_t QuestResultOpcode = 0xa3;
-inline constexpr std::uint8_t TalkOpcode = 0x30;
-
 // C1 05 9F índice valor (0x4e4b3a → 0x4ddaa0): con índice de 0 a 3, el valor va a +6 + índice de [0x710148].
 struct QuestFlag
 {

@@ -13,9 +13,6 @@
 // mira el largo.
 namespace Client::Protocol::Pet
 {
-inline constexpr std::uint8_t PetOrderOpcode = 0xA7;
-inline constexpr std::uint8_t PetAttackOpcode = 0xA8;
-
 // 0x4e4c0a: C1 07 A7 [?] [orden] [clave H L]. pkt[3] no lo lee.
 struct PetOrder
 {

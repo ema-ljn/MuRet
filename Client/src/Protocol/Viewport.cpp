@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -37,7 +38,7 @@ Key SplitKey(std::uint16_t word)
 
 // Un paquete de `type` y `opcode`: el lector desde el primer byte después del opcode.
 Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet,
-                                                                  Network::PacketType type, std::uint8_t opcode)
+                                                                  Network::PacketType type, Network::Opcode opcode)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -189,7 +190,7 @@ ObjectRecord ReadObjectRecord(std::span<const std::byte> record)
 // Los `count` registros de un C2 con la cuenta en pkt[4], leídos con `read`.
 template <typename Record, typename Reader>
 Core::Expected<std::vector<Record>, Network::ProtocolError>
-ReadRecords(const Network::Packet& packet, std::uint8_t opcode, std::size_t size, std::size_t lastRead, Reader read)
+ReadRecords(const Network::Packet& packet, Network::Opcode opcode, std::size_t size, std::size_t lastRead, Reader read)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C2, opcode);
     if (!fields.HasValue())
@@ -210,7 +211,7 @@ ReadRecords(const Network::Packet& packet, std::uint8_t opcode, std::size_t size
 
 Core::Expected<Players, Network::ProtocolError> ReadPlayers(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C2, PlayersOpcode);
+    auto fields = FieldsOf(packet, Network::PacketType::C2, ViewportPlayersOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     // pkt[4], el primer byte después del opcode (0x4c8870).
@@ -231,7 +232,7 @@ Core::Expected<Players, Network::ProtocolError> ReadPlayers(const Network::Packe
 
 Core::Expected<Leave, Network::ProtocolError> ReadLeave(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, Network::PacketType::C1, LeaveOpcode);
+    auto fields = FieldsOf(packet, Network::PacketType::C1, ViewportLeaveOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -308,7 +309,8 @@ Core::Expected<Monsters, Network::ProtocolError> ReadMonsters(const Network::Pac
 {
     // Hasta +0xc, la dirección (0x4c9d3c).
     constexpr std::size_t LastRead = 0xd;
-    auto records = ReadRecords<MonsterRecord>(packet, MonstersOpcode, MonsterRecordSize, LastRead, ReadMonsterRecord);
+    auto records =
+        ReadRecords<MonsterRecord>(packet, ViewportMonstersOpcode, MonsterRecordSize, LastRead, ReadMonsterRecord);
     if (!records.HasValue())
         return Core::Unexpected(records.Error());
     return Monsters{std::move(records).Value()};
@@ -318,7 +320,8 @@ Core::Expected<Summons, Network::ProtocolError> ReadSummons(const Network::Packe
 {
     // Hasta +0x16, el último byte del dueño.
     constexpr std::size_t LastRead = 0x17;
-    auto records = ReadRecords<SummonRecord>(packet, SummonsOpcode, SummonRecordSize, LastRead, ReadSummonRecord);
+    auto records =
+        ReadRecords<SummonRecord>(packet, ViewportSummonsOpcode, SummonRecordSize, LastRead, ReadSummonRecord);
     if (!records.HasValue())
         return Core::Unexpected(records.Error());
     return Summons{std::move(records).Value()};
@@ -328,7 +331,8 @@ Core::Expected<Objects, Network::ProtocolError> ReadObjects(const Network::Packe
 {
     // Hasta +0x1b, el último byte de los estados.
     constexpr std::size_t LastRead = ObjectRecordSize;
-    auto records = ReadRecords<ObjectRecord>(packet, ObjectsOpcode, ObjectRecordSize, LastRead, ReadObjectRecord);
+    auto records =
+        ReadRecords<ObjectRecord>(packet, ViewportObjectsOpcode, ObjectRecordSize, LastRead, ReadObjectRecord);
     if (!records.HasValue())
         return Core::Unexpected(records.Error());
     return Objects{std::move(records).Value()};

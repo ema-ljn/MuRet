@@ -23,8 +23,6 @@ class Packet;
 // de las mascotas (0x424230), es de la CL8.
 namespace Client::Protocol::Pet
 {
-inline constexpr std::uint8_t PetInfoOpcode = 0xA9;
-
 // La mascota.
 inline constexpr std::uint8_t DarkRavenPet = 0; // el cuervo oscuro, el ítem 13, 5
 inline constexpr std::uint8_t DarkHorsePet = 1; // el caballo oscuro, el ítem 13, 4

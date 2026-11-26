@@ -4,6 +4,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainHeights.h"
 
+#include "Network/Packet.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldMap.h"
 #include "World/KalimaWorld.h"
@@ -107,16 +108,16 @@ TEST_P(GameT16Transitions, EncryptedTeleportEntersAndReturnsOrNamesItsExactBound
     ASSERT_EQ(sent.packets.size(), 1u + requests);
     if (map == 30)
     {
-        EXPECT_EQ(sent.packets[0].Opcode(), 0xb9);
+        EXPECT_EQ(sent.packets[0].Opcode(), Client::Network::Opcode{0xb9});
     }
     if (map == 34)
     {
         ASSERT_EQ(sent.packets[0].Bytes().size(), 4u);
-        EXPECT_EQ(sent.packets[0].Opcode(), 0xbd);
+        EXPECT_EQ(sent.packets[0].Opcode(), Client::Network::Opcode{0xbd});
         EXPECT_EQ(sent.packets[0].Bytes()[3], std::byte{0});
     }
     EXPECT_EQ(sent.packets.back().Bytes().size(), 4u);
-    EXPECT_EQ(sent.packets.back().Opcode(), 0xf3);
+    EXPECT_EQ(sent.packets.back().Opcode(), Client::Network::Opcode{0xf3});
     EXPECT_EQ(sent.packets.back().Bytes()[3], std::byte{0x12});
     EXPECT_EQ(m_world->Runtime().warpCounter, 30);
     EXPECT_EQ(Hero().cellX, Client::Tests::T16::HomeX);
@@ -154,7 +155,7 @@ TEST_P(GameT16Transitions, RegenUsesRealMapDataWithoutSendingTeleportDone)
     ASSERT_EQ(regenSent.packets.size(), map == 30 ? 1u : 0u);
     if (map == 30)
     {
-        EXPECT_EQ(regenSent.packets[0].Opcode(), 0xb9);
+        EXPECT_EQ(regenSent.packets[0].Opcode(), Client::Network::Opcode{0xb9});
     }
     const bool loadBoundary = map == 5 || map == 35;
     ASSERT_NO_FATAL_FAILURE(ExpectDataMessage(map));

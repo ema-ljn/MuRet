@@ -8,6 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -36,7 +37,7 @@ Outgoing WriteCharacterDelete(std::span<const std::byte, NameSize> name,
                               std::span<const std::byte, DeleteCodeSize> code)
 {
     return Xor32C1(
-        Network::PacketWriter::C1(CharacterOpcode).PutU8(DeleteSubcode).PutBytes(NameUpToItsEnd(name)).PutBytes(code));
+        Network::PacketWriter::C1(CharacterOpcode, DeleteSubcode).PutBytes(NameUpToItsEnd(name)).PutBytes(code));
 }
 
 Core::Expected<std::uint8_t, Network::ProtocolError> ReadCharacterDeleteResult(const Network::Packet& packet)

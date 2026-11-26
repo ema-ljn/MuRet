@@ -387,7 +387,7 @@ struct Harness
         for (const Client::Network::Packet& packet :
              Client::Tests::AsTheGameServerReceives(online.socket.sent, serials).packets)
         {
-            if (packet.Opcode() != 0xF3)
+            if (packet.Opcode() != Client::Network::Opcode{0xF3})
             {
                 continue;
             }
@@ -2878,7 +2878,7 @@ std::vector<Client::Network::Packet> LogoutsSent(const Harness& tested)
     for (const Client::Network::Packet& packet :
          Client::Tests::AsTheGameServerReceives(tested.online.socket.sent, serials).packets)
     {
-        if (packet.Opcode() != 0xF1)
+        if (packet.Opcode() != Client::Network::Opcode{0xF1})
         {
             continue;
         }

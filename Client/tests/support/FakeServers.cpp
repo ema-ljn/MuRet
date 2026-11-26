@@ -7,12 +7,11 @@
 #include "Network/PacketSerials.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/BuildConstants.h"
-#include "Protocol/Character/Opcodes.h"
-#include "Protocol/Connection/Opcodes.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/Packets.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -115,15 +114,15 @@ bool IsLoginRequest(const Network::Packet& plain)
     const Network::Packet clear = Network::Xor32Decode(plain);
     const std::span<const std::byte> bytes = clear.Bytes();
     return clear.Type() == Network::PacketType::C1 && bytes.size() == LoginSize &&
-           clear.Opcode() == Protocol::Connection::JoinOpcode &&
-           std::to_integer<std::uint8_t>(bytes[SubcodeIndex]) == Protocol::Connection::LoginSubcode;
+           clear.Opcode() == Protocol::JoinOpcode &&
+           Network::Subcode{std::to_integer<std::uint8_t>(bytes[SubcodeIndex])} == Protocol::Join::LoginSubcode;
 }
 // Si `plain`, sin su XOR32, es un keepalive (0E) de su largo.
 bool IsKeepalive(const Network::Packet& plain)
 {
     const Network::Packet clear = Network::Xor32Decode(plain);
     return clear.Type() == Network::PacketType::C1 && clear.Bytes().size() == KeepaliveSize &&
-           clear.Opcode() == Protocol::Connection::KeepaliveOpcode;
+           clear.Opcode() == Protocol::KeepaliveOpcode;
 }
 } // namespace
 
@@ -380,9 +379,10 @@ void FakeServers::OnCharacterPacket(const Network::Packet& packet)
 {
     Network::Packet clear = Network::Xor32Decode(packet);
     const std::span<const std::byte> bytes = clear.Bytes();
-    const bool isCharacter = clear.Type() == Network::PacketType::C1 &&
-                             clear.Opcode() == Protocol::Character::CharacterOpcode && bytes.size() > SubcodeIndex;
-    const auto subcode = isCharacter ? std::to_integer<std::uint8_t>(bytes[SubcodeIndex]) : std::uint8_t{0xFF};
+    const bool isCharacter = clear.Type() == Network::PacketType::C1 && clear.Opcode() == Protocol::CharacterOpcode &&
+                             bytes.size() > SubcodeIndex;
+    const Network::Subcode subcode{isCharacter ? std::to_integer<std::uint8_t>(bytes[SubcodeIndex])
+                                               : std::uint8_t{0xFF}};
     if (subcode == Protocol::Character::ListSubcode && bytes.size() == 4 && !m_characterListSent)
     {
         m_characterListSent = true;

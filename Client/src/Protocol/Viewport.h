@@ -17,12 +17,6 @@
 // del 1.02 (*estático*); el GS 0.97 arma otros (08, P-C160).
 namespace Client::Protocol::Viewport
 {
-inline constexpr std::uint8_t PlayersOpcode = 0x12;
-inline constexpr std::uint8_t LeaveOpcode = 0x14;
-inline constexpr std::uint8_t EquipmentShownOpcode = 0x25;
-inline constexpr std::uint8_t TransformedOpcode = 0x45;
-inline constexpr std::uint8_t PositionOpcode = 0xdf;
-
 // 0x4c926c y 0x4c9773: lo que avanza cada registro del 0x12 y del 0x45.
 inline constexpr std::size_t PlayerRecordSize = 0x2c;
 inline constexpr std::size_t TransformedRecordSize = 0x1c;
@@ -117,9 +111,6 @@ struct Position
 // un campo que el original lee (del último registro, hasta su último byte leído). Los bytes de más se ignoran.
 // Los monstruos y los NPC que entran (CL9 hito 2): el 0x13 (0x4c9c60), el 0x1F (0x4ca0b0) y el 0x68 (0x4e0980), los
 // tres C2 con la cuenta en pkt[4] y los registros desde pkt[5] (04, "Los monstruos y los NPC que entran").
-inline constexpr std::uint8_t MonstersOpcode = 0x13;
-inline constexpr std::uint8_t SummonsOpcode = 0x1f;
-inline constexpr std::uint8_t ObjectsOpcode = 0x68;
 inline constexpr std::size_t MonsterRecordSize = 0x10;
 inline constexpr std::size_t SummonRecordSize = 0x18;
 inline constexpr std::size_t ObjectRecordSize = 0x1c;
@@ -196,8 +187,6 @@ struct Objects
 // La skill que pega a varios (CL9 hito 2): el C1 0x1A (0x4cedd0, PMSG_MAGICATTACK_COUNT_SEND). La clave del que pega en
 // pkt[3..4] (el alto primero, entera), la skill en pkt[5], la celda en pkt[6] y pkt[7] (que 0x4cedd0 no lee), la cuenta
 // en pkt[8] y las claves de los blancos desde pkt[9], de a dos bytes con el alto primero (0x4ceff6..0x4cf009).
-inline constexpr std::uint8_t MagicAttackCountOpcode = 0x1a;
-
 struct MagicAttackCount
 {
     std::uint16_t key = 0;

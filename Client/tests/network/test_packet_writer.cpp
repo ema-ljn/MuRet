@@ -29,7 +29,8 @@ using Client::Tests::SameBytes;
 // The header, opcode 0x42 and the rest 0x11.
 PacketWriter OfSize(PacketType type, std::size_t size)
 {
-    PacketWriter writer = type == PacketType::C1 ? PacketWriter::C1(0x42) : PacketWriter::C2(0x42);
+    PacketWriter writer = type == PacketType::C1 ? PacketWriter::C1(Client::Network::Opcode{0x42})
+                                                 : PacketWriter::C2(Client::Network::Opcode{0x42});
     const std::vector<std::byte> rest(size - MinPacketSize(type), std::byte{0x11});
     writer.PutBytes(rest);
     return writer;
@@ -38,18 +39,18 @@ PacketWriter OfSize(PacketType type, std::size_t size)
 // 04's `F3 00`, shown there with its XOR32 (`C1 04 F3 7A`), before the XOR32.
 TEST(PacketWriterTest, BuildsAC1WithItsSize)
 {
-    const auto packet = PacketWriter::C1(0xF3).PutU8(0x00).Finish();
+    const auto packet = PacketWriter::C1(Client::Network::Opcode{0xF3}).PutU8(0x00).Finish();
 
     ASSERT_TRUE(packet.HasValue());
     EXPECT_EQ(packet.Value().Type(), PacketType::C1);
-    EXPECT_EQ(packet.Value().Opcode(), std::uint8_t{0xF3});
+    EXPECT_EQ(packet.Value().Opcode(), Client::Network::Opcode{0xF3});
     EXPECT_TRUE(SameBytes(packet.Value().Bytes(), Bytes({0xC1, 0x04, 0xF3, 0x00})));
 }
 
 // The bytes of the CL2.0 guide's example, before the XOR32.
 TEST(PacketWriterTest, BuildsAC2WithItsSizeBigEndian)
 {
-    const auto packet = PacketWriter::C2(0x42).PutU8(0x0B).PutU8(0x30).Finish();
+    const auto packet = PacketWriter::C2(Client::Network::Opcode{0x42}).PutU8(0x0B).PutU8(0x30).Finish();
 
     ASSERT_TRUE(packet.HasValue());
     EXPECT_EQ(packet.Value().Type(), PacketType::C2);
@@ -60,8 +61,12 @@ TEST(PacketWriterTest, PutsEachFieldInOrder)
 {
     const std::vector<std::byte> tail = Bytes({0xAA, 0xBB});
 
-    const auto packet =
-        PacketWriter::C1(0x10).PutU16Le(0x1234).PutU16Be(0x1234).PutU32Le(0x11223344).PutBytes(tail).Finish();
+    const auto packet = PacketWriter::C1(Client::Network::Opcode{0x10})
+                            .PutU16Le(0x1234)
+                            .PutU16Be(0x1234)
+                            .PutU32Le(0x11223344)
+                            .PutBytes(tail)
+                            .Finish();
 
     ASSERT_TRUE(packet.HasValue());
     EXPECT_TRUE(SameBytes(packet.Value().Bytes(),
@@ -107,7 +112,7 @@ TEST(PacketWriterTest, RejectsWhatDoesNotFitInsteadOfTruncatingIt)
 
 TEST(PacketWriterTest, FinishLeavesTheWriterAsItWas)
 {
-    PacketWriter writer = PacketWriter::C1(0x20);
+    PacketWriter writer = PacketWriter::C1(Client::Network::Opcode{0x20});
     writer.PutU8(0xAA);
 
     const auto first = writer.Finish();
@@ -122,8 +127,8 @@ TEST(PacketWriterTest, FinishLeavesTheWriterAsItWas)
 
 TEST(PacketWriterTest, APacketWithoutFieldsIsHeaderAndOpcode)
 {
-    const auto c1 = PacketWriter::C1(0x0E).Finish();
-    const auto c2 = PacketWriter::C2(0x0E).Finish();
+    const auto c1 = PacketWriter::C1(Client::Network::Opcode{0x0E}).Finish();
+    const auto c2 = PacketWriter::C2(Client::Network::Opcode{0x0E}).Finish();
 
     ASSERT_TRUE(c1.HasValue() && c2.HasValue());
     EXPECT_TRUE(SameBytes(c1.Value().Bytes(), Bytes({0xC1, 0x03, 0x0E})));
@@ -132,18 +137,24 @@ TEST(PacketWriterTest, APacketWithoutFieldsIsHeaderAndOpcode)
 
 // On a temporary, Put returns another writer, so a reference to the temporary does not compile.
 static_assert(std::is_same_v<decltype(std::declval<PacketWriter&>().PutU8(0)), PacketWriter&>);
-static_assert(std::is_same_v<decltype(PacketWriter::C1(0).PutU8(0)), PacketWriter>);
-static_assert(std::is_same_v<decltype(PacketWriter::C1(0).PutU8(0).PutU16Le(0).PutU16Be(0).PutU32Le(0)), PacketWriter>);
+static_assert(std::is_same_v<decltype(PacketWriter::C1(Client::Network::Opcode{0}).PutU8(0)), PacketWriter>);
+static_assert(
+    std::is_same_v<decltype(PacketWriter::C1(Client::Network::Opcode{0}).PutU8(0).PutU16Le(0).PutU16Be(0).PutU32Le(0)),
+                   PacketWriter>);
 
 TEST(PacketWriterTest, ChainingOnATemporaryGivesTheSamePacket)
 {
     const std::vector<std::byte> tail = Bytes({0xAA, 0xBB});
-    PacketWriter named = PacketWriter::C1(0x10);
+    PacketWriter named = PacketWriter::C1(Client::Network::Opcode{0x10});
     named.PutU16Le(0x1234).PutU16Be(0x1234).PutU32Le(0x11223344).PutBytes(tail);
 
     const auto fromNamed = named.Finish();
-    const auto fromTemporary =
-        PacketWriter::C1(0x10).PutU16Le(0x1234).PutU16Be(0x1234).PutU32Le(0x11223344).PutBytes(tail).Finish();
+    const auto fromTemporary = PacketWriter::C1(Client::Network::Opcode{0x10})
+                                   .PutU16Le(0x1234)
+                                   .PutU16Be(0x1234)
+                                   .PutU32Le(0x11223344)
+                                   .PutBytes(tail)
+                                   .Finish();
 
     ASSERT_TRUE(fromNamed.HasValue() && fromTemporary.HasValue());
     EXPECT_TRUE(SameBytes(fromTemporary.Value().Bytes(), fromNamed.Value().Bytes()));
@@ -152,7 +163,7 @@ TEST(PacketWriterTest, ChainingOnATemporaryGivesTheSamePacket)
 // A C1 cannot end as another type, even if the fields added later start with C3.
 TEST(PacketWriterTest, AMovedFromWriterStillBuildsItsType)
 {
-    PacketWriter original = PacketWriter::C1(0x10);
+    PacketWriter original = PacketWriter::C1(Client::Network::Opcode{0x10});
     original.PutU8(0xAA);
     const PacketWriter moved = std::move(original);
     original.PutU8(0xC3).PutU8(0x00);
@@ -163,6 +174,6 @@ TEST(PacketWriterTest, AMovedFromWriterStillBuildsItsType)
     ASSERT_TRUE(fromMoved.HasValue() && fromOriginal.HasValue());
     EXPECT_TRUE(SameBytes(fromMoved.Value().Bytes(), Bytes({0xC1, 0x04, 0x10, 0xAA})));
     EXPECT_EQ(fromOriginal.Value().Type(), PacketType::C1);
-    EXPECT_EQ(fromOriginal.Value().Opcode(), std::uint8_t{0x10});
+    EXPECT_EQ(fromOriginal.Value().Opcode(), Client::Network::Opcode{0x10});
 }
 } // namespace

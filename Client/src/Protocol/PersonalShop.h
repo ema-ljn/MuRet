@@ -20,23 +20,6 @@
 // 4, los de las listas de ítems (1, 5, 6 y 0x13).
 namespace Client::Protocol::PersonalShop
 {
-inline constexpr std::uint8_t Opcode = 0x3f;
-inline constexpr std::uint8_t TitlesSubcode = 0x00;
-inline constexpr std::uint8_t CreatedSubcode = 0x02;
-inline constexpr std::uint8_t ClosedSubcode = 0x03;
-inline constexpr std::uint8_t NoticeSubcode = 0x08;
-inline constexpr std::uint8_t TitleSubcode = 0x10;
-inline constexpr std::uint8_t OwnerLeftSubcode = 0x12;
-// El que manda el comando 2 de la ventana de comandos (0x406b81).
-inline constexpr std::uint8_t ItemsRequestSubcode = 0x05;
-// Las listas de ítems (fase 4): el precio que no se puso (0x4db120), la lista de otro (0x4db890), la compra
-// (0x4dbcb0) y la lista que se renueva (0x4dbb40).
-inline constexpr std::uint8_t PriceResultSubcode = 0x01;
-inline constexpr std::uint8_t ItemListSubcode = 0x05;
-inline constexpr std::uint8_t PurchaseSubcode = 0x06;
-inline constexpr std::uint8_t RefreshSubcode = 0x13;
-// El que manda 0x5eb020 al cerrar la tienda de otro (0x5eb17f).
-inline constexpr std::uint8_t ViewClosedSubcode = 0x07;
 // 0x4db890 y 0x4dbb40: el resultado que trae la lista.
 inline constexpr std::uint8_t ListedResult = 1;
 
@@ -162,10 +145,6 @@ struct ShopPurchase
 // Los que manda la ventana de la tienda propia (fase 5): abrirla con el título (0x5ea290 y la caja 0x9c, 0x623750),
 // cerrarla (0x5ea290, 0x5cc2cf, 0x5d5046 y 0x5da5ac), el precio de un lugar (0x5d8d50) y la compra en la de otro
 // (0x5d9c9e).
-inline constexpr std::uint8_t SetPriceSubcode = 0x01;
-inline constexpr std::uint8_t OpenShopSubcode = 0x02;
-inline constexpr std::uint8_t CloseShopSubcode = 0x03;
-inline constexpr std::uint8_t BuySubcode = 0x06;
 
 // El 3F 01 (0x5dab08.. y 0x5dc05f..): C1 09 3F 01, el lugar ([0x78a6758], el byte bajo) y el precio (0x77f3b6c, un
 // DWORD LE), con el XOR32 y en C3.

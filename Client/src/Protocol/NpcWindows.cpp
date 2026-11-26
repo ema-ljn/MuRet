@@ -4,10 +4,9 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
-#include "Protocol/World.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -24,10 +23,10 @@ constexpr std::size_t FirstField = 3;
 // 0x4c5f60: la grilla en pkt[4], la cuenta en pkt[5] y las entradas de 8 bytes (el lugar y el ítem) desde pkt[6].
 constexpr std::size_t ListGridField = 4;
 // 0x4d1e30..0x4d24fb: el byte que cierra el aviso, el opcode que no llegó cifrado.
-constexpr std::uint8_t ClearTalkHead = TalkOpcode;
+constexpr std::uint8_t ClearTalkHead = Network::ByteOf(TalkOpcode);
 
 // Un paquete de `opcode`, sin mirar si es C1 o C2: el lector desde `field`.
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode,
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode,
                                                                   std::size_t field = FirstField)
 {
     if (packet.Opcode() != opcode)
@@ -49,7 +48,7 @@ std::optional<ItemData> ReadItem(Core::ByteReader& reader)
 }
 
 // Un C1 de `opcode` sin campos, en claro.
-Outgoing EmptyClearC1(std::uint8_t opcode)
+Outgoing EmptyClearC1(Network::Opcode opcode)
 {
     return ClearC1(Network::PacketWriter::C1(opcode));
 }
@@ -81,15 +80,12 @@ Core::Expected<TalkResult, Network::ProtocolError> ReadTalkResult(const Network:
 
 Outgoing WriteClearTalkReport()
 {
-    return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)
-                           .PutU8(Connection::DecryptErrorSubcode)
-                           .PutU8(0)
-                           .PutU8(ClearTalkHead));
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode).PutU8(0).PutU8(ClearTalkHead));
 }
 
 Core::Expected<ItemList, Network::ProtocolError> ReadItemList(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ItemListOpcode, ListGridField);
+    auto fields = FieldsOf(packet, NpcItemListOpcode, ListGridField);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -258,6 +254,6 @@ Outgoing WriteChaosBoxClose()
 
 Outgoing WriteChaosRateRequest()
 {
-    return Xor32C1(Network::PacketWriter::C1(World::CrywolfOpcode).PutU8(ChaosRateSubcode));
+    return Xor32C1(Network::PacketWriter::C1(CrywolfOpcode, Crywolf::ChaosBoxSubcode));
 }
 } // namespace Client::Protocol::NpcWindows

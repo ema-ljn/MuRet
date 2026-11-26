@@ -16,11 +16,6 @@
 // 0.97 no tiene amigos: el oráculo es el ASM del cliente (*estático*).
 namespace Client::Protocol::Friends
 {
-inline constexpr std::uint8_t FriendListOpcode = 0xc0;
-inline constexpr std::uint8_t FriendAddOpcode = 0xc1;
-inline constexpr std::uint8_t FriendRequestOpcode = 0xc2;
-inline constexpr std::uint8_t FriendDeleteOpcode = 0xc3;
-inline constexpr std::uint8_t FriendStateOpcode = 0xc4;
 // Los nombres van en 10 bytes; el cliente los copia con strncpy a un buffer de 11 en cero.
 inline constexpr std::size_t FriendNameSize = 10;
 // C0: cada amigo, el nombre y el estado.

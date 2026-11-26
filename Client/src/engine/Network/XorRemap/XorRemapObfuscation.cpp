@@ -101,21 +101,21 @@ bool IsLabServerList(const XorRemapTables& tables, const Packet& packet)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     return packet.Type() == PacketType::C2 && packet.Opcode() == tables.serverOpcode && bytes.size() > ListSubIndex &&
-           U8At(bytes, ListSubIndex) == tables.labServerListSub;
+           Subcode{U8At(bytes, ListSubIndex)} == tables.labServerListSub;
 }
 
 bool IsSkillList(const XorRemapTables& tables, const Packet& packet)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     return packet.Type() == PacketType::C1 && packet.Opcode() == tables.characterOpcode &&
-           bytes.size() > SubcodeIndex && U8At(bytes, SubcodeIndex) == tables.skillListSub;
+           bytes.size() > SubcodeIndex && Subcode{U8At(bytes, SubcodeIndex)} == tables.skillListSub;
 }
 
 bool IsServerSelect(const XorRemapTables& tables, const Packet& packet)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     return packet.Type() == PacketType::C1 && bytes.size() == ServerSelectSize &&
-           packet.Opcode() == tables.serverOpcode && U8At(bytes, SubcodeIndex) == tables.serverSelectSub;
+           packet.Opcode() == tables.serverOpcode && Subcode{U8At(bytes, SubcodeIndex)} == tables.serverSelectSub;
 }
 
 // parse_f4_02: the whole list again, one byte longer. What follows the entries stays 0, like the original's calloc. A
@@ -140,8 +140,8 @@ Core::Expected<Packet, ObfuscationError> TranslateServerList(const XorRemapTable
     list[0] = static_cast<std::byte>(PacketType::C2);
     list[1] = static_cast<std::byte>(size >> 8);
     list[2] = static_cast<std::byte>(size & 0xFF);
-    list[3] = static_cast<std::byte>(tables.serverOpcode);
-    list[ListSubIndex] = static_cast<std::byte>(tables.serverListSub);
+    list[3] = std::byte{ByteOf(tables.serverOpcode)};
+    list[ListSubIndex] = std::byte{ByteOf(tables.serverListSub)};
     list[ListCountIndex] = static_cast<std::byte>(count);
     for (std::size_t entry = 0; entry < std::size_t{count}; ++entry)
     {

@@ -8,6 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -28,7 +29,7 @@ constexpr std::size_t ReadHeaderSize = 0x1c;
 constexpr std::size_t DeleteResultSize = 6;
 
 Core::Expected<std::span<const std::byte>, Network::ProtocolError>
-BytesOf(const Network::Packet& packet, Network::PacketType type, std::uint8_t opcode, std::size_t size)
+BytesOf(const Network::Packet& packet, Network::PacketType type, Network::Opcode opcode, std::size_t size)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);

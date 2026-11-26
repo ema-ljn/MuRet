@@ -41,6 +41,7 @@
 #include "World/WorldTerrain.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainHeight.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <bit>
@@ -1097,7 +1098,7 @@ private:
 
     Applied On(const Events::JewelMixResult& packet)
     {
-        if (packet.subcode == Events::JewelMixSubcode)
+        if (packet.subcode == Protocol::JewelMix::MixSubcode)
         {
             switch (packet.result)
             {

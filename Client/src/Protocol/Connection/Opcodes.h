@@ -1,37 +1,17 @@
 #pragma once
 
-#include <cstdint>
+#include "Network/Packet.h"
 
-// Los opcodes y subcódigos de la conexión, del ConnectServer al login en el GameServer.
-// Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión". El subcódigo va justo
-// después del opcode: pkt[3] en un C1 y pkt[4] en un C2.
+// The ConnectServer's head codes and the subcodes of its list (04-protocolo.md, "El flujo de conexión"). The
+// GameServer's are in Protocol/Opcodes.h. dispatcher_cases.py checks both.
 namespace Client::Protocol::Connection
 {
-// 00: el saludo del ConnectServer, C1 04 00 01, con un handler para el opcode entero. En el
-// GameServer el mismo opcode es el chat: el original los separa por la escena (0x4e33e4), y MuRet
-// con un Dispatcher por servidor (CL4.3).
-inline constexpr std::uint8_t ConnectHelloOpcode = 0x00;
-
-// F4: la lista de servidores, con el ConnectServer.
-inline constexpr std::uint8_t ServerListOpcode = 0xF4;
-inline constexpr std::uint8_t ServerListRequestSubcode = 0x02; // pedir la lista
-inline constexpr std::uint8_t ServerSelectSubcode = 0x03;      // elegir uno, y la respuesta
-inline constexpr std::uint8_t ServerBusySubcode = 0x05;        // la respuesta si está ocupado
-inline constexpr std::uint8_t ServerListSubcode = 0x06;        // la lista, como la deja FoxAnti
-
-// F1: la entrada al GameServer.
-inline constexpr std::uint8_t JoinOpcode = 0xF1;
-inline constexpr std::uint8_t HelloSubcode = 0x00;        // el saludo del GameServer
-inline constexpr std::uint8_t LoginSubcode = 0x01;        // el login y su respuesta
-inline constexpr std::uint8_t LogoutSubcode = 0x02;       // la salida: el pedido del cliente y la respuesta
-inline constexpr std::uint8_t DecryptErrorSubcode = 0x03; // el aviso de un C3/C4 que no se descifró
-
-// 03: la suma del ejecutable, sin subcódigo. El GS manda la clave y el cliente la suma (MainCheck.h).
-inline constexpr std::uint8_t MainCheckOpcode = 0x03;
-
-// 0E: el keepalive, sin subcódigo.
-inline constexpr std::uint8_t KeepaliveOpcode = 0x0E;
-
-// 31: el C1 03 31 de 0x419900 y 0x4499b0, sin subcódigo. El nombre es inferido (Logout.h).
-inline constexpr std::uint8_t WindowCloseOpcode = 0x31;
+// The GameServer's 00 is the chat: the original tells them apart by the scene (0x4e33e4), MuRet by a Dispatcher per
+// server (CL4.3).
+inline constexpr Network::Opcode ConnectHelloOpcode{0x00};
+inline constexpr Network::Opcode ServerListOpcode{0xf4};
+inline constexpr Network::Subcode ServerListRequestSubcode{0x02};
+inline constexpr Network::Subcode ServerSelectSubcode{0x03};
+inline constexpr Network::Subcode ServerBusySubcode{0x05};
+inline constexpr Network::Subcode ServerListSubcode{0x06}; // as FoxAnti leaves it
 } // namespace Client::Protocol::Connection

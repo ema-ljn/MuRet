@@ -999,7 +999,7 @@ TEST_F(ConnectionTest, MixedOriginsSurviveEverySplitAndReachTheHandler)
         std::vector<bool> handledOrigins;
         Client::Protocol::Dispatcher dispatcher(m_log);
         // Sólo transporte hasta un handler de la firma existente; no aplica política F3/03.
-        ASSERT_TRUE(dispatcher.On(0xF3, 0x03,
+        ASSERT_TRUE(dispatcher.On(Client::Network::Opcode{0xF3}, Client::Network::Subcode{0x03},
                                   [&](const Packet& packet)
                                   {
                                       handledBytes.emplace_back(packet.Bytes().begin(), packet.Bytes().end());

@@ -10,7 +10,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <initializer_list>
 #include <optional>
 #include <utility>
@@ -150,8 +149,8 @@ TEST(PacketTest, OpcodeOnlyInC1AndC2)
     const auto c4 = Packet::FromBytes(Bytes({0xC4, 0x00, 0x05, 0x52, 0xAA}));
     ASSERT_TRUE(c1.HasValue() && c2.HasValue() && c3.HasValue() && c4.HasValue());
 
-    EXPECT_EQ(c1.Value().Opcode(), std::uint8_t{0x20});
-    EXPECT_EQ(c2.Value().Opcode(), std::uint8_t{0x52});
+    EXPECT_EQ(c1.Value().Opcode(), Client::Network::Opcode{0x20});
+    EXPECT_EQ(c2.Value().Opcode(), Client::Network::Opcode{0x52});
     EXPECT_EQ(c3.Value().Opcode(), std::nullopt);
     EXPECT_EQ(c4.Value().Opcode(), std::nullopt);
 }
@@ -217,7 +216,8 @@ TEST(PacketTest, RawBytesAndReaderDoNotClaimDecryption)
 
 TEST(PacketTest, WriterDoesNotClaimDecryption)
 {
-    for (const auto& writer : {Client::Network::PacketWriter::C1(0x20), Client::Network::PacketWriter::C2(0x20)})
+    for (const auto& writer : {Client::Network::PacketWriter::C1(Client::Network::Opcode{0x20}),
+                               Client::Network::PacketWriter::C2(Client::Network::Opcode{0x20})})
     {
         const auto packet = writer.Finish();
         ASSERT_TRUE(packet.HasValue());

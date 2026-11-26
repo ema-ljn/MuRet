@@ -8,6 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -49,7 +50,7 @@ CharacterEntry ReadEntry(std::span<const std::byte, EntrySize> bytes)
 
 Outgoing WriteCharacterListRequest()
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode).PutU8(ListSubcode));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, ListSubcode));
 }
 
 Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Network::Packet& packet)

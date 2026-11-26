@@ -368,6 +368,7 @@ Protocol/Movement.cpp	163	Protocol	game/Protocol	high	engine or protocol layer, 
 Protocol/Movement.h	93	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/NpcWindows.cpp	263	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/NpcWindows.h	186	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/Opcodes.h	266	Protocol	game/Protocol	high	the GameServer's head codes and subcodes, one list
 Protocol/OptionData.cpp	57	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/OptionData.h	45	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Outgoing.cpp	23	Protocol	game/Protocol	high	engine or protocol layer, no game state

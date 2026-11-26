@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Protocol/Opcodes.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -23,38 +24,13 @@
 // bytes sobrantes se ignoran. Los B2 de la batalla (0x11..0x19, 0x1D, 0x1E y 0x20) son del hito 13: no se leen.
 namespace Client::Protocol::CastleSiege
 {
-inline constexpr std::uint8_t CastleOpcode = 0xb2;
-inline constexpr std::uint8_t NpcListOpcode = 0xb3;
-inline constexpr std::uint8_t SiegeGuildListOpcode = 0xb4;
-inline constexpr std::uint8_t RegisteredGuildListOpcode = 0xb5;
-inline constexpr std::uint8_t MinimapOpcode = 0xb6;
-inline constexpr std::uint8_t KillCountOpcode = 0xb8;
-// 0x4e5894: el dispatcher solo llama a 0x4e0700 con el subcódigo en 1.
-inline constexpr std::uint8_t KillCountSubcode = 0x01;
-// El B9 que manda el guardia de la zona de caza (0x648a30). El B9 que llega es de la batalla (hito 13).
-inline constexpr std::uint8_t HuntZoneOpcode = 0xb9;
-inline constexpr std::uint8_t HuntZoneEntrySubcode = 0x05;
-
-// Los subcódigos del B2 que lee el hito 12, los mismos en los dos sentidos.
-inline constexpr std::uint8_t StateSubcode = 0x00;        // 0x4e50bd
-inline constexpr std::uint8_t RegisterSubcode = 0x01;     // 0x4df080
-inline constexpr std::uint8_t GiveUpSubcode = 0x02;       // 0x4df1a0
-inline constexpr std::uint8_t RegistrationSubcode = 0x03; // 0x4e5186
-inline constexpr std::uint8_t RegisterMarkSubcode = 0x04; // 0x4e51fa
-inline constexpr std::uint8_t NpcBuySubcode = 0x05;       // 0x4df7d0
-inline constexpr std::uint8_t NpcRepairSubcode = 0x06;    // 0x4e52b7
-inline constexpr std::uint8_t NpcUpgradeSubcode = 0x07;   // 0x4df950
-inline constexpr std::uint8_t TaxInfoSubcode = 0x08;      // 0x4e537b
-inline constexpr std::uint8_t TaxRateSubcode = 0x09;      // 0x4e53e7
-inline constexpr std::uint8_t MoneyOutSubcode = 0x10;     // 0x4e548a
-inline constexpr std::uint8_t SiegeFlagsSubcode = 0x1a;   // 0x4e54f6
-inline constexpr std::uint8_t HuntZoneGateSubcode = 0x1f; // 0x4e5532
 // Los que registra la sesión. Los demás casos de 0x4e6140 (0x11..0x19, 0x1D, 0x1E y 0x20) son de la batalla (hito
 // 13) y 0x0A..0x0F, 0x1B y 0x1C caen al default (0x4e5b4a): siguen llegando como Unknown.
-inline constexpr std::array<std::uint8_t, 13> WindowSubcodes{
-    StateSubcode,    RegisterSubcode,   GiveUpSubcode,      RegistrationSubcode, RegisterMarkSubcode,
-    NpcBuySubcode,   NpcRepairSubcode,  NpcUpgradeSubcode,  TaxInfoSubcode,      TaxRateSubcode,
-    MoneyOutSubcode, SiegeFlagsSubcode, HuntZoneGateSubcode};
+inline constexpr std::array<Network::Subcode, 13> WindowSubcodes{
+    Castle::StateSubcode,        Castle::RegisterSubcode, Castle::GiveUpSubcode,    Castle::RegistrationSubcode,
+    Castle::RegisterMarkSubcode, Castle::NpcBuySubcode,   Castle::NpcRepairSubcode, Castle::NpcUpgradeSubcode,
+    Castle::TaxInfoSubcode,      Castle::TaxRateSubcode,  Castle::MoneyOutSubcode,  Castle::SiegeFlagsSubcode,
+    Castle::HuntZoneGateSubcode};
 
 // Los nombres como los copian 0x64b0f0, 0x46f7e0 y 0x470bb0 (strncpy de 8 y de 10, sin terminador en el paquete). Son
 // los mismos tipos que Protocol::Guild del hito 8 (GuildName, CharacterName): se unifican al juntar la cadena.

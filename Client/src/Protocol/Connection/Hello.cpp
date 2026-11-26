@@ -4,11 +4,10 @@
 #include "Network/Field.h"
 #include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketCode.h"
 #include "Network/PacketLayout.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/BuildConstants.h"
-#include "Protocol/Connection/Opcodes.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -25,9 +24,7 @@ using HelloPlayerIndex = Network::Field<std::uint16_t, 5, std::endian::big>;
 using HelloVersion = Network::Field<std::array<std::byte, VersionSize>, 7>;
 
 constexpr Network::PacketLayout HelloLayout{
-    {Network::PacketType::C1, Network::Opcode{JoinOpcode}, Network::Subcode{HelloSubcode}},
-    HelloVersion::End,
-    0x4c1e20};
+    {Network::PacketType::C1, JoinOpcode, Join::HelloSubcode}, HelloVersion::End, 0x4c1e20};
 
 ServerHello ReadHello(Network::LayoutReader& reader)
 {

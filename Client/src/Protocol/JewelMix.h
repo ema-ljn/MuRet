@@ -11,10 +11,6 @@
 // también de la respuesta (0x4e4547), que llega como Protocol::Events::JewelMixResult.
 namespace Client::Protocol::JewelMix
 {
-inline constexpr std::uint8_t JewelMixOpcode = 0xbc;
-inline constexpr std::uint8_t MixSubcode = 0x00;
-inline constexpr std::uint8_t UnmixSubcode = 0x01;
-
 // 0x402500: C1 06 BC 00 con la joya (0x6c62e0) y el paquete (0x6c62e1 / 10 − 1: 0, 1 o 2 para 10, 20 o 30).
 [[nodiscard]] Outgoing WriteJewelMix(std::uint8_t kind, std::uint8_t bundle);
 

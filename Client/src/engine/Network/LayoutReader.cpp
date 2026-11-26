@@ -25,7 +25,7 @@ ProtocolResult<LayoutReader> LayoutReader::Open(const Packet& packet, const Pack
 {
     const PacketCode& code = layout.code;
     // Opcode() is std::nullopt in a C3/C4, which carries it encrypted: also another packet.
-    if (packet.Type() != code.type || packet.Opcode() != static_cast<std::uint8_t>(code.opcode))
+    if (packet.Type() != code.type || packet.Opcode() != code.opcode)
     {
         return Core::Unexpected(ProtocolError::WrongPacket);
     }
@@ -37,7 +37,7 @@ ProtocolResult<LayoutReader> LayoutReader::Open(const Packet& packet, const Pack
         {
             return Core::Unexpected(ProtocolError::TooShort);
         }
-        if (std::to_integer<std::uint8_t>(bytes[subcodeAt]) != static_cast<std::uint8_t>(*code.subcode))
+        if (std::to_integer<std::uint8_t>(bytes[subcodeAt]) != ByteOf(*code.subcode))
         {
             return Core::Unexpected(ProtocolError::WrongPacket);
         }

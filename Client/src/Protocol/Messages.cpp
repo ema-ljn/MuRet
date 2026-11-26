@@ -4,10 +4,10 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <span>
 #include <string>
 
@@ -16,7 +16,7 @@ namespace Client::Protocol::Messages
 namespace
 {
 // El C1 del opcode, con el lector parado en pkt[3].
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -38,7 +38,7 @@ std::string RawText(Core::ByteReader& reader, std::size_t limit)
 }
 
 template <typename Spoken>
-Core::Expected<Spoken, Network::ProtocolError> ReadSpoken(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Spoken, Network::ProtocolError> ReadSpoken(const Network::Packet& packet, Network::Opcode opcode)
 {
     auto fields = FieldsOf(packet, opcode);
     if (!fields.HasValue())

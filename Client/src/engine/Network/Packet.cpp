@@ -156,12 +156,12 @@ std::vector<std::byte> Packet::TakeBytes() &&
     return std::exchange(m_bytes, {});
 }
 
-std::optional<std::uint8_t> Packet::Opcode() const
+std::optional<Network::Opcode> Packet::Opcode() const
 {
     if (m_type == PacketType::C3 || m_type == PacketType::C4 || m_bytes.size() < MinPacketSize(m_type))
     {
         return std::nullopt;
     }
-    return std::to_integer<std::uint8_t>(m_bytes[HeaderSize(m_type)]);
+    return Network::Opcode{std::to_integer<std::uint8_t>(m_bytes[HeaderSize(m_type)])};
 }
 } // namespace Client::Network

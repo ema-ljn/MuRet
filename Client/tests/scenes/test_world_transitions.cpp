@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Network/Packet.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -486,7 +487,7 @@ TEST_F(WorldTransitionsMapsTest, AGameServerBatchAppliesTheLoadedMapBeforeTheFol
     Client::Network::PacketSerials receivedSerials;
     const auto received = Client::Tests::AsTheGameServerReceives(online.socket.sent, receivedSerials);
     ASSERT_EQ(received.packets.size(), 1u);
-    EXPECT_EQ(received.packets[0].Opcode(), 0xf3);
+    EXPECT_EQ(received.packets[0].Opcode(), Client::Network::Opcode{0xf3});
     online.socket.sent.clear();
     online.socket.reads = {
         Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x1c, 25, 0, 133, 127, 4}), serials)};
@@ -497,7 +498,7 @@ TEST_F(WorldTransitionsMapsTest, AGameServerBatchAppliesTheLoadedMapBeforeTheFol
     EXPECT_EQ(tested.Hero().position.x, 13350.0f);
     const auto confirmedBack = Client::Tests::AsTheGameServerReceives(online.socket.sent, receivedSerials);
     ASSERT_EQ(confirmedBack.packets.size(), 1u);
-    EXPECT_EQ(confirmedBack.packets[0].Opcode(), 0xf3);
+    EXPECT_EQ(confirmedBack.packets[0].Opcode(), Client::Network::Opcode{0xf3});
 }
 TEST_F(WorldTransitionsMapsTest, AGameServerCanReturnToSelectionAndEnterAgain)
 {

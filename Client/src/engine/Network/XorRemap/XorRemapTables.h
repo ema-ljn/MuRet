@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Network/Packet.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -26,12 +28,12 @@ struct XorRemapTables
     std::byte inboundXor;
     std::array<OpcodeRemap, 3> encryptedRemaps;
     std::array<OpcodeRemap, 2> clearRemaps;
-    std::uint8_t serverOpcode;
-    std::uint8_t labServerListSub;
-    std::uint8_t serverListSub;
-    std::uint8_t serverSelectSub;
-    std::uint8_t characterOpcode;
-    std::uint8_t skillListSub;
+    Opcode serverOpcode;
+    Subcode labServerListSub;
+    Subcode serverListSub;
+    Subcode serverSelectSub;
+    Opcode characterOpcode;
+    Subcode skillListSub;
     std::uint32_t codeGroupSize;
     std::array<std::uint16_t, 9> listCodeDeltas;
     std::uint16_t ladderStepCodes;

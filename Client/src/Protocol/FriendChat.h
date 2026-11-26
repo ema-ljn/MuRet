@@ -19,16 +19,14 @@
 // (*estático*). Los handlers del servidor del chat leen el paquete por su lugar desde pkt[0], sea C1 o C2.
 namespace Client::Protocol::FriendChat
 {
-inline constexpr std::uint8_t RoomRequestOpcode = 0xca;
-inline constexpr std::uint8_t InviteOpcode = 0xcb;
 // Los del servidor del chat.
-inline constexpr std::uint8_t JoinOpcode = 0x00;
-inline constexpr std::uint8_t MemberOpcode = 0x01;
-inline constexpr std::uint8_t MembersOpcode = 0x02;
-inline constexpr std::uint8_t MessageOpcode = 0x04;
-inline constexpr std::uint8_t NoticeOpcode = 0x0d;
+inline constexpr Network::Opcode RoomJoinOpcode{0x00};
+inline constexpr Network::Opcode RoomMemberOpcode{0x01};
+inline constexpr Network::Opcode RoomMembersOpcode{0x02};
+inline constexpr Network::Opcode RoomMessageOpcode{0x04};
+inline constexpr Network::Opcode RoomNoticeOpcode{0x0d};
 // El que manda el timer 1002 a cada sala (0x4a6550).
-inline constexpr std::uint8_t PingOpcode = 0x05;
+inline constexpr Network::Opcode RoomPingOpcode{0x05};
 // El puerto del servidor del chat (0x49df17, PUSH 0xdaac).
 inline constexpr std::uint16_t ChatPort = 55980;
 inline constexpr std::size_t ChatNameSize = 10;

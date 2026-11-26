@@ -1383,7 +1383,7 @@ TEST(HeroSkillsTest, ATransformedWizardUsesItsModelForTheReachedSkill)
     EXPECT_EQ(tested->Hero().attackCount, 1);
     ASSERT_EQ(tested->sent.size(), 2u);
     EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 6, 0x19, 0x11, 0, 0}));
-    EXPECT_EQ(tested->sent[1].packet.Opcode(), 0xd3);
+    EXPECT_EQ(tested->sent[1].packet.Opcode(), Client::Network::Opcode{0xd3});
 }
 
 // MoveHero (0x59e255) conserva la misma biblioteca de modelos al entrar en 0x57cfc0 y 0x564f2f.
@@ -1406,7 +1406,7 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     EXPECT_EQ(tested->world.Runtime().lastSoundId, 0xd2);
     EXPECT_EQ(tested->world.OwnCharacter().bytef04, 1);
     ASSERT_EQ(tested->sent.size(), 1u);
-    EXPECT_EQ(tested->sent[0].packet.Opcode(), 0x1e);
+    EXPECT_EQ(tested->sent[0].packet.Opcode(), Client::Network::Opcode{0x1e});
 }
 
 // 0x55980f: con Crywolf en la etapa 3, en el mapa 34 y un altar (0x206) en 0x6c8e54, PathFinding2 le pone la bandera

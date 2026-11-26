@@ -126,9 +126,12 @@ protected:
         ASSERT_EQ(m_manager->Current(), Client::Scenes::SceneId::CharacterSelect);
         EXPECT_TRUE(m_manager->TakeTheSceneChange());
         const auto requests = Sent();
-        EXPECT_TRUE(std::ranges::any_of(
-            requests.packets, [](const auto& packet)
-            { return packet.Opcode() == 0xf3 && packet.Bytes().size() == 4 && packet.Bytes()[3] == std::byte{0}; }));
+        EXPECT_TRUE(std::ranges::any_of(requests.packets,
+                                        [](const auto& packet)
+                                        {
+                                            return packet.Opcode() == Client::Network::Opcode{0xf3} &&
+                                                   packet.Bytes().size() == 4 && packet.Bytes()[3] == std::byte{0};
+                                        }));
         Client::Tests::CharacterEntryFields entry{.slot = 0, .level = 400};
         entry.equipment[4] = 3; // Sin mascota: no alcanza la frontera de helpers de selección.
         Receive(Client::Tests::CharacterListBytes({entry}), false);
@@ -149,9 +152,12 @@ protected:
         ASSERT_EQ(m_manager->Current(), Client::Scenes::SceneId::Game);
         Step(); // GameScene pide F303 desde su primer paso, con la espera aún activa.
         const auto enter = Sent();
-        EXPECT_TRUE(std::ranges::any_of(
-            enter.packets, [](const auto& packet)
-            { return packet.Opcode() == 0xf3 && packet.Bytes().size() > 4 && packet.Bytes()[3] == std::byte{3}; }));
+        EXPECT_TRUE(std::ranges::any_of(enter.packets,
+                                        [](const auto& packet)
+                                        {
+                                            return packet.Opcode() == Client::Network::Opcode{0xf3} &&
+                                                   packet.Bytes().size() > 4 && packet.Bytes()[3] == std::byte{3};
+                                        }));
         ReceiveEntry();
         ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
         Step();
@@ -181,8 +187,8 @@ protected:
         const auto start = Hero().position;
         ClickCell(x, y);
         const auto clicked = Sent();
-        const auto walk =
-            std::ranges::find_if(clicked.packets, [](const auto& packet) { return packet.Opcode() == 0xd3; });
+        const auto walk = std::ranges::find_if(clicked.packets, [](const auto& packet)
+                                               { return packet.Opcode() == Client::Network::Opcode{0xd3}; });
         ASSERT_NE(walk, clicked.packets.end())
             << "target=" << m_world->Runtime().movement.targetX << "," << m_world->Runtime().movement.targetY
             << " hero=" << static_cast<int>(Hero().cellX) << "," << static_cast<int>(Hero().cellY)
@@ -202,7 +208,7 @@ protected:
             ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
             const auto packets = Sent();
             for (const auto& packet : packets.packets)
-                if (packet.Opcode() == 0x1c)
+                if (packet.Opcode() == Client::Network::Opcode{0x1c})
                 {
                     ASSERT_EQ(packet.Bytes().size(), 6u);
                     EXPECT_EQ(packet.Bytes()[3], std::byte{gate});
@@ -292,7 +298,8 @@ protected:
     void ExpectWalkPacket()
     {
         const auto sent = Sent();
-        EXPECT_TRUE(std::ranges::any_of(sent.packets, [](const auto& packet) { return packet.Opcode() == 0xd3; }));
+        EXPECT_TRUE(std::ranges::any_of(sent.packets, [](const auto& packet)
+                                        { return packet.Opcode() == Client::Network::Opcode{0xd3}; }));
     }
 };
 
@@ -406,7 +413,7 @@ TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
     ASSERT_EQ(sent.packets.size(), 2u);
     EXPECT_EQ(std::vector<std::byte>(sent.packets[0].Bytes().begin(), sent.packets[0].Bytes().end()),
               Client::Tests::Bytes({0xc1, 4, 0xb9, 2}));
-    EXPECT_EQ(sent.packets[1].Opcode(), 0xf3);
+    EXPECT_EQ(sent.packets[1].Opcode(), Client::Network::Opcode{0xf3});
 }
 
 // 0x63741d..0x637490 y 0x6375ea..0x63763c (Q-C334, Q-C390): en Castle Siege, con el héroe en el rectángulo de la
@@ -515,7 +522,8 @@ TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
     const auto start = Hero().position;
     ASSERT_NO_FATAL_FAILURE(ClickCell(255, 255));
     const auto sent = Sent();
-    EXPECT_FALSE(std::ranges::any_of(sent.packets, [](const auto& packet) { return packet.Opcode() == 0xd3; }));
+    EXPECT_FALSE(std::ranges::any_of(sent.packets, [](const auto& packet)
+                                     { return packet.Opcode() == Client::Network::Opcode{0xd3}; }));
     EXPECT_EQ(Hero().position, start);
     EXPECT_EQ(Hero().movement, 0);
     RecordProperty("border_scope", "real outer wall/picking rejection; no fabricated traversable border");
@@ -585,7 +593,8 @@ TEST_P(GameT16KalimaWalk, RealPickingLiteralD3AndEchoAdvanceTheHeroAndEmitNative
     const auto start = Hero().position;
     ASSERT_NO_FATAL_FAILURE(ClickCell(64, 67));
     const auto sent = Sent();
-    const auto walk = std::ranges::find_if(sent.packets, [](const auto& packet) { return packet.Opcode() == 0xd3; });
+    const auto walk = std::ranges::find_if(sent.packets, [](const auto& packet)
+                                           { return packet.Opcode() == Client::Network::Opcode{0xd3}; });
     ASSERT_NE(walk, sent.packets.end()) << "picked=" << m_world->Runtime().movement.targetX << ","
                                         << m_world->Runtime().movement.targetY
                                         << " time=" << m_world->Runtime().movement.mouseUpdateTime << "/"

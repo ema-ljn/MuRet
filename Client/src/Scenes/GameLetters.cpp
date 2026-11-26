@@ -514,7 +514,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     namespace Chat = Protocol::FriendChat;
-    const std::optional<std::uint8_t> opcode = packet.Opcode();
+    const std::optional<Network::Opcode> opcode = packet.Opcode();
     if (!opcode)
         return {};
     const OldWindowsFromAPacket windows(context);
@@ -522,7 +522,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     // (Protocol::FriendChat::CheckRoomPacket), y acá tampoco cierra nada.
     switch (*opcode)
     {
-    case Chat::JoinOpcode:
+    case Protocol::FriendChat::RoomJoinOpcode:
     {
         auto join = Chat::ReadJoinResult(packet);
         if (!join.HasValue())
@@ -531,7 +531,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             return {};
         return Notice(context, JoinFailedText, "0x4dd1b0");
     }
-    case Chat::MemberOpcode:
+    case Protocol::FriendChat::RoomMemberOpcode:
     {
         // 0x4dd1e0.
         auto member = Chat::ReadMember(packet);
@@ -582,7 +582,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             UI::FillTheInvites(manager, *chat, windows.View().heroName);
         return {};
     }
-    case Chat::MembersOpcode:
+    case Protocol::FriendChat::RoomMembersOpcode:
     {
         // 0x4dd350: 0x490a00 y 0x493c90 sin mirar que la ventana esté.
         auto members = Chat::ReadMembers(packet);
@@ -600,7 +600,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         }
         return {};
     }
-    case Chat::MessageOpcode:
+    case Protocol::FriendChat::RoomMessageOpcode:
     {
         // 0x4dd3d0.
         auto message = Chat::ReadMessage(packet);
@@ -627,7 +627,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         return UI::AddAChatLine(manager, *chat, message.Value().index, message.Value().text, MemberLine, 0,
                                 windows.Measure());
     }
-    case Chat::NoticeOpcode:
+    case Protocol::FriendChat::RoomNoticeOpcode:
     {
         // 0x4dd549: pkt[0x68] = 0 y, si hay texto, al chat.
         auto notice = Chat::ReadNotice(packet);

@@ -21,29 +21,7 @@
 // al default): el cliente no los lee.
 namespace Client::Protocol::Guild
 {
-inline constexpr std::uint8_t JoinRequestOpcode = 0x50;
-inline constexpr std::uint8_t JoinResultOpcode = 0x51;
-inline constexpr std::uint8_t MemberListOpcode = 0x52;
-inline constexpr std::uint8_t LeaveResultOpcode = 0x53;
-inline constexpr std::uint8_t MasterQuestionOpcode = 0x54;
-inline constexpr std::uint8_t CreateOpcode = 0x55;
-inline constexpr std::uint8_t CreateResultOpcode = 0x56;
-inline constexpr std::uint8_t ViewportGuildDeleteOpcode = 0x5d;
-inline constexpr std::uint8_t WarRequestResultOpcode = 0x60;
-inline constexpr std::uint8_t WarRequestOpcode = 0x61;
-inline constexpr std::uint8_t WarStartOpcode = 0x62;
-inline constexpr std::uint8_t WarEndOpcode = 0x63;
-inline constexpr std::uint8_t WarScoreOpcode = 0x64;
-inline constexpr std::uint8_t ViewportGuildOpcode = 0x65;
-inline constexpr std::uint8_t GuildInfoOpcode = 0x66;
-inline constexpr std::uint8_t ViewportUnionOpcode = 0x67;
-inline constexpr std::uint8_t AssignResultOpcode = 0xe1;
-inline constexpr std::uint8_t RelationshipRequestOpcode = 0xe5;
-inline constexpr std::uint8_t RelationshipResultOpcode = 0xe6;
-inline constexpr std::uint8_t UnionListOpcode = 0xe9;
-inline constexpr std::uint8_t UnionListRefreshOpcode = 0xeb;
-// 0x650830: el EB que manda el cliente (echar a un gremio de la alianza) y su tipo.
-inline constexpr std::uint8_t UnionKickOpcode = 0xeb;
+// 0x650830: the kind of the EB the client sends to kick a guild from the alliance.
 inline constexpr std::uint8_t UnionKickKind = 1;
 
 // Los nombres de gremio: 8 bytes sin terminador (el original los copia con dos DWORD y pone el cero él).

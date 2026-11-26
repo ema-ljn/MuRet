@@ -1,8 +1,8 @@
 #include "Protocol/Connection/Keepalive.h"
 
 #include "Network/PacketWriter.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstdint>
 

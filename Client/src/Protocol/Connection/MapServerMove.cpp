@@ -5,12 +5,12 @@
 #include "Network/Field.h"
 #include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketCode.h"
 #include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -30,13 +30,9 @@ using MovedCodes = Network::Field<MapServerCodes, MovedBytes::Offset + 0x14>;
 
 // 0x4e506a: the subcode is pkt[3] in a C1 and pkt[4] otherwise; the rest is at the same offsets in both.
 constexpr Network::PacketLayout MoveC1Layout{
-    {Network::PacketType::C1, Network::Opcode{MapServerOpcode}, Network::Subcode{MapServerMoveSubcode}},
-    MovedBytes::End,
-    0x4e5056};
+    {Network::PacketType::C1, MapServerOpcode, MapServer::MoveSubcode}, MovedBytes::End, 0x4e5056};
 constexpr Network::PacketLayout MoveC2Layout{
-    {Network::PacketType::C2, Network::Opcode{MapServerOpcode}, Network::Subcode{MapServerMoveSubcode}},
-    MovedBytes::End,
-    0x4e5056};
+    {Network::PacketType::C2, MapServerOpcode, MapServer::MoveSubcode}, MovedBytes::End, 0x4e5056};
 
 MapServerMove ReadMove(Network::LayoutReader& reader)
 {
@@ -88,9 +84,8 @@ Core::Expected<Outgoing, Network::ProtocolError> WriteMapServerAuth(const MapSer
     AuthNameBytes account = NameField(auth.account);
     Crypto::Xor3(account);
     const AuthNameBytes character = NameField(auth.character.substr(0, AuthNameMax));
-    Network::PacketWriter writer = Network::PacketWriter::C1(MapServerOpcode);
-    writer.PutU8(MapServerAuthSubcode)
-        .PutBytes(account)
+    Network::PacketWriter writer = Network::PacketWriter::C1(MapServerOpcode, MapServer::AuthSubcode);
+    writer.PutBytes(account)
         .PutBytes(character)
         .PutBytes(auth.codes)
         .PutU32Le(auth.tick)

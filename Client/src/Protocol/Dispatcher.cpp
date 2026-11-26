@@ -13,47 +13,51 @@ namespace Client::Protocol
 {
 Dispatcher::Dispatcher(Core::Log& log) : m_log(log) {}
 
-bool Dispatcher::On(std::uint8_t opcode, Handler handler)
+bool Dispatcher::On(Network::Opcode opcode, Handler handler)
 {
-    if (!handler || m_opcodes.contains(opcode))
+    const std::uint8_t head = Network::ByteOf(opcode);
+    if (!handler || m_opcodes.contains(head))
     {
         return false;
     }
-    m_opcodes[opcode].whole = std::move(handler);
+    m_opcodes[head].whole = std::move(handler);
     return true;
 }
 
-bool Dispatcher::On(std::uint8_t opcode, std::uint8_t subcode, Handler handler)
+bool Dispatcher::On(Network::Opcode opcode, Network::Subcode subcode, Handler handler)
 {
     if (!handler)
     {
         return false;
     }
-    const auto registered = m_opcodes.find(opcode);
-    if (registered != m_opcodes.end() && (registered->second.whole || registered->second.bySubcode.contains(subcode)))
+    const std::uint8_t head = Network::ByteOf(opcode);
+    const std::uint8_t sub = Network::ByteOf(subcode);
+    const auto registered = m_opcodes.find(head);
+    if (registered != m_opcodes.end() && (registered->second.whole || registered->second.bySubcode.contains(sub)))
     {
         return false;
     }
-    m_opcodes[opcode].bySubcode.emplace(subcode, std::move(handler));
+    m_opcodes[head].bySubcode.emplace(sub, std::move(handler));
     return true;
 }
 
 DispatchResult Dispatcher::Dispatch(const Network::Packet& packet)
 {
     // std::nullopt en un C3/C4: su opcode viaja cifrado, y la Connection lo descifra antes.
-    const std::optional<std::uint8_t> opcode = packet.Opcode();
-    if (!opcode)
+    const std::optional<Network::Opcode> read = packet.Opcode();
+    if (!read)
     {
         return DispatchResult::Malformed;
     }
-    const auto registered = m_opcodes.find(*opcode);
+    const std::uint8_t opcode = Network::ByteOf(*read);
+    const auto registered = m_opcodes.find(opcode);
     if (registered == m_opcodes.end())
     {
-        if (!m_warnedOpcodes.test(*opcode))
+        if (!m_warnedOpcodes.test(opcode))
         {
-            m_warnedOpcodes.set(*opcode);
+            m_warnedOpcodes.set(opcode);
             m_log.Warning("un paquete con el opcode {:02X} no tiene handler: se descarta, y este aviso no se repite",
-                          *opcode);
+                          opcode);
         }
         return DispatchResult::Unknown;
     }
@@ -62,7 +66,7 @@ DispatchResult Dispatcher::Dispatch(const Network::Packet& packet)
         registered->second.whole(packet);
         return DispatchResult::Handled;
     }
-    return DispatchBySubcode(*opcode, registered->second, packet);
+    return DispatchBySubcode(opcode, registered->second, packet);
 }
 
 DispatchResult Dispatcher::DispatchBySubcode(std::uint8_t opcode, OpcodeHandlers& handlers,

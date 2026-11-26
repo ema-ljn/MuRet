@@ -5,6 +5,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <cstdint>
 #include <optional>
@@ -15,12 +16,7 @@
 // que lee el cliente, que es el oráculo: el GameServer 0.97 manda ítems de 5 bytes y un 2C de un byte (07 Q-C1240).
 namespace Client::Protocol::FloorItems
 {
-inline constexpr std::uint8_t CreateOpcode = 0x20;
-inline constexpr std::uint8_t DeleteOpcode = 0x21;
-inline constexpr std::uint8_t PickUpOpcode = 0x22;
-inline constexpr std::uint8_t DropOpcode = 0x23;
-inline constexpr std::uint8_t UseItemOpcode = 0x26;
-inline constexpr std::uint8_t StatFruitOpcode = 0x2c;
+inline constexpr Network::Opcode UseItemOpcode = LifeOpcode;
 // 0x4d0cc0: pkt[3] en 0xff no levanta nada, en 0xfe es el zen y en 0xfd un ítem que no va a la grilla.
 inline constexpr std::uint8_t NothingPickedUp = 0xff;
 inline constexpr std::uint8_t ZenPickedUp = 0xfe;

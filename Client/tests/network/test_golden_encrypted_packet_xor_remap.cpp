@@ -54,7 +54,7 @@ TEST_F(GoldenEncryptedPacketXorRemap, ReadsAllSevenInventoryCapturesAgainstTheIn
     for (const WirePacket& packet : answered)
     {
         ASSERT_TRUE(packet.plain.has_value());
-        if (packet.plain->Type() != PacketType::C2 || packet.plain->Opcode() != 0xF3)
+        if (packet.plain->Type() != PacketType::C2 || packet.plain->Opcode() != Client::Network::Opcode{0xF3})
         {
             continue;
         }

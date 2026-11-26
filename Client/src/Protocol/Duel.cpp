@@ -7,6 +7,7 @@
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -16,7 +17,7 @@ namespace Client::Protocol::Duel
 {
 namespace
 {
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -34,7 +35,7 @@ std::optional<Name> ReadName(Core::ByteReader& reader)
 }
 
 template <typename Peer>
-Core::Expected<Peer, Network::ProtocolError> ReadPeer(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Peer, Network::ProtocolError> ReadPeer(const Network::Packet& packet, Network::Opcode opcode)
 {
     auto fields = FieldsOf(packet, opcode);
     if (!fields.HasValue())
@@ -50,7 +51,7 @@ Core::Expected<Peer, Network::ProtocolError> ReadPeer(const Network::Packet& pac
 
 Core::Expected<DuelStart, Network::ProtocolError> ReadDuelStart(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, StartOpcode);
+    auto fields = FieldsOf(packet, DuelStartOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -64,17 +65,17 @@ Core::Expected<DuelStart, Network::ProtocolError> ReadDuelStart(const Network::P
 
 Core::Expected<DuelEnd, Network::ProtocolError> ReadDuelEnd(const Network::Packet& packet)
 {
-    return ReadPeer<DuelEnd>(packet, EndOpcode);
+    return ReadPeer<DuelEnd>(packet, DuelEndOpcode);
 }
 
 Core::Expected<DuelRequest, Network::ProtocolError> ReadDuelRequest(const Network::Packet& packet)
 {
-    return ReadPeer<DuelRequest>(packet, RequestOpcode);
+    return ReadPeer<DuelRequest>(packet, DuelRequestOpcode);
 }
 
 Core::Expected<DuelScore, Network::ProtocolError> ReadDuelScore(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ScoreOpcode);
+    auto fields = FieldsOf(packet, DuelScoreOpcode);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -89,16 +90,16 @@ Core::Expected<DuelScore, Network::ProtocolError> ReadDuelScore(const Network::P
 
 Outgoing WriteDuelStart(std::uint16_t key, const Name& name)
 {
-    return EncryptedC1(Network::PacketWriter::C1(StartOpcode).PutU16Be(key).PutBytes(name));
+    return EncryptedC1(Network::PacketWriter::C1(DuelStartOpcode).PutU16Be(key).PutBytes(name));
 }
 
 Outgoing WriteDuelEnd()
 {
-    return EncryptedC1(Network::PacketWriter::C1(EndOpcode));
+    return EncryptedC1(Network::PacketWriter::C1(DuelEndOpcode));
 }
 
 Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const Name& name)
 {
-    return EncryptedC1(Network::PacketWriter::C1(RequestOpcode).PutU8(accepted).PutU16Be(key).PutBytes(name));
+    return EncryptedC1(Network::PacketWriter::C1(DuelRequestOpcode).PutU8(accepted).PutU16Be(key).PutBytes(name));
 }
 } // namespace Client::Protocol::Duel

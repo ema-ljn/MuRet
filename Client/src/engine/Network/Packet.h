@@ -23,6 +23,25 @@ enum class PacketType : std::uint8_t
     C4 = 0xC4,
 };
 
+// Open ids (CODING_RULES §6): any byte is one, and the protocol's lists name some.
+enum class Opcode : std::uint8_t
+{
+};
+
+enum class Subcode : std::uint8_t
+{
+};
+
+[[nodiscard]] constexpr std::uint8_t ByteOf(Opcode opcode)
+{
+    return static_cast<std::uint8_t>(opcode);
+}
+
+[[nodiscard]] constexpr std::uint8_t ByteOf(Subcode subcode)
+{
+    return static_cast<std::uint8_t>(subcode);
+}
+
 // The original's receive buffer is 0x2000 (0x4e88af, cmp eax,0x2000): a larger packet never fit and the original
 // stopped reading (Q-C40).
 inline constexpr std::size_t MaxPacketSize = 0x2000;
@@ -71,7 +90,7 @@ public:
     [[nodiscard]] std::vector<std::byte> TakeBytes() &&;
 
     // pkt[2] in a C1 and pkt[3] in a C2; std::nullopt in C3 and C4, which carry it encrypted.
-    [[nodiscard]] std::optional<std::uint8_t> Opcode() const;
+    [[nodiscard]] std::optional<Network::Opcode> Opcode() const;
 
 private:
     Packet(PacketType type, std::vector<std::byte> bytes, bool wasDecrypted);

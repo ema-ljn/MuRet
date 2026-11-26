@@ -13,7 +13,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <initializer_list>
 #include <span>
 #include <utility>
@@ -70,7 +69,7 @@ TEST(Xor32Test, EncodesAC2WithTheOpcodeInClear)
 TEST(Xor32Test, EncodesTheLongC2OfTheVectors)
 {
     const std::vector<std::byte> expected = ReadNetVector("c2-long.bin");
-    auto plain = PacketWriter::C2(0x42).PutBytes(BytePattern(296, 37, 11)).Finish();
+    auto plain = PacketWriter::C2(Client::Network::Opcode{0x42}).PutBytes(BytePattern(296, 37, 11)).Finish();
     ASSERT_TRUE(plain.HasValue());
 
     const Packet encoded = Xor32Encode(std::move(plain).Value());
@@ -99,13 +98,14 @@ TEST(Xor32Test, DecodeUndoesEncodeAndKeepsTheOpcode)
 {
     for (const bool isC1 : {true, false})
     {
-        PacketWriter writer = isC1 ? PacketWriter::C1(0x55) : PacketWriter::C2(0x55);
+        PacketWriter writer =
+            isC1 ? PacketWriter::C1(Client::Network::Opcode{0x55}) : PacketWriter::C2(Client::Network::Opcode{0x55});
         auto plain = writer.PutBytes(BytePattern(isC1 ? 252 : 296, 37, 11)).Finish();
         ASSERT_TRUE(plain.HasValue());
         const std::vector<std::byte> before(plain.Value().Bytes().begin(), plain.Value().Bytes().end());
 
         const Packet encoded = Xor32Encode(std::move(plain).Value());
-        EXPECT_EQ(encoded.Opcode(), std::uint8_t{0x55});
+        EXPECT_EQ(encoded.Opcode(), Client::Network::Opcode{0x55});
         EXPECT_FALSE(SameBytes(encoded.Bytes(), before));
         const Packet decoded = Xor32Decode(encoded);
 

@@ -16,7 +16,6 @@
 // La vuelta (CL8 hito 6): 0x61c210 guarda las opciones con un C1 1C F3 30 de 24 bytes, que el GS no contesta.
 namespace Client::Protocol::OptionData
 {
-inline constexpr std::uint8_t OptionDataSubcode = 0x30;
 inline constexpr std::size_t SkillKeyCount = 10;
 inline constexpr std::size_t QuickSlotCount = 3;
 

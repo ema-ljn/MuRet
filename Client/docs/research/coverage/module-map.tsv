@@ -24,6 +24,8 @@ App/FontFiles.cpp	54	App	app/App	high	engine or protocol layer, no game state
 App/FontFiles.h	42	App	app/App	high	engine or protocol layer, no game state
 App/FrameRateMeter.cpp	28	App	app/App	high	engine or protocol layer, no game state
 App/FrameRateMeter.h	37	App	app/App	high	engine or protocol layer, no game state
+App/GameClient.cpp	342	App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
+App/GameClient.h	183	App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
 App/GameLoop.cpp	166	App	app/App	high	engine or protocol layer, no game state
 App/GameLoop.h	82	App	app/App	high	engine or protocol layer, no game state
 App/IChatRoomLinks.h	37	App	app/App	high	engine or protocol layer, no game state

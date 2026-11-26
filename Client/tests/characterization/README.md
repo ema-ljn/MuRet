@@ -1,10 +1,10 @@
 # The behavior golden
 
 The safety net of the client refactor ([plan](../../../docs/superpowers/plans/2026-11-20-client-architecture-refactor.md),
-AR0.3). Each scene in `scenes/` runs the whole client frame by frame, composed as `RunScenes` in `main.cpp` composes
-it, and the `FrameDigest` of every frame must match `golden/<scene>.tsv` on Linux and on Windows. A digest has four
-hashes: what the frame drew, the bytes the client sent, the CRT `rand()` state and a summary of the world (the map,
-the living actors, the own life, mana and zen, the open panels and the chat lines).
+AR0.3). Each scene in `scenes/` runs the whole client, `App::GameClient`, frame by frame, and the `FrameDigest` of
+every frame must match `golden/<scene>.tsv` on Linux and on Windows. A digest has four hashes: what the frame drew,
+the bytes the client sent, the CRT `rand()` state and a summary of the world (the map, the living actors, the own life,
+mana and zen, the open panels and the chat lines).
 
 A refactor PR never changes a golden: a difference is a refactor bug. A port PR that changes behavior on purpose
 writes the golden again and says so in its description.
@@ -28,7 +28,7 @@ the network, one step, the draw and the end of the loop, and moves the clock 40 
 | `gs-encrypted` | a C1/C2 in hex that the harness encrypts into a C3/C4 with the GameServer's key, as the server does |
 | `mouse` | `x y`, in pixels from the top left of the 640 × 480 screen |
 | `button-down`, `button-up` | `left`, `right` or `middle` |
-| `key-down`, `key-up` | a key: `A`..`Z`, `0`..`9`, `F1`..`F5`, `Enter`, `Escape`, `Space`, `Tab`, the arrows… |
+| `key-down`, `key-up` | a key: `A`..`Z`, `0`..`9`, `F1`..`F5`, `Enter`, `Escape`, `Space`, `Tab`, `PrintScreen`, the arrows… |
 | `text` | typed text |
 | `end` | nothing: the scene's last frame |
 
@@ -51,11 +51,14 @@ because the view moves; and the client takes some packets only encrypted (`0x16`
 | `EventEntry` | the Devil Square notice, Charon's window, the entry with an invitation and the countdown on map 9 |
 | `IdleKeepalive` | the login of `LoginToLorencia`, then idle in Lorencia until the first keepalive in the world, with the own character's speeds (frame 500, 20 seconds after the session started) |
 
-## What the harness changes from `main.cpp`
+`CharacterizationTest.PrintScreenReadsTheScreenOnce` is not a golden scene, because the screenshot is a file: it
+presses Print Screen in the login scene and expects one read of the screen and the JPEG in a temporary folder.
 
-Fixed seeds instead of the time and `std::random_device`, a fake socket with the identity obfuscation and the test
-keys, a fake clock, the recording frame target instead of GL and a 6 × 13 text measure instead of FreeType.
-`AutoLogin` chooses the first server and sends the account, as with `--auto-login`. It leaves out the audio device,
-the clipboard, the friend chat rooms, SDL's typed-text switch and the screenshots. The harness is a copy of that
-composition until AR1.4 gives `main.cpp` and the harness one to share, `App::GameClient`
-([plan](../../../docs/superpowers/plans/2026-11-24-thin-main.md), Task 3).
+## The devices the harness gives `GameClient`
+
+- Fixed seeds instead of the time and `std::random_device`, and a fixed local time for the screenshot's name.
+- A fake socket with the identity obfuscation and the test keys, and `AutoLogin` with an account, as with
+  `--auto-login`: it chooses the first server and sends the account.
+- A fake clock, the recording frame target instead of GL, a fake texture store, a 6 × 13 text measure instead of
+  FreeType and a screen reader of black pixels that counts its reads.
+- No audio device, clipboard or friend chat rooms. SDL's typed-text switch stays in `main.cpp`.

@@ -1,54 +1,32 @@
 #include "support/FrameDigest.h"
 
-#include "App/AutoLogin.h"
 #include "App/Credentials.h"
+#include "App/GameClient.h"
+#include "App/ILoopClient.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
-#include "App/SessionState.h"
 #include "Core/Environment.h"
 #include "Core/Expected.h"
-#include "Core/IClock.h"
 #include "Core/ILogSink.h"
+#include "Core/LocalTime.h"
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
-#include "Crt/CrtRandom.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Connection.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
-#include "Models/Animation.h"
-#include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterSelectScene.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameItemRenderState.h"
-#include "Scenes/GameMessages.h"
-#include "Scenes/GameModels.h"
-#include "Scenes/GameScene.h"
-#include "Scenes/IScene.h"
-#include "Scenes/LoadingScene.h"
-#include "Scenes/LoginScene.h"
-#include "Scenes/NpcNames.h"
 #include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/SceneManager.h"
-#include "Scenes/SceneTransitions.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/SessionEventApplier.h"
-#include "Scenes/WinMainLoop.h"
-#include "Scenes/WorldEntry.h"
-#include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatLog.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SlideBanner.h"
-#include "World/GameCamera.h"
 #include "support/AppPrinters.h"
+#include "support/BlackScreenReader.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
 #include "support/FakeTextureStore.h"
@@ -57,6 +35,7 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/ScenePrinters.h"
+#include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
@@ -73,7 +52,6 @@
 #include <ios>
 #include <memory>
 #include <optional>
-#include <ratio>
 #include <span>
 #include <sstream>
 #include <string>
@@ -81,18 +59,19 @@
 #include <utility>
 #include <vector>
 
-// The behavior golden (refactor plan, AR0.3): a scene script drives the whole client frame by frame, composed as
-// main.cpp composes it, and each frame's FrameDigest must match golden/<scene>.tsv. README.md says how to write a
-// scene and when a golden may change.
+// The behavior golden (refactor plan, AR0.3): a scene script drives the whole client, App::GameClient, frame by
+// frame, and each frame's FrameDigest must match golden/<scene>.tsv. README.md says how to write a scene and when a
+// golden may change.
 namespace Client::Tests
 {
 namespace
 {
 constexpr auto FrameTime = std::chrono::milliseconds{40};
-// main.cpp takes these from the time of day and std::random_device.
+// main.cpp takes these from the time of day, std::random_device and the system's local time.
 constexpr std::uint32_t CrtSeed = 1;
 constexpr std::uint32_t LoginSeed = 1;
 constexpr std::uint32_t PaddingSeed = 1;
+constexpr Core::LocalTime FixedLocalTime{.month = 11, .day = 26, .hour = 12, .minute = 0};
 constexpr std::string_view Version = "0.0.0";
 constexpr Core::PixelSize Screen{.width = 640, .height = 480};
 
@@ -204,7 +183,7 @@ std::optional<Input::Key> KeyNamed(std::string_view name)
     {
         return offset(Input::Key::Digit0, name[0] - '0');
     }
-    static constexpr std::array<std::pair<std::string_view, Input::Key>, 22> Named{{
+    static constexpr std::array<std::pair<std::string_view, Input::Key>, 23> Named{{
         {"Escape", Input::Key::Escape},
         {"Enter", Input::Key::Enter},
         {"Space", Input::Key::Space},
@@ -227,6 +206,7 @@ std::optional<Input::Key> KeyNamed(std::string_view name)
         {"F3", Input::Key::F3},
         {"F4", Input::Key::F4},
         {"F5", Input::Key::F5},
+        {"PrintScreen", Input::Key::PrintScreen},
     }};
     for (const auto& [keyName, key] : Named)
     {
@@ -265,62 +245,38 @@ std::string HexOf(std::span<const std::byte> bytes)
     return hex;
 }
 
-// The client as RunScenes in main.cpp composes it, with fakes for what needs a device (the socket, the clock, GL and
-// the fonts), fixed seeds, and AutoLogin choosing the first server and sending the account, as with --auto-login. It
-// leaves out the audio device, the clipboard, the friend chat rooms, the typed-text switch and the screenshots.
+// The client of App::GameClient, with doubles for what needs a device (the socket, the clock, GL, the fonts and the
+// screen reader), fixed seeds and a fixed local time, and AutoLogin choosing the first server and sending the
+// account, as with --auto-login. No audio device, clipboard or friend chat rooms.
 class ScriptedClient
 {
 public:
-    ScriptedClient(const std::filesystem::path& dataRoot, const Tables::GameData& data)
-        : m_dataRoot(dataRoot), m_data(data), m_resources{.world = m_world,
-                                                          .selection = m_selection,
-                                                          .dataRoot = dataRoot,
-                                                          .cloth = m_cloth,
-                                                          .camera = m_camera,
-                                                          .cameraInput = m_cameraInput,
-                                                          .models = m_models,
-                                                          .items = data.items ? &data.items->table : nullptr,
-                                                          .itemSetTables = data.itemSets ? &*data.itemSets : nullptr,
-                                                          .log = m_log,
-                                                          .clock = &m_clock,
-                                                          .textMeasure = &m_measure,
-                                                          .screen = [] { return Screen; },
-                                                          .scene = [this] { return m_manager.Current(); },
-                                                          .texts = data.text ? &*data.text : nullptr,
-                                                          .skills = data.skills ? &*data.skills : nullptr},
-          m_session(m_connection, m_clock, m_log, GameClientKeys(),
-                    App::SessionSettings{.connectServer = App::ServerAddress{"10.0.0.1", 44405}}, m_applier),
-          m_context{.dataRoot = dataRoot,
-                    .textures = m_textures,
-                    .log = m_log,
-                    .clock = &m_clock,
-                    .cloth = &m_cloth,
-                    .input = &m_input,
-                    .camera = &m_camera,
-                    .cameraInput = &m_cameraInput,
-                    .selection = &m_selection,
-                    .world = &m_world,
-                    .textMeasure = &m_measure,
-                    .worldEntry = &m_resources},
-          m_manager([this](Scenes::SceneId id) { return MakeScene(id); }, m_target, m_clock,
-                    [this] { return PollNetwork(); }, m_log,
-                    [this] { return std::exchange(m_world.Runtime().orderedScene, std::nullopt); },
-                    [this](Core::Duration now) { BeforeSceneFrame(now); },
-                    [this](Core::Duration now) { AfterSceneFrame(now); }, [this] { return AfterSceneStep(); })
+    ScriptedClient(const std::filesystem::path& dataRoot, const Tables::GameData& data,
+                   const std::filesystem::path& screenshotFolder = {})
+        : m_client(data,
+                   App::GameClientDevices{.frame = m_target,
+                                          .textures = m_textures,
+                                          .textMeasure = m_measure,
+                                          .screenReader = m_screenReader,
+                                          .clock = m_clock,
+                                          .log = m_log,
+                                          .input = m_input,
+                                          .screen = [] { return Screen; },
+                                          .localTime = []() -> Core::Expected<Core::LocalTime, std::string>
+                                          { return FixedLocalTime; }},
+                   App::GameClientOptions{.dataRoot = dataRoot,
+                                          .version = std::string(Version),
+                                          .crtSeed = CrtSeed,
+                                          .loginSeed = [] { return LoginSeed; },
+                                          .screenshotFolder = screenshotFolder},
+                   App::GameClientServer{
+                       .socket = m_socket,
+                       .obfuscation = Network::IdentityObfuscation::Shared(),
+                       .keys = GameClientKeys(),
+                       .settings = App::SessionSettings{.connectServer = App::ServerAddress{"10.0.0.1", 44405}},
+                       .autoLogin = App::Credentials{"user0001", "pass0002"},
+                       .paddingSeed = PaddingSeed})
     {
-        Scenes::WorldRuntime& runtime = m_world.Runtime();
-        runtime.music.SetEnabled(true);
-        runtime.chat.input.macros = data.macros;
-        runtime.moves = data.moves;
-        runtime.dialogTable = data.dialogs;
-        runtime.quest.records = data.quests;
-        runtime.monsterSkills = data.monsterSkills;
-        runtime.npcNames = Scenes::NpcNameTableOf(data.npcNames);
-        if (data.slides)
-        {
-            UI::LoadTheSlides(runtime.hud.slides, *data.slides);
-        }
-        Scenes::InitializeGameItemRenderState(runtime.itemRender, m_cloth.random);
     }
 
     ScriptedClient(const ScriptedClient&) = delete;
@@ -329,8 +285,7 @@ public:
 
     Core::Expected<void, std::string> Start()
     {
-        Scenes::StepTheWinMainLoop(m_winMainLoop.counters, m_cloth.random);
-        return m_manager.Start(Scenes::FirstScene);
+        return m_client.Start();
     }
 
     Core::Expected<void, std::string> Apply(const ScriptRow& row)
@@ -398,19 +353,20 @@ public:
     {
         const std::size_t sentBefore = m_socket.sent.size();
         m_target.frames.clear();
-        m_manager.Poll();
-        m_manager.Step(m_input);
+        App::ILoopClient& loop = m_client.Loop();
+        loop.Poll();
+        loop.Step(m_input);
         m_input.ConsumeEdges();
-        static_cast<void>(m_manager.TakeTheSceneChange());
-        if (!m_manager.HoldsTheLastFrame())
+        static_cast<void>(loop.TakeTheSceneChange());
+        if (!loop.HoldsTheLastFrame())
         {
-            m_manager.Render(0.0f);
+            loop.Render(0.0f);
         }
-        m_manager.FinishTheLoop();
+        loop.FinishTheLoop();
         static const RecordedFrame NoDraw{};
         const RecordedFrame& drawn = m_target.frames.empty() ? NoDraw : m_target.frames.back();
         m_sentThisFrame = std::span(m_socket.sent).subspan(sentBefore);
-        const FrameDigest digest = DigestOf(drawn, m_sentThisFrame, m_cloth.random.State(), m_world);
+        const FrameDigest digest = DigestOf(drawn, m_sentThisFrame, m_client.RandomState(), m_client.World());
         m_clock.Advance(FrameTime);
         return digest;
     }
@@ -418,35 +374,34 @@ public:
     // What stops main.cpp's loop, as a test failure.
     [[nodiscard]] std::optional<std::string> Failure() const
     {
-        if (m_manager.Failure())
+        const std::optional<App::GameExit> exit = m_client.Exit();
+        if (!exit)
         {
-            return m_manager.Failure();
+            return std::nullopt;
         }
-        if (m_selection.Failure())
-        {
-            return m_selection.Failure();
-        }
-        if (m_world.Runtime().fatalDataMessage)
-        {
-            return m_world.Runtime().fatalDataMessage;
-        }
-        if (m_manager.WantsToQuit() || m_session.State() == App::SessionState::QuitOrdered)
-        {
-            return "the client quit";
-        }
-        return std::nullopt;
+        return exit->message.empty() ? std::string("the client quit") : exit->message;
+    }
+
+    [[nodiscard]] std::optional<Scenes::SceneId> CurrentScene() const
+    {
+        return m_client.CurrentScene();
+    }
+
+    [[nodiscard]] int ScreenReads() const
+    {
+        return m_screenReader.reads;
     }
 
     // The last frame's scene, session state and the packets the server read from it, to write a scene.
     std::string Trace()
     {
-        std::string trace = std::format("scene {} session {}", ::testing::PrintToString(m_manager.Current()),
-                                        ::testing::PrintToString(m_session.State()));
+        std::string trace = std::format("scene {} session {}", ::testing::PrintToString(m_client.CurrentScene()),
+                                        ::testing::PrintToString(m_client.Session()->State()));
         for (const Network::Packet& packet : AsTheGameServerReceives(m_sentThisFrame, m_traceSerials).packets)
         {
             trace += "\n  sent " + HexOf(packet.Bytes());
         }
-        if (m_manager.Current() == Scenes::SceneId::Game)
+        if (m_client.CurrentScene() == Scenes::SceneId::Game)
         {
             trace += WorldTrace();
         }
@@ -457,13 +412,14 @@ private:
     // The state that FrameDigest hashes, in words.
     std::string WorldTrace()
     {
-        const Scenes::WorldRuntime& runtime = m_world.Runtime();
-        const Scenes::OwnCharacterRecord& own = m_world.OwnCharacter();
+        const Scenes::WorldState& world = m_client.World();
+        const Scenes::WorldRuntime& runtime = world.Runtime();
+        const Scenes::OwnCharacterRecord& own = world.OwnCharacter();
         const UI::PanelState& panels = runtime.panels;
         std::string trace =
             std::format("\n  map {} life {} mana {} zen {} panels inventory {} npc shop {} event {}", runtime.map,
                         own.life, own.mana, own.zen, panels.inventory, panels.npcShop, panels.eventNpc);
-        const auto actors = m_world.Actors();
+        const auto actors = world.Actors();
         for (std::size_t index = 0; index < actors.size(); ++index)
         {
             const Scenes::ActorState& actor = actors[index];
@@ -484,103 +440,16 @@ private:
         return trace;
     }
 
-    std::unique_ptr<Scenes::IScene> MakeScene(Scenes::SceneId id)
-    {
-        switch (id)
-        {
-        case Scenes::SceneId::Loading:
-            return std::make_unique<Scenes::LoadingScene>(m_context, &m_models);
-        case Scenes::SceneId::Login:
-            return std::make_unique<Scenes::LoginScene>(m_context, m_data, m_models, &m_session, Version, LoginSeed,
-                                                        &m_models.TextureSlots());
-        case Scenes::SceneId::CharacterSelect:
-            return std::make_unique<Scenes::CharacterSelectScene>(m_context, m_data, m_models, &m_session);
-        case Scenes::SceneId::WorldLoading:
-            return std::make_unique<Scenes::WorldLoadingScene>(m_context);
-        case Scenes::SceneId::Game:
-            return std::make_unique<Scenes::GameScene>(
-                m_context, &m_session, &m_models, m_data.items ? &m_data.items->table : nullptr,
-                &m_models.TextureSlots(), m_data.gates ? &*m_data.gates : nullptr,
-                m_data.skills ? &*m_data.skills : nullptr, m_data.text ? &*m_data.text : nullptr,
-                Scenes::GameChatTables{.filter = m_data.filter,
-                                       .filterName = m_data.filterName,
-                                       .setOptions = m_data.itemSets ? &m_data.itemSets->options : nullptr,
-                                       .itemSetTables = m_data.itemSets ? &*m_data.itemSets : nullptr});
-        }
-        return nullptr;
-    }
-
-    Core::Expected<void, std::string> PollNetwork()
-    {
-        const Scenes::OwnCharacterRecord& own = m_world.OwnCharacter();
-        m_session.SetKeepaliveSpeeds(App::KeepaliveSpeeds{
-            .attackSpeed = own.attackSpeed, .magicSpeed = own.magicSpeed, .characterFlags = own.speedAdjustBits});
-        const auto polled = m_session.Poll();
-        if (!polled.HasValue())
-        {
-            return polled;
-        }
-        m_autoLogin.Poll();
-        return {};
-    }
-
-    [[nodiscard]] bool Connecting() const
-    {
-        return m_session.State() == App::SessionState::ConnectingConnectServer ||
-               m_session.State() == App::SessionState::ConnectingGameServer;
-    }
-
-    void BeforeSceneFrame(Core::Duration now)
-    {
-        if (m_itemFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(m_context.pacing)) == 0)
-        {
-            return;
-        }
-        const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
-        Scenes::UpdateGameItemGlowPulse(m_world.Runtime().itemRender, worldClock);
-    }
-
-    void AfterSceneFrame(Core::Duration now)
-    {
-        Scenes::FinishTheWinMainLoop(m_winMainLoop, m_world, m_cloth.random, now,
-                                     Scenes::OriginalFramePaceOf(m_context.pacing),
-                                     m_manager.Current() == Scenes::SceneId::Game);
-    }
-
-    Core::Expected<void, std::string> AfterSceneStep()
-    {
-        if (Connecting())
-        {
-            return {};
-        }
-        return Scenes::StepTheMessageClocks(m_world.Runtime(), m_measure, Screen);
-    }
-
-    const std::filesystem::path m_dataRoot;
-    const Tables::GameData& m_data;
     RecordingSink m_sink;
     Core::Log m_log{m_sink, Core::LogLevel::Info};
     FakeClock m_clock;
     FakeTextureStore m_textures;
     RecordingFrameTarget m_target{Screen};
     LetterMeasure m_measure;
-    Models::ClothWorld m_cloth{.random = Crt::CrtRandom(CrtSeed)};
+    BlackScreenReader m_screenReader;
     Input::InputState m_input;
-    World::GameCamera m_camera;
-    Scenes::WorldState m_world;
-    World::GameCameraInput m_cameraInput;
-    Scenes::SelectionState m_selection{m_world};
-    Scenes::GameModels m_models;
-    Scenes::WorldEntryResources m_resources;
-    Scenes::SessionEventApplier m_applier{m_resources};
     FakeSocket m_socket;
-    Network::Connection m_connection{m_socket, Network::IdentityObfuscation::Shared(), m_clock, m_log, PaddingSeed};
-    App::ServerSession m_session;
-    App::AutoLogin m_autoLogin{m_session, App::Credentials{"user0001", "pass0002"}, m_log};
-    Scenes::SceneContext m_context;
-    Models::OriginalFrameCarry m_itemFrameCarry;
-    Scenes::WinMainLoopState m_winMainLoop;
-    Scenes::SceneManager m_manager;
+    App::GameClient m_client;
     Network::PacketSerials m_serverSerials;
     Network::PacketSerials m_traceSerials;
     std::span<const std::byte> m_sentThisFrame;
@@ -746,6 +615,29 @@ TEST_F(CharacterizationTest, EventEntry)
 TEST_F(CharacterizationTest, IdleKeepalive)
 {
     ExpectTheGolden("IdleKeepalive");
+}
+
+// Not a golden scene: the JPEG goes to a file. The ConnectServer stays silent, so the session waits for its hello.
+TEST_F(CharacterizationTest, PrintScreenReadsTheScreenOnce)
+{
+    const TemporaryFolder folder("print-screen");
+    ScriptedClient client(m_dataRoot, *m_data, folder.Path());
+    const auto started = client.Start();
+    ASSERT_TRUE(started.HasValue()) << started.Error();
+    for (int frame = 0; frame < 12; ++frame)
+    {
+        static_cast<void>(client.RunFrame());
+    }
+    ASSERT_EQ(client.CurrentScene(), Scenes::SceneId::Login);
+    for (const char* event : {"key-down", "key-up", "end", "end"})
+    {
+        const auto applied = client.Apply(ScriptRow{.frame = 0, .event = event, .value = "PrintScreen"});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        static_cast<void>(client.RunFrame());
+    }
+    EXPECT_EQ(client.Failure(), std::nullopt);
+    EXPECT_EQ(client.ScreenReads(), 1);
+    EXPECT_TRUE(std::filesystem::exists(folder.Path() / "Screen(11_26-12_00)-0000.jpg"));
 }
 
 TEST_F(CharacterizationTest, IsDeterministic)

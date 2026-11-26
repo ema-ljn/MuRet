@@ -52,11 +52,11 @@ struct SiegeDate
 struct CastleState
 {
     std::uint8_t result = 0;
-    std::int8_t state = 0;            // pkt[5], MOVSX
-    std::array<SiegeDate, 3> dates{}; // pkt[6..0x17]
-    GuildName ownerGuild{};           // pkt[0x18..0x1f]
+    std::int8_t state = 0;             // pkt[5], MOVSX
+    std::array<SiegeDate, 3> dates{};  // pkt[6..0x17]
+    GuildName ownerGuild{};            // pkt[0x18..0x1f]
     FrontEnd::NameBytes ownerMaster{}; // pkt[0x20..0x29]
-    std::uint32_t remaining = 0;      // pkt[0x2a..0x2d], el primero arriba
+    std::uint32_t remaining = 0;       // pkt[0x2a..0x2d], el primero arriba
 };
 
 // B2 01 (0x4df080, 0..8) y B2 02 (0x4df1a0, 0..3): solo el resultado.

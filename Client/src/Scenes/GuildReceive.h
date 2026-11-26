@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -46,7 +46,7 @@ struct GuildReceiveContext
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
     // Text.bmd: los textos de los resultados y de los diálogos.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // 0x57678bc: la clave del jugador (el E6 la compara).
     std::uint16_t playerKey = 0;
     // GetTickCount(): con lo que se abre el diálogo de los paneles (0x6600d0).

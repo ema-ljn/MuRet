@@ -15,9 +15,9 @@
 // palabras que no puede tener un nombre y el segundo empieza vacío.
 namespace
 {
-using Client::Data::Text::FilterChecksumKey;
-using Client::Data::Text::FilterNameChecksumKey;
-using Client::Data::Text::LoadFilterWords;
+using Client::Tables::FilterChecksumKey;
+using Client::Tables::FilterNameChecksumKey;
+using Client::Tables::LoadFilterWords;
 using Client::Tests::ReadFileBytes;
 using GoldenFilterWords = Client::Tests::GoldenDataTest;
 

@@ -148,7 +148,7 @@ Core::Expected<std::uint8_t, std::string> OptionByte(const World::ItemState& ite
     return item.optionBytes[offset];
 }
 
-Core::Expected<std::uint32_t, std::string> PriceOf(const World::ItemState& item, const Data::Tables::ItemTable* items,
+Core::Expected<std::uint32_t, std::string> PriceOf(const World::ItemState& item, const Tables::ItemTable* items,
                                                    std::int32_t mode, const WorldRuntime& runtime,
                                                    std::string_view address)
 {
@@ -185,8 +185,8 @@ Core::Expected<bool, std::string> WithTheFirstExcellent(const World::ItemState& 
 
 // 0x5fd9c3..0x5fda7b: lo que no tiene un caso propio.
 Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc, const World::ItemState& item,
-                                               std::int32_t level, bool& checksLuck,
-                                               const Data::Tables::ItemTable* items, const WorldRuntime& runtime)
+                                               std::int32_t level, bool& checksLuck, const Tables::ItemTable* items,
+                                               const WorldRuntime& runtime)
 {
     const std::int32_t type = Signed(item.id);
     bool found = false;
@@ -227,7 +227,7 @@ Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc
 // 0x5fd7f7..0x5fda99: las alas de primer nivel, con su precio y la opción de las alas. Después mira la suerte sin
 // mirar [EBP − 8], en la variable local [EBP − 0x11] (y en 0x7d2dc9c si el nivel la prendió).
 Core::Expected<void, std::string> CountTheWings(Tally& tally, NpcWindowState& npc, const World::ItemState& item,
-                                                const Data::Tables::ItemTable* items, const WorldRuntime& runtime)
+                                                const Tables::ItemTable* items, const WorldRuntime& runtime)
 {
     ++tally.wings;
     npc.mixWingOption = 0;
@@ -333,7 +333,7 @@ bool CountByType(Tally& tally, const World::ItemState& item, std::int32_t level)
 
 // Una casilla con tipo y +0x3c (0x5fd5bd..0x5fd7b7).
 Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc, const World::ItemState& item,
-                                               const Data::Tables::ItemTable* items, const WorldRuntime& runtime)
+                                               const Tables::ItemTable* items, const WorldRuntime& runtime)
 {
     ++tally.total;
     // 0x5fd5ca..0x5fd60d: el ancho y el alto más grandes.
@@ -524,8 +524,8 @@ std::int32_t KindOfTheRest(const Tally& t)
 }
 } // namespace
 
-Core::Expected<std::int32_t, std::string>
-ChaosBoxValue(std::span<const World::ItemState> grid, const Data::Tables::ItemTable* items, const PetPriceLevels& pets)
+Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const World::ItemState> grid,
+                                                        const Tables::ItemTable* items, const PetPriceLevels& pets)
 {
     std::int32_t value = 0;
     bool chaos = false;
@@ -570,7 +570,7 @@ ChaosBoxValue(std::span<const World::ItemState> grid, const Data::Tables::ItemTa
 }
 
 Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Crt::CrtRandom& random,
-                                                       const Data::Tables::ItemTable* items)
+                                                       const Tables::ItemTable* items)
 {
     WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
@@ -625,7 +625,7 @@ std::int32_t ChaosMixKindForMode(std::int32_t kind, std::int32_t mode)
 }
 
 Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Crt::CrtRandom& random,
-                                                  const Data::Tables::ItemTable* items)
+                                                  const Tables::ItemTable* items)
 {
     WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;

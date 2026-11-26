@@ -156,7 +156,7 @@ CreateWindowLayout LayoutCreateWindow(Core::PixelSize screen, std::uint8_t chara
     return layout;
 }
 
-CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Data::Text::TextTable* texts)
+CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts),
       m_classes{Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
                 Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),

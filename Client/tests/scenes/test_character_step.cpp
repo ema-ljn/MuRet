@@ -768,7 +768,7 @@ class GoldenCharacterStep : public Client::Tests::GoldenDataTest
 {
 protected:
     // Item.bmd del Data\ del repo.
-    std::optional<Client::Data::Tables::LoadedItemTable> LoadItems() const
+    std::optional<Client::Tables::LoadedItemTable> LoadItems() const
     {
         const auto path = DataFile("Local\\Item.bmd");
         if (!path)
@@ -780,7 +780,7 @@ protected:
         {
             return std::nullopt;
         }
-        auto loaded = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
+        auto loaded = Client::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
         if (!loaded.HasValue())
         {
             return std::nullopt;
@@ -2238,7 +2238,7 @@ struct SceneCharacters
     WorldState world;
     CrtRandom random{Seed};
     Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
-    const Client::Data::Tables::ItemTable* items = nullptr;
+    const Client::Tables::ItemTable* items = nullptr;
 };
 
 // El trapecio que deja el dibujo de la selección (0x63475c), el de su punto fijo.

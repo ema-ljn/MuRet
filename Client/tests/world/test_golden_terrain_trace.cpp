@@ -400,9 +400,9 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     const auto skillFile = Client::Tests::ReadFileBytes(*skillPath);
     const auto textFile = Client::Tests::ReadFileBytes(*textPath);
     ASSERT_TRUE(itemFile && skillFile && textFile);
-    const auto items = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*itemFile)));
-    const auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(*skillFile)));
-    const auto texts = Client::Data::Text::LoadTextTable(std::as_bytes(std::span(*textFile)));
+    const auto items = Client::Tables::LoadItemTable(std::as_bytes(std::span(*itemFile)));
+    const auto skills = Client::Tables::LoadSkillTable(std::as_bytes(std::span(*skillFile)));
+    const auto texts = Client::Tables::LoadTextTable(std::as_bytes(std::span(*textFile)));
     ASSERT_TRUE(items.HasValue());
     ASSERT_TRUE(skills.HasValue());
     ASSERT_TRUE(texts.HasValue());

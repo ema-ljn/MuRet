@@ -75,7 +75,7 @@ using Item4225d0 = std::function<void(ItemState&)>;
 // count0/1->1/2 y bookkeeping ordinario sin alias con metadata. La de MuRet es Scenes::AddTheDarkHorseOption,
 // que abre el registro propio (06, "El F3 10, el inventario").
 // Una función vacía en esa rama viola la precondición y lanza; no es un éxito silencioso.
-void InitializeItemState(ItemState& item, std::span<const std::byte, Data::Tables::ItemRecordSize> metadata,
+void InitializeItemState(ItemState& item, std::span<const std::byte, Tables::ItemRecordSize> metadata,
                          ItemInitializationScalars scalars, const std::uint16_t& contextWord,
                          const Item4225d0& apply4225d0);
 

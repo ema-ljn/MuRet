@@ -78,7 +78,7 @@ struct OptionsWindowLayout
 class OptionsWindow final : public NewUiWindow
 {
 public:
-    OptionsWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
+    OptionsWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x644120: las casillas, el botón y los deslizadores (el volumen hasta 9, el brillo hasta 4), y
     // 0x6446e0 con `settings`. Cerrada.
@@ -110,7 +110,7 @@ private:
     void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts = nullptr;
+    const Tables::TextTable* m_texts = nullptr;
     std::array<Button, 3> m_checks;
     Button m_close;
     std::array<Slider, 2> m_sliders;

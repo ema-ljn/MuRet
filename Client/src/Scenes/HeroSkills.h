@@ -37,11 +37,11 @@ struct HeroSkillContext
     WorldState& world;
     Crt::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: 0x5526f0 corta.
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::SkillTable* skills = nullptr;
     // Las acciones de Player.bmd, que 0x4ea030 pone a las skills de un jugador, e Item.bmd, que lee 0x4f4a10 con otro
     // (CL9 hito 4, fase 2c). nullptr: la que lo pide corta.
     const Models::Skeleton* playerSkeleton = nullptr;
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // Los esqueletos de los otros modelos, que 0x4ea030 lee en el 0x4f4a10 de un héroe que no es un jugador (con un
     // anillo de transformación; la flecha de 0x564f2f). nullptr: ese 0x4f4a10 corta (0x4ea030).
     const Models::IModelLibrary* models = nullptr;

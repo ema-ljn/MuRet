@@ -77,7 +77,7 @@ protected:
         GoldenDataTest::SetUp();
         if (HasFatalFailure())
             return;
-        auto data = Scenes::LoadGameData(m_dataRoot);
+        auto data = Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
         // Mismos inicializadores de WinMain y del avance 1, sin inventar el offset BMD.
@@ -305,7 +305,7 @@ protected:
     World::GameCamera m_camera;
     World::GameCameraInput m_cameraInput;
     Input::InputState m_input;
-    std::optional<Scenes::GameData> m_data;
+    std::optional<Tables::GameData> m_data;
     LetterMeasure m_letters;
     std::optional<std::string> m_pollFailure;
     Network::PacketSerials m_incoming;

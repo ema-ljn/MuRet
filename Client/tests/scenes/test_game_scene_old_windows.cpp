@@ -171,7 +171,7 @@ protected:
     const Client::UI::OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
     const Client::UI::OldWindowMeasure m_measure{
         .measure = m_letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
-    Client::Data::Tables::SkillTable m_skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
+    Client::Tables::SkillTable m_skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     std::unique_ptr<Client::Scenes::WorldState> m_world;
     std::unique_ptr<Client::Scenes::GameModels> m_models;
     Client::Tests::RecordingFrameTarget m_target;

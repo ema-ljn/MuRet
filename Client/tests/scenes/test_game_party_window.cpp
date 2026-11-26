@@ -302,8 +302,8 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(PartyTexts());
-    const Client::Data::Text::TextTable* m_drawnTexts = &m_texts;
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(PartyTexts());
+    const Client::Tables::TextTable* m_drawnTexts = &m_texts;
     bool m_leftDown = false;
 };
 

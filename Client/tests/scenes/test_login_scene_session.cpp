@@ -122,14 +122,14 @@ using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Render::BlendMode;
 using Client::Render::TextureSlot;
 using Client::Scenes::CreditIllustrationSets;
-using Client::Scenes::GameData;
-using Client::Scenes::LoadGameData;
 using Client::Scenes::LoginScene;
 using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::TextureBufferSize;
 using Client::Scenes::WindowTextureSet;
+using Client::Tables::GameData;
+using Client::Tables::LoadGameData;
 using Client::Tests::AddressReply;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
@@ -230,7 +230,7 @@ struct CreditRecord
 // Un credit.bmd inventado con `records` (la clase y el texto) al principio, cifrado con el XOR3 (0x63ff30).
 std::vector<std::byte> CreditFile(std::initializer_list<CreditRecord> records)
 {
-    std::vector<std::byte> file(Client::Data::Text::CreditFileSize);
+    std::vector<std::byte> file(Client::Tables::CreditFileSize);
     std::size_t first = 0;
     for (const auto& [kind, text] : records)
     {
@@ -239,7 +239,7 @@ std::vector<std::byte> CreditFile(std::initializer_list<CreditRecord> records)
         {
             file[first + 1 + i] = static_cast<std::byte>(text[i]);
         }
-        first += Client::Data::Text::CreditRecordSize;
+        first += Client::Tables::CreditRecordSize;
     }
     Client::Crypto::Xor3(file);
     return file;

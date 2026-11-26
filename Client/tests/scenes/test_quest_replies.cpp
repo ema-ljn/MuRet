@@ -68,7 +68,7 @@ struct Replies
         record.entries[0].classes = {1, 0, 0, 0, 0};
         record.entries[0].dialogs = {40, 41, 42, 43};
         world.Runtime().quest.characterClass = 0;
-        world.Runtime().dialogTable.assign(Client::Data::Text::DialogCount, {});
+        world.Runtime().dialogTable.assign(Client::Tables::DialogCount, {});
         std::ranges::copy(std::string_view("Una misión inventada"), world.Runtime().dialogTable[41].text.begin());
     }
     Client::Scenes::ActorState& Hero()
@@ -102,7 +102,7 @@ struct Replies
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
     int windowCloses = 0;
 };
 

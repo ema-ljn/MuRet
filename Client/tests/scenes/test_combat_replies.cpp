@@ -148,10 +148,10 @@ protected:
                                   .items = &m_items};
     }
     // Con la tabla de sonidos `sounds` para el modelo Monster (la de 0x612c80) y ninguna para los demás.
-    [[nodiscard]] ActorCombatContext CombatWithSounds(const Client::Scenes::ModelSounds& sounds)
+    [[nodiscard]] ActorCombatContext CombatWithSounds(const Client::Sound::ModelSounds& sounds)
     {
         ActorCombatContext combat = Combat();
-        combat.modelSounds = [sounds](std::uint16_t model) -> std::optional<Client::Scenes::ModelSounds>
+        combat.modelSounds = [sounds](std::uint16_t model) -> std::optional<Client::Sound::ModelSounds>
         {
             if (model != Monster)
                 return std::nullopt;
@@ -192,8 +192,8 @@ protected:
     CrtRandom m_random{Seed};
     Client::Models::Skeleton m_playerSkeleton = Client::Tests::PlayerActionsSkeleton();
     CombatModels m_models;
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
+    Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
     LetterMeasure m_letters;
 };
 
@@ -352,7 +352,7 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
         ActorState& dead = MonsterAt(12, 0x123);
         dead.subtype = tested.subtype;
         dead.animation = {};
-        Client::Scenes::ModelSounds sounds{};
+        Client::Sound::ModelSounds sounds{};
         sounds.fill(0x11);
         sounds[4] = tested.word;
         const auto applied = Client::Scenes::ApplyKillExperience(
@@ -427,7 +427,7 @@ TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFul
                 Runtime().modelSounds.clear();
                 if (tested.deathSound)
                 {
-                    Client::Scenes::ModelSounds sounds{};
+                    Client::Sound::ModelSounds sounds{};
                     sounds.fill(0);
                     sounds[4] = *tested.deathSound;
                     Runtime().modelSounds[tested.model] = sounds;
@@ -1015,7 +1015,7 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
     EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0xd2));
     EXPECT_EQ(m_random.State(), After(1));
 
-    Client::Scenes::ModelSounds sounds{};
+    Client::Sound::ModelSounds sounds{};
     sounds.fill(-1);
     sounds[2] = 0x7c;
     sounds[3] = -0x10;
@@ -1167,7 +1167,7 @@ TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
 // entrada se cierra (un rand()). Sin encontrarla, la 3 o la 4 por +0x38f.
 TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
 {
-    Client::Data::Tables::MonsterSkills crywolf;
+    Client::Tables::MonsterSkills crywolf;
     crywolf.skills = {6, 7, 8, 0xc8, -1};
     Runtime().monsterSkills.records[0x154] = crywolf;
     Runtime().map = 0x22;
@@ -1248,11 +1248,11 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
         float frame;
         bool frameIsZeroOrUnordered;
         std::int32_t subtype;
-        std::optional<Client::Scenes::ModelSounds> sounds;
+        std::optional<Client::Sound::ModelSounds> sounds;
     };
-    Client::Scenes::ModelSounds silent{};
+    Client::Sound::ModelSounds silent{};
     silent.fill(-1);
-    Client::Scenes::ModelSounds zeroed{};
+    Client::Sound::ModelSounds zeroed{};
     zeroed.fill(0);
     const std::array<Case, 6> cases{{
         {1.0f, false, 0xd2, zeroed},
@@ -1289,9 +1289,9 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
             ActorCombatContext combat = Combat();
             if (test.sounds)
             {
-                const Client::Scenes::ModelSounds sounds = *test.sounds;
+                const Client::Sound::ModelSounds sounds = *test.sounds;
                 combat.modelSounds = [model,
-                                      sounds](std::uint16_t requested) -> std::optional<Client::Scenes::ModelSounds>
+                                      sounds](std::uint16_t requested) -> std::optional<Client::Sound::ModelSounds>
                 {
                     if (requested != model)
                         return std::nullopt;
@@ -1305,7 +1305,7 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
             {
                 if (test.subtype >= 0xd1 && test.subtype <= 0xd3)
                     expectedSound = static_cast<std::int32_t>((expected.Next() & 1) + 0x3c);
-                const Client::Scenes::ModelSounds sounds = test.sounds.value_or(Client::Scenes::ModelSounds{});
+                const Client::Sound::ModelSounds sounds = test.sounds.value_or(Client::Sound::ModelSounds{});
                 if (sounds[2] != -1)
                 {
                     const auto drawn = static_cast<std::size_t>(expected.Next() % 2);
@@ -1400,7 +1400,7 @@ TEST_F(CombatRepliesTest, TheFlameOf33GoesOutWithTheStrike)
 // La tabla de sonidos que escribió el alta (WorldRuntime::modelSounds) es la de 0x4f4a10 si el contexto no trae otra.
 TEST_F(CombatRepliesTest, TheModelSoundsComeFromTheRuntimeTable)
 {
-    Client::Scenes::ModelSounds sounds{};
+    Client::Sound::ModelSounds sounds{};
     sounds.fill(-1);
     sounds[2] = 0x14;
     sounds[3] = 0x15;

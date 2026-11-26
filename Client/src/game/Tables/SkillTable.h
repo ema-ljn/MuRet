@@ -16,7 +16,7 @@
 // Q-C08: el original guarda los registros en un contenedor "guardia" que, mientras nadie los usa,
 // deja en su lugar bytes de rand(). Es una protección contra trampas y no se porta: MuRet guarda
 // la tabla en claro.
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 // Cuántos skills trae la tabla, uno por registro. El original lee siempre 256.
 inline constexpr std::size_t SkillCount = 256;
@@ -27,7 +27,7 @@ inline constexpr std::size_t SkillRecordSize = 0x3C;
 inline constexpr std::size_t SkillTableSize = SkillCount * SkillRecordSize;
 static_assert(SkillTableSize == 0x3C00, "el tamaño que mide el research (05, Tablas .bmd)");
 
-using SkillTable = RecordTable<SkillRecordSize>;
+using SkillTable = Data::Tables::RecordTable<SkillRecordSize>;
 
 // Descifra los primeros SkillTableSize bytes de `file`, si el checksum que les sigue es el suyo.
 //   - Si el checksum no coincide, devuelve DataError::ChecksumMismatch y no hay tabla, como en el
@@ -35,5 +35,5 @@ using SkillTable = RecordTable<SkillRecordSize>;
 //   - Si `file` no llega a tener los registros y los 4 bytes del checksum, devuelve
 //     DataError::FileTooShort (Q-C24).
 //   - Si es más largo, el resto se ignora, como con los fread de tamaño fijo del original.
-Core::Expected<SkillTable, DataError> LoadSkillTable(std::span<const std::byte> file);
-} // namespace Client::Data::Tables
+Core::Expected<SkillTable, Data::DataError> LoadSkillTable(std::span<const std::byte> file);
+} // namespace Client::Tables

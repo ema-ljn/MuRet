@@ -22,7 +22,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Record = std::span<const std::byte, Data::Tables::ItemRecordSize>;
+using Record = std::span<const std::byte, Tables::ItemRecordSize>;
 
 constexpr std::uint16_t NoItem = 0xffff;
 // D+0x2b: la primera opción.
@@ -730,7 +730,7 @@ std::uint32_t PetBasePrice(std::uint16_t type, const PetPriceLevels& pets)
     return type == FirstPet ? pets.horse * HorsePricePerLevel : pets.raven * RavenPricePerLevel;
 }
 
-Core::Expected<std::uint32_t, std::string> ItemPrice(const World::ItemState& item, const Data::Tables::ItemTable& items,
+Core::Expected<std::uint32_t, std::string> ItemPrice(const World::ItemState& item, const Tables::ItemTable& items,
                                                      std::int32_t mode, const std::optional<PetPriceLevels>& pets)
 {
     if (item.id == NoItem)

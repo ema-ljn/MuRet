@@ -141,7 +141,7 @@ protected:
     Client::Input::InputState m_input;
     RecordingRequests m_requests;
     // 0x173..0x176, el aviso del OK con la grilla del otro cambiada (inventados).
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(
         {{0x173, "el otro cambio"}, {0x174, "sus objetos"}, {0x175, "mira bien"}, {0x176, "antes del OK"}});
 };
 

@@ -15,9 +15,9 @@
 // (Client/tests/support/GoldenDir.h).
 namespace
 {
-using Client::Data::Tables::GateCount;
-using Client::Data::Tables::GateTableSize;
-using Client::Data::Tables::LoadGateTable;
+using Client::Tables::GateCount;
+using Client::Tables::GateTableSize;
+using Client::Tables::LoadGateTable;
 using Client::Tests::DeviasCapture;
 using Client::Tests::FirstRecordThatDiffers;
 using Client::Tests::ReadFileBytes;

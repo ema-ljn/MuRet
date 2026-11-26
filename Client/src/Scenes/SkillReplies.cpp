@@ -1001,7 +1001,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
         {
             // 0x4c549a..0x4c54fa: abre la entrada y la cierra con 0x4e7c40.
             const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], random,
-                                              static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                              static_cast<std::uint16_t>(Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = 0x31;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
         }

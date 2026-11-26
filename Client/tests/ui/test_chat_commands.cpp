@@ -53,10 +53,10 @@ protected:
                                   .setLabel = &setLabel};
     }
 
-    const Client::Data::Tables::ItemTable* items = nullptr;
-    const Client::Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    const Client::Tables::ItemTable* items = nullptr;
+    const Client::Tables::ItemSetOptionTable* setOptions = nullptr;
 
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     std::int32_t map = 0;
     bool logoutRequested = false;
     bool warehouseOpen = false;
@@ -442,7 +442,7 @@ TEST_F(Commands, AnItemNameOpensItsHelp)
 {
     constexpr std::array<std::size_t, 1> Named{7};
     const auto table =
-        TableWith<Client::Data::Tables::ItemRecordSize>(16, Named, "Espadin", 0x24, std::byte{1}, std::byte{0});
+        TableWith<Client::Tables::ItemRecordSize>(16, Named, "Espadin", 0x24, std::byte{1}, std::byte{0});
     items = &table;
     setLabel = 4;
     const auto outcome = Client::UI::RunTheChatCommand(Context(), "/Espadin", false);
@@ -458,16 +458,16 @@ TEST_F(Commands, AnItemNameOpensItsHelp)
 // otro texto con "/" lo apaga si hay algún conjunto usado, y uno sin "/" no lo toca. Nunca es un comando (0x576912).
 TEST(SetCommands, TheNameOfASetShowsItsLabel)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    std::vector<std::byte> plain(Client::Tables::ItemSetOptionTableSize, std::byte{0xff});
     const std::string_view name = "Delta";
-    const std::size_t offset = 2 * Client::Data::Tables::ItemSetOptionRecordSize;
+    const std::size_t offset = 2 * Client::Tables::ItemSetOptionRecordSize;
     for (std::size_t i = 0; i < name.size(); ++i)
         plain[offset + i] = static_cast<std::byte>(name[i]);
     plain[offset + name.size()] = std::byte{0};
     plain[offset + 0x3c] = std::byte{4};
-    const Client::Data::Tables::ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0}), plain);
-    const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    const Client::Tables::ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0}), plain);
+    const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     ChatLogState log;
     std::array<std::string, MacroCount> macros{};
     std::int32_t overlayMode = 3;

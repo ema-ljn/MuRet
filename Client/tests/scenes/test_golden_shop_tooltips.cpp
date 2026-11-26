@@ -562,23 +562,23 @@ protected:
         const std::vector<char> skillFile = read("Local\\Skill.bmd");
         const std::vector<char> setTypeFile = read("Local\\ItemSetType.bmd");
         const std::vector<char> setOptionFile = read("Local\\ItemSetOption.bmd");
-        auto items = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(itemFile)));
+        auto items = Client::Tables::LoadItemTable(std::as_bytes(std::span(itemFile)));
         ASSERT_TRUE(items.HasValue());
         m_items.emplace(std::move(items).Value().table);
-        auto texts = Client::Data::Text::LoadTextTable(std::as_bytes(std::span(textFile)));
+        auto texts = Client::Tables::LoadTextTable(std::as_bytes(std::span(textFile)));
         ASSERT_TRUE(texts.HasValue());
         m_texts.emplace(std::move(texts).Value());
-        auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(skillFile)));
+        auto skills = Client::Tables::LoadSkillTable(std::as_bytes(std::span(skillFile)));
         ASSERT_TRUE(skills.HasValue());
         m_skills.emplace(std::move(skills).Value());
-        auto types = Client::Data::Tables::LoadItemSetTypeTable(std::as_bytes(std::span(setTypeFile)));
+        auto types = Client::Tables::LoadItemSetTypeTable(std::as_bytes(std::span(setTypeFile)));
         ASSERT_TRUE(types.HasValue());
-        auto options = Client::Data::Tables::LoadItemSetOptionTable(std::as_bytes(std::span(setOptionFile)));
+        auto options = Client::Tables::LoadItemSetOptionTable(std::as_bytes(std::span(setOptionFile)));
         ASSERT_TRUE(options.HasValue());
-        m_sets.emplace(Client::Data::Tables::ItemSetTables{std::move(types).Value(), std::move(options).Value()});
+        m_sets.emplace(Client::Tables::ItemSetTables{std::move(types).Value(), std::move(options).Value()});
         // 0x7681eb8: los monstruos de NpcName(Eng).txt, que nombran los anillos de transformación (0x1a0a).
         const std::vector<char> npcFile = read("Local\\NpcName(Eng).txt");
-        auto npcs = Client::Data::Text::LoadNpcNames(std::as_bytes(std::span(npcFile)));
+        auto npcs = Client::Tables::LoadNpcNames(std::as_bytes(std::span(npcFile)));
         ASSERT_TRUE(npcs.HasValue());
         m_world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(npcs.Value());
 
@@ -680,10 +680,10 @@ protected:
     Client::World::GameCameraInput m_cameraInput;
     Client::Models::ClothWorld m_cloth{.random = CrtRandom(0x1357)};
     Client::Scenes::SingleModelLibrary m_models;
-    std::optional<Client::Data::Tables::ItemTable> m_items;
-    std::optional<Client::Data::Text::TextTable> m_texts;
-    std::optional<Client::Data::Tables::SkillTable> m_skills;
-    std::optional<Client::Data::Tables::ItemSetTables> m_sets;
+    std::optional<Client::Tables::ItemTable> m_items;
+    std::optional<Client::Tables::TextTable> m_texts;
+    std::optional<Client::Tables::SkillTable> m_skills;
+    std::optional<Client::Tables::ItemSetTables> m_sets;
     LetterMeasure m_measure;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};

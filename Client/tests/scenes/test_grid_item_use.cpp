@@ -76,7 +76,7 @@ constexpr std::array<std::uint16_t, 7> SkillItems{0x1e00, 0x1fff, 0x1807, 0x180e
 constexpr std::uint16_t RequiredLevel = 50;
 constexpr std::size_t RequiredLevelOffset = 0x3a;
 
-Client::Data::Tables::ItemTable MakeItems()
+Client::Tables::ItemTable MakeItems()
 {
     std::vector<Client::Tests::ItemShape> shapes{{Sword, 1, 3, 0},
                                                  {Bolts, 1, 1, 1},
@@ -200,18 +200,18 @@ protected:
 
     WorldState world;
     CrtRandom random{0x2b6d1e5u};
-    Client::Data::Tables::ItemTable items = MakeItems();
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{166, "nieve"},
-                                                                        {167, "sol"},
-                                                                        {168, "cielo"},
-                                                                        {169, "mar"},
-                                                                        {1900, "mando"},
-                                                                        {376, "usar?"},
-                                                                        {474, "no se puede usar ahora"},
-                                                                        {749, "desde el nivel diez"},
-                                                                        {1865, "joya sobre el cuerno"},
-                                                                        {1905, "solo una clase"},
-                                                                        {1909, "sin equipo"}});
+    Client::Tables::ItemTable items = MakeItems();
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{166, "nieve"},
+                                                                    {167, "sol"},
+                                                                    {168, "cielo"},
+                                                                    {169, "mar"},
+                                                                    {1900, "mando"},
+                                                                    {376, "usar?"},
+                                                                    {474, "no se puede usar ahora"},
+                                                                    {749, "desde el nivel diez"},
+                                                                    {1865, "joya sobre el cuerno"},
+                                                                    {1905, "solo una clase"},
+                                                                    {1909, "sin equipo"}});
     InventoryServices services;
     std::vector<std::size_t> messages;
     std::vector<std::int32_t> messageTypes;

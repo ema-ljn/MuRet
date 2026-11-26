@@ -229,7 +229,7 @@ TEST_F(GameT16Journey, RealClicksEchoesAndGateRectanglesTravelToNoriaAndBackBefo
     OpenManagedScene();
     WaitForInput();
     ASSERT_NO_FATAL_FAILURE(ExpectWalkThenGate(23, 215, 246));
-    const auto noriaGate = Client::Data::Tables::ReadGateRecord(*m_data->gates, 25);
+    const auto noriaGate = Client::Tables::ReadGateRecord(*m_data->gates, 25);
     ASSERT_TRUE(noriaGate.has_value());
     ASSERT_EQ(noriaGate->map, 3);
     ASSERT_GT(noriaGate->x1, 2);

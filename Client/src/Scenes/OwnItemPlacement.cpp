@@ -99,15 +99,14 @@ std::uint32_t Byte(InventoryItemBytes bytes, std::size_t index)
     return std::to_integer<std::uint32_t>(bytes[index]);
 }
 
-Core::Expected<std::span<const std::byte, Data::Tables::ItemRecordSize>, std::string>
+Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
 ItemRecordOf(std::uint16_t type, const WorldEntryResources& resources, std::string_view where)
 {
     if (resources.items == nullptr)
     {
         return Core::Unexpected(std::format("{}: lee *[0x7758550] (Item.bmd) y no está cargado", where));
     }
-    const std::optional<std::span<const std::byte, Data::Tables::ItemRecordSize>> record =
-        resources.items->Record(type);
+    const std::optional<std::span<const std::byte, Tables::ItemRecordSize>> record = resources.items->Record(type);
     if (!record)
     {
         return Core::Unexpected(std::format("{}: el tipo {:#x} lee fuera de Item.bmd", where, type));

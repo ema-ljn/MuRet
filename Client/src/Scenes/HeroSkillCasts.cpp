@@ -97,7 +97,7 @@ Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
 {
     return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                 static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
 // Una celda lógica (+0x41c o +0x420) con 0x40b570/0x412810 y 0x40b800: 4 rand() al cerrarla en 0.
@@ -320,7 +320,7 @@ Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const H
     return {};
 }
 
-std::uint16_t WordAt(std::span<const std::byte, Data::Tables::SkillRecordSize> record, std::size_t offset)
+std::uint16_t WordAt(std::span<const std::byte, Tables::SkillRecordSize> record, std::size_t offset)
 {
     return static_cast<std::uint16_t>(std::to_integer<std::uint16_t>(record[offset]) |
                                       (std::to_integer<std::uint16_t>(record[offset + 1]) << 8));
@@ -336,7 +336,7 @@ Core::Expected<SkillCost, std::string> SkillCostOf(std::uint8_t skill, const Her
     if (!record)
         return Core::Unexpected(std::format("{}: Skill.bmd no tiene la skill {}", where, skill));
     const Models::LogicalAccess entry(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                      static_cast<std::uint16_t>(Tables::SkillRecordSize));
     return SkillCost{.mana = WordAt(*record, ManaOffset), .stamina = WordAt(*record, StaminaOffset)};
 }
 

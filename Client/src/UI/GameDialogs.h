@@ -121,17 +121,18 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 //     con la joya del 1806 o del 1807, partido en a lo sumo 2 renglones de 0x1e bytes (0x632c90 en la pila, cuyos
 //     renglones copia con strcpy a los dos primeros), y debajo el precio con el 1810 o el 1814. Sin mirar
 //     `lineCount` ni `firstText`.
-[[nodiscard]] Core::Expected<void, std::string>
-OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::TextTable* texts, std::int32_t lineCount,
-               std::int32_t firstText, std::int32_t id, const World::ItemState* dialogItem = nullptr,
-               const DialogTextArguments* arguments = nullptr);
+[[nodiscard]] Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
+                                                               const Tables::TextTable* texts, std::int32_t lineCount,
+                                                               std::int32_t firstText, std::int32_t id,
+                                                               const World::ItemState* dialogItem = nullptr,
+                                                               const DialogTextArguments* arguments = nullptr);
 
 // 0x633300(renglones, primerTexto, 0x99) (CL9 hito 7): el primer renglón es el sprintf del texto `firstText` con
 // `zen`, lo que 0x5b1130 escribe del zen tipeado (0x77f3b6c; quien llama lo arma con Scenes::FormatZen), y los que
 // siguen, los textos `firstText + 1` .. `firstText + lineCount − 1` con el mismo sprintf sin argumentos (un "%%" sale
 // como "%"); la cuenta queda en `lineCount`. Los botones y el id, como OpenTextDialog.
 [[nodiscard]] Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, DialogState& dialogs,
-                                                                       const Data::Text::TextTable* texts,
+                                                                       const Tables::TextTable* texts,
                                                                        std::int32_t lineCount, std::int32_t firstText,
                                                                        std::string_view zen);
 
@@ -146,15 +147,14 @@ OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::Text
 // ninguna (la cuenta en 0), "1) " y el texto 609 con strcpy y la cuenta en 1. Después, 0x6236f0(0). No toca los
 // botones. Corta sin la tabla, con un índice fuera de los 200 o sin el texto 609.
 [[nodiscard]] Core::Expected<void, std::string> ShowTheQuestDialog(DialogBoxState& box, DialogState& dialogs,
-                                                                   const Data::Text::DialogTable* table,
-                                                                   const Data::Text::TextTable* texts,
-                                                                   std::int32_t index);
+                                                                   const Tables::DialogTable* table,
+                                                                   const Tables::TextTable* texts, std::int32_t index);
 
 // 0x632f70(índice): lo mismo que 0x419710 con los botones en 0 (0x7d368b8, 10 dwords) y, en vez de 0x6236f0(0), el
 // 0x8d abierto, o esperando si hay otro.
 [[nodiscard]] Core::Expected<void, std::string> OpenTheAnswersDialog(DialogBoxState& box, DialogState& dialogs,
-                                                                     const Data::Text::DialogTable* table,
-                                                                     const Data::Text::TextTable* texts,
+                                                                     const Tables::DialogTable* table,
+                                                                     const Tables::TextTable* texts,
                                                                      std::int32_t index);
 
 // 0x62d756..0x62d7e9: los dos botones. Con estado 1 o más, el mouse en [x + 0xd5, x + w + 0xd5] × [y + 0x3c, y + h +
@@ -166,8 +166,8 @@ OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::Text
 // 0xde]) resta una página sin bajar de 0; la de la derecha ([0x179, 0x188] × [0xca, 0xde]) suma una sin pasar de la
 // última. Con cualquiera, los renglones son los del texto pageText + page (0x632c90). Antes, 0x620a00(1), que en el
 // paso no dibuja nada (*inferido*, 08).
-[[nodiscard]] Core::Expected<void, std::string>
-StepTheDialogPages(DialogBoxState& box, const Data::Text::TextTable* texts, Point mouse, bool click);
+[[nodiscard]] Core::Expected<void, std::string> StepTheDialogPages(DialogBoxState& box, const Tables::TextTable* texts,
+                                                                   Point mouse, bool click);
 
 // Los renglones del texto y de las respuestas de las cajas van de 0x12 en 0x12 (0x62d92f, 0x632501 y 0x6325ee).
 inline constexpr std::int32_t DialogLineStep = 0x12;

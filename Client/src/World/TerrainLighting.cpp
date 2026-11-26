@@ -149,7 +149,7 @@ void ReshadeTerrainLightWindow(TerrainLighting& lighting, const Data::Terrain::T
 Core::Expected<std::unique_ptr<TerrainLighting>, std::string> LoadTerrainLighting(const std::filesystem::path& dataRoot,
                                                                                   std::uint8_t map)
 {
-    const std::string folder = Data::WorldFolder(map) + "\\";
+    const std::string folder = Maps::WorldFolder(map) + "\\";
     const Core::Expected<std::vector<char>, std::string> heightsFile =
         ReadWorldFile(dataRoot, folder + "TerrainHeight.OZB");
     if (!heightsFile.HasValue())
@@ -157,7 +157,7 @@ Core::Expected<std::unique_ptr<TerrainLighting>, std::string> LoadTerrainLightin
         return Core::Unexpected(heightsFile.Error());
     }
     const auto heights = Data::Terrain::LoadTerrainHeights(std::as_bytes(std::span(heightsFile.Value())),
-                                                           static_cast<std::uint8_t>(Data::WorldFolderNumber(map)));
+                                                           static_cast<std::uint8_t>(Maps::WorldFolderNumber(map)));
     if (!heights.HasValue())
     {
         return Core::Unexpected("Data\\" + folder +

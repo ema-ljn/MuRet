@@ -17,12 +17,12 @@
 // Casos del ASM de 0x599ef0: la decisión no ejecuta el original ni simula sus accesos protegidos.
 namespace
 {
-using Client::Data::Tables::GateRecord;
-using Client::Data::Tables::GateTable;
 using Client::GameLogic::GateCheck;
 using Client::GameLogic::GateCheckState;
 using Client::GameLogic::GateDecision;
 using Client::GameLogic::GateWarning;
+using Client::Tables::GateRecord;
+using Client::Tables::GateTable;
 using Client::Tests::GateTableBytes;
 
 constexpr GateRecord Entry{1, 0, 10, 20, 12, 22, 2, 7, 20};

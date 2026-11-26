@@ -138,11 +138,11 @@ InventoryList ListOf(std::initializer_list<InventoryEntry> entries)
 }
 
 // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
-Client::Data::Tables::ItemSetTables NoSets()
+Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
 // Lo que dura la sesión, con Player.bmd, sin conjuntos y el Item.bmd que pase la prueba.
@@ -153,7 +153,7 @@ private:
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
 
 public:
-    Stage(std::filesystem::path root, const Client::Data::Tables::ItemTable* itemTable)
+    Stage(std::filesystem::path root, const Client::Tables::ItemTable* itemTable)
         : dataRoot(std::move(root)), cloth{.random = CrtRandom(Seed)}, items(itemTable)
     {
         models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
@@ -199,13 +199,13 @@ public:
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
-    const Client::Data::Tables::ItemTable* items = nullptr;
-    Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemTable* items = nullptr;
+    Client::Tables::ItemSetTables sets = NoSets();
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     // El renglón de bienvenida del F3 03 y del 1C que cambia de mapa (0x4c4b60 y 0x4c7c4e).
     Client::Tests::LetterMeasure letters;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
 };
 
 class InventoryReplyTest : public Client::Tests::GoldenDataTest
@@ -218,7 +218,7 @@ protected:
         ASSERT_TRUE(path.has_value());
         const std::optional<std::vector<char>> file = Client::Tests::ReadFileBytes(*path);
         ASSERT_TRUE(file.has_value());
-        auto loaded = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
+        auto loaded = Client::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
         ASSERT_TRUE(loaded.HasValue());
         m_items.emplace(std::move(loaded).Value().table);
     }
@@ -234,7 +234,7 @@ protected:
         return std::make_unique<Stage>(m_dataRoot, &*m_items);
     }
 
-    std::optional<Client::Data::Tables::ItemTable> m_items;
+    std::optional<Client::Tables::ItemTable> m_items;
 };
 
 std::uint16_t ModelOf(std::uint16_t type)

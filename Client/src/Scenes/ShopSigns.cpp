@@ -178,8 +178,7 @@ void DrawTheSign(ShopSignDrawContext& context, const ShopTitle& sign, const Shop
 }
 } // namespace
 
-Core::Expected<std::string_view, std::string> ShopSignHeader(const Data::Text::TextTable* texts,
-                                                             std::string_view address)
+Core::Expected<std::string_view, std::string> ShopSignHeader(const Tables::TextTable* texts, std::string_view address)
 {
     const std::optional<std::string_view> header =
         texts != nullptr ? texts->Text(ShopSignHeaderText) : std::optional<std::string_view>{};

@@ -190,9 +190,9 @@ public:
     CrtRandom random;
     std::optional<CrtRandom> randomAtTheWalk;
     Client::Models::Skeleton skeleton;
-    Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
+    Client::Tables::SkillTable skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     TypedLetters letters;
-    Client::Data::Text::TextTable texts =
+    Client::Tables::TextTable texts =
         Client::Tests::MakeTextTable({{LevelText, "hace falta el nivel %d"}, {FlagText, "no con eso puesto"}});
     std::vector<std::string> events;
 };

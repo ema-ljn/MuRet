@@ -37,7 +37,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Record = std::span<const std::byte, Data::Tables::ItemRecordSize>;
+using Record = std::span<const std::byte, Tables::ItemRecordSize>;
 
 // 0x5b089c..0x5b0944: las flechas y los virotes cierran la ayuda; las franjas de tipos.
 constexpr std::int32_t BoltsItem = 0x807;

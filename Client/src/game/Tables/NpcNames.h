@@ -23,7 +23,7 @@
 // 0x54e7f0: mientras el token no sea el 2 ni el nombre "end", un registro más con el tipo en el ftol del último número
 // leído (sea cual sea el token), y dos tokens más: el nombre es la cadena que dejó el segundo (strcpy; "" si fue otra
 // cosa). Las comillas, el número y el nombre del archivo del laboratorio: " 84 1 \"King Orc\"".
-namespace Client::Data::Text
+namespace Client::Tables
 {
 // Los registros de 0x7681eb8..0x7688ab8.
 inline constexpr std::size_t NpcNameCount = 512;
@@ -53,5 +53,5 @@ struct NpcNameRecord
 // tokenizador le pregunta a isspace, isdigit o isalnum (con el char con signo, fuera de la tabla de la CRT) y un ftol
 // fuera de int64. El último número empieza en 0 (la .bss; *inferido*: en la versión de release ningún otro cargador
 // del tokenizador corre antes). Los bytes de 0 a 0x7f se clasifican como en la "C".
-[[nodiscard]] Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<const std::byte> file);
-} // namespace Client::Data::Text
+[[nodiscard]] Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::span<const std::byte> file);
+} // namespace Client::Tables

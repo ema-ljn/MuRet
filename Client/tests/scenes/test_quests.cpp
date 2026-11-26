@@ -42,7 +42,7 @@ constexpr int OwnRecordClose = 0xf08;
 // El pergamino inventado de la misión 0: grupo 14, índice 23.
 constexpr std::int32_t ScrollType = 14 * 0x200 + 23;
 
-void PutText(std::array<char, Client::Data::Text::DialogTextSize>& text, std::string_view value)
+void PutText(std::array<char, Client::Tables::DialogTextSize>& text, std::string_view value)
 {
     std::ranges::copy(value, text.begin());
 }
@@ -55,7 +55,7 @@ struct Quests
         Hero().alive = true;
         Hero().characterClass = 0;
         // La misión 0: un pedido de ítems para la clase 0 con la condición 0 (nivel 10 a 0 y 1.000 de zen).
-        Client::Data::Tables::QuestRecord& first = Quest().records[0];
+        Client::Tables::QuestRecord& first = Quest().records[0];
         first.entryCount = 1;
         first.conditionCount = 1;
         auto& entry = first.entries[0];
@@ -76,12 +76,12 @@ struct Quests
         condition.zen = 1000;
         condition.failDialog = 20;
         // La misión 1: un pedido para la clase 1 nada más.
-        Client::Data::Tables::QuestRecord& second = Quest().records[1];
+        Client::Tables::QuestRecord& second = Quest().records[1];
         second.entryCount = 1;
         second.entries[0].classes = {0, 1, 0, 0, 0};
         second.entries[0].dialogs = {30, 31, 32, 33};
 
-        world.Runtime().dialogTable.assign(Client::Data::Text::DialogCount, {});
+        world.Runtime().dialogTable.assign(Client::Tables::DialogCount, {});
         for (const std::int32_t index : {10, 11, 12, 13, 20, 30, 33})
             PutText(world.Runtime().dialogTable[static_cast<std::size_t>(index)].text, "Un texto inventado");
         auto& withAnswers = world.Runtime().dialogTable[10];
@@ -112,7 +112,7 @@ struct Quests
     }
     Client::Scenes::WorldState world;
     Client::Crt::CrtRandom random{Seed};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
 };
 
 std::unique_ptr<Quests> MakeQuests()
@@ -310,7 +310,7 @@ TEST(Quests, TheZenIsReadWithTheRecordOpenOnlyWhenAsked)
     QuestState& quest = tested->Quest();
     quest.characterClass = 0;
     tested->world.OwnCharacter().zen = 999;
-    Client::Data::Tables::QuestCondition& condition = quest.records[0].conditions[0];
+    Client::Tables::QuestCondition& condition = quest.records[0].conditions[0];
     condition.maxLevel = 30;
     const auto checked = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, true);
     ASSERT_TRUE(checked.HasValue());

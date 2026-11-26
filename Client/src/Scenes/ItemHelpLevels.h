@@ -59,5 +59,5 @@ struct ItemHelpLevels
 // propio abierto (3.848 rand() al cerrarlo si queda sin accesos, uno por nivel), si cumple los requisitos (los stats
 // más lo de los ítems, en 16 bits, y el nivel).
 void FillTheItemHelpLevels(GameHudContext& context, std::int32_t item,
-                           std::span<const std::byte, Data::Tables::ItemRecordSize> record);
+                           std::span<const std::byte, Tables::ItemRecordSize> record);
 } // namespace Client::Scenes

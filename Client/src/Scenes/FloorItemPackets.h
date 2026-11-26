@@ -20,7 +20,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -97,7 +97,7 @@ void ApplyShortPickUpResult(WorldState& world);
 // resultados 1, 2, 4, 5, 0x10, 0x21, 0x25 y 0x26 abren su aviso. Siempre, 0x5767954 en 0.
 [[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit,
                                                                WorldState& world, Crt::CrtRandom& random,
-                                                               const Data::Text::TextTable* texts);
+                                                               const Tables::TextTable* texts);
 
 // Un 2C corto (07 Q-C1240): de 0x4de500, solo la espera del uso (0x5767954) en 0, que escribe en todos los caminos.
 // Sin ella, el JG de 0x5c5920 y 0x5a2bea no deja usar otro ítem.

@@ -67,13 +67,13 @@ std::map<std::size_t, std::string> TrainerTexts()
             {1231, "faltan %s"},  {1232, "cuesta %s"},   {1622, "zen %s (%s)"}, {1623, "tasa %d%%"}};
 }
 
-Client::Data::Tables::ItemTable SyntheticItems()
+Client::Tables::ItemTable SyntheticItems()
 {
-    using Client::Data::Tables::ItemRecordSize;
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    using Client::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     plain[std::size_t{Horse} * ItemRecordSize + 0x2d] = std::byte{PetDurability};
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -172,8 +172,8 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(TrainerTexts());
-    Client::Data::Tables::ItemTable m_items = SyntheticItems();
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(TrainerTexts());
+    Client::Tables::ItemTable m_items = SyntheticItems();
 };
 
 void ExpectCentered(const RecordedText& text, std::int32_t x, std::int32_t y, const std::string& expected,

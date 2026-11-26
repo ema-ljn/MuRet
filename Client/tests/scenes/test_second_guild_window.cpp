@@ -157,13 +157,13 @@ int Draws(const CrtRandom& random)
 }
 
 // Los textos de la ventana, inventados.
-Client::Data::Text::TextTable WindowTexts()
+Client::Tables::TextTable WindowTexts()
 {
     const std::map<std::size_t, std::string> texts{
         {180, "Gremio"},        {181, "Armas uno?"},  {182, "nombre"},   {183, "Elegi un color"}, {184, "y pinta"},
         {228, "Listo"},         {457, "Operador"},    {458, "Servidor"}, {1002, "Cerrar"},        {1269, "Todavia no"},
         {1303, "Armar gremio"}, {1304, "Otra marca"}, {1305, "Sigue"},   {1306, "Vuelve"}};
-    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
+    auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
 }
@@ -298,7 +298,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
-    Client::Data::Text::TextTable m_texts = WindowTexts();
+    Client::Tables::TextTable m_texts = WindowTexts();
     std::vector<std::string> m_filterName{"Malo"};
     std::vector<std::string> m_filter{"feo"};
     std::vector<Client::Protocol::Outgoing> m_sent;

@@ -11,17 +11,17 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadNpcNames: NpcName(%s).txt con el tokenizador 0x54e8d0 y el lazo de 0x54e7f0. Los nombres
+// Client::Tables::LoadNpcNames: NpcName(%s).txt con el tokenizador 0x54e8d0 y el lazo de 0x54e7f0. Los nombres
 // son inventados.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::LoadNpcNames;
-using Client::Data::Text::NpcNameBytes;
-using Client::Data::Text::NpcNameCount;
-using Client::Data::Text::NpcNameNumberBytes;
-using Client::Data::Text::NpcNameRecord;
-using Client::Data::Text::NpcNameTokenBytes;
+using Client::Tables::LoadNpcNames;
+using Client::Tables::NpcNameBytes;
+using Client::Tables::NpcNameCount;
+using Client::Tables::NpcNameNumberBytes;
+using Client::Tables::NpcNameRecord;
+using Client::Tables::NpcNameTokenBytes;
 
 std::vector<std::byte> Bytes(std::string_view text)
 {

@@ -99,8 +99,6 @@ using Client::Render::Text::RightAlignedAt;
 using Client::Render::Text::TextColors;
 using Client::Render::Text::TextExtent;
 using Client::Render::Text::TextStyle;
-using Client::Scenes::GameData;
-using Client::Scenes::LoadGameData;
 using Client::Scenes::LoginLeftText;
 using Client::Scenes::LoginRightText;
 using Client::Scenes::LoginScene;
@@ -111,6 +109,8 @@ using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::WindowTextureSet;
 using Client::Scenes::WorldOf;
+using Client::Tables::GameData;
+using Client::Tables::LoadGameData;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FakeTextureStore;
@@ -436,7 +436,7 @@ TEST(LoginSceneTest, WithoutWorld56TheLoginStillDraws)
 {
     Harness tested;
     ASSERT_TRUE(WorldOf(SceneId::Login).has_value());
-    EXPECT_EQ(Client::Data::WorldFolder(WorldOf(SceneId::Login)->map), "World56");
+    EXPECT_EQ(Client::Maps::WorldFolder(WorldOf(SceneId::Login)->map), "World56");
     ASSERT_TRUE(tested.Make().Enter().HasValue());
 
     const std::vector<FrameEvent> events = tested.Frame();

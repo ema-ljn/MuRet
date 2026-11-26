@@ -36,7 +36,7 @@ constexpr std::size_t SkillMana = 0x22;
 constexpr std::size_t SkillStamina = 0x24;
 constexpr std::size_t SkillRange = 0x26;
 
-std::uint16_t WordAt(std::span<const std::byte, Data::Tables::SkillRecordSize> entry, std::size_t offset)
+std::uint16_t WordAt(std::span<const std::byte, Tables::SkillRecordSize> entry, std::size_t offset)
 {
     return static_cast<std::uint16_t>(std::to_integer<std::uint32_t>(entry[offset]) |
                                       (std::to_integer<std::uint32_t>(entry[offset + 1]) << 8u));
@@ -67,9 +67,9 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(GameHudContext& 
     const auto record = context.skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::format("{}: Skill.bmd no tiene la skill {}", where, skill));
-    const std::span<const std::byte, Data::Tables::SkillRecordSize> entry = *record;
+    const std::span<const std::byte, Tables::SkillRecordSize> entry = *record;
     const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                       static_cast<std::uint16_t>(Tables::SkillRecordSize));
     SkillEntryFields fields;
     for (const std::byte value : entry)
     {

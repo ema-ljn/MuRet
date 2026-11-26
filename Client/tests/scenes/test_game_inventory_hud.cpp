@@ -167,7 +167,7 @@ protected:
     {
         GoldenDataTest::SetUp();
         ASSERT_FALSE(HasFatalFailure());
-        auto loaded = Client::Scenes::LoadGameData(m_dataRoot);
+        auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
         // Como lo deja la entrada al mundo y un F3 10 sin ítems.
@@ -313,7 +313,7 @@ protected:
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
     Client::UI::Point mouse{};
-    Client::Scenes::GameData data;
+    Client::Tables::GameData data;
     UiModels uiModels;
     Client::Render::ModelBatch models;
     Client::Scenes::FaunaDrawCarry poseCarry;

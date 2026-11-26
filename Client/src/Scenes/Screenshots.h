@@ -22,7 +22,7 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -66,7 +66,7 @@ struct ScreenshotFrameContext
     // GetLocalTime (0x6381c7). Se lee solo con la captura pedida (ScreenshotFileName).
     std::function<Core::Expected<Core::LocalTime, std::string>()> localTime;
     // Text.bmd, con el 459. Sin tabla, el texto vacío.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // El código del servidor elegido (ServerSession::ChosenServer), del que sale el nombre de su grupo (Q-C632).
     std::optional<std::uint16_t> chosenServer;
     // Adónde va el archivo. El original lo abre con el nombre solo, en la carpeta de trabajo: Main pasa la vacía.

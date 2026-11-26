@@ -15,7 +15,7 @@
 // entradas de 0x294 bytes, que llenan los mensajes que llegan (0x557170, por el 00 y el 01, y 0x557560 por nombre), que
 // el paso del juego envejece (0x557650, 0x6370f9) y que el HUD dibuja (0x5a9050, el 12). El hover de los personajes
 // del hito 6 usa la misma tabla. Los textos se guardan hasta su '\0', como los leen strcpy y strlen.
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -86,7 +86,7 @@ struct ChatBubbleMeasure
     const Render::Text::ITextMeasure& measure;
     Core::PixelSize screen{};
     // Text.bmd: los puestos del gremio y de la alianza. Sin él, un personaje con gremio corta.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // 0x557170(nombre, texto, personaje, modo, color): con el personaje vivo y a la vista (+0x16c), la entrada que ya es

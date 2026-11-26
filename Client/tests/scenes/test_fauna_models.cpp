@@ -76,7 +76,7 @@ TEST(FaunaModelsTest, CachedMonsterSoundsAreRegisteredAgainAfterWorldSoundReleas
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
-    Client::Scenes::ModelSoundTable sounds;
+    Client::Sound::ModelSoundTable sounds;
     SoundRegistrationPlayback audio;
     Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds, &audio};
 
@@ -136,13 +136,13 @@ TEST(FaunaModelsTest, PrepareWritesTheSoundTableOfTheLoadedMonster)
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
-    Client::Scenes::ModelSoundTable sounds;
+    Client::Sound::ModelSoundTable sounds;
     Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds};
     ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
-    Client::Scenes::ModelSoundTable expected;
-    Client::Scenes::WriteMonsterSounds(0x1f, expected);
+    Client::Sound::ModelSoundTable expected;
+    Client::Sound::WriteMonsterSounds(0x1f, expected);
     EXPECT_EQ(sounds, expected);
-    ASSERT_TRUE(Client::Scenes::WrittenSounds(sounds, 0x171).has_value());
+    ASSERT_TRUE(Client::Sound::WrittenSounds(sounds, 0x171).has_value());
     sounds.clear();
     ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
     EXPECT_TRUE(sounds.empty());

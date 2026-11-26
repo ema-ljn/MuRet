@@ -140,11 +140,11 @@ public:
     CrtRandom random{0x2468u};
     Client::Input::InputState input;
     LetterMeasure measure;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"},
-                                                                        {1807, "alma"},
-                                                                        {1813, "deshacer %s %d?"},
-                                                                        {1814, "cuesta %d"},
-                                                                        {1818, "nada para deshacer"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"},
+                                                                    {1807, "alma"},
+                                                                    {1813, "deshacer %s %d?"},
+                                                                    {1814, "cuesta %d"},
+                                                                    {1818, "nada para deshacer"}});
     std::vector<Client::Protocol::Outgoing> sent;
 };
 

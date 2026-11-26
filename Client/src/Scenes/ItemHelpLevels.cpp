@@ -17,7 +17,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Record = std::span<const std::byte, Data::Tables::ItemRecordSize>;
+using Record = std::span<const std::byte, Tables::ItemRecordSize>;
 
 // Los bytes de Item.bmd que lee 0x5afc4d..0x5afc5f y las palabras de 0x5afdc9..0x5afec6.
 constexpr std::size_t MinDamageByte = 0x26;

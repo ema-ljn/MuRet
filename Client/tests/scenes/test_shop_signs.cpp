@@ -194,7 +194,7 @@ protected:
     RecordingTextDrawer m_text;
     GameProjection m_projection{};
     FontKind m_dcFont = FontKind::BigBold;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{1104, std::string(Header)}});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{1104, std::string(Header)}});
 };
 
 // 0x452f80: con 20 bytes o menos, entero en la primera; con más, la primera hasta el primer corte desde la mitad que no

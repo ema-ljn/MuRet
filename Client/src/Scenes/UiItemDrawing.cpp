@@ -251,7 +251,7 @@ void Subtract(float& value, float shift)
 }
 
 // 0x5e078e..0x5e0dd6: los ángulos y los corrimientos de la tabla, en su orden.
-Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t step, const Data::Tables::ItemTable* items,
+Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t step, const Tables::ItemTable* items,
                                             glm::vec3& position, glm::vec3& angles)
 {
     const auto set = [&angles](float x, float y, float z) { angles = glm::vec3(x, y, z); };
@@ -646,7 +646,7 @@ Core::Expected<glm::ivec2, std::string> UiItemAnchor(std::int32_t type, std::uin
 
 Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor,
                                                          bool hovered, bool always, float worldClock,
-                                                         const Data::Tables::ItemTable* items, glm::vec3& angles)
+                                                         const Tables::ItemTable* items, glm::vec3& angles)
 {
     UiItemPlacement placement;
     std::int32_t model = call.model;

@@ -228,7 +228,7 @@ public:
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
     Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
-        return WriteMacroFile(m_dataRoot, content);
+        return Tables::WriteMacroFile(m_dataRoot, content);
     }
 
     void Log(std::string_view line) override

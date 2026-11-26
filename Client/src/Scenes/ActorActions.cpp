@@ -146,7 +146,7 @@ std::uint8_t UnarmedFor(const ActorState& actor)
 }
 
 // La marca de un arma de la derecha: el byte +0x1e de su registro de Item.bmd.
-Core::Expected<bool, std::string> IsMarked(int model, const Data::Tables::ItemTable* items)
+Core::Expected<bool, std::string> IsMarked(int model, const Tables::ItemTable* items)
 {
     if (items == nullptr)
     {
@@ -161,7 +161,7 @@ Core::Expected<bool, std::string> IsMarked(int model, const Data::Tables::ItemTa
 }
 
 // La de un arma de la derecha con la marca leída: sin ella, la 3; con ella, `marked`.
-Core::Expected<std::uint8_t, std::string> ByMark(int right, const Data::Tables::ItemTable* items, std::uint8_t marked)
+Core::Expected<std::uint8_t, std::string> ByMark(int right, const Tables::ItemTable* items, std::uint8_t marked)
 {
     const auto isMarked = IsMarked(right, items);
     if (!isMarked.HasValue())
@@ -173,7 +173,7 @@ Core::Expected<std::uint8_t, std::string> ByMark(int right, const Data::Tables::
 
 // 0x4f2bf6..0x4f2d82: con los pies en el piso, por las armas.
 Core::Expected<std::uint8_t, std::string> GroundStand(const ActorState& actor, std::int32_t map,
-                                                      const Data::Tables::ItemTable* items)
+                                                      const Tables::ItemTable* items)
 {
     const int right = Signed(actor.hands[0].model);
     const int left = Signed(actor.hands[1].model);

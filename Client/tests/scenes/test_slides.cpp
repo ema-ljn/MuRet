@@ -28,7 +28,7 @@ class SlidesTest : public ::testing::Test
 protected:
     SlidesTest() : m_world(std::make_unique<WorldState>()), m_random(Seed)
     {
-        Client::Data::Text::SlideTable table;
+        Client::Tables::SlideTable table;
         table.periodSeconds = 60;
         table.speed = 2.5f;
         table.groups[0] = {.maxLevel = 15, .count = 1, .texts = {"un consejo inventado"}};

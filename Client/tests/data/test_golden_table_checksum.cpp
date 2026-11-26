@@ -24,11 +24,11 @@ namespace
 {
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
-using Client::Data::Tables::ItemTableSize;
 using Client::Data::Tables::SkillChecksumKey;
-using Client::Data::Tables::SkillTableSize;
 using Client::Data::Tables::StoredChecksum;
 using Client::Data::Tables::TableChecksum;
+using Client::Tables::ItemTableSize;
+using Client::Tables::SkillTableSize;
 using Client::Tests::ReadFileBytes;
 
 using GoldenTableChecksum = Client::Tests::GoldenDataTest;

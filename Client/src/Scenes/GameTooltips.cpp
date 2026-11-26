@@ -120,7 +120,7 @@ std::string_view TextOrEmpty(std::span<const char> bytes)
 }
 
 // El nombre de un registro como lo lee sprintf("%s"): hasta su '\0', dentro del registro.
-std::string NameOf(std::span<const std::byte, Data::Tables::ItemSetOptionRecordSize> record)
+std::string NameOf(std::span<const std::byte, Tables::ItemSetOptionRecordSize> record)
 {
     std::string name;
     for (const std::byte byte : record)
@@ -449,7 +449,7 @@ Core::Expected<void, std::string> DrawTheTooltipBox(GameHudContext& context, std
     return {};
 }
 
-Core::Expected<void, std::string> WriteTheSetOption(const Data::Text::TextTable* texts, std::string& line,
+Core::Expected<void, std::string> WriteTheSetOption(const Tables::TextTable* texts, std::string& line,
                                                     std::uint8_t option, std::uint8_t value)
 {
     std::size_t index = 0;
@@ -532,7 +532,7 @@ Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context)
     const auto record = context.setOptions->Record(index);
     if (!record)
         return Core::Unexpected(std::format("0x40ece9: el cartel del conjunto {} lee fuera de los 64", index));
-    const std::span<const std::byte, Data::Tables::ItemSetOptionRecordSize> set = *record;
+    const std::span<const std::byte, Tables::ItemSetOptionRecordSize> set = *record;
     const auto byteAt = [&set](std::size_t offset) { return std::to_integer<std::uint8_t>(set[offset]); };
     if (byteAt(SetUsedByte) == NoSetOption)
     {

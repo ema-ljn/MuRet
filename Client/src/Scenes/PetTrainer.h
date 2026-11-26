@@ -85,7 +85,7 @@ struct PetQuoteContext
     WorldState& world;
     Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     bool writesGlobals = true;
 };
 

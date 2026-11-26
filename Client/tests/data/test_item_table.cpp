@@ -13,17 +13,17 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
+// Client::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
-using Client::Data::Tables::ItemCount;
-using Client::Data::Tables::ItemRecordSize;
-using Client::Data::Tables::ItemTableSize;
-using Client::Data::Tables::LoadItemTable;
 using Client::Data::Tables::TableChecksum;
+using Client::Tables::ItemCount;
+using Client::Tables::ItemRecordSize;
+using Client::Tables::ItemTableSize;
+using Client::Tables::LoadItemTable;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptRecords;
 using Client::Tests::FirstRecordThatDiffers;

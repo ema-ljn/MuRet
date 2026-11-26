@@ -23,7 +23,7 @@ constexpr std::uint8_t BlockingFlags = 0x12;
 constexpr std::size_t FreeGroupText = 559;
 } // namespace
 
-bool FreeDeletionGroup(const Data::Text::TextTable* texts, std::optional<std::uint16_t> chosenServer)
+bool FreeDeletionGroup(const Tables::TextTable* texts, std::optional<std::uint16_t> chosenServer)
 {
     if (!chosenServer)
     {

@@ -13,10 +13,9 @@ struct GateCheckState;
 struct GateDecision;
 
 // A lo sumo un pedido por paso. Conserva todos los avisos previos en el orden de Gate.bmd.
-[[nodiscard]] GateDecision GateCheck(const Data::Tables::GateTable& table, const GateCheckState& state);
+[[nodiscard]] GateDecision GateCheck(const Tables::GateTable& table, const GateCheckState& state);
 
 // La misma decisión para un registro: el integrador intercala accesos lógicos y sus efectos
 // entre gates sin copiar las reglas de equipo, nivel o mensajes de 0x599ef0.
-[[nodiscard]] GateDecision CheckGate(std::size_t index, const Data::Tables::GateRecord& gate,
-                                     const GateCheckState& state);
+[[nodiscard]] GateDecision CheckGate(std::size_t index, const Tables::GateRecord& gate, const GateCheckState& state);
 } // namespace Client::GameLogic

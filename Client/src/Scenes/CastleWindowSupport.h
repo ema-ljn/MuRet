@@ -13,7 +13,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -46,7 +46,7 @@ inline constexpr std::uint32_t TextBase = 0x76bd1dc;
     return (address - TextBase) / 300;
 }
 
-[[nodiscard]] Core::Expected<std::string, std::string> Text(const Data::Text::TextTable* texts, std::uint32_t address);
+[[nodiscard]] Core::Expected<std::string, std::string> Text(const Tables::TextTable* texts, std::uint32_t address);
 [[nodiscard]] Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet);
 [[nodiscard]] Core::Expected<std::uint32_t, std::string> Popup(const GameUiContext& context,
                                                                std::span<const std::string> lines,

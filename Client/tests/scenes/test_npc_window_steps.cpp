@@ -122,9 +122,9 @@ void PutDword(std::vector<std::byte>& plain, std::size_t at, std::uint32_t value
         plain[at + index] = static_cast<std::byte>((value >> (8 * index)) & 0xffu);
 }
 
-Client::Data::Tables::ItemTable SyntheticItems()
+Client::Tables::ItemTable SyntheticItems()
 {
-    using Client::Data::Tables::ItemRecordSize;
+    using Client::Tables::ItemRecordSize;
     struct Shape
     {
         std::uint16_t type;
@@ -141,7 +141,7 @@ Client::Data::Tables::ItemTable SyntheticItems()
                                            {ChaosJewel, 1, 1, 0, 0},
                                            {Eye, 1, 1, EyePrice, 0},
                                            {Key, 1, 1, EyePrice, 0}}};
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (const Shape& shape : Shapes)
     {
         const std::size_t base = std::size_t{shape.type} * ItemRecordSize;
@@ -151,7 +151,7 @@ Client::Data::Tables::ItemTable SyntheticItems()
         PutDword(plain, base + 0x40, shape.price);
     }
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -305,26 +305,26 @@ protected:
     WorldState world;
     CrtRandom random{0x2468aceu};
     InputState input;
-    Client::Data::Tables::ItemTable items = SyntheticItems();
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{166, "luna"},
-                                                                        {167, "sol"},
-                                                                        {168, "cielo"},
-                                                                        {169, "mar"},
-                                                                        {0x1c0, "aceptar?"},
-                                                                        {0x178, "comer la fruta?"},
-                                                                        {0x218, "vender esto"},
-                                                                        {0x219, "que vale"},
-                                                                        {0x21a, "mucho?"},
-                                                                        {0x21b, "mezclar ya?"},
-                                                                        {580, "no hay %s"},
-                                                                        {581, "sin lugar"},
-                                                                        {591, "mezcla"},
-                                                                        {596, "sin zen"},
-                                                                        {600, "no son iguales"},
-                                                                        {1171, "desde el nivel %d"},
-                                                                        {1900, "rio"},
-                                                                        {1901, " y suerte"},
-                                                                        {0x76e, "elegir"}});
+    Client::Tables::ItemTable items = SyntheticItems();
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{166, "luna"},
+                                                                    {167, "sol"},
+                                                                    {168, "cielo"},
+                                                                    {169, "mar"},
+                                                                    {0x1c0, "aceptar?"},
+                                                                    {0x178, "comer la fruta?"},
+                                                                    {0x218, "vender esto"},
+                                                                    {0x219, "que vale"},
+                                                                    {0x21a, "mucho?"},
+                                                                    {0x21b, "mezclar ya?"},
+                                                                    {580, "no hay %s"},
+                                                                    {581, "sin lugar"},
+                                                                    {591, "mezcla"},
+                                                                    {596, "sin zen"},
+                                                                    {600, "no son iguales"},
+                                                                    {1171, "desde el nivel %d"},
+                                                                    {1900, "rio"},
+                                                                    {1901, " y suerte"},
+                                                                    {0x76e, "elegir"}});
     LetterMeasure measure;
     Client::Scenes::InventoryServices services;
     std::vector<Client::Protocol::Outgoing> sent;

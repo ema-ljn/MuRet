@@ -63,7 +63,7 @@ struct HeroArrivalContext
     // CL9 hito 4, fase 2c: lo que piden las skills del caso 5 (0x56601f), como en HeroSkillContext: Skill.bmd
     // (0x5526f0; nullptr corta), el GetTickCount del freno de 300 ms (vacío: el envío que lo mira corta), los servicios
     // de 0x561c50, Ctrl (0x558eb0) y lo que mandan por send() (los C3 con sus dos rand() ya sacados; vacío, no sale).
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::SkillTable* skills = nullptr;
     std::function<std::uint32_t()> tickCount{};
     const InventoryServices* inventory = nullptr;
     bool controlDown = false;

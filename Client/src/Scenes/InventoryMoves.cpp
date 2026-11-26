@@ -283,12 +283,12 @@ ActorState& HeroOf(WorldState& world)
     return world.Actors()[world.Runtime().hero];
 }
 
-Core::Expected<std::span<const std::byte, Data::Tables::ItemRecordSize>, std::string>
-ItemRecordOf(const Data::Tables::ItemTable* items, std::uint16_t type, std::string_view where)
+Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
+ItemRecordOf(const Tables::ItemTable* items, std::uint16_t type, std::string_view where)
 {
     if (items == nullptr)
         return Core::Unexpected(std::format("{}: lee *[0x7758550] (Item.bmd) y no está cargado", where));
-    const std::optional<std::span<const std::byte, Data::Tables::ItemRecordSize>> record = items->Record(type);
+    const std::optional<std::span<const std::byte, Tables::ItemRecordSize>> record = items->Record(type);
     if (!record)
         return Core::Unexpected(std::format("{}: el tipo {:#x} lee fuera de Item.bmd", where, type));
     return *record;
@@ -1004,7 +1004,7 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
         }};
 }
 
-Core::Expected<ItemFootprint, std::string> ItemFootprintOf(const Data::Tables::ItemTable* items, std::uint16_t type,
+Core::Expected<ItemFootprint, std::string> ItemFootprintOf(const Tables::ItemTable* items, std::uint16_t type,
                                                            std::string_view where)
 {
     const auto record = ItemRecordOf(items, type, where);

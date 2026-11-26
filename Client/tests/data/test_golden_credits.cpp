@@ -16,8 +16,8 @@
 // primer final y que ningún texto llena los 32 bytes. Sin los textos: los nombres no van al repo.
 namespace
 {
-using Client::Data::Text::CreditEntry;
-using Client::Data::Text::LoadCredits;
+using Client::Tables::CreditEntry;
+using Client::Tables::LoadCredits;
 using Client::Tests::ReadFileBytes;
 using GoldenCredits = Client::Tests::GoldenDataTest;
 

@@ -59,10 +59,9 @@ constexpr std::uint32_t Allowed = 0xffffffffu;
 constexpr std::uint32_t Denied = 0xff1127a4u;
 constexpr std::uint32_t Missing = 0xff1a33ffu;
 
-Client::Data::Text::MoveRequirement Destination(std::int32_t index, std::string name, std::int32_t level,
-                                                std::uint32_t zen)
+Client::Tables::MoveRequirement Destination(std::int32_t index, std::string name, std::int32_t level, std::uint32_t zen)
 {
-    return Client::Data::Text::MoveRequirement{
+    return Client::Tables::MoveRequirement{
         .index = index, .name = std::move(name), .searchName = {}, .level = level, .zen = zen, .gate = 0};
 }
 
@@ -188,8 +187,8 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(MoveTexts());
-    const Client::Data::Text::TextTable* m_drawnTexts = &m_texts;
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(MoveTexts());
+    const Client::Tables::TextTable* m_drawnTexts = &m_texts;
 };
 
 // 0x448619..0x448633: el mouse sobre la ventana (0 < x ≤ 190, 0 < y ≤ 3 · 14 + 60) es de la UI. Sin el botón, cada

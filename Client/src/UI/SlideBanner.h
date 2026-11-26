@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 struct SlideTable;
 }
@@ -105,7 +105,7 @@ struct SlideBanner
     SlideQueue bold{};
     // +0x11ac: el período del timer, en segundos (10 del constructor).
     std::int32_t periodSeconds = 10;
-    // +0x11b0, +0x11c4 y +0x11d8: los tramos de Slide.bmd (Data::Text::SlideGroup).
+    // +0x11b0, +0x11c4 y +0x11d8: los tramos de Slide.bmd (Tables::SlideGroup).
     std::array<std::int32_t, SlideGroups> maxLevels{};
     std::array<std::int32_t, SlideGroups> counts{};
     std::array<std::vector<std::string>, SlideGroups> texts{};
@@ -121,7 +121,7 @@ struct SlideBanner
 
 // 0x46b3b0 después de leer el archivo: el período, la velocidad y los tramos. Si había textos, antes vacía los cinco
 // tramos (0x46b5b0).
-void LoadTheSlides(SlideBanner& banner, const Data::Text::SlideTable& table);
+void LoadTheSlides(SlideBanner& banner, const Tables::SlideTable& table);
 
 // 0x46a460(fuente, parpadeo) y los dos 0x45a9d0(0, 0x1ad) de 0x46b010: las dos colas sin texto y en (0, 0x1ad), con
 // el segundo 10 desde `now`. No toca sus entradas, su velocidad máxima ni su color.

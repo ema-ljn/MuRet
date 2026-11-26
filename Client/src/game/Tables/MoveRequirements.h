@@ -18,7 +18,7 @@
 // operator new, le pasa el XOR3 desde su primer byte (0x449770, FC CF AB con la clave en la pila) y lo agrega al final
 // de la lista de 0x723c68 (+8, la cuenta en +0xc). No tiene suma ni mira cuánto leyó. *Verificado* con el del
 // laboratorio: 28 destinos, y después de ellos 640 bytes (ocho registros en cero) que no lee.
-namespace Client::Data::Text
+namespace Client::Tables
 {
 inline constexpr std::size_t MoveCountSize = 4;
 inline constexpr std::size_t MoveRecordSize = 0x50;
@@ -47,6 +47,6 @@ struct MoveRequirement
 // que faltan del int que 0x448440 puso en 0); con 0 o menos, ninguno. FileTooShort si falta algún registro de la
 // cuenta (el original los completaría con lo que tuviera el bloque nuevo); InvalidData si un nombre no termina antes
 // del final de su registro (strlen seguiría fuera del bloque). Lo que sobra se ignora.
-[[nodiscard]] Core::Expected<std::vector<MoveRequirement>, DataError>
+[[nodiscard]] Core::Expected<std::vector<MoveRequirement>, Data::DataError>
 LoadMoveRequirements(std::span<const std::byte> file);
-} // namespace Client::Data::Text
+} // namespace Client::Tables

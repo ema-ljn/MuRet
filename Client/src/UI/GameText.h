@@ -22,7 +22,7 @@ namespace Client::UI
 [[nodiscard]] std::string PlaceArguments(std::string_view format, std::span<const std::string_view> arguments);
 
 // El texto `index` de `texts`, o nada sin tabla o sin ese índice.
-[[nodiscard]] std::optional<std::string_view> TextAt(const Data::Text::TextTable* texts, std::size_t index);
+[[nodiscard]] std::optional<std::string_view> TextAt(const Tables::TextTable* texts, std::size_t index);
 
 // 0x632c90(texto, renglones, maxLines, lineBytes): `text`, hasta su primer '\0', en renglones de
 // menos de `lineBytes` bytes, y a lo sumo `maxLines` (1 o más). Copia carácter por carácter y, si

@@ -19,10 +19,10 @@
 // terreno, salvo el que el laboratorio no trae.
 namespace
 {
-using Client::Data::OriginalMaps;
 using Client::Data::ResolveDataPath;
-using Client::Data::WorldFolder;
-using Client::Data::WorldFolderNumber;
+using Client::Maps::OriginalMaps;
+using Client::Maps::WorldFolder;
+using Client::Maps::WorldFolderNumber;
 using Client::Tests::LabWorlds;
 
 using GoldenWorldFolder = Client::Tests::GoldenDataTest;

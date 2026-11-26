@@ -14,17 +14,17 @@
 
 namespace Client::Scenes
 {
-TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts)
+TooltipWriter::TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts)
     : TooltipWriter(lines, texts, lines.next, lines.halves)
 {
 }
 
-TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next)
+TooltipWriter::TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts, std::int32_t& next)
     : TooltipWriter(lines, texts, next, lines.halves)
 {
 }
 
-TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next,
+TooltipWriter::TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts, std::int32_t& next,
                              std::int32_t& halves)
     : m_lines(lines), m_next(next), m_halves(halves), m_texts(texts)
 {
@@ -139,7 +139,7 @@ TooltipLines& TooltipWriter::Lines()
     return m_lines;
 }
 
-const Data::Text::TextTable* TooltipWriter::Texts() const
+const Tables::TextTable* TooltipWriter::Texts() const
 {
     return m_texts;
 }

@@ -100,7 +100,7 @@ protected:
     }
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(ContractTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(ContractTexts());
     std::vector<Client::Protocol::Outgoing> sent;
 };
 

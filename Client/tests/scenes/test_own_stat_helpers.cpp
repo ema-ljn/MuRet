@@ -28,13 +28,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Tables::ItemTable;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ItemDurabilityFactor;
 using Client::Scenes::ItemSetOptionList;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::OwnEquipmentOverride;
 using Client::Scenes::Scan505820;
+using Client::Tables::ItemTable;
 using Client::Tests::AfterDraws;
 using Client::World::ItemState;
 
@@ -88,13 +88,13 @@ struct BaseDurability
 // Item.bmd sintético: el byte +0x2d de cada tipo de `bases` y todo lo demás en 0.
 ItemTable ItemsWithBaseDurability(std::initializer_list<BaseDurability> bases)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (const BaseDurability& base : bases)
     {
-        plain[base.type * Client::Data::Tables::ItemRecordSize + BaseDurabilityOffset] = std::byte{base.value};
+        plain[base.type * Client::Tables::ItemRecordSize + BaseDurabilityOffset] = std::byte{base.value};
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::ItemRecordSize);
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::ItemRecordSize);
     return ItemTable(std::span<const std::byte>(encrypted));
 }
 

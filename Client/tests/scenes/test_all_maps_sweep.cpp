@@ -361,19 +361,19 @@ void ExpectGateInventory(const std::filesystem::path& path, const MapSweepCase& 
 {
     const auto bytes = Client::Tests::ReadFileBytes(path);
     ASSERT_TRUE(bytes.has_value());
-    const auto gates = Client::Data::Tables::LoadGateTable(std::as_bytes(std::span(*bytes)));
+    const auto gates = Client::Tables::LoadGateTable(std::as_bytes(std::span(*bytes)));
     ASSERT_TRUE(gates.HasValue());
     std::array<std::size_t, 3> counts{};
     std::size_t populated = 0;
-    for (std::size_t index = 0; index < Client::Data::Tables::GateCount; ++index)
+    for (std::size_t index = 0; index < Client::Tables::GateCount; ++index)
     {
-        const auto record = Client::Data::Tables::ReadGateRecord(gates.Value(), index);
+        const auto record = Client::Tables::ReadGateRecord(gates.Value(), index);
         ASSERT_TRUE(record.has_value());
-        if (*record == Client::Data::Tables::GateRecord{})
+        if (*record == Client::Tables::GateRecord{})
             continue;
         ++populated;
         ASSERT_LT(record->flag, counts.size()) << index;
-        ASSERT_NE(std::ranges::find(Client::Data::OriginalMaps, record->map), Client::Data::OriginalMaps.end())
+        ASSERT_NE(std::ranges::find(Client::Maps::OriginalMaps, record->map), Client::Maps::OriginalMaps.end())
             << index;
         if (record->map == probe.nominal)
             ++counts[record->flag];
@@ -385,12 +385,12 @@ void ExpectGateInventory(const std::filesystem::path& path, const MapSweepCase& 
 TEST(MapSweepInventoryTest, IncludesAllThirtyNineNominalMapsAndAllGateSources)
 {
     ASSERT_EQ(MapSweepCases.size(), 39u);
-    ASSERT_EQ(MapSweepCases.size(), Client::Data::OriginalMaps.size());
+    ASSERT_EQ(MapSweepCases.size(), Client::Maps::OriginalMaps.size());
     std::array<std::size_t, 3> gates{};
     for (std::size_t index = 0; index < MapSweepCases.size(); ++index)
     {
         const MapSweepCase& probe = MapSweepCases[index];
-        EXPECT_EQ(probe.nominal, Client::Data::OriginalMaps[index]);
+        EXPECT_EQ(probe.nominal, Client::Maps::OriginalMaps[index]);
         EXPECT_NE(WorldCase(probe.folder), nullptr);
         for (std::size_t flag = 0; flag < gates.size(); ++flag)
             gates[flag] += probe.gates[flag];
@@ -452,8 +452,8 @@ TEST_P(MapSweep, MatchesTheIndependentArchivedWorldAndGateInventory)
     const MapSweepCase& probe = GetParam();
     const MapSweepWorldCase* expected = WorldCase(probe.folder);
     ASSERT_NE(expected, nullptr);
-    EXPECT_EQ(Client::Data::WorldFolderNumber(probe.nominal), probe.folder);
-    EXPECT_EQ(Client::Data::WorldFolder(probe.nominal), "World" + std::to_string(probe.folder));
+    EXPECT_EQ(Client::Maps::WorldFolderNumber(probe.nominal), probe.folder);
+    EXPECT_EQ(Client::Maps::WorldFolder(probe.nominal), "World" + std::to_string(probe.folder));
     ExpectArchiveObjects(m_dataRoot, probe, *expected);
     ExpectArchiveTerrain(m_dataRoot, probe, *expected);
     const auto gates = DataFile("Gate.bmd");

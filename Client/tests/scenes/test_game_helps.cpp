@@ -148,7 +148,7 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(HelpTexts());
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(HelpTexts());
 };
 
 // 0x5b0559..0x5b069d: los renglones de la primera ayuda ("\n", el título, "\n", los 19 textos y "\n"), 0x78abb30 en

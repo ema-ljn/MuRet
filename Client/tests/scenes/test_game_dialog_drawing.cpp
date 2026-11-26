@@ -154,7 +154,7 @@ public:
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};
     bool arrowHeld = false;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({
         {381, "salir"},
         {382, "otro servidor"},
         {383, "otro personaje"},
@@ -1111,7 +1111,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
     constexpr Color Red{1.0f, 0.0f, 0.0f, 1.0f};
     const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
     Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
-    Client::Data::Text::DialogTable table(Client::Data::Text::DialogCount);
+    Client::Tables::DialogTable table(Client::Tables::DialogCount);
     std::ranges::copy(std::string_view("hola viajero"), table[3].text.begin());
     table[3].answerCount = 2;
     std::ranges::copy(std::string_view("seguir"), table[3].answers[0].begin());
@@ -1756,7 +1756,7 @@ int CenteredAt(int center, const std::string& text)
 }
 
 // Los textos de la mezcla de joyas, inventados.
-Client::Data::Text::TextTable JewelTexts()
+Client::Tables::TextTable JewelTexts()
 {
     return Client::Tests::MakeTextTable({{188, "ok"},
                                          {228, "listo"},

@@ -87,7 +87,7 @@ bool InTheCrywolfDefense(const WorldRuntime& runtime)
     return Protocol::Events::CrywolfIsReadyOrStarted(runtime.crywolf.stage) && runtime.map == CrywolfMap;
 }
 
-Result ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable* texts, const ContractMessage& message)
+Result ShowTheContractMessage(WorldRuntime& runtime, const Tables::TextTable* texts, const ContractMessage& message)
 {
     if (!InTheCrywolfDefense(runtime) || runtime.ui.logoutRequested)
         return {};
@@ -206,7 +206,7 @@ Result StepTheContractWindow(const ContractWindowContext& context)
     return {};
 }
 
-Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime, const Data::Text::TextTable* texts,
+Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime, const Tables::TextTable* texts,
                                                              const ActorState& hero, const ActorState& target)
 {
     if (!InTheCrywolfDefense(runtime))

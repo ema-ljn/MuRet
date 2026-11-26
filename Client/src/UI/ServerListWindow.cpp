@@ -279,7 +279,7 @@ std::array<Render::UiImage, 5> DescriptionBoxImages(Rect box, const TextureSizes
     return {fill, top, bottom, left, right};
 }
 
-ServerListWindow::ServerListWindow(TextureSizes sizes, const Data::Text::TextTable* texts)
+ServerListWindow::ServerListWindow(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts)
 {
 }

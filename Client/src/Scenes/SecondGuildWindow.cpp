@@ -195,7 +195,7 @@ template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>
     return {name.data(), static_cast<std::size_t>(end - name.begin())};
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);

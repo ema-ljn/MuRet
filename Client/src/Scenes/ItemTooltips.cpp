@@ -226,7 +226,7 @@ Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, 
 
 // 0x5b8ae1..0x5b8b6d: la caja de reparar, con la altura en enteros sin signo: ((N − M) · cy + M · cy / 2) · 480 / H.
 Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& context,
-                                                   std::span<const std::byte, Data::Tables::ItemRecordSize> record)
+                                                   std::span<const std::byte, Tables::ItemRecordSize> record)
 {
     GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
@@ -246,7 +246,7 @@ Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& con
 // 0x5b8020..0x5b8096: la caja, arriba del ítem con el alto que cuentan N y M: (N − M) · cy + M · cy / 2 sobre ry,
 // con cy el de la primera letra del renglón 0 en la fuente que tenga el DC.
 Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& context,
-                                                 std::span<const std::byte, Data::Tables::ItemRecordSize> record)
+                                                 std::span<const std::byte, Tables::ItemRecordSize> record)
 {
     GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;

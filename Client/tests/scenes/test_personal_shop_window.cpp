@@ -207,9 +207,9 @@ public:
 struct ShopWorld
 {
     Client::Scenes::WorldState world;
-    Client::Data::Tables::ItemTable items =
+    Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0xff}, {UntradableType, 1, 1, 0xff}});
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(ShopTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(ShopTexts());
 };
 
 class PersonalShopWindowTest : public ::testing::TestWithParam<std::int32_t>

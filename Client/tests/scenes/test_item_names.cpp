@@ -53,7 +53,7 @@ protected:
     }
 
     NpcNameTable table = NpcNameTable(Client::Scenes::NpcNameCount);
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{103, "Anillo"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{103, "Anillo"}});
 };
 
 // 0x5b21a6..0x5b21ef: el monstruo del nivel en 0x6c9338 (2, 7, 14, 8, 9 y 41 del 0 al 5) y, por cada registro de
@@ -89,7 +89,7 @@ TEST_F(ItemNamesTest, TheTransformationRingWithoutItsMonsterLeavesTheBuffer)
 // 100): el premio de los diez de 100 bytes de la .data, en coreano (EUC-KR), con sus bytes tal cual. El 4 es "256M 램".
 TEST(ItemNamesTicketTest, TheTicketOfLevelTwoNamesThePrizeOfItsRecord)
 {
-    const Client::Data::Tables::ItemTable items =
+    const Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({}, {{.type = EventTicket, .offset = PrizeOffset, .value = 4}});
     const auto name = Client::Scenes::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
     ASSERT_TRUE(name.HasValue()) << name.Error();
@@ -117,7 +117,7 @@ TEST(ItemNamesTicketTest, TheTenPrizesAreTheBytesOfTheData)
 // cambia), que MuRet no tiene: corta. Sin Item.bmd, también.
 TEST(ItemNamesTicketTest, TheTicketPrizeOutsideTheTenCuts)
 {
-    const Client::Data::Tables::ItemTable items =
+    const Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({}, {{.type = EventTicket, .offset = PrizeOffset, .value = 10}});
     const auto outside = Client::Scenes::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
     ASSERT_FALSE(outside.HasValue());

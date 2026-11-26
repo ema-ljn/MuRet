@@ -56,9 +56,9 @@ struct HeroMovementContext
     WorldState& world;
     Crt::CrtRandom& random;
     const Models::Skeleton* playerSkeleton = nullptr;
-    const Data::Tables::ItemTable* items = nullptr;
-    const Data::Tables::SkillTable* skills = nullptr;
-    const Data::Tables::GateTable* gates = nullptr;
+    const Tables::ItemTable* items = nullptr;
+    const Tables::SkillTable* skills = nullptr;
+    const Tables::GateTable* gates = nullptr;
     HeroMovementInput input{};
     // El servicio usa el rayo, rango y trapecio del dibujo anterior.
     std::function<Core::Expected<std::optional<Pathfinding::PathCell>, std::string>()> pickTarget{};
@@ -98,7 +98,7 @@ struct HeroMovementContext
     std::function<void(std::int16_t)> sendTalk{};
     // Text.bmd: los textos de los avisos de la llegada a un NPC (el 663 del 0xee, 0x567618, y el 1830 del 0x101,
     // 0x567ad3). nullptr: esos avisos cortan.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // 0x57ceea: el punto del terreno bajo el mouse para una skill sin elegido (0x5fc260(1) y 0x5fac90). Vacío: corta.
     std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
     // Lo que manda 0x57cfc0 (las skills, el cuervo y la poción de maná). Vacío, no sale.

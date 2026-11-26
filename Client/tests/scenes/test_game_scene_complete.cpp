@@ -78,7 +78,7 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
         Client::Scenes::WorldState world;
         Client::World::GameCamera camera;
         Client::World::GameCameraInput cameraInput;
-        auto data = Client::Scenes::LoadGameData(m_dataRoot);
+        auto data = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
         Client::Scenes::GameModels models;
         const auto modelsLoaded = models.Load(m_dataRoot, textures, log);
@@ -181,7 +181,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    auto data = Client::Scenes::LoadGameData(m_dataRoot);
+    auto data = Client::Tables::LoadGameData(m_dataRoot);
     ASSERT_TRUE(data.HasValue()) << data.Error();
     Client::Scenes::GameModels models;
     const auto loaded = models.Load(m_dataRoot, textures, log);

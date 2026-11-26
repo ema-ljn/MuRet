@@ -114,7 +114,7 @@ std::int32_t WrappedAdd(std::int32_t a, std::int32_t b)
     return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(a) + std::bit_cast<std::uint32_t>(b));
 }
 
-std::string TextOf(const Data::Text::TextTable* texts, std::size_t index)
+std::string TextOf(const Tables::TextTable* texts, std::size_t index)
 {
     return std::string(TextAt(texts, index).value_or(std::string_view{}));
 }
@@ -130,7 +130,7 @@ void DrawLine(Render::Frame::ITextDrawer& text, int x, int y, const std::string&
 }
 } // namespace
 
-CharacterBalloons::CharacterBalloons(TextureSizes sizes, const Data::Text::TextTable* texts)
+CharacterBalloons::CharacterBalloons(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts)
 {
 }

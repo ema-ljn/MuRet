@@ -11,17 +11,17 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadDialogTable: Dialog.bmd (0x54b2b0), 200 registros de 0x400 con el XOR3 de 0x5496c0 desde el
+// Client::Tables::LoadDialogTable: Dialog.bmd (0x54b2b0), 200 registros de 0x400 con el XOR3 de 0x5496c0 desde el
 // primer byte de cada uno. Los textos son inventados.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::DialogAnswerOf;
-using Client::Data::Text::DialogCount;
-using Client::Data::Text::DialogRecordSize;
-using Client::Data::Text::DialogTableSize;
-using Client::Data::Text::DialogTextOf;
-using Client::Data::Text::LoadDialogTable;
+using Client::Tables::DialogAnswerOf;
+using Client::Tables::DialogCount;
+using Client::Tables::DialogRecordSize;
+using Client::Tables::DialogTableSize;
+using Client::Tables::DialogTextOf;
+using Client::Tables::LoadDialogTable;
 
 void PutInt(std::span<std::byte> bytes, std::size_t offset, std::int32_t value)
 {

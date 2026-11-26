@@ -8,7 +8,7 @@
 // cada mapa; leída otra vez en el paso 1 de la CL5.4, *estático*). Con ese N se piden también sus
 // archivos: "Data\%s\EncTerrain%d.map" (0x6d12e8), .att y .obj. Un mundo es un dato: nada en
 // MuRet arma "World1" a mano.
-namespace Client::Data
+namespace Client::Maps
 {
 // Los mapas que llegan a 0x61a560: del 0 al 36, los del juego (los handlers que mandan un mapa
 // pasan el byte del paquete sin mirar el rango, Q-C58), el 54 de la selección (0x633f44, en
@@ -27,4 +27,4 @@ inline constexpr std::array<std::uint8_t, 39> OriginalMaps = {0,  1,  2,  3,  4,
 
 // "World" y WorldFolderNumber, como el "World%d" de 0x6c7330: "World56" para el 55.
 [[nodiscard]] std::string WorldFolder(std::uint8_t map);
-} // namespace Client::Data
+} // namespace Client::Maps

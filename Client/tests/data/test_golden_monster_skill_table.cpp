@@ -14,7 +14,7 @@
 // MonsterSkill.bmd real (Data\Local, 0x54a440 desde 0x61ccb0): los ocho tipos que miran 0x429270 y 0x437580.
 namespace
 {
-using Client::Data::Tables::LoadMonsterSkillTable;
+using Client::Tables::LoadMonsterSkillTable;
 using Client::Tests::ReadFileBytes;
 using GoldenMonsterSkillTable = Client::Tests::GoldenDataTest;
 using Skills = std::array<std::int32_t, 5>;

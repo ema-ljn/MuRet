@@ -30,10 +30,10 @@ class GameT16GateTransport : public Client::Tests::T16::SceneTest, public ::test
 TEST_P(GameT16GateTransport, EveryArchivedEntrySendsItsOwnEncryptedRequestBeforeAnyMacroBoundary)
 {
     const auto index = GetParam();
-    const auto record = Client::Data::Tables::ReadGateRecord(*m_data->gates, index);
+    const auto record = Client::Tables::ReadGateRecord(*m_data->gates, index);
     ASSERT_TRUE(record.has_value());
     ASSERT_EQ(record->flag, 1);
-    const auto destination = Client::Data::Tables::ReadGateRecord(*m_data->gates, record->target);
+    const auto destination = Client::Tables::ReadGateRecord(*m_data->gates, record->target);
     ASSERT_TRUE(destination.has_value());
     m_world->Runtime().map = record->map;
     m_world->Runtime().warpCounter = 0;
@@ -66,9 +66,9 @@ TEST_F(GameT16GateInventory, AllThirtyEightEntriesCoverExactlyTheThirteenSourceM
 {
     std::set<std::uint8_t> sources;
     std::set<std::uint8_t> entries;
-    for (std::size_t index = 0; index < Client::Data::Tables::GateCount; ++index)
+    for (std::size_t index = 0; index < Client::Tables::GateCount; ++index)
     {
-        const auto record = Client::Data::Tables::ReadGateRecord(*m_data->gates, index);
+        const auto record = Client::Tables::ReadGateRecord(*m_data->gates, index);
         ASSERT_TRUE(record.has_value());
         if (record->flag != 1)
             continue;

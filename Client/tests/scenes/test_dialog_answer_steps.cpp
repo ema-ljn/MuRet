@@ -177,7 +177,7 @@ public:
     CrtRandom random{0x13579bdu};
     Client::Input::InputState input;
     LetterMeasure measure;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{474, "ahora no"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{474, "ahora no"}});
     Client::Scenes::InventoryServices services;
     std::vector<Client::Protocol::Outgoing> sent;
     std::vector<std::pair<std::size_t, std::int32_t>> messages;

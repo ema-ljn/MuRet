@@ -32,12 +32,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Tables::ItemSetTables;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::ItemSetOptionList;
 using Client::Scenes::ItemSetState;
 using Client::Scenes::OwnCharacterRecord;
+using Client::Tables::ItemSetTables;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 using Client::World::ItemState;
@@ -56,16 +56,16 @@ struct TypeKind
 };
 
 // Item.bmd sintético: el byte +0x44 de cada tipo de `kinds` y todo lo demás en 0.
-Client::Data::Tables::ItemTable ItemsWithKinds(std::initializer_list<TypeKind> kinds)
+Client::Tables::ItemTable ItemsWithKinds(std::initializer_list<TypeKind> kinds)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (const auto& [type, kind] : kinds)
     {
-        plain[type * Client::Data::Tables::ItemRecordSize + KindOffset] = std::byte{kind};
+        plain[type * Client::Tables::ItemRecordSize + KindOffset] = std::byte{kind};
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::ItemRecordSize);
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 // Un ítem con durabilidad y el valor `value` en los bits 2 y 3 del byte +0x1c.
@@ -83,7 +83,7 @@ ItemState Worn(std::uint16_t type, std::uint8_t value, std::uint8_t durability =
 class OwnStatsFixture : public ::testing::Test
 {
 protected:
-    Client::Scenes::OwnStatsContext Context(const ItemSetTables* tables, const Client::Data::Tables::ItemTable* items)
+    Client::Scenes::OwnStatsContext Context(const ItemSetTables* tables, const Client::Tables::ItemTable* items)
     {
         return {.itemSetTables = tables,
                 .itemSets = &m_itemSets,
@@ -134,11 +134,11 @@ TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAn
 // nullopt) corta en 0x550990, sin la cola: 33 cierres de 0x40e1b0 y el de la capa, y ningún rand() más.
 TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
 {
-    std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff});
-    types[1 * Client::Data::Tables::ItemSetTypeRecordSize] = std::byte{1};
-    std::vector<std::byte> options(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
-    const std::span<std::byte> set1 = std::span(options).subspan(Client::Data::Tables::ItemSetOptionRecordSize,
-                                                                 Client::Data::Tables::ItemSetOptionRecordSize);
+    std::vector<std::byte> types(Client::Tables::ItemSetTypeTableSize, std::byte{0xff});
+    types[1 * Client::Tables::ItemSetTypeRecordSize] = std::byte{1};
+    std::vector<std::byte> options(Client::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    const std::span<std::byte> set1 =
+        std::span(options).subspan(Client::Tables::ItemSetOptionRecordSize, Client::Tables::ItemSetOptionRecordSize);
     set1[0] = std::byte{'U'};
     set1[1] = std::byte{0};
     set1[0x20] = std::byte{0}; // la opción 0 (0x8c, +0x2a) con 7
@@ -189,8 +189,8 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
 TEST_F(OwnStatsFixture, WithTheScanOf0x505820TheRecalculationRunsTheHelpersAndTheTail)
 {
     const ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
     const auto items = ItemsWithKinds({});
     OwnCharacterRecord own;
     own.equipment.fill(Worn(EmptyType, 0, 0));

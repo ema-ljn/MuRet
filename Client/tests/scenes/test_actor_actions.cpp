@@ -116,7 +116,7 @@ protected:
     std::span<const std::int16_t> m_modelSounds{};
     const Client::Data::Terrain::TerrainLayer<std::uint16_t>* m_terrainWalls = nullptr;
     // Las armas de la matriz que llevan la marca +0x1e en Item.bmd.
-    Client::Data::Tables::ItemTable m_items =
+    Client::Tables::ItemTable m_items =
         Client::Tests::ItemsMarking({0x213, 0x227, 0x229, 0x231, 0x811, 0x815, 0xc12, 0xe11});
     bool m_withItems = true;
     CrtRandom m_random{QuietSeed()};

@@ -7,7 +7,7 @@
 // 0x5f0b40: el texto de Text.bmd con el nombre del mapa, en el orden de sus comparaciones.
 namespace
 {
-using Client::Scenes::MapNameText;
+using Client::Maps::MapNameText;
 
 TEST(MapNamesTest, TheEventMapsShareTheirText)
 {

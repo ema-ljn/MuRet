@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 namespace
 {
@@ -40,10 +40,10 @@ MonsterSkills MonsterSkillTable::Of(std::uint16_t kind) const
     return empty;
 }
 
-Core::Expected<MonsterSkillTable, DataError> LoadMonsterSkillTable(std::span<const std::byte> file)
+Core::Expected<MonsterSkillTable, Data::DataError> LoadMonsterSkillTable(std::span<const std::byte> file)
 {
     if (file.size() < CountSize)
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     // 0x54a490: la cuenta, en claro; 0x54a49b..0x54a4a0 la compara con signo.
     const std::int32_t count = Int32At(file, 0);
     MonsterSkillTable table;
@@ -51,7 +51,7 @@ Core::Expected<MonsterSkillTable, DataError> LoadMonsterSkillTable(std::span<con
     {
         const std::size_t offset = CountSize + static_cast<std::size_t>(i) * MonsterSkillRecordSize;
         if (file.size() < offset + MonsterSkillRecordSize)
-            return Core::Unexpected(DataError::FileTooShort);
+            return Core::Unexpected(Data::DataError::FileTooShort);
         // 0x54a4a8..0x54a4b0: fread de 0x1c en el bloque y 0x5496c0 sobre él.
         std::array<std::byte, MonsterSkillRecordSize> block{};
         std::ranges::copy(file.subspan(offset, MonsterSkillRecordSize), block.begin());
@@ -59,7 +59,7 @@ Core::Expected<MonsterSkillTable, DataError> LoadMonsterSkillTable(std::span<con
         const std::span<const std::byte> bytes(block);
         const std::int32_t kind = Int32At(bytes, 0);
         if (kind < 0 || kind > LastKind)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         MonsterSkills& skills = table.records[static_cast<std::uint16_t>(kind)];
         for (std::size_t s = 0; s < MonsterSkillCount; ++s)
             skills.skills[s] = Int32At(bytes, 4 + 4 * s);
@@ -67,4 +67,4 @@ Core::Expected<MonsterSkillTable, DataError> LoadMonsterSkillTable(std::span<con
     }
     return table;
 }
-} // namespace Client::Data::Tables
+} // namespace Client::Tables

@@ -225,10 +225,10 @@ struct Game
     Client::World::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0}});
-    Client::Data::Tables::ItemSetTables sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemTable items = Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0}});
+    Client::Tables::ItemSetTables sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
@@ -367,18 +367,18 @@ protected:
     Client::Tests::FakeTextureStore store;
     Client::Scenes::GuildMarkTextures marks{store};
     bool withMarks = true;
-    Client::Data::Text::TextTable chatTexts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
-    Client::Data::Text::TextTable windowTexts = Client::Tests::MakeTextTable({{224, "Zen"},
-                                                                              {226, "Comercio"},
-                                                                              {227, "dar zen"},
-                                                                              {228, "listo"},
-                                                                              {229, "cerrar"},
-                                                                              {365, "mira bien"},
-                                                                              {366, "antes de"},
-                                                                              {367, "aceptar"},
-                                                                              {368, "Nivel"},
-                                                                              {369, "%d o mas"},
-                                                                              {370, "ojo"}});
+    Client::Tables::TextTable chatTexts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    Client::Tables::TextTable windowTexts = Client::Tests::MakeTextTable({{224, "Zen"},
+                                                                          {226, "Comercio"},
+                                                                          {227, "dar zen"},
+                                                                          {228, "listo"},
+                                                                          {229, "cerrar"},
+                                                                          {365, "mira bien"},
+                                                                          {366, "antes de"},
+                                                                          {367, "aceptar"},
+                                                                          {368, "Nivel"},
+                                                                          {369, "%d o mas"},
+                                                                          {370, "ojo"}});
 };
 
 // Con el comercio cerrado, 0x5f3b40 solo consulta su byte.

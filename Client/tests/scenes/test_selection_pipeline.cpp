@@ -131,7 +131,7 @@ protected:
     void SetUp() override
     {
         ASSERT_NO_FATAL_FAILURE(Client::Tests::GoldenDataTest::SetUp());
-        auto data = Client::Scenes::LoadGameData(m_dataRoot);
+        auto data = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
         m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
@@ -190,7 +190,7 @@ protected:
 
     Client::Tests::FakeTextureStore m_textures;
     Client::Tests::RecordingFrameTarget m_target;
-    Client::Scenes::GameData m_data;
+    Client::Tables::GameData m_data;
     Client::Scenes::SingleModelLibrary m_models;
     // Con las texturas de efectos de GameModels, que piden las partículas del mundo 54.
     Client::Tests::WithEffectTextures m_library{m_models};
@@ -690,7 +690,7 @@ TEST_F(SelectionPipelineTest, EachListedCharacterGetsItsBalloonBeforeTheWindows)
     m_manager->Render(0.0f);
     ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
 
-    const Client::Data::Text::TextTable* texts = m_data.text ? &*m_data.text : nullptr;
+    const Client::Tables::TextTable* texts = m_data.text ? &*m_data.text : nullptr;
     const std::string guild = "(" + std::string(Client::UI::TextAt(texts, 488).value_or("")) + ")";
     const std::string wizard(Client::UI::TextAt(texts, 20).value_or(""));
     ASSERT_FALSE(m_target.frames.empty());

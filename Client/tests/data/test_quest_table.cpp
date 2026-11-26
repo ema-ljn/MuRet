@@ -10,16 +10,16 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadQuestTable: quest.bmd (0x418d10), 200 registros de 0x2a8 con el XOR3 de 0x418de0 desde el
+// Client::Tables::LoadQuestTable: quest.bmd (0x418d10), 200 registros de 0x2a8 con el XOR3 de 0x418de0 desde el
 // primer byte de cada uno. Las misiones son inventadas.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Tables::LoadQuestTable;
-using Client::Data::Tables::NameOf;
-using Client::Data::Tables::QuestCount;
-using Client::Data::Tables::QuestRecordSize;
-using Client::Data::Tables::QuestTableSize;
+using Client::Tables::LoadQuestTable;
+using Client::Tables::NameOf;
+using Client::Tables::QuestCount;
+using Client::Tables::QuestRecordSize;
+using Client::Tables::QuestTableSize;
 
 void Put(std::span<std::byte> bytes, std::size_t offset, std::uint32_t value, std::size_t size)
 {
@@ -92,7 +92,7 @@ TEST(QuestTable, ReadsEachFieldOfARecordAtItsOffset)
     EXPECT_EQ(last.maxLevel, 40);
     EXPECT_EQ(last.zen, 0x89abcdefu);
     EXPECT_EQ(last.failDialog, 77);
-    EXPECT_EQ(loaded.Value()[6], Client::Data::Tables::QuestRecord{});
+    EXPECT_EQ(loaded.Value()[6], Client::Tables::QuestRecord{});
 }
 
 TEST(QuestTable, ANameWithoutZeroKeepsItsThirtyTwoBytes)

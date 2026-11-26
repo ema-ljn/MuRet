@@ -111,7 +111,7 @@ public:
     CrtRandom random;
     Client::Models::Skeleton skeleton;
     MovementModels models;
-    Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
+    Client::Tables::SkillTable skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
 };
 
 TEST(GameMovementTest, AStunnedHeroDoesNotTouchTheWaitCounter)

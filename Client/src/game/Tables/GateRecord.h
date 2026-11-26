@@ -7,7 +7,7 @@
 #include <optional>
 
 // Los nueve campos de Gate.bmd (05 § Gate.bmd), copiados de la tabla ya descifrada.
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 struct GateRecord
 {
@@ -26,4 +26,4 @@ struct GateRecord
 
 // El índice es el número de gate. Fuera de la tabla, std::nullopt.
 [[nodiscard]] std::optional<GateRecord> ReadGateRecord(const GateTable& table, std::size_t index);
-} // namespace Client::Data::Tables
+} // namespace Client::Tables

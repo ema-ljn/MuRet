@@ -127,8 +127,8 @@ Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::
                                                          std::optional<std::int32_t> attributesNumber,
                                                          bool reuseMappingForAttributes)
 {
-    const std::string folder = Data::WorldFolder(map) + "\\";
-    const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
+    const std::string folder = Maps::WorldFolder(map) + "\\";
+    const auto world = static_cast<std::uint8_t>(Maps::WorldFolderNumber(map));
     const std::string number = std::to_string(world);
     const std::string attributesFile = std::to_string(attributesNumber.value_or(world));
     const std::string mappingPath = folder + "EncTerrain" + number + ".map";
@@ -171,8 +171,8 @@ Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem:
                                                           std::optional<std::string>& fatalMessage,
                                                           std::string_view lightName, bool retainLightOnFailure)
 {
-    const std::string folder = Data::WorldFolder(map) + "\\";
-    const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
+    const std::string folder = Maps::WorldFolder(map) + "\\";
+    const auto world = static_cast<std::uint8_t>(Maps::WorldFolderNumber(map));
     auto heights = LoadFile<Data::Terrain::TerrainHeights>(
         dataRoot, folder + "TerrainHeight.OZB", TerrainFileKind::Heights, fatalMessage,
         [world](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainHeights(bytes, world); });
@@ -251,8 +251,8 @@ Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem
 Core::Expected<std::vector<Data::Terrain::TerrainObject>, std::string>
 LoadWorldObjects(const std::filesystem::path& dataRoot, std::uint8_t map, std::optional<std::string>* fatalMessage)
 {
-    const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
-    const std::string relative = Data::WorldFolder(map) + "\\EncTerrain" + std::to_string(world) + ".obj";
+    const auto world = static_cast<std::uint8_t>(Maps::WorldFolderNumber(map));
+    const std::string relative = Maps::WorldFolder(map) + "\\EncTerrain" + std::to_string(world) + ".obj";
     const Core::Expected<std::vector<char>, std::string> file = ReadWorldFile(dataRoot, relative);
     if (!file.HasValue())
     {
@@ -278,7 +278,7 @@ std::vector<WorldTileTexture> WorldTileTextures(std::uint8_t map)
     {
         return tiles;
     }
-    const std::string folder = Data::WorldFolder(map) + "\\";
+    const std::string folder = Maps::WorldFolder(map) + "\\";
     for (std::size_t tile = 0; tile < TileNames.size(); ++tile)
     {
         tiles.push_back(WorldTileTexture{.path = folder + std::string(TileNames[tile]) + ".jpg",
@@ -296,7 +296,7 @@ std::vector<WorldTileTexture> WorldGrassTextures(std::uint8_t map)
     {
         return grass;
     }
-    const std::string folder = Data::WorldFolder(map) + "\\";
+    const std::string folder = Maps::WorldFolder(map) + "\\";
     for (std::size_t texture = 0; texture < GrassNames.size(); ++texture)
     {
         // 0x63bd00(…, 0x32 + k, 0x2600, 0x2901, 0, 0): el sexto argumento en 0, no avisa.
@@ -316,7 +316,7 @@ std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map)
     // Todos llevan sexto argumento0: faltar o fallar al leer no elimina la alternativa anterior.
     constexpr Data::Textures::Sampling sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
     constexpr std::uint8_t CrywolfMap = Maps::CrywolfMap;
-    const std::string folder = Data::WorldFolder(map) + "\\";
+    const std::string folder = Maps::WorldFolder(map) + "\\";
     return {{folder + "leaf01.tga", 0x64, sampling, false},
             {folder + "leaf01.jpg", 0x64, sampling, false},
             {folder + "leaf02.jpg", 0x65, sampling, false},

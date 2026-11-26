@@ -11,14 +11,14 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadMonsterSkillTable: MonsterSkill.bmd (0x54a440), la cuenta en claro y registros de 0x1c con
+// Client::Tables::LoadMonsterSkillTable: MonsterSkill.bmd (0x54a440), la cuenta en claro y registros de 0x1c con
 // el XOR3 de 0x5496c0 desde el primer byte de cada uno. Los registros son inventados.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Tables::LoadMonsterSkillTable;
-using Client::Data::Tables::MonsterSkillRecordSize;
-using Client::Data::Tables::MonsterSkills;
+using Client::Tables::LoadMonsterSkillTable;
+using Client::Tables::MonsterSkillRecordSize;
+using Client::Tables::MonsterSkills;
 
 void Put(std::vector<std::byte>& bytes, std::int32_t value)
 {

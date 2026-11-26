@@ -33,7 +33,7 @@ constexpr std::uint8_t AnyEntry = 0xff;
 // 0x4194c0 y 0x419b10: los pedidos de ítems.
 constexpr std::uint8_t ItemEntry = 1;
 // 0x418f40: los cuatro diálogos de un pedido.
-constexpr std::size_t DialogSlots = Data::Tables::QuestDialogCount;
+constexpr std::size_t DialogSlots = Tables::QuestDialogCount;
 // 0x558445: el nivel que no se mira.
 constexpr std::int32_t AnyLevel = -1;
 
@@ -59,8 +59,8 @@ void MarkTheHero(WorldState& world)
 // Lo que dice RecordOf de un registro fuera de los 200 de +0xc: ReadsAQuestOutsideTheRecords lo busca.
 constexpr std::string_view OutsideTheRecords = "fuera de los 200 registros de +0xc (Q-C842)";
 
-Core::Expected<const Data::Tables::QuestRecord*, std::string> RecordOf(const QuestState& quest, std::size_t record,
-                                                                       std::string_view where)
+Core::Expected<const Tables::QuestRecord*, std::string> RecordOf(const QuestState& quest, std::size_t record,
+                                                                 std::string_view where)
 {
     if (record >= quest.records.size())
         return Core::Unexpected(std::format("{}: la misión {} está {}", where, record, OutsideTheRecords));
@@ -73,7 +73,7 @@ std::uint8_t ByteOfValue(std::uint32_t value, std::size_t index)
     return static_cast<std::uint8_t>((value >> (8 * index)) & 0xffu);
 }
 
-std::uint8_t EntryByteOf(const Data::Tables::QuestEntry& entry, std::size_t offset)
+std::uint8_t EntryByteOf(const Tables::QuestEntry& entry, std::size_t offset)
 {
     switch (offset)
     {
@@ -94,13 +94,13 @@ std::uint8_t EntryByteOf(const Data::Tables::QuestEntry& entry, std::size_t offs
     default:
         break;
     }
-    if (offset < 7 + Data::Tables::QuestClassFlagCount)
+    if (offset < 7 + Tables::QuestClassFlagCount)
         return entry.classes[offset - 7];
-    const std::size_t dialogByte = offset - 7 - Data::Tables::QuestClassFlagCount;
+    const std::size_t dialogByte = offset - 7 - Tables::QuestClassFlagCount;
     return ByteOfValue(static_cast<std::uint16_t>(entry.dialogs[dialogByte / 2]), dialogByte % 2);
 }
 
-std::uint8_t ConditionByteOf(const Data::Tables::QuestCondition& condition, std::size_t offset)
+std::uint8_t ConditionByteOf(const Tables::QuestCondition& condition, std::size_t offset)
 {
     switch (offset)
     {
@@ -257,11 +257,11 @@ void SetQuestObjectByte(WorldRuntime& runtime, std::size_t index, std::uint8_t v
     }
 }
 
-Core::Expected<std::size_t, std::string> EntryCountOf(const Data::Tables::QuestRecord& quest, std::string_view where)
+Core::Expected<std::size_t, std::string> EntryCountOf(const Tables::QuestRecord& quest, std::string_view where)
 {
     if (quest.entryCount <= 0)
         return std::size_t{0};
-    if (static_cast<std::size_t>(quest.entryCount) > Data::Tables::QuestEntryCount)
+    if (static_cast<std::size_t>(quest.entryCount) > Tables::QuestEntryCount)
         return Core::Unexpected(std::format("{}: {} pedidos pasan los 16 del registro", where, quest.entryCount));
     return static_cast<std::size_t>(quest.entryCount);
 }
@@ -278,10 +278,10 @@ bool ReadsAQuestOutsideTheRecords(std::string_view error)
     return error.find(OutsideTheRecords) != std::string_view::npos;
 }
 
-std::uint8_t QuestClassFlagOf(const Data::Tables::QuestRecord& quest, std::size_t entry, std::uint8_t characterClass)
+std::uint8_t QuestClassFlagOf(const Tables::QuestRecord& quest, std::size_t entry, std::uint8_t characterClass)
 {
     constexpr std::size_t PartSize = 0x14;
-    constexpr std::size_t EntriesSize = Data::Tables::QuestEntryCount * PartSize;
+    constexpr std::size_t EntriesSize = Tables::QuestEntryCount * PartSize;
     constexpr std::size_t PaddingSize = 2;
     const std::size_t offset = entry * PartSize + 7 + characterClass;
     if (offset < EntriesSize)
@@ -375,7 +375,7 @@ Core::Expected<std::int16_t, std::string> QuestDialogOf(const QuestContext& cont
     const auto read = RecordOf(quest, record, "0x418f40");
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
-    const Data::Tables::QuestRecord& current = *read.Value();
+    const Tables::QuestRecord& current = *read.Value();
     const auto count = EntryCountOf(current, "0x418f40");
     if (!count.HasValue())
         return Core::Unexpected(count.Error());
@@ -398,13 +398,13 @@ Core::Expected<bool, std::string> HasTheQuestItems(const QuestContext& context, 
     const auto read = RecordOf(quest, record, "0x4194c0");
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
-    const Data::Tables::QuestRecord& current = *read.Value();
+    const Tables::QuestRecord& current = *read.Value();
     const auto count = EntryCountOf(current, "0x4194c0");
     if (!count.HasValue())
         return Core::Unexpected(count.Error());
     for (std::size_t e = 0; e < count.Value(); ++e)
     {
-        const Data::Tables::QuestEntry& entry = current.entries[e];
+        const Tables::QuestEntry& entry = current.entries[e];
         if (QuestClassFlagOf(current, e, quest.characterClass) == 0 || entry.kind != ItemEntry)
             continue;
         const std::int32_t type = entry.itemIndex + entry.itemGroup * ItemGroupSize;
@@ -427,14 +427,14 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
     const auto read = RecordOf(quest, record, "0x418fb0");
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
-    const Data::Tables::QuestRecord& current = *read.Value();
+    const Tables::QuestRecord& current = *read.Value();
     const auto entries = EntryCountOf(current, "0x418fb0");
     if (!entries.HasValue())
         return Core::Unexpected(entries.Error());
-    if (current.conditionCount > static_cast<std::int16_t>(Data::Tables::QuestConditionCount))
+    if (current.conditionCount > static_cast<std::int16_t>(Tables::QuestConditionCount))
         return Core::Unexpected(
             std::format("0x418fb0: {} condiciones pasan las 16 del registro", current.conditionCount));
-    const auto fail = [&quest](const Data::Tables::QuestCondition& condition)
+    const auto fail = [&quest](const Tables::QuestCondition& condition)
     {
         quest.dialog = condition.failDialog;
         quest.currentState = QuestConditionFailed;
@@ -442,12 +442,12 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
     };
     for (std::size_t e = 0; e < entries.Value(); ++e)
     {
-        const Data::Tables::QuestEntry& entry = current.entries[e];
+        const Tables::QuestEntry& entry = current.entries[e];
         if (QuestClassFlagOf(current, e, quest.characterClass) == 0)
             continue;
         for (std::int16_t c = 0; c < current.conditionCount; ++c)
         {
-            const Data::Tables::QuestCondition& condition = current.conditions[static_cast<std::size_t>(c)];
+            const Tables::QuestCondition& condition = current.conditions[static_cast<std::size_t>(c)];
             if (condition.link != entry.condition && condition.link != AnyEntry)
                 continue;
             // 0x41902b..0x419044: la misión pedida, sin signo (0xffff es ninguna).
@@ -570,7 +570,7 @@ Core::Expected<bool, std::string> CanCompleteTheQuest(const WorldState& world)
     const auto read = RecordOf(quest, quest.current, "0x419b10");
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
-    const Data::Tables::QuestRecord& current = *read.Value();
+    const Tables::QuestRecord& current = *read.Value();
     const auto entries = EntryCountOf(current, "0x419b10");
     if (!entries.HasValue())
         return Core::Unexpected(entries.Error());
@@ -578,7 +578,7 @@ Core::Expected<bool, std::string> CanCompleteTheQuest(const WorldState& world)
     bool any = false;
     for (std::size_t e = 0; e < entries.Value(); ++e)
     {
-        const Data::Tables::QuestEntry& entry = current.entries[e];
+        const Tables::QuestEntry& entry = current.entries[e];
         if (QuestClassFlagOf(current, e, quest.characterClass) == 0 || entry.kind != ItemEntry)
             continue;
         any = true;

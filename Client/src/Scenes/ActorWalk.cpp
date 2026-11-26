@@ -92,7 +92,7 @@ bool LeftBow(int model)
     return (model >= 0xa12 && model < 0xa19) || model == 0xa23 || model == 0xa26 || model == 0xa27;
 }
 
-Core::Expected<bool, std::string> Marked(int model, const Data::Tables::ItemTable* items)
+Core::Expected<bool, std::string> Marked(int model, const Tables::ItemTable* items)
 {
     if (items == nullptr)
     {
@@ -106,7 +106,7 @@ Core::Expected<bool, std::string> Marked(int model, const Data::Tables::ItemTabl
     return (*record)[WeaponMarkOffset] != std::byte{0};
 }
 
-Core::Expected<std::uint8_t, std::string> MarkedAction(int right, const Data::Tables::ItemTable* items, bool running,
+Core::Expected<std::uint8_t, std::string> MarkedAction(int right, const Tables::ItemTable* items, bool running,
                                                        std::uint8_t marked)
 {
     const auto mark = Marked(right, items);
@@ -305,14 +305,14 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
         requestSound(0x7b);
         result.sound = 0x7b;
     }
-    std::optional<ModelSounds> sounds = WrittenSounds(context.stop.runtime.modelSounds, actor.type);
-    if (context.modelSounds.size() == std::tuple_size_v<ModelSounds>)
+    std::optional<Sound::ModelSounds> sounds = Sound::WrittenSounds(context.stop.runtime.modelSounds, actor.type);
+    if (context.modelSounds.size() == std::tuple_size_v<Sound::ModelSounds>)
     {
         sounds.emplace();
         std::ranges::copy(context.modelSounds, sounds->begin());
     }
     constexpr std::size_t FirstWalkSound = 0;
-    if (const auto drawn = DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
+    if (const auto drawn = Sound::DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
     {
         requestSound(*drawn);
         result.sound = drawn;

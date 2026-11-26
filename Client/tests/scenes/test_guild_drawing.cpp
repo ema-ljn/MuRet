@@ -127,12 +127,12 @@ int MarkSlot(std::int32_t index)
 }
 
 // Los textos de los botones del diálogo (0x65feb0), inventados.
-Client::Data::Text::TextTable ButtonTexts()
+Client::Tables::TextTable ButtonTexts()
 {
     const std::map<std::size_t, std::string> texts{
         {228, "Dale"},     {229, "Nop"},     {1037, "Va"}, {1038, "Ni ahi"}, {1390, "%d:0%d"}, {1391, "%d:%d"},
         {1392, "Wait %d"}, {1393, "Result"}, {1394, "VS"}, {1395, "Tie"},    {1396, "Won"},    {1397, "Lost"}};
-    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
+    auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
 }
@@ -246,7 +246,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
-    Client::Data::Text::TextTable m_texts = ButtonTexts();
+    Client::Tables::TextTable m_texts = ButtonTexts();
     std::vector<std::string> m_lines;
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;

@@ -119,7 +119,7 @@ std::optional<NameCase> FixedCase(std::uint16_t type, std::int32_t level)
     return std::nullopt;
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index)
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);
     if (!text)
@@ -160,7 +160,7 @@ bool HasTheMonster(const NpcNameTable& table, std::uint32_t monster)
     return std::ranges::any_of(table, [monster](const NpcName& entry) { return std::uint32_t{entry.type} == monster; });
 }
 
-Core::Expected<std::string, std::string> TransformationRingName(const Data::Text::TextTable* texts,
+Core::Expected<std::string, std::string> TransformationRingName(const Tables::TextTable* texts,
                                                                 const NpcNameTable* npcNames, std::int32_t level)
 {
     if (npcNames == nullptr)
@@ -202,14 +202,14 @@ std::optional<std::uint32_t> TransformationMonsterOf(std::int32_t level)
     return TransformationMonsters[static_cast<std::size_t>(level)];
 }
 
-Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTable* items,
-                                                    const Data::Text::TextTable* texts, const NpcNameTable* npcNames,
-                                                    std::uint16_t type, std::int32_t level)
+Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* items, const Tables::TextTable* texts,
+                                                    const NpcNameTable* npcNames, std::uint16_t type,
+                                                    std::int32_t level)
 {
     if (type == TransformationRing)
         return TransformationRingName(texts, npcNames, level);
     // 0x5b1c76..0x5b1c8d: el registro de Item.bmd (ECX), que leen los casos con el nombre y el boleto.
-    const auto recordOf = [&]() -> Core::Expected<std::span<const std::byte, Data::Tables::ItemRecordSize>, std::string>
+    const auto recordOf = [&]() -> Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
     {
         if (items == nullptr)
             return Core::Unexpected(std::string("0x5b1c76: lee *[0x7758550] (Item.bmd) y no está cargado"));

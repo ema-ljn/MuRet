@@ -85,7 +85,7 @@ constexpr std::uint8_t Knight = 1;
 constexpr std::uint8_t SecondElf = 2 | (1 << 3);
 constexpr std::uint8_t Gladiator = 3;
 
-Client::Data::Text::TextTable Texts()
+Client::Tables::TextTable Texts()
 {
     return Client::Tests::MakeTextTable({{20, "Clase A"},
                                          {21, "Clase B"},
@@ -143,7 +143,7 @@ Client::Data::Text::TextTable Texts()
 class ItemRecords
 {
 public:
-    ItemRecords() : m_plain(Client::Data::Tables::ItemTableSize) {}
+    ItemRecords() : m_plain(Client::Tables::ItemTableSize) {}
 
     ItemRecords& Named(std::uint16_t type, std::string_view name)
     {
@@ -158,23 +158,22 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Client::Data::Tables::ItemTable Table() const
+    [[nodiscard]] Client::Tables::ItemTable Table() const
     {
-        const std::vector<std::byte> encrypted =
-            Client::Tests::EncryptRecords(m_plain, Client::Data::Tables::ItemRecordSize);
-        return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(m_plain, Client::Tables::ItemRecordSize);
+        return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
     }
 
 private:
     std::byte& At(std::uint16_t type, std::size_t offset)
     {
-        return m_plain[std::size_t{type} * Client::Data::Tables::ItemRecordSize + offset];
+        return m_plain[std::size_t{type} * Client::Tables::ItemRecordSize + offset];
     }
 
     std::vector<std::byte> m_plain;
 };
 
-Client::Data::Tables::ItemTable Items()
+Client::Tables::ItemTable Items()
 {
     return ItemRecords()
         // Un arma de una mano para las clases B y D, con su velocidad y su durabilidad.
@@ -207,25 +206,25 @@ Client::Data::Tables::ItemTable Items()
 }
 
 // Skill.bmd en claro, con el maná (+0x22) de la skill de la caja azul.
-Client::Data::Tables::SkillTable Skills()
+Client::Tables::SkillTable Skills()
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    const std::size_t mana = std::size_t{BlueBoxSkill} * Client::Data::Tables::SkillRecordSize + 0x22;
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    const std::size_t mana = std::size_t{BlueBoxSkill} * Client::Tables::SkillRecordSize + 0x22;
     plain[mana] = std::byte{BlueBoxMana & 0xff};
     plain[mana + 1] = std::byte{BlueBoxMana >> 8};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 // ItemSetType.bmd con el conjunto 3 en la pieza 1 de la armadura, e ItemSetOption.bmd con el conjunto 3: dos pares
 // (el segundo con una sola opción) y una opción del conjunto completo; todo lo demás sin usar (0xff).
-Client::Data::Tables::ItemSetTables Sets()
+Client::Tables::ItemSetTables Sets()
 {
-    std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize);
-    types[std::size_t{SetArmor} * Client::Data::Tables::ItemSetTypeRecordSize] = std::byte{ArmorSet};
-    std::vector<std::byte> options(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
-    const std::size_t base = std::size_t{ArmorSet} * Client::Data::Tables::ItemSetOptionRecordSize;
+    std::vector<std::byte> types(Client::Tables::ItemSetTypeTableSize);
+    types[std::size_t{SetArmor} * Client::Tables::ItemSetTypeRecordSize] = std::byte{ArmorSet};
+    std::vector<std::byte> options(Client::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    const std::size_t base = std::size_t{ArmorSet} * Client::Tables::ItemSetOptionRecordSize;
     const std::string_view name = "Conjunto Gris";
     for (std::size_t i = 0; i < name.size(); ++i)
         options[base + i] = static_cast<std::byte>(name[i]);
@@ -353,10 +352,10 @@ protected:
     std::optional<std::int32_t> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::Data::Text::TextTable texts = Texts();
-    Client::Data::Tables::ItemTable items = Items();
-    Client::Data::Tables::SkillTable skills = Skills();
-    Client::Data::Tables::ItemSetTables sets = Sets();
+    Client::Tables::TextTable texts = Texts();
+    Client::Tables::ItemTable items = Items();
+    Client::Tables::SkillTable skills = Skills();
+    Client::Tables::ItemSetTables sets = Sets();
     bool withSets = true;
     bool projecting = false;
     Client::UI::Point mouse{};

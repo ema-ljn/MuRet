@@ -226,10 +226,10 @@ struct Game
     // Con `drawable`, los modelos de lo que dibuja el retrato en vez de los de arriba.
     bool drawable = false;
     PortraitModels drawn;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
-    Client::Data::Tables::ItemSetTables sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemSetTables sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     LetterPortrait portrait;
@@ -718,7 +718,7 @@ public:
 
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::Data::Text::TextTable texts =
+    Client::Tables::TextTable texts =
         Client::Tests::MakeTextTable({{997, "Arrastrar gira"}, {998, "Rueda acerca"}, {999, "Clic vuelve"}});
     std::optional<std::int32_t> sound;
     Client::Render::ModelBatch models;
@@ -1014,7 +1014,7 @@ protected:
     }
 
     LetterMeasure m_letters;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(LetterTexts());
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(LetterTexts());
     Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
     Client::UI::OldWindowMeasure m_oldMeasure{.measure = m_letters,
                                               .dcFont = Client::Render::Text::FontKind::Normal,

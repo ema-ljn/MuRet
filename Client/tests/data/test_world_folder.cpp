@@ -12,9 +12,9 @@
 // mapa). Lo que hay en el Data\ del laboratorio lo prueba test_golden_world_folder.cpp.
 namespace
 {
-using Client::Data::OriginalMaps;
-using Client::Data::WorldFolder;
-using Client::Data::WorldFolderNumber;
+using Client::Maps::OriginalMaps;
+using Client::Maps::WorldFolder;
+using Client::Maps::WorldFolderNumber;
 
 // Un mapa y el N de su carpeta.
 struct MapFolder

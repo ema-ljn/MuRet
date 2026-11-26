@@ -20,7 +20,7 @@
 // lo del registro anterior ya descifrado, y lo vuelve a descifrar; MuRet hace lo mismo. Con menos de 0x2a8 bytes, eso
 // es el bloque sin iniciar (Q-C1127). Sin el archivo, devuelve 0 sin tocar los registros, y 0x61ccb0 no lo mira.
 // *Verificado* con el del repo: 136.000 bytes, y solo los cuatro primeros registros no están en cero.
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 inline constexpr std::size_t QuestCount = 200;
 inline constexpr std::size_t QuestRecordSize = 0x2a8;
@@ -106,5 +106,5 @@ using QuestTable = std::vector<QuestRecord>;
 
 // Descifra los primeros QuestTableSize bytes de `file` como 0x418d10, con lo que falta como lo deja su fread.
 // FileTooShort con menos de un registro. Lo que sobra se ignora.
-[[nodiscard]] Core::Expected<QuestTable, DataError> LoadQuestTable(std::span<const std::byte> file);
-} // namespace Client::Data::Tables
+[[nodiscard]] Core::Expected<QuestTable, Data::DataError> LoadQuestTable(std::span<const std::byte> file);
+} // namespace Client::Tables

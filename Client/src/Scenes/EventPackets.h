@@ -48,9 +48,9 @@ struct EventPacketContext
     // El rand() de la CRT, que gastan los cierres de los paneles (0x657a90, 0x65cae0).
     Crt::CrtRandom& random;
     // Text.bmd: sin la tabla, un aviso corta.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // Item.bmd, del que 0x5b1c70 saca el nombre del ítem del 47; sin la tabla, ese aviso corta.
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // El medidor y la pantalla de los mensajes (0x555190); sin medidor, un mensaje corta.
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
@@ -96,7 +96,7 @@ ApplyEventPacket(const Protocol::Events::EventPacket& packet, const EventPacketC
 // 14: nada con otro valor; pasados 30 s desde +0xc (la resta sin signo), +8 en 0 si `write` y nada; si no, el texto
 // con los segundos que faltan (wsprintfA). Sin Text.bmd corta.
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
-EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::Text::TextTable* texts, bool write);
+EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables::TextTable* texts, bool write);
 
 // 0x42fdc0: los globales de la interfaz de Crywolf a su valor inicial, el estado y la etapa en 0, el NPC elegido de la
 // llegada (0x6c8e54, GameMovementState::chosenNpc) y el segundo de los objetivos elegidos (0x6c8e2c) en −1. Lo llaman

@@ -9,7 +9,7 @@
 
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -29,7 +29,7 @@ class IGameUiRequests;
 struct ChatReceiveContext;
 
 // Los textos de Text.bmd de las ventanas viejas: los de la caja (228, 991, 1037 y 1038) y los demás por su índice.
-[[nodiscard]] UI::OldWindowTexts OldWindowTextsOf(const Data::Text::TextTable* texts);
+[[nodiscard]] UI::OldWindowTexts OldWindowTextsOf(const Tables::TextTable* texts);
 
 // El paquete de lo que pide una ventana de amigos (Protocol/Friends, y Protocol/FriendChat y Protocol/Letters del
 // hito 10).
@@ -49,7 +49,7 @@ struct FriendsOpenContext
     // Con qué se mide el mensaje del nivel; sin medidor, el mensaje corta.
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // 0x491080(0x186, 0x106): 0x490830, el nivel (+0xe) con el registro propio abierto (3.848 rand() al cerrarlo); con

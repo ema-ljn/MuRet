@@ -70,7 +70,7 @@ class CharacterFirstWorldEntryTest : public Client::Tests::GoldenDataTest
 protected:
     void Load()
     {
-        auto loaded = Client::Scenes::LoadGameData(m_dataRoot);
+        auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         m_data = std::move(loaded).Value();
         const auto loadedModels = m_models.Load(m_dataRoot, m_textures, m_log);
@@ -229,7 +229,7 @@ protected:
     Client::Tests::RecordingFrameTarget m_target;
     Client::Render::SpriteBatch m_textBatch;
     Client::Tests::RecordingTextDrawer m_letters{m_textBatch};
-    Client::Scenes::GameData m_data;
+    Client::Tables::GameData m_data;
     Client::Scenes::GameModels m_models;
     std::optional<Client::Scenes::SessionEventApplier> m_applier;
     std::optional<Client::Scenes::GameScene> m_game;

@@ -699,7 +699,7 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
         return Core::Unexpected(std::format("0x5c4bc4: el ítem de arriba a la izquierda ({}) cae fuera de la grilla de "
                                             "la tienda",
                                             topLeft));
-    const Data::Tables::ItemTable* items = ServicesOf(context).items;
+    const Tables::ItemTable* items = ServicesOf(context).items;
     if (items == nullptr)
         return Core::Unexpected(std::string("0x5c4bc4: el precio de 0x54d0f0 sin Item.bmd"));
     const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
@@ -1832,7 +1832,7 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
         std::uint8_t hidden = 0;
         {
             const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], context.random,
-                                              static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                              static_cast<std::uint16_t>(Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = 0x31;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
         }

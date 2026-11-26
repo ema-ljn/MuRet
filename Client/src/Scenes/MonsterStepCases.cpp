@@ -91,7 +91,7 @@ Core::Expected<void, std::string> StepTheGate(ActorState& actor, const CastleObj
 }
 } // namespace
 
-Core::Expected<void, std::string> QueueTheGateName(const ActorState& actor, const Data::Text::TextTable* texts,
+Core::Expected<void, std::string> QueueTheGateName(const ActorState& actor, const Tables::TextTable* texts,
                                                    WorldTextQueue& queue)
 {
     constexpr std::size_t LevelText = 1176; // 0x77133fc

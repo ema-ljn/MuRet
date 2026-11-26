@@ -34,11 +34,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Tables::ItemSetOptionRecordSize;
-using Client::Data::Tables::ItemSetOptionTableSize;
-using Client::Data::Tables::ItemSetTables;
-using Client::Data::Tables::ItemSetTypeRecordSize;
-using Client::Data::Tables::ItemSetTypeTableSize;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::ItemSetPiece;
@@ -46,6 +41,11 @@ using Client::Scenes::ItemSetPieces;
 using Client::Scenes::ItemSetState;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::OwnStatCopies;
+using Client::Tables::ItemSetOptionRecordSize;
+using Client::Tables::ItemSetOptionTableSize;
+using Client::Tables::ItemSetTables;
+using Client::Tables::ItemSetTypeRecordSize;
+using Client::Tables::ItemSetTypeTableSize;
 using Client::World::ItemState;
 
 constexpr std::uint8_t None = 0xff;
@@ -553,7 +553,7 @@ protected:
     }
 
     ItemSetState m_state;
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
     ActorState m_hero;
     std::uint8_t m_accesses = 1;
     CrtRandom m_random{3};
@@ -565,14 +565,14 @@ protected:
 TEST_F(OwnItemSetsFixture, StatCopiesTakeTheItemBonusesAndTheSetOptions)
 {
     // El byte +0x44 de Item.bmd: el tipo 1 en 1, el 2 en 2, el 3 en 3 y el 4 en 4.
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (std::size_t type = 1; type <= 4; ++type)
     {
-        plain[type * Client::Data::Tables::ItemRecordSize + 0x44] = static_cast<std::byte>(type);
+        plain[type * Client::Tables::ItemRecordSize + 0x44] = static_cast<std::byte>(type);
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::ItemRecordSize);
-    m_items = Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::ItemRecordSize);
+    m_items = Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
     OwnCharacterRecord own = Unequipped();
     struct Worn
     {

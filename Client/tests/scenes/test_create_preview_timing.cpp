@@ -59,7 +59,7 @@ protected:
         ASSERT_FALSE(HasFatalFailure());
         m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         m_data.items =
-            Client::Data::Tables::LoadedItemTable{.table = Client::Tests::ItemsMarking({}), .checksumMatches = true};
+            Client::Tables::LoadedItemTable{.table = Client::Tests::ItemsMarking({}), .checksumMatches = true};
         const Client::Scenes::SceneContext context{.dataRoot = m_dataRoot,
                                                    .textures = m_store,
                                                    .log = m_log,
@@ -157,7 +157,7 @@ protected:
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
     Client::Scenes::SingleModelLibrary m_models;
-    Client::Scenes::GameData m_data;
+    Client::Tables::GameData m_data;
     Client::Tests::RecordingFrameTarget m_target;
     std::unique_ptr<Client::Scenes::CharacterSelectScene> m_scene;
 };

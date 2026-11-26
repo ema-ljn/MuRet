@@ -15,7 +15,7 @@ namespace Client::Core
 class Log;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -53,7 +53,7 @@ struct CastleReceiveContext
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
     // Text.bmd: 860, 1386, 1500..1527, 1609 y 1616.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     CastleSender send{};
     std::filesystem::path dataRoot{};
     std::uint32_t tick = 0;

@@ -19,7 +19,7 @@ namespace
 {
 using Client::World::InitializeItemState;
 using Client::World::ItemState;
-using Metadata = std::array<std::byte, Client::Data::Tables::ItemRecordSize>;
+using Metadata = std::array<std::byte, Client::Tables::ItemRecordSize>;
 
 void Initialize(ItemState& item, const Metadata& metadata, std::uint32_t b1 = 0, std::uint32_t b3 = 0,
                 std::uint32_t b4 = 0)
@@ -759,7 +759,7 @@ using GoldenItemState = Client::Tests::GoldenDataTest;
 // Metadata real cargada una vez: expected de registros observados, no de InitializeItemState.
 TEST_F(GoldenItemState, UsesTheItemTableOwnedByGameData)
 {
-    const auto data = Client::Scenes::LoadGameData(m_dataRoot);
+    const auto data = Client::Tables::LoadGameData(m_dataRoot);
     ASSERT_TRUE(data.HasValue()) << data.Error();
     ASSERT_TRUE(data.Value().items.has_value());
     struct Case

@@ -87,7 +87,7 @@ Core::Expected<std::int32_t, std::string> SplitIntoRows(DialogBoxState& box, std
     return static_cast<std::int32_t>(lines.size());
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::int64_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::int64_t index,
                                                      std::string_view where)
 {
     if (texts == nullptr)
@@ -115,7 +115,7 @@ Core::Expected<void, std::string> PrintIntoRow(DialogBoxState& box, std::size_t 
 }
 
 // 0x633419..0x633525: la pregunta de la mezcla de joyas y su precio.
-Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, const Data::Text::TextTable* texts,
+Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, const Tables::TextTable* texts,
                                                        const DialogTextArguments& arguments)
 {
     const bool mixing = arguments.jewelMode == 0;
@@ -155,7 +155,7 @@ Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, cons
 // 0x633644..0x633739: el nombre del ítem de los diálogos en el primer renglón, sprintf de "( %s )" (o de "( %s%s )"
 // con el 1901 en el 0xa8) desde el principio de 0x7d36a98, y `lineCount` veces el texto `firstText` debajo (EBX no
 // avanza en el lazo de 0x633729, Q-C922; los dos que llaman pasan 1). lineCount + 1 renglones.
-Core::Expected<void, std::string> WriteTheItemName(DialogBoxState& box, const Data::Text::TextTable* texts,
+Core::Expected<void, std::string> WriteTheItemName(DialogBoxState& box, const Tables::TextTable* texts,
                                                    std::int32_t lineCount, std::int32_t firstText, std::int32_t id,
                                                    const World::ItemState& item)
 {
@@ -231,17 +231,17 @@ std::string_view DialogAnswer(const DialogBoxState& box, std::size_t row)
 namespace
 {
 // 0x419710 y 0x632f70 hasta antes de su final: el texto, las respuestas y su cuenta.
-Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Data::Text::DialogTable* table,
-                                                 const Data::Text::TextTable* texts, std::int32_t index,
+Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Tables::DialogTable* table,
+                                                 const Tables::TextTable* texts, std::int32_t index,
                                                  std::string_view where)
 {
-    if (table == nullptr || table->size() != Data::Text::DialogCount)
+    if (table == nullptr || table->size() != Tables::DialogCount)
         return Core::Unexpected(std::format("{}: sin Dialog.bmd", where));
-    if (index < 0 || static_cast<std::size_t>(index) >= Data::Text::DialogCount)
+    if (index < 0 || static_cast<std::size_t>(index) >= Tables::DialogCount)
         return Core::Unexpected(std::format("{}: el diálogo {} está fuera de los 200 de 0x7688ac0", where, index));
-    const Data::Text::DialogRecord& dialog = (*table)[static_cast<std::size_t>(index)];
+    const Tables::DialogRecord& dialog = (*table)[static_cast<std::size_t>(index)];
     box.dialogIndex = index;
-    box.lineCount = SplitIntoRows(box, 0, Data::Text::DialogTextOf(dialog), where).Value();
+    box.lineCount = SplitIntoRows(box, 0, Tables::DialogTextOf(dialog), where).Value();
     box.answers.fill('\0');
     box.answerCount = 0;
     std::int32_t answer = 0;
@@ -249,7 +249,7 @@ Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Data
     for (; answer < dialog.answerCount; ++answer)
     {
         const std::string line =
-            std::format("{}) {}", answer + 1, Data::Text::DialogAnswerOf(dialog, static_cast<std::size_t>(answer)));
+            std::format("{}) {}", answer + 1, Tables::DialogAnswerOf(dialog, static_cast<std::size_t>(answer)));
         const std::vector<std::string> split = SplitIntoLines(line, 1, DialogRowBytes);
         const auto start = static_cast<std::ptrdiff_t>(static_cast<std::size_t>(answer) * DialogRowBytes);
         auto out = std::copy(split.front().begin(), split.front().end(), box.answers.begin() + start);
@@ -276,8 +276,8 @@ Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Data
 } // namespace
 
 Core::Expected<void, std::string> ShowTheQuestDialog(DialogBoxState& box, DialogState& dialogs,
-                                                     const Data::Text::DialogTable* table,
-                                                     const Data::Text::TextTable* texts, std::int32_t index)
+                                                     const Tables::DialogTable* table, const Tables::TextTable* texts,
+                                                     std::int32_t index)
 {
     if (auto written = WriteTheDialog(box, table, texts, index, "0x419710"); !written.HasValue())
         return written;
@@ -287,8 +287,8 @@ Core::Expected<void, std::string> ShowTheQuestDialog(DialogBoxState& box, Dialog
 }
 
 Core::Expected<void, std::string> OpenTheAnswersDialog(DialogBoxState& box, DialogState& dialogs,
-                                                       const Data::Text::DialogTable* table,
-                                                       const Data::Text::TextTable* texts, std::int32_t index)
+                                                       const Tables::DialogTable* table, const Tables::TextTable* texts,
+                                                       std::int32_t index)
 {
     // 0x632f90..0x632fa3: los botones en 0 entre el texto y las respuestas (nada de lo que sigue los lee).
     ResetTheButtons(box);
@@ -311,7 +311,7 @@ namespace
 {
 // Los textos `firstText + row` de `fromRow` a `lineCount` − 1, con un strcpy cada uno en su renglón de 0x26 bytes;
 // uno largo sigue en el renglón siguiente. Lo que pasaría los 7 corta, como un texto que no está.
-Core::Expected<void, std::string> CopyTheTexts(DialogBoxState& box, const Data::Text::TextTable* texts,
+Core::Expected<void, std::string> CopyTheTexts(DialogBoxState& box, const Tables::TextTable* texts,
                                                std::int32_t firstText, std::int32_t fromRow, std::int32_t lineCount,
                                                std::string_view where)
 {
@@ -354,7 +354,7 @@ void ShowTheTextDialog(DialogBoxState& box, DialogState& dialogs, std::int32_t i
 } // namespace
 
 Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
-                                                 const Data::Text::TextTable* texts, std::int32_t lineCount,
+                                                 const Tables::TextTable* texts, std::int32_t lineCount,
                                                  std::int32_t firstText, std::int32_t id,
                                                  const World::ItemState* dialogItem,
                                                  const DialogTextArguments* arguments)
@@ -403,7 +403,7 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
 }
 
 Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, DialogState& dialogs,
-                                                         const Data::Text::TextTable* texts, std::int32_t lineCount,
+                                                         const Tables::TextTable* texts, std::int32_t lineCount,
                                                          std::int32_t firstText, std::string_view zen)
 {
     // 0x633342..0x633367: sprintf(0x7d36a98, el texto, el zen escrito), sin tope: lo largo sigue en los renglones de
@@ -485,8 +485,8 @@ std::int32_t StepTheDialogButtons(DialogBoxState& box, Point mouse, bool& click,
     return selected;
 }
 
-Core::Expected<void, std::string> StepTheDialogPages(DialogBoxState& box, const Data::Text::TextTable* texts,
-                                                     Point mouse, bool click)
+Core::Expected<void, std::string> StepTheDialogPages(DialogBoxState& box, const Tables::TextTable* texts, Point mouse,
+                                                     bool click)
 {
     const bool onTheArrows = mouse.y >= ArrowsTop && mouse.y <= ArrowsBottom;
     if (click && onTheArrows && mouse.x >= PreviousLeft && mouse.x <= PreviousRight)

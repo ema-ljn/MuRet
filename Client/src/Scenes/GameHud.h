@@ -79,14 +79,14 @@ struct GameHudContext
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // Text.bmd, Item.bmd y Skill.bmd; sin alguna, lo que la lee corta con error.
-    const Data::Text::TextTable* texts = nullptr;
-    const Data::Tables::ItemTable* items = nullptr;
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::TextTable* texts = nullptr;
+    const Tables::ItemTable* items = nullptr;
+    const Tables::SkillTable* skills = nullptr;
     // [0x6eed3c] + 0x8004, los 64 conjuntos de ItemSetOption.bmd que lee el cartel (0x40eca0); sin ellos, corta.
-    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    const Tables::ItemSetOptionTable* setOptions = nullptr;
     // [0x6eed3c] + 4, ItemSetType.bmd: el conjunto de cada tipo que leen el nombre y las opciones de un ítem en su
     // tooltip (0x40cf30, 0x40eee0); sin ella, un ítem de conjunto corta.
-    const Data::Tables::ItemSetTypeTable* setTypes = nullptr;
+    const Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
     // GetTickCount del frame (App::TickCountMs), que leen la cuenta de los eventos (0x40bab0) y el reloj de la interfaz

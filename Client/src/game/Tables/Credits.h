@@ -17,7 +17,7 @@
 // (1, el título de una parte; 2, un rol; 3, un nombre; 0, el final) y el texto en los 32 que siguen,
 // hasta su primer cero. No tiene suma. *Verificado* con el del laboratorio: el primer 0 está en el
 // registro 244, y ningún texto llena los 32 bytes.
-namespace Client::Data::Text
+namespace Client::Tables
 {
 inline constexpr std::size_t CreditRecordSize = 33;
 inline constexpr std::size_t CreditRecordCount = 400;
@@ -44,10 +44,10 @@ struct CreditEntry
 // Los 400 registros de `file`, descifrados. FileTooShort con menos de 13.200 bytes: fread lee lo que
 // haya y el resto queda con lo que tenía la ventana, que MuRet no tiene (el del juego tiene 13.200). Lo
 // que sobra se ignora, como fread.
-[[nodiscard]] Core::Expected<std::vector<CreditEntry>, DataError> LoadCredits(std::span<const std::byte> file);
+[[nodiscard]] Core::Expected<std::vector<CreditEntry>, Data::DataError> LoadCredits(std::span<const std::byte> file);
 
 // La clase del registro `index` como la lee 0x63ffe0: después del último, End. En el original son
 // los bytes de la ventana que siguen a la tabla (+0x39a0, el índice mismo), que el archivo del juego no
 // alcanza.
 [[nodiscard]] std::uint8_t CreditKindAt(std::span<const CreditEntry> credits, std::size_t index);
-} // namespace Client::Data::Text
+} // namespace Client::Tables

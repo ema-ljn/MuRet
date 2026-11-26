@@ -466,7 +466,7 @@ TEST_F(ChatReceiveTest, NoticesGoToTheCenterOrToTheChat)
 // aviso de la ventana del gremio (0x651680: adelante, renglón por renglón).
 TEST_F(ChatReceiveTest, TheGuildNoticeGoesToTheAreaAndToTheGuildWindow)
 {
-    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes({{483, "Gremio: %s"}}));
+    auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes({{483, "Gremio: %s"}}));
     ASSERT_TRUE(table.HasValue());
     ChatReceiveContext context = Context();
     context.texts = &table.Value();

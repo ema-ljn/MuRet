@@ -310,7 +310,7 @@ Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, 
     // 0x613127: el caso del switch de `number` con su tabla de sonidos (0x612c80) también en la tabla de los pasos del
     // ataque (WorldRuntime::modelSounds, CL9 hito 3).
     if (context.sounds != nullptr)
-        WriteMonsterSounds(number, *context.sounds);
+        Sound::WriteMonsterSounds(number, *context.sounds);
     return {};
 }
 

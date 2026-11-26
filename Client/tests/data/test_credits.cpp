@@ -11,17 +11,17 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadCredits: credit.bmd (0x63ff30), 400 registros de 33 bytes con el XOR3 del login
+// Client::Tables::LoadCredits: credit.bmd (0x63ff30), 400 registros de 33 bytes con el XOR3 del login
 // (0x4c1690) de una vez sobre los 13.200. Las tablas son inventadas.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::CreditEntry;
-using Client::Data::Text::CreditFileSize;
-using Client::Data::Text::CreditKind;
-using Client::Data::Text::CreditKindAt;
-using Client::Data::Text::CreditRecordSize;
-using Client::Data::Text::LoadCredits;
+using Client::Tables::CreditEntry;
+using Client::Tables::CreditFileSize;
+using Client::Tables::CreditKind;
+using Client::Tables::CreditKindAt;
+using Client::Tables::CreditRecordSize;
+using Client::Tables::LoadCredits;
 
 void PutRecord(std::vector<std::byte>& file, std::size_t record, CreditKind kind, std::string_view text)
 {

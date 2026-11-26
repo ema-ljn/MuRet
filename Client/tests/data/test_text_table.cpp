@@ -13,16 +13,16 @@
 #include <utility>
 #include <vector>
 
-// Client::Data::Text: la tabla de Text.bmd, con archivos sintéticos.
+// Client::Tables: la tabla de Text.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::LoadTextTable;
-using Client::Data::Text::TextCount;
-using Client::Data::Text::TextOr;
-using Client::Data::Text::TextRecordSize;
-using Client::Data::Text::TextTable;
-using Client::Data::Text::TextTableSize;
+using Client::Tables::LoadTextTable;
+using Client::Tables::TextCount;
+using Client::Tables::TextOr;
+using Client::Tables::TextRecordSize;
+using Client::Tables::TextTable;
+using Client::Tables::TextTableSize;
 
 // Text() se puede pedir a una tabla que sigue viva, y no a una temporal.
 template <typename Table>

@@ -16,16 +16,16 @@
 #include <string>
 #include <vector>
 
-// Client::Data::Text::LoadFilterWords: FilterName.bmd y Filter.bmd (0x549fa0 y 0x549c60), con
+// Client::Tables::LoadFilterWords: FilterName.bmd y Filter.bmd (0x549fa0 y 0x549c60), con
 // palabras sintéticas.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::FilterChecksumKey;
-using Client::Data::Text::FilterNameChecksumKey;
-using Client::Data::Text::FilterRecordSize;
-using Client::Data::Text::FilterTableSize;
-using Client::Data::Text::LoadFilterWords;
+using Client::Tables::FilterChecksumKey;
+using Client::Tables::FilterNameChecksumKey;
+using Client::Tables::FilterRecordSize;
+using Client::Tables::FilterTableSize;
+using Client::Tables::LoadFilterWords;
 using Client::Tests::ErrorOf;
 
 std::vector<std::byte> FilterFile(const std::vector<std::string>& words,

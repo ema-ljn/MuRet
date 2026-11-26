@@ -19,7 +19,7 @@
 // Cada archivo trae sus registros, cada uno cifrado con XOR3, y después el checksum de los registros
 // cifrados (TableChecksum.h, con la paridad de Item.bmd). El original sí lo mira: si no coincide,
 // muestra "File corrupted." y no toca la tabla.
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 // ItemSetType.bmd: un registro de 4 bytes por tipo de ítem, el mismo índice que Item.bmd. Los bytes
 // 0 a 2 son el conjunto del ítem con el byte +0x1c & 3 en 1, 2 o 3 (0x40cfa0); 0 o 0xff, ninguno.
@@ -39,8 +39,8 @@ static_assert(ItemSetOptionTableSize == 0x1300, "lo que lee 0x40c850 (05, Las ta
 // La clave del checksum (0x40c8ae y 0x40c8dd).
 inline constexpr std::uint32_t ItemSetOptionChecksumKey = 0xA2F1;
 
-using ItemSetTypeTable = RecordTable<ItemSetTypeRecordSize>;
-using ItemSetOptionTable = RecordTable<ItemSetOptionRecordSize>;
+using ItemSetTypeTable = Data::Tables::RecordTable<ItemSetTypeRecordSize>;
+using ItemSetOptionTable = Data::Tables::RecordTable<ItemSetOptionRecordSize>;
 
 // Las dos tablas de [0x6eed3c], en claro.
 struct ItemSetTables
@@ -55,6 +55,6 @@ struct ItemSetTables
 //   - si `file` no llega a tener los registros y los 4 bytes del checksum, DataError::FileTooShort
 //     (Q-C24: el original leería igual, con el heap sin inicializar en lo que falta);
 //   - si es más largo, el resto se ignora, como con los fread de tamaño fijo del original.
-Core::Expected<ItemSetTypeTable, DataError> LoadItemSetTypeTable(std::span<const std::byte> file);
-Core::Expected<ItemSetOptionTable, DataError> LoadItemSetOptionTable(std::span<const std::byte> file);
-} // namespace Client::Data::Tables
+Core::Expected<ItemSetTypeTable, Data::DataError> LoadItemSetTypeTable(std::span<const std::byte> file);
+Core::Expected<ItemSetOptionTable, Data::DataError> LoadItemSetOptionTable(std::span<const std::byte> file);
+} // namespace Client::Tables

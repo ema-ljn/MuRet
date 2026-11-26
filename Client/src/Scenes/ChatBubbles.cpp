@@ -74,7 +74,7 @@ std::string_view NameOf(std::span<const char> name)
 
 // "<%s> %s" y "[%s] %s" con el texto, o "<%s>" y "[%s]" sin él.
 Core::Expected<std::string, std::string> GuildLine(char open, char close, std::string_view name,
-                                                   std::optional<std::size_t> text, const Data::Text::TextTable* texts,
+                                                   std::optional<std::size_t> text, const Tables::TextTable* texts,
                                                    std::string_view where)
 {
     std::string line;
@@ -117,7 +117,7 @@ std::string ReadAt(const GuildBytes& bytes, std::size_t at)
 // en +0x18 si tiene nombre, +0x65 = +0x374 y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y
 // +0x65 en 0.
 Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, const GuildState& guild,
-                                               const Data::Text::TextTable* texts, const PersonalShopState& shops,
+                                               const Tables::TextTable* texts, const PersonalShopState& shops,
                                                std::size_t ownerIndex)
 {
     bubble.shopTitle = ShortShopTitle(shops, ownerIndex);

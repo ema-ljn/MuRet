@@ -32,7 +32,7 @@ struct SocialRequestContext
     WorldState& world;
     Crt::CrtRandom& random;
     // Text.bmd: el 475 y el 476 (sprintf con el nombre), el 493 (la tienda personal) y el 257 (no es el líder).
-    const Data::Text::TextTable& texts;
+    const Tables::TextTable& texts;
     // El cable (App::ServerSession). Vacío, el pedido que llega a mandarse es el error.
     std::function<void(Protocol::Outgoing)> send{};
 };

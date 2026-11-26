@@ -159,7 +159,7 @@ Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
 {
     return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                 static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
 std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)

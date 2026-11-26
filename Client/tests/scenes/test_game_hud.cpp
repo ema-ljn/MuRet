@@ -91,13 +91,13 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-Client::Data::Tables::SkillTable SkillsForTheList()
+Client::Tables::SkillTable SkillsForTheList()
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    plain[9 * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
-    plain[2 * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{2};
-    const auto encrypted = Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(encrypted);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    plain[9 * Client::Tables::SkillRecordSize + 0x31] = std::byte{1};
+    plain[2 * Client::Tables::SkillRecordSize + 0x31] = std::byte{2};
+    const auto encrypted = Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(encrypted);
 }
 
 // Un quad del lote: su textura, la mezcla, el color de sus vértices y las esquinas 0 y 2 del fan (arriba a la
@@ -454,7 +454,7 @@ protected:
     {
         GoldenDataTest::SetUp();
         ASSERT_FALSE(HasFatalFailure());
-        auto loaded = Client::Scenes::LoadGameData(m_dataRoot);
+        auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
         // Como lo deja la entrada al mundo.
@@ -565,7 +565,7 @@ protected:
     bool leftDown = false;
     bool controlDown = false;
     const Client::Scenes::GameProjection* projection = nullptr;
-    Client::Scenes::GameData data;
+    Client::Tables::GameData data;
 };
 
 TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
@@ -1450,7 +1450,7 @@ TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
     mouse = {320, 300};
     ASSERT_TRUE(Hud().HasValue());
     CrtRandom away = random;
-    for (std::uint32_t i = 0; i < OwnRecordCloseRandoms + Client::Data::Tables::SkillRecordSize; ++i)
+    for (std::uint32_t i = 0; i < OwnRecordCloseRandoms + Client::Tables::SkillRecordSize; ++i)
         static_cast<void>(away.Next());
 
     random = before;

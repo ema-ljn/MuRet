@@ -447,7 +447,7 @@ TEST_F(GoldenGameModels, AnEnteredOrFailedSelectionReleasesTheStartupTexture)
 {
     constexpr TextureSlot temporary{0x716};
     const Client::Tests::TemporaryFolder missingUi("selection-without-ui");
-    const Client::Scenes::GameData data;
+    const Client::Tables::GameData data;
     for (const bool success : {true, false})
     {
         SCOPED_TRACE(success);

@@ -76,7 +76,7 @@ LoginLayout LayoutLogin(Core::PixelSize screen)
         .cancel = Rect{.x = x + CancelLeft, .y = y + ButtonsTop, .width = ButtonWidth, .height = ButtonHeight}};
 }
 
-LoginWindow::LoginWindow(TextureSizes sizes, const Data::Text::TextTable* texts)
+LoginWindow::LoginWindow(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts), m_account(App::MaxCredentialBytes, false),
       m_password(App::MaxCredentialBytes, true), m_ok(OkSlot, ButtonWidth, ButtonHeight),
       m_cancel(CancelSlot, ButtonWidth, ButtonHeight)

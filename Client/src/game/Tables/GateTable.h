@@ -11,7 +11,7 @@
 // original, el cargador de 0x54a360). Se lee de Data\Gate.bmd, no de Data\Local\.
 //
 // 0x900 bytes: 256 registros de 9, sin cabecera ni checksum, cada uno cifrado con XOR3.
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 // Cuántos gates trae la tabla, uno por registro. Un gate es un punto de paso entre mapas (el
 // servidor tiene los suyos en su gate.txt). El original lee siempre 256.
@@ -22,7 +22,7 @@ inline constexpr std::size_t GateRecordSize = 9;
 inline constexpr std::size_t GateTableSize = GateCount * GateRecordSize;
 static_assert(GateTableSize == 0x900, "el tamaño que mide el research (05, Tablas .bmd)");
 
-using GateTable = RecordTable<GateRecordSize>;
+using GateTable = Data::Tables::RecordTable<GateRecordSize>;
 
 // Descifra los primeros GateTableSize bytes de `file`.
 //   - Si `file` es más corto, devuelve DataError::FileTooShort. El original no mira el tamaño:
@@ -30,5 +30,5 @@ using GateTable = RecordTable<GateRecordSize>;
 //     (0054a360-gate-bmd-loader.md §2). Es estado que queda corrido, un bug interno, y se corrige
 //     (Q-C24 en Client/docs/research/07-quirks-y-bugs.md).
 //   - Si es más largo, el resto se ignora, como en el original.
-Core::Expected<GateTable, DataError> LoadGateTable(std::span<const std::byte> file);
-} // namespace Client::Data::Tables
+Core::Expected<GateTable, Data::DataError> LoadGateTable(std::span<const std::byte> file);
+} // namespace Client::Tables

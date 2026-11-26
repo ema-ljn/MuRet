@@ -182,13 +182,12 @@ std::uint32_t StateAfterAStep(int draws)
 // 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
 // alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
 // se consulta además la espera: estos fixtures conservan el contador positivo.
-int GateProbeRandoms(const Client::Data::Tables::GateTable& gates, std::int32_t map,
-                     const Client::Scenes::ActorState& hero)
+int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Scenes::ActorState& hero)
 {
     int draws = 0;
     for (std::size_t slot = 0; slot < gates.Count(); ++slot)
     {
-        const auto gate = Client::Data::Tables::ReadGateRecord(gates, slot);
+        const auto gate = Client::Tables::ReadGateRecord(gates, slot);
         if (!gate || gate->flag != 1 || gate->map != map)
             continue;
         draws += 4;
@@ -819,7 +818,7 @@ protected:
     void SetUp() override
     {
         GoldenDataTest::SetUp();
-        auto loadedData = Client::Scenes::LoadGameData(m_dataRoot);
+        auto loadedData = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loadedData.HasValue()) << loadedData.Error();
         data = std::move(loadedData).Value();
         const auto loadedModels = playerModels.Load(m_dataRoot, store, log);
@@ -892,7 +891,7 @@ protected:
 
     // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta); con el ritmo fiel, cada dibujo es un frame del
     // original.
-    [[nodiscard]] GameScene Scene(const Client::Data::Text::TextTable* texts = nullptr,
+    [[nodiscard]] GameScene Scene(const Client::Tables::TextTable* texts = nullptr,
                                   Client::App::PacingMode pacing = Client::App::PacingMode::Decoupled)
     {
         return GameScene(SceneContext{.dataRoot = m_dataRoot,
@@ -916,7 +915,7 @@ protected:
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
     Client::Scenes::GameModels playerModels;
-    Client::Scenes::GameData data;
+    Client::Tables::GameData data;
 };
 
 // 0x6151fc/0x61520f reservan los dos .wav antes de publicar las WORD en 0x615232.
@@ -934,7 +933,7 @@ public:
     {
         if (id != 0x1bd && id != 0x1be)
             return;
-        EXPECT_FALSE(Client::Scenes::WrittenSounds(m_runtime.modelSounds, Client::Scenes::SpearmanModel));
+        EXPECT_FALSE(Client::Sound::WrittenSounds(m_runtime.modelSounds, Client::Scenes::SpearmanModel));
         registrations.emplace_back(id, path);
     }
     std::vector<std::pair<std::int32_t, std::string>> registrations;
@@ -958,8 +957,8 @@ TEST_F(GameSceneDrawTest, TheCastleSpearmanReservesItsSoundsBeforePublishingTheA
     const std::vector<std::pair<std::int32_t, std::string>> expected{
         {0x1bd, "Sound\\BattleCastle\\m_SpearMercAttack.wav"}, {0x1be, "Sound\\BattleCastle\\m_SpearMercDeath.wav"}};
     EXPECT_EQ(audio.registrations, expected);
-    const Client::Scenes::ModelSounds sounds{-1, -1, 0xeb, 0xeb, 0xec, -1, -1, -1, -1, -1};
-    EXPECT_EQ(Client::Scenes::WrittenSounds(world.Runtime().modelSounds, Client::Scenes::SpearmanModel), sounds);
+    const Client::Sound::ModelSounds sounds{-1, -1, 0xeb, 0xeb, 0xec, -1, -1, -1, -1, -1};
+    EXPECT_EQ(Client::Sound::WrittenSounds(world.Runtime().modelSounds, Client::Scenes::SpearmanModel), sounds);
     scene.PrepareFrame();
     scene.Render(target.BeginFrame(std::chrono::milliseconds{1040}), 0.0f);
     target.Present();

@@ -90,14 +90,14 @@ constexpr std::uint16_t Chaos = 0x180f;
 constexpr std::uint16_t Spirit = 0x1a1f;
 constexpr std::uint16_t Life = 0x1c10;
 
-Client::Data::Tables::ItemTable SyntheticItems()
+Client::Tables::ItemTable SyntheticItems()
 {
-    using Client::Data::Tables::ItemRecordSize;
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    using Client::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (const std::uint16_t type : {Horse, Raven})
         plain[std::size_t{type} * ItemRecordSize + 0x2d] = std::byte{PetDurability};
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -225,7 +225,7 @@ public:
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     CrtRandom random{0x2468u};
     Client::Input::InputState input{};
-    Client::Data::Tables::ItemTable items = SyntheticItems();
+    Client::Tables::ItemTable items = SyntheticItems();
     Client::Scenes::InventoryServices services{};
     std::vector<Client::Protocol::Outgoing> sent;
     std::vector<std::pair<std::size_t, std::int32_t>> messages;

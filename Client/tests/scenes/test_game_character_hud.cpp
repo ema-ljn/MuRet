@@ -60,7 +60,7 @@ using Client::Tests::RecordedText;
 constexpr std::uint32_t Seed = 0x0badf00du;
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int Own = OwnRecordCloseRandoms;
-constexpr int SkillEntry = static_cast<int>(Client::Data::Tables::SkillRecordSize);
+constexpr int SkillEntry = static_cast<int>(Client::Tables::SkillRecordSize);
 // Los accesos de un frame sin set: los siete de arriba, 0x5b8b80, la primera vuelta del set y los tres de abajo.
 constexpr int PlainWindowCloses = 7 + 1 + 1 + 3;
 // El HUD sin ventanas, como en GameHudTest.
@@ -147,7 +147,7 @@ protected:
     {
         GoldenDataTest::SetUp();
         ASSERT_FALSE(HasFatalFailure());
-        auto loaded = Client::Scenes::LoadGameData(m_dataRoot);
+        auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
         // Como lo deja la entrada al mundo con un F3 03 inventado y un F3 10 sin ítems.
@@ -259,9 +259,9 @@ protected:
     Client::UI::Point mouse{};
     bool leftDown = false;
     std::optional<std::uint16_t> chosenServer = ServerCode;
-    const Client::Data::Tables::ItemTable* items = nullptr;
-    const Client::Data::Tables::SkillTable* skills = nullptr;
-    Client::Scenes::GameData data;
+    const Client::Tables::ItemTable* items = nullptr;
+    const Client::Tables::SkillTable* skills = nullptr;
+    Client::Tables::GameData data;
 };
 
 // Un Dark Knight sin equipo en Lorencia y en Devias: los fondos, los cinco de los stats y cerrar; los 17 textos en su
@@ -400,22 +400,20 @@ TEST_F(GameCharacterHudTest, TheDarkLordAddsTheCommandAndItsButtonsInLorenciaAnd
 // Skill.bmd e Item.bmd inventados para la magia.
 struct MagicTables
 {
-    Client::Data::Tables::SkillTable skills;
-    Client::Data::Tables::ItemTable items;
+    Client::Tables::SkillTable skills;
+    Client::Tables::ItemTable items;
 };
 
 MagicTables MagicTablesWith(std::uint8_t skill, std::uint8_t damage, std::uint16_t staff, std::uint8_t durability)
 {
-    std::vector<std::byte> skillBytes(Client::Data::Tables::SkillTableSize);
-    skillBytes[std::size_t{skill} * Client::Data::Tables::SkillRecordSize + 0x21] = std::byte{damage};
-    std::vector<std::byte> itemBytes(Client::Data::Tables::ItemTableSize);
-    itemBytes[std::size_t{staff} * Client::Data::Tables::ItemRecordSize + 0x2e] = std::byte{durability};
-    const auto skillsEncrypted =
-        Client::Tests::EncryptRecords(std::move(skillBytes), Client::Data::Tables::SkillRecordSize);
-    const auto itemsEncrypted =
-        Client::Tests::EncryptRecords(std::move(itemBytes), Client::Data::Tables::ItemRecordSize);
-    return MagicTables{.skills = Client::Data::Tables::SkillTable(std::span<const std::byte>(skillsEncrypted)),
-                       .items = Client::Data::Tables::ItemTable(std::span<const std::byte>(itemsEncrypted))};
+    std::vector<std::byte> skillBytes(Client::Tables::SkillTableSize);
+    skillBytes[std::size_t{skill} * Client::Tables::SkillRecordSize + 0x21] = std::byte{damage};
+    std::vector<std::byte> itemBytes(Client::Tables::ItemTableSize);
+    itemBytes[std::size_t{staff} * Client::Tables::ItemRecordSize + 0x2e] = std::byte{durability};
+    const auto skillsEncrypted = Client::Tests::EncryptRecords(std::move(skillBytes), Client::Tables::SkillRecordSize);
+    const auto itemsEncrypted = Client::Tests::EncryptRecords(std::move(itemBytes), Client::Tables::ItemRecordSize);
+    return MagicTables{.skills = Client::Tables::SkillTable(std::span<const std::byte>(skillsEncrypted)),
+                       .items = Client::Tables::ItemTable(std::span<const std::byte>(itemsEncrypted))};
 }
 
 // El Dark Wizard: la magia de 0x5513d0 con la skill del héroe (+0x425 sobre +0x6c del registro), con su entrada de

@@ -201,13 +201,12 @@ std::uint16_t ItemStatBonusValueOf(const World::ItemState& item)
     return static_cast<std::uint16_t>((item.flags1c >> ItemStatValueShift) & ItemStatValueMask);
 }
 
-Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemState& item,
-                                                           const Data::Tables::ItemTable& items)
+Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemState& item, const Tables::ItemTable& items)
 {
     // El valor se escribe antes de leer la tabla (0x40dc6e); el tipo, con signo (movsx, 0x40dc77).
     const std::uint16_t value = ItemStatBonusValueOf(item);
     const auto type = static_cast<std::int16_t>(item.id);
-    const std::optional<std::span<const std::byte, Data::Tables::ItemRecordSize>> record =
+    const std::optional<std::span<const std::byte, Tables::ItemRecordSize>> record =
         type < 0 ? std::nullopt : items.Record(static_cast<std::size_t>(type));
     if (!record)
     {
@@ -216,7 +215,7 @@ Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemStat
     return ItemStatBonus{.kind = std::to_integer<std::uint8_t>((*record)[ItemStatKindOffset]), .value = value};
 }
 
-Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own, const Data::Tables::ItemTable* items)
+Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own, const Tables::ItemTable* items)
 {
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {

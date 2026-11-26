@@ -56,7 +56,7 @@ class CreateCharacterWindow final : public NewUiWindow
 public:
     // `texts` puede ser nullptr y tiene que vivir lo que la ventana. El armado (0x63d1a0) elige al
     // Dark Knight (+0x890 en 1) y habilita todas las clases hasta que llegue la lista.
-    CreateCharacterWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
+    CreateCharacterWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x63d7c0: habilita las clases de la 0 a `creatable` (pkt[4] de la lista); con 5 o más, las cinco
     // (el original escribe fuera de los botones: Q-C119).
@@ -107,7 +107,7 @@ private:
     void DrawTheName(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts;
+    const Tables::TextTable* m_texts;
     bool m_open = false;
     std::uint8_t m_class = 1;
     std::array<Button, CreatableClassCount> m_classes;

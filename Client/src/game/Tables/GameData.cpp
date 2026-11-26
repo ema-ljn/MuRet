@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Tables
 {
 namespace
 {
@@ -45,7 +45,7 @@ constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
 // razonable entre ellas.
 constexpr std::size_t MaxMacroFileBytes = 1024u * 1024u;
 
-Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
+Core::Expected<GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, GateTableFile, error);
@@ -59,12 +59,12 @@ Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesy
         return Core::Unexpected(std::format("no está {} en {}", GateTableFile, Core::PathText(dataRoot)));
     }
     // 0x54a360 lee solo 256 registros de nueve bytes: el tamaño de la cola no cambia la carga.
-    const auto file = Data::ReadDataFilePrefix(*path, Data::Tables::GateTableSize);
+    const auto file = Data::ReadDataFilePrefix(*path, GateTableSize);
     if (!file.HasValue())
     {
         return Core::Unexpected(std::format("no se pudo leer {}: {}", GateTableFile, file.Error().message()));
     }
-    auto table = Data::Tables::LoadGateTable(std::as_bytes(std::span(file.Value())));
+    auto table = LoadGateTable(std::as_bytes(std::span(file.Value())));
     if (!table.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", GateTableFile, Data::DescribeDataError(table.Error())));
@@ -73,7 +73,7 @@ Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesy
 }
 
 // 0x54b9e0 lee un prefijo fijo y permite cualquier cola tras el checksum (Q-C01).
-Core::Expected<Data::Tables::LoadedItemTable, std::string> LoadItems(const std::filesystem::path& dataRoot)
+Core::Expected<LoadedItemTable, std::string> LoadItems(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, ItemTableFile, error);
@@ -86,12 +86,12 @@ Core::Expected<Data::Tables::LoadedItemTable, std::string> LoadItems(const std::
     {
         return Core::Unexpected(std::format("no está {} en {}", ItemTableFile, Core::PathText(dataRoot)));
     }
-    const auto file = Data::ReadDataFilePrefix(*path, Data::Tables::ItemTableSize + sizeof(std::uint32_t));
+    const auto file = Data::ReadDataFilePrefix(*path, ItemTableSize + sizeof(std::uint32_t));
     if (!file.HasValue())
     {
         return Core::Unexpected(std::format("no se pudo leer {}: {}", ItemTableFile, file.Error().message()));
     }
-    auto table = Data::Tables::LoadItemTable(std::as_bytes(std::span(file.Value())));
+    auto table = LoadItemTable(std::as_bytes(std::span(file.Value())));
     if (!table.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", ItemTableFile, Data::DescribeDataError(table.Error())));
@@ -130,21 +130,21 @@ Core::Expected<Table, std::string> LoadCheckedTable(const std::filesystem::path&
 
 // 0x40c600 desde 0x61ccb0 (0x61ecd5), después de Item.bmd (0x61eb37), con su argumento en 0: los tipos y
 // después los conjuntos.
-Core::Expected<Data::Tables::ItemSetTables, std::string> LoadItemSets(const std::filesystem::path& dataRoot)
+Core::Expected<ItemSetTables, std::string> LoadItemSets(const std::filesystem::path& dataRoot)
 {
-    auto types = LoadCheckedTable<Data::Tables::ItemSetTypeTable>(
-        dataRoot, ItemSetTypeFile, Data::Tables::ItemSetTypeTableSize, Data::Tables::LoadItemSetTypeTable);
+    auto types =
+        LoadCheckedTable<ItemSetTypeTable>(dataRoot, ItemSetTypeFile, ItemSetTypeTableSize, LoadItemSetTypeTable);
     if (!types.HasValue())
     {
         return Core::Unexpected(std::move(types).Error());
     }
-    auto options = LoadCheckedTable<Data::Tables::ItemSetOptionTable>(
-        dataRoot, ItemSetOptionFile, Data::Tables::ItemSetOptionTableSize, Data::Tables::LoadItemSetOptionTable);
+    auto options = LoadCheckedTable<ItemSetOptionTable>(dataRoot, ItemSetOptionFile, ItemSetOptionTableSize,
+                                                        LoadItemSetOptionTable);
     if (!options.HasValue())
     {
         return Core::Unexpected(std::move(options).Error());
     }
-    return Data::Tables::ItemSetTables{.types = std::move(types).Value(), .options = std::move(options).Value()};
+    return ItemSetTables{.types = std::move(types).Value(), .options = std::move(options).Value()};
 }
 
 // Las palabras de `name` en `dataRoot`, o ninguna si no está.
@@ -167,7 +167,7 @@ Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::file
     {
         return Core::Unexpected(std::format("no se pudo leer {}: {}", name, file.Error().message()));
     }
-    auto words = Data::Text::LoadFilterWords(std::as_bytes(std::span(file.Value())), checksumKey);
+    auto words = LoadFilterWords(std::as_bytes(std::span(file.Value())), checksumKey);
     if (!words.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", name, Data::DescribeDataError(words.Error())));
@@ -177,7 +177,7 @@ Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::file
 
 // 0x63ff30: sin el archivo, el original avisa con un MessageBox y cierra el juego (WM_DESTROY); MuRet sigue con
 // la tabla vacía, y los créditos se cierran al abrirlos (P-C78).
-Core::Expected<std::vector<Data::Text::CreditEntry>, std::string> LoadCreditsFile(const std::filesystem::path& dataRoot)
+Core::Expected<std::vector<CreditEntry>, std::string> LoadCreditsFile(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, CreditsFile, error);
@@ -188,14 +188,14 @@ Core::Expected<std::vector<Data::Text::CreditEntry>, std::string> LoadCreditsFil
     }
     if (!path)
     {
-        return std::vector<Data::Text::CreditEntry>{};
+        return std::vector<CreditEntry>{};
     }
     const auto file = Data::ReadDataFile(*path, MaxFilterFileBytes);
     if (!file.HasValue())
     {
         return Core::Unexpected(std::format("no se pudo leer {}: {}", CreditsFile, file.Error().message()));
     }
-    auto credits = Data::Text::LoadCredits(std::as_bytes(std::span(file.Value())));
+    auto credits = LoadCredits(std::as_bytes(std::span(file.Value())));
     if (!credits.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", CreditsFile, Data::DescribeDataError(credits.Error())));
@@ -220,7 +220,7 @@ Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& 
 }
 
 // 0x46b3b0 lee 0xa030 bytes sin mirar el tamaño: un archivo más largo se lee igual.
-Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(const std::filesystem::path& dataRoot)
+Core::Expected<std::optional<SlideTable>, std::string> LoadSlides(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, SlideTableFile, error);
@@ -230,14 +230,14 @@ Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(co
             std::format("no se pudo buscar {} en {}: {}", SlideTableFile, Core::PathText(dataRoot), error.message()));
     }
     if (!path)
-        return std::optional<Data::Text::SlideTable>{};
-    const auto file = Data::ReadDataFilePrefix(*path, Data::Text::SlideTableSize);
+        return std::optional<SlideTable>{};
+    const auto file = Data::ReadDataFilePrefix(*path, SlideTableSize);
     if (!file.HasValue())
         return Core::Unexpected(std::format("no se pudo leer {}: {}", SlideTableFile, file.Error().message()));
-    auto table = Data::Text::LoadSlideTable(std::as_bytes(std::span(file.Value())));
+    auto table = LoadSlideTable(std::as_bytes(std::span(file.Value())));
     if (!table.HasValue())
         return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
-    return std::optional<Data::Text::SlideTable>(std::move(table).Value());
+    return std::optional<SlideTable>(std::move(table).Value());
 }
 // 0x54b2b0 y 0x418d10: 200 registros de tamaño fijo. Sin el archivo, `empty`; si no, el loader con el prefijo.
 template <typename Table, typename Loader>
@@ -266,7 +266,7 @@ Core::Expected<Table, std::string> LoadFixedTable(const std::filesystem::path& d
 constexpr std::size_t MaxMoveRequirementsBytes = 1024u * 1024u;
 
 // 0x448440: sin el archivo, la lista vacía y nada más.
-Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(const std::filesystem::path& dataRoot)
+Core::Expected<std::vector<MoveRequirement>, std::string> LoadMoves(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, MoveRequirementsFile, error);
@@ -276,11 +276,11 @@ Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(
                                             Core::PathText(dataRoot), error.message()));
     }
     if (!path)
-        return std::vector<Data::Text::MoveRequirement>{};
+        return std::vector<MoveRequirement>{};
     const auto file = Data::ReadDataFilePrefix(*path, MaxMoveRequirementsBytes);
     if (!file.HasValue())
         return Core::Unexpected(std::format("no se pudo leer {}: {}", MoveRequirementsFile, file.Error().message()));
-    auto moves = Data::Text::LoadMoveRequirements(std::as_bytes(std::span(file.Value())));
+    auto moves = LoadMoveRequirements(std::as_bytes(std::span(file.Value())));
     if (!moves.HasValue())
         return Core::Unexpected(std::format("{}: {}", MoveRequirementsFile, Data::DescribeDataError(moves.Error())));
     return std::move(moves).Value();
@@ -289,7 +289,7 @@ Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(
 constexpr std::size_t MaxMonsterSkillBytes = 1024u * 1024u;
 
 // 0x54a440: sin el archivo, la tabla de la .bss.
-Core::Expected<Data::Tables::MonsterSkillTable, std::string> LoadMonsterSkills(const std::filesystem::path& dataRoot)
+Core::Expected<MonsterSkillTable, std::string> LoadMonsterSkills(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, MonsterSkillTableFile, error);
@@ -299,11 +299,11 @@ Core::Expected<Data::Tables::MonsterSkillTable, std::string> LoadMonsterSkills(c
                                             Core::PathText(dataRoot), error.message()));
     }
     if (!path)
-        return Data::Tables::MonsterSkillTable{};
+        return MonsterSkillTable{};
     const auto file = Data::ReadDataFilePrefix(*path, MaxMonsterSkillBytes);
     if (!file.HasValue())
         return Core::Unexpected(std::format("no se pudo leer {}: {}", MonsterSkillTableFile, file.Error().message()));
-    auto table = Data::Tables::LoadMonsterSkillTable(std::as_bytes(std::span(file.Value())));
+    auto table = LoadMonsterSkillTable(std::as_bytes(std::span(file.Value())));
     if (!table.HasValue())
         return Core::Unexpected(std::format("{}: {}", MonsterSkillTableFile, Data::DescribeDataError(table.Error())));
     return std::move(table).Value();
@@ -313,8 +313,7 @@ Core::Expected<Data::Tables::MonsterSkillTable, std::string> LoadMonsterSkills(c
 constexpr std::uintmax_t MaxNpcNameFileBytes = 1024u * 1024u;
 
 // 0x54e7f0: sin el archivo (fopen en NULL), la tabla queda como estaba.
-Core::Expected<std::vector<Data::Text::NpcNameRecord>, std::string>
-LoadNpcNameFile(const std::filesystem::path& dataRoot)
+Core::Expected<std::vector<NpcNameRecord>, std::string> LoadNpcNameFile(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, NpcNameFile, error);
@@ -324,11 +323,11 @@ LoadNpcNameFile(const std::filesystem::path& dataRoot)
             std::format("no se pudo buscar {} en {}: {}", NpcNameFile, Core::PathText(dataRoot), error.message()));
     }
     if (!path)
-        return std::vector<Data::Text::NpcNameRecord>{};
+        return std::vector<NpcNameRecord>{};
     const auto file = Data::ReadDataFile(*path, MaxNpcNameFileBytes);
     if (!file.HasValue())
         return Core::Unexpected(std::format("no se pudo leer {}: {}", NpcNameFile, file.Error().message()));
-    auto names = Data::Text::LoadNpcNames(std::as_bytes(std::span(file.Value())));
+    auto names = LoadNpcNames(std::as_bytes(std::span(file.Value())));
     if (!names.HasValue())
         return Core::Unexpected(std::format("{}: {}", NpcNameFile, Data::DescribeDataError(names.Error())));
     return std::move(names).Value();
@@ -353,7 +352,7 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
     {
         return Core::Unexpected(std::format("no se pudo leer {}: {}", TextTableFile, file.Error().message()));
     }
-    auto table = Data::Text::LoadTextTable(std::as_bytes(std::span(file.Value())));
+    auto table = LoadTextTable(std::as_bytes(std::span(file.Value())));
     if (!table.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", TextTableFile, Data::DescribeDataError(table.Error())));
@@ -366,13 +365,13 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(macros).Error());
     }
     data.macros = std::move(macros).Value();
-    auto filter = LoadFilter(dataRoot, FilterFile, Data::Text::FilterChecksumKey);
+    auto filter = LoadFilter(dataRoot, FilterFile, FilterChecksumKey);
     if (!filter.HasValue())
     {
         return Core::Unexpected(std::move(filter).Error());
     }
     data.filter = std::move(filter).Value();
-    auto filterName = LoadFilter(dataRoot, FilterNameFile, Data::Text::FilterNameChecksumKey);
+    auto filterName = LoadFilter(dataRoot, FilterNameFile, FilterNameChecksumKey);
     if (!filterName.HasValue())
     {
         return Core::Unexpected(std::move(filterName).Error());
@@ -390,15 +389,14 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(items).Error());
     }
     data.items.emplace(std::move(items).Value());
-    auto dialogs = LoadFixedTable(dataRoot, DialogTableFile, Data::Text::DialogTableSize,
-                                  Data::Text::DialogTable(Data::Text::DialogCount), Data::Text::LoadDialogTable);
+    auto dialogs =
+        LoadFixedTable(dataRoot, DialogTableFile, DialogTableSize, DialogTable(DialogCount), LoadDialogTable);
     if (!dialogs.HasValue())
     {
         return Core::Unexpected(std::move(dialogs).Error());
     }
     data.dialogs = std::move(dialogs).Value();
-    auto quests = LoadFixedTable(dataRoot, QuestTableFile, Data::Tables::QuestTableSize,
-                                 Data::Tables::QuestTable(Data::Tables::QuestCount), Data::Tables::LoadQuestTable);
+    auto quests = LoadFixedTable(dataRoot, QuestTableFile, QuestTableSize, QuestTable(QuestCount), LoadQuestTable);
     if (!quests.HasValue())
     {
         return Core::Unexpected(std::move(quests).Error());
@@ -429,8 +427,7 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(npcNames).Error());
     }
     data.npcNames = std::move(npcNames).Value();
-    auto skills = LoadCheckedTable<Data::Tables::SkillTable>(dataRoot, SkillTableFile, Data::Tables::SkillTableSize,
-                                                             Data::Tables::LoadSkillTable);
+    auto skills = LoadCheckedTable<SkillTable>(dataRoot, SkillTableFile, SkillTableSize, LoadSkillTable);
     if (!skills.HasValue())
     {
         return Core::Unexpected(std::move(skills).Error());
@@ -469,4 +466,4 @@ Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& da
         return Core::Unexpected(std::format("no se pudo escribir {}", Core::PathText(*path)));
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Tables

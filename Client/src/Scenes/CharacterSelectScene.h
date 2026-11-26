@@ -74,11 +74,11 @@ public:
     // dibuja los fondos y no pide nada.
     // `gameSlots` es la tabla de los slots de la carga (GameModels::TextureSlots), que la vista previa
     // de la ventana de crear sigue desde 0x6f8; nullptr, una tabla vacía. Tiene que vivir más.
-    CharacterSelectScene(const SceneContext& context, const GameData& data, const Models::IModelLibrary& models,
+    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, const Models::IModelLibrary& models,
                          App::ServerSession* session, const Models::ModelTextureSlots* gameSlots = nullptr);
-    CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
+    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, GameModels& models,
                          App::ServerSession* session);
-    CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
+    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, GameModels& models,
                          App::ServerSession* session, const Models::ModelTextureSlots* gameSlots);
 
     // Como 0x633f20: su juego de texturas y sus modelos (0x61ca30: Logo05 y los NewFace de la vista
@@ -241,8 +241,8 @@ private:
     // Los de los avisos y el área vieja (0x554810 y 0x5554e0), lo mismo.
     Models::OriginalFrameCarry m_messageFrames;
     Render::Camera3D m_previewCamera;
-    const Data::Text::TextTable* m_texts;
-    const Data::Tables::ItemTable* m_items;
+    const Tables::TextTable* m_texts;
+    const Tables::ItemTable* m_items;
     const Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     SceneTextures m_textures;

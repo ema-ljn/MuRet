@@ -13,17 +13,17 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
+// Client::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
 using Client::Data::Tables::ChecksumParity;
-using Client::Data::Tables::LoadSkillTable;
 using Client::Data::Tables::SkillChecksumKey;
-using Client::Data::Tables::SkillCount;
-using Client::Data::Tables::SkillRecordSize;
-using Client::Data::Tables::SkillTableSize;
 using Client::Data::Tables::TableChecksum;
+using Client::Tables::LoadSkillTable;
+using Client::Tables::SkillCount;
+using Client::Tables::SkillRecordSize;
+using Client::Tables::SkillTableSize;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptRecords;
 using Client::Tests::FirstRecordThatDiffers;

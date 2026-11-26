@@ -123,11 +123,11 @@ protected:
     ActorState m_hero;
     Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
     // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
-    Client::Data::Tables::ItemSetTables m_sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemSetTables m_sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Scenes::ItemSetState m_itemSets;
     CrtRandom m_random{QuietSeed()};
 };

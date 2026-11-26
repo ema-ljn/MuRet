@@ -73,7 +73,7 @@ std::string CString(std::string_view text)
     return std::string(text.substr(0, text.find('\0')));
 }
 
-Core::Expected<std::string, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index)
+Core::Expected<std::string, std::string> TextOf(const Tables::TextTable* texts, std::size_t index)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);
     if (!text)
@@ -128,7 +128,7 @@ Core::Expected<std::string, std::string> NoticeText(const ChatReceiveContext& co
 }
 } // namespace
 
-UI::OldWindowTexts OldWindowTextsOf(const Data::Text::TextTable* texts)
+UI::OldWindowTexts OldWindowTextsOf(const Tables::TextTable* texts)
 {
     const auto at = [texts](std::size_t index)
     {

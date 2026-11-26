@@ -11,7 +11,7 @@ namespace Client::Render
 class SpriteBatch;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -61,7 +61,7 @@ struct GameHoverContext
     // tabla del último frame del original, que es el que los escribe. Los demás estado que escribe le llegan en copias.
     bool projecting = false;
     // Text.bmd: los puestos del gremio del globo (0x556dd0).
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // Lo que lee el nombre de un ítem del piso (0x5ba790): Item.bmd, Text.bmd, Skill.bmd y los conjuntos, el mouse y el
     // mismo `hud`, `sprites` y `text`. Sin él, un nombre corta.
     GameHudContext* names = nullptr;

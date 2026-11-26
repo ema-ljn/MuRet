@@ -12,7 +12,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 namespace
 {
@@ -79,11 +79,11 @@ std::string_view NameOf(const QuestRecord& quest)
     return name.substr(0, name.find('\0'));
 }
 
-Core::Expected<QuestTable, DataError> LoadQuestTable(std::span<const std::byte> file)
+Core::Expected<QuestTable, Data::DataError> LoadQuestTable(std::span<const std::byte> file)
 {
     // Con menos de 0x2a8 bytes, el resto del primer bloque es el de operator new sin iniciar.
     if (file.size() < QuestRecordSize)
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     QuestTable table(QuestCount);
     // 0x418d61..0x418d70: un solo bloque de operator new para los 200.
     std::array<std::byte, QuestRecordSize> block{};
@@ -109,4 +109,4 @@ Core::Expected<QuestTable, DataError> LoadQuestTable(std::span<const std::byte> 
     }
     return table;
 }
-} // namespace Client::Data::Tables
+} // namespace Client::Tables

@@ -48,7 +48,7 @@ void ReshadeTerrainLightWindow(TerrainLighting& lighting, const Data::Terrain::T
                                std::int32_t centerY);
 
 // 0x5f8f40 con el mundo de `map`: lee TerrainHeight.OZB y TerrainLight.OZJ de su carpeta
-// (Data::WorldFolder) en `dataRoot` y los sombrea con ShadeTerrainLight. Un archivo que falta o que no
+// (Maps::WorldFolder) en `dataRoot` y los sombrea con ShadeTerrainLight. Un archivo que falta o que no
 // se lee es un error que lo nombra.
 [[nodiscard]] Core::Expected<std::unique_ptr<TerrainLighting>, std::string>
 LoadTerrainLighting(const std::filesystem::path& dataRoot, std::uint8_t map);

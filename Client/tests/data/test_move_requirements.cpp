@@ -12,14 +12,14 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadMoveRequirements: movereq.bmd (0x448440), la cuenta en claro y registros de 0x50 con el
+// Client::Tables::LoadMoveRequirements: movereq.bmd (0x448440), la cuenta en claro y registros de 0x50 con el
 // XOR3 de 0x449770 desde el primer byte de cada uno. Los destinos son inventados.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::LoadMoveRequirements;
-using Client::Data::Text::MoveRecordSize;
-using Client::Data::Text::MoveRequirement;
+using Client::Tables::LoadMoveRequirements;
+using Client::Tables::MoveRecordSize;
+using Client::Tables::MoveRequirement;
 
 struct FakeMove
 {

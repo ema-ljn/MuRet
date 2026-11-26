@@ -32,7 +32,7 @@ namespace Client::Render::Text
 {
 class ITextMeasure;
 }
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -85,10 +85,10 @@ struct CharacterStepContext
     const Models::Skeleton* playerSkeleton = nullptr;
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // *[0x76bd1d8], Skill.bmd en memoria: el alcance (0x5526f0) del lazo de la skill 0x4c del paso del ataque
     // (0x50243d, CL9 hito 4). nullptr: corta ahí con un blanco que mirar.
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::SkillTable* skills = nullptr;
     // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
     // 3). nullptr: un modelo que no es el 0x20a corta ahí.
     const Models::IModelLibrary* models = nullptr;
@@ -118,7 +118,7 @@ struct CharacterStepContext
     bool controlDown = false;
     // Lo que dicen los NPC (0x4fc790, 0x4fc8c0 y 0x4fcda2): los textos de Text.bmd y el medidor y la pantalla del globo
     // (0x557170). Sin ellos, el que tiene que hablar corta.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     const Render::Text::ITextMeasure* textMeasure = nullptr;
     Core::PixelSize screen{640, 480};
     // timeGetTime() (0x6b8144), en ms, que lee el mensaje del nombre de 0x6c88b0 (0x4fcd82 y 0x4fcd8e). Vacío, el que

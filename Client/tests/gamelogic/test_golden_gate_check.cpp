@@ -19,11 +19,11 @@
 // Gate.bmd real, descifrado por el cargador de CL1 igual que scripts/game/maps/gate.py.
 namespace
 {
-using Client::Data::Tables::GateRecord;
-using Client::Data::Tables::LoadGateTable;
-using Client::Data::Tables::ReadGateRecord;
 using Client::GameLogic::GateCheck;
 using Client::GameLogic::GateCheckState;
+using Client::Tables::GateRecord;
+using Client::Tables::LoadGateTable;
+using Client::Tables::ReadGateRecord;
 using Client::Tests::ReadFileBytes;
 
 using GoldenGateCheck = Client::Tests::GoldenDataTest;

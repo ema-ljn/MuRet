@@ -40,16 +40,15 @@ using ItemSetPieces = std::array<ItemSetPiece, ItemSetPieceSlots>;
 // ItemSetType.bmd es su conjunto; con 0 o 0xff, ninguno. Lo suma al conjunto igual o al primer lugar
 // libre de los cuatro; sin lugar, nada. `type` es el tipo del ítem, que quien llama ya miró que no sea
 // negativo. Con 8.192 o más, el original lee fuera de la tabla: error (Q-C187).
-[[nodiscard]] Core::Expected<void, std::string> AddItemSetPiece(ItemSetPieces& pieces,
-                                                                const Data::Tables::ItemSetTypeTable& types,
-                                                                std::size_t type, std::uint8_t flags1c);
+[[nodiscard]] Core::Expected<void, std::string>
+AddItemSetPiece(ItemSetPieces& pieces, const Tables::ItemSetTypeTable& types, std::size_t type, std::uint8_t flags1c);
 
 // 0x40d010: con cada conjunto de dos piezas o más, el nombre, las opciones de ItemSetOption.bmd que da
 // la cantidad de piezas y, si está completo, las del conjunto completo; las opciones de 0x18 en
 // adelante, solo si el conjunto marca la clase del héroe publicado. Las deja en la lista de `state`,
 // primero las de la clase de pieza 0, y escribe el +0x358 del héroe.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemSetOptions(ItemSetState& state, const ItemSetPieces& pieces,
-                                                                    const Data::Tables::ItemSetOptionTable& options,
+                                                                    const Tables::ItemSetOptionTable& options,
                                                                     ActorState& publishedHero);
 
 // 0x550d29..0x550d3f: las 16 marcas de +0x937c en 0.

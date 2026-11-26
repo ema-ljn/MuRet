@@ -34,7 +34,7 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, const GameGateCon
 }
 
 // 0x599f41..0x599ffd: no convertir en una lectura de X/Y por paso; cada comparación cierra la suya.
-bool ContainsWithAccesses(const Data::Tables::GateRecord& gate, ActorState& hero, const GameGateContext& context)
+bool ContainsWithAccesses(const Tables::GateRecord& gate, ActorState& hero, const GameGateContext& context)
 {
     return ReadCell(hero.cellX, hero.cellXAccesses, context) >= gate.x1 &&
            ReadCell(hero.cellY, hero.cellYAccesses, context) >= gate.y1 &&
@@ -56,8 +56,7 @@ void WriteWait(std::int32_t value, const GameGateContext& context)
     runtime.warpCounter = value;
 }
 
-GameLogic::GateDecision DecideGate(std::size_t index, const Data::Tables::GateRecord& gate,
-                                   const GameGateContext& context)
+GameLogic::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
     const WorldRuntime& runtime = context.world.Runtime();
     const ActorState& hero = context.world.Actors()[runtime.hero];
@@ -80,7 +79,7 @@ GameLogic::GateDecision DecideGate(std::size_t index, const Data::Tables::GateRe
 }
 
 // 0x59a094..0x59a16c: el gate28 abre/cierra sólo para probar el nivel, aun si después vuelve a abrir.
-bool PassesSilentLevelCheck(std::size_t index, const Data::Tables::GateRecord& gate, const GameGateContext& context)
+bool PassesSilentLevelCheck(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
     if (index != SilentLevelGate)
     {
@@ -94,7 +93,7 @@ bool PassesSilentLevelCheck(std::size_t index, const Data::Tables::GateRecord& g
            !decision.warnings.empty();
 }
 
-Core::Expected<void, std::string> SendGate(std::uint8_t index, const Data::Tables::GateRecord& gate,
+Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::GateRecord& gate,
                                            const GameGateContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -108,7 +107,7 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Data::Table
     }
     context.requestGate(index);
     WriteWait(WorldLoadingWait, context); // 0x59ac6c, después de enviar y antes de las macros.
-    const auto destination = Data::Tables::ReadGateRecord(context.gates, gate.target);
+    const auto destination = Tables::ReadGateRecord(context.gates, gate.target);
     if (!destination)
     {
         return Core::Unexpected(std::string("0x599ef0: el destino del gate no está en la tabla"));
@@ -128,7 +127,7 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Data::Table
 }
 
 Core::Expected<GameLogic::GateDecision, std::string>
-ApplyEligibleGate(std::size_t index, const Data::Tables::GateRecord& gate, const GameGateContext& context)
+ApplyEligibleGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     // 0x59a172..0x59adc7: sigue abierto durante el envío, contador y resets, y cierra al final.
@@ -184,9 +183,9 @@ Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGa
     }
     ActorState& hero = context.world.Actors()[runtime.hero];
     GameLogic::GateDecision result;
-    for (std::size_t index = 0; index < Data::Tables::GateCount && index < context.gates.Count(); ++index)
+    for (std::size_t index = 0; index < Tables::GateCount && index < context.gates.Count(); ++index)
     {
-        const auto gate = Data::Tables::ReadGateRecord(context.gates, index);
+        const auto gate = Tables::ReadGateRecord(context.gates, index);
         if (!gate || gate->flag != 1 || gate->map != runtime.map || !ContainsWithAccesses(*gate, hero, context))
         {
             continue;

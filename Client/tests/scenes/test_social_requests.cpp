@@ -136,10 +136,10 @@ struct Game
     Client::World::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
-    Client::Data::Tables::ItemSetTables sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemSetTables sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
@@ -242,7 +242,7 @@ protected:
 
     std::unique_ptr<Game> game;
     CrtRandom m_random{Seed};
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 

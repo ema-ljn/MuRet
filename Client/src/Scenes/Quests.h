@@ -32,7 +32,7 @@ struct QuestContext
     // El rand() de la CRT: los cierres del registro propio (3.848 cada uno que lo deja en 0).
     Crt::CrtRandom& random;
     // Text.bmd: el 609 de las respuestas vacías de 0x419710. nullptr: un diálogo sin respuestas corta.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // +0x2d + clase + 0x14 · pedido del registro (0x418f58, 0x418fe3, 0x4194ef, 0x419b68 y, en el dibujo de la ventana,
@@ -40,7 +40,7 @@ struct QuestContext
 // y la 0xff de antes del primer A0 (0x41cb60 y 0x4c2480) lee 0xff bytes después de la primera marca: otro pedido o una
 // condición (*estático*). Los dos bytes de relleno de +0x166, que MuRet no guarda, no se alcanzan con ninguna clase
 // (0x14 · pedido + 7 + clase no da 0x140 ni 0x141).
-[[nodiscard]] std::uint8_t QuestClassFlagOf(const Data::Tables::QuestRecord& quest, std::size_t entry,
+[[nodiscard]] std::uint8_t QuestClassFlagOf(const Tables::QuestRecord& quest, std::size_t entry,
                                             std::uint8_t characterClass);
 
 // 0x4195c0(índice) (y 0x419560 con un índice): el byte índice / 4 (división con signo) corrido 2 · ((índice − índice /

@@ -120,7 +120,7 @@ CreditsLayout LayoutCredits(Core::PixelSize screen)
     return layout;
 }
 
-CreditsWindow::CreditsWindow(TextureSizes sizes, std::span<const Data::Text::CreditEntry> credits)
+CreditsWindow::CreditsWindow(TextureSizes sizes, std::span<const Tables::CreditEntry> credits)
     : m_sizes(std::move(sizes)), m_credits(credits), m_close(CloseSlot, CloseWidth, CloseHeight)
 {
 }
@@ -323,7 +323,7 @@ void CreditsWindow::LoadTheIllustration(CreditsStep& step)
 
 void CreditsWindow::NextGroup(CreditsStep& step)
 {
-    using Data::Text::CreditKind;
+    using Tables::CreditKind;
     // 0x63ffe0: con el final, el sonido 0x19 y 0x63f9a0, y sigue leyendo.
     if (KindAt(m_next) == static_cast<std::uint8_t>(CreditKind::End))
     {
@@ -348,7 +348,7 @@ void CreditsWindow::NextGroup(CreditsStep& step)
 
 void CreditsWindow::StepRow(std::size_t row, double elapsedMs, CreditsStep& step)
 {
-    using Data::Text::CreditKind;
+    using Tables::CreditKind;
     std::uint8_t& alpha = m_barAlphas[row];
     switch (m_rowStates[row])
     {
@@ -458,7 +458,7 @@ void CreditsWindow::StepIllustration(double elapsedMs, CreditsStep& step)
 
 std::uint8_t CreditsWindow::KindAt(std::size_t index) const
 {
-    return Data::Text::CreditKindAt(m_credits, index);
+    return Tables::CreditKindAt(m_credits, index);
 }
 
 void CreditsWindow::DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const

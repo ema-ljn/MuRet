@@ -94,12 +94,12 @@ struct InventedSkill
 };
 
 // Skill.bmd con el maná (+0x22), la stamina (+0x24), la espera (+0x28), el nivel (+0x20) y la energía (+0x2c).
-Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
+Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const InventedSkill& invented : skills)
     {
-        const std::size_t base = std::size_t{invented.skill} * Client::Data::Tables::SkillRecordSize;
+        const std::size_t base = std::size_t{invented.skill} * Client::Tables::SkillRecordSize;
         plain[base + 0x20] = static_cast<std::byte>(invented.level);
         plain[base + 0x22] = static_cast<std::byte>(invented.mana);
         plain[base + 0x24] = static_cast<std::byte>(invented.stamina);
@@ -108,8 +108,8 @@ Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill>
         plain[base + 0x2c] = static_cast<std::byte>(invented.energy);
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
@@ -234,7 +234,7 @@ struct WizardHero
     std::optional<glm::vec3> terrainPoint;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Data::Tables::SkillTable skills =
+    Client::Tables::SkillTable skills =
         SkillsWith({{1},    {5},    {6},    {8},    {9},    {0xa},  {0xc},  {0xd},  {0xe},  {0xf},
                     {0x10}, {0x13}, {0x26}, {0x27}, {0x28}, {0x2f}, {0x3a}, {0x43}, {0x49}, {0x4c}});
 };

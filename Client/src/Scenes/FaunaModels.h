@@ -49,7 +49,7 @@ struct FaunaModelLoadContext
     ModelTextureTable* sharedTextures = nullptr;
     // WorldRuntime::modelSounds: 0x612d90 escribe la tabla de sonidos del modelo (0x612c80, 0x613127) después de
     // cargarlo con mallas. nullptr, no la escribe.
-    ModelSoundTable* sounds = nullptr;
+    Sound::ModelSoundTable* sounds = nullptr;
     Audio::IPlayback* audio = nullptr;
 };
 struct FaunaResourceSound

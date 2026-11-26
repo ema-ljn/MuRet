@@ -22,7 +22,7 @@
 // rasterizador del texto (Render/Text, CL5.3) lee cada byte como el carácter de Latin-1 de su
 // número, sin pasar por UTF-8 (Q-C67). El original usa algunos como formato de sprintf
 // (FUN_00633300). MuRet nunca pasa un texto de datos como formato.
-namespace Client::Data::Text
+namespace Client::Tables
 {
 // Cuántos textos trae la tabla, uno por registro: el texto i es el que el original busca con el
 // índice i.
@@ -53,7 +53,7 @@ private:
     // Solo LoadTextTable arma una tabla, con los TextTableSize bytes. Una tabla movida queda en un
     // estado válido pero sin especificar (en la práctica, vacía), y su Text() no lee fuera de lo
     // que le quedó.
-    friend Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> file);
+    friend Core::Expected<TextTable, Data::DataError> LoadTextTable(std::span<const std::byte> file);
 
     std::vector<char> m_records;
 };
@@ -62,7 +62,7 @@ private:
 //   - Si `file` es más corto, devuelve DataError::FileTooShort. El original leería igual y
 //     dejaría en la tabla lo que hubiera en la memoria.
 //   - Si es más largo, el resto se ignora, como con el fread de tamaño fijo del original.
-Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> file);
+Core::Expected<TextTable, Data::DataError> LoadTextTable(std::span<const std::byte> file);
 
 [[nodiscard]] inline std::string_view TextOr(const TextTable& texts, std::size_t index, std::string_view fallback = {})
 {
@@ -71,4 +71,4 @@ Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> fi
 
 // A text of a temporary table would dangle, as with Text().
 std::string_view TextOr(const TextTable&& texts, std::size_t index, std::string_view fallback = {}) = delete;
-} // namespace Client::Data::Text
+} // namespace Client::Tables

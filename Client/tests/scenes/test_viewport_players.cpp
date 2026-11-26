@@ -125,11 +125,11 @@ struct Game
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     // Item.bmd sin nada marcado, para 0x54efe0 desde 0x512a30.
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     // Sin ningún conjunto: 0x40e1b0 (desde 0x512a30) recorre el equipo y no aplica nada.
-    Client::Data::Tables::ItemSetTables sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemSetTables sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };

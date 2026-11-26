@@ -115,7 +115,7 @@ constexpr int MaximumMovementSteps = 256;
 // Dos cierres de espera, tres lecturas de celda en el clic y el sufijo propio/Skill real.
 constexpr int CommonPrefixRandoms = 2 * Client::Models::SmallLogicalCloseRandoms +
                                     Client::Models::OwnRecordCloseRandoms +
-                                    static_cast<int>(Client::Data::Tables::SkillRecordSize);
+                                    static_cast<int>(Client::Tables::SkillRecordSize);
 constexpr int ClickPrefixRandoms =
     CommonPrefixRandoms + Client::Models::OwnRecordCloseRandoms + 3 * Client::Models::SmallLogicalCloseRandoms + 2;
 // Walk ordinario saca1; el inicio de MovePath escribe X/Y con dos cierres más.
@@ -138,7 +138,7 @@ protected:
         ASSERT_TRUE(path.has_value());
         const auto bytes = Client::Tests::ReadFileBytes(*path);
         ASSERT_TRUE(bytes.has_value());
-        auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(*bytes)));
+        auto skills = Client::Tables::LoadSkillTable(std::as_bytes(std::span(*bytes)));
         ASSERT_TRUE(skills.HasValue());
         m_skills = std::move(skills).Value();
         m_world.Runtime().map = GetParam().map;
@@ -233,7 +233,7 @@ protected:
     Client::Scenes::WorldState m_world;
     Client::Crt::CrtRandom m_random{Seed};
     Client::Models::Skeleton m_skeleton;
-    std::optional<Client::Data::Tables::SkillTable> m_skills;
+    std::optional<Client::Tables::SkillTable> m_skills;
     std::optional<PathCell> m_target;
     std::vector<std::vector<std::byte>> m_packets;
     std::vector<Cell> m_sentPath;

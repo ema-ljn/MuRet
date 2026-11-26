@@ -177,8 +177,8 @@ std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandTy
     return count;
 }
 
-std::uint16_t MaxDurability(const World::ItemState& item,
-                            std::span<const std::byte, Data::Tables::ItemRecordSize> record, int level)
+std::uint16_t MaxDurability(const World::ItemState& item, std::span<const std::byte, Tables::ItemRecordSize> record,
+                            int level)
 {
     constexpr std::size_t DurabilityAt = 0x2d;
     constexpr std::size_t StaffDurabilityAt = 0x2e;
@@ -212,7 +212,7 @@ std::uint16_t MaxDurability(const World::ItemState& item,
     return durability;
 }
 
-std::string ItemRecordName(std::span<const std::byte, Data::Tables::ItemRecordSize> record)
+std::string ItemRecordName(std::span<const std::byte, Tables::ItemRecordSize> record)
 {
     std::string name;
     for (const std::byte value : record)

@@ -13,7 +13,7 @@ class CrtRandom;
 
 // La tabla de sonidos de los modelos de los monstruos (CL9 hito 3, fase 2c): lo que 0x612d90 escribe con 0x612c80.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los sonidos del modelo". *Estático*.
-namespace Client::Scenes
+namespace Client::Sound
 {
 // 0x612c80: las diez WORD de sonido de un modelo (+0xaa..+0xbc de su BMD en [0x5769ad8]). 0x4f37c0 lee la 0 y la 1
 // (caminar), 0x4f4a10 y 0x4f53a0 la 2 y la 3 (pegar y el golpe) y 0x4f5660 la 4 (morir); −1 (0xffff) es sin sonido.
@@ -43,4 +43,4 @@ void WriteMonsterSounds(std::int32_t monster, ModelSoundTable& table);
 // WORD en 0 (SoundsOrZeros): el rand() y el sonido 0xd2 (0xd7 con el subtipo 9). *Estático*.
 [[nodiscard]] std::optional<std::int32_t> DrawModelSound(const std::optional<ModelSounds>& sounds, std::size_t word,
                                                          std::int32_t subtype, Crt::CrtRandom& random);
-} // namespace Client::Scenes
+} // namespace Client::Sound

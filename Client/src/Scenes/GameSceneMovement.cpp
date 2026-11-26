@@ -71,7 +71,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
             m_context.log.Warning("no se manda el F3 30: no hay servidor");
         else if (auto sent = m_session->SendOptionData(body.Value()); !sent.HasValue())
             m_context.log.Warning("no se manda el F3 30: {}", sent.Error());
-        return WriteMacroFile(m_context.dataRoot, UI::WrittenMacros(world.Runtime().chat.input.macros));
+        return Tables::WriteMacroFile(m_context.dataRoot, UI::WrittenMacros(world.Runtime().chat.input.macros));
     };
     context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>

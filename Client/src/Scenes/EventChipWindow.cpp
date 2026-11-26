@@ -182,7 +182,7 @@ bool Hovered(const GameHudContext& context, float left, float top, float width, 
            static_cast<double>(top) <= y && y < static_cast<double>(top) + static_cast<double>(height);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);

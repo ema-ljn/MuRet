@@ -286,7 +286,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
 } // namespace
 
 Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble, const Render::Text::ITextMeasure& measure,
-                                                       int fontStep, const Data::Text::TextTable* texts)
+                                                       int fontStep, const Tables::TextTable* texts)
 {
     const auto width = [&](const std::string& text) { return measure.Measure(FontKind::Normal, text).width; };
     const std::int32_t name = Add(width(bubble.name), NameMargin);

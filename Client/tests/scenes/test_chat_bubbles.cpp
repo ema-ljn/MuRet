@@ -141,12 +141,12 @@ TEST_F(ChatBubblesTest, ByNamePrefersPlayers)
 }
 
 // Un Text.bmd inventado con los puestos de 0x556dd0.
-Client::Data::Text::TextTable GuildPosts()
+Client::Tables::TextTable GuildPosts()
 {
     const std::map<std::size_t, std::string> texts{{1295, "aliado"},     {1296, "jefe aliado"}, {1297, "rival"},
                                                    {1298, "jefe rival"}, {1299, "ocho"},        {1300, "jefe"},
                                                    {1301, "segundo"},    {1302, "guerrero"},    {1330, "socio"}};
-    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
+    auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
 }
@@ -164,7 +164,7 @@ void NameTheGuild(WorldState& world, std::size_t index, std::string_view unionNa
 // puesto de +0x368.
 TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
 {
-    const Client::Data::Text::TextTable texts = GuildPosts();
+    const Client::Tables::TextTable texts = GuildPosts();
     NameTheGuild(*m_world, 3, "Ceibos", "Horneros");
     struct Case
     {
@@ -204,7 +204,7 @@ TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
 // 0x556ea5 y 0x55701e: sin alianza, +0x18 vacío; sin gremio otra vez, los dos vacíos y +0x65 en 0.
 TEST_F(ChatBubblesTest, WithoutAUnionOrAGuildTheLinesAreEmpty)
 {
-    const Client::Data::Text::TextTable texts = GuildPosts();
+    const Client::Tables::TextTable texts = GuildPosts();
     NameTheGuild(*m_world, 5, "", "Teros");
     ActorState& speaker = Speaker(4, "Tordo");
     speaker.word1f2 = 5;
@@ -235,7 +235,7 @@ TEST_F(ChatBubblesTest, AGuildLineWithoutItsTextOrPastTheColorIsCut)
     EXPECT_FALSE(
         Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
 
-    const auto longPost = Client::Data::Text::LoadTextTable(
+    const auto longPost = Client::Tables::LoadTextTable(
         Client::Tests::TextTableBytes({{1300, "un puesto tan largo que llega al color"}}));
     ASSERT_TRUE(longPost.HasValue());
     ChatBubbleMeasure measure = Measure();
@@ -254,7 +254,7 @@ TEST_F(ChatBubblesTest, AGuildLineWithoutItsTextOrPastTheColorIsCut)
 // la cola queda como título. Con menos, el título no cambia. En Lorencia y en Devias.
 TEST_F(ChatBubblesTest, ALongGuildLineSpillsIntoTheShopTitle)
 {
-    const auto texts = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(
+    const auto texts = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(
         {{1300, "Maestro del gremio "}, {1301, "Asistente del maestro del gremio"}, {1330, "socio"}}));
     ASSERT_TRUE(texts.HasValue());
     for (const std::int32_t map : {0, 2})

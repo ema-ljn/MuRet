@@ -94,13 +94,12 @@ constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
 // 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
 // alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
 // se consulta además la espera: estos fixtures conservan el contador positivo.
-int GateProbeRandoms(const Client::Data::Tables::GateTable& gates, std::int32_t map,
-                     const Client::Scenes::ActorState& hero)
+int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Scenes::ActorState& hero)
 {
     int draws = 0;
     for (std::size_t slot = 0; slot < gates.Count(); ++slot)
     {
-        const auto gate = Client::Data::Tables::ReadGateRecord(gates, slot);
+        const auto gate = Client::Tables::ReadGateRecord(gates, slot);
         if (!gate || gate->flag != 1 || gate->map != map)
             continue;
         draws += 4;
@@ -289,12 +288,12 @@ public:
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     // El nombre del mapa 0 (0x5f0b40: el 30) y el 484 del renglón de bienvenida, sintéticos.
     Client::Tests::LetterMeasure letters;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{30, "<mapa 0>"}, {484, " <bienvenida>"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{30, "<mapa 0>"}, {484, " <bienvenida>"}});
 };
 
 // Recursos productivos para los tests que ahora atraviesan toda la cola del frame.
@@ -303,7 +302,7 @@ struct CompleteFrameResources
 {
     Client::Core::Expected<void, std::string> Load(const std::filesystem::path& root, Client::Core::Log& log)
     {
-        auto loadedData = Client::Scenes::LoadGameData(root);
+        auto loadedData = Client::Tables::LoadGameData(root);
         if (!loadedData.HasValue())
         {
             return Client::Core::Unexpected(loadedData.Error());
@@ -313,7 +312,7 @@ struct CompleteFrameResources
     }
     Client::Tests::FakeTextureStore textures;
     Client::Scenes::GameModels models;
-    Client::Scenes::GameData data;
+    Client::Tables::GameData data;
 };
 
 // La respuesta del cable: la celda (133, 127) del mapa 0 con la dirección 0, el PK 4 y el CtlCode 0x20.
@@ -435,11 +434,11 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
 }
 
 // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
-Client::Data::Tables::ItemSetTables NoSets()
+Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
 // El lugar del héroe con `Seed`, el de la primera prueba.
@@ -456,7 +455,7 @@ std::size_t HeroSlotOfSeed()
 TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 {
     Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -484,7 +483,7 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
 {
     Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -513,7 +512,7 @@ TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
 TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 {
     Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -582,7 +581,7 @@ TEST_F(WorldEntryTest, TheEntryReadsWhatTheSelectionDrawingLeft)
 {
     Entry tested(m_dataRoot, Seed);
     tested.world.Runtime().fullSetScan = Client::Scenes::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     Client::Protocol::Character::CharacterSelectResult reply = CableReply();
@@ -603,7 +602,7 @@ TEST_F(WorldEntryTest, WithoutKnowingTheLastScanTheEntryStopsAt0x550990)
 {
     Entry tested(m_dataRoot, Seed);
     tested.world.Runtime().fullSetScan = std::nullopt;
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -628,7 +627,7 @@ TEST_F(WorldEntryTest, WithThePublishedHeroSlotTheEntryScansTheHero)
     Entry tested(m_dataRoot, Seed);
     tested.world.Runtime().hero = HeroSlotOfSeed();
     tested.world.Runtime().fullSetScan = std::nullopt;
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -933,7 +932,7 @@ TEST_F(WorldEntryTest, ASecondEntryReloadsAndRedrawsTheHeroSlot)
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         Entry tested(m_dataRoot, Seed);
-        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        const Client::Tables::ItemSetTables sets = NoSets();
         WorldEntryResources resources = tested.Resources();
         resources.itemSetTables = &sets;
         RecordingPublisher publisher;
@@ -999,7 +998,7 @@ TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePrevi
         const ReferenceMap& to = change.to;
         SCOPED_TRACE(static_cast<int>(to.map));
         Entry tested(m_dataRoot, Seed);
-        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        const Client::Tables::ItemSetTables sets = NoSets();
         WorldEntryResources resources = tested.Resources();
         resources.itemSetTables = &sets;
         RecordingPublisher publisher;
@@ -1039,7 +1038,7 @@ TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePrevi
 TEST_F(WorldEntryTest, TheSecondEntryRecalculatesThe358OfThePreviousHero)
 {
     Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -1063,7 +1062,7 @@ TEST_F(WorldEntryTest, TheSecondEntryRecalculatesThe358OfThePreviousHero)
 TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryElsewhereStopsAt0x550990)
 {
     Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -1100,7 +1099,7 @@ TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHe
 {
     const std::uint32_t seed = SeedOfTheSameSlotAfterAFrame();
     Entry tested(m_dataRoot, seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -1131,7 +1130,7 @@ TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHe
 TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 {
     Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     Client::Scenes::SessionEventApplier applier(resources);
@@ -1182,7 +1181,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                                    .camera = &tested.camera,
                                                    .cameraInput = &tested.cameraInput,
                                                    .world = &tested.world};
-        const Client::Scenes::GameData data;
+        const Client::Tables::GameData data;
         Client::Scenes::CharacterSelectScene selection(context, data, tested.models, nullptr);
         ASSERT_TRUE(selection.Enter().HasValue());
         Client::Tests::RecordingFrameTarget target;
@@ -1192,7 +1191,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         selection.Leave();
         ASSERT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x);
         ASSERT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
-        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        const Client::Tables::ItemSetTables sets = NoSets();
         WorldEntryResources resources = tested.Resources();
         resources.itemSetTables = &sets;
         RecordingPublisher publisher;

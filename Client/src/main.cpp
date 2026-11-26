@@ -514,7 +514,7 @@ Client::Render::Frame::RasterizerFactory FontFactory(const App::ClientConfig& co
 
 // Las cinco escenas (CL5.4 y CL6.3). Los modelos los lee la carga y los usan el login, la selección y el
 // caballo del juego.
-Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const Scenes::GameData& data,
+Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const Client::Tables::GameData& data,
                                       Scenes::GameModels& models, App::ServerSession* session)
 {
     return [context, &data, &models, session](Scenes::SceneId id) -> std::unique_ptr<Scenes::IScene>
@@ -547,7 +547,7 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
 // Lo que lee la fase 2 con una carpeta de datos.
 struct SceneStartup
 {
-    Scenes::GameData data;
+    Client::Tables::GameData data;
     App::FontFiles fonts;
 };
 
@@ -556,14 +556,14 @@ struct SceneStartup
 // la cara se busca en las fuentes del sistema, que solo Windows tiene. Cada error, al log.
 std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Core::Log& log)
 {
-    auto data = Scenes::LoadGameData(*config.dataPath);
+    auto data = Client::Tables::LoadGameData(*config.dataPath);
     if (!data.HasValue())
     {
         log.Error("{}", data.Error());
         return std::nullopt;
     }
     // La cara es un texto del juego: no va al log (App/FontFiles.h).
-    const Scenes::GameData& loaded = data.Value();
+    const Client::Tables::GameData& loaded = data.Value();
     if (loaded.items && !loaded.items->checksumMatches)
     {
         log.Warning("Item.bmd: el checksum no coincide; se continúa con la tabla cargada");
@@ -655,7 +655,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
     std::unique_ptr<Audio::Sdl::SdlAudio> audio;
     Scenes::WorldState world;
     world.Runtime().music.SetEnabled(startup.config.musicOnOff);
-    auto audioCreated = Audio::Sdl::SdlAudio::Create(*startup.config.dataPath, Audio::GameSoundCatalog(),
+    auto audioCreated = Audio::Sdl::SdlAudio::Create(*startup.config.dataPath, Client::Sound::GameSoundCatalog(),
                                                      startup.config.soundOnOff, startup.config.musicOnOff);
     if (audioCreated.HasValue())
     {

@@ -12,7 +12,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 namespace
 {
@@ -48,11 +48,11 @@ std::string_view DialogAnswerOf(const DialogRecord& dialog, std::size_t answer)
     return UpToZero(dialog.answers[answer]);
 }
 
-Core::Expected<DialogTable, DataError> LoadDialogTable(std::span<const std::byte> file)
+Core::Expected<DialogTable, Data::DataError> LoadDialogTable(std::span<const std::byte> file)
 {
     // Con menos de 0x400 bytes, el resto del primer bloque es el de operator new sin iniciar.
     if (file.size() < DialogRecordSize)
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     DialogTable table(DialogCount);
     // 0x54b32b..0x54b338: un solo bloque de operator new para los 200.
     std::array<std::byte, DialogRecordSize> block{};
@@ -70,7 +70,7 @@ Core::Expected<DialogTable, DataError> LoadDialogTable(std::span<const std::byte
         std::ranges::transform(bytes.first(DialogTextSize), dialog.text.begin(), toChar);
         dialog.answerCount = IntAt(bytes, AnswerCountOffset);
         if (dialog.answerCount > static_cast<std::int32_t>(DialogAnswerCount))
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         for (std::size_t a = 0; a < DialogAnswerCount; ++a)
         {
             dialog.next[a] = IntAt(bytes, NextOffset + 4 * a);
@@ -81,4 +81,4 @@ Core::Expected<DialogTable, DataError> LoadDialogTable(std::span<const std::byte
     }
     return table;
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

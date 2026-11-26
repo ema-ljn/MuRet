@@ -276,10 +276,10 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         runtime.audio->ReleaseWorldSounds();
         context.world.FaunaResources().ResetSoundRegistrationStamps();
     }
-    runtime.map = Data::MapAtWorldLoadStart(argumentMap, runtime.map);
+    runtime.map = Maps::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;
     if (runtime.audio != nullptr)
-        for (const Audio::SoundDefinition& sound : Audio::WorldSoundsForMap(map))
+        for (const Audio::SoundDefinition& sound : Sound::WorldSoundsForMap(map))
             runtime.audio->RegisterSound(sound.id, sound.path);
     const std::uint8_t crywolfState = runtime.crywolf.state;
     const bool reusePreviousPaths = map == CrywolfMap && crywolfState > Protocol::Events::CrywolfWarState;
@@ -326,7 +326,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         }
         else if (crywolfState != Protocol::Events::CrywolfPeaceState)
         {
-            names.attributesNumber = static_cast<std::int32_t>(Data::WorldFolderNumber(CrywolfMap)) * 10 + crywolfState;
+            names.attributesNumber = static_cast<std::int32_t>(Maps::WorldFolderNumber(CrywolfMap)) * 10 + crywolfState;
             names.lightName =
                 crywolfState == Protocol::Events::CrywolfOccupiedState ? "TerrainLight1" : "TerrainLight2";
         }

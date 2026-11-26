@@ -88,7 +88,7 @@ std::map<std::size_t, std::string> HelpTexts()
 class ItemRecords
 {
 public:
-    ItemRecords() : m_plain(Client::Data::Tables::ItemTableSize) {}
+    ItemRecords() : m_plain(Client::Tables::ItemTableSize) {}
 
     ItemRecords& Named(std::uint16_t type, std::string_view name)
     {
@@ -110,23 +110,22 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Client::Data::Tables::ItemTable Table() const
+    [[nodiscard]] Client::Tables::ItemTable Table() const
     {
-        const std::vector<std::byte> encrypted =
-            Client::Tests::EncryptRecords(m_plain, Client::Data::Tables::ItemRecordSize);
-        return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(m_plain, Client::Tables::ItemRecordSize);
+        return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
     }
 
 private:
     std::byte& At(std::uint16_t type, std::size_t offset)
     {
-        return m_plain[std::size_t{type} * Client::Data::Tables::ItemRecordSize + offset];
+        return m_plain[std::size_t{type} * Client::Tables::ItemRecordSize + offset];
     }
 
     std::vector<std::byte> m_plain;
 };
 
-Client::Data::Tables::ItemTable Items()
+Client::Tables::ItemTable Items()
 {
     return ItemRecords()
         // Daño 10 a 15, nivel 20, fuerza 40, agilidad 30 y energía 10; la usa la clase 0.
@@ -161,18 +160,18 @@ Client::Data::Tables::ItemTable Items()
 }
 
 // La armadura de conjunto: el 3 en la pieza 1 y el 5 en la 2, con las mezclas 1 (byte 2) y 2 (byte 3).
-Client::Data::Tables::ItemSetTables Sets()
+Client::Tables::ItemSetTables Sets()
 {
-    std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize);
-    const std::size_t type = std::size_t{SetArmor} * Client::Data::Tables::ItemSetTypeRecordSize;
+    std::vector<std::byte> types(Client::Tables::ItemSetTypeTableSize);
+    const std::size_t type = std::size_t{SetArmor} * Client::Tables::ItemSetTypeRecordSize;
     types[type] = std::byte{FirstSet};
     types[type + 1] = std::byte{SecondSet};
     types[type + 2] = std::byte{1};
     types[type + 3] = std::byte{2};
-    std::vector<std::byte> options(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    std::vector<std::byte> options(Client::Tables::ItemSetOptionTableSize, std::byte{0xff});
     const auto name = [&](std::uint8_t set, std::string_view text)
     {
-        const std::size_t base = std::size_t{set} * Client::Data::Tables::ItemSetOptionRecordSize;
+        const std::size_t base = std::size_t{set} * Client::Tables::ItemSetOptionRecordSize;
         for (std::size_t i = 0; i < text.size(); ++i)
             options[base + i] = static_cast<std::byte>(text[i]);
         options[base + text.size()] = std::byte{0};
@@ -290,9 +289,9 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(HelpTexts());
-    Client::Data::Tables::ItemTable m_items = Items();
-    Client::Data::Tables::ItemSetTables m_sets = Sets();
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(HelpTexts());
+    Client::Tables::ItemTable m_items = Items();
+    Client::Tables::ItemSetTables m_sets = Sets();
     bool m_withTexts = true;
     bool m_withItems = true;
     bool m_withSets = true;

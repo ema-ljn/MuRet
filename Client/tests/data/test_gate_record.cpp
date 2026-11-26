@@ -9,10 +9,10 @@
 
 namespace
 {
-using Client::Data::Tables::GateCount;
-using Client::Data::Tables::GateRecord;
-using Client::Data::Tables::GateTable;
-using Client::Data::Tables::ReadGateRecord;
+using Client::Tables::GateCount;
+using Client::Tables::GateRecord;
+using Client::Tables::GateTable;
+using Client::Tables::ReadGateRecord;
 using Client::Tests::GateTableBytes;
 
 TEST(GateRecordTest, CopiesEveryByteWithoutChangingTheRecord)

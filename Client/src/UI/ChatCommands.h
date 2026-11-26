@@ -94,10 +94,10 @@ struct ChatCommandOutcome
 // Lo que el despacho lee y escribe.
 struct ChatCommandContext
 {
-    const Data::Text::TextTable& texts;
+    const Tables::TextTable& texts;
     // *[0x7758550] y las 64 de [0x6eed3c] + 0x8004: la cola de los nombres. Sin una, no tiene nombres que comparar.
-    const Data::Tables::ItemTable* items = nullptr;
-    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    const Tables::ItemTable* items = nullptr;
+    const Tables::ItemSetOptionTable* setOptions = nullptr;
     // 0x6c9dd0.
     std::int32_t map = -1;
     // 0x576793c: la salida pedida.
@@ -158,5 +158,5 @@ struct ChatCommandContext
                                                                                 std::string_view text, bool fromMacro);
 
 // 0x56c1f0: lo que sigue a "/N " es uno de los comandos que una macro no puede guardar.
-[[nodiscard]] bool IsAForbiddenMacro(const Data::Text::TextTable& texts, std::string_view text);
+[[nodiscard]] bool IsAForbiddenMacro(const Tables::TextTable& texts, std::string_view text);
 } // namespace Client::UI

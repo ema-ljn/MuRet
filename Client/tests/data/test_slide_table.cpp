@@ -14,14 +14,14 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadSlideTable: Slide.bmd (0x46b3b0), con textos inventados.
+// Client::Tables::LoadSlideTable: Slide.bmd (0x46b3b0), con textos inventados.
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::LoadSlideTable;
-using Client::Data::Text::SlideGroupSize;
-using Client::Data::Text::SlideTableSize;
-using Client::Data::Text::SlideTextSize;
+using Client::Tables::LoadSlideTable;
+using Client::Tables::SlideGroupSize;
+using Client::Tables::SlideTableSize;
+using Client::Tables::SlideTextSize;
 using Client::Tests::ErrorOf;
 
 void PutDword(std::vector<std::byte>& bytes, std::size_t at, std::uint32_t value)

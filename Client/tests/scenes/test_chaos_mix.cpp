@@ -71,9 +71,9 @@ void PutDword(std::vector<std::byte>& plain, std::size_t at, std::uint32_t value
         plain[at + index] = static_cast<std::byte>((value >> (8 * index)) & 0xffu);
 }
 
-Client::Data::Tables::ItemTable ChaosItems()
+Client::Tables::ItemTable ChaosItems()
 {
-    using Client::Data::Tables::ItemRecordSize;
+    using Client::Tables::ItemRecordSize;
     struct Shape
     {
         std::uint16_t type;
@@ -88,7 +88,7 @@ Client::Data::Tables::ItemTable ChaosItems()
          {Piece, 1, 1, 1000},       {Crest, 1, 1, 1000},       {Fenrir, 2, 2, 1000},      {Bless, 1, 1, 0},
          {Soul, 1, 1, 0},           {Life, 1, 1, 0},           {Eye, 1, 1, 1000},         {Key, 1, 1, 1000},
          {Creation, 1, 1, 0},       {Guardian, 1, 1, 1000},    {0x0002, 1, 1, 0}}};
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (const Shape& shape : Shapes)
     {
         const std::size_t base = std::size_t{shape.type} * ItemRecordSize;
@@ -97,7 +97,7 @@ Client::Data::Tables::ItemTable ChaosItems()
         PutDword(plain, base + 0x40, shape.price);
     }
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 ItemState Item(std::uint16_t type, std::uint32_t level = 0)
@@ -171,7 +171,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
-    Client::Data::Tables::ItemTable m_items = ChaosItems();
+    Client::Tables::ItemTable m_items = ChaosItems();
     std::size_t m_next = 0;
 };
 

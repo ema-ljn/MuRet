@@ -210,9 +210,9 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 } // namespace
 
 GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const Models::IModelLibrary* models,
-                     const Data::Tables::ItemTable* items, const Models::ModelTextureSlots* gameSlots,
-                     const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills,
-                     const Data::Text::TextTable* texts, GameChatTables chat)
+                     const Tables::ItemTable* items, const Models::ModelTextureSlots* gameSlots,
+                     const Tables::GateTable* gates, const Tables::SkillTable* skills, const Tables::TextTable* texts,
+                     GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
       m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
       m_sandTextures(context.textures, SandTextureSet), m_guildMarks(context.textures), m_tiles(context.textures)
@@ -899,7 +899,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
             for (const MonsterModelOp& op : MonsterModelCaseOf(SpearmanMonster).ops)
                 if (op.kind == MonsterModelOpKind::Sound)
                     audio->RegisterSound(static_cast<std::int32_t>(op.value), op.path);
-        WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
+        Sound::WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
     }
     m_worldModelsMap = map;
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);

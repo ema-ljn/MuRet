@@ -167,7 +167,7 @@ protected:
     std::optional<std::int32_t> sound;
     SpriteBatch sprites;
     RecordingTextDrawer text{sprites};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
     float worldClock = 0.0f;
 };
 

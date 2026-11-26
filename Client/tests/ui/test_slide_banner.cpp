@@ -189,7 +189,7 @@ TEST_F(SlideBannerTest, WithoutAMeasureAddingIsCut)
 // 0x46b680: el primer tramo con el nivel menor o igual que su tope; un rand() módulo la cuenta.
 TEST_F(SlideBannerTest, PickingDrawsOneRandomFromTheLevelGroup)
 {
-    Client::Data::Text::SlideTable table;
+    Client::Tables::SlideTable table;
     table.periodSeconds = 60;
     table.speed = 2.5f;
     table.groups[0] = {.maxLevel = 15, .count = 2, .texts = {"bajo uno", "bajo dos"}};

@@ -125,9 +125,9 @@ protected:
     }
     void Cost(std::uint8_t cost)
     {
-        std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+        std::vector<std::byte> plain(Client::Tables::SkillTableSize);
         plain[0x46 * 60 + 0x33] = static_cast<std::byte>(cost);
-        skills = Client::Data::Tables::SkillTable(Client::Tests::EncryptRecords(std::move(plain), 60));
+        skills = Client::Tables::SkillTable(Client::Tests::EncryptRecords(std::move(plain), 60));
     }
     void ExpectPacket(std::size_t index, const std::vector<std::byte>& bytes, bool xor32 = true)
     {
@@ -141,8 +141,8 @@ protected:
     CrtRandom random{314159};
     Client::Input::InputState input{};
     Requests requests{};
-    Client::Data::Tables::SkillTable skills{
-        Client::Tests::EncryptRecords(std::vector<std::byte>(Client::Data::Tables::SkillTableSize), 60)};
+    Client::Tables::SkillTable skills{
+        Client::Tests::EncryptRecords(std::vector<std::byte>(Client::Tables::SkillTableSize), 60)};
     Client::Render::SpriteBatch sprites{};
     Client::Tests::RecordingTextDrawer text{sprites};
 };

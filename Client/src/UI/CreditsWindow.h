@@ -56,7 +56,7 @@ class CreditsWindow final : public NewUiWindow
 {
 public:
     // `credits`: la tabla de credit.bmd (GameData), que tiene que vivir más que la ventana.
-    CreditsWindow(TextureSizes sizes, std::span<const Data::Text::CreditEntry> credits);
+    CreditsWindow(TextureSizes sizes, std::span<const Tables::CreditEntry> credits);
 
     // 0x63f020: las barras opacas (0x647050 con alfa 0xff) y el botón; cerrada. No toca los índices de
     // los renglones: en el original son de la ventana, que vive en la .bss del administrador.
@@ -103,7 +103,7 @@ private:
     void DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
-    std::span<const Data::Text::CreditEntry> m_credits;
+    std::span<const Tables::CreditEntry> m_credits;
     Button m_close;
     CreditsLayout m_layout;
     bool m_open = false;

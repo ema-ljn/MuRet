@@ -21,7 +21,7 @@
 // avisa con un MessageBox y cierra la ventana (WM_DESTROY); MuRet sigue sin diálogos (P-C170).
 // *Verificado* con el del repo: 204.800 bytes, 75 registros que no están en cero, a lo sumo 3 respuestas, y las
 // acciones −1, 0, 1, 2 y 3.
-namespace Client::Data::Text
+namespace Client::Tables
 {
 inline constexpr std::size_t DialogCount = 200;
 inline constexpr std::size_t DialogRecordSize = 0x400;
@@ -69,5 +69,5 @@ using DialogTable = std::vector<DialogRecord>;
 // Descifra los primeros DialogTableSize bytes de `file` como 0x54b2b0, con lo que falta como lo deja su fread.
 // FileTooShort con menos de un registro; InvalidData si una cuenta pasa de 10: al abrir ese diálogo, 0x419710 y
 // 0x632f70 escribirían sus renglones fuera de los 10 de 0x7d3691c (Q-C1127). Lo que sobra se ignora.
-[[nodiscard]] Core::Expected<DialogTable, DataError> LoadDialogTable(std::span<const std::byte> file);
-} // namespace Client::Data::Text
+[[nodiscard]] Core::Expected<DialogTable, Data::DataError> LoadDialogTable(std::span<const std::byte> file);
+} // namespace Client::Tables

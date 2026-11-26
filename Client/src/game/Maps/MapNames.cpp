@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Maps
 {
 std::size_t MapNameText(std::int32_t map)
 {
@@ -28,4 +28,4 @@ std::size_t MapNameText(std::int32_t map)
         return 39;
     return static_cast<std::size_t>(FirstMapText + map);
 }
-} // namespace Client::Scenes
+} // namespace Client::Maps

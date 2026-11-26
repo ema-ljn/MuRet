@@ -27,7 +27,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -52,7 +52,7 @@ enum class CursorGrid : std::uint8_t;
 struct InventoryServices
 {
     // *[0x7758550], Item.bmd: el ancho (+0x24), el alto (+0x25), el lugar del equipo (+0x22) y +0x49 de cada tipo.
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // 0x512a30 sobre el héroe publicado (DressTransitionHero), con el sonido que pida 0x4f2250 en lastSoundId.
     std::function<Core::Expected<void, std::string>()> dressTheHero{};
     // 0x420cf0: suelta el cuervo y, fuera de los mapas 18 a 23, lo crea de nuevo (ReplaceTheRaven).
@@ -64,7 +64,7 @@ struct InventoryServices
     // El C1 0E 24 en C3 por la sesión (ServerSession::SendItemMove), después de los dos rand() del envío.
     std::function<Core::Expected<void, std::string>(const Protocol::Inventory::ItemMove&)> sendItemMove{};
     // CL9 hito 5. Text.bmd, para los textos que se arman con sprintf.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // 0x555190 con un texto ya armado (sprintf con un texto de Text.bmd como formato) y el nombre vacío.
     std::function<Core::Expected<void, std::string>(std::string_view text, std::int32_t type)> chatLine{};
     // El C1 06 23, el C1 05 22 y el C1 06 26 en C3 por la sesión, después de los dos rand() del envío.
@@ -89,7 +89,7 @@ struct ItemFootprint
     std::int32_t height = 0;
 };
 
-[[nodiscard]] Core::Expected<ItemFootprint, std::string> ItemFootprintOf(const Data::Tables::ItemTable* items,
+[[nodiscard]] Core::Expected<ItemFootprint, std::string> ItemFootprintOf(const Tables::ItemTable* items,
                                                                          std::uint16_t type, std::string_view where);
 
 // La casilla bajo el mouse para el ítem del cursor en una grilla desde (left, top): _ftol de

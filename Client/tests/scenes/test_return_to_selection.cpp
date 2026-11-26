@@ -103,7 +103,7 @@ struct Returning
     }
     // El renglón de bienvenida del F3 03 (0x4c4b60).
     Client::Tests::LetterMeasure letters;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
 
     [[nodiscard]] std::size_t AliveEffects() const
     {
@@ -119,17 +119,17 @@ struct Returning
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
 
 // Las tablas de los conjuntos sin ningún conjunto, para que la entrada llegue al final.
-Client::Data::Tables::ItemSetTables NoSets()
+Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
 // La respuesta del F3 03 en la celda (x, y) de `map`, con la dirección 0, el PK 4 y el CtlCode 0x20.
@@ -183,7 +183,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         Returning tested(m_dataRoot, Seed);
-        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        const Client::Tables::ItemSetTables sets = NoSets();
         WorldEntryResources resources = tested.Resources();
         resources.itemSetTables = &sets;
         SilentPublisher publisher;

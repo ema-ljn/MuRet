@@ -122,7 +122,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random;
     BattleMeasure m_measure;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(BattleTexts());
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(BattleTexts());
     std::vector<Client::Protocol::Outgoing> m_sent;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};

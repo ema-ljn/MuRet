@@ -28,7 +28,7 @@ using Client::Scenes::QuickSlots;
 using Client::World::ItemState;
 
 using Cells = std::array<ItemState, InventoryCellCount>;
-using Record = std::array<std::byte, Client::Data::Tables::ItemRecordSize>;
+using Record = std::array<std::byte, Client::Tables::ItemRecordSize>;
 
 // La casilla (fila · 8 + columna) con `type`, `count` en D+0x1a, el nivel en D+4 (bits 3 a 6) y +0x3c en 1.
 void Put(Cells& cells, std::size_t row, std::size_t column, std::uint16_t type, std::uint8_t count = 1,

@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -48,7 +48,7 @@ struct ShopTitle;
 inline constexpr std::size_t ShopSignHeaderText = 1104;
 
 // El texto 1104, o el error con la dirección que lo lee si no hay Text.bmd.
-[[nodiscard]] Core::Expected<std::string_view, std::string> ShopSignHeader(const Data::Text::TextTable* texts,
+[[nodiscard]] Core::Expected<std::string_view, std::string> ShopSignHeader(const Tables::TextTable* texts,
                                                                            std::string_view address);
 
 // +0x20 y +0x30 del cartel.
@@ -152,7 +152,7 @@ struct ShopSignDrawContext
     Render::Frame::ITextDrawer& text;
     // El SelectObject de 0x452d50: queda la fuente del último renglón dibujado.
     Render::Text::FontKind& dcFont;
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // Un dibujo intermedio de MuRet no escribe +0x10, los +0x60 ni los lugares (+0x48 y +0x4c): van a una copia.
     bool projecting = false;
 };

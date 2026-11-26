@@ -302,7 +302,7 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
 }
 } // namespace
 
-void LoadTheSlides(SlideBanner& banner, const Data::Text::SlideTable& table)
+void LoadTheSlides(SlideBanner& banner, const Tables::SlideTable& table)
 {
     // 0x46b3c4..0x46b3dc: con algún texto, 0x46b5b0 vacía las listas antes; los topes y las cuentas se pisan igual.
     banner.periodSeconds = table.periodSeconds;

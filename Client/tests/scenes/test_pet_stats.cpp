@@ -74,18 +74,18 @@ int DrawsBetween(CrtRandom from, std::uint32_t to)
     return -1;
 }
 
-Client::Data::Tables::ItemTable EmptyItems()
+Client::Tables::ItemTable EmptyItems()
 {
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(
-        std::vector<std::byte>(Client::Data::Tables::ItemTableSize), Client::Data::Tables::ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        std::vector<std::byte>(Client::Tables::ItemTableSize), Client::Tables::ItemRecordSize);
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
-Client::Data::Tables::ItemSetTables EmptySets()
+Client::Tables::ItemSetTables EmptySets()
 {
     return Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
 // Un Dark Lord publicado con su cuervo, el equipo vacío con las durabilidades del cuervo y del caballo, nada en el
@@ -173,9 +173,9 @@ struct Pets
     Client::World::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    const Client::Data::Tables::ItemTable items = EmptyItems();
-    const Client::Data::Tables::ItemSetTables setTables = EmptySets();
-    const Client::Data::Tables::ItemSetTables* sets = &setTables;
+    const Client::Tables::ItemTable items = EmptyItems();
+    const Client::Tables::ItemSetTables setTables = EmptySets();
+    const Client::Tables::ItemSetTables* sets = &setTables;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };

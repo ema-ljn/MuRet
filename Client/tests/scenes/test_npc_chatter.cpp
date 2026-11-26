@@ -147,14 +147,14 @@ protected:
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{1};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{1974, "pociones"},
-                                                                          {1975, "alas"},
-                                                                          {1976, "gremio"},
-                                                                          {1827, "fuerza"},
-                                                                          {904, "flechas"},
-                                                                          {905, "arco"},
-                                                                          {1167, "evento uno"},
-                                                                          {1168, "evento dos"}});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{1974, "pociones"},
+                                                                      {1975, "alas"},
+                                                                      {1976, "gremio"},
+                                                                      {1827, "fuerza"},
+                                                                      {904, "flechas"},
+                                                                      {905, "arco"},
+                                                                      {1167, "evento uno"},
+                                                                      {1168, "evento dos"}});
     LetterMeasure m_letters;
     bool m_withTexts = true;
     bool m_withMeasure = true;

@@ -9,20 +9,21 @@
 #include <optional>
 #include <span>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
-Core::Expected<SkillTable, DataError> LoadSkillTable(std::span<const std::byte> file)
+Core::Expected<SkillTable, Data::DataError> LoadSkillTable(std::span<const std::byte> file)
 {
-    const std::optional<std::uint32_t> stored = StoredChecksum(file, SkillTableSize);
+    const std::optional<std::uint32_t> stored = Data::Tables::StoredChecksum(file, SkillTableSize);
     if (!stored)
     {
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     }
     const std::span<const std::byte> records = file.first(SkillTableSize);
-    if (TableChecksum(records, SkillChecksumKey, ChecksumParity::XorEvenDwords) != *stored)
+    if (Data::Tables::TableChecksum(records, Data::Tables::SkillChecksumKey,
+                                    Data::Tables::ChecksumParity::XorEvenDwords) != *stored)
     {
-        return Core::Unexpected(DataError::ChecksumMismatch);
+        return Core::Unexpected(Data::DataError::ChecksumMismatch);
     }
     return SkillTable(records);
 }
-} // namespace Client::Data::Tables
+} // namespace Client::Tables

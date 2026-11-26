@@ -195,8 +195,8 @@ game/Maps/WorldFolder.cpp	21	game/Maps	game/Maps	high	which folder each map has:
 game/Maps/WorldFolder.h	30	game/Maps	game/Maps	high	which folder each map has: map definition (2026-11-21 review)
 game/Maps/WorldLoadIdentity.cpp	53	game/Maps	game/Maps	high	which folder each map has: map definition (2026-11-21 review)
 game/Maps/WorldLoadIdentity.h	13	game/Maps	game/Maps	high	which folder each map has: map definition (2026-11-21 review)
-GameLogic/CharacterAppearance.cpp	248	GameLogic	game/Actors	medium	rule ^CharacterAppearance
-GameLogic/CharacterAppearance.h	84	GameLogic	game/Actors	medium	rule ^CharacterAppearance
+GameLogic/CharacterAppearance.cpp	248	GameLogic	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
+GameLogic/CharacterAppearance.h	84	GameLogic	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 GameLogic/CharacterPosition.cpp	77	GameLogic	game/Movement	medium	the pathfinder, gates and speed, out of Hero (2026-11-21 review)
 GameLogic/CharacterPosition.h	31	GameLogic	game/Movement	medium	the pathfinder, gates and speed, out of Hero (2026-11-21 review)
 GameLogic/GateCheck.cpp	156	GameLogic	game/Movement	medium	the pathfinder, gates and speed, out of Hero (2026-11-21 review)
@@ -547,7 +547,7 @@ Scenes/ActorRemains.cpp	106	Scenes	game/Actors	high	actor record/pool, creation,
 Scenes/ActorRemains.h	50	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorShock.cpp	164	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Mo
 Scenes/ActorShock.h	16	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Mo
-Scenes/ActorState.h	398	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
+Scenes/ActorState.h	398	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 Scenes/ActorWalk.cpp	377	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorWalk.h	33	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/AidaObjectServices.cpp	234	Scenes	game/MapScripts/Aida	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
@@ -616,8 +616,8 @@ Scenes/CharacterCloth.cpp	482	Scenes	game/Actors/Drawing	high	(addr.) player dra
 Scenes/CharacterCloth.h	158	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/CharacterDrawing.cpp	2584	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
 Scenes/CharacterDrawing.h	518	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
-Scenes/CharacterHead.cpp	47	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
-Scenes/CharacterHead.h	33	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
+Scenes/CharacterHead.cpp	47	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
+Scenes/CharacterHead.h	33	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 Scenes/CharacterPicking.cpp	153	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/CharacterPicking.h	39	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/CharacterSelectScene.cpp	1914	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
@@ -1013,14 +1013,14 @@ Scenes/OptionsSettings.h	17	Scenes	game/Hud	medium	options window globals (+0x7e
 Scenes/OrbitJoints.cpp	198	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 Scenes/OriginalFramesOfTheSteps.cpp	38	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/OriginalFramesOfTheSteps.h	41	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
-Scenes/OwnCharacterRecord.cpp	115	Scenes	game/Player	medium	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10; include graph pulls to Hero (12 vs 5 
-Scenes/OwnCharacterRecord.h	180	Scenes	game/Player	medium	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10; include graph pulls to Hero (12 vs 5 
+Scenes/OwnCharacterRecord.cpp	115	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
+Scenes/OwnCharacterRecord.h	180	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 Scenes/OwnDamage.cpp	178	Scenes	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 Scenes/OwnDamage.h	77	Scenes	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 Scenes/OwnDerivedStats.cpp	301	Scenes	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 Scenes/OwnDerivedStats.h	124	Scenes	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
-Scenes/OwnInventory.cpp	29	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
-Scenes/OwnInventory.h	32	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
+Scenes/OwnInventory.cpp	29	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
+Scenes/OwnInventory.h	32	Scenes	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 Scenes/OwnItemOptions.cpp	58	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/OwnItemOptions.h	25	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/OwnItemPlacement.cpp	606	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
@@ -1367,8 +1367,8 @@ World/IParticleTrigonometry.cpp	6	World	game/Particles	medium	particles, a modul
 World/IParticleTrigonometry.h	25	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
 World/ITerrainAttributeQuerySource.h	20	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/IWorldObjectCreationServices.h	36	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/ItemState.cpp	610	World	game/Items	medium	rule ^ItemState
-World/ItemState.h	87	World	game/Items	medium	rule ^ItemState
+World/ItemState.cpp	610	World	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
+World/ItemState.h	87	World	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 World/KalimaObjectMovement.cpp	47	World	game/Events/Kalima	medium	rule ^(Kalima)
 World/KalimaObjectMovement.h	11	World	game/Events/Kalima	medium	rule ^(Kalima)
 World/KalimaParticleKernels.cpp	586	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
@@ -1469,3 +1469,4 @@ World/WorldObjects.h	300	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|
 World/WorldTerrain.cpp	400	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/WorldTerrain.h	133	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 main.cpp	974	main.cpp	app	high	composition root
+game/Kernel/ActorSpirit.h	51	game/Kernel	game/Kernel	high	the raven's per-actor fields, which the actor holds; its logic is game/Pets (AR3.1)

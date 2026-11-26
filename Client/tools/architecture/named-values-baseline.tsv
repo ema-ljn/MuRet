@@ -1,5 +1,4 @@
 space	file	name	value
-character-class	GameLogic/CharacterAppearance.cpp	RavenClass	0x4
 character-class	GameLogic/GateCheck.cpp	DarkLordClass	0x4
 character-class	GameLogic/GateCheck.cpp	MagicGladiatorClass	0x3
 character-class	Scenes/ActionReply.cpp	ElfClass	0x2

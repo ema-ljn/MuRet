@@ -261,14 +261,14 @@ va	home	file	line	module	users	flag
 0x6d5d64	HeroMovementContext::sendEventWindowLeave GameUiContext::screen InputEvent::x	Client/src/Scenes/GameMovement.h	74	game/Movement	engine/Input game/Hud game/Npc	two-homes
 0x6d5d80					engine/Pathfinding	no-home
 0x6d5dc4					app	no-home
-0x6d5dc8	ChatReceiveContext::scene GameCharacterEffectsPass::gameScene WorldEntryResources::scene WorldRuntime::terrainPolygon	Client/src/Scenes/ChatReceive.h	44	game/Chat	app game/Actors game/Kernel game/Session game/Terrain	two-homes
+0x6d5dc8	ChatReceiveContext::scene GameCharacterEffectsPass::gameScene WorldRuntime::terrainPolygon WorldEntryResources::scene	Client/src/Scenes/ChatReceive.h	44	game/Chat	app game/Actors game/Kernel game/Session game/Terrain	two-homes
 0x6d5e24					game/FrontEnd	no-home
 0x6d5e28	DialogBoxState::dialogIndex	Client/src/UI/GameDialogs.h	84	game/Ui	game/Hud game/Quests	
 0x6d5e2c	GuildState::kickIndex	Client/src/Scenes/GuildState.h	380	game/Guild	game/Hud game/Protocol	
 0x6d5e30					game/FrontEnd	no-home
 0x6d5ec4	GameHudContext::chosenServer	Client/src/Scenes/GameHud.h	106	game/Hud	game/Scenes	
 0x6d5ecc	GameHudContext::chosenServer	Client/src/Scenes/GameHud.h	106	game/Hud		
-0x6d5edc	ChatReceiveContext::chosenSlot GameHudContext::chosenSlot GameUiContext::chosenSlot OwnCharacterRecord::skillKeys	Client/src/Scenes/ChatReceive.h	48	game/Chat	game/Hud game/Player game/Session	two-homes
+0x6d5edc	ChatReceiveContext::chosenSlot GameHudContext::chosenSlot GameUiContext::chosenSlot OwnCharacterRecord::skillKeys	Client/src/Scenes/ChatReceive.h	48	game/Chat	game/Hud game/Kernel game/Session	two-homes
 0x6d5ee0	GameCamera::targetDistance	Client/src/World/GameCamera.h	34	game/Camera	game/Scenes	
 0x6d5ee4					app	no-home
 0x6d6124					game/FrontEnd	no-home
@@ -311,7 +311,7 @@ va	home	file	line	module	users	flag
 0x6e5930					game/Kernel game/Player game/Tables	no-home
 0x6e6000					game/Actors	no-home
 0x6eed3c	ActorEquipmentContext::itemSetTables GameHudContext::setOptions GameHudContext::setTypes OwnStatsContext::itemSetTables ChatCommandContext::items ChatCommandContext::setLabel PanelContext::characterOpened GameData::itemSets	Client/src/Scenes/ActorEquipment.h	47	game/Actors	game/Chat game/Hud game/Kernel game/Player game/Tables game/Tooltips game/Ui	two-homes
-0x6eed7c	ServerSession::m_mapServerMove MapServerAuth::character	Client/src/App/ServerSession.h	577	game/Session	game/Protocol game/Scenes	two-homes
+0x6eed7c	MapServerAuth::character ServerSession::m_mapServerMove	Client/src/game/Protocol/Session/MapServerMove.h	50	game/Protocol	game/Scenes game/Session	two-homes
 0x6eeda0					game/CastleSiege	no-home
 0x6eeda8	WorldRuntime::byte6eeda8	Client/src/Scenes/WorldRuntime.h	438	game/Kernel	game/Events game/Npc game/Quests	
 0x710148	WorldRuntime::quest DelegatedPanels::quest PanelContext::questOpened GameData::quests	Client/src/Scenes/WorldRuntime.h	428	game/Kernel	app game/Hud game/Npc game/Protocol game/Quests game/Tables game/Ui	two-homes
@@ -452,10 +452,10 @@ va	home	file	line	module	users	flag
 0x5767814	EventGlobals::timeKind	Client/src/Scenes/EventGlobals.h	112	game/Events	game/Social	
 0x5767816	EventGlobals::timeKind GuildState::ourScore	Client/src/Scenes/EventGlobals.h	112	game/Events	game/Guild game/Social	two-homes
 0x57678ac	TradeState::sentMoney	Client/src/Scenes/SocialState.h	45	game/Social	game/Hud	
-0x57678b0	ActorState::byte38a	Client/src/Scenes/ActorState.h	116	game/Actors	game/Monsters	
+0x57678b0	ActorState::byte38a	Client/src/Scenes/ActorState.h	116	game/Kernel	game/Actors game/Monsters	
 0x57678b4	SoccerScoreGlobals::active GuildState::ourScore	Client/src/Scenes/EventGlobals.h	36	game/Events	game/Guild	two-homes
 0x57678b8	SoccerScoreGlobals::active GuildState::ourScore	Client/src/Scenes/EventGlobals.h	36	game/Events	game/Guild	two-homes
-0x57678bc	ActorState::key HeroMovementContext::playerKey GuildReceiveContext::playerKey HeroSkillContext::playerKey	Client/src/Scenes/ActorState.h	267	game/Actors	game/Combat game/Guild game/Movement game/Session game/Skills	two-homes
+0x57678bc	ActorState::key HeroMovementContext::playerKey GuildReceiveContext::playerKey HeroSkillContext::playerKey	Client/src/Scenes/ActorState.h	267	game/Kernel	game/Combat game/Guild game/Movement game/Session game/Skills	two-homes
 0x57678c4	ChatRuntime::lastWhisperTarget	Client/src/Scenes/WorldRuntime.h	183	game/Kernel	game/Chat	
 0x57678ce					game/Chat	no-home
 0x57678d0	SoccerScoreGlobals::firstName	Client/src/Scenes/EventGlobals.h	30	game/Events		
@@ -469,8 +469,8 @@ va	home	file	line	module	users	flag
 0x576791c	GameMovementState::lastActionTick HeroSkillContext::tickCount	Client/src/Scenes/GameMovementState.h	59	game/Movement	game/Hero game/Skills	two-homes
 0x5767920					game/Hud	no-home
 0x5767924	WorldRuntime::castleSiegeInfo	Client/src/Scenes/WorldRuntime.h	394	game/Kernel	game/Actors game/CastleSiege game/Hud game/Protocol	
-0x5767928	ServerSession::m_loginSent	Client/src/App/ServerSession.h	573	game/Session		
-0x576792c	ServerSession::m_account MapServerAuth::account	Client/src/App/ServerSession.h	575	game/Session	game/Protocol	two-homes
+0x5767928	ServerSession::m_loginSent	Client/src/game/Session/ServerSession.h	598	game/Session		
+0x576792c	MapServerAuth::account ServerSession::m_account	Client/src/game/Protocol/Session/MapServerMove.h	48	game/Protocol	game/Session	two-homes
 0x576793c	ChatCommandContext::logoutRequested GameUiState::logoutRequested PanelContext::logoutRequested	Client/src/UI/ChatCommands.h	104	game/Chat	game/Events game/Hud game/Ui	two-homes
 0x5767940	ChatInputState::brake	Client/src/UI/ChatInput.h	170	game/Chat		
 0x5767948	WorldRuntime::lastShotSkill	Client/src/Scenes/WorldRuntime.h	594	game/Kernel	game/Effects game/Skills	
@@ -539,7 +539,7 @@ va	home	file	line	module	users	flag
 0x7437684					game/Tables	no-home
 0x743a160					game/Actors	no-home
 0x743a16c	GameCharacterEffectsPass::actors CreationServices::actors StepServices::actors CastleObjectStep::pool	Client/src/Scenes/GameCharacterEffects.h	80	game/Actors	game/Effects game/Events game/FrontEnd game/Joints game/Messenger game/Monsters game/Movement game/Pets game/Scenes game/Skills	two-homes
-0x743a170	ActorDyingContext::hero ModelEffectDrawResources::heroByte1a1 GameHangingPass::heroByte1a1 StepServices::hero ObjectCollapseContext::heroZ MessageAreaView::heroSafeZone OldWindowStepView::heroName ChaosCastleCellContext::heroZ CrywolfWaterContext::heroZ ModelEffectStepServices::hero WizardEffectServices::hero ObjectStepGlobals::heroAction	Client/src/Scenes/ActorDying.h	34	game/Actors	engine/Crt game/Camera game/CastleSiege game/Combat game/Effects game/Events game/FrontEnd game/Guild game/Hero game/Items game/Joints game/MapScripts game/Messenger game/Monsters game/Npc game/Party game/PersonalShop game/Pets game/Scenes game/Session game/Skills game/Social game/Tooltips game/Ui game/Weather game/WorldObjects	two-homes
+0x743a170	ActorDyingContext::hero ModelEffectDrawResources::heroByte1a1 GameHangingPass::heroByte1a1 StepServices::hero ObjectCollapseContext::heroZ MessageAreaView::heroSafeZone OldWindowStepView::heroName ChaosCastleCellContext::heroZ CrywolfWaterContext::heroZ ModelEffectStepServices::hero WizardEffectServices::hero ObjectStepGlobals::heroAction	Client/src/Scenes/ActorDying.h	34	game/Actors	engine/Crt game/Camera game/CastleSiege game/Combat game/Effects game/Events game/FrontEnd game/Guild game/Hero game/Items game/Joints game/Kernel game/MapScripts game/Messenger game/Monsters game/Npc game/Party game/PersonalShop game/Pets game/Scenes game/Session game/Skills game/Social game/Tooltips game/Ui game/Weather game/WorldObjects	two-homes
 0x743a174	WorldRuntime::namedLineTime	Client/src/Scenes/WorldRuntime.h	609	game/Kernel	game/Monsters	
 0x743a178	GameCharacterEffectsPass::scan OwnStatsContext::scan505820 WorldRuntime::fullSetScan	Client/src/Scenes/GameCharacterEffects.h	74	game/Actors	game/Kernel game/Player game/Scenes	two-homes
 0x743a17c	OwnStatsContext::scan505820 WorldRuntime::fullSetScan	Client/src/Scenes/OwnDerivedStats.h	68	game/Player	game/Actors game/Kernel game/Scenes	two-homes
@@ -562,7 +562,7 @@ va	home	file	line	module	users	flag
 0x760cab0	WorldRuntime::groundMarks	Client/src/Scenes/WorldRuntime.h	577	game/Kernel	game/Terrain	
 0x760f990	LoginScene::m_sprites	Client/src/Scenes/LoginScene.h	288	game/Scenes	game/Particles game/Terrain	
 0x7681db0					game/Tables	no-home
-0x7681eb0	OwnCharacterRecord::zen SkillHitsRequest::skillIndex	Client/src/Scenes/OwnCharacterRecord.h	146	game/Player	app game/Actors game/Hud game/Items game/Kernel game/Npc game/Skills game/Tooltips	two-homes
+0x7681eb0	OwnCharacterRecord::zen SkillHitsRequest::skillIndex	Client/src/Scenes/OwnCharacterRecord.h	146	game/Kernel	app game/Actors game/Hud game/Items game/Npc game/Skills game/Tooltips	two-homes
 0x7681eb4	CreationServices::ownRecordDepth OwnCharacterRecord::zen WorldRuntime::ownRecordDepth ModelEffectStepServices::ownRecordDepth WizardEffectServices::ownRecordDepth ObjectStepGlobals::effects	Client/src/Scenes/JointKernels.h	77	game/Joints	engine/Models game/Actors game/Effects game/Hud game/Items game/Kernel game/MapScripts game/Pets game/Player game/Scenes game/Skills game/Ui game/WorldObjects	two-homes
 0x7681eb8	WorldRuntime::npcNames GameData::npcNames	Client/src/Scenes/WorldRuntime.h	435	game/Kernel	app game/Events game/Items game/Monsters game/Quests game/Tables game/Tooltips	two-homes
 0x7688ab8					game/Monsters game/Tables game/Tooltips	no-home
@@ -989,13 +989,13 @@ va	home	file	line	module	users	flag
 0x78aadb2	UiItemPlacement::poseModel	Client/src/Scenes/UiItemDrawing.h	83	game/Items		
 0x78aadcc	UiItemPlacement::angles HudState::uiItemAngles	Client/src/Scenes/UiItemDrawing.h	87	game/Items	game/Kernel	two-homes
 0x78aadd8					game/Items	no-home
-0x78aadec					game/Items	no-home
+0x78aadec					game/Kernel	no-home
 0x78ab078	EventGlobals::serial	Client/src/Scenes/EventGlobals.h	118	game/Events		
 0x78ab0b8	GameUiState::shopGridHovered	Client/src/UI/GameUiState.h	83	game/Ui	game/FrontEnd game/Hud game/Items game/Kernel game/PersonalShop game/Social	
 0x78ab9b8	WorldRuntime::cursorGrid	Client/src/Scenes/WorldRuntime.h	446	game/Kernel	game/Combat game/Hud game/Items game/Player	
 0x78ab9bc					game/Npc	no-home
 0x78ab9cc	EventGlobals::devilSquareLevels	Client/src/Scenes/EventGlobals.h	128	game/Events		
-0x78ab9f4					game/Items	no-home
+0x78ab9f4					game/Kernel	no-home
 0x78ab9fc	NpcWindowState::typedNumber	Client/src/Scenes/NpcWindowState.h	177	game/Npc	game/Hud game/Protocol game/Warehouse	
 0x78aba07	NpcWindowState::newPassword	Client/src/Scenes/NpcWindowState.h	180	game/Npc	game/Warehouse	
 0x78aba14	HudState::characterX	Client/src/Scenes/WorldRuntime.h	252	game/Kernel	game/Hud	
@@ -1154,7 +1154,7 @@ va	home	file	line	module	users	flag
 0x7d3a0e4	CrywolfInterface::tipTimerRestart	Client/src/Scenes/WorldRuntime.h	141	game/Kernel	game/Events	
 0x7d3a0e8	CrywolfInterface::tipTimerRestart	Client/src/Scenes/WorldRuntime.h	141	game/Kernel	game/Events	
 0x7d3a0ec	CameraTour::level GameCameraTour::level GameCamera::level	Client/src/Scenes/EventGlobals.h	99	game/Events	game/Camera game/Scenes	two-homes
-0x7d3a0f0	ActorState::stepStamp GameCharacterEffectsPass::logicSteps GameHangingPass::logicSteps HelperStepContext::logicSteps	Client/src/Scenes/ActorState.h	222	game/Actors	engine/Models game/Joints game/Monsters game/Pets game/Session	two-homes
+0x7d3a0f0	ActorState::stepStamp GameCharacterEffectsPass::logicSteps GameHangingPass::logicSteps HelperStepContext::logicSteps	Client/src/Scenes/ActorState.h	222	game/Kernel	engine/Models game/Actors game/Joints game/Monsters game/Pets game/Session	two-homes
 0x7d3a0f4	WorldRuntime::dialogBox DialogBoxState::pageText	Client/src/Scenes/WorldRuntime.h	409	game/Kernel	game/Ui	two-homes
 0x7d3a0f8	DialogBoxState::pageText	Client/src/UI/GameDialogs.h	68	game/Ui		
 0x7d3a0f9	DialogBoxState::pageText	Client/src/UI/GameDialogs.h	68	game/Ui		

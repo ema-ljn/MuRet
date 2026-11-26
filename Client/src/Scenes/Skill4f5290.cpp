@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"

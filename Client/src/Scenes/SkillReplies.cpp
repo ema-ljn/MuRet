@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/SkillTable.h"
 #include "Protocol/Skills/Skill.h"
@@ -48,8 +49,6 @@ constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DinorantModel = 0x1c15;
 constexpr std::uint16_t DarkHorseModel = 0x1c16;
 constexpr std::uint16_t FenrirModel = 0x1c37;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t SummonerLikeClass = 4; // el Dark Lord (+0x1d4 & 7 en 4)
 // 0x4cd3a5: el tipo que no suena con la skill 3.
 constexpr std::uint16_t SilentSkill3Type = 0x1a5;
 // 0x4cd369: con +0x376 en 0x4d no suena el 0x6f.
@@ -129,7 +128,7 @@ Core::Expected<void, std::string> HitAction(ActorState& actor, const WorldEntryR
         return Act(actor, 0x97, resources);
     if (Riding(actor, FenrirModel))
         return Act(actor, 0x5d, resources);
-    if ((actor.characterClass & 7u) == ElfClass)
+    if (Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf)
         return Act(actor, 0x92, resources);
     const int bit = resources.cloth.random.Next() & 1;
     return Act(actor, static_cast<std::uint8_t>(0x8e + bit), resources);
@@ -153,7 +152,8 @@ Core::Expected<void, std::string> ActByTheHands(ActorState& actor, const HandAct
     // Los CMP de WORD con signo: el 0xffff sin ítem es −1.
     const auto left = static_cast<std::int16_t>(actor.hands[1].model);
     const auto right = static_cast<std::int16_t>(actor.hands[0].model);
-    const bool winged = (actor.characterClass & 7u) == ElfClass && actor.wings.model != NoItemModel;
+    const bool winged =
+        Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf && actor.wings.model != NoItemModel;
     if ((left >= 0xa12 && left < 0xa19) || left == 0xa23 || left == 0xa26 || left == 0xa27)
         return Act(actor, winged ? actions.leftWinged : actions.left, resources);
     if ((right >= 0xa1a && right < 0xa21) || right == 0xa22 || (right >= 0xa24 && right < 0xc12))
@@ -971,7 +971,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
             }
             for (const Protocol::Skills::SkillListEntry& entry : list.entries)
                 own.SetSkillAt(entry.slot, entry.skill);
-            if ((world.Hero().characterClass & 7u) == SummonerLikeClass)
+            if (Kernel::BaseClassOf(world.Hero().characterClass) == Kernel::CharacterClass::DarkLord)
             {
                 for (std::uint8_t order = 0; order < 4; ++order)
                     own.SetSkillAt(0x78u + order, static_cast<std::uint8_t>(0x78 + order));

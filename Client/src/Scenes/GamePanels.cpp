@@ -5,6 +5,7 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/Session/Logout.h"
 #include "Protocol/Outgoing.h"
@@ -73,7 +74,7 @@ UI::PanelContext ContextOf(WorldState& world, Crt::CrtRandom& random, GamePanelT
     UI::PanelContext context{.random = random, .dialogs = runtime.dialogs};
     context.map = runtime.map;
     context.cursorItemCount = runtime.cursorItemCount;
-    context.heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
+    context.heroClass = Kernel::BaseClassOf(hero.characterClass);
     context.logoutRequested = runtime.ui.logoutRequested;
     // 0x6689d0: el ancho del mundo con Senior y su auxiliar abiertos.
     context.heroSiegeMark = HeroCanCraftAtTheCastle(world);

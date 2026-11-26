@@ -1,6 +1,7 @@
 #include "Scenes/CharacterCloth.h"
 
 #include "Core/IClock.h"
+#include "Kernel/CharacterClass.h"
 #include "Maps/ClothWind.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -29,9 +30,6 @@ using Models::Cloth;
 using Models::ClothShape;
 using Render::TextureSlot;
 
-constexpr std::uint8_t DarkLord = 4;
-constexpr std::uint8_t MagicGladiator = 3;
-constexpr std::uint8_t ClassMask = 7;
 constexpr std::uint16_t ArmorClass05 = 0x221e;
 constexpr std::uint16_t LordsCape = 0x1c30;
 constexpr std::uint16_t ClothMonster = 0x37;
@@ -178,8 +176,9 @@ Render::ModelBlend BlendOf(Models::ClothBlend blend, Render::ModelBlend previous
 
 bool WearsACloth(std::uint8_t characterClass, std::uint8_t map)
 {
-    const std::uint8_t base = characterClass & ClassMask;
-    return (base == MagicGladiator || base == DarkLord) && !(map >= FirstClothlessMap && map <= LastClothlessMap);
+    const Kernel::CharacterClass base = Kernel::BaseClassOf(characterClass);
+    return (base == Kernel::CharacterClass::MagicGladiator || base == Kernel::CharacterClass::DarkLord) &&
+           !(map >= FirstClothlessMap && map <= LastClothlessMap);
 }
 
 bool WearsTheMonsterCloth(std::uint16_t monster, std::uint8_t map)
@@ -257,7 +256,7 @@ void CharacterCloth::ReleaseResources()
 
 void CharacterCloth::Build(const ClothWearer& wearer, const Models::ClothBody& body)
 {
-    if ((wearer.characterClass & ClassMask) == DarkLord)
+    if (Kernel::BaseClassOf(wearer.characterClass) == Kernel::CharacterClass::DarkLord)
     {
         // 0x50d5b9: el arreglo de cuatro, tres armadas y la cuarta solo con ArmorClass05; +0x18c en 3.
         m_cloths.assign(4, Cloth{});
@@ -332,7 +331,7 @@ void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer&
     {
         return;
     }
-    const bool darkLord = (wearer.characterClass & ClassMask) == DarkLord;
+    const bool darkLord = Kernel::BaseClassOf(wearer.characterClass) == Kernel::CharacterClass::DarkLord;
     for (std::size_t index = 0; index < m_count && index < m_cloths.size(); ++index)
     {
         if (darkLord && index == 2 && wearer.wings != LordsCape && color == PlainClothColor)
@@ -355,7 +354,7 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     {
         return;
     }
-    const bool darkLord = (wearer.characterClass & ClassMask) == DarkLord;
+    const bool darkLord = Kernel::BaseClassOf(wearer.characterClass) == Kernel::CharacterClass::DarkLord;
     // El arreglo es de cuatro con la clase 4 y de una con las demás. Si la clase cambió sobre la misma
     // tela, el original leería fuera del arreglo: MuRet las suelta y las vuelve a armar.
     if (!m_cloths.empty() && m_cloths.size() != (darkLord ? 4u : 1u))

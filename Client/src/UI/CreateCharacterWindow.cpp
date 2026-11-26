@@ -5,6 +5,7 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Kernel/CharacterClass.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -94,7 +95,6 @@ constexpr int CommandTop = 78;
 constexpr std::size_t FirstAttributeText = 1701;
 constexpr std::size_t CommandText = 1738;
 constexpr std::string_view CommandValue = "25";
-constexpr std::uint8_t DarkLord = 4;
 // Los strings de 0x6d657c..0x6d659c: fuerza, agilidad, vitalidad y energía, por clase.
 constexpr std::array<std::array<std::string_view, 4>, CreatableClassCount> Attributes{{
     {"18", "18", "15", "30"},
@@ -139,8 +139,10 @@ CreateWindowLayout LayoutCreateWindow(Core::PixelSize screen, std::uint8_t chara
     CreateWindowLayout layout{};
     layout.box = Area(x, y, BoxWidth, BoxHeight);
     layout.nameBack = Area(x, y + NameBackTop, NameBackWidth, NameBackHeight);
-    layout.attributes = Area(x + RightColumn, y + AttributesTop, AttributesWidth,
-                             characterClass == DarkLord ? DarkLordAttributesHeight : AttributesHeight);
+    layout.attributes =
+        Area(x + RightColumn, y + AttributesTop, AttributesWidth,
+             characterClass == Kernel::ClassNumberOf(Kernel::CharacterClass::DarkLord) ? DarkLordAttributesHeight
+                                                                                       : AttributesHeight);
     layout.strip = Area(x, y + StripTop, BoxWidth, StripHeight);
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
@@ -380,7 +382,7 @@ void CreateCharacterWindow::DrawAttributes(Render::Frame::ITextDrawer& text, Cor
         drawAttribute(Attributes[m_class][i], FirstAttributeText + i,
                       FirstAttributeTop + AttributeStep * static_cast<int>(i));
     }
-    if (m_class == DarkLord)
+    if (m_class == Kernel::ClassNumberOf(Kernel::CharacterClass::DarkLord))
     {
         drawAttribute(CommandValue, CommandText, CommandTop);
     }

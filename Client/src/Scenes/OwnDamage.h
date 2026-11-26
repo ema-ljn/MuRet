@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 
 #include <cstdint>
@@ -40,7 +41,7 @@ struct OwnAttackDamage
 // derecha en −1 o de 0xa00 a 0xbff, el par +0x54 y +0x56; si no, +0x50 y +0x52. Las clases 1 y 3 con las dos manos
 // de 0 a 0xbff suman el 55 % de cada par (+0x50 y +0x54, +0x52 y +0x56, sin signo y truncando); con el bit 0x02 de
 // +0x3c, 15 más a los dos. `heroClass` es el +0x1d4 del héroe & 7.
-[[nodiscard]] OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t heroClass,
+[[nodiscard]] OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
                                              const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth,
                                              Crt::CrtRandom& random);
 

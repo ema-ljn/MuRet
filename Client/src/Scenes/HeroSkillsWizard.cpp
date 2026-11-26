@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Kernel/CharacterClass.h"
 #include "Pathfinding/PathFinder.h"
 #include "Maps/MapId.h"
 #include "Protocol/Skills/Skill.h"
@@ -49,9 +50,6 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t WizardClass = 0;
-constexpr std::uint8_t GladiatorClass = 3;
 constexpr std::uint8_t ChargedSkill = 0x28;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
 constexpr std::uint8_t PlayerObject = 1;
@@ -223,7 +221,7 @@ private:
     WorldState& m_world;
     WorldRuntime& m_runtime;
     GameMovementState& m_state;
-    std::uint8_t m_class = 0;
+    Kernel::CharacterClass m_class = Kernel::CharacterClass::DarkWizard;
     bool m_aimed = false;
 };
 
@@ -299,9 +297,9 @@ Core::Expected<bool, std::string> WizardBranch::PassesTheHead()
 
 Core::Expected<void, std::string> WizardBranch::Use()
 {
-    m_class = static_cast<std::uint8_t>(m_hero.characterClass & ClassMask);
+    m_class = Kernel::BaseClassOf(m_hero.characterClass);
     // 0x5897a7..0x5897b1.
-    if (m_class != WizardClass && m_class != GladiatorClass)
+    if (m_class != Kernel::CharacterClass::DarkWizard && m_class != Kernel::CharacterClass::MagicGladiator)
         return UseTheSharedTail(m_hero, m_skill, m_context);
     const auto head = PassesTheHead();
     if (!head.HasValue())
@@ -714,7 +712,7 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
 // 0x5925ae..0x5925d3: el Magic Gladiator o sin blanco, a 0x5808da; el Wizard, la 6 y la 0xf.
 Core::Expected<void, std::string> WizardBranch::UseTheWizardOnly()
 {
-    if (m_class != WizardClass || !m_aimed)
+    if (m_class != Kernel::CharacterClass::DarkWizard || !m_aimed)
         return UseTheSharedTail(m_hero, m_skill, m_context);
     if (m_skill == 6)
         return Teleport();

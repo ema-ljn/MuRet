@@ -1,5 +1,7 @@
 #include "GameLogic/CharacterAppearance.h"
 
+#include "Kernel/CharacterClass.h"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -24,7 +26,7 @@ constexpr std::uint16_t EmptyHandType = 0x1fff;
 constexpr std::uint16_t FirstItemModel = 0x212;
 
 // La clase 4 con el tipo 0xa05 en la izquierda (0x420cf0).
-constexpr std::uint8_t RavenClass = 4;
+constexpr Kernel::CharacterClass RavenClass = Kernel::CharacterClass::DarkLord;
 constexpr std::uint16_t RavenType = 0xa05;
 constexpr std::uint16_t RavenModel = 0x1c17;
 
@@ -224,7 +226,7 @@ CharacterAppearance AppearanceOf(std::uint8_t characterClass, std::uint8_t skin,
     const std::uint16_t left = HandType(equipment, 1, 12);
     if (left != EmptyHandType)
     {
-        const bool raven = (characterClass & 7) == RavenClass && left == RavenType;
+        const bool raven = Kernel::BaseClassOf(characterClass) == RavenClass && left == RavenType;
         appearance.leftHand = WornItem{raven ? RavenModel : static_cast<std::uint16_t>(FirstItemModel + left),
                                        levelAt(LeftLevelShift), Bit(excellent, LeftFlagBit), Bit(ancient, LeftFlagBit)};
     }

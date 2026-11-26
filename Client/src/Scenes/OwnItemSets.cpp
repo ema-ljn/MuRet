@@ -1,6 +1,7 @@
 #include "Scenes/OwnItemSets.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/ItemSetTables.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -65,7 +66,7 @@ constexpr std::uint8_t NoOption = 0xff;
 constexpr std::uint8_t ClassMark = 1;
 constexpr std::uint8_t EvolvedClassMark = 2;
 constexpr std::uint8_t ClassesWithEvolvedMark = 3;
-constexpr std::uint8_t LastMarkedClass = 3;
+constexpr std::uint8_t LastMarkedClass = Kernel::ClassNumberOf(Kernel::CharacterClass::MagicGladiator);
 constexpr std::uint8_t ClassBits = 7;
 constexpr int EvolutionShift = 3;
 

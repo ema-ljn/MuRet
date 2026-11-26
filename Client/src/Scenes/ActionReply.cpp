@@ -1,6 +1,7 @@
 #include "Scenes/ActionReply.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/Animation.h"
@@ -50,8 +51,6 @@ constexpr std::uint8_t SalutedAnimation = 5;
 // 0x4cb871..0x4cbcc8: de 0x80 a 0x9b, la animación de cada acción y la del elfo (+0x1d4 & 7 == 2).
 constexpr std::uint8_t FirstTableAction = 0x80;
 constexpr std::uint8_t LastTableAction = 0x9b;
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t ElfClass = 2;
 
 struct TableAnimation
 {
@@ -153,7 +152,7 @@ std::uint8_t TableAnimationOf(std::uint8_t characterClass, std::uint8_t action)
     if (action < FirstTableAction || action > LastTableAction)
         return action;
     const TableAnimation& animation = Animations[static_cast<std::size_t>(action - FirstTableAction)];
-    return (characterClass & ClassMask) == ElfClass ? animation.elf : animation.other;
+    return Kernel::BaseClassOf(characterClass) == Kernel::CharacterClass::Elf ? animation.elf : animation.other;
 }
 
 Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,

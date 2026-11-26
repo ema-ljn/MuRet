@@ -1,6 +1,7 @@
 #include "Scenes/HudItems.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/ItemTable.h"
 #include "Scenes/OwnInventory.h"
 #include "World/ItemState.h"
@@ -153,10 +154,9 @@ CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, I
 std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandType, std::uint16_t leftHandType,
                           std::span<const World::ItemState, InventoryCellCount> cells)
 {
-    constexpr std::uint8_t Elf = 2;
     constexpr std::int32_t Arrows = 0x80f;
     constexpr std::int32_t Bolts = 0x807;
-    if ((characterClass & 7u) != Elf)
+    if (Kernel::BaseClassOf(characterClass) != Kernel::CharacterClass::Elf)
         return 0;
     const auto left = static_cast<std::int32_t>(static_cast<std::int16_t>(leftHandType));
     const auto right = static_cast<std::int32_t>(static_cast<std::int16_t>(rightHandType));

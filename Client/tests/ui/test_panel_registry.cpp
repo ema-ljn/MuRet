@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelRegistry.h"
 
@@ -295,7 +296,7 @@ TEST(PanelRegistryTest, TheInventoryKeepsTheCharacterOpen)
 TEST(PanelRegistryTest, TheDarkLordsInventoryAsksForBothPets)
 {
     Tested tested;
-    tested.context.heroClass = 4;
+    tested.context.heroClass = Client::Kernel::CharacterClass::DarkLord;
     std::vector<std::uint8_t> inventoryWhenAsked;
     tested.context.petRequests = [&tested, &inventoryWhenAsked]()
     { inventoryWhenAsked.push_back(tested.state.inventory); };
@@ -305,13 +306,13 @@ TEST(PanelRegistryTest, TheDarkLordsInventoryAsksForBothPets)
     EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
 
     Tested knight;
-    knight.context.heroClass = 1;
+    knight.context.heroClass = Client::Kernel::CharacterClass::DarkKnight;
     knight.context.petRequests = [&inventoryWhenAsked]() { inventoryWhenAsked.push_back(0xff); };
     ASSERT_TRUE(knight.panels.Open(InventoryPanel).HasValue());
     EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
 
     Tested unhooked;
-    unhooked.context.heroClass = 4;
+    unhooked.context.heroClass = Client::Kernel::CharacterClass::DarkLord;
     const auto cut = unhooked.panels.Open(InventoryPanel);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x65c039"), std::string::npos);

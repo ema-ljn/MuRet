@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -79,8 +80,8 @@ Core::Expected<std::int32_t, std::string> SetBonusOf(std::span<const std::byte, 
 }
 } // namespace
 
-OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t heroClass, const OwnEquipmentOverride& held,
-                               std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
+OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
+                               const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     // 0x5b8c45..0x5b8cad: el ítem del cursor en lugar de una mano.
@@ -106,10 +107,7 @@ OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t hero
         damage.min = own.word50;
         damage.max = own.word52;
     }
-    constexpr std::uint32_t KnightClass = 1;
-    constexpr std::uint32_t ElfClass = 2;
-    constexpr std::uint32_t GladiatorClass = 3;
-    if (heroClass == KnightClass || heroClass == GladiatorClass)
+    if (heroClass == Kernel::CharacterClass::DarkKnight || heroClass == Kernel::CharacterClass::MagicGladiator)
     {
         if (InRange(left, 0, 0xbff) && InRange(right, 0, 0xbff))
         {
@@ -118,7 +116,7 @@ OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t hero
             damage.max = FiftyFivePercent(own.word52) + FiftyFivePercent(own.word56);
         }
     }
-    else if (heroClass == ElfClass && InRange(right, 0x800, 0x9ff) && InRange(left, 0x800, 0x9ff) &&
+    else if (heroClass == Kernel::CharacterClass::Elf && InRange(right, 0x800, 0x9ff) && InRange(left, 0x800, 0x9ff) &&
              ((left == 0x807 && HasLevel(*leftItem)) || (right == 0x80f && HasLevel(*rightItem))))
     {
         damage.highlighted = true;

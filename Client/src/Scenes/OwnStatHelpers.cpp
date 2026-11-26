@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/ItemTable.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/FullSetScan.h"
@@ -38,6 +39,8 @@ OwnEquipmentOverride HeldItemOf(const WorldRuntime& runtime)
 
 namespace
 {
+using Kernel::BaseClassOf;
+using Kernel::CharacterClass;
 using Tables::ItemTable;
 using World::ItemState;
 
@@ -57,13 +60,6 @@ constexpr std::size_t PetSlot = 8;
 constexpr std::size_t Slot9 = 9;
 constexpr std::size_t Slot10 = 10;
 constexpr std::size_t Slot11 = 11;
-
-constexpr std::uint8_t ClassBits = 7;
-constexpr std::uint8_t DarkWizardClass = 0;
-constexpr std::uint8_t DarkKnightClass = 1;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t MagicGladiatorClass = 3;
-constexpr std::uint8_t DarkLordClass = 4;
 
 // El nivel de D+4, (D+4 >> 3) & 15, como en 0x54ee00 y 0x54f7f2.
 constexpr int LevelShift = 3;
@@ -136,9 +132,9 @@ void AddTo(std::uint16_t& word, std::int64_t value)
     word = Low16(word + value);
 }
 
-std::uint8_t ClassOf(const OwnCharacterRecord& own)
+CharacterClass ClassOf(const OwnCharacterRecord& own)
 {
-    return static_cast<std::uint8_t>(own.characterClass & ClassBits);
+    return BaseClassOf(own.characterClass);
 }
 
 std::uint32_t LevelOf(const ItemState& item)
@@ -291,7 +287,7 @@ bool TakesTheArcherBranch(const ItemState& right, const ItemState& left)
 
 // 0x54f108..0x54f2f2: +0x50 y +0x52 por la clase (la tabla de saltos de 0x54f904) o por la rama de las
 // ballestas; +0x54 y +0x56 los copian en todas las ramas.
-WordPair BaseOfWords50And52(std::uint8_t characterClass, int strength, int agility, int energy, bool archer)
+WordPair BaseOfWords50And52(CharacterClass characterClass, int strength, int agility, int energy, bool archer)
 {
     if (archer)
     {
@@ -299,13 +295,13 @@ WordPair BaseOfWords50And52(std::uint8_t characterClass, int strength, int agili
     }
     switch (characterClass)
     {
-    case DarkKnightClass:
+    case CharacterClass::DarkKnight:
         return {Low16(strength / 6), Low16(strength / 4)};
-    case ElfClass:
+    case CharacterClass::Elf:
         return {Low16((strength + agility) / 7), Low16((strength + agility) / 4)};
-    case MagicGladiatorClass:
+    case CharacterClass::MagicGladiator:
         return {Low16(strength / 6 + energy / 12), Low16(strength / 4 + energy / 8)};
-    case DarkLordClass:
+    case CharacterClass::DarkLord:
         return {Low16(strength / 7 + energy / 14), Low16(strength / 5 + energy / 10)};
     default:
         return {Low16(strength >> 3), Low16(strength >> 2)};
@@ -626,16 +622,16 @@ Core::Expected<void, std::string> AddSetOptionsToWords5aAnd5c(OwnCharacterRecord
 // ---- 0x54fe10 ----
 
 // 0x54fe1e..0x54fef8: los divisores de la agilidad (más +0x2c) para +0x4c y +0x58, por la clase.
-WordPair BaseSpeeds(std::uint8_t characterClass, int agility)
+WordPair BaseSpeeds(CharacterClass characterClass, int agility)
 {
     switch (characterClass)
     {
-    case ElfClass:
+    case CharacterClass::Elf:
         return {Low16(agility / 50), Low16(agility / 50)};
-    case DarkKnightClass:
-    case MagicGladiatorClass:
+    case CharacterClass::DarkKnight:
+    case CharacterClass::MagicGladiator:
         return {Low16(agility / 15), Low16(agility / 20)};
-    case DarkLordClass:
+    case CharacterClass::DarkLord:
         return {Low16(agility / 10), Low16(agility / 10)};
     default:
         return {Low16(agility / 20), Low16(agility / 10)};
@@ -731,17 +727,17 @@ Core::Expected<void, std::string> AddSpeedOptions(OwnCharacterRecord& own)
 // ---- 0x550990 ----
 
 // 0x5509b6..0x550a3d: el divisor de la agilidad (más +0x2c) para +0x62.
-std::uint16_t BaseOfWord62(std::uint8_t characterClass, int agility)
+std::uint16_t BaseOfWord62(CharacterClass characterClass, int agility)
 {
     switch (characterClass)
     {
-    case ElfClass:
+    case CharacterClass::Elf:
         return Low16(agility / 10);
-    case DarkKnightClass:
+    case CharacterClass::DarkKnight:
         return Low16(agility / 3);
-    case DarkWizardClass:
+    case CharacterClass::DarkWizard:
         return Low16(agility >> 2);
-    case DarkLordClass:
+    case CharacterClass::DarkLord:
         return Low16(agility / 7);
     default:
         return Low16(agility / 5);
@@ -971,7 +967,7 @@ Core::Expected<void, std::string> UpdateOwnWord4e(OwnCharacterRecord& own, ItemS
     const int strength = Low16(own.word2a + own.strength);
     // imul cx, cx, 5: el nivel por 5 en 16 bits, que igual se suma en 16.
     const int levelTerm = own.level * 5;
-    if (ClassOf(own) == DarkLordClass)
+    if (ClassOf(own) == CharacterClass::DarkLord)
     {
         const int leadership = Low16(own.word36 + own.leadership);
         own.word4e = Low16(strength / 6 + leadership / 10 + agility * 5 / 2 + levelTerm);
@@ -1013,10 +1009,10 @@ Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(OwnCharacterReco
 Core::Expected<void, std::string> UpdateOwnWord60(OwnCharacterRecord& own, const ItemTable* items)
 {
     const int agility = Low16(own.word2c + own.agility);
-    const std::uint8_t characterClass = ClassOf(own);
-    own.word60 = characterClass == ElfClass        ? Low16(agility >> 2)
-                 : characterClass == DarkLordClass ? Low16(agility / 7)
-                                                   : Low16(agility / 3);
+    const CharacterClass characterClass = ClassOf(own);
+    own.word60 = characterClass == CharacterClass::Elf        ? Low16(agility >> 2)
+                 : characterClass == CharacterClass::DarkLord ? Low16(agility / 7)
+                                                              : Low16(agility / 3);
     const ItemState& left = own.equipment[LeftHandSlot];
     if (WornWithDurability(left))
     {

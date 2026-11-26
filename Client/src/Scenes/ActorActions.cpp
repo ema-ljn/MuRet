@@ -5,6 +5,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/CharacterClass.h"
 #include "Maps/MapId.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/Animation.h"
@@ -59,9 +60,6 @@ constexpr std::uint8_t MarkedSpecialStand = 0x8a;
 constexpr std::uint8_t SittingAction = 0xca;
 constexpr std::uint8_t DefaultModelStandAction = 0;
 constexpr std::uint8_t WallStandAction = 7;
-
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t ClassMask = 7;
 
 // +0x7c con este bit: sentado.
 constexpr std::uint32_t SittingFlag = 0x200000;
@@ -142,7 +140,7 @@ bool IsFlyingMap(std::int32_t map)
 
 std::uint8_t UnarmedFor(const ActorState& actor)
 {
-    return (actor.characterClass & ClassMask) == ElfClass ? UnarmedElfStand : UnarmedStand;
+    return Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf ? UnarmedElfStand : UnarmedStand;
 }
 
 // La marca de un arma de la derecha: el byte +0x1e de su registro de Item.bmd.

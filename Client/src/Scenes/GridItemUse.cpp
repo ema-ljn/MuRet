@@ -1,6 +1,7 @@
 #include "Scenes/GridItemUse.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/ItemTable.h"
 #include "Models/LogicalAccess.h"
 #include "Protocol/Events/Events.h"
@@ -55,7 +56,7 @@ constexpr std::string_view Item1a0bRefusal = "0x5c84bb";
 constexpr std::uint16_t Fruit = 0x1a0f;
 constexpr std::uint16_t FruitLevel = 10;
 constexpr std::uint32_t CommandFruitBits = 0x20;
-constexpr std::uint8_t CommandFruitClass = 4;
+constexpr std::uint8_t CommandFruitClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkLord);
 constexpr std::size_t FruitLevelText = 749;
 constexpr std::size_t FruitEquipmentText = 1909;
 constexpr std::size_t FruitClassText = 1905;

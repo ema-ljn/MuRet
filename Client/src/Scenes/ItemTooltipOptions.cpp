@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Scenes/GameHud.h"
@@ -32,9 +33,7 @@ using Frame = ItemTooltipFrame;
 // 0x5af590: Item.bmd+0x45..+0x49, la evolución + 1 de cada clase que lo usa (0, ninguna).
 constexpr std::size_t FirstClassByte = 0x45;
 constexpr std::size_t ClassCount = 5;
-constexpr std::uint8_t ClassBits = 7;
 constexpr std::uint8_t EvolutionShift = 3;
-constexpr std::uint8_t MagicGladiator = 3;
 constexpr std::size_t MagicGladiatorByte = 0x48;
 // 0x5af590: el 60 con el nombre de la clase es "no la usa" y el 61, "la usa"; los nombres van del 15 + 5 · el byte
 // + la clase, y del 20 + la clase sin la evolución; el 23, el de MG.
@@ -192,9 +191,10 @@ void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
 {
     lines.At("0x5af590");
     const std::uint8_t hero = HeroClassOf(context);
-    const std::uint8_t heroClass = hero & ClassBits;
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero);
     const std::int32_t heroEvolution = hero >> EvolutionShift;
-    const std::int32_t other = ClassByte(record, FirstClassByte + heroClass) != 0 ? TooltipRed : TooltipWhiteOnBlue;
+    const std::int32_t other =
+        ClassByte(record, FirstClassByte + Kernel::ClassNumberOf(heroClass)) != 0 ? TooltipRed : TooltipWhiteOnBlue;
     std::array<std::int32_t, ClassCount> classes{};
     std::array<std::int32_t, ClassCount> evolutions{};
     std::size_t count = 0;
@@ -210,7 +210,7 @@ void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
     ClearTheColorsAhead(lines);
     if (count < 1)
         return;
-    if (heroClass == MagicGladiator)
+    if (heroClass == Kernel::CharacterClass::MagicGladiator)
     {
         // 0x5af60c..0x5af6e9: el MG solo mira su byte, con cualquier cantidad de clases.
         lines.NewLine();
@@ -233,7 +233,7 @@ void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
         return;
     lines.NewLine();
     const auto fits = [&](std::size_t entry)
-    { return heroClass == classes[entry] && heroEvolution >= evolutions[entry]; };
+    { return Kernel::ClassNumberOf(heroClass) == classes[entry] && heroEvolution >= evolutions[entry]; };
     const auto nameOf = [&](std::size_t entry)
     {
         const auto byClass = static_cast<std::size_t>(classes[entry]);

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Models/Animation.h"
@@ -32,10 +33,8 @@ constexpr std::uint16_t FlyingMount = 0x1c15;
 constexpr std::uint16_t GroundMount = 0x1c14;
 constexpr std::uint32_t SlowFlag = 2;
 constexpr std::size_t WeaponMarkOffset = 0x1e;
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t FirstRunningClass = 3;
-constexpr std::uint8_t SecondRunningClass = 4;
+constexpr Kernel::CharacterClass FirstRunningClass = Kernel::CharacterClass::MagicGladiator;
+constexpr Kernel::CharacterClass SecondRunningClass = Kernel::CharacterClass::DarkLord;
 constexpr std::uint8_t RunningPartLevel = 5;
 constexpr std::size_t Gloves = 3;
 constexpr std::size_t Boots = 4;
@@ -63,7 +62,7 @@ void UpdateRun(ActorState& actor, WorldRuntime& runtime)
     {
         return;
     }
-    const std::uint8_t characterClass = actor.characterClass & ClassMask;
+    const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(actor.characterClass);
     const ActorItemPart& part = actor.body[IsSwimmingMap(runtime.map) ? Gloves : Boots];
     const bool canRun = characterClass == FirstRunningClass || characterClass == SecondRunningClass ||
                         (part.model != NoItemModel && part.level >= RunningPartLevel);
@@ -122,7 +121,8 @@ Core::Expected<std::uint8_t, std::string> GroundAction(const ActorState& actor, 
     const int right = Signed(actor.hands[0].model);
     const int left = Signed(actor.hands[1].model);
     const bool running = actor.run >= RunThreshold;
-    const std::uint8_t unarmed = running ? 0x16 : ((actor.characterClass & ClassMask) == ElfClass ? 0xe : 0xd);
+    const std::uint8_t unarmed =
+        running ? 0x16 : (Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf ? 0xe : 0xd);
     const std::int32_t map = context.stop.runtime.map;
     if ((right == -1 && left == -1) || (actor.safeZone != 0 && (map < 11 || map > 23)))
     {
@@ -184,10 +184,10 @@ std::uint8_t FenrirAction(const ActorState& actor, bool fast)
     {
         return static_cast<std::uint8_t>(0x7a + bucket);
     }
-    const std::uint8_t characterClass = actor.characterClass & ClassMask;
-    const unsigned base = forcedElf || characterClass == ElfClass ? 0x72U
-                          : characterClass == FirstRunningClass   ? 0x6eU
-                                                                  : 0x6aU;
+    const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(actor.characterClass);
+    const unsigned base = forcedElf || characterClass == Kernel::CharacterClass::Elf ? 0x72U
+                          : characterClass == FirstRunningClass                      ? 0x6eU
+                                                                                     : 0x6aU;
     return static_cast<std::uint8_t>(base + bucket);
 }
 
@@ -268,7 +268,8 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
         requestSound(0x7c);
         return ActorWalkResult{.sound = 0x7c};
     }
-    if ((actor.characterClass & ClassMask) == SecondRunningClass && actor.pet.model == DarkHorse && actor.safeZone == 0)
+    if (Kernel::BaseClassOf(actor.characterClass) == SecondRunningClass && actor.pet.model == DarkHorse &&
+        actor.safeZone == 0)
     {
         const std::int32_t sound = 0x1c3 + random.Next() % 3;
         requestSound(sound);

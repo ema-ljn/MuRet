@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Kernel/CharacterClass.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -183,7 +184,7 @@ struct KnightHero
     }
     Client::Core::Expected<void, std::string> Use()
     {
-        return UseTheKnightSkill(Hero(), Hero().characterClass, skill, Context());
+        return UseTheKnightSkill(Hero(), Client::Kernel::BaseClassOf(Hero().characterClass), skill, Context());
     }
     std::vector<std::uint8_t> Sent(std::size_t index) const
     {
@@ -316,7 +317,8 @@ TEST(HeroSkillsKnightTest, TheGameMasterAndTheClosedSocketSendNothing)
         auto context = tested->Context();
         context.send = nullptr;
         const CrtRandom expected = Advanced(tested->random, PaidDraws + CellsDraws + C3Draws);
-        ASSERT_TRUE(UseTheKnightSkill(tested->Hero(), Knight, 0x29, context).HasValue());
+        ASSERT_TRUE(
+            UseTheKnightSkill(tested->Hero(), Client::Kernel::CharacterClass::DarkKnight, 0x29, context).HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x29u);
     }
@@ -515,7 +517,7 @@ TEST(HeroSkillsKnightTest, Skill30SendsThe19AndActs)
     const auto tested = AKnight(0x30);
     auto context = tested->Context();
     context.tickCount = nullptr;
-    const auto result = UseTheKnightSkill(tested->Hero(), Knight, 0x30, context);
+    const auto result = UseTheKnightSkill(tested->Hero(), Client::Kernel::CharacterClass::DarkKnight, 0x30, context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_TRUE(Contains(result.Error(), "0x5873ba")) << result.Error();
 }

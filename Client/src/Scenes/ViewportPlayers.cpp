@@ -8,6 +8,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterClass.h"
 #include "Pathfinding/PathFinder.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/Animation.h"
@@ -93,9 +94,7 @@ std::uint8_t PkOf(std::uint8_t directionAndPk)
 // 0x4c8a36: los estados 2 a 4 con su acción (la segunda, de la clase 2: & 7, el elfo).
 std::optional<std::uint8_t> StateAction(std::uint8_t state, std::uint8_t characterClass)
 {
-    constexpr std::uint8_t ClassMask = 7;
-    constexpr std::uint8_t Elf = 2;
-    const bool elf = (characterClass & ClassMask) == Elf;
+    const bool elf = Kernel::BaseClassOf(characterClass) == Kernel::CharacterClass::Elf;
     switch (state)
     {
     case 2:

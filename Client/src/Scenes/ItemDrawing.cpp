@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
@@ -28,7 +29,7 @@ constexpr float DrawnAlpha = std::bit_cast<float>(0x3c23d70au); // 0.01f (0x6b88
 constexpr std::uint16_t KalimaGate = 0xc5;
 constexpr std::uint32_t RiderFlag = 0x4000;
 constexpr std::size_t HelmPart = 1;
-constexpr std::uint8_t MaskedClass = 4;
+constexpr Kernel::CharacterClass MaskedClass = Kernel::CharacterClass::DarkLord;
 // The records of 0x5769ad8 that 0x60dbe0 zeroes (0x60dc75).
 constexpr std::int32_t ZeroedModelRecords = 0x449d;
 
@@ -145,7 +146,7 @@ Core::Expected<void, std::string> DrawWornParts(Render::ModelBatch& batch, const
                                                 "reads and writes outside them (P-C352)",
                                                 k, owner.type, part.model));
         part.skin = SkinIndexOf(characterClass);
-        if ((characterClass & 7) == MaskedClass && k == HelmPart)
+        if (Kernel::BaseClassOf(characterClass) == MaskedClass && k == HelmPart)
         {
             const auto light = MaskedClassLight(context);
             if (!light.HasValue())

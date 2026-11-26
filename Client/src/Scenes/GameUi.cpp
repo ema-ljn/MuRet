@@ -9,6 +9,7 @@
 #include "Tables/SkillTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Kernel/CharacterClass.h"
 #include "Protocol/Player/LevelUpPoint.h"
 #include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Messenger/Letters.h"
@@ -133,7 +134,6 @@ constexpr std::int32_t MoneyDialog = 0x73;
 constexpr std::int32_t CharacterWindowWidth = 0xbe;
 constexpr std::int32_t CharacterWindowHeight = 0x1b1;
 // La clase 4, el Dark Lord: cinco botones de puntos (0x5e4598) y las órdenes de la mascota con Shift (0x420e30).
-constexpr std::uint32_t DarkLordClass = 4;
 // 0x4246ea..0x424709: el botón de la mascota, fijo en la pantalla.
 constexpr std::int32_t PetButtonLeft = 0x217;
 constexpr std::int32_t PetButtonRight = 0x22f;
@@ -1175,7 +1175,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     if (InRect(context, x, y, x + CharacterWindowWidth, y + CharacterWindowHeight))
         runtime.ui.mouseOnUi = 1;
     const ActorState& hero = context.world.Hero();
-    const std::int32_t buttons = (hero.characterClass & 7u) == DarkLordClass ? 5 : 4;
+    const std::int32_t buttons = Kernel::BaseClassOf(hero.characterClass) == Kernel::CharacterClass::DarkLord ? 5 : 4;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (context.world.OwnCharacter().levelUpPoints != 0)
@@ -1861,7 +1861,8 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
 bool StepThePetOrderKeys(const GameUiContext& context)
 {
     ActorState& hero = context.world.Hero();
-    if ((hero.characterClass & 7u) != DarkLordClass || !context.input.IsDown(Key::Shift))
+    if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::DarkLord ||
+        !context.input.IsDown(Key::Shift))
         return false;
     for (int order = 0; order < 4; ++order)
     {
@@ -2642,8 +2643,8 @@ std::array<std::uint8_t, 2> CharacterSearchOrder(const FramePickingContext& cont
     constexpr std::uint8_t Monsters = 0x22;
     constexpr std::uint8_t Players = 1;
     const ActorState& hero = context.world.Hero();
-    const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
-    if (heroClass != 0 && heroClass != 2)
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero.characterClass);
+    if (heroClass != Kernel::CharacterClass::DarkWizard && heroClass != Kernel::CharacterClass::Elf)
         return {Monsters, Players};
     std::uint8_t skill = 0;
     {

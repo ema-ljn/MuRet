@@ -1,6 +1,7 @@
 #include "Scenes/OwnDamage.h"
 
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -25,6 +26,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::CharacterClass;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::AttackDamageOf;
 using Client::Scenes::ItemSetOptionList;
@@ -35,9 +37,9 @@ using Client::Scenes::OwnEquipmentOverride;
 using Client::Scenes::SkillDamageOf;
 
 constexpr std::uint32_t Seed = 0x2468aceu;
-constexpr std::uint32_t WizardClass = 0;
-constexpr std::uint32_t KnightClass = 1;
-constexpr std::uint32_t ElfClass = 2;
+constexpr CharacterClass WizardClass = CharacterClass::DarkWizard;
+constexpr CharacterClass KnightClass = CharacterClass::DarkKnight;
+constexpr CharacterClass ElfClass = CharacterClass::Elf;
 constexpr std::uint16_t EmptyType = 0xffff;
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -60,7 +62,7 @@ OwnCharacterRecord Record()
     return own;
 }
 
-OwnAttackDamage Attack(const OwnCharacterRecord& own, std::uint32_t heroClass, const OwnEquipmentOverride& held = {})
+OwnAttackDamage Attack(const OwnCharacterRecord& own, CharacterClass heroClass, const OwnEquipmentOverride& held = {})
 {
     std::uint8_t depth = 0;
     CrtRandom random{Seed};

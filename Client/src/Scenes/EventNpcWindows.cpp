@@ -22,6 +22,7 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "Crt/OriginalFormat.h"
+#include "Kernel/CharacterClass.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -87,8 +88,6 @@ constexpr std::array<LevelRange, BridgeCount * 2> BridgeLevels{{{15, 80},
                                                                 {261, 310},
                                                                 {311, 400}}};
 // La clase & 7 del Magic Gladiator y del Dark Lord.
-constexpr std::uint8_t MagicGladiatorClass = 3;
-constexpr std::uint8_t DarkLordClass = 4;
 // 0x5f5c50 y 0x5f63a9: con un máximo de más de 10000, el texto sin máximo.
 constexpr std::int32_t OpenMaximum = 0x2710;
 
@@ -142,8 +141,8 @@ using Math::Truncate;
 
 bool SecondClass(std::uint8_t characterClass)
 {
-    const auto kind = static_cast<std::uint8_t>(characterClass & 7u);
-    return kind == MagicGladiatorClass || kind == DarkLordClass;
+    const Kernel::CharacterClass kind = Kernel::BaseClassOf(characterClass);
+    return kind == Kernel::CharacterClass::MagicGladiator || kind == Kernel::CharacterClass::DarkLord;
 }
 
 // left ≤ mouse < left + ancho y top ≤ mouse < top + alto en la x87, sin un ítem en el cursor (0x7879fbc).

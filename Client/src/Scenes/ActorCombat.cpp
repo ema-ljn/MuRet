@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Tables/MonsterSkillTable.h"
@@ -38,9 +39,6 @@ constexpr std::uint16_t Uniria = 0x1c14;
 constexpr std::uint16_t Dinorant = 0x1c15;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 constexpr std::uint16_t Fenrir = 0x1c37;
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t DarkLordClass = 4;
 constexpr int NoModel = -1;
 // 0x4f2c4c y 0x4f4c28: el byte +0x1e del registro del arma en Item.bmd ([0x7758550] − 0xadca + modelo · 0x54).
 constexpr std::size_t WeaponMarkOffset = 0x1e;
@@ -203,7 +201,7 @@ Core::Expected<void, std::string> PlayerAttack(ActorState& actor, const ActorCom
         if (auto set = SetTheAction(actor, context, FenrirAttack(right, left)); !set.HasValue())
             return set;
         // 0x4f4af0: el Dark Lord pisa la acción con la 0x59.
-        if ((actor.characterClass & ClassMask) == DarkLordClass)
+        if (Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::DarkLord)
             return SetTheAction(actor, context, 0x59);
         return {};
     }
@@ -448,8 +446,10 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
         requestSound(table[DeathSoundWord] + SubtypeOffset(actor) + MonsterSoundBase);
         return;
     }
-    const auto characterClass = actor.characterClass & ClassMask;
-    requestSound(characterClass == ElfClass ? 0x6e : characterClass == DarkLordClass ? 0x1c7 : 0x6c);
+    const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(actor.characterClass);
+    requestSound(characterClass == Kernel::CharacterClass::Elf        ? 0x6e
+                 : characterClass == Kernel::CharacterClass::DarkLord ? 0x1c7
+                                                                      : 0x6c);
     // 0x4f5a6b: con Fenrir, también el 0x278.
     if (actor.pet.model == Fenrir)
         requestSound(0x278);

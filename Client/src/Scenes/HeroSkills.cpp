@@ -180,7 +180,7 @@ bool UsableOnThisMap(std::uint8_t skill, const WorldRuntime& runtime)
 {
     const bool siegeSkill =
         skill == 0x2c || skill == 0x2d || skill == 0x2e || skill == 0x39 || skill == 0x49 || skill == 0x4a;
-    return !siegeSkill || (runtime.map == CastleSiegeMap && runtime.siegeActive);
+    return !siegeSkill || (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive);
 }
 
 // 0x420f70(héroe, lugar): las órdenes del cuervo. Sin cuervo (+0x430), sin el clic ni el botón derecho o con un lugar

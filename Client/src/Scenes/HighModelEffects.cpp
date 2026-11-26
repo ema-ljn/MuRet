@@ -582,7 +582,8 @@ Core::Expected<void, std::string> StepTheSiegeAura(World::ModelEffect& effect, c
     const double clock = D(context.worldClock);
     if (owner != nullptr && owner->alive)
     {
-        effect.objectState.hiddenMesh = context.world.Runtime().siegeActive ? std::int16_t{-1} : std::int16_t{-2};
+        effect.objectState.hiddenMesh =
+            context.world.Runtime().castleSiege.siegeActive ? std::int16_t{-1} : std::int16_t{-2};
         effect.life = HeldLife;
         const auto wave = Math::Detail::SineProductPC53(clock * WaveRate, WaveDepth);
         if (!wave)

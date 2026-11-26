@@ -207,7 +207,7 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     EXPECT_EQ(gate.animation.previousAction, 4);
     EXPECT_EQ(gate.animation.previousKey, 0);
     EXPECT_EQ(gate.animation.frame, 0.0f);
-    EXPECT_EQ(runtime.castleByte7239d8, 2);
+    EXPECT_EQ(runtime.castleSiege.castleByte7239d8, 2);
     EXPECT_EQ(gate.byte110, 1);
     EXPECT_EQ(gate.dword100, 0x12c);
     // La 3 no es de 0x42d890: sigue a los monstruos, que la vuelven a la 0.

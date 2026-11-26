@@ -1025,7 +1025,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
         actor.dword58 = -2;
         const WorldRuntime& runtime = pass.world.Runtime();
         constexpr std::uint32_t CrownOpen = 0x20000;
-        if (runtime.siegeActive && runtime.castleFlags7239e4 == CrownOpen)
+        if (runtime.castleSiege.siegeActive && runtime.castleSiege.castleFlags7239e4 == CrownOpen)
             actor.dword58 = -1;
         return false;
     }

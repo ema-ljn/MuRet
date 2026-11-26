@@ -144,7 +144,7 @@ void Attach(SweepWorld& sweep, HeroWorld& hero)
 {
     sweep.volley =
         std::make_unique<Client::Scenes::JointKernels::VolleyServices>(Client::Scenes::JointKernels::VolleyServices{
-            .siegeActive = hero.world.Runtime().siegeActive,
+            .siegeActive = hero.world.Runtime().castleSiege.siegeActive,
             .attributes = hero.world.Map().terrain.attributes.get(),
             .skillHits = [&sweep, &hero](const Client::Scenes::SkillHitsRequest& request)
                 -> Client::Core::Expected<void, std::string>
@@ -447,7 +447,7 @@ TEST(SweepJointsTest, TheSiegeStopsTheHeroSweepOnTheMarkedCells)
     {
         SCOPED_TRACE(attribute);
         HeroWorld hero;
-        hero.world.Runtime().siegeActive = true;
+        hero.world.Runtime().castleSiege.siegeActive = true;
         hero.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         hero.world.Map().terrain.attributes->cells.fill(static_cast<std::uint16_t>(attribute));
         SweepWorld tested;

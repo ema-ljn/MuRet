@@ -1092,14 +1092,14 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     const auto inCastle = castle.Step(Everything);
     ASSERT_TRUE(inCastle.HasValue()) << ErrorOf(inCastle);
     ASSERT_TRUE(lorencia.Step(Everything).HasValue());
-    EXPECT_EQ(castle.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{0}});
-    EXPECT_FALSE(lorencia.world.Runtime().siegePanelKind.has_value());
+    EXPECT_EQ(castle.world.Runtime().castleSiege.siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{0}});
+    EXPECT_FALSE(lorencia.world.Runtime().castleSiege.siegePanelKind.has_value());
     EXPECT_EQ(castle.Cell(5, 5), lorencia.Cell(5, 5));
     EXPECT_EQ(castle.random.State(), lorencia.random.State());
 
     castle.world.Runtime().map = 0;
     ASSERT_TRUE(castle.Step(Everything).HasValue());
-    EXPECT_FALSE(castle.world.Runtime().siegePanelKind.has_value());
+    EXPECT_FALSE(castle.world.Runtime().castleSiege.siegePanelKind.has_value());
 
     GameWorld guild(30);
     guild.world.Runtime().guild.heroGuildStatus = 0x80;
@@ -1107,7 +1107,7 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     guild.Cell(5, 5) = Client::Pathfinding::CharacterWallBit;
     const auto inGuild = guild.Step(Everything);
     ASSERT_TRUE(inGuild.HasValue()) << ErrorOf(inGuild);
-    EXPECT_EQ(guild.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{2}});
+    EXPECT_EQ(guild.world.Runtime().castleSiege.siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{2}});
     EXPECT_EQ(guild.Cell(5, 5), castle.Cell(5, 5));
     EXPECT_EQ(guild.random.State(), lorencia.random.State());
 

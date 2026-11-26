@@ -113,7 +113,7 @@ void DrawSeparators(GameHudContext& context)
 void DrawWeaponChoice(GameHudContext& context, std::int32_t index, float x, float y, float width, float height)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    const bool selected = index == context.world.Runtime().siegeBattleUi.weaponChoice - 1;
+    const bool selected = index == context.world.Runtime().castleSiege.siegeBattleUi.weaponChoice - 1;
     sprites.SetColor(ButtonHighlight);
     sprites.ColorQuad(x - 1.0f, y - 1.0f, width + 2.0f, height + 2.0f);
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -156,7 +156,7 @@ Core::Expected<void, std::string> DrawWeapon(GameHudContext& context)
             return label;
     }
     WindowDrawing::SelectFont(context, Render::Text::FontKind::BigBold);
-    if (runtime.siegeBattleUi.weaponChoice == 0)
+    if (runtime.castleSiege.siegeBattleUi.weaponChoice == 0)
         context.sprites.SetColor({0.5f, 0.5f, 0.5f, 1.0f});
     else
     {
@@ -187,7 +187,7 @@ Core::Expected<void, std::string> DrawGate(GameHudContext& context)
     if (auto label = Center(context, 545, 84, 1478); !label.HasValue())
         return label;
     context.hud.textColors.background = 0;
-    const bool opened = runtime.siegeBattleUi.gateState == OpenGateFlag;
+    const bool opened = runtime.castleSiege.siegeBattleUi.gateState == OpenGateFlag;
     Quad(context.sprites, opened ? 0x666 : 0x665, 467.0f, 120.0f, 155.0f, 168.0f, 0.0f, 0.0f, 155.0f / 256.0f,
          168.0f / 256.0f);
     Quad(context.sprites, 0xf0, 470.0f, 325.0f, 150.0f, 48.0f, 0.0f, 0.0f, 0.83203125f, 1.0f);
@@ -224,10 +224,10 @@ Core::Expected<void, std::string> DrawTheSiegeControls(GameHudContext& context)
 void DrawTheBattleClock(GameHudContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.siegeActive || runtime.map != 30)
+    if (!runtime.castleSiege.siegeActive || runtime.map != 30)
         return;
-    auto copy = runtime.siegeBattleUi.clock;
-    auto& clock = context.projecting ? copy : runtime.siegeBattleUi.clock;
+    auto copy = runtime.castleSiege.siegeBattleUi.clock;
+    auto& clock = context.projecting ? copy : runtime.castleSiege.siegeBattleUi.clock;
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(White);
@@ -265,7 +265,8 @@ Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     ActorState& hero = context.world.Hero();
-    if (!runtime.siegeActive || !HasRole(hero) || static_cast<std::int16_t>(hero.word1f2) < 0 || hero.guildStatus == 0)
+    if (!runtime.castleSiege.siegeActive || !HasRole(hero) || static_cast<std::int16_t>(hero.word1f2) < 0 ||
+        hero.guildStatus == 0)
         return {};
     std::uint8_t cost = 0;
     {
@@ -288,7 +289,7 @@ Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
          static_cast<float>((icon / 8) * 39 + 3) / 256.0f, 0.0703125f, 0.08984375f);
     UI::DrawNumber(sprites, 65.0f, 10.0f, hero.byte372, 9.0f, 10.0f);
     UI::DrawNumber(sprites, 85.0f, 10.0f, cost, 9.0f, 10.0f);
-    const std::uint8_t pressed = runtime.siegeBattleUi.skillPressed;
+    const std::uint8_t pressed = runtime.castleSiege.siegeBattleUi.skillPressed;
     if (pressed <= 2)
     {
         if (pressed == 1)
@@ -301,7 +302,7 @@ Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
         if (pressed == 2)
             sprites.SetColor(color);
         if (!context.projecting && pressed != 0)
-            runtime.siegeBattleUi.skillPressed = 0;
+            runtime.castleSiege.siegeBattleUi.skillPressed = 0;
     }
     if (Inside(context, 25.0f, 4.0f, 18.0f, 24.0f, false))
     {

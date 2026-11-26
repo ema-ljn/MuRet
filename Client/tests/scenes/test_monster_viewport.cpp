@@ -599,7 +599,7 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
         SCOPED_TRACE(type);
         Load(30);
         auto& runtime = game->world.Runtime();
-        runtime.siegeActive = true;
+        runtime.castleSiege.siegeActive = true;
         runtime.quest.characterClass = 0;
         const Cell cell = FreeRow();
         const std::array<MonsterRecordBytes, 1> records{
@@ -640,11 +640,11 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
         EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode);
         if (mode == 0)
         {
-            EXPECT_EQ(runtime.siegeBattleUi.gateKey, gateKey);
-            EXPECT_EQ(runtime.siegeBattleUi.gateState, 0x20000u);
+            EXPECT_EQ(runtime.castleSiege.siegeBattleUi.gateKey, gateKey);
+            EXPECT_EQ(runtime.castleSiege.siegeBattleUi.gateState, 0x20000u);
         }
         else
-            EXPECT_EQ(runtime.siegeBattleUi.weaponKey, key);
+            EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponKey, key);
     }
 }
 

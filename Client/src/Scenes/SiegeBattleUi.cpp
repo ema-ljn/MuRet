@@ -52,7 +52,7 @@ constexpr std::uint8_t LastSiegeSkill = 0x48;
 bool HasBattleRole(const WorldRuntime& runtime, const ActorState& hero, bool guildRequired)
 {
     const bool role = hero.byte360 == 6 || hero.byte360 == 7 || hero.byte360 == 8 || hero.byte360 == 12;
-    return runtime.siegeActive && role && hero.guildStatus != 0 &&
+    return runtime.castleSiege.siegeActive && role && hero.guildStatus != 0 &&
            (!guildRequired || static_cast<std::int16_t>(hero.word1f2) >= 0);
 }
 
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> CloseGate(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeGate = 0;
-    runtime.siegeBattleUi.gateKey = 0;
+    runtime.castleSiege.siegeBattleUi.gateKey = 0;
     return Send(context, Protocol::Session::WriteWindowClose());
 }
 
@@ -122,7 +122,7 @@ Core::Expected<void, std::string> CloseWeapon(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeWeapon = 0;
-    runtime.siegeBattleUi.weaponChoice = 0;
+    runtime.castleSiege.siegeBattleUi.weaponChoice = 0;
     return Send(context, Protocol::Session::WriteWindowClose());
 }
 
@@ -145,20 +145,20 @@ Core::Expected<void, std::string> StepWeapon(const GameUiContext& context)
         if (runtime.movement.pendingClick &&
             InsideInclusive(x, y, 470 + index * stride, 140, 470 + index * stride + width, bottom))
         {
-            runtime.siegeBattleUi.weaponChoice = static_cast<std::uint8_t>(index + 1);
+            runtime.castleSiege.siegeBattleUi.weaponChoice = static_cast<std::uint8_t>(index + 1);
             ConsumeLeft(runtime);
         }
     }
     if (count != 0 && runtime.movement.pendingClick && InsideInclusive(x, y, 500, 200, 590, 264))
     {
-        runtime.siegeBattleUi.weaponChoice = static_cast<std::uint8_t>(count + 1);
+        runtime.castleSiege.siegeBattleUi.weaponChoice = static_cast<std::uint8_t>(count + 1);
         ConsumeLeft(runtime);
     }
-    if (runtime.movement.pendingClick && runtime.siegeBattleUi.weaponChoice != 0 &&
+    if (runtime.movement.pendingClick && runtime.castleSiege.siegeBattleUi.weaponChoice != 0 &&
         InsideInclusive(x, y, 470, 330, 620, 378))
     {
-        auto sent = Send(context, Protocol::CastleSiege::WriteWeapon(runtime.siegeBattleUi.weaponKey,
-                                                                     runtime.siegeBattleUi.weaponChoice));
+        auto sent = Send(context, Protocol::CastleSiege::WriteWeapon(runtime.castleSiege.siegeBattleUi.weaponKey,
+                                                                     runtime.castleSiege.siegeBattleUi.weaponChoice));
         if (!sent.HasValue())
             return sent;
         if (auto closed = CloseWeapon(context); !closed.HasValue())
@@ -185,8 +185,9 @@ Core::Expected<void, std::string> StepGate(const GameUiContext& context)
     {
         ConsumeLeft(runtime);
         auto sent =
-            Send(context, Protocol::CastleSiege::WriteGate(runtime.siegeBattleUi.gateState != OpenGateFlag ? 1 : 0,
-                                                           runtime.siegeBattleUi.gateKey));
+            Send(context,
+                 Protocol::CastleSiege::WriteGate(runtime.castleSiege.siegeBattleUi.gateState != OpenGateFlag ? 1 : 0,
+                                                  runtime.castleSiege.siegeBattleUi.gateKey));
         if (!sent.HasValue())
             return sent;
         return CloseGate(context);
@@ -204,8 +205,8 @@ Core::Expected<void, std::string> RefreshTheSiegePanel(WorldRuntime& runtime)
 {
     if (runtime.map != CastleMap)
     {
-        runtime.siegePanelKind.reset();
-        runtime.siegePanel = UI::SiegePanelState{};
+        runtime.castleSiege.siegePanelKind.reset();
+        runtime.castleSiege.siegePanel = UI::SiegePanelState{};
         return {};
     }
     const GuildState& guild = runtime.guild;
@@ -223,24 +224,24 @@ Core::Expected<void, std::string> RefreshTheSiegePanel(WorldRuntime& runtime)
     }
     else if (post != 0 && post != Assistant && post != BattleMaster)
         return {};
-    if (runtime.siegePanelKind == kind)
+    if (runtime.castleSiege.siegePanelKind == kind)
         return {};
-    runtime.siegePanel = UI::SiegePanelState{};
+    runtime.castleSiege.siegePanel = UI::SiegePanelState{};
     if (kind == 2)
-        runtime.siegePanel.members.reserve(MemberReservation);
-    runtime.siegePanelKind = kind;
+        runtime.castleSiege.siegePanel.members.reserve(MemberReservation);
+    runtime.castleSiege.siegePanelKind = kind;
     return {};
 }
 
 Core::Expected<void, std::string> ReceiveSiegePanelStatus(WorldRuntime& runtime,
                                                           const std::array<std::uint8_t, 4>& status)
 {
-    if (!runtime.siegePanelKind || *runtime.siegePanelKind == 0)
+    if (!runtime.castleSiege.siegePanelKind || *runtime.castleSiege.siegePanelKind == 0)
         return {};
     if (status[0] >= UI::SiegeStatusSlots)
         return Core::Unexpected(
             std::format("0x4102b0/0x410580: el índice {} pisa fuera de las siete marcas", status[0]));
-    auto& slot = runtime.siegePanel.status[status[0]];
+    auto& slot = runtime.castleSiege.siegePanel.status[status[0]];
     slot[3] = status[3];
     slot[0] = status[0];
     slot[1] = status[1];
@@ -251,15 +252,15 @@ Core::Expected<void, std::string> ReceiveSiegePanelStatus(WorldRuntime& runtime,
 
 void AppendSiegePanelMember(WorldRuntime& runtime, std::uint8_t index, std::uint8_t x, std::uint8_t y)
 {
-    if (runtime.siegePanelKind != std::uint8_t{2})
+    if (runtime.castleSiege.siegePanelKind != std::uint8_t{2})
         return;
-    runtime.siegePanel.members.push_back({index, x, y});
-    runtime.siegePanel.membersHidden = 0;
+    runtime.castleSiege.siegePanel.members.push_back({index, x, y});
+    runtime.castleSiege.siegePanel.membersHidden = 0;
 }
 
 void ResetSiegeClock(WorldRuntime& runtime)
 {
-    auto& clock = runtime.siegeBattleUi.clock;
+    auto& clock = runtime.castleSiege.siegeBattleUi.clock;
     clock.blink = 1;
     clock.x = 243;
     clock.y = 400;
@@ -267,7 +268,7 @@ void ResetSiegeClock(WorldRuntime& runtime)
 }
 void SetSiegeClock(WorldRuntime& runtime, std::uint8_t hours, std::uint8_t minutes, std::uint32_t tick)
 {
-    auto& clock = runtime.siegeBattleUi.clock;
+    auto& clock = runtime.castleSiege.siegeBattleUi.clock;
     clock.hours = hours;
     clock.minutes = minutes;
     clock.tick = tick;
@@ -275,8 +276,8 @@ void SetSiegeClock(WorldRuntime& runtime, std::uint8_t hours, std::uint8_t minut
 void OpenTheSiegeGate(WorldState& world, std::uint16_t key)
 {
     WorldRuntime& runtime = world.Runtime();
-    runtime.siegeBattleUi.gateKey = key;
-    runtime.siegeBattleUi.gateState = world.Actors()[ActorWithKey(world, key)].flags78;
+    runtime.castleSiege.siegeBattleUi.gateKey = key;
+    runtime.castleSiege.siegeBattleUi.gateState = world.Actors()[ActorWithKey(world, key)].flags78;
     runtime.panels.delegated.siegeGate = 1;
 }
 
@@ -285,14 +286,14 @@ Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContex
 {
     WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeWeapon = 0;
-    runtime.siegeBattleUi.weaponChoice = 0;
-    runtime.siegeBattleUi.weaponKey = key;
+    runtime.castleSiege.siegeBattleUi.weaponChoice = 0;
+    runtime.castleSiege.siegeBattleUi.weaponKey = key;
     GamePanels panels(context.world, context.random);
     LendTheCastlePanelServices(panels, context);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
     runtime.panels.delegated.siegeWeapon = mode;
-    runtime.siegeBattleUi.weaponChoice = 0;
+    runtime.castleSiege.siegeBattleUi.weaponChoice = 0;
     return {};
 }
 
@@ -356,7 +357,7 @@ Core::Expected<void, std::string> StepTheBattleSkillChoice(const GameUiContext& 
     const std::int32_t y = context.mouseY;
     if ((x < 0 || x >= 128 || y < 0 || y >= 32) && runtime.ui.wheel == 0)
         return {};
-    std::uint8_t& pressed = runtime.siegeBattleUi.skillPressed;
+    std::uint8_t& pressed = runtime.castleSiege.siegeBattleUi.skillPressed;
     if (runtime.ui.wheel > 0 || (43 <= x && x < 56 && 4 <= y && y < 15 && runtime.movement.leftHeld))
     {
         ConsumeLeft(runtime);

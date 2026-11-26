@@ -764,7 +764,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     if (!chosen.HasValue())
         return Core::Unexpected(chosen.Error());
     ActorState& target = *chosen.Value();
-    if (m_runtime.siegeActive)
+    if (m_runtime.castleSiege.siegeActive)
     {
         // 0x5925f3..0x5926c8: el puesto del asedio (+0x360) del héroe publicado y el del héroe, en el mismo par.
         const std::uint8_t published = m_world.Hero().byte360;

@@ -289,9 +289,9 @@ TEST_F(CastleObjectTest, OutsideTheCastleMapNothingMoves)
             EXPECT_EQ(object.position, before.position);
             EXPECT_EQ(object.dword100, before.dword100);
             EXPECT_EQ(object.byte42c, before.byte42c);
-            EXPECT_EQ(m_runtime->castleGatesClosed, 0);
-            EXPECT_EQ(m_runtime->castleMarkX, 0.0f);
-            EXPECT_EQ(m_runtime->castleFlags7239e4, 0u);
+            EXPECT_EQ(m_runtime->castleSiege.castleGatesClosed, 0);
+            EXPECT_EQ(m_runtime->castleSiege.castleMarkX, 0.0f);
+            EXPECT_EQ(m_runtime->castleSiege.castleFlags7239e4, 0u);
         }
     }
 }
@@ -303,12 +303,12 @@ TEST_F(CastleObjectTest, TheBannerStandsOnTheGroundAndCopiesItsFlags)
     banner.flags78 = 0x40;
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(banner, Step()).HasValue());
     EXPECT_EQ(banner.position.z, 600.0f);
-    EXPECT_EQ(m_runtime->castleFlags7239e4, 0x40u);
+    EXPECT_EQ(m_runtime->castleSiege.castleFlags7239e4, 0x40u);
     EXPECT_EQ(banner.byte42c, 1);
 
     banner.flags78 = 0;
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(banner, Step()).HasValue());
-    EXPECT_EQ(m_runtime->castleFlags7239e4, 0u);
+    EXPECT_EQ(m_runtime->castleSiege.castleFlags7239e4, 0u);
     EXPECT_EQ(banner.byte42c, 0);
 
     CastleObjectStep flat = Step();
@@ -323,22 +323,22 @@ TEST_F(CastleObjectTest, TheGateLockTheMarkAndTheSiegeSwitch)
 {
     ActorState lock = Object(277);
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(lock, Step()).HasValue());
-    EXPECT_EQ(m_runtime->castleGatesClosed, 1);
+    EXPECT_EQ(m_runtime->castleSiege.castleGatesClosed, 1);
 
     ActorState mark = Object(278);
     mark.byte42d = 0x40;
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(mark, Step()).HasValue());
-    EXPECT_EQ(m_runtime->castleMarkX, 0.0f);
+    EXPECT_EQ(m_runtime->castleSiege.castleMarkX, 0.0f);
     mark.byte42d = 0x80;
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(mark, Step()).HasValue());
-    EXPECT_EQ(m_runtime->castleMarkX, 300.0f);
-    EXPECT_EQ(m_runtime->castleMarkY, 500.0f);
+    EXPECT_EQ(m_runtime->castleSiege.castleMarkX, 300.0f);
+    EXPECT_EQ(m_runtime->castleSiege.castleMarkY, 500.0f);
 
     ActorState lever = Object(283);
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(lever, Step()).HasValue());
     EXPECT_EQ(lever.dword58, -2);
     EXPECT_EQ(lever.byte42c, 0);
-    m_runtime->siegeActive = true;
+    m_runtime->castleSiege.siegeActive = true;
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(lever, Step()).HasValue());
     EXPECT_EQ(lever.dword58, -1);
     EXPECT_EQ(lever.byte42c, 1);
@@ -362,7 +362,7 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
         (*m_pool)[12] = Player({300.0f, 200.0f, 0.0f});
         ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 4);
-        EXPECT_EQ(m_runtime->castleByte7239d8, 2);
+        EXPECT_EQ(m_runtime->castleSiege.castleByte7239d8, 2);
         EXPECT_EQ(gate.byte110, 1);
         EXPECT_EQ(gate.dword100, 299);
 
@@ -378,11 +378,11 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
         ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 0);
         EXPECT_EQ(gate.byte110, 0);
-        EXPECT_EQ(m_runtime->castleByte7239d8, 0);
+        EXPECT_EQ(m_runtime->castleSiege.castleByte7239d8, 0);
         EXPECT_EQ(gate.dword100, -2);
 
         // Otra puerta abierta (0x7239d8 en 2) abre esta también.
-        m_runtime->castleByte7239d8 = 2;
+        m_runtime->castleSiege.castleByte7239d8 = 2;
         ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 4);
         EXPECT_EQ(gate.dword100, 299);
@@ -403,7 +403,7 @@ TEST_F(CastleObjectTest, TheGateEdges)
 
     gate.animation.action = 4;
     gate.dword100 = 100;
-    m_runtime->castleByte7239d8 = 0;
+    m_runtime->castleSiege.castleByte7239d8 = 0;
     ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
     EXPECT_EQ(gate.byte110, 0);
     EXPECT_EQ(gate.animation.action, 0);
@@ -417,7 +417,7 @@ TEST_F(CastleObjectTest, TheGateEdges)
     CastleObjectStep bare = Step();
     bare.skeleton = nullptr;
     ActorState closed = Object(287);
-    m_runtime->castleByte7239d8 = 2;
+    m_runtime->castleSiege.castleByte7239d8 = 2;
     const auto cut = Client::Scenes::StepTheCastleObject(closed, bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x42db87"), std::string::npos) << cut.Error();
@@ -433,14 +433,14 @@ TEST(MonsterStepCasesTest, TheEndOfTheFrameOpensTheGatesUnlessTheLockStepped)
     WorldRuntime runtime;
 
     walls->fill(4);
-    runtime.castleGatesClosed = 1;
-    runtime.castleMarkX = 12.0f;
-    runtime.castleMarkY = 34.0f;
+    runtime.castleSiege.castleGatesClosed = 1;
+    runtime.castleSiege.castleMarkX = 12.0f;
+    runtime.castleSiege.castleMarkY = 34.0f;
     Client::Scenes::FinishTheCastleFrame(&runtime, *walls);
     EXPECT_EQ((*walls)[cell], 4);
-    EXPECT_EQ(runtime.castleGatesClosed, 0);
-    EXPECT_EQ(runtime.castleMarkX, 0.0f);
-    EXPECT_EQ(runtime.castleMarkY, 0.0f);
+    EXPECT_EQ(runtime.castleSiege.castleGatesClosed, 0);
+    EXPECT_EQ(runtime.castleSiege.castleMarkX, 0.0f);
+    EXPECT_EQ(runtime.castleSiege.castleMarkY, 0.0f);
 
     Client::Scenes::FinishTheCastleFrame(&runtime, *walls);
     EXPECT_EQ((*walls)[cell], 0);

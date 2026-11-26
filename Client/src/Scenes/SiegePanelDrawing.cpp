@@ -294,14 +294,16 @@ Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     GamePanels panels(context.world, context.random);
-    if (panels.Registry().IsOpen(UI::AnyPanel) || !runtime.siegePanelKind || runtime.siegePanel.visible == 0)
+    if (panels.Registry().IsOpen(UI::AnyPanel) || !runtime.castleSiege.siegePanelKind ||
+        runtime.castleSiege.siegePanel.visible == 0)
         return {};
     // Los cambios que hace el original al dibujar duran hasta el frame siguiente; un frame proyectado usa su copia.
     UI::SiegePanelState copy;
-    UI::SiegePanelState& panel = context.projecting ? (copy = runtime.siegePanel) : runtime.siegePanel;
+    UI::SiegePanelState& panel =
+        context.projecting ? (copy = runtime.castleSiege.siegePanel) : runtime.castleSiege.siegePanel;
     if (panel.page <= 0)
         return Core::Unexpected(std::string("0x40fba8: la escala del minimapa dividiría por cero o sería negativa"));
-    const std::uint8_t kind = *runtime.siegePanelKind;
+    const std::uint8_t kind = *runtime.castleSiege.siegePanelKind;
     if (auto base = DrawBase(context, panel, kind); !base.HasValue())
         return base;
     if (kind == 1)

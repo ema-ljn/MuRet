@@ -29,8 +29,6 @@
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/CastleSiegeState.h"
-#include "UI/SiegeBattleUiState.h"
-#include "UI/SiegePanelState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
@@ -362,36 +360,6 @@ struct WorldRuntime
     // main muestra el modal antes de cerrar. Unsupported-map y errores sin aviso no lo escriben.
     std::optional<std::string> fatalDataMessage{};
     GameItemRenderState itemRender{};
-    bool siegeActive = false;         // 07239ec, separado del número de mapa (4294b0).
-    bool previousSiegeActive = false; // 0x7239ed: 0x4294c0 lo copia antes de cada cambio.
-    // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
-    // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
-    float siegeMusicTime = 0.0f;
-    // 0x7239d8 (.bss 0): lo pone en 0 la carga del 30 (0x42a78e) y en 2 0x42d890 cuando el 286 o el 287 terminan la
-    // acción 5 (0x42d8f6); lo leen y lo escriben los 286 y 287 en 0x42da90 (0x42db7b..0x42dc0f).
-    std::uint8_t castleByte7239d8 = 0;
-    // 0x7239d9 (.bss 0): el 277 del mapa 30 lo pone en 1 en cada paso (0x42db10); 0x42da60, al final del dibujo de los
-    // personajes, no abre las puertas con él en 1 y lo vuelve a 0.
-    std::uint8_t castleGatesClosed = 0;
-    // 0x7239dc y 0x7239e0 (.bss 0): la x y la y del 278 del mapa 30 con +0x42d en 0x80 (0x42dc38); 0x42da60 los pone
-    // en 0 al final del dibujo de los personajes. Los lee 0x42ddb0 (0x42ddf8), el dibujo del asedio sobre los
-    // personajes, que solo corre con el asedio y corta en 0x42b00b.
-    float castleMarkX = 0.0f;
-    float castleMarkY = 0.0f;
-    // 0x7239e4 (.bss 0): el +0x78 del 216 del mapa 30 (0x42daea). Lo comparan con 0x20000 0x42c850 (0x42c977, con el
-    // asedio, que corta) y 0x42de90 (0x42ded1, el helper del 30 de 0x5085db, que corta).
-    std::uint32_t castleFlags7239e4 = 0;
-    // 0x5763530: el panel del asedio que 0x412140 arma en el mapa 30 y 0x412560 suelta en los demás, por su
-    // clase (+0x18, lo que devuelve su primer método): 0 sin gremio (0x20 bytes, vtable 0x6b88a8, en (489; 259)),
-    // 1 y 2 con él. Lo dibujan 0x59ff10 y 0x5a7320, la interfaz (CL8).
-    std::optional<std::uint8_t> siegePanelKind{};
-    // El de la clase 0: 0x412195 lo arma de nuevo cada vez que no había panel o era de otra clase.
-    UI::SiegePanelState siegePanel{};
-    UI::SiegeBattleUiState siegeBattleUi{};
-    // [0x5767924]: el objeto de 0x36 bytes de la info de Castle Siege, dos mitades de 0x1b (la de la clave 0x13d en
-    // +0 y la otra en +0x1b). Lo crea y lo llena el B2 20 (0x4e04e0, hito 12) y lo suelta 0x4e05f0; sin ese paquete
-    // queda en nullptr. El 0x14 apaga +4..+6 o +0x1f..+0x21 (0x4ca799..0x4ca7cd).
-    std::optional<std::array<std::uint8_t, 0x36>> castleSiegeInfo{};
     // 0x77f3ba0, 0x77e1bb0 y 0x77f27b4: la cola de los últimos 0x0B, 0x12, 0x1C, 0x24 y 0x2A (ViewportPacketRing.h).
     ViewportPacketRing viewportPackets{};
     // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos

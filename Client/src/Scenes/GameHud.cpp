@@ -381,7 +381,7 @@ void DrawTheSands(Frame& frame)
             frame.context.crywolfSandOverlay = 0;
         }
     }
-    else if (map == CastleSiegeMap && frame.runtime.siegeActive)
+    else if (map == CastleSiegeMap && frame.runtime.castleSiege.siegeActive)
     {
         // 0x42b100, con 0x4294b0.
         DrawSmoke(frame, Color{0.3f, 0.3f, 0.25f, 1.0f});
@@ -1286,7 +1286,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
         const std::int32_t map = frame.runtime.map;
         bool tinted = false;
         if ((skill == 0x2c || skill == 0x2d || skill == 0x2e || skill == 0x39 || skill == 0x49 || skill == 0x4a) &&
-            (map != CastleSiegeMap || !frame.runtime.siegeActive))
+            (map != CastleSiegeMap || !frame.runtime.castleSiege.siegeActive))
             tinted = true;
         if ((frame.hero.flags78 & 0x200u) != 0x200u && kind == 2)
             tinted = true;
@@ -1629,7 +1629,7 @@ std::optional<std::string> HolderText(const std::array<std::uint8_t, UI::SwitchH
 
 Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
 {
-    auto& storage = frame.runtime.castleSiegeInfo;
+    auto& storage = frame.runtime.castleSiege.castleSiegeInfo;
     if (!storage)
         return {};
     // 0x5a6fdb..0x5a71aa: la X (+0x41c) y la Y (+0x420) del héroe, cada una con su acceso a la tabla de protección.

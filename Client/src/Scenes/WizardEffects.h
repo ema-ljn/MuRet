@@ -33,8 +33,8 @@ struct WorldTerrain;
 // CL11, lote magos: los servicios de World::WizardModelEffects desde el mundo de la escena. El dueño (+0x108) de los
 // efectos es un personaje del pool (ActorState: el byte vivo, +0x2, la posición, +0x78, la acción +0x111, +0x16c y
 // +0x1bc), el héroe es [0x743a170], el registro propio es el de WorldRuntime y OwnCharacterRecord (+0xf04), el asedio
-// es WorldRuntime::siegeActive (0x4294b0), los joints van a la tabla del mundo (0x530860, Scenes/FaunaJointCreation) y
-// 0x517a20 es Scenes::HitTheTargetsAround.
+// es CastleSiegeState::siegeActive (0x4294b0), los joints van a la tabla del mundo (0x530860,
+// Scenes/FaunaJointCreation) y 0x517a20 es Scenes::HitTheTargetsAround.
 namespace Client::Scenes
 {
 class WorldState;

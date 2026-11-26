@@ -474,7 +474,7 @@ TEST(HeroSkillsTest, TheSiegeSkillsNeedTheSiege)
         EXPECT_EQ(tested->Movement().followTarget, -1);
     }
     const auto tested = AHeroClicking(0x2c, Wizard, 30);
-    tested->world.Runtime().siegeActive = true;
+    tested->world.Runtime().castleSiege.siegeActive = true;
     const auto result = tested->Use();
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ExpectTheWizardAimed(*tested);
@@ -734,7 +734,7 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         // 0x559a84..0x559a9f: la 0x39 con un arma derecha de 0x212 a 0x411; su alcance de 0 deja al elegido lejos y
         // 0x559510 arma el camino (el caso 5 de la llegada).
         const auto tested = AHeroClicking(0x13, Knight, 30);
-        tested->world.Runtime().siegeActive = true;
+        tested->world.Runtime().castleSiege.siegeActive = true;
         tested->world.OwnCharacter().SetSkillAt(0, 0x39);
         tested->Hero().hands[0].model = 0x300;
         const auto result = tested->Use();

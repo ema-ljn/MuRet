@@ -1308,7 +1308,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
         auto& runtime = world->Runtime();
         runtime.panels.delegated.siegeWeapon = mode;
         runtime.panels.delegated.siegeGate = 1;
-        runtime.siegeBattleUi.weaponChoice = 2;
+        runtime.castleSiege.siegeBattleUi.weaponChoice = 2;
         runtime.social.trade.changed = 1;
         runtime.social.trade.ownGrid[0].id = 7;
         runtime.social.trade.ownGrid[0].occupied = 1;
@@ -1334,7 +1334,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_TRUE(Client::Tests::SameBytes(sent.front().packet.Bytes(), Client::Tests::Bytes({0xc1, 3, 0x31})));
         EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
-        EXPECT_EQ(runtime.siegeBattleUi.weaponChoice, 0);
+        EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 0);
         EXPECT_EQ(runtime.panels.delegated.siegeGate, 1); // 0x5bbe10 sólo consulta las dos armas.
         EXPECT_EQ(runtime.social.trade.changed, 0);
         EXPECT_EQ(runtime.social.trade.ownGrid[0].id, Client::Scenes::EmptyOwnItemId);

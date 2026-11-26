@@ -116,7 +116,7 @@ protected:
     {
         auto& runtime = world->Runtime();
         auto& hero = world->Hero();
-        runtime.siegeActive = true;
+        runtime.castleSiege.siegeActive = true;
         hero.byte360 = 6;
         hero.guildStatus = 0x80;
         hero.word1f2 = 0;
@@ -165,21 +165,21 @@ TEST_F(SiegeUiTest, TheGuildPostSelectsAndPreservesTheSamePanelObject)
     {
         runtime.guild.heroGuildStatus = post;
         ASSERT_TRUE(Siege::RefreshTheSiegePanel(runtime).HasValue());
-        ASSERT_EQ(runtime.siegePanelKind, kind);
-        runtime.siegePanel.page = 2;
-        runtime.siegePanel.visible = 0;
-        runtime.siegePanel.alpha = 0.6f;
+        ASSERT_EQ(runtime.castleSiege.siegePanelKind, kind);
+        runtime.castleSiege.siegePanel.page = 2;
+        runtime.castleSiege.siegePanel.visible = 0;
+        runtime.castleSiege.siegePanel.alpha = 0.6f;
         ASSERT_TRUE(Siege::RefreshTheSiegePanel(runtime).HasValue());
-        EXPECT_EQ(runtime.siegePanel.page, 2);
-        EXPECT_EQ(runtime.siegePanel.visible, 0);
-        EXPECT_FLOAT_EQ(runtime.siegePanel.alpha, 0.6f);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.page, 2);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
+        EXPECT_FLOAT_EQ(runtime.castleSiege.siegePanel.alpha, 0.6f);
     }
     runtime.guild.heroGuildStatus = 0x12;
     ASSERT_TRUE(Siege::RefreshTheSiegePanel(runtime).HasValue());
-    EXPECT_EQ(runtime.siegePanelKind, 2);
+    EXPECT_EQ(runtime.castleSiege.siegePanelKind, 2);
     runtime.map = 2;
     ASSERT_TRUE(Siege::RefreshTheSiegePanel(runtime).HasValue());
-    EXPECT_FALSE(runtime.siegePanelKind.has_value());
+    EXPECT_FALSE(runtime.castleSiege.siegePanelKind.has_value());
 }
 
 TEST_F(SiegeUiTest, OnlyTheGuildMasterWithoutUnionOrLeadingItsUnionGetsTheCommanderPanel)
@@ -192,42 +192,42 @@ TEST_F(SiegeUiTest, OnlyTheGuildMasterWithoutUnionOrLeadingItsUnionGetsTheComman
     std::ranges::copy(std::string_view("Robles"), guild.guildName.begin());
     std::ranges::copy(std::string_view("Pinos"), guild.unionName.begin());
     ASSERT_TRUE(Siege::RefreshTheSiegePanel(runtime).HasValue());
-    EXPECT_EQ(runtime.siegePanelKind, 1);
+    EXPECT_EQ(runtime.castleSiege.siegePanelKind, 1);
     guild.unionName = guild.guildName;
     ASSERT_TRUE(Siege::RefreshTheSiegePanel(runtime).HasValue());
-    EXPECT_EQ(runtime.siegePanelKind, 2);
-    EXPECT_GE(runtime.siegePanel.members.capacity(), 1600u);
+    EXPECT_EQ(runtime.castleSiege.siegePanelKind, 2);
+    EXPECT_GE(runtime.castleSiege.siegePanel.members.capacity(), 1600u);
 }
 
 TEST_F(SiegeUiTest, TheStatusTableAndTheMemberVectorHaveIndependentStorage)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
     Siege::AppendSiegePanelMember(runtime, 255, 11, 12);
     Siege::AppendSiegePanelMember(runtime, 0, 13, 14);
     ASSERT_TRUE(Siege::ReceiveSiegePanelStatus(runtime, {2, 0, 255, 7}).HasValue());
-    EXPECT_EQ(runtime.siegePanel.membersHidden, 0);
-    ASSERT_EQ(runtime.siegePanel.members.size(), 2u);
-    EXPECT_EQ(runtime.siegePanel.members[0], (std::array<std::uint8_t, 3>{255, 11, 12}));
-    EXPECT_EQ(runtime.siegePanel.status[2], (std::array<std::uint8_t, 5>{2, 0, 255, 7, 100}));
-    runtime.siegePanel.status[2][4] = 1;
+    EXPECT_EQ(runtime.castleSiege.siegePanel.membersHidden, 0);
+    ASSERT_EQ(runtime.castleSiege.siegePanel.members.size(), 2u);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.members[0], (std::array<std::uint8_t, 3>{255, 11, 12}));
+    EXPECT_EQ(runtime.castleSiege.siegePanel.status[2], (std::array<std::uint8_t, 5>{2, 0, 255, 7, 100}));
+    runtime.castleSiege.siegePanel.status[2][4] = 1;
     ASSERT_TRUE(Siege::ReceiveSiegePanelStatus(runtime, {2, 4, 5, 0}).HasValue());
-    EXPECT_EQ(runtime.siegePanel.status[2], (std::array<std::uint8_t, 5>{2, 4, 5, 0, 100}));
-    EXPECT_EQ(runtime.siegePanel.status[1], (std::array<std::uint8_t, 5>{}));
+    EXPECT_EQ(runtime.castleSiege.siegePanel.status[2], (std::array<std::uint8_t, 5>{2, 4, 5, 0, 100}));
+    EXPECT_EQ(runtime.castleSiege.siegePanel.status[1], (std::array<std::uint8_t, 5>{}));
     EXPECT_FALSE(Siege::ReceiveSiegePanelStatus(runtime, {7, 1, 2, 3}).HasValue());
-    runtime.siegePanelKind = std::uint8_t{0};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
     ASSERT_TRUE(Siege::ReceiveSiegePanelStatus(runtime, {255, 1, 2, 3}).HasValue());
     Siege::AppendSiegePanelMember(runtime, 1, 2, 3);
-    EXPECT_EQ(runtime.siegePanel.members.size(), 2u);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.members.size(), 2u);
 }
 
 TEST_F(SiegeUiTest, ResettingTheClockPreservesTheRawServerTimeAndTick)
 {
     auto& runtime = world->Runtime();
     Siege::SetSiegeClock(runtime, 255, 254, 0xfffffff0u);
-    runtime.siegeBattleUi.clock.blinkTime = 750.0f;
+    runtime.castleSiege.siegeBattleUi.clock.blinkTime = 750.0f;
     Siege::ResetSiegeClock(runtime);
-    const auto& clock = runtime.siegeBattleUi.clock;
+    const auto& clock = runtime.castleSiege.siegeBattleUi.clock;
     EXPECT_EQ(clock.hours, 255u);
     EXPECT_EQ(clock.minutes, 254u);
     EXPECT_EQ(clock.tick, 0xfffffff0u);
@@ -241,10 +241,10 @@ TEST_F(SiegeUiTest, TheWeaponChoiceAndConfirmationProduceTheLiteralB7Then31)
 {
     auto& runtime = world->Runtime();
     runtime.panels.delegated.siegeWeapon = 1;
-    runtime.siegeBattleUi.weaponKey = 0xabcd;
+    runtime.castleSiege.siegeBattleUi.weaponKey = 0xabcd;
     Click();
     ASSERT_TRUE(Siege::StepTheSiegeControls(StepContext(528, 140)).HasValue());
-    EXPECT_EQ(runtime.siegeBattleUi.weaponChoice, 2);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 2);
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_TRUE(requests.packets.empty());
     Click();
@@ -253,7 +253,7 @@ TEST_F(SiegeUiTest, TheWeaponChoiceAndConfirmationProduceTheLiteralB7Then31)
     ExpectPacket(0, Bytes({0xc1, 7, 0xb7, 1, 0xab, 0xcd, 2}));
     ExpectPacket(1, Bytes({0xc1, 3, 0x31}), false);
     EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
-    EXPECT_EQ(runtime.siegeBattleUi.weaponChoice, 0);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 0);
     // 0x44e444..0x44e6a8: confirmar no consume el clic, a diferencia de escoger y cancelar.
     EXPECT_TRUE(runtime.movement.pendingClick);
 }
@@ -262,7 +262,7 @@ TEST_F(SiegeUiTest, CancelTheWeaponConsumesTheClickAndSendsOnly31)
 {
     auto& runtime = world->Runtime();
     runtime.panels.delegated.siegeWeapon = 2;
-    runtime.siegeBattleUi.weaponChoice = 3;
+    runtime.castleSiege.siegeBattleUi.weaponChoice = 3;
     Click();
     ASSERT_TRUE(Siege::StepTheSiegeControls(StepContext(470, 395)).HasValue());
     ASSERT_EQ(requests.packets.size(), 1u);
@@ -278,7 +278,7 @@ TEST_F(SiegeUiTest, OpeningTheGateReadsTheActorAndTheWideActionRectangleUsesStri
     world->Actors()[5].key = 0x1234;
     world->Actors()[5].flags78 = 0x20000;
     Siege::OpenTheSiegeGate(*world, 0x1234);
-    EXPECT_EQ(runtime.siegeBattleUi.gateState, 0x20000u);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.gateState, 0x20000u);
     Click();
     ASSERT_TRUE(Siege::StepTheSiegeControls(StepContext(683, 325)).HasValue());
     EXPECT_TRUE(requests.packets.empty());
@@ -287,15 +287,15 @@ TEST_F(SiegeUiTest, OpeningTheGateReadsTheActorAndTheWideActionRectangleUsesStri
     ExpectPacket(0, Bytes({0xc1, 7, 0xb2, 1, 0, 0x12, 0x34}));
     ExpectPacket(1, Bytes({0xc1, 3, 0x31}), false);
     EXPECT_FALSE(runtime.movement.pendingClick);
-    EXPECT_EQ(runtime.siegeBattleUi.gateKey, 0);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.gateKey, 0);
     EXPECT_EQ(runtime.panels.delegated.siegeGate, 0);
 }
 
 TEST_F(SiegeUiTest, TheCommanderChoosesAnOrderThenSendsCoordinatesFromTheLastMapCrop)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
-    auto& panel = runtime.siegePanel;
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
+    auto& panel = runtime.castleSiege.siegePanel;
     panel.page = 2;
     panel.offsetX = 12;
     panel.offsetY = 34;
@@ -319,13 +319,13 @@ TEST_F(SiegeUiTest, TheCommanderChoosesAnOrderThenSendsCoordinatesFromTheLastMap
 TEST_F(SiegeUiTest, ARightClickOnTheCommanderRowCancelsWithoutConsumingTheRightClick)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
-    runtime.siegePanel.selected = 3;
-    runtime.siegePanel.command = 0;
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
+    runtime.castleSiege.siegePanel.selected = 3;
+    runtime.castleSiege.siegePanel.command = 0;
     runtime.ui.rightClick = true;
     ASSERT_TRUE(Siege::StepTheBattlePanel(StepContext(492, 308)).HasValue());
-    EXPECT_EQ(runtime.siegePanel.selected, 0);
-    EXPECT_EQ(runtime.siegePanel.command, 3);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.selected, 0);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.command, 3);
     EXPECT_TRUE(runtime.ui.rightClick);
     EXPECT_TRUE(requests.packets.empty());
 }
@@ -333,7 +333,7 @@ TEST_F(SiegeUiTest, ARightClickOnTheCommanderRowCancelsWithoutConsumingTheRightC
 TEST_F(SiegeUiTest, WarAloneDoesNotReadTheSkillTableOrChangeTheWheel)
 {
     auto& runtime = world->Runtime();
-    runtime.siegeActive = true;
+    runtime.castleSiege.siegeActive = true;
     runtime.ui.wheel = 120;
     const auto before = random.State();
     auto step = StepContext();
@@ -392,24 +392,24 @@ TEST_F(SiegeUiTest, TheSkillDrawConsumesSixtyRandomsAndResetsThePressedArrowOnly
     BattleRole();
     Cost(10);
     auto& runtime = world->Runtime();
-    runtime.siegeBattleUi.skillPressed = 1;
+    runtime.castleSiege.siegeBattleUi.skillPressed = 1;
     auto context = DrawContext(true);
     const CrtRandom expected = After(random, 60);
     ASSERT_TRUE(Siege::DrawTheBattleSkill(context).HasValue());
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(runtime.siegeBattleUi.skillPressed, 1);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.skillPressed, 1);
     ASSERT_FALSE(sprites.Commands().empty());
     EXPECT_EQ(sprites.Commands()[0].texture->value, 0x65f);
     EXPECT_EQ(sprites.Vertices()[0].color.green, 0.0f);
     auto actual = DrawContext();
     ASSERT_TRUE(Siege::DrawTheBattleSkill(actual).HasValue());
-    EXPECT_EQ(runtime.siegeBattleUi.skillPressed, 0);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.skillPressed, 0);
 }
 
 TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
 {
     auto& runtime = world->Runtime();
-    runtime.siegeActive = true;
+    runtime.castleSiege.siegeActive = true;
     runtime.map = 30;
     Siege::ResetSiegeClock(runtime);
     Siege::SetSiegeClock(runtime, 0, 0, 0xfffffff0u);
@@ -417,7 +417,7 @@ TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
     context.tickCount = 7200000u - 16u;
     context.worldClock = 1000.0f;
     Siege::DrawTheBattleClock(context);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.blink, 1);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.blink, 1);
     std::size_t minusSigns = 0;
     for (const auto& command : sprites.Commands())
         if (command.texture && command.texture->value == 1)
@@ -429,17 +429,17 @@ TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
     context.worldClock = 1000.5f;
     context.projecting = true;
     Siege::DrawTheBattleClock(context);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.blink, 1);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.blink, 1);
     context.projecting = false;
     Siege::DrawTheBattleClock(context);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.blink, 0);
-    EXPECT_FLOAT_EQ(runtime.siegeBattleUi.clock.blinkTime, 1000.5f);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.blink, 0);
+    EXPECT_FLOAT_EQ(runtime.castleSiege.siegeBattleUi.clock.blinkTime, 1000.5f);
 }
 
 TEST_F(SiegeUiTest, TheMapReadsEachVisibleActorEvenWhenItsDotEndsOutsideTheMap)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{0};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
     auto& hero = world->Hero();
     hero.cellX = 255;
     hero.cellY = 0;
@@ -452,8 +452,8 @@ TEST_F(SiegeUiTest, TheMapReadsEachVisibleActorEvenWhenItsDotEndsOutsideTheMap)
     auto draw = DrawContext();
     ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(runtime.siegePanel.offsetX, 191);
-    EXPECT_EQ(runtime.siegePanel.offsetY, 128);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.offsetX, 191);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.offsetY, 128);
     EXPECT_EQ(actor.cellXAccesses, 0);
     EXPECT_EQ(actor.cellYAccesses, 0);
     EXPECT_EQ(sprites.Commands()[0].texture->value, 0x69d);
@@ -462,7 +462,7 @@ TEST_F(SiegeUiTest, TheMapReadsEachVisibleActorEvenWhenItsDotEndsOutsideTheMap)
 TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
     auto& hero = world->Hero();
     hero.cellY = 0;
     hero.flags78 = 0;
@@ -474,15 +474,15 @@ TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask
     auto draw = DrawContext();
     ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(runtime.siegePanel.offsetY, 128);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.offsetY, 128);
 }
 
 // 0x411c12/0x411ce5/0x411db8: dv=0x3f100000. Los iconos del menú usan sus rectángulos completos.
 TEST_F(SiegeUiTest, TheCommandMenuUsesTheNativeAtlasRectangles)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
-    runtime.siegePanel.selected = 1;
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
+    runtime.castleSiege.siegePanel.selected = 1;
     auto draw = DrawContext();
     ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
     std::array<bool, 3> seen{};
@@ -524,10 +524,10 @@ TEST_F(SiegeUiTest, TheStatusMetricsSurviveAnUnrecognizedFollowingStatus)
     hero.cellY = 192;
     for (const std::uint8_t kind : {std::uint8_t{1}, std::uint8_t{2}})
     {
-        runtime.siegePanelKind = kind;
-        runtime.siegePanel.status[0] = {1, 64, 192, 0, 0};
-        runtime.siegePanel.status[1] = {2, 65, 191, 4, 0};
-        runtime.siegePanel.selected = 1;
+        runtime.castleSiege.siegePanelKind = kind;
+        runtime.castleSiege.siegePanel.status[0] = {1, 64, 192, 0, 0};
+        runtime.castleSiege.siegePanel.status[1] = {2, 65, 191, 4, 0};
+        runtime.castleSiege.siegePanel.selected = 1;
         auto draw = DrawContext();
         ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
         bool foundStatus = false;
@@ -562,28 +562,28 @@ TEST_F(SiegeUiTest, TheStatusMetricsSurviveAnUnrecognizedFollowingStatus)
 TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetrics)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{1};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{1};
     auto& hero = world->Hero();
     hero.cellX = 64;
     hero.cellY = 192;
-    runtime.siegePanel.status[0] = {1, 64, 192, 4, 2};
+    runtime.castleSiege.siegePanel.status[0] = {1, 64, 192, 4, 2};
     auto draw = DrawContext();
     const auto drawn = Siege::DrawTheBattlePanel(draw);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("stack"), std::string::npos);
     // El número y el parpadeo preceden al primer uso de las métricas no inicializadas.
-    EXPECT_EQ(runtime.siegePanel.status[0][4], 1);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.status[0][4], 1);
 }
 
 // 411c20/411cf3/411dc6: altura18; los tres fondos coinciden con las filas de entrada de410773.
 TEST_F(SiegeUiTest, EveryCommanderMenuBackgroundUsesItsNativeEighteenPixelHeight)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
     for (const std::uint8_t row : {std::uint8_t{1}, std::uint8_t{6}, std::uint8_t{7}})
     {
         SCOPED_TRACE(row);
-        runtime.siegePanel.selected = row;
+        runtime.castleSiege.siegePanel.selected = row;
         const auto expected = After(random, 10);
         auto draw = DrawContext();
         ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
@@ -615,13 +615,13 @@ TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
     for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
     {
         SCOPED_TRACE(kind);
-        runtime.siegePanelKind = kind;
-        runtime.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
+        runtime.castleSiege.siegePanelKind = kind;
+        runtime.castleSiege.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
         const auto before = random.State();
         Click();
         ASSERT_TRUE(Siege::StepTheBattlePanel(StepContext(494, 287)).HasValue());
-        EXPECT_EQ(runtime.siegePanel.alpha, 1.0f);
-        EXPECT_EQ(runtime.siegePanel.page, 1);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.alpha, 1.0f);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.page, 1);
         EXPECT_FALSE(runtime.movement.pendingClick);
         EXPECT_FALSE(runtime.movement.leftHeld);
         EXPECT_TRUE(requests.packets.empty());
@@ -633,8 +633,8 @@ TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
 TEST_F(SiegeUiTest, TheOpacityPercentageUsesTheNativeFtolLowDwordForNan)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{0};
-    runtime.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
+    runtime.castleSiege.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
     const auto expected = After(random, 10);
     auto draw = DrawContext();
     ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
@@ -652,8 +652,8 @@ TEST_F(SiegeUiTest, TheOpacityPercentageUsesTheNativeFtolLowDwordForNan)
 TEST_F(SiegeUiTest, AnUnresolvedOpacityFtolKeepsTheBasePrefixAndReportsItsAddress)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{0};
-    runtime.siegePanel.alpha = std::numeric_limits<float>::infinity();
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
+    runtime.castleSiege.siegePanel.alpha = std::numeric_limits<float>::infinity();
     const auto expected = After(random, 10);
     auto draw = DrawContext();
     const auto result = Siege::DrawTheBattlePanel(draw);
@@ -681,11 +681,11 @@ TEST_F(SiegeUiTest, AnUnresolvedOpacityFtolKeepsTheBasePrefixAndReportsItsAddres
 TEST_F(SiegeUiTest, TheCommanderPreviewDoesNotInventTheFirstUnknownStatusAtlas)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{2};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
     auto& hero = world->Hero();
     hero.cellX = 64;
     hero.cellY = 192;
-    auto& panel = runtime.siegePanel;
+    auto& panel = runtime.castleSiege.siegePanel;
     panel.selected = 1;
     panel.command = 0;
     panel.status[0] = {1, 64, 192, 4, 2};
@@ -710,16 +710,16 @@ TEST_F(SiegeUiTest, AStatusOutsideTheCropDoesNotSeedMetricsOrConsumeItsFlashBefo
     for (const std::uint8_t kind : {std::uint8_t{1}, std::uint8_t{2}})
     {
         SCOPED_TRACE(kind);
-        runtime.siegePanelKind = kind;
-        runtime.siegePanel.status = {};
-        runtime.siegePanel.status[0] = {1, 0, 0, 0, 2};
-        runtime.siegePanel.status[1] = {2, 64, 192, 4, 2};
+        runtime.castleSiege.siegePanelKind = kind;
+        runtime.castleSiege.siegePanel.status = {};
+        runtime.castleSiege.siegePanel.status[0] = {1, 0, 0, 0, 2};
+        runtime.castleSiege.siegePanel.status[1] = {2, 64, 192, 4, 2};
         auto draw = DrawContext();
         const auto result = Siege::DrawTheBattlePanel(draw);
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("stack"), std::string::npos) << result.Error();
-        EXPECT_EQ(runtime.siegePanel.status[0][4], 2);
-        EXPECT_EQ(runtime.siegePanel.status[1][4], 1);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.status[0][4], 2);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.status[1][4], 1);
     }
 }
 } // namespace

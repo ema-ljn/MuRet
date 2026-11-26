@@ -321,8 +321,8 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         delegated.secondCastleSiege = kind == 1 ? 1 : 0;
         delegated.siegeWeapon = kind == 2 ? 1 : kind == 3 ? 2 : 0;
         delegated.siegeGate = kind == 4 ? 1 : 0;
-        Runtime().siegeBattleUi.weaponChoice = 3;
-        Runtime().siegeBattleUi.gateKey = 0x1234;
+        Runtime().castleSiege.siegeBattleUi.weaponChoice = 3;
+        Runtime().castleSiege.siegeBattleUi.gateKey = 0x1234;
         Runtime().castleSiege.senior.closeWith87 = false;
         std::vector<Client::Protocol::Outgoing> sent;
         auto context = Context();
@@ -335,7 +335,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
             EXPECT_EQ(delegated.siegeGate, 0);
             if (kind == 4)
             {
-                EXPECT_EQ(Runtime().siegeBattleUi.gateKey, 0);
+                EXPECT_EQ(Runtime().castleSiege.siegeBattleUi.gateKey, 0);
             }
             sent.push_back(std::move(packet));
         };
@@ -354,7 +354,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         EXPECT_EQ(delegated.siegeGate, 0);
         if (kind == 2 || kind == 3)
         {
-            EXPECT_EQ(Runtime().siegeBattleUi.weaponChoice, 0);
+            EXPECT_EQ(Runtime().castleSiege.siegeBattleUi.weaponChoice, 0);
         }
         EXPECT_EQ(m_random.State(), expected.State());
     }

@@ -783,7 +783,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
 {
     WorldRuntime& runtime = context.world.Runtime();
     // 0x520179..0x5201d2: con el asedio (0x4294b0), el bit 0x100 de la celda (0x5f82c0) la frena y le deja media vida.
-    if (runtime.siegeActive)
+    if (runtime.castleSiege.siegeActive)
     {
         const auto& attributes = context.world.Map().terrain.attributes;
         if (!attributes)

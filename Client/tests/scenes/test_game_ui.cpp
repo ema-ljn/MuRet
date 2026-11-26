@@ -761,21 +761,21 @@ TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)
 {
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
-    runtime.siegePanelKind = std::uint8_t{0};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
     ASSERT_TRUE(tested.Step(0x1ea, 0x104).HasValue());
     EXPECT_EQ(tested.Ui().mouseOnUi, 1);
     Press(tested.input, Key::Tab);
     ASSERT_TRUE(tested.Step(0x1ea, 0x104).HasValue());
-    EXPECT_EQ(runtime.siegePanel.visible, 0);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
     EXPECT_EQ(tested.Ui().mouseOnUi, 0);
     // Con Tab abajo, el latch no la vuelve a leer.
     ASSERT_TRUE(tested.Step().HasValue());
-    EXPECT_EQ(runtime.siegePanel.visible, 0);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
     Release(tested.input, Key::Tab);
     ASSERT_TRUE(tested.Step().HasValue());
     Press(tested.input, Key::Tab);
     ASSERT_TRUE(tested.Step().HasValue());
-    EXPECT_EQ(runtime.siegePanel.visible, 1);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 1);
 }
 
 // 0x40f6df → 0x6578e0: un campo activo o cualquier foco ajeno al juego impide hasta consultar 0x553520(Tab).
@@ -785,7 +785,7 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
     {
         auto tested = std::make_unique<SteppingUi>();
         auto& runtime = tested->world.Runtime();
-        runtime.siegePanelKind = std::uint8_t{0};
+        runtime.castleSiege.siegePanelKind = std::uint8_t{0};
         auto& field = runtime.panels.delegated.panelDialog;
         if (blocked == 0)
             runtime.ui.chatOpen = true;
@@ -807,7 +807,7 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
         GameUiContext context{.world = tested->world, .random = tested->random, .input = tested->input};
         EXPECT_TRUE(Client::Scenes::GameTextInputBusy(runtime));
         ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
-        EXPECT_EQ(runtime.siegePanel.visible, 1);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 1);
         EXPECT_EQ(runtime.ui.keyLatches[9], 0);
 
         runtime.ui.chatOpen = false;
@@ -816,10 +816,10 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
         field.opened = 0;
         EXPECT_FALSE(Client::Scenes::GameTextInputBusy(runtime));
         ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
-        EXPECT_EQ(runtime.siegePanel.visible, 0);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
         EXPECT_EQ(runtime.ui.keyLatches[9], 1);
         ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
-        EXPECT_EQ(runtime.siegePanel.visible, 0);
+        EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
     }
 }
 
@@ -827,7 +827,7 @@ TEST(GameUiTest, APanelDialogWithoutTextStillAllowsTheSiegeTab)
 {
     auto tested = std::make_unique<SteppingUi>();
     auto& runtime = tested->world.Runtime();
-    runtime.siegePanelKind = std::uint8_t{0};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
     runtime.panels.delegated.panelDialog.opened = 1;
     runtime.panels.delegated.panelDialog.flags = Client::UI::PanelDialogTimed;
     Press(tested->input, Key::Tab);
@@ -835,15 +835,15 @@ TEST(GameUiTest, APanelDialogWithoutTextStillAllowsTheSiegeTab)
     ASSERT_TRUE(
         Client::Scenes::StepTheBattlePanel({.world = tested->world, .random = tested->random, .input = tested->input})
             .HasValue());
-    EXPECT_EQ(runtime.siegePanel.visible, 0);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
 }
 
 TEST(GameUiTest, TheSiegePanelPagesAndFades)
 {
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
-    runtime.siegePanelKind = std::uint8_t{0};
-    const auto& panel = runtime.siegePanel;
+    runtime.castleSiege.siegePanelKind = std::uint8_t{0};
+    const auto& panel = runtime.castleSiege.siegePanel;
     tested.Click();
     ASSERT_TRUE(tested.Step(panel.x + 130, panel.y + 20).HasValue());
     EXPECT_EQ(panel.page, 2);

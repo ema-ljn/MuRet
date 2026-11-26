@@ -646,7 +646,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     const auto helper = Client::Scenes::CreateHelper(world, 0xc6, leaving.position, 2);
     ASSERT_TRUE(helper.HasValue()) << helper.Error();
     ASSERT_TRUE(helper.Value().has_value());
-    auto& info = world.Runtime().castleSiegeInfo;
+    auto& info = world.Runtime().castleSiege.castleSiegeInfo;
     info.emplace();
     info->fill(0xff);
 

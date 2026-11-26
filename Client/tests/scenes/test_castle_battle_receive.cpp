@@ -225,17 +225,17 @@ TEST_P(CastleBattleReceiveTest, MinimapMembersAppendOnlyToTheClassTwoPanelAndWra
     const Battle::MinimapMembers some{.members = {{.index = 0, .x = 10, .y = 20}}};
     Apply(some);
     auto& runtime = m_world->Runtime();
-    runtime.siegePanelKind = std::uint8_t{1};
+    runtime.castleSiege.siegePanelKind = std::uint8_t{1};
     Apply(some);
-    EXPECT_TRUE(runtime.siegePanel.members.empty());
-    runtime.siegePanelKind = std::uint8_t{2};
+    EXPECT_TRUE(runtime.castleSiege.siegePanel.members.empty());
+    runtime.castleSiege.siegePanelKind = std::uint8_t{2};
     Apply(some);
     Apply(Battle::MinimapMembers{.members = {{.index = 255, .x = 30, .y = 40}}});
     Apply(Battle::MinimapMembers{});
-    ASSERT_EQ(runtime.siegePanel.members.size(), 2u);
-    EXPECT_EQ(runtime.siegePanel.members[0], (std::array<std::uint8_t, 3>{1, 10, 20}));
-    EXPECT_EQ(runtime.siegePanel.members[1], (std::array<std::uint8_t, 3>{0, 30, 40}));
-    EXPECT_EQ(runtime.siegePanel.membersHidden, 0);
+    ASSERT_EQ(runtime.castleSiege.siegePanel.members.size(), 2u);
+    EXPECT_EQ(runtime.castleSiege.siegePanel.members[0], (std::array<std::uint8_t, 3>{1, 10, 20}));
+    EXPECT_EQ(runtime.castleSiege.siegePanel.members[1], (std::array<std::uint8_t, 3>{0, 30, 40}));
+    EXPECT_EQ(runtime.castleSiege.siegePanel.membersHidden, 0);
     ExpectNoRandom();
 }
 
@@ -252,16 +252,16 @@ Battle::SwitchHolder Holder(std::uint16_t key, std::uint8_t fill)
 TEST_P(CastleBattleReceiveTest, SwitchHolderCreatesTheObjectWithItsHalf)
 {
     Apply(Holder(0x013d, 0x40));
-    ASSERT_TRUE(m_world->Runtime().castleSiegeInfo.has_value());
-    const auto& first = *m_world->Runtime().castleSiegeInfo;
+    ASSERT_TRUE(m_world->Runtime().castleSiege.castleSiegeInfo.has_value());
+    const auto& first = *m_world->Runtime().castleSiege.castleSiegeInfo;
     for (std::size_t i = 0; i < SwitchHolderHalf; ++i)
         EXPECT_EQ(first.at(i), 0x40 + i) << i;
     for (std::size_t i = SwitchHolderHalf; i < SwitchHoldersSize; ++i)
         EXPECT_EQ(first.at(i), 0) << i;
 
-    m_world->Runtime().castleSiegeInfo.reset();
+    m_world->Runtime().castleSiege.castleSiegeInfo.reset();
     Apply(Holder(0x013e, 0x80));
-    const auto& second = *m_world->Runtime().castleSiegeInfo;
+    const auto& second = *m_world->Runtime().castleSiege.castleSiegeInfo;
     for (std::size_t i = 0; i < SwitchHolderHalf; ++i)
     {
         EXPECT_EQ(second.at(i), 0) << i;
@@ -276,7 +276,7 @@ TEST_P(CastleBattleReceiveTest, SwitchHolderUpdatesItsHalfWithTheLastByteInZero)
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0001, 0x60));
     Apply(Holder(0x013d, 0x20));
-    const auto& holders = *m_world->Runtime().castleSiegeInfo;
+    const auto& holders = *m_world->Runtime().castleSiege.castleSiegeInfo;
     for (std::size_t i = 0; i + 1 < SwitchHolderHalf; ++i)
     {
         EXPECT_EQ(holders.at(i), 0x20 + i) << i;
@@ -291,12 +291,12 @@ TEST_P(CastleBattleReceiveTest, ForgetTheSwitchHolderClearsTheKeyAndTheShownByte
 {
     auto& runtime = m_world->Runtime();
     Client::Scenes::ForgetTheSwitchHolder(runtime, 0x013d);
-    EXPECT_FALSE(runtime.castleSiegeInfo.has_value());
+    EXPECT_FALSE(runtime.castleSiege.castleSiegeInfo.has_value());
 
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0002, 0x60));
     Client::Scenes::ForgetTheSwitchHolder(runtime, 0x0777);
-    const auto& holders = *runtime.castleSiegeInfo;
+    const auto& holders = *runtime.castleSiege.castleSiegeInfo;
     EXPECT_EQ(holders.at(3), 0x13);
     for (const std::size_t at : {std::size_t{4}, std::size_t{5}, std::size_t{6}})
     {
@@ -318,7 +318,7 @@ TEST_P(CastleBattleReceiveTest, AViewportLeaveClearsTheReceivedHolderUsingTheFul
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0002, 0x60));
     Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x813d}}, *m_world);
-    auto& holders = *m_world->Runtime().castleSiegeInfo;
+    auto& holders = *m_world->Runtime().castleSiege.castleSiegeInfo;
     EXPECT_EQ(holders[6], 0x16);
     EXPECT_EQ(holders[0x1b + 6], 0);
     Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x013d}}, *m_world);
@@ -360,7 +360,7 @@ TEST_P(CastleBattleReceiveTest, SiegeSideClearsOnlyTheFirstOpposingBitAndZeroPre
 
 TEST_P(CastleBattleReceiveTest, TheBattleClockStoresRawHoursAndMinutesAndTheReceiveTick)
 {
-    auto& clock = m_world->Runtime().siegeBattleUi.clock;
+    auto& clock = m_world->Runtime().castleSiege.siegeBattleUi.clock;
     clock.blink = 1;
     clock.blinkTime = 123.0f;
     Apply(Battle::SiegeTime{.hours = 255, .minutes = 255});

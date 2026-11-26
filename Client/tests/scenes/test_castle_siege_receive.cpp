@@ -603,19 +603,19 @@ TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
 {
     const Castle::MinimapPoints points{.points = {{.x = 1, .y = 2}}};
     Apply(points);
-    Runtime().siegePanelKind = std::uint8_t{0};
+    Runtime().castleSiege.siegePanelKind = std::uint8_t{0};
     Apply(points);
-    Runtime().siegePanelKind = std::uint8_t{1};
+    Runtime().castleSiege.siegePanelKind = std::uint8_t{1};
     Apply(points);
-    Runtime().siegePanelKind = std::uint8_t{2};
-    Runtime().siegePanel.members.push_back({7, 8, 9});
+    Runtime().castleSiege.siegePanelKind = std::uint8_t{2};
+    Runtime().castleSiege.siegePanel.members.push_back({7, 8, 9});
     Apply(points);
-    ASSERT_EQ(Runtime().siegePanel.members.size(), 1u);
-    EXPECT_EQ(Runtime().siegePanel.members[0], (std::array<std::uint8_t, 3>{0, 1, 2}));
-    EXPECT_EQ(Runtime().siegePanel.membersHidden, 0);
+    ASSERT_EQ(Runtime().castleSiege.siegePanel.members.size(), 1u);
+    EXPECT_EQ(Runtime().castleSiege.siegePanel.members[0], (std::array<std::uint8_t, 3>{0, 1, 2}));
+    EXPECT_EQ(Runtime().castleSiege.siegePanel.membersHidden, 0);
     Apply(Castle::MinimapPoints{.points = {}});
-    EXPECT_TRUE(Runtime().siegePanel.members.empty());
-    EXPECT_EQ(Runtime().siegePanel.membersHidden, 1);
+    EXPECT_TRUE(Runtime().castleSiege.siegePanel.members.empty());
+    EXPECT_EQ(Runtime().castleSiege.siegePanel.membersHidden, 1);
     ExpectNoRandom();
 }
 

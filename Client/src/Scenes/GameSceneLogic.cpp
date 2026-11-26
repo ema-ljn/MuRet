@@ -383,7 +383,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     // 0x539a50..0x539add y 0x53b569..0x53b5b1: el 0x613 de ancho 80 y el 0x61c/0 del héroe leen el asedio, el atributo
     // de 0x5f82c0 y mandan los blancos del héroe.
     const JointKernels::VolleyServices volley{
-        .siegeActive = runtime.siegeActive,
+        .siegeActive = runtime.castleSiege.siegeActive,
         .attributes = terrain.attributes.get(),
         .skillHits = [this](const SkillHitsRequest& request) -> Core::Expected<void, std::string>
         {

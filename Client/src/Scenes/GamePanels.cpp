@@ -115,7 +115,7 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
         else
         {
             world.Runtime().panels.delegated.siegeWeapon = id == UI::SiegeWeaponPanel ? 1 : 2;
-            world.Runtime().siegeBattleUi.weaponChoice = 0;
+            world.Runtime().castleSiege.siegeBattleUi.weaponChoice = 0;
         }
         return {};
     };
@@ -128,7 +128,7 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
         {
             // 0x44f120: primero baja los campos, después sale el 31.
             runtime.panels.delegated.siegeGate = 0;
-            runtime.siegeBattleUi.gateKey = 0;
+            runtime.castleSiege.siegeBattleUi.gateKey = 0;
             send(Protocol::Session::WriteWindowClose());
         }
         else
@@ -136,7 +136,7 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
             // 0x657ba7..0x657daf y 0x657dc1..0x657f8e: el registro manda el 31 antes de 0x44dcf0.
             send(Protocol::Session::WriteWindowClose());
             runtime.panels.delegated.siegeWeapon = 0;
-            runtime.siegeBattleUi.weaponChoice = 0;
+            runtime.castleSiege.siegeBattleUi.weaponChoice = 0;
         }
         return {};
     };

@@ -723,7 +723,7 @@ constexpr std::uint8_t ShownInTheSiege = 1;
 bool HiddenInTheSiege(const WorldState& world, std::size_t rider)
 {
     const WorldRuntime& runtime = world.Runtime();
-    if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.siegeActive)
+    if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.castleSiege.siegeActive)
     {
         return false;
     }

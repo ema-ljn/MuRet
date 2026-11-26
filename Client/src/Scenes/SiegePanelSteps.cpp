@@ -38,7 +38,7 @@ Core::Expected<void, std::string> SendCommand(const GameUiContext& context)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string("0x4108a7: sin cable para la orden del minimapa"));
-    const UI::SiegePanelState& panel = context.world.Runtime().siegePanel;
+    const UI::SiegePanelState& panel = context.world.Runtime().castleSiege.siegePanel;
     context.requests->SendGamePacket(
         Protocol::CastleSiege::WriteCommand(panel.selected, panel.targetX, panel.targetY, panel.command));
     return {};
@@ -48,7 +48,7 @@ Core::Expected<void, std::string> SendCommand(const GameUiContext& context)
 bool StepBase(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    UI::SiegePanelState& panel = runtime.siegePanel;
+    UI::SiegePanelState& panel = runtime.castleSiege.siegePanel;
     // 0x40f6df..0x40f6f6: primero 0x6578e0, sólo sin campo/foco ajeno consulta y consume Tab.
     if (!GameTextInputBusy(runtime) && OldWindowKeyEdge(runtime.ui, context.input, 9))
         panel.visible ^= 1;
@@ -88,7 +88,7 @@ bool StepBase(const GameUiContext& context)
 bool ChooseCommand(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    UI::SiegePanelState& panel = runtime.siegePanel;
+    UI::SiegePanelState& panel = runtime.castleSiege.siegePanel;
     const std::int32_t x = context.mouseX;
     const std::int32_t y = context.mouseY;
     for (std::uint8_t row = 0; row < 7; ++row)
@@ -126,7 +126,7 @@ bool ChooseCommand(const GameUiContext& context)
 Core::Expected<void, std::string> PlaceCommand(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    UI::SiegePanelState& panel = runtime.siegePanel;
+    UI::SiegePanelState& panel = runtime.castleSiege.siegePanel;
     if (!Inside(context.mouseX, context.mouseY, panel.x + MapInsetX, panel.y + MapInsetY, MapSize, MapSize) ||
         panel.selected == 0 || panel.selected >= 8 || panel.command == NoCommand)
         return {};
@@ -163,9 +163,9 @@ Core::Expected<void, std::string> PlaceCommand(const GameUiContext& context)
 Core::Expected<void, std::string> StepTheBattlePanel(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.siegePanelKind || !StepBase(context))
+    if (!runtime.castleSiege.siegePanelKind || !StepBase(context))
         return {};
-    if (*runtime.siegePanelKind != 2 || (!runtime.movement.pendingClick && !runtime.ui.rightClick))
+    if (*runtime.castleSiege.siegePanelKind != 2 || (!runtime.movement.pendingClick && !runtime.ui.rightClick))
         return {};
     if (!ChooseCommand(context))
         return {};

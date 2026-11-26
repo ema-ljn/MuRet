@@ -63,7 +63,7 @@ Core::Expected<void, std::string> ApplyMinimapMembers(const Battle::MinimapMembe
                                                       const CastleReceiveContext& context)
 {
     constexpr std::uint8_t MinimapPanelKind = 2;
-    if (context.world.Runtime().siegePanelKind != MinimapPanelKind || members.members.empty())
+    if (context.world.Runtime().castleSiege.siegePanelKind != MinimapPanelKind || members.members.empty())
     {
         return {};
     }
@@ -78,31 +78,32 @@ void ApplySwitchHolder(const Battle::SwitchHolder& holder, WorldRuntime& runtime
 {
     const bool first = holder.key == UI::FirstHalfKey;
     const std::size_t half = first ? 0 : UI::SwitchHolderHalf;
-    if (!runtime.castleSiegeInfo)
+    if (!runtime.castleSiege.castleSiegeInfo)
     {
         // 0x4e04f3..0x4e0528: new(0x36) con +4, +5, +6, +0x1f, +0x20 y +0x21 en 0 (lo demás, lo que dejó el heap:
         // Q-C1400) y la mitad que elige la clave, tal cual.
-        runtime.castleSiegeInfo.emplace();
-        std::ranges::copy(holder.bytes, runtime.castleSiegeInfo->begin() + static_cast<std::ptrdiff_t>(half));
+        runtime.castleSiege.castleSiegeInfo.emplace();
+        std::ranges::copy(holder.bytes,
+                          runtime.castleSiege.castleSiegeInfo->begin() + static_cast<std::ptrdiff_t>(half));
         return;
     }
     // 0x4e0558..0x4e05e4: la mitad tal cual y después, con lo mismo, +8..+0x19 otra vez y el último byte en 0 (DL en 0,
     // 0x4e05c7): Q-C1401.
-    std::ranges::copy(holder.bytes, runtime.castleSiegeInfo->begin() + static_cast<std::ptrdiff_t>(half));
-    (*runtime.castleSiegeInfo)[half + UI::HolderEndAt] = 0;
+    std::ranges::copy(holder.bytes, runtime.castleSiege.castleSiegeInfo->begin() + static_cast<std::ptrdiff_t>(half));
+    (*runtime.castleSiege.castleSiegeInfo)[half + UI::HolderEndAt] = 0;
 }
 } // namespace
 
 void ForgetTheSwitchHolder(WorldRuntime& runtime, std::uint16_t key)
 {
-    if (!runtime.castleSiegeInfo)
+    if (!runtime.castleSiege.castleSiegeInfo)
     {
         return;
     }
     const std::size_t half = key == UI::FirstHalfKey ? 0 : UI::SwitchHolderHalf;
     for (const std::size_t at : {UI::HolderShownAt, std::size_t{4}, std::size_t{5}})
     {
-        (*runtime.castleSiegeInfo)[half + at] = 0;
+        (*runtime.castleSiege.castleSiegeInfo)[half + at] = 0;
     }
 }
 

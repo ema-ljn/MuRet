@@ -8,16 +8,10 @@
 #include <span>
 #include <string_view>
 
-// Un socket TCP de cliente que nunca espera, salvo al resolver el nombre (pregunta 5 del plan de
-// la CL4): el bucle lo consulta una vez por frame, en su hilo (D-C5). Contrato: el plan de la CL4
-// (CL4.1), "Contrato", y 03-red-y-cifrado.md, "Sockets".
-//
-// Hay dos: SystemSocket, con los sockets del sistema (Network/SocketApi.h), y el FakeSocket de los
-// tests, que sigue un guion. Se puede volver a conectar después de Close().
-//
-// SocketError::Closed junta dos cosas: que el otro lado cerró y que este no está conectado. La
-// Connection (CL4.3) llama a Receive y Send, y a SendQueue::Flush, solo con Connected: ahí un
-// Closed es siempre que el otro lado cerró (lo prueba la CL4.3).
+// A client TCP socket that never waits, except resolving the name: the loop polls it once per frame on its thread
+// (D-C5) (03-red-y-cifrado.md, "Sockets"). It can reconnect after Close(). SocketError::Closed covers both the other
+// side closing and this one not being connected; the Connection calls Receive, Send and SendQueue::Flush only when
+// Connected, so there a Closed always means the other side closed.
 namespace Client::Network
 {
 enum class ConnectProgress : std::uint8_t
@@ -31,33 +25,31 @@ class ISocket
 public:
     virtual ~ISocket() = default;
 
-    // Resuelve, crea el socket, lo pone no bloqueante y empieza a conectar; antes cierra el que
-    // hubiera. InProgress casi siempre; Connected o Refused si el sistema ya lo sabe.
+    // Closes any previous socket first. InProgress almost always; Connected or Refused if the system already knows.
     [[nodiscard]] virtual Core::Expected<ConnectProgress, SocketError> StartConnect(std::string_view host,
                                                                                     std::uint16_t port) = 0;
 
-    // Si el connect terminó (SocketApi::CheckConnect). SO_ERROR se borra al leerlo, así que el
-    // resultado final se guarda: después de Connected o de un error, da lo mismo sin volver a mirar
-    // el socket. Sin un StartConnect desde el último Close, Closed.
+    // SocketApi::CheckConnect. SO_ERROR clears when read, so the final result is kept: after Connected or an error it
+    // gives the same without looking at the socket again. Without a StartConnect since the last Close, Closed.
     [[nodiscard]] virtual Core::Expected<ConnectProgress, SocketError> PollConnect() = 0;
 
-    // Lo que haya, hasta buffer.size(); 0 si no llegó nada. Con un buffer vacío da 0 sin llamar a
-    // recv, que daría 0 y se leería como un cierre. Antes de Connected, Closed.
+    // Up to buffer.size(); 0 if nothing arrived. An empty buffer gives 0 without calling recv, which would give 0 and
+    // read as a close. Before Connected, Closed.
     [[nodiscard]] virtual Core::Expected<std::size_t, SocketError> Receive(std::span<std::byte> buffer) = 0;
 
-    // Cuánto tomó el sistema, de 0 a bytes.size(). Antes de Connected, Closed.
+    // What the system took, 0 to bytes.size(). Before Connected, Closed.
     [[nodiscard]] virtual Core::Expected<std::size_t, SocketError> Send(std::span<const std::byte> bytes) = 0;
 
     virtual void Close() = 0;
 
-    // Si hay un socket del sistema: desde StartConnect (salvo que no haya resuelto) hasta Close.
+    // From StartConnect (unless it did not resolve) to Close.
     [[nodiscard]] virtual bool IsOpen() const = 0;
 
-    // El errno o el WSAGetLastError del último Failed, para el log.
+    // The errno or WSAGetLastError of the last Failed, for the log.
     [[nodiscard]] virtual int LastSystemError() const = 0;
 
 protected:
-    // Como IObfuscation: se copia y se mueve solo desde una clase hija (el slicing).
+    // Like IObfuscation: copied and moved only from a derived class (slicing).
     ISocket() = default;
     ISocket(const ISocket&) = default;
     ISocket& operator=(const ISocket&) = default;

@@ -17,7 +17,7 @@ Core::Expected<Ipv4Address, SocketError> SystemResolver::Resolve(std::string_vie
     {
         return Core::Unexpected(SocketError::ResolveFailed);
     }
-    // inet_pton y getaddrinfo leen un texto terminado en 0.
+    // inet_pton and getaddrinfo read a 0-terminated text.
     const std::string text(host);
     if (const std::optional<Ipv4Address> ip = SocketApi::ParseIpv4(text))
     {

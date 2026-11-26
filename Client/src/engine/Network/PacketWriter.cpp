@@ -16,10 +16,8 @@ namespace Client::Network
 {
 namespace
 {
-// Los bits de un byte: un entero de un campo se escribe de a un byte.
 constexpr unsigned BitsPerByte = 8;
 
-// Lo que mide el tipo de cada uno.
 std::size_t MaxSize(PacketType type)
 {
     return type == PacketType::C1 ? MaxC1Size : MaxWrittenPacketSize;
@@ -68,7 +66,7 @@ PacketWriter& PacketWriter::PutBytes(std::span<const std::byte> more) &
     return *this;
 }
 
-// Adentro de cada uno, *this es un lvalue: la llamada va a la versión de arriba.
+// Inside each, *this is an lvalue: the call goes to the version above.
 PacketWriter PacketWriter::PutU8(std::uint8_t value) &&
 {
     PutU8(value);

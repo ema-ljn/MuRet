@@ -6,8 +6,8 @@
 
 namespace Client::Crypto
 {
-// Las cuentas se hacen en int, como todo en C++, y cada resultado vuelve a 8 bits con un cast
-// explícito: eso es lo que hace dar la vuelta (0x10 - 0x20 da 0xF0, 0xF0 + 0x3D da 0x2D).
+// Arithmetic in int, as everything in C++, and each result back to 8 bits with an explicit cast: that is what wraps
+// (0x10 - 0x20 gives 0xF0, 0xF0 + 0x3D gives 0x2D).
 void DecryptK16(std::span<std::byte> bytes)
 {
     std::uint8_t previous = K16Seed;

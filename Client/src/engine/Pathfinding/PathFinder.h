@@ -13,8 +13,8 @@ namespace Client::Pathfinding
 struct TerrainWalls;
 }
 
-// PathFinding2 (0x4eac00) y el A* de 0x4ead70; 06 § Caminar. Con distancia 0, la meta es la celda; con otra, las
-// celdas del radio (0x4eae7c..0x4eb054, el elfo que se acerca a pegar, 0x566271; 06 § Pegar al llegar).
+// PathFinding2 (0x4eac00) and the A* of 0x4ead70; 06 § Caminar. With distance 0 the goal is the cell; otherwise the
+// cells of the radius (0x4eae7c..0x4eb054, the elf that walks up to hit, 0x566271; 06 § Pegar al llegar).
 namespace Client::Pathfinding
 {
 class ENGINE_API PathFinder
@@ -23,18 +23,17 @@ public:
     explicit PathFinder(TerrainWalls& walls);
     explicit PathFinder(Data::Terrain::TerrainLayer<std::uint16_t>& walls);
 
-    // Exacto (500 extracciones), luego el más cercano (50). Cero en x/y del inicio falla
-    // (Q-C156), igual que el clic en la propia celda. Con x/y del inicio distintos de 0,
-    // clearGoal pone el WORD completo de la meta en 0, incluso si luego no se consigue un camino.
-    // Con x o y del inicio en 0 sale antes de tocar la meta (0x4eadc1..0x4eadce). clearGoal es la
-    // bandera +0x20 de 0x4ead70, que 0x4eac00 calcula en 0x4eac0a..0x4eac41 y pasa a las dos pasadas:
-    // un altar de Crywolf elegido con el evento activo (Scenes::CrywolfAltarGoal).
-    // Con `distance` distinta de 0 (la comparación de 0x4eadd4 con el 0 de 0x6b86a0), clearGoal no cuenta y la meta son
-    // las celdas a menos de `distance` de `goal`: r = ftol(distance); en cada fila dy de −r a r, las de |dx| ≤ r − |dy|
-    // siempre y las de afuera si sqrt(dx² + dy²) < distance (FILD, FSQRT y FCOMP con el float); con el paso exacto,
-    // solo las que tienen el WORD del TerrainWall debajo del muro. El índice es el lineal (fila · 256 + x), que en los
-    // bordes pasa a la fila de al lado, y fuera de 0..65535 no marca nada. Una distancia fuera del perfil de ftol no
-    // encuentra camino.
+    // Exact (500 pops), then the closest (50). Zero in the start's x or y fails (Q-C156), like clicking one's own cell.
+    // With the start's x and y non-zero, clearGoal zeroes the goal's whole WORD, even if no path is found later; with x
+    // or y at 0 it returns before touching the goal (0x4eadc1..0x4eadce). clearGoal is 0x4ead70's +0x20 flag, which
+    // 0x4eac00 computes in 0x4eac0a..0x4eac41 and passes to both passes: a Crywolf altar picked with the event active
+    // (Scenes::CrywolfAltarGoal).
+    // With a non-zero `distance` (0x4eadd4's comparison with 0x6b86a0's 0), clearGoal does not count and the goal is
+    // the cells within `distance` of `goal`: r = ftol(distance); in each row dy from −r to r, those with |dx| ≤ r −
+    // |dy| always and those outside if sqrt(dx² + dy²) < distance (FILD, FSQRT and FCOMP with the float); with the
+    // exact pass, only those with the TerrainWall WORD below the wall. The index is linear (row · 256 + x), which at
+    // the edges wraps to the next row, and outside 0..65535 marks nothing. A distance outside ftol's profile finds no
+    // path.
     [[nodiscard]] std::optional<Path> Find(PathCell start, PathCell goal, bool clearGoal = false,
                                            float distance = 0.0f);
 

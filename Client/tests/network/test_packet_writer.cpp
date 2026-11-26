@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::PacketWriter: un paquete C1 o C2 campo por campo, sin XOR32 (eso es Xor32Test).
+// Without XOR32 (that is Xor32Test).
 namespace
 {
 using Client::Network::MaxC1Size;
@@ -26,8 +26,7 @@ using Client::Network::PacketWriter;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
-// Un escritor del tipo `type` que al terminar mide `size` bytes: la cabecera, el opcode 0x42 y el
-// resto en 0x11.
+// The header, opcode 0x42 and the rest 0x11.
 PacketWriter OfSize(PacketType type, std::size_t size)
 {
     PacketWriter writer = type == PacketType::C1 ? PacketWriter::C1(0x42) : PacketWriter::C2(0x42);
@@ -36,8 +35,7 @@ PacketWriter OfSize(PacketType type, std::size_t size)
     return writer;
 }
 
-// El `F3 00` que el 04 muestra con su XOR32 (`C1 04 F3 7A`), antes del XOR32: C1, el tamaño, el
-// opcode y un campo.
+// 04's `F3 00`, shown there with its XOR32 (`C1 04 F3 7A`), before the XOR32.
 TEST(PacketWriterTest, BuildsAC1WithItsSize)
 {
     const auto packet = PacketWriter::C1(0xF3).PutU8(0x00).Finish();
@@ -48,8 +46,7 @@ TEST(PacketWriterTest, BuildsAC1WithItsSize)
     EXPECT_TRUE(SameBytes(packet.Value().Bytes(), Bytes({0xC1, 0x04, 0xF3, 0x00})));
 }
 
-// Un C2, antes del XOR32: el tamaño en dos bytes, big-endian. Los bytes son los del ejemplo de la
-// guía de la CL2.0.
+// The bytes of the CL2.0 guide's example, before the XOR32.
 TEST(PacketWriterTest, BuildsAC2WithItsSizeBigEndian)
 {
     const auto packet = PacketWriter::C2(0x42).PutU8(0x0B).PutU8(0x30).Finish();
@@ -59,7 +56,6 @@ TEST(PacketWriterTest, BuildsAC2WithItsSizeBigEndian)
     EXPECT_TRUE(SameBytes(packet.Value().Bytes(), Bytes({0xC2, 0x00, 0x06, 0x42, 0x0B, 0x30})));
 }
 
-// Los enteros van little-endian, salvo PutU16Be, en el orden en que se agregan.
 TEST(PacketWriterTest, PutsEachFieldInOrder)
 {
     const std::vector<std::byte> tail = Bytes({0xAA, 0xBB});
@@ -72,7 +68,7 @@ TEST(PacketWriterTest, PutsEachFieldInOrder)
                           Bytes({0xC1, 0x0D, 0x10, 0x34, 0x12, 0x12, 0x34, 0x44, 0x33, 0x22, 0x11, 0xAA, 0xBB})));
 }
 
-// El tamaño de un C2, con el byte alto en 0 y distinto de 0.
+// With the high byte 0 and non-zero.
 TEST(PacketWriterTest, WritesTheSizeOfAC2BigEndian)
 {
     const struct
@@ -94,8 +90,8 @@ TEST(PacketWriterTest, WritesTheSizeOfAC2BigEndian)
     }
 }
 
-// Q-C06: el original saltea el campo que no entra en 0x800 bytes, y un C1 de más de 255 que sale en
-// claro lleva el tamaño truncado. MuRet no saca ninguno de los dos: es TooLarge.
+// Q-C06: the original skips the field that does not fit in 0x800 bytes, and a C1 over 255 sent in the clear carries
+// a truncated size. MuRet sends neither: it is TooLarge.
 TEST(PacketWriterTest, RejectsWhatDoesNotFitInsteadOfTruncatingIt)
 {
     EXPECT_TRUE(OfSize(PacketType::C1, MaxC1Size).Finish().HasValue());
@@ -109,7 +105,6 @@ TEST(PacketWriterTest, RejectsWhatDoesNotFitInsteadOfTruncatingIt)
     EXPECT_EQ(c2.Error(), PacketError::TooLarge);
 }
 
-// Finish() no cambia el escritor: se puede terminar dos veces, o seguir agregando.
 TEST(PacketWriterTest, FinishLeavesTheWriterAsItWas)
 {
     PacketWriter writer = PacketWriter::C1(0x20);
@@ -125,7 +120,6 @@ TEST(PacketWriterTest, FinishLeavesTheWriterAsItWas)
     EXPECT_TRUE(SameBytes(longer.Value().Bytes(), Bytes({0xC1, 0x05, 0x20, 0xAA, 0xBB})));
 }
 
-// Un paquete sin campos: la cabecera y el opcode.
 TEST(PacketWriterTest, APacketWithoutFieldsIsHeaderAndOpcode)
 {
     const auto c1 = PacketWriter::C1(0x0E).Finish();
@@ -136,13 +130,11 @@ TEST(PacketWriterTest, APacketWithoutFieldsIsHeaderAndOpcode)
     EXPECT_TRUE(SameBytes(c2.Value().Bytes(), Bytes({0xC2, 0x00, 0x04, 0x0E})));
 }
 
-// Un Put en un escritor con nombre devuelve el mismo escritor; en un temporal, otro escritor, así
-// una referencia al temporal no compila.
+// On a temporary, Put returns another writer, so a reference to the temporary does not compile.
 static_assert(std::is_same_v<decltype(std::declval<PacketWriter&>().PutU8(0)), PacketWriter&>);
 static_assert(std::is_same_v<decltype(PacketWriter::C1(0).PutU8(0)), PacketWriter>);
 static_assert(std::is_same_v<decltype(PacketWriter::C1(0).PutU8(0).PutU16Le(0).PutU16Be(0).PutU32Le(0)), PacketWriter>);
 
-// Encadenar en un temporal da lo mismo que en un escritor con nombre.
 TEST(PacketWriterTest, ChainingOnATemporaryGivesTheSamePacket)
 {
     const std::vector<std::byte> tail = Bytes({0xAA, 0xBB});
@@ -157,8 +149,7 @@ TEST(PacketWriterTest, ChainingOnATemporaryGivesTheSamePacket)
     EXPECT_TRUE(SameBytes(fromTemporary.Value().Bytes(), fromNamed.Value().Bytes()));
 }
 
-// Un escritor del que se movieron los campos sigue armando su tipo con su opcode: un C1 no puede
-// terminar como otro tipo, aunque los campos que se le agreguen después empiecen con C3.
+// A C1 cannot end as another type, even if the fields added later start with C3.
 TEST(PacketWriterTest, AMovedFromWriterStillBuildsItsType)
 {
     PacketWriter original = PacketWriter::C1(0x10);

@@ -11,54 +11,39 @@
 #include <span>
 #include <string>
 
-// Las llamadas del sistema para un socket TCP no bloqueante, iguales en Windows (Winsock 2) y en
-// Linux (BSD): el único #ifdef _WIN32 de ClientLib está en SocketApi.cpp, y este header no incluye
-// ningún header del sistema, así que <winsock2.h> y sus macros no llegan al resto del cliente.
-// Contrato: el plan de la CL4 (CL4.1), "Contrato" y la tabla del paso 2, y 03-red-y-cifrado.md,
-// "Sockets". Como referencia de estructura, Core/Platform/NonBlockingSocket.h de MuMain.
-//
-// Por qué los sockets del sistema y no una biblioteca (CODING_RULES.md §10; pregunta 3 del plan,
-// confirmada con Context7 el 2026-11-02, con los puertos de la baseline de vcpkg.json):
-// - asio standalone (puerto `asio`, 1.38.2): solo headers sin Boost, y io_context::poll() corre
-//   los handlers listos sin esperar, así que entraría en un frame. Pero el modelo es otro:
-//   operaciones asíncronas con handlers y buffers que tienen que vivir hasta el handler, para una
-//   sola conexión que se consulta por frame. Y el roadmap del servidor la deja como comparación
-//   (D-3).
-// - SDL3_net (puerto `sdl3-net`, 3.2.0, estable): todo no bloqueante, NET_CreateClient conecta en
-//   el fondo, NET_ResolveHostname resuelve en sus hilos y NET_ReadFromStreamSocket da 0 sin
-//   datos. NET_WriteToStreamSocket encola adentro lo que no sale, sin tope, y
-//   NET_GetStreamSocketPendingWrites dice cuánto quedó, así que el tope de 0x2000 del original se
-//   armaría encima. No entra porque el puerto depende de sdl3: sumaría SDL3 a Engine, que hoy
-//   no lo ve (solo Platform), y Network y sus tests dejarían de correr sin SDL3.
-// - los sockets del sistema: estas pocas llamadas, sin dependencias. Lo único que se pierde es
-//   resolver un nombre sin esperar, y el original tampoco lo hace (pregunta 5).
+// The system calls for a non-blocking TCP socket, the same on Winsock 2 and BSD. This header includes no system
+// header, so <winsock2.h> and its macros do not reach the rest of the client (03-red-y-cifrado.md, "Sockets").
+// Not a library (CODING_RULES §10, checked with Context7 on 2026-11-02): standalone asio's model is asynchronous
+// handlers whose buffers must live until the handler, for one connection polled per frame; SDL3_net queues writes
+// with no cap (the original's 0x2000 cap would sit on top) and depends on SDL3, which Engine does not see. The only
+// loss is resolving a name without waiting, and the original does not do that either.
 namespace Client::Network::SocketApi
 {
-// SOCKET (UINT_PTR) en Windows, int en POSIX: los dos entran en un uintptr_t. INVALID_SOCKET es
-// ~0 en Windows; en POSIX un descriptor nunca llega ahí.
+// SOCKET (UINT_PTR) on Windows, int on POSIX: both fit in a uintptr_t. INVALID_SOCKET is ~0 on Windows; on POSIX a
+// descriptor never gets there.
 using Handle = std::uintptr_t;
 inline constexpr Handle InvalidHandle = ~Handle{0};
 
-// Lo que dio una llamada, ya traducido del errno o del WSAGetLastError.
+// Already translated from errno or WSAGetLastError.
 enum class Status : std::uint8_t
 {
-    Done,       // salió bien; en Receive y Send, `bytes` dice cuántos
-    TryLater,   // EWOULDBLOCK, EAGAIN, WSAEWOULDBLOCK o EINTR: no hay nada todavía
-    InProgress, // el connect sigue: EINPROGRESS o EINTR en Linux, WSAEWOULDBLOCK en Windows
-    Refused,    // ECONNREFUSED o WSAECONNREFUSED
-    PeerClosed, // recv en 0, o ECONNRESET, ECONNABORTED, EPIPE, WSAECONNRESET o WSAECONNABORTED
-    Failed,     // otro error: `systemError` lo dice
+    Done,       // in Receive and Send, `bytes` says how many
+    TryLater,   // EWOULDBLOCK, EAGAIN, WSAEWOULDBLOCK or EINTR: nothing yet
+    InProgress, // EINPROGRESS or EINTR on Linux, WSAEWOULDBLOCK on Windows
+    Refused,
+    PeerClosed, // recv at 0, or ECONNRESET, ECONNABORTED, EPIPE, WSAECONNRESET or WSAECONNABORTED
+    Failed,     // another error: `systemError` says which
 };
 
 struct Result
 {
     Status status = Status::Done;
     std::size_t bytes = 0;
-    int systemError = 0; // el errno o el WSAGetLastError, para el log; 0 si no hubo
+    int systemError = 0; // errno or WSAGetLastError, for the log; 0 if none
 };
 
-// Winsock recibe el largo de recv y send en un int: cada llamada pide INT_MAX bytes como mucho, y
-// la que sigue manda el resto. En Linux se usa el mismo tope, así los dos se portan igual.
+// Winsock takes recv and send's length as an int: each call asks for at most INT_MAX bytes and the next sends the
+// rest. Linux uses the same cap so both behave alike.
 inline constexpr std::size_t MaxBytesPerCall = static_cast<std::size_t>(std::numeric_limits<int>::max());
 
 [[nodiscard]] constexpr std::size_t BytesPerCall(std::size_t wanted)
@@ -66,9 +51,8 @@ inline constexpr std::size_t MaxBytesPerCall = static_cast<std::size_t>(std::num
     return std::min(wanted, MaxBytesPerCall);
 }
 
-// WSAStartup(MAKEWORD(2, 2)) y WSACleanup en Windows; nada en Linux. WSAStartup cuenta las
-// llamadas, así que puede haber varios a la vez (main.cpp el suyo, cada test con sockets el suyo).
-// Todo socket tiene que vivir menos que el NetworkInit que lo vio nacer.
+// WSAStartup(MAKEWORD(2, 2)) and WSACleanup on Windows; nothing on Linux. WSAStartup counts calls, so several can
+// coexist (main.cpp's, each socket test's). Every socket must die before the NetworkInit it was born under.
 class ENGINE_API NetworkInit
 {
 public:
@@ -79,7 +63,7 @@ public:
     NetworkInit(NetworkInit&&) = delete;
     NetworkInit& operator=(NetworkInit&&) = delete;
 
-    // Si WSAStartup salió bien (en Linux, siempre). Si no, SystemError() dice por qué.
+    // Always on Linux. If not, SystemError() says why.
     [[nodiscard]] bool IsReady() const;
     [[nodiscard]] int SystemError() const;
 
@@ -87,7 +71,6 @@ private:
     int m_systemError = 0;
 };
 
-// RAII sobre un Handle: se mueve, no se copia, y el destructor cierra (close o closesocket).
 class ENGINE_API UniqueSocket
 {
 public:
@@ -101,61 +84,53 @@ public:
 
     [[nodiscard]] Handle Get() const;
     [[nodiscard]] bool IsOpen() const;
-    // Cierra el que tenga y queda vacío.
     void Reset();
 
 private:
     Handle m_handle = InvalidHandle;
 };
 
-// Un socket recién abierto, o vacío con lo que falló en `result`.
+// Or empty, with what failed in `result`.
 struct Opened
 {
     UniqueSocket socket;
     Result result;
 };
 
-// socket(AF_INET, SOCK_STREAM, 0), IPv4 y TCP como el 0x4e82e0 del original, ya no bloqueante.
+// IPv4 and TCP like the original's 0x4e82e0, already non-blocking.
 [[nodiscard]] ENGINE_API Opened OpenTcp();
 
-// Empieza a conectar: InProgress casi siempre; Done o Refused si el sistema ya lo sabe.
+// InProgress almost always; Done or Refused if the system already knows.
 [[nodiscard]] Result Connect(Handle socket, std::array<std::uint8_t, 4> ip, std::uint16_t port);
 
-// Si el connect terminó, sin esperar: Done, InProgress, Refused o Failed. Con poll en Linux
-// (select no puede con un descriptor desde FD_SETSIZE), y con select con escritura y excepciones
-// en Windows (ahí un connect que falló no se ve como escribible). El resultado sale de SO_ERROR,
-// que se borra al leerlo: quien llama guarda el final.
+// Without waiting: poll on Linux (select cannot handle a descriptor from FD_SETSIZE up), select with write and
+// exception sets on Windows (there a failed connect is not seen as writable). The result comes from SO_ERROR, which
+// is cleared when read: the caller keeps the final one.
 [[nodiscard]] Result CheckConnect(Handle socket);
 
-// Lo que haya, hasta buffer.size(): Done con los bytes, TryLater si no hay nada, PeerClosed si el
-// otro lado cerró. Con un buffer vacío, Done con 0 sin llamar a recv: recv daría 0 si hay datos o
-// si el otro lado cerró, y 0 es un cierre.
+// TryLater if nothing, PeerClosed if the other side closed. An empty buffer gives Done with 0 without calling recv:
+// recv would give 0 both with data and on a close, and 0 is a close.
 [[nodiscard]] ENGINE_API Result Receive(Handle socket, std::span<std::byte> buffer);
 
-// Done con lo que tomó el sistema, TryLater si no tomó nada. Con MSG_NOSIGNAL en Linux: un send a
-// una conexión que el otro lado cerró da EPIPE en vez de la señal SIGPIPE, que mataría el proceso.
+// TryLater if the system took nothing. MSG_NOSIGNAL on Linux: a send to a connection the other side closed gives
+// EPIPE instead of SIGPIPE, which would kill the process.
 [[nodiscard]] ENGINE_API Result Send(Handle socket, std::span<const std::byte> bytes);
 
-// La IPv4 de un texto como "127.0.0.1", con inet_pton: no pregunta al DNS.
+// With inet_pton: no DNS query.
 [[nodiscard]] std::optional<std::array<std::uint8_t, 4>> ParseIpv4(const std::string& text);
 
-// La primera IPv4 de un nombre, con getaddrinfo y AF_INET: espera lo que tarde el DNS.
+// With getaddrinfo and AF_INET: waits as long as the DNS takes.
 [[nodiscard]] std::optional<std::array<std::uint8_t, 4>> LookUpIpv4(const std::string& host);
 
-// Del lado del servidor, para los tests (el LoopbackServer y un puerto sin nadie que escuche): el
-// cliente no escucha.
-//
-// Un socket atado a 127.0.0.1 con el puerto que elija el sistema (bind al 0), sin listen y no
-// bloqueante. Mientras viva, nadie más toma ese puerto, y un connect a él se rechaza.
+// Server side, for the tests (the LoopbackServer and a port nobody listens on): the client does not listen. Bound to
+// 127.0.0.1 on a port the system picks, no listen, non-blocking. While it lives nobody else takes the port, and a
+// connect to it is refused.
 [[nodiscard]] ENGINE_API Opened BindOnLoopback();
-// Un listener en 127.0.0.1 con el puerto que elija el sistema: BindOnLoopback y listen.
 [[nodiscard]] ENGINE_API Opened ListenOnLoopback();
-// El puerto local de un socket (getsockname), o 0 si no se pudo leer.
+// 0 if it could not be read.
 [[nodiscard]] ENGINE_API std::uint16_t LocalPort(Handle socket);
-// Un cliente que espera en el listener, ya no bloqueante (en Linux accept no lo hereda), o vacío
-// con TryLater si no hay ninguno.
+// Already non-blocking (on Linux accept does not inherit it), or empty with TryLater if there is none.
 [[nodiscard]] ENGINE_API Opened Accept(Handle listener);
-// SO_LINGER {1, 0} y cerrar: el otro lado recibe un RST en vez de un FIN, como en el 0x4e8380 del
-// original (el kick).
+// SO_LINGER {1, 0} and close: the other side gets a RST instead of a FIN, like the original's 0x4e8380 (the kick).
 ENGINE_API void CloseWithReset(UniqueSocket& socket);
 } // namespace Client::Network::SocketApi

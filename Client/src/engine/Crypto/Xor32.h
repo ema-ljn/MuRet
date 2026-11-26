@@ -7,33 +7,24 @@
 #include <cstdint>
 #include <span>
 
-// XOR32, el cifrado encadenado del motor de envío: cada byte se combina con un byte de una clave de
-// 32 y con el byte anterior ya cifrado.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "Envío: el motor C1/C2 y el XOR32", y el
-// plan de la CL2 (CL2.2).
-//
-// En un C1 o un C2, el byte i (desde el que sigue al opcode) hace
-// `valor ^= Xor32Key[i & 31] ^ pkt[i - 1]`: el primero se encadena con el opcode, que va en claro.
-// Para descifrar se recorre al revés, del último al primero, mientras el anterior sigue cifrado.
-//
-// No protege nada: la clave está en el binario. Es ofuscación (la guía de la CL2.0, actividad 5).
+// XOR32, the send engine's chained cipher (Client/docs/research/03-red-y-cifrado.md, "Envío: el motor C1/C2 y el
+// XOR32"). In a C1 or C2, byte i (from the one after the opcode) does `value ^= Xor32Key[i & 31] ^ pkt[i - 1]`: the
+// first chains with the opcode, which is plain. Decrypting walks backwards while the previous byte is still
+// encrypted. It protects nothing: the key is in the binary.
 namespace Client::Crypto
 {
-// La tabla de 32 bytes del motor (03 § Envío; XOR32_KEY en red_reference.py).
+// The engine's 32-byte table (03 § Envío; XOR32_KEY in red_reference.py).
 inline constexpr std::array<std::uint8_t, 32> Xor32Key{
     0xE7, 0x6D, 0x3A, 0x89, 0xBC, 0xB2, 0x9F, 0x73, 0x23, 0xA8, 0xFE, 0xB6, 0x49, 0x5D, 0x39, 0x5D,
     0x8A, 0xCB, 0x63, 0x8D, 0xEA, 0x7D, 0x2B, 0x5F, 0xC3, 0xB1, 0xE9, 0x83, 0x29, 0x51, 0xE8, 0x56,
 };
 
-// El núcleo, sobre bytes sueltos: desde bytes[first] hasta el final, cada uno con
-// Xor32Key[(i + keyShift) & 31] y el anterior ya cifrado. bytes[0] no tiene anterior y nunca
-// cambia, así que un `first` de 0 empieza en 1.
-//
-// Un C1 o un C2 entero es (pkt, HeaderSize + 1, 0). FoxAnti (CL2.4) lo usa sobre lo que va a
-// cifrarse en un C3/C4, el serial y el C1 desde su opcode, con (sealed, 2, 1) como el original.
-// Ahí deshace y rehace con la misma clave, así que el corrimiento se cancela: con cualquier otro
-// el resultado es el mismo, aunque lo de en medio no sea el C1 en claro (en un C2 que sale como C4
-// el corrimiento natural sería 2).
+// From bytes[first] to the end, each with Xor32Key[(i + keyShift) & 31] and the previous one already encrypted.
+// bytes[0] has no previous and never changes, so a `first` of 0 starts at 1. A whole C1 or C2 is
+// (pkt, HeaderSize + 1, 0). FoxAnti applies it to what will be encrypted in a C3/C4, the serial and the C1 from its
+// opcode, with (sealed, 2, 1) as the original. There it undoes and redoes with the same key, so the shift cancels: any
+// other gives the same result, even if what is in between is not the plain C1 (in a C2 sent as C4 the natural shift
+// would be 2).
 ENGINE_API void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 ENGINE_API void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 } // namespace Client::Crypto

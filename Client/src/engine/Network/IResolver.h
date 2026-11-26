@@ -7,24 +7,23 @@
 #include <cstdint>
 #include <string_view>
 
-// De un nombre o una IPv4 en texto a una IPv4. El del sistema (SystemResolver) espera mientras
-// pregunta al DNS, como el gethostbyname de 0x4e8570 (pregunta 5 del plan de la CL4); el de los
-// tests (FakeResolver) contesta lo que le digan, sin DNS.
+// The system one (SystemResolver) waits while it asks the DNS, like 0x4e8570's gethostbyname; the tests' one
+// (FakeResolver) answers what it is told, without DNS.
 namespace Client::Network
 {
-// Los cuatro bytes en el orden en que se escriben: 127.0.0.1 es {127, 0, 0, 1}.
+// In writing order: 127.0.0.1 is {127, 0, 0, 1}.
 using Ipv4Address = std::array<std::uint8_t, 4>;
 
 class IResolver
 {
 public:
     virtual ~IResolver() = default;
-    // La primera IPv4 de `host`, o ResolveFailed si no hay ninguna.
+    // ResolveFailed if there is none.
     [[nodiscard]] virtual Core::Expected<Ipv4Address, SocketError> Resolve(std::string_view host) = 0;
 
 protected:
-    // Como IObfuscation: se copia y se mueve solo desde una clase hija, para que asignar a través
-    // de dos IResolver& no copie solo la base (slicing).
+    // Like IObfuscation: copied and moved only from a derived class, so assigning through two IResolver& does not copy
+    // only the base (slicing).
     IResolver() = default;
     IResolver(const IResolver&) = default;
     IResolver& operator=(const IResolver&) = default;

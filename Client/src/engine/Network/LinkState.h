@@ -2,15 +2,13 @@
 
 #include <cstdint>
 
-// En qué está una Connection (Network/Connection.h). En su propio header, como CloseReason.h, para
-// quien solo necesita el estado y no la conexión entera.
-// Contrato: el plan de la CL4 (CL4.3), "Interfaces".
+// In its own header, like CloseReason.h, for whoever needs only the state and not the whole connection.
 namespace Client::Network
 {
 enum class LinkState : std::uint8_t
 {
     Closed,
-    Connecting, // desde Open hasta el Poll que da el Opened
+    Connecting, // from Open to the Poll that gives the Opened
     Open,
 };
 } // namespace Client::Network

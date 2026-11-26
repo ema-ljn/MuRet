@@ -5,27 +5,23 @@
 #include <cstdint>
 #include <string_view>
 
-// Lo que puede fallar al cargar una clave del SimpleModulus, el cifrado de los C3/C4, y al cifrar o
-// descifrar un paquete con ella.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", y el plan de la CL2 (CL2.3).
-// InvalidKey corrige un bug del original: Q-C41 en 07-quirks-y-bugs.md. De los del descifrado,
-// ChecksumMismatch es donde el original también mira (0x685b30 devuelve -1), y NotWholeBlocks,
-// InvalidBlock y TooShort, donde sigue sin mirar (03, "C3/C4").
+// Contract: Client/docs/research/03-red-y-cifrado.md, "C3/C4". InvalidKey fixes an original bug: Q-C41 in
+// 07-quirks-y-bugs.md. Of the decryption ones, ChecksumMismatch is where the original checks too (0x685b30 returns
+// -1); NotWholeBlocks, InvalidBlock and TooShort are where it does not (03, "C3/C4").
 namespace Client::Crypto
 {
 enum class CryptoError : std::uint8_t
 {
-    InvalidKeyFile,   // otro magic, otro tamaño declarado, o menos bytes que los que declara
-    InvalidKey,       // un módulo en 0 o mayor que MaxModulus, o un XOR que llega al módulo (Q-C41)
-    WrongPacketType,  // un C3/C4 para cifrar, un C1/C2 para descifrar, o un Packet sin sus bytes
-    ChecksumMismatch, // el checksum de un bloque no coincide con sus 8 bytes descifrados
-    InvalidBlock,     // un bloque dice 0 o más de 8 bytes útiles, o uno que no es el último, menos
-    NotWholeBlocks,   // lo cifrado no mide un múltiplo de 11
-    TooShort,         // lo descifrado no trae el serial y el opcode
-    TooLarge,         // cifrado, el paquete pasaría de MaxPacketSize
+    InvalidKeyFile,   // another magic, another declared size, or fewer bytes than it declares
+    InvalidKey,       // a modulus of 0 or over MaxModulus, or an XOR that reaches the modulus (Q-C41)
+    WrongPacketType,  // a C3/C4 to encrypt, a C1/C2 to decrypt, or a Packet without its bytes
+    ChecksumMismatch, // a block's checksum does not match its 8 decrypted bytes
+    InvalidBlock,     // a block claims 0 or more than 8 useful bytes, or fewer when it is not the last
+    NotWholeBlocks,   // the encrypted size is not a multiple of 11
+    TooShort,         // the decrypted bytes lack the serial and the opcode
+    TooLarge,         // encrypted, the packet would exceed MaxPacketSize
 };
 
-// El error en palabras, para el log (la Connection, CL4.4): "el checksum de un bloque no coincide".
-// Nunca dice un valor de la clave ni del paquete.
+// For the log. Never shows a value of the key or the packet.
 [[nodiscard]] ENGINE_API std::string_view CryptoErrorText(CryptoError error);
 } // namespace Client::Crypto

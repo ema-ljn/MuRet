@@ -9,15 +9,14 @@
 #include <cstddef>
 #include <span>
 
-// La ofuscación que no toca nada: para un servidor que manda y espera los paquetes como main.exe.
-// Contrato: el plan de la CL2 (CL2.4).
+// For a server that sends and expects packets as main.exe does.
 namespace Client::Network
 {
 class ENGINE_API IdentityObfuscation final : public IObfuscation
 {
 public:
-    // Una que comparten el PacketReader y EncryptPacket cuando no les pasan otra. No tiene estado,
-    // así que una sola alcanza, y vive hasta que termina el programa.
+    // The PacketReader and EncryptPacket share it when given no other. Stateless, so one is enough, and it lives until
+    // the program ends.
     [[nodiscard]] static const IdentityObfuscation& Shared();
 
     [[nodiscard]] std::byte InboundMask(std::byte firstWireByte) const override;

@@ -21,9 +21,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::SystemSocket, con sockets de verdad contra un LoopbackServer en 127.0.0.1 (el
-// plan de la CL4, CL4.1, paso 3). Todo en un hilo: lo que el sistema hace en el fondo (el connect,
-// el accept, que lleguen los bytes o el cierre) se espera con RetryUntil, hasta 5 s reales.
+// Real sockets against a LoopbackServer on 127.0.0.1, all on one thread: what the system does in the background (the
+// connect, the accept, bytes or the close arriving) is awaited with RetryUntil, up to 5 real seconds.
 namespace
 {
 using Client::Network::ConnectProgress;
@@ -42,11 +41,9 @@ using Client::Tests::SameBytes;
 using ByteVector = std::vector<std::byte>;
 
 constexpr const char* Loopback = "127.0.0.1";
-// Más grande que todo lo que manda un test: un Receive trae lo que haya llegado.
+// Larger than anything a test sends: a Receive brings whatever arrived.
 constexpr std::size_t ReadSize = 64;
 
-// Lo que dio Receive mientras no hubo un error, hasta juntar `count` bytes o hasta el tope, de a
-// `readSize` bytes por llamada.
 ByteVector ReceiveAtLeast(SystemSocket& socket, std::size_t count, std::size_t readSize = ReadSize)
 {
     ByteVector received;
@@ -80,7 +77,6 @@ ByteVector ReadAtLeast(LoopbackServer& server, std::size_t count)
     return received;
 }
 
-// El primer error de Receive, o nullopt si no hubo ninguno antes del tope.
 std::optional<SocketError> ReceiveUntilAnError(SystemSocket& socket)
 {
     std::optional<SocketError> error;
@@ -104,8 +100,6 @@ protected:
         ASSERT_NE(m_server.Port(), 0);
     }
 
-    // StartConnect al servidor, y PollConnect y Accept en el mismo lazo hasta que los dos digan
-    // que sí.
     ::testing::AssertionResult ConnectTo(SystemSocket& socket)
     {
         const auto started = socket.StartConnect(Loopback, m_server.Port());
@@ -135,7 +129,7 @@ protected:
         return ::testing::AssertionSuccess();
     }
 
-    // En este orden: los sockets mueren antes que el NetworkInit.
+    // In this order: the sockets die before the NetworkInit.
     NetworkInit m_network;
     SystemResolver m_resolver;
     LoopbackServer m_server;
@@ -147,7 +141,6 @@ TEST_F(SystemSocketTest, ConnectsToALoopbackListener)
     ASSERT_TRUE(ConnectTo(m_socket));
 
     EXPECT_TRUE(m_socket.IsOpen());
-    // El resultado final queda guardado.
     EXPECT_EQ(m_socket.PollConnect().Value(), ConnectProgress::Connected);
     EXPECT_EQ(m_socket.PollConnect().Value(), ConnectProgress::Connected);
 }
@@ -162,12 +155,12 @@ TEST_F(SystemSocketTest, ReceiveWithNothingIsZero)
     EXPECT_EQ(taken.Value(), 0u);
 }
 
-// Con bytes esperando, un recv de 0 bytes da 0, que es lo que da un cierre: Receive no lo llama.
+// With bytes waiting, a 0-byte recv gives 0, which is what a close gives: Receive does not call it.
 TEST_F(SystemSocketTest, AnEmptyReceiveIsNotAClose)
 {
     ASSERT_TRUE(ConnectTo(m_socket));
     m_server.Write(Bytes({0xC1, 0x04, 0x00, 0x01}));
-    // Cuando llega el primero, los otros tres ya esperan en el socket: salieron en un solo send.
+    // They left in a single send.
     ASSERT_EQ(ReceiveAtLeast(m_socket, 1, 1).size(), 1u);
 
     const auto empty = m_socket.Receive(std::span<std::byte>());
@@ -196,7 +189,7 @@ TEST_F(SystemSocketTest, APeerThatClosesIsClosed)
     EXPECT_EQ(ReceiveUntilAnError(m_socket), SocketError::Closed);
 }
 
-// Un RST, como el kick de 0x4e8380: recv da ECONNRESET, que también es que el otro lado cerró.
+// A RST, like 0x4e8380's kick: recv gives ECONNRESET, which is also the other side closing.
 TEST_F(SystemSocketTest, AResetIsClosed)
 {
     ASSERT_TRUE(ConnectTo(m_socket));
@@ -205,12 +198,10 @@ TEST_F(SystemSocketTest, AResetIsClosed)
     EXPECT_EQ(ReceiveUntilAnError(m_socket), SocketError::Closed);
 }
 
-// Un puerto donde nadie escucha: el de un socket atado a 127.0.0.1 sin listen, vivo todo el test.
-// Nadie más puede tomar ese puerto mientras tanto, y el connect no puede volver a sí mismo (el
-// puerto efímero del cliente nunca es uno ocupado). El SYN no encuentra un listener y vuelve un
-// RST: en Linux el connect da EINPROGRESS y el rechazo llega en el primer PollConnect; en Windows
-// tarda unos 2 s, por los reintentos. SO_ERROR se borra al leerlo, y el siguiente PollConnect
-// daría Connected si el resultado no quedara guardado.
+// The port of a socket bound to 127.0.0.1 without listen, alive the whole test: nobody else can take it, and the
+// connect cannot loop back to itself. The SYN finds no listener and a RST comes back: on Linux the connect gives
+// EINPROGRESS and the refusal arrives on the first PollConnect; on Windows it takes about 2 s, from the retries.
+// SO_ERROR is cleared when read, and the next PollConnect would give Connected if the result were not kept.
 TEST_F(SystemSocketTest, AClosedPortIsRefused)
 {
     const SocketApi::Opened bound = SocketApi::BindOnLoopback();
@@ -235,7 +226,7 @@ TEST_F(SystemSocketTest, AClosedPortIsRefused)
     EXPECT_EQ(ErrorOf(m_socket.PollConnect()), SocketError::Refused);
 }
 
-// El SystemResolver con un nombre que no existe depende del DNS: queda para la prueba a mano.
+// Depends on the DNS: left to the manual test.
 TEST_F(SystemSocketTest, AnUnknownHostFailsToResolve)
 {
     FakeResolver nowhere;
@@ -248,11 +239,10 @@ TEST_F(SystemSocketTest, AnUnknownHostFailsToResolve)
     EXPECT_EQ(nowhere.hosts[0], "nombre.invalid");
 }
 
-// Después del FIN, el primer send sale y el otro lado contesta con un RST; el siguiente da EPIPE, y
-// en Linux, sin MSG_NOSIGNAL, la señal SIGPIPE mataría el proceso del test. En Windows no hay
-// señal: da WSAECONNRESET o WSAECONNABORTED, cuando llega el RST, que se procesa en el fondo. Por
-// eso se manda de a 1.024 bytes hasta el primer error, con el tope de RetryUntil, y no diez veces
-// seguidas: lo que da un send después del primer error no es parte del contrato.
+// After the FIN the first send leaves and the other side answers with a RST; the next gives EPIPE, and on Linux,
+// without MSG_NOSIGNAL, SIGPIPE would kill the test process. Windows has no signal: it gives WSAECONNRESET or
+// WSAECONNABORTED when the RST, processed in the background, arrives. So it sends 1,024 bytes at a time until the
+// first error, within RetryUntil's cap: what a send gives after the first error is not part of the contract.
 TEST_F(SystemSocketTest, SendingAfterThePeerClosedDoesNotKillTheProcess)
 {
     constexpr std::size_t SendSize = 1024;
@@ -291,7 +281,6 @@ TEST_F(SystemSocketTest, AMovedSocketIsClosed)
     EXPECT_TRUE(SameBytes(ReadAtLeast(m_server, request.size()), request));
 }
 
-// El que recibe cierra el socket que tenía: el servidor ve el cierre.
 TEST_F(SystemSocketTest, AMoveAssignmentClosesTheOldOne)
 {
     SystemSocket other(m_resolver);

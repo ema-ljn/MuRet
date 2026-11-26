@@ -19,8 +19,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Crypto::Xor32: el cifrado encadenado del motor de envío, con los paquetes del
-// cable (04-protocolo.md), el C2 del binario y los vectores de Client/tests/vectors/net/.
+// With the wire's packets (04-protocolo.md), the binary's C2 and the vectors of Client/tests/vectors/net/.
 namespace
 {
 using Client::Crypto::Xor32DecodeBytes;
@@ -36,14 +35,13 @@ using Client::Tests::PacketOf;
 using Client::Tests::ReadNetVector;
 using Client::Tests::SameBytes;
 
-// Los bytes de `packet` después del XOR32.
 std::vector<std::byte> Encoded(std::vector<std::byte> bytes)
 {
     const Packet packet = Xor32Encode(PacketOf(std::move(bytes)));
     return {packet.Bytes().begin(), packet.Bytes().end()};
 }
 
-// Los dos C1 del cable del laboratorio que el 04 muestra en claro y cifrados.
+// The lab wire's two C1s that 04 shows in the clear and encrypted.
 TEST(Xor32Test, EncodesTheC1sOfTheWire)
 {
     EXPECT_TRUE(SameBytes(Encoded(Bytes({0xC1, 0x04, 0xF3, 0x00})), Bytes({0xC1, 0x04, 0xF3, 0x7A})));
@@ -51,24 +49,24 @@ TEST(Xor32Test, EncodesTheC1sOfTheWire)
         SameBytes(Encoded(Bytes({0xC1, 0x06, 0xA9, 0x00, 0x00, 0x01})), Bytes({0xC1, 0x06, 0xA9, 0x20, 0x9C, 0x2F})));
 }
 
-// El aviso de un C3 que no se pudo descifrar, como lo arma 0x4e1d50 antes de envolverlo (CL2.3):
-// el FIX_F1_PLAIN de test_net_send.c, en mu-client.
+// The notice of a C3 that could not be decrypted, as 0x4e1d50 builds it before wrapping it: test_net_send.c's
+// FIX_F1_PLAIN, in mu-client.
 TEST(Xor32Test, EncodesTheDecryptErrorReport)
 {
     EXPECT_TRUE(
         SameBytes(Encoded(Bytes({0xC1, 0x06, 0xF1, 0x03, 0x06, 0x00})), Bytes({0xC1, 0x06, 0xF1, 0x7B, 0xC1, 0x73})));
 }
 
-// Un C2 con el modelo de la ventana de cartas (`0x498b2c..0x498b89`, el único emisor de un C2): el
-// opcode va en claro, y el primer byte cifrado, el 4, se encadena con él (03 § Envío). Los bytes
-// son los del ejemplo de la guía de la CL2.0; la ventana manda otro opcode, `C5`.
+// A C2 shaped like the letter window's (`0x498b2c..0x498b89`, the only sender of a C2): the opcode stays in the clear
+// and the first encrypted byte, 4, chains with it (03 § Envío). The bytes are the CL2.0 guide's example; the window
+// sends another opcode, `C5`.
 TEST(Xor32Test, EncodesAC2WithTheOpcodeInClear)
 {
     EXPECT_TRUE(
         SameBytes(Encoded(Bytes({0xC2, 0x00, 0x06, 0x42, 0x0B, 0x30})), Bytes({0xC2, 0x00, 0x06, 0x42, 0xF5, 0x77})));
 }
 
-// El C2 largo de los vectores: 300 bytes, con la clave dando la vuelta nueve veces.
+// 300 bytes, with the key wrapping nine times.
 TEST(Xor32Test, EncodesTheLongC2OfTheVectors)
 {
     const std::vector<std::byte> expected = ReadNetVector("c2-long.bin");
@@ -80,8 +78,8 @@ TEST(Xor32Test, EncodesTheLongC2OfTheVectors)
     EXPECT_TRUE(SameBytes(encoded.Bytes(), expected));
 }
 
-// Cada byte cifrado es el claro con la clave de su índice y el cifrado anterior, y la clave vuelve a
-// empezar cada 32: el 35 usa key[3], como el 3, y el 19 usa key[19].
+// Each encrypted byte is the plain one with its index's key and the previous encrypted byte, and the key restarts
+// every 32: byte 35 uses key[3], like byte 3, and byte 19 uses key[19].
 TEST(Xor32Test, TheKeyStartsOverAtByte32)
 {
     constexpr std::size_t Size = 70;
@@ -97,7 +95,6 @@ TEST(Xor32Test, TheKeyStartsOverAtByte32)
     }
 }
 
-// Descifrar deshace cifrar, en un C1 y en un C2, y el opcode no cambia en ninguno.
 TEST(Xor32Test, DecodeUndoesEncodeAndKeepsTheOpcode)
 {
     for (const bool isC1 : {true, false})
@@ -116,7 +113,7 @@ TEST(Xor32Test, DecodeUndoesEncodeAndKeepsTheOpcode)
     }
 }
 
-// Un C3 y un C4 vuelven igual: lo que llevan adentro se cifra antes de envolverlo.
+// What they carry is encrypted before wrapping.
 TEST(Xor32Test, LeavesC3AndC4AsTheyAre)
 {
     const std::vector<std::byte> c3 = Bytes({0xC3, 0x05, 0x20, 0xAA, 0xBB});
@@ -128,8 +125,8 @@ TEST(Xor32Test, LeavesC3AndC4AsTheyAre)
     EXPECT_TRUE(SameBytes(Xor32Decode(PacketOf(c4)).Bytes(), c4));
 }
 
-// Lo que FoxAnti cifra en un C3 (CL2.4): el serial y el C1 desde su opcode. Con (sealed, 2, 1) da lo
-// mismo que el C1 cifrado, y el serial y el opcode quedan en claro.
+// What FoxAnti encrypts in a C3: the serial and the C1 from its opcode. With (sealed, 2, 1) it equals the encrypted
+// C1, and the serial and the opcode stay in the clear.
 TEST(Xor32Test, EncodeBytesOnTheSerialAndTheC1FromItsOpcode)
 {
     const std::vector<std::byte> c1 = Bytes({0xC1, 0x06, 0xF1, 0x03, 0x06, 0x00});
@@ -146,8 +143,7 @@ TEST(Xor32Test, EncodeBytesOnTheSerialAndTheC1FromItsOpcode)
     EXPECT_TRUE(SameBytes(std::span(sealed).subspan(1), std::span(c1).subspan(2)));
 }
 
-// El byte 0 no tiene anterior: con `first` en 0 empieza en 1. Con `first` después del final no
-// cambia nada.
+// Byte 0 has no previous: with `first` at 0 it starts at 1. With `first` past the end nothing changes.
 TEST(Xor32Test, EncodeBytesNeverTouchesTheFirstByte)
 {
     const std::vector<std::byte> plain = BytePattern(8, 37, 11);

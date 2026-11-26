@@ -104,7 +104,7 @@ int SystemSocket::LastSystemError() const
     return m_lastSystemError;
 }
 
-// Solo el connect pasa por acá: Done es Connected, y un error queda como el resultado final.
+// Only the connect goes through here: Done is Connected, and an error stays as the final result.
 Core::Expected<ConnectProgress, SocketError> SystemSocket::Settle(const SocketApi::Result& result)
 {
     switch (result.status)

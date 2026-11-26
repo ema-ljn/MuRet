@@ -11,48 +11,47 @@
 #include <string_view>
 #include <variant>
 
-// Los sprintf y wsprintfA del original con sus argumentos tal cual (CL9 hito 11), para los textos de Text.bmd que el
-// original usa de formato. A diferencia de UI::PlaceArguments, mira el tipo de cada argumento: un texto se pasa por
-// su dirección (g_GlobalText, 0x76bd1dc + índice · 300), y un "%d" que lo toma imprime esa dirección, como el
-// original con los textos 853 y 868 del Data en español.
+// The original's sprintf and wsprintfA with their arguments as they are, for the Text.bmd texts the original uses as
+// formats. Unlike UI::PlaceArguments it looks at each argument's type: a text is passed by its address (g_GlobalText,
+// 0x76bd1dc + index · 300), and a "%d" that takes it prints that address, as the original does with texts 853 and 868
+// of the Spanish Data.
 namespace Client::Crt
 {
-// 0x76bd1dc: el primer registro de Text.bmd en memoria, de 300 bytes cada uno (06 § Los textos).
+// 0x76bd1dc: Text.bmd's first record in memory, 300 bytes each (06 § Los textos).
 inline constexpr std::uint32_t TextTableAddress = 0x076bd1dc;
 inline constexpr std::uint32_t TextRecordBytes = 300;
 
-// Un texto de Text.bmd como argumento: su índice (para la dirección) y su contenido.
+// Its index (for the address) and its content.
 struct TextArgument
 {
     std::size_t index;
     std::string_view text;
 };
 
-// Otro texto por puntero (el nombre del héroe, +0x1d9 de [0x743a170]): su dirección, si MuRet la sabe. Un "%d" o un
-// "%c" que lo toma sin ella corta.
+// Another text by pointer (the hero's name, +0x1d9 of [0x743a170]): its address, if MuRet knows it. A "%d" or "%c"
+// that takes it without one fails.
 struct StringArgument
 {
     std::string_view text;
     std::optional<std::uint32_t> address{};
 };
 
-// Un número por valor (un DWORD en la pila) o un texto por puntero.
+// A number by value (a DWORD on the stack) or a text by pointer.
 using FormatArgument = std::variant<std::int32_t, TextArgument, StringArgument>;
 
 enum class FormatFunction : std::uint8_t
 {
-    // 0x69fd9b, el sprintf de la CRT: las banderas "-+ #0", el ancho y la precisión. "% d" pone un espacio delante
-    // de un número sin signo, y con "%s" el espacio no hace nada.
+    // 0x69fd9b, the CRT's sprintf: flags "-+ #0", width and precision. "% d" puts a space before an unsigned number,
+    // and with "%s" the space does nothing.
     Sprintf,
-    // wsprintfA de user32 ([0x6b851c]): solo las banderas "-", "#" y "0". *Inferido* (P-C290): con otro carácter
-    // después de las banderas, el ancho y la precisión (el ' ' de "% d"), lo copia y no toma argumento, y la 'd'
-    // que sigue sale como texto.
+    // user32's wsprintfA ([0x6b851c]): only the flags "-", "#" and "0". *Inferred* (P-C290): another character after
+    // the flags, width and precision (the ' ' of "% d") is copied without taking an argument, and the 'd' after it
+    // comes out as text.
     Wsprintf,
 };
 
-// `format` con `arguments` en orden. Las conversiones son d, i, u, x, X, c, s y %%. Un "%s" con un número (el
-// original lee un puntero que no es), una conversión sin argumento (lee la pila) o una que MuRet no tiene cortan con
-// error en `where`.
+// Conversions d, i, u, x, X, c, s and %%. A "%s" with a number (the original reads a bogus pointer), a conversion
+// without an argument (it reads the stack) or one MuRet lacks fail with an error at `where`.
 [[nodiscard]] ENGINE_API Core::Expected<std::string, std::string>
 FormatOriginal(FormatFunction function, std::string_view format, std::span<const FormatArgument> arguments,
                std::string_view where);

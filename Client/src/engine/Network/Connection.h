@@ -26,59 +26,48 @@
 #include <variant>
 #include <vector>
 
-// El camino de un paquete por una conexión con un servidor, en el orden del original. Al recibir:
-// el socket, el corte con la máscara de la ofuscación (PacketReader), AfterCut, el descifrado de un
-// C3/C4 y BeforeDispatch. Al mandar: el cifrado de lo que va Encrypted (con el BeforeEncrypt de la
-// ofuscación), BeforeSend y la cola (SendQueue).
-// Contrato: el plan de la CL4 (CL4.3 y CL4.4), "Contrato" e "Interfaces"; 03-red-y-cifrado.md,
-// "Cadena de recepción" y "C3/C4", y el orden que dice IObfuscation.h.
-//
-// La consulta el bucle una vez por frame (Poll), en su hilo (D-C5), y nunca espera, salvo al
-// resolver el nombre en Open (pregunta 5 del plan). Lo que pasa sale como eventos, en orden, y no
-// se despacha acá: Network no ve a Protocol. Lo despacha quien la usa (la ServerSession).
-//
-// Las claves son de cada conexión: el GameServer las tiene, el ConnectServer no. Sin claves, un
-// C3/C4 que llega es Undecryptable, y lo que va Encrypted no sale. Los seriales de los C3/C4 son
-// de la conexión y vuelven a 0 en cada Open, como 0x4c1340 al conectar al GameServer.
-//
-// Un paquete malo no siempre corta. Un error del corte cierra con BadStream, porque se perdió dónde
-// empieza el siguiente; un InvalidPacket de la ofuscación se descarta con un aviso y la conexión
-// sigue, porque el largo lo dio la cabecera.
+// A packet's path through a server connection, in the original's order (03-red-y-cifrado.md, "Cadena de recepción"
+// and "C3/C4", and IObfuscation.h). Receiving: the socket, the framing with the obfuscation's mask (PacketReader),
+// AfterCut, a C3/C4's decryption and BeforeDispatch. Sending: encryption of what goes Encrypted (with the
+// obfuscation's BeforeEncrypt), BeforeSend and the queue (SendQueue). The loop polls it once per frame on its thread
+// (D-C5) and it never waits, except resolving the name in Open. What happens comes out as events, in order, and is
+// not dispatched here: Network does not see Protocol. Keys are per connection: the GameServer's has them, the
+// ConnectServer's does not; without keys an incoming C3/C4 is Undecryptable and what goes Encrypted does not leave.
+// C3/C4 serials restart at 0 on each Open, like 0x4c1340 when connecting to the GameServer. A framing error closes
+// with BadStream, since where the next packet starts is lost; an obfuscation InvalidPacket is dropped with a warning
+// and the connection goes on, since the header gave the length.
 namespace Client::Network
 {
-// Pregunta 5: lo que se espera a que termine un connect. El original no tiene uno propio: su
-// connect es bloqueante (0x4e8570).
+// The original has none: its connect blocks (0x4e8570).
 inline constexpr Core::Duration ConnectTimeout = std::chrono::seconds{10};
 
-// Lo que se lee por Poll: lecturas de 0x2000, el buffer de recv del original (0x4e88af), hasta que
-// no haya más o hasta 8, para acotar el trabajo de un frame. El 8 es de MuRet.
+// Reads of 0x2000, the original's recv buffer (0x4e88af), until there is no more or up to 8, to bound a frame's work.
+// The 8 is MuRet's.
 inline constexpr std::size_t ReceiveChunkSize = 0x2000;
 inline constexpr int MaxReadsPerPoll = 8;
 
-// Pregunta 5: si resolver el host y empezar a conectar tarda más que esto, va al log. El resolver
-// del sistema espera a getaddrinfo, y mientras tanto el juego no dibuja.
+// If resolving the host and starting to connect takes longer, it is logged: the system resolver waits on getaddrinfo,
+// and the game does not draw meanwhile.
 inline constexpr Core::Duration SlowConnectStart = std::chrono::milliseconds{100};
 
-// Las claves de los C3/C4 con el GameServer: Enc1.dat para lo que sale y Dec2.dat para lo que
-// llega (03 § C3/C4).
+// The C3/C4 keys with the GameServer: Enc1.dat for what leaves and Dec2.dat for what arrives (03 § C3/C4).
 struct ConnectionKeys
 {
     Client::Crypto::EncryptionKey encryption;
     Client::Crypto::DecryptionKey decryption;
 };
 
-// Lo que pasa en un Poll.
-struct Opened // el connect terminó: va antes de lo que llegó en el mismo Poll
+struct Opened // the connect finished: goes before what arrived in the same Poll
 {
 };
-// Un C3/C4 que llegó y no se despacha: quien usa la conexión decide si manda el aviso F1 03 (el
-// original lo manda con un checksum malo). El aviso al log ya lo dejó la conexión.
+// Not dispatched: the connection's user decides whether to send the F1 03 notice (the original sends it with a bad
+// checksum). The connection already logged it.
 struct Undecryptable
 {
-    // Por qué no se descifró; std::nullopt si la conexión no tiene claves (la del ConnectServer).
+    // std::nullopt if the connection has no keys (the ConnectServer's).
     std::optional<Client::Crypto::CryptoError> error;
 };
-struct Closed // siempre lo último del lote; el motivo también queda en LastCloseReason()
+struct Closed // always last in the batch; the reason also stays in LastCloseReason()
 {
     CloseReason reason;
 };
@@ -87,79 +76,70 @@ using Event = std::variant<Opened, Packet, Undecryptable, Closed>;
 class ENGINE_API Connection
 {
 public:
-    // El socket, la ofuscación, el reloj y el log son de quien la arma y tienen que vivir más que
-    // ella. Una ofuscación temporal no compila, porque moriría antes. `paddingSeed` siembra el
-    // std::mt19937 del byte de relleno de lo que se cifra, que en el original sale de rand(): los
-    // tests le dan uno fijo, y main.cpp le va a dar uno de std::random_device cuando arme la
-    // conexión (la CL4.5 pone la sesión en el bucle).
+    // The socket, the obfuscation, the clock and the log belong to the builder and must outlive it; a temporary
+    // obfuscation does not compile. `paddingSeed` seeds the std::mt19937 of the encrypted padding byte, which the
+    // original takes from rand(): the tests give a fixed one.
     Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
                std::uint32_t paddingSeed);
     Connection(ISocket& socket, const IObfuscation&& obfuscation, Core::IClock& clock, Core::Log& log,
                std::uint32_t paddingSeed) = delete;
 
-    // Guarda referencias: no se copia ni se mueve.
+    // It keeps references.
     Connection(const Connection&) = delete;
     Connection& operator=(const Connection&) = delete;
     ~Connection() = default;
 
-    // Cierra lo que haya, sin evento (lo pidió quien la usa); vacía el corte y la cola, vuelve los
-    // seriales a 0, se queda con las claves (std::nullopt: sin cifrado, como con el ConnectServer)
-    // y empieza a conectar. Si resolver y empezar a conectar tarda más que SlowConnectStart, lo
-    // anota. Un connect que el socket ya terminó sale en el próximo Poll: el Opened, porque
-    // PollConnect repite el resultado (ISocket.h), o el Closed, si falló. Network no ve a App: el
-    // host y el puerto llegan sueltos.
+    // Closes whatever is open without an event (its user asked), empties the framing and the queue, resets the serials
+    // to 0, keeps the keys (std::nullopt: no encryption, as with the ConnectServer) and starts connecting. A connect
+    // the socket already finished comes out in the next Poll: the Opened, because PollConnect repeats the result
+    // (ISocket.h), or the Closed if it failed.
     void Open(std::string_view host, std::uint16_t port, std::optional<ConnectionKeys> keys);
 
-    // Una vez por frame: primero PollConnect y después el ConnectTimeout (un frame largo no corta
-    // un connect que ya terminó), manda lo encolado, lee, corta, traduce y descifra. Lo que pasó,
-    // en orden.
-    // Quien recorre el lote tira lo que queda si a mitad llamó a Open o a Close, o si State() pasó
-    // a Closed (un Send desde un handler la puede cerrar): es de una conexión que ya no está. Solo
-    // con el socket conectado lee o manda: un Closed ahí es el otro lado que cerró.
+    // Once per frame: PollConnect, then the ConnectTimeout (a long frame does not cut a connect that already finished),
+    // sends what is queued, reads, frames, translates and decrypts. Whoever walks the batch drops the rest if midway it
+    // called Open or Close, or if State() became Closed (a Send from a handler can close it): it belongs to a
+    // connection that is gone. It only reads or sends with the socket connected: a Closed there is the other side
+    // closing.
     [[nodiscard]] std::vector<Event> Poll();
 
-    // El XOR32 ya viene aplicado si lo lleva (Protocol). Lo que va Encrypted se cifra como C3/C4
-    // con el serial que sigue y un byte de relleno del std::mt19937; si EncryptPacket falla, no
-    // sale, con un aviso que dice el tipo, el opcode y el error, y la conexión sigue. Después pasa
-    // por BeforeSend, se encola y, con la conexión abierta, sale lo que el socket tome: con algo
-    // pendiente, lo nuevo va detrás, nunca directo. Mientras conecta espera en la cola hasta el
-    // Opened. Si la cola se llena o el socket falla, la cierra, y el Closed sale en el próximo
-    // Poll. Cerrada, se descarta con un aviso; lo que va Encrypted sin claves, también.
+    // XOR32 is already applied if it carries it (Protocol). What goes Encrypted is encrypted as C3/C4 with the next
+    // serial and a padding byte from the std::mt19937; if EncryptPacket fails it does not leave, with a warning naming
+    // the type, opcode and error, and the connection goes on. Then BeforeSend, the queue and, with the connection open,
+    // whatever the socket takes: with something pending, the new goes behind, never direct. While connecting it waits
+    // in the queue until the Opened. A full queue or a socket failure closes it, and the Closed comes out in the next
+    // Poll. Closed, it is dropped with a warning; so is what goes Encrypted without keys.
     void Send(Packet packet, Delivery delivery);
 
-    // Cierra sin evento: lo pidió quien la usa, y LastCloseReason() da ByClient. Si ya estaba
-    // cerrada, no hace nada.
+    // Without an event: its user asked, and LastCloseReason() gives ByClient. Does nothing if already closed.
     void Close();
 
     [[nodiscard]] LinkState State() const;
 
-    // Por qué se cerró desde el último Open; std::nullopt si no se cerró.
+    // Since the last Open; std::nullopt if it did not close.
     [[nodiscard]] std::optional<CloseReason> LastCloseReason() const;
 
 private:
     void PollConnect(std::vector<Event>& events);
 
-    // Manda lo encolado. false si cerró.
+    // false if it closed.
     bool FlushQueue();
 
-    // Lee hasta MaxReadsPerPoll veces y agrega lo que se cortó.
     void ReadAvailable(std::vector<Event>& events);
 
-    // Saca del corte los paquetes enteros, traducidos. false si el corte falló y cerró.
+    // false if the framing failed and it closed.
     bool TakePackets(std::vector<Event>& events);
 
-    // AfterCut, el descifrado si es un C3/C4 y BeforeDispatch: el Packet que se despacha, o el
-    // Undecryptable de un C3/C4 que no. std::nullopt si se descarta, con su aviso.
+    // AfterCut, decryption if it is a C3/C4, and BeforeDispatch: the Packet to dispatch, or a C3/C4's Undecryptable.
+    // std::nullopt if dropped, with its warning.
     std::optional<Event> Translate(Packet packet);
 
-    // Descifra un C3/C4 que llegó: el C1/C2 rearmado, o por qué no, con su aviso.
+    // The rebuilt C1/C2, or why not, with its warning.
     Core::Expected<Packet, Undecryptable> Decrypt(const Packet& encrypted);
 
-    // El byte de relleno del próximo paquete cifrado.
     std::byte NextPadding();
 
-    // Cierra el socket, vacía el corte y la cola, y lo anota en el log. El Closed sale en el Poll
-    // que sigue, o al final de este, salvo con ByClient.
+    // Closes the socket, empties the framing and the queue, and logs it. The Closed comes out in the next Poll, or at
+    // the end of this one, except with ByClient.
     void CloseWith(CloseReason reason);
 
     ISocket& m_socket;
@@ -170,7 +150,7 @@ private:
     LinkState m_state = LinkState::Closed;
     Core::Duration m_connectStartedAt{};
     std::optional<CloseReason> m_lastCloseReason;
-    std::optional<CloseReason> m_closeToReport; // el Closed que todavía no salió en un Poll
+    std::optional<CloseReason> m_closeToReport; // the Closed not yet reported by a Poll
     PacketReader m_reader;
     SendQueue m_queue;
     std::optional<ConnectionKeys> m_keys;

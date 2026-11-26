@@ -5,17 +5,13 @@
 #include <cstddef>
 #include <span>
 
-// XOR3: cada byte i se combina con XOR con FC, CF o AB según i % 3. Aplicarlo dos veces devuelve
-// los bytes de antes, así que la misma función cifra y descifra.
-//
-// Lo usan las tablas .bmd y el terreno (Client/docs/research/05-formatos-de-datos.md, "Tablas
-// .bmd"; en el original, 0x5496c0 con la clave de 0x6c8c74, y 0x5f8650 para el .att) y la cuenta y
-// la clave del login (04-protocolo.md, "F1 01"; 0x4c1690 con la de 0x6c82e4). El original tiene
-// cada copia con su clave, que son los mismos tres bytes; MuRet tiene una sola.
-//
-// i se cuenta desde el principio de `bytes`. Aplicarlo por partes da lo mismo que de una vez solo
-// si cada parte arranca en un múltiplo de 3, como los registros de 300 bytes de Text.bmd. El login
-// lo aplica a la cuenta y a la clave por separado, así que en cada campo vuelve a empezar en FC.
+// Byte i is XORed with FC, CF or AB by i % 3; applying it twice restores the bytes, so one function encrypts and
+// decrypts. Used by the .bmd tables and the terrain (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd";
+// 0x5496c0 with the key at 0x6c8c74, and 0x5f8650 for the .att) and by the login's account and password
+// (04-protocolo.md, "F1 01"; 0x4c1690 with the key at 0x6c82e4). The original keeps a copy per use, all with the same
+// three bytes. i counts from the start of `bytes`: applying it in parts equals applying it at once only if each part
+// starts at a multiple of 3, like Text.bmd's 300-byte records. The login applies it to account and password
+// separately, so each field restarts at FC.
 namespace Client::Crypto
 {
 ENGINE_API void Xor3(std::span<std::byte> bytes);

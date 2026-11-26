@@ -8,9 +8,7 @@
 #include <limits>
 #include <utility>
 
-// Client::Network::SocketApi: lo que no necesita una conexión. El RAII de NetworkInit y de
-// UniqueSocket, y el tope de bytes por llamada de Winsock. Lo demás lo prueba SystemSocketTest
-// contra un listener de verdad.
+// What needs no connection. The rest is tested by SystemSocketTest against a real listener.
 namespace
 {
 using Client::Network::SocketApi::BytesPerCall;
@@ -22,7 +20,7 @@ using Client::Network::SocketApi::OpenTcp;
 using Client::Network::SocketApi::Status;
 using Client::Network::SocketApi::UniqueSocket;
 
-// recv y send de Winsock reciben el largo en un int.
+// Winsock's recv and send take the length as an int.
 TEST(SocketApiTest, EachCallAsksForAtMostIntMax)
 {
     EXPECT_EQ(MaxBytesPerCall, static_cast<std::size_t>(std::numeric_limits<int>::max()));
@@ -32,7 +30,7 @@ TEST(SocketApiTest, EachCallAsksForAtMostIntMax)
     EXPECT_EQ(BytesPerCall(MaxBytesPerCall + 1), MaxBytesPerCall);
 }
 
-// WSAStartup cuenta las llamadas: el de adentro no apaga la red del de afuera.
+// WSAStartup counts calls: the inner one does not shut down the outer one's network.
 TEST(SocketApiTest, NetworkInitCanBeNested)
 {
     const NetworkInit outer;
@@ -56,7 +54,6 @@ TEST(SocketApiTest, AnEmptyUniqueSocketIsNotOpen)
     EXPECT_FALSE(socket.IsOpen());
 }
 
-// El que se movió queda vacío y su destructor no cierra el socket del otro, que sigue escuchando.
 TEST(SocketApiTest, AMovedUniqueSocketIsEmptyAndTheOtherKeepsIt)
 {
     const NetworkInit network;
@@ -95,7 +92,7 @@ TEST(SocketApiTest, AnEmptyBufferDoesNotCallTheSystem)
     const auto opened = OpenTcp();
     ASSERT_TRUE(opened.socket.IsOpen());
 
-    // El socket no está conectado: si llamaran a recv o a send, darían un error.
+    // The socket is not connected: a recv or send call would give an error.
     const auto received = Client::Network::SocketApi::Receive(opened.socket.Get(), {});
     const auto sent = Client::Network::SocketApi::Send(opened.socket.Get(), {});
 

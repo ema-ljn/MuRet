@@ -3,22 +3,20 @@
 #include <cstddef>
 #include <utility>
 
-// El std::sort de la STL de MSVC6 (el <algorithm> de Dinkumware de VC6), que no es estable y deja los iguales en un
-// orden propio: el original lo instancia sobre los deque de sus listas (0x49c260 con 0x4ab930, el _Sort; 0x4ac4a0, el
-// _Insertion_sort; 0x4abe00, el _Unguarded_insert; 0x4ac6c0, el _Median, y 0x4ac760, el _Unguarded_partition, con el
-// iterador del deque, 0x4acc70, y la copia de un elemento, 0x4accd0). Para
-// que los iguales queden donde los deja el original, MuRet corre el mismo algoritmo y no el std::sort de su STL.
-// `items` es un contenedor con operator[] y size() (un std::deque o un std::vector), y `less` el comparador del
-// original, que puede no ser un orden estricto.
+// The std::sort of MSVC6's STL (VC6's Dinkumware <algorithm>), unstable, which leaves equal elements in its own
+// order: the original instantiates it over its lists' deques (0x49c260 with 0x4ab930, _Sort; 0x4ac4a0,
+// _Insertion_sort; 0x4abe00, _Unguarded_insert; 0x4ac6c0, _Median; and 0x4ac760, _Unguarded_partition, with the
+// deque's iterator, 0x4acc70, and the element copy, 0x4accd0). MuRet runs the same algorithm so equal elements land
+// where the original leaves them. `less` is the original's comparator, which may not be a strict order.
 namespace Client::Crt
 {
-// _SORT_MAX: hasta 16, solo la inserción (0x49c260: la cuenta contra 0x11).
+// _SORT_MAX: up to 16, insertion only (0x49c260: the count against 0x11).
 inline constexpr std::ptrdiff_t Msvc6SortMax = 16;
 
 namespace Msvc6Detail
 {
-// _Unguarded_insert: corre `value` hacia el principio desde `last` mientras vaya antes que el de al lado. Sin guarda:
-// alguien a la izquierda lo frena.
+// _Unguarded_insert: moves `value` towards the front from `last` while it goes before its neighbor. Unguarded:
+// something on its left stops it.
 template <typename Items, typename Less>
 void UnguardedInsert(Items& items, std::ptrdiff_t last, typename Items::value_type value, Less& less)
 {
@@ -31,7 +29,7 @@ void UnguardedInsert(Items& items, std::ptrdiff_t last, typename Items::value_ty
     items[static_cast<std::size_t>(last)] = std::move(value);
 }
 
-// _Insertion_sort sobre [first, last): el que va antes que el primero corre todo uno a la derecha (copy_backward).
+// _Insertion_sort over [first, last): one that goes before the first shifts everything right (copy_backward).
 template <typename Items, typename Less>
 void InsertionSort(Items& items, std::ptrdiff_t first, std::ptrdiff_t last, Less& less)
 {
@@ -59,7 +57,7 @@ template <typename Value, typename Less> Value Median(const Value& x, const Valu
     return less(x, z) ? x : less(y, z) ? z : y;
 }
 
-// _Unguarded_partition con una copia del pivote.
+// _Unguarded_partition with a copy of the pivot.
 template <typename Items, typename Less>
 std::ptrdiff_t UnguardedPartition(Items& items, std::ptrdiff_t first, std::ptrdiff_t last,
                                   const typename Items::value_type& pivot, Less& less)
@@ -77,8 +75,8 @@ std::ptrdiff_t UnguardedPartition(Items& items, std::ptrdiff_t first, std::ptrdi
     }
 }
 
-// _Sort: la partición con la mediana del primero, el del medio y el último, la recursión sobre el lado que no es más
-// largo y la vuelta sobre el otro, mientras queden más de 16.
+// _Sort: partition with the median of the first, middle and last, recursion on the side that is not longer and a
+// loop on the other, while more than 16 remain.
 template <typename Items, typename Less>
 void QuickSort(Items& items, std::ptrdiff_t first, std::ptrdiff_t last, Less& less)
 {
@@ -103,8 +101,8 @@ void QuickSort(Items& items, std::ptrdiff_t first, std::ptrdiff_t last, Less& le
 }
 } // namespace Msvc6Detail
 
-// sort(first, last, less) de VC6 (_Sort_0): con más de 16, el _Sort, la inserción de los primeros 16 y la inserción sin
-// guarda de los demás.
+// VC6's sort(first, last, less) (_Sort_0): with more than 16, _Sort, insertion of the first 16 and unguarded insertion
+// of the rest.
 template <typename Items, typename Less> void Msvc6Sort(Items& items, Less less)
 {
     const auto count = static_cast<std::ptrdiff_t>(items.size());

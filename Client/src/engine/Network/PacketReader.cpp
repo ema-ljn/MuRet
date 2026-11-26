@@ -42,9 +42,8 @@ void PacketReader::Feed(std::span<const std::byte> bytes)
     {
         return;
     }
-    // Lo que ya salió se borra cuando es al menos tanto como lo que queda: correr lo que queda
-    // cuesta a lo sumo lo que se borra, y cada byte se borra una sola vez. Borrarlo en cada Feed
-    // correría todo lo pendiente cada vez, y sin sacar paquetes eso crece con cada lectura.
+    // What already left is erased once it is at least as much as what remains: shifting the rest then costs at most
+    // what is erased, and each byte is erased once. Erasing on every Feed would shift everything pending each time.
     if (m_consumed >= Pending())
     {
         m_buffer.erase(m_buffer.begin(), m_buffer.begin() + static_cast<std::ptrdiff_t>(m_consumed));
@@ -54,9 +53,8 @@ void PacketReader::Feed(std::span<const std::byte> bytes)
     m_buffer.insert(m_buffer.end(), bytes.begin(), bytes.end());
 }
 
-// Mira solo bytes que llegaron: el tipo con el primero, el tamaño con la cabecera entera, y el
-// paquete cuando están todos sus bytes. Los errores de tamaño salen apenas llega la cabecera. Antes
-// de mirar un byte lo desenmascara, y nunca uno del paquete siguiente, que puede llevar otro XOR.
+// Only looks at bytes that arrived; size errors come out as soon as the header arrives. Each byte is unmasked before
+// it is looked at, never one of the next packet, which may carry another XOR.
 Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
 {
     if (m_error)
@@ -88,8 +86,8 @@ Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
     {
         return std::optional<Packet>{};
     }
-    // Con el tipo y el tamaño ya mirados, FromBytes no puede fallar: si fallara, Value() aborta,
-    // porque sería un bug de este lector.
+    // With the type and the size already checked FromBytes cannot fail; if it did, Value() aborts: a bug in this
+    // reader.
     const std::span<const std::byte> bytes = pending.first(*size);
     Packet packet = Packet::FromBytes({bytes.begin(), bytes.end()}).Value();
     m_consumed += *size;
@@ -101,7 +99,7 @@ std::size_t PacketReader::Pending() const
     return m_buffer.size() - m_consumed;
 }
 
-// Si el paquete es nuevo, su máscara sale del primer byte tal como llegó del cable.
+// A new packet's mask comes from its first byte as it came off the wire.
 std::byte PacketReader::UnmaskFirstByte()
 {
     if (m_unmasked == m_consumed)
@@ -121,7 +119,7 @@ void PacketReader::UnmaskUpTo(std::size_t end)
     }
 }
 
-// El error queda, y lo que había se descarta: no se va a cortar nunca.
+// The error stays and what was pending is dropped: it will never be cut.
 Core::Expected<std::optional<Packet>, PacketError> PacketReader::Fail(PacketError reason)
 {
     m_error = reason;

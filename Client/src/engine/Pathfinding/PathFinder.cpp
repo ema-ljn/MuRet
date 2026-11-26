@@ -34,7 +34,7 @@ constexpr std::uint8_t ClosedFlag = 2;
 constexpr std::uint8_t GoalFlag = 4;
 constexpr std::size_t NoNode = std::numeric_limits<std::size_t>::max();
 
-// Los ocho pares de 0x6d5d80. El mismo orden decide los empates de padres y de la lista abierta.
+// The eight pairs of 0x6d5d80. The same order breaks ties of parents and of the open list.
 constexpr std::array<std::array<int, 2>, 8> Neighbors{
     {{{-1, -1}}, {{0, -1}}, {{1, -1}}, {{-1, 0}}, {{1, 0}}, {{-1, 1}}, {{0, 1}}, {{1, 1}}}};
 
@@ -59,7 +59,7 @@ int Heuristic(PathCell cell, PathCell goal)
 {
     const int dx = std::abs(cell.x - goal.x);
     int dy = std::abs(cell.y - goal.y);
-    // 0x4eb2c2 pone dy en cero, no h. Así la diagonal inmediata empata con la recta (Q-C159).
+    // 0x4eb2c2 zeroes dy, not h, so the immediate diagonal ties with the straight step (Q-C159).
     if (dx == 1 && dy == 1)
     {
         dy = 0;
@@ -72,8 +72,7 @@ int Heuristic(PathCell cell, PathCell goal)
 }
 } // namespace
 
-// Estado privado de una pasada; sólo flags, costos y padres de esa pasada pueden intervenir.
-// Limpiar toda la grilla equivale a limpiar [mínimo..máximo] tocados en 0x4ead7b..0x4eadbe.
+// One pass's private state. Clearing the whole grid equals clearing the touched [min..max] in 0x4ead7b..0x4eadbe.
 class PathFinder::SearchState
 {
 public:
@@ -88,7 +87,7 @@ public:
         {
             return std::nullopt;
         }
-        // 0x4eadd4..0x4eade8: FCOMP con C3, así que una distancia NaN también va por el radio.
+        // 0x4eadd4..0x4eade8: FCOMP with C3, so a NaN distance also goes by the radius.
         if (distance == 0.0f)
         {
             std::uint16_t& goalWall = m_walls[Index(m_goal)];
@@ -112,7 +111,7 @@ public:
     }
 
 private:
-    // 0x4eae7c..0x4eb054: la meta por radio. Cada celda que pasa queda con la bandera de meta (el `mov byte, 4`).
+    // 0x4eae7c..0x4eb054: the goal by radius. Each cell that passes gets the goal flag (the `mov byte, 4`).
     bool MarkTheRadius(bool exact, int wall, float distance)
     {
         const auto radius = Math::OriginalFtolLow(static_cast<double>(distance));
@@ -145,7 +144,7 @@ private:
             }
             for (int dx = -r; dx < inner; ++dx)
             {
-                // 0x4eaf86..0x4eaf93: C0 con el FCOMP, menor o sin orden.
+                // 0x4eaf86..0x4eaf93: C0 with the FCOMP, less or unordered.
                 const double length = std::sqrt(static_cast<double>(dx * dx + dy * dy));
                 if (!(length >= static_cast<double>(distance)))
                 {
@@ -172,8 +171,8 @@ private:
         std::size_t right = NoNode;
     };
 
-    // 0x4eb770: árbol sin balancear, clave menor a la izquierda, todos los iguales a la derecha.
-    // Los índices permanecen válidos aunque el vector que posee los nodos se realoque.
+    // 0x4eb770: an unbalanced tree, smaller key to the left, all equal ones to the right. Indices stay valid even if
+    // the vector owning the nodes reallocates.
     void Insert(PathCell cell, int priority)
     {
         std::size_t parent = NoNode;
@@ -199,8 +198,8 @@ private:
         }
     }
 
-    // 0x4eb110..0x4eb124 sólo llama 0x4c0dd0 con el mínimo: su hijo izquierdo siempre es nulo.
-    // Su hijo derecho ocupa su sitio; no se necesita la rama genérica de borrado con dos hijos.
+    // 0x4eb110..0x4eb124 only calls 0x4c0dd0 with the minimum: its left child is always null. Its right child takes its
+    // place; the generic two-children delete is not needed.
     PathCell PopMinimum()
     {
         std::size_t parent = NoNode;
@@ -221,7 +220,7 @@ private:
         return m_open[node].cell;
     }
 
-    // 0x4eb13e..0x4eb1ee recalcula al sacar, no al descubrir. Sólo actualiza con costo menor.
+    // 0x4eb13e..0x4eb1ee recomputes on pop, not on discovery. It only updates with a lower cost.
     void Close(PathCell cell, bool first)
     {
         CellState& current = m_cells[Index(cell)];
@@ -259,7 +258,7 @@ private:
             {
                 continue;
             }
-            // 0x4eb304..0x4eb311 usa el costo del padre, sin sumarle el paso hacia el vecino.
+            // 0x4eb304..0x4eb311 uses the parent's cost, without adding the step to the neighbor.
             Insert(*neighbor, Heuristic(*neighbor, m_goal) + m_cells[Index(cell)].cost);
             next.flags |= OpenFlag;
             next.parent = cell;

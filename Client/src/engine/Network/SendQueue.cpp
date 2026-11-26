@@ -41,8 +41,8 @@ std::optional<SendQueueError> SendQueue::Flush(ISocket& socket)
         {
             break;
         }
-        // Un socket no toma más de lo que se le dio; el min es para que uno roto no corra el
-        // cursor afuera del buffer.
+        // A socket takes no more than it was given; the min keeps a broken one from moving the cursor outside the
+        // buffer.
         m_sent += std::min(taken.Value(), pending.size());
     }
     if (Pending() == 0)
@@ -68,8 +68,8 @@ void SendQueue::Clear()
     m_end = 0;
 }
 
-// Hacia adelante y sin pisar: el destino empieza antes que lo que se copia. Con el cursor en 0 no
-// hay nada que correr (y std::copy no acepta un destino dentro de lo que copia).
+// Forward and without overlap: the destination starts before what is copied. With the cursor at 0 there is nothing
+// to shift (and std::copy does not take a destination inside its source).
 void SendQueue::Compact()
 {
     if (m_sent == 0)

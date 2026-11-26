@@ -10,12 +10,10 @@
 #include <string>
 #include <utility>
 
-// Lo único de ClientLib que mira _WIN32: estos includes y el bloque del principio del namespace
-// anónimo, con lo que cambia entre Winsock y BSD (iniciar la red, cerrar, el no bloqueante, el
-// último error y su traducción, y cómo se mira si terminó el connect). Lo de abajo de ese bloque es
-// igual en los dos, con los tipos de los largos y los buffers que el bloque nombra.
+// The only part of ClientLib that looks at _WIN32: these includes and the block at the start of the anonymous
+// namespace, with what differs between Winsock and BSD. Below that block the code is the same on both.
 #ifdef _WIN32
-// Sin las macros min y max de <windows.h>, que pisan std::min, ni lo que Winsock no necesita.
+// Without <windows.h>'s min and max macros, which override std::min, nor what Winsock does not need.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -39,24 +37,22 @@ namespace Client::Network::SocketApi
 {
 namespace
 {
-// Cómo está un connect en curso, mirado sin esperar.
 enum class ConnectCheck : std::uint8_t
 {
     Pending,  // sigue
-    Finished, // terminó, bien o mal: SO_ERROR dice cuál
-    Error,    // no se pudo mirar: LastError() dice por qué
+    Finished, // finished, well or badly: SO_ERROR says which
+    Error,    // could not be checked: LastError() says why
 };
 
 #ifdef _WIN32
 using NativeSocket = SOCKET;
 using AddressLength = int;
-// recv y send: el largo en un int, y el buffer como char*.
 using IoLength = int;
 using IoBuffer = char*;
 using ConstIoBuffer = const char*;
 constexpr int SendFlags = 0;
 
-// Lo que devuelve WSAStartup: 0, o el error (WSAGetLastError no sirve todavía).
+// WSAStartup returns 0 or the error (WSAGetLastError does not work yet).
 int StartNetwork()
 {
     WSADATA data{};
@@ -104,16 +100,15 @@ bool IsRefused(int error)
     return error == WSAECONNREFUSED;
 }
 
-// Winsock no tiene EPIPE: un send después del RST da WSAECONNRESET o WSAECONNABORTED.
+// Winsock has no EPIPE: a send after the RST gives WSAECONNRESET or WSAECONNABORTED.
 bool IsPeerClosed(int error)
 {
     return error == WSAECONNRESET || error == WSAECONNABORTED;
 }
 
-// En Windows un connect que falló no se ve como escribible, sino en las excepciones de select
-// (WSAPoll no lo avisaba en versiones viejas). Los fd_set se arman a mano, sin las macros FD_SET:
-// con un solo socket alcanza con su cuenta y su primer lugar, y select deja la cuenta en 0 si no
-// está listo.
+// On Windows a failed connect is not seen as writable but in select's exceptions (WSAPoll did not report it in old
+// versions). The fd_sets are built by hand, without FD_SET: with one socket its count and first slot are enough, and
+// select leaves the count at 0 if it is not ready.
 ConnectCheck CheckConnectWithoutWaiting(NativeSocket socket)
 {
     fd_set writable{};
@@ -134,8 +129,7 @@ using AddressLength = socklen_t;
 using IoLength = std::size_t;
 using IoBuffer = void*;
 using ConstIoBuffer = const void*;
-// Un send a una conexión que el otro lado cerró da EPIPE sin la señal SIGPIPE, que por defecto
-// mata el proceso.
+// A send to a connection the other side closed gives EPIPE without SIGPIPE, which kills the process by default.
 constexpr int SendFlags = MSG_NOSIGNAL;
 
 int StartNetwork()
@@ -166,13 +160,13 @@ bool SetNonBlocking(NativeSocket socket)
     return flags != -1 && fcntl(socket, F_SETFL, flags | O_NONBLOCK) != -1;
 }
 
-// EAGAIN y EWOULDBLOCK valen lo mismo en Linux, pero POSIX deja que sean distintos.
+// EAGAIN and EWOULDBLOCK are equal on Linux, but POSIX lets them differ.
 bool IsTryLater(int error)
 {
     return error == EAGAIN || error == EWOULDBLOCK || error == EINTR;
 }
 
-// Con EINTR, el connect sigue en el fondo: se mira igual que uno en curso.
+// With EINTR the connect goes on in the background: it is checked like one in progress.
 bool IsConnectInProgress(int error)
 {
     return error == EINPROGRESS || error == EINTR;
@@ -188,8 +182,8 @@ bool IsPeerClosed(int error)
     return error == ECONNRESET || error == ECONNABORTED || error == EPIPE;
 }
 
-// poll y no select: select no puede con un descriptor desde FD_SETSIZE. Un connect que falló da
-// POLLOUT y además POLLERR (y POLLHUP); SO_ERROR dice cuál fue.
+// poll, not select: select cannot handle a descriptor from FD_SETSIZE up. A failed connect gives POLLOUT plus POLLERR
+// (and POLLHUP); SO_ERROR says which.
 ConnectCheck CheckConnectWithoutWaiting(NativeSocket socket)
 {
     pollfd entry{};
@@ -241,8 +235,7 @@ Opened FailedToOpen(Result result)
     return opened;
 }
 
-// Lo que dio recv o send con -1: un error del sistema que no es "probá más tarde" ni un cierre del
-// otro lado es una falla.
+// A recv or send error that is neither "try later" nor the other side closing is a failure.
 Result TransferFailure(int error)
 {
     if (IsTryLater(error))
@@ -256,7 +249,7 @@ Result TransferFailure(int error)
     return Failure(error);
 }
 
-// El resultado de un connect que terminó o que falló enseguida, con su error (0 si conectó).
+// 0 if it connected.
 Result ConnectOutcome(int error)
 {
     if (error == 0)
@@ -275,7 +268,7 @@ sockaddr_in AddressOf(const std::array<std::uint8_t, 4>& ip, std::uint16_t port)
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_port = htons(port);
-    // Los cuatro bytes ya van en el orden de la red: 127.0.0.1 es 7F 00 00 01.
+    // The four bytes are already in network order: 127.0.0.1 is 7F 00 00 01.
     std::memcpy(&address.sin_addr, ip.data(), ip.size());
     return address;
 }
@@ -353,7 +346,7 @@ void UniqueSocket::Reset()
     }
 }
 
-// Si no se puede poner no bloqueante, lo cierra el destructor de `opened`, ya leído el error.
+// If it cannot be made non-blocking, `opened`'s destructor closes it, with the error already read.
 Opened OpenTcp()
 {
     const NativeSocket native = socket(AF_INET, SOCK_STREAM, 0);
@@ -372,7 +365,7 @@ Opened OpenTcp()
 Result Connect(Handle socket, std::array<std::uint8_t, 4> ip, std::uint16_t port)
 {
     const sockaddr_in address = AddressOf(ip, port);
-    // sockaddr_in se pasa como el sockaddr genérico: así lo pide la API de sockets.
+    // sockaddr_in is passed as the generic sockaddr: the sockets API asks for it.
     const auto length = static_cast<AddressLength>(sizeof(address));
     if (connect(ToNative(socket), reinterpret_cast<const sockaddr*>(&address), length) == 0)
     {
@@ -541,7 +534,7 @@ void CloseWithReset(UniqueSocket& socket)
     linger abortive{};
     abortive.l_onoff = 1;
     abortive.l_linger = 0;
-    // Si no se pudiera, el cierre sería un FIN: el test que lo pide lo ve.
+    // If it failed, the close would be a FIN: the test that asks for it sees it.
     static_cast<void>(setsockopt(ToNative(socket.Get()), SOL_SOCKET, SO_LINGER,
                                  reinterpret_cast<ConstIoBuffer>(&abortive),
                                  static_cast<AddressLength>(sizeof(abortive))));

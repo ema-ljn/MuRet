@@ -16,7 +16,7 @@ namespace Client::Network
 Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network::Packet& packet,
                                                                    const PacketKind& kind)
 {
-    // Opcode() es std::nullopt en un C3/C4, que lo lleva cifrado: también es otro paquete.
+    // Opcode() is std::nullopt in a C3/C4, which carries it encrypted: also another packet.
     if (packet.Type() != kind.type || packet.Opcode() != kind.opcode)
     {
         return Core::Unexpected(ProtocolError::WrongPacket);

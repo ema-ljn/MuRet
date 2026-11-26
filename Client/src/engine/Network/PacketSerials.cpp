@@ -4,8 +4,8 @@
 
 namespace Client::Network
 {
-// Un std::uint8_t que suma 1 da la vuelta de 255 a 0: la suma es en int, y la conversión de vuelta
-// a un tipo sin signo es módulo 256.
+// A std::uint8_t plus 1 wraps from 255 to 0: the sum is in int, and converting back to an unsigned type is modulo
+// 256.
 std::uint8_t PacketSerials::TakeSend()
 {
     const std::uint8_t serial = m_send;

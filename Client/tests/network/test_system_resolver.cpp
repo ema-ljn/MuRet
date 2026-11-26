@@ -10,10 +10,8 @@
 
 #include <string_view>
 
-// Client::Network::SystemResolver, sin DNS: una IPv4 en texto no pregunta a nadie, y lo que no
-// puede ser un nombre falla antes de preguntar. Un nombre de verdad, y uno que no existe
-// (`nombre.invalid`), quedan para la prueba a mano: dependen del DNS (el plan de la CL4,
-// "Qué no se prueba en CI").
+// Without DNS. A real name and a nonexistent one (`nombre.invalid`) are left to the manual test: they depend on the
+// DNS.
 namespace
 {
 using Client::Network::Ipv4Address;
@@ -41,7 +39,7 @@ TEST(SystemResolverTest, AnEmptyHostFails)
     EXPECT_EQ(ErrorOf(resolver.Resolve("")), SocketError::ResolveFailed);
 }
 
-// El sistema lee el texto hasta el primer 0: "127.0.0.1\0x" resolvería 127.0.0.1.
+// The system reads up to the first 0: "127.0.0.1\0x" would resolve 127.0.0.1.
 TEST(SystemResolverTest, AHostWithAZeroByteFails)
 {
     const NetworkInit network;

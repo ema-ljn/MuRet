@@ -12,25 +12,20 @@
 #include <span>
 #include <string_view>
 
-// El ISocket con los sockets del sistema (Network/SocketApi.h): IPv4 y TCP, no bloqueante desde
-// el principio, y el connect como una máquina de estados que el bucle consulta por frame.
-// Contrato: el plan de la CL4 (CL4.1), "Contrato".
-//
-// Lo que cambia respecto del original: el connect no espera (el de 0x4e8570 sí, con el socket
-// todavía bloqueante), 127.0.0.1 se acepta (0x4e8570 lo rechaza), y cerrar es un close normal, sin
-// el SO_LINGER {1, 0} de 0x4e8380 que corta con un RST.
-//
-// Necesita un SocketApi::NetworkInit vivo mientras tenga un socket.
+// Non-blocking from the start, with the connect as a state machine the loop polls each frame. Unlike the original:
+// the connect does not wait (0x4e8570's does, with the socket still blocking), 127.0.0.1 is accepted (0x4e8570 rejects
+// it), and closing is a normal close, without 0x4e8380's SO_LINGER {1, 0} that cuts with a RST. Needs a live
+// SocketApi::NetworkInit while it has a socket.
 namespace Client::Network
 {
 class ENGINE_API SystemSocket final : public ISocket
 {
 public:
-    // El resolver tiene que vivir más que el socket. Uno temporal no compila.
+    // The resolver must outlive the socket. A temporary does not compile.
     explicit SystemSocket(IResolver& resolver);
     SystemSocket(IResolver&&) = delete;
 
-    // Uno movido queda cerrado, sin conexión: el socket del sistema es del otro.
+    // A moved-from one is left closed: the system socket belongs to the other.
     SystemSocket(SystemSocket&& other) noexcept;
     SystemSocket& operator=(SystemSocket&& other) noexcept;
     SystemSocket(const SystemSocket&) = delete;
@@ -49,23 +44,22 @@ public:
 private:
     enum class State : std::uint8_t
     {
-        Idle,       // sin StartConnect desde el último Close
-        Connecting, // falta que CheckConnect diga cómo terminó
+        Idle,       // no StartConnect since the last Close
+        Connecting, // waiting for CheckConnect to say how it ended
         Connected,
-        Failed, // el connect terminó con m_failure
+        Failed, // the connect ended with m_failure
     };
 
-    // Lo que dio CheckConnect o Connect, pasado al estado: el resultado final queda guardado.
+    // The final result stays saved.
     Core::Expected<ConnectProgress, SocketError> Settle(const SocketApi::Result& result);
     Core::Expected<ConnectProgress, SocketError> FailConnect(SocketError error, int systemError);
-    // Lo que dio Receive o Send, como bytes o como error.
     Core::Expected<std::size_t, SocketError> Transferred(const SocketApi::Result& result);
 
-    // Nunca nulo: un puntero, para que el socket se pueda mover.
+    // Never null: a pointer, so the socket can be moved.
     IResolver* m_resolver;
     SocketApi::UniqueSocket m_socket;
     State m_state = State::Idle;
-    SocketError m_failure = SocketError::Closed; // el del connect, con m_state en Failed
+    SocketError m_failure = SocketError::Closed; // the connect's, with m_state at Failed
     int m_lastSystemError = 0;
 };
 } // namespace Client::Network

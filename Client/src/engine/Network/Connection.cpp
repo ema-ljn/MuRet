@@ -32,8 +32,7 @@ namespace Client::Network
 {
 namespace
 {
-// Lo que un error del socket dice del cierre. Closed es el otro lado: la conexión solo lee y manda
-// con el socket conectado (ISocket.h).
+// Closed is the other side: the connection only reads and sends with the socket connected (ISocket.h).
 CloseReason ReasonFor(SocketError error)
 {
     switch (error)
@@ -50,7 +49,7 @@ CloseReason ReasonFor(SocketError error)
     return CloseReason::SocketFailed;
 }
 
-// Por qué se descarta un paquete que llegó, o uno que iba a salir.
+// Why a packet that arrived, or one about to leave, is dropped.
 constexpr std::string_view NotTranslated = "la ofuscación no lo traduce";
 constexpr std::string_view NoKeys = "esta conexión no tiene claves";
 
@@ -59,7 +58,7 @@ bool IsEncrypted(PacketType type)
     return type == PacketType::C3 || type == PacketType::C4;
 }
 
-// Un paquete para el log, sin sus datos: el tipo y, si va en claro, el opcode ("C1 F4", "C3").
+// For the log, without its data: the type and, if plain, the opcode ("C1 F4", "C3").
 std::string KindOf(PacketType type, std::optional<std::uint8_t> opcode)
 {
     const auto typeByte = static_cast<std::uint8_t>(type);
@@ -85,7 +84,7 @@ Connection::Connection(ISocket& socket, const IObfuscation& obfuscation, Core::I
 
 void Connection::Open(std::string_view host, std::uint16_t port, std::optional<ConnectionKeys> keys)
 {
-    // Cerrada, el corte y la cola ya están vacíos: los vacía CloseWith, y Send no encola.
+    // Closed, the framing and the queue are already empty: CloseWith empties them, and Send does not queue.
     if (m_state != LinkState::Closed)
     {
         CloseWith(CloseReason::ByClient);
@@ -186,7 +185,7 @@ std::optional<CloseReason> Connection::LastCloseReason() const
     return m_lastCloseReason;
 }
 
-// Primero si terminó y después el tope: un frame largo no corta un connect que ya terminó.
+// Whether it finished first, then the limit: a long frame does not cut a connect that already finished.
 void Connection::PollConnect(std::vector<Event>& events)
 {
     const Core::Expected<ConnectProgress, SocketError> progress = m_socket.PollConnect();
@@ -207,9 +206,8 @@ void Connection::PollConnect(std::vector<Event>& events)
     }
 }
 
-// Flush solo falla con Socket (Full es de Push), y el error ya quedó en LastSocketError(). Si no
-// estuviera, sería un bug de la cola: se toma como una falla del socket, sin decir que cerró el
-// otro lado.
+// Flush fails only with Socket (Full is Push's), and the error is already in LastSocketError(). If it were not, it
+// would be a queue bug: it is taken as a socket failure, without claiming the other side closed.
 bool Connection::FlushQueue()
 {
     if (!m_queue.Flush(m_socket).has_value())
@@ -220,8 +218,8 @@ bool Connection::FlushQueue()
     return false;
 }
 
-// Hasta que el socket no tenga nada más, hasta MaxReadsPerPoll lecturas, o hasta que cierre. Lo que
-// se cortó antes de un cierre ya está en el lote: el Closed va después.
+// Until the socket has nothing more, up to MaxReadsPerPoll reads, or until it closes. What was cut before a close is
+// already in the batch: the Closed goes after.
 void Connection::ReadAvailable(std::vector<Event>& events)
 {
     for (int read = 0; read < MaxReadsPerPoll; ++read)
@@ -236,8 +234,7 @@ void Connection::ReadAvailable(std::vector<Event>& events)
         {
             return;
         }
-        // Un socket no da más de lo que entra en el buffer; el min es para que uno roto no lea
-        // afuera.
+        // A socket gives no more than the buffer holds; the min keeps a broken one from reading outside it.
         const std::size_t size = std::min(received.Value(), m_receiveBuffer.size());
         m_reader.Feed(std::span<const std::byte>(m_receiveBuffer).first(size));
         if (!TakePackets(events))
@@ -269,8 +266,8 @@ bool Connection::TakePackets(std::vector<Event>& events)
     }
 }
 
-// El aviso dice lo que llegó del cable, el tipo y el opcode: se guardan antes de pasarle el paquete
-// a la ofuscación, que se queda con él. De un C3/C4 dice solo el tipo: el opcode va cifrado.
+// The warning shows what came off the wire, the type and the opcode: they are saved before the obfuscation takes the
+// packet. For a C3/C4 only the type: the opcode is encrypted.
 std::optional<Event> Connection::Translate(Packet packet)
 {
     const PacketType type = packet.Type();
@@ -300,8 +297,8 @@ std::optional<Event> Connection::Translate(Packet packet)
     return std::move(ready).Value();
 }
 
-// DecryptPacket ya movió el serial de recepción: con un error, al siguiente del que se esperaba;
-// con Resynced, al siguiente del que trajo.
+// DecryptPacket already moved the receive serial: on an error, to the one after the expected one; with Resynced, to
+// the one after the one it carried.
 Core::Expected<Packet, Undecryptable> Connection::Decrypt(const Packet& encrypted)
 {
     if (!m_keys)
@@ -327,15 +324,14 @@ Core::Expected<Packet, Undecryptable> Connection::Decrypt(const Packet& encrypte
     return std::move(result.packet);
 }
 
-// El byte de abajo de cada número: así la serie es la misma con cualquier biblioteca estándar,
-// porque std::mt19937 está fijado por el estándar (std::uniform_int_distribution, no).
+// The low byte of each number: the series is the same with any standard library, because std::mt19937 is fixed by
+// the standard (std::uniform_int_distribution is not).
 std::byte Connection::NextPadding()
 {
     return static_cast<std::byte>(m_padding() & 0xFFu);
 }
 
-// Solo la conexión ve el socket, así que el error del sistema de un SocketFailed lo anota ella,
-// antes de cerrarlo.
+// Only the connection sees the socket, so it records a SocketFailed's system error before closing it.
 void Connection::CloseWith(CloseReason reason)
 {
     if (reason == CloseReason::SocketFailed)

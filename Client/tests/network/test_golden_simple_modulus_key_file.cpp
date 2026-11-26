@@ -16,9 +16,8 @@
 #include <random>
 #include <vector>
 
-// Las claves reales: Enc1.dat y Dec2.dat del cliente, de la carpeta golden, y Dec1.dat y Enc2.dat
-// del servidor, de la carpeta del cable. Ningún test muestra un valor de una clave, ni cuando
-// falla: solo el carril.
+// The real keys: the client's Enc1.dat and Dec2.dat from the golden folder, the server's Dec1.dat and Enc2.dat from
+// the wire folder. No test shows a key value, not even on failure: only the lane.
 namespace
 {
 using Client::Crypto::DecryptBlock;
@@ -34,11 +33,9 @@ using Client::Tests::FixedSeed;
 using Client::Tests::LoadKeyFile;
 using Client::Tests::SameBytesWithoutValues;
 
-// El valor más grande de un carril en claro, y el de un producto antes de dar la vuelta.
 constexpr std::uint64_t MaxPlainLane = 0xFFFF;
 constexpr std::uint64_t MaxProduct = std::numeric_limits<std::uint32_t>::max();
 
-// Un par: la clave que cifra de un lado y la que descifra del otro.
 struct KeyPair
 {
     const char* name;
@@ -56,8 +53,8 @@ protected:
         {
             return;
         }
-        // Lo que manda el cliente: lo cifra con Enc1.dat y el servidor lo descifra con Dec1.dat.
-        // Lo que contesta el servidor: lo cifra con Enc2.dat y el cliente lo descifra con Dec2.dat.
+        // The client encrypts with Enc1.dat and the server decrypts with Dec1.dat; the server encrypts with Enc2.dat
+        // and the client decrypts with Dec2.dat.
         const std::optional<EncryptionKey> enc1 = LoadKeyFile(DataFile("Enc1.dat"), LoadEncryptionKey);
         const std::optional<DecryptionKey> dec1 = LoadKeyFile(WireFile("Dec1.dat"), LoadDecryptionKey);
         const std::optional<EncryptionKey> enc2 = LoadKeyFile(WireFile("Enc2.dat"), LoadEncryptionKey);
@@ -69,8 +66,7 @@ protected:
     std::vector<KeyPair> m_pairs;
 };
 
-// En cada par, el mismo módulo y el mismo XOR, y en cada carril la clave de descifrar es la
-// inversa de la de cifrar: su producto da 1 módulo m.
+// In each lane the decryption key is the inverse of the encryption key: their product is 1 modulo m.
 TEST_F(GoldenSimpleModulusKeyFile, EachPairHasInverseKeys)
 {
     for (const KeyPair& pair : m_pairs)
@@ -89,10 +85,9 @@ TEST_F(GoldenSimpleModulusKeyFile, EachPairHasInverseKeys)
     }
 }
 
-// Lo que supone c3c4_reference.py, y lo que hace falta para que descifrar deshaga cifrar sin que
-// un producto dé la vuelta: el módulo pasa de 16 bits, así que un carril en claro entra entero; el
-// XOR tiene 16 bits; la clave de cifrar por 0xFFFF entra en 32 bits; y la de descifrar por el
-// carril cifrado más grande, m - 1, también.
+// What c3c4_reference.py assumes, and what decrypting needs to undo encrypting without a product wrapping: the
+// modulus is over 16 bits, so a plain lane fits whole; the XOR is 16 bits; the encryption key times 0xFFFF fits in
+// 32 bits; and the decryption key times the largest encrypted lane, m - 1, too.
 TEST_F(GoldenSimpleModulusKeyFile, TheRealKeysFitTheLaneArithmetic)
 {
     for (const KeyPair& pair : m_pairs)
@@ -109,11 +104,10 @@ TEST_F(GoldenSimpleModulusKeyFile, TheRealKeysFitTheLaneArithmetic)
     }
 }
 
-// Lo que cifra un lado lo descifra el otro: bloques al azar, con todos los largos útiles.
 TEST_F(GoldenSimpleModulusKeyFile, WhatOneSideEncryptsTheOtherDecrypts)
 {
-    constexpr std::uint32_t BlocksPerPair = 2000; // 250 por cada largo útil, de 1 a 8
-    constexpr std::uint32_t ByteValues = 256;     // los valores de un byte
+    constexpr std::uint32_t BlocksPerPair = 2000; // 250 per useful length, 1 to 8
+    constexpr std::uint32_t ByteValues = 256;
     std::mt19937 engine(FixedSeed);
 
     for (const KeyPair& pair : m_pairs)

@@ -10,53 +10,45 @@
 #include <optional>
 #include <span>
 
-// El envío que no entró en el socket, con un cursor: lo que salió no se vuelve a mandar.
-// Contrato: el plan de la CL4 (CL4.1), "Contrato", y Q-C11 en 07-quirks-y-bugs.md.
-//
-// El buffer de envío del original mide 0x2000 (+0x10, el largo en +0x2010, en 0x4e87b0) y su
-// drenaje resta dos veces lo que salió: con varios envíos parciales seguidos repite el principio y
-// pierde el final (Q-C11). Este lleva lo que salió en un cursor, en un std::array fijo del mismo
-// tamaño: Push corre lo pendiente al principio cuando lo nuevo no entra detrás, así que el cursor
-// no lo hace crecer, y lo que no entra en 0x2000 bytes es Full, como el original, que cierra.
-//
-// Quien la usa (la Connection, CL4.3) nunca manda directo con algo pendiente: lo nuevo va detrás
-// (el envío en línea de 0x4b1664 sí, y desordena).
+// The original's send buffer is 0x2000 (+0x10, the length at +0x2010, in 0x4e87b0) and its drain subtracts what left
+// twice: with several partial sends in a row it repeats the start and loses the end (Q-C11). This one keeps a cursor
+// in a fixed std::array of the same size: Push shifts what is pending to the start when the new bytes do not fit
+// behind, and what does not fit in 0x2000 bytes is Full, like the original, which closes. The Connection never sends
+// directly with something pending (0x4b1664's inline send does, and reorders).
 namespace Client::Network
 {
 inline constexpr std::size_t MaxPendingSend = 0x2000;
 
 enum class SendQueueError : std::uint8_t
 {
-    Full,   // lo pendiente más lo nuevo pasa de MaxPendingSend: el original cierra
-    Socket, // el socket falló: SocketError en LastSocketError()
+    Full,   // pending plus new exceeds MaxPendingSend: the original closes
+    Socket, // SocketError in LastSocketError()
 };
 
 class ENGINE_API SendQueue
 {
 public:
-    // Agrega `bytes` detrás de lo pendiente, o Full sin agregar nada.
+    // Or Full without adding anything.
     [[nodiscard]] std::optional<SendQueueError> Push(std::span<const std::byte> bytes);
 
-    // Manda lo que el socket tome, desde el cursor, hasta que no tome más o no quede nada. Sin nada
-    // pendiente no llama al socket. Con un error del socket, lo que ya salió no vuelve; lo demás
-    // queda.
+    // Sends what the socket takes, from the cursor, until it takes no more or nothing is left. With nothing pending the
+    // socket is not called. On a socket error what already left does not come back; the rest stays.
     [[nodiscard]] std::optional<SendQueueError> Flush(ISocket& socket);
 
     [[nodiscard]] std::size_t Pending() const;
 
-    // El del último Socket; vacío si no hubo ninguno.
+    // Empty if there was none.
     [[nodiscard]] std::optional<SocketError> LastSocketError() const;
 
-    // Tira lo pendiente: la conexión se cerró y lo que no salió no va a la próxima.
+    // The connection closed: what did not leave does not go to the next one.
     void Clear();
 
 private:
-    // Corre lo pendiente al principio del buffer.
     void Compact();
 
     std::array<std::byte, MaxPendingSend> m_buffer{};
-    std::size_t m_sent = 0; // el cursor: lo que ya salió de lo que hay
-    std::size_t m_end = 0;  // hasta dónde hay
+    std::size_t m_sent = 0; // the cursor: what already left of what there is
+    std::size_t m_end = 0;
     std::optional<SocketError> m_lastSocketError;
 };
 } // namespace Client::Network

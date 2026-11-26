@@ -19,7 +19,7 @@ void ClearCharacterWalls(Data::Terrain::TerrainLayer<std::uint16_t>& cells)
 
 void MarkCharacterWall(Data::Terrain::TerrainLayer<std::uint16_t>& cells, int logicalX, int logicalY)
 {
-    // 0x5f82a0 conserva sólo los ocho bits bajos de cada coordenada lógica.
+    // 0x5f82a0 keeps only the low eight bits of each logical coordinate.
     const auto x = static_cast<std::uint8_t>(logicalX);
     const auto y = static_cast<std::uint8_t>(logicalY);
     cells[Data::Terrain::CellIndex(x, y)] |= CharacterWallBit;
@@ -27,7 +27,7 @@ void MarkCharacterWall(Data::Terrain::TerrainLayer<std::uint16_t>& cells, int lo
 
 void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells)
 {
-    // 0x42a136: el byte bajo del WORD de 0x7d0d548, una fila después de 0x7d0d348.
+    // 0x42a136: the low byte of 0x7d0d548's WORD, one row after 0x7d0d348.
     constexpr int GateWidth = 4;
     for (const GateCell& gate : GateCells)
     {
@@ -74,7 +74,7 @@ std::optional<bool> CanSeeTheCell(const Data::Terrain::TerrainLayer<std::uint16_
         majorStep = stepX;
         minorStep = stepY;
     }
-    // 0x55886d..0x5588b1: con el byte bajo de cada WORD.
+    // 0x55886d..0x5588b1: with each WORD's low byte.
     constexpr std::uint16_t LowestWall = 4;
     constexpr std::uint8_t SeeThroughBits = 0x20 | 0x40 | 0x80;
     int index = static_cast<int>(Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)));

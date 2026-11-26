@@ -164,7 +164,7 @@ Core::Expected<std::string, std::string> FormatOriginal(FormatFunction function,
         {
             if (function == FormatFunction::Wsprintf)
             {
-                // P-C290: wsprintfA copia el carácter que no entiende y sigue sin tomar argumento.
+                // P-C290: wsprintfA copies the character it does not understand and goes on without taking an argument.
                 out.push_back(conversion);
                 continue;
             }

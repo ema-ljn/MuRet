@@ -13,8 +13,7 @@
 #include <initializer_list>
 #include <vector>
 
-// Client::Crypto::LoadEncryptionKey y LoadDecryptionKey, con archivos de clave armados
-// acá: el magic, el tamaño y los tres bloques con el XOR de la tabla. Los reales, en
+// With key files built here: the magic, the size and the three blocks with the table's XOR. The real ones are in
 // test_golden_simple_modulus_key_file.cpp.
 namespace
 {
@@ -27,13 +26,12 @@ using Client::Crypto::LoadDecryptionKey;
 using Client::Crypto::LoadEncryptionKey;
 using Client::Tests::AppendLittleEndian;
 
-// Los tres bloques de un archivo, ya sin el XOR de la tabla.
+// Without the table's XOR.
 const Lanes Modulus{0x1A47D, 0x13273, 0x1CEDF, 0x1E0FF};
 const Lanes Key{0xE5E9, 0x4BB8, 0x4EC1, 0x8DD9};
 const Lanes XorKey{0xA5A5, 0x5A5A, 0x0F0F, 0xF0F0};
 
-// Un archivo de clave con `magic`, el tamaño `declared` y los tres bloques, cada u32 con el XOR de
-// la tabla de su carril.
+// Each u32 with its lane's table XOR.
 std::vector<std::byte> KeyFile(std::uint16_t magic, std::uint32_t declared, const Lanes& modulus = Modulus)
 {
     std::vector<std::byte> file;
@@ -72,18 +70,17 @@ TEST(SimpleModulusKeyFileTest, LoadsTheThreeBlocksWithoutTheTable)
     EXPECT_EQ(decryption.Value().XorKey(), XorKey);
 }
 
-// La tabla como la lista 00686240-carga-clave.md, byte por byte: un bloque con sus bytes se lee como
-// cuatro ceros, y con el bit 16 de cada carril cambiado, como cuatro 0x10000, el módulo más chico
-// que sirve (Q-C41).
+// The table as 00686240-carga-clave.md lists it, byte by byte: a block of its own bytes reads as four zeros, and with
+// each lane's bit 16 flipped as four 0x10000, the smallest modulus that works (Q-C41).
 TEST(SimpleModulusKeyFileTest, TheTableIsTheOneAt0x6d84fc)
 {
-    // El magic 0x1112 y el tamaño 54 (0x36), little-endian.
+    // Little-endian.
     const std::vector<std::byte> header{std::byte{0x12}, std::byte{0x11}, std::byte{0x36},
                                         std::byte{0x00}, std::byte{0x00}, std::byte{0x00}};
-    // La tabla de 0x6d84fc: los 4 bytes de cada carril de KeyFileXor, el de abajo primero.
+    // 0x6d84fc's table: the 4 bytes of each KeyFileXor lane, low first.
     constexpr std::array<int, 16> Table{0x9B, 0xA7, 0x08, 0x3F, 0x87, 0xC2, 0x5C, 0xE2,
                                         0xB9, 0x7A, 0xD2, 0x93, 0xBF, 0xA7, 0xDE, 0x20};
-    // Los módulos, las claves y los XOR; y los 4 bytes de cada carril, el de abajo primero.
+    // The moduli, the keys and the XORs; each lane's 4 bytes, low first.
     constexpr std::size_t BlockCount = 3;
     constexpr std::size_t BytesPerLane = 4;
     std::vector<std::byte> file = header;
@@ -91,7 +88,6 @@ TEST(SimpleModulusKeyFileTest, TheTableIsTheOneAt0x6d84fc)
     {
         for (std::size_t k = 0; k < Table.size(); ++k)
         {
-            // El primer bloque, el de los módulos, con el bit 0 del tercer byte de cada carril cambiado.
             constexpr std::size_t ThirdByte = 2;
             const int flip = (block == 0 && k % BytesPerLane == ThirdByte) ? 0x01 : 0x00;
             file.push_back(static_cast<std::byte>(Table[k] ^ flip));
@@ -106,10 +102,9 @@ TEST(SimpleModulusKeyFileTest, TheTableIsTheOneAt0x6d84fc)
     EXPECT_EQ(key.Value().XorKey(), (Lanes{0, 0, 0, 0}));
 }
 
-// Otro magic (también el mismo con los bytes al revés), otro tamaño declarado (también uno que da
-// 54 en sus dos bytes de abajo: el tamaño es un u32), un archivo corto y uno vacío. El original
-// tampoco carga los dos primeros; uno corto lo carga con lo que quedó en el buffer de la pila, que
-// es el mismo para los tres bloques (Q-C41).
+// Also the same magic byte-swapped, and a declared size whose low two bytes give 54 (the size is a u32). The original
+// does not load the first two either; a short one it loads with what was left in the stack buffer, the same for all
+// three blocks (Q-C41).
 TEST(SimpleModulusKeyFileTest, RejectsAnotherMagicAnotherSizeOrAShortFile)
 {
     std::vector<std::byte> shortFile = GoodKeyFile();
@@ -141,8 +136,7 @@ TEST(SimpleModulusKeyFileTest, RejectsAnotherMagicAnotherSizeOrAShortFile)
     }
 }
 
-// Lo que sigue a los 54 bytes no se lee, como en el original, que lee la cabecera y los bloques y
-// cierra el archivo.
+// As in the original, which reads the header and the blocks and closes the file.
 TEST(SimpleModulusKeyFileTest, IgnoresWhatFollowsTheBlocks)
 {
     std::vector<std::byte> file = GoodKeyFile();
@@ -155,7 +149,7 @@ TEST(SimpleModulusKeyFileTest, IgnoresWhatFollowsTheBlocks)
     EXPECT_EQ(key.Value().XorKey(), XorKey);
 }
 
-// Q-C41: un archivo bien formado con un módulo que no sirve es InvalidKey, y no InvalidKeyFile.
+// Q-C41: a well-formed file with a modulus that does not fit is InvalidKey, not InvalidKeyFile.
 TEST(SimpleModulusKeyFileTest, AModulusThatDoesNotFitIsInvalidKey)
 {
     for (const std::uint32_t modulus : {std::uint32_t{0}, std::uint32_t{0x40001}})
@@ -174,7 +168,6 @@ TEST(SimpleModulusKeyFileTest, AModulusThatDoesNotFitIsInvalidKey)
     }
 }
 
-// El módulo más grande que sirve, 0x40000, carga.
 TEST(SimpleModulusKeyFileTest, TheLargestModulusLoads)
 {
     Lanes moduli = Modulus;

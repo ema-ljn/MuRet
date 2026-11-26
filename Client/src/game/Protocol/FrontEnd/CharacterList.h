@@ -2,48 +2,47 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/FrontEnd/Opcodes.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/FrontEnd/CharacterName.h"
+#include "Protocol/Outgoing.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
-// La lista de personajes de la cuenta: pedirla (F3 00, C->S) y leerla (F3 00, S->C).
-// Contrato: Client/docs/research/04-protocolo.md, "La selección de personaje (F3)", y el plan de la
-// CL6 (CL6.3, "Contrato").
+// The account's characters, F3 00: the request and the list (04, "La selección de personaje (F3)").
 namespace Client::Protocol::FrontEnd
 {
-// C1 04 F3 00, sin cuerpo, con el XOR32 y en claro (0x634e0e, en el mismo paso en que 0x634c60 pasa
-// a la escena 4).
+// 0x634e0e, in the step where 0x634c60 enters scene 4: C1 04 F3 00, with the XOR32 and in clear.
 [[nodiscard]] Outgoing WriteCharacterListRequest();
 
-// Una entrada de 0x22 bytes, como la lee 0x4c20a0. El [0xb] no se lee.
+// An entry's equipment, which 0x5139f0 reads.
+inline constexpr std::size_t EquipmentSize = 17;
+// An entry of the list, as 0x4c20a0 reads it. Its [0xb] is not read.
+inline constexpr std::size_t EntrySize = 0x22;
+
 struct CharacterEntry
 {
-    std::uint8_t slot = 0;                            // [0], de 0 a 4 (MaxCharacterSlot)
-    std::array<std::byte, NameSize> name{};           // [1..10], sin terminador si lo llena
-    std::uint16_t level = 0;                          // [0xc..0xd], un word (inferido: el nivel)
-    std::uint8_t flags = 0;                           // [0xe], a +0x1d8: con 0x1, bloqueado
+    std::uint8_t slot = 0;                            // [0], 0 to MaxCharacterSlot
+    NameBytes name{};                                 // [1..10]
+    std::uint16_t level = 0;                          // [0xc..0xd] (inferred: the level)
+    std::uint8_t flags = 0;                           // [0xe], to +0x1d8: LockedCharacterFlag
     std::uint8_t classByte = 0;                       // [0xf]: CharacterClassOf
-    std::array<std::byte, EquipmentSize> equipment{}; // [0x10..0x20], a 0x5139f0
-    std::uint8_t guildStatus = 0;                     // [0x21], a +0x368 (inferido: el gremio)
-    // No vino en la lista: lo armó la respuesta de crear (0x4c2290 con 0x517270), sin equipo
-    // (Q-C103). `equipment` no cuenta.
+    std::array<std::byte, EquipmentSize> equipment{}; // [0x10..0x20], to 0x5139f0
+    std::uint8_t guildStatus = 0;                     // [0x21], to +0x368 (inferred: the guild)
+    // Not from the list: the create reply built it (0x4c2290 with 0x517270), with no equipment (Q-C103).
     bool withoutEquipment = false;
 };
 
-// El +0x368 de un personaje sin gremio: lo pone 0x511290 (0x511ca6) a cualquiera que arma, y la
-// respuesta de crear no lo cambia.
+// +0x368 of a character without a guild: 0x511290 (0x511ca6) sets it on every character it builds, and the create reply
+// keeps it.
 inline constexpr std::uint8_t NoGuildStatus = 0xff;
 
-// El lugar más alto de la selección: cinco, del 0 al 4 (0x4c20a0).
+// The highest slot of the selection: five, 0 to 4 (0x4c20a0).
 inline constexpr std::uint8_t MaxCharacterSlot = 4;
 
-// La bandera de las banderas de una entrada que bloquea al personaje: con ella, entrar muestra el
-// aviso 0x84 (0x6342c0).
+// With it, entering the world shows notice 0x84 (0x6342c0).
 inline constexpr std::uint8_t LockedCharacterFlag = 0x01;
 
 [[nodiscard]] constexpr bool IsLocked(const CharacterEntry& entry)
@@ -53,21 +52,18 @@ inline constexpr std::uint8_t LockedCharacterFlag = 0x01;
 
 struct CharacterList
 {
-    std::uint8_t creatableClasses = 0;      // pkt[4], a 0x622b20: lo lee la ventana de crear (inferido)
-    std::uint8_t notice = 0;                // pkt[5]: los dos números del texto 1240
-    std::vector<CharacterEntry> characters; // en el orden del paquete
+    std::uint8_t creatableClasses = 0;      // pkt[4], to 0x622b20: the create window reads it (inferred)
+    std::uint8_t notice = 0;                // pkt[5]: the two numbers of text 1240
+    std::vector<CharacterEntry> characters; // in the packet's order
 };
 
-// La lista: C1, F3 00, pkt[4] y pkt[5], la cantidad en pkt[6] y una entrada de 0x22 bytes por
-// personaje desde pkt[7]. TooShort si la cantidad dice más entradas que las que entran en el
-// paquete: 0x4c20a0 no mira el largo y leería fuera (diferencia nombrada). Lo que sobra detrás de
-// la última no se lee. Una entrada con un lugar de más de MaxCharacterSlot se descarta: el original
-// la deja sin posición y no se puede elegir (Q-C101).
+// The count at pkt[6], then one entry per character from pkt[7]. TooShort if the count names more entries than the
+// packet holds: 0x4c20a0 does not check the size and would read past it (a named difference). An entry whose slot is
+// above MaxCharacterSlot is dropped: the original leaves it without a place, and it cannot be chosen (Q-C101).
 [[nodiscard]] Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Network::Packet& packet);
 
-// La clase de una entrada, de su [0xf]: ((b & 0x10) | (b >> 4)) >> 1, como se la pasa 0x4c20a0 a
-// 0x517270. Quedan la clase en los bits 0 a 2 (los 5 a 7 del byte) y la segunda clase en el 3 (el
-// 4 del byte); los bits 0 a 3 del byte no cuentan.
+// An entry's class, from its [0xf]: ((b & 0x10) | (b >> 4)) >> 1, as 0x4c20a0 passes it to 0x517270. Bits 0 to 2 are
+// the class (bits 5 to 7 of the byte) and bit 3 the second class (bit 4 of the byte).
 [[nodiscard]] constexpr std::uint8_t CharacterClassOf(std::uint8_t classByte)
 {
     return static_cast<std::uint8_t>(((classByte & 0x10) | (classByte >> 4)) >> 1);

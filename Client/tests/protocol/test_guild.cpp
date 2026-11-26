@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Guild/Guild.h"
 
 #include "Network/Delivery.h"
@@ -362,7 +363,7 @@ TEST(GuildProtocolTest, TheUnionKickAndTheLeaveCarryTheirNames)
     EXPECT_TRUE(SameBytes(PlainOf(kick), expected));
     EXPECT_NE(kick.packet.Bytes()[3], std::byte{0x01});
 
-    Guild::CharacterName name{};
+    Client::Protocol::FrontEnd::NameBytes name{};
     const std::string_view character = "Tala";
     for (std::size_t i = 0; i < character.size(); ++i)
         name[i] = static_cast<std::byte>(character[i]);

@@ -2,8 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
+#include "Protocol/FrontEnd/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/FrontEnd/Opcodes.h"
 #include "Network/ProtocolError.h"
 
 #include <array>

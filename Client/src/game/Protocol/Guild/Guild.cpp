@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
@@ -474,7 +475,7 @@ Outgoing WriteRelationshipRequest(std::uint8_t relation, std::uint8_t request, s
                        .PutU8(static_cast<std::uint8_t>(key & 0xff)));
 }
 
-Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name)
+Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const FrontEnd::NameBytes& name)
 {
     return Xor32C1(Network::PacketWriter::C1(GuildAssignResultOpcode).PutU8(type).PutU8(status).PutBytes(name));
 }
@@ -484,7 +485,7 @@ Outgoing WriteUnionKick(const GuildName& name)
     return Xor32C1(Network::PacketWriter::C1(UnionKickOpcode).PutU8(UnionKickKind).PutBytes(name));
 }
 
-Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number)
+Outgoing WriteLeave(const FrontEnd::NameBytes& name, const LeaveNumber& number)
 {
     return Xor32C1(Network::PacketWriter::C1(GuildLeaveResultOpcode).PutBytes(name).PutBytes(number));
 }

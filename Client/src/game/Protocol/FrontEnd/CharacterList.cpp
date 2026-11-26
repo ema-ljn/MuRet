@@ -2,29 +2,33 @@
 
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/Opcodes.h"
-#include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
-#include <vector>
 
 namespace Client::Protocol::FrontEnd
 {
 namespace
 {
-// La lista es un C1: con cinco personajes mide 7 + 5 · 0x22 = 177.
-constexpr Network::PacketKind ListKind{Network::PacketType::C1, CharacterOpcode, Character::ListSubcode};
+using CreatableClasses = Network::Field<std::uint8_t, 4>;
+using ListNotice = Network::Field<std::uint8_t, 5>;
+using EntryCount = Network::Field<std::uint8_t, 6>;
+// With five characters the list measures 7 + 5 * 0x22 = 177 bytes.
+constexpr Network::PacketLayout ListLayout{
+    {Network::PacketType::C1, CharacterOpcode, Character::ListSubcode}, EntryCount::End, 0x4c20a0};
 
-// Dónde va cada campo en una entrada.
 constexpr std::size_t NameOffset = 1;
 constexpr std::size_t LevelOffset = 0xC;
 constexpr std::size_t FlagsOffset = 0xE;
@@ -32,7 +36,6 @@ constexpr std::size_t ClassOffset = 0xF;
 constexpr std::size_t EquipmentOffset = 0x10;
 constexpr std::size_t GuildStatusOffset = 0x21;
 
-// Una entrada, de sus 0x22 bytes: cada lectura entra.
 CharacterEntry ReadEntry(std::span<const std::byte, EntrySize> bytes)
 {
     CharacterEntry entry;
@@ -55,31 +58,19 @@ Outgoing WriteCharacterListRequest()
 
 Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, ListKind);
-    if (!fields.HasValue())
-    {
-        return Core::Unexpected(fields.Error());
-    }
-    Core::ByteReader& reader = fields.Value();
-    const std::optional<std::uint8_t> creatableClasses = reader.ReadU8();
-    const std::optional<std::uint8_t> notice = reader.ReadU8();
-    const std::optional<std::uint8_t> count = reader.ReadU8();
-    if (!count || *count > reader.Remaining() / EntrySize)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    CharacterList list{*creatableClasses, *notice, {}};
-    list.characters.reserve(*count);
-    // La cantidad ya se comparó con lo que queda: cada entrada entra.
-    for (std::size_t k = 0; k < *count; ++k)
-    {
-        const std::optional<std::span<const std::byte>> bytes = reader.ReadBytes(EntrySize);
-        CharacterEntry entry = ReadEntry(bytes->first<EntrySize>());
-        if (entry.slot <= MaxCharacterSlot)
-        {
-            list.characters.push_back(entry);
-        }
-    }
-    return list;
+    return Network::ReadPacket(packet, ListLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   CharacterList list{reader.Read<CreatableClasses>(), reader.Read<ListNotice>(), {}};
+                                   for (const CharacterEntry& entry : Network::ReadList<EntrySize>(
+                                            reader, EntryCount::End, reader.Read<EntryCount>(), ReadEntry))
+                                   {
+                                       if (entry.slot <= MaxCharacterSlot)
+                                       {
+                                           list.characters.push_back(entry);
+                                       }
+                                   }
+                                   return list;
+                               });
 }
 } // namespace Client::Protocol::FrontEnd

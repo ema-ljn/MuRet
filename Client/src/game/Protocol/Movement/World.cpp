@@ -1,74 +1,67 @@
 #include "Protocol/Movement/World.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <span>
 
 namespace Client::Protocol::Movement
 {
 namespace
 {
-constexpr Network::PacketKind RegenKind{Network::PacketType::C1, CharacterOpcode, Character::RegenSubcode};
-// 0x4c4b80: los bytes +0xe/+0xf no se leen; +0x10 es la experiencia.
-constexpr std::size_t RegenPaddingSize = 2;
+using Gate = Network::Field<std::uint8_t, 3>;
+using TeleportMap = Network::Field<std::uint8_t, 4>;
+using TeleportX = Network::Field<std::uint8_t, 5>;
+using TeleportY = Network::Field<std::uint8_t, 6>;
+using TeleportDirection = Network::Field<std::uint8_t, 7>;
+constexpr Network::PacketLayout TeleportLayout{
+    {Network::PacketType::C1, TeleportOpcode, std::nullopt}, TeleportDirection::End, 0x4c6e10};
+
+using RegenX = Network::Field<std::uint8_t, 4>;
+using RegenY = Network::Field<std::uint8_t, 5>;
+using RegenMap = Network::Field<std::uint8_t, 6>;
+using RegenDirection = Network::Field<std::uint8_t, 7>;
+// 0x4c4c23..0x4c4c4a: x86 word and dword loads, with no byte swap.
+using Life = Network::Field<std::uint16_t, 8>;
+using Mana = Network::Field<std::uint16_t, 0xa>;
+using Bp = Network::Field<std::uint16_t, 0xc>;
+// 0x4c4b80 does not read +0xe and +0xf.
+using Experience = Network::Field<std::uint32_t, 0x10>;
+using Zen = Network::Field<std::uint32_t, 0x14>;
+constexpr Network::PacketLayout RegenLayout{
+    {Network::PacketType::C1, CharacterOpcode, Character::RegenSubcode}, Zen::End, 0x4c4b80};
 } // namespace
 
 Core::Expected<Teleport, Network::ProtocolError> ReadTeleport(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != TeleportOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    const auto gate = reader.ReadU8();
-    const auto map = reader.ReadU8();
-    const auto x = reader.ReadU8();
-    const auto y = reader.ReadU8();
-    const auto direction = reader.ReadU8();
-    if (!gate || !map || !x || !y || !direction)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Teleport{*gate, *map, *x, *y, *direction};
+    return Network::ReadPacket(packet, TeleportLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return Teleport{reader.Read<Gate>(), reader.Read<TeleportMap>(),
+                                                   reader.Read<TeleportX>(), reader.Read<TeleportY>(),
+                                                   reader.Read<TeleportDirection>()};
+                               });
 }
 
 Core::Expected<Regen, Network::ProtocolError> ReadRegen(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, RegenKind);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto x = reader.ReadU8();
-    const auto y = reader.ReadU8();
-    const auto map = reader.ReadU8();
-    const auto direction = reader.ReadU8();
-    // 0x4c4c23..0x4c4c4a: cargas x86 de word/dword, sin invertir bytes.
-    const auto life = reader.ReadU16Le();
-    const auto mana = reader.ReadU16Le();
-    const auto bp = reader.ReadU16Le();
-    const auto padding = reader.ReadBytes(RegenPaddingSize);
-    const auto experience = reader.ReadU32Le();
-    const auto zen = reader.ReadU32Le();
-    if (!x || !y || !map || !direction || !life || !mana || !bp || !padding || !experience || !zen)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Regen{*x, *y, *map, *direction, *life, *mana, *bp, *experience, *zen};
-}
-
-Core::Expected<Weather, Network::ProtocolError> ReadWeather(const Network::Packet& packet)
-{
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != WeatherOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    const auto code = reader.ReadU8();
-    if (!code)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Weather{*code};
+    return Network::ReadPacket(packet, RegenLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return Regen{reader.Read<RegenX>(),   reader.Read<RegenY>(),
+                                                reader.Read<RegenMap>(), reader.Read<RegenDirection>(),
+                                                reader.Read<Life>(),     reader.Read<Mana>(),
+                                                reader.Read<Bp>(),       reader.Read<Experience>(),
+                                                reader.Read<Zen>()};
+                               });
 }
 
 Outgoing WriteGateRequest(std::uint8_t gate)

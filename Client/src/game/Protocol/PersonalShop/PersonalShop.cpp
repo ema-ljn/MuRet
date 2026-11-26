@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
@@ -84,9 +84,9 @@ std::string TitleAt36(std::span<const std::byte> bytes, std::size_t at)
     return title;
 }
 
-Name NameAt(std::span<const std::byte> bytes, std::size_t at)
+FrontEnd::NameBytes NameAt(std::span<const std::byte> bytes, std::size_t at)
 {
-    Name name{};
+    FrontEnd::NameBytes name{};
     std::ranges::copy(bytes.subspan(at, name.size()), name.begin());
     return name;
 }
@@ -250,12 +250,12 @@ Outgoing WriteInventoryRequest()
     return EncryptedC1(Network::PacketWriter::C1(CharacterOpcode, Character::InventoryListSubcode));
 }
 
-Outgoing WriteViewClosed(std::uint16_t key, const Name& name)
+Outgoing WriteViewClosed(std::uint16_t key, const FrontEnd::NameBytes& name)
 {
     return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, ViewClosedSubcode).PutU16Be(key).PutBytes(name));
 }
 
-Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name)
+Outgoing WriteShopItemsRequest(std::uint16_t key, const FrontEnd::NameBytes& name)
 {
     return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, ItemListSubcode).PutU16Be(key).PutBytes(name));
 }
@@ -275,7 +275,7 @@ Outgoing WriteCloseShop()
     return EncryptedC1(Network::PacketWriter::C1(PersonalShopOpcode, CloseSubcode));
 }
 
-Outgoing WriteBuyItem(std::uint16_t key, const Name& name, std::uint8_t slot)
+Outgoing WriteBuyItem(std::uint16_t key, const FrontEnd::NameBytes& name, std::uint8_t slot)
 {
     return EncryptedC1(
         Network::PacketWriter::C1(PersonalShopOpcode, BuySubcode).PutU16Be(key).PutBytes(name).PutU8(slot));

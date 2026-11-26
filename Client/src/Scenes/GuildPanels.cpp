@@ -1,4 +1,5 @@
 #include "Scenes/GuildPanels.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
@@ -123,7 +124,7 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
         // nada.
         if (reason != UI::PanelAnswerConfirm)
             return true;
-        Protocol::Guild::CharacterName name{};
+        Protocol::FrontEnd::NameBytes name{};
         for (std::size_t index = 0; index < name.size(); ++index)
             name[index] = static_cast<std::byte>(guild.chosenName[index]);
         if (auto sent = Send(send, Protocol::Guild::WriteAssignStatus(DismissType, 0, name), "0x64def0");

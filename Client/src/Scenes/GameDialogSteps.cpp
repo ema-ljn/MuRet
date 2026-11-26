@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Tables/DialogTable.h"
 #include "Protocol/Session/Logout.h"
 #include "Protocol/Npc/DialogAnswers.h"
@@ -989,7 +990,7 @@ Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
                                             "0x787a5e8 (Q-C1296)",
                                             member, GuildMemberSlots));
     const GuildMemberSlot& slot = runtime.guild.members[static_cast<std::size_t>(member)];
-    Protocol::Guild::CharacterName name{};
+    Protocol::FrontEnd::NameBytes name{};
     for (std::size_t index = 0; index < name.size(); ++index)
         name[index] = static_cast<std::byte>(slot.name[index]);
     Protocol::Guild::LeaveNumber number{};

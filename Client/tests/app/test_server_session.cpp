@@ -49,7 +49,6 @@
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Player/LevelUpPoint.h"
-#include "Protocol/FrontEnd/Opcodes.h"
 #include "Protocol/Session/Keepalive.h"
 #include "Protocol/Session/Login.h"
 #include "Protocol/Session/ServerList.h"

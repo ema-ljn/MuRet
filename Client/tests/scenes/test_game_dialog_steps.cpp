@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/GameDialogSteps.h"
 
 #include "Audio/Playback.h"
@@ -1033,7 +1034,7 @@ protected:
     // El C1 17 53 de Protocol::Guild::WriteLeave con el nombre y los diez bytes, como sale (con el XOR32).
     static std::vector<std::uint8_t> LeaveBytes(std::string_view name, std::string_view number)
     {
-        Client::Protocol::Guild::CharacterName characterName{};
+        Client::Protocol::FrontEnd::NameBytes characterName{};
         for (std::size_t index = 0; index < name.size(); ++index)
             characterName[index] = static_cast<std::byte>(name[index]);
         Client::Protocol::Guild::LeaveNumber leaveNumber{};

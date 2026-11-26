@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Network/Packet.h"
 #include "Network/ProtocolError.h"
 
 #include "support/ExpectedError.h"

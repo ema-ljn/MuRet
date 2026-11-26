@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
@@ -15,7 +16,6 @@
 #include "Network/Delivery.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Social/Trade.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -107,9 +107,9 @@ std::uint8_t Byte(int value)
     return static_cast<std::uint8_t>(value);
 }
 
-Client::Protocol::Social::Name NameOf(std::string_view text)
+Client::Protocol::FrontEnd::NameBytes NameOf(std::string_view text)
 {
-    Client::Protocol::Social::Name name{};
+    Client::Protocol::FrontEnd::NameBytes name{};
     for (std::size_t at = 0; at < name.size(); ++at)
         name[at] = at < text.size() ? static_cast<std::byte>(text[at]) : std::byte{0};
     return name;

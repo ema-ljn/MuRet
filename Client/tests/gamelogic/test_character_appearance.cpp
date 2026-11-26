@@ -1,6 +1,5 @@
 #include "GameLogic/CharacterAppearance.h"
-
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 
 #include <gtest/gtest.h>
 

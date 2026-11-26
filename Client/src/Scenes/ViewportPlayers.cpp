@@ -1,5 +1,6 @@
 #include "Scenes/ViewportPlayers.h"
 #include "Maps/MapId.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/CastleBattleReceive.h"
 #include "Scenes/SiegeBattleUi.h"
 
@@ -8,7 +9,6 @@
 #include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Pathfinding/PathFinder.h"
-#include "Protocol/FrontEnd/Opcodes.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
@@ -61,10 +61,8 @@ constexpr float CellSize = 100.0f;                // 0x6b86b4
 constexpr float CellCenter = 0.5f;                // 0x6b882c
 constexpr float DirectionDegrees = 45.0f;         // 0x6b8848, con el 1 de 0x6b87d4
 
-using Name = std::array<std::byte, Protocol::FrontEnd::NameSize>;
-
 // Los diez bytes del nombre con el 0 de -0x4a (0x4c88b7) o de -0x12 (0x4c92e2) detrás.
-std::string NameText(const Name& name)
+std::string NameText(const Protocol::FrontEnd::NameBytes& name)
 {
     std::string text;
     for (const std::byte value : name)
@@ -76,7 +74,7 @@ std::string NameText(const Name& name)
     return text;
 }
 
-bool IsHidden(const Name& name)
+bool IsHidden(const Protocol::FrontEnd::NameBytes& name)
 {
     return UI::ContainsLikeTheOriginal(NameText(name), HiddenName);
 }

@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
@@ -24,12 +24,12 @@ Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network:
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
-std::optional<Name> ReadName(Core::ByteReader& reader)
+std::optional<FrontEnd::NameBytes> ReadName(Core::ByteReader& reader)
 {
     const auto bytes = reader.ReadBytes(FrontEnd::NameSize);
     if (!bytes)
         return std::nullopt;
-    Name name{};
+    FrontEnd::NameBytes name{};
     std::ranges::copy(*bytes, name.begin());
     return name;
 }
@@ -88,7 +88,7 @@ Core::Expected<DuelScore, Network::ProtocolError> ReadDuelScore(const Network::P
     return DuelScore{*first, *second, *firstScore, *secondScore};
 }
 
-Outgoing WriteDuelStart(std::uint16_t key, const Name& name)
+Outgoing WriteDuelStart(std::uint16_t key, const FrontEnd::NameBytes& name)
 {
     return EncryptedC1(Network::PacketWriter::C1(DuelStartOpcode).PutU16Be(key).PutBytes(name));
 }
@@ -98,7 +98,7 @@ Outgoing WriteDuelEnd()
     return EncryptedC1(Network::PacketWriter::C1(DuelEndOpcode));
 }
 
-Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const Name& name)
+Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const FrontEnd::NameBytes& name)
 {
     return EncryptedC1(Network::PacketWriter::C1(DuelRequestOpcode).PutU8(accepted).PutU16Be(key).PutBytes(name));
 }

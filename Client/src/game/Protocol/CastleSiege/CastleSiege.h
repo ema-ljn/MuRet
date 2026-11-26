@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Opcodes.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
@@ -32,12 +33,11 @@ inline constexpr std::array<Network::Subcode, 13> WindowSubcodes{
     Castle::TaxInfoSubcode,      Castle::TaxRateSubcode,  Castle::MoneyOutSubcode,  Castle::SiegeFlagsSubcode,
     Castle::HuntZoneGateSubcode};
 
-// Los nombres como los copian 0x64b0f0, 0x46f7e0 y 0x470bb0 (strncpy de 8 y de 10, sin terminador en el paquete). Son
-// los mismos tipos que Protocol::Guild del hito 8 (GuildName, CharacterName): se unifican al juntar la cadena.
+// The names as 0x64b0f0, 0x46f7e0 and 0x470bb0 copy them (strncpy of 8 and of 10, no terminator in the packet).
+// GuildName is Protocol::Guild's type again: they unify when the chain joins.
 inline constexpr std::size_t GuildNameSize = 8;
-inline constexpr std::size_t CharacterNameSize = 10;
+inline constexpr std::size_t CharacterNameSize = FrontEnd::NameSize;
 using GuildName = std::array<std::byte, GuildNameSize>;
-using CharacterName = std::array<std::byte, CharacterNameSize>;
 
 // 0x4e5b4a: el resultado que pide cada caso, pkt[4].
 inline constexpr std::uint8_t ResultFailed = 0;
@@ -55,7 +55,7 @@ struct CastleState
     std::int8_t state = 0;            // pkt[5], MOVSX
     std::array<SiegeDate, 3> dates{}; // pkt[6..0x17]
     GuildName ownerGuild{};           // pkt[0x18..0x1f]
-    CharacterName ownerMaster{};      // pkt[0x20..0x29]
+    FrontEnd::NameBytes ownerMaster{}; // pkt[0x20..0x29]
     std::uint32_t remaining = 0;      // pkt[0x2a..0x2d], el primero arriba
 };
 

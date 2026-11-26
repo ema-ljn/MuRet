@@ -1,51 +1,50 @@
 #include "Protocol/Player/OptionData.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 
 namespace Client::Protocol::Player
 {
+namespace
+{
+using SkillKeys = Network::Field<std::array<std::byte, SkillKeyCount>, 4>;
+using Flags = Network::Field<std::uint8_t, 0xe>;
+using QuickSlots = Network::Field<std::array<std::byte, QuickSlotCount>, 0xf>;
+using ChatWindow = Network::Field<std::uint8_t, 0x12>;
+constexpr Network::PacketLayout OptionDataLayout{
+    {Network::PacketType::C1, CharacterOpcode, Character::OptionDataSubcode}, ChatWindow::End, 0x4dd570};
+
+template <std::size_t Size> std::array<std::uint8_t, Size> Unsigned(const std::array<std::byte, Size>& bytes)
+{
+    std::array<std::uint8_t, Size> values{};
+    std::ranges::transform(bytes, values.begin(), [](std::byte value) { return std::to_integer<std::uint8_t>(value); });
+    return values;
+}
+} // namespace
+
 Core::Expected<OptionData, Network::ProtocolError> ReadOptionData(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(
-        packet, Network::PacketKind{Network::PacketType::C1, CharacterOpcode, Character::OptionDataSubcode});
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    OptionData data;
-    for (std::uint8_t& key : data.skillKeys)
-    {
-        const auto read = reader.ReadU8();
-        if (!read)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        key = *read;
-    }
-    const auto flags = reader.ReadU8();
-    if (!flags)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    data.flags = *flags;
-    for (std::uint8_t& slot : data.quickSlots)
-    {
-        const auto read = reader.ReadU8();
-        if (!read)
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        slot = *read;
-    }
-    const auto chatWindow = reader.ReadU8();
-    if (!chatWindow)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    data.chatWindow = *chatWindow;
-    return data;
+    return Network::ReadPacket(packet, OptionDataLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return OptionData{.skillKeys = Unsigned(reader.Read<SkillKeys>()),
+                                                     .flags = reader.Read<Flags>(),
+                                                     .quickSlots = Unsigned(reader.Read<QuickSlots>()),
+                                                     .chatWindow = reader.Read<ChatWindow>()};
+                               });
 }
 
 Outgoing WriteOptionData(const OptionBody& body)

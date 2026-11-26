@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "World/ItemState.h"
 
 #include <array>

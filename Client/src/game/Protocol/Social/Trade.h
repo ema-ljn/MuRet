@@ -2,13 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 
 // 04 § El comercio: del 36 al 3D en los dos sentidos (CL9 hito 7). Los lectores son los campos que leen 0x4d4af0
@@ -16,12 +15,10 @@
 // los escritores, lo que arman 0x406050 y 0x56c440 (36), 0x623e70 (37, 3A y 3C), 0x5ecde0 (3C y 3D) y 0x657ab0 (3D).
 namespace Client::Protocol::Social
 {
-using Name = std::array<std::byte, FrontEnd::NameSize>;
-
 // El 36 del GS (0x4d4af0): C1 0D 36 y el nombre del que pide, 10 bytes desde pkt[3].
 struct TradeRequest
 {
-    Name name{};
+    FrontEnd::NameBytes name{};
 };
 
 [[nodiscard]] Core::Expected<TradeRequest, Network::ProtocolError> ReadTradeRequest(const Network::Packet& packet);
@@ -37,7 +34,7 @@ struct ClearTradeRequest
 struct TradeResponse
 {
     std::uint8_t response = 0;
-    Name name{};
+    FrontEnd::NameBytes name{};
     std::uint16_t level = 0;
     std::uint32_t guild = 0;
 };

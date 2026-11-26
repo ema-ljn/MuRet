@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Tables/TextTable.h"
 #include "Math/X87.h"
 #include "Protocol/Guild/Guild.h"
@@ -826,7 +827,7 @@ Core::Expected<void, std::string> StepTheGuildPositions(WorldState& world, const
         if (!send)
             return Core::Unexpected(std::string("0x64e6cc: el E1 de la ventana de los cargos sin el cable"));
         const std::uint8_t type = guild.chosenStatus == 0 ? AppointType : ChangeType;
-        Protocol::Guild::CharacterName name{};
+        Protocol::FrontEnd::NameBytes name{};
         for (std::size_t index = 0; index < name.size(); ++index)
             name[index] = static_cast<std::byte>(guild.chosenName[index]);
         send(Protocol::Guild::WriteAssignStatus(type, static_cast<std::uint8_t>(positions.choice), name));

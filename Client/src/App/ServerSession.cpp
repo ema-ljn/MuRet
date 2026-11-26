@@ -27,7 +27,6 @@
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Player/LevelUpPoint.h"
 #include "Protocol/Player/PkLevel.h"
-#include "Protocol/FrontEnd/Opcodes.h"
 #include "Protocol/Combat/Combat.h"
 #include "Protocol/Session/Hello.h"
 #include "Protocol/Session/Keepalive.h"
@@ -61,6 +60,7 @@
 #include "Protocol/Social/Trade.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Protocol/Movement/World.h"
+#include "Protocol/Weather/Weather.h"
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Opcodes.h"
 
@@ -1440,7 +1440,7 @@ void ServerSession::OnEventPacket(const Network::Packet& packet)
 // 0x4e36b5: sin guarda de escena, estado de login ni procedencia cifrada. La Connection ya normalizó C3.
 void ServerSession::OnWeather(const Network::Packet& packet)
 {
-    auto weather = Protocol::Movement::ReadWeather(packet);
+    auto weather = Protocol::Weather::ReadWeather(packet);
     if (!weather.HasValue())
     {
         m_log.Warning("se ignora el clima (0F): {}", Unreadable);

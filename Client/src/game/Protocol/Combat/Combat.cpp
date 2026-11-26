@@ -1,14 +1,18 @@
 #include "Protocol/Combat/Combat.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
+#include <bit>
 #include <cstdint>
+#include <optional>
 
 namespace Client::Protocol::Combat
 {
@@ -17,11 +21,27 @@ namespace
 constexpr std::uint16_t KeyMask = 0x7fff;
 constexpr std::uint16_t ShockMask = 0x8000;
 
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
+using KillKey = Network::Field<std::uint16_t, 3, std::endian::big>;
+using KillAmount = Network::Field<std::uint16_t, 5, std::endian::big>;
+using KillDamage = Network::Field<std::uint16_t, 7, std::endian::big>;
+constexpr Network::PacketLayout KillExperienceLayout{
+    {Network::PacketType::C1, KillExperienceOpcode, std::nullopt}, KillDamage::End, 0x4cf200};
+
+using AmountHigh = Network::Field<std::uint16_t, 6>;
+using AmountLow = Network::Field<std::uint16_t, 8>;
+using ExtendedDamage = Network::Field<std::uint16_t, 0xa, std::endian::big>;
+constexpr Network::PacketLayout ExtendedKillExperienceLayout{
+    {Network::PacketType::C1, ExtendedKillExperienceOpcode, std::nullopt}, ExtendedDamage::End, 0x4cfce0};
+
+using DeathSkill = Network::Field<std::uint8_t, 5>;
+using Killer = Network::Field<std::uint16_t, 6, std::endian::big>;
+constexpr Network::PacketLayout DeathLayout{
+    {Network::PacketType::C1, DeathOpcode, std::nullopt}, KillKey::End, 0x4d0a30};
+
+// What arrived of `F`, or 0.
+template <typename F> typename F::Type IfArrived(Network::LayoutReader& reader)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
+    return reader.Size() >= F::End ? reader.Read<F>() : typename F::Type{};
 }
 
 KillExperience ExperienceOf(std::uint16_t key, std::uint32_t amount, std::uint16_t damage)
@@ -46,51 +66,32 @@ Outgoing WriteClearKillReport(Network::Opcode opcode)
         Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode).PutU8(0).PutU8(Network::ByteOf(opcode)));
 }
 
-// 0x4cf2b4..0x4cf2f0: la clave, la experiencia y el daño, de a dos bytes con el alto primero.
+// 0x4cf2b4..0x4cf2f0: the key, the experience and the damage, two bytes each, high first.
 Core::Expected<KillExperience, Network::ProtocolError> ReadKillExperience(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, KillExperienceOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto key = reader.ReadU16Be();
-    const auto amount = reader.ReadU16Be();
-    const auto damage = reader.ReadU16Be();
-    if (!key || !amount || !damage)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ExperienceOf(*key, *amount, *damage);
+    return Network::ReadPacket(
+        packet, KillExperienceLayout, [](Network::LayoutReader& reader)
+        { return ExperienceOf(reader.Read<KillKey>(), reader.Read<KillAmount>(), reader.Read<KillDamage>()); });
 }
 
-// 0x4d0439..0x4d047a: después de la clave saltea +5 (el relleno natural del WORD de la GS) y lee los dos WORD en
-// little endian, ExpH · 65536 + ExpL.
+// 0x4d0439..0x4d047a: past the key it skips +5 (the natural padding of the GameServer's WORD) and reads the two WORDs
+// little endian, ExpH * 65536 + ExpL.
 Core::Expected<KillExperience, Network::ProtocolError> ReadExtendedKillExperience(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, ExtendedKillExperienceOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto key = reader.ReadU16Be();
-    const auto padding = reader.ReadU8();
-    const auto high = reader.ReadU16Le();
-    const auto low = reader.ReadU16Le();
-    const auto damage = reader.ReadU16Be();
-    if (!key || !padding || !high || !low || !damage)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return ExperienceOf(*key, (std::uint32_t{*high} << 16) + *low, *damage);
+    return Network::ReadPacket(packet, ExtendedKillExperienceLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   const std::uint32_t amount =
+                                       (std::uint32_t{reader.Read<AmountHigh>()} << 16) + reader.Read<AmountLow>();
+                                   return ExperienceOf(reader.Read<KillKey>(), amount, reader.Read<ExtendedDamage>());
+                               });
 }
 
-// 0x4d0a3d..0x4d0a46 y 0x4d0b49..0x4d0b56: la clave sin máscara; la skill y el que mató, si llegaron.
+// 0x4d0a3d..0x4d0a46 and 0x4d0b49..0x4d0b56: the key unmasked; the skill and the killer, if they arrived.
 Core::Expected<Death, Network::ProtocolError> ReadDeath(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, DeathOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto key = reader.ReadU16Be();
-    if (!key)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    const auto skill = reader.ReadU8();
-    const auto killer = reader.ReadU16Be();
-    return Death{*key, skill.value_or(0), killer.value_or(0)};
+    return Network::ReadPacket(
+        packet, DeathLayout, [](Network::LayoutReader& reader)
+        { return Death{reader.Read<KillKey>(), IfArrived<DeathSkill>(reader), IfArrived<Killer>(reader)}; });
 }
 } // namespace Client::Protocol::Combat

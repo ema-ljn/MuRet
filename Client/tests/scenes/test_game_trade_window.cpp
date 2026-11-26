@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/GameInventoryHud.h"
 
 #include "Core/Expected.h"
@@ -14,7 +15,6 @@
 #include "Tables/TextTable.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Social/Trade.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/Cloth.h"
 #include "Math/RoundedMath.h"
@@ -118,9 +118,9 @@ void Name(std::span<std::byte> name, std::string_view text)
         name[at] = at < text.size() ? static_cast<std::byte>(text[at]) : std::byte{0};
 }
 
-Client::Protocol::Social::Name NameOf(std::string_view text)
+Client::Protocol::FrontEnd::NameBytes NameOf(std::string_view text)
 {
-    Client::Protocol::Social::Name name{};
+    Client::Protocol::FrontEnd::NameBytes name{};
     Name(name, text);
     return name;
 }

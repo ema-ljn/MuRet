@@ -21,6 +21,17 @@ TABLE_FILES: tuple[str, ...] = (
     "Local/itemsetoptiontest.bmd",
     "Local/credit.bmd",
     "Local/credittest.bmd",
+    "Local/slide.bmd",
+    "Local/slidetest.bmd",
+    "Local/movereq.bmd",
+    "Local/movereqtest.bmd",
+    "Local/TKOUREQ.bmd",
+    "Local/MonsterSkill.bmd",
+    "Local/MonsterSkilltest.bmd",
+    "Local/Dialog.bmd",
+    "Local/Dialogtest.bmd",
+    "Local/quest.bmd",
+    "Local/questtest.bmd",
 )
 
 

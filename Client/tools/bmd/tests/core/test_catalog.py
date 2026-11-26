@@ -69,10 +69,18 @@ def test_formats_are_listed_and_found_by_name() -> None:
         "item_set_type",
         "item_set_option",
         "credit",
+        "slide",
+        "move_requirement",
+        "monster_skill",
+        "dialog",
+        "quest",
     ]
     assert format_by_name("text").size == 614_400
     assert format_by_name("skill").size == 256 * 0x3C + 4
     assert format_by_name("gate").size == 256 * 9
+    assert format_by_name("slide").size == 0xA030
+    assert format_by_name("move_requirement").size is None
+    assert format_by_name("monster_skill").size is None
 
 
 def test_an_unknown_format_name_is_reported() -> None:

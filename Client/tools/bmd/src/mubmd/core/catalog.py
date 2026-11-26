@@ -4,12 +4,17 @@ from typing import Any
 
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.formats.credit_format import CREDIT_FORMAT
+from mubmd.core.formats.dialog_format import DIALOG_FORMAT
 from mubmd.core.formats.filter_format import FILTER_FORMAT, FILTER_NAME_FORMAT
 from mubmd.core.formats.gate_format import GATE_FORMAT
 from mubmd.core.formats.item_format import ITEM_FORMAT
 from mubmd.core.formats.item_set_format import ITEM_SET_OPTION_FORMAT, ITEM_SET_TYPE_FORMAT
+from mubmd.core.formats.monster_skill_format import MONSTER_SKILL_FORMAT
+from mubmd.core.formats.move_requirement_format import MOVE_REQUIREMENT_FORMAT
+from mubmd.core.formats.quest_format import QUEST_FORMAT
 from mubmd.core.formats.record_table_format import RecordTableFormat
 from mubmd.core.formats.skill_format import SKILL_FORMAT
+from mubmd.core.formats.slide_format import SLIDE_FORMAT
 from mubmd.core.formats.text_format import TEXT_TABLE_SIZE, TextFormat
 from mubmd.core.ports import CatalogFile, FormatCodec
 
@@ -68,6 +73,16 @@ _FORMATS = (
         _other_file("itemsetoptiontest.bmd", "cp949"),
     ),
     _table(CREDIT_FORMAT, _client_file("credit.bmd", "cp1252"), _other_file("credittest.bmd", "cp1252")),
+    _table(SLIDE_FORMAT, _client_file("slide.bmd", "cp1252"), _other_file("slidetest.bmd", "cp949")),
+    _table(
+        MOVE_REQUIREMENT_FORMAT,
+        _client_file("movereq.bmd", "cp1252"),
+        _other_file("movereqtest.bmd", "gb2312"),
+        _other_file("TKOUREQ.bmd", "gb2312"),
+    ),
+    _table(MONSTER_SKILL_FORMAT, _client_file("MonsterSkill.bmd"), _other_file("MonsterSkilltest.bmd")),
+    _table(DIALOG_FORMAT, _client_file("Dialog.bmd", "cp1252"), _other_file("Dialogtest.bmd", "cp949")),
+    _table(QUEST_FORMAT, _client_file("quest.bmd", "cp1252"), _other_file("questtest.bmd", "cp949")),
 )
 
 

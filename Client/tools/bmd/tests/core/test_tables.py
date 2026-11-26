@@ -7,6 +7,7 @@ from mubmd.core.catalog import all_formats, identify
 from mubmd.core.formats.record_fields import RecordField, span
 from mubmd.core.formats.record_table_format import RecordTableFormat
 from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.pointer import resolve
 from tests.conftest import TABLE_FILES, TEXT_FILES
 
 RECORD_TABLES = tuple(name for name in TABLE_FILES if name not in TEXT_FILES)
@@ -47,6 +48,13 @@ def test_a_table_round_trips(reference_data: Path, name: str) -> None:
         ("Local/itemsettype.bmd", 8192, 8192),
         ("Local/itemsetoption.bmd", 64, 64),
         ("Local/credit.bmd", 400, 244),
+        ("Local/slide.bmd", 1, 1),
+        ("Local/movereq.bmd", 28, 28),
+        ("Local/movereqtest.bmd", 30, 30),
+        ("Local/TKOUREQ.bmd", 30, 30),
+        ("Local/MonsterSkill.bmd", 8, 8),
+        ("Local/Dialog.bmd", 200, 75),
+        ("Local/quest.bmd", 200, 4),
     ],
 )
 def test_a_table_has_the_records_the_research_counts(reference_data: Path, name: str, records: int, used: int) -> None:
@@ -106,6 +114,13 @@ POISON: JsonObject = {
     "evolutions": [0, 0, 0],
     "classes": [1, 0, 0, 1, 0],
 }
+ARENA: JsonObject = {"number": 1, "name": "Arena", "search_name": "Arena", "level": 50, "zen": 2000, "gate": 200}
+DIALOG_53: JsonObject = {
+    "answer_count": 3,
+    "next": [52, 54, 53, -1, 0, 0, 0, 0, 0, 0],
+    "actions": [-1, 1, 2, 0, 0, 0, 0, 0, 0, 0],
+}
+QUEST_0_NAME = " Find the 'Scroll of Emperor'!"
 GATE_1: JsonObject = {
     "flag": 1,
     "map": 0,
@@ -142,6 +157,16 @@ GATE_1: JsonObject = {
         ),
         ("Local/credit.bmd", 0, {"kind": 1, "text": "STAFF"}),
         ("Local/credit.bmd", 244, {"kind": 0, "text": ""}),
+        ("Local/movereq.bmd", 0, ARENA),
+        ("Local/movereq.bmd", 10, {"name": {"text": "Atlans", "tail": "d9cbb9"}}),
+        ("Local/movereq.bmd", 27, {"name": "Crywolf Fortress2", "level": 300, "zen": 10000}),
+        ("Local/movereqtest.bmd", 0, {"name": "竞技场"}),
+        ("Local/MonsterSkill.bmd", 0, {"type": 304, "skills": [4, 1, -1, -1, -1]}),
+        ("Local/Dialog.bmd", 0, {"text": {"text": "Aew! Precisa de alguma coisa?", "tail": "643f"}}),
+        ("Local/Dialog.bmd", 53, DIALOG_53),
+        ("Local/quest.bmd", 0, {"entry_count": 2, "condition_count": 3, "npc_type": 235, "name": QUEST_0_NAME}),
+        ("Local/questtest.bmd", 0, {"name": "'제왕의 서'를 찾아라!"}),
+        ("Local/slide.bmd", 0, {"period": 60, "speed": 2.5}),
     ],
 )
 def test_known_records_read_as_the_research_says(
@@ -150,6 +175,36 @@ def test_known_records_read_as_the_research_says(
     record = records_of(reference_data, name)[index]
     assert isinstance(record, dict)
     assert {key: record[key] for key in expected} == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "pointer", "expected"),
+    [
+        ("Local/Dialog.bmd", "/53/answers/0", "Please repeat the story."),
+        ("Local/Dialog.bmd", "/53/answers/1", "I will go find it."),
+        ("Local/Dialog.bmd", "/53/answers/2", "I don't care."),
+        ("Local/quest.bmd", "/0/entries/0/item_group", 14),
+        ("Local/quest.bmd", "/0/entries/0/item_index", 23),
+        ("Local/quest.bmd", "/0/entries/0/dialogs", [52, 54, 55, 56]),
+        ("Local/quest.bmd", "/0/conditions/0/link", 1),
+        ("Local/quest.bmd", "/0/conditions/0/fail_dialog", 73),
+        ("Local/slide.bmd", "/0/groups/0/max_level", 15),
+        ("Local/slide.bmd", "/0/groups/0/count", 28),
+        ("Local/slide.bmd", "/0/groups/0/texts/0", "Precisa esta no level 15 para entrar em Devias"),
+        ("Local/slide.bmd", "/0/groups/3/count", -1),
+    ],
+)
+def test_known_values_inside_lists_and_structs(
+    reference_data: Path, name: str, pointer: str, expected: JsonValue
+) -> None:
+    assert resolve(records_of(reference_data, name), pointer) == expected
+
+
+@pytest.mark.parametrize(("name", "size"), [("movereq.bmd", 640), ("movereqtest.bmd", 480), ("TKOUREQ.bmd", 480)])
+def test_a_counted_file_keeps_the_bytes_after_its_records(reference_data: Path, name: str, size: int) -> None:
+    data = (reference_data / "Local" / name).read_bytes()
+    found = identify(name, data)
+    assert len(found.format.codec.decode(data, found.file).trailing) == size
 
 
 def raw_fields(fields: tuple[RecordField, ...]) -> Iterator[tuple[str, int]]:

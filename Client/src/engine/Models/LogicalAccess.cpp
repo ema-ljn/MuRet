@@ -12,8 +12,8 @@ LogicalAccess::LogicalAccess(std::uint8_t& depth, Crt::CrtRandom& random, std::u
     : m_depth(depth), m_random(random), m_closeRandoms(closeRandoms)
 {
     // Opening costs nothing: what the research counts per open and close is the close (3848 in MoveHero,
-    // 0x57d051..0x57d10d; 8 in the camera, 0x635ae0, for the two cells). The first access's decryption (0x40b440,
-    // 0x412810) is not ported: the value is already in the clear.
+    // 0x57d051..0x57d10d; 8 in the camera, 0x635ae0, for the two cells).
+    // The first access's decryption (0x40b440, 0x412810) is not ported: the value is already in the clear.
     m_depth = static_cast<std::uint8_t>(m_depth + 1u);
 }
 

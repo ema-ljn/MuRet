@@ -23,9 +23,9 @@ inline constexpr std::size_t OriginalTextureSlotCount = 1845;
 static_assert(OriginalTextureSlotCount * 0x38 == 0x64e6 * 4, "el memset de 0x622e40");
 
 // MuRet's text slots, after the original's. The original uploads each text to slot 0 (Interface\FontInput.tga, the
-// 256 × 32 box) every time it draws it, and its cached text (0x466000) uses slots 10000 + index handed out by
-// 0x466560, which MuRet does not reproduce. MuRet's cache (Render/Text/TextCache.h) keeps each box in one of these:
-// with 256, 8 MiB of textures.
+// 256 × 32 box) every time it draws it.
+// MuRet does not reproduce its cached text (0x466000), which uses slots 10000 + index handed out by 0x466560.
+// MuRet's cache (Render/Text/TextCache.h) keeps each box in one of these: with 256, 8 MiB of textures.
 inline constexpr std::size_t TextTextureSlotCount = 256;
 inline constexpr TextureSlot FirstTextTextureSlot{static_cast<std::uint16_t>(OriginalTextureSlotCount)};
 

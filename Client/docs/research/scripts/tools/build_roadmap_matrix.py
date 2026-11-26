@@ -315,7 +315,8 @@ ADDR = re.compile(r'0[xX](?:00)?([4-6][0-9a-fA-F]{5})\b')
 ADDR_RESEARCH = re.compile(r'(?:0[xX]|FUN_)(?:00)?([4-6][0-9a-fA-F]{5})\b')
 CUT = re.compile(r'cut\(|Unexpected\(|\bCL ?(9|10|11)\b|\bCL(9|10|11)\.|es de la CL|es del hito|\bcorte\b|'
                  r'cortad|sin portar|no se porta|queda para|llegan? con|\bstub\b|gancho|'
-                 r'\btodavía no\b|\bMuRet no\b|\bno (?:lo |la |los |las )?porta', re.I)
+                 r'\btodavía no\b|\bMuRet no\b|\bno (?:lo |la |los |las )?porta|\bnot ported\b|\bMuRet (?:does|did) not\b|'
+                 r"\bMuRet doesn't\b", re.I)
 WTOK = re.compile(r'\bCL ?(\d{1,2})(?:\.\d+|\.R\d?)?\b')
 AR_SCOPE = re.compile(r'^\w+\(AR\d+(?:\.\d+)?\)!?:')
 IGNORE_REVS = '.git-blame-ignore-revs'

@@ -7,9 +7,10 @@ from mubmd.adapters.storage import LocalFileStore
 from mubmd.app.edits import apply_operations, set_value
 from mubmd.app.queries import get
 from mubmd.core.errors import ErrorCode, MubmdError
+from mubmd.core.findings import Severity
 from mubmd.core.json_types import JsonValue
 from mubmd.core.patch import Change, PatchOp
-from tests.app.conftest import REFERENCE_TEXT, TEXT
+from tests.app.conftest import DIALOG, GATE, MOVE_REQUIREMENTS, REFERENCE_TEXT, SKILL, SLIDE, TEXT
 from tests.app.fake_store import FakeStore
 
 
@@ -128,3 +129,102 @@ def test_an_emoji_is_refused_in_the_chinese_table(working_copy: Path) -> None:
         set_value(LocalFileStore(), chinese, "/texts/500", "😀", dry_run=False)
     assert (caught.value.code, caught.value.pointer) == (ErrorCode.NOT_ENCODABLE, "/texts/500")
     assert chinese.read_bytes() == before
+
+
+MOVE_RECORD_SIZE = 0x50
+ATLANS_NAME = 4 + 10 * MOVE_RECORD_SIZE + 4
+ATLANS_NAME_END = ATLANS_NAME + 32
+
+
+def test_set_takes_a_text_with_a_tail_as_written(tables: FakeStore) -> None:
+    before = tables.files[MOVE_REQUIREMENTS]
+    result = set_value(tables, MOVE_REQUIREMENTS, "/records/10/name", "Atlans 1", dry_run=False)
+    assert result.changes == (Change("/records/10/name", {"text": "Atlans", "tail": "d9cbb9"}, "Atlans 1"),)
+    after = tables.files[MOVE_REQUIREMENTS]
+    assert after[:ATLANS_NAME] == before[:ATLANS_NAME]
+    assert after[ATLANS_NAME_END:] == before[ATLANS_NAME_END:]
+    assert get(tables, MOVE_REQUIREMENTS, "/records/10/name").value == "Atlans 1"
+
+
+def test_set_parses_a_number(tables: FakeStore) -> None:
+    result = set_value(tables, GATE, "/records/1/level", "25", dry_run=False)
+    assert result.changes == (Change("/records/1/level", 20, 25),)
+
+
+@pytest.mark.parametrize(
+    ("path", "pointer", "raw"),
+    [
+        (GATE, "/records/1/level", "300"),
+        (GATE, "/records/1/level", "true"),
+        (GATE, "/records/1/level", "2.5"),
+        (GATE, "/records/1/level", '"25"'),
+        (GATE, "/records/1/level", "veinte"),
+        (SLIDE, "/records/0/speed", "NaN"),
+        (SLIDE, "/records/0/speed", "Infinity"),
+        (SLIDE, "/records/0/speed", "1e39"),
+    ],
+)
+def test_set_refuses_a_value_its_field_cannot_hold(tables: FakeStore, path: Path, pointer: str, raw: str) -> None:
+    with pytest.raises(MubmdError) as caught:
+        set_value(tables, path, pointer, raw, dry_run=False)
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.pointer == pointer
+    assert tables.writes == 0
+
+
+def test_set_replaces_a_whole_list(tables: FakeStore) -> None:
+    result = set_value(tables, SKILL, "/records/1/classes", "[1, 1, 0, 1, 0]", dry_run=False)
+    assert result.changes == (Change("/records/1/classes/1", 0, 1),)
+
+
+@pytest.mark.parametrize(
+    ("pointer", "value"),
+    [
+        ("/records/1", {"flag": 1}),
+        ("/records/1", [1, 0, 121, 232, 123, 233, 2, 0, 20]),
+        ("/records/1", None),
+        ("/records", []),
+    ],
+)
+def test_a_whole_record_must_keep_its_fields(tables: FakeStore, pointer: str, value: JsonValue) -> None:
+    with pytest.raises(MubmdError) as caught:
+        apply_operations(tables, GATE, (PatchOp("replace", pointer, value),), dry_run=False)
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.pointer == pointer
+    assert tables.writes == 0
+
+
+def test_a_list_must_keep_its_length(tables: FakeStore) -> None:
+    with pytest.raises(MubmdError) as caught:
+        apply_operations(tables, SKILL, (PatchOp("replace", "/records/1/classes", [1, 0]),), dry_run=False)
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.pointer == "/records/1/classes"
+    assert tables.writes == 0
+
+
+def test_a_field_the_record_does_not_have_is_not_found(tables: FakeStore) -> None:
+    with pytest.raises(MubmdError) as caught:
+        apply_operations(tables, SKILL, (PatchOp("replace", "/records/1/price", 5),), dry_run=False)
+    assert caught.value.code is ErrorCode.POINTER_NOT_FOUND
+    assert tables.writes == 0
+
+
+def test_removing_a_move_requirement_shrinks_the_file(tables: FakeStore) -> None:
+    before = tables.files[MOVE_REQUIREMENTS]
+    records = get(tables, MOVE_REQUIREMENTS, "/records", limit=100).value
+    assert isinstance(records, list)
+    result = apply_operations(tables, MOVE_REQUIREMENTS, (PatchOp("replace", "/records", records[:-1]),), dry_run=False)
+    assert result.changed
+    after = tables.files[MOVE_REQUIREMENTS]
+    kept = 4 + 27 * MOVE_RECORD_SIZE
+    assert after[:4] == bytes((27, 0, 0, 0))
+    assert after[4:kept] == before[4:kept]
+    assert after[kept:] == before[kept + MOVE_RECORD_SIZE :]
+
+
+def test_a_value_the_client_cannot_hold_is_written_with_its_finding(tables: FakeStore) -> None:
+    result = set_value(tables, DIALOG, "/records/53/answer_count", "11", dry_run=False)
+    assert result.changed
+    assert [(warning.code, warning.severity, warning.pointer) for warning in result.warnings] == [
+        ("OUT_OF_RANGE", Severity.ERROR, "/records/53/answer_count")
+    ]

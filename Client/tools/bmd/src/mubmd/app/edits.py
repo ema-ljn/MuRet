@@ -1,5 +1,4 @@
 import dataclasses
-import json
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -9,37 +8,23 @@ from mubmd.app.documents import (
     encode_verified,
     open_document,
     parse_json,
+    parse_value,
     refuse_reference,
     save_view,
     touches,
 )
 from mubmd.core.catalog import format_by_name, identify
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.json_types import JsonValue
 from mubmd.core.patch import Change, PatchOp, apply_patch, diff_views
 from mubmd.core.pointer import resolve
 from mubmd.core.ports import FileStore
-
-
-def _parse_value(raw: str, current: JsonValue, pointer: str) -> JsonValue:
-    if isinstance(current, str):
-        return raw
-    try:
-        value: JsonValue = json.loads(raw)
-    except json.JSONDecodeError as error:
-        raise MubmdError(
-            ErrorCode.INVALID_VALUE,
-            f"The value at {pointer} is not a string, so the new value is JSON; got {raw!r}",
-            pointer=pointer,
-        ) from error
-    return value
 
 
 def set_value(
     store: FileStore, path: Path, pointer: str, raw: str, *, dry_run: bool, encoding: str | None = None
 ) -> EditResult:
     opened = open_document(store, path, encoding=encoding)
-    value = _parse_value(raw, resolve(opened.view, pointer), pointer)
+    value = parse_value(raw, resolve(opened.view, pointer), pointer)
     view = apply_patch(opened.view, (PatchOp("replace", pointer, value),))
     return save_view(store, opened, view, dry_run=dry_run)
 

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.adapters.cli.conftest import Cli
 
 MOVE_RECORD_SIZE = 0x50
@@ -62,3 +64,30 @@ def test_adding_a_move_requirement_grows_the_file(cli: Cli, working_copy: Path, 
     assert data[4 : 4 + 28 * MOVE_RECORD_SIZE] == source[4 : 4 + 28 * MOVE_RECORD_SIZE]
     assert data[-MOVE_TRAILING_SIZE:] == source[-MOVE_TRAILING_SIZE:]
     assert cli("get", target, "/records/28").json["data"]["value"] == new
+
+
+@pytest.mark.parametrize(
+    ("name", "pointer", "raw"),
+    [
+        ("Gate.bmd", "/records/1/level", "300"),
+        ("Gate.bmd", "/records/1/level", "true"),
+        ("Local/slide.bmd", "/records/0/speed", "NaN"),
+        ("Local/slide.bmd", "/records/0/speed", "Infinity"),
+    ],
+)
+def test_a_value_its_field_cannot_hold_is_bad_usage_and_writes_nothing(
+    cli: Cli, working_copy: Path, name: str, pointer: str, raw: str
+) -> None:
+    target = working_copy / name
+    before = target.read_bytes()
+    result = cli("set", target, pointer, raw)
+    assert result.code == 2
+    assert (result.error["code"], result.error["pointer"]) == ("INVALID_VALUE", pointer)
+    assert target.read_bytes() == before
+    assert not target.with_name(f"{target.name}.orig").exists()
+
+
+def test_find_takes_a_field(cli: Cli, working_copy: Path) -> None:
+    target = working_copy / "Local" / "movereq.bmd"
+    items = cli("find", target, "Arena", "--field", "name").json["data"]["items"]
+    assert [item["pointer"] for item in items] == ["/records/0/name"]

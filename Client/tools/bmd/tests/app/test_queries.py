@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import pytest
 
 from mubmd.app.queries import find, format_schema, get, info, list_formats
 from mubmd.core.errors import ErrorCode, MubmdError
-from tests.app.conftest import REFERENCE_TEXT, TEXT
+from tests.app.conftest import DIALOG, ITEM_SET_OPTIONS, MOVE_REQUIREMENTS, REFERENCE_TEXT, TEXT
 from tests.app.fake_store import FakeStore
 
 
@@ -79,3 +81,38 @@ def test_formats_and_their_fields_are_described() -> None:
     assert item.name == "item"
     assert [file.name for file in item.files] == ["item.bmd", "itemtest.bmd", "n380.bmd"]
     assert format_schema("item").fields[0].pointer == "/records/<0..8191>/name"
+
+
+def test_find_reads_a_text_with_a_tail(tables: FakeStore) -> None:
+    matches = find(tables, DIALOG, "Aew").items
+    assert [(match.index, match.pointer, match.text) for match in matches] == [
+        (0, "/records/0/text", "Aew! Precisa de alguma coisa?")
+    ]
+
+
+def test_find_field_keeps_one_field(tables: FakeStore) -> None:
+    everywhere = find(tables, MOVE_REQUIREMENTS, "Arena").items
+    assert [match.pointer for match in everywhere] == ["/records/0/name", "/records/0/search_name"]
+    named = find(tables, MOVE_REQUIREMENTS, "Arena", field="name").items
+    assert [match.pointer for match in named] == ["/records/0/name"]
+
+
+def test_find_field_names_the_field_of_a_list(tables: FakeStore) -> None:
+    matches = find(tables, DIALOG, "I will go find it.", field="answers").items
+    assert [(match.index, match.pointer) for match in matches] == [
+        (53, "/records/53/answers/1"),
+        (54, "/records/54/answers/0"),
+    ]
+    assert find(tables, DIALOG, "I will go find it.", field="text").total == 0
+
+
+@pytest.mark.parametrize(("path", "query"), [(ITEM_SET_OPTIONS, "ffff"), (MOVE_REQUIREMENTS, "d9cbb9")])
+def test_find_never_matches_hex(tables: FakeStore, path: Path, query: str) -> None:
+    assert find(tables, path, query).total == 0
+
+
+def test_find_refuses_a_field_the_format_does_not_have(tables: FakeStore) -> None:
+    with pytest.raises(MubmdError) as caught:
+        find(tables, MOVE_REQUIREMENTS, "Arena", field="nombre")
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.suggestion == "mubmd schema move_requirement"

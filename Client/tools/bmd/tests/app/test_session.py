@@ -6,7 +6,7 @@ from mubmd.app.edits import set_value
 from mubmd.app.session import EditSession
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.patch import Change
-from tests.app.conftest import REFERENCE_TEXT, TEXT, WORK
+from tests.app.conftest import DIALOG, GATE, MOVE_REQUIREMENTS, REFERENCE_TEXT, TEXT, WORK
 from tests.app.fake_store import FakeStore
 
 
@@ -115,3 +115,54 @@ def test_measure_warns_of_a_text_that_fills_its_record(store: FakeStore) -> None
     measure = EditSession.open(store, TEXT).measure("/texts/100", "a" * 300)
     assert measure.error is None
     assert [warning.code for warning in measure.warnings] == ["TEXT_FILLS_RECORD"]
+
+
+def test_measure_of_a_number_has_no_byte_limit(tables: FakeStore) -> None:
+    measure = EditSession.open(tables, GATE).measure("/records/1/level", 25)
+    assert (measure.size, measure.limit, measure.error, measure.warnings) == (None, None, None, ())
+
+
+def test_measure_of_a_number_its_field_cannot_hold_is_an_error(tables: FakeStore) -> None:
+    measure = EditSession.open(tables, GATE).measure("/records/1/level", 300)
+    assert measure.error is not None
+    assert measure.error.code is ErrorCode.INVALID_VALUE
+
+
+def test_measure_of_a_text_field_gives_its_bytes_and_its_room(tables: FakeStore) -> None:
+    measure = EditSession.open(tables, MOVE_REQUIREMENTS).measure("/records/10/name", "Atlans 1")
+    assert (measure.size, measure.limit, measure.error) == (8, 31, None)
+
+
+def test_measure_reports_a_value_the_client_cannot_hold(tables: FakeStore) -> None:
+    measure = EditSession.open(tables, DIALOG).measure("/records/53/answer_count", 11)
+    assert measure.error is None
+    assert [(warning.code, warning.pointer) for warning in measure.warnings] == [
+        ("OUT_OF_RANGE", "/records/53/answer_count")
+    ]
+
+
+def test_parse_reads_a_number_as_json_and_a_text_as_written(tables: FakeStore) -> None:
+    assert EditSession.open(tables, GATE).parse("/records/1/level", "25") == 25
+    assert EditSession.open(tables, MOVE_REQUIREMENTS).parse("/records/10/name", "25") == "25"
+
+
+def test_parse_of_a_bad_number_is_an_error(tables: FakeStore) -> None:
+    with pytest.raises(MubmdError) as caught:
+        EditSession.open(tables, GATE).parse("/records/1/level", "abc")
+    assert caught.value.code is ErrorCode.INVALID_VALUE
+    assert caught.value.pointer == "/records/1/level"
+
+
+def test_findings_lists_every_finding_of_the_view(tables: FakeStore) -> None:
+    session = EditSession.open(tables, DIALOG)
+    assert not session.findings
+    session.set("/records/53/answer_count", 11)
+    assert [(finding.code, finding.pointer) for finding in session.findings] == [
+        ("OUT_OF_RANGE", "/records/53/answer_count")
+    ]
+
+
+def test_findings_include_those_the_file_already_had(store: FakeStore) -> None:
+    session = EditSession.open(store, TEXT)
+    assert [(finding.code, finding.pointer) for finding in session.findings] == [("TEXT_FILLS_RECORD", "/texts/7")]
+    assert session.warnings == ()

@@ -241,13 +241,19 @@ def find_command(
             "--regex", help="Take the query as a Python regular expression, case-sensitive; (?i) ignores case"
         ),
     ] = False,
+    field: Annotated[
+        str | None,
+        typer.Option("--field", help="Search only this field of a table's records, such as name", show_default=False),
+    ] = None,
     limit: LimitOption = DEFAULT_LIMIT,
     offset: OffsetOption = 0,
     fields: FieldsOption = None,
     encoding: EncodingOption = None,
 ) -> Outcome:
     with about(file):
-        result = find(STORE, expanded(file), query, regex=regex, limit=limit, offset=offset, encoding=encoding)
+        result = find(
+            STORE, expanded(file), query, regex=regex, field=field, limit=limit, offset=offset, encoding=encoding
+        )
     return Outcome("find", result, Page[Match], fields=split_fields(fields), item_type=Match)
 
 

@@ -10,6 +10,7 @@ from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.leaves import leaf_text
 from mubmd.core.patch import Change, diff_views
 from mubmd.core.ports import FileStore
 
@@ -68,6 +69,20 @@ def parse_json(data: bytes, source: str) -> JsonValue:
         value: JsonValue = json.loads(data)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise MubmdError(ErrorCode.INVALID_VALUE, f"{source} is not valid JSON: {error}") from error
+    return value
+
+
+def parse_value(raw: str, current: JsonValue, pointer: str) -> JsonValue:
+    if leaf_text(current) is not None:
+        return raw
+    try:
+        value: JsonValue = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise MubmdError(
+            ErrorCode.INVALID_VALUE,
+            f"The value at {pointer} is not a text, so the new value is JSON; got {raw!r}",
+            pointer=pointer,
+        ) from error
     return value
 
 

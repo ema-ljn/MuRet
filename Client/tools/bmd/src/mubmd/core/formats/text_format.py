@@ -1,6 +1,6 @@
 from typing import Final
 
-from mubmd.core.checks.text_checks import check_text_table
+from mubmd.core.checks.text_checks import check_text_record, check_text_table
 from mubmd.core.ciphers.xor3 import xor3
 from mubmd.core.documents.text_table import (
     TEXT_RECORD_COUNT,
@@ -14,7 +14,8 @@ from mubmd.core.documents.text_table import (
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import VIEW_VERSION, JsonObject, JsonValue
-from mubmd.core.ports import CatalogFile, FieldInfo, Summary
+from mubmd.core.pointer import list_index, parse_pointer
+from mubmd.core.ports import CatalogFile, FieldInfo, Summary, ValueCheck
 
 TEXT_TABLE_SIZE: Final = TEXT_RECORD_COUNT * TEXT_RECORD_SIZE
 DEFAULT_ENCODING: Final = "cp1252"
@@ -33,6 +34,14 @@ def _hex_record(value: dict[str, JsonValue], index: int) -> bytes:
     if len(record) != TEXT_RECORD_SIZE:
         raise _invalid(f"Text {index}: a hex record has {TEXT_RECORD_SIZE * 2} hex digits", text_pointer(index))
     return record
+
+
+def _record(value: JsonValue, encoding: str, index: int) -> bytes:
+    if isinstance(value, str):
+        return encode_text(value, encoding, index)
+    if isinstance(value, dict):
+        return _hex_record(value, index)
+    raise _invalid(f"Text {index} is a string or {{'hex': ...}}", text_pointer(index))
 
 
 def _check_header(view: JsonObject) -> str:
@@ -86,14 +95,7 @@ class TextFormat:
         texts = view.get("texts")
         if not isinstance(texts, list) or len(texts) != TEXT_RECORD_COUNT:
             raise _invalid(f"A text view holds {TEXT_RECORD_COUNT} texts", "/texts")
-        records: list[bytes] = []
-        for index, value in enumerate(texts):
-            if isinstance(value, str):
-                records.append(encode_text(value, encoding, index))
-            elif isinstance(value, dict):
-                records.append(_hex_record(value, index))
-            else:
-                raise _invalid(f"Text {index} is a string or {{'hex': ...}}", text_pointer(index))
+        records = tuple(_record(value, encoding, index) for index, value in enumerate(texts))
         trailing = view.get("trailing", "")
         try:
             tail = bytes.fromhex(trailing) if isinstance(trailing, str) else None
@@ -101,10 +103,23 @@ class TextFormat:
             tail = None
         if tail is None:
             raise _invalid("trailing is a hex string", "/trailing")
-        return TextTable(tuple(records), encoding, tail)
+        return TextTable(records, encoding, tail)
 
     def check(self, document: TextTable, original: TextTable | None) -> tuple[Finding, ...]:
         return check_text_table(document, original)
+
+    def check_value(self, pointer: str, value: JsonValue, original: TextTable) -> ValueCheck:
+        tokens = parse_pointer(pointer)
+        is_text = len(tokens) == len(("texts", "N")) and tokens[0] == "texts"
+        index = list_index(tokens[1], len(original.records)) if is_text else None
+        if index is None:
+            last = text_pointer(len(original.records) - 1)
+            raise MubmdError(
+                ErrorCode.POINTER_NOT_FOUND, f"No text at {pointer!r}: texts are /texts/0 to {last}", pointer=pointer
+            )
+        record = _record(value, original.encoding, index)
+        findings = check_text_record(index, record, original.records[index], original.encoding)
+        return ValueCheck(TEXT_RECORD_SIZE, findings)
 
     def describe_fields(self) -> tuple[FieldInfo, ...]:
         return (

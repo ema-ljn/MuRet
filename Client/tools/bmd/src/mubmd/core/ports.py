@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Protocol
 
 from mubmd.core.findings import Finding
-from mubmd.core.json_types import JsonObject
+from mubmd.core.json_types import JsonObject, JsonValue
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +27,13 @@ class Summary:
     cipher: str
     records: int
     used_records: int
+    section_size: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ValueCheck:
+    limit: int | None
+    warnings: tuple[Finding, ...]
 
 
 class FormatCodec[D](Protocol):
@@ -41,6 +48,8 @@ class FormatCodec[D](Protocol):
     def from_view(self, view: JsonObject) -> D: ...
 
     def check(self, document: D, original: D | None) -> tuple[Finding, ...]: ...
+
+    def check_value(self, pointer: str, value: JsonValue, original: D) -> ValueCheck: ...
 
     def describe_fields(self) -> tuple[FieldInfo, ...]: ...
 

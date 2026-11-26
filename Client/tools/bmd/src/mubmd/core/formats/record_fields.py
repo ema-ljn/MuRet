@@ -245,7 +245,7 @@ def has_client_range(field: RecordField) -> bool:
     return _client_range(field) is not None or any(map(has_client_range, field.fields))
 
 
-def _element_out_of_range(field: RecordField, value: JsonValue, pointer: str) -> Iterator[Finding]:
+def value_out_of_range(field: RecordField, value: JsonValue, pointer: str) -> Iterator[Finding]:
     if field.kind == "struct":
         if isinstance(value, dict):
             yield from out_of_range(field.fields, value, pointer)
@@ -264,7 +264,7 @@ def out_of_range(fields: tuple[RecordField, ...], value: JsonObject, pointer: st
         place = f"{pointer}/{field.name}"
         item = value.get(field.name)
         if field.count is None:
-            yield from _element_out_of_range(field, item, place)
+            yield from value_out_of_range(field, item, place)
         elif isinstance(item, list):
             for index, element in enumerate(item):
-                yield from _element_out_of_range(field, element, f"{place}/{index}")
+                yield from value_out_of_range(field, element, f"{place}/{index}")

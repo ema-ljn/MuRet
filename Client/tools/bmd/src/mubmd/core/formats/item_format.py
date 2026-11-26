@@ -22,7 +22,6 @@ ITEM_FORMAT: Final = RecordTableFormat(
             RecordField("raw_0x26", ITEM_RECORD_SIZE - 0x26, "bytes"),
         ),
         checksum_key=ITEM_CHECKSUM_KEY,
-        xor_odd_words=True,
         reference="Client/docs/research/05-formatos-de-datos.md#tablas-bmd",
     )
 )

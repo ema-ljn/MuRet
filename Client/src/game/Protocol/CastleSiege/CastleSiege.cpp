@@ -1,16 +1,23 @@
 #include "Protocol/CastleSiege/CastleSiege.h"
 
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketCode.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -18,557 +25,424 @@ namespace Client::Protocol::CastleSiege
 {
 namespace
 {
-// 0x4dfc60, 0x4dfce0 y 0x4dfd80: la cuenta en pkt+8 y los registros desde pkt+0xc; 0x4e0ed0: la cuenta en pkt+4 y los
-// pares desde pkt+8.
-constexpr std::size_t ListCountAt = 8;
-constexpr std::size_t ListRecordsAt = 0xc;
-constexpr std::size_t SiegeGuildEntrySize = 0xe;
-constexpr std::size_t RegisteredGuildEntrySize = 10;
-constexpr std::size_t MinimapCountAt = 4;
-constexpr std::size_t MinimapPointsAt = 8;
+using Result = Core::Expected<CastleSiegePacket, Network::ProtocolError>;
 
-// Los campos de un paquete a desplazamientos fijos desde su primer byte, como los lee cada handler del original.
-class Fields
+template <std::size_t At> using Byte = Network::Field<std::uint8_t, At>;
+// MOV r32: little-endian.
+template <std::size_t At> using Dword = Network::Field<std::uint32_t, At>;
+// What the original builds byte by byte (SHL 8 and OR): the first byte on top.
+template <std::size_t At> using BigWord = Network::Field<std::uint16_t, At, std::endian::big>;
+template <std::size_t At> using BigDword = Network::Field<std::uint32_t, At, std::endian::big>;
+template <std::size_t At> using BigQword = Network::Field<std::array<std::byte, sizeof(std::uint64_t)>, At>;
+
+using ResultByte = Byte<4>;
+
+// The handlers read at fixed offsets whatever the type: in a C2 the subcode and the result are the same pkt[4].
+Network::PacketLayout LayoutOf(const Network::Packet& packet, Network::Opcode opcode,
+                               std::optional<Network::Subcode> subcode, std::size_t minimumSize, std::uint32_t address)
 {
-public:
-    explicit Fields(std::span<const std::byte> bytes) : m_bytes(bytes) {}
+    return {{packet.Type(), opcode, subcode}, minimumSize, address};
+}
 
-    [[nodiscard]] Core::Expected<std::span<const std::byte>, Network::ProtocolError> Bytes(std::size_t at,
-                                                                                           std::size_t count) const
+Network::PacketLayout CastleLayout(const Network::Packet& packet, Network::Subcode subcode, std::uint32_t address)
+{
+    return LayoutOf(packet, CastleOpcode, subcode, ResultByte::End, address);
+}
+
+template <typename ReadFields>
+Result ReadAs(const Network::Packet& packet, const Network::PacketLayout& layout, ReadFields read)
+{
+    return Network::ReadPacket(packet, layout,
+                               [&read](Network::LayoutReader& reader) { return CastleSiegePacket{read(reader)}; });
+}
+
+std::uint8_t U8At(std::span<const std::byte> bytes, std::size_t at)
+{
+    return std::to_integer<std::uint8_t>(bytes[at]);
+}
+
+std::uint64_t BigEndian(std::span<const std::byte> bytes)
+{
+    std::uint64_t value = 0;
+    for (const std::byte b : bytes)
     {
-        if (at > m_bytes.size() || m_bytes.size() - at < count)
-        {
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        }
-        return m_bytes.subspan(at, count);
+        value = (value << 8U) | std::to_integer<std::uint64_t>(b);
     }
+    return value;
+}
 
-    [[nodiscard]] Core::Expected<std::uint8_t, Network::ProtocolError> U8(std::size_t at) const
-    {
-        if (at >= m_bytes.size())
-        {
-            return Core::Unexpected(Network::ProtocolError::TooShort);
-        }
-        return std::to_integer<std::uint8_t>(m_bytes[at]);
-    }
-
-    // MOV r32: el byte de abajo primero.
-    [[nodiscard]] Core::Expected<std::uint32_t, Network::ProtocolError> U32Le(std::size_t at) const
-    {
-        auto field = Bytes(at, 4);
-        if (!field.HasValue())
-        {
-            return Core::Unexpected(field.Error());
-        }
-        std::uint32_t value = 0;
-        for (std::size_t i = 4; i-- > 0;)
-        {
-            value = (value << 8u) | std::to_integer<std::uint32_t>(field.Value()[i]);
-        }
-        return value;
-    }
-
-    // Los que el original arma byte a byte (SHL 8 y OR): el primero arriba.
-    [[nodiscard]] Core::Expected<std::uint64_t, Network::ProtocolError> UBe(std::size_t at, std::size_t count) const
-    {
-        auto field = Bytes(at, count);
-        if (!field.HasValue())
-        {
-            return Core::Unexpected(field.Error());
-        }
-        std::uint64_t value = 0;
-        for (const std::byte b : field.Value())
-        {
-            value = (value << 8u) | std::to_integer<std::uint64_t>(b);
-        }
-        return value;
-    }
-
-    [[nodiscard]] Core::Expected<std::uint32_t, Network::ProtocolError> U32Be(std::size_t at) const
-    {
-        auto value = UBe(at, 4);
-        if (!value.HasValue())
-        {
-            return Core::Unexpected(value.Error());
-        }
-        return static_cast<std::uint32_t>(value.Value());
-    }
-
-    // La cuenta de una lista: un int, y el lazo (JLE antes de entrar, JL al volver) no corre con 0 ni con una
-    // negativa.
-    [[nodiscard]] Core::Expected<std::size_t, Network::ProtocolError> Count(std::size_t at) const
-    {
-        auto count = U32Le(at);
-        if (!count.HasValue())
-        {
-            return Core::Unexpected(count.Error());
-        }
-        const auto signedCount = static_cast<std::int32_t>(count.Value());
-        return signedCount > 0 ? static_cast<std::size_t>(signedCount) : std::size_t{0};
-    }
-
-private:
-    std::span<const std::byte> m_bytes;
-};
-
-template <std::size_t Size> std::array<std::byte, Size> CopyOf(std::span<const std::byte> field)
+template <std::size_t Size> std::array<std::byte, Size> CopyOf(std::span<const std::byte> bytes)
 {
     std::array<std::byte, Size> out{};
-    std::ranges::copy(field.first(Size), out.begin());
+    std::ranges::copy(bytes.first(Size), out.begin());
     return out;
 }
 
-// Un caso que con pkt[4] en 0 o en otro valor solo muestra un mensaje: el resultado y nada más.
-template <typename Result> Core::Expected<CastleSiegePacket, Network::ProtocolError> OnlyTheResult(const Fields& fields)
+// 0x4dfc60, 0x4dfce0 and 0x4dfd80: the count at pkt+8 and the records from pkt+0xc; 0x4e0ed0: the count at pkt+4 and
+// the pairs from pkt+8.
+using ListCount = Dword<8>;
+constexpr std::size_t ListRecordsAt = 0xc;
+constexpr std::size_t SiegeGuildEntrySize = 0xe;
+constexpr std::size_t RegisteredGuildEntrySize = 10;
+using MinimapCount = Dword<4>;
+constexpr std::size_t MinimapPointsAt = 8;
+constexpr std::size_t MinimapPointSize = 2;
+
+// An int, and the loop (JLE before it, JL on the way back) does not run with 0 or a negative one.
+template <typename F> std::size_t CountOf(Network::LayoutReader& reader)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    return CastleSiegePacket{Result{.result = result.Value()}};
+    const auto count = static_cast<std::int32_t>(reader.Read<F>());
+    return count > 0 ? static_cast<std::size_t>(count) : std::size_t{0};
 }
 
-// B2 00, 0x4e50bd → 0x64b0f0 con pkt[4] en 1 o 2.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadState(const Fields& fields)
+// A case that, with pkt[4] at 0 or another value, only shows a message: the result and nothing else.
+template <typename ResultPacket>
+Result OnlyTheResult(const Network::Packet& packet, Network::Subcode subcode, std::uint32_t address)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    CastleState state{.result = result.Value()};
-    if (state.result != 1 && state.result != 2)
-    {
-        return CastleSiegePacket{state};
-    }
-    auto whole = fields.Bytes(5, 0x29);
-    if (!whole.HasValue())
-    {
-        return Core::Unexpected(whole.Error());
-    }
-    state.state = static_cast<std::int8_t>(fields.U8(5).Value());
-    for (std::size_t i = 0; i < state.dates.size(); ++i)
-    {
-        const std::size_t at = 6 + i * 6;
-        state.dates[i].year = static_cast<std::uint16_t>(fields.UBe(at, 2).Value());
-        for (std::size_t b = 0; b < state.dates[i].rest.size(); ++b)
-        {
-            state.dates[i].rest[b] = fields.U8(at + 2 + b).Value();
-        }
-    }
-    state.ownerGuild = CopyOf<GuildNameSize>(fields.Bytes(0x18, GuildNameSize).Value());
-    state.ownerMaster = CopyOf<CharacterNameSize>(fields.Bytes(0x20, CharacterNameSize).Value());
-    state.remaining = fields.U32Be(0x2a).Value();
-    return CastleSiegePacket{state};
+    return ReadAs(packet, CastleLayout(packet, subcode, address),
+                  [](Network::LayoutReader& reader) { return ResultPacket{.result = reader.Read<ResultByte>()}; });
 }
 
-// B2 03, 0x4e5186: con 1, las marcas y pkt[0x11].
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadRegistration(const Fields& fields)
+// 0x64b0f0: each date is six bytes, the year on top.
+constexpr std::size_t SiegeDateSize = 6;
+
+template <std::size_t At> SiegeDate DateAt(Network::LayoutReader& reader)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    RegistrationInfo info{.result = result.Value()};
-    if (info.result != ResultOk)
-    {
-        return CastleSiegePacket{info};
-    }
-    auto marks = fields.U32Be(0xd);
-    auto gaveUp = fields.U8(0x11);
-    if (!gaveUp.HasValue())
-    {
-        return Core::Unexpected(gaveUp.Error());
-    }
-    info.marks = marks.Value();
-    info.gaveUp = gaveUp.Value();
-    return CastleSiegePacket{info};
+    SiegeDate date{.year = reader.Read<BigWord<At>>(), .rest = {}};
+    const auto rest = reader.Read<Network::Field<std::array<std::byte, 4>, At + 2>>();
+    std::ranges::transform(rest, date.rest.begin(), [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
+    return date;
 }
 
-// B2 04, 0x4e51fa: con 1, las marcas.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadRegisterMark(const Fields& fields)
+// B2 00, 0x4e50bd → 0x64b0f0 with pkt[4] at 1 or 2.
+Result ReadState(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    RegisterMarkResult mark{.result = result.Value()};
-    if (mark.result != ResultOk)
-    {
-        return CastleSiegePacket{mark};
-    }
-    auto marks = fields.U32Be(0xd);
-    if (!marks.HasValue())
-    {
-        return Core::Unexpected(marks.Error());
-    }
-    mark.marks = marks.Value();
-    return CastleSiegePacket{mark};
+    return ReadAs(packet, CastleLayout(packet, Castle::StateSubcode, 0x4e50bd),
+                  [](Network::LayoutReader& reader)
+                  {
+                      CastleState state{.result = reader.Read<ResultByte>()};
+                      if (state.result != 1 && state.result != 2)
+                      {
+                          return state;
+                      }
+                      state.state = static_cast<std::int8_t>(reader.Read<Byte<5>>());
+                      state.dates = {DateAt<6>(reader), DateAt<6 + SiegeDateSize>(reader),
+                                     DateAt<6 + 2 * SiegeDateSize>(reader)};
+                      state.ownerGuild = reader.Read<Network::Field<GuildName, 0x18>>();
+                      state.ownerMaster = reader.Read<Network::Field<FrontEnd::NameBytes, 0x20>>();
+                      state.remaining = reader.Read<BigDword<0x2a>>();
+                      return state;
+                  });
 }
 
-// B2 05, 0x4df7d0: con 1, el tipo y el índice.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcBuy(const Fields& fields)
+// B2 03, 0x4e5186: with 1, the marks and pkt[0x11].
+Result ReadRegistration(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    NpcBuyResult buy{.result = result.Value()};
-    if (buy.result != ResultOk)
-    {
-        return CastleSiegePacket{buy};
-    }
-    auto index = fields.U32Le(0xc);
-    if (!index.HasValue())
-    {
-        return Core::Unexpected(index.Error());
-    }
-    buy.type = fields.U32Le(8).Value();
-    buy.index = index.Value();
-    return CastleSiegePacket{buy};
+    return ReadAs(packet, CastleLayout(packet, Castle::RegistrationSubcode, 0x4e5186),
+                  [](Network::LayoutReader& reader)
+                  {
+                      RegistrationInfo info{.result = reader.Read<ResultByte>()};
+                      if (info.result == ResultOk)
+                      {
+                          info.marks = reader.Read<BigDword<0xd>>();
+                          info.gaveUp = reader.Read<Byte<0x11>>();
+                      }
+                      return info;
+                  });
 }
 
-// B2 06, 0x4e52b7: con 1, el tipo, el índice y las dos vidas.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcRepair(const Fields& fields)
+// B2 04, 0x4e51fa: with 1, the marks.
+Result ReadRegisterMark(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    NpcRepairResult repair{.result = result.Value()};
-    if (repair.result != ResultOk)
-    {
-        return CastleSiegePacket{repair};
-    }
-    auto maxLife = fields.U32Le(0x14);
-    if (!maxLife.HasValue())
-    {
-        return Core::Unexpected(maxLife.Error());
-    }
-    repair.type = fields.U32Le(8).Value();
-    repair.index = fields.U32Le(0xc).Value();
-    repair.life = fields.U32Le(0x10).Value();
-    repair.maxLife = maxLife.Value();
-    return CastleSiegePacket{repair};
+    return ReadAs(packet, CastleLayout(packet, Castle::RegisterMarkSubcode, 0x4e51fa),
+                  [](Network::LayoutReader& reader)
+                  {
+                      RegisterMarkResult mark{.result = reader.Read<ResultByte>()};
+                      if (mark.result == ResultOk)
+                      {
+                          mark.marks = reader.Read<BigDword<0xd>>();
+                      }
+                      return mark;
+                  });
 }
 
-// B2 07, 0x4df950: con 1, el tipo, el índice y cuál; el valor (pkt+0x14) solo lo leen los casos 1, 2 y 3.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcUpgrade(const Fields& fields)
+// B2 05, 0x4df7d0: with 1, the type and the index.
+Result ReadNpcBuy(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    NpcUpgradeResult upgrade{.result = result.Value()};
-    if (upgrade.result != ResultOk)
-    {
-        return CastleSiegePacket{upgrade};
-    }
-    auto kind = fields.U32Le(0x10);
-    if (!kind.HasValue())
-    {
-        return Core::Unexpected(kind.Error());
-    }
-    upgrade.type = fields.U32Le(8).Value();
-    upgrade.index = fields.U32Le(0xc).Value();
-    upgrade.kind = kind.Value();
-    if (upgrade.kind < 1 || upgrade.kind > 3)
-    {
-        return CastleSiegePacket{upgrade};
-    }
-    auto value = fields.U32Le(0x14);
-    if (!value.HasValue())
-    {
-        return Core::Unexpected(value.Error());
-    }
-    upgrade.value = value.Value();
-    return CastleSiegePacket{upgrade};
+    return ReadAs(packet, CastleLayout(packet, Castle::NpcBuySubcode, 0x4df7d0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      NpcBuyResult buy{.result = reader.Read<ResultByte>()};
+                      if (buy.result == ResultOk)
+                      {
+                          buy.type = reader.Read<Dword<8>>();
+                          buy.index = reader.Read<Dword<0xc>>();
+                      }
+                      return buy;
+                  });
 }
 
-// B2 08, 0x4e537b → 0x669070: con 1, los dos impuestos y la plata.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadTaxInfo(const Fields& fields)
+// B2 06, 0x4e52b7: with 1, the type, the index and the two lives.
+Result ReadNpcRepair(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    TaxInfo info{.result = result.Value()};
-    if (info.result != ResultOk)
-    {
-        return CastleSiegePacket{info};
-    }
-    auto money = fields.UBe(7, 8);
-    if (!money.HasValue())
-    {
-        return Core::Unexpected(money.Error());
-    }
-    info.chaosTax = fields.U8(5).Value();
-    info.storeTax = fields.U8(6).Value();
-    info.money = money.Value();
-    return CastleSiegePacket{info};
+    return ReadAs(packet, CastleLayout(packet, Castle::NpcRepairSubcode, 0x4e52b7),
+                  [](Network::LayoutReader& reader)
+                  {
+                      NpcRepairResult repair{.result = reader.Read<ResultByte>()};
+                      if (repair.result == ResultOk)
+                      {
+                          repair.type = reader.Read<Dword<8>>();
+                          repair.index = reader.Read<Dword<0xc>>();
+                          repair.life = reader.Read<Dword<0x10>>();
+                          repair.maxLife = reader.Read<Dword<0x14>>();
+                      }
+                      return repair;
+                  });
 }
 
-// B2 09, 0x4e53e7: con 1, cuál; el valor lo leen el 3 (0x4e541b) y el 1 y el 2 (0x6690f0).
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadTaxRate(const Fields& fields)
+// B2 07, 0x4df950: with 1, the type, the index and which; only cases 1, 2 and 3 read the value (pkt+0x14).
+Result ReadNpcUpgrade(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    TaxRateResult rate{.result = result.Value()};
-    if (rate.result != ResultOk)
-    {
-        return CastleSiegePacket{rate};
-    }
-    auto kind = fields.U8(5);
-    if (!kind.HasValue())
-    {
-        return Core::Unexpected(kind.Error());
-    }
-    rate.kind = kind.Value();
-    if (rate.kind < 1 || rate.kind > 3)
-    {
-        return CastleSiegePacket{rate};
-    }
-    auto value = fields.U32Be(6);
-    if (!value.HasValue())
-    {
-        return Core::Unexpected(value.Error());
-    }
-    rate.value = value.Value();
-    return CastleSiegePacket{rate};
+    return ReadAs(packet, CastleLayout(packet, Castle::NpcUpgradeSubcode, 0x4df950),
+                  [](Network::LayoutReader& reader)
+                  {
+                      NpcUpgradeResult upgrade{.result = reader.Read<ResultByte>()};
+                      if (upgrade.result != ResultOk)
+                      {
+                          return upgrade;
+                      }
+                      upgrade.type = reader.Read<Dword<8>>();
+                      upgrade.index = reader.Read<Dword<0xc>>();
+                      upgrade.kind = reader.Read<Dword<0x10>>();
+                      if (upgrade.kind >= 1 && upgrade.kind <= 3)
+                      {
+                          upgrade.value = reader.Read<Dword<0x14>>();
+                      }
+                      return upgrade;
+                  });
 }
 
-// B2 10, 0x4e548a → 0x669160: con 1, la plata.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadMoneyOut(const Fields& fields)
+// B2 08, 0x4e537b → 0x669070: with 1, the two taxes and the money.
+Result ReadTaxInfo(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    MoneyOutResult out{.result = result.Value()};
-    if (out.result != ResultOk)
-    {
-        return CastleSiegePacket{out};
-    }
-    auto money = fields.UBe(5, 8);
-    if (!money.HasValue())
-    {
-        return Core::Unexpected(money.Error());
-    }
-    out.money = money.Value();
-    return CastleSiegePacket{out};
+    return ReadAs(packet, CastleLayout(packet, Castle::TaxInfoSubcode, 0x4e537b),
+                  [](Network::LayoutReader& reader)
+                  {
+                      TaxInfo info{.result = reader.Read<ResultByte>()};
+                      if (info.result == ResultOk)
+                      {
+                          info.chaosTax = reader.Read<Byte<5>>();
+                          info.storeTax = reader.Read<Byte<6>>();
+                          info.money = BigEndian(reader.Read<BigQword<7>>());
+                      }
+                      return info;
+                  });
 }
 
-// B2 1A, 0x4e54f6: pkt[5] solo con pkt[4] en 1 o 2.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadSiegeFlags(const Fields& fields)
+// B2 09, 0x4e53e7: with 1, which; 3 (0x4e541b) and 1 and 2 (0x6690f0) read the value.
+Result ReadTaxRate(const Network::Packet& packet)
 {
-    auto which = fields.U8(4);
-    if (!which.HasValue())
-    {
-        return Core::Unexpected(which.Error());
-    }
-    SiegeFlags flags{.which = which.Value()};
-    if (flags.which != 1 && flags.which != 2)
-    {
-        return CastleSiegePacket{flags};
-    }
-    auto value = fields.U8(5);
-    if (!value.HasValue())
-    {
-        return Core::Unexpected(value.Error());
-    }
-    flags.value = value.Value();
-    return CastleSiegePacket{flags};
+    return ReadAs(packet, CastleLayout(packet, Castle::TaxRateSubcode, 0x4e53e7),
+                  [](Network::LayoutReader& reader)
+                  {
+                      TaxRateResult rate{.result = reader.Read<ResultByte>()};
+                      if (rate.result != ResultOk)
+                      {
+                          return rate;
+                      }
+                      rate.kind = reader.Read<Byte<5>>();
+                      if (rate.kind >= 1 && rate.kind <= 3)
+                      {
+                          rate.value = reader.Read<BigDword<6>>();
+                      }
+                      return rate;
+                  });
 }
 
-// B2 1F, 0x4e5532: pkt[5] solo con 1.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadHuntZoneGate(const Fields& fields)
+// B2 10, 0x4e548a → 0x669160: with 1, the money.
+Result ReadMoneyOut(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    HuntZoneGateResult gate{.result = result.Value()};
-    if (gate.result != ResultOk)
-    {
-        return CastleSiegePacket{gate};
-    }
-    auto allowed = fields.U8(5);
-    if (!allowed.HasValue())
-    {
-        return Core::Unexpected(allowed.Error());
-    }
-    gate.allowed = allowed.Value();
-    return CastleSiegePacket{gate};
+    return ReadAs(packet, CastleLayout(packet, Castle::MoneyOutSubcode, 0x4e548a),
+                  [](Network::LayoutReader& reader)
+                  {
+                      MoneyOutResult out{.result = reader.Read<ResultByte>()};
+                      if (out.result == ResultOk)
+                      {
+                          out.money = BigEndian(reader.Read<BigQword<5>>());
+                      }
+                      return out;
+                  });
+}
+
+// B2 1A, 0x4e54f6: pkt[5] only with pkt[4] at 1 or 2.
+Result ReadSiegeFlags(const Network::Packet& packet)
+{
+    return ReadAs(packet, CastleLayout(packet, Castle::SiegeFlagsSubcode, 0x4e54f6),
+                  [](Network::LayoutReader& reader)
+                  {
+                      SiegeFlags flags{.which = reader.Read<ResultByte>()};
+                      if (flags.which == 1 || flags.which == 2)
+                      {
+                          flags.value = reader.Read<Byte<5>>();
+                      }
+                      return flags;
+                  });
+}
+
+// B2 1F, 0x4e5532: pkt[5] only with 1.
+Result ReadHuntZoneGate(const Network::Packet& packet)
+{
+    return ReadAs(packet, CastleLayout(packet, Castle::HuntZoneGateSubcode, 0x4e5532),
+                  [](Network::LayoutReader& reader)
+                  {
+                      HuntZoneGateResult gate{.result = reader.Read<ResultByte>()};
+                      if (gate.result == ResultOk)
+                      {
+                          gate.allowed = reader.Read<Byte<5>>();
+                      }
+                      return gate;
+                  });
+}
+
+NpcRecord NpcRecordOf(std::span<const std::byte, NpcRecordSize> bytes)
+{
+    return CopyOf<NpcRecordSize>(bytes);
 }
 
 // B3, 0x4dfc60.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcList(const Fields& fields)
+Result ReadNpcList(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    NpcList list{.result = result.Value(), .records = {}};
-    if (list.result != ResultOk)
-    {
-        return CastleSiegePacket{list};
-    }
-    auto count = fields.Count(ListCountAt);
-    if (!count.HasValue())
-    {
-        return Core::Unexpected(count.Error());
-    }
-    for (std::size_t i = 0; i < count.Value(); ++i)
-    {
-        auto record = fields.Bytes(ListRecordsAt + i * NpcRecordSize, NpcRecordSize);
-        if (!record.HasValue())
-        {
-            return Core::Unexpected(record.Error());
-        }
-        list.records.push_back(CopyOf<NpcRecordSize>(record.Value()));
-    }
-    return CastleSiegePacket{list};
+    return ReadAs(packet, LayoutOf(packet, CastleNpcListOpcode, std::nullopt, ResultByte::End, 0x4dfc60),
+                  [](Network::LayoutReader& reader)
+                  {
+                      NpcList list{.result = reader.Read<ResultByte>(), .records = {}};
+                      if (list.result == ResultOk)
+                      {
+                          list.records = Network::ReadList<NpcRecordSize>(reader, ListRecordsAt,
+                                                                          CountOf<ListCount>(reader), NpcRecordOf);
+                      }
+                      return list;
+                  });
 }
 
-// B4, 0x4dfce0: cada registro como lo pasa a 0x64d2c0.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadSiegeGuildList(const Fields& fields)
+// B4, 0x4dfce0: each record as it passes it to 0x64d2c0.
+SiegeGuildEntry SiegeGuildEntryOf(std::span<const std::byte, SiegeGuildEntrySize> bytes)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    SiegeGuildList list{.result = result.Value(), .entries = {}};
-    if (list.result != ResultOk)
-    {
-        return CastleSiegePacket{list};
-    }
-    auto count = fields.Count(ListCountAt);
-    if (!count.HasValue())
-    {
-        return Core::Unexpected(count.Error());
-    }
-    for (std::size_t i = 0; i < count.Value(); ++i)
-    {
-        const std::size_t at = ListRecordsAt + i * SiegeGuildEntrySize;
-        auto record = fields.Bytes(at, SiegeGuildEntrySize);
-        if (!record.HasValue())
-        {
-            return Core::Unexpected(record.Error());
-        }
-        list.entries.push_back(SiegeGuildEntry{.name = CopyOf<GuildNameSize>(record.Value()),
-                                               .marks = fields.U32Be(at + 8).Value(),
-                                               .first = fields.U8(at + 0xc).Value(),
-                                               .second = fields.U8(at + 0xd).Value()});
-    }
-    return CastleSiegePacket{list};
+    return {.name = CopyOf<GuildNameSize>(bytes),
+            .marks = static_cast<std::uint32_t>(BigEndian(bytes.subspan<8, 4>())),
+            .first = U8At(bytes, 0xc),
+            .second = U8At(bytes, 0xd)};
 }
 
-// B5, 0x4dfd80: cada registro como lo pasa a 0x64d310.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadRegisteredGuildList(const Fields& fields)
+Result ReadSiegeGuildList(const Network::Packet& packet)
 {
-    auto result = fields.U8(4);
-    if (!result.HasValue())
-    {
-        return Core::Unexpected(result.Error());
-    }
-    RegisteredGuildList list{.result = result.Value(), .entries = {}};
-    if (list.result != ResultOk)
-    {
-        return CastleSiegePacket{list};
-    }
-    auto count = fields.Count(ListCountAt);
-    if (!count.HasValue())
-    {
-        return Core::Unexpected(count.Error());
-    }
-    for (std::size_t i = 0; i < count.Value(); ++i)
-    {
-        const std::size_t at = ListRecordsAt + i * RegisteredGuildEntrySize;
-        auto record = fields.Bytes(at, RegisteredGuildEntrySize);
-        if (!record.HasValue())
-        {
-            return Core::Unexpected(record.Error());
-        }
-        list.entries.push_back(RegisteredGuildEntry{.first = fields.U8(at).Value(),
-                                                    .second = fields.U8(at + 1).Value(),
-                                                    .name = CopyOf<GuildNameSize>(record.Value().subspan(2))});
-    }
-    return CastleSiegePacket{list};
+    return ReadAs(packet, LayoutOf(packet, SiegeGuildListOpcode, std::nullopt, ResultByte::End, 0x4dfce0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      SiegeGuildList list{.result = reader.Read<ResultByte>(), .entries = {}};
+                      if (list.result == ResultOk)
+                      {
+                          list.entries = Network::ReadList<SiegeGuildEntrySize>(
+                              reader, ListRecordsAt, CountOf<ListCount>(reader), SiegeGuildEntryOf);
+                      }
+                      return list;
+                  });
+}
+
+// B5, 0x4dfd80: each record as it passes it to 0x64d310.
+RegisteredGuildEntry RegisteredGuildEntryOf(std::span<const std::byte, RegisteredGuildEntrySize> bytes)
+{
+    return {.first = U8At(bytes, 0), .second = U8At(bytes, 1), .name = CopyOf<GuildNameSize>(bytes.subspan<2>())};
+}
+
+Result ReadRegisteredGuildList(const Network::Packet& packet)
+{
+    return ReadAs(packet, LayoutOf(packet, RegisteredGuildListOpcode, std::nullopt, ResultByte::End, 0x4dfd80),
+                  [](Network::LayoutReader& reader)
+                  {
+                      RegisteredGuildList list{.result = reader.Read<ResultByte>(), .entries = {}};
+                      if (list.result == ResultOk)
+                      {
+                          list.entries = Network::ReadList<RegisteredGuildEntrySize>(
+                              reader, ListRecordsAt, CountOf<ListCount>(reader), RegisteredGuildEntryOf);
+                      }
+                      return list;
+                  });
 }
 
 // B6, 0x4e0ed0.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadMinimapPoints(const Fields& fields)
+MinimapPoint MinimapPointOf(std::span<const std::byte, MinimapPointSize> bytes)
 {
-    auto count = fields.Count(MinimapCountAt);
-    if (!count.HasValue())
-    {
-        return Core::Unexpected(count.Error());
-    }
-    MinimapPoints points;
-    for (std::size_t i = 0; i < count.Value(); ++i)
-    {
-        auto pair = fields.Bytes(MinimapPointsAt + i * 2, 2);
-        if (!pair.HasValue())
-        {
-            return Core::Unexpected(pair.Error());
-        }
-        points.points.push_back(MinimapPoint{.x = std::to_integer<std::uint8_t>(pair.Value()[0]),
-                                             .y = std::to_integer<std::uint8_t>(pair.Value()[1])});
-    }
-    return CastleSiegePacket{points};
+    return {.x = U8At(bytes, 0), .y = U8At(bytes, 1)};
 }
 
-// El B2 por su subcódigo, la tabla 0x4e6140.
-Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastle(const Fields& fields, Network::Subcode subcode)
+Result ReadMinimapPoints(const Network::Packet& packet)
+{
+    return ReadAs(packet, LayoutOf(packet, SiegeMinimapOpcode, std::nullopt, MinimapCount::End, 0x4e0ed0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      return MinimapPoints{.points = Network::ReadList<MinimapPointSize>(
+                                               reader, MinimapPointsAt, CountOf<MinimapCount>(reader), MinimapPointOf)};
+                  });
+}
+
+// B8 01, 0x4e0700.
+Result ReadKillCount(const Network::Packet& packet)
+{
+    return ReadAs(packet,
+                  LayoutOf(packet, KillCountOpcode, Protocol::KillCount::CountSubcode, ResultByte::End, 0x4e0700),
+                  [](Network::LayoutReader& reader) { return KillCount{.value = reader.Read<ResultByte>()}; });
+}
+
+// The B2 by its subcode, the table 0x4e6140.
+Result ReadCastle(const Network::Packet& packet, Network::Subcode subcode)
 {
     switch (Network::ByteOf(subcode))
     {
     case Network::ByteOf(Castle::StateSubcode):
-        return ReadState(fields);
+        return ReadState(packet);
     case Network::ByteOf(Castle::RegisterSubcode):
-        return OnlyTheResult<RegisterResult>(fields);
+        return OnlyTheResult<RegisterResult>(packet, subcode, 0x4df080);
     case Network::ByteOf(Castle::GiveUpSubcode):
-        return OnlyTheResult<GiveUpResult>(fields);
+        return OnlyTheResult<GiveUpResult>(packet, subcode, 0x4df1a0);
     case Network::ByteOf(Castle::RegistrationSubcode):
-        return ReadRegistration(fields);
+        return ReadRegistration(packet);
     case Network::ByteOf(Castle::RegisterMarkSubcode):
-        return ReadRegisterMark(fields);
+        return ReadRegisterMark(packet);
     case Network::ByteOf(Castle::NpcBuySubcode):
-        return ReadNpcBuy(fields);
+        return ReadNpcBuy(packet);
     case Network::ByteOf(Castle::NpcRepairSubcode):
-        return ReadNpcRepair(fields);
+        return ReadNpcRepair(packet);
     case Network::ByteOf(Castle::NpcUpgradeSubcode):
-        return ReadNpcUpgrade(fields);
+        return ReadNpcUpgrade(packet);
     case Network::ByteOf(Castle::TaxInfoSubcode):
-        return ReadTaxInfo(fields);
+        return ReadTaxInfo(packet);
     case Network::ByteOf(Castle::TaxRateSubcode):
-        return ReadTaxRate(fields);
+        return ReadTaxRate(packet);
     case Network::ByteOf(Castle::MoneyOutSubcode):
-        return ReadMoneyOut(fields);
+        return ReadMoneyOut(packet);
     case Network::ByteOf(Castle::SiegeFlagsSubcode):
-        return ReadSiegeFlags(fields);
+        return ReadSiegeFlags(packet);
     case Network::ByteOf(Castle::HuntZoneGateSubcode):
-        return ReadHuntZoneGate(fields);
+        return ReadHuntZoneGate(packet);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
-// El writer del original para un C1 con el subcódigo: cifra desde el byte 3, como todo lo que mandan las ventanas.
+// 0x4e509c and 0x4e5883: the byte after the opcode, as the Dispatcher reads it.
+std::optional<Network::Subcode> SubcodeOf(const Network::Packet& packet)
+{
+    const std::span<const std::byte> bytes = packet.Bytes();
+    const std::size_t at = Network::SubcodeOffset(packet.Type());
+    if (bytes.size() <= at)
+    {
+        return std::nullopt;
+    }
+    return Network::Subcode{std::to_integer<std::uint8_t>(bytes[at])};
+}
+
+// The original's writer for a C1 with the subcode: it encrypts from byte 3, like everything the windows send.
 Network::PacketWriter Castle(Network::Subcode subcode)
 {
     return Network::PacketWriter::C1(CastleOpcode, subcode);
@@ -582,40 +456,27 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
     {
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
-    const Fields fields(packet.Bytes());
     switch (Network::ByteOf(*opcode))
     {
     case Network::ByteOf(CastleOpcode):
-    case Network::ByteOf(KillCountOpcode):
     {
-        auto subcode = fields.U8(Network::MinPacketSize(packet.Type()));
-        if (!subcode.HasValue())
+        const auto subcode = SubcodeOf(packet);
+        if (!subcode)
         {
-            return Core::Unexpected(subcode.Error());
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         }
-        if (*opcode == CastleOpcode)
-        {
-            return ReadCastle(fields, Network::Subcode{subcode.Value()});
-        }
-        if (Network::Subcode{subcode.Value()} != Protocol::KillCount::CountSubcode)
-        {
-            return Core::Unexpected(Network::ProtocolError::WrongPacket);
-        }
-        auto value = fields.U8(4);
-        if (!value.HasValue())
-        {
-            return Core::Unexpected(value.Error());
-        }
-        return CastleSiegePacket{KillCount{.value = value.Value()}};
+        return ReadCastle(packet, *subcode);
     }
+    case Network::ByteOf(KillCountOpcode):
+        return ReadKillCount(packet);
     case Network::ByteOf(CastleNpcListOpcode):
-        return ReadNpcList(fields);
+        return ReadNpcList(packet);
     case Network::ByteOf(SiegeGuildListOpcode):
-        return ReadSiegeGuildList(fields);
+        return ReadSiegeGuildList(packet);
     case Network::ByteOf(RegisteredGuildListOpcode):
-        return ReadRegisteredGuildList(fields);
+        return ReadRegisteredGuildList(packet);
     case Network::ByteOf(SiegeMinimapOpcode):
-        return ReadMinimapPoints(fields);
+        return ReadMinimapPoints(packet);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }

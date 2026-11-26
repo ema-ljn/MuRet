@@ -1,8 +1,8 @@
 #include "Protocol/CastleSiege/SiegeControls.h"
 
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <cstdint>
 

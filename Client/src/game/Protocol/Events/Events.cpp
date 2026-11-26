@@ -1,336 +1,336 @@
 #include "Protocol/Events/Events.h"
 
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
-#include <utility>
 #include <vector>
 
 namespace Client::Protocol::Events
 {
 namespace
 {
-// Los offsets son del paquete entero, con la cabecera C1 (pkt[0] es el 0xc1), como los lee el ASM.
-class Fields
+using Result = Core::Expected<EventPacket, Network::ProtocolError>;
+
+// The offsets are the whole packet's, with the C1 header (pkt[0] is the 0xc1), as the ASM reads them.
+template <std::size_t At> using Byte = Network::Field<std::uint8_t, At>;
+// An x86 word or dword load: little-endian.
+template <std::size_t At> using Word = Network::Field<std::uint16_t, At>;
+template <std::size_t At> using Dword = Network::Field<std::uint32_t, At>;
+template <std::size_t At> using BigWord = Network::Field<std::uint16_t, At, std::endian::big>;
+
+constexpr std::size_t SubcodeEnd = 4;
+
+constexpr Network::PacketLayout Layout(Network::Opcode opcode, std::size_t minimumSize, std::uint32_t address)
 {
-public:
-    explicit Fields(std::span<const std::byte> bytes) : m_bytes(bytes) {}
-
-    [[nodiscard]] bool Has(std::size_t size) const
-    {
-        return m_bytes.size() >= size;
-    }
-
-    [[nodiscard]] std::uint8_t U8(std::size_t at) const
-    {
-        return std::to_integer<std::uint8_t>(m_bytes[at]);
-    }
-
-    // Una carga x86 de word: little-endian.
-    [[nodiscard]] std::uint16_t U16(std::size_t at) const
-    {
-        return static_cast<std::uint16_t>(U8(at) | (U8(at + 1) << 8u));
-    }
-
-    [[nodiscard]] std::uint32_t U32(std::size_t at) const
-    {
-        return static_cast<std::uint32_t>(U16(at)) | (static_cast<std::uint32_t>(U16(at + 2)) << 16u);
-    }
-
-    [[nodiscard]] std::span<const std::byte> From(std::size_t at) const
-    {
-        return at < m_bytes.size() ? m_bytes.subspan(at) : std::span<const std::byte>{};
-    }
-
-private:
-    std::span<const std::byte> m_bytes;
-};
-
-using Read = Core::Expected<EventPacket, Network::ProtocolError>;
-
-Read TooShort()
-{
-    return Core::Unexpected(Network::ProtocolError::TooShort);
+    return {{Network::PacketType::C1, opcode, std::nullopt}, minimumSize, address};
 }
 
-// 0x4dab90: el tipo 0 lee 4 bytes por rectángulo y el 1, 2 por celda, desde pkt[7]; otro tipo, nada.
-Read ReadMapAttributes(const Fields& fields)
+constexpr Network::PacketLayout Layout(Network::Opcode opcode, Network::Subcode subcode, std::size_t minimumSize,
+                                       std::uint32_t address)
 {
-    constexpr std::size_t CountAt = 6;
-    constexpr std::size_t FirstAt = 7;
-    if (!fields.Has(FirstAt))
-        return TooShort();
-    MapAttributes attributes{fields.U8(3), fields.U8(4), fields.U8(5), fields.U8(CountAt), {}, {}};
-    if (attributes.type == 0)
-    {
-        if (!fields.Has(FirstAt + std::size_t{4} * attributes.count))
-            return TooShort();
-        for (std::size_t index = 0; index < attributes.count; ++index)
+    return {{Network::PacketType::C1, opcode, subcode}, minimumSize, address};
+}
+
+template <typename ReadFields>
+Result ReadAs(const Network::Packet& packet, const Network::PacketLayout& layout, ReadFields read)
+{
+    return Network::ReadPacket(packet, layout,
+                               [&read](Network::LayoutReader& reader) { return EventPacket{read(reader)}; });
+}
+
+template <std::size_t Size> std::array<char, Size> CharsAt(Network::LayoutReader& reader, std::size_t at)
+{
+    std::array<char, Size> chars{};
+    std::ranges::transform(reader.Bytes(at, Size), chars.begin(),
+                           [](std::byte value) { return std::to_integer<char>(value); });
+    return chars;
+}
+
+std::vector<std::byte> RestFrom(Network::LayoutReader& reader, std::size_t at)
+{
+    const std::span<const std::byte> rest = reader.Bytes(at, reader.Size() - at);
+    return {rest.begin(), rest.end()};
+}
+
+// 0x4dab90: type 0 reads 4 bytes per rectangle and type 1, 2 per cell, from pkt[7]; another type, nothing.
+constexpr std::size_t AttributesFirstAt = 7;
+constexpr std::size_t AttributeAreaSize = 4;
+constexpr std::size_t AttributeCellSize = 2;
+
+AttributeArea AreaOf(std::span<const std::byte, AttributeAreaSize> bytes)
+{
+    return {std::to_integer<std::uint8_t>(bytes[0]), std::to_integer<std::uint8_t>(bytes[1]),
+            std::to_integer<std::uint8_t>(bytes[2]), std::to_integer<std::uint8_t>(bytes[3])};
+}
+
+AttributeCell CellOf(std::span<const std::byte, AttributeCellSize> bytes)
+{
+    return {std::to_integer<std::uint8_t>(bytes[0]), std::to_integer<std::uint8_t>(bytes[1])};
+}
+
+Result ReadMapAttributes(const Network::Packet& packet)
+{
+    return ReadAs(
+        packet, Layout(MapAttributesOpcode, AttributesFirstAt, 0x4dab90),
+        [](Network::LayoutReader& reader)
         {
-            const std::size_t at = FirstAt + index * 4;
-            attributes.areas.push_back({fields.U8(at), fields.U8(at + 1), fields.U8(at + 2), fields.U8(at + 3)});
-        }
-    }
-    else if (attributes.type == 1)
-    {
-        if (!fields.Has(FirstAt + std::size_t{2} * attributes.count))
-            return TooShort();
-        for (std::size_t index = 0; index < attributes.count; ++index)
-        {
-            const std::size_t at = FirstAt + index * 2;
-            attributes.cells.push_back({fields.U8(at), fields.U8(at + 1)});
-        }
-    }
-    return EventPacket{std::move(attributes)};
+            MapAttributes attributes{
+                reader.Read<Byte<3>>(), reader.Read<Byte<4>>(), reader.Read<Byte<5>>(), reader.Read<Byte<6>>(), {}, {}};
+            if (attributes.type == 0)
+            {
+                attributes.areas =
+                    Network::ReadList<AttributeAreaSize>(reader, AttributesFirstAt, attributes.count, AreaOf);
+            }
+            else if (attributes.type == 1)
+            {
+                attributes.cells =
+                    Network::ReadList<AttributeCellSize>(reader, AttributesFirstAt, attributes.count, CellOf);
+            }
+            return attributes;
+        });
 }
 
-// 0x4da8c0: el 1 y el 2 leen pkt[4]; el 4, pkt[4], pkt[5] y pkt[6]; los demás, nada.
-Read ReadEventOpenTime(const Fields& fields)
+// 0x4da8c0: 1 and 2 read pkt[4]; 4, pkt[4], pkt[5] and pkt[6]; the others, nothing.
+Result ReadEventOpenTime(const Network::Packet& packet)
 {
-    if (!fields.Has(4))
-        return TooShort();
-    EventOpenTime time{fields.U8(3)};
-    if (time.kind == 1 || time.kind == 2)
-    {
-        if (!fields.Has(5))
-            return TooShort();
-        time.value4 = fields.U8(4);
-    }
-    else if (time.kind == 4)
-    {
-        if (!fields.Has(7))
-            return TooShort();
-        time.value4 = fields.U8(4);
-        time.value5 = fields.U8(5);
-        time.value6 = fields.U8(6);
-    }
-    return EventPacket{std::move(time)};
+    return ReadAs(packet, Layout(EventOpenTimeOpcode, 4, 0x4da8c0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      EventOpenTime time{reader.Read<Byte<3>>()};
+                      if (time.kind == 1 || time.kind == 2)
+                      {
+                          time.value4 = reader.Read<Byte<4>>();
+                      }
+                      else if (time.kind == 4)
+                      {
+                          time.value4 = reader.Read<Byte<4>>();
+                          time.value5 = reader.Read<Byte<5>>();
+                          time.value6 = reader.Read<Byte<6>>();
+                      }
+                      return time;
+                  });
 }
 
-Read ReadEventChipInfo(const Fields& fields)
+Result ReadEventChipInfo(const Network::Packet& packet)
 {
-    if (!fields.Has(6))
-        return TooShort();
-    EventChipInfo info{fields.U8(3), fields.U16(4), std::nullopt};
-    // 0x4dd8f0..0x4dd940: los tres words se leen solo con el tipo 0 (0x78abb00 en 1).
-    if (fields.Has(0xc))
-        info.muto = std::array<std::uint16_t, 3>{fields.U16(6), fields.U16(8), fields.U16(0xa)};
-    return EventPacket{std::move(info)};
+    return ReadAs(packet, Layout(EventChipInfoOpcode, Word<4>::End, 0x4dd8a0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      EventChipInfo info{reader.Read<Byte<3>>(), reader.Read<Word<4>>(), std::nullopt};
+                      // 0x4dd8f0..0x4dd940: the three words are read only with type 0 (0x78abb00 at 1).
+                      if (reader.Size() >= Word<0xa>::End)
+                      {
+                          info.muto = std::array<std::uint16_t, 3>{reader.Read<Word<6>>(), reader.Read<Word<8>>(),
+                                                                   reader.Read<Word<0xa>>()};
+                      }
+                      return info;
+                  });
 }
 
-Read ReadSerialResult(const Fields& fields)
+// 0x4d9f00 reads up to the word at pkt[0x15] (which takes a byte past the GS's 0x16, 08).
+Result ReadSoccerScore(const Network::Packet& packet)
 {
-    constexpr std::size_t DataAt = 4;
-    SerialResult result{};
-    if (!fields.Has(DataAt + result.data.size()))
-        return TooShort();
-    result.result = fields.U8(3);
-    const auto data = fields.From(DataAt).first(result.data.size());
-    std::ranges::copy(data, result.data.begin());
-    return EventPacket{std::move(result)};
+    return ReadAs(packet, Layout(CharacterOpcode, Character::SoccerScoreSubcode, 0x16, 0x4d9f00),
+                  [](Network::LayoutReader& reader)
+                  {
+                      return SoccerScore{.firstName = CharsAt<8>(reader, 4),
+                                         .firstScore = reader.Read<Byte<0xc>>(),
+                                         .secondName = CharsAt<8>(reader, 0xd),
+                                         .secondScore = reader.Read<Byte<0x15>>()};
+                  });
 }
 
-Read ReadSoccerScore(const Fields& fields)
+// F3 24, 0x4deef0: with present < 3 it copies the names of 10 and the scores; with another present it reads no more.
+Result ReadGuildWarOutcome(const Network::Packet& packet)
 {
-    // 0x4d9f00 lee hasta el word de pkt[0x15] (que toma un byte más allá de los 0x16 del GS, 08).
-    if (!fields.Has(0x16))
-        return TooShort();
-    SoccerScore score{};
-    for (std::size_t index = 0; index < score.firstName.size(); ++index)
-    {
-        score.firstName[index] = static_cast<char>(fields.U8(4 + index));
-        score.secondName[index] = static_cast<char>(fields.U8(0xd + index));
-    }
-    score.firstScore = fields.U8(0xc);
-    score.secondScore = fields.U8(0x15);
-    return EventPacket{std::move(score)};
+    return ReadAs(packet, Layout(CharacterOpcode, Character::GuildWarOutcomeSubcode, Byte<4>::End, 0x4deef0),
+                  [](Network::LayoutReader& reader)
+                  {
+                      GuildWarOutcome outcome{.present = reader.Read<Byte<4>>()};
+                      if (outcome.present >= 3)
+                      {
+                          return outcome;
+                      }
+                      outcome.firstName = CharsAt<10>(reader, 5);
+                      outcome.secondName = CharsAt<10>(reader, 0x12);
+                      outcome.firstScore = reader.Read<Word<0x10>>();
+                      outcome.secondScore = reader.Read<Word<0x1c>>();
+                      return outcome;
+                  });
 }
 
-Read ReadWorld(const Fields& fields, Network::Subcode subcode)
+Result ReadWorld(const Network::Packet& packet, Network::Subcode subcode)
 {
     switch (Network::ByteOf(subcode))
     {
     case Network::ByteOf(Character::EventTimeSubcode):
-        if (!fields.Has(8))
-            return TooShort();
-        return EventPacket{EventTime{fields.U8(4), fields.U16(6)}};
+        return ReadAs(packet, Layout(CharacterOpcode, subcode, Word<6>::End, 0x4e31f8),
+                      [](Network::LayoutReader& reader)
+                      { return EventTime{reader.Read<Byte<4>>(), reader.Read<Word<6>>()}; });
     case Network::ByteOf(Character::SoccerScoreSubcode):
-        return ReadSoccerScore(fields);
+        return ReadSoccerScore(packet);
     case Network::ByteOf(Character::GuildWarOutcomeSubcode):
-    {
-        if (!fields.Has(5))
-            return TooShort();
-        GuildWarOutcome result{.present = fields.U8(4)};
-        if (result.present >= 3)
-            return EventPacket{result};
-        if (!fields.Has(0x1e))
-            return TooShort();
-        for (std::size_t index = 0; index < result.firstName.size(); ++index)
-        {
-            result.firstName[index] = static_cast<char>(fields.U8(5 + index));
-            result.secondName[index] = static_cast<char>(fields.U8(0x12 + index));
-        }
-        result.firstScore = fields.U16(0x10);
-        result.secondScore = fields.U16(0x1c);
-        return EventPacket{result};
-    }
+        return ReadGuildWarOutcome(packet);
     case Network::ByteOf(Character::ServerCommandSubcode):
-        if (!fields.Has(7))
-            return TooShort();
-        return EventPacket{ServerCommand{fields.U8(4), fields.U8(5), fields.U8(6)}};
+        return ReadAs(packet, Layout(CharacterOpcode, subcode, Byte<6>::End, 0x4da070),
+                      [](Network::LayoutReader& reader) {
+                          return ServerCommand{reader.Read<Byte<4>>(), reader.Read<Byte<5>>(), reader.Read<Byte<6>>()};
+                      });
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
-Read ReadByOpcode(const Fields& fields, Network::Opcode opcode)
+template <typename Packet>
+Result ReadFirstByte(const Network::Packet& packet, Network::Opcode opcode, std::uint32_t address)
+{
+    return ReadAs(packet, Layout(opcode, Byte<3>::End, address),
+                  [](Network::LayoutReader& reader) { return Packet{reader.Read<Byte<3>>()}; });
+}
+
+Result ReadByOpcode(const Network::Packet& packet, Network::Opcode opcode)
 {
     switch (Network::ByteOf(opcode))
     {
     case Network::ByteOf(EventStateOpcode):
-        if (!fields.Has(5))
-            return TooShort();
-        return EventPacket{EventState{fields.U8(3), fields.U8(4)}};
+        return ReadAs(packet, Layout(opcode, Byte<4>::End, 0x4e3594), [](Network::LayoutReader& reader)
+                      { return EventState{reader.Read<Byte<3>>(), reader.Read<Byte<4>>()}; });
     case Network::ByteOf(MapAttributesOpcode):
-        return ReadMapAttributes(fields);
+        return ReadMapAttributes(packet);
     case Network::ByteOf(ItemAcquiredOpcode):
-        if (!fields.Has(0xd))
-            return TooShort();
         // 0x4d69a1..0x4d69aa: pkt[3] << 8 + pkt[4].
-        return EventPacket{ItemAcquired{static_cast<std::uint16_t>((fields.U8(3) << 8u) | fields.U8(4)), fields.U32(8),
-                                        fields.U8(0xc)}};
+        return ReadAs(
+            packet, Layout(opcode, Byte<0xc>::End, 0x4d6990), [](Network::LayoutReader& reader)
+            { return ItemAcquired{reader.Read<BigWord<3>>(), reader.Read<Dword<8>>(), reader.Read<Byte<0xc>>()}; });
     case Network::ByteOf(DevilSquareEntryOpcode):
-        if (!fields.Has(4))
-            return TooShort();
-        return EventPacket{DevilSquareEntryResult{fields.U8(3)}};
+        return ReadFirstByte<DevilSquareEntryResult>(packet, opcode, 0x4e4870);
     case Network::ByteOf(EventOpenTimeOpcode):
-        return ReadEventOpenTime(fields);
+        return ReadEventOpenTime(packet);
     case Network::ByteOf(EventCountdownOpcode):
-        if (!fields.Has(4))
-            return TooShort();
-        return EventPacket{EventCountdown{fields.U8(3)}};
+        return ReadFirstByte<EventCountdown>(packet, opcode, 0x4e4930);
     case Network::ByteOf(EventResultOpcode):
-    {
-        if (!fields.Has(5))
-            return TooShort();
-        const auto rest = fields.From(5);
-        return EventPacket{EventResult{fields.U8(3), fields.U8(4), std::vector<std::byte>(rest.begin(), rest.end())}};
-    }
+        return ReadAs(
+            packet, Layout(opcode, Byte<4>::End, 0x4e4959), [](Network::LayoutReader& reader)
+            { return EventResult{reader.Read<Byte<3>>(), reader.Read<Byte<4>>(), RestFrom(reader, Byte<4>::End)}; });
     case Network::ByteOf(EventChipInfoOpcode):
-        return ReadEventChipInfo(fields);
+        return ReadEventChipInfo(packet);
     case Network::ByteOf(EventChipCountOpcode):
-        if (!fields.Has(6))
-            return TooShort();
-        return EventPacket{EventChipCount{fields.U16(4)}};
+        return ReadAs(packet, Layout(opcode, Word<4>::End, 0x4e49d4),
+                      [](Network::LayoutReader& reader) { return EventChipCount{reader.Read<Word<4>>()}; });
     case Network::ByteOf(MutoNumbersOpcode):
-        if (!fields.Has(0xa))
-            return TooShort();
-        return EventPacket{MutoNumbers{{fields.U16(4), fields.U16(6), fields.U16(8)}}};
+        return ReadAs(packet, Layout(opcode, Word<8>::End, 0x4e49fb),
+                      [](Network::LayoutReader& reader) {
+                          return MutoNumbers{{reader.Read<Word<4>>(), reader.Read<Word<6>>(), reader.Read<Word<8>>()}};
+                      });
     case Network::ByteOf(EventDialogOpcode):
-        if (!fields.Has(4))
-            return TooShort();
-        return EventPacket{EventDialog{fields.U8(3)}};
+        return ReadFirstByte<EventDialog>(packet, opcode, 0x4e4a40);
     case Network::ByteOf(BloodCastleEntryOpcode):
-        if (!fields.Has(4))
-            return TooShort();
-        return EventPacket{BloodCastleEntryResult{fields.U8(3)}};
+        return ReadFirstByte<BloodCastleEntryResult>(packet, opcode, 0x4da780);
     case Network::ByteOf(EventPlayStateOpcode):
-        if (!fields.Has(0xd))
-            return TooShort();
-        return EventPacket{
-            EventPlayState{fields.U8(3), fields.U16(4), fields.U16(6), fields.U16(8), fields.U16(0xa), fields.U8(0xc)}};
+        return ReadAs(packet, Layout(opcode, Byte<0xc>::End, 0x4e4999),
+                      [](Network::LayoutReader& reader)
+                      {
+                          return EventPlayState{reader.Read<Byte<3>>(),   reader.Read<Word<4>>(),
+                                                reader.Read<Word<6>>(),   reader.Read<Word<8>>(),
+                                                reader.Read<Word<0xa>>(), reader.Read<Byte<0xc>>()};
+                      });
     case Network::ByteOf(SerialResultOpcode):
-        return ReadSerialResult(fields);
+    {
+        using SerialData = Network::Field<std::array<std::byte, 0x40>, 4>;
+        return ReadAs(packet, Layout(opcode, SerialData::End, 0x4e4a86), [](Network::LayoutReader& reader)
+                      { return SerialResult{reader.Read<Byte<3>>(), reader.Read<SerialData>()}; });
+    }
     case Network::ByteOf(EventSoundOpcode):
-        if (!fields.Has(6))
-            return TooShort();
-        return EventPacket{EventSound{fields.U16(4)}};
+        return ReadAs(packet, Layout(opcode, Word<4>::End, 0x4e4ad4),
+                      [](Network::LayoutReader& reader) { return EventSound{reader.Read<Word<4>>()}; });
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
-// 0x4e1680..0x4e16b9 (BD 08): pkt[4] registros de 0x14 bytes desde pkt+5, sin mirar el tamaño del paquete.
+// 0x4e1680..0x4e16b9 (BD 08): pkt[4] records of 0x14 bytes from pkt+5, without looking at the packet's size.
 constexpr std::size_t RankingFirstAt = 5;
 constexpr std::size_t RankingEntryBytes = 0x14;
 
-Read ReadCrywolfRanking(const Fields& fields)
+CrywolfRankingEntry RankingEntryOf(std::span<const std::byte, RankingEntryBytes> bytes)
 {
-    if (!fields.Has(RankingFirstAt))
-        return TooShort();
-    const std::uint8_t count = fields.U8(4);
-    if (!fields.Has(RankingFirstAt + RankingEntryBytes * count))
-        return TooShort();
-    CrywolfRanking ranking;
-    for (std::size_t index = 0; index < count; ++index)
-    {
-        const std::size_t at = RankingFirstAt + RankingEntryBytes * index;
-        CrywolfRankingEntry entry{.place = fields.U8(at),
-                                  .score = static_cast<std::int32_t>(fields.U32(at + 0xc)),
-                                  .classByte = fields.U8(at + 0x10)};
-        for (std::size_t letter = 0; letter < entry.name.size(); ++letter)
-            entry.name[letter] = static_cast<char>(fields.U8(at + 1 + letter));
-        ranking.entries.push_back(entry);
-    }
-    return EventPacket{std::move(ranking)};
+    constexpr std::size_t NameAt = 1;
+    constexpr std::size_t ScoreAt = 0xc;
+    constexpr std::size_t ClassAt = 0x10;
+    CrywolfRankingEntry entry{.place = std::to_integer<std::uint8_t>(bytes[0]),
+                              .score =
+                                  static_cast<std::int32_t>(std::to_integer<std::uint32_t>(bytes[ScoreAt]) |
+                                                            std::to_integer<std::uint32_t>(bytes[ScoreAt + 1]) << 8U |
+                                                            std::to_integer<std::uint32_t>(bytes[ScoreAt + 2]) << 16U |
+                                                            std::to_integer<std::uint32_t>(bytes[ScoreAt + 3]) << 24U),
+                              .classByte = std::to_integer<std::uint8_t>(bytes[ClassAt])};
+    std::ranges::transform(bytes.subspan(NameAt, entry.name.size()), entry.name.begin(),
+                           [](std::byte value) { return std::to_integer<char>(value); });
+    return entry;
 }
 
-// 0x4e5941: el BD por pkt[3] con la tabla de 0x4e620c; el 1, el 6, el 0xa, el 0xb y los de más de 0xc no hacen nada.
-Read ReadCrywolf(const Fields& fields, Network::Subcode subcode)
+// 0x4e5941: the BD by pkt[3] with the table of 0x4e620c; 1, 6, 0xa, 0xb and the ones over 0xc do nothing.
+Result ReadCrywolf(const Network::Packet& packet, Network::Subcode subcode)
 {
     switch (Network::ByteOf(subcode))
     {
     case Network::ByteOf(Crywolf::StateSubcode):
-        if (!fields.Has(6))
-            return TooShort();
-        return EventPacket{CrywolfState{fields.U8(4), fields.U8(5)}};
+        return ReadAs(packet, Layout(CrywolfOpcode, subcode, Byte<5>::End, 0x4e5941), [](Network::LayoutReader& reader)
+                      { return CrywolfState{reader.Read<Byte<4>>(), reader.Read<Byte<5>>()}; });
     case Network::ByteOf(Crywolf::AltarsSubcode):
-        if (!fields.Has(0xd))
-            return TooShort();
-        return EventPacket{CrywolfAltars{static_cast<std::int32_t>(fields.U32(4)),
-                                         {fields.U8(8), fields.U8(9), fields.U8(0xa), fields.U8(0xb), fields.U8(0xc)}}};
+        return ReadAs(packet, Layout(CrywolfOpcode, subcode, Byte<0xc>::End, 0x4e5990),
+                      [](Network::LayoutReader& reader)
+                      {
+                          return CrywolfAltars{static_cast<std::int32_t>(reader.Read<Dword<4>>()),
+                                               {reader.Read<Byte<8>>(), reader.Read<Byte<9>>(),
+                                                reader.Read<Byte<0xa>>(), reader.Read<Byte<0xb>>(),
+                                                reader.Read<Byte<0xc>>()}};
+                      });
     case Network::ByteOf(Crywolf::TimerSubcode):
-        if (!fields.Has(6))
-            return TooShort();
-        return EventPacket{CrywolfTimer{fields.U8(4), fields.U8(5)}};
+        return ReadAs(packet, Layout(CrywolfOpcode, subcode, Byte<5>::End, 0x4e59ba), [](Network::LayoutReader& reader)
+                      { return CrywolfTimer{reader.Read<Byte<4>>(), reader.Read<Byte<5>>()}; });
     case Network::ByteOf(Crywolf::BossSubcode):
-        if (!fields.Has(9))
-            return TooShort();
-        return EventPacket{CrywolfBoss{static_cast<std::int32_t>(fields.U32(4)), fields.U8(8)}};
+        return ReadAs(
+            packet, Layout(CrywolfOpcode, subcode, Byte<8>::End, 0x4e59eb), [](Network::LayoutReader& reader)
+            { return CrywolfBoss{static_cast<std::int32_t>(reader.Read<Dword<4>>()), reader.Read<Byte<8>>()}; });
     case Network::ByteOf(Crywolf::RankSubcode):
-        if (!fields.Has(0xc))
-            return TooShort();
-        return EventPacket{CrywolfRank{fields.U8(4), static_cast<std::int32_t>(fields.U32(8))}};
+        return ReadAs(
+            packet, Layout(CrywolfOpcode, subcode, Dword<8>::End, 0x4e5a09), [](Network::LayoutReader& reader)
+            { return CrywolfRank{reader.Read<Byte<4>>(), static_cast<std::int32_t>(reader.Read<Dword<8>>())}; });
     case Network::ByteOf(Crywolf::RankingSubcode):
-        return ReadCrywolfRanking(fields);
+        return ReadAs(packet, Layout(CrywolfOpcode, subcode, RankingFirstAt, 0x4e1680),
+                      [](Network::LayoutReader& reader)
+                      {
+                          return CrywolfRanking{Network::ReadList<RankingEntryBytes>(
+                              reader, RankingFirstAt, reader.Read<Byte<4>>(), RankingEntryOf)};
+                      });
     case Network::ByteOf(Crywolf::ChaosBoxSubcode):
-        if (!fields.Has(5))
-            return TooShort();
-        return EventPacket{CrywolfChaosBox{fields.U8(4)}};
+        return ReadAs(packet, Layout(CrywolfOpcode, subcode, Byte<4>::End, 0x4e5a25),
+                      [](Network::LayoutReader& reader) { return CrywolfChaosBox{reader.Read<Byte<4>>()}; });
     case Network::ByteOf(Crywolf::ContractSubcode):
-        if (!fields.Has(8))
-            return TooShort();
-        return EventPacket{CrywolfContract{fields.U8(4), fields.U8(5),
-                                           static_cast<std::uint16_t>((fields.U8(6) << 8u) | fields.U8(7))}};
+        return ReadAs(
+            packet, Layout(CrywolfOpcode, subcode, BigWord<6>::End, 0x4e1010), [](Network::LayoutReader& reader)
+            { return CrywolfContract{reader.Read<Byte<4>>(), reader.Read<Byte<5>>(), reader.Read<BigWord<6>>()}; });
     case Network::ByteOf(Crywolf::EffectSubcode):
-    {
-        // 0x4e15fa lee pkt[9]; sin ese byte falta una coordenada del efecto.
-        constexpr std::size_t CrywolfEffectBytes = 10;
-        if (!fields.Has(CrywolfEffectBytes))
-            return TooShort();
-        const auto all = fields.From(0);
-        return EventPacket{CrywolfUnported{Network::ByteOf(subcode), std::vector<std::byte>(all.begin(), all.end())}};
-    }
+        // 0x4e15fa reads pkt[9]; without that byte a coordinate of the effect is missing.
+        return ReadAs(packet, Layout(CrywolfOpcode, subcode, Byte<9>::End, 0x4e15f0),
+                      [subcode](Network::LayoutReader& reader)
+                      { return CrywolfUnported{Network::ByteOf(subcode), RestFrom(reader, 0)}; });
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
@@ -344,29 +344,31 @@ Core::Expected<EventPacket, Network::ProtocolError> ReadEventPacket(const Networ
     const std::optional<Network::Opcode> read = packet.Opcode();
     if (!read)
         return Core::Unexpected(Network::ProtocolError::TooShort);
-    const Fields fields(packet.Bytes());
     const Network::Opcode opcode = *read;
     const bool withSubcode =
         opcode == ChaosCastleOpcode || opcode == JewelMixOpcode || opcode == CrywolfOpcode || opcode == CharacterOpcode;
     if (!withSubcode)
-        return ReadByOpcode(fields, opcode);
-    if (!fields.Has(4))
-        return TooShort();
-    const Network::Subcode subcode{fields.U8(3)};
+        return ReadByOpcode(packet, opcode);
+    const std::span<const std::byte> bytes = packet.Bytes();
+    if (bytes.size() < SubcodeEnd)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    const Network::Subcode subcode{std::to_integer<std::uint8_t>(bytes[3])};
     if (opcode == CharacterOpcode)
-        return ReadWorld(fields, subcode);
+        return ReadWorld(packet, subcode);
     if (opcode == CrywolfOpcode)
-        return ReadCrywolf(fields, subcode);
-    const bool known =
-        (opcode == ChaosCastleOpcode && subcode == ChaosCastle::EntrySubcode) ||
-        (opcode == JewelMixOpcode && (subcode == JewelMix::MixSubcode || subcode == JewelMix::UnmixSubcode));
-    if (!known)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    if (!fields.Has(5))
-        return TooShort();
-    if (opcode == ChaosCastleOpcode)
-        return EventPacket{ChaosCastleEntryResult{fields.U8(4)}};
-    return EventPacket{JewelMixResult{subcode, fields.U8(4)}};
+        return ReadCrywolf(packet, subcode);
+    if (opcode == ChaosCastleOpcode && subcode == ChaosCastle::EntrySubcode)
+    {
+        return ReadAs(packet, Layout(opcode, subcode, Byte<4>::End, 0x4daa90),
+                      [](Network::LayoutReader& reader) { return ChaosCastleEntryResult{reader.Read<Byte<4>>()}; });
+    }
+    if (opcode == JewelMixOpcode && (subcode == JewelMix::MixSubcode || subcode == JewelMix::UnmixSubcode))
+    {
+        return ReadAs(
+            packet, Layout(opcode, subcode, Byte<4>::End, subcode == JewelMix::MixSubcode ? 0x4e4547 : 0x4da540),
+            [subcode](Network::LayoutReader& reader) { return JewelMixResult{subcode, reader.Read<Byte<4>>()}; });
+    }
+    return Core::Unexpected(Network::ProtocolError::WrongPacket);
 }
 
 Outgoing WriteEventWindowLeave()

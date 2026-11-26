@@ -32,9 +32,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::EncryptPacket y DecryptPacket: un C1/C2 como C3/C4 y de vuelta, con los
-// seriales, Q-C05 y Q-C10, y lo que EncryptPacket le da a la ofuscación (CL2.4). Los bloques solos
-// son SimpleModulusTest, y los seriales solos, PacketSerialsTest.
 namespace
 {
 using Client::Core::Expected;
@@ -73,16 +70,14 @@ using Client::Tests::SameBytes;
 
 using ByteVector = std::vector<std::byte>;
 
-// El opcode de los paquetes de prueba: el de los ejemplos de la CL2.0 y de c2-long.bin.
+// The opcode of the CL2.0 examples and of c2-long.bin.
 constexpr std::byte TestOpcode{0x42};
 
-// El serial de los paquetes que no se pueden descifrar, que no es el que se espera, el 0: si un
-// error resincronizara con el serial que trajo en vez de gastar el que se esperaba, el siguiente
-// sería el 0x38 y no el 1.
+// Not the expected serial, 0: if an error resynced with the serial it carried instead of spending the expected one,
+// the next would be 0x38 and not 1.
 constexpr int OtherSerial = 0x37;
 
-// Escribe en la cabecera de `bytes` el tipo y el tamaño que mide: el byte 1 en un C1/C3, y los
-// bytes 1 y 2, big-endian, en un C2/C4.
+// Byte 1 in a C1/C3, bytes 1 and 2 big-endian in a C2/C4.
 void PutHeader(ByteVector& bytes, PacketType type)
 {
     const std::size_t size = bytes.size();
@@ -96,8 +91,7 @@ void PutHeader(ByteVector& bytes, PacketType type)
     bytes[2] = static_cast<std::byte>(size & 0xFF);
 }
 
-// Un C1 o un C2 en claro de `size` bytes: la cabecera, TestOpcode y el resto con
-// BytePattern(…, 37, 11), el patrón de c2-long.bin.
+// The header, TestOpcode and the rest with BytePattern(…, 37, 11), c2-long.bin's pattern.
 ByteVector PlainOfSize(PacketType type, std::size_t size)
 {
     ByteVector bytes = BytePattern(size, 37, 11);
@@ -106,13 +100,12 @@ ByteVector PlainOfSize(PacketType type, std::size_t size)
     return bytes;
 }
 
-// Lo que sigue a la cabecera: desde el opcode en un C1/C2.
+// From the opcode in a C1/C2.
 std::span<const std::byte> AfterHeader(const Packet& packet)
 {
     return packet.Bytes().subspan(HeaderSize(packet.Type()));
 }
 
-// Unos seriales que ya mandaron `sent` paquetes: el próximo sale con ese serial.
 PacketSerials HavingSent(int sent)
 {
     PacketSerials serials;
@@ -123,7 +116,6 @@ PacketSerials HavingSent(int sent)
     return serials;
 }
 
-// Unos seriales que esperan `expected` en el próximo paquete que llega.
 PacketSerials Expecting(int expected)
 {
     PacketSerials serials;
@@ -134,14 +126,13 @@ PacketSerials Expecting(int expected)
     return serials;
 }
 
-// Un bloque en claro y cuántos de sus bytes dice que valen.
 struct PlainBlock
 {
     std::array<std::byte, PlainBlockSize> bytes{};
     std::uint8_t useful = 0;
 };
 
-// Un bloque con estos bytes, escritos como en Bytes(), y los que faltan hasta 8 en 0.
+// The missing bytes up to 8 are 0.
 PlainBlock BlockOf(std::initializer_list<int> values, std::uint8_t useful)
 {
     EXPECT_LE(values.size(), PlainBlockSize);
@@ -152,8 +143,8 @@ PlainBlock BlockOf(std::initializer_list<int> values, std::uint8_t useful)
     return block;
 }
 
-// Un C3 o un C4 armado bloque a bloque con EncryptBlock, sin EncryptPacket: así un test pone los
-// bytes útiles que quiera, también los que EncryptPacket nunca escribe.
+// Built block by block with EncryptBlock, without EncryptPacket, so a test can set any useful bytes, also those
+// EncryptPacket never writes.
 Packet EncryptedOf(PacketType type, const EncryptionKey& key, const std::vector<PlainBlock>& blocks)
 {
     ByteVector bytes(HeaderSize(type));
@@ -166,7 +157,7 @@ Packet EncryptedOf(PacketType type, const EncryptionKey& key, const std::vector<
     return PacketOf(std::move(bytes));
 }
 
-// FIX_C3_SERIAL0: el serial pisa el tamaño del C1, y se cifra desde ahí.
+// FIX_C3_SERIAL0: the serial overwrites the C1's size, and encryption starts there.
 TEST(EncryptedPacketTest, EncryptsTheNoticeWithSerial0)
 {
     const KeyPair identity = IdentityPair();
@@ -180,7 +171,7 @@ TEST(EncryptedPacketTest, EncryptsTheNoticeWithSerial0)
     EXPECT_EQ(serials.TakeSend(), 1);
 }
 
-// FIX_C3_RANDA5: el relleno es el byte que sigue a lo útil.
+// FIX_C3_RANDA5: the padding is the byte after the useful ones.
 TEST(EncryptedPacketTest, EncryptsTheNoticeWithItsPadding)
 {
     const KeyPair identity = IdentityPair();
@@ -192,7 +183,7 @@ TEST(EncryptedPacketTest, EncryptsTheNoticeWithItsPadding)
     EXPECT_TRUE(SameBytes(encrypted.Value().Bytes(), NoticeRandA5()));
 }
 
-// FIX_C3_SERIALFF: el paquete 256 sale con el serial 255, y el siguiente, con el 0.
+// FIX_C3_SERIALFF: packet 256 leaves with serial 255, and the next with 0.
 TEST(EncryptedPacketTest, EncryptsTheNoticeWithSerial255AndWraps)
 {
     const KeyPair identity = IdentityPair();
@@ -205,7 +196,7 @@ TEST(EncryptedPacketTest, EncryptsTheNoticeWithSerial255AndWraps)
     EXPECT_EQ(serials.TakeSend(), 0);
 }
 
-// Un C3 de mu-client y el serial con que salió.
+// A C3 from mu-client and the serial it left with.
 struct NoticeFixture
 {
     std::string_view name;
@@ -213,7 +204,6 @@ struct NoticeFixture
     int serial = 0;
 };
 
-// Los tres se descifran en el aviso, con su serial en orden.
 TEST(EncryptedPacketTest, DecryptsTheMuClientFixturesIntoTheNotice)
 {
     const KeyPair identity = IdentityPair();
@@ -237,8 +227,8 @@ TEST(EncryptedPacketTest, DecryptsTheMuClientFixturesIntoTheNotice)
     }
 }
 
-// El C2 largo de la CL2.2 (c2-long.bin) con el serial 2 da c4-serial2.bin, el FIX_C4_SERIAL2 de
-// mu-client armado de nuevo: 298 útiles son 38 bloques, 418 bytes cifrados y 421 con la cabecera.
+// CL2.2's long C2 (c2-long.bin) with serial 2 gives c4-serial2.bin, mu-client's FIX_C4_SERIAL2 rebuilt: 298 useful
+// bytes are 38 blocks, 418 encrypted bytes and 421 with the header.
 TEST(EncryptedPacketTest, EncryptsTheLongC2AsC4WithSerial2)
 {
     const KeyPair identity = IdentityPair();
@@ -255,7 +245,7 @@ TEST(EncryptedPacketTest, EncryptsTheLongC2AsC4WithSerial2)
     EXPECT_TRUE(SameBytes(encrypted.Value().Bytes(), c4));
 }
 
-// Y el C4 se rearma en el C2: C4 da C2, con el tamaño en dos bytes.
+// C4 gives C2, with the size in two bytes.
 TEST(EncryptedPacketTest, DecryptsTheC4IntoTheLongC2)
 {
     const KeyPair identity = IdentityPair();
@@ -274,9 +264,8 @@ TEST(EncryptedPacketTest, DecryptsTheC4IntoTheLongC2)
     EXPECT_EQ(decrypted.Value().packet.Type(), PacketType::C2);
 }
 
-// Con un par sintético y tres bloques, lo que da `wrap` de make_vectors.py, que usa el
-// encrypt_block de c3c4_reference.py: un C1 de 20 bytes son 19 útiles (8, 8 y 3), con el serial 7
-// y el relleno 0x5C en el byte 3 del tercer bloque.
+// With a synthetic pair and three blocks, what make_vectors.py's `wrap` gives with c3c4_reference.py's
+// encrypt_block: a 20-byte C1 is 19 useful (8, 8 and 3), with serial 7 and padding 0x5C in the third block's byte 3.
 TEST(EncryptedPacketTest, EncryptsThreeBlocksLikeTheReference)
 {
     const KeyPair pair = Pair17();
@@ -293,8 +282,8 @@ TEST(EncryptedPacketTest, EncryptsThreeBlocksLikeTheReference)
     EXPECT_TRUE(SameBytes(encrypted.Value().Bytes(), expected));
 }
 
-// Detrás de lo útil va el relleno, y el resto del último bloque en 0: el aviso tiene 5 útiles, así
-// que su bloque en claro es [serial F1 7B C1 73], el relleno y dos ceros.
+// After the useful bytes goes the padding, and the rest of the last block is 0: the notice has 5 useful bytes, so its
+// plain block is [serial F1 7B C1 73], the padding and two zeros.
 TEST(EncryptedPacketTest, PutsThePaddingRightAfterTheUsefulBytes)
 {
     const KeyPair identity = IdentityPair();
@@ -312,8 +301,7 @@ TEST(EncryptedPacketTest, PutsThePaddingRightAfterTheUsefulBytes)
     EXPECT_EQ(block->usefulSize, 5);
 }
 
-// Un bloque lleno no tiene lugar para el relleno: un C1 de 9 bytes son 8 útiles, y el relleno no
-// cambia nada.
+// A full block has no room for the padding: a 9-byte C1 is 8 useful, and the padding changes nothing.
 TEST(EncryptedPacketTest, AFullBlockHasNoPadding)
 {
     const KeyPair identity = IdentityPair();
@@ -330,9 +318,9 @@ TEST(EncryptedPacketTest, AFullBlockHasNoPadding)
     EXPECT_TRUE(SameBytes(a5.Value().Bytes(), zero.Value().Bytes()));
 }
 
-// El borde entre C3 y C4 de un C1, por lo que mide cifrado (cmp eax,0x100 en 0x4e22a8): uno de
-// 185 bytes son 184 útiles, 23 bloques y 253 cifrados, menos de 0x100, y sale como C3 de 255; uno
-// de 186 son 24 bloques, 264 cifrados, y sale como C4 de 267.
+// A C1's C3/C4 edge, by its encrypted size (cmp eax,0x100 at 0x4e22a8): one of 185 bytes is 184 useful, 23 blocks and
+// 253 encrypted, below 0x100, and leaves as a C3 of 255; one of 186 is 24 blocks, 264 encrypted, and leaves as a C4
+// of 267.
 TEST(EncryptedPacketTest, AC1GoesOutAsC3UpTo23Blocks)
 {
     const KeyPair identity = IdentityPair();
@@ -351,8 +339,8 @@ TEST(EncryptedPacketTest, AC1GoesOutAsC3UpTo23Blocks)
     EXPECT_TRUE(SameBytes(c4.Value().Bytes().first(3), Bytes({0xC4, 0x01, 0x0B})));
 }
 
-// Un C1 que sale como C4 vuelve como C2, con un byte más de cabecera: el rearmado de un C4 es un C2
-// (0x4e1d50), y el original hace lo mismo. Lo que sigue a la cabecera es igual.
+// A C1 that leaves as a C4 comes back as a C2, with one more header byte: a C4 is rebuilt as a C2 (0x4e1d50), as in
+// the original. What follows the header is the same.
 TEST(EncryptedPacketTest, AC1ThatGoesOutAsC4ComesBackAsC2)
 {
     const KeyPair identity = IdentityPair();
@@ -369,9 +357,9 @@ TEST(EncryptedPacketTest, AC1ThatGoesOutAsC4ComesBackAsC2)
     EXPECT_TRUE(SameBytes(AfterHeader(decrypted.Value().packet), AfterHeader(plain)));
 }
 
-// Un C2 sale siempre como C4, aunque lo cifrado mida menos de 0x100: así lo arma la ventana de
-// cartas (0x498820, el mov 0xc4 de 0x49941e, sin el cmp), el único emisor de un C2. Uno de 6 bytes
-// son 4 útiles, un bloque, y sale como C4 de 14; vuelve como el mismo C2.
+// A C2 always leaves as a C4, even if the encrypted part is below 0x100: that is how the letter window builds it
+// (0x498820, 0x49941e's mov 0xc4, without the cmp), the only sender of a C2. One of 6 bytes is 4 useful, one block,
+// and leaves as a C4 of 14; it comes back as the same C2.
 TEST(EncryptedPacketTest, AC2AlwaysGoesOutAsC4)
 {
     const KeyPair identity = IdentityPair();
@@ -388,13 +376,12 @@ TEST(EncryptedPacketTest, AC2AlwaysGoesOutAsC4)
     EXPECT_TRUE(SameBytes(decrypted.Value().packet.Bytes(), plain));
 }
 
-// Q-C05: el C2 más grande que se cifra, 5.954 bytes: 5.952 útiles, 744 bloques y un C4 de 8.187, el
-// más grande que entra en MaxPacketSize. Se descifra entero, en más bytes que los ~2.046 de la pila
-// donde descifra el original.
+// Q-C05: the largest C2 that is encrypted, 5,954 bytes: 5,952 useful, 744 blocks and a C4 of 8,187, the largest that
+// fits in MaxPacketSize. It decrypts whole, in more bytes than the ~2,046 of the stack where the original decrypts.
 TEST(EncryptedPacketTest, TheLargestC4DecryptsWhole)
 {
-    constexpr std::size_t LargestC2 = 5954; // el C2 más grande cuyo C4 entra en MaxPacketSize
-    constexpr std::size_t LargestC4 = 8187; // ese C4: 744 bloques de 11 y la cabecera
+    constexpr std::size_t LargestC2 = 5954; // the largest C2 whose C4 fits in MaxPacketSize
+    constexpr std::size_t LargestC4 = 8187; // that C4: 744 blocks of 11 and the header
     const KeyPair identity = IdentityPair();
     const ByteVector plain = PlainOfSize(PacketType::C2, LargestC2);
     PacketSerials serials;
@@ -409,10 +396,10 @@ TEST(EncryptedPacketTest, TheLargestC4DecryptsWhole)
     EXPECT_TRUE(SameBytes(decrypted.Value().packet.Bytes(), plain));
 }
 
-// Uno de 5.955 daría un C4 de 8.198, más que MaxPacketSize: TooLarge, y no gasta el serial.
+// 5,955 would give a C4 of 8,198, over MaxPacketSize: TooLarge, and the serial is not spent.
 TEST(EncryptedPacketTest, AC2WhoseC4WouldNotFitIsTooLarge)
 {
-    constexpr std::size_t TooLargeC2 = 5955; // uno más que el más grande que se cifra
+    constexpr std::size_t TooLargeC2 = 5955;
     const KeyPair identity = IdentityPair();
     PacketSerials serials;
 
@@ -424,9 +411,9 @@ TEST(EncryptedPacketTest, AC2WhoseC4WouldNotFitIsTooLarge)
     EXPECT_EQ(serials.TakeSend(), 0);
 }
 
-// Q-C10: el C3 de [05] F1 02 01 se rearma como C1 05 F1 02 01, que declara lo que mide. El
-// original declara C1 04, uno menos: cuenta el serial, que no copia (0x4e1d50). El C4 de lo mismo
-// da un C2 de 6, y el original declara 4.
+// Q-C10: the C3 of [05] F1 02 01 is rebuilt as C1 05 F1 02 01, which declares what it measures. The original declares
+// C1 04, one less: it counts the serial, which it does not copy (0x4e1d50). The C4 of the same gives a C2 of 6, and
+// the original declares 4.
 TEST(EncryptedPacketTest, TheRebuiltPacketDeclaresWhatItMeasures)
 {
     const KeyPair identity = IdentityPair();
@@ -446,8 +433,8 @@ TEST(EncryptedPacketTest, TheRebuiltPacketDeclaresWhatItMeasures)
     EXPECT_TRUE(SameBytes(c2.Value().packet.Bytes(), Bytes({0xC2, 0x00, 0x06, 0xF1, 0x02, 0x01})));
 }
 
-// Q-C04: un paquete con otro serial se descifra y se despacha igual, y dice Resynced. Esperando el
-// 0 llega el 255; el que le sigue, el 0, ya está en orden.
+// Q-C04: a packet with another serial still decrypts and is dispatched, and says Resynced. Expecting 0, 255 arrives;
+// the next one, 0, is already in order.
 TEST(EncryptedPacketTest, AnotherSerialStillDecryptsAndResyncs)
 {
     const KeyPair identity = IdentityPair();
@@ -465,8 +452,7 @@ TEST(EncryptedPacketTest, AnotherSerialStillDecryptsAndResyncs)
     EXPECT_TRUE(second.Value().packet.WasDecrypted());
 }
 
-// Que descifrar falló con `error` y gastó el serial que se esperaba, el 0: el siguiente es el 1,
-// aunque el paquete traiga OtherSerial.
+// And spent the expected serial, 0: the next is 1, even if the packet carries OtherSerial.
 void ExpectFailedAndSpentTheSerial(const Packet& encrypted, CryptoError error, std::string_view name)
 {
     const KeyPair identity = IdentityPair();
@@ -479,8 +465,8 @@ void ExpectFailedAndSpentTheSerial(const Packet& encrypted, CryptoError error, s
     EXPECT_EQ(serials.Receive(1), SerialCheck::InOrder) << name;
 }
 
-// Un bit cambiado en el checksum del aviso (su último byte, como el caso 6 de red_reference.py):
-// ChecksumMismatch. El original no despacha, suma 1 al serial y manda el aviso (03, "C3/C4").
+// One bit flipped in the notice's checksum (its last byte, like red_reference.py's case 6): ChecksumMismatch. The
+// original does not dispatch, adds 1 to the serial and sends the notice (03, "C3/C4").
 TEST(EncryptedPacketTest, ABadChecksumSpendsTheSerial)
 {
     ByteVector bad = NoticeSerial0();
@@ -489,8 +475,7 @@ TEST(EncryptedPacketTest, ABadChecksumSpendsTheSerial)
     ExpectFailedAndSpentTheSerial(PacketOf(std::move(bad)), CryptoError::ChecksumMismatch, "C3");
 }
 
-// Lo cifrado que no mide un múltiplo de 11 (10 o 12 bytes, en un C3 y en un C4): NotWholeBlocks.
-// El original lee de a 11 sin mirar si alcanzan, y el checksum casi seguro falla.
+// The original reads 11 at a time without checking there are enough, and the checksum almost surely fails.
 TEST(EncryptedPacketTest, CipherThatIsNotWholeBlocksSpendsTheSerial)
 {
     for (const PacketType type : {PacketType::C3, PacketType::C4})
@@ -506,27 +491,25 @@ TEST(EncryptedPacketTest, CipherThatIsNotWholeBlocksSpendsTheSerial)
     }
 }
 
-// Un caso de bloques mal armados.
 struct BlocksCase
 {
     std::string_view name;
     std::vector<PlainBlock> blocks;
 };
 
-// Un primer bloque de 8 bytes: OtherSerial, el aviso y tres más. `useful` dice cuántos valen.
+// OtherSerial, the notice and three more.
 PlainBlock FirstBlock(std::uint8_t useful)
 {
     return BlockOf({OtherSerial, 0xF1, 0x7B, 0xC1, 0x73, 0x01, 0x02, 0x03}, useful);
 }
 
-// Bloques con un largo útil que EncryptPacket nunca escribe: InvalidBlock. Pasan el checksum, que
-// no cubre el largo útil. El original suma lo que dicen sin mirar, despacha y compara el serial.
-// Con 255, copiar lo útil del bloque pasaría de sus 8 bytes: ASan lo ve si el largo no se mira
-// antes, en el último bloque y en uno del medio. Con el último que dice 0, el primer bloque pasó y
-// trae su serial, y el error igual gasta el que se esperaba.
+// The checksum does not cover the useful length. The original adds what they say without checking, dispatches and
+// compares the serial. With 255, copying the block's useful bytes would go past its 8: ASan sees it if the length is
+// not checked first, in the last block and in a middle one. With the last saying 0, the first block passed and
+// carries its serial, and the error still spends the expected one.
 TEST(EncryptedPacketTest, ABlockWithAnImpossibleUsefulSizeSpendsTheSerial)
 {
-    constexpr std::uint8_t LargestUsefulSize = 0xFF; // lo más que dice el byte del largo útil
+    constexpr std::uint8_t LargestUsefulSize = 0xFF; // the most the useful length byte can say
     const KeyPair identity = IdentityPair();
     const PlainBlock tail = BlockOf({0x11, 0x22}, 2);
     const std::vector<BlocksCase> cases{
@@ -545,8 +528,8 @@ TEST(EncryptedPacketTest, ABlockWithAnImpossibleUsefulSizeSpendsTheSerial)
     }
 }
 
-// Con un bloque que dice 9 y otro detrás con el checksum mal, gana ChecksumMismatch: el original
-// corta en el primer checksum malo sin mirar los largos, y es el error que lleva el aviso.
+// The original stops at the first bad checksum without looking at the lengths, and it is the error the notice
+// carries.
 TEST(EncryptedPacketTest, ABadChecksumWinsOverAnInvalidBlock)
 {
     const KeyPair identity = IdentityPair();
@@ -557,8 +540,7 @@ TEST(EncryptedPacketTest, ABadChecksumWinsOverAnInvalidBlock)
     ExpectFailedAndSpentTheSerial(PacketOf(std::move(bad)), CryptoError::ChecksumMismatch, "C3");
 }
 
-// Un solo bloque con 1 útil trae el serial y no el opcode: TooShort, en un C3 y en un C4. El bloque
-// pasó su checksum y su serial, OtherSerial, se sabe: igual se gasta el que se esperaba.
+// The block passed its checksum and its serial, OtherSerial, is known: the expected one is spent anyway.
 TEST(EncryptedPacketTest, OnlyTheSerialIsTooShort)
 {
     const KeyPair identity = IdentityPair();
@@ -570,7 +552,6 @@ TEST(EncryptedPacketTest, OnlyTheSerialIsTooShort)
                                   "C4");
 }
 
-// Cifrar un C3 o un C4 es WrongPacketType, y no gasta el serial de envío.
 TEST(EncryptedPacketTest, EncryptingAC3OrC4IsTheWrongType)
 {
     const KeyPair identity = IdentityPair();
@@ -588,7 +569,6 @@ TEST(EncryptedPacketTest, EncryptingAC3OrC4IsTheWrongType)
     EXPECT_EQ(serials.TakeSend(), 0);
 }
 
-// Descifrar un C1 o un C2 también, y no toca el serial de recepción.
 TEST(EncryptedPacketTest, DecryptingAC1OrC2IsTheWrongType)
 {
     const KeyPair identity = IdentityPair();
@@ -604,8 +584,7 @@ TEST(EncryptedPacketTest, DecryptingAC1OrC2IsTheWrongType)
     EXPECT_EQ(serials.Receive(0), SerialCheck::InOrder);
 }
 
-// Un Packet al que ya se le sacaron los bytes (TakeBytes) conserva el tipo y queda vacío: cifrar el
-// C1 o descifrar el C3 es WrongPacketType, y los dos seriales quedan como estaban.
+// A Packet whose bytes were taken keeps its type and is empty.
 TEST(EncryptedPacketTest, AnEmptiedPacketIsTheWrongType)
 {
     const KeyPair identity = IdentityPair();
@@ -626,8 +605,7 @@ TEST(EncryptedPacketTest, AnEmptiedPacketIsTheWrongType)
     EXPECT_EQ(serials.Receive(0), SerialCheck::InOrder);
 }
 
-// Los paquetes más chicos, la cabecera y el opcode: un C1 de 3 bytes y un C2 de 4 son 2 útiles, el
-// serial y el opcode, lo mínimo que DecryptPacket acepta. Van y vuelven iguales.
+// A 3-byte C1 and a 4-byte C2 are 2 useful, the serial and the opcode: the least DecryptPacket accepts.
 TEST(EncryptedPacketTest, TheSmallestPacketsGoAndComeBack)
 {
     const KeyPair pair = Pair17();
@@ -647,11 +625,8 @@ TEST(EncryptedPacketTest, TheSmallestPacketsGoAndComeBack)
     }
 }
 
-// Cuántos valores tiene un byte: Below(engine, ByteValues) da uno al azar.
 constexpr std::uint32_t ByteValues = 256;
 
-// Un C1 o un C2 al azar, con el tamaño entre el mínimo y `largest`, y bytes al azar detrás de la
-// cabecera.
 ByteVector RandomPlain(std::mt19937& engine, PacketType type, std::size_t largest)
 {
     const std::size_t smallest = MinPacketSize(type);
@@ -665,13 +640,11 @@ ByteVector RandomPlain(std::mt19937& engine, PacketType type, std::size_t larges
     return bytes;
 }
 
-// Con los dos pares sintéticos, C1 y C2 al azar con relleno al azar: descifrar deshace cifrar, con
-// los seriales en orden, también cuando dan la vuelta.
 TEST(EncryptedPacketTest, DecryptUndoesEncryptWithSyntheticKeys)
 {
-    constexpr std::uint32_t Rounds = 600;             // más de 256: los seriales dan la vuelta
-    constexpr std::size_t LargestC1ThatStaysC1 = 185; // uno más grande sale como C4, vuelve como C2
-    constexpr std::size_t LargestRandomC2 = 700;      // pasa de 0x100: el byte alto no es 0
+    constexpr std::uint32_t Rounds = 600;             // over 256: the serials wrap
+    constexpr std::size_t LargestC1ThatStaysC1 = 185; // a larger one leaves as C4 and comes back as C2
+    constexpr std::size_t LargestRandomC2 = 700;      // over 0x100: the high byte is not 0
     std::mt19937 engine(FixedSeed);
 
     for (const KeyPair& pair : {Pair17(), Pair18()})
@@ -696,14 +669,11 @@ TEST(EncryptedPacketTest, DecryptUndoesEncryptWithSyntheticKeys)
     }
 }
 
-// --- Lo que EncryptPacket le da a la ofuscación (CL2.4) ---
-
-// Una ofuscación que guarda lo que EncryptPacket le da para cifrar y le cambia el opcode: así se ve
-// qué recibe BeforeEncrypt y que se cifra lo que deja. Lo demás pasa como vino.
+// Records what EncryptPacket gives it to encrypt and changes the opcode, to show what BeforeEncrypt receives and that
+// what it leaves is encrypted.
 class RecordingObfuscation final : public IObfuscation
 {
 public:
-    // El opcode que deja en lo que se va a cifrar.
     static constexpr std::byte WrittenOpcode{0x5A};
 
     explicit RecordingObfuscation(ByteVector& seenBytes) : m_seen(&seenBytes) {}
@@ -738,11 +708,11 @@ public:
     }
 
 private:
-    ByteVector* m_seen; // dónde guarda lo que recibió BeforeEncrypt la última vez
+    ByteVector* m_seen;
 };
 
-// BeforeEncrypt recibe [serial][lo útil desde el opcode][relleno]: el aviso, con el serial 4 y el
-// relleno A5, son los 5 útiles y el relleno. Y lo que deja es lo que se cifra.
+// [serial][useful bytes from the opcode][padding]: the notice, with serial 4 and padding A5, is the 5 useful bytes
+// and the padding.
 TEST(EncryptedPacketTest, BeforeEncryptGetsTheSerialTheUsefulBytesAndThePadding)
 {
     const KeyPair identity = IdentityPair();
@@ -764,9 +734,8 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsTheSerialTheUsefulBytesAndThePadding)
     EXPECT_EQ(block->usefulSize, 5);
 }
 
-// Con el bloque lleno, el relleno igual llega al final de lo que recibe BeforeEncrypt, aunque no se
-// cifre: un C1 de 9 bytes y un C2 de 10 son 8 útiles, y BeforeEncrypt recibe 9. En el C2, el serial
-// pisa el byte bajo del tamaño.
+// Even with the block full the padding reaches BeforeEncrypt, though it is not encrypted: a 9-byte C1 and a 10-byte
+// C2 are 8 useful, and BeforeEncrypt gets 9. In the C2 the serial overwrites the size's low byte.
 TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
 {
     const KeyPair identity = IdentityPair();
@@ -789,7 +758,7 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
     }
 }
 
-// Recifrar un paquete recibido crea otro contenedor: no hereda la acreditación del decoder.
+// Re-encrypting a received packet makes another container: it does not inherit the decoder's credit.
 TEST(EncryptedPacketTest, EncryptionDoesNotClaimDecryptionEvenWhenTheInputWasDecrypted)
 {
     const KeyPair identity = IdentityPair();

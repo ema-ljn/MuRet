@@ -9,8 +9,8 @@
 
 namespace Client::Network
 {
-// Una static local se construye la primera vez que se pide, aunque la pida otro objeto static: no
-// depende del orden en que arrancan los archivos.
+// A static local is built the first time it is asked for, even by another static object: it does not depend on the
+// order files start in.
 const IdentityObfuscation& IdentityObfuscation::Shared()
 {
     static const IdentityObfuscation shared;

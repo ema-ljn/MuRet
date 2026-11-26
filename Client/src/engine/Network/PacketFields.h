@@ -11,14 +11,12 @@
 #include <span>
 #include <string>
 
-// Leer los campos de un paquete que llegó: primero se mira que sea el que se espera (tipo, opcode y
-// subcódigo), y después se leen en orden, campo por campo, con un Core::ByteReader. Nada de
-// reinterpret_cast ni de #pragma pack: el layout del original lo fija el research, no un struct de
-// C++ (la pregunta 3 del plan de la ola 1 del servidor).
+// Fields are read in order with a Core::ByteReader, with no reinterpret_cast or #pragma pack: the research fixes the
+// original's layout, not a C++ struct.
 namespace Client::Network
 {
-// Qué paquete es: su tipo, su opcode y su subcódigo, que va justo después del opcode (04, "El
-// dispatcher": pkt[3] en un C1, pkt[4] en un C2). F1 00 es el saludo y F4 06, la lista.
+// The subcode goes right after the opcode (04, "El dispatcher": pkt[3] in a C1, pkt[4] in a C2). F1 00 is the
+// greeting and F4 06 the list.
 struct PacketKind
 {
     Network::PacketType type;
@@ -26,18 +24,15 @@ struct PacketKind
     std::uint8_t subcode;
 };
 
-// Un lector de los campos que siguen al subcódigo. WrongPacket si el tipo, el opcode o el subcódigo
-// no son los de `kind`, y TooShort si el paquete termina antes del subcódigo. Lee los bytes de
-// `packet`, que tiene que seguir vivo mientras se lea.
+// WrongPacket if the type, opcode or subcode is not `kind`'s, TooShort if the packet ends before the subcode.
+// `packet` must outlive the reader.
 [[nodiscard]] ENGINE_API Core::Expected<Core::ByteReader, ProtocolError>
 FieldsAfterSubcode(const Network::Packet& packet, const PacketKind& kind);
 
-// Con un Packet temporal, el lector miraría los bytes de un paquete que muere al terminar la línea,
-// como con el constructor que Core::ByteReader rechaza: así no compila.
+// With a temporary Packet the reader would see bytes that die at the end of the line.
 Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network::Packet&& packet,
                                                                    const PacketKind& kind) = delete;
 
-// Un texto de largo fijo, hasta el primer \0, o el campo entero si no tiene ninguno: un campo lleno
-// no lleva terminador (Q-C07).
+// Up to the first \0, or the whole field if it has none: a full field carries no terminator (Q-C07).
 [[nodiscard]] ENGINE_API std::string TextField(std::span<const std::byte> field);
 } // namespace Client::Network

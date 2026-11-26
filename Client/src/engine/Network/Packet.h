@@ -10,19 +10,11 @@
 #include <span>
 #include <vector>
 
-// Un paquete C1/C2/C3/C4 entero, con su cabecera, dueño de sus bytes.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción" (el corte).
-//
-// C1 y C3 llevan el tamaño en el byte 1, y C2 y C4 en los bytes 1 y 2, big-endian. El tamaño es el
-// del paquete entero, la cabecera incluida. C3 y C4 son los cifrados (CL2.3): a este nivel son
-// bytes como cualquiera, y su opcode viaja adentro del cifrado.
-//
-// Un Packet solo se arma con FromBytes, que mira el tipo, el tamaño mínimo y el máximo, y que el
-// tamaño que declara sea el que mide. Es un paquete válido hasta que se le sacan los bytes
-// (TakeBytes) o se mueve, y desde ahí no se usa más.
+// A whole C1/C2/C3/C4 packet, header included, owning its bytes (03-red-y-cifrado.md, "Cadena de recepción").
+// C1 and C3 carry the size in byte 1, C2 and C4 in bytes 1 and 2, big-endian; the size counts the whole packet. C3
+// and C4 are the encrypted ones: their opcode travels inside the encryption. Valid until TakeBytes or a move.
 namespace Client::Network
 {
-// El primer byte del paquete.
 enum class PacketType : std::uint8_t
 {
     C1 = 0xC1,
@@ -31,61 +23,54 @@ enum class PacketType : std::uint8_t
     C4 = 0xC4,
 };
 
-// El paquete más grande que se lee o se escribe: el buffer de recepción del original mide 0x2000
-// (0x4e88af, cmp eax,0x2000), así que uno más grande nunca le entraba y el original dejaba de leer
-// (Q-C40, y el plan de la CL2, pregunta 3).
+// The original's receive buffer is 0x2000 (0x4e88af, cmp eax,0x2000): a larger packet never fit and the original
+// stopped reading (Q-C40).
 inline constexpr std::size_t MaxPacketSize = 0x2000;
 
-// El tipo de un primer byte, o std::nullopt si no es C1 a C4.
+// std::nullopt if it is not C1 to C4.
 [[nodiscard]] ENGINE_API std::optional<PacketType> PacketTypeFromByte(std::byte first);
 
-// El tipo y el tamaño: 2 bytes en C1 y C3, 3 en C2 y C4.
+// The type and the size: 2 bytes in C1 and C3, 3 in C2 and C4.
 [[nodiscard]] ENGINE_API std::size_t HeaderSize(PacketType type);
 
-// Lo mínimo que mide un paquete: la cabecera y el opcode.
+// The header and the opcode.
 [[nodiscard]] ENGINE_API std::size_t MinPacketSize(PacketType type);
 
-// El tamaño que declara la cabecera, leído de sus primeros HeaderSize(type) bytes. std::nullopt
-// si todavía no llegaron todos.
+// std::nullopt until HeaderSize(type) bytes have arrived.
 [[nodiscard]] ENGINE_API std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header);
 
-// Agrega a `out` la cabecera que lee DeclaredSize: el tipo y `size`, en el byte 1 en un C1/C3, y en
-// los bytes 1 y 2, big-endian, en un C2/C4. Quien llama sabe que `size` entra: en un C1/C3 se
-// escribe solo su byte de abajo.
+// The caller knows `size` fits: in a C1/C3 only its low byte is written.
 ENGINE_API void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size);
 
-// Si un tamaño declarado no sirve: SizeTooSmall si no llega a MinPacketSize(type), TooLarge si pasa
-// de MaxPacketSize, y std::nullopt si sirve. Es la regla que usan FromBytes y el PacketReader.
+// The rule FromBytes and PacketReader share: SizeTooSmall below MinPacketSize(type), TooLarge above MaxPacketSize.
 [[nodiscard]] ENGINE_API std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);
 
 class ENGINE_API Packet
 {
 public:
-    // Valida el tipo, el tamaño mínimo y el máximo, y que el tamaño que declara sea el que mide.
-    // Los errores, en ese orden: un vector vacío o con menos bytes que la cabecera es SizeTooSmall.
-    // `wasDecrypted` conserva la procedencia que acredita DecryptPacket al tener éxito o que
-    // transporta una transformación. Pasarlo no descifra ni valida el payload semánticamente.
+    // The errors, in this order: type, minimum size, maximum, then the declared size against the measured one. An empty
+    // vector or one shorter than the header is SizeTooSmall. `wasDecrypted` keeps the provenance DecryptPacket grants
+    // on success or that a transformation carries; passing it neither decrypts nor validates the payload.
     [[nodiscard]] static Core::Expected<Packet, PacketError> FromBytes(std::vector<std::byte> bytes,
                                                                        bool wasDecrypted = false);
 
     [[nodiscard]] PacketType Type() const;
 
-    // Si procede de un descifrado exitoso de C3/C4. Type y Bytes describen el contenedor actual;
-    // este dato no autentica al remitente ni depende de la máscara FoxAnti.
+    // Whether it comes from a successful C3/C4 decryption. It does not authenticate the sender and does not depend on
+    // the FoxAnti mask.
     [[nodiscard]] bool WasDecrypted() const;
 
-    // Todo el paquete, con la cabecera.
     [[nodiscard]] std::span<const std::byte> Bytes() const;
 
-    // Lo que sigue a la cabecera: desde el opcode en C1/C2, desde el cifrado en C3/C4. Se puede
-    // cambiar en el lugar (el XOR32, los remapeos de FoxAnti), pero no el tipo ni el tamaño.
+    // From the opcode in C1/C2, from the encryption in C3/C4. Changed in place (XOR32, the FoxAnti remaps), never the
+    // type or the size.
     [[nodiscard]] std::span<std::byte> MutableBody();
 
-    // Para lo que cambia el tamaño (FoxAnti): saca los bytes, que vuelven con FromBytes. El Packet
-    // queda vacío: Bytes() y MutableBody() vacíos, y Opcode() en std::nullopt.
+    // For what changes the size (FoxAnti): the bytes come back with FromBytes. The Packet is left empty, and Opcode()
+    // std::nullopt.
     [[nodiscard]] std::vector<std::byte> TakeBytes() &&;
 
-    // pkt[2] en un C1 y pkt[3] en un C2; std::nullopt en C3 y C4, que lo llevan cifrado.
+    // pkt[2] in a C1 and pkt[3] in a C2; std::nullopt in C3 and C4, which carry it encrypted.
     [[nodiscard]] std::optional<std::uint8_t> Opcode() const;
 
 private:

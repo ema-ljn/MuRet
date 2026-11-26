@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// El resultado de PathFinding2 (0x4eacef..0x4ead56), con hasta 15 celdas incluido el inicio.
-// Representación propia: los tres contadores son bytes; «CurrentPathFloat» también es un byte.
+// PathFinding2's result (0x4eacef..0x4ead56), up to 15 cells including the start. The three counters are bytes;
+// «CurrentPathFloat» is a byte too.
 namespace Client::Pathfinding
 {
 inline constexpr std::size_t MaxPathCells = 15;

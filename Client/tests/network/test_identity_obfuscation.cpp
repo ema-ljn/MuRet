@@ -18,8 +18,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::IdentityObfuscation: no toca nada, y es la que usan el PacketReader y
-// EncryptPacket cuando no les pasan otra (plan de la CL2, CL2.4).
 namespace
 {
 using Client::Network::EncryptPacket;
@@ -34,7 +32,7 @@ using Client::Tests::SameBytes;
 
 using ByteVector = std::vector<std::byte>;
 
-// Un Packet con estos bytes. Si no lo forman, el test falla (y Value() corta el programa).
+// If they do not form one the test fails (and Value() stops the program).
 Packet PacketOf(ByteVector bytes)
 {
     auto built = Packet::FromBytes(std::move(bytes));
@@ -42,9 +40,8 @@ Packet PacketOf(ByteVector bytes)
     return std::move(built).Value();
 }
 
-// Unos de cada forma: un C1 con XOR32 (el aviso F1 03), la lista F4 02 del laboratorio, el F3 11
-// del laboratorio, un C3 (FIX_C3_SERIAL0) y un C2 con el opcode D3, que FoxAnti remapearía en un
-// C1.
+// One of each shape: a C1 with XOR32 (the F1 03 notice), the lab's F4 02 list, the lab's F3 11, a C3
+// (FIX_C3_SERIAL0) and a C2 with opcode D3, which FoxAnti would remap in a C1.
 std::vector<ByteVector> SomePackets()
 {
     return {
@@ -80,8 +77,7 @@ TEST(IdentityObfuscationTest, EveryPacketPassesAsItCame)
     }
 }
 
-// Lo que se va a cifrar de un C1 con el opcode 0x1E, que FoxAnti remapearía: [serial][opcode], dos
-// campos y el relleno.
+// A C1 with opcode 0x1E, which FoxAnti would remap: [serial][opcode], two fields and the padding.
 TEST(IdentityObfuscationTest, WhatGoesEncryptedStaysTheSame)
 {
     const IdentityObfuscation identity;
@@ -93,8 +89,7 @@ TEST(IdentityObfuscationTest, WhatGoesEncryptedStaysTheSame)
     EXPECT_TRUE(SameBytes(sealed, before));
 }
 
-// Un lector sin ofuscación no desenmascara: un C1 con el 0xAA de FoxAnti empieza con 6B, que no es
-// un tipo.
+// A C1 with FoxAnti's 0xAA starts with 6B, which is not a type.
 TEST(IdentityObfuscationTest, AReaderWithoutObfuscationDoesNotUnmask)
 {
     PacketReader reader;
@@ -106,7 +101,7 @@ TEST(IdentityObfuscationTest, AReaderWithoutObfuscationDoesNotUnmask)
     EXPECT_EQ(next.Error(), PacketError::InvalidType);
 }
 
-// EncryptPacket con la identidad da lo mismo que sin ofuscación: FIX_C3_SERIAL0.
+// FIX_C3_SERIAL0.
 TEST(IdentityObfuscationTest, EncryptingWithItIsEncryptingWithout)
 {
     const auto keys = IdentityPair();

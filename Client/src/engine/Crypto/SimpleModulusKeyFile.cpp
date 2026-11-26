@@ -14,8 +14,7 @@ namespace Client::Crypto
 {
 namespace
 {
-// Un bloque del archivo: un u32 por carril, cada uno con XOR del de la tabla. std::nullopt si no
-// quedan bytes.
+// One u32 per lane, each XOR the table's. std::nullopt if no bytes are left.
 std::optional<Lanes> ReadBlock(Core::ByteReader& reader)
 {
     Lanes block{};
@@ -31,13 +30,12 @@ std::optional<Lanes> ReadBlock(Core::ByteReader& reader)
     return block;
 }
 
-// Los dos formatos son el mismo: cambia para qué sirve el segundo bloque.
+// Both formats are the same: only what the second block is for changes.
 template <KeyRole Role> Core::Expected<SimpleModulusKey<Role>, CryptoError> LoadKey(std::span<const std::byte> file)
 {
-    // 0x686240 no mira cuánto mide el archivo: lee la cabecera y los bloques en el mismo buffer de
-    // la pila, y un archivo corto deja lo que quedó del bloque anterior (Q-C41). Acá un archivo
-    // corto no carga: el lector no tiene los bytes y ReadBlock da std::nullopt. Lo que sigue a los
-    // 54 bytes no se lee.
+    // 0x686240 ignores the file's size: it reads the header and blocks into the same stack buffer, and a short file
+    // leaves what remained of the previous block (Q-C41). Here a short file does not load: ReadBlock gives
+    // std::nullopt. What follows the 54 bytes is not read.
     Core::ByteReader reader(file);
     const std::optional<std::uint16_t> magic = reader.ReadU16Le();
     const std::optional<std::uint32_t> declared = reader.ReadU32Le();

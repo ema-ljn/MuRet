@@ -22,15 +22,10 @@
 #include <utility>
 #include <vector>
 
-// El PacketReader contra el cable del laboratorio (support/WireCapture.h, MU_CLIENT_WIRE_DIR):
-// cada lectura entra tal como la devolvió recv, y lo que sale tiene que ser el flujo entero,
-// cortado en paquetes, sin bytes de más.
-//
-// El cable lleva el login del jugador: estos tests cuentan paquetes por tipo y comparan con
-// SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
-//
-// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta en
-// test_golden_xor_remap_obfuscation.cpp.
+// Against the lab's wire (support/WireCapture.h, MU_CLIENT_WIRE_DIR): each read goes in as recv returned it. The
+// wire carries the player's login: tests count packets by type and compare with SameBytesWithoutValues, and no
+// message prints a wire byte. The GameServer's S->C is not here: every byte carries FoxAnti's 0xAA XOR, and it is cut
+// in test_golden_xor_remap_obfuscation.cpp.
 namespace
 {
 using Client::Network::PacketError;
@@ -44,17 +39,14 @@ using Client::Tests::WireDirection;
 
 using GoldenPacketReader = Client::Tests::WireDataTest;
 
-// El log que escribió el proxy del laboratorio.
 constexpr std::string_view CaptureFile = "muproxy.log";
 
-// Los puertos del proxy: delante del ConnectServer y del GameServer del laboratorio.
+// The proxy's ports, in front of the lab's ConnectServer and GameServer.
 constexpr std::uint16_t ConnectServerPort = 44405;
 constexpr std::uint16_t GameServerPort = 55901;
 
-// Los cuatro tipos, de C1 a C4.
 constexpr std::size_t PacketTypeCount = 4;
 
-// Cuántos paquetes de cada tipo, en el orden C1, C2, C3, C4.
 struct TypeCounts
 {
     std::array<std::size_t, PacketTypeCount> byType{};
@@ -65,7 +57,7 @@ struct TypeCounts
     }
     bool operator==(const TypeCounts&) const = default;
 
-    // Para los mensajes de GoogleTest, que sin esto imprimen la memoria del struct.
+    // Without this GoogleTest prints the struct's memory.
     friend void PrintTo(const TypeCounts& counts, std::ostream* out)
     {
         *out << "C1=" << counts.byType[0] << " C2=" << counts.byType[1] << " C3=" << counts.byType[2]
@@ -73,19 +65,17 @@ struct TypeCounts
     }
 };
 
-// Lo que dio cortar un sentido de una conexión.
 struct Cut
 {
     TypeCounts counts;
-    std::size_t leftover = 0;         // bytes que llegaron y no salieron en un paquete
-    std::optional<PacketError> error; // el primero, si hubo
-    std::vector<std::byte> stream;    // todo lo que entró, en orden
-    std::vector<std::byte> rejoined;  // los paquetes que salieron, uno detrás del otro
-    std::vector<std::size_t> sizes;   // lo que midió cada paquete, en orden
+    std::size_t leftover = 0;         // bytes that arrived and did not leave in a packet
+    std::optional<PacketError> error; // the first one, if any
+    std::vector<std::byte> stream;    // everything that went in, in order
+    std::vector<std::byte> rejoined;  // the packets that left, one after the other
+    std::vector<std::size_t> sizes;
 };
 
-// Corta `reads` con un PacketReader: un Feed por lectura, y todos los paquetes que haya después de
-// cada una.
+// One Feed per read, and every packet available after each.
 Cut CutReads(const std::vector<std::span<const std::byte>>& reads)
 {
     PacketReader reader;
@@ -116,7 +106,7 @@ Cut CutReads(const std::vector<std::span<const std::byte>>& reads)
     return cut;
 }
 
-// El mismo flujo de a un byte: cada cabecera llega en varios Feed.
+// Each header arrives over several Feeds.
 std::vector<std::span<const std::byte>> OneByteReads(std::span<const std::byte> stream)
 {
     std::vector<std::span<const std::byte>> reads;
@@ -127,8 +117,7 @@ std::vector<std::span<const std::byte>> OneByteReads(std::span<const std::byte> 
     return reads;
 }
 
-// El mismo flujo en lecturas que terminan `into` bytes adentro del paquete siguiente: cada una trae
-// el resto de un paquete y el principio del otro. `sizes` son los paquetes del flujo, en orden.
+// Each read brings the rest of one packet and the start of the next.
 std::vector<std::span<const std::byte>>
 ReadsEndingInsideTheNext(std::span<const std::byte> stream, const std::vector<std::size_t>& sizes, std::size_t into)
 {
@@ -170,8 +159,7 @@ protected:
         m_connections = std::move(parsed).Value();
     }
 
-    // Corta el sentido `direction` de cada conexión al puerto `port`, y suma los tipos. Cada corte
-    // tiene que terminar sin error, sin bytes de más, y con los paquetes iguales al flujo.
+    // Each cut must end without an error, without leftover bytes, and with the packets equal to the stream.
     TypeCounts CutAll(std::uint16_t port, WireDirection direction, std::size_t& cutConnections) const
     {
         TypeCounts total;
@@ -196,8 +184,7 @@ protected:
         return total;
     }
 
-    // Los sentidos que van en claro: lo que mandó el cliente, a los dos servidores, y lo que
-    // contestó el ConnectServer, que tiene los C2.
+    // The client's sends, to both servers, and the ConnectServer's answers, which carry the C2s.
     template <typename Check> void ForEachClearDirection(Check check) const
     {
         for (std::size_t index = 0; index < m_connections.size(); ++index)
@@ -218,7 +205,7 @@ protected:
     std::vector<WireConnection> m_connections;
 };
 
-// Que `resplit` dé los mismos paquetes que `asRead`, el flujo tal como llegó. Sin imprimir bytes.
+// Without printing bytes.
 void ExpectTheSamePackets(const Cut& resplit, const Cut& asRead, std::size_t index)
 {
     EXPECT_EQ(resplit.error, std::nullopt) << "conexión " << index;
@@ -243,8 +230,8 @@ TEST_F(GoldenPacketReaderCapture, HasTheLabConnections)
     EXPECT_EQ(gameServer, 8u);
 }
 
-// Todo lo que mandó el cliente original: al ConnectServer, 80 F4 en claro (72 F4 02 y 8 F4 03) y
-// 64 A9 con el XOR32; al GameServer, el login y lo demás, con los C3 sin descifrar.
+// To the ConnectServer, 80 F4 in the clear (72 F4 02 and 8 F4 03) and 64 A9 with XOR32; to the GameServer, the login
+// and the rest, with the C3s not decrypted.
 TEST_F(GoldenPacketReaderCapture, CutsWhatTheClientSent)
 {
     std::size_t cutConnections = 0;
@@ -255,8 +242,7 @@ TEST_F(GoldenPacketReaderCapture, CutsWhatTheClientSent)
     EXPECT_EQ(cutConnections, 8u);
 }
 
-// Lo que el ConnectServer le contestó, en claro: la bienvenida y la lista o la dirección de un
-// servidor.
+// The greeting and the list or a server's address.
 TEST_F(GoldenPacketReaderCapture, CutsWhatTheConnectServerAnswered)
 {
     std::size_t cutConnections = 0;
@@ -265,9 +251,8 @@ TEST_F(GoldenPacketReaderCapture, CutsWhatTheConnectServerAnswered)
     EXPECT_EQ(cutConnections, 64u);
 }
 
-// De a un byte salen los mismos paquetes: el lector espera cada cabecera partida. El original acá
-// no falla, porque con menos de 3 bytes no corta (0x4e8927) y nunca le quedan dos paquetes en una
-// pasada.
+// The original does not fail here, because with fewer than 3 bytes it does not cut (0x4e8927) and never has two
+// packets left in one pass.
 TEST_F(GoldenPacketReaderCapture, OneByteAtATimeGivesTheSamePackets)
 {
     ForEachClearDirection(
@@ -278,9 +263,8 @@ TEST_F(GoldenPacketReaderCapture, OneByteAtATimeGivesTheSamePackets)
         });
 }
 
-// Lecturas que terminan 1 y 2 bytes adentro del paquete siguiente: es lo que en el original dispara
-// Q-C03, una cabecera incompleta detrás de un paquete entero de la misma lectura. Con 2, a los C2
-// del ConnectServer les falta el tercer byte de la cabecera.
+// Reads ending 1 and 2 bytes inside the next packet: what triggers Q-C03 in the original, an incomplete header behind
+// a whole packet in the same read. With 2, the ConnectServer's C2s miss the header's third byte.
 TEST_F(GoldenPacketReaderCapture, ReadsEndingInsideTheNextHeaderGiveTheSamePackets)
 {
     for (const std::size_t into : {std::size_t{1}, std::size_t{2}})

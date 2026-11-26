@@ -21,18 +21,16 @@ namespace Client::Network::XorRemap
 {
 namespace
 {
-// En lo que se cifra, el serial va en el byte 0 y el opcode en el 1. Los campos llevan el XOR32
-// del C1 corrido un byte, porque falta el byte del tipo: el primero se encadena con el opcode y
-// usa la clave del byte 3 del C1 (Xor32.h, "FoxAnti"). Al deshacerlo, cambiar el opcode y
-// rehacerlo, la clave se cancela: cada byte desde el 2 queda con XOR (viejo ^ nuevo). Por eso
-// ningún test puede fijar el corrimiento de la clave; se escribe como el original.
+// In what is encrypted the serial is byte 0 and the opcode byte 1. The fields carry the C1's XOR32 shifted one byte,
+// since the type byte is missing: the first chains with the opcode and uses the C1's byte 3 key (Xor32.h, "FoxAnti").
+// Undoing it, changing the opcode and redoing it cancels the key: each byte from 2 on ends up XORed with (old ^ new).
+// So no test can pin the key shift; it is written like the original.
 constexpr std::size_t SealedOpcodeIndex = 1;
 constexpr std::size_t SealedFirstChained = 2;
 constexpr std::size_t SealedKeyShift = 1;
 
-// La lista del laboratorio: C2 <tamaño:2> F4 02 <cantidad:1> y entradas de 4 bytes (código u16
-// little-endian, carga, y un byte que no se lee). La de main.exe lleva la cantidad en 2 bytes,
-// big-endian, así que sus entradas empiezan un byte después y mide uno más.
+// The lab's list: C2 <size:2> F4 02 <count:1> and 4-byte entries (u16 little-endian code, load, and an unread byte).
+// main.exe's carries the count in 2 bytes, big-endian, so its entries start one byte later and it is one longer.
 constexpr std::size_t ListSubIndex = 4;
 constexpr std::size_t LabCountIndex = 5;
 constexpr std::size_t LabEntriesOffset = 6;
@@ -40,16 +38,15 @@ constexpr std::size_t ListCountIndex = 6;
 constexpr std::size_t ListEntriesOffset = 7;
 constexpr std::size_t ListEntrySize = 4;
 
-// Dónde va la carga en una entrada: después del código.
 constexpr std::size_t EntryLoadIndex = 2;
 
-// C1 06 F4 03: el único paquete que encode_outbound reconoce entero (lo compara como un u32). El
-// código va en el cuerpo después del opcode y el subcódigo, en little-endian.
+// C1 06 F4 03: the only packet encode_outbound recognizes whole (compares it as a u32). The code goes in the body
+// after the opcode and the subcode, little-endian.
 constexpr std::size_t ServerSelectSize = 6;
 constexpr std::size_t SelectCodeInBody = 2;
 
-// El F3 11 (la lista de skills, 04-protocolo.md): reset_queue le mete un 00 en pkt[5], donde
-// main.exe espera un byte que el laboratorio no manda, así que necesita al menos hasta pkt[4].
+// F3 11 (the skill list, 04-protocolo.md): reset_queue puts a 00 at pkt[5], where main.exe expects a byte the lab
+// does not send, so it needs at least up to pkt[4].
 constexpr std::size_t SubcodeIndex = 3;
 constexpr std::size_t InsertedByteIndex = 5;
 
@@ -75,9 +72,8 @@ void WriteU16Le(std::span<std::byte> out, std::uint16_t value)
     out[1] = static_cast<std::byte>(value >> 8);
 }
 
-// El código de una entrada en la lista de main.exe, o std::nullopt si parse_f4_02 no lo escribe
-// (desde el grupo 9, con las tablas del laboratorio). Hasta el grupo 8 el código es a lo sumo 97 y
-// el delta, 400: la suma no pasa de 497, y entra en 16 bits.
+// std::nullopt if parse_f4_02 does not write it (from group 9 on, with the lab's tables). Up to group 8 the code is
+// at most 97 and the delta 400: the sum stays at 497, within 16 bits.
 std::optional<std::uint16_t> ListCode(const XorRemapTables& tables, std::uint16_t labCode)
 {
     const std::uint32_t group = (std::uint32_t{labCode} + 1) / tables.codeGroupSize;
@@ -122,11 +118,10 @@ bool IsServerSelect(const XorRemapTables& tables, const Packet& packet)
            packet.Opcode() == tables.serverOpcode && U8At(bytes, SubcodeIndex) == tables.serverSelectSub;
 }
 
-// parse_f4_02: la lista entera de nuevo, un byte más larga. Lo que venga después de las entradas
-// queda en 0, como el calloc del original. Una cantidad que no entra en el paquete, o una lista
-// que traducida pasaría de MaxPacketSize, es InvalidPacket: el original lee y escribe de más. A
-// una lista cuya última entrada no trae el cuarto byte el original la acepta, porque ese byte no
-// lo lee; MuRet la rechaza igual, porque está mal armada (Q-C09).
+// parse_f4_02: the whole list again, one byte longer. What follows the entries stays 0, like the original's calloc. A
+// count that does not fit in the packet, or a list that translated would exceed MaxPacketSize, is InvalidPacket: the
+// original reads and writes past it. A list whose last entry lacks the fourth byte the original accepts, since it
+// does not read that byte; MuRet rejects it as malformed (Q-C09).
 Core::Expected<Packet, ObfuscationError> TranslateServerList(const XorRemapTables& tables, const Packet& packet)
 {
     const std::span<const std::byte> lab = packet.Bytes();
@@ -162,8 +157,8 @@ Core::Expected<Packet, ObfuscationError> TranslateServerList(const XorRemapTable
     return Packet::FromBytes(std::move(list), packet.WasDecrypted()).Value();
 }
 
-// reset_queue: el mismo paquete con un 00 en pkt[5] y un byte más. Sin pkt[4], o con 255 bytes,
-// que pasaría a 256 y en el original queda con tamaño 0, es InvalidPacket.
+// reset_queue: the same packet with a 00 at pkt[5] and one byte more. Without pkt[4], or with 255 bytes, which would
+// become 256 and in the original ends with size 0, it is InvalidPacket.
 Core::Expected<Packet, ObfuscationError> InsertSkillListByte(Packet packet)
 {
     const bool wasDecrypted = packet.WasDecrypted();
@@ -203,8 +198,8 @@ Core::Expected<Packet, ObfuscationError> XorRemapObfuscation::BeforeDispatch(Pac
     return packet;
 }
 
-// Como send_forward: deshace el XOR32, remapea y lo vuelve a aplicar. Sin remapeo queda igual; con
-// uno, cambia también el relleno, que se encadena con el anterior.
+// Like send_forward: undoes the XOR32, remaps and reapplies it. Without a remap it stays the same; with one, the
+// padding changes too, since it chains with the previous byte.
 void XorRemapObfuscation::BeforeEncrypt(std::span<std::byte> sealed) const
 {
     if (sealed.size() <= SealedOpcodeIndex)
@@ -217,8 +212,8 @@ void XorRemapObfuscation::BeforeEncrypt(std::span<std::byte> sealed) const
     Client::Crypto::Xor32EncodeBytes(sealed, SealedFirstChained, SealedKeyShift);
 }
 
-// Como encode_outbound: C1 06 F4 03 cambia el código y no toca el XOR32, que no lleva; cualquier
-// otro C1 deshace el XOR32, remapea y lo vuelve a aplicar.
+// Like encode_outbound: C1 06 F4 03 changes the code and leaves the XOR32, which it does not carry; any other C1
+// undoes the XOR32, remaps and reapplies it.
 Packet XorRemapObfuscation::BeforeSend(Packet packet) const
 {
     if (packet.Type() != PacketType::C1)

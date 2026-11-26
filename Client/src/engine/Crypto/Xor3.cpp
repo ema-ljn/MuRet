@@ -6,7 +6,7 @@
 
 namespace
 {
-// 05 § Tablas .bmd: los tres bytes de 0x6c8c74, los mismos que los de 0x6c82e4 del login.
+// 05 § Tablas .bmd: the three bytes at 0x6c8c74, the same as the login's at 0x6c82e4.
 constexpr std::array<std::byte, 3> Xor3Key = {std::byte{0xFC}, std::byte{0xCF}, std::byte{0xAB}};
 } // namespace
 

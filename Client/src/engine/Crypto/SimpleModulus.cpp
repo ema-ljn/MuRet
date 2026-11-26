@@ -10,37 +10,35 @@ namespace Client::Crypto
 {
 namespace
 {
-// Los bits de un byte: un carril en claro son dos, y uno cifrado, dos y dos bits sueltos.
+// A plain lane is two bytes; an encrypted one, two and two loose bits.
 constexpr unsigned BitsPerByte = 8;
-// Un carril en claro, y lo que pasa al carril que sigue: sus 16 bits de abajo.
+// A plain lane, and what carries to the next lane: its low 16 bits.
 constexpr std::uint32_t LaneMask = 0xFFFF;
-// Un byte de un carril, para escribirlo o leerlo de a uno.
 constexpr std::uint32_t ByteMask = 0xFF;
-// Los dos bits de arriba de un carril cifrado, que van después de sus 16 de abajo: el 17 primero y
-// después el 16 (0x685bb0 los copia con AddBits desde la posición 22 del dword, MSB primero).
+// An encrypted lane's two high bits, after its low 16: bit 17 first, then 16 (0x685bb0 copies them with AddBits from
+// the dword's bit 22, MSB first).
 constexpr unsigned FirstHighBit = 17;
 constexpr unsigned SecondHighBit = 16;
-// El checksum es este valor con XOR de los 8 bytes en claro.
+// The checksum is this value XOR the 8 plain bytes.
 constexpr std::uint8_t ChecksumSeed = 0xF8;
-// El byte del largo útil va con XOR de este valor y del checksum.
+// The useful-size byte goes XOR this value and the checksum.
 constexpr std::uint8_t UsefulSizeXor = 0x3D;
-// Dónde va la cola, después de los 4 carriles de 18 bits: 72 bits, 9 bytes enteros. Primero el
-// largo útil y después el checksum.
+// The tail goes after the 4 lanes of 18 bits (72 bits, 9 whole bytes): first the useful size, then the checksum.
 constexpr std::size_t UsefulSizeIndex = 9;
 constexpr std::size_t ChecksumIndex = 10;
 static_assert(UsefulSizeIndex * BitsPerByte == LaneCount * CipherLaneBits);
 static_assert(ChecksumIndex + 1 == CipherBlockSize);
 
-// La segunda pasada, del carril 2 al 0: el 3 queda igual.
+// The second pass, from lane 2 to 0: lane 3 stays.
 constexpr std::array<std::size_t, LaneCount - 1> SecondPassLanes{2, 1, 0};
 
-// Escribe bits MSB primero en un bloque que empieza en cero, como AddBits (0x685e20), que hace OR.
+// MSB first into a block that starts at zero, like AddBits (0x685e20), which ORs.
 class BitWriter
 {
 public:
     explicit BitWriter(std::span<std::byte> target) : m_bytes(target) {}
 
-    // Los `count` bits de abajo de `value`, del más alto al más bajo.
+    // From the highest to the lowest.
     void Put(std::uint32_t value, unsigned count)
     {
         for (unsigned k = count; k > 0; --k)
@@ -58,13 +56,13 @@ private:
     std::size_t m_position = 0;
 };
 
-// Lee bits MSB primero.
+// MSB first.
 class BitReader
 {
 public:
     explicit BitReader(std::span<const std::byte> source) : m_bytes(source) {}
 
-    // `count` bits, el primero como el más alto del resultado.
+    // The first bit as the result's highest.
     std::uint32_t Take(unsigned count)
     {
         std::uint32_t value = 0;
@@ -82,9 +80,8 @@ private:
     std::size_t m_position = 0;
 };
 
-// Los 18 bits de un carril cifrado: sus dos bytes de abajo, el primero el menos significativo, cada
-// uno MSB primero, y después el bit 17 y el 16. Lo que pase de 18 bits se pierde, como en el
-// original: con una clave que pasa FromLanes no queda nada.
+// Its two low bytes, least significant first, each MSB first, then bits 17 and 16. Anything over 18 bits is lost,
+// as in the original: with a key that passes FromLanes nothing is.
 void PutLane(BitWriter& writer, std::uint32_t lane)
 {
     writer.Put(lane & ByteMask, BitsPerByte);
@@ -102,7 +99,7 @@ std::uint32_t TakeLane(BitReader& reader)
     return low | (high << BitsPerByte) | (first << FirstHighBit) | (second << SecondHighBit);
 }
 
-// El carril `lane` de un bloque en claro: dos bytes little-endian.
+// Two little-endian bytes.
 std::uint32_t PlainLane(std::span<const std::byte, PlainBlockSize> plain, std::size_t lane)
 {
     return std::to_integer<std::uint32_t>(plain[2 * lane]) |
@@ -127,8 +124,7 @@ EncryptBlock(const EncryptionKey& key, std::span<const std::byte, PlainBlockSize
     const Lanes& multiplier = key.Key();
     const Lanes& xorKey = key.XorKey();
 
-    // Cada carril con su XOR y el anterior ya cifrado. El producto es de std::uint32_t por
-    // std::uint32_t, que da la vuelta como el IMUL de 32 bits.
+    // The product is std::uint32_t times std::uint32_t, which wraps like the 32-bit IMUL.
     Lanes lanes{};
     std::uint32_t previous = 0;
     for (std::size_t i = 0; i < LaneCount; ++i)
@@ -138,7 +134,7 @@ EncryptBlock(const EncryptionKey& key, std::span<const std::byte, PlainBlockSize
         previous = lanes[i] & LaneMask;
     }
 
-    // La segunda pasada: cada carril con su XOR y el que lo sigue, como era antes de esta pasada.
+    // The second pass: each lane with its XOR and the next one as it was before this pass.
     std::uint32_t next = lanes[LaneCount - 1] & LaneMask;
     for (const std::size_t i : SecondPassLanes)
     {
@@ -172,7 +168,7 @@ std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key, std::span<c
         lane = TakeLane(reader);
     }
 
-    // Deshace la segunda pasada, con el que sigue ya deshecho.
+    // With the next one already undone.
     std::uint32_t next = lanes[LaneCount - 1] & LaneMask;
     for (const std::size_t i : SecondPassLanes)
     {
@@ -180,9 +176,8 @@ std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key, std::span<c
         next = lanes[i] & LaneMask;
     }
 
-    // Cada carril por la clave de descifrar, con su XOR y el anterior todavía cifrado. Un carril
-    // cifrado más grande que su módulo (un servidor bueno no lo manda) se multiplica igual, y el
-    // producto puede dar la vuelta.
+    // With its XOR and the previous one still encrypted. An encrypted lane larger than its modulus (a sane server never
+    // sends one) is multiplied anyway, and the product may wrap.
     DecryptedBlock block;
     std::uint32_t previous = 0;
     for (std::size_t i = 0; i < LaneCount; ++i)

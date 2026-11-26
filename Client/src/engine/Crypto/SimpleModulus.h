@@ -10,42 +10,28 @@
 #include <optional>
 #include <span>
 
-// SimpleModulus, el cifrado por bloques de los C3/C4: 8 bytes en claro dan 11 cifrados.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", el plan de la CL2 (CL2.3), y
-// encrypt_block y decrypt_block de c3c4_reference.py, en el repo de research, que modelan
-// 0x685bb0 y 0x685cc0.
-//
-// Los 8 bytes son cuatro carriles de 16 bits, little-endian. Cifrar un carril es
-// `((xor ^ w ^ anterior) * clave) % módulo`, con el anterior ya cifrado. Una segunda pasada, del
-// carril 2 al 0, combina cada uno con su XOR y con el que lo sigue, y cada carril se escribe en 18
-// bits: sus dos bytes de abajo, el menos significativo primero y cada uno MSB primero, y después el
-// bit 17 y el 16. Detrás van 2 bytes: el largo útil y un checksum de los 8 bytes en claro.
-//
-// No protege nada: las claves están en los archivos del cliente y del servidor (la guía de la
-// CL2.0, actividad 5).
+// SimpleModulus, the C3/C4 block cipher: 8 plain bytes become 11. Contract: Client/docs/research/03-red-y-cifrado.md,
+// "C3/C4", and the research repo's c3c4_reference.py (encrypt_block and decrypt_block), which models 0x685bb0 and
+// 0x685cc0. It protects nothing: the keys are in the client's and server's files.
 namespace Client::Crypto
 {
-// Los carriles de 16 bits de un bloque.
 inline constexpr std::size_t LaneCount = 4;
-// Los bytes en claro de un bloque: el último de un paquete se completa con relleno.
+// The last block of a packet is padded.
 inline constexpr std::size_t PlainBlockSize = 8;
-// Los bytes cifrados de un bloque: 4 carriles de 18 bits y 2 bytes de cola.
+// 4 lanes of 18 bits and a 2-byte tail.
 inline constexpr std::size_t CipherBlockSize = 11;
-// Los bits de un carril cifrado.
 inline constexpr unsigned CipherLaneBits = 18;
-// El módulo más grande con el que un carril cifrado entra en sus 18 bits: 0x40000, 2^18.
+// The largest modulus whose encrypted lanes fit their 18 bits: 0x40000, 2^18.
 inline constexpr std::uint32_t MaxModulus = std::uint32_t{1} << CipherLaneBits;
-// El valor más grande de un carril en claro, que tiene 16 bits.
 inline constexpr std::uint32_t MaxPlainLane = 0xFFFF;
 
-// Un valor por carril: los módulos, las claves o los XOR de una clave.
+// The moduli, the keys or a key's XORs.
 using Lanes = std::array<std::uint32_t, LaneCount>;
 
-// Para qué sirve la clave de cada carril. Los dos archivos de un par (Enc1.dat del cliente y
-// Dec1.dat del servidor, Enc2.dat del servidor y Dec2.dat del cliente) tienen el mismo módulo y el
-// mismo XOR, y la clave de uno es la inversa de la del otro módulo m. Son dos tipos para que una
-// clave cargada para descifrar no pueda cifrar. Los archivos de los dos tienen el mismo formato, así
-// que el tipo lo decide el cargador que se usa: LoadEncryptionKey de un Dec2.dat carga.
+// The two files of a pair (the client's Enc1.dat and the server's Dec1.dat; the server's Enc2.dat and the client's
+// Dec2.dat) share modulus and XOR, and one's key is the other's inverse modulo m. Two types so a key loaded to decrypt
+// cannot encrypt. Both files share the format, so the loader used decides the type: LoadEncryptionKey of a Dec2.dat
+// loads.
 enum class KeyRole : std::uint8_t
 {
     Encrypt,
@@ -55,12 +41,11 @@ enum class KeyRole : std::uint8_t
 template <KeyRole Role> class SimpleModulusKey
 {
 public:
-    // InvalidKey si en un carril el módulo no sirve (Q-C41). Con uno mayor que MaxModulus, el
-    // carril cifrado no entra en sus 18 bits. Y `xor | MaxPlainLane` tiene que ser menor que el
-    // módulo: si no, `xor ^ w ^ anterior` puede llegar al módulo y el `%` pierde el carril (con un
-    // XOR de 16 bits, cualquier módulo de 17 bits o más sirve). Un módulo en 0 tampoco lo cumple, y
-    // el `%` dividiría por cero. Las claves pueden ser cualquier valor, como en el original: que el
-    // producto entre en 32 bits depende del par, y si no entra da la vuelta como el IMUL.
+    // InvalidKey if a lane's modulus is unusable (Q-C41). Over MaxModulus, the encrypted lane does not fit its 18 bits.
+    // `xor | MaxPlainLane` must be below the modulus, or `xor ^ w ^ previous` can reach it and the `%` loses the lane
+    // (with a 16-bit XOR any modulus of 17 bits or more works). A modulus of 0 fails that too, and `%` would divide by
+    // zero. Keys may be any value, as in the original: whether the product fits 32 bits depends on the pair, and if not
+    // it wraps like the IMUL.
     [[nodiscard]] static Core::Expected<SimpleModulusKey, CryptoError> FromLanes(const Lanes& modulus, const Lanes& key,
                                                                                  const Lanes& xorKey)
     {
@@ -78,7 +63,7 @@ public:
     {
         return m_modulus;
     }
-    // La de cifrar en una EncryptionKey y la de descifrar en una DecryptionKey.
+    // The encryption key in an EncryptionKey and the decryption key in a DecryptionKey.
     [[nodiscard]] const Lanes& Key() const
     {
         return m_key;
@@ -99,26 +84,25 @@ private:
     Lanes m_xorKey;
 };
 
-// Enc1.dat del cliente y Enc2.dat del servidor.
+// The client's Enc1.dat and the server's Enc2.dat.
 using EncryptionKey = SimpleModulusKey<KeyRole::Encrypt>;
-// Dec2.dat del cliente y Dec1.dat del servidor.
+// The client's Dec2.dat and the server's Dec1.dat.
 using DecryptionKey = SimpleModulusKey<KeyRole::Decrypt>;
 
-// Un bloque. Se cifran siempre los 8 bytes, también el relleno de un bloque incompleto, y
-// `usefulSize` dice cuántos valen: de 1 a 8 en un paquete, pero se escribe el que llegue. Los
-// productos van en std::uint32_t y dan la vuelta, como el IMUL del original.
+// All 8 bytes are always encrypted, a partial block's padding too, and `usefulSize` says how many count: 1 to 8 in a
+// packet, but whatever comes is written. Products are std::uint32_t and wrap, like the original's IMUL.
 [[nodiscard]] ENGINE_API std::array<std::byte, CipherBlockSize>
 EncryptBlock(const EncryptionKey& key, std::span<const std::byte, PlainBlockSize> plain, std::uint8_t usefulSize);
 
 struct DecryptedBlock
 {
-    std::array<std::byte, PlainBlockSize> bytes{}; // los 8, relleno incluido
-    // Como vino: que esté entre 1 y 8 lo mira quien arma el paquete (CL2.3, PR B).
+    std::array<std::byte, PlainBlockSize> bytes{}; // all 8, padding included
+    // As it came: whoever builds the packet checks it is between 1 and 8.
     std::uint8_t usefulSize = 0;
 };
 
-// std::nullopt si el checksum no coincide. El checksum es de los 8 bytes en claro, así que un
-// cambio en el byte del largo útil no lo ve.
+// std::nullopt if the checksum does not match. The checksum covers the 8 plain bytes, so a change in the useful-size
+// byte goes unseen.
 [[nodiscard]] ENGINE_API std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
                                                                     std::span<const std::byte, CipherBlockSize> cipher);
 } // namespace Client::Crypto

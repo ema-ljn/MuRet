@@ -7,21 +7,17 @@
 #include <cstddef>
 #include <span>
 
-// La capa que se pone entre el cable y el cliente cuando el servidor espera otra forma de los
-// paquetes: el XOR de lo que llega, y las traducciones de formato que hace FoxAnti en cada sentido.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti", y el plan de la CL2
-// (CL2.4).
+// The layer between the wire and the client when the server expects another packet shape: the XOR of what arrives,
+// and FoxAnti's format translations each way (Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti").
 //
 // An implementation either leaves the packets alone (a server that speaks like main.exe) or translates them for a
 // server that expects another shape. The composition root chooses which one the client gets; the rest of the client
 // always reads and writes main.exe's shape.
 //
-// El orden es el del original. Al recibir: el PacketReader desenmascara con InboundMask mientras
-// corta, después AfterCut, el descifrado si es un C3/C4, y BeforeDispatch. Al mandar: Protocol arma
-// el paquete (con el XOR32 si lo lleva); si va cifrado, EncryptPacket llama a BeforeEncrypt antes
-// de cifrar; y todo lo que sale pasa por BeforeSend. AfterCut, BeforeDispatch y BeforeSend los
-// llama la conexión (CL4). AfterCut y BeforeDispatch conservan WasDecrypted() al reconstruir un
-// Packet; desenmascarar o traducir no acredita un descifrado.
+// The original's order. Receiving: the PacketReader unmasks with InboundMask while framing, then AfterCut, decryption
+// if it is a C3/C4, and BeforeDispatch. Sending: Protocol builds the packet (with XOR32 if it carries it); if
+// encrypted, EncryptPacket calls BeforeEncrypt first; and everything that leaves goes through BeforeSend. AfterCut and
+// BeforeDispatch keep WasDecrypted() when rebuilding a Packet: unmasking or translating does not count as decrypting.
 namespace Client::Network
 {
 class IObfuscation
@@ -29,28 +25,25 @@ class IObfuscation
 public:
     virtual ~IObfuscation() = default;
 
-    // S->C: el XOR que lleva cada byte del paquete que empieza con este byte del cable; 0 si no
-    // lleva.
+    // S->C: the XOR on every byte of the packet that starts with this wire byte; 0 if none.
     [[nodiscard]] virtual std::byte InboundMask(std::byte firstWireByte) const = 0;
 
-    // S->C: un paquete recién cortado y desenmascarado, todavía cifrado si es un C3/C4.
+    // S->C: just framed and unmasked, still encrypted if it is a C3/C4.
     [[nodiscard]] virtual Core::Expected<Packet, ObfuscationError> AfterCut(Packet packet) const = 0;
 
-    // S->C: un C1/C2 ya descifrado, antes del dispatcher.
+    // S->C: an already decrypted C1/C2, before the dispatcher.
     [[nodiscard]] virtual Core::Expected<Packet, ObfuscationError> BeforeDispatch(Packet packet) const = 0;
 
-    // C->S: lo que se va a cifrar en un C3/C4, en el lugar: el serial en el byte 0, el opcode en el
-    // 1, los campos con su XOR32, y el byte de relleno al final.
+    // C->S: what will be encrypted in a C3/C4, in place: the serial at byte 0, the opcode at 1, the fields with their
+    // XOR32, and the padding byte at the end.
     virtual void BeforeEncrypt(std::span<std::byte> sealed) const = 0;
 
-    // C->S: un paquete que sale al cable, cifrado o no.
+    // C->S: a packet leaving for the wire, encrypted or not.
     [[nodiscard]] virtual Packet BeforeSend(Packet packet) const = 0;
 
 protected:
-    // Se copia y se mueve solo desde una clase hija. Copiar un IObfuscation entero ya no se puede,
-    // porque es abstracta; lo que esto evita es asignar a través de dos IObfuscation&, que copiaría
-    // solo la parte de la base y dejaría el resto de cada hija como estaba (slicing). Y si un día
-    // la base tiene implementaciones por defecto, copiarla tampoco va a compilar.
+    // Copied and moved only from a derived class: it stops assignment through two IObfuscation& from copying only the
+    // base part and leaving the rest of each derived object as it was (slicing).
     IObfuscation() = default;
     IObfuscation(const IObfuscation&) = default;
     IObfuscation& operator=(const IObfuscation&) = default;

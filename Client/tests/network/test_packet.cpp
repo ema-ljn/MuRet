@@ -16,7 +16,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::Packet: un paquete válido, armado con FromBytes.
 namespace
 {
 using Client::Network::AppendHeader;
@@ -32,7 +31,6 @@ using Client::Network::PacketTypeFromByte;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
-// Un C2 de `size` bytes, con el tamaño en big-endian y el resto en `fill`.
 std::vector<std::byte> C2OfSize(std::size_t size, std::byte fill)
 {
     std::vector<std::byte> bytes(size, fill);
@@ -64,7 +62,6 @@ TEST(PacketTest, KnowsTheFourTypesAndTheirHeaders)
     EXPECT_EQ(MinPacketSize(PacketType::C4), 4u);
 }
 
-// El tamaño de un C2/C4 es big-endian, y hace falta la cabecera entera para leerlo.
 TEST(PacketTest, ReadsTheDeclaredSize)
 {
     EXPECT_EQ(DeclaredSize(PacketType::C1, Bytes({0xC1, 0x04})), 4u);
@@ -73,8 +70,6 @@ TEST(PacketTest, ReadsTheDeclaredSize)
     EXPECT_EQ(DeclaredSize(PacketType::C3, Bytes({0xC3})), std::nullopt);
 }
 
-// AppendHeader escribe la cabecera que lee DeclaredSize, detrás de lo que ya había: el tamaño en un
-// byte en C1 y C3, y en dos, big-endian, en C2 y C4.
 TEST(PacketTest, AppendsTheHeaderAfterWhatWasThere)
 {
     std::vector<std::byte> out = Bytes({0x99});
@@ -110,8 +105,7 @@ TEST(PacketTest, RejectsAnInvalidType)
     EXPECT_EQ(ErrorOf(Bytes({0xC5, 0x04, 0x20, 0xAA})), PacketError::InvalidType);
 }
 
-// Nada, una cabecera incompleta, y un tamaño que no llega al opcode. Con C1 02 no se lee un opcode
-// que no está.
+// With C1 02 no opcode that is not there is read.
 TEST(PacketTest, RejectsWhatIsSmallerThanHeaderAndOpcode)
 {
     EXPECT_EQ(ErrorOf({}), PacketError::SizeTooSmall);
@@ -121,15 +115,14 @@ TEST(PacketTest, RejectsWhatIsSmallerThanHeaderAndOpcode)
     EXPECT_EQ(ErrorOf(Bytes({0xC2, 0x00, 0x03})), PacketError::SizeTooSmall);
 }
 
-// El más grande que entra mide MaxPacketSize; uno más es TooLarge, aunque su tamaño sea el que mide.
+// One more is TooLarge even if its size is the one it measures.
 TEST(PacketTest, RejectsMoreThanMaxPacketSize)
 {
     EXPECT_TRUE(Packet::FromBytes(C2OfSize(MaxPacketSize, std::byte{0x11})).HasValue());
     EXPECT_EQ(ErrorOf(C2OfSize(MaxPacketSize + 1, std::byte{0x11})), PacketError::TooLarge);
 }
 
-// El orden de los errores: un tamaño que no sirve se dice antes que un tamaño que no es el que
-// mide. C2 20 01 y C2 FF FF son solo la cabecera, y C1 02 20 AA mide 4.
+// C2 20 01 and C2 FF FF are only the header, and C1 02 20 AA measures 4.
 TEST(PacketTest, SaysABadDeclaredSizeBeforeAMismatch)
 {
     EXPECT_EQ(ErrorOf(Bytes({0xC2, 0x20, 0x01})), PacketError::TooLarge);
@@ -137,8 +130,6 @@ TEST(PacketTest, SaysABadDeclaredSizeBeforeAMismatch)
     EXPECT_EQ(ErrorOf(Bytes({0xC1, 0x02, 0x20, 0xAA})), PacketError::SizeTooSmall);
 }
 
-// La regla del tamaño en los bordes de cada tipo: MinPacketSize y MaxPacketSize entran, uno menos y
-// uno más no.
 TEST(PacketTest, ChecksTheDeclaredSizeAtTheEdges)
 {
     for (const PacketType type : {PacketType::C1, PacketType::C2, PacketType::C3, PacketType::C4})
@@ -151,7 +142,6 @@ TEST(PacketTest, ChecksTheDeclaredSizeAtTheEdges)
     }
 }
 
-// El opcode está en claro en C1 y C2, después de la cabecera; en C3 y C4 viaja cifrado.
 TEST(PacketTest, OpcodeOnlyInC1AndC2)
 {
     const auto c1 = Packet::FromBytes(Bytes({0xC1, 0x04, 0x20, 0xAA}));
@@ -166,7 +156,6 @@ TEST(PacketTest, OpcodeOnlyInC1AndC2)
     EXPECT_EQ(c4.Value().Opcode(), std::nullopt);
 }
 
-// El cuerpo empieza después de la cabecera, en el opcode, y se puede cambiar en el lugar.
 TEST(PacketTest, MutableBodyStartsAfterTheHeader)
 {
     auto c1 = Packet::FromBytes(Bytes({0xC1, 0x04, 0x20, 0xAA}));
@@ -194,7 +183,6 @@ TEST(PacketTest, TakeBytesGivesTheSameBytesBack)
     EXPECT_TRUE(Packet::FromBytes(bytes).HasValue());
 }
 
-// Lo que queda después de TakeBytes está vacío, y no se lee nada fuera de él.
 TEST(PacketTest, TakeBytesLeavesItEmpty)
 {
     auto loaded = Packet::FromBytes(Bytes({0xC1, 0x04, 0x20, 0xAA}));
@@ -209,7 +197,6 @@ TEST(PacketTest, TakeBytesLeavesItEmpty)
     EXPECT_EQ(packet.Opcode(), std::nullopt);
 }
 
-// Ni los bytes cifrados crudos ni el corte acreditan un descifrado.
 TEST(PacketTest, RawBytesAndReaderDoNotClaimDecryption)
 {
     for (const auto& bytes : {Bytes({0xC1, 0x04, 0x20, 0xAA}), Bytes({0xC2, 0x00, 0x05, 0x20, 0xAA}),
@@ -238,8 +225,7 @@ TEST(PacketTest, WriterDoesNotClaimDecryption)
     }
 }
 
-// El dato acompaña al objeto, incluso al asignar sobre uno de procedencia distinta.
-// El bool explícito sólo transporta metadata: FromBytes no hace criptografía.
+// The explicit bool only carries metadata: FromBytes does no cryptography.
 TEST(PacketTest, CopiesAndMovesPreserveDecryptionProvenance)
 {
     const auto bytes = Bytes({0xC1, 0x04, 0x20, 0xAA});

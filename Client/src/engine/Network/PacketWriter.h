@@ -12,57 +12,41 @@
 #include <span>
 #include <vector>
 
-// Arma un paquete C1 o C2 campo por campo, como el motor de envío del original.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "Envío: el motor C1/C2 y el XOR32", y el
-// plan de la CL2 (CL2.2).
-//
-// El motor del original empieza con el tipo y el opcode, agrega cada campo y al terminar escribe
-// el tamaño (en un C2, big-endian). Además cifra con XOR32 cada byte que agrega: acá el XOR32 es
-// una etapa aparte (Network/Crypto/Xor32.h), porque no todo lo que sale lo lleva (los F4 al
-// ConnectServer salen en claro).
-//
-// Los enteros de los campos van little-endian, como los escribe el cliente en x86. PutU16Be es para
-// los campos que el protocolo lleva al revés, como el id de un jugador en lo que manda el servidor
-// (04-protocolo.md); cada paquete de la CL2.5 dice cuáles.
+// Builds a C1 or C2 field by field, like the original's send engine (03-red-y-cifrado.md, "Envío: el motor C1/C2 y
+// el XOR32"), which also XOR32s each byte it adds: here XOR32 is a separate stage (Network/Crypto/Xor32.h), because
+// not everything that leaves carries it (the F4 to the ConnectServer go in the clear). Fields are little-endian, as
+// the client writes them on x86; PutU16Be is for the fields the protocol carries the other way (04-protocolo.md).
 namespace Client::Network
 {
-// El paquete más grande que arma el motor del original. Antes de cada campo mira si entra en
-// 0x800 bytes, y si no, lo saltea entero y sigue con el próximo (Q-C06). Es también el tope de un
-// C2 que arma MuRet.
+// The largest packet the original's engine builds: before each field it checks it fits in 0x800 bytes, and if not,
+// skips it whole and goes on to the next (Q-C06). Also the cap of a C2 that MuRet builds.
 inline constexpr std::size_t MaxWrittenPacketSize = 0x800;
 
-// El C1 más grande: su tamaño ocupa un byte.
 inline constexpr std::size_t MaxC1Size = 0xFF;
 
 class ENGINE_API PacketWriter
 {
 public:
-    // Empieza un C1 (C1, el tamaño, el opcode) o un C2 (C2, el tamaño en dos bytes, el opcode). El
-    // tamaño se escribe en Finish().
+    // The size is written in Finish().
     [[nodiscard]] static PacketWriter C1(std::uint8_t opcode);
     [[nodiscard]] static PacketWriter C2(std::uint8_t opcode);
 
-    // En un escritor con nombre, cada Put agrega su campo y devuelve el mismo escritor, para
-    // encadenar el siguiente.
     PacketWriter& PutU8(std::uint8_t value) &;
     PacketWriter& PutU16Le(std::uint16_t value) &;
     PacketWriter& PutU16Be(std::uint16_t value) &;
     PacketWriter& PutU32Le(std::uint32_t value) &;
     PacketWriter& PutBytes(std::span<const std::byte> more) &;
 
-    // En un temporal, como `PacketWriter::C1(op).PutU8(x)`, devuelve otro escritor con el campo
-    // agregado, que se lleva los bytes del temporal. Si devolviera una referencia, el temporal
-    // moriría al terminar la línea y `auto& w = PacketWriter::C1(op).PutU8(x);` quedaría colgando
-    // sin que el compilador avise; así no compila.
+    // On a temporary, returns another writer with the field added, taking the temporary's bytes. A reference would
+    // dangle in `auto& w = PacketWriter::C1(op).PutU8(x);` without a warning; this way it does not compile.
     [[nodiscard]] PacketWriter PutU8(std::uint8_t value) &&;
     [[nodiscard]] PacketWriter PutU16Le(std::uint16_t value) &&;
     [[nodiscard]] PacketWriter PutU16Be(std::uint16_t value) &&;
     [[nodiscard]] PacketWriter PutU32Le(std::uint32_t value) &&;
     [[nodiscard]] PacketWriter PutBytes(std::span<const std::byte> more) &&;
 
-    // El paquete, con su tamaño. TooLarge si un C1 pasa de MaxC1Size o un C2 de
-    // MaxWrittenPacketSize: nunca sale un paquete truncado ni con un campo de menos. El escritor
-    // queda como estaba, y se puede seguir agregando.
+    // TooLarge if a C1 exceeds MaxC1Size or a C2 MaxWrittenPacketSize: a packet never leaves truncated or missing a
+    // field. The writer stays as it was and can keep adding.
     [[nodiscard]] Core::Expected<Packet, PacketError> Finish() const;
 
 private:
@@ -70,8 +54,7 @@ private:
 
     template <std::unsigned_integral T> void PutUnsigned(T value, std::endian order);
 
-    // El tipo y el opcode van aparte de los campos: un escritor del que se movieron los bytes
-    // sigue armando un C1 o un C2 con su opcode, sin campos.
+    // Apart from the fields: a writer whose bytes were moved still builds a C1 or C2 with its opcode, without fields.
     PacketType m_type;
     std::uint8_t m_opcode;
     std::vector<std::byte> m_fields;

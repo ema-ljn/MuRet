@@ -11,9 +11,8 @@ namespace Client::Crt
 {
 namespace
 {
-// Las clases de carácter y los estados de output.c, como los guarda la tabla de 0x6bdb14 (la clase en el nibble bajo
-// de la entrada del carácter − 0x20, el estado que sigue en el alto de la entrada clase · 8 + estado). Leídas del
-// binario.
+// output.c's character classes and states, as the table at 0x6bdb14 stores them (the class in the low nibble of the
+// entry for character − 0x20, the next state in the high nibble of entry class · 8 + state). Read from the binary.
 enum class CharClass : std::uint8_t
 {
     Other,
@@ -42,7 +41,7 @@ enum class State : std::uint8_t
 constexpr std::size_t StateCount = 8;
 constexpr std::size_t ClassCount = 9;
 
-// Los nibbles altos de 0x6bdb14 + clase · 8 + estado.
+// The high nibbles of 0x6bdb14 + class · 8 + state.
 constexpr std::array<std::array<State, StateCount>, ClassCount> Transitions = {{
     {State::Normal, State::Normal, State::Normal, State::Normal, State::Normal, State::Normal, State::Normal,
      State::Normal},
@@ -61,7 +60,7 @@ constexpr std::array<std::array<State, StateCount>, ClassCount> Transitions = {{
     {State::Normal, State::Type, State::Type, State::Type, State::Type, State::Type, State::Type, State::Normal},
 }};
 
-// Los nibbles bajos de 0x6bdb14 + (carácter − 0x20); fuera de 0x20..0x78, Other (0x6a594f..0x6a5967).
+// The low nibbles of 0x6bdb14 + (character − 0x20); outside 0x20..0x78, Other (0x6a594f..0x6a5967).
 CharClass ClassOf(char letter)
 {
     switch (letter)
@@ -116,7 +115,7 @@ constexpr int Decimal = 10;
 constexpr std::uint32_t Octal = 8;
 constexpr std::uint32_t Hexadecimal = 16;
 
-// Lo que juntó una marca desde su '%'.
+// What a conversion collected since its '%'.
 struct Spec
 {
     std::size_t start = 0;
@@ -143,7 +142,7 @@ std::string Digits(std::uint64_t number, std::uint32_t radix, int precision, boo
     return std::string(reversed.rbegin(), reversed.rend());
 }
 
-// El final de output.c: el ancho con espacios o ceros, el prefijo (el signo o el 0x) y el texto.
+// output.c's ending: the width with spaces or zeros, the prefix (the sign or 0x) and the text.
 void Pad(std::string& out, const Spec& spec, std::string_view prefix, std::string_view text)
 {
     const int used = static_cast<int>(prefix.size() + text.size());
@@ -159,7 +158,7 @@ void Pad(std::string& out, const Spec& spec, std::string_view prefix, std::strin
         out.append(count, ' ');
 }
 
-// Un tipo con su argumento; false si MuRet deja la marca escrita (sin argumento, o con uno de la otra clase).
+// false if MuRet leaves the conversion written (no argument, or one of the other kind).
 bool Convert(std::string& out, Spec spec, char type, const SprintfArgument* argument, const SprintfArgument* high)
 {
     if (argument == nullptr)
@@ -305,7 +304,7 @@ std::string FormatLikeSprintf(std::string_view format, std::span<const SprintfAr
             break;
         case State::Size:
             spec.shortSize = spec.shortSize || letter == 'h';
-            // _output de VC6 reconoce I64 como una sola marca de tamaño; sus dos DWORD siguen en orden low/high.
+            // VC6's _output takes I64 as one size modifier; its two DWORDs follow in low/high order.
             if (letter == 'I' && format.substr(i + 1, 2) == "64")
             {
                 spec.wideSize = true;

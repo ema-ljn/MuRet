@@ -8,14 +8,14 @@
 #include <string>
 #include <string_view>
 
-// El sprintf del CRT del original (0x69fd9b) con un texto de Text.bmd de formato, como lo usan los tooltips, el
-// cartel del set y la ventana del personaje (Q-C590). MuRet no le pasa el texto al CRT: lo recorre con la máquina de
-// estados de _output (0x6a5904, con la tabla de clases y estados de 0x6bdb14, leída del binario; lo que hace cada
-// estado es el output.c de Visual C++ 6, *inferido*) y pone sus propios argumentos, de a uno, en cada marca.
+// The original CRT's sprintf (0x69fd9b) with a Text.bmd text as the format, as the tooltips, the set banner and the
+// character window use it (Q-C590). MuRet does not hand the text to a CRT: it walks it with _output's state machine
+// (0x6a5904, with the class and state table at 0x6bdb14, read from the binary; what each state does is VC6's output.c,
+// *inferred*) and puts its own arguments, one by one, in each conversion.
 namespace Client::Crt
 {
-// Un argumento de 32 bits de la pila de sprintf: un entero (lo que empuja el original, con o sin signo según quién
-// lo lee) o un texto (el puntero de un %s).
+// A 32-bit sprintf stack argument: an integer (what the original pushes, signed or not by who reads it) or a text
+// (a %s pointer).
 class SprintfArgument
 {
 public:
@@ -42,19 +42,16 @@ private:
     bool m_isText = false;
 };
 
-// `format` como lo escribe sprintf con `arguments`:
-//   - las banderas '-', '+', ' ', '#' y '0', el ancho (o '*'), la precisión y los tamaños 'h', 'l', 'I' y 'L' (que en
-//     32 bits no cambian nada);
-//   - los tipos d, i, u, o, x, X, c y s, y "%%";
-//   - I64 con enteros consume dos argumentos de 32 bits (low y high), como el tesoro del Castle Senior (0x6688bc);
-//   - un carácter que corta una marca (el ')' de "25%)") sale solo, sin lo que la marca juntó, y una marca que
-//     termina el texto no escribe nada, como el CRT.
-// Donde el original leería de la pila lo que no le pasaron (una marca sin argumento, un %s con un entero, un %d con
-// un texto o un tipo de punto flotante), MuRet deja la marca escrita como está y no gasta el argumento.
+// As sprintf writes it: flags '-', '+', ' ', '#' and '0', width (or '*'), precision and sizes 'h', 'l', 'I' and 'L'
+// (no effect in 32 bits); types d, i, u, o, x, X, c and s, and "%%"; I64 with integers takes two 32-bit arguments
+// (low and high), like Castle Senior's treasure (0x6688bc); a character that breaks a conversion (the ')' of "25%)")
+// comes out alone, without what the conversion collected, and a conversion that ends the text writes nothing, like the
+// CRT. Where the original would read from the stack what it was not given (a conversion without an argument, a %s
+// with an integer, a %d with a text or a floating-point type), MuRet leaves the conversion as written and does not
+// use up the argument.
 [[nodiscard]] ENGINE_API std::string FormatLikeSprintf(std::string_view format,
                                                        std::span<const SprintfArgument> arguments);
 
-// Lo mismo con los argumentos en la llamada.
 template <typename... Arguments> [[nodiscard]] std::string Sprintf(std::string_view format, Arguments... arguments)
 {
     const std::array<SprintfArgument, sizeof...(Arguments) + 1> list{SprintfArgument(arguments)..., SprintfArgument(0)};

@@ -10,25 +10,20 @@
 #include <span>
 
 // FoxAnti.dll's packet layer, the one the lab server expects, with its values injected (XorRemapTables): the XOR of
-// what arrives and the translations between the lab's shape of some packets and main.exe's.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti", el plan de la CL2
-// (CL2.4) y la FoxAnti mínima (analysis/foxanti/minimal/src/packet.c en el repo de research), que
-// porta cada función con su dirección en FoxAnti.dll.
-//
-// Solo la capa de paquetes: la protección de la DLL no es parte del cliente.
-//
-// - InboundMask: un paquete que llega con un primer byte que, sin el 0xAA, es C1 a C4 (6B, 68, 69
-//   y 6E) lo trae en cada byte. El original lo decide por el primer paquete de cada recv y lo
-//   aplica a la lectura entera (decode_inbound); acá, por paquete (Q-C18).
-// - AfterCut: la lista C2 F4 02 del laboratorio pasa a la C2 F4 06 de main.exe (parse_f4_02).
-// - BeforeDispatch: a un C1 F3 11 le mete un 00 en pkt[5] y suma 1 al tamaño (reset_queue).
-// - BeforeEncrypt: remapea los opcodes 0x10, 0x19 y 0x1E de lo que va cifrado (send_forward).
-// - BeforeSend: en un C1, remapea D3 y D7, y le traduce el código del servidor a C1 06 F4 03
-//   (encode_outbound). C2, C3 y C4 pasan igual.
-//
-// Donde el original no mira un largo (Q-C09), acá es ObfuscationError::InvalidPacket. Con
-// paquetes bien formados, lo que sale es lo mismo que en el original byte por byte, también donde
-// el original pierde información (los códigos de servidor desde 21, Q-C17).
+// what arrives and the translations between the lab's shape of some packets and main.exe's (03-red-y-cifrado.md, "La
+// capa de FoxAnti", and the research repo's analysis/foxanti/minimal/src/packet.c). Only the packet layer: the DLL's
+// protection is not part of the client.
+// - InboundMask: a packet whose first byte without the 0xAA is C1 to C4 (6B, 68, 69 and 6E) carries it in every byte.
+//   The original decides it by the first packet of each recv and applies it to the whole read (decode_inbound); here,
+//   per packet (Q-C18).
+// - AfterCut: the lab's C2 F4 02 list becomes main.exe's C2 F4 06 (parse_f4_02).
+// - BeforeDispatch: puts a 00 at pkt[5] of a C1 F3 11 and adds 1 to the size (reset_queue).
+// - BeforeEncrypt: remaps opcodes 0x10, 0x19 and 0x1E of what goes encrypted (send_forward).
+// - BeforeSend: in a C1, remaps D3 and D7 and translates the server code of C1 06 F4 03 (encode_outbound). C2, C3 and
+//   C4 pass unchanged.
+// Where the original does not check a length (Q-C09) this is ObfuscationError::InvalidPacket. With well-formed
+// packets the output matches the original byte for byte, also where it loses information (server codes from 21 on,
+// Q-C17).
 namespace Client::Network::XorRemap
 {
 class XorRemapObfuscation final : public IObfuscation

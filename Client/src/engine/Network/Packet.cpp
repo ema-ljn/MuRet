@@ -15,17 +15,16 @@ namespace Client::Network
 {
 namespace
 {
-// Cabecera de cada clase de tipo: el byte del tipo y el tamaño, en uno o en dos bytes.
+// Each type class's header: the type byte and the size, in one or two bytes.
 constexpr std::size_t OneByteSizeHeader = 2;
 constexpr std::size_t TwoByteSizeHeader = 3;
 
-// Después de la cabecera va el opcode, en claro en C1/C2 y cifrado en C3/C4.
+// The opcode follows the header, plain in C1/C2 and encrypted in C3/C4.
 constexpr std::size_t OpcodeSize = 1;
 
-// Dónde empieza el tamaño: después del byte del tipo.
 constexpr std::size_t SizeOffset = 1;
 
-// Los bits de un byte: un tamaño de dos bytes se escribe el de arriba primero.
+// A two-byte size is written high byte first.
 constexpr unsigned BitsPerByte = 8;
 
 bool HasOneByteSize(PacketType type)
@@ -72,7 +71,7 @@ std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::by
     return reader.ReadU16Be();
 }
 
-// La conversión a std::byte se queda con el byte de abajo: es módulo 256.
+// The conversion to std::byte keeps the low byte: it is modulo 256.
 void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size)
 {
     out.push_back(static_cast<std::byte>(type));

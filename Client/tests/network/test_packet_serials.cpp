@@ -6,16 +6,13 @@
 
 #include <cstdint>
 
-// Client::Network::PacketSerials: los seriales de envío y de recepción de los C3/C4, con Q-C04.
 namespace
 {
 using Client::Network::PacketSerials;
 using Client::Network::SerialCheck;
 
-// Cuántos valores tiene un serial de un byte.
 constexpr int SerialCount = 256;
 
-// Unos seriales que esperan `expected` en el próximo paquete que llega.
 PacketSerials ExpectingReceive(std::uint8_t expected)
 {
     PacketSerials serials;
@@ -26,7 +23,6 @@ PacketSerials ExpectingReceive(std::uint8_t expected)
     return serials;
 }
 
-// El de envío sale desde 0 y sube de a uno; después de 255 vuelve a 0.
 TEST(PacketSerialsTest, SendCountsFromZeroAndWraps)
 {
     PacketSerials serials;
@@ -38,9 +34,8 @@ TEST(PacketSerialsTest, SendCountsFromZeroAndWraps)
     EXPECT_EQ(serials.TakeSend(), 0);
 }
 
-// Q-C04: esperando el 5, llegan el 5, el 9 y el 10. El original, con el 9, se queda en 9 sin sumar
-// 1, y el 10 tampoco coincide: dos "Decrypt error", y el desfase sigue (caso 5 de
-// red_reference.py). Acá el 9 resincroniza, y el 10 ya está en orden.
+// Q-C04: expecting 5, 5, 9 and 10 arrive. The original, with 9, stays at 9 without adding 1, and 10 does not match
+// either: two "Decrypt error", and the offset stays (red_reference.py's case 5). Here 9 resyncs and 10 is in order.
 TEST(PacketSerialsTest, ResyncsWithTheOneThatCame)
 {
     PacketSerials serials = ExpectingReceive(5);
@@ -51,8 +46,6 @@ TEST(PacketSerialsTest, ResyncsWithTheOneThatCame)
     EXPECT_EQ(serials.Receive(11), SerialCheck::InOrder);
 }
 
-// Un solo paquete perdido ya no coincide: esperando el 5 llega el 6, que resincroniza, y el 7 ya
-// está en orden.
 TEST(PacketSerialsTest, OneLostPacketResyncs)
 {
     PacketSerials serials = ExpectingReceive(5);
@@ -61,7 +54,7 @@ TEST(PacketSerialsTest, OneLostPacketResyncs)
     EXPECT_EQ(serials.Receive(7), SerialCheck::InOrder);
 }
 
-// Un paquete repetido también resincroniza: después del 3 se espera el 4, no el 7.
+// After 3, 4 is expected, not 7.
 TEST(PacketSerialsTest, ARepeatedSerialResyncsBackwards)
 {
     PacketSerials serials = ExpectingReceive(7);
@@ -70,7 +63,6 @@ TEST(PacketSerialsTest, ARepeatedSerialResyncsBackwards)
     EXPECT_EQ(serials.Receive(4), SerialCheck::InOrder);
 }
 
-// Después del 255 se espera el 0.
 TEST(PacketSerialsTest, ReceiveWrapsAfter255)
 {
     PacketSerials serials = ExpectingReceive(255);
@@ -79,7 +71,7 @@ TEST(PacketSerialsTest, ReceiveWrapsAfter255)
     EXPECT_EQ(serials.Receive(0), SerialCheck::InOrder);
 }
 
-// Un paquete que no se pudo descifrar gasta el serial que se esperaba, también el 255.
+// A packet that could not be decrypted spends the expected serial, 255 too.
 TEST(PacketSerialsTest, SkipReceiveExpectsTheNextOne)
 {
     PacketSerials serials;
@@ -91,7 +83,6 @@ TEST(PacketSerialsTest, SkipReceiveExpectsTheNextOne)
     EXPECT_EQ(atTheEnd.Receive(0), SerialCheck::InOrder);
 }
 
-// Los dos van aparte: enviar no cambia el que se espera, ni recibir el que sale.
 TEST(PacketSerialsTest, SendAndReceiveAreIndependent)
 {
     PacketSerials serials;
@@ -104,11 +95,11 @@ TEST(PacketSerialsTest, SendAndReceiveAreIndependent)
     EXPECT_EQ(serials.Receive(2), SerialCheck::InOrder);
 }
 
-// Reset() vuelve a 0 los dos, como 0x4c1340 al conectar al GameServer.
+// Like 0x4c1340 when connecting to the GameServer.
 TEST(PacketSerialsTest, ResetStartsBothOver)
 {
-    constexpr std::uint8_t ReceivedBefore = 40; // los que llegaron antes de Reset()
-    constexpr int SentBefore = 9;               // los que salieron antes de Reset()
+    constexpr std::uint8_t ReceivedBefore = 40;
+    constexpr int SentBefore = 9;
     PacketSerials serials = ExpectingReceive(ReceivedBefore);
     for (int k = 0; k < SentBefore; ++k)
     {

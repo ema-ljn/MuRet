@@ -7,14 +7,12 @@
 #include <set>
 #include <string_view>
 
-// Client::Network::CloseReasonText: el motivo de un cierre en palabras, para el log (el plan de la
-// CL4, CL4.3).
 namespace
 {
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
 
-// Cada motivo tiene su texto, y dos motivos no dicen lo mismo: en el log tienen que distinguirse.
+// Two reasons never say the same: the log has to tell them apart.
 TEST(CloseReasonTest, EveryReasonHasItsOwnText)
 {
     const CloseReason reasons[] = {

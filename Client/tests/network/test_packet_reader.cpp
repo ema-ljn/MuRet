@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::PacketReader: la tabla de vectores del plan de la CL2 (CL2.1, paso 4), con los
-// casos de red_reference.py --selftest que no son del cifrado y los quirks que corrige.
+// The CL2 plan's vector table (CL2.1, step 4): red_reference.py --selftest's cases outside encryption, and the quirks
+// it fixes.
 namespace
 {
 using Client::Network::MaxPacketSize;
@@ -44,7 +44,6 @@ ByteVector Join(const ByteVector& first, const ByteVector& second)
     return joined;
 }
 
-// Lo que sacó el lector hasta quedarse sin paquetes, o el error con que se paró.
 struct Drained
 {
     std::vector<ByteVector> packets;
@@ -71,11 +70,10 @@ Drained Drain(PacketReader& reader)
     }
 }
 
-// Los dos paquetes del caso 1 de red_reference.py.
+// red_reference.py's case 1.
 const ByteVector FirstC1 = Bytes({0xC1, 0x05, 0x10, 0x01, 0x02});
 const ByteVector SecondC2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
 
-// Un paquete de `size` bytes del tipo `type`, con el tamaño en su cabecera y el resto en `fill`.
 ByteVector PacketOfSize(PacketType type, std::size_t size, std::byte fill)
 {
     ByteVector bytes(size, fill);
@@ -103,7 +101,7 @@ TEST(PacketReaderTest, CutsAC1)
     EXPECT_EQ(reader.Pending(), 0u);
 }
 
-// C2 01 2C son 300 bytes: el tamaño big-endian, con el byte alto distinto de 0.
+// C2 01 2C is 300 bytes: big-endian, with the high byte non-zero.
 TEST(PacketReaderTest, CutsAC2Of300Bytes)
 {
     const ByteVector packet = PacketOfSize(PacketType::C2, 300, std::byte{0x5A});
@@ -116,7 +114,6 @@ TEST(PacketReaderTest, CutsAC2Of300Bytes)
     EXPECT_TRUE(SameBytes(drained.packets[0], packet));
 }
 
-// Un C3 y un C4 se cortan como un C1 y un C2, sin descifrarlos.
 TEST(PacketReaderTest, CutsC3AndC4WithoutDecrypting)
 {
     const ByteVector c3 = PacketOfSize(PacketType::C3, 13, std::byte{0x77});
@@ -131,8 +128,7 @@ TEST(PacketReaderTest, CutsC3AndC4WithoutDecrypting)
     EXPECT_TRUE(SameBytes(drained.packets[1], c4));
 }
 
-// El caso 1 de red_reference.py: el C1 y los 3 primeros bytes del C2 en una lectura, y el resto en
-// otra.
+// red_reference.py's case 1: the C1 and the C2's first 3 bytes in one read, the rest in another.
 TEST(PacketReaderTest, KeepsThePartialRestForTheNextFeed)
 {
     PacketReader reader;
@@ -153,9 +149,8 @@ TEST(PacketReaderTest, KeepsThePartialRestForTheNextFeed)
     EXPECT_EQ(reader.Pending(), 0u);
 }
 
-// Q-C03: partido después de C2 o de C2 00, detrás del C1 entero de la misma lectura, el original
-// arma el tamaño con bytes viejos (con C2 00 y un 0 viejo saca C1 05 06 20 03, el jefe de la
-// CL2.0). El lector espera los que faltan y da los mismos dos paquetes.
+// Q-C03: split after C2 or C2 00, behind a whole C1 in the same read, the original builds the size from stale bytes
+// (with C2 00 and a stale 0 it yields C1 05 06 20 03, CL2.0's boss). The reader waits and gives the same two packets.
 TEST(PacketReaderTest, WaitsOnAnIncompleteC2Header)
 {
     for (const std::size_t headerBytes : {std::size_t{1}, std::size_t{2}})
@@ -177,8 +172,8 @@ TEST(PacketReaderTest, WaitsOnAnIncompleteC2Header)
     }
 }
 
-// Q-C03 con el primer byte de un C1 o un C3 detrás del C1 entero de la misma lectura: el original
-// lee el tamaño de un byte viejo. El lector espera el resto, y el paquete sale con su tipo.
+// Q-C03 with a C1's or C3's first byte behind a whole C1 in the same read: the original reads the size from a stale
+// byte.
 TEST(PacketReaderTest, WaitsOnATypeByteBehindAPacket)
 {
     for (const int type : {0xC1, 0xC3})
@@ -198,8 +193,7 @@ TEST(PacketReaderTest, WaitsOnATypeByteBehindAPacket)
     }
 }
 
-// Un tipo solo, al principio de la lectura: acá el original también espera, porque con menos de 3
-// bytes no corta (0x4e8927, cmp eax,0x3).
+// Here the original waits too: with fewer than 3 bytes it does not cut (0x4e8927, cmp eax,0x3).
 TEST(PacketReaderTest, WaitsOnALoneTypeByte)
 {
     PacketReader reader;
@@ -215,7 +209,7 @@ TEST(PacketReaderTest, WaitsOnALoneTypeByte)
     EXPECT_TRUE(SameBytes(second.packets[0], Bytes({0xC1, 0x04, 0x20, 0xAA})));
 }
 
-// El caso 2 de red_reference.py: con la cabecera sola espera el resto.
+// red_reference.py's case 2.
 TEST(PacketReaderTest, WaitsForTheBody)
 {
     PacketReader reader;
@@ -231,7 +225,7 @@ TEST(PacketReaderTest, WaitsForTheBody)
     EXPECT_TRUE(SameBytes(second.packets[0], Bytes({0xC1, 0x03, 0x00})));
 }
 
-// En el cable hubo lecturas con 2 a 7 paquetes juntos (03, "Cadena de recepción").
+// The wire had reads with 2 to 7 packets together (03, "Cadena de recepción").
 TEST(PacketReaderTest, CutsSeveralPacketsInOneFeed)
 {
     ByteVector stream;
@@ -248,8 +242,8 @@ TEST(PacketReaderTest, CutsSeveralPacketsInOneFeed)
     EXPECT_TRUE(SameBytes(drained.packets[6], Bytes({0xC1, 0x04, 0x20, 6})));
 }
 
-// El caso 3 de red_reference.py y Q-C38: un tipo inválido es un error, y el paquete bueno de atrás
-// no sale (el original descarta los dos y sigue con lo que llegue).
+// red_reference.py's case 3 and Q-C38: the good packet behind does not come out (the original drops both and goes on
+// with what arrives).
 TEST(PacketReaderTest, StopsOnAnInvalidType)
 {
     PacketReader reader;
@@ -261,9 +255,8 @@ TEST(PacketReaderTest, StopsOnAnInvalidType)
     EXPECT_EQ(drained.error, PacketError::InvalidType);
 }
 
-// El caso 4 de red_reference.py y Q-C39: el tamaño 0 y los que no llegan al opcode son un error
-// apenas llega la cabecera. El original, con 0, no avanza más; con 1 o 2 en un C1/C3, o de 1 a 3
-// en un C2/C4, saca un paquete sin opcode.
+// red_reference.py's case 4 and Q-C39: an error as soon as the header arrives. The original, with 0, never advances;
+// with 1 or 2 in a C1/C3, or 1 to 3 in a C2/C4, it yields a packet without an opcode.
 TEST(PacketReaderTest, StopsOnASizeSmallerThanHeaderAndOpcode)
 {
     for (const ByteVector& header :
@@ -280,7 +273,7 @@ TEST(PacketReaderTest, StopsOnASizeSmallerThanHeaderAndOpcode)
     }
 }
 
-// Q-C40: C2 20 00 son MaxPacketSize bytes y se esperan; C2 20 01 se rechaza con la cabecera sola.
+// Q-C40: C2 20 00 is MaxPacketSize bytes and is awaited; C2 20 01 is rejected with the header alone.
 TEST(PacketReaderTest, RejectsMoreThanMaxPacketSizeWithTheHeaderAlone)
 {
     PacketReader largest;
@@ -298,11 +291,10 @@ TEST(PacketReaderTest, RejectsMoreThanMaxPacketSizeWithTheHeaderAlone)
     EXPECT_EQ(Drain(tooLarge).error, PacketError::TooLarge);
 }
 
-// Q-C38: después de un error, Next() lo repite siempre, aunque llegue un paquete bueno, y el lector
-// no guarda nada de lo que llega. Con cada uno de los tres errores del corte.
+// Q-C38: after an error Next() repeats it forever, even if a good packet arrives, and the reader keeps nothing. With
+// each of the three framing errors.
 TEST(PacketReaderTest, KeepsTheErrorForever)
 {
-    // Una cabecera que da el error, y el error.
     struct Case
     {
         ByteVector header;
@@ -313,8 +305,6 @@ TEST(PacketReaderTest, KeepsTheErrorForever)
         {Bytes({0xC1, 0x00}), PacketError::SizeTooSmall},
         {Bytes({0xC2, 0x20, 0x01}), PacketError::TooLarge},
     };
-    // Cuántos Feed buenos llegan después del error, y cuántas veces se pide el paquete después de
-    // cada uno.
     constexpr int GoodFeeds = 2;
     constexpr int Tries = 3;
 
@@ -341,8 +331,6 @@ TEST(PacketReaderTest, KeepsTheErrorForever)
     }
 }
 
-// Las dos formas de mover un lector: con el constructor, o con la asignación a uno que ya tenía
-// bytes.
 enum class MoveKind : std::uint8_t
 {
     Construct,
@@ -361,8 +349,7 @@ PacketReader MoveOut(PacketReader& from, MoveKind kind)
     return target;
 }
 
-// Un lector movido queda como nuevo, sin bytes y sin error, y corta lo que llegue después. El que
-// lo recibe sigue donde estaba el otro, con su paquete a medio llegar.
+// The receiving one goes on where the other was, with its packet half arrived.
 TEST(PacketReaderTest, AMovedFromReaderStartsOver)
 {
     for (const MoveKind kind : {MoveKind::Construct, MoveKind::Assign})
@@ -388,7 +375,6 @@ TEST(PacketReaderTest, AMovedFromReaderStartsOver)
     }
 }
 
-// El error también se mueve: lo tiene el que lo recibe, y el movido sigue sin error.
 TEST(PacketReaderTest, MovingTakesTheError)
 {
     for (const MoveKind kind : {MoveKind::Construct, MoveKind::Assign})
@@ -408,19 +394,16 @@ TEST(PacketReaderTest, MovingTakesTheError)
     }
 }
 
-// Un C1 de 4 bytes con el número k en el cuerpo, big-endian.
 ByteVector NumberedC1(std::size_t k)
 {
     return Bytes({0xC1, 0x04, static_cast<int>(k >> 8), static_cast<int>(k & 0xFF)});
 }
 
-// Sin sacar paquetes después de cada Feed: lo pendiente crece y los paquetes salen igual, en
-// orden. Cada Feed trae cinco bytes de paquetes de cuatro, y se saca uno solo.
+// Pending grows and packets still come out in order. Each Feed brings five bytes of four-byte packets, and only one
+// is taken.
 TEST(PacketReaderTest, KeepsWhatIsNotDrainedBetweenFeeds)
 {
-    // Cuántos paquetes van en el flujo.
     constexpr std::size_t PacketCount = 500;
-    // Cuántos bytes trae cada Feed.
     constexpr std::size_t ReadSize = 5;
 
     ByteVector stream;
@@ -457,7 +440,6 @@ TEST(PacketReaderTest, KeepsWhatIsNotDrainedBetweenFeeds)
     EXPECT_EQ(reader.Pending(), 0u);
 }
 
-// Sin bytes no hay paquete ni error.
 TEST(PacketReaderTest, NothingFedGivesNothing)
 {
     PacketReader reader;
@@ -469,11 +451,9 @@ TEST(PacketReaderTest, NothingFedGivesNothing)
     EXPECT_FALSE(drained.error.has_value());
 }
 
-// Un paquete bien formado al azar: tipo C1 a C4 y tamaño desde el mínimo. Los C2/C4 llegan a 600
-// para que el byte alto del tamaño no sea siempre 0.
+// C2/C4 go up to 600 so the size's high byte is not always 0.
 ByteVector RandomPacket(std::mt19937& engine)
 {
-    // Los tipos posibles, y el tamaño más grande que se genera para cada clase de cabecera.
     constexpr PacketType Types[] = {PacketType::C1, PacketType::C2, PacketType::C3, PacketType::C4};
     constexpr std::uint32_t MaxOneByteSize = 0xFF;
     constexpr std::uint32_t MaxTwoByteSize = 600;
@@ -491,11 +471,9 @@ ByteVector RandomPacket(std::mt19937& engine)
     return packet;
 }
 
-// Propiedad: el mismo flujo partido al azar en lecturas da los mismos paquetes. Acá sí importa:
-// cada Feed trae una lectura entera, y un corte puede caer en cualquier byte de una cabecera.
+// Each Feed brings a whole read, so a cut can fall on any byte of a header.
 TEST(PacketReaderTest, RandomSplitsGiveTheSamePackets)
 {
-    // Cuántos paquetes lleva el flujo, y la lectura más larga en que se parte.
     constexpr std::uint32_t PacketCount = 300;
     constexpr std::uint32_t MaxReadSize = 64;
 

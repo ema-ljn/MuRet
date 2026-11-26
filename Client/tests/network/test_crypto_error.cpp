@@ -7,14 +7,12 @@
 #include <set>
 #include <string_view>
 
-// Client::Crypto::CryptoErrorText: el error del cifrado en palabras, para el log (el plan
-// de la CL4, CL4.4).
 namespace
 {
 using Client::Crypto::CryptoError;
 using Client::Crypto::CryptoErrorText;
 
-// Cada error tiene su texto, y dos errores no dicen lo mismo: en el log tienen que distinguirse.
+// Two errors never say the same: the log has to tell them apart.
 TEST(CryptoErrorTest, EveryErrorHasItsOwnText)
 {
     const CryptoError errors[] = {

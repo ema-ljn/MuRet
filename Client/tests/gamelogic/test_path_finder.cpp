@@ -33,7 +33,7 @@ void ExpectCells(const std::optional<Path>& path, std::initializer_list<PathCell
     }
 }
 
-// Un pasillo de una sola fila: bloquea los atajos y deja observable la segunda pasada.
+// A one-row corridor: blocks the shortcuts and makes the second pass observable.
 void MakeCorridor(TerrainWalls& walls)
 {
     walls.cells.fill(4);
@@ -88,7 +88,7 @@ TEST(PathFinderTest, EveryAdjacentGoalIsOneStep)
     }
 }
 
-// 4eb1c5 conserva el primer padre cerrado con costo mínimo, en el orden de 6d5d80.
+// 0x4eb1c5 keeps the first closed parent with the minimum cost, in 0x6d5d80's order.
 TEST(PathFinderTest, EqualClosedParentCostsKeepTheFirstNeighbor)
 {
     TerrainWalls walls;
@@ -98,8 +98,8 @@ TEST(PathFinderTest, EqualClosedParentCostsKeepTheFirstNeighbor)
     ExpectCells(finder.Find({100, 100}, {98, 99}), {{100, 100}, {99, 99}, {98, 99}});
 }
 
-// 4eb2b9..4eb2cd y 4eb3ac..4eb3bf: h(1,1)=h(1,0)=4. El primer mínimo es (104,99).
-// Al cerrar, los empates de costo vuelven a elegir la fila y=99 por el primer vecino cerrado.
+// 0x4eb2b9..0x4eb2cd and 0x4eb3ac..0x4eb3bf: h(1,1)=h(1,0)=4. The first minimum is (104,99). On close, the cost ties
+// pick row y=99 again by the first closed neighbor.
 TEST(PathFinderTest, AnOccupiedGoalEndsOnTheDiagonalByTheTieOrder)
 {
     TerrainWalls walls;
@@ -133,7 +133,7 @@ TEST(PathFinderTest, InTheSafeZoneTheSecondTryWalksThroughCharacters)
                                                      {103, 100},
                                                      {104, 100},
                                                      {105, 100}});
-    // Basta con que sea segura la meta; el resto del corredor no cambia.
+    // Only the goal needs to be safe; the rest of the corridor does not change.
     walls.cells[100 * 256 + 95] = 0;
     walls.cells[100 * 256 + 105] = 1;
     const auto path = finder.Find({95, 100}, {105, 100});
@@ -142,7 +142,7 @@ TEST(PathFinderTest, InTheSafeZoneTheSecondTryWalksThroughCharacters)
     EXPECT_EQ(path->cells[10], (PathCell{105, 100}));
 }
 
-// 0x4eacbe..0x4eacc9 usa iWall=4; la celda segura ocupada vale 3 y debe poder atravesarse.
+// 0x4eacbe..0x4eacc9 uses iWall=4; the occupied safe cell is 3 and must be crossable.
 TEST(PathFinderTest, TheSafeZoneSecondTryAdmitsTheSafeCharacterWordThree)
 {
     TerrainWalls walls;
@@ -207,8 +207,8 @@ TEST(PathFinderTest, OnlyTheFirstFifteenCellsAreKept)
     }
 }
 
-// 06 § Caminar: 30 en recta alcanza en 500 extracciones; 40 agota esa pasada. Las 50 de la
-// segunda dejan diez pasos, así que el resultado permite distinguir ambos límites del corte en 15.
+// 06 § Caminar: 30 in a straight line is reached in 500 pops; 40 exhausts that pass. The second pass's 50 leave ten
+// steps, so the result tells both limits apart from the cut at 15.
 TEST(PathFinderTest, TheExactSearchGivesUpAfter500AndTheNearestAfter50)
 {
     TerrainWalls walls;
@@ -241,7 +241,7 @@ TEST(PathFinderTest, TheExactGoalCheckUsesTheRawWordAndOnlyBitTwentyBypassesIt)
 {
     TerrainWalls walls;
     PathFinder finder(walls);
-    // El 0x40 deja pasar vecinos, pero el chequeo exacto de meta lo rechaza antes de buscar.
+    // 0x40 lets neighbors through, but the exact goal check rejects it before searching.
     walls.cells[100 * 256 + 130] = 0x40;
     const auto nearest = finder.Find({100, 100}, {130, 100});
     ASSERT_TRUE(nearest);
@@ -252,8 +252,8 @@ TEST(PathFinderTest, TheExactGoalCheckUsesTheRawWordAndOnlyBitTwentyBypassesIt)
     EXPECT_EQ(exact->count, 15);
 }
 
-// 0x4eb176..0x4eb18a (cierre) y 0x4eb22a..0x4eb247 (apertura) comprueban x/y por separado;
-// el índice lineal de la apertura se calcula recién en 0x4eb24d. No hay wrap entre filas.
+// 0x4eb176..0x4eb18a (close) and 0x4eb22a..0x4eb247 (open) check x and y separately; the open's linear index is only
+// computed at 0x4eb24d. No wrap between rows.
 TEST(PathFinderTest, TheGoalMayBeOnRowOrColumnZeroWithoutWrappingNeighbors)
 {
     TerrainWalls walls;
@@ -266,8 +266,8 @@ TEST(PathFinderTest, TheGoalMayBeOnRowOrColumnZeroWithoutWrappingNeighbors)
     EXPECT_FALSE(finder.Find({255, 100}, {0, 100}));
 }
 
-// 0x4eae0a..0x4eae0d borra antes de 0x4eae16..0x4eae38: la primera pasada alcanza la meta.
-// Si comprobara primero el WORD 2, caería al más cercano de 50 extracciones y daría sólo 11 celdas.
+// 0x4eae0a..0x4eae0d clears before 0x4eae16..0x4eae38: the first pass reaches the goal. If it checked WORD 2 first, it
+// would fall to the nearest of 50 pops and give only 11 cells.
 TEST(PathFinderTest, ClearGoalRunsBeforeTheExactGoalCheck)
 {
     TerrainWalls walls;
@@ -288,13 +288,13 @@ TEST(PathFinderTest, ClearGoalWritesTheWholeWordEvenIfTheWalkFails)
     EXPECT_FALSE(finder.Find({100, 100}, {105, 100}, true));
     EXPECT_EQ(walls.cells[100 * 256 + 105], 0);
     EXPECT_EQ(walls.cells[100 * 256 + 104], 0xffff);
-    // La salida temprana de sx/sy en 0 ocurre antes del clearGoal.
+    // The early exit on sx/sy at 0 happens before clearGoal.
     walls.cells[100 * 256 + 105] = 0x106;
     EXPECT_FALSE(finder.Find({0, 100}, {105, 100}, true));
     EXPECT_EQ(walls.cells[100 * 256 + 105], 0x106);
 }
 
-// 4eae0d borra la meta antes de que 4eac7a..4eacce consulte de nuevo la zona segura.
+// 0x4eae0d clears the goal before 0x4eac7a..0x4eacce checks the safe zone again.
 TEST(PathFinderTest, ClearingTheOnlySafeCellBeforeTheSecondTryDoesNotAllowCrossingCharacters)
 {
     TerrainWalls walls;
@@ -305,9 +305,9 @@ TEST(PathFinderTest, ClearingTheOnlySafeCellBeforeTheSecondTryDoesNotAllowCrossi
     EXPECT_EQ(walls.cells[100 * 256 + 105], 0);
 }
 
-// El original limpia el rango inclusivo al entrar (0x4ead7b..0x4eadbe). Meta, inicio y vecinos
-// amplían ese rango: stores 0x4eae5f/0x4eae71, 0x4eb0b9/0x4eb0cb y 0x4eb342/0x4eb35d.
-// La meta entra al rango aunque después no se abra: su GoalFlag tampoco queda para otra llamada.
+// The original clears the inclusive range on entry (0x4ead7b..0x4eadbe). Goal, start and neighbors widen it: stores
+// 0x4eae5f/0x4eae71, 0x4eb0b9/0x4eb0cb and 0x4eb342/0x4eb35d. The goal joins the range even if it is never opened:
+// its GoalFlag does not stay for another call either.
 TEST(PathFinderTest, TheStartOccupancyDoesNotPreventWalkingAndCallsDoNotRetainSearchFlags)
 {
     TerrainWalls walls;
@@ -318,8 +318,8 @@ TEST(PathFinderTest, TheStartOccupancyDoesNotPreventWalkingAndCallsDoNotRetainSe
     ExpectCells(finder.Find({100, 100}, {101, 100}), {{100, 100}, {101, 100}});
 }
 
-// Camino en U sin atajos: los extremos de la base siguen siendo pared, y sólo el vértice central
-// conecta las columnas por dos diagonales. Cada celda abierta tiene un único vecino hacia delante.
+// A U path without shortcuts: the base's ends stay walls, and only the middle vertex joins the columns through two
+// diagonals. Each open cell has a single neighbor forward.
 void MakeU(TerrainWalls& walls, std::size_t bottom, std::size_t rightTop)
 {
     walls.cells.fill(4);
@@ -337,15 +337,15 @@ void MakeU(TerrainWalls& walls, std::size_t bottom, std::size_t rightTop)
 TEST(PathFinderTest, TheFiveHundredthExtractionAndReconstructionCellStillSucceed)
 {
     TerrainWalls walls;
-    // 249 de la izquierda + vértice + 250 de la derecha = 500, incluida la meta (12,4).
+    // 249 on the left + vertex + 250 on the right = 500, including the goal (12,4).
     MakeU(walls, 254, 4);
     PathFinder finder(walls);
     const auto path = finder.Find({10, 5}, {12, 4});
     ASSERT_TRUE(path);
     ASSERT_EQ(path->count, 15);
     EXPECT_EQ(path->cells[14], (PathCell{10, 19}));
-    // Un desvío muerto con h=13 sale antes de que se agote el corredor. La meta sería la 501.ª.
-    // En la segunda pasada las primeras 50 no mejoran h(inicio)=9, por eso devuelve una sola celda.
+    // A dead branch with h=13 pops before the corridor runs out. The goal would be the 501st. In the second pass the
+    // first 50 do not improve h(start)=9, so it returns a single cell.
     walls.cells[5 * 256 + 9] = 0;
     EXPECT_FALSE(finder.Find({10, 5}, {12, 4}));
 }
@@ -353,8 +353,8 @@ TEST(PathFinderTest, TheFiveHundredthExtractionAndReconstructionCellStillSucceed
 TEST(PathFinderTest, TheFiftiethExtractionMayImproveTheNearestButTheFiftyFirstCannot)
 {
     TerrainWalls walls;
-    // Meta ocupada: va directo a la segunda pasada. 25 de izquierda + vértice + 24 de derecha
-    // hasta (12,6) = 50. h(12,6)=8 es la primera menor que h(inicio)=9.
+    // Occupied goal: straight to the second pass. 25 on the left + vertex + 24 on the right up to (12,6) = 50.
+    // h(12,6)=8 is the first below h(start)=9.
     MakeU(walls, 30, 5);
     walls.cells[4 * 256 + 12] = 2;
     PathFinder finder(walls);
@@ -362,25 +362,25 @@ TEST(PathFinderTest, TheFiftiethExtractionMayImproveTheNearestButTheFiftyFirstCa
     ASSERT_TRUE(path);
     ASSERT_EQ(path->count, 15);
     EXPECT_EQ(path->cells[14], (PathCell{10, 19}));
-    // Con una extracción muerta más, (12,6) sería la 51.ª: ninguna de las 50 mejora el inicio.
+    // With one more dead pop, (12,6) would be the 51st: none of the 50 improves the start.
     walls.cells[5 * 256 + 9] = 0;
     EXPECT_FALSE(finder.Find({10, 5}, {12, 4}));
 }
 
-// 0x4eae7c..0x4eb054 (el elfo que se acerca, 0x566271): con distancia, la meta son las celdas a menos de ella. Con 1,8
-// (r = 1) el cuadrado de 3 × 3, porque √2 < 1,8: el camino para una celda antes del blanco. Con 2,0 (r = 2) el rombo
-// |dx| + |dy| ≤ 2, sin (±2, ±1) (√5 ≥ 2): para dos antes. El paso exacto no marca las celdas con muro, y con
-// distancia clearGoal no cuenta.
+// 0x4eae7c..0x4eb054 (the elf that walks up, 0x566271): with a distance, the goal is the cells closer than it. With
+// 1.8 (r = 1) the 3 × 3 square, since √2 < 1.8: the path stops one cell before the target. With 2.0 (r = 2) the
+// diamond |dx| + |dy| ≤ 2, without (±2, ±1) (√5 ≥ 2): two before. The exact pass does not mark wall cells, and with a
+// distance clearGoal does not count.
 TEST(PathFinderTest, TheDistanceGoalStopsWithinTheRange)
 {
     TerrainWalls walls;
     PathFinder finder(walls);
-    // Con 1,8 el radio entero es 1, pero las esquinas (104, 99) y (104, 101) también son meta (√2 < 1,8): la búsqueda
-    // llega primero a la de arriba.
+    // With 1.8 the integer radius is 1, but the corners (104, 99) and (104, 101) are goals too (√2 < 1.8): the search
+    // reaches the upper one first.
     ExpectCells(finder.Find({100, 100}, {105, 100}, false, 1.8f),
                 {{100, 100}, {101, 99}, {102, 99}, {103, 99}, {104, 99}});
     ExpectCells(finder.Find({100, 100}, {105, 100}, false, 2.0f), {{100, 100}, {101, 100}, {102, 100}, {103, 100}});
-    // A menos de la distancia de entrada no hay camino de dos celdas: ya está.
+    // Already within the distance: no two-cell path.
     EXPECT_FALSE(finder.Find({104, 100}, {105, 100}, false, 1.8f));
     walls.cells[100 * 256 + 103] = 4;
     walls.cells[100 * 256 + 105] = 4;
@@ -392,12 +392,12 @@ TEST(PathFinderTest, TheDistanceGoalStopsWithinTheRange)
     EXPECT_LE(std::abs(last.x - 105) + std::abs(last.y - 100), 2);
 }
 
-// Las celdas de la meta usan el índice lineal: cerca del borde derecho, la fila de al lado.
+// The goal cells use the linear index: near the right edge, the next row.
 TEST(PathFinderTest, TheDistanceGoalWrapsIntoTheNextRow)
 {
     TerrainWalls walls;
     PathFinder finder(walls);
-    // r = 1 alrededor de (255, 50): (256, 50) es (0, 51).
+    // r = 1 around (255, 50): (256, 50) is (0, 51).
     const auto path = finder.Find({3, 51}, {255, 50}, false, 1.0f);
     ASSERT_TRUE(path);
     const PathCell last = path->cells[path->count - 1];

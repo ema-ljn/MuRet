@@ -4,45 +4,37 @@
 
 #include <cstdint>
 
-// Los dos seriales de los C3/C4 de una conexión: el de envío y el de recepción.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", y el plan de la CL2 (CL2.3).
-//
-// Cada C3/C4 lleva un byte de serial como primer byte de lo cifrado. El que sale sube de a uno
-// desde 0, y del otro lado se compara con el que se espera: un paquete perdido o repetido no
-// coincide. En el original son dos bytes globales (0x05767913 y 0x05767914), y 0x4c1340 los vuelve
-// a 0 al conectar al GameServer; acá son de cada conexión.
+// The send and receive serials of a connection's C3/C4 (03-red-y-cifrado.md, "C3/C4"): the first encrypted byte. In
+// the original they are two global bytes (0x05767913 and 0x05767914) that 0x4c1340 resets when connecting to the
+// GameServer; here they belong to each connection.
 namespace Client::Network
 {
-// Qué pasó con el serial de un paquete que llegó.
 enum class SerialCheck : std::uint8_t
 {
-    InOrder,  // era el que se esperaba
-    Resynced, // era otro, y desde ahí se espera el que le sigue (Q-C04)
+    InOrder,
+    Resynced, // it was another, and from there the next one is expected (Q-C04)
 };
 
 class ENGINE_API PacketSerials
 {
 public:
-    // El serial del paquete que sale, y suma 1: de 255 vuelve a 0.
+    // From 255 back to 0.
     [[nodiscard]] std::uint8_t TakeSend();
 
-    // Compara el serial de un paquete que llegó con el que se esperaba, y desde ahí espera el que
-    // le sigue. El original, si no coincide, se queda con el recibido sin sumarle 1, así que el
-    // próximo tampoco coincide y el desfase queda (Q-C04): acá se resincroniza, y Resynced le dice
-    // a quien lo usa que lo anote una vez.
+    // The original, on a mismatch, keeps the received one without adding 1, so the next one does not match either and
+    // the offset stays (Q-C04). Here it resyncs, and Resynced tells the user to log it once.
     [[nodiscard]] SerialCheck Receive(std::uint8_t received);
 
-    // Un paquete que llegó y no se despacha: se espera el siguiente del que se esperaba, sin mirar
-    // el serial que trajo. Con un checksum malo es lo que hace el original. Con InvalidBlock o
-    // TooShort, si el primer bloque pasó su checksum el serial se sabe, y no resincronizar con él
-    // es decisión de MuRet: todo paquete que no se despacha cuenta como uno con el checksum malo.
+    // A packet that arrived and is not dispatched: the next of the expected one is expected, ignoring the serial it
+    // carried. With a bad checksum the original does this. With InvalidBlock or TooShort, if the first block passed its
+    // checksum the serial is known; not resyncing with it is MuRet's choice.
     void SkipReceive();
 
-    // Los dos a 0, como 0x4c1340 al conectar al GameServer.
+    // Like 0x4c1340 when connecting to the GameServer.
     void Reset();
 
 private:
-    std::uint8_t m_send = 0;    // el del próximo paquete que sale
-    std::uint8_t m_receive = 0; // el que se espera en el próximo que llega
+    std::uint8_t m_send = 0;
+    std::uint8_t m_receive = 0;
 };
 } // namespace Client::Network

@@ -1726,21 +1726,21 @@ template <typename Value> std::optional<WorldEvent> EventOf(const Core::Expected
 std::optional<WorldEvent> ReadNpcWindowEvent(const Network::Packet& packet)
 {
     namespace Npc = Protocol::NpcWindows;
-    switch (packet.Opcode().value_or(Network::Opcode{}))
+    switch (Network::ByteOf(packet.Opcode().value_or(Network::Opcode{})))
     {
-    case Protocol::NpcItemListOpcode:
+    case Network::ByteOf(Protocol::NpcItemListOpcode):
         return EventOf(Npc::ReadItemList(packet));
-    case Protocol::BuyOpcode:
+    case Network::ByteOf(Protocol::BuyOpcode):
         return EventOf(Npc::ReadBuyResult(packet));
-    case Protocol::SellOpcode:
+    case Network::ByteOf(Protocol::SellOpcode):
         return EventOf(Npc::ReadSellResult(packet));
-    case Protocol::RepairOpcode:
+    case Network::ByteOf(Protocol::RepairOpcode):
         return EventOf(Npc::ReadRepairResult(packet));
-    case Protocol::WarehouseMoneyOpcode:
+    case Network::ByteOf(Protocol::WarehouseMoneyOpcode):
         return EventOf(Npc::ReadWarehouseMoney(packet));
-    case Protocol::WarehouseStateOpcode:
+    case Network::ByteOf(Protocol::WarehouseStateOpcode):
         return EventOf(Npc::ReadWarehouseState(packet));
-    case Protocol::ChaosMixOpcode:
+    case Network::ByteOf(Protocol::ChaosMixOpcode):
         return EventOf(Npc::ReadChaosMixResult(packet));
     default:
         return EventOf(Npc::ReadNpcWindowClosed(packet));

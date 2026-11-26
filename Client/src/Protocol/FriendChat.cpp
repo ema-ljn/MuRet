@@ -211,17 +211,17 @@ Core::Expected<void, Network::ProtocolError> CheckRoomPacket(const Network::Pack
     const std::optional<Network::Opcode> opcode = packet.Opcode();
     if (!opcode)
         return {};
-    switch (*opcode)
+    switch (Network::ByteOf(*opcode))
     {
-    case RoomJoinOpcode:
+    case Network::ByteOf(RoomJoinOpcode):
         return readable(ReadJoinResult(packet));
-    case RoomMemberOpcode:
+    case Network::ByteOf(RoomMemberOpcode):
         return readable(ReadMember(packet));
-    case RoomMembersOpcode:
+    case Network::ByteOf(RoomMembersOpcode):
         return readable(ReadMembers(packet));
-    case RoomMessageOpcode:
+    case Network::ByteOf(RoomMessageOpcode):
         return readable(ReadMessage(packet));
-    case RoomNoticeOpcode:
+    case Network::ByteOf(RoomNoticeOpcode):
         return readable(ReadNotice(packet));
     default:
         return {};

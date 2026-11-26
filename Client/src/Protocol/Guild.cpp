@@ -347,39 +347,39 @@ Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportUnion(const Netw
 
 Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet& packet, Network::Opcode opcode)
 {
-    switch (opcode)
+    switch (Network::ByteOf(opcode))
     {
-    case GuildJoinRequestOpcode:
+    case Network::ByteOf(GuildJoinRequestOpcode):
         return ReadKeyed(packet, false);
-    case GuildJoinResultOpcode:
+    case Network::ByteOf(GuildJoinResultOpcode):
         return ReadResult<JoinResult>(packet);
-    case GuildLeaveResultOpcode:
+    case Network::ByteOf(GuildLeaveResultOpcode):
         return ReadResult<LeaveResult>(packet);
-    case GuildMasterQuestionOpcode:
+    case Network::ByteOf(GuildMasterQuestionOpcode):
         return GuildPacket{MasterQuestion{}};
-    case GuildCreateResultOpcode:
+    case Network::ByteOf(GuildCreateResultOpcode):
         return ReadResult<CreateResult>(packet);
-    case ViewportGuildDeleteOpcode:
+    case Network::ByteOf(ViewportGuildDeleteOpcode):
         return ReadKeyed(packet, true);
-    case GuildWarRequestResultOpcode:
+    case Network::ByteOf(GuildWarRequestResultOpcode):
         return ReadResult<WarRequestResult>(packet);
-    case GuildWarRequestOpcode:
+    case Network::ByteOf(GuildWarRequestOpcode):
         return ReadWarRequest(packet);
-    case GuildWarStartOpcode:
+    case Network::ByteOf(GuildWarStartOpcode):
         return ReadWarStart(packet);
-    case GuildWarEndOpcode:
+    case Network::ByteOf(GuildWarEndOpcode):
         return ReadResult<WarEnd>(packet);
-    case GuildWarScoreOpcode:
+    case Network::ByteOf(GuildWarScoreOpcode):
         return ReadWarScore(packet);
-    case GuildInfoOpcode:
+    case Network::ByteOf(GuildInfoOpcode):
         return ReadGuildInfo(packet);
-    case GuildAssignResultOpcode:
+    case Network::ByteOf(GuildAssignResultOpcode):
         return ReadAssignResult(packet);
-    case RelationshipRequestOpcode:
+    case Network::ByteOf(RelationshipRequestOpcode):
         return ReadRelationshipRequest(packet);
-    case RelationshipResultOpcode:
+    case Network::ByteOf(RelationshipResultOpcode):
         return ReadRelationshipResult(packet);
-    case UnionKickOpcode:
+    case Network::ByteOf(UnionKickOpcode):
         return ReadUnionListRefresh(packet);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);

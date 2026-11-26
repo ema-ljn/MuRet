@@ -158,15 +158,15 @@ Read ReadSoccerScore(const Fields& fields)
 
 Read ReadWorld(const Fields& fields, Network::Subcode subcode)
 {
-    switch (subcode)
+    switch (Network::ByteOf(subcode))
     {
-    case Character::EventTimeSubcode:
+    case Network::ByteOf(Character::EventTimeSubcode):
         if (!fields.Has(8))
             return TooShort();
         return EventPacket{EventTime{fields.U8(4), fields.U16(6)}};
-    case Character::SoccerScoreSubcode:
+    case Network::ByteOf(Character::SoccerScoreSubcode):
         return ReadSoccerScore(fields);
-    case Character::GuildWarOutcomeSubcode:
+    case Network::ByteOf(Character::GuildWarOutcomeSubcode):
     {
         if (!fields.Has(5))
             return TooShort();
@@ -184,7 +184,7 @@ Read ReadWorld(const Fields& fields, Network::Subcode subcode)
         result.secondScore = fields.U16(0x1c);
         return EventPacket{result};
     }
-    case Character::ServerCommandSubcode:
+    case Network::ByteOf(Character::ServerCommandSubcode):
         if (!fields.Has(7))
             return TooShort();
         return EventPacket{ServerCommand{fields.U8(4), fields.U8(5), fields.U8(6)}};
@@ -195,63 +195,63 @@ Read ReadWorld(const Fields& fields, Network::Subcode subcode)
 
 Read ReadByOpcode(const Fields& fields, Network::Opcode opcode)
 {
-    switch (opcode)
+    switch (Network::ByteOf(opcode))
     {
-    case EventStateOpcode:
+    case Network::ByteOf(EventStateOpcode):
         if (!fields.Has(5))
             return TooShort();
         return EventPacket{EventState{fields.U8(3), fields.U8(4)}};
-    case MapAttributesOpcode:
+    case Network::ByteOf(MapAttributesOpcode):
         return ReadMapAttributes(fields);
-    case ItemAcquiredOpcode:
+    case Network::ByteOf(ItemAcquiredOpcode):
         if (!fields.Has(0xd))
             return TooShort();
         // 0x4d69a1..0x4d69aa: pkt[3] << 8 + pkt[4].
         return EventPacket{ItemAcquired{static_cast<std::uint16_t>((fields.U8(3) << 8u) | fields.U8(4)), fields.U32(8),
                                         fields.U8(0xc)}};
-    case DevilSquareEntryOpcode:
+    case Network::ByteOf(DevilSquareEntryOpcode):
         if (!fields.Has(4))
             return TooShort();
         return EventPacket{DevilSquareEntryResult{fields.U8(3)}};
-    case EventOpenTimeOpcode:
+    case Network::ByteOf(EventOpenTimeOpcode):
         return ReadEventOpenTime(fields);
-    case EventCountdownOpcode:
+    case Network::ByteOf(EventCountdownOpcode):
         if (!fields.Has(4))
             return TooShort();
         return EventPacket{EventCountdown{fields.U8(3)}};
-    case EventResultOpcode:
+    case Network::ByteOf(EventResultOpcode):
     {
         if (!fields.Has(5))
             return TooShort();
         const auto rest = fields.From(5);
         return EventPacket{EventResult{fields.U8(3), fields.U8(4), std::vector<std::byte>(rest.begin(), rest.end())}};
     }
-    case EventChipInfoOpcode:
+    case Network::ByteOf(EventChipInfoOpcode):
         return ReadEventChipInfo(fields);
-    case EventChipCountOpcode:
+    case Network::ByteOf(EventChipCountOpcode):
         if (!fields.Has(6))
             return TooShort();
         return EventPacket{EventChipCount{fields.U16(4)}};
-    case MutoNumbersOpcode:
+    case Network::ByteOf(MutoNumbersOpcode):
         if (!fields.Has(0xa))
             return TooShort();
         return EventPacket{MutoNumbers{{fields.U16(4), fields.U16(6), fields.U16(8)}}};
-    case EventDialogOpcode:
+    case Network::ByteOf(EventDialogOpcode):
         if (!fields.Has(4))
             return TooShort();
         return EventPacket{EventDialog{fields.U8(3)}};
-    case BloodCastleEntryOpcode:
+    case Network::ByteOf(BloodCastleEntryOpcode):
         if (!fields.Has(4))
             return TooShort();
         return EventPacket{BloodCastleEntryResult{fields.U8(3)}};
-    case EventPlayStateOpcode:
+    case Network::ByteOf(EventPlayStateOpcode):
         if (!fields.Has(0xd))
             return TooShort();
         return EventPacket{
             EventPlayState{fields.U8(3), fields.U16(4), fields.U16(6), fields.U16(8), fields.U16(0xa), fields.U8(0xc)}};
-    case SerialResultOpcode:
+    case Network::ByteOf(SerialResultOpcode):
         return ReadSerialResult(fields);
-    case EventSoundOpcode:
+    case Network::ByteOf(EventSoundOpcode):
         if (!fields.Has(6))
             return TooShort();
         return EventPacket{EventSound{fields.U16(4)}};
@@ -288,41 +288,41 @@ Read ReadCrywolfRanking(const Fields& fields)
 // 0x4e5941: el BD por pkt[3] con la tabla de 0x4e620c; el 1, el 6, el 0xa, el 0xb y los de más de 0xc no hacen nada.
 Read ReadCrywolf(const Fields& fields, Network::Subcode subcode)
 {
-    switch (subcode)
+    switch (Network::ByteOf(subcode))
     {
-    case Crywolf::StateSubcode:
+    case Network::ByteOf(Crywolf::StateSubcode):
         if (!fields.Has(6))
             return TooShort();
         return EventPacket{CrywolfState{fields.U8(4), fields.U8(5)}};
-    case Crywolf::AltarsSubcode:
+    case Network::ByteOf(Crywolf::AltarsSubcode):
         if (!fields.Has(0xd))
             return TooShort();
         return EventPacket{CrywolfAltars{static_cast<std::int32_t>(fields.U32(4)),
                                          {fields.U8(8), fields.U8(9), fields.U8(0xa), fields.U8(0xb), fields.U8(0xc)}}};
-    case Crywolf::TimerSubcode:
+    case Network::ByteOf(Crywolf::TimerSubcode):
         if (!fields.Has(6))
             return TooShort();
         return EventPacket{CrywolfTimer{fields.U8(4), fields.U8(5)}};
-    case Crywolf::BossSubcode:
+    case Network::ByteOf(Crywolf::BossSubcode):
         if (!fields.Has(9))
             return TooShort();
         return EventPacket{CrywolfBoss{static_cast<std::int32_t>(fields.U32(4)), fields.U8(8)}};
-    case Crywolf::RankSubcode:
+    case Network::ByteOf(Crywolf::RankSubcode):
         if (!fields.Has(0xc))
             return TooShort();
         return EventPacket{CrywolfRank{fields.U8(4), static_cast<std::int32_t>(fields.U32(8))}};
-    case Crywolf::RankingSubcode:
+    case Network::ByteOf(Crywolf::RankingSubcode):
         return ReadCrywolfRanking(fields);
-    case Crywolf::ChaosBoxSubcode:
+    case Network::ByteOf(Crywolf::ChaosBoxSubcode):
         if (!fields.Has(5))
             return TooShort();
         return EventPacket{CrywolfChaosBox{fields.U8(4)}};
-    case Crywolf::ContractSubcode:
+    case Network::ByteOf(Crywolf::ContractSubcode):
         if (!fields.Has(8))
             return TooShort();
         return EventPacket{CrywolfContract{fields.U8(4), fields.U8(5),
                                            static_cast<std::uint16_t>((fields.U8(6) << 8u) | fields.U8(7))}};
-    case Crywolf::EffectSubcode:
+    case Network::ByteOf(Crywolf::EffectSubcode):
     {
         // 0x4e15fa lee pkt[9]; sin ese byte falta una coordenada del efecto.
         constexpr std::size_t CrywolfEffectBytes = 10;

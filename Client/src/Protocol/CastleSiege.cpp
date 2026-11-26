@@ -535,33 +535,33 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadMinimapPoints(cons
 // El B2 por su subcódigo, la tabla 0x4e6140.
 Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastle(const Fields& fields, Network::Subcode subcode)
 {
-    switch (subcode)
+    switch (Network::ByteOf(subcode))
     {
-    case Castle::StateSubcode:
+    case Network::ByteOf(Castle::StateSubcode):
         return ReadState(fields);
-    case Castle::RegisterSubcode:
+    case Network::ByteOf(Castle::RegisterSubcode):
         return OnlyTheResult<RegisterResult>(fields);
-    case Castle::GiveUpSubcode:
+    case Network::ByteOf(Castle::GiveUpSubcode):
         return OnlyTheResult<GiveUpResult>(fields);
-    case Castle::RegistrationSubcode:
+    case Network::ByteOf(Castle::RegistrationSubcode):
         return ReadRegistration(fields);
-    case Castle::RegisterMarkSubcode:
+    case Network::ByteOf(Castle::RegisterMarkSubcode):
         return ReadRegisterMark(fields);
-    case Castle::NpcBuySubcode:
+    case Network::ByteOf(Castle::NpcBuySubcode):
         return ReadNpcBuy(fields);
-    case Castle::NpcRepairSubcode:
+    case Network::ByteOf(Castle::NpcRepairSubcode):
         return ReadNpcRepair(fields);
-    case Castle::NpcUpgradeSubcode:
+    case Network::ByteOf(Castle::NpcUpgradeSubcode):
         return ReadNpcUpgrade(fields);
-    case Castle::TaxInfoSubcode:
+    case Network::ByteOf(Castle::TaxInfoSubcode):
         return ReadTaxInfo(fields);
-    case Castle::TaxRateSubcode:
+    case Network::ByteOf(Castle::TaxRateSubcode):
         return ReadTaxRate(fields);
-    case Castle::MoneyOutSubcode:
+    case Network::ByteOf(Castle::MoneyOutSubcode):
         return ReadMoneyOut(fields);
-    case Castle::SiegeFlagsSubcode:
+    case Network::ByteOf(Castle::SiegeFlagsSubcode):
         return ReadSiegeFlags(fields);
-    case Castle::HuntZoneGateSubcode:
+    case Network::ByteOf(Castle::HuntZoneGateSubcode):
         return ReadHuntZoneGate(fields);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
@@ -583,10 +583,10 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     const Fields fields(packet.Bytes());
-    switch (*opcode)
+    switch (Network::ByteOf(*opcode))
     {
-    case CastleOpcode:
-    case KillCountOpcode:
+    case Network::ByteOf(CastleOpcode):
+    case Network::ByteOf(KillCountOpcode):
     {
         auto subcode = fields.U8(Network::MinPacketSize(packet.Type()));
         if (!subcode.HasValue())
@@ -608,13 +608,13 @@ Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(
         }
         return CastleSiegePacket{KillCount{.value = value.Value()}};
     }
-    case CastleNpcListOpcode:
+    case Network::ByteOf(CastleNpcListOpcode):
         return ReadNpcList(fields);
-    case SiegeGuildListOpcode:
+    case Network::ByteOf(SiegeGuildListOpcode):
         return ReadSiegeGuildList(fields);
-    case RegisteredGuildListOpcode:
+    case Network::ByteOf(RegisteredGuildListOpcode):
         return ReadRegisteredGuildList(fields);
-    case SiegeMinimapOpcode:
+    case Network::ByteOf(SiegeMinimapOpcode):
         return ReadMinimapPoints(fields);
     default:
         return Core::Unexpected(Network::ProtocolError::WrongPacket);

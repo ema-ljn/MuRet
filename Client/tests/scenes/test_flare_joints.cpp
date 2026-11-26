@@ -96,8 +96,8 @@ TEST(FlareJointsTest, TheFlareBornsWithThreeDraws)
     EXPECT_EQ(joint.light.z, 1.0f);
     EXPECT_EQ(joint.pathIncrement, tested.start);
     EXPECT_EQ(joint.count, 0);
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix({10.0f, 20.0f, 30.0f});
-    const auto corner = Client::Render::Models::OriginalVectorRotate({-2.0f, 0.0f, 0.0f}, matrix);
+    const auto matrix = Client::Math::OriginalAngleMatrix({10.0f, 20.0f, 30.0f});
+    const auto corner = Client::Math::OriginalVectorRotate({-2.0f, 0.0f, 0.0f}, matrix);
     EXPECT_EQ(joint.points[0][0], (glm::vec3{static_cast<float>(1000.0 + static_cast<double>(corner.x)),
                                              static_cast<float>(2000.0 + static_cast<double>(corner.y)),
                                              static_cast<float>(300.0 + static_cast<double>(corner.z))}));

@@ -37,9 +37,9 @@ inline constexpr glm::vec3 HelperDustLight{1.0f, 1.0f, 1.0f};
 [[nodiscard]] Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, std::size_t bone,
                                                                      const glm::vec3& offset, std::string_view address);
 // Lo mismo sobre `bones`, el buffer global que lleva un dibujo (el de WorldState o su copia proyectada).
-[[nodiscard]] Core::Expected<glm::vec3, std::string>
-GlobalPosePoint(std::span<const Render::Models::BoneTransform> bones, std::size_t bone, const glm::vec3& offset,
-                std::string_view address);
+[[nodiscard]] Core::Expected<glm::vec3, std::string> GlobalPosePoint(std::span<const Math::BoneTransform> bones,
+                                                                     std::size_t bone, const glm::vec3& offset,
+                                                                     std::string_view address);
 
 // 0x53fe70(tipo, posición, ángulos, luz, subtipo, 1, 0) en las partículas del mundo (0x743a198), con su reloj.
 // Lleno, ninguna y sin rand(); una que MuRet no sabe crear corta en `address`.

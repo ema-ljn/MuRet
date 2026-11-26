@@ -36,7 +36,7 @@ struct FaunaObject
     std::array<std::byte, 7> padding88{};
     std::uint8_t flag8f = 0;
     std::array<std::byte, 12> padding90{};
-    Render::Models::OriginalMatrix matrix{};
+    Math::OriginalMatrix matrix{};
     float aheadX = 0;
     float aheadY = 0;
     float vertical = 0;

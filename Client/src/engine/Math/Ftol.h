@@ -7,7 +7,7 @@
 
 // 0x69fd3c, the original's __ftol: FISTP m64 with the invalid operation masked; its callers keep the signed low dword.
 // The x87 control and status words, traps and NaN payloads are not reproduced.
-namespace Client::World
+namespace Client::Math
 {
 // NaN gives 0, as 0x606660 did with Devias's NaN y (Q-C186, observed). Infinity and values outside int64 give nullopt:
 // what the native code does with them was never observed.
@@ -31,4 +31,4 @@ namespace Client::World
 {
     return OriginalFtolLow(value).value_or(0);
 }
-} // namespace Client::World
+} // namespace Client::Math

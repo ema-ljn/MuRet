@@ -9,7 +9,7 @@
 
 #include <cstddef>
 
-namespace Client::Render::Models
+namespace Client::Math
 {
 namespace
 {
@@ -154,4 +154,4 @@ glm::vec3 OriginalTransformPosition(const OriginalMatrix& bone, const glm::vec3&
     return {F32(x + static_cast<double>(bodyOrigin.x)), F32(static_cast<double>(y) + static_cast<double>(bodyOrigin.y)),
             F32(static_cast<double>(z) + static_cast<double>(bodyOrigin.z))};
 }
-} // namespace Client::Render::Models
+} // namespace Client::Math

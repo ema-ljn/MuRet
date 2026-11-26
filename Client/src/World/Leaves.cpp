@@ -175,13 +175,13 @@ LeafQuad LeafQuadOf(const Leaf& leaf)
     // 0x5307e2: a = escala + escala, b = escala · 4 (0x6b8a44), los dos justos en float.
     const float a = F32(static_cast<double>(leaf.scale) + static_cast<double>(leaf.scale));
     const float b = F32(static_cast<double>(leaf.scale) * 4.0);
-    const Render::Models::OriginalMatrix turn = Render::Models::OriginalAngleMatrix(leaf.angles);
+    const Math::OriginalMatrix turn = Math::OriginalAngleMatrix(leaf.angles);
     const std::array<glm::vec3, 4> local{{{-a, -a, -b}, {a, a, -b}, {a, a, b}, {-a, -a, b}}};
     LeafQuad quad;
     quad.translation = leaf.position;
     for (std::size_t k = 0; k < local.size(); ++k)
     {
-        quad.corners[k] = Render::Models::OriginalVectorTransform(local[k], turn);
+        quad.corners[k] = Math::OriginalVectorTransform(local[k], turn);
     }
     quad.uv = {{{0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}}};
     return quad;

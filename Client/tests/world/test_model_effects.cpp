@@ -628,9 +628,8 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
         EXPECT_EQ(effect.life, life);
         EXPECT_EQ(effect.transform.scale, scale);
         EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, yaw));
-        EXPECT_EQ(effect.velocity,
-                  Client::Render::Models::OriginalVectorRotate(
-                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
+        EXPECT_EQ(effect.velocity, Client::Math::OriginalVectorRotate(
+                                       {0.0f, push, 0.0f}, Client::Math::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
         EXPECT_EQ(effect.turnDirection, fall);
         EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
         EXPECT_EQ(random.State(), draws.State());
@@ -670,9 +669,8 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
         EXPECT_EQ(effect.life, life);
         EXPECT_EQ(effect.transform.scale, scale);
         EXPECT_EQ(effect.transform.angles, glm::vec3(12.0f, 34.0f, yaw));
-        EXPECT_EQ(effect.velocity,
-                  Client::Render::Models::OriginalVectorRotate(
-                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({12.0f, 34.0f, yaw})));
+        EXPECT_EQ(effect.velocity, Client::Math::OriginalVectorRotate(
+                                       {0.0f, push, 0.0f}, Client::Math::OriginalAngleMatrix({12.0f, 34.0f, yaw})));
         EXPECT_NE(effect.velocity.z, 0.0f);
         EXPECT_EQ(effect.turnDirection, fall);
         EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
@@ -722,9 +720,8 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
         EXPECT_EQ(effect.life, life);
         EXPECT_EQ(effect.transform.scale, scale);
         EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, yaw));
-        EXPECT_EQ(effect.velocity,
-                  Client::Render::Models::OriginalVectorRotate(
-                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
+        EXPECT_EQ(effect.velocity, Client::Math::OriginalVectorRotate(
+                                       {0.0f, push, 0.0f}, Client::Math::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
         EXPECT_EQ(effect.turnDirection, fall);
         EXPECT_EQ(effect.light, glm::vec3(0.5f, 0.6f, 0.7f));
         EXPECT_EQ(effect.disturbanceState, 0xffff);
@@ -797,9 +794,8 @@ TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
     EXPECT_EQ(effect.life, life);
     EXPECT_EQ(effect.transform.scale, scale);
     EXPECT_EQ(effect.transform.angles, glm::vec3(10.0f, 0.0f, yaw));
-    EXPECT_EQ(effect.velocity,
-              Client::Render::Models::OriginalVectorRotate(
-                  {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({10.0f, 0.0f, yaw})));
+    EXPECT_EQ(effect.velocity, Client::Math::OriginalVectorRotate(
+                                   {0.0f, push, 0.0f}, Client::Math::OriginalAngleMatrix({10.0f, 0.0f, yaw})));
     EXPECT_EQ(effect.turnDirection, fall);
     EXPECT_EQ(random.State(), draws.State());
 

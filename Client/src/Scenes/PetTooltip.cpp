@@ -203,7 +203,7 @@ Core::Expected<void, std::string> DrawThePetBox(const ItemTooltipContext& contex
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
     const std::int32_t sum = (count - halves) * cy + halves * cy / 2;
     const double ry = Render::ScaleY(1.0f, hud.sprites.Screen());
-    const std::optional<std::int32_t> height = World::OriginalFtolLow(static_cast<double>(sum) / ry);
+    const std::optional<std::int32_t> height = Math::OriginalFtolLow(static_cast<double>(sum) / ry);
     if (!height)
         return Core::Unexpected(
             std::format("0x423c2f: el alto del tooltip de la mascota ({} / {}) no entra en _ftol", sum, ry));

@@ -532,33 +532,32 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
             .batch = canvas.models,
             .flushSprites = canvas.flushSprites,
             .flushModels = canvas.flushModels,
-            .characters =
-                GameCharacterPass{.dynamicLighting = &FrameLighting(),
-                                  .clothWorld = &FrameCloth(),
-                                  .frameClock = canvas.frameClock,
-                                  .originalFrames = originalFrame ? 1 : 0,
-                                  .sprites = &FrameSpritesForDraw(),
-                                  .poseCarry = &FramePoseCarry(),
-                                  .joints = FrameTail().joints,
-                                  .particles = &FrameParticles(),
-                                  .effects = &FrameEffects(),
-                                  .itemContext = &itemContext,
-                                  .pace = originalFrame ? Render::Models::OriginalFramePace::OncePerDraw
-                                                        : OriginalFramePaceOf(m_context.pacing),
-                                  .onPose =
-                                      [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
-                                          const Render::Models::ObjectTransform& transform, bool translated)
-                                  {
-                                      const auto published = PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model,
-                                                                                 bones, transform, translated);
-                                      if (!published.HasValue() && !portraitPoseFailure)
-                                          portraitPoseFailure = published.Error();
-                                  },
-                                  .publishProjectedPose = true,
-                                  .poseBones = [&](std::uint16_t)
-                                  { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
-                                  .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
-                                  .fixedHeight = CameraState().fixedHeight},
+            .characters = GameCharacterPass{.dynamicLighting = &FrameLighting(),
+                                            .clothWorld = &FrameCloth(),
+                                            .frameClock = canvas.frameClock,
+                                            .originalFrames = originalFrame ? 1 : 0,
+                                            .sprites = &FrameSpritesForDraw(),
+                                            .poseCarry = &FramePoseCarry(),
+                                            .joints = FrameTail().joints,
+                                            .particles = &FrameParticles(),
+                                            .effects = &FrameEffects(),
+                                            .itemContext = &itemContext,
+                                            .pace = originalFrame ? Render::Models::OriginalFramePace::OncePerDraw
+                                                                  : OriginalFramePaceOf(m_context.pacing),
+                                            .onPose =
+                                                [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
+                                                    const Render::Models::ObjectTransform& transform, bool translated)
+                                            {
+                                                const auto published = PublishFaunaPoseRaw(
+                                                    FramePoseCarry(), *m_models, model, bones, transform, translated);
+                                                if (!published.HasValue() && !portraitPoseFailure)
+                                                    portraitPoseFailure = published.Error();
+                                            },
+                                            .publishProjectedPose = true,
+                                            .poseBones = [&](std::uint16_t)
+                                            { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
+                                            .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
+                                            .fixedHeight = CameraState().fixedHeight},
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const DrawnObject& object)
             { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
@@ -567,7 +566,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
             .systemTime = [systemTime = static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
             { return systemTime; },
-            .globalPose = [&]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+            .globalPose = [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
             .originalFrame = originalFrame});
     }
     std::function<Core::Expected<void, std::string>(UI::OldPortraitPart&)> drawThePortrait;

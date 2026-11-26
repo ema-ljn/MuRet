@@ -25,7 +25,7 @@
 
 namespace
 {
-using Client::Render::Models::BoneTransform;
+using Client::Math::BoneTransform;
 
 class WeaponTrailTest : public ::testing::Test
 {

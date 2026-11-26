@@ -151,7 +151,7 @@ TEST_F(FaunaDrawingTest, ButterflySpendsOneSharedDrawAndCreatesOneSprite)
 TEST_F(FaunaDrawingTest, ABodyUsesTheRetainedDummyBoneInsteadOfARecreatedIdentity)
 {
     Live(m_fauna.Birds()[0], 0xad);
-    m_carry.bones.resize(3, Client::Render::Models::BoneTransform(0));
+    m_carry.bones.resize(3, Client::Math::BoneTransform(0));
     m_carry.bones[2][3] = {7, 8, 9};
     auto context = Context();
     const auto result = DrawGameBirds(m_batch, context);
@@ -234,8 +234,8 @@ TEST_F(FaunaDrawingTest, AShadowPublishesTheRetainedOriginUsedByTheNextTranspare
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_TRUE(m_sprites.Sprites()[2].alive);
     // El primer sprite ya tuvo spillF32 al sumar300; no restarlo para reconstruir su componente local.
-    const auto expected = Client::Render::Models::OriginalTransformPosition(
-        Client::Render::Models::OriginalMatrixOf(m_carry.bones[1]), {-5, 0, 0}, 1, {1000, 1000, 0});
+    const auto expected = Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(m_carry.bones[1]),
+                                                                  {-5, 0, 0}, 1, {1000, 1000, 0});
     EXPECT_EQ(m_sprites.Sprites()[2].position, expected);
     ASSERT_TRUE(m_carry.models.contains(0xbc));
     EXPECT_EQ(m_carry.models.at(0xbc).position, glm::vec3(2000, 2100, 0));
@@ -333,7 +333,7 @@ TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposin
 {
     std::array<Client::World::WorldObject, 1> objects{};
     objects[0].transform.position = {1000, 1000, 300};
-    m_carry.bones.resize(3, Client::Render::Models::BoneTransform(0));
+    m_carry.bones.resize(3, Client::Math::BoneTransform(0));
     m_carry.bones[2][3] = {7, 8, 9};
     Client::Scenes::GameObjectPass pass;
     pass.random = &m_cloth.random;
@@ -359,7 +359,7 @@ TEST_F(FaunaDrawingTest, AMeshOnAMissingBoneIsLeftUnposedAndTheOthersPose)
     m_carry.meshes.resize(2);
     m_carry.meshes[1].positions = {glm::vec3(1.0f)};
     m_carry.meshes[1].normals = {glm::vec3(0.0f, 0.0f, 1.0f)};
-    const std::vector<Client::Render::Models::BoneTransform> bones(3, Client::Render::Models::BoneTransform(1.0f));
+    const std::vector<Client::Math::BoneTransform> bones(3, Client::Math::BoneTransform(1.0f));
     const Client::Render::Models::ObjectTransform transform{.position = {1000, 1000, 300}};
     ASSERT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, 0x24, bones, transform, false).HasValue());
     EXPECT_EQ(m_carry.meshes[0].positions.size(), m_models.model.meshes[0].vertices.size());
@@ -369,14 +369,13 @@ TEST_F(FaunaDrawingTest, AMeshOnAMissingBoneIsLeftUnposedAndTheOthersPose)
 
 TEST_F(FaunaDrawingTest, CharacterBodiesInitializeDummyMatricesFromTheSharedScratchBeforePosing)
 {
-    m_carry.bones.resize(3, Client::Render::Models::BoneTransform(0));
+    m_carry.bones.resize(3, Client::Math::BoneTransform(0));
     m_carry.bones[2][3] = {7, 8, 9};
     Client::Scenes::DrawnCharacter character;
     character.object.position = {1000, 1000, 300};
     character.castsShadow = false;
-    character.poseBones = [&](std::uint16_t)
-    { return std::span<const Client::Render::Models::BoneTransform>(m_carry.bones); };
-    character.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform> bones,
+    character.poseBones = [&](std::uint16_t) { return std::span<const Client::Math::BoneTransform>(m_carry.bones); };
+    character.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform> bones,
                            const Client::Render::Models::ObjectTransform& transform, bool translated)
     { EXPECT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, model, bones, transform, translated).HasValue()); };
     DrawCharacter(m_batch, m_models, character, {});

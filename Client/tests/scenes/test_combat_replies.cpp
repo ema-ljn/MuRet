@@ -696,7 +696,7 @@ TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
         EXPECT_EQ(dead.floatD4, 0.0f);
         EXPECT_EQ(dead.floatD0, static_cast<float>(second + 40.0));
         EXPECT_EQ(dead.pushOrigin, dead.position);
-        const auto angle = static_cast<float>(Client::Render::Models::CreateAngle(1000.0f, 2000.0f, 1300.0f, 2400.0f));
+        const auto angle = static_cast<float>(Client::Math::CreateAngle(1000.0f, 2000.0f, 1300.0f, 2400.0f));
         EXPECT_EQ(dead.angles.z, angle);
         EXPECT_EQ(dead.angle30, angle);
         EXPECT_EQ(dead.headTurn.angles.x, 3.0f);

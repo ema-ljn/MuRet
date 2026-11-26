@@ -28,7 +28,7 @@ using Math::F32;
 Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& effect, std::uint64_t physicalSlot,
                                                          World::Particles& particles, World::FrameSprites& sprites,
                                                          Crt::CrtRandom& random,
-                                                         std::span<const Render::Models::BoneTransform> globalPose,
+                                                         std::span<const Math::BoneTransform> globalPose,
                                                          float worldClock)
 {
     // 602626 transforma(0,1.5,0) con el hueso2 en un local muerto. Las altas leen la posición del efecto.
@@ -66,8 +66,8 @@ Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& eff
         effect.light = {F32(1.0 - sample * static_cast<double>(RedStep)),
                         F32(static_cast<double>(GreenBase) - sample * static_cast<double>(GreenStep)), 0};
         const glm::vec3 offset{F32(sample * 15.0), 1.5f, 0};
-        const auto matrix = globalPose.size() > 1 ? globalPose[1] : Render::Models::BoneTransform(0.0f);
-        const auto point = Render::Models::OriginalVectorTransform(offset, Render::Models::OriginalMatrixOf(matrix));
+        const auto matrix = globalPose.size() > 1 ? globalPose[1] : Math::BoneTransform(0.0f);
+        const auto point = Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(matrix));
         static_cast<void>(
             sprites.Create(0x5c6, point, F32(sample * static_cast<double>(SizeStep) + 3.0), effect.light, 0, 0));
     }

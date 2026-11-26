@@ -68,8 +68,8 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
             EXPECT_FLOAT_EQ(effect.transform.scale, scale == 0 ? 0.2f : 0.4f);
             EXPECT_EQ(effect.objectState.light, 3);
             EXPECT_EQ(effect.objectState.uv.x, -6);
-            const auto motion = Client::Render::Models::OriginalVectorRotate(
-                {0, -40, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, -7}));
+            const auto motion =
+                Client::Math::OriginalVectorRotate({0, -40, 0}, Client::Math::OriginalAngleMatrix({0, 0, -7}));
             EXPECT_EQ(effect.transform.position, glm::vec3(1000, 2000, 300) + motion);
             if (!full)
             {

@@ -51,7 +51,7 @@ struct Fixture
     {
         for (int bone = 0; bone < 18; ++bone)
         {
-            Client::Render::Models::BoneTransform matrix(1.0f);
+            Client::Math::BoneTransform matrix(1.0f);
             matrix[3] = glm::vec3(static_cast<float>(bone) * 10.0f, 1.0f, 2.0f);
             pose.bones.push_back(matrix);
         }
@@ -97,8 +97,7 @@ WorldObject ObjectOf(std::int16_t type)
 
 glm::vec3 BonePoint(const Fixture& fixture, std::size_t bone, const glm::vec3& offset)
 {
-    return Client::Render::Models::OriginalVectorTransform(
-        offset, Client::Render::Models::OriginalMatrixOf(fixture.pose.bones[bone]));
+    return Client::Math::OriginalVectorTransform(offset, Client::Math::OriginalMatrixOf(fixture.pose.bones[bone]));
 }
 
 struct Flare

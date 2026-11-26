@@ -95,7 +95,7 @@ public:
         Client::Render::Models::SkeletonBone bone;
         bone.parent = -1;
         Client::Render::Models::BoneKey key;
-        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         bone.actions = {{key}};
         m_skeleton.bones = {bone};
         m_skeleton.actions = {
@@ -142,7 +142,7 @@ public:
         Client::Render::Models::SkeletonBone bone;
         bone.parent = -1;
         Client::Render::Models::BoneKey key;
-        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         bone.actions = {{key}};
         m_skeleton.bones = {bone};
         m_skeleton.actions = {
@@ -872,7 +872,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBon
     const TwoMeshModels models;
     std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
     Client::Scenes::FaunaDrawCarry pose;
-    Client::Render::Models::BoneTransform bone(1.0f);
+    Client::Math::BoneTransform bone(1.0f);
     bone[3] = glm::vec3(10.0f, 20.0f, 30.0f);
     pose.bones.push_back(bone);
     Client::Crt::CrtRandom random(7);
@@ -927,7 +927,7 @@ public:
         Client::Render::Models::SkeletonBone bone;
         bone.parent = -1;
         Client::Render::Models::BoneKey key;
-        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         const std::vector<Client::Render::Models::BoneKey> keys(6, key);
         bone.actions = {keys, keys};
         m_skeleton.bones = {bone};
@@ -1074,7 +1074,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
         objects.front().state.hiddenMesh = Client::World::HiddenObject;
         Client::Scenes::FaunaDrawCarry native;
-        native.bones.resize(1, Client::Render::Models::BoneTransform(1.0f));
+        native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
         auto projected = native;
         auto& target = original ? native : projected;
@@ -1117,7 +1117,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
         std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Login, Client::World::ObjectScene::Login)};
         objects.front().state.hiddenMesh = Client::World::HiddenObject;
         Client::Scenes::FaunaDrawCarry native;
-        native.bones.resize(1, Client::Render::Models::BoneTransform(1.0f));
+        native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
         auto projected = native;
         auto& target = original ? native : projected;
@@ -1243,7 +1243,7 @@ public:
                 }
                 Client::Render::Models::BoneKey key;
                 key.position = {base + (100.0f * static_cast<float>(k)), 10.0f * static_cast<float>(k), 0.0f};
-                key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+                key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
                 bone.actions = {{key}};
                 skeleton.bones.push_back(bone);
             }

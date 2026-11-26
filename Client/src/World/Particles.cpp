@@ -197,8 +197,7 @@ float ClampLikeTheBinary(float value, float low, float high)
 // 0x4e98d0: la posición más la velocidad girada por AngleMatrix de los ángulos, cada suma en 53 bits.
 void Move(Particle& particle)
 {
-    const glm::vec3 turned =
-        Render::Models::OriginalVectorRotate(particle.velocity, Render::Models::OriginalAngleMatrix(particle.angles));
+    const glm::vec3 turned = Math::OriginalVectorRotate(particle.velocity, Math::OriginalAngleMatrix(particle.angles));
     for (int k = 0; k < 3; ++k)
     {
         particle.position[k] = F32(static_cast<double>(turned[k]) + static_cast<double>(particle.position[k]));
@@ -275,8 +274,7 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
             for (int index = 0; index < 18; ++index)
             {
                 const glm::vec3 angles{0, 0, static_cast<float>(index * 20)};
-                const auto offset =
-                    Render::Models::OriginalVectorRotate({0, radius, 0}, Render::Models::OriginalAngleMatrix(angles));
+                const auto offset = Math::OriginalVectorRotate({0, radius, 0}, Math::OriginalAngleMatrix(angles));
                 glm::vec3 point;
                 for (int axis = 0; axis < 3; ++axis)
                     point[axis] = F32(static_cast<double>(offset[axis]) + static_cast<double>(particle.position[axis]));
@@ -411,8 +409,8 @@ void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Crt
     if (turned)
         particle.angles.z = static_cast<float>(random.Next() % FullTurn);
     constexpr glm::vec3 ArrivalPush{0, 15, 0};
-    particle.velocity = Render::Models::OriginalVectorRotate(
-        turned ? ArrivalPush : DustPush, Render::Models::OriginalAngleMatrix(turned ? particle.angles : angles));
+    particle.velocity = Math::OriginalVectorRotate(turned ? ArrivalPush : DustPush,
+                                                   Math::OriginalAngleMatrix(turned ? particle.angles : angles));
     particle.angles.x = static_cast<float>(random.Next() % FullTurn);
     if (particle.subtype == 1)
     {
@@ -620,10 +618,10 @@ void CreateTheBlood(Particle& particle, const glm::vec3& angles, Crt::CrtRandom&
     particle.life = BloodLife;
     particle.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
     particle.angles.x = static_cast<float>(random.Next() % FullTurn);
-    const auto matrix = Render::Models::OriginalAngleMatrix(angles);
+    const auto matrix = Math::OriginalAngleMatrix(angles);
     const float fall = -static_cast<float>((random.Next() & FallMask) + FallBase);
     const float side = static_cast<float>((random.Next() % SideSpan) - SideCenter);
-    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, fall, side), matrix);
+    particle.velocity = Math::OriginalVectorRotate(glm::vec3(0.0f, fall, side), matrix);
     particle.light = glm::vec3(Red, 0.0f, 0.0f);
 }
 
@@ -707,8 +705,8 @@ void CreateTheBowSpark(Particle& particle, float scale, Crt::CrtRandom& random)
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b8a34
     particle.texture = BowSparkTexture;
     particle.field38 = std::bit_cast<std::uint32_t>(1.0f);
-    const auto pushed = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -100.0f, 0.0f),
-                                                             Render::Models::OriginalAngleMatrix(particle.angles));
+    const auto pushed =
+        Math::OriginalVectorRotate(glm::vec3(0.0f, -100.0f, 0.0f), Math::OriginalAngleMatrix(particle.angles));
     for (int axis = 0; axis < 3; ++axis)
         particle.position[axis] = F32(static_cast<double>(pushed[axis]) + static_cast<double>(particle.position[axis]));
     const int x = random.Next() & Spread;
@@ -800,7 +798,7 @@ Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const f
     constexpr double Height = 80.0;                                                   // 0x6b9ffc
     if (worldClock == nullptr)
         return Core::Unexpected(ParticleError::MissingClock);
-    particle.rotation = F32(static_cast<double>(FtolLow(static_cast<double>(*worldClock)) % ClockSpan) * Milli);
+    particle.rotation = F32(static_cast<double>(Math::FtolLow(static_cast<double>(*worldClock)) % ClockSpan) * Milli);
     const double glow = static_cast<double>(particle.life) * Tenth;
     const float green = F32(glow);
     const glm::vec3 color{F32(glow * Half), green, F32(static_cast<double>(green) * Blue)};
@@ -1228,8 +1226,8 @@ void CreateTheTeleportSpark(Particle& particle, Crt::CrtRandom& random)
     constexpr float Speed = -50.0f;
     for (int axis = 0; axis < 3; ++axis)
         particle.angles[axis] = static_cast<float>(random.Next() % FullCircle);
-    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, Speed, 0.0f),
-                                                             Render::Models::OriginalAngleMatrix(particle.angles));
+    particle.velocity =
+        Math::OriginalVectorRotate(glm::vec3(0.0f, Speed, 0.0f), Math::OriginalAngleMatrix(particle.angles));
 }
 
 // 0x541172..0x54140a, el mismo caso para 5d9, 5db y 5dc: la vida 24, la velocidad (0; ((rand() & 15) + 32) · −0,1f; 0),
@@ -1423,7 +1421,7 @@ Core::Expected<void, ParticleError> StepTheMap8Six(Particle& p, const float& wor
         return Core::Unexpected(height.Error());
     }
     p.position.z = F32(height.Value() + static_cast<double>(p.rotation));
-    const std::int32_t low = Client::World::FtolLow(t);
+    const std::int32_t low = Client::Math::FtolLow(t);
     p.light.x = std::bit_cast<float>(0x3eb851ecu);
     const std::int32_t remainder = low % ScalePeriod;
     p.light.y = std::bit_cast<float>(0x3e99999au);
@@ -1545,10 +1543,10 @@ void CreateTheMapSpark(Particle& particle, Crt::CrtRandom& random)
     const int yaw = random.Next() % FullTurn;
     particle.angles.z = 0.0f;
     particle.angles.y = static_cast<float>(yaw);
-    const auto matrix = Render::Models::OriginalAngleMatrix(particle.angles);
+    const auto matrix = Math::OriginalAngleMatrix(particle.angles);
     glm::vec3 offset(0.0f);
     offset.z = F32(static_cast<double>(random.Next() % MapSparkOffsetSpan) + MapSparkOffsetBase);
-    particle.velocity = Render::Models::OriginalVectorRotate(offset, matrix);
+    particle.velocity = Math::OriginalVectorRotate(offset, matrix);
     // 005408c8/d7/e8 sustituyen velocidad después de cargar cada suma, antes de guardar posición.
     const double x = static_cast<double>(particle.position.x) + static_cast<double>(particle.velocity.x);
     particle.velocity.x = MapSparkForward;
@@ -2581,8 +2579,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             particle.life = SparkLife;
             particle.angles = glm::vec3(0.0f, 0.0f, angles.z);
             const glm::vec3 push(-(static_cast<float>(random.Next() % 2) + SparkPush), 0.0f, 0.0f);
-            particle.velocity =
-                Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(particle.angles));
+            particle.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(particle.angles));
             return std::optional(index);
         }
         // 0x54184b: el aliento. El rand() % 32 va con el idiom de and 0x8000001f.
@@ -2590,7 +2587,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         particle.scale = F32(static_cast<double>((random.Next() % 32) + BreathScaleBase) * BreathScaleStep);
         particle.angles.x = static_cast<float>(random.Next() % FullTurn);
         particle.rotation = static_cast<float>(
-            Client::World::FtolLow(static_cast<double>(worldClock != nullptr ? *worldClock : legacyClock)) % FullTurn);
+            Client::Math::FtolLow(static_cast<double>(worldClock != nullptr ? *worldClock : legacyClock)) % FullTurn);
         return std::optional(index);
     }
     return std::optional<std::size_t>{};

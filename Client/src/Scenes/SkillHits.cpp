@@ -112,8 +112,8 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     if (ActorNameContains(world.Actors()[runtime.hero], GameMasterName))
         return true;
     // 0x517c74..0x5184c7: el C1 10, con la celda del punto (0x517deb y 0x517eed).
-    const auto x = World::OriginalFtolLow(D(request.point.x) * CellsPerUnit);
-    const auto y = World::OriginalFtolLow(D(request.point.y) * CellsPerUnit);
+    const auto x = Math::OriginalFtolLow(D(request.point.x) * CellsPerUnit);
+    const auto y = Math::OriginalFtolLow(D(request.point.y) * CellsPerUnit);
     if (!x || !y)
         return Core::Unexpected(
             std::string("0x517deb: el punto de la skill por 0,01 no entra en el entero de 0x69fd3c"));

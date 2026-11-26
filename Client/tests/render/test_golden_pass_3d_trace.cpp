@@ -35,12 +35,12 @@
 namespace
 {
 using Client::Core::PixelSize;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;
 using Client::Render::ViewportRect;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
 using Client::Scenes::SelectionCamera;
 using Client::Scenes::WorldViewport;
 using Client::Tests::GlTrace;

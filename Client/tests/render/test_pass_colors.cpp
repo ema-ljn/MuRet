@@ -20,11 +20,11 @@
 // sobre el main.exe (06 § Los pases de brillo).
 namespace
 {
+using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::Models::ExcellentColorAt;
 using Client::Render::Models::MetalFactorOf;
 using Client::Render::Models::PassHiddenMesh;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::SetAlphaAt;
 using Client::Render::Models::SetColorOf;
 using Client::Render::Models::SetPulseAt;

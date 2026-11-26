@@ -36,7 +36,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::BoneTransform;
+using Math::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 
 using Maps::IsKalimaMap;
@@ -67,17 +67,17 @@ using Math::F32;
 // el reloj fuera de 2^40: el argumento cae siempre en el perfil y el 0 de afuera no se alcanza (como GameHanging).
 double Wave(float clock, float rate, float factor)
 {
-    return Render::Models::Detail::SineProductPC53(D(clock) * D(rate), factor).value_or(0.0);
+    return Math::Detail::SineProductPC53(D(clock) * D(rate), factor).value_or(0.0);
 }
 
 double WaveDouble(float clock, float rate, double factor)
 {
-    return Render::Models::Detail::SineDoubleProductPC53(D(clock) * D(rate), factor).value_or(0.0);
+    return Math::Detail::SineDoubleProductPC53(D(clock) * D(rate), factor).value_or(0.0);
 }
 
 double WavePlus(float clock, float rate, double addend)
 {
-    return Render::Models::Detail::SineSumPC53(D(clock) * D(rate), addend).value_or(0.0);
+    return Math::Detail::SineSumPC53(D(clock) * D(rate), addend).value_or(0.0);
 }
 
 // rand() % 360 en un float, como FILD/FSTP.
@@ -126,8 +126,8 @@ public:
     {
         const ActorState& actor = m_pass.actor;
         const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
-        return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                         m_pass.modelOrigin.value_or(actor.position));
+        return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale,
+                                               m_pass.modelOrigin.value_or(actor.position));
     }
 
     // 0x5491e0(textura, posición, escala, luz, objeto, rotación, mezcla).
@@ -380,8 +380,8 @@ Result ShakeForKundun(const Helper& helper)
         // 0x43cf7d..0x43cf99: FSIN y FCOS del giro (en radianes, sin convertir) por la distancia entera de la x87 (FMUL
         // ST1), con un solo R53 cada uno (ADR0014); el giro, menor que 360, cae siempre en el perfil.
         const auto distance = static_cast<float>(helper.Random().Next() % Spread + Near);
-        const auto sine = Render::Models::Detail::SineProductPC53(D(turn), distance);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(D(turn), distance);
+        const auto sine = Math::Detail::SineProductPC53(D(turn), distance);
+        const auto cosine = Math::Detail::CosineProductPC53(D(turn), distance);
         if (!sine || !cosine)
             return Core::Unexpected<std::string>("0x43cf83: el giro de la piedra fuera del perfil PC53");
         const glm::vec3 position{F32(*sine + D(actor.position.x)), F32(*cosine + D(actor.position.y)),

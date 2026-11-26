@@ -40,8 +40,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Tests::AfterDraws;
 using Client::Tests::DrawOneParticle;
 using Client::World::Particle;
@@ -1469,8 +1469,8 @@ TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
     {
         static_cast<void>(draws.Next());
         static_cast<void>(draws.Next());
-        const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-            before.velocity, Client::Render::Models::OriginalAngleMatrix(before.angles));
+        const glm::vec3 turned =
+            Client::Math::OriginalVectorRotate(before.velocity, Client::Math::OriginalAngleMatrix(before.angles));
         glm::vec3 moved{};
         for (int axis = 0; axis < 3; ++axis)
             moved[axis] = F32(static_cast<double>(turned[axis]) + static_cast<double>(before.position[axis]));

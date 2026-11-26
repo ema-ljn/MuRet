@@ -38,8 +38,8 @@ void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random)
     }
     for (int k = 0; k < 2; ++k)
     {
-        const float step = F32(Render::Models::AngleDistance(head.angles[k], head.target[k], true) * Share);
-        head.angles[k] = F32(Render::Models::TurnAngle(head.angles[k], head.target[k], step));
+        const float step = F32(Math::AngleDistance(head.angles[k], head.target[k], true) * Share);
+        head.angles[k] = F32(Math::TurnAngle(head.angles[k], head.target[k], step));
     }
 }
 } // namespace Client::Scenes

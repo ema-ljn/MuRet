@@ -114,8 +114,8 @@ void BeginTheFlameBurst(World::ModelEffect& effect)
     constexpr float Ahead = std::bit_cast<float>(0xc2700000u); // −60
     constexpr double Lift = 130.0;                             // 0x6ba194
     effect.life = BurstLife;
-    const glm::vec3 offset = Render::Models::OriginalVectorRotate(
-        {0.0f, Ahead, 0.0f}, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+    const glm::vec3 offset =
+        Math::OriginalVectorRotate({0.0f, Ahead, 0.0f}, Math::OriginalAngleMatrix(effect.transform.angles));
     glm::vec3& position = effect.transform.position;
     position.x = F32(D(offset.x) + D(position.x));
     position.y = F32(D(offset.y) + D(position.y));

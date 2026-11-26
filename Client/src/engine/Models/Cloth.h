@@ -104,7 +104,7 @@ struct ClothShape
 // (+0x68 y +0x6c..+0x74, que 0x6001b0 copia del objeto).
 struct ClothBody
 {
-    std::span<const BoneTransform> bones;
+    std::span<const Math::BoneTransform> bones;
     glm::vec3 angles{};
     float scale = 1.0f;
     glm::vec3 position{};
@@ -247,7 +247,7 @@ public:
 
 private:
     void Reset();
-    void AnchorTheTopRow(const BoneTransform& matrix, const ClothBody& body);
+    void AnchorTheTopRow(const Math::BoneTransform& matrix, const ClothBody& body);
     void AddForces(ClothWorld& world);
     // 0x454240: la fuerza de una partícula con su distancia de Manhattan al centro del viento.
     void PushTheParticle(ClothParticle& particle, std::int32_t distance, const ClothWorld& world) const;

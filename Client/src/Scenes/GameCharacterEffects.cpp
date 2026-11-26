@@ -228,9 +228,8 @@ struct Tail
     {
         if (bone < 0 || static_cast<std::size_t>(bone) >= pass.body.size())
             return Core::Unexpected(std::format("{}: el hueso {} del cuerpo no existe", call, bone));
-        return Render::Models::OriginalTransformPosition(
-            Render::Models::OriginalMatrixOf(pass.body[static_cast<std::size_t>(bone)]), offset, actor.scale,
-            ModelOrigin());
+        return Math::OriginalTransformPosition(Math::OriginalMatrixOf(pass.body[static_cast<std::size_t>(bone)]),
+                                               offset, actor.scale, ModelOrigin());
     }
 
     // 0x5491e0: el sprite aditivo; el dueño no se guarda.
@@ -274,7 +273,7 @@ Result MageSkin(Tail& tail)
         !spark.HasValue())
         return spark;
     const std::optional<double> shine =
-        Render::Models::Detail::SineProductPC53(D(tail.pass.worldClock) * D(MageShinyClock), MageShinyFactor);
+        Math::Detail::SineProductPC53(D(tail.pass.worldClock) * D(MageShinyClock), MageShinyFactor);
     if (!shine)
         return Core::Unexpected<std::string>("0x50eae7: el reloj del mundo está fuera del dominio de FSIN");
     return tail.Sprite("0x50eb00", Shiny, point.Value(), F32(*shine), glm::vec3(1.0f));
@@ -283,7 +282,7 @@ Result MageSkin(Tail& tail)
 // 0x50f8e8..0x50f95c: −ftol y ftol del reloj por 0,1f.
 float ClockRotation(float clock, bool negated)
 {
-    const std::int32_t whole = World::FtolLow(D(clock));
+    const std::int32_t whole = Math::FtolLow(D(clock));
     const std::int32_t turned =
         negated ? static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(whole)) : whole; // NEG
     return F32(static_cast<double>(turned) * D(Tenth));
@@ -732,9 +731,8 @@ Result GuildMark(const Tail& tail)
     // al modelo (antes del suelo de la sombra), sin el corrimiento de [ebp−0x50] (el de 0x518cf0 es suyo, en 0).
     if (GuildMarkBone >= tail.pass.body.size())
         return Core::Unexpected(std::format("0x51e121: el hueso {} del cuerpo no existe", GuildMarkBone));
-    const glm::vec3 point =
-        Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(tail.pass.body[GuildMarkBone]),
-                                                  glm::vec3(0.0f), actor.scale, tail.ModelOrigin());
+    const glm::vec3 point = Math::OriginalTransformPosition(Math::OriginalMatrixOf(tail.pass.body[GuildMarkBone]),
+                                                            glm::vec3(0.0f), actor.scale, tail.ModelOrigin());
     if (auto raised = RaiseTheGuildMark(actor, point, *tail.pass.effects, *tail.pass.particles, tail.pass.random,
                                         tail.pass.worldClock);
         !raised.HasValue())
@@ -808,8 +806,8 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
         // 0x52a9fe: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
         const double turned = D(angles.z) + HalfTurn;
         angles.z = F32(turned);
-        const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), FlareRadius);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), FlareRadius);
+        const auto sine = Math::Detail::SineProductPC53(turned * D(Tenth), FlareRadius);
+        const auto cosine = Math::Detail::CosineProductPC53(D(angles.z) * D(Tenth), FlareRadius);
         if (!sine || !cosine)
             return Core::Unexpected<std::string>("0x52aa0d: el giro del 0x5ac/3 excede el perfil matemático");
         position.x = F32(*sine + D(owner.position.x));
@@ -866,15 +864,15 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
             // 0x52a8f7..0x52a91e: fst deja la suma en la pila para el ftol (0x69fd3c).
             const double counted = D(effect.speed) + Step;
             effect.speed = F32(counted);
-            if (World::FtolLow(counted) % GuardPeriod == 0)
+            if (Math::FtolLow(counted) % GuardPeriod == 0)
             {
                 glm::vec3& angles = effect.transform.angles;
                 glm::vec3& position = effect.transform.position;
                 // 0x52a92a: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
                 const double turned = D(angles.z) + GuardTurn;
                 angles.z = F32(turned);
-                const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
-                const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
+                const auto sine = Math::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
+                const auto cosine = Math::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
                 if (!sine || !cosine)
                     return Core::Unexpected<std::string>("0x52a950: el giro del 0x5ac/2 excede el perfil matemático");
                 position.x = F32(*sine + D(owner.position.x));
@@ -931,8 +929,8 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
     {
         glm::vec3 angles{static_cast<float>(random.Next() % SummonPitchSpan), 0.0f,
                          static_cast<float>(random.Next() % SummonTurnSpan)};
-        const glm::vec3 reach = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -SummonReach, 0.0f),
-                                                                     Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 reach =
+            Math::OriginalVectorRotate(glm::vec3(0.0f, -SummonReach, 0.0f), Math::OriginalAngleMatrix(angles));
         // 0x51897a..0x5189b4: cada resta se guarda; la z suma 120 antes de guardarse.
         glm::vec3 start{F32(D(position.x) - D(reach.x)), F32(D(position.y) - D(reach.y)),
                         F32(D(position.z) - D(reach.z) + SummonLift)};
@@ -1031,7 +1029,7 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
             if (world == nullptr)
                 return Core::Unexpected(std::string("0x418c0a: falta la tabla de efectos (0x518cf0) para el ataque "
                                                     "del cuervo"));
-            const glm::vec3 point = Render::Models::OriginalVectorTransform(BeakOffset, spirit.pose[BeakBone]);
+            const glm::vec3 point = Math::OriginalVectorTransform(BeakOffset, spirit.pose[BeakBone]);
             const auto made =
                 World::CreateBlastModelEffect(world->Map().effects,
                                               {.type = AirForce,
@@ -1069,7 +1067,7 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
                     std::format("0x418a07: el hueso {} del grito del cuervo pasa los de su pose (+0x120)", bone));
             if (particles == nullptr)
                 return Core::Unexpected(std::string("0x418a26: faltan las partículas del grito del cuervo (0x53fe70)"));
-            const glm::vec3 point = Render::Models::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone]);
+            const glm::vec3 point = Math::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone]);
             const auto created = particles->CreateChecked(ShoutParticle, point, spirit.angles, ShoutLight, ShoutSubtype,
                                                           ShoutScale, worldClock, random);
             if (!created.HasValue())

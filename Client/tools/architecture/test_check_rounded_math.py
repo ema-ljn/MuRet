@@ -65,7 +65,7 @@ class CheckRoundedMathTest(unittest.TestCase):
         self.assert_clean('auto a = std::sqrt(x) + std::fabs(x) + std::floor(x) + std::fmod(x, y) + std::ldexp(x, 2);\n'
                           'std::expected<int, std::logic_error> b;\n'
                           'auto c = std::numbers::log2e + std::numbers::log10e;\n'
-                          'auto d = RoundedSin(x) + Render::Models::RoundedCos(x) + Libc::sin(x) + mpfr_sin(x);\n'
+                          'auto d = RoundedSin(x) + Math::RoundedCos(x) + Libc::sin(x) + mpfr_sin(x);\n'
                           'auto e = glm::radians(x) + glm::length(v) + glm::dot(v, glm::normalize(v));\n'
                           'auto f = glm::inverse(glm::translate(glm::ortho(0.0f, 1.0f, 0.0f, 1.0f), v));\n')
 

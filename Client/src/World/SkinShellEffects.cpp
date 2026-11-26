@@ -50,8 +50,8 @@ std::optional<std::size_t> CreateSkinShell(const ModelEffectArguments& arguments
     effect.alpha = 0.5f; // 0x51d93b, 0x3f000000
     // 0x51d941..0x51d973: la z de los ángulos y el empuje girado por los ángulos (0x5fc8f0, 0x5fcbd0).
     effect.transform.angles.z = RandomAngle(random);
-    effect.velocity = Render::Models::OriginalVectorRotate(
-        {0.0f, push, 0.0f}, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+    effect.velocity =
+        Math::OriginalVectorRotate({0.0f, push, 0.0f}, Math::OriginalAngleMatrix(effect.transform.angles));
     // 0x51d97b..0x51d9b0: la caída, en dos sorteos guardados en float.
     effect.turnDirection = static_cast<float>(random.Next() % FallSpan + FallBase);
     effect.turnDirection = F32(static_cast<double>(random.Next() % FallSpan) + D(effect.turnDirection));

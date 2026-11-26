@@ -26,8 +26,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::Detail::CosineDoubleProductPC53;
-using Client::Render::Models::Detail::SineDoubleProductPC53;
+using Client::Math::Detail::CosineDoubleProductPC53;
+using Client::Math::Detail::SineDoubleProductPC53;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 

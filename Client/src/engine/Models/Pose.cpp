@@ -99,12 +99,12 @@ glm::quat KeyRotation(const BoneKey& key, bool isHead, const glm::vec2& headAngl
     glm::vec3 angles = key.angles;
     angles.x -= headAngles.x * HeadDegreesToRadians;
     angles.z -= headAngles.y * HeadDegreesToRadians;
-    return AngleQuaternion(angles);
+    return Math::AngleQuaternion(angles);
 }
 
 // La matriz de un hueso relativa a su padre, entre las dos keys.
-BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const Keys& keys, const Skeleton& skeleton,
-                             const ObjectTransform& object, const glm::vec2& headAngles)
+Math::BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const Keys& keys,
+                                   const Skeleton& skeleton, const ObjectTransform& object, const glm::vec2& headAngles)
 {
     const std::vector<BoneKey>& current = bone.actions[keys.action];
     const BoneKey& from = bone.actions[keys.previousAction][keys.previousKey];
@@ -113,7 +113,7 @@ BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const 
     const bool isHead = static_cast<int>(index) == skeleton.headBone;
     const glm::quat p = KeyRotation(from, isHead, headAngles);
     const glm::quat q = KeyRotation(to, isHead, headAngles);
-    const glm::quat rotation = QuaternionsAlmostEqual(p, q) ? p : QuaternionSlerp(p, q, keys.t);
+    const glm::quat rotation = Math::QuaternionsAlmostEqual(p, q) ? p : Math::QuaternionSlerp(p, q, keys.t);
 
     glm::vec3 position = (1.0f - keys.t) * from.position + keys.t * to.position;
     if (index == 0 && keys.locked)
@@ -123,14 +123,14 @@ BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const 
         position.z += object.lockedRootHeight;
     }
 
-    BoneTransform local = QuaternionMatrix(rotation);
+    Math::BoneTransform local = Math::QuaternionMatrix(rotation);
     local[3] = position;
     return local;
 }
 
-BoneTransform WorldRoot(const ObjectTransform& object)
+Math::BoneTransform WorldRoot(const ObjectTransform& object)
 {
-    OriginalMatrix root = OriginalAngleMatrix(object.angles);
+    Math::OriginalMatrix root = Math::OriginalAngleMatrix(object.angles);
     for (std::size_t row = 0; row < 3; ++row)
     {
         for (std::size_t column = 0; column < 3; ++column)
@@ -142,12 +142,12 @@ BoneTransform WorldRoot(const ObjectTransform& object)
     root[3] = object.position.x;
     root[7] = object.position.y;
     root[11] = object.position.z;
-    return BoneTransformOf(root);
+    return Math::BoneTransformOf(root);
 }
 
 // La pose con la raíz `root` para los huesos sin padre.
 bool PoseFromRoot(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
-                  const BoneTransform& root, const glm::vec2& headAngles, std::span<BoneTransform> bones,
+                  const Math::BoneTransform& root, const glm::vec2& headAngles, std::span<Math::BoneTransform> bones,
                   bool originalConcat = false)
 {
     if (bones.size() != skeleton.bones.size())
@@ -170,31 +170,30 @@ bool PoseFromRoot(const Skeleton& skeleton, const AnimationState& animation, con
         {
             continue;
         }
-        const BoneTransform local = LocalTransform(bone, index, keys, skeleton, object, headAngles);
-        const BoneTransform& parent = bone.parent == -1 ? root : bones[static_cast<std::size_t>(bone.parent)];
-        bones[index] =
-            originalConcat
-                ? BoneTransformOf(OriginalConcatTransforms(OriginalMatrixOf(parent), OriginalMatrixOf(local)))
-                : ConcatTransforms(parent, local);
+        const Math::BoneTransform local = LocalTransform(bone, index, keys, skeleton, object, headAngles);
+        const Math::BoneTransform& parent = bone.parent == -1 ? root : bones[static_cast<std::size_t>(bone.parent)];
+        bones[index] = originalConcat ? Math::BoneTransformOf(Math::OriginalConcatTransforms(
+                                            Math::OriginalMatrixOf(parent), Math::OriginalMatrixOf(local)))
+                                      : Math::ConcatTransforms(parent, local);
     }
     return true;
 }
 } // namespace
 
 bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
-                  const glm::vec2& headAngles, std::span<BoneTransform> bones)
+                  const glm::vec2& headAngles, std::span<Math::BoneTransform> bones)
 {
-    return PoseFromRoot(skeleton, animation, object, AngleMatrix(object.angles), headAngles, bones);
+    return PoseFromRoot(skeleton, animation, object, Math::AngleMatrix(object.angles), headAngles, bones);
 }
 
 bool PoseWorldSkeleton(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
-                       const glm::vec2& headAngles, std::span<BoneTransform> bones)
+                       const glm::vec2& headAngles, std::span<Math::BoneTransform> bones)
 {
     return PoseFromRoot(skeleton, animation, object, WorldRoot(object), headAngles, bones, true);
 }
 
-bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, const BoneTransform& root,
-                  std::span<BoneTransform> bones)
+bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, const Math::BoneTransform& root,
+                  std::span<Math::BoneTransform> bones)
 {
     return PoseFromRoot(skeleton, animation, ObjectTransform{}, root, glm::vec2(0.0f), bones);
 }

@@ -134,7 +134,7 @@ TEST(TrialsParticlesTest, TheSmokeRisesSlowerSwaysWithTheClockAndDims)
     ASSERT_TRUE(Client::World::StepTrialsParticle(p, &clock).HasValue());
     const double light = 37.0 * Bits(0x3ca3d70au);
     const double rise = static_cast<double>(7.3f) - Bits(0x3dcccccdu);
-    const auto sway = Client::Render::Models::Detail::SineDoubleProductPC53(static_cast<double>(clock), rise);
+    const auto sway = Client::Math::Detail::SineDoubleProductPC53(static_cast<double>(clock), rise);
     ASSERT_TRUE(sway.has_value());
     EXPECT_EQ(p.light, glm::vec3(static_cast<float>(light * Bits(0x3f666666u)), static_cast<float>(light * 0.5),
                                  static_cast<float>(light * 0.5)));
@@ -160,20 +160,18 @@ TEST(TrialsParticlesTest, TheSineByADoubleMatchesTheFloatProductAndKeepsTheSign)
     for (const double argument : {0.5, 1.0e3, 123456.0, -77.25})
     {
         SCOPED_TRACE(argument);
-        const auto byFloat = Client::Render::Models::Detail::SineProductPC53(argument, 0.3f);
-        const auto byDouble =
-            Client::Render::Models::Detail::SineDoubleProductPC53(argument, static_cast<double>(0.3f));
-        const auto negative =
-            Client::Render::Models::Detail::SineDoubleProductPC53(argument, -static_cast<double>(0.3f));
+        const auto byFloat = Client::Math::Detail::SineProductPC53(argument, 0.3f);
+        const auto byDouble = Client::Math::Detail::SineDoubleProductPC53(argument, static_cast<double>(0.3f));
+        const auto negative = Client::Math::Detail::SineDoubleProductPC53(argument, -static_cast<double>(0.3f));
         ASSERT_TRUE(byFloat && byDouble && negative);
         EXPECT_EQ(*byFloat, *byDouble);
         EXPECT_EQ(*negative, -*byDouble);
     }
-    const auto zero = Client::Render::Models::Detail::SineDoubleProductPC53(0.0, -2.0);
+    const auto zero = Client::Math::Detail::SineDoubleProductPC53(0.0, -2.0);
     ASSERT_TRUE(zero.has_value());
     EXPECT_EQ(*zero, 0.0);
     EXPECT_TRUE(std::signbit(*zero));
-    EXPECT_FALSE(Client::Render::Models::Detail::SineDoubleProductPC53(1.0, std::nan("")).has_value());
+    EXPECT_FALSE(Client::Math::Detail::SineDoubleProductPC53(1.0, std::nan("")).has_value());
 }
 
 // Por el pool: las dos viven 60 pasos con la vida común y se mueven con la velocidad girada por los ángulos.

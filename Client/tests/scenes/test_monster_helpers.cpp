@@ -131,7 +131,7 @@ protected:
         actor.position = Origin;
         actor.scale = 1.0f;
         actor.light = {0.1f, 0.2f, 0.3f};
-        actor.bodyPose.assign(120, Client::Render::Models::BoneTransform(1.0f));
+        actor.bodyPose.assign(120, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < actor.bodyPose.size(); ++bone)
             actor.bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
         m_world->PlaceModel(actor);
@@ -255,7 +255,7 @@ protected:
 double ClockSine(float clock, float rate, float factor)
 {
     const auto product =
-        Client::Render::Models::Detail::SineProductPC53(static_cast<double>(clock) * static_cast<double>(rate), factor);
+        Client::Math::Detail::SineProductPC53(static_cast<double>(clock) * static_cast<double>(rate), factor);
     EXPECT_TRUE(product.has_value());
     return product.value_or(0.0);
 }
@@ -2075,8 +2075,8 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
         // La última vuelta: su punto sale de la pose que quedó en el buffer.
         const auto& bones = m_world->PoseCarry().bones;
         ASSERT_GT(bones.size(), 16u);
-        const glm::vec3 last = Client::Render::Models::OriginalVectorTransform(
-            {0.0f, 100.0f, -150.0f}, Client::Render::Models::OriginalMatrixOf(bones[16]));
+        const glm::vec3 last =
+            Client::Math::OriginalVectorTransform({0.0f, 100.0f, -150.0f}, Client::Math::OriginalMatrixOf(bones[16]));
         CrtRandom expected(1);
         static_cast<void>(expected.Next());
         for (std::size_t turn = 0; turn < 10; ++turn)
@@ -2202,8 +2202,7 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepPoolLimits)
             const auto transformOffset = [this](std::size_t bone, const glm::vec3& offset)
             {
                 const auto& matrix = m_world->PoseCarry().bones[bone];
-                return Client::Render::Models::OriginalVectorTransform(
-                    offset, Client::Render::Models::OriginalMatrixOf(matrix));
+                return Client::Math::OriginalVectorTransform(offset, Client::Math::OriginalMatrixOf(matrix));
             };
             std::size_t firstBone = 0;
             std::size_t secondBone = 0;

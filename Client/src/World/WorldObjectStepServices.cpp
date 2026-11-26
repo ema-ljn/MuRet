@@ -163,8 +163,8 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
                                                  const glm::vec3& offset, Crt::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
-    const auto matrix = Render::Models::OriginalAngleMatrix(angles);
-    glm::vec3 position = Render::Models::OriginalVectorRotate(offset, matrix);
+    const auto matrix = Math::OriginalAngleMatrix(angles);
+    glm::vec3 position = Math::OriginalVectorRotate(offset, matrix);
     for (int axis = 0; axis < 3; ++axis)
     {
         position[axis] = static_cast<float>(static_cast<double>(position[axis]) + origin[axis]);
@@ -240,7 +240,7 @@ Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, cons
         return {};
     }
     object.transform.angles.z =
-        static_cast<float>(Render::Models::TurnAngle(object.transform.angles.z, object.copiedAngles.z, DoorTurn));
+        static_cast<float>(Math::TurnAngle(object.transform.angles.z, object.copiedAngles.z, DoorTurn));
     for (int axis = 0; axis < 2; ++axis)
     {
         const double current = object.transform.position[axis];
@@ -384,7 +384,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
         // −2 de +0x58.
         const double argument =
             static_cast<double>(globals.worldClock) * SwayRate + static_cast<double>(object.field84);
-        const auto sway = Render::Models::Detail::SineProductPC53(argument, SwayHeight);
+        const auto sway = Math::Detail::SineProductPC53(argument, SwayHeight);
         if (!sway)
             return Core::Unexpected(std::string("0x4400e0: el vaivén del 0x1b del 31 no cabe en el perfil PC53"));
         object.transform.position.z = static_cast<float>(*sway + static_cast<double>(object.transform.position.z));

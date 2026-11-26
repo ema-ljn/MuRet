@@ -444,8 +444,7 @@ void DrawTheSerialResult(GameHudContext& context, std::int32_t middle, std::int3
     context.sprites.SetColor(Black);
     WindowDrawing::SelectFont(context, FontKind::Bold);
     WindowDrawing::DrawCenteredText(context, middle + 1, top + SerialResultBelow + 1, text);
-    const double wave =
-        Render::Models::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(BlinkRate));
+    const double wave = Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(BlinkRate));
     context.sprites.SetColor(wave < 0.0 ? White : Dimmed);
     context.hud.textColors = SerialResultColors;
     WindowDrawing::DrawCenteredText(context, middle, top + SerialResultBelow, text);

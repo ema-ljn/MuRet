@@ -16,11 +16,11 @@
 // The expected bits are MPFR's over the same inputs: Client/tests/vectors/rounded-math/README.md.
 namespace
 {
-using Client::Render::Models::RoundedAcos;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedLog10;
-using Client::Render::Models::RoundedSin;
-using Client::Render::Models::RoundedTan;
+using Client::Math::RoundedAcos;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedLog10;
+using Client::Math::RoundedSin;
+using Client::Math::RoundedTan;
 using Client::Tests::DoubleFromBits;
 using Client::Tests::ExponentRange;
 using Client::Tests::FloatFromBits;

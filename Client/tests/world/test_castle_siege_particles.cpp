@@ -99,8 +99,8 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallKeepsItsScaleAndSpeedAndOnlyChanges
         ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trigonometry)
                         .HasValue());
         expected.life -= 1;
-        const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-            expected.velocity, Client::Render::Models::OriginalAngleMatrix(expected.angles));
+        const glm::vec3 turned =
+            Client::Math::OriginalVectorRotate(expected.velocity, Client::Math::OriginalAngleMatrix(expected.angles));
         for (int axis = 0; axis < 3; ++axis)
             expected.position[axis] = F32(D(turned[axis]) + D(expected.position[axis]));
         const double factor = expected.life < 8 ? Fade : expected.life > 20 ? Brighten : 1.0;

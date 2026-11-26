@@ -27,8 +27,8 @@ namespace
 {
 using Math::D;
 using Math::F32;
-using Render::Models::OriginalAngleMatrix;
-using Render::Models::OriginalVectorRotate;
+using Math::OriginalAngleMatrix;
+using Math::OriginalVectorRotate;
 
 constexpr std::uint16_t SpiralTexture = 0x614;
 constexpr std::uint16_t OrbitTexture = 0x60d;
@@ -63,7 +63,7 @@ void Fade(glm::vec3& light, float factor)
 
 // Un tramo de la subida: la cola con la matriz de los ángulos y el avance (0, velocidad, 0) girado por ella, sumado al
 // incremento del camino (+0x24).
-Core::Expected<Render::Models::OriginalMatrix, std::string> Rise(JointState& joint)
+Core::Expected<Math::OriginalMatrix, std::string> Rise(JointState& joint)
 {
     const auto matrix = OriginalAngleMatrix(joint.angles);
     if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
@@ -137,11 +137,10 @@ Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const Jo
     // Sin huesos propios (antes del primer dibujo) o fuera de ellos, la matriz en cero (Q-C318), como BonePoint de
     // AttackFrameSkills.cpp.
     const auto bone = static_cast<std::size_t>(static_cast<std::uint32_t>(joint.field9ec));
-    const Render::Models::BoneTransform pose =
-        bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    const auto matrix = Render::Models::OriginalMatrixOf(pose);
+    const Math::BoneTransform pose = bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Math::BoneTransform(0.0f);
+    const auto matrix = Math::OriginalMatrixOf(pose);
     constexpr glm::vec3 Above{0.0f, 20.0f, 0.0f}; // 0x53bc0d, 0x41a00000
-    joint.pathIncrement = Render::Models::OriginalTransformPosition(matrix, Above, placement.scale, placement.origin);
+    joint.pathIncrement = Math::OriginalTransformPosition(matrix, Above, placement.scale, placement.origin);
     // 0x53bc76..0x53bcae: la posición en el camino, la cola vacía, +0x6c al menor (con signo contra el byte de la
     // tanda) y el giro de +0x60 en +0x5c.
     joint.position = joint.pathIncrement;

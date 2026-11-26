@@ -12,7 +12,7 @@
 // el mismo giro por cuaterniones, pero no los mismos bits. Verificado contra el código real emulado
 // en 400 casos (tests/vectors/world55/rotation.txt). La CL7.6 B1 suma 0x5fccc0 (VectorTransform) y
 // 0x4ec110 (TransformPosition), verificados con el brillo del cetro (tests/vectors/world55/scepter.txt).
-namespace Client::Render::Models
+namespace Client::Math
 {
 // La matriz de 3 × 4 de 0x5fc8f0, por filas (m[i · 4 + j]), con la traslación en 0.
 using OriginalMatrix = std::array<float, 12>;
@@ -47,4 +47,4 @@ ENGINE_API void OriginalVectorRotateInPlace(glm::vec3& v, const OriginalMatrix& 
 // del cuerpo (+0x68 del modelo) más su origen (+0x6c).
 [[nodiscard]] ENGINE_API glm::vec3 OriginalTransformPosition(const OriginalMatrix& bone, const glm::vec3& offset,
                                                              float bodyScale, const glm::vec3& bodyOrigin);
-} // namespace Client::Render::Models
+} // namespace Client::Math

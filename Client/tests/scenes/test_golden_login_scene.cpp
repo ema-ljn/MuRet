@@ -1029,8 +1029,8 @@ TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
         }
         for (int k = 0; k < 2; ++k)
         {
-            EXPECT_LE(Client::Render::Models::AngleDistance(after.angles[k], after.target[k], true),
-                      Client::Render::Models::AngleDistance(before.angles[k], before.target[k], true))
+            EXPECT_LE(Client::Math::AngleDistance(after.angles[k], after.target[k], true),
+                      Client::Math::AngleDistance(before.angles[k], before.target[k], true))
                 << "paso " << step << ", ángulo " << k;
         }
     }

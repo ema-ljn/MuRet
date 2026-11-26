@@ -404,8 +404,8 @@ TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
     ActorState& heroTarget = m_world->Actors()[HeroTargetSlot];
     heroTarget.position = Other().position + glm::vec3{0.0f, 100.0f, 150.0f};
     m_world->Actors()[StaleTargetSlot].position = Other().position + glm::vec3{0.0f, -100.0f, 200.0f};
-    Other().angles.z = static_cast<float>(Client::Render::Models::CreateAngle(
-        Other().position.x, Other().position.y, heroTarget.position.x, heroTarget.position.y));
+    Other().angles.z = static_cast<float>(Client::Math::CreateAngle(Other().position.x, Other().position.y,
+                                                                    heroTarget.position.x, heroTarget.position.y));
     Other().animation.action = 2;
 
     const auto before = m_cloth.random.State();

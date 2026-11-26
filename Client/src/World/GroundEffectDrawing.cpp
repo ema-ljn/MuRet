@@ -106,10 +106,10 @@ Core::Expected<void, std::string> DrawDecal(Render::ModelBatch& batch, const Mod
 }
 
 // 0x5fc9c0 guarda los mismos elementos de 0x5fc8f0 transpuestos, con los mismos redondeos.
-Render::Models::OriginalMatrix RingRotation(float angle)
+Math::OriginalMatrix RingRotation(float angle)
 {
-    const auto rotation = Render::Models::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, angle));
-    Render::Models::OriginalMatrix inverse{};
+    const auto rotation = Math::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, angle));
+    Math::OriginalMatrix inverse{};
     constexpr std::size_t Rows = 3;
     constexpr std::size_t Stride = 4;
     for (std::size_t row = 0; row < Rows; ++row)
@@ -122,10 +122,9 @@ Render::Models::OriginalMatrix RingRotation(float angle)
     return inverse;
 }
 
-glm::vec3 RingPoint(const glm::vec3& position, float radius, float height,
-                    const Render::Models::OriginalMatrix& rotation)
+glm::vec3 RingPoint(const glm::vec3& position, float radius, float height, const Math::OriginalMatrix& rotation)
 {
-    const glm::vec3 rotated = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, radius, height), rotation);
+    const glm::vec3 rotated = Math::OriginalVectorRotate(glm::vec3(0.0f, radius, height), rotation);
     return {F32(D(rotated.x) + D(position.x)), F32(D(rotated.y) + D(position.y)), F32(D(rotated.z) + D(position.z))};
 }
 
@@ -175,7 +174,7 @@ Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const M
                                               const GroundEffectResources& resources)
 {
     SetBlend(batch, Render::ModelBlend::Additive); // 0x52e1c2, antes del ftol del reloj.
-    const std::optional<std::int32_t> clock = OriginalFtolLow(D(resources.worldClock));
+    const std::optional<std::int32_t> clock = Math::OriginalFtolLow(D(resources.worldClock));
     if (!clock)
     {
         return Core::Unexpected(std::string("0x52e1cd: el ftol del reloj no da un entero de 64 bits"));
@@ -304,8 +303,7 @@ Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, Mo
     if (pulse && brightness == 1.0)
     {
         brightness =
-            Render::Models::RoundedSin(static_cast<double>(Difference(PulseLife, effect.life)) * D(SmallGrowth)) +
-            D(Half);
+            Math::RoundedSin(static_cast<double>(Difference(PulseLife, effect.life)) * D(SmallGrowth)) + D(Half);
     }
     if (effect.subtype == BindingChildSubtype)
     {

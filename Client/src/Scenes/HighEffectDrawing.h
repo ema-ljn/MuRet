@@ -42,7 +42,7 @@ struct HighEffectDrawServices
 {
     World::FrameSprites* sprites = nullptr;
     Crt::CrtRandom* random = nullptr;
-    std::function<std::span<const Render::Models::BoneTransform>()> posedBones{};
+    std::function<std::span<const Math::BoneTransform>()> posedBones{};
     std::optional<float> worldClock{};
 };
 

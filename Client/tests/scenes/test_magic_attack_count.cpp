@@ -106,9 +106,9 @@ public:
 };
 
 // Un hueso que solo traslada a `at`.
-Client::Render::Models::BoneTransform BoneAt(const glm::vec3& at)
+Client::Math::BoneTransform BoneAt(const glm::vec3& at)
 {
-    Client::Render::Models::BoneTransform bone(1.0f);
+    Client::Math::BoneTransform bone(1.0f);
     bone[3] = at;
     return bone;
 }

@@ -24,7 +24,7 @@ using Client::Data::Models::Model;
 using Client::Data::Models::PlayerActionSpeed;
 using Client::Data::Models::PlayerActionsWithoutRepeat;
 using Client::Data::Models::PlayerHeadBone;
-using Client::Render::Models::AngleQuaternion;
+using Client::Math::AngleQuaternion;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::MakePlayerSkeleton;
 using Client::Render::Models::MakeSkeleton;

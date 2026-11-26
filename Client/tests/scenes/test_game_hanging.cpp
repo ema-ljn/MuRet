@@ -213,7 +213,7 @@ protected:
         m_batch.Begin(Client::Render::Pass3D{});
         for (std::size_t index = 0; index < BoneCount; ++index)
         {
-            Client::Render::Models::BoneTransform bone(1.0f);
+            Client::Math::BoneTransform bone(1.0f);
             bone[3] = {0.0f, 0.0f, static_cast<float>(index)};
             m_body.push_back(bone);
         }
@@ -256,7 +256,7 @@ protected:
     }
 
     ActorState m_actor;
-    std::vector<Client::Render::Models::BoneTransform> m_body;
+    std::vector<Client::Math::BoneTransform> m_body;
     Client::Render::ModelBatch m_batch;
     Client::Crt::CrtRandom m_random{1};
     Client::Scenes::FaunaDrawCarry m_carry;

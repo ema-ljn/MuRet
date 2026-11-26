@@ -48,7 +48,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::BoneTransform;
+using Math::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 
 // Las texturas de los sprites (0x61ccb0): flare01, Impack03 de Object9, Spark02, Spark03, lightning2,
@@ -117,12 +117,12 @@ int Mod(Crt::CrtRandom& random, int n)
 // solo R53. DrawGameHanging valida antes el reloj: con él, los dos dan siempre un valor.
 double SineTimes(double argument, float factor)
 {
-    return Render::Models::Detail::SineProductPC53(argument, factor).value_or(0.0);
+    return Math::Detail::SineProductPC53(argument, factor).value_or(0.0);
 }
 
 double SinePlus(double argument, double addend)
 {
-    return Render::Models::Detail::SineSumPC53(argument, addend).value_or(0.0);
+    return Math::Detail::SineSumPC53(argument, addend).value_or(0.0);
 }
 
 // El estado del lugar que cuelga y de su modelo de un frame de 0x50ba30.
@@ -146,8 +146,8 @@ struct Frame
     // DrawGameHanging comprueba antes que los huesos de las partes existen.
     [[nodiscard]] glm::vec3 BodyPoint(std::uint8_t bone, const glm::vec3& offset) const
     {
-        return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(pass.body[bone]), offset,
-                                                         actor.scale, ModelOrigin());
+        return Math::OriginalTransformPosition(Math::OriginalMatrixOf(pass.body[bone]), offset, actor.scale,
+                                               ModelOrigin());
     }
 
     // 0x4ec110 sobre el hueso `bone` del buffer global, con la escala del personaje y `origin`. Un hueso
@@ -155,8 +155,7 @@ struct Frame
     [[nodiscard]] glm::vec3 GlobalPoint(std::size_t bone, const glm::vec3& offset, const glm::vec3& origin) const
     {
         const BoneTransform matrix = bone < pass.carry->bones.size() ? pass.carry->bones[bone] : BoneTransform(0.0f);
-        return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                         origin);
+        return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, origin);
     }
 
     // 0x5491e0: el sprite aditivo; el dueño no se guarda.
@@ -233,7 +232,7 @@ Core::Expected<Render::Models::HangingPlacement, std::string> PlacementOf(const 
 // 0x4ec190 y 0x50966b: el origen de lo que cuelga sin la bandera, con la escala `scale` del modelo del tipo.
 glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const ActorState& actor, float scale)
 {
-    const glm::vec3 turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalMatrixOf(parent));
+    const glm::vec3 turned = Math::OriginalVectorRotate(offset, Math::OriginalMatrixOf(parent));
     glm::vec3 origin{};
     for (int k = 0; k < 3; ++k)
         origin[k] = F32(D(F32(D(scale) * D(turned[k]))) + D(actor.position[k]));
@@ -424,8 +423,8 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     {
         if (frame.pass.carry->bones.empty())
             return Core::Unexpected(std::string("0x50a169: el cetro no dejó huesos en el buffer global"));
-        World::CreateScepterGlow(*frame.pass.sprites, Render::Models::OriginalMatrixOf(frame.pass.carry->bones[0]),
-                                 actor.scale, origin, random);
+        World::CreateScepterGlow(*frame.pass.sprites, Math::OriginalMatrixOf(frame.pass.carry->bones[0]), actor.scale,
+                                 origin, random);
         return {};
     }
     case 0x81c:

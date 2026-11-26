@@ -74,7 +74,7 @@ public:
     }
     double WaveValue(float frequency, float amplitude, float bias = 0) const
     {
-        const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(time) * frequency, amplitude);
+        const auto sine = Math::Detail::SineProductPC53(static_cast<double>(time) * frequency, amplitude);
         return sine ? *sine + bias : std::numeric_limits<double>::quiet_NaN();
     }
     float Wave(float frequency, float amplitude, float bias = 0) const

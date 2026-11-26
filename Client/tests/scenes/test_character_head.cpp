@@ -127,7 +127,7 @@ TEST(CharacterHeadTest, TheHeroOnlyTurns)
 // 0x4e96f0: la resta, o la vuelta por el otro lado, y con el tercer argumento, sin signo.
 TEST(CharacterHeadTest, TheAngleDistanceTakesTheShortWay)
 {
-    using Client::Render::Models::AngleDistance;
+    using Client::Math::AngleDistance;
     EXPECT_EQ(AngleDistance(10.0f, 50.0f, true), 40.0);
     EXPECT_EQ(AngleDistance(50.0f, 10.0f, false), -40.0);
     EXPECT_EQ(AngleDistance(50.0f, 10.0f, true), 40.0);

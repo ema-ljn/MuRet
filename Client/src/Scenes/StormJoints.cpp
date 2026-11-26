@@ -55,12 +55,11 @@ Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const Join
     }
     joint.speed = F32(D(joint.speed) + Boost);
     if (joint.tailEnabled)
-        if (auto appended = JointKernels::AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.angles));
+        if (auto appended = JointKernels::AppendJointTail(joint, Math::OriginalAngleMatrix(joint.angles));
             !appended.HasValue())
             return appended;
     joint.speed = F32(D(joint.speed) + Boost);
-    const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0},
-                                                            Render::Models::OriginalAngleMatrix(joint.bendAngles));
+    const auto moved = Math::OriginalVectorRotate({0, -joint.speed, 0}, Math::OriginalAngleMatrix(joint.bendAngles));
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     // 0x53c16d..0x53c18a: fisub de +0x9ec y fcom con la z (test ah,0x41): sólo con el suelo estrictamente arriba.
@@ -263,7 +262,7 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
     joint.light = {Pale, Pale, 1};
     joint.velocity.x = 0;
     joint.velocity.y = F32(-(static_cast<double>(random.Next() & 3) + 40));
-    const auto swing = Render::Models::Detail::SineProductPC53(D(joint.speed), 10.0f);
+    const auto swing = Math::Detail::SineProductPC53(D(joint.speed), 10.0f);
     if (!swing)
         return Core::Unexpected(std::string("0x534aa4: el seno del joint 0x632/6 excede el perfil PC53"));
     joint.velocity.z = F32(*swing);
@@ -271,7 +270,7 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
     joint.position.z = F32(D(joint.position.z) + 130);
     joint.pathIncrement = joint.position;
     joint.angles = request.angles;
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     joint.tailEnabled = false;
     joint.orientation = 3;
     if (auto appended = JointKernels::AppendCrossedJointTail(joint, matrix, true); !appended.HasValue())
@@ -309,7 +308,7 @@ Core::Expected<void, std::string> HitTheGround(JointState& joint, const JointKer
     if (!(joint.velocity.z > 0.0f))
     {
         constexpr float Bounce = 20.0f; // 0x6b86d0
-        const auto sine = Render::Models::Detail::SineProductPC53(D(joint.speed), Bounce);
+        const auto sine = Math::Detail::SineProductPC53(D(joint.speed), Bounce);
         if (!sine)
             return Core::Unexpected(std::string("0x53c00a: la velocidad del joint 0x632/6 excede el perfil del seno"));
         joint.velocity.z = F32(*sine);
@@ -347,8 +346,8 @@ Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointK
     const int shake = services.random->Next() % 5 - 2;
     joint.velocity.y = F32(static_cast<double>(shake) + D(joint.velocity.y));
     joint.velocity.z = F32(D(joint.velocity.z) - 10);
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
-    const auto moved = Render::Models::OriginalVectorRotate(joint.velocity, matrix);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
+    const auto moved = Math::OriginalVectorRotate(joint.velocity, matrix);
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     // 0x53bf3c: la tanda (+0x9eb, la vida del alta) menos la vida. Con menos de 10 (los diez primeros pasos), la

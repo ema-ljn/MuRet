@@ -176,7 +176,7 @@ Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const 
         joint.pathIncrement = joint.position;
         joint.maximumCount = 3;
         joint.life = 1;
-        static_cast<void>(Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, 360.0f));
+        static_cast<void>(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 360.0f));
         break;
     case 8: // 0x531618..0x531635 y 0x53204c..0x532073.
         joint.width = 5.0f;
@@ -246,7 +246,7 @@ Core::Expected<float, std::string> TurnFromTheObject(JointState& joint, CrtRando
     joint.targetPosition.y = F32((static_cast<double>(random.Next() % 200) + Offset) + D(joint.targetPosition.y));
     joint.targetPosition.z = F32(D(joint.targetPosition.z) - Depth);
     const auto turn = static_cast<float>(random.Next() % 100 + 50);
-    return F32(Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, turn));
+    return F32(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, turn));
 }
 
 // 0x53695e..0x536b3a: hacia dónde gira cada subtipo; devuelve lo que falta (el float de 0x536b3a). `services` puede
@@ -254,7 +254,7 @@ Core::Expected<float, std::string> TurnFromTheObject(JointState& joint, CrtRando
 Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scratch, CrtRandom& random,
                                         const JointKernels::StepServices* services)
 {
-    using Render::Models::MoveToward;
+    using Math::MoveToward;
     switch (joint.subtype)
     {
     case 0:
@@ -297,8 +297,8 @@ Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scra
             return Core::Unexpected(std::string("0x536b1d: faltan los modelos compartidos del joint 0x614/0xc"));
         constexpr glm::vec3 Below{0.0f, -100.0f, 0.0f}; // 0x536b0f, 0xc2c80000
         const auto placement = services->world->ModelPlacement(owner->type);
-        joint.position = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrix{}, Below,
-                                                                   placement.scale, placement.origin);
+        joint.position =
+            Math::OriginalTransformPosition(Math::OriginalMatrix{}, Below, placement.scale, placement.origin);
         return services->startDeltaY;
     }
     case 9: // 0x536abc: hacia el punto sorteado antes del lazo.
@@ -396,7 +396,7 @@ Core::Expected<void, std::string> Arrive(JointState& joint, const JointKernels::
     }
     if (joint.subtype != 0)
         return {};
-    const auto clock = World::OriginalFtolLow(services.worldClock);
+    const auto clock = Math::OriginalFtolLow(services.worldClock);
     if (!clock)
         return Core::Unexpected(std::string("0x536f71: el reloj del joint 0x614/0 excede ftol"));
     if (*clock % 1000 >= 500 || random.Next() % 16 != 0)
@@ -578,7 +578,7 @@ Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const Jo
         const glm::vec3 shaken{F32(D(joint.angles.x) + D(joint.velocity.x)),
                                F32(D(joint.velocity.y) + D(joint.angles.y)),
                                F32(D(joint.velocity.z) + D(joint.angles.z))};
-        const auto matrix = Render::Models::OriginalAngleMatrix(shaken);
+        const auto matrix = Math::OriginalAngleMatrix(shaken);
         if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
             return appended;
         if (subtype == 3)
@@ -598,7 +598,7 @@ Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const Jo
         // 0x536e35..0x536e56: el avance (0, −velocidad, 0) se arma en [ebp−0xc], la misma local del punto de la /9:
         // desde el segundo tramo la /9 gira hacia ese avance y no hacia el punto sorteado.
         scratch = {0.0f, -joint.speed, 0.0f};
-        const auto moved = Render::Models::OriginalVectorRotate(scratch, matrix);
+        const auto moved = Math::OriginalVectorRotate(scratch, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     }

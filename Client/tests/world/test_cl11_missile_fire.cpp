@@ -26,8 +26,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::Detail::CosineProductPC53;
-using Client::Render::Models::Detail::SineProductPC53;
+using Client::Math::Detail::CosineProductPC53;
+using Client::Math::Detail::SineProductPC53;
 using Client::Tests::AfterDraws;
 using Client::World::Particle;
 using Client::World::ParticleError;

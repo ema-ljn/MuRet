@@ -21,7 +21,7 @@ namespace Client::Scenes
 // cambian con la pose de cada frame.
 struct SimulatedClothBody
 {
-    std::vector<Render::Models::BoneTransform> bones;
+    std::vector<Math::BoneTransform> bones;
     float scale = 1.0f;
     glm::vec3 position{};
 };

@@ -16,6 +16,7 @@
 // sobre el main.exe con T = 1000 y 2500 y rand() en 7 (06 § Lo que cuelga).
 namespace
 {
+using Client::Math::RoundedSin;
 using Client::Render::Models::EveryMeshBlends;
 using Client::Render::Models::HangingObjectState;
 using Client::Render::Models::MaskedClassLightAt;
@@ -24,7 +25,6 @@ using Client::Render::Models::NoBlendMesh;
 using Client::Render::Models::NoHiddenMesh;
 using Client::Render::Models::ObjectRandoms;
 using Client::Render::Models::ObjectState;
-using Client::Render::Models::RoundedSin;
 
 constexpr ObjectRandoms Sevens{7, 7};
 

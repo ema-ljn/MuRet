@@ -11,7 +11,7 @@
 // status/ABI x87, payloads NaN ni equivalencia universal FPATAN/libm.
 // Callers: Scenes/DarkSpirit (también MoveToward) y CharacterHead; fixtures world55/raven.txt,
 // raven_safe_zone.txt y head.txt.
-namespace Client::Render::Models
+namespace Client::Math
 {
 // 0x4e93f0: el rumbo de (x1, y1) a (x2, y2), en grados, como lo deja en la pila de la x87.
 [[nodiscard]] ENGINE_API double CreateAngle(float x1, float y1, float x2, float y2);
@@ -32,4 +32,4 @@ namespace Client::Render::Models
 // cuadrados de dx y dy que guardó en float.
 [[nodiscard]] ENGINE_API double MoveToward(const glm::vec3& position, glm::vec3& angles, const glm::vec3& target,
                                            float step);
-} // namespace Client::Render::Models
+} // namespace Client::Math

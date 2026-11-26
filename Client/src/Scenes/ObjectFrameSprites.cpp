@@ -101,7 +101,7 @@ Core::Expected<void, std::string> CreateSprite(const GameObjectPass& pass, std::
 // 0x6037bb/0x6038ba: ftol de reloj · 0,1f desde la pila, su resto firmado de 360 y fild a float.
 float ClockTurn(float worldClock)
 {
-    return static_cast<float>(World::FtolLow(static_cast<double>(worldClock) * TurnPerMs) % FullTurn);
+    return static_cast<float>(Math::FtolLow(static_cast<double>(worldClock) * TurnPerMs) % FullTurn);
 }
 
 // 0x6038ed..0x6039c3: los pares de giro r y −r en los huesos 15, 19 y 21.
@@ -141,11 +141,10 @@ Core::Expected<glm::vec3, std::string> ObjectBonePoint(const GameObjectPass& pas
     // La .bss nativa empieza en cero; un hueso aún no publicado conserva esa matriz.
     if (bone >= pass.retainedPose->bones.size())
     {
-        return Render::Models::OriginalVectorTransform(offset, Render::Models::OriginalMatrix{});
+        return Math::OriginalVectorTransform(offset, Math::OriginalMatrix{});
     }
     // Translate=0: el hueso del buffer ya está escalado y trasladado al mundo.
-    return Render::Models::OriginalVectorTransform(offset,
-                                                   Render::Models::OriginalMatrixOf(pass.retainedPose->bones[bone]));
+    return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));
 }
 
 Core::Expected<void, std::string> StepMerchantAnimalFrame(const World::WorldObject& object, int commonRandom,
@@ -192,7 +191,7 @@ Core::Expected<void, std::string> DeviasBeams(int commonRandom, const GameObject
 std::int16_t PosedKey(const Render::Models::Skeleton& skeleton, const Render::Models::AnimationState& animation)
 {
     const std::size_t modelAction = animation.action < skeleton.actions.size() ? animation.action : 0;
-    const auto key = static_cast<std::int16_t>(World::FtolLow(static_cast<double>(animation.frame)));
+    const auto key = static_cast<std::int16_t>(Math::FtolLow(static_cast<double>(animation.frame)));
     if (key < 0 || skeleton.actions[modelAction].keyCount <= key)
         return 0;
     return key;

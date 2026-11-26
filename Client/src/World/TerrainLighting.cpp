@@ -239,8 +239,8 @@ glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)
     const float cellX = x * CellsPerUnit;
     const float cellY = y * CellsPerUnit;
     // Ambos stores F32 y conversiones FTOL64→low32 preceden a las guardas, en orden X/Y.
-    const std::int32_t left = FtolLow(static_cast<double>(cellX));
-    const std::int32_t bottom = FtolLow(static_cast<double>(cellY));
+    const std::int32_t left = Math::FtolLow(static_cast<double>(cellX));
+    const std::int32_t bottom = Math::FtolLow(static_cast<double>(cellY));
     if (left < 0 || bottom < 0 || left > LastSampledCell || bottom > LastSampledCell)
     {
         return glm::vec3(0.0f);

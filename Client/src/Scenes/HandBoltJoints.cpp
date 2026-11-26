@@ -113,8 +113,7 @@ Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint, const Joi
                     std::format("0x539cea: falta el personaje dueño del joint {:#x}/{}", joint.type, joint.subtype));
             joint.targetPosition = {owner->position.x, owner->position.y, F32(D(owner->position.z) + 80.0)};
         }
-        const float distance =
-            F32(Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, 25.0f));
+        const float distance = F32(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 25.0f));
         // 0x539d18..0x539dc1: la sacudida se acumula en la velocidad y se amortigua a 0,8f; la z queda en la x87.
         const double width = D(joint.width);
         joint.velocity.x = F32(static_cast<double>((random.Next() & 0xff) - 0x80) / width + D(joint.velocity.x));
@@ -125,7 +124,7 @@ Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint, const Joi
         joint.velocity.z = F32(roll);
         const glm::vec3 shaken{F32(D(joint.angles.x) + D(joint.velocity.x)),
                                F32(D(joint.velocity.y) + D(joint.angles.y)), F32(roll + D(joint.angles.z))};
-        const auto matrix = Render::Models::OriginalAngleMatrix(shaken);
+        const auto matrix = Math::OriginalAngleMatrix(shaken);
         if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
             return appended;
         // 0x539dd6..0x539de9: llega cuando el doble de la velocidad ya no es menor que lo que falta (con NaN, C0 en 1,
@@ -134,7 +133,7 @@ Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint, const Joi
             return Arrive(joint, random, services);
         if (auto lit = Glow(joint, random, services.lighting); !lit.HasValue())
             return lit;
-        const auto moved = Render::Models::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
+        const auto moved = Math::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     }

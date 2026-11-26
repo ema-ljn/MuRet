@@ -24,6 +24,6 @@ void UpdateGameItemGlowPulse(GameItemRenderState& state, float worldClock)
     constexpr float Amplitude = 0.15f;
     constexpr float Base = 0.6f;
     state.glowPulse =
-        static_cast<float>(Render::Models::RoundedSin(static_cast<double>(worldClock) * Frequency) * Amplitude + Base);
+        static_cast<float>(Math::RoundedSin(static_cast<double>(worldClock) * Frequency) * Amplitude + Base);
 }
 } // namespace Client::Scenes

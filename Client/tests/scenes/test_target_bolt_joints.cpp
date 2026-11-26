@@ -82,8 +82,8 @@ struct BoltWorld
 // 0x4e9810 con el destino: el yaw y el pitch giran de a `turn`; devuelve la distancia sin redondear.
 double Steer(JointState& expected, const glm::vec3& target, float turn)
 {
-    using Client::Render::Models::CreateAngle;
-    using Client::Render::Models::TurnAngle;
+    using Client::Math::CreateAngle;
+    using Client::Math::TurnAngle;
     const auto yaw = F32(CreateAngle(expected.position.x, expected.position.y, target.x, target.y));
     expected.angles.z = F32(TurnAngle(expected.angles.z, yaw, turn));
     const double x = D(expected.position.x) - target.x;
@@ -98,8 +98,8 @@ double Steer(JointState& expected, const glm::vec3& target, float turn)
 // El avance común (0x53590e) con la velocidad de antes y los ángulos de antes.
 void MoveAhead(JointState& expected)
 {
-    const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -expected.speed, 0.0f}, Client::Render::Models::OriginalAngleMatrix(expected.angles));
+    const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -expected.speed, 0.0f},
+                                                               Client::Math::OriginalAngleMatrix(expected.angles));
     for (int axis = 0; axis < 3; ++axis)
         expected.position[axis] = F32(D(expected.position[axis]) + D(moved[axis]));
 }

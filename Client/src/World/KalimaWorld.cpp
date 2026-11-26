@@ -85,7 +85,7 @@ float Spill(double value)
 std::int32_t Truncate(double value)
 {
     // Los productores internos sólo pasan valores finitos acotados por los senos/cosenos.
-    return OriginalFtolLow(value).value();
+    return Math::OriginalFtolLow(value).value();
 }
 
 float MeshHeight(std::int32_t wave, std::int32_t first, std::int32_t second)
@@ -136,8 +136,7 @@ struct KalimaWorld::Storage
                 if (distance >= radiusX * radiusY)
                     continue;
                 const double phase = std::sqrt(static_cast<double>(distance) * squaredScale);
-                const auto increment =
-                    Truncate((Render::Models::RoundedCos(phase) + 1.0) * amplitude) >> DisturbanceShift;
+                const auto increment = Truncate((Math::RoundedCos(phase) + 1.0) * amplitude) >> DisturbanceShift;
                 const auto cell = static_cast<std::size_t>((centerY + y) * WaveSide + centerX + x);
                 destination[cell] += std::bit_cast<std::uint32_t>(increment);
             }
@@ -158,26 +157,23 @@ struct KalimaWorld::Storage
             for (int x = startX; x < endX; ++x)
             {
                 const double xFirst = static_cast<double>(x) * FirstSpatialRate;
-                const auto first =
-                    Truncate(Render::Models::RoundedSin(
-                                 (static_cast<double>(context.worldTime) * FirstTimeRate + yFirst) + xFirst) *
-                             FirstPeriodicAmplitude);
+                const auto first = Truncate(
+                    Math::RoundedSin((static_cast<double>(context.worldTime) * FirstTimeRate + yFirst) + xFirst) *
+                    FirstPeriodicAmplitude);
                 const auto cell = static_cast<std::size_t>(y * WaveSide + x);
-                periodic[0][cell] =
-                    Truncate(static_cast<double>(first) -
-                             Render::Models::RoundedSin(
-                                 (static_cast<double>(context.worldTime) * FirstCounterRate + ySecond) + xFirst) *
-                                 FirstPeriodicAmplitude);
+                periodic[0][cell] = Truncate(
+                    static_cast<double>(first) -
+                    Math::RoundedSin((static_cast<double>(context.worldTime) * FirstCounterRate + ySecond) + xFirst) *
+                        FirstPeriodicAmplitude);
                 const auto second =
-                    Truncate(Render::Models::RoundedSin((static_cast<double>(x) * SecondSpatialRate +
-                                                         static_cast<double>(context.worldTime) * SecondTimeRate) +
-                                                        ySecond) *
+                    Truncate(Math::RoundedSin((static_cast<double>(x) * SecondSpatialRate +
+                                               static_cast<double>(context.worldTime) * SecondTimeRate) +
+                                              ySecond) *
                              SecondPeriodicAmplitude);
-                periodic[1][cell] =
-                    Truncate(static_cast<double>(second) -
-                             Render::Models::RoundedSin(
-                                 (static_cast<double>(context.worldTime) * SecondCounterRate + yThird) + x) *
-                                 SecondPeriodicAmplitude);
+                periodic[1][cell] = Truncate(
+                    static_cast<double>(second) -
+                    Math::RoundedSin((static_cast<double>(context.worldTime) * SecondCounterRate + yThird) + x) *
+                        SecondPeriodicAmplitude);
             }
         }
     }
@@ -350,8 +346,8 @@ std::optional<float> KalimaWorld::Height(float x, float y) const
     const double rowValue = static_cast<double>(std::max(y, 0.0f)) * CoordinateScale;
     if (columnValue >= WaveSide || rowValue >= WaveSide)
         return std::nullopt;
-    const auto column = OriginalFtolLow(columnValue);
-    const auto row = OriginalFtolLow(rowValue);
+    const auto column = Math::OriginalFtolLow(columnValue);
+    const auto row = Math::OriginalFtolLow(rowValue);
     if (!column || !row)
         return std::nullopt;
     const auto cell = static_cast<std::size_t>(*row * WaveSide + *column);

@@ -46,10 +46,10 @@ constexpr std::uint16_t GlowSprite = 0x5ac, FlareSprite = 0x5fd, SpiritSprite = 
 
 // 0x4ec110(hueso, (0, 0, 0), punto, 0): sin trasladar, el punto es la traslación del hueso que 0x5ffdf0 dejó en el
 // mundo. Un hueso que el buffer todavía no tiene es la BSS en 0, como en la cola del misil de Crywolf.
-glm::vec3 BonePoint(std::span<const Render::Models::BoneTransform> bones, std::size_t bone)
+glm::vec3 BonePoint(std::span<const Math::BoneTransform> bones, std::size_t bone)
 {
-    const auto matrix = bone < bones.size() ? bones[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalVectorTransform(glm::vec3(0.0f), Render::Models::OriginalMatrixOf(matrix));
+    const auto matrix = bone < bones.size() ? bones[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalVectorTransform(glm::vec3(0.0f), Math::OriginalMatrixOf(matrix));
 }
 
 // Las mallas posadas de `object`: las que publicó la pose del caller o, sin ellas, las que posa acá como 0x5ffdf0 con
@@ -67,8 +67,8 @@ std::span<const Render::Models::SkinnedMesh> MeshesOf(const Render::Models::IMod
     return posed;
 }
 
-Core::Expected<std::span<const Render::Models::BoneTransform>, std::string>
-BonesOf(const HighEffectDrawServices& services, const char* address)
+Core::Expected<std::span<const Math::BoneTransform>, std::string> BonesOf(const HighEffectDrawServices& services,
+                                                                          const char* address)
 {
     if (!services.posedBones)
         return Core::Unexpected(std::string(address) + ": faltan los huesos de la pose (0x68b181c)");
@@ -124,7 +124,7 @@ Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch,
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
     constexpr double Fifth = Math::FifthAsDouble;                                   // 0x6b8854, 0,2f
     constexpr double Tenth = Math::TenthAsDouble;                                   // 0x6b87b8, 0,1f
-    const auto pulse = Render::Models::Detail::SineProductPC53(D(*services.worldClock) * Rate, Swing);
+    const auto pulse = Math::Detail::SineProductPC53(D(*services.worldClock) * Rate, Swing);
     if (!pulse)
         return Core::Unexpected(std::string("0x4390f4: la luz del 0x125 no cabe en el perfil PC53"));
     const float luminosity = F32(*pulse + Base);

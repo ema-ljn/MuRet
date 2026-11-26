@@ -328,7 +328,7 @@ private:
             return Core::Unexpected(slot.Error());
         ActorState& actor = ScriptActor(m_context.world, key);
         const auto cellOf = [](float position)
-        { return World::FtolLow(static_cast<double>(World::FtolLow(static_cast<double>(position))) * Hundredth); };
+        { return Math::FtolLow(static_cast<double>(Math::FtolLow(static_cast<double>(position))) * Hundredth); };
         if (cellOf(actor.position.x) == x && cellOf(actor.position.y) == y)
         {
             // 0x4038b3..0x4038ed.
@@ -342,8 +342,8 @@ private:
         std::int32_t difference = 0;
         if (m_tour.turning[slot.Value()])
         {
-            std::int32_t target = World::FtolLow(AngleTo(actor, x, y));
-            const std::int32_t current = World::FtolLow(static_cast<double>(actor.angles.z));
+            std::int32_t target = Math::FtolLow(AngleTo(actor, x, y));
+            const std::int32_t current = Math::FtolLow(static_cast<double>(actor.angles.z));
             // 0x403808..0x40381d: FILD del ángulo truncado − el pedido, FCOMP 180 sin C0 ni C3.
             if (static_cast<double>(target) - static_cast<double>(angle) > HalfTurn)
                 target -= static_cast<std::int32_t>(FullTurn);
@@ -392,7 +392,7 @@ private:
         glm::vec3 toward{F32(static_cast<double>(actor.position.x) - centerX),
                          F32(static_cast<double>(actor.position.y) - static_cast<double>(centerY)), 0.0f};
         Normalize(toward);
-        const double angle = Render::Models::RoundedAcos(static_cast<double>(toward.y)) * Degrees;
+        const double angle = Math::RoundedAcos(static_cast<double>(toward.y)) * Degrees;
         return toward.x > 0.0f ? FullTurn - angle : angle;
     }
 

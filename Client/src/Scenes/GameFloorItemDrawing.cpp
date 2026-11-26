@@ -103,7 +103,7 @@ Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemSta
     resources.map = context.map;
     resources.ownerContext = &item;
     if (!context.onPose)
-        resources.poseBones = [&local]() -> std::span<const Render::Models::BoneTransform> { return local.bones; };
+        resources.poseBones = [&local]() -> std::span<const Math::BoneTransform> { return local.bones; };
     const auto result =
         DrawItemFromMeshes(context.batch, context.models, object, context.frameClock, meshes,
                            item.type == Money ? 0 : Level(item), item.excellent, item.ancient, resources);
@@ -177,7 +177,7 @@ Core::Expected<void, std::string> Coins(FaunaDrawCarry& local, FloorItemState& i
         const auto radiusIndex = (slot + static_cast<std::size_t>(coin)) % TableSize;
         const glm::vec3 angles{0, 0, static_cast<float>(context.randomTable[rotationIndex] % 360)};
         const glm::vec3 offset{static_cast<float>(context.randomTable[radiusIndex] % (count + 20)), 0, 0};
-        const auto rotated = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(angles));
+        const auto rotated = Math::OriginalVectorRotate(offset, Math::OriginalAngleMatrix(angles));
         auto coinObject = object;
         for (int component = 0; component < 3; ++component)
             coinObject.transform.position[component] =
@@ -196,7 +196,7 @@ Core::Expected<void, std::string> Water(DrawnObject& object, const FloorItemDraw
         constexpr float Frequency = 0.002f;
         constexpr float Amplitude = 10;
         constexpr std::size_t SlotPhase = 0x4d5;
-        const auto wave = Render::Models::Detail::SineProductPC53(
+        const auto wave = Math::Detail::SineProductPC53(
             (static_cast<double>(slot * SlotPhase) + context.worldClock) * Frequency, Amplitude);
         if (!wave)
             return Core::Unexpected(std::string("0x608d05: fase acuática fuera del perfil portable"));

@@ -199,7 +199,7 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
     hero.byte381 = 1;
     hero.attackPosition = world.Actors()[static_cast<std::size_t>(target)].position;
     hero.angles.z = static_cast<float>(
-        Render::Models::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
+        Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
     // 0x56544c..0x56548b: la celda del héroe publicado, X con 0x40b570/0x40b800 e Y con 0x4e7e40.
     ActorState& published = world.Actors()[runtime.hero];
     const std::uint8_t x = ReadTheCell(published.cellXAccesses, published.cellX, random);
@@ -365,9 +365,9 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
         return {};
     // 0x566173..0x566194: la celda del blanco, ftol(· 0,01), en 0x77e1ba8 y 0x77e1bac.
     const auto cellX =
-        World::OriginalFtolLow(static_cast<double>(victim.position.x) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(victim.position.x) * static_cast<double>(CellReciprocal));
     const auto cellY =
-        World::OriginalFtolLow(static_cast<double>(victim.position.y) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(victim.position.y) * static_cast<double>(CellReciprocal));
     if (!cellX || !cellY)
         return Core::Unexpected(std::string("0x56617c: la celda del blanco de la skill fuera del perfil ftol"));
     runtime.movement.targetX = std::bit_cast<std::uint32_t>(*cellX);
@@ -436,8 +436,8 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
     const ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
     // 0x5652b5..0x5652e8: la celda del blanco, ftol(x · 0,01f) entero, en 0x77e1ba8 y 0x77e1bac.
     constexpr double CellScale = static_cast<double>(0.01f);
-    const auto cellX = World::OriginalFtolLow(static_cast<double>(victim.position.x) * CellScale);
-    const auto cellY = World::OriginalFtolLow(static_cast<double>(victim.position.y) * CellScale);
+    const auto cellX = Math::OriginalFtolLow(static_cast<double>(victim.position.x) * CellScale);
+    const auto cellY = Math::OriginalFtolLow(static_cast<double>(victim.position.y) * CellScale);
     if (!cellX || !cellY)
         return Core::Unexpected(std::string("0x5652d0: la celda del blanco fuera del perfil ftol"));
     runtime.movement.targetX = std::bit_cast<std::uint32_t>(*cellX);

@@ -1834,7 +1834,7 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
             actor.hands[0].bone = 0;
             actor.position = {9000.0f, 8000.0f, 7000.0f};
             actor.scale = 7.0f;
-            actor.bodyPose.resize(1, Client::Render::Models::BoneTransform(1.0f));
+            actor.bodyPose.resize(1, Client::Math::BoneTransform(1.0f));
             actor.bodyPose[0][3] = {3.0f, 4.0f, 5.0f};
             tested->world.PlayerModel() = {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}};
             // El tiro sigue al brillo aunque no encuentre lugar para la flecha 0x111.

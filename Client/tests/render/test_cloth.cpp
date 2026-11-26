@@ -27,8 +27,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Math::BoneTransform;
 using Client::Render::TextureSlot;
-using Client::Render::Models::BoneTransform;
 using Client::Render::Models::Cloth;
 using Client::Render::Models::ClothBlend;
 using Client::Render::Models::ClothBody;

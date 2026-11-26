@@ -138,8 +138,7 @@ Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint, const Joint
             joint.targetPosition = {owner->position.x, owner->position.y, F32(D(owner->position.z) + Above)};
         }
         constexpr float Turn = 50; // 0x42480000
-        const float distance =
-            F32(Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, Turn));
+        const float distance = F32(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, Turn));
         if (services.random == nullptr)
             return Core::Unexpected(std::string("0x535b81: falta el RNG del joint 0x14f"));
         // 0x535b81..0x535bf4: vx y vz, ((rand() & 0x3ff) − 512) / ancho; el tramo con los ángulos más (vx, vy, vz), la
@@ -152,7 +151,7 @@ Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint, const Joint
         joint.velocity.z = F32(turn);
         const glm::vec3 shaken{F32(D(joint.angles.x) + D(joint.velocity.x)),
                                F32(D(joint.angles.y) + D(joint.velocity.y)), F32(turn + D(joint.angles.z))};
-        const auto matrix = Render::Models::OriginalAngleMatrix(shaken);
+        const auto matrix = Math::OriginalAngleMatrix(shaken);
         if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
             return appended;
         // 0x535c09..0x535c20: llega con la velocidad · 1,5 mayor que la distancia (fcomp, test ah,0x41).
@@ -162,7 +161,7 @@ Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint, const Joint
         if (auto lit = Glow(joint, services); !lit.HasValue())
             return lit;
         // 0x535c7f..0x535cd1: el avance (0, −velocidad, 0) girado por la matriz del tramo.
-        const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+        const auto moved = Math::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     }

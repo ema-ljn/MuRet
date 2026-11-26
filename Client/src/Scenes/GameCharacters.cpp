@@ -182,9 +182,8 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, CharacterClo
     if (pass.poseBones)
         character.poseBones = [&actor, global = pass.poseBones](std::uint16_t model)
         {
-            return model == Data::Models::PlayerSkeletonModel
-                       ? std::span<const Render::Models::BoneTransform>(actor.bodyPose)
-                       : global(model);
+            return model == Data::Models::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
+                                                              : global(model);
         };
     return character;
 }
@@ -350,7 +349,7 @@ Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch,
                                                   const Render::Models::IModelLibrary& models, const ActorState& actor,
                                                   const DrawnCharacter& character, Render::TextureSlot slot)
 {
-    const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
+    const std::vector<Math::BoneTransform> body = PoseCharacterBody(models, character);
     if (body.size() <= GuildMarkBone)
         return Core::Unexpected<std::string>("0x50928d: la marca del gremio sin el hueso 26 del cuerpo (+0x120)");
     TailDrawing::Blend(batch, Render::ModelBlend::Alpha);
@@ -363,7 +362,7 @@ Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch,
     batch.ApplyOperation(state, Render::ModelStateOperation::Binding);
     const glm::vec3 turn{AddX87(actor.angles.x, MarkTurnX), AddX87(actor.angles.y, MarkTurnY),
                          AddX87(actor.angles.z, MarkTurnZ)};
-    Render::Models::OriginalMatrix local = Render::Models::OriginalAngleMatrix(turn);
+    Math::OriginalMatrix local = Math::OriginalAngleMatrix(turn);
     constexpr std::size_t Row = 4;
     constexpr std::size_t Translation = 3;
     local[Translation] = MarkOffsetX;
@@ -371,16 +370,15 @@ Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch,
     local[2 * Row + Translation] =
         actor.body[static_cast<std::size_t>(GameLogic::BodyPart::Armor)].model == LowMarkArmor ? LowMarkOffsetZ
                                                                                                : MarkOffsetZ;
-    const Render::Models::OriginalMatrix matrix =
-        Render::Models::OriginalConcatTransforms(Render::Models::OriginalMatrixOf(body[GuildMarkBone]), local);
+    const Math::OriginalMatrix matrix =
+        Math::OriginalConcatTransforms(Math::OriginalMatrixOf(body[GuildMarkBone]), local);
     const float a = MarkHalfWidth;
     const float b = MarkHalfHeight;
     const std::array<glm::vec3, 4> corners{{{-a, -a, -b}, {a, a, -b}, {a, a, b}, {-a, -a, b}}};
     const std::array<glm::vec2, 4> uv{{{0, 1}, {1, 1}, {1, 0}, {0, 0}}};
     std::array<Render::ModelVertex, 4> vertices{};
     for (std::size_t i = 0; i < vertices.size(); ++i)
-        vertices[i] = {
-            actor.position + Render::Models::OriginalVectorTransform(corners[i], matrix), uv[i], {1, 1, 1, 1}};
+        vertices[i] = {actor.position + Math::OriginalVectorTransform(corners[i], matrix), uv[i], {1, 1, 1, 1}};
     TailDrawing::Quad(batch, vertices);
     state = batch.State();
     state.cullEnabled = false;
@@ -484,7 +482,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const R
                                               const FullSetScan& scan, const glm::vec3& modelOrigin, bool originalFrame,
                                               bool gameScene)
 {
-    const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
+    const std::vector<Math::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
     // 0x6001b0 copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01;
     // las lee el cuervo en la zona segura (Q-C412).
@@ -615,8 +613,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Rende
     character.clothColor = look.Value().color;
     // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
     if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
-        character.onPose = [global = pass.onPose](std::uint16_t model,
-                                                  std::span<const Render::Models::BoneTransform> bones,
+        character.onPose = [global = pass.onPose](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                                                   const Render::Models::ObjectTransform& transform, bool translated)
         {
             if (model != Data::Models::PlayerSkeletonModel && model != ChaosCastleBodyModel)

@@ -206,9 +206,8 @@ TEST(GroundStonesTest, TheGroundStoneChipIsBornWithFiveRandoms)
         EXPECT_EQ(chip.life, life);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(chip.transform.scale), std::bit_cast<std::uint32_t>(scale));
         EXPECT_EQ(chip.transform.angles, glm::vec3(5.0f, 0.0f, yaw));
-        EXPECT_EQ(chip.velocity,
-                  Client::Render::Models::OriginalVectorRotate(
-                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({5.0f, 0.0f, yaw})));
+        EXPECT_EQ(chip.velocity, Client::Math::OriginalVectorRotate(
+                                     {0.0f, push, 0.0f}, Client::Math::OriginalAngleMatrix({5.0f, 0.0f, yaw})));
         EXPECT_EQ(chip.turnDirection, fall);
         EXPECT_EQ(chip.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
         EXPECT_EQ(random.State(), draws.State());
@@ -496,8 +495,8 @@ TEST(GroundStonesTest, TheStoneDustDimsBrakesGrowsAndSinks)
     const auto stepped = Client::World::StepParticlesChecked(particles, random);
     ASSERT_TRUE(stepped.HasValue());
     const Client::World::Particle& dust = particles.All()[0];
-    const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-        before.velocity, Client::Render::Models::OriginalAngleMatrix(before.angles));
+    const glm::vec3 turned =
+        Client::Math::OriginalVectorRotate(before.velocity, Client::Math::OriginalAngleMatrix(before.angles));
     glm::vec3 moved{};
     for (int axis = 0; axis < 3; ++axis)
         moved[axis] = F32(static_cast<double>(turned[axis]) + static_cast<double>(before.position[axis]));

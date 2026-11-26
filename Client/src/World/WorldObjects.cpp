@@ -185,7 +185,7 @@ void ApplyMapOneCases(WorldObject& object, std::int16_t type, WorldObjectRegistr
 
 bool CopyMapTwoTransform(WorldObject& object)
 {
-    const auto signedLow = OriginalFtolLow(static_cast<double>(object.transform.angles.z));
+    const auto signedLow = Math::OriginalFtolLow(static_cast<double>(object.transform.angles.z));
     if (!signedLow.has_value())
     {
         return false;
@@ -567,7 +567,7 @@ using Math::Thousandth;
 
 std::optional<float> ScrolledV(float worldClock)
 {
-    const std::optional<std::int32_t> low = OriginalFtolLow(static_cast<double>(worldClock));
+    const std::optional<std::int32_t> low = Math::OriginalFtolLow(static_cast<double>(worldClock));
     if (!low)
     {
         return std::nullopt;
@@ -924,7 +924,7 @@ int SectorOf(float coordinate)
     // el sector 0. 0x60668d..0x6066ab compara con signo el dword bajo (EAX) con 0 y con 16, así que un
     // NaN cae en el 0 (Q-C186). Con un infinito o fuera de int64, sin observar, el port no lo crea.
     const double product = static_cast<double>(coordinate) * static_cast<double>(SectorPerUnit);
-    const std::optional<std::int32_t> sector = OriginalFtolLow(product);
+    const std::optional<std::int32_t> sector = Math::OriginalFtolLow(product);
     if (!sector.has_value() || *sector < 0 || *sector >= SectorCount)
     {
         return -1;

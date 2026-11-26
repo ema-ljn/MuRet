@@ -637,8 +637,8 @@ Core::Expected<glm::ivec2, std::string> UiItemAnchor(std::int32_t type, std::uin
         y += factors->plusHeight ? static_cast<double>(box.height)
                                  : static_cast<double>(box.height) * static_cast<double>(factors->y);
     }
-    const std::optional<std::int32_t> pixelX = World::OriginalFtolLow(x);
-    const std::optional<std::int32_t> pixelY = World::OriginalFtolLow(y);
+    const std::optional<std::int32_t> pixelX = Math::OriginalFtolLow(x);
+    const std::optional<std::int32_t> pixelY = Math::OriginalFtolLow(y);
     if (!pixelX || !pixelY)
         return Core::Unexpected(std::string("0x5e1d58: el punto del ítem de la UI no es representable"));
     return glm::ivec2(*pixelX, *pixelY);
@@ -694,7 +694,7 @@ Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, f
     made.pass.screen = screen;
     made.pass.viewport = glm::ivec4(0, 0, screen.width, screen.height);
     const auto aspect = F32(static_cast<double>(screen.width) / static_cast<double>(screen.height));
-    made.pass.projection = Render::Models::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
+    made.pass.projection = Math::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
     made.pass.view = glm::mat4(1.0f);
     made.pass.farPlane = farPlane;
     auto projection = MakeGameProjection(made.pass, FieldOfView);

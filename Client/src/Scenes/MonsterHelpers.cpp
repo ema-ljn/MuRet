@@ -59,7 +59,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::BoneTransform;
+using Math::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 using Handled = Core::Expected<bool, std::string>;
 
@@ -144,8 +144,7 @@ Core::Expected<glm::vec3, std::string> NamedBonePoint(const WorldState& world, c
     }
     const BoneTransform matrix =
         found->bone < actor.bodyPose.size() ? actor.bodyPose[found->bone] : BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                     actor.position);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, actor.position);
 }
 
 Core::Expected<glm::vec3, std::string> PointOf(const MonsterHelperPass& pass, std::string_view name, std::uint32_t call,
@@ -224,8 +223,8 @@ Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particl
     ActorState& target = world.Actors()[static_cast<std::size_t>(targetSlot)];
     const glm::vec3 light{0, 0, target.boundsTop};
     const BoneTransform bone = actor.bodyPose.empty() ? BoneTransform(0) : actor.bodyPose[0];
-    glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(bone), {80, 0, 20},
-                                                                actor.scale, actor.position);
+    glm::vec3 point =
+        Math::OriginalTransformPosition(Math::OriginalMatrixOf(bone), {80, 0, 20}, actor.scale, actor.position);
     point.z = F32(D(point.z) + 50.0);
     for (const float yaw : {90.0f, -90.0f})
         for (const std::int32_t subtype : {0, 1})
@@ -248,7 +247,7 @@ Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particl
 Core::Expected<double, std::string> ClockSine(const MonsterHelperPass& pass, float rate, float factor,
                                               std::uint32_t call)
 {
-    const auto product = Render::Models::Detail::SineProductPC53(D(pass.worldClock) * D(rate), factor);
+    const auto product = Math::Detail::SineProductPC53(D(pass.worldClock) * D(rate), factor);
     if (!product)
         return Cut(call, "el seno del reloj fuera del perfil PC53", pass.actor);
     return *product;
@@ -802,8 +801,8 @@ Result DrawTheCrywolfMark(MonsterHelperPass& pass)
     constexpr float Large = std::bit_cast<float>(0x40666666u);      // 3,6
     constexpr float Lift = 5.0f;
     const double argument = D(pass.worldClock) * D(WaveRate);
-    const auto bright = Render::Models::Detail::SineProductPC53(argument, Tenth);
-    const auto soft = Render::Models::Detail::SineProductPC53(argument, SoftSwing);
+    const auto bright = Math::Detail::SineProductPC53(argument, Tenth);
+    const auto soft = Math::Detail::SineProductPC53(argument, SoftSwing);
     if (!bright || !soft)
         return Cut(0x4341de, "el seno del reloj fuera del perfil PC53", actor);
     const float b = F32(*bright + D(BrightBase));
@@ -1433,10 +1432,8 @@ Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing,
             const std::uint8_t secondBone = weaponBone ? bone : leg.secondBone;
             const auto& firstMatrix = firstBone < bones.size() ? bones[firstBone] : BoneTransform(0.0f);
             const auto& secondMatrix = secondBone < bones.size() ? bones[secondBone] : BoneTransform(0.0f);
-            const glm::vec3 first =
-                Render::Models::OriginalVectorTransform(leg.first, Render::Models::OriginalMatrixOf(firstMatrix));
-            const glm::vec3 second =
-                Render::Models::OriginalVectorTransform(leg.second, Render::Models::OriginalMatrixOf(secondMatrix));
+            const glm::vec3 first = Math::OriginalVectorTransform(leg.first, Math::OriginalMatrixOf(firstMatrix));
+            const glm::vec3 second = Math::OriginalVectorTransform(leg.second, Math::OriginalMatrixOf(secondMatrix));
             if (particle640 && actor.animation.frame > 3.5f && actor.animation.frame < 4.5f)
             {
                 if (auto made = CreateParticle(particles, actor, World::PoundingBallParticle, 0, second, actor.angles,
@@ -1487,8 +1484,7 @@ Result SwingThe1b0(WorldState& world, const ActorState& actor, Crt::CrtRandom& r
         {
             const auto& bones = world.PoseCarry().bones;
             const BoneTransform matrix = SparkBone < bones.size() ? bones[SparkBone] : BoneTransform(0.0f);
-            const glm::vec3 point =
-                Render::Models::OriginalVectorTransform(SparkOffset, Render::Models::OriginalMatrixOf(matrix));
+            const glm::vec3 point = Math::OriginalVectorTransform(SparkOffset, Math::OriginalMatrixOf(matrix));
             if (auto made = CreateParticle(particles, actor, Fire, 0, point, angles, glm::vec3(1.0f), 1.0f, worldClock,
                                            random, 0x432d07);
                 !made.HasValue())

@@ -80,7 +80,7 @@ std::uint8_t TowardsTheTarget(std::int32_t x, std::int32_t y, std::int32_t targe
 
 Core::Expected<std::int32_t, std::string> Ftol(double value, std::string_view where)
 {
-    const auto truncated = World::OriginalFtolLow(value);
+    const auto truncated = Math::OriginalFtolLow(value);
     if (!truncated)
         return Core::Unexpected(std::format("{}: fuera del perfil de ftol", where));
     return *truncated;
@@ -198,8 +198,8 @@ Core::Expected<void, std::string> SharedTail::PayForTheSkill(const SkillCost& co
 Core::Expected<void, std::string> SharedTail::CastTheStern()
 {
     // 0x594009..0x594027: 0x4e93f0(+0x10, +0x14, +0x3a8, +0x3ac) en +0x24.
-    m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
-                                                                     m_hero.attackPosition.x, m_hero.attackPosition.y));
+    m_hero.angles.z = static_cast<float>(
+        Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     // 0x59402a..0x59404c: la celda del blanco, ftol de +0x3a8 · 0,01 y después de +0x3ac · 0,01.
     const auto targetX =
         Ftol(static_cast<double>(m_hero.attackPosition.x) * static_cast<double>(CellReciprocal), "0x594039");

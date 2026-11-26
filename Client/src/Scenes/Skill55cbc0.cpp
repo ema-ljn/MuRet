@@ -68,7 +68,7 @@ ReachedCase CaseOf(std::uint8_t skill)
 
 std::optional<std::uint8_t> LowByteOf(double value)
 {
-    const auto truncated = World::OriginalFtolLow(value);
+    const auto truncated = Math::OriginalFtolLow(value);
     if (!truncated)
         return std::nullopt;
     return static_cast<std::uint8_t>(*truncated & 0xff);
@@ -130,7 +130,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
     ActorState& target = world.Actors()[static_cast<std::size_t>(request.target)];
     user.attackPosition = target.position;
     turned.angles.z = static_cast<float>(
-        Render::Models::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));
+        Math::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));
     const ActorCombatContext combat = CombatContextOf(context);
     switch (CaseOf(skill))
     {

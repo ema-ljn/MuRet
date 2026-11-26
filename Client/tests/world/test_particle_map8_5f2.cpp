@@ -232,9 +232,9 @@ TEST(ParticleMap8Test, CreateFourUsesSignedLowWordAndMaskedInvalidProfile)
             pool.CreateChecked(Smoke, {}, {}, {}, 4, 3, std::cref(sample.clock), random, 0, trigonometry).HasValue());
         EXPECT_EQ(pool.All()[0].rotation, sample.rotation);
     }
-    EXPECT_EQ(Client::World::FtolLow(4294967297.0), 1);
-    EXPECT_EQ(Client::World::FtolLow(static_cast<double>(static_cast<float>(4294967297.0))), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::nextafter(0x1p63, 0.0)), -1024);
+    EXPECT_EQ(Client::Math::FtolLow(4294967297.0), 1);
+    EXPECT_EQ(Client::Math::FtolLow(static_cast<double>(static_cast<float>(4294967297.0))), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::nextafter(0x1p63, 0.0)), -1024);
 }
 
 // Observador CPU explícito: los métodos inesperados fallan, ningún servicio opaco se omite.

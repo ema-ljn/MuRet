@@ -91,19 +91,19 @@ class RetainedWaveEvaluator final : public World::ILeafWaveEvaluator
 public:
     Core::Expected<void, std::error_code> Evaluate(World::LeafWave wave, float time) override
     {
-        m_value = wave == World::LeafWave::First ? Render::Models::Detail::FirstLeafSine(time)
-                                                 : Render::Models::Detail::SecondLeafSine(time);
+        m_value =
+            wave == World::LeafWave::First ? Math::Detail::FirstLeafSine(time) : Math::Detail::SecondLeafSine(time);
         return {};
     }
 
     Core::Expected<std::int32_t, std::error_code> Truncate() override
     {
-        const auto value = Render::Models::Detail::TruncateLeafSine(m_value.value);
+        const auto value = Math::Detail::TruncateLeafSine(m_value.value);
         return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(value.integer));
     }
 
 private:
-    Render::Models::Detail::LeafSine m_value{};
+    Math::Detail::LeafSine m_value{};
 };
 
 class BorrowedAttributeQuery final : public World::ITerrainAttributeQuerySource
@@ -162,8 +162,7 @@ void BirthPosition(World::Leaf& leaf, GameLeafContext& context, int heightSpan, 
 
 void FallingVelocity(World::Leaf& leaf, float speed)
 {
-    leaf.velocity =
-        Render::Models::OriginalVectorRotate({0, 0, -speed}, Render::Models::OriginalAngleMatrix(leaf.angles));
+    leaf.velocity = Math::OriginalVectorRotate({0, 0, -speed}, Math::OriginalAngleMatrix(leaf.angles));
 }
 
 void SpawnSnow(World::Leaf& leaf, GameLeafContext& context)

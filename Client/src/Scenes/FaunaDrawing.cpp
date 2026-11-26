@@ -54,7 +54,7 @@ using Math::F32;
 Render::Models::AnimationState AnimationOf(const FaunaObject& object)
 {
     return {object.action, object.frame, object.previousAction,
-            static_cast<std::int16_t>(World::FtolLow(object.previousFrame))};
+            static_cast<std::int16_t>(Math::FtolLow(object.previousFrame))};
 }
 DrawnObject Drawn(const FaunaObject& object, const World::TerrainLighting& lighting)
 {
@@ -142,15 +142,15 @@ Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaO
 glm::vec3 BonePoint(const FaunaDrawContext& context, const FaunaObject& object, std::size_t index,
                     const glm::vec3& offset, bool translated)
 {
-    Render::Models::OriginalMatrix matrix{};
+    Math::OriginalMatrix matrix{};
     if (index < context.carry.bones.size())
-        matrix = Render::Models::OriginalMatrixOf(context.carry.bones[index]);
+        matrix = Math::OriginalMatrixOf(context.carry.bones[index]);
     if (translated)
     {
         const auto& transform = context.carry.models.at(static_cast<std::uint16_t>(object.model));
-        return Render::Models::OriginalTransformPosition(matrix, offset, transform.scale, transform.position);
+        return Math::OriginalTransformPosition(matrix, offset, transform.scale, transform.position);
     }
-    return Render::Models::OriginalVectorTransform(offset, matrix);
+    return Math::OriginalVectorTransform(offset, matrix);
 }
 Core::Expected<void, std::string> BirdExtras(FaunaObject& bird, FaunaDrawContext& context)
 {
@@ -281,8 +281,7 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
 // 0x4ebc80 sobre el scratch (0x5786f9c y 0x68c53bc): sin `world`, por la escala y más el origen del objeto (Translate
 // en 1), las normales sin la escala; con él, `bones` ya en el mundo (Translate en 0), las normales con la escala que
 // traen los huesos.
-void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model,
-                    std::span<const Render::Models::BoneTransform> bones,
+void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model, std::span<const Math::BoneTransform> bones,
                     const Render::Models::ObjectTransform& transform, bool world)
 {
     if (carry.meshes.size() < model.meshes.size())
@@ -323,7 +322,7 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
     carry.models[object.model] = object.transform;
     const auto count = skeleton->bones.size();
     if (carry.bones.size() < count)
-        carry.bones.resize(count, Render::Models::BoneTransform(0));
+        carry.bones.resize(count, Math::BoneTransform(0));
     auto bones = std::span(carry.bones).first(count);
     // 0x5ffdf0 con el segundo argumento en 1 (sin `translated`): 0x4eb860 con la bandera en 0 (el sete de 0x5fff22 o
     // 0x5fff50) deja los huesos en el modelo y 0x4ebc80 corre con Translate en 1. Con el segundo argumento en 0:
@@ -348,7 +347,7 @@ PublishFaunaFloorPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary
         return {};
     const auto count = skeleton->bones.size();
     if (carry.bones.size() < count)
-        carry.bones.resize(count, Render::Models::BoneTransform(0));
+        carry.bones.resize(count, Math::BoneTransform(0));
     auto bones = std::span(carry.bones).first(count);
     if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, {}, bones))
         return Core::Unexpected(std::string("608b0a: pose de ítem del piso inválida"));
@@ -360,17 +359,18 @@ Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, cons
 {
     return PublishFaunaPoseRaw(carry, models, object.model, carry.bones, object.transform, false);
 }
-Core::Expected<void, std::string>
-PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, std::uint16_t modelId,
-                    std::span<const Render::Models::BoneTransform> bones,
-                    const Render::Models::ObjectTransform& transform, bool translated, bool skin)
+Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry,
+                                                      const Render::Models::IModelLibrary& models,
+                                                      std::uint16_t modelId, std::span<const Math::BoneTransform> bones,
+                                                      const Render::Models::ObjectTransform& transform, bool translated,
+                                                      bool skin)
 {
     const auto* model = models.Find(modelId);
     const auto* skeleton = models.SkeletonOf(modelId);
     const auto count = bones.size();
     carry.models[modelId] = transform;
     if (carry.bones.size() < count)
-        carry.bones.resize(count, Render::Models::BoneTransform(0));
+        carry.bones.resize(count, Math::BoneTransform(0));
     for (std::size_t i = 0; i < count; ++i)
         if (skeleton == nullptr || i >= skeleton->bones.size() || !skeleton->bones[i].dummy)
             carry.bones[i] = bones[i];

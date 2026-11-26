@@ -135,8 +135,8 @@ Core::Expected<void, std::string> PlaceCommand(const GameUiContext& context)
         // 0x41085e..0x4108a3: coordenadas en el mapa, truncadas por _ftol y después al byte bajo.
         const double x = static_cast<double>(panel.offsetX + context.mouseX) - static_cast<double>(panel.x + MapInsetX);
         const double y = static_cast<double>(panel.offsetY + context.mouseY) - static_cast<double>(panel.y + MapInsetY);
-        panel.targetX = static_cast<std::uint8_t>(World::OriginalFtolLow(x * panel.page).value_or(0));
-        panel.targetY = static_cast<std::uint8_t>(World::OriginalFtolLow(256.0 - y * panel.page).value_or(0));
+        panel.targetX = static_cast<std::uint8_t>(Math::OriginalFtolLow(x * panel.page).value_or(0));
+        panel.targetY = static_cast<std::uint8_t>(Math::OriginalFtolLow(256.0 - y * panel.page).value_or(0));
         panel.targetTtl = 100;
         if (auto sent = SendCommand(context); !sent.HasValue())
             return sent;

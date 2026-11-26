@@ -18,23 +18,23 @@
 // Client::Render::Models::PoseSkeleton: 0x4eb860 sobre un esqueleto armado a mano.
 namespace
 {
+using Client::Math::AngleMatrix;
+using Client::Math::AngleQuaternion;
+using Client::Math::BoneTransform;
+using Client::Math::QuaternionMatrix;
+using Client::Math::QuaternionSlerp;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
+using Client::Math::VectorRotate;
+using Client::Math::VectorTransform;
 using Client::Render::Models::ActionInfo;
-using Client::Render::Models::AngleMatrix;
-using Client::Render::Models::AngleQuaternion;
 using Client::Render::Models::AnimationState;
 using Client::Render::Models::BoneKey;
-using Client::Render::Models::BoneTransform;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::PoseSkeleton;
 using Client::Render::Models::PoseWorldSkeleton;
-using Client::Render::Models::QuaternionMatrix;
-using Client::Render::Models::QuaternionSlerp;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
-using Client::Render::Models::VectorRotate;
-using Client::Render::Models::VectorTransform;
 
 constexpr float Tolerance = 1e-5f;
 constexpr glm::vec2 NoHead{0.0f, 0.0f};

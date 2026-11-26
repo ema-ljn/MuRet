@@ -26,7 +26,7 @@ struct ItemPartOwner
 {
     std::uint16_t type = 0;                                 // +2: 0xc5 outlines only its first mesh
     Render::Models::ObjectTransform transform;              // +0xc, +0x10, +0x1c
-    std::span<const Render::Models::BoneTransform> bones;   // +0x120
+    std::span<const Math::BoneTransform> bones;             // +0x120
     glm::vec3 light{1.0f};                                  // +0x3b4
     float alpha = 1.0f;                                     // +0x174
     std::int16_t hiddenMesh = Render::Models::NoHiddenMesh; // +0x58, the outline only

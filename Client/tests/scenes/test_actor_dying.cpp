@@ -145,8 +145,8 @@ TEST(ActorDyingTest, TheBloodCastleFlight)
     flying.floatD8 = 3.0f;
     flying.floatE4 = 5.0f;
     flying.angles.x = 20.0f;
-    const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, 10.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(flying.push));
+    const glm::vec3 turned =
+        Client::Math::OriginalVectorRotate({0.0f, 10.0f, 0.0f}, Client::Math::OriginalAngleMatrix(flying.push));
     ActorState still = flying;
     still.byte1a1 = 0;
 
@@ -285,8 +285,8 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
     pushed.floatD0 = 10.0f;
     pushed.floatD4 = 2.0f;
     pushed.floatD8 = 4.0f;
-    const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-        {1.0f, 6.0f, 2.0f}, Client::Render::Models::OriginalAngleMatrix({10.0f, 0.0f, 45.0f}));
+    const glm::vec3 moved =
+        Client::Math::OriginalVectorRotate({1.0f, 6.0f, 2.0f}, Client::Math::OriginalAngleMatrix({10.0f, 0.0f, 45.0f}));
     ASSERT_TRUE(StepActorDying(pushed, Slot, {.random = random}).HasValue());
     EXPECT_EQ(pushed.floatD0, 6.0f);
     EXPECT_EQ(pushed.floatD8, 5.0f);

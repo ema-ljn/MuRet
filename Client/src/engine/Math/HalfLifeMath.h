@@ -10,7 +10,7 @@
 // x87): Client/docs/research/05-formatos-de-datos.md, "Modelos .bmd", y 06, "El modelo en el
 // binario". La CL6.0 la escribió a mano y la comparó con glm (labs/cl6.0-huesos); acá van los tipos
 // de glm, con glm donde da lo mismo y a mano lo que glm hace distinto (pregunta 5 del plan de la CL6).
-namespace Client::Render::Models
+namespace Client::Math
 {
 // La 3 × 4 de Half-Life (m[fila][columna], la traslación en la columna 3) en un glm::mat4x3, que
 // guarda por columnas: m[3] es la traslación. Copiar índices sin dar vuelta es otro giro.
@@ -46,4 +46,4 @@ using BoneTransform = glm::mat4x3;
 
 // 0x5fcbd0: un vector solo por el giro de `m`, sin la traslación: lo que se hace con una normal.
 [[nodiscard]] ENGINE_API glm::vec3 VectorRotate(const glm::vec3& v, const BoneTransform& m);
-} // namespace Client::Render::Models
+} // namespace Client::Math

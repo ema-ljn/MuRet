@@ -879,8 +879,8 @@ TEST(GameModelEffectsTest, TheSpinningStoneChipRisesAndTurnsTwentyEachStep)
     for (int step = 0; step < 2; ++step)
     {
         SCOPED_TRACE(step);
-        const auto moved = Client::Render::Models::OriginalVectorRotate(
-            twin.velocity, Client::Render::Models::OriginalAngleMatrix(twin.transform.angles));
+        const auto moved =
+            Client::Math::OriginalVectorRotate(twin.velocity, Client::Math::OriginalAngleMatrix(twin.transform.angles));
         for (int axis = 0; axis < 3; ++axis)
             twin.transform.position[axis] = static_cast<float>(static_cast<double>(moved[axis]) +
                                                                static_cast<double>(twin.transform.position[axis]));
@@ -1303,7 +1303,7 @@ namespace
 // El seno · f de la x87 (FSIN y FMUL), con el signo de f.
 double SineTimes(double argument, float multiplier)
 {
-    const auto product = Client::Render::Models::Detail::SineProductPC53(argument, std::abs(multiplier));
+    const auto product = Client::Math::Detail::SineProductPC53(argument, std::abs(multiplier));
     EXPECT_TRUE(product.has_value());
     return multiplier < 0.0f ? -product.value_or(0.0) : product.value_or(0.0);
 }
@@ -1355,8 +1355,8 @@ TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMovi
     EXPECT_EQ(trail.scale, 0.95f);
     EXPECT_EQ(trail.life, 37); // ftol(0,95f · 40) = ftol(37,999998).
     EXPECT_FALSE(particles.All()[1].alive);
-    const glm::vec3 step = Client::Render::Models::OriginalVectorRotate(
-        glm::vec3(0.0f, -4.5f, 0.0f), Client::Render::Models::OriginalAngleMatrix(wisp.transform.angles));
+    const glm::vec3 step = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -4.5f, 0.0f),
+                                                              Client::Math::OriginalAngleMatrix(wisp.transform.angles));
     EXPECT_EQ(wisp.transform.position, glm::vec3(static_cast<float>(static_cast<double>(step.x) + 1000.0),
                                                  static_cast<float>(static_cast<double>(step.y) + 1000.0),
                                                  static_cast<float>(static_cast<double>(step.z) + 100.0)));
@@ -1651,7 +1651,7 @@ double Wide(float value)
 
 glm::vec3 QuakeTurned(const glm::vec3& offset, const glm::vec3& angles)
 {
-    return Client::Render::Models::OriginalVectorRotate(offset, Client::Render::Models::OriginalAngleMatrix(angles));
+    return Client::Math::OriginalVectorRotate(offset, Client::Math::OriginalAngleMatrix(angles));
 }
 
 // La altura del terreno de los tests: depende de x y de y para que se vea qué punto se pidió.
@@ -2800,8 +2800,7 @@ TEST(PiercingShotTest, ThreeEmissionsRetainActorRgbAndSpendSixteenDrawsEvenWithF
         {
             const glm::vec3 angles{static_cast<float>(expected.Next() % 360), 0,
                                    static_cast<float>(expected.Next() % 360)};
-            const auto offset =
-                Render::Models::OriginalVectorRotate(glm::vec3{0, 120, 0}, Render::Models::OriginalAngleMatrix(angles));
+            const auto offset = Math::OriginalVectorRotate(glm::vec3{0, 120, 0}, Math::OriginalAngleMatrix(angles));
             const float rotation = static_cast<float>(expected.Next() % 360);
             const float spriteScale =
                 static_cast<float>(static_cast<double>((expected.Next() & 7) + 8) * static_cast<double>(0.3f));
@@ -2856,8 +2855,8 @@ TEST(PiercingShotTest, BirthUsesTheFirstFreePhysicalSlotAndLeavesRetainedFields)
     EXPECT_EQ(retained.start, (glm::vec3{11, 22, 33}));
     EXPECT_EQ(retained.copiedAngles, (glm::vec3{44, 55, 66}));
     EXPECT_EQ(retained.ownerContext, &actor);
-    const auto offset = Render::Models::OriginalVectorRotate(
-        glm::vec3{0, -100, 0}, Render::Models::OriginalAngleMatrix(glm::vec3{15, 25, 35}));
+    const auto offset =
+        Math::OriginalVectorRotate(glm::vec3{0, -100, 0}, Math::OriginalAngleMatrix(glm::vec3{15, 25, 35}));
     EXPECT_FLOAT_EQ(retained.transform.position.x, static_cast<float>(static_cast<double>(offset.x) + 10));
     EXPECT_FLOAT_EQ(retained.transform.position.y, static_cast<float>(static_cast<double>(offset.y) + 20));
     EXPECT_FLOAT_EQ(retained.transform.position.z, static_cast<float>(static_cast<double>(offset.z) + 30 + 150));

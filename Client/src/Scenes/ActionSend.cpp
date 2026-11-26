@@ -25,7 +25,7 @@ constexpr std::uint32_t DirectionMask = 7;
 std::optional<std::uint8_t> ActionDirection(float angle)
 {
     const double sector = ((static_cast<double>(angle) + HalfSector) * SectorReciprocal) + SectorBias;
-    const auto whole = World::OriginalFtolLow(sector);
+    const auto whole = Math::OriginalFtolLow(sector);
     if (!whole)
         return std::nullopt;
     const std::uint32_t low = static_cast<std::uint32_t>(*whole) & LowByte;

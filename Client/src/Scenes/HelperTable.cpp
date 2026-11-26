@@ -303,8 +303,7 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
             for (int stone = 0; stone < StoneCount; ++stone)
             {
                 turn.z = F32(static_cast<double>(turn.z) + StoneTurn);
-                const glm::vec3 offset =
-                    Render::Models::OriginalVectorRotate(reach, Render::Models::OriginalAngleMatrix(turn));
+                const glm::vec3 offset = Math::OriginalVectorRotate(reach, Math::OriginalAngleMatrix(turn));
                 const glm::vec3 place(F32(static_cast<double>(offset.x) + static_cast<double>(helper.position.x)),
                                       F32(static_cast<double>(offset.y) + static_cast<double>(helper.position.y)),
                                       F32(static_cast<double>(offset.z) + static_cast<double>(helper.position.z)));
@@ -354,8 +353,7 @@ Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const Help
     for (int turn = 0; turn < Turns; ++turn)
     {
         angles.z = F32(static_cast<double>(angles.z) + TurnStep);
-        const glm::vec3 rotated =
-            Render::Models::OriginalVectorRotate(reach, Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 rotated = Math::OriginalVectorRotate(reach, Math::OriginalAngleMatrix(angles));
         glm::vec3 point{F32(static_cast<double>(rotated.x) + static_cast<double>(helper.position.x)),
                         F32(static_cast<double>(rotated.y) + static_cast<double>(helper.position.y)),
                         F32(static_cast<double>(rotated.z) + static_cast<double>(helper.position.z))};
@@ -572,8 +570,7 @@ constexpr std::uint16_t RedFenrir = 0x14b, BlueFenrir = 0x14c;
 constexpr std::array<std::size_t, 4> FenrirStrikeBones{22, 28, 36, 44};
 
 // Un punto del buffer global con un hueso de los de arriba, todos por debajo de los 200 del buffer.
-glm::vec3 FenrirBonePoint(std::span<const Render::Models::BoneTransform> bones, std::size_t bone,
-                          const glm::vec3& offset)
+glm::vec3 FenrirBonePoint(std::span<const Math::BoneTransform> bones, std::size_t bone, const glm::vec3& offset)
 {
     return GlobalPosePoint(bones, bone, offset, "0x4ec110").Value();
 }
@@ -591,8 +588,8 @@ Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const Helpe
                                             helper.type));
     }
     // 0x60277b..0x602792: fld del reloj, fmul 0,002f, fsin, fmul 0,2f y fstp.
-    const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(context.worldClock) * FenrirPulseRate,
-                                                              FenrirPulseSwing);
+    const auto sine =
+        Math::Detail::SineProductPC53(static_cast<double>(context.worldClock) * FenrirPulseRate, FenrirPulseSwing);
     if (!sine)
         return Core::Unexpected(std::string("0x60278a: el seno del reloj del Fenrir no cabe en el perfil PC53"));
     const double pulse = static_cast<double>(F32(*sine));
@@ -607,7 +604,7 @@ Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const Helpe
     if (auto body = DrawFenrirBody(context.batch, context.models, drawn, map, charging, context.frameClock);
         !body.HasValue())
         return body;
-    const std::span<const Render::Models::BoneTransform> bones = context.globalPose();
+    const std::span<const Math::BoneTransform> bones = context.globalPose();
     Crt::CrtRandom& random = context.random;
     if (charging)
     {

@@ -341,13 +341,11 @@ void FlyTheGuardianAngel(HelperState& helper, const ActorState& rider, glm::vec2
     // 0x445083..0x4450b4: menor o sin orden no gira.
     if (distance >= static_cast<double>(reach))
     {
-        const float course =
-            F32(Render::Models::CreateAngle(helper.position.x, helper.position.y, riderStart.x, riderStart.y));
-        helper.angles.z = F32(Render::Models::TurnAngle(helper.angles.z, course, GuardianTurn));
+        const float course = F32(Math::CreateAngle(helper.position.x, helper.position.y, riderStart.x, riderStart.y));
+        helper.angles.z = F32(Math::TurnAngle(helper.angles.z, course, GuardianTurn));
     }
     // 0x4450ba..0x4450f4: la velocidad girada por la matriz de sus ángulos (+0x9c), sumada eje por eje.
-    const glm::vec3 move =
-        Render::Models::OriginalVectorRotate(helper.velocity, Render::Models::OriginalAngleMatrix(helper.angles));
+    const glm::vec3 move = Math::OriginalVectorRotate(helper.velocity, Math::OriginalAngleMatrix(helper.angles));
     helper.position.x = F32(static_cast<double>(move.x) + static_cast<double>(helper.position.x));
     helper.position.y = F32(static_cast<double>(move.y) + static_cast<double>(helper.position.y));
     helper.position.z = F32(static_cast<double>(move.z) + static_cast<double>(helper.position.z));

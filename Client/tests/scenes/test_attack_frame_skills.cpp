@@ -386,7 +386,7 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
             hero.position = {1000.0f, 2000.0f, 0.0f};
             hero.angles = {0.0f, 0.0f, 0.0f};
             hero.scale = 1.0f;
-            hero.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+            hero.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
             hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
             const glm::vec3 untouched{-1.0f, -2.0f, -3.0f};
             hero.skillHandPoint = untouched;
@@ -496,8 +496,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const double angle = 30.0 * static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
-        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 300.0f);
-        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 300.0f);
+        const auto sine = Client::Math::Detail::SineProductPC53(angle, 300.0f);
+        const auto cosine = Client::Math::Detail::CosineProductPC53(angle, 300.0f);
         ASSERT_TRUE(sine.has_value() && cosine.has_value());
         EXPECT_EQ(hero.skillHandPoint.x, static_cast<float>(*sine + 1000.0));
         EXPECT_EQ(hero.skillHandPoint.y, static_cast<float>(2000.0 - *cosine));
@@ -625,7 +625,7 @@ TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
         hero.position = {1000.0f, 2000.0f, 0.0f};
         hero.angles = {0.0f, 0.0f, 0.0f};
         hero.scale = 1.0f;
-        hero.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        hero.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
         tested.world.PlaceModel(hero);
         ASSERT_TRUE(tested.Step(hero, 0x2b).HasValue());
@@ -1065,7 +1065,7 @@ TEST(AttackFrameSkillsTest, FullPoolsContinueTheNativeFrameTails)
         FrameWorld tested(0);
         ActorState& actor = tested.Striker(probe.action, probe.frame, probe.step);
         actor.hands[0].bone = HandBone;
-        actor.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        actor.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         actor.attackTarget = 4;
         tested.world.Actors()[4].alive = true;
         tested.world.OwnCharacter().attackSpeed = 123;
@@ -1100,7 +1100,7 @@ TEST(AttackFrameSkillsTest, Skill2bReadsThePlacementPublishedBeforeTheActorMoves
     actor.hands[0].bone = HandBone;
     actor.position = {10.0f, 20.0f, 30.0f};
     actor.scale = 0.5f;
-    actor.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+    actor.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
     actor.bodyPose[HandBone][3] = {1.0f, 2.0f, 3.0f};
     tested.world.PlaceModel(actor.type, {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}});
     for (auto& joint : tested.joints)

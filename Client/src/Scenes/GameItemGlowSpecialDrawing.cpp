@@ -72,7 +72,7 @@ public:
     }
     Core::Expected<double, std::string> Wave(float frequency, float multiplier, float offset)
     {
-        const auto wave = Render::Models::Detail::SineProductPC53(static_cast<double>(time) * frequency, multiplier);
+        const auto wave = Math::Detail::SineProductPC53(static_cast<double>(time) * frequency, multiplier);
         if (!wave)
             return Core::Unexpected(std::string("60b3d0: fase del pase especial fuera del perfil portable"));
         return *wave + offset;
@@ -158,7 +158,7 @@ Result QuestColor(EarlyItemRenderer& draw, int level)
 Result RedBlueItem(EarlyItemRenderer& draw)
 {
     draw.Color({0.9f, 0.1f, 0.1f});
-    const auto wave = Render::Models::Detail::SineProductPC53(static_cast<double>(draw.context.map) * 0.0001f, 1);
+    const auto wave = Math::Detail::SineProductPC53(static_cast<double>(draw.context.map) * 0.0001f, 1);
     if (!wave)
         return Core::Unexpected(std::string("60bd0f: fase de mapa inválida"));
     draw.object.state.uv = {F32(*wave), F32(static_cast<double>(draw.time) * -0.0005f)};

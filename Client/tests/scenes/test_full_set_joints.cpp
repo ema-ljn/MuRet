@@ -32,8 +32,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::Detail::CosineProductPC53;
-using Client::Render::Models::Detail::SineProductPC53;
+using Client::Math::Detail::CosineProductPC53;
+using Client::Math::Detail::SineProductPC53;
 using Client::Scenes::ActorState;
 using Client::Scenes::HelperState;
 using Client::Scenes::JointOwnerKind;
@@ -391,7 +391,7 @@ TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
     joints[0].life = 10;
     JointState expected = joints[1];
     ASSERT_TRUE(Client::Scenes::JointKernels::AppendJointTail(
-                    expected, Client::Render::Models::OriginalAngleMatrix(glm::vec3{0.0f, 0.0f, 90.0f}))
+                    expected, Client::Math::OriginalAngleMatrix(glm::vec3{0.0f, 0.0f, 90.0f}))
                     .HasValue());
     ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
     EXPECT_EQ(joints[1].count, expected.count);
@@ -792,8 +792,8 @@ namespace
 // 4e9810 con el destino: el yaw y el pitch giran de a `turn` (lo que hace SteerJoint en el paso).
 void Steer(JointState& expected, const glm::vec3& target, float turn)
 {
-    using Client::Render::Models::CreateAngle;
-    using Client::Render::Models::TurnAngle;
+    using Client::Math::CreateAngle;
+    using Client::Math::TurnAngle;
     const auto yaw = F32(CreateAngle(expected.position.x, expected.position.y, target.x, target.y));
     expected.angles.z = F32(TurnAngle(expected.angles.z, yaw, turn));
     const double x = D(expected.position.x) - target.x;
@@ -864,8 +864,8 @@ void ClimbTowardsTheOwner(std::int32_t subtype)
             hero.position = {1310.0f, 1690.0f, 300.0f};
         ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
 
-        const auto matrix = Client::Render::Models::OriginalAngleMatrix(expected.angles);
-        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
+        const auto matrix = Client::Math::OriginalAngleMatrix(expected.angles);
+        const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
         if (expected.speed > 0)
             for (int axis = 0; axis < 3; ++axis)
                 expected.position[axis] = F32(D(expected.position[axis]) + D(moved[axis]));
@@ -993,8 +993,8 @@ TEST(FullSetJointsTest, TheBoltEnergyGlidesAndSparksInItsLastLives)
         SCOPED_TRACE(step);
         ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
 
-        const auto matrix = Client::Render::Models::OriginalAngleMatrix(expected.angles);
-        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
+        const auto matrix = Client::Math::OriginalAngleMatrix(expected.angles);
+        const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
         if (expected.speed > 0)
             for (int axis = 0; axis < 3; ++axis)
                 expected.position[axis] = F32(D(expected.position[axis]) + D(moved[axis]));

@@ -43,8 +43,7 @@ Core::Expected<glm::vec3, std::string> Point(const GameObjectPass& pass, std::si
     // La .bss nativa empieza en cero; índices aún no publicados conservan esa matriz cero.
     if (bone >= pass.retainedPose->bones.size())
         return glm::vec3(0.0f);
-    return Render::Models::OriginalVectorTransform(glm::vec3(0.0f),
-                                                   Render::Models::OriginalMatrixOf(pass.retainedPose->bones[bone]));
+    return Math::OriginalVectorTransform(glm::vec3(0.0f), Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));
 }
 
 Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::uint16_t texture, const glm::vec3& position,
@@ -83,7 +82,7 @@ Core::Expected<void, std::string> Particle(const GameObjectPass& pass, const Wor
 Core::Expected<void, std::string> Fairy(const World::WorldObject& object, const glm::vec3& light,
                                         const GameObjectPass& pass)
 {
-    const auto turn = World::OriginalFtolLow(static_cast<double>(pass.worldClock) * FairyTurnScale);
+    const auto turn = Math::OriginalFtolLow(static_cast<double>(pass.worldClock) * FairyTurnScale);
     if (!turn)
         return Core::Unexpected(std::string("0x6035b4:ftol del giro de Noria fuera de dominio"));
     const float rotation = static_cast<float>(*turn % 360);

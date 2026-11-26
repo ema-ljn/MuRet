@@ -28,7 +28,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::BoneTransform;
+using Client::Math::BoneTransform;
 using Client::Scenes::GameObjectPass;
 using Client::World::Particle;
 using Client::World::Particles;
@@ -149,7 +149,7 @@ TEST(EventMapObjectFrameTest, TheBloodCastleStatueGlowsOnSevenBones)
         .map = 11, .random = &random, .worldClock = 98765.0f, .sprites = &sprites, .retainedPose = &pose};
     ASSERT_TRUE(Client::Scenes::StepBloodCastleObjectFrame(object, pass).HasValue());
     const double phase = (30.0 * 20.0 + 98765.0) * static_cast<double>(std::bit_cast<float>(0x3a83126fu));
-    const auto wave = Client::Render::Models::Detail::SineSumPC53(phase, 1.0);
+    const auto wave = Client::Math::Detail::SineSumPC53(phase, 1.0);
     ASSERT_TRUE(wave.has_value());
     const double level = *wave * 0.5;
     const glm::vec3 light{F32(level), F32(level * 0.5), 0.0f};
@@ -177,7 +177,7 @@ TEST(EventMapObjectFrameTest, TheBloodCastleOrbPulsesOnItsThirdBone)
     Client::World::FrameSprites sprites;
     const GameObjectPass pass{.map = 14, .worldClock = 4321.0f, .sprites = &sprites, .retainedPose = &pose};
     ASSERT_TRUE(Client::Scenes::StepBloodCastleObjectFrame(object, pass).HasValue());
-    const auto wave = Client::Render::Models::Detail::SineProductPC53(
+    const auto wave = Client::Math::Detail::SineProductPC53(
         4321.0 * static_cast<double>(std::bit_cast<float>(0x3a83126fu)), std::bit_cast<float>(0x3e99999au));
     ASSERT_TRUE(wave.has_value());
     const float level = F32(*wave + static_cast<double>(std::bit_cast<float>(0x3f333333u)));

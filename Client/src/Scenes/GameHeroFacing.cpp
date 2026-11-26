@@ -30,9 +30,9 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
         action == 0x4d || action == 0x4f || action == 0x5a || hero.byte381 != 0)
         return {};
     state.movementTarget = 0;
-    const auto angle = World::OriginalFtolLow(Render::Models::CreateAngle(static_cast<float>(context.mouseX),
-                                                                          static_cast<float>(context.mouseY),
-                                                                          static_cast<float>(context.centerX), 180.0f));
+    const auto angle =
+        Math::OriginalFtolLow(Math::CreateAngle(static_cast<float>(context.mouseX), static_cast<float>(context.mouseY),
+                                                static_cast<float>(context.centerX), 180.0f));
     if (!angle)
         return Core::Unexpected(std::string("0x59b422: ángulo quieto fuera del perfil ftol"));
     const auto shifted = std::bit_cast<std::int32_t>(405u - std::bit_cast<std::uint32_t>(*angle));

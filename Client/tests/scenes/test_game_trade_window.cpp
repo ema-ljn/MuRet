@@ -72,9 +72,9 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
+using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Text::FontKind;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameHudContext;

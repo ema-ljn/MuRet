@@ -12,7 +12,7 @@
 
 #include <cmath>
 
-namespace Client::Render::Models
+namespace Client::Math
 {
 namespace Libc = LIBC_NAMESPACE::shared;
 
@@ -64,4 +64,4 @@ double RoundedLog10(double x)
 {
     return Libc::log10(x);
 }
-} // namespace Client::Render::Models
+} // namespace Client::Math

@@ -46,17 +46,17 @@ struct DecalProjection
     float inverse;
     float stretch;
     std::int32_t reach;
-    Render::Models::OriginalMatrix rotation;
+    Math::OriginalMatrix rotation;
 };
 
 Core::Expected<DecalProjection, std::string> Project(const TerrainDecal& decal)
 {
     const float centerX = F32(static_cast<double>(decal.x) * CellsPerUnit);
     const float centerY = F32(static_cast<double>(decal.y) * CellsPerUnit);
-    const auto column = OriginalFtolLow(centerX);
-    const auto row = OriginalFtolLow(centerY);
+    const auto column = Math::OriginalFtolLow(centerX);
+    const auto row = Math::OriginalFtolLow(centerY);
     const float side = !(decal.width >= decal.height) ? decal.height : decal.width;
-    const auto whole = OriginalFtolLow(side);
+    const auto whole = Math::OriginalFtolLow(side);
     if (!column || !row || !whole)
         return Core::Unexpected(std::string("0x41dd90/41dd96/41ddea: ftol del calco de Kalima fuera de int64"));
     const auto reach = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(*whole) + 1u);
@@ -73,7 +73,7 @@ Core::Expected<DecalProjection, std::string> Project(const TerrainDecal& decal)
                            F32(1.0 / side),
                            F32(static_cast<double>(decal.width) / decal.height),
                            reach,
-                           Render::Models::OriginalAngleMatrix({0, 0, decal.angle})};
+                           Math::OriginalAngleMatrix({0, 0, decal.angle})};
 }
 
 std::array<glm::vec2, 4> Uvs(const DecalProjection& projection, std::int64_t column, std::int64_t row)
@@ -91,7 +91,7 @@ std::array<glm::vec2, 4> Uvs(const DecalProjection& projection, std::int64_t col
     {
         const glm::vec3 centered{F32(static_cast<double>(base[index].x) - Half),
                                  F32(static_cast<double>(base[index].y) - Half), 0};
-        const auto rotated = Render::Models::OriginalVectorRotate(centered, projection.rotation);
+        const auto rotated = Math::OriginalVectorRotate(centered, projection.rotation);
         turned[index] = {F32(static_cast<double>(rotated.x) * projection.stretch + Half),
                          F32(static_cast<double>(rotated.y) + Half)};
     }

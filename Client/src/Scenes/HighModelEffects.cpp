@@ -92,7 +92,7 @@ using Math::F32;
 // 0x5fc8f0 y 0x5fcbd0: el vector girado por los ángulos (en grados) de la matriz del original.
 glm::vec3 Rotated(const glm::vec3& vector, const glm::vec3& angles)
 {
-    return Render::Models::OriginalVectorRotate(vector, Render::Models::OriginalAngleMatrix(angles));
+    return Math::OriginalVectorRotate(vector, Math::OriginalAngleMatrix(angles));
 }
 
 // El fld/fadd/fstp de cada eje de una suma de vectores.
@@ -584,7 +584,7 @@ Core::Expected<void, std::string> StepTheSiegeAura(World::ModelEffect& effect, c
     {
         effect.objectState.hiddenMesh = context.world.Runtime().siegeActive ? std::int16_t{-1} : std::int16_t{-2};
         effect.life = HeldLife;
-        const auto wave = Render::Models::Detail::SineProductPC53(clock * WaveRate, WaveDepth);
+        const auto wave = Math::Detail::SineProductPC53(clock * WaveRate, WaveDepth);
         if (!wave)
             return Core::Unexpected(std::string("0x529568: la luz del aura 0x134 no cabe en el perfil PC53"));
         effect.objectState.light = F32(*wave + WaveBase);
@@ -773,8 +773,7 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
         for (int axis = 0; axis < 2; ++axis)
         {
             const int draw = random.Next() % WobbleSpan;
-            const auto wobble =
-                Render::Models::Detail::SineProductPC53(static_cast<double>(draw) * WobbleRate, WobbleSize);
+            const auto wobble = Math::Detail::SineProductPC53(static_cast<double>(draw) * WobbleRate, WobbleSize);
             if (!wobble)
                 return Core::Unexpected(std::string("0x52bea9: el temblor del 0x625 no cabe en el perfil PC53"));
             position[axis] = F32(*wobble + D(effect.start[axis]));
@@ -871,8 +870,7 @@ Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, 
             const double pitch = D(effect.transform.angles.x);
             effect.transform.angles.x = F32(!(pitch >= TiltFloor) ? pitch + Tilt : pitch - Tilt);
         }
-        static_cast<void>(
-            Render::Models::MoveToward(effect.transform.position, effect.transform.angles, target, effect.speed));
+        static_cast<void>(Math::MoveToward(effect.transform.position, effect.transform.angles, target, effect.speed));
         const double faster = D(effect.speed) + Acceleration;
         effect.speed = F32(effect.life < LateLife ? faster + LateBoost : faster);
         Advance(effect);
@@ -904,7 +902,7 @@ Core::Expected<void, std::string> StepTheDivingPart(World::ModelEffect& effect, 
         return {};
     constexpr double Acceleration = static_cast<double>(std::bit_cast<float>(0x4019999au)); // 0x6ba238, 2,4f
     static_cast<void>(
-        Render::Models::MoveToward(effect.transform.position, effect.transform.angles, owner->position, effect.speed));
+        Math::MoveToward(effect.transform.position, effect.transform.angles, owner->position, effect.speed));
     effect.speed = F32(D(effect.speed) + Acceleration);
     Advance(effect);
     constexpr std::int32_t JointEvery = 3;
@@ -1172,10 +1170,10 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
         offset.y = static_cast<float>(context.random.Next() % DepthSpan - DepthCenter);
         offset.z = static_cast<float>(context.random.Next() % DepthSpan - DepthCenter);
         // Sin huesos propios (antes del primer dibujo del dueño), la matriz en cero, como HandShinePoint (Q-C318).
-        const Render::Models::BoneTransform matrix =
-            bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-        const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
-                                                                          offset, placement.scale, placement.origin);
+        const Math::BoneTransform matrix =
+            bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Math::BoneTransform(0.0f);
+        const glm::vec3 point =
+            Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
         if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, World::SwellLifeParticle,
                                            point, owner->angles, glm::vec3(1.0f), SparkSubtype, SparkScale, 0x52baf5);
             !made.HasValue())
@@ -1213,11 +1211,9 @@ HighEffectContext HighContextOf(const CharacterStepContext& context)
 
 glm::vec3 ActorBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     const auto placement = world.ModelPlacement(actor.type);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
-                                                     placement.origin);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 bool IsHighModelEffect(std::int16_t type)

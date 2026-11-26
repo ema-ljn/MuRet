@@ -47,8 +47,8 @@
 // más su índice), deja ver qué pase dibuja qué malla con qué textura, qué color y qué mezcla.
 namespace
 {
+using Client::Math::RoundedSin;
 using Client::Render::ModelBlend;
-using Client::Render::Models::RoundedSin;
 using Client::Scenes::ActorState;
 
 constexpr std::size_t MeshCount = 7;
@@ -126,6 +126,7 @@ class BodyModels final : public Client::Render::Models::IModelLibrary
 public:
     BodyModels()
     {
+        using namespace Client::Math;
         using namespace Client::Render::Models;
         SkeletonBone bone;
         bone.parent = -1;
@@ -315,7 +316,7 @@ protected:
     std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
     // La tabla de joints (0x74a8d78): vacía salvo en Kundun al morir.
     std::vector<Client::Scenes::JointState> m_joints;
-    std::vector<Client::Render::Models::BoneTransform> m_bones{Client::Render::Models::BoneTransform(1.0f)};
+    std::vector<Client::Math::BoneTransform> m_bones{Client::Math::BoneTransform(1.0f)};
     std::function<double(float, float)> m_terrainHeight{};
     std::vector<Client::Render::Models::SkinnedMesh> m_meshes;
     glm::vec3 m_color{};
@@ -746,7 +747,7 @@ TEST_F(MonsterBodyTest, TheCastleWaterUsesTheProtectedFrameThenTheSignedClockRem
 
 TEST_F(MonsterBodyTest, TheCastleCatapultSelectsTheProjectileBoneByItsFrameWindow)
 {
-    m_bones.resize(45, Client::Render::Models::BoneTransform(1));
+    m_bones.resize(45, Client::Math::BoneTransform(1));
     m_bones[12][3][0] = 10;
     m_bones[12][3][1] = 20;
     m_bones[12][3][2] = 30;
@@ -798,7 +799,7 @@ TEST_F(MonsterBodyTest, TheCastleGuardDrawsItsTwoOverlaysAndRestoresWhite)
 
 TEST_F(MonsterBodyTest, TheCastleProjectileRebuildsItsPreludeColorAfterTheCatapultFlagTint)
 {
-    m_bones.resize(45, Client::Render::Models::BoneTransform(1));
+    m_bones.resize(45, Client::Math::BoneTransform(1));
     m_actor->flags78 = 1;
     const auto result = Draw(0x1f8, 30);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -809,7 +810,7 @@ TEST_F(MonsterBodyTest, TheCastleProjectileRebuildsItsPreludeColorAfterTheCatapu
 
 TEST_F(MonsterBodyTest, TheCastleProjectileUsesTheActorsSharedBoneScale)
 {
-    m_bones.resize(45, Client::Render::Models::BoneTransform(1));
+    m_bones.resize(45, Client::Math::BoneTransform(1));
     m_boneScale = 1.2f;
     const auto result = Draw(0x1f8, 30);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1202,7 +1203,7 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         m_actor->angles = {0.0f, 0.0f, 30.0f};
         m_actor->light = {0.5f, 0.25f, 1.0f};
         m_transform = {.position = m_actor->position, .angles = m_actor->angles, .scale = 2.0f};
-        m_bones.assign(5, Client::Render::Models::BoneTransform(1.0f));
+        m_bones.assign(5, Client::Math::BoneTransform(1.0f));
         m_bones[4][3] = glm::vec3(10.0f, 20.0f, 30.0f);
         m_terrainHeight = ground;
         m_cloth.random = Client::Crt::CrtRandom{1};
@@ -1268,7 +1269,7 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         const auto ungrounded = Draw(0x192, map);
         ASSERT_FALSE(ungrounded.HasValue());
         EXPECT_EQ(ungrounded.Error().rfind("0x43eeb9: 0x51e26e", 0), 0u) << ungrounded.Error();
-        m_bones.assign(1, Client::Render::Models::BoneTransform(1.0f));
+        m_bones.assign(1, Client::Math::BoneTransform(1.0f));
         m_transform = {};
     }
 }
@@ -1284,7 +1285,7 @@ TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
         m_effects = std::make_unique<Client::World::ModelEffects>();
         m_actor->dword60 = 0x5a;
         m_actor->animation = {.action = 6, .frame = 15.0f};
-        m_bones.assign(5, Client::Render::Models::BoneTransform(1.0f));
+        m_bones.assign(5, Client::Math::BoneTransform(1.0f));
         m_terrainHeight = [](float, float) { return 50.0; };
         m_cloth.random = Client::Crt::CrtRandom{1};
         m_shake = 0.25f;
@@ -1309,7 +1310,7 @@ TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
         EXPECT_NE(m_shake, 0.25f);
         EXPECT_EQ(m_cloth.random.State(), AfterRandoms(7));
         EXPECT_TRUE(m_effects->Effects()[9].alive);
-        m_bones.assign(1, Client::Render::Models::BoneTransform(1.0f));
+        m_bones.assign(1, Client::Math::BoneTransform(1.0f));
     }
 }
 

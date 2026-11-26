@@ -357,13 +357,12 @@ TEST(StormJointsTest, TheFallingStarSpeedsUpInTheAir)
 
     ASSERT_TRUE(star.Step().HasValue());
 
-    const auto first = Client::Render::Models::OriginalVectorRotate(
-        {0, -speed, 0}, Client::Render::Models::OriginalAngleMatrix(heading));
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix(star.angles);
+    const auto first = Client::Math::OriginalVectorRotate({0, -speed, 0}, Client::Math::OriginalAngleMatrix(heading));
+    const auto matrix = Client::Math::OriginalAngleMatrix(star.angles);
     const glm::vec3 moved{F32(D(star.start.x) + D(first.x)), F32(D(star.start.y) + D(first.y)),
                           F32(D(star.start.z) + D(first.z))};
     const float faster = F32(D(F32(D(speed) + 10.0)) + 10.0);
-    const auto second = Client::Render::Models::OriginalVectorRotate({0, -faster, 0}, matrix);
+    const auto second = Client::Math::OriginalVectorRotate({0, -faster, 0}, matrix);
     EXPECT_EQ(joint.position,
               glm::vec3(F32(D(second.x) + D(moved.x)), F32(D(second.y) + D(moved.y)), F32(D(second.z) + D(moved.z))));
     EXPECT_EQ(joint.speed, faster);
@@ -631,15 +630,15 @@ TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
 
         ASSERT_TRUE(falling.Step().HasValue());
 
-        const auto matrix = Client::Render::Models::OriginalAngleMatrix({90.0f, 0.0f, 0.0f});
-        const auto first = Client::Render::Models::OriginalVectorRotate({0, -speed, 0}, matrix);
+        const auto matrix = Client::Math::OriginalAngleMatrix({90.0f, 0.0f, 0.0f});
+        const auto first = Client::Math::OriginalVectorRotate({0, -speed, 0}, matrix);
         const glm::vec3 moved{F32(D(falling.start.x) + D(first.x)), F32(D(falling.start.y) + D(first.y)),
                               F32(D(falling.start.z) + D(first.z))};
         float z = 0.0f;
         if (subtype == 2)
             z = F32((static_cast<double>(expected.Next() % 10) + 0.0) + 10.0);
         const float faster = F32(D(F32(D(speed) + 10.0)) + 10.0);
-        const auto second = Client::Render::Models::OriginalVectorRotate({0, -faster, 0}, matrix);
+        const auto second = Client::Math::OriginalVectorRotate({0, -faster, 0}, matrix);
         EXPECT_EQ(joint.position, glm::vec3(F32(D(second.x) + D(moved.x)), F32(D(second.y) + D(moved.y)),
                                             F32(D(second.z) + D(moved.z))));
         EXPECT_EQ(joint.angles.z, z);

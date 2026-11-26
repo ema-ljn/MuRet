@@ -101,8 +101,8 @@ struct SkullWorld
 // 0x52b640..0x52b726: el punto de la vuelta `turn` del /0, /1 y /3 con la vida de antes de la cola.
 glm::vec3 OrbitPoint(int turn, std::int32_t life, bool reversed, float clock, const ActorState& owner)
 {
-    using Client::Render::Models::Detail::CosineProductPC53;
-    using Client::Render::Models::Detail::SineProductPC53;
+    using Client::Math::Detail::CosineProductPC53;
+    using Client::Math::Detail::SineProductPC53;
     const double index = turn;
     double angle = static_cast<double>(life) * static_cast<double>(std::bit_cast<float>(0x3e2e147bu)) +
                    index * static_cast<double>(std::bit_cast<float>(0x40060a92u));

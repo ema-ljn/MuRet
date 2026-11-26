@@ -22,7 +22,7 @@ using Math::F32;
 
 // 0x5fccc0: el punto por la matriz de 3 × 4, cada componente en 53 bits con el orden de sus sumas, más
 // la traslación.
-glm::vec3 VectorTransform(const glm::vec3& v, const Models::OriginalMatrix& m)
+glm::vec3 VectorTransform(const glm::vec3& v, const Math::OriginalMatrix& m)
 {
     const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
     const double x = v.x;
@@ -37,9 +37,9 @@ constexpr int ThreeComponents = 3;
 constexpr double Half = Math::HalfAsDouble;
 } // namespace
 
-Models::OriginalMatrix ViewRows(const glm::mat4& view)
+Math::OriginalMatrix ViewRows(const glm::mat4& view)
 {
-    Models::OriginalMatrix rows{};
+    Math::OriginalMatrix rows{};
     for (int i = 0; i < 3; ++i)
     {
         for (int j = 0; j < 4; ++j)
@@ -50,7 +50,7 @@ Models::OriginalMatrix ViewRows(const glm::mat4& view)
     return rows;
 }
 
-std::array<BillboardCorner, 4> MakeBillboardGeometry(const Models::OriginalMatrix& view, const glm::vec3& position,
+std::array<BillboardCorner, 4> MakeBillboardGeometry(const Math::OriginalMatrix& view, const glm::vec3& position,
                                                      float width, float height, float rotation, glm::vec2 uv,
                                                      glm::vec2 uvSize)
 {
@@ -77,10 +77,10 @@ std::array<BillboardCorner, 4> MakeBillboardGeometry(const Models::OriginalMatri
         const std::array<glm::vec3, 4> local{
             glm::vec3(-halfWidthFloat, -halfHeight, eye.z), glm::vec3(halfWidthFloat, -halfHeight, eye.z),
             glm::vec3(halfWidthFloat, halfHeight, eye.z), glm::vec3(-halfWidthFloat, halfHeight, eye.z)};
-        const Models::OriginalMatrix spin = Models::OriginalAngleMatrix({0.0f, 0.0f, rotation});
+        const Math::OriginalMatrix spin = Math::OriginalAngleMatrix({0.0f, 0.0f, rotation});
         for (std::size_t k = 0; k < local.size(); ++k)
         {
-            const glm::vec3 rotated = Models::OriginalVectorRotate(local[k], spin);
+            const glm::vec3 rotated = Math::OriginalVectorRotate(local[k], spin);
             corners[k].position = {F32(static_cast<double>(eye.x) + static_cast<double>(rotated.x)),
                                    F32(static_cast<double>(eye.y) + static_cast<double>(rotated.y)), rotated.z};
         }
@@ -104,7 +104,7 @@ Color MakeBillboardColor(const glm::vec3& light, std::int32_t selector, int comp
         return Color{light.x, light.y, light.z, selector == OpaqueAlphaBillboardSlot ? 1.0f : light.x};
     }
 }
-Billboard MakeBillboard(const Models::OriginalMatrix& view, const glm::vec3& position, float width, float height,
+Billboard MakeBillboard(const Math::OriginalMatrix& view, const glm::vec3& position, float width, float height,
                         const glm::vec3& light, float rotation, glm::vec2 uv, glm::vec2 uvSize, std::uint16_t slot,
                         int components)
 {

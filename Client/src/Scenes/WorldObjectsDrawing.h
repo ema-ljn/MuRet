@@ -225,7 +225,7 @@ DrawModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
 // tamaño de su textura (`textures`) por la escala y el alpha, con la vista `view` (0x7d366f0). Después de
 // dibujarlo, se apaga en modos0/2. Modo1 retiene y omite z>350; modo2 apaga z<=300/NaN sin dibujar.
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites,
-                      const Render::Models::IModelLibrary& textures, const Render::Models::OriginalMatrix& view,
+                      const Render::Models::IModelLibrary& textures, const Math::OriginalMatrix& view,
                       std::uint8_t mode = 0);
 
 // 0x548550(mode), en el mismo pase de ojo, después de los sprites: el contrato único de World::
@@ -237,7 +237,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites,
 // dice cuál fue.
 [[nodiscard]] Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const Render::Models::IModelLibrary& textures,
-              const Render::Models::OriginalMatrix& view, float worldClock = 0.0f, std::uint8_t mode = 0);
+              const Math::OriginalMatrix& view, float worldClock = 0.0f, std::uint8_t mode = 0);
 
 // 0x5306a0, en el pase del mundo, después de los efectos con modelo: las hojas vivas, aditivas (en el mapa
 // 0x37, 0x620a90) y con el blanco de un solo glColor3f(1, 1, 1), cada una el cuadrado de LeafQuadOf

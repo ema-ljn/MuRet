@@ -174,15 +174,14 @@ TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotio
     }
     ASSERT_EQ(joint.life, 7);
     const auto before = joint.position;
-    const auto offset =
-        Client::Render::Models::OriginalVectorRotate({0, -200, 0}, Client::Render::Models::OriginalAngleMatrix(angles));
+    const auto offset = Client::Math::OriginalVectorRotate({0, -200, 0}, Client::Math::OriginalAngleMatrix(angles));
     const glm::vec3 moved{static_cast<float>(static_cast<double>(before.x) + offset.x),
                           static_cast<float>(static_cast<double>(before.y) + offset.y),
                           static_cast<float>(static_cast<double>(before.z) + offset.z)};
     ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
     EXPECT_EQ(joint.position, moved);
-    const auto cross = Client::Render::Models::OriginalVectorRotate(
-        {0, 0, -20}, Client::Render::Models::OriginalAngleMatrix(joint.bendAngles));
+    const auto cross =
+        Client::Math::OriginalVectorRotate({0, 0, -20}, Client::Math::OriginalAngleMatrix(joint.bendAngles));
     const glm::vec3 face{static_cast<float>(static_cast<double>(moved.x) + cross.x),
                          static_cast<float>(static_cast<double>(moved.y) + cross.y),
                          static_cast<float>(static_cast<double>(moved.z) + cross.z)};
@@ -256,8 +255,8 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
         ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
         glm::vec3 finalAngles = owner.copiedAngles;
         finalAngles.y = phase + 20.0f;
-        const auto offset = Client::Render::Models::OriginalVectorRotate(
-            {18, 0, 0}, Client::Render::Models::OriginalAngleMatrix(finalAngles));
+        const auto offset =
+            Client::Math::OriginalVectorRotate({18, 0, 0}, Client::Math::OriginalAngleMatrix(finalAngles));
         for (int axis = 0; axis < 3; ++axis)
             EXPECT_EQ(joint.position[axis],
                       static_cast<float>(static_cast<double>(owner.transform.position[axis]) + offset[axis]));
@@ -283,7 +282,7 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
 
 TEST(GameJointStepTest, CosineDoubleProductsPreserveTheMultiplierAndSignedZeroAtTheOrigin)
 {
-    namespace Math = Client::Render::Models::Detail;
+    namespace Math = Client::Math::Detail;
     const double retained = -0.12345678901234567;
     EXPECT_EQ(Math::CosineDoubleProductPC53(0, retained), retained);
     ASSERT_TRUE(Math::CosineDoubleProductPC53(0, -0.0).has_value());
@@ -320,7 +319,7 @@ TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutR
     EXPECT_EQ(joint.maximumCount, 30);
     EXPECT_EQ(joint.width, 30);
     const auto retainedOffset =
-        Client::Render::Models::OriginalVectorRotate({-4, 0, 0}, Client::Render::Models::OriginalAngleMatrix(angles));
+        Client::Math::OriginalVectorRotate({-4, 0, 0}, Client::Math::OriginalAngleMatrix(angles));
     for (int axis = 0; axis < 3; ++axis)
         EXPECT_EQ(joint.points[0][0][axis],
                   static_cast<float>(static_cast<double>(point[axis]) + retainedOffset[axis]));
@@ -495,8 +494,8 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
     owner.type = 0x1a18;
     Client::Scenes::DrawnObject object;
     object.model = 0x1a18;
-    std::array<Client::Render::Models::BoneTransform, 31> bones;
-    bones.fill(Client::Render::Models::BoneTransform(1));
+    std::array<Client::Math::BoneTransform, 31> bones;
+    bones.fill(Client::Math::BoneTransform(1));
     std::array<Client::Scenes::JointState, 20> joints{};
     Client::Crt::CrtRandom random(19);
     Client::World::FrameSprites sprites;
@@ -505,7 +504,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
     Client::Scenes::ItemDrawContext context;
     context.special = &special;
     context.ownerContext = &owner;
-    context.poseBones = [&]() { return std::span<const Client::Render::Models::BoneTransform>(bones); };
+    context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
     context.createJoint =
         [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
     {
@@ -544,8 +543,8 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
 {
     Client::Scenes::DrawnObject object;
     object.model = 0x1a18;
-    std::array<Client::Render::Models::BoneTransform, 31> bones;
-    bones.fill(Client::Render::Models::BoneTransform(1));
+    std::array<Client::Math::BoneTransform, 31> bones;
+    bones.fill(Client::Math::BoneTransform(1));
     auto tail = std::make_unique<Client::Scenes::GameDrawTailState>();
     for (auto& joint : tail->joints)
         joint.targetPosition = {900, 800, 700};
@@ -556,7 +555,7 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     Client::Scenes::ItemDrawContext context;
     context.special = &special;
     context.ownerContext = Client::Scenes::UiItemLocalObject();
-    context.poseBones = [&]() { return std::span<const Client::Render::Models::BoneTransform>(bones); };
+    context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
     context.createJoint =
         [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
     {

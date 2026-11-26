@@ -648,8 +648,8 @@ TEST(CharacterClothTest, BetweenOriginalFramesTheClothTurnsWithTheBody)
     CharacterCloth cloth;
     const std::vector<glm::vec3> first = TheFirstFrame(cloth, lord);
     const glm::mat3 quarterTurn{{0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
-    std::vector<Client::Render::Models::BoneTransform> turnedBones;
-    for (const Client::Render::Models::BoneTransform& bone : lord.body.bones)
+    std::vector<Client::Math::BoneTransform> turnedBones;
+    for (const Client::Math::BoneTransform& bone : lord.body.bones)
     {
         turnedBones.emplace_back(quarterTurn * bone[0], quarterTurn * bone[1], quarterTurn * bone[2],
                                  quarterTurn * bone[3]);

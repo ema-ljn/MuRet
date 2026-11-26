@@ -98,7 +98,7 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
             e.transform.angles.x = F32(static_cast<double>(e.transform.angles.x) +
                                        (e.transform.angles.x < -90 || std::isnan(e.transform.angles.x) ? 20 : -20));
         // El resultado de distancia sólo llega a un cálculo local muerto de altura; no se usa para mover.
-        static_cast<void>(Render::Models::MoveToward(e.transform.position, e.transform.angles, target, e.speed));
+        static_cast<void>(Math::MoveToward(e.transform.position, e.transform.angles, target, e.speed));
         const double accelerated = static_cast<double>(e.speed) + static_cast<double>(.4f);
         e.speed = F32(accelerated);
         if (e.life < 10)
@@ -116,8 +116,7 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
                     services.effects->Effects()[*child].owner.effect = &e;
             }
         }
-        point =
-            Render::Models::OriginalVectorRotate(e.velocity, Render::Models::OriginalAngleMatrix(e.transform.angles));
+        point = Math::OriginalVectorRotate(e.velocity, Math::OriginalAngleMatrix(e.transform.angles));
         for (int axis = 0; axis < 3; ++axis)
             e.transform.position[axis] = F32(static_cast<double>((*point)[axis]) + e.transform.position[axis]);
         if (services.effects == nullptr)

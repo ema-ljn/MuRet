@@ -66,13 +66,13 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::ActorPoolSize;
@@ -151,7 +151,7 @@ Skeleton HorseSkeleton(std::size_t boneCount = 1, std::size_t actionCount = 7)
             for (BoneKey& key : keys)
             {
                 key.position = {0.0f, 0.0f, static_cast<float>(index)};
-                key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+                key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
             }
         }
         skeleton.bones.push_back(bone);
@@ -309,7 +309,7 @@ public:
     void PoseTheGlobalBones(std::size_t count = PosedBones)
     {
         auto& bones = world.PoseCarry().bones;
-        bones.assign(count, Client::Render::Models::BoneTransform(1.0f));
+        bones.assign(count, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < count; ++bone)
         {
             bones[bone][3] = PosedBone(bone);
@@ -335,23 +335,22 @@ public:
     // Lo que el dibujo de `scene` lee: la luz del terreno de este mundo y la tabla de los sprites.
     HelperDrawContext DrawContext(ModelBatch& batch, bool originalFrame = true, SceneId scene = SceneId::Game)
     {
-        return HelperDrawContext{
-            .batch = batch,
-            .models = models,
-            .world = world,
-            .random = random,
-            .frameClock = std::chrono::milliseconds{0},
-            .stepAlpha = 0.0f,
-            .originalFrame = originalFrame,
-            .scene = scene,
-            .lighting = lighting.get(),
-            .sprites = &sprites,
-            .worldClock = clock,
-            .effects = &world.Map().effects,
-            .particles = &world.Particles(),
-            .systemTime = []() { return FenrirHour; },
-            .globalPose = [this]()
-            { return std::span<const Client::Render::Models::BoneTransform>(world.PoseCarry().bones); }};
+        return HelperDrawContext{.batch = batch,
+                                 .models = models,
+                                 .world = world,
+                                 .random = random,
+                                 .frameClock = std::chrono::milliseconds{0},
+                                 .stepAlpha = 0.0f,
+                                 .originalFrame = originalFrame,
+                                 .scene = scene,
+                                 .lighting = lighting.get(),
+                                 .sprites = &sprites,
+                                 .worldClock = clock,
+                                 .effects = &world.Map().effects,
+                                 .particles = &world.Particles(),
+                                 .systemTime = []() { return FenrirHour; },
+                                 .globalPose = [this]()
+                                 { return std::span<const Client::Math::BoneTransform>(world.PoseCarry().bones); }};
     }
 
     // El timeGetTime() que ve el dibujo de los Fenrir.
@@ -823,8 +822,8 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
     { return Client::Scenes::PublishFaunaPose(tested.world.PoseCarry(), models, object, true); };
     ASSERT_TRUE(DrawHelpers(context).HasValue());
     ASSERT_EQ(tested.world.PoseCarry().bones.size(), 28u);
-    const glm::vec3 expected = Client::Render::Models::OriginalVectorTransform(
-        {50.0f, -4.0f, 0.0f}, Client::Render::Models::OriginalMatrixOf(tested.world.PoseCarry().bones[27]));
+    const glm::vec3 expected = Client::Math::OriginalVectorTransform(
+        {50.0f, -4.0f, 0.0f}, Client::Math::OriginalMatrixOf(tested.world.PoseCarry().bones[27]));
     tested.random = CrtRandom(BreathSeed);
 
     ASSERT_TRUE(tested.Step().HasValue());
@@ -867,8 +866,8 @@ TEST(HelperTableTest, TheGallopRaisesTheDustOfItsMap)
     EXPECT_EQ(dust.light, glm::vec3(1.0f));
     EXPECT_EQ(dust.angles, (glm::vec3{103.0f, 0.0f, 45.0f}));
     EXPECT_EQ(dust.scale, std::bit_cast<float>(0x3ec28f5cu));
-    EXPECT_EQ(dust.velocity, Client::Render::Models::OriginalVectorRotate(
-                                 {0.0f, 3.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, 45.0f})));
+    EXPECT_EQ(dust.velocity, Client::Math::OriginalVectorRotate(
+                                 {0.0f, 3.0f, 0.0f}, Client::Math::OriginalAngleMatrix({0.0f, 0.0f, 45.0f})));
     EXPECT_EQ(dust.life, 32);
     EXPECT_FALSE(lorencia.world.Particles().All()[1].alive);
     EXPECT_EQ(lorencia.random.State(), RandomAfter(DustSeed, 8).State());
@@ -1021,7 +1020,7 @@ TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
     HelperWorld zeroed(10, QuietSeed);
     ASSERT_NO_FATAL_FAILURE(zeroed.Mount());
     zeroed.Gallop(1.25f);
-    zeroed.world.PoseCarry().bones.assign(HelperWorld::PosedBones, Client::Render::Models::BoneTransform(0.0f));
+    zeroed.world.PoseCarry().bones.assign(HelperWorld::PosedBones, Client::Math::BoneTransform(0.0f));
 
     const auto stepped = tested.Step();
     const auto zeroedStep = zeroed.Step();
@@ -1146,8 +1145,7 @@ TEST(HelperTableTest, InItsWindowTheQuakeRingsSixStonesOnOddCountsAndShakesTheCa
     for (std::size_t stone = 0; stone < 6; ++stone)
     {
         turn.z = QuakeF32(static_cast<double>(turn.z) + 60.0);
-        const glm::vec3 offset =
-            Client::Render::Models::OriginalVectorRotate(reach, Client::Render::Models::OriginalAngleMatrix(turn));
+        const glm::vec3 offset = Client::Math::OriginalVectorRotate(reach, Client::Math::OriginalAngleMatrix(turn));
         const glm::vec3 place(QuakeF32(static_cast<double>(offset.x) + static_cast<double>(horse.x)),
                               QuakeF32(static_cast<double>(offset.y) + static_cast<double>(horse.y)),
                               QuakeF32(static_cast<double>(offset.z) + static_cast<double>(horse.z)));
@@ -1464,13 +1462,13 @@ TEST(HelperTableTest, TheOrbitsTurnWithoutReadingTheHorse)
     {
         SCOPED_TRACE(index);
         JointState& before = expected[index];
-        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-            {0.0f, -before.speed, 0.0f}, Client::Render::Models::OriginalAngleMatrix(before.angles));
+        const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -before.speed, 0.0f},
+                                                                   Client::Math::OriginalAngleMatrix(before.angles));
         const float movedZ = static_cast<float>(static_cast<double>(before.position.z) + moved.z);
         const double argument =
             (static_cast<double>(before.life) + static_cast<double>(before.velocity.y)) / static_cast<double>(2);
-        const std::optional<double> cosine = Client::Render::Models::Detail::CosineProductPC53(argument, before.speed);
-        const std::optional<double> sine = Client::Render::Models::Detail::SineProductPC53(argument, before.speed);
+        const std::optional<double> cosine = Client::Math::Detail::CosineProductPC53(argument, before.speed);
+        const std::optional<double> sine = Client::Math::Detail::SineProductPC53(argument, before.speed);
         ASSERT_TRUE(cosine.has_value());
         ASSERT_TRUE(sine.has_value());
         const JointState& joint = joints[index];
@@ -2236,8 +2234,8 @@ TEST(HelperTableTest, TheGuardianAngelSparklesAndFliesWithItsVelocity)
         EXPECT_EQ(spark.light, glm::vec3(std::bit_cast<float>(0x3ecccccdu)));
     }
     EXPECT_FALSE(tested.world.Particles().All()[4].alive);
-    const glm::vec3 move = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -5.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, 45.0f}));
+    const glm::vec3 move =
+        Client::Math::OriginalVectorRotate({0.0f, -5.0f, 0.0f}, Client::Math::OriginalAngleMatrix({0.0f, 0.0f, 45.0f}));
     EXPECT_EQ(angel.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
     EXPECT_EQ(angel.position.x, static_cast<float>(static_cast<double>(move.x) + 10050.0));
     EXPECT_EQ(angel.position.y, static_cast<float>(static_cast<double>(move.y) + 10050.0));
@@ -2290,13 +2288,12 @@ TEST(HelperTableTest, FarFromItsRiderTheGuardianAngelTurnsAndClimbs)
 
     ASSERT_TRUE(tested.Step().HasValue());
 
-    const float course =
-        static_cast<float>(Client::Render::Models::CreateAngle(11050.0f, 10050.0f, 10050.0f, 10050.0f));
-    const float turned = static_cast<float>(Client::Render::Models::TurnAngle(45.0f, course, 20.0f));
+    const float course = static_cast<float>(Client::Math::CreateAngle(11050.0f, 10050.0f, 10050.0f, 10050.0f));
+    const float turned = static_cast<float>(Client::Math::TurnAngle(45.0f, course, 20.0f));
     EXPECT_NE(turned, 45.0f);
     EXPECT_EQ(angel.angles, (glm::vec3{0.0f, 0.0f, turned}));
-    const glm::vec3 move = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -5.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, turned}));
+    const glm::vec3 move = Client::Math::OriginalVectorRotate({0.0f, -5.0f, 0.0f},
+                                                              Client::Math::OriginalAngleMatrix({0.0f, 0.0f, turned}));
     EXPECT_EQ(angel.position.x, static_cast<float>(static_cast<double>(move.x) + 11050.0));
     EXPECT_EQ(angel.position.z, 100.0f);
     EXPECT_EQ(angel.velocity.x, 0.0f);
@@ -2552,7 +2549,7 @@ TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
         EXPECT_FALSE(batch.Commands().empty());
-        const auto sine = Client::Render::Models::Detail::SineProductPC53(
+        const auto sine = Client::Math::Detail::SineProductPC53(
             static_cast<double>(tested.clock) * static_cast<double>(0.002f), 0.2f);
         ASSERT_TRUE(sine.has_value());
         const double pulse = static_cast<double>(static_cast<float>(*sine));

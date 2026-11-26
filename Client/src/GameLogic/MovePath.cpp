@@ -110,9 +110,9 @@ bool AdvancePath(MovePathState state, const glm::vec2& target, const LogicalCell
 
 void UpdateHeading(MovePathState state, const glm::vec2& target)
 {
-    using Render::Models::AngleDistance;
-    using Render::Models::CreateAngle;
-    using Render::Models::TurnAngle;
+    using Math::AngleDistance;
+    using Math::CreateAngle;
+    using Math::TurnAngle;
     const auto heading = static_cast<float>(CreateAngle(state.position.x, state.position.y, target.x, target.y));
     const double distance = AngleDistance(state.yaw, heading, 1);
     if (distance >= SnapAngle)

@@ -74,10 +74,8 @@ const glm::vec3 NoOffset{0.0f, 0.0f, 0.0f};
 // (+0x6c) que 0x505ec6 copió del personaje al modelo. Antes del primer dibujo, una matriz en cero (Q-C318).
 glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                     actor.position);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, actor.position);
 }
 
 // 0x53fe70(tipo, posición, ángulos, luz, subtipo, 1, 0). Con el pool lleno no crea nada ni corta; con una que el pool
@@ -137,7 +135,7 @@ void Sound(ModelEffectsPass& pass, std::int32_t sound)
 Core::Expected<std::int32_t, std::string> ClockRemainder(const ModelEffectsPass& pass, std::uint32_t address,
                                                          std::int32_t modulus)
 {
-    const auto clock = World::OriginalFtolLow(D(pass.worldClock));
+    const auto clock = Math::OriginalFtolLow(D(pass.worldClock));
     if (!clock)
         return Core::Unexpected(std::format("{:#x}: ftol del reloj del mundo fuera de lo acreditado", address));
     return *clock % modulus;
@@ -214,7 +212,7 @@ Result BurstTheDust(ModelEffectsPass& pass)
 std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
                                       const Render::Models::AnimationState& animation)
 {
-    const auto truncated = World::OriginalFtolLow(D(animation.frame));
+    const auto truncated = Math::OriginalFtolLow(D(animation.frame));
     if (skeleton.actions.empty() || !truncated)
         return std::nullopt;
     auto key = static_cast<std::int16_t>(*truncated);
@@ -256,7 +254,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
         .position = actor.position, .angles = actor.angles, .scale = actor.scale, .lockedRootHeight = 0.0f};
     FaunaDrawCarry& carry = pass.world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
-        carry.bones.resize(skeleton.bones.size(), Render::Models::BoneTransform(0.0f));
+        carry.bones.resize(skeleton.bones.size(), Math::BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton.bones.size());
     if (!Render::Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("{:#x}: la pose del modelo {:#x} falló", address, actor.type));
@@ -701,7 +699,7 @@ Result FlameAlong(ModelEffectsPass& pass, std::uint32_t address, const std::arra
                   const FlamePair& pair, glm::vec3& angles, glm::vec3& light, float scale)
 {
     const glm::vec3& point = points[pair.point];
-    light.x = F32(Render::Models::MoveToward(points[pair.from], angles, point, 360.0f));
+    light.x = F32(Math::MoveToward(points[pair.from], angles, point, 360.0f));
     return Flame(pass, address, 2, point, angles, light, scale);
 }
 
@@ -766,7 +764,7 @@ Result StepTheBurningHands(ModelEffectsPass& pass)
 {
     ActorState& actor = pass.actor;
     const double rate = D(Bits(0x3b03126fu)); // 0,002f (0x6b89bc)
-    const auto sine = Render::Models::Detail::SineProductPC53(D(pass.worldClock) * rate, Bits(0x3e99999au));
+    const auto sine = Math::Detail::SineProductPC53(D(pass.worldClock) * rate, Bits(0x3e99999au));
     if (!sine)
         return Core::Unexpected(std::string("0x50777b: el reloj del mundo está fuera del dominio de FSIN"));
     const double glow = *sine + D(Bits(0x3f333333u)); // 0,7f (0x6b8a5c)
@@ -784,7 +782,7 @@ Result StepTheBurningHands(ModelEffectsPass& pass)
     {
         const glm::vec3 start = BonePoint(actor, hand.from, NoOffset);
         const glm::vec3 point = BonePoint(actor, hand.to, NoOffset);
-        static_cast<void>(Render::Models::MoveToward(start, angles, point, 360.0f));
+        static_cast<void>(Math::MoveToward(start, angles, point, 360.0f));
         if (auto flamed = Flame(pass, hand.address, 1, point, angles, light, scale); !flamed.HasValue())
             return flamed;
     }
@@ -940,7 +938,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
                                                                            actor.light, pass.random));
         }
         actor.dword64 = 1;
-        const auto pulse = Render::Models::Detail::SineSumPC53(clock * rate, 1.0);
+        const auto pulse = Math::Detail::SineSumPC53(clock * rate, 1.0);
         if (!pulse)
             return Core::Unexpected(std::string("0x43bee5: el reloj del mundo está fuera del dominio de FSIN"));
         actor.blendMeshLight = F32(*pulse * 0.5);
@@ -950,7 +948,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0x196:
     {
         // 0x43bf84: +0x68 en sen(T · 0,001f) · 0,7f + 0,3f.
-        const auto pulse = Render::Models::Detail::SineProductPC53(clock * rate, Bits(0x3f333333u));
+        const auto pulse = Math::Detail::SineProductPC53(clock * rate, Bits(0x3f333333u));
         if (!pulse)
             return Core::Unexpected(std::string("0x43bf92: el reloj del mundo está fuera del dominio de FSIN"));
         actor.blendMeshLight = F32(*pulse + D(Bits(0x3e99999au)));
@@ -1013,7 +1011,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
         // (el reloj por el double de 0x6b8aa8 en la x87).
         actor.angles.z = 0.0f;
         constexpr double Rate = 0.0005;
-        const auto wave = Render::Models::Detail::SineProductPC53(D(pass.worldClock) * Rate, Bits(0x3f147ae1u));
+        const auto wave = Math::Detail::SineProductPC53(D(pass.worldClock) * Rate, Bits(0x3f147ae1u));
         if (!wave)
             return Core::Unexpected(std::string("0x42df0e: el reloj del mundo está fuera del dominio de FSIN"));
         const double glow = *wave + D(Bits(0x3ed70a3du));
@@ -1071,8 +1069,8 @@ Core::Expected<glm::vec3, std::string> CrywolfNamedPoint(ModelEffectsPass& pass,
 glm::vec3 CrywolfGlobalPoint(ModelEffectsPass& pass, std::size_t bone)
 {
     const auto& bones = pass.world.PoseCarry().bones;
-    const auto matrix = bone < bones.size() ? bones[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalVectorTransform(NoOffset, Render::Models::OriginalMatrixOf(matrix));
+    const auto matrix = bone < bones.size() ? bones[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalVectorTransform(NoOffset, Math::OriginalMatrixOf(matrix));
 }
 
 void CrywolfStone(ModelEffectsPass& pass, std::int16_t type, const glm::vec3& point)
@@ -1142,7 +1140,7 @@ Result CrywolfNamedSprites(ModelEffectsPass& pass, std::uint32_t centerAddress)
     ActorState& actor = pass.actor;
     const float rotation = static_cast<float>(Roll(pass, 360));
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3a9d4952u));
-    const auto sine = Render::Models::Detail::SineProductPC53(D(pass.worldClock) * Rate, 0.8f);
+    const auto sine = Math::Detail::SineProductPC53(D(pass.worldClock) * Rate, 0.8f);
     if (!sine)
         return Core::Unexpected(std::string("0x431f72: reloj fuera del dominio FSIN"));
     const float pulse = F32(*sine + D(Bits(0x3fa66666u)));

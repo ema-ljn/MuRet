@@ -204,7 +204,7 @@ Result DrawTheTimeLeft(GameHudContext& context, float x, float y, std::int32_t s
     if (minutes < HundredthsMinutes)
     {
         // 0x40bc90..0x40bca1: _ftol del reloj del mundo y el resto de la división con signo.
-        const std::optional<std::int32_t> clock = World::OriginalFtolLow(static_cast<double>(context.worldClock));
+        const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(context.worldClock));
         if (!clock)
             return Core::Unexpected(
                 std::format("0x40bc96: el reloj del mundo {} fuera del perfil de ftol", context.worldClock));

@@ -103,7 +103,7 @@ bool InReach(const ActorState& hero, const GameMovementState& state, bool stored
 
 std::optional<std::uint8_t> LowByteOf(double value)
 {
-    const auto truncated = World::OriginalFtolLow(value);
+    const auto truncated = Math::OriginalFtolLow(value);
     if (!truncated)
         return std::nullopt;
     return static_cast<std::uint8_t>(*truncated & 0xff);
@@ -265,8 +265,8 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     if (!arrows.Value() || !InReach(m_hero, m_state, false))
         return {};
     // 0x57e224..0x57e25d: el rumbo hacia +0x3a8 y la clave de 0x558eb0 con 0x7758588, o 0xffff sin él.
-    m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
-                                                                     m_hero.attackPosition.x, m_hero.attackPosition.y));
+    m_hero.angles.z = static_cast<float>(
+        Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     std::uint16_t key = Protocol::Skill::NoSkillTargetKey;
     if (m_state.weaponSkill.target != -1)
     {
@@ -431,9 +431,9 @@ Core::Expected<void, std::string> ElfBranch::CastThe35()
 Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
 {
     const auto aimX =
-        World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x) * static_cast<double>(CellReciprocal));
     const auto aimY =
-        World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y) * static_cast<double>(CellReciprocal));
     if (!aimX || !aimY)
         return Core::Unexpected(std::string("0x580989: la celda del blanco de la 0x4c fuera del perfil ftol"));
     bool casts = InReach(m_hero, m_state, true);
@@ -460,8 +460,8 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
         return UseTheSharedTail(m_hero, m_skill, m_context);
     }
     // 0x5809fa..0x580a1a: los ftol de +0x3ac y +0x3a8 sin escalar.
-    const auto wholeY = World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y));
-    const auto wholeX = World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x));
+    const auto wholeY = Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y));
+    const auto wholeX = Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x));
     if (!wholeX || !wholeY)
         return Core::Unexpected(std::string("0x580a00: la posición del blanco de la 0x4c fuera del perfil ftol"));
     const auto relative = RelativeTargetCell(m_hero.position.x, m_hero.position.y, *wholeX, *wholeY);
@@ -475,8 +475,8 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
         return UseTheSharedTail(m_hero, m_skill, m_context);
     }
     // 0x580a36..0x580a7d.
-    m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
-                                                                     m_hero.attackPosition.x, m_hero.attackPosition.y));
+    m_hero.angles.z = static_cast<float>(
+        Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     if (auto delayed = StartSkillDelay(
             Published().skillIndex,
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});

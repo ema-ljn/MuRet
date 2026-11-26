@@ -50,11 +50,10 @@ namespace Client::Scenes::JointKernels
 {
 // 0x530afa..0x530c38 (y el final de 0x535520): los cuatro puntos del primer tramo, (∓ancho/2, 0, 0) y (0, 0,
 // ∓ancho/2) girados por la matriz y sumados a la posición. En el alta el ancho es el retenido del uso anterior.
-void FirstQuad(JointState& joint, const Render::Models::OriginalMatrix& matrix);
+void FirstQuad(JointState& joint, const Math::OriginalMatrix& matrix);
 void FirstQuad(JointState& joint);
 // 0x535520(joint, matriz): la cuenta + 1 hasta los puntos − 1, corre los tramos y rehace el primero.
-[[nodiscard]] Core::Expected<void, std::string> AppendJointTail(JointState& joint,
-                                                                const Render::Models::OriginalMatrix& matrix);
+[[nodiscard]] Core::Expected<void, std::string> AppendJointTail(JointState& joint, const Math::OriginalMatrix& matrix);
 [[nodiscard]] Core::Expected<void, std::string> AppendJointTail(JointState& joint);
 // 0x535520 sin rehacer el primer tramo: la cuenta y la corrida de los tramos. Sólo para una cola que no se dibuja y
 // cuya matriz es indefinida (Q-C1623).
@@ -62,7 +61,7 @@ void FirstQuad(JointState& joint);
 // 0x535020(joint, matriz, cruzado): lo mismo que 0x535520, pero con `crossed` el segundo par de puntos va en y,
 // (0, ∓ancho/2, 0), en vez de en z.
 [[nodiscard]] Core::Expected<void, std::string>
-AppendCrossedJointTail(JointState& joint, const Render::Models::OriginalMatrix& matrix, bool crossed);
+AppendCrossedJointTail(JointState& joint, const Math::OriginalMatrix& matrix, bool crossed);
 
 // 0x4ec110(el modelo del jugador, los huesos propios del dueño + hueso · 0x30, offset, punto, 1): lo que el alta de
 // algunos joints lee de un personaje dueño (el 614/2, 0x5313fe). La escala y el origen son los que el último dibujo

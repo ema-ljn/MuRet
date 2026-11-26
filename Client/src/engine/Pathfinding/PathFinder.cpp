@@ -115,7 +115,7 @@ private:
     // 0x4eae7c..0x4eb054: la meta por radio. Cada celda que pasa queda con la bandera de meta (el `mov byte, 4`).
     bool MarkTheRadius(bool exact, int wall, float distance)
     {
-        const auto radius = World::OriginalFtolLow(static_cast<double>(distance));
+        const auto radius = Math::OriginalFtolLow(static_cast<double>(distance));
         if (!radius)
         {
             return false;

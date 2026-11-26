@@ -47,7 +47,7 @@ constexpr std::int32_t NarrowLight = 2;
 // por `factor`, guardado en float.
 std::optional<float> Scroll(float worldClock, std::int32_t period, double factor)
 {
-    const std::optional<std::int32_t> low = OriginalFtolLow(D(worldClock));
+    const std::optional<std::int32_t> low = Math::OriginalFtolLow(D(worldClock));
     if (!low)
         return std::nullopt;
     const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(*low));
@@ -58,7 +58,7 @@ std::optional<float> Scroll(float worldClock, std::int32_t period, double factor
 // guardar en la x87.
 std::optional<double> Pulse(double phase)
 {
-    const std::optional<double> wave = Render::Models::Detail::SineProductPC53(phase * PulseRate, PulseAmplitude);
+    const std::optional<double> wave = Math::Detail::SineProductPC53(phase * PulseRate, PulseAmplitude);
     if (!wave)
         return std::nullopt;
     return *wave + PulseBase;

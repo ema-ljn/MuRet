@@ -83,9 +83,9 @@ Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& c
                                             address));
     }
     const std::optional<std::int32_t> y =
-        World::OriginalFtolLow(static_cast<double>(rider.position.y) * CellsPerUnit); // 0x4440c1
+        Math::OriginalFtolLow(static_cast<double>(rider.position.y) * CellsPerUnit); // 0x4440c1
     const std::optional<std::int32_t> x =
-        World::OriginalFtolLow(static_cast<double>(rider.position.x) * CellsPerUnit); // 0x4440d0
+        Math::OriginalFtolLow(static_cast<double>(rider.position.x) * CellsPerUnit); // 0x4440d0
     if (!x || !y)
     {
         return Core::Unexpected(std::format("{}: la posición del jinete por 0,01 no entra en el entero de 0x69fd3c, y "
@@ -103,9 +103,8 @@ Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, 
     return GlobalPosePoint(world.PoseCarry().bones, bone, offset, address);
 }
 
-Core::Expected<glm::vec3, std::string> GlobalPosePoint(std::span<const Render::Models::BoneTransform> bones,
-                                                       std::size_t bone, const glm::vec3& offset,
-                                                       std::string_view address)
+Core::Expected<glm::vec3, std::string> GlobalPosePoint(std::span<const Math::BoneTransform> bones, std::size_t bone,
+                                                       const glm::vec3& offset, std::string_view address)
 {
     constexpr std::size_t GlobalPoseBones = 200;
     if (bone >= GlobalPoseBones)
@@ -117,7 +116,7 @@ Core::Expected<glm::vec3, std::string> GlobalPosePoint(std::span<const Render::M
     {
         return glm::vec3(0.0f);
     }
-    return Render::Models::OriginalVectorTransform(offset, Render::Models::OriginalMatrixOf(bones[bone]));
+    return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(bones[bone]));
 }
 
 Core::Expected<void, std::string> EmitHelperParticle(const HelperStepContext& context, std::int32_t type,

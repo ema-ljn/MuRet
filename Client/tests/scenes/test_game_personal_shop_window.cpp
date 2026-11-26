@@ -39,9 +39,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::World::ItemState;

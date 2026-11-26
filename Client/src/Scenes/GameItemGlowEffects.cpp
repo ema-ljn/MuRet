@@ -52,7 +52,7 @@ float Time(Core::Duration clock, const ItemDrawContext& context)
 }
 Core::Expected<double, std::string> Wave(float time, float frequency, float multiplier, float offset)
 {
-    const auto value = Render::Models::Detail::SineProductPC53(static_cast<double>(time) * frequency, multiplier);
+    const auto value = Math::Detail::SineProductPC53(static_cast<double>(time) * frequency, multiplier);
     if (!value)
         return Core::Unexpected(std::string("60b3d0: fase del brillo fuera del perfil portable"));
     return *value + offset;
@@ -77,11 +77,10 @@ Core::Expected<glm::vec3, std::string> Point(const DrawnObject& object, const It
     const auto bones = context.poseBones();
     if (bone >= bones.size())
         return Core::Unexpected(std::string("4ec110: el hueso del brillo excede el scratch retenido"));
-    const auto matrix = Render::Models::OriginalMatrixOf(bones[bone]);
+    const auto matrix = Math::OriginalMatrixOf(bones[bone]);
     if (translated)
-        return Render::Models::OriginalTransformPosition(matrix, offset, object.transform.scale,
-                                                         object.transform.position);
-    auto result = Render::Models::OriginalVectorTransform(offset, matrix);
+        return Math::OriginalTransformPosition(matrix, offset, object.transform.scale, object.transform.position);
+    auto result = Math::OriginalVectorTransform(offset, matrix);
     for (int component = 0; component < 3; ++component)
         result[component] = F32(static_cast<double>(result[component]) + object.transform.position[component]);
     return result;
@@ -216,8 +215,8 @@ ItemShineClock ItemShineClockOf(Render::Models::ShinePass pass, Core::Duration c
     if (pass != Render::Models::ShinePass::Chrome4 && pass != Render::Models::ShinePass::Chrome5)
         return shine;
     // CoreDuration es finito y acotado: ambos argumentos están dentro de |a|<2^63.
-    shine.chrome4Cosine = F32(*Render::Models::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
-    shine.chrome4Sine = F32(*Render::Models::Detail::SineProductPC53(static_cast<double>(time) * 0.002f, 1));
+    shine.chrome4Cosine = F32(*Math::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
+    shine.chrome4Sine = F32(*Math::Detail::SineProductPC53(static_cast<double>(time) * 0.002f, 1));
     return shine;
 }
 

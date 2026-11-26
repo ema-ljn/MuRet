@@ -29,8 +29,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::OriginalAngleMatrix;
-using Client::Render::Models::OriginalVectorRotate;
+using Client::Math::OriginalAngleMatrix;
+using Client::Math::OriginalVectorRotate;
 using Client::Scenes::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
@@ -150,7 +150,7 @@ TEST(SparkJointsTest, TheHelperSparkRisesThenChasesItsTarget)
     const glm::vec3 before =
         Sum(joint.position, OriginalVectorRotate({0.0f, -27.0f, 0.0f}, OriginalAngleMatrix({0.0f, 0.0f, 300.0f})));
     glm::vec3 turned = joint.angles;
-    const double distance = Client::Render::Models::MoveToward(before, turned, joint.targetPosition, 30.0f);
+    const double distance = Client::Math::MoveToward(before, turned, joint.targetPosition, 30.0f);
     ASSERT_LE(distance, 70.0);
     ASSERT_GT(std::abs(300.0 - D(turned.z)), 20.0);
     twin = pool.random;

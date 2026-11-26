@@ -86,7 +86,7 @@ Core::Expected<void, ParticleError> StepSmoke(Particle& p, const float* clock)
     if (clock == nullptr)
         return Core::Unexpected(ParticleError::MissingClock);
     // 0x546732..0x546745: FSIN del reloj, FMUL ST1 por la velocidad de la pila, por 0,05f y más la x.
-    const std::optional<double> sway = Render::Models::Detail::SineDoubleProductPC53(static_cast<double>(*clock), rise);
+    const std::optional<double> sway = Math::Detail::SineDoubleProductPC53(static_cast<double>(*clock), rise);
     if (!sway)
         return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);
     p.position.x = F32((*sway * Sway) + static_cast<double>(p.position.x));

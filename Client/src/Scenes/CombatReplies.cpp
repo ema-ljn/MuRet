@@ -135,8 +135,8 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
         return Core::Unexpected(std::string("0x4d07ff: faltan los atributos del mundo cargado"));
     // 0x4d07ca..0x4d07ff: la celda de ftol(x · 0,01f) y ftol(y · 0,01f), de a un byte.
     constexpr double CellScale = static_cast<double>(0.01f);
-    const auto x = World::OriginalFtolLow(static_cast<double>(actor.position.x) * CellScale);
-    const auto y = World::OriginalFtolLow(static_cast<double>(actor.position.y) * CellScale);
+    const auto x = Math::OriginalFtolLow(static_cast<double>(actor.position.x) * CellScale);
+    const auto y = Math::OriginalFtolLow(static_cast<double>(actor.position.y) * CellScale);
     if (!x || !y)
         return Core::Unexpected(std::string("0x4d07d3: la celda del que muere fuera del perfil ftol"));
     const std::size_t cell =
@@ -232,8 +232,8 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.floatD0 = Plus(second, 40.0f);
     // 0x4d0b49..0x4d0b98: el rumbo hacia el que lo mató (0x4e93f0) va a +0x24 y +0x30; la cabeza copia +0x1c y +0x20.
     const ActorState& killer = world.Actors()[ActorWithKey(world, reply.killer)];
-    const auto angle = static_cast<float>(
-        Render::Models::CreateAngle(actor.position.x, actor.position.y, killer.position.x, killer.position.y));
+    const auto angle =
+        static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, killer.position.x, killer.position.y));
     actor.angles.z = angle;
     actor.angle30 = angle;
     actor.headTurn.angles.x = actor.angles.x;

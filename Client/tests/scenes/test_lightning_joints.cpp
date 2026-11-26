@@ -305,8 +305,8 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
             continue;
         }
         // El último tramo vuelve al modelo y avanza (0, −50, 0) por la matriz de sus ángulos con el temblor.
-        const auto moved = Client::Render::Models::OriginalVectorRotate(
-            {0.0f, -50.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(shaken));
+        const auto moved =
+            Client::Math::OriginalVectorRotate({0.0f, -50.0f, 0.0f}, Client::Math::OriginalAngleMatrix(shaken));
         EXPECT_EQ(joint.position, (glm::vec3{F32(D(moved.x) + D(origin.x)), F32(D(moved.y) + D(origin.y)),
                                              F32(D(moved.z) + D(origin.z))}));
     }
@@ -417,8 +417,8 @@ TEST(LightningJointsTest, TheMonsterBoltFollowsItsOwnerAndStopsWhenItArrives)
     expected.Discard(2);
     EXPECT_EQ(pool.random.State(), expected.State());
     // El movimiento común (velocidad 50 con los ángulos de antes) y nada más: llega en el primer tramo.
-    const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-        glm::vec3(0.0f, -50.0f, 0.0f), Client::Render::Models::OriginalAngleMatrix(before.angles));
+    const glm::vec3 moved = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -50.0f, 0.0f),
+                                                               Client::Math::OriginalAngleMatrix(before.angles));
     EXPECT_EQ(joint.position, (glm::vec3{F32(D(before.position.x) + D(moved.x)), F32(D(before.position.y) + D(moved.y)),
                                          F32(D(before.position.z) + D(moved.z))}));
     EXPECT_EQ(joint.life, 1);
@@ -556,13 +556,13 @@ TEST(HandBoltJointsTest, AFarBoltShakesGlowsAndAdvances)
     joint.velocity = {2, 5, 3};
     // El movimiento común y el giro, a mano.
     glm::vec3 position = joint.position;
-    const glm::vec3 common = Client::Render::Models::OriginalVectorRotate(
-        glm::vec3(0.0f, -40.0f, 0.0f), Client::Render::Models::OriginalAngleMatrix(joint.angles));
+    const glm::vec3 common = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -40.0f, 0.0f),
+                                                                Client::Math::OriginalAngleMatrix(joint.angles));
     for (int axis = 0; axis < 3; ++axis)
         position[axis] = F32(D(position[axis]) + D(common[axis]));
     glm::vec3 angles = joint.angles;
     const glm::vec3 target{1000, 1000, 80};
-    static_cast<void>(Client::Render::Models::MoveToward(position, angles, target, 25.0f));
+    static_cast<void>(Client::Math::MoveToward(position, angles, target, 25.0f));
 
     ASSERT_TRUE(pool.Step().HasValue());
 
@@ -576,8 +576,8 @@ TEST(HandBoltJointsTest, AFarBoltShakesGlowsAndAdvances)
     EXPECT_EQ(joint.targetPosition, target);
     EXPECT_EQ(joint.velocity, (glm::vec3{vx, vy, F32(roll)}));
     const glm::vec3 shaken{F32(D(angles.x) + D(vx)), F32(D(vy) + D(angles.y)), F32(roll + D(angles.z))};
-    const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-        glm::vec3(0.0f, -40.0f, 0.0f), Client::Render::Models::OriginalAngleMatrix(shaken));
+    const glm::vec3 moved =
+        Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -40.0f, 0.0f), Client::Math::OriginalAngleMatrix(shaken));
     EXPECT_EQ(joint.position, (glm::vec3{F32(D(moved.x) + D(position.x)), F32(D(moved.y) + D(position.y)),
                                          F32(D(moved.z) + D(position.z))}));
     EXPECT_EQ(joint.life, 1);

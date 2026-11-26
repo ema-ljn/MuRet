@@ -130,8 +130,8 @@ Result Contact(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStep
     effect.objectState.hiddenMesh = 99;
     if (height > 150)
     {
-        const auto x = OriginalFtolLow(F32(static_cast<double>(position.x) * static_cast<double>(.01f)));
-        const auto y = OriginalFtolLow(F32(static_cast<double>(position.y) * static_cast<double>(.01f)));
+        const auto x = Math::OriginalFtolLow(F32(static_cast<double>(position.x) * static_cast<double>(.01f)));
+        const auto y = Math::OriginalFtolLow(F32(static_cast<double>(position.y) * static_cast<double>(.01f)));
         if (!x || !y)
             return Core::Unexpected(std::string("0x52836d: celda de impacto fuera de _ftol"));
         if (services.cameraShake == nullptr)
@@ -241,8 +241,7 @@ Result Fragment(ModelEffect& effect, Particles& particles, Crt::CrtRandom& rando
     }
     else
         a.x = F32(static_cast<double>(a.x) - static_cast<double>(effect.transform.scale) * 16);
-    const auto delta =
-        Render::Models::OriginalVectorRotate(effect.velocity, Render::Models::OriginalAngleMatrix(effect.copiedAngles));
+    const auto delta = Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.copiedAngles));
     for (int axis = 0; axis < 3; ++axis)
         p[axis] = F32(static_cast<double>(p[axis]) + delta[axis]);
     if (effect.life < 10)

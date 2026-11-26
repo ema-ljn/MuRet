@@ -55,7 +55,7 @@ struct FaunaDrawCarry;
 struct GameCharacterEffectsPass
 {
     // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
-    std::span<const Render::Models::BoneTransform> body;
+    std::span<const Math::BoneTransform> body;
     // El rand() global de 0x69fd70.
     Crt::CrtRandom& random;
     // La tabla de sprites del frame (0x5491e0). Hace falta sólo si una rama pone sprites.

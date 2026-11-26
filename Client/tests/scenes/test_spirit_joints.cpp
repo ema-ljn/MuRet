@@ -459,7 +459,7 @@ TEST(SpiritJointsTest, TheBoltWandersWithTheSharedCounter)
     CrtRandom expected = pool.random;
     ASSERT_TRUE(pool.Step().HasValue());
     expected.Discard(Client::Render::Models::SmallLogicalCloseRandoms);
-    const auto direction = Client::Render::Models::Detail::FaunaDirectionPC53(1234);
+    const auto direction = Client::Math::Detail::FaunaDirectionPC53(1234);
     ASSERT_TRUE(direction.has_value());
     const JointState& bolt = pool.joints[0];
     const glm::vec3 wandered{F32(D((*direction)[0]) * 50.0 + 1000.0), F32(D(F32(D((*direction)[1]) * 50.0)) + 1860.0),
@@ -506,7 +506,7 @@ TEST(SpiritJointsTest, TheThirteenthSeeksItsOwner)
     angles.x = F32(D(angles.x) - 20.0);
     const glm::vec3 target{F32((static_cast<double>(expected.Next() % 150) - 70.0) + 1500.0),
                            F32((static_cast<double>(expected.Next() % 150) - 70.0) + 1500.0), 150.0f};
-    const double distance = Client::Render::Models::MoveToward(position, angles, target, -20.0f);
+    const double distance = Client::Math::MoveToward(position, angles, target, -20.0f);
     EXPECT_EQ(seeker.angles, angles);
     EXPECT_EQ(seeker.speed, 1.0f);
     const std::int32_t life = distance < 50.0 ? 26 : 27;
@@ -783,13 +783,13 @@ TEST(SpiritJointsTest, TheThinVolleyFollowsItsOwnerOverTheGround)
             JointState joint = pool.joints[0];
             const float dx = F32(D(joint.position.x) - D(joint.targetPosition.x));
             const float dy = F32(D(joint.position.y) - D(joint.targetPosition.y));
-            const auto matrix = Client::Render::Models::OriginalAngleMatrix(joint.angles);
-            const auto moved = Client::Render::Models::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
+            const auto matrix = Client::Math::OriginalAngleMatrix(joint.angles);
+            const auto moved = Client::Math::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
             for (int axis = 0; axis < 3; ++axis)
                 joint.position[axis] = F32(D(joint.position[axis]) + moved[axis]);
             const glm::vec3 target{900.0f, 700.0f, 200.0f};
             static_cast<void>(
-                Client::Render::Models::MoveToward(joint.position, joint.angles, target, subtype == 5 ? 2.0f : 10.0f));
+                Client::Math::MoveToward(joint.position, joint.angles, target, subtype == 5 ? 2.0f : 10.0f));
             CrtRandom expected(Seed);
             float velocityX = 0.0f;
             if (subtype == 0)

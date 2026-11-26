@@ -131,7 +131,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(ActorState& user, Ac
     const ActorState& target = world.Actors()[static_cast<std::size_t>(request.target)];
     user.attackPosition = target.position;
     turned.angles.z = static_cast<float>(
-        Render::Models::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));
+        Math::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));
     const ActorCombatContext combat = CombatContextOf(context);
     switch (skill)
     {

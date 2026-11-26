@@ -230,7 +230,7 @@ Core::Expected<void, std::string> DrawTheBoxAbove(GameHudContext& context, std::
     const std::int32_t cy = context.text.Measure(context.hud.dcFont, first).height;
     const std::int32_t sum = (count - halves) * cy + halves * cy / 2;
     const double ry = Render::ScaleY(1.0f, context.sprites.Screen());
-    const std::optional<std::int32_t> height = World::OriginalFtolLow(static_cast<double>(sum) / ry);
+    const std::optional<std::int32_t> height = Math::OriginalFtolLow(static_cast<double>(sum) / ry);
     if (!height)
         return Core::Unexpected(std::format("{}: el alto del tooltip ({} / {}) no entra en _ftol", where, sum, ry));
     const auto top = static_cast<std::int32_t>(static_cast<std::uint32_t>(y) - static_cast<std::uint32_t>(*height));
@@ -313,12 +313,12 @@ Core::Expected<void, std::string> WriteTheAbsorption(SkillFrame& frame)
     TooltipWriter& lines = frame.lines;
     const double energy = static_cast<double>(frame.energy);
     const std::optional<std::int32_t> mana =
-        World::OriginalFtolLow(static_cast<double>(frame.own.maxMana) * static_cast<double>(AbsorbManaFactor));
+        Math::OriginalFtolLow(static_cast<double>(frame.own.maxMana) * static_cast<double>(AbsorbManaFactor));
     if (!mana)
         return Core::Unexpected(std::string("0x5b9409: el maná de la absorción no entra en _ftol"));
     const std::optional<std::int32_t> absorb =
-        World::OriginalFtolLow(static_cast<double>(frame.agility) * static_cast<double>(AbsorbAgilityFactor) +
-                               energy * static_cast<double>(AbsorbEnergyFactor) + static_cast<double>(AbsorbBase));
+        Math::OriginalFtolLow(static_cast<double>(frame.agility) * static_cast<double>(AbsorbAgilityFactor) +
+                              energy * static_cast<double>(AbsorbEnergyFactor) + static_cast<double>(AbsorbBase));
     if (!absorb)
         return Core::Unexpected(std::string("0x5b9447: la absorción no entra en _ftol"));
     lines.At("0x5b9457");
@@ -326,7 +326,7 @@ Core::Expected<void, std::string> WriteTheAbsorption(SkillFrame& frame)
     lines.At("0x5b9479");
     lines.Line(TooltipWhite, AbsorbManaText, *mana);
     const std::optional<std::int32_t> time =
-        World::OriginalFtolLow(energy * static_cast<double>(TimeEnergyFactor) + static_cast<double>(TimeBase));
+        Math::OriginalFtolLow(energy * static_cast<double>(TimeEnergyFactor) + static_cast<double>(TimeBase));
     if (!time)
         return Core::Unexpected(std::string("0x5b949c: la duración de la absorción no entra en _ftol"));
     lines.At("0x5b94ac");

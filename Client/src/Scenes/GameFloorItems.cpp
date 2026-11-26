@@ -125,10 +125,10 @@ Core::Expected<void, std::string> Spark(FloorItemState& item, const FloorItemSte
     item.effectCounter = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(old) + 1u);
     if (old % Interval != 0)
         return {};
-    const auto matrix = Render::Models::OriginalAngleMatrix(item.angles);
+    const auto matrix = Math::OriginalAngleMatrix(item.angles);
     const auto x = static_cast<float>(context.random.Next() % 32 + 16);
     const auto z = static_cast<float>(context.random.Next() % 32 + 16);
-    const auto rotated = Render::Models::OriginalVectorRotate({x, 0, z}, matrix);
+    const auto rotated = Math::OriginalVectorRotate({x, 0, z}, matrix);
     const glm::vec3 position{static_cast<float>(static_cast<double>(rotated.x) + item.position.x),
                              static_cast<float>(static_cast<double>(rotated.y) + item.position.y),
                              static_cast<float>(static_cast<double>(rotated.z) + item.position.z)};

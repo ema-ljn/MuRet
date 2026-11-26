@@ -166,9 +166,9 @@ bool CanStartThePath(const ActorState& hero)
 Core::Expected<void, std::string> UpdateTheHead(ActorState& hero, const HeroMovementInput& input, std::int32_t center,
                                                 bool keepsTheHead)
 {
-    const double angle = Render::Models::CreateAngle(
-        static_cast<float>(center), 180.0f, static_cast<float>(input.mouseX), static_cast<float>(input.mouseY));
-    const auto integer = World::OriginalFtolLow(angle + static_cast<double>(hero.angles.z));
+    const double angle = Math::CreateAngle(static_cast<float>(center), 180.0f, static_cast<float>(input.mouseX),
+                                           static_cast<float>(input.mouseY));
+    const auto integer = Math::OriginalFtolLow(angle + static_cast<double>(hero.angles.z));
     if (!integer)
         return Core::Unexpected(std::string("0x59b1f3: ángulo de la cabeza fuera del perfil ftol"));
     const std::int32_t shifted = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(*integer) + 315u);
@@ -295,8 +295,8 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
     GameMovementState& state = context.world.Runtime().movement;
     if (hero.movement != 0)
     {
-        const auto visibleX = World::OriginalFtolLow(static_cast<double>(hero.position.x) * CellReciprocal);
-        const auto visibleY = World::OriginalFtolLow(static_cast<double>(hero.position.y) * CellReciprocal);
+        const auto visibleX = Math::OriginalFtolLow(static_cast<double>(hero.position.x) * CellReciprocal);
+        const auto visibleY = Math::OriginalFtolLow(static_cast<double>(hero.position.y) * CellReciprocal);
         if (!visibleX || !visibleY)
             return Core::Unexpected(std::string("0x59deb3: posición fuera del perfil ftol"));
         if (std::abs(static_cast<int>(ReadCell(hero.cellXAccesses, hero.cellX, context.random)) - *visibleX) >= 2)
@@ -409,8 +409,8 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
     runtime.selectedTargets[4] = 1;
     hero.movementType = 3;
     const ActorState& victim = context.world.Actors()[static_cast<std::size_t>(chosen)];
-    const auto targetX = World::OriginalFtolLow(static_cast<double>(victim.position.x) * CellReciprocal);
-    const auto targetY = World::OriginalFtolLow(static_cast<double>(victim.position.y) * CellReciprocal);
+    const auto targetX = Math::OriginalFtolLow(static_cast<double>(victim.position.x) * CellReciprocal);
+    const auto targetY = Math::OriginalFtolLow(static_cast<double>(victim.position.y) * CellReciprocal);
     if (!targetX || !targetY)
         return Core::Unexpected(std::string("0x59d421: la celda del elegido fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*targetX);
@@ -503,8 +503,8 @@ Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovem
         hero.movementType = NpcTalkMovement;
     state.attackTarget = npc;
     const ActorState& target = context.world.Actors()[static_cast<std::size_t>(npc)];
-    const auto x = World::OriginalFtolLow(static_cast<double>(target.position.x) * CellReciprocal);
-    const auto y = World::OriginalFtolLow(static_cast<double>(target.position.y) * CellReciprocal);
+    const auto x = Math::OriginalFtolLow(static_cast<double>(target.position.x) * CellReciprocal);
+    const auto y = Math::OriginalFtolLow(static_cast<double>(target.position.y) * CellReciprocal);
     if (!x || !y)
         return Core::Unexpected(std::string("0x59daef: la posición del NPC fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*x);
@@ -544,8 +544,8 @@ Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const Her
     hero.movementType = PickUpMovement;
     runtime.floor.chosen = index;
     const glm::vec3& position = context.world.DrawTail().floorItems[static_cast<std::size_t>(index)].position;
-    const auto x = World::OriginalFtolLow(static_cast<double>(position.x) * CellReciprocal);
-    const auto y = World::OriginalFtolLow(static_cast<double>(position.y) * CellReciprocal);
+    const auto x = Math::OriginalFtolLow(static_cast<double>(position.x) * CellReciprocal);
+    const auto y = Math::OriginalFtolLow(static_cast<double>(position.y) * CellReciprocal);
     if (!x || !y)
         return Core::Unexpected(std::string("0x59dc8e: la posición del ítem del piso fuera del perfil ftol"));
     state.targetX = static_cast<std::uint32_t>(*x);
@@ -673,8 +673,8 @@ void PublishHeroLayer(const ActorState& hero, WorldRuntime& runtime, const World
 {
     if (!terrain.mapping)
         return;
-    const auto x = World::OriginalFtolLow(hero.position.x);
-    const auto y = World::OriginalFtolLow(hero.position.y);
+    const auto x = Math::OriginalFtolLow(hero.position.x);
+    const auto y = Math::OriginalFtolLow(hero.position.y);
     if (!x || !y)
         return;
     const auto raw = static_cast<std::int64_t>(*y / 100) * 256 + *x / 100;
@@ -718,7 +718,7 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
         const auto stopped = SetActorStop(hero, stop);
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
-        const auto yaw = World::OriginalFtolLow(hero.angles.z);
+        const auto yaw = Math::OriginalFtolLow(hero.angles.z);
         if (!yaw)
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
         runtime.movement.arrivalYaw = *yaw;

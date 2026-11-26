@@ -201,7 +201,7 @@ float WingsFactorOf(const ItemState& item, std::uint8_t baseDurability)
 std::uint16_t Reduced(std::uint16_t value, float factor)
 {
     const double product = static_cast<double>(value) * static_cast<double>(factor);
-    return Low16(value - World::FtolLow(product));
+    return Low16(value - Math::FtolLow(product));
 }
 
 // 0x54e540 y 0x54e590 no leen nada de un ítem con el tipo −1; con más de nueve opciones leerían fuera de
@@ -484,7 +484,7 @@ std::uint16_t WithAmmunition(std::uint16_t word, std::uint32_t level)
     constexpr float AmmunitionStep = 0.01f; // 0x6b88d4
     constexpr double One = 1.0;             // 0x6b87d4, 1.0f
     const double multiplier = static_cast<double>(2 * level + 1) * static_cast<double>(AmmunitionStep);
-    return Low16(word + World::FtolLow(static_cast<double>(word) * multiplier + One));
+    return Low16(word + Math::FtolLow(static_cast<double>(word) * multiplier + One));
 }
 
 // 0x54f7b0..0x54f8d6: con las dos manos de 0x800 a 0x9ff (con signo), Bolt de nivel en la izquierda
@@ -806,7 +806,7 @@ void AddScanToWord62(OwnCharacterRecord& own, const Scan505820& scan)
     const std::uint32_t index = std::bit_cast<std::uint32_t>(scan.dword743a178) - FirstScanLevel;
     const float factor = index < ScanFactors.size() ? ScanFactors[index] : NoFactor;
     const double product = static_cast<double>(own.word62) * static_cast<double>(factor);
-    own.word62 = Low16(own.word62 + World::FtolLow(product));
+    own.word62 = Low16(own.word62 + Math::FtolLow(product));
 }
 
 // 0x550b86..0x550be1: 0x40d690 con 0x96, 0x40d7f0 con la agilidad (0xa6) y con la vitalidad (0xa7) y, con

@@ -67,9 +67,9 @@ Client::Render::Models::Skeleton RavenSkeleton()
 
 // La pose de mentira del último dibujo de make_raven_vectors.py: sin giro, el hueso i en
 // (1.000 + 7i; 2.000 − 3i; 300 + 5i).
-std::vector<Client::Render::Models::OriginalMatrix> FakePose()
+std::vector<Client::Math::OriginalMatrix> FakePose()
 {
-    std::vector<Client::Render::Models::OriginalMatrix> pose(Bones);
+    std::vector<Client::Math::OriginalMatrix> pose(Bones);
     for (std::size_t i = 0; i < Bones; ++i)
     {
         const auto k = static_cast<float>(i);
@@ -295,10 +295,10 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
 
 // Los huesos propios del dueño de make_raven_safe_zone_vectors.py: el giro de 0,6 y 0,8 sobre z y el hueso i en
 // (−40 + 3i; 25 − 2i; 90 + 4i).
-std::vector<Client::Render::Models::BoneTransform> OwnerPose()
+std::vector<Client::Math::BoneTransform> OwnerPose()
 {
     constexpr std::size_t OwnerBones = 60;
-    std::vector<Client::Render::Models::BoneTransform> pose(OwnerBones);
+    std::vector<Client::Math::BoneTransform> pose(OwnerBones);
     for (std::size_t i = 0; i < OwnerBones; ++i)
     {
         const auto k = static_cast<float>(i);
@@ -342,7 +342,7 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
     ASSERT_TRUE(std::getline(file, line));
     ASSERT_EQ(line, "raven-safe-zone 1");
     const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
-    const std::vector<Client::Render::Models::BoneTransform> ownerPose = OwnerPose();
+    const std::vector<Client::Math::BoneTransform> ownerPose = OwnerPose();
     Terrain terrain;
     terrain.Build(3, 5);
     CrtRandom random;

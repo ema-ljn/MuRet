@@ -766,8 +766,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
     itemContext.special = &special;
     itemContext.selections = &m_world.Runtime().itemRender.selections;
     itemContext.originalFrame = true;
-    itemContext.poseBones = [&poseCarry]()
-    { return std::span<const Client::Render::Models::BoneTransform>(poseCarry.bones); };
+    itemContext.poseBones = [&poseCarry]() { return std::span<const Client::Math::BoneTransform>(poseCarry.bones); };
     std::size_t joints = 0;
     itemContext.createJoint = [&joints](const Client::World::FishEffectRequest& request)
     {

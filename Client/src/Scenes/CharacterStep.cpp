@@ -400,7 +400,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     animation.frame = advanced.frame;
     animation.previousAction = advanced.previousAction;
     animation.previousKey = advanced.previousKey;
-    const auto whole = World::OriginalFtolLow(static_cast<double>(animation.frame));
+    const auto whole = Math::OriginalFtolLow(static_cast<double>(animation.frame));
     if (!whole)
         return Core::Unexpected(std::string("0x4ec31f: el frame avanzado no tiene conversión nativa observada"));
     const auto key = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(*whole));
@@ -715,10 +715,8 @@ glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec
 glm::vec3 SharedBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
 {
     const auto placement = world.ModelPlacement(actor.type);
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
-                                                     placement.origin);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 const Render::Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
@@ -982,10 +980,8 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
 // copió del personaje al modelo. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
 glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                     actor.position);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, actor.position);
 }
 
 Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm::vec3& point, ActorState& actor,
@@ -1017,8 +1013,7 @@ Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, cons
     {
         glm::vec3 angles{static_cast<float>(context.random.Next() % PitchSpan), 0.0f,
                          static_cast<float>(context.random.Next() % YawSpan)};
-        const glm::vec3 rotated =
-            Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 rotated = Math::OriginalVectorRotate(Offset, Math::OriginalAngleMatrix(angles));
         glm::vec3 first{};
         for (int axis = 0; axis < 3; ++axis)
             first[axis] = static_cast<float>(static_cast<double>(actor.position[axis]) -
@@ -1095,7 +1090,7 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, s
 {
     constexpr std::int32_t ClockPeriod = 10000;
     constexpr std::int32_t BubbleWindow = 1000;
-    const std::optional<std::int32_t> clock = World::OriginalFtolLow(static_cast<double>(context.worldClock));
+    const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(context.worldClock));
     if (!clock)
     {
         return Core::Unexpected(std::string("0x506d10: ftol del reloj del mundo fuera de lo acreditado"));
@@ -1311,8 +1306,8 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         constexpr int FootstepSpan = 64, FootstepCenter = 32;
         constexpr double FootstepHeight = 50;
         constexpr std::int32_t FootstepParticle = 0x6f4, FootstepSubtype = 1;
-        const auto matrix = Render::Models::OriginalAngleMatrix(actor.angles);
-        glm::vec3 position = Render::Models::OriginalVectorRotate({0, -40, 0}, matrix);
+        const auto matrix = Math::OriginalAngleMatrix(actor.angles);
+        glm::vec3 position = Math::OriginalVectorRotate({0, -40, 0}, matrix);
         for (int axis = 0; axis < 3; ++axis)
             position[axis] = static_cast<float>(static_cast<double>(position[axis]) + actor.position[axis]);
         position.x =

@@ -36,8 +36,8 @@ double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights, const Data:
     const auto cellX = static_cast<float>(static_cast<double>(x) * static_cast<double>(CellsPerUnit));
     const double productY = static_cast<double>(y) * static_cast<double>(CellsPerUnit);
     const auto cellY = static_cast<float>(productY);
-    const std::int32_t row = FtolLow(productY);
-    const std::int32_t column = FtolLow(static_cast<double>(cellX));
+    const std::int32_t row = Math::FtolLow(productY);
+    const std::int32_t column = Math::FtolLow(static_cast<double>(cellX));
     // 0x5f9436: la fila por 256 más la columna, en 32 bits, y `jl` con signo contra 0x10000. Con un índice
     // negativo (desde la fila 2^23 puede pasar) el original lee antes de la tabla de atributos: MuRet da
     // 1.200, como fuera de la grilla.

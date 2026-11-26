@@ -189,7 +189,7 @@ struct ActorState
     // +0x120: los huesos del cuerpo en el mundo como los dejó el último dibujo del juego (0x509340, la pose de
     // 0x4eb860 con la cabeza). 0x511290 suelta el buffer y pide otro sin iniciar (0x5123c4..0x5123ff): antes
     // del primer dibujo, vacío (Q-C318). Lo lee la burbuja de Atlans (0x506d25).
-    std::vector<Render::Models::BoneTransform> bodyPose;
+    std::vector<Math::BoneTransform> bodyPose;
     // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
     std::optional<DarkSpirit> darkSpirit;
     // +0x360: con 5, la capa de los GM, que 0x413fe0 pone en cada dibujo de un GM; del 1 al 3, el arma del

@@ -72,7 +72,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::BoneTransform;
+using Math::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 
 constexpr std::uint8_t PlayerKind = 1;
@@ -165,12 +165,12 @@ struct ModelLight
 // pasa de 2^40: fuera del perfil, que no se alcanza, queda 0 (como GameHanging).
 double ClockSine(float worldClock, float rate, float factor)
 {
-    return Render::Models::Detail::SineProductPC53(D(worldClock) * D(rate), factor).value_or(0.0);
+    return Math::Detail::SineProductPC53(D(worldClock) * D(rate), factor).value_or(0.0);
 }
 
 double ClockSinePlus(float worldClock, float rate, float addend)
 {
-    return Render::Models::Detail::SineSumPC53(D(worldClock) * D(rate), D(addend)).value_or(0.0);
+    return Math::Detail::SineSumPC53(D(worldClock) * D(rate), D(addend)).value_or(0.0);
 }
 
 ModelLight ModelLightOf(const ActorState& actor, const World::TerrainLighting& lighting, float worldClock)
@@ -242,7 +242,7 @@ std::function<double(float, float)> BodyTerrainHeight(const WorldState& world, c
 std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
                                       const Render::Models::AnimationState& animation)
 {
-    const auto truncated = World::OriginalFtolLow(D(animation.frame));
+    const auto truncated = Math::OriginalFtolLow(D(animation.frame));
     if (skeleton.actions.empty() || !truncated)
         return std::nullopt;
     auto key = static_cast<std::int16_t>(*truncated);
@@ -488,8 +488,7 @@ glm::vec3 PointOnTheBone(const MonsterFrame& frame, std::size_t bone, const glm:
 {
     const ActorState& actor = frame.actor;
     const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                     frame.modelOrigin);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, frame.modelOrigin);
 }
 
 // 0x50bf98..0x50c0f0, el +0x376 0x45: x = (rand() % 30 + 70) · 0,01f en la x87; nueve flare01 (0x5ac) de 0,6f con la
@@ -807,11 +806,10 @@ Result DrawThePhoenix(MonsterFrame& frame)
     constexpr float Weight = std::bit_cast<float>(0x3f333333u); // 0x6b8a5c: 0,7
     constexpr float Floor = std::bit_cast<float>(0x3e99999au);  // 0x6b89dc: 0,3
     ActorState& actor = frame.actor;
-    const auto clock = World::OriginalFtolLow(D(frame.worldClock));
+    const auto clock = Math::OriginalFtolLow(D(frame.worldClock));
     if (!clock)
         return Core::Unexpected<std::string>("0x50c17d: el reloj del mundo no cabe en 0x69fd3c");
-    const std::optional<double> wave =
-        Render::Models::Detail::SineSumPC53(static_cast<double>(*clock % Period) * D(Rate), 1.0);
+    const std::optional<double> wave = Math::Detail::SineSumPC53(static_cast<double>(*clock % Period) * D(Rate), 1.0);
     if (!wave)
         return Core::Unexpected<std::string>("0x50c1b7: el seno del reloj no cabe en el perfil PC53");
     const float s = F32(*wave * 0.5);

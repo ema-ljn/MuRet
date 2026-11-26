@@ -150,7 +150,7 @@ TEST(LandOfTrialsObjectsTest, TheFloatingObjectSwaysItsHeightWithTheClockAndItsP
         const double argument =
             static_cast<double>(step.globals.worldClock) * static_cast<double>(std::bit_cast<float>(0x3b1d4952u)) +
             3.25;
-        const auto sway = Client::Render::Models::Detail::SineProductPC53(argument, 0.3f);
+        const auto sway = Client::Math::Detail::SineProductPC53(argument, 0.3f);
         ASSERT_TRUE(sway.has_value());
         z = static_cast<float>(*sway + static_cast<double>(z));
         EXPECT_EQ(object.transform.position.z, z);

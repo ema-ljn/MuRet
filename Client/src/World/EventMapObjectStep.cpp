@@ -71,7 +71,7 @@ float FlashCoordinate(int spread, float hero)
 
 Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random, const ObjectStepGlobals& globals)
 {
-    const std::optional<std::int32_t> clock = OriginalFtolLow(static_cast<double>(globals.worldClock));
+    const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(globals.worldClock));
     if (!clock)
         return Core::Unexpected(std::string("0x604acf: el reloj del mundo no tiene un ftol acreditado"));
     if (*clock % FlashPeriod < FlashWindow && random.Next() % FlashOdds == 0)

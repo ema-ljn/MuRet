@@ -235,7 +235,7 @@ Core::Expected<void, std::string> RaiseTheInferno(const ActorState& actor, const
 // sin rand().
 glm::vec3 TurnedPoint(const ActorState& actor, const glm::vec3& offset)
 {
-    const auto turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(actor.angles));
+    const auto turned = Math::OriginalVectorRotate(offset, Math::OriginalAngleMatrix(actor.angles));
     return {F32(D(actor.position.x) + D(turned.x)), F32(D(actor.position.y) + D(turned.y)),
             F32(D(actor.position.z) + D(turned.z))};
 }
@@ -252,8 +252,8 @@ Core::Expected<void, std::string> SpinTheEnergy(ActorState& actor, const Charact
         return Core::Unexpected(std::string("0x4fe856: faltan los joints del frame (0x530860)"));
     const auto point = [&actor](double argument, bool sineFirst) -> Core::Expected<glm::vec3, std::string>
     {
-        const auto sine = Render::Models::Detail::SineProductPC53(argument, Radius);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(argument, Radius);
+        const auto sine = Math::Detail::SineProductPC53(argument, Radius);
+        const auto cosine = Math::Detail::CosineProductPC53(argument, Radius);
         if (!sine || !cosine)
             return Core::Unexpected(std::string("0x4fe7d7: el seno de la 0x35 excede el perfil PC53"));
         return glm::vec3(F32((sineFirst ? *sine : *cosine) + D(actor.position.x)),
@@ -464,8 +464,8 @@ Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Worl
 glm::vec3 TowardsTheTarget(const ActorState& actor, const ActorState& victim)
 {
     return glm::vec3(actor.angles.x, actor.angles.y,
-                     static_cast<float>(Render::Models::CreateAngle(actor.position.x, actor.position.y,
-                                                                    victim.position.x, victim.position.y)));
+                     static_cast<float>(
+                         Math::CreateAngle(actor.position.x, actor.position.y, victim.position.x, victim.position.y)));
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).

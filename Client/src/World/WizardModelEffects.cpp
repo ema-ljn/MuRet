@@ -268,7 +268,7 @@ void AddTo(glm::vec3& position, const glm::vec3& offset)
 
 glm::vec3 Turned(const glm::vec3& vector, const glm::vec3& angles)
 {
-    return Render::Models::OriginalVectorRotate(vector, Render::Models::OriginalAngleMatrix(angles));
+    return Math::OriginalVectorRotate(vector, Math::OriginalAngleMatrix(angles));
 }
 
 // (rand() & 63) − 32 en x e y y (rand() & 127) + 32 en z, cada uno sumado a su eje en la x87 (0x51ac38 y 0x5246bc).
@@ -896,7 +896,7 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
         return {};
     // 0x5245b2..0x52467b: la llama 5db/10 que gira alrededor del dueño y sube y baja con el seno del reloj.
     effect.copiedAngles.z = F32(D(effect.copiedAngles.z) + 20.0);
-    const auto sine = Render::Models::Detail::SineProductPC53(D(services.worldClock) * Hundredth, 20.0f);
+    const auto sine = Math::Detail::SineProductPC53(D(services.worldClock) * Hundredth, 20.0f);
     if (!sine)
         return Core::Unexpected(std::string("0x5245d5: el seno del 0xc1/1 no cabe en el perfil PC53"));
     effect.turnDirection = F32(*sine + 30.0);
@@ -913,8 +913,8 @@ Core::Expected<std::uint16_t, std::string> MaskedCellAttribute(const WizardEffec
 {
     if (services.terrainAttributes == nullptr)
         return Core::Unexpected(std::format("{}: faltan los atributos de las celdas (0x7d0d348)", address));
-    const auto x = static_cast<std::uint32_t>(FtolLow(D(point.x) * Hundredth)) & 0xffu;
-    const auto y = static_cast<std::uint32_t>(FtolLow(D(point.y) * Hundredth)) & 0xffu;
+    const auto x = static_cast<std::uint32_t>(Math::FtolLow(D(point.x) * Hundredth)) & 0xffu;
+    const auto y = static_cast<std::uint32_t>(Math::FtolLow(D(point.y) * Hundredth)) & 0xffu;
     return services.terrainAttributes->cells[(y << 8) + x];
 }
 
@@ -1421,7 +1421,7 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
                 // 0x522f81..0x522fa9: contra el muro del asedio se frena y le queda un quinto de vida.
                 effect.speed = 0.0f;
                 effect.velocity = {};
-                effect.life = FtolLow(LifeTimes(effect.life, Fifth));
+                effect.life = Math::FtolLow(LifeTimes(effect.life, Fifth));
                 return {};
             }
         }

@@ -52,7 +52,7 @@ Core::Expected<void, std::string> Pulse(World::WorldObject& object, float worldC
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
     constexpr float Swing = std::bit_cast<float>(0x3e99999au);
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f333333u));
-    const auto pulse = Render::Models::Detail::SineProductPC53(static_cast<double>(worldClock) * Rate, Swing);
+    const auto pulse = Math::Detail::SineProductPC53(static_cast<double>(worldClock) * Rate, Swing);
     if (!pulse)
         return Core::Unexpected(std::string("0x42ca45: la luz del 0x29 del 30 no cabe en el perfil PC53"));
     object.state.light = static_cast<float>(*pulse + Base);

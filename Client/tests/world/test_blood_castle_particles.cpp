@@ -312,8 +312,8 @@ TEST(BloodCastleParticlesTest, TheTorchOrbitShrinksFasterAndFadesFromThirty)
         ASSERT_TRUE(
             Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
         const double argument = (static_cast<double>(life - 1) + 17.0) * Bits(0x3dcccccdu);
-        const auto sine = Client::Render::Models::Detail::SineProductPC53(argument, 40.0f);
-        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(argument, 40.0f);
+        const auto sine = Client::Math::Detail::SineProductPC53(argument, 40.0f);
+        const auto cosine = Client::Math::Detail::CosineProductPC53(argument, 40.0f);
         ASSERT_TRUE(sine && cosine);
         EXPECT_EQ(p.life, life - 1);
         EXPECT_EQ(p.position.x, F32(*sine + 100.0));

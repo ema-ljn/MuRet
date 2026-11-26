@@ -94,6 +94,7 @@ class ClothModels final : public Client::Render::Models::IModelLibrary
 public:
     ClothModels()
     {
+        using namespace Client::Math;
         using namespace Client::Render::Models;
         SkeletonBone bone;
         bone.parent = -1;
@@ -138,7 +139,7 @@ TEST(MonsterMeshClothTest, TheMeshRobeUsesTheMapWind)
 {
     Client::Data::Models::Model model;
     model.meshes = {Triangle(), Triangle(), Robe()};
-    const std::vector<Client::Render::Models::BoneTransform> bones(19, Client::Render::Models::BoneTransform{1.0f});
+    const std::vector<Client::Math::BoneTransform> bones(19, Client::Math::BoneTransform{1.0f});
     const ClothBody body{.bones = bones};
     for (const std::uint8_t map : std::array<std::uint8_t, 3>{0x36, 0x37, 0x38})
     {

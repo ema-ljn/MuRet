@@ -92,7 +92,7 @@ Core::Expected<void, std::string> StepHelperSpark(JointState& joint, const Joint
             joint.speed = static_cast<float>(TopSpeed);
         const float heading = joint.angles.z; // [ebp+8]
         const glm::vec3 target = joint.targetPosition;
-        const double distance = Render::Models::MoveToward(joint.position, joint.angles, target, joint.speed);
+        const double distance = Math::MoveToward(joint.position, joint.angles, target, joint.speed);
         constexpr double Near = 70.0, Swerve = 20.0, Brake = 10.0; // 0x6ba1b0, 0x6ba2f8 (double) y 0x6b86d0
         if (!(distance > Near) && std::abs(D(heading) - D(joint.angles.z)) > Swerve && D(joint.speed) >= Swerve)
             joint.speed = F32(D(joint.speed) - Brake);
@@ -142,8 +142,7 @@ void CreateSpinningSparkle(JointState& joint, const World::FishEffectRequest& re
 {
     constexpr float Start = -15.0f, Radius = -50.0f; // 0xc1700000 y 0xc2480000
     joint.velocity.y = Start;
-    const auto moved =
-        Render::Models::OriginalVectorRotate(joint.velocity, Render::Models::OriginalAngleMatrix(joint.angles));
+    const auto moved = Math::OriginalVectorRotate(joint.velocity, Math::OriginalAngleMatrix(joint.angles));
     joint.width = request.scale;
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
@@ -193,13 +192,12 @@ Core::Expected<void, std::string> StepSpinningSparkle(JointState& joint, const J
         return Core::Unexpected(std::string("0x53a09f: falta el RNG del joint 0x60f/0x2a"));
     constexpr std::int32_t Life = 100;
     joint.life = Life;
-    const auto moved =
-        Render::Models::OriginalVectorRotate(joint.velocity, Render::Models::OriginalAngleMatrix(joint.angles));
+    const auto moved = Math::OriginalVectorRotate(joint.velocity, Math::OriginalAngleMatrix(joint.angles));
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.pathIncrement[axis]));
     constexpr int Chance = 100, Most = 50, Beat = 45;
     const int roll = services.random->Next() % Chance;
-    const auto turn = World::OriginalFtolLow(D(joint.angles.z));
+    const auto turn = Math::OriginalFtolLow(D(joint.angles.z));
     if (!turn)
         return Core::Unexpected(std::string("0x53a0b2: el giro del joint 0x60f/0x2a excede ftol"));
     if (*turn % Beat == 0 && roll <= Most)

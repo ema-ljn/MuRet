@@ -716,8 +716,8 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
     if (attack.skill != 0x3b)
     {
         if (!sourceIsHero && attack.skill != 0x6 && attack.skill != 0xf && target.seen)
-            source.angles.z = static_cast<float>(Render::Models::CreateAngle(source.position.x, source.position.y,
-                                                                             target.position.x, target.position.y));
+            source.angles.z = static_cast<float>(
+                Math::CreateAngle(source.position.x, source.position.y, target.position.x, target.position.y));
         source.attackTarget = static_cast<std::uint16_t>(targetIndex);
         if (attack.skill == 0x4c)
             source.skillTarget4c = static_cast<std::int32_t>(targetIndex);

@@ -47,10 +47,10 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Crt::Sprintf;
+using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Models::OwnRecordCloseRandoms;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::SmallLogicalCloseRandoms;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;

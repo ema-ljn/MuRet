@@ -60,8 +60,7 @@ using Math::F32;
 
 glm::vec3 Offset(float distance, float yaw)
 {
-    return Render::Models::OriginalVectorIRotate({0.0f, distance, 0.0f},
-                                                 Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw}));
+    return Math::OriginalVectorIRotate({0.0f, distance, 0.0f}, Math::OriginalAngleMatrix({0.0f, 0.0f, yaw}));
 }
 
 glm::vec3 Add(const glm::vec3& left, const glm::vec3& right)
@@ -162,10 +161,10 @@ void ApplyRocking(Render::Camera3D& camera, const GameCameraInput& input)
 {
     if (input.map == RockingMap)
     {
-        const double pitchWave = Render::Models::RoundedSin(static_cast<double>(input.worldTime) * RockingPitchRate);
+        const double pitchWave = Math::RoundedSin(static_cast<double>(input.worldTime) * RockingPitchRate);
         camera.angles.x = F32((pitchWave + pitchWave) + static_cast<double>(camera.angles.x));
         camera.angles.y =
-            F32((Render::Models::RoundedSin(static_cast<double>(input.worldTime) * RockingYRate) * RockingYAmplitude) +
+            F32((Math::RoundedSin(static_cast<double>(input.worldTime) * RockingYRate) * RockingYAmplitude) +
                 static_cast<double>(camera.angles.y));
     }
 }

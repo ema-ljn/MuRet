@@ -52,7 +52,7 @@ void ShakeAtBirth(Particle& particle, Crt::CrtRandom& random, float clock)
     const double argumentScale = static_cast<double>(particle.scale);
     particle.scale = F32((static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * argumentScale) * Hundredth);
     particle.angles.x = static_cast<float>(random.Next() % FullTurn);
-    particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+    particle.rotation = static_cast<float>(Math::FtolLow(static_cast<double>(clock)) % FullTurn);
 }
 
 // 0x541c58..0x541c7d, 0x5424ff..0x542524 y 0x5426f2..0x542717: la velocidad vertical ((rand() & 31) + 60) · 0,1f.
@@ -168,7 +168,7 @@ void CreateThePuff(Particle& particle, Crt::CrtRandom& random, float clock)
     KeepTheLight(particle);
     particle.life = particle.subtype == ShortSubtype ? ShortLife : LongLife;
     particle.angles.x = F32(static_cast<double>(random.Next() & TiltMask) - TiltCenter);
-    particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+    particle.rotation = static_cast<float>(Math::FtolLow(static_cast<double>(clock)) % FullTurn);
 }
 
 // 0x546a13..0x546aff: la /0 baja el rojo guardado 0,015f mientras pasa de 0,1f y otros 0,005f mientras el verde pasa
@@ -356,7 +356,7 @@ void CreateSmokeParticle(Particle& particle, Crt::CrtRandom& random, float clock
         particle.life = BreathLife;
         particle.scale = F32(static_cast<double>((random.Next() & BreathMask) + BreathBase) * Hundredth);
         particle.angles.x = static_cast<float>(random.Next() % FullTurn);
-        particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+        particle.rotation = static_cast<float>(Math::FtolLow(static_cast<double>(clock)) % FullTurn);
         return;
     case StoneSmokeSubtype:
     {
@@ -367,7 +367,7 @@ void CreateSmokeParticle(Particle& particle, Crt::CrtRandom& random, float clock
         particle.scale =
             F32((static_cast<double>((random.Next() & BreathMask) + BreathBase) * Hundredth + 1.0) * argumentScale);
         particle.angles.x = static_cast<float>(random.Next() % FullTurn);
-        particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+        particle.rotation = static_cast<float>(Math::FtolLow(static_cast<double>(clock)) % FullTurn);
         return;
     }
     case FadingSmokeSubtype:

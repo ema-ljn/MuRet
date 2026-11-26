@@ -301,7 +301,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     const std::string server = Sprintf(serverFormat.Value(), groupName.Value(), static_cast<std::int32_t>(number));
     // 0x5ee6a1..0x5ee6bf: a = (float)(sin(T · 0,001f) + 1), en la x87.
     const float alpha =
-        F32(Render::Models::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(0.001f)) + 1.0);
+        F32(Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(0.001f)) + 1.0);
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, F32(2.0 - static_cast<double>(alpha))});
     DrawCentered(context, x + 0x16, y + 0x16, className, BoxPixels(context, 150));
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, alpha});

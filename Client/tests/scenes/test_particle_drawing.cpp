@@ -43,7 +43,7 @@ using Client::World::Particle;
 using Client::World::ParticleDrawingPhase;
 using Client::World::ParticleError;
 using Request = Client::Render::ParticleBillboardRequest;
-using Matrix = Client::Render::Models::OriginalMatrix;
+using Matrix = Client::Math::OriginalMatrix;
 constexpr Matrix Identity{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
 static_assert(!std::is_default_constructible_v<Request>);
 static_assert(!std::is_default_constructible_v<Client::Scenes::ParticleDrawServices>);

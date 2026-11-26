@@ -72,7 +72,7 @@ struct Rates
 // FCOS de un float). Devuelve [ebp−0x3c], [ebp−0x38] y [ebp−0x54].
 std::optional<std::array<float, 3>> Direction(std::int32_t phase, const Rates& rates)
 {
-    namespace Math = Render::Models::Detail;
+    namespace Math = Client::Math::Detail;
     constexpr std::uint32_t FirstOffset = 0xd903;  // 0x53a9d8, 55555
     constexpr std::uint32_t SecondOffset = 0x2b67; // 0x53aa33, 11111
     const float a = F32(static_cast<double>(Wrapped(phase, FirstOffset)) * D(rates.first));
@@ -232,7 +232,7 @@ Core::Expected<void, std::string> StepWanderingJoint(JointState& joint, const Jo
     {
         const std::uint32_t whole = std::bit_cast<std::uint32_t>(phase / 10) + axis * AxisStride + index * PlaceStride;
         const float argument = F32(static_cast<double>(std::bit_cast<std::int32_t>(whole)) * Hundredth);
-        const auto wave = Render::Models::Detail::CosineDoubleProductPC53(D(argument), 25.0);
+        const auto wave = Math::Detail::CosineDoubleProductPC53(D(argument), 25.0);
         if (!wave)
             return Core::Unexpected(
                 std::format("0x53ad53: el vaivén del joint 0x60f/{:#x} excede el perfil PC53", subtype));

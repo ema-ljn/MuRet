@@ -633,7 +633,7 @@ TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
     owner.angles = {3.0f, 0.0f, 188.0f};
     owner.safeZone = 1;
     tested.Cell(0, 0) = 1;
-    owner.bodyPose.assign(60, Client::Render::Models::BoneTransform(1.0f));
+    owner.bodyPose.assign(60, Client::Math::BoneTransform(1.0f));
     owner.bodyPose[37][3] = glm::vec3(7.0f, 8.0f, 9.0f);
     owner.darkSpirit.emplace();
     owner.darkSpirit->state = 3;
@@ -2436,9 +2436,9 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
         hero.angles = {0.0f, 0.0f, 45.0f};
         if (probe.drawn)
         {
-            hero.bodyPose.assign(Client::Data::Models::PlayerHeadBone + 1, Client::Render::Models::BoneTransform(0.0f));
-            Client::Render::Models::BoneTransform& head = hero.bodyPose[Client::Data::Models::PlayerHeadBone];
-            head = Client::Render::Models::BoneTransform(1.0f);
+            hero.bodyPose.assign(Client::Data::Models::PlayerHeadBone + 1, Client::Math::BoneTransform(0.0f));
+            Client::Math::BoneTransform& head = hero.bodyPose[Client::Data::Models::PlayerHeadBone];
+            head = Client::Math::BoneTransform(1.0f);
             head[3] = glm::vec3(5.0f, 6.0f, 7.0f);
         }
         tested.world.Runtime().terrainPolygon = Everything;
@@ -2491,10 +2491,10 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
             ActorState& hero = tested.Hero();
             hero.scale = 2.0f;
             hero.angles = {0.0f, 0.0f, 45.0f};
-            hero.bodyPose.assign(36, Client::Render::Models::BoneTransform(0.0f));
-            hero.bodyPose[26] = Client::Render::Models::BoneTransform(1.0f);
+            hero.bodyPose.assign(36, Client::Math::BoneTransform(0.0f));
+            hero.bodyPose[26] = Client::Math::BoneTransform(1.0f);
             hero.bodyPose[26][3] = glm::vec3(5.0f, 6.0f, 7.0f);
-            hero.bodyPose[35] = Client::Render::Models::BoneTransform(1.0f);
+            hero.bodyPose[35] = Client::Math::BoneTransform(1.0f);
             hero.bodyPose[35][3] = glm::vec3(1.0f, 2.0f, 3.0f);
             tested.world.Runtime().terrainPolygon = Everything;
             Client::World::Particles particles;
@@ -2618,7 +2618,7 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
     owner.angles = {3.0f, 0.0f, 188.0f};
     owner.safeZone = 1;
     tested.Cell(0, 0) = 1;
-    owner.bodyPose.assign(60, Client::Render::Models::BoneTransform(1.0f));
+    owner.bodyPose.assign(60, Client::Math::BoneTransform(1.0f));
     owner.bodyPose[37][3] = glm::vec3(7.0f, 8.0f, 9.0f);
     owner.darkSpirit.emplace();
     owner.darkSpirit->state = 3;
@@ -2733,7 +2733,7 @@ TEST(CharacterStepTest, AnExpiringActorOutsideThePoolStillRunsItsDirectCleanup)
 TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
 {
     GameWorld tested;
-    std::array<Client::Render::Models::BoneTransform, 21> bones{};
+    std::array<Client::Math::BoneTransform, 21> bones{};
     const Client::Render::Models::ClothBody body{.bones = bones};
     Client::Render::Models::ClothWorld clothWorld{.random = CrtRandom(Seed)};
     for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
@@ -2805,7 +2805,7 @@ TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
             hero.animation.action = action;
             hero.animation.frame = 2.5f;
             hero.light = {0.5f, 0.25f, 0.125f};
-            hero.bodyPose.assign(21, Client::Render::Models::BoneTransform(1.0f));
+            hero.bodyPose.assign(21, Client::Math::BoneTransform(1.0f));
             hero.bodyPose[20][3] = {0.0f, 0.0f, 40.0f};
             tested.Cell(0, 0) = 1;
             tested.world.PlayerModel() = {.scale = 0.75f, .origin = {-3000.0f, -4000.0f, -10.0f}};

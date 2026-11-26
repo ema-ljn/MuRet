@@ -52,10 +52,9 @@ bool IsClean(std::uint16_t type)
 glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
                     const ActorRemainsContext& context)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
-                                                     context.modelScale, context.modelOrigin);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, context.modelScale,
+                                           context.modelOrigin);
 }
 } // namespace
 

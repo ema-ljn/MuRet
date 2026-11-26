@@ -44,7 +44,7 @@ Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const World
     joint.life = Life;
     joint.targetPosition = request.secondPosition;
     joint.width = request.scale;
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     for (std::int32_t point = 0; point < joint.maximumCount; ++point)
     {
         joint.position.z = F32(D(joint.position.z) + Rise);
@@ -132,8 +132,8 @@ Core::Expected<void, std::string> StepTheWhirl(JointState& joint, const JointKer
     double argument = D(joint.velocity.y) * Tenth;
     if (joint.subtype == MirroredWhirlSubtype)
         argument = argument * Mirror;
-    const auto cosine = Render::Models::Detail::CosineProductPC53(argument, joint.speed);
-    const auto sine = Render::Models::Detail::SineProductPC53(argument, joint.speed);
+    const auto cosine = Math::Detail::CosineProductPC53(argument, joint.speed);
+    const auto sine = Math::Detail::SineProductPC53(argument, joint.speed);
     if (!cosine || !sine)
         return Core::Unexpected(std::format("0x53b1ae: el giro del joint {:#x}/{:#x} excede el perfil matemático",
                                             joint.type, joint.subtype));

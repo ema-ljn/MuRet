@@ -21,7 +21,7 @@ namespace Client::Math
 
 [[nodiscard]] inline std::int32_t Truncate(double value)
 {
-    return World::FtolLow(value);
+    return FtolLow(value);
 }
 
 [[nodiscard]] constexpr std::uint32_t Bits(float value)

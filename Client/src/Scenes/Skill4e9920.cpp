@@ -18,10 +18,10 @@ constexpr unsigned HighNibble = 4;
 std::optional<std::uint8_t> RelativeTargetCell(float x, float y, std::int32_t targetX, std::int32_t targetY)
 {
     // 0x4e9923..0x4e9955: la Y del blanco primero, después la del punto; el byte de arriba.
-    const auto cellTargetY = World::OriginalFtolLow(static_cast<double>(targetY) * NegativeHundredth);
-    const auto cellY = World::OriginalFtolLow(static_cast<double>(y) * NegativeHundredth);
-    const auto cellTargetX = World::OriginalFtolLow(static_cast<double>(targetX) * NegativeHundredth);
-    const auto cellX = World::OriginalFtolLow(static_cast<double>(x) * NegativeHundredth);
+    const auto cellTargetY = Math::OriginalFtolLow(static_cast<double>(targetY) * NegativeHundredth);
+    const auto cellY = Math::OriginalFtolLow(static_cast<double>(y) * NegativeHundredth);
+    const auto cellTargetX = Math::OriginalFtolLow(static_cast<double>(targetX) * NegativeHundredth);
+    const auto cellX = Math::OriginalFtolLow(static_cast<double>(x) * NegativeHundredth);
     if (!cellTargetY || !cellY || !cellTargetX || !cellX)
         return std::nullopt;
     const auto low = [](std::int32_t value) { return static_cast<std::uint8_t>(static_cast<std::uint32_t>(value)); };

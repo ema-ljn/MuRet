@@ -14,7 +14,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace Client::Render::Models
+namespace Client::Math
 {
 namespace
 {
@@ -178,4 +178,4 @@ glm::vec3 VectorRotate(const glm::vec3& v, const BoneTransform& m)
 {
     return glm::mat3(m) * v;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Math

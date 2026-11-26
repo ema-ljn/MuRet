@@ -147,10 +147,8 @@ void SetStateOf(DarkSpirit& spirit, std::uint8_t state)
 // como OwnBonePoint (Q-C318).
 glm::vec3 OwnerBonePoint(const DarkSpiritOwner& owner, std::size_t bone, const glm::vec3& offset)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < owner.pose.size() ? owner.pose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, owner.modelScale,
-                                                     owner.modelOrigin);
+    const Math::BoneTransform matrix = bone < owner.pose.size() ? owner.pose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, owner.modelScale, owner.modelOrigin);
 }
 
 // 0x4176f0..0x417775: dentro de la zona segura, sin estar posado ni bajando, 0x4164f0(3) y después 0x4164f0(4)
@@ -188,16 +186,16 @@ void Perch(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 // distancia de la x87 menor que 50 (o unordered), 0x4164f0(3).
 void Land(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 {
-    const Render::Models::OriginalMatrix matrix = Render::Models::OriginalAngleMatrix(spirit.angles);
+    const Math::OriginalMatrix matrix = Math::OriginalAngleMatrix(spirit.angles);
     if (!(spirit.speed == 0.0f || std::isnan(spirit.speed)))
     {
-        const glm::vec3 move = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -spirit.speed, 0.0f), matrix);
+        const glm::vec3 move = Math::OriginalVectorRotate(glm::vec3(0.0f, -spirit.speed, 0.0f), matrix);
         spirit.position.x = F32(static_cast<double>(move.x) + static_cast<double>(spirit.position.x));
         spirit.position.y = F32(static_cast<double>(move.y) + static_cast<double>(spirit.position.y));
         spirit.position.z = F32(static_cast<double>(move.z) + static_cast<double>(spirit.position.z));
     }
     const glm::vec3 shoulder = OwnerBonePoint(owner, LandingBone, glm::vec3(0.0f));
-    const double distance = Render::Models::MoveToward(spirit.position, spirit.angles, shoulder, spirit.speed);
+    const double distance = Math::MoveToward(spirit.position, spirit.angles, shoulder, spirit.speed);
     spirit.speed = F32(static_cast<double>(spirit.speed) + LandingAcceleration);
     if (!(distance >= PerchReach))
     {
@@ -220,7 +218,7 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
     {
         const auto bone = static_cast<std::size_t>(random.Next() % SparkBones);
         const glm::vec3 from = bone < spirit.pose.size()
-                                   ? Render::Models::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone])
+                                   ? Math::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone])
                                    : spirit.position;
         (void)particles.Create(World::SparkParticle, from, spirit.angles, SparkLight, World::RavenSparkSubtype,
                                SparkScale, worldClock, random);
@@ -231,13 +229,11 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
     const float distanceFloat = F32(distance);
     if (distance >= NearSquared)
     {
-        const float target = F32(Render::Models::CreateAngle(start.x, start.y, destination.x, destination.y));
+        const float target = F32(Math::CreateAngle(start.x, start.y, destination.x, destination.y));
         const int turn = random.Next() % TurnSpan;
-        spirit.angles.z =
-            F32(Render::Models::TurnAngle(spirit.angles.z, target, F32(static_cast<double>(turn) + TurnBase)));
+        spirit.angles.z = F32(Math::TurnAngle(spirit.angles.z, target, F32(static_cast<double>(turn) + TurnBase)));
     }
-    const glm::vec3 move =
-        Render::Models::OriginalVectorRotate(spirit.direction, Render::Models::OriginalAngleMatrix(spirit.angles));
+    const glm::vec3 move = Math::OriginalVectorRotate(spirit.direction, Math::OriginalAngleMatrix(spirit.angles));
     spirit.position.x = F32(static_cast<double>(move.x) + static_cast<double>(spirit.position.x));
     spirit.position.y = F32(static_cast<double>(move.y) + static_cast<double>(spirit.position.y));
     const double z = static_cast<double>(move.z) + static_cast<double>(spirit.position.z);
@@ -310,8 +306,8 @@ bool StopTheHiddenAttack(DarkSpirit& spirit, const DarkSpiritOwner& owner, const
 // mirar si la velocidad es 0. `dx` y `dy` son los del destino antes de avanzar (0x417814).
 void Charge(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, glm::vec3 destination, float dx, float dy)
 {
-    const Render::Models::OriginalMatrix matrix = Render::Models::OriginalAngleMatrix(spirit.angles);
-    const glm::vec3 move = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -spirit.speed, 0.0f), matrix);
+    const Math::OriginalMatrix matrix = Math::OriginalAngleMatrix(spirit.angles);
+    const glm::vec3 move = Math::OriginalVectorRotate(glm::vec3(0.0f, -spirit.speed, 0.0f), matrix);
     spirit.position.x = F32(static_cast<double>(move.x) + static_cast<double>(spirit.position.x));
     spirit.position.y = F32(static_cast<double>(move.y) + static_cast<double>(spirit.position.y));
     spirit.position.z = F32(static_cast<double>(move.z) + static_cast<double>(spirit.position.z));
@@ -319,7 +315,7 @@ void Charge(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, glm::v
     {
         // 0x417a56..0x417aa6: fcomp con 20 y C0 (menor o unordered).
         destination.z = F32(static_cast<double>(destination.z) + AttackLift);
-        const double distance = Render::Models::MoveToward(spirit.position, spirit.angles, destination, spirit.speed);
+        const double distance = Math::MoveToward(spirit.position, spirit.angles, destination, spirit.speed);
         if (!(distance >= AttackReach) || spirit.far > AttackSteps)
         {
             SetState(spirit, ReturningState);
@@ -357,9 +353,9 @@ void Shout(DarkSpirit& spirit, const DarkSpiritTargets& targets)
     {
         return;
     }
-    const float angle = F32(Render::Models::CreateAngle(spirit.position.x, spirit.position.y, targets.attackPosition.x,
-                                                        targets.attackPosition.y));
-    spirit.angles.z = F32(Render::Models::TurnAngle(spirit.angles.z, angle, ShoutTurn));
+    const float angle = F32(
+        Math::CreateAngle(spirit.position.x, spirit.position.y, targets.attackPosition.x, targets.attackPosition.y));
+    spirit.angles.z = F32(Math::TurnAngle(spirit.angles.z, angle, ShoutTurn));
 }
 } // namespace
 

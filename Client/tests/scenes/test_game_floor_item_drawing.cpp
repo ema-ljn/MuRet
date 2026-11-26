@@ -412,7 +412,7 @@ TEST(GameFloorItemDrawingTest, GlowItemsPublishTheirSpritesFromTheRetainedBones)
         special.sprites = &sprites;
         Client::Scenes::ItemDrawContext items;
         items.special = &special;
-        items.poseBones = [&]() -> std::span<const Client::Render::Models::BoneTransform> { return carry.bones; };
+        items.poseBones = [&]() -> std::span<const Client::Math::BoneTransform> { return carry.bones; };
         Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
         context.itemContext = &items;
         context.project = Project;
@@ -564,7 +564,7 @@ TEST(GameFloorItemDrawingTest, ShinePeriodsWrapTheNativeClockWithoutResettingIts
 {
     FloorModels models;
     Client::World::SphereFrustum frustum;
-    const auto sine = Client::Render::Models::Detail::SineProductPC53(static_cast<double>(0x1p32f) * 0.002f, 1);
+    const auto sine = Client::Math::Detail::SineProductPC53(static_cast<double>(0x1p32f) * 0.002f, 1);
     ASSERT_TRUE(sine.has_value());
     const float phase = static_cast<float>(*sine);
     const std::array<int, 3> levels{7, 11, 13};
@@ -654,8 +654,8 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         Client::Scenes::FaunaDrawCarry carry;
         Client::Scenes::ItemDrawContext items;
         items.modelState = &modelState;
-        items.poseBones = [&]() -> std::span<const Client::Render::Models::BoneTransform>
-        { return missingBones ? std::span<const Client::Render::Models::BoneTransform>{} : carry.bones; };
+        items.poseBones = [&]() -> std::span<const Client::Math::BoneTransform>
+        { return missingBones ? std::span<const Client::Math::BoneTransform>{} : carry.bones; };
         Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
         context.itemContext = &items;
         context.worldClock = 1000;

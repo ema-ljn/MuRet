@@ -23,21 +23,21 @@ Attachment AttachmentOf(AttachmentSlot slot)
     return {};
 }
 
-BoneTransform AttachmentRoot(const BoneTransform& parent, const glm::vec3& offset)
+Math::BoneTransform AttachmentRoot(const Math::BoneTransform& parent, const glm::vec3& offset)
 {
-    BoneTransform root = parent;
-    root[3] += VectorRotate(offset, parent);
+    Math::BoneTransform root = parent;
+    root[3] += Math::VectorRotate(offset, parent);
     return root;
 }
 
 // 0x5fc8f0 en el buffer local de 0x509340 (ebp−0x64), la traslación en sus +0xc, +0x1c y +0x2c, y
 // 0x5fca90 con el hueso, todo con los bits de la x87.
-BoneTransform PlacedRoot(const BoneTransform& parent, const HangingPlacement& placement)
+Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent, const HangingPlacement& placement)
 {
-    OriginalMatrix local = OriginalAngleMatrix(placement.angles);
+    Math::OriginalMatrix local = Math::OriginalAngleMatrix(placement.angles);
     local[3] = placement.translation.x;
     local[7] = placement.translation.y;
     local[11] = placement.translation.z;
-    return BoneTransformOf(OriginalConcatTransforms(OriginalMatrixOf(parent), local));
+    return Math::BoneTransformOf(Math::OriginalConcatTransforms(Math::OriginalMatrixOf(parent), local));
 }
 } // namespace Client::Render::Models

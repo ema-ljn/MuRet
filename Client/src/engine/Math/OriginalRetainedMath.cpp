@@ -13,7 +13,7 @@
 // una mantisa de 256 bits en limbs de 32: cada producto parcial entra en uint64, así que no hace
 // falta __int128, long double ni ninguna operación de punto flotante. Todo es entero y truncado,
 // con error relativo menor que 2^-250; sólo el paso a 64 bits redondea al más cercano.
-namespace Client::Render::Models::Detail
+namespace Client::Math::Detail
 {
 namespace
 {
@@ -985,4 +985,4 @@ std::optional<float> CosineSpillF32(double argument)
     return NearestFloat(RetainedSineOrCosine(argument, true));
 }
 
-} // namespace Client::Render::Models::Detail
+} // namespace Client::Math::Detail

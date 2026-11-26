@@ -24,5 +24,5 @@ namespace Client::Scenes
 [[nodiscard]] Core::Expected<void, std::string>
 DrawCrywolfMissileTail(World::ModelEffect& effect, std::uint64_t physicalSlot, World::Particles& particles,
                        World::FrameSprites& sprites, Crt::CrtRandom& random,
-                       std::span<const Render::Models::BoneTransform> globalPose, float worldClock);
+                       std::span<const Math::BoneTransform> globalPose, float worldClock);
 } // namespace Client::Scenes

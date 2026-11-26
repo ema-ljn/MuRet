@@ -159,7 +159,7 @@ constexpr std::array Cases{
 };
 TEST(OriginalAnglesTest, NativePc53NearestCorpus)
 {
-    using namespace Client::Render::Models;
+    using namespace Client::Math;
     ASSERT_EQ(std::fegetround(), FE_TONEAREST);
     for (const auto& sample : Cases)
     {
@@ -184,7 +184,7 @@ TEST(OriginalAnglesTest, NativePc53NearestCorpus)
 }
 TEST(OriginalAnglesTest, OnlyModeOneChangesTheSign)
 {
-    using Client::Render::Models::AngleDistance;
+    using Client::Math::AngleDistance;
     EXPECT_EQ(AngleDistance(270.0f, 90.0f, static_cast<std::uint8_t>(2)), -180.0);
     EXPECT_EQ(AngleDistance(270.0f, 90.0f, static_cast<std::uint8_t>(255)), -180.0);
     EXPECT_EQ(AngleDistance(270.0f, 90.0f, static_cast<std::uint8_t>(1)), 180.0);
@@ -192,7 +192,7 @@ TEST(OriginalAnglesTest, OnlyModeOneChangesTheSign)
 // Cambiar Q a float, o eliminar el spill de P, rompe respectivamente estas dos expectativas.
 TEST(OriginalAnglesTest, TurnKeepsQButSpillsP)
 {
-    using Client::Render::Models::TurnAngle;
+    using Client::Math::TurnAngle;
     EXPECT_EQ(TurnAngle(10.0f, 20.0f, 0x1p-25f), 0x1.4000001p+3);
     EXPECT_EQ(TurnAngle(10.0f, 5.0f, 0x1p-25f), 10.0);
     EXPECT_EQ(TurnAngle(180.0f, 170.0f, 0x1p-20f), 180.0 - 0x1p-20);
@@ -200,14 +200,14 @@ TEST(OriginalAnglesTest, TurnKeepsQButSpillsP)
 }
 TEST(OriginalAnglesTest, DistanceRemainsBelowFortyFiveBeforeTheCallerSpill)
 {
-    const double result = Client::Render::Models::AngleDistance(0x1p-20f, 45.0f, 1);
+    const double result = Client::Math::AngleDistance(0x1p-20f, 45.0f, 1);
     EXPECT_EQ(result, 45.0 - 0x1p-20);
     EXPECT_LT(result, 45.0);
     EXPECT_EQ(static_cast<float>(result), 45.0f);
 }
 TEST(OriginalAnglesTest, AxialEpsilonIsStrictAndCoincidentPointsFaceHalfTurn)
 {
-    using Client::Render::Models::CreateAngle;
+    using Client::Math::CreateAngle;
     constexpr float Epsilon = std::bit_cast<float>(0x38d1b717u);
     constexpr float BelowEpsilon = std::bit_cast<float>(0x38d1b716u);
     EXPECT_EQ(CreateAngle(0, 0, 0, 0), 180.0);
@@ -220,8 +220,8 @@ TEST(OriginalAnglesTest, AxialEpsilonIsStrictAndCoincidentPointsFaceHalfTurn)
 }
 TEST(OriginalAnglesTest, OnlyOneNegativeAdjustmentAndAsymmetricAntipodes)
 {
-    using Client::Render::Models::AngleDistance;
-    using Client::Render::Models::TurnAngle;
+    using Client::Math::AngleDistance;
+    using Client::Math::TurnAngle;
     EXPECT_EQ(AngleDistance(0, 720, 1), 360.0);
     EXPECT_EQ(AngleDistance(90, 270, 0), 180.0);
     EXPECT_EQ(AngleDistance(270, 90, 0), -180.0);
@@ -235,21 +235,21 @@ TEST(OriginalAnglesTest, OnlyOneNegativeAdjustmentAndAsymmetricAntipodes)
 TEST(OriginalAnglesTest, NaNCurrentReturnsTheTarget)
 {
     const float nan = std::bit_cast<float>(0x7fc00001u);
-    EXPECT_EQ(Client::Render::Models::TurnAngle(nan, 20.0f, 10.0f), 20.0);
+    EXPECT_EQ(Client::Math::TurnAngle(nan, 20.0f, 10.0f), 20.0);
 }
 TEST(OriginalAnglesTest, NaNTargetInTheLowArmReturnsSpilledP)
 {
     const float nan = std::bit_cast<float>(0x7fc00001u);
-    EXPECT_EQ(Client::Render::Models::TurnAngle(10.0f, nan, 10.0f), 0.0);
+    EXPECT_EQ(Client::Math::TurnAngle(10.0f, nan, 10.0f), 0.0);
 }
 TEST(OriginalAnglesTest, NaNTargetInTheHighArmReturnsRetainedQ)
 {
     const float nan = std::bit_cast<float>(0x7fc00001u);
-    EXPECT_EQ(Client::Render::Models::TurnAngle(180.0f, nan, 10.0f), 170.0);
+    EXPECT_EQ(Client::Math::TurnAngle(180.0f, nan, 10.0f), 170.0);
 }
 TEST(OriginalAnglesTest, CreateAngleTreatsUnorderedAsC0InBothAxialGuards)
 {
-    using Client::Render::Models::CreateAngle;
+    using Client::Math::CreateAngle;
     const float nan = std::bit_cast<float>(0x7fc00001u);
     EXPECT_EQ(CreateAngle(0, 0, nan, 1), 180.0);
     EXPECT_EQ(CreateAngle(0, 0, nan, -1), 0.0);
@@ -259,7 +259,7 @@ TEST(OriginalAnglesTest, CreateAngleTreatsUnorderedAsC0InBothAxialGuards)
 }
 TEST(OriginalAnglesTest, NaNStepFollowsDifferentBranchesOnEachSideOfHalfTurn)
 {
-    using Client::Render::Models::TurnAngle;
+    using Client::Math::TurnAngle;
     const float nan = std::bit_cast<float>(0x7fc00001u);
     EXPECT_EQ(TurnAngle(10, 20, nan), 20.0);
     EXPECT_TRUE(std::isnan(TurnAngle(180, 20, nan)));
@@ -267,7 +267,7 @@ TEST(OriginalAnglesTest, NaNStepFollowsDifferentBranchesOnEachSideOfHalfTurn)
 }
 TEST(OriginalAnglesTest, DistanceModeOneFlipsTheSignOfUnordered)
 {
-    using Client::Render::Models::AngleDistance;
+    using Client::Math::AngleDistance;
     const float nan = std::bit_cast<float>(0x7fc00001u);
     const double signedResult = AngleDistance(10, nan, 0);
     const double modeOneResult = AngleDistance(10, nan, 1);
@@ -277,14 +277,14 @@ TEST(OriginalAnglesTest, DistanceModeOneFlipsTheSignOfUnordered)
 }
 TEST(OriginalAnglesTest, NegativeInputsReceiveOnlyOneAdjustment)
 {
-    using Client::Render::Models::AngleDistance;
-    using Client::Render::Models::TurnAngle;
+    using Client::Math::AngleDistance;
+    using Client::Math::TurnAngle;
     EXPECT_EQ(TurnAngle(-720.0f, 20.0f, 1.0f), 20.0);
     EXPECT_EQ(AngleDistance(-720.0f, 20.0f, 0), -20.0);
 }
 TEST(OriginalAnglesTest, NegativeAdjustmentSpillsToExactlyOneTurn)
 {
-    const double result = Client::Render::Models::AngleDistance(-0x1p-30f, 0.0f, 0);
+    const double result = Client::Math::AngleDistance(-0x1p-30f, 0.0f, 0);
     EXPECT_EQ(std::bit_cast<std::uint64_t>(result), 0u);
 }
 TEST(OriginalAnglesTest, HostRoundingMatchesTheDeclaredNearestProfile)
@@ -347,9 +347,8 @@ TEST(OriginalAnglesTest, RetainsPhiThroughNativeNonunitProducts)
     for (const auto& row : cases)
     {
         const auto& p = row.arguments;
-        const double actual =
-            Client::Render::Models::CreateAngle(std::bit_cast<float>(p[0]), std::bit_cast<float>(p[1]),
-                                                std::bit_cast<float>(p[2]), std::bit_cast<float>(p[3]));
+        const double actual = Client::Math::CreateAngle(std::bit_cast<float>(p[0]), std::bit_cast<float>(p[1]),
+                                                        std::bit_cast<float>(p[2]), std::bit_cast<float>(p[3]));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(actual), row.expectedDouble);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(actual)), row.expectedFloat);
     }
@@ -374,7 +373,7 @@ TEST(OriginalAnglesTest, KeepsTheRoundedAtanModelWhereFpatanDiffers)
     };
     for (const auto& row : cases)
     {
-        const double actual = Client::Render::Models::CreateAngle(0.0f, 0.0f, row.x2, row.y2);
+        const double actual = Client::Math::CreateAngle(0.0f, 0.0f, row.x2, row.y2);
         EXPECT_EQ(std::bit_cast<std::uint64_t>(actual), row.expectedDouble);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(actual)), row.expectedFloat);
     }

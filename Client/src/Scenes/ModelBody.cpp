@@ -195,11 +195,11 @@ Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& act
 
 void LookAtTheTarget(ActorState& actor, const ActorState& target)
 {
-    const auto heading = static_cast<float>(
-        Render::Models::CreateAngle(actor.position.x, actor.position.y, target.position.x, target.position.y));
+    const auto heading =
+        static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, target.position.x, target.position.y));
     // 0x4ea11a..0x4ea128: C0 en 1 (menor o sin orden, NaN) mira.
     constexpr double FacingLimit = 90.0; // 0x6b8948
-    const double distance = Render::Models::AngleDistance(actor.angles.z, heading, 1);
+    const double distance = Math::AngleDistance(actor.angles.z, heading, 1);
     if (!(distance < FacingLimit) && !std::isnan(distance))
     {
         actor.headTurn.target = {};

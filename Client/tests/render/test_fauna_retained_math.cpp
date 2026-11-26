@@ -24,25 +24,24 @@ TEST(FaunaRetainedMathTest, MultipliesBothRetainedResultsBeforeTheFirstBinary53R
                                          {0x1.65a5e470f8000p+4, 0x1.25260b8fe6800p+7, 0x3fc555db8c919883ULL}}};
     for (const auto& sample : cases)
     {
-        const auto actual = Client::Render::Models::Detail::SineCosineProductPC53(sample.sine, sample.cosine);
+        const auto actual = Client::Math::Detail::SineCosineProductPC53(sample.sine, sample.cosine);
         ASSERT_TRUE(actual.has_value());
         EXPECT_EQ(std::bit_cast<std::uint64_t>(*actual), sample.expected);
     }
 }
 TEST(FaunaRetainedMathTest, KeepsSignedZeroAndRejectsAnUnsupportedArgumentProfile)
 {
-    const auto zero = Client::Render::Models::Detail::SineCosineProductPC53(-0.0, 0.0);
+    const auto zero = Client::Math::Detail::SineCosineProductPC53(-0.0, 0.0);
     ASSERT_TRUE(zero.has_value());
     EXPECT_EQ(std::bit_cast<std::uint64_t>(*zero), 0x8000000000000000ULL);
-    EXPECT_FALSE(Client::Render::Models::Detail::SineCosineProductPC53(0x1p63, 0).has_value());
-    EXPECT_FALSE(
-        Client::Render::Models::Detail::SineCosineProductPC53(1, std::numeric_limits<double>::infinity()).has_value());
+    EXPECT_FALSE(Client::Math::Detail::SineCosineProductPC53(0x1p63, 0).has_value());
+    EXPECT_FALSE(Client::Math::Detail::SineCosineProductPC53(1, std::numeric_limits<double>::infinity()).has_value());
 }
 } // namespace
 
 TEST(FaunaRetainedMathTest, ProducesTheThreeCounterDirectionsWithTheirNativeSpills)
 {
-    const auto direction = Client::Render::Models::Detail::FaunaDirectionPC53(0);
+    const auto direction = Client::Math::Detail::FaunaDirectionPC53(0);
     ASSERT_TRUE(direction);
     EXPECT_EQ(std::bit_cast<std::uint32_t>((*direction)[0]), 0xbf42f393U);
     EXPECT_EQ(std::bit_cast<std::uint32_t>((*direction)[1]), 0xbeb66851U);

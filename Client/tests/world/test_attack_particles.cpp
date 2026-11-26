@@ -57,8 +57,8 @@ TEST(AttackParticlesTest, TheBowSparkTakesSixDrawsAndStartsAboveItsOwner)
     ASSERT_EQ(index.Value(), std::optional<std::size_t>{0});
 
     CrtRandom expected(Seed);
-    const glm::vec3 pushed = Client::Render::Models::OriginalVectorRotate(
-        glm::vec3(0.0f, -100.0f, 0.0f), Client::Render::Models::OriginalAngleMatrix(angles));
+    const glm::vec3 pushed =
+        Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -100.0f, 0.0f), Client::Math::OriginalAngleMatrix(angles));
     glm::vec3 at{};
     for (int k = 0; k < 3; ++k)
         at[k] = F32(static_cast<double>(pushed[k]) + static_cast<double>(point[k]));
@@ -154,7 +154,7 @@ TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
         ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {},
                                                         {}, {}, lighting.get())
                         .HasValue());
-        EXPECT_EQ(bolt.rotation, F32(static_cast<double>(Client::World::FtolLow(static_cast<double>(clock)) % 1000) *
+        EXPECT_EQ(bolt.rotation, F32(static_cast<double>(Client::Math::FtolLow(static_cast<double>(clock)) % 1000) *
                                      Bits(0x3a83126fu)));
         const double glow = static_cast<double>(bolt.life) * Bits(0x3dcccccdu);
         const glm::vec3 color{F32(glow * 0.5), F32(glow), F32(static_cast<double>(F32(glow)) * Bits(0x3f4ccccdu))};

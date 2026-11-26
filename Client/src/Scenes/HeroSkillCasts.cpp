@@ -143,7 +143,7 @@ std::size_t SlotOf(const WorldState& world, const ActorState& actor)
 // El byte bajo de ftol, o el corte con `where`.
 Core::Expected<std::uint8_t, std::string> FtolByte(double value, std::string_view where)
 {
-    const auto whole = World::OriginalFtolLow(value);
+    const auto whole = Math::OriginalFtolLow(value);
     if (!whole)
         return Core::Unexpected(std::format("{}: el valor fuera del perfil ftol", where));
     return static_cast<std::uint8_t>(static_cast<std::uint32_t>(*whole) & 0xffu);
@@ -422,9 +422,9 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
         return Core::Unexpected(target.Error());
     // 0x55953e..0x55956c: la celda del elegido.
     const auto cellX =
-        World::OriginalFtolLow(static_cast<double>(target.Value()->position.x) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(target.Value()->position.x) * static_cast<double>(CellReciprocal));
     const auto cellY =
-        World::OriginalFtolLow(static_cast<double>(target.Value()->position.y) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(target.Value()->position.y) * static_cast<double>(CellReciprocal));
     if (!cellX || !cellY)
         return Core::Unexpected(std::string("0x55954b: la celda del elegido fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*cellX);
@@ -526,8 +526,8 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     if (!target.HasValue())
         return Core::Unexpected(target.Error());
     caster.attackPosition = target.Value()->position;
-    hero.angles.z = static_cast<float>(Render::Models::CreateAngle(hero.position.x, hero.position.y,
-                                                                   caster.attackPosition.x, caster.attackPosition.y));
+    hero.angles.z = static_cast<float>(
+        Math::CreateAngle(hero.position.x, hero.position.y, caster.attackPosition.x, caster.attackPosition.y));
     // 0x55be9a..0x55c622: con "webzen" en el nombre del héroe publicado o sin pasar el freno, no sale el 19.
     if (!NamedWebzen(published))
     {
@@ -542,9 +542,9 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     if ((hero.flags78 & HiddenFlag20) == HiddenFlag20 || caster.pet.model == DarkHorsePet)
         return {};
     const auto cellX =
-        World::OriginalFtolLow(static_cast<double>(caster.attackPosition.x) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(caster.attackPosition.x) * static_cast<double>(CellReciprocal));
     const auto cellY =
-        World::OriginalFtolLow(static_cast<double>(caster.attackPosition.y) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(caster.attackPosition.y) * static_cast<double>(CellReciprocal));
     if (!cellX || !cellY)
         return Core::Unexpected(std::string("0x55c662: la celda del blanco fuera del perfil ftol"));
     auto dfX = static_cast<std::uint8_t>(*cellX & 0xff);
@@ -553,8 +553,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     if (IsBloodCastle(runtime.map) || skill == 0x3c || skill == 0x39 || skill == 0x2c || monster == 0x115 ||
         monster == 0x11b || monster == 0x116 || monster == 0x120)
     {
-        const auto rumbo =
-            World::OriginalFtolLow(static_cast<double>(hero.angles.z) * static_cast<double>(RumboFactor));
+        const auto rumbo = Math::OriginalFtolLow(static_cast<double>(hero.angles.z) * static_cast<double>(RumboFactor));
         if (!rumbo)
             return Core::Unexpected(std::string("0x55c6e0: el rumbo del héroe fuera del perfil ftol"));
         StepTheCellByTheRumbo(dfX, dfY, std::abs(*rumbo));
@@ -729,8 +728,8 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const
         if (!TheChosenCellIsInReach(hero, state, range.Value()))
             continue;
         // 0x562995..0x5629b0 y 0x563e6c..0x563e92: el rumbo de c hacia +0x3a8.
-        hero.angles.z = static_cast<float>(Render::Models::CreateAngle(hero.position.x, hero.position.y,
-                                                                       hero.attackPosition.x, hero.attackPosition.y));
+        hero.angles.z = static_cast<float>(
+            Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
         Protocol::Skill::DurationMagicSend send{.skill = skill};
         if (skill == 0x36)
         {

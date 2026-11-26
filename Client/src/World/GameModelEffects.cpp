@@ -71,8 +71,7 @@ Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Part
         glm::vec3 angles{};
         angles.x = static_cast<float>(random.Next() % FullCircle);
         angles.z = static_cast<float>(random.Next() % FullCircle);
-        const glm::vec3 offset =
-            Render::Models::OriginalVectorRotate(Radius, Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 offset = Math::OriginalVectorRotate(Radius, Math::OriginalAngleMatrix(angles));
         glm::vec3 point{};
         for (int axis = 0; axis < 3; ++axis)
             point[axis] = F32(static_cast<double>(offset[axis]) + effect.transform.position[axis]);
@@ -142,8 +141,8 @@ Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWo
     if (!(effect.transform.position.z >= WaterPlane) && effect.disturbanceState == 0)
     {
         effect.disturbanceState = 1;
-        const auto tileY = FtolLow(static_cast<double>(effect.transform.position.y) * TileFactor);
-        const auto tileX = FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
+        const auto tileY = Math::FtolLow(static_cast<double>(effect.transform.position.y) * TileFactor);
+        const auto tileX = Math::FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
         if (kalima != nullptr)
             return kalima->Disturb(tileX, tileY, Radius, Amplitude, random);
     }
@@ -161,7 +160,7 @@ Core::Expected<void, std::string> StepTower(ModelEffect& effect, float worldCloc
             static_cast<double>(worldClock) * static_cast<double>(Factors[static_cast<std::size_t>(axis)]);
         if (axis == 2)
             argument = static_cast<double>(static_cast<float>(argument));
-        const auto sine = Render::Models::Detail::SineProductPC53(argument, Amplitude);
+        const auto sine = Math::Detail::SineProductPC53(argument, Amplitude);
         if (!sine)
             return Core::Unexpected(std::string("0x525ec4: el seno de Noria no cabe en el perfil PC53"));
         effect.light[axis] = static_cast<float>(*sine + Bias);
@@ -183,7 +182,7 @@ Core::Expected<void, std::string> StepGatePlane(ModelEffect& effect, float world
     effect.life = GatePlaneLife;
     if (!effect.hasOwner)
         return {};
-    const auto lifted = Render::Models::Detail::SineSumPC53(static_cast<double>(worldClock) * ClockFactor, One);
+    const auto lifted = Math::Detail::SineSumPC53(static_cast<double>(worldClock) * ClockFactor, One);
     if (!lifted)
         return Core::Unexpected(std::string("0x529768: el seno del plano 0x135 no cabe en el perfil PC53"));
     effect.transform.position.z = F32(*lifted * Lift + static_cast<double>(effect.start.z));
@@ -361,8 +360,7 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     constexpr int FireChance = 10, FireSubtypes = 3;
     glm::vec3& position = effect.transform.position;
     const glm::vec3 movement =
-        rising ? Render::Models::OriginalVectorRotate(effect.velocity,
-                                                      Render::Models::OriginalAngleMatrix(effect.transform.angles))
+        rising ? Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.transform.angles))
                : effect.velocity;
     for (int axis = 0; axis < 3; ++axis)
         position[axis] = F32(static_cast<double>(movement[axis]) + static_cast<double>(position[axis]));
@@ -591,12 +589,12 @@ std::optional<double> SignedSineProductPC53(double argument, float multiplier)
 {
     if (multiplier == 0.0f)
     {
-        const auto unit = Render::Models::Detail::SineProductPC53(argument, 1.0f);
+        const auto unit = Math::Detail::SineProductPC53(argument, 1.0f);
         if (!unit)
             return std::nullopt;
         return std::signbit(*unit) != std::signbit(multiplier) ? -0.0 : 0.0;
     }
-    const auto product = Render::Models::Detail::SineProductPC53(argument, std::abs(multiplier));
+    const auto product = Math::Detail::SineProductPC53(argument, std::abs(multiplier));
     if (!product || multiplier > 0.0f)
         return product;
     return -*product;
@@ -639,7 +637,7 @@ Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& p
         effect.life = FarLife;
         effect.state = 1;
     }
-    const double argument = static_cast<double>(FtolLow(static_cast<double>(worldClock)) % Period) * Frequency;
+    const double argument = static_cast<double>(Math::FtolLow(static_cast<double>(worldClock)) % Period) * Frequency;
     const auto yaw = SignedSineProductPC53(argument, effect.turnDirection);
     if (!yaw)
         return Core::Unexpected(std::string("0x520c86: el seno del 0xb3 no cabe en el perfil PC53"));
@@ -736,7 +734,7 @@ Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles
     effect.objectState.uv.x = F32(static_cast<double>(effect.life) * static_cast<double>(-0.2f));
     glm::vec3 angles = effect.transform.angles;
     angles.z = F32(static_cast<double>(angles.z) + 7.0);
-    const auto offset = Render::Models::OriginalVectorRotate({0, -500, 0}, Render::Models::OriginalAngleMatrix(angles));
+    const auto offset = Math::OriginalVectorRotate({0, -500, 0}, Math::OriginalAngleMatrix(angles));
     glm::vec3 point;
     for (int axis = 0; axis < 3; ++axis)
         point[axis] = F32(static_cast<double>(offset[axis]) + static_cast<double>(effect.transform.position[axis]));
@@ -799,8 +797,7 @@ Core::Expected<void, std::string> StepWaveEffect(ModelEffect& effect)
 // clave (0x52704d y 0x52708e).
 Core::Expected<void, std::string> StepPiercingEffect(ModelEffect& effect, const ModelEffectStepServices& services)
 {
-    const auto offset = Render::Models::OriginalVectorRotate(
-        effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+    const auto offset = Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.transform.angles));
     for (int axis = 0; axis < 3; ++axis)
         effect.transform.position[axis] =
             F32(static_cast<double>(offset[axis]) + static_cast<double>(effect.transform.position[axis]));
@@ -831,8 +828,7 @@ Core::Expected<void, std::string> ScatterCrywolfImpact(const glm::vec3& position
     for (int group = 0; group < 8; ++group)
     {
         const glm::vec3 angles{0, 0, static_cast<float>(group * 45)};
-        const auto offset =
-            Render::Models::OriginalVectorRotate({0, -220, 0}, Render::Models::OriginalAngleMatrix(angles));
+        const auto offset = Math::OriginalVectorRotate({0, -220, 0}, Math::OriginalAngleMatrix(angles));
         glm::vec3 point;
         for (int axis = 0; axis < 3; ++axis)
             point[axis] = F32(static_cast<double>(position[axis]) + static_cast<double>(offset[axis]));
@@ -1155,7 +1151,7 @@ constexpr std::int32_t ExplosionSound = 0x40, QuakeSound = 0x97;
 // 0x5fc8f0 y 0x5fcbd0: `offset` girado por AngleMatrix de `angles`.
 glm::vec3 Turned(const glm::vec3& offset, const glm::vec3& angles)
 {
-    return Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(angles));
+    return Math::OriginalVectorRotate(offset, Math::OriginalAngleMatrix(angles));
 }
 
 // +0x108 distinto de 0 y su WORD +0x2, en vivo; nada sin dueño.
@@ -1280,8 +1276,8 @@ Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Pa
         {
             if (kalima == nullptr)
                 return Core::Unexpected(std::string("0x521db2: el terremoto en Kalima pide sus ondas (0x437860)"));
-            const std::int32_t tileY = FtolLow(static_cast<double>(start.y) * QuakeCellScale);
-            const std::int32_t tileX = FtolLow(static_cast<double>(start.x) * QuakeCellScale);
+            const std::int32_t tileY = Math::FtolLow(static_cast<double>(start.y) * QuakeCellScale);
+            const std::int32_t tileX = Math::FtolLow(static_cast<double>(start.x) * QuakeCellScale);
             if (auto disturbed = kalima->Disturb(tileX, tileY, DisturbRadius, DisturbAmplitude, random);
                 !disturbed.HasValue())
                 return disturbed;
@@ -1464,7 +1460,7 @@ Core::Expected<void, std::string> SwingTheEarthquake(ModelEffect& effect)
     glm::vec3& angles = effect.transform.angles;
     angles.x = F32(static_cast<double>(angles.x) + Pitch);
     const double argument = (((Top - static_cast<double>(phase)) * static_cast<double>(pace)) * Pi) * InverseDegrees;
-    const auto swing = Render::Models::Detail::SineProductPC53(argument, Swing);
+    const auto swing = Math::Detail::SineProductPC53(argument, Swing);
     if (!swing)
         return Core::Unexpected(std::string("0x522696: el seno del terremoto no cabe en el perfil PC53"));
     effect.velocity.y = F32(*swing);
@@ -1810,8 +1806,8 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
                     return Core::Unexpected(std::string("0x523d24: la estela 0x105 necesita las ondas de Kalima"));
                 constexpr double TileFactor = static_cast<double>(0.01f);
                 constexpr std::int32_t Radius = 2, Amplitude = -200;
-                const auto tileX = FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
-                const auto tileY = FtolLow(static_cast<double>(effect.transform.position.y) * TileFactor);
+                const auto tileX = Math::FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
+                const auto tileY = Math::FtolLow(static_cast<double>(effect.transform.position.y) * TileFactor);
                 if (auto disturbed = kalima->Disturb(tileX, tileY, Radius, Amplitude, random); !disturbed.HasValue())
                     return disturbed;
             }
@@ -1936,7 +1932,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             effect.light = glm::vec3(F32(static_cast<double>(effect.life) * FadeStep));
             effect.alpha = effect.light.x;
         }
-        const auto radius = FtolLow(static_cast<double>(effect.start.x) - 1.0);
+        const auto radius = Math::FtolLow(static_cast<double>(effect.start.x) - 1.0);
         if (auto lit = AddDynamicLight(services.lighting, effect.transform.position, Shadow, radius, "0x528790");
             !lit.HasValue())
             return lit;

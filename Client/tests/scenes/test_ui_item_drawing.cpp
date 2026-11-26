@@ -113,8 +113,7 @@ TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
         EXPECT_EQ(pass.pass.view, glm::mat4(1.0f));
         EXPECT_FLOAT_EQ(pass.pass.farPlane, 2000.0f);
         const float aspect = static_cast<float>(static_cast<double>(probe.screen.width) / probe.screen.height);
-        EXPECT_EQ(pass.pass.projection,
-                  Client::Render::Models::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
+        EXPECT_EQ(pass.pass.projection, Client::Math::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
         EXPECT_EQ(BitsOf(pass.projection.horizontalScale), probe.horizontal);
         EXPECT_EQ(BitsOf(pass.projection.verticalScale), probe.vertical);
         EXPECT_EQ(pass.projection.centerX, probe.screen.width / 2);

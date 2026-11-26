@@ -109,7 +109,7 @@ TEST(RavenAttackTest, TheAttackChargesTowardTheTarget)
     const DarkSpiritTargets targets{.target = {1000.0f, 400.0f, 100.0f}};
     glm::vec3 expectedAngles{};
     const double distance =
-        Client::Render::Models::MoveToward({1000.0f, 980.0f, 300.0f}, expectedAngles, {1000.0f, 400.0f, 150.0f}, 20.0f);
+        Client::Math::MoveToward({1000.0f, 980.0f, 300.0f}, expectedAngles, {1000.0f, 400.0f, 150.0f}, 20.0f);
     ASSERT_GE(distance, 20.0);
 
     const auto stepped = tested.Step(Lorencia, targets);
@@ -186,8 +186,8 @@ TEST(RavenAttackTest, TheShoutTurnsTowardTheAttackTarget)
     tested.spirit.target3b0 = 4;
     tested.spirit.byte38d = 14;
     const glm::vec3 victim{1500.0f, 1000.0f, 0.0f};
-    const auto angle = static_cast<float>(Client::Render::Models::CreateAngle(1000.0f, 1000.0f, victim.x, victim.y));
-    const auto turned = static_cast<float>(Client::Render::Models::TurnAngle(0.0f, angle, 40.0f));
+    const auto angle = static_cast<float>(Client::Math::CreateAngle(1000.0f, 1000.0f, victim.x, victim.y));
+    const auto turned = static_cast<float>(Client::Math::TurnAngle(0.0f, angle, 40.0f));
     tested.Step(Lorencia, {.attackPosition = victim});
     EXPECT_EQ(tested.spirit.angles.z, turned);
     EXPECT_EQ(tested.spirit.position, glm::vec3(1000.0f, 1000.0f, 300.0f));

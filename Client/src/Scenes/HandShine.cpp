@@ -34,10 +34,9 @@ constexpr std::size_t RightHand = 0;
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, (0, 0, 0), punto, 1) con la escala y la posición del personaje.
 glm::vec3 BoneOrigin(const ActorState& actor, std::uint8_t bone)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), glm::vec3(0.0f),
-                                                     actor.scale, actor.position);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), glm::vec3(0.0f), actor.scale,
+                                           actor.position);
 }
 } // namespace
 

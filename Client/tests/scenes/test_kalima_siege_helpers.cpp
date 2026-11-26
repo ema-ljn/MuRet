@@ -37,8 +37,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Scenes::ActorState;
 using Client::Scenes::KalimaSiegeHelperPass;
 
@@ -66,7 +66,7 @@ protected:
             hand.model = 0x123;
             hand.level = 3;
         }
-        m_actor->bodyPose.assign(120, Client::Render::Models::BoneTransform(1.0f));
+        m_actor->bodyPose.assign(120, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < m_actor->bodyPose.size(); ++bone)
             m_actor->bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
         m_sprites = std::make_unique<Client::World::FrameSprites>();

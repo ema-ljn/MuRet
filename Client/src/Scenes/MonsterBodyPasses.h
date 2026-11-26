@@ -91,7 +91,7 @@ struct MonsterBodyFrame
     MonsterBodyModel& model;
     ActorState& actor;
     // Los huesos que posó 0x5ffdf0 en el buffer propio (+0x120).
-    std::span<const Render::Models::BoneTransform> bones;
+    std::span<const Math::BoneTransform> bones;
     // El mapa (0x6c9dd0) y el cuarto argumento de 0x602e90 (SpecialOf).
     std::int32_t map = 0;
     std::uint16_t special = 0;

@@ -230,10 +230,9 @@ void StepDamage(std::span<DamageNumberState> damage);
 DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage, std::uint8_t mode);
 [[nodiscard]] Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch,
                                                            std::span<const DamageNumberState> damage, std::uint8_t mode,
-                                                           const Render::Models::OriginalMatrix& view);
+                                                           const Math::OriginalMatrix& view);
 [[nodiscard]] Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, const World::Leaves& leaves,
-                                                               std::int32_t map,
-                                                               const Render::Models::OriginalMatrix& view,
+                                                               std::int32_t map, const Math::OriginalMatrix& view,
                                                                std::int32_t weatherState = 0);
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
@@ -265,7 +264,7 @@ struct ModelEffectDrawResources
     // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
     World::ModelEffects* effects = nullptr;
     World::Particles* particles = nullptr;
-    std::function<std::span<const Render::Models::BoneTransform>()> posedBones{};
+    std::function<std::span<const Math::BoneTransform>()> posedBones{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,

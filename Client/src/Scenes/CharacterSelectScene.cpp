@@ -1527,7 +1527,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
             .systemTime = [systemTime = static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
             { return systemTime; },
-            .globalPose = [&]() { return std::span<const Render::Models::BoneTransform>(poseCarry->bones); }});
+            .globalPose = [&]() { return std::span<const Math::BoneTransform>(poseCarry->bones); }});
         !drawn.HasValue())
     {
         m_failure = "0x63486a → " + drawn.Error();
@@ -1636,12 +1636,12 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             drawn.poseBones = [poseCarry, actor](std::uint16_t model)
             {
                 if (model != Data::Models::PlayerSkeletonModel)
-                    return std::span<const Render::Models::BoneTransform>(poseCarry->bones);
-                return actor != nullptr ? std::span<const Render::Models::BoneTransform>(actor->bodyPose)
-                                        : std::span<const Render::Models::BoneTransform>();
+                    return std::span<const Math::BoneTransform>(poseCarry->bones);
+                return actor != nullptr ? std::span<const Math::BoneTransform>(actor->bodyPose)
+                                        : std::span<const Math::BoneTransform>();
             };
         if (poseCarry != nullptr)
-            drawn.onPose = [this, poseCarry](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+            drawn.onPose = [this, poseCarry](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                                              const Render::Models::ObjectTransform& transform, bool translated)
             {
                 if (model == Data::Models::PlayerSkeletonModel)

@@ -19,19 +19,19 @@
 // mascota del 34 están verificadas contra la traza (GoldenSkinningTrace).
 namespace
 {
-using Client::Render::Models::AngleMatrix;
+using Client::Math::AngleMatrix;
+using Client::Math::BoneTransform;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Render::Models::Attachment;
 using Client::Render::Models::AttachmentOf;
 using Client::Render::Models::AttachmentRoot;
 using Client::Render::Models::AttachmentSlot;
 using Client::Render::Models::BoneKey;
-using Client::Render::Models::BoneTransform;
 using Client::Render::Models::DrawsThePet;
 using Client::Render::Models::PlacedRoot;
 using Client::Render::Models::PoseAttached;
 using Client::Render::Models::QuiverPlacement;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 
@@ -118,7 +118,7 @@ TEST(AttachmentTest, AnAttachedPoseHangsFromTheRoot)
     SkeletonBone bone;
     bone.parent = -1;
     bone.actions = {{BoneKey{{10.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {}}}};
-    bone.actions[0][0].rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+    bone.actions[0][0].rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
     skeleton.bones = {bone};
     skeleton.actions = {{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     BoneTransform root = AngleMatrix({0.0f, 0.0f, 90.0f});

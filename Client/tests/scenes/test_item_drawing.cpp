@@ -31,9 +31,9 @@
 
 namespace
 {
+using Client::Math::BoneTransform;
 using Client::Render::Color;
 using Client::Render::TextureSlot;
-using Client::Render::Models::BoneTransform;
 using Client::Scenes::ItemPart;
 using Client::Scenes::ItemPartOwner;
 using Client::Scenes::ObjectOutlinePass;
@@ -256,7 +256,7 @@ TEST_F(ItemDrawingTest, TheClassFourHelmLightsTheHeadNowAndTheBootsNextFrame)
     m_batch.Begin(Client::Render::Pass3D{});
     m_special.worldClock = 1571.0f;
     ASSERT_TRUE(DrawWorn(parts, 4).HasValue());
-    EXPECT_NEAR(m_light, 0.7 + 0.1 * Client::Render::Models::RoundedSin(1.571), 1e-6);
+    EXPECT_NEAR(m_light, 0.7 + 0.1 * Client::Math::RoundedSin(1.571), 1e-6);
     const std::vector<Color> second = DrawnColors();
 
     ASSERT_EQ(first.size(), 3u);

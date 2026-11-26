@@ -255,7 +255,7 @@ Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& conte
     const std::int32_t whole = lines.next - lines.halves;
     const std::int32_t sum = whole * cy + lines.halves * cy / 2;
     const double ry = Render::ScaleY(1.0f, hud.sprites.Screen());
-    const std::optional<std::int32_t> height = World::OriginalFtolLow(static_cast<double>(sum) / ry);
+    const std::optional<std::int32_t> height = Math::OriginalFtolLow(static_cast<double>(sum) / ry);
     if (!height)
         return Core::Unexpected(std::format("0x5b806f: el alto del tooltip ({} / {}) no entra en _ftol", sum, ry));
     auto top = static_cast<std::int32_t>(static_cast<std::uint32_t>(context.y) - static_cast<std::uint32_t>(*height));

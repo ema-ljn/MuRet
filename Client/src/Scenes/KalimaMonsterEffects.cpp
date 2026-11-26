@@ -87,8 +87,7 @@ void BeginTheThunder(World::ModelEffect& effect)
     const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
     if (owner == nullptr || effect.subtype != 0)
         return;
-    const glm::vec3 step =
-        Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(owner->angles));
+    const glm::vec3 step = Math::OriginalVectorRotate(Offset, Math::OriginalAngleMatrix(owner->angles));
     glm::vec3& position = effect.transform.position;
     position = {F32(D(step.x) + D(position.x)), F32(D(step.y) + D(position.y)), F32(D(step.z) + D(position.z))};
 }

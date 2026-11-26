@@ -234,7 +234,7 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     ActorState actor = Monster(0x160, 2);
     actor.position = {100.0f, 200.0f, 30.0f};
     actor.attackTarget = 5;
-    const auto heading = static_cast<float>(Client::Render::Models::CreateAngle(100.0f, 200.0f, 300.0f, 900.0f));
+    const auto heading = static_cast<float>(Client::Math::CreateAngle(100.0f, 200.0f, 300.0f, 900.0f));
     actor.angles.z = heading;
     CrtRandom random(Seed);
     ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());

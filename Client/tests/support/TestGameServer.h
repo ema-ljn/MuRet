@@ -18,40 +18,39 @@
 #include <utility>
 #include <vector>
 
-// Lo que hace con los C3/C4 el GameServer de los tests de la Connection, de la ServerSession y de
-// los FakeServers (CL4.4), con las claves sintéticas de SimpleModulusKeys.h: lo que manda el
-// cliente va con Pair17 y lo que contesta el servidor con Pair18, así una clave cambiada de lugar
-// no descifra. Los tests no comparan lo cifrado: el servidor descifra lo que salió y el test mira
-// el C1/C2.
+// What the GameServer of the Connection, ServerSession and FakeServers tests does with C3/C4, with
+// SimpleModulusKeys.h's synthetic keys: what the client sends goes with Pair17 and what the server answers with
+// Pair18, so a swapped key does not decrypt. The tests do not compare the encrypted bytes: the server decrypts what
+// went out and the test looks at the C1/C2.
 namespace Client::Tests
 {
-// Las claves de la conexión del cliente con el GameServer: cifra con la de ida y descifra con la
-// de vuelta.
+// The keys of the client's connection with the GameServer: it encrypts with the outgoing one and decrypts with the
+// incoming one.
 inline Network::ConnectionKeys GameClientKeys()
 {
     return {Pair17().encryption, Pair18().decryption};
 }
 
-// La clave con la que el GameServer descifra lo que le manda el cliente.
+// Decrypts what the client sends.
 inline Crypto::DecryptionKey GameServerDecryption()
 {
     return Pair17().decryption;
 }
 
-// La clave con la que el GameServer cifra lo que contesta.
+// Encrypts what the GameServer answers.
 inline Crypto::EncryptionKey GameServerEncryption()
 {
     return Pair18().encryption;
 }
 
-// Las dos del lado del GameServer, como las de una conexión: cifra lo que contesta y descifra lo
-// que recibe (las de support/FakeServers.h).
+// Both on the GameServer's side, like a connection's: they encrypt what it answers and decrypt what it receives (the
+// ones of support/FakeServers.h).
 inline Network::ConnectionKeys GameServerKeys()
 {
     return {GameServerEncryption(), GameServerDecryption()};
 }
 
-// Un C1/C2 como lo manda el GameServer: cifrado con su clave y sus seriales.
+// A C1/C2 as the GameServer sends it: encrypted with its key and serials.
 inline std::vector<std::byte> FromTheGameServer(const std::vector<std::byte>& plain, Network::PacketSerials& serials)
 {
     const auto encrypted = Network::EncryptPacket(PacketOf(plain), GameServerEncryption(), serials);
@@ -64,15 +63,15 @@ inline std::vector<std::byte> FromTheGameServer(const std::vector<std::byte>& pl
     return {bytes.begin(), bytes.end()};
 }
 
-// Lo que recibe el GameServer de lo que mandó el cliente.
+// What the GameServer receives from what the client sent.
 struct GameServerReceived
 {
-    std::vector<Network::Packet> packets;      // el C1/C2 rearmado de cada C3/C4, o el que vino así
-    std::vector<Network::SerialCheck> serials; // el de cada C3/C4, en orden
+    std::vector<Network::Packet> packets;      // the C1/C2 rebuilt from each C3/C4, or the one that came as is
+    std::vector<Network::SerialCheck> serials; // each C3/C4's, in order
 };
 
-// `sent` cortado y, cada C3/C4, descifrado con la clave del GameServer y sus seriales. Un corte
-// que falla, lo que sobra o un C3/C4 que no descifra hacen fallar el test.
+// `sent` split and each C3/C4 decrypted with the GameServer's key and serials. A failed split, leftover bytes or a
+// C3/C4 that does not decrypt fail the test.
 inline GameServerReceived AsTheGameServerReceives(std::span<const std::byte> sent, Network::PacketSerials& serials)
 {
     GameServerReceived received;

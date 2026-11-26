@@ -9,15 +9,14 @@
 #include <string_view>
 #include <vector>
 
-// Un IResolver que da `address`, o ResolveFailed si está vacío, sin DNS: el de los tests, porque el
-// DNS puede tardar o reescribir un NXDOMAIN.
+// Gives `address`, or ResolveFailed if it is empty, without DNS: the DNS can be slow or rewrite an NXDOMAIN.
 namespace Client::Tests
 {
 class FakeResolver final : public Network::IResolver
 {
 public:
     std::optional<Network::Ipv4Address> address;
-    std::vector<std::string> hosts; // lo que le preguntaron, en orden
+    std::vector<std::string> hosts; // what it was asked, in order
 
     [[nodiscard]] Core::Expected<Network::Ipv4Address, Network::SocketError> Resolve(std::string_view host) override
     {

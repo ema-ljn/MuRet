@@ -4,18 +4,17 @@
 #include <cstdint>
 #include <span>
 
-// El FNV-1a de 64 bits, un hash chico para comparar muchos bytes con un valor guardado: el de los
-// píxeles que da la 6b de cada OZJ del laboratorio (Client/tests/vectors/jpeg/lab-6b.txt). No es
-// criptográfico, y no hace falta: lo que se busca es ver si un decodificador da otros bytes.
+// The 64-bit FNV-1a, a small hash to compare many bytes with a stored value: that of the pixels the 6b gives for each
+// lab OZJ (Client/tests/vectors/jpeg/lab-6b.txt). It is not cryptographic and need not be: the point is to see whether
+// a decoder gives other bytes.
 namespace Client::Tests
 {
-// La base y el primo de 64 bits, de la página de los autores (Fowler, Noll y Vo):
+// The 64-bit offset basis and prime, from the authors' page (Fowler, Noll and Vo):
 // http://www.isthe.com/chongo/tech/comp/fnv/
 inline constexpr std::uint64_t Fnv1aOffsetBasis = 0xcbf29ce484222325;
 inline constexpr std::uint64_t Fnv1aPrime = 0x100000001b3;
 
-// El FNV-1a de `bytes`: por cada byte, primero el xor y después el producto, módulo 2^64 (un
-// uint64_t da la vuelta sin comportamiento indefinido).
+// For each byte, first the xor and then the product, modulo 2^64 (a uint64_t wraps without undefined behavior).
 constexpr std::uint64_t Fnv1a64(std::span<const std::byte> bytes)
 {
     std::uint64_t hash = Fnv1aOffsetBasis;

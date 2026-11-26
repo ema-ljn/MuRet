@@ -15,9 +15,9 @@ namespace Client::Sound
 namespace
 {
 
-// 0x41eac0: 0x61ccb0 arranca dos registros, llama a 0x61b350 en 7/10 y hace otros trece.
+// 0x41eac0: 0x61ccb0 starts two records, calls 0x61b350 at 7/10 and does thirteen more.
 constexpr std::size_t StartupSoundCount = 150;
-// Los datos conservan los 557 registros del PE, en orden de arranque, ramas de mapa, NPC y monstruos.
+// The PE's 557 records, in order: startup, map branches, NPCs and monsters.
 constexpr std::array<Audio::SoundDefinition, 557> Catalog{{
     {140, "sound/iDuelWindow.wav", 1, false},
     {141, "sound/iDuelStart.wav", 1, false},
@@ -587,7 +587,7 @@ struct WorldSoundSet
     std::size_t soundCount;
 };
 
-// Ramas de 0x616ec0. Los offsets apuntan a Catalog; los mapas Kalima 24..29 y 36 comparten llamadas.
+// 0x616ec0's branches. The offsets point into Catalog; Kalima maps 24..29 and 36 share calls.
 constexpr std::array<WorldSoundSet, 7> WorldSoundSets{{
     {11, 17, -1, 150, 1},
     {18, 23, -1, 151, 1},

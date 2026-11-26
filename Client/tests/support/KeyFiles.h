@@ -14,13 +14,12 @@
 #include <utility>
 #include <vector>
 
-// Cargar un archivo de clave real en un test golden: Enc1.dat y Dec2.dat de la carpeta golden, y
-// Dec1.dat y Enc2.dat de la del cable (GoldenDir.h). Ningún mensaje muestra un valor de la clave.
+// Loading a real key file in a golden test: Enc1.dat and Dec2.dat from the golden folder, and Dec1.dat and Enc2.dat
+// from the wire's (GoldenDir.h). No message shows a key value.
 namespace Client::Tests
 {
-// La clave de `path`, cargada con `load` (LoadEncryptionKey o LoadDecryptionKey). Si la ruta no
-// está, el test ya falló; si el archivo no se lee o no carga, falla acá. En los tres casos,
-// std::nullopt.
+// The key at `path`, loaded with `load` (LoadEncryptionKey or LoadDecryptionKey). If the path is missing, the test
+// already failed; if the file cannot be read or does not load, it fails here. In all three cases, std::nullopt.
 template <typename Key>
 std::optional<Key> LoadKeyFile(const std::optional<std::filesystem::path>& path,
                                Core::Expected<Key, Crypto::CryptoError> (*load)(std::span<const std::byte>))

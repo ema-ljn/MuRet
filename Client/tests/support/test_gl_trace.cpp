@@ -10,14 +10,12 @@
 #include <string>
 #include <vector>
 
-// Client::Tests::ParseGlTrace: el lector de las trazas de GLIntercept, con textos sintéticos de la
-// misma forma que las del laboratorio.
 namespace
 {
 using Client::Tests::GlTrace;
 using Client::Tests::ParseGlTrace;
 
-// La cabecera que escribe GLIntercept antes de la primera llamada.
+// The header GLIntercept writes before the first call.
 const std::string Header = "===============================================================================\n"
                            " GLIntercept version 1.34 Log generated on: Sat Oct 31 01:16:20 2026\n"
                            " \n"
@@ -32,7 +30,6 @@ GlTrace Parse(const std::string& text)
     return trace.HasValue() ? trace.Value() : GlTrace{};
 }
 
-// Un frame por wglSwapBuffers; lo que va después del último no es un frame.
 TEST(GlTraceTest, SplitsTheFramesAtTheSwap)
 {
     const GlTrace trace = Parse("glBegin(GL_TRIANGLES)\n"
@@ -54,8 +51,6 @@ TEST(GlTraceTest, SplitsTheFramesAtTheSwap)
     EXPECT_EQ(trace.frames[1].blocks[0].mode, "GL_QUADS");
 }
 
-// Cada bloque con la textura atada al empezar, y cada vértice con la última UV y el último color,
-// aunque vengan de antes del bloque.
 TEST(GlTraceTest, ABlockKeepsItsTexture)
 {
     const GlTrace trace = Parse("glBindTexture(GL_TEXTURE_2D,1094)\n"
@@ -88,9 +83,8 @@ TEST(GlTraceTest, ABlockKeepsItsTexture)
     EXPECT_EQ(blocks[1].vertices[0].position, glm::vec3(10.0f, 20.0f, 0.0f));
 }
 
-// Cada bloque con el estado de GL de la mezcla al llamar a glBegin (CL7.1: el pase de alfa del
-// terreno): el de GL al empezar (sin mezcla, ONE / ZERO, sin alpha test, sin culling, sin depth test y
-// escribiendo la profundidad) hasta que una llamada lo cambia. glEnable de otra cosa no cuenta.
+// Each block gets GL's blending state at glBegin: GL's initial one (no blending, ONE / ZERO, no alpha test, no
+// culling, no depth test and writing depth) until a call changes it. glEnable of something else does not count.
 TEST(GlTraceTest, ABlockKeepsTheStateOfGl)
 {
     const GlTrace trace = Parse("glBegin(GL_TRIANGLE_FAN)\n"
@@ -134,7 +128,6 @@ TEST(GlTraceTest, ABlockKeepsTheStateOfGl)
     EXPECT_TRUE(blocks[2].state.depthMask);
 }
 
-// Una llamada del estado con otros argumentos es un error con su línea.
 TEST(GlTraceTest, AMalformedStateCallIsAnError)
 {
     for (const std::string line : {"glBlendFunc(GL_ONE)", "glDepthMask(maybe)", "glEnable()"})
@@ -146,7 +139,6 @@ TEST(GlTraceTest, AMalformedStateCallIsAnError)
     }
 }
 
-// Las llamadas de las matrices en el orden de la traza, con sus números, y los viewports.
 TEST(GlTraceTest, ReadsTheMatricesInOrder)
 {
     const GlTrace trace =
@@ -181,9 +173,8 @@ TEST(GlTraceTest, ReadsTheMatricesInOrder)
     EXPECT_EQ(frame.matrices[6].values.size(), 6u);
 }
 
-// Una línea que no se entiende, o una que se lee con otros argumentos, es un error que dice su
-// número, contando la cabecera. Después de la primera llamada no hay más cabecera: una línea que
-// empieza con un espacio también es un error, y un frame no se cierra con un glBegin abierto.
+// The number counts the header. After the first call there is no more header: a line that starts with a space is
+// also an error, and a frame does not close with an open glBegin.
 TEST(GlTraceTest, AMalformedLineSaysItsNumber)
 {
     for (const std::string& bad :

@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-// Los vectores de la tela (tests/vectors/cloth, su README): lo que hizo el código real del main.exe,
-// emulado, frame por frame. Cada float viene como los bits que tenía en el binario.
+// The cloth vectors (tests/vectors/cloth, its README): what main.exe's real code did, emulated, frame by frame. Each
+// float comes as the bits it had in the binary.
 namespace Client::Tests
 {
 struct ClothVectorShape
@@ -40,7 +40,7 @@ struct ClothVectorShape
 struct ClothVectorParticle
 {
     glm::vec3 position{};
-    // Solo en los pasos "full": el último de cada tela en el frame, o el que la rompe.
+    // Only in "full" steps: each cloth's last in the frame, or the one that tears it.
     std::optional<glm::vec3> velocity;
     std::optional<glm::vec3> force;
     bool anchored = false;
@@ -59,7 +59,7 @@ struct ClothVectorStep
 struct ClothVectorFace
 {
     std::int32_t cloth = 0;
-    // "opaque", "alpha" o "additive": el estado de GL que dejaron las llamadas del binario.
+    // "opaque", "alpha" or "additive": the GL state the binary's calls left.
     std::string blend;
     std::uint16_t texture = 0;
     glm::vec3 color{};
@@ -78,7 +78,7 @@ struct ClothVectorFlare
     float light = 0.0f;
 };
 
-// Un evento del frame, en el orden del binario.
+// In the binary's order.
 struct ClothVectorEvent
 {
     enum class Kind : std::uint8_t
@@ -107,7 +107,7 @@ struct ClothVectorFrame
     glm::vec3 angles{};
     float scale = 1.0f;
     glm::vec3 origin{};
-    // objeto + 0x120, ya en el BoneTransform de MuRet.
+    // object + 0x120, already as MuRet's BoneTransform.
     std::vector<Math::BoneTransform> bones;
     std::uint8_t map = 0;
     float worldTime = 0.0f;
@@ -118,7 +118,7 @@ struct ClothVectorFrame
     std::optional<glm::vec3> color;
     bool wears = true;
     std::optional<float> dt;
-    // 0x7245fc: la z del viento, que en el original no escribe nadie (vale 0); el caso F la prueba.
+    // 0x7245fc: the wind's z, which nobody writes in the original (it is 0); case F tests it.
     std::optional<float> windZ;
     float windBaseAfterTheWalks = 0.0f;
     std::vector<ClothVectorEvent> events;
@@ -133,9 +133,9 @@ struct ClothVectors
     std::vector<ClothVectorFrame> frames;
 };
 
-// La carpeta de los vectores, en el repo (MU_CLIENT_CLOTH_VECTORS_DIR).
+// In the repo (MU_CLIENT_CLOTH_VECTORS_DIR).
 [[nodiscard]] std::filesystem::path ClothVectorsDir();
 
-// Lee un archivo de vectores. Devuelve el error del primer renglón que no entiende.
+// Returns the error of the first line it does not understand.
 [[nodiscard]] std::optional<std::string> ReadClothVectors(const std::filesystem::path& path, ClothVectors& out);
 } // namespace Client::Tests

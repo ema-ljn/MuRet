@@ -11,8 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Tables::LoadDialogTable: Dialog.bmd (0x54b2b0), 200 registros de 0x400 con el XOR3 de 0x5496c0 desde el
-// primer byte de cada uno. Los textos son inventados.
+// Dialog.bmd (0x54b2b0), 200 records of 0x400 with 0x5496c0's XOR3 from each one's first byte. The texts are made up.
 namespace
 {
 using Client::Data::DataError;
@@ -70,8 +69,8 @@ TEST(DialogTable, ReadsTheTextTheAnswersTheirNextAndTheirAction)
     EXPECT_EQ(DialogAnswerOf(dialog, 10), "");
 }
 
-// 0x419710 y 0x632f70 escribirían los renglones de la undécima respuesta en adelante fuera de los 10 de 0x7d3691c,
-// sobre el texto de 0x7d36a98 y lo que sigue: corta al cargar (Q-C1127).
+// 0x419710 and 0x632f70 would write the lines of the eleventh answer onward outside 0x7d3691c's 10, over the text at
+// 0x7d36a98 and what follows: it fails on load (Q-C1127).
 TEST(DialogTable, MoreThanTenAnswersWouldWriteOutsideTheRows)
 {
     std::vector<std::byte> plain(DialogTableSize);
@@ -81,9 +80,10 @@ TEST(DialogTable, MoreThanTenAnswersWouldWriteOutsideTheRows)
     EXPECT_EQ(loaded.Error(), DataError::InvalidData);
 }
 
-// 0x54b343..0x54b37e con el fread de 0x69fecb: un registro y medio. El segundo es su mitad leída con la otra mitad del
-// primero, ya descifrada, que el XOR3 vuelve a cifrar; desde el tercero no se lee nada y el bloque se descifra una vez
-// más cada vez. Con menos de un registro, el resto del bloque sin iniciar es un error (Q-C1127).
+// 0x54b343..0x54b37e with 0x69fecb's fread: a record and a half. The second is its half that was read with the other
+// half of the first, already decrypted, which the XOR3 encrypts again; from the third on nothing is read and the
+// block is decrypted once more each time. With less than a record, the rest of the uninitialized block is an error
+// (Q-C1127).
 TEST(DialogTable, AShortFileKeepsWhatItsFreadLeaves)
 {
     const auto tooShort = LoadDialogTable(std::vector<std::byte>(DialogRecordSize - 1));
@@ -116,7 +116,7 @@ TEST(DialogTable, AShortFileKeepsWhatItsFreadLeaves)
     EXPECT_EQ(dialogs[1].answerCount, 1);
     EXPECT_EQ(DialogAnswerOf(dialogs[1], 0), "Otro");
     EXPECT_NE(DialogAnswerOf(dialogs[1], 4), "Cinco");
-    // El tercero, el bloque del segundo descifrado otra vez: la mitad del archivo cifrada y la del primero en claro.
+    // The third, the second's block decrypted again: the file's half encrypted and the first's half in clear.
     EXPECT_NE(DialogTextOf(dialogs[2]), "Segundo inventado");
     EXPECT_EQ(DialogAnswerOf(dialogs[2], 4), "Cinco");
     EXPECT_EQ(dialogs[3], dialogs[1]);

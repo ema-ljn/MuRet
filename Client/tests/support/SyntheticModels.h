@@ -12,17 +12,14 @@
 #include <string_view>
 #include <vector>
 
-// Un .bmd sintético, armado en memoria con el formato de 05 ("Modelos .bmd"), para los tests de la
-// CL6.1: en claro o cifrado con K16, como lo escribe 0x4f1ac0. Nada de esto sale del Data\ del
-// original.
-//
-// Los bytes que el lector no lee (el relleno del vértice y de la normal, lo que va después del
-// primer 0 de un nombre, los 38 que sobran de cada triángulo) llevan UnreadByte y no ceros: un
-// lector corrido lee basura y el test lo nota.
+// A synthetic .bmd, built in memory in 05's format ("Modelos .bmd"): in clear or encrypted with K16, as 0x4f1ac0
+// writes it. None of this comes from the original's Data\.
+// The bytes the reader does not read (the vertex's and the normal's padding, what follows a name's first 0, the 38
+// spare bytes of each triangle) carry UnreadByte and not zeros: a shifted reader reads garbage and the test notices.
 namespace Client::Tests
 {
 inline constexpr std::byte UnreadByte{0xA5};
-// Lo que se escribe en el byte del hueso dummy. Cualquiera que no sea 0 es dummy (05).
+// What is written in the dummy bone's byte. Any value other than 0 is dummy (05).
 inline constexpr std::byte DummyBoneByte{0x01};
 
 inline void AppendInt16(std::vector<std::byte>& bytes, std::int16_t value)
@@ -30,7 +27,7 @@ inline void AppendInt16(std::vector<std::byte>& bytes, std::int16_t value)
     AppendLittleEndian(bytes, std::bit_cast<std::uint16_t>(value), sizeof(value));
 }
 
-// Los bits del float, little-endian: un NaN va con su carga.
+// The float's bits, little-endian: a NaN keeps its payload.
 inline void AppendFloat(std::vector<std::byte>& bytes, float value)
 {
     AppendLittleEndian(bytes, std::bit_cast<std::uint32_t>(value), sizeof(value));
@@ -49,7 +46,7 @@ inline void AppendUnread(std::vector<std::byte>& bytes, std::size_t count)
     bytes.insert(bytes.end(), count, UnreadByte);
 }
 
-// Un nombre de 32 bytes: el texto, un 0 y basura hasta el final. `name` tiene que dejar lugar al 0.
+// A 32-byte name: the text, a 0 and garbage to the end. `name` must leave room for the 0.
 inline void AppendName(std::vector<std::byte>& bytes, std::string_view name)
 {
     for (const char letter : name)
@@ -68,8 +65,7 @@ inline void AppendIndices(std::vector<std::byte>& bytes, const std::array<std::i
     }
 }
 
-// Un triángulo de 64 bytes: el tipo, un byte de relleno, los tres juegos de índices y lo que el lector
-// no usa.
+// A 64-byte triangle: the type, a padding byte, the three index sets and what the reader does not use.
 inline void AppendTriangle(std::vector<std::byte>& bytes, const Data::Models::Triangle& triangle)
 {
     const std::size_t start = bytes.size();
@@ -124,7 +120,7 @@ inline void AppendAction(std::vector<std::byte>& bytes, const Data::Models::Acti
     }
 }
 
-// Un hueso no dummy lleva, por cada acción, sus posiciones y después sus rotaciones.
+// A non-dummy bone carries, for each action, its positions and then its rotations.
 inline void AppendBone(std::vector<std::byte>& bytes, const Data::Models::Bone& bone)
 {
     if (bone.dummy)
@@ -148,8 +144,8 @@ inline void AppendBone(std::vector<std::byte>& bytes, const Data::Models::Bone& 
     }
 }
 
-// El contenido de `model` en claro, sin "BMD" ni la versión: lo que va desde +4 en claro o lo que se
-// cifra desde +8. Las cantidades salen del largo de cada vector, menos las keys, que son keyCount.
+// `model`'s content in clear, without "BMD" or the version: what goes from +4 in clear or what is encrypted from +8.
+// The counts come from each vector's length, except the keys, which are keyCount.
 inline std::vector<std::byte> BmdContent(const Data::Models::Model& model)
 {
     std::vector<std::byte> bytes;
@@ -180,7 +176,7 @@ inline void AppendMagic(std::vector<std::byte>& bytes, std::uint8_t version)
     bytes.push_back(std::byte{version});
 }
 
-// "BMD", la versión y `content` en claro.
+// "BMD", the version and `content` in clear.
 inline std::vector<std::byte> PlainBmd(const std::vector<std::byte>& content, std::uint8_t version)
 {
     std::vector<std::byte> bytes;
@@ -189,8 +185,7 @@ inline std::vector<std::byte> PlainBmd(const std::vector<std::byte>& content, st
     return bytes;
 }
 
-// "BMD", 0x0C, el tamaño de `content` y `content` cifrado con K16 desde su primer byte, como
-// 0x4f1ac0.
+// "BMD", 0x0C, `content`'s size and `content` encrypted with K16 from its first byte, like 0x4f1ac0.
 inline std::vector<std::byte> EncryptedBmd(const std::vector<std::byte>& content)
 {
     std::vector<std::byte> bytes;
@@ -201,8 +196,8 @@ inline std::vector<std::byte> EncryptedBmd(const std::vector<std::byte>& content
     return bytes;
 }
 
-// Un float distinto para cada `k`, con decimales que entran justos en un float: un valor leído en el
-// lugar de otro no da el mismo.
+// A different float for each `k`, with decimals that fit exactly in a float: a value read in place of another does
+// not give the same.
 inline float SampleFloat(int k)
 {
     return static_cast<float>(k) * 0.75f - 10.125f;
@@ -213,7 +208,7 @@ inline std::array<float, 3> SampleVector(int k)
     return {SampleFloat(k), SampleFloat(k + 1), -SampleFloat(k + 2)};
 }
 
-// Las keys de un hueso en una acción de `keyCount` keys, distintas por hueso y por acción.
+// A bone's keys in an action of `keyCount` keys, different per bone and per action.
 inline Data::Models::BoneKeys SampleKeys(int bone, int action, std::int16_t keyCount)
 {
     Data::Models::BoneKeys keys;
@@ -226,8 +221,8 @@ inline Data::Models::BoneKeys SampleKeys(int bone, int action, std::int16_t keyC
     return keys;
 }
 
-// La malla del modelo de los tests: tres vértices, tres normales, tres UV y un triángulo, con los
-// índices en otro orden que el de los vectores para que un juego leído en el lugar de otro se note.
+// The test model's mesh: three vertices, three normals, three UVs and a triangle, with the indices in another order
+// than the vectors' so that one set read in place of another shows.
 inline Data::Models::Mesh SampleMesh()
 {
     Data::Models::Mesh mesh;
@@ -240,8 +235,8 @@ inline Data::Models::Mesh SampleMesh()
     return mesh;
 }
 
-// El modelo de los tests (CL6.1, paso 1): una malla, dos acciones (de 2 keys, y de 3 con
-// lock_positions) y tres huesos: una raíz, un hijo y un dummy.
+// The test model: a mesh, two actions (of 2 keys, and of 3 with lock_positions) and three bones: a root, a child and
+// a dummy.
 inline Data::Models::Model SampleModel()
 {
     Data::Models::Model model;

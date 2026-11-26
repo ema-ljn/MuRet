@@ -8,24 +8,22 @@
 #include <cstdint>
 #include <limits>
 
-// Client::Data: la carpeta World<N> de cada mapa, como la arma 0x61a560 (05 § La carpeta de cada
-// mapa). Lo que hay en el Data\ del laboratorio lo prueba test_golden_world_folder.cpp.
+// Each map's World<N> folder, as 0x61a560 builds it (05 § La carpeta de cada mapa). What the lab's Data\ has is
+// tested by test_golden_world_folder.cpp.
 namespace
 {
 using Client::Maps::OriginalMaps;
 using Client::Maps::WorldFolder;
 using Client::Maps::WorldFolderNumber;
 
-// Un mapa y el N de su carpeta.
 struct MapFolder
 {
     std::uint8_t map;
     std::uint16_t folder;
 };
 
-// La tabla del paso 1 de la CL5.4, leída en 0x61a560 (CL5.R): mapa + 1, salvo los tres rangos de
-// evento (0x61a5e4..0x61a61d) y el 32, que usa la del 9 (0x61a56c..0x61a57d), en el orden de
-// OriginalMaps.
+// Read at 0x61a560: map + 1, except the three event ranges (0x61a5e4..0x61a61d) and 32, which uses 9's
+// (0x61a56c..0x61a57d), in OriginalMaps' order.
 constexpr std::array<MapFolder, 39> ExpectedFolders = {{
     {0, 1},   {1, 2},   {2, 3},   {3, 4},   {4, 5},   {5, 6},   {6, 7},   {7, 8},   {8, 9},   {9, 10},
     {10, 11}, {11, 12}, {12, 12}, {13, 12}, {14, 12}, {15, 12}, {16, 12}, {17, 12}, {18, 19}, {19, 19},
@@ -52,8 +50,8 @@ TEST(WorldFolderTest, MapsEachMapToItsFolder)
     }
 }
 
-// Los bordes de los rangos, en el orden en que 0x61a560 los compara: con signo, `jl` y `jg` (o
-// `jle`) contra 11 y 17, 24 y 29, el 36 aparte, y 18 y 23.
+// The range edges, in the order 0x61a560 compares them: signed, `jl` and `jg` (or `jle`) against 11 and 17, 24 and
+// 29, 36 apart, and 18 and 23.
 TEST(WorldFolderTest, TheEventRangesEndWhereTheOriginalCompares)
 {
     EXPECT_EQ(WorldFolderNumber(10), 11);
@@ -69,8 +67,8 @@ TEST(WorldFolderTest, TheEventRangesEndWhereTheOriginalCompares)
     EXPECT_EQ(WorldFolderNumber(37), 38);
 }
 
-// 0x61a56c..0x61a57d: con el mapa 32, 0x61a560 cambia el mapa global (0x6c9dd0) por el 9 antes
-// de armar la carpeta, así que da World10, la del 9.
+// 0x61a56c..0x61a57d: with map 32, 0x61a560 changes the global map (0x6c9dd0) to 9 before building the folder, so it
+// gives World10, 9's.
 TEST(WorldFolderTest, TheMapThirtyTwoUsesTheFolderOfNine)
 {
     EXPECT_EQ(WorldFolderNumber(32), WorldFolderNumber(9));
@@ -78,8 +76,7 @@ TEST(WorldFolderTest, TheMapThirtyTwoUsesTheFolderOfNine)
     EXPECT_EQ(WorldFolder(32), "World10");
 }
 
-// La selección de personaje pone el mapa 54 (0x633f44, en 0x633f20) y el login el 55 (0x6349b2, en
-// 0x6349a0).
+// Character selection sets map 54 (0x633f44, in 0x633f20) and the login 55 (0x6349b2, in 0x6349a0).
 TEST(WorldFolderTest, TheSelectionMapIsWorld55)
 {
     EXPECT_EQ(WorldFolderNumber(54), 55);
@@ -87,7 +84,7 @@ TEST(WorldFolderTest, TheSelectionMapIsWorld55)
     EXPECT_EQ(WorldFolder(55), "World56");
 }
 
-// El "World%d" de 0x6c7330, sin ceros adelante.
+// 0x6c7330's "World%d", without leading zeros.
 TEST(WorldFolderTest, NamesTheFolder)
 {
     EXPECT_EQ(WorldFolder(0), "World1");
@@ -96,8 +93,8 @@ TEST(WorldFolderTest, NamesTheFolder)
     EXPECT_EQ(WorldFolder(55), "World56");
 }
 
-// Los handlers mandan el byte del paquete sin mirar el rango (0x4c41d4, 0x4c4eab, 0x4c7817; Q-C58):
-// del 37 en adelante, el mapa + 1, y el 255 da 256, que no entra en un byte.
+// The handlers send the packet's byte without a range check (0x4c41d4, 0x4c4eab, 0x4c7817; Q-C58): from 37 on, map +
+// 1, and 255 gives 256, which does not fit in a byte.
 TEST(WorldFolderTest, MapsBeyondThirtySixAreMapPlusOne)
 {
     EXPECT_EQ(WorldFolderNumber(37), 38);

@@ -5,21 +5,19 @@
 #include <span>
 #include <vector>
 
-// El reloj falso de los tests del bucle (CL3.2): no se mueve solo, así que un frame "tarda" lo que
-// el test dice, sin tiempo real.
+// Does not move on its own, so a frame "takes" what the test says, without real time.
 namespace Client::Tests
 {
 class FakeClock final : public Core::IClock
 {
 public:
-    // El tiempo actual, sin moverlo.
     Core::Duration Now() override;
-    // Lo mueve `duration` y lo anota. Un sueño de 0 o negativo es un error del bucle (el real
-    // dormiría 0): el test falla.
+    // Moves it by `duration` and records it. A sleep of 0 or less is a loop bug (the real one would sleep 0): the test
+    // fails.
     void SleepFor(Core::Duration duration) override;
-    // Lo mueve sin anotarlo; `duration` puede ser negativo.
+    // Moves it without recording; `duration` may be negative.
     void Advance(Core::Duration duration);
-    // Lo que pidió dormir cada SleepFor, en orden.
+    // What each SleepFor asked to sleep, in order.
     [[nodiscard]] std::span<const Core::Duration> Sleeps() const;
 
 private:

@@ -12,8 +12,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Tables::LoadMoveRequirements: movereq.bmd (0x448440), la cuenta en claro y registros de 0x50 con el
-// XOR3 de 0x449770 desde el primer byte de cada uno. Los destinos son inventados.
+// movereq.bmd (0x448440): the count in clear and 0x50 records with 0x449770's XOR3 from each one's first byte. The
+// destinations are made up.
 namespace
 {
 using Client::Data::DataError;
@@ -43,7 +43,7 @@ void PutText(std::span<std::byte> bytes, std::size_t offset, std::string_view te
         bytes[offset + i] = static_cast<std::byte>(text[i]);
 }
 
-// La cuenta y cada registro cifrado por su cuenta, como los lee 0x448440.
+// The count and each record encrypted on its own, as 0x448440 reads them.
 std::vector<std::byte> FileWith(std::int32_t count, std::span<const FakeMove> moves)
 {
     std::vector<std::byte> file(4 + moves.size() * MoveRecordSize);
@@ -76,7 +76,7 @@ constexpr std::array<FakeMove, 3> ThreeMoves{{
     {.index = 3, .name = "Pantano", .searchName = "pantano", .level = -1, .zen = 0, .gate = 11},
 }};
 
-// 0x50 no es múltiplo de 3: el XOR3 vuelve a FC en cada registro.
+// 0x50 is not a multiple of 3: the XOR3 goes back to FC at each record.
 TEST(MoveRequirementsTest, EachRecordIsDecipheredFromItsFirstByte)
 {
     const std::vector<std::byte> file = FileWith(3, ThreeMoves);
@@ -96,7 +96,7 @@ TEST(MoveRequirementsTest, EachRecordIsDecipheredFromItsFirstByte)
     EXPECT_EQ(moves.Value()[2].gate, 11);
 }
 
-// La cuenta manda: lo que sobra no se lee, y con 0 o una negativa no hay ninguno.
+// The excess is not read, and with 0 or a negative count there are none.
 TEST(MoveRequirementsTest, TheCountDecidesHowManyAreRead)
 {
     const auto two = LoadMoveRequirements(FileWith(2, ThreeMoves));
@@ -111,7 +111,7 @@ TEST(MoveRequirementsTest, TheCountDecidesHowManyAreRead)
     ASSERT_TRUE(negative.HasValue());
     EXPECT_TRUE(negative.Value().empty());
 
-    // fread de la cuenta con menos de cuatro bytes deja en 0 los que faltan: vacío, sin error.
+    // fread of the count with fewer than four bytes leaves the missing ones at 0: empty, without error.
     const auto empty = LoadMoveRequirements({});
     ASSERT_TRUE(empty.HasValue());
     EXPECT_TRUE(empty.Value().empty());
@@ -128,8 +128,8 @@ TEST(MoveRequirementsTest, AMissingRecordIsTooShort)
     EXPECT_EQ(moves.Error(), DataError::FileTooShort);
 }
 
-// strlen sigue en el registro: un nombre de 32 letras sigue con el de +0x24, y uno sin '\0' hasta el final del
-// registro saldría del bloque.
+// strlen goes on in the record: a 32-letter name runs into the one at +0x24, and one without '\0' up to the record's
+// end would leave the block.
 TEST(MoveRequirementsTest, ANameRunsIntoTheSearchNameAndMustEndInItsRecord)
 {
     constexpr std::string_view Long = "abcdefghijklmnopqrstuvwxyzABCDEF";

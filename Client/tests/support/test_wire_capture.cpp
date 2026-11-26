@@ -8,8 +8,6 @@
 #include <cstddef>
 #include <string_view>
 
-// Client::Tests::ParseWireCapture, sobre un log sintético de pocas líneas con la forma del
-// muproxy.log del laboratorio.
 namespace
 {
 using Client::Tests::ParseWireCapture;
@@ -17,8 +15,8 @@ using Client::Tests::SameBytes;
 using Client::Tests::WireCaptureProblem;
 using Client::Tests::WireDirection;
 
-// Dos conexiones al 44405 y una al 55901, intercaladas, con la marca del proxy al final de una
-// línea y un fin de línea de Windows.
+// Two connections to 44405 and one to 55901, interleaved, with the proxy mark at the end of a line and a Windows line
+// end.
 constexpr std::string_view SyntheticLog = "12:00:00 44405 ACC len=3 414243\n"
                                           "12:00:00 44405 C->S len=4 c1042000\n"
                                           "12:00:01 55901 ACC len=3 444546\n"
@@ -61,7 +59,7 @@ TEST(WireCaptureTest, KeepsEachSegmentWithItsDirection)
     EXPECT_TRUE(SameBytes(toClient[0], Received));
 }
 
-// Lo que sigue a los bytes (la marca del proxy, o una segunda tira de hex) no es del segmento.
+// What follows the bytes (the proxy mark, or a second hex string) is not part of the segment.
 TEST(WireCaptureTest, IgnoresWhatFollowsTheBytes)
 {
     const auto parsed = ParseWireCapture(SyntheticLog);
@@ -94,14 +92,13 @@ TEST(WireCaptureTest, SaysWhichLineIsWrong)
     ExpectProblem("12:00:00 44405 ACC\n", 1, WireCaptureProblem::MalformedLine);
 }
 
-// Las líneas vacías también cuentan para el número de la que está mal.
 TEST(WireCaptureTest, CountsTheEmptyLines)
 {
     ExpectProblem("12:00:00 44405 ACC len=0\n\n\n12:00:00 44405 C->S len=2 c1\n", 4,
                   WireCaptureProblem::LengthMismatch);
 }
 
-// Con fines de línea \r solos, el log sería una línea larga que se lee como un ACC sin segmentos.
+// With lone \r line ends, the log would be one long line read as an ACC without segments.
 TEST(WireCaptureTest, RejectsLinesEndingInALoneCarriageReturn)
 {
     ExpectProblem("12:00:00 44405 ACC len=0\r12:00:00 44405 C->S len=1 c1\r", 1, WireCaptureProblem::MalformedLine);

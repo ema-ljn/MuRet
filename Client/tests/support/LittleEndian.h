@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <vector>
 
-// Para armar archivos sintéticos: los enteros como los escribe el x86 del original.
+// For building synthetic files: integers as the original's x86 writes them.
 namespace Client::Tests
 {
-// Agrega los `size` bytes de abajo de `value` a `bytes`, el menos significativo primero.
+// The low `size` bytes of `value`, least significant first.
 inline void AppendLittleEndian(std::vector<std::byte>& bytes, std::uint32_t value, std::size_t size)
 {
     constexpr unsigned BitsPerByte = 8;

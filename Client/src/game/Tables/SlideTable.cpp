@@ -17,7 +17,7 @@ namespace Client::Tables
 {
 namespace
 {
-// 0x46b47b..0x46b4c9: el período y la velocidad, y desde +8 los tramos; en cada uno, el nivel y la cuenta.
+// 0x46b47b..0x46b4c9: the period and the speed, and from +8 the brackets; in each, the level and the count.
 constexpr std::size_t GroupsAt = 8;
 constexpr std::size_t TextsInGroupAt = 8;
 

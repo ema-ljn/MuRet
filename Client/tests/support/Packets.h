@@ -8,11 +8,11 @@
 #include <utility>
 #include <vector>
 
-// Armar un Packet en un test con bytes escritos a mano.
+// Building a Packet in a test from hand-written bytes.
 namespace Client::Tests
 {
-// Un Packet con estos bytes. Si no lo forman, el test falla (y Value() corta el programa): es un
-// error del literal, no del código.
+// If the bytes do not form a Packet, the test fails (and Value() aborts the program): it is an error of the literal,
+// not of the code.
 inline Network::Packet PacketOf(std::vector<std::byte> bytes)
 {
     auto built = Network::Packet::FromBytes(std::move(bytes));

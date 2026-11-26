@@ -11,8 +11,8 @@
 #include <span>
 #include <vector>
 
-// Client::Tables::LoadMonsterSkillTable: MonsterSkill.bmd (0x54a440), la cuenta en claro y registros de 0x1c con
-// el XOR3 de 0x5496c0 desde el primer byte de cada uno. Los registros son inventados.
+// MonsterSkill.bmd (0x54a440): the count in clear and 0x1c records with 0x5496c0's XOR3 from each one's first byte.
+// The records are made up.
 namespace
 {
 using Client::Data::DataError;
@@ -27,7 +27,7 @@ void Put(std::vector<std::byte>& bytes, std::int32_t value)
         bytes.push_back(static_cast<std::byte>((bits >> (8 * i)) & 0xffu));
 }
 
-// Un registro cifrado: el tipo, las cinco skills y el sexto int32.
+// An encrypted record: the type, the five skills and the sixth int32.
 void PutRecord(std::vector<std::byte>& file, std::int32_t kind, const std::array<std::int32_t, 5>& skills,
                std::int32_t last)
 {
@@ -57,8 +57,8 @@ TEST(MonsterSkillTable, ReadsTheRecordsByTheirKind)
     EXPECT_EQ(table.Of(0x15d).dword14, 7);
 }
 
-// 0x54a44f..0x54a461 pone en −1 solo el tipo 0; los demás que el archivo no trae quedan en la .bss, en 0. Un registro
-// que se repite pisa al de antes.
+// 0x54a44f..0x54a461 sets only type 0 to −1; the others the file lacks stay in the .bss, at 0. A repeated record
+// overwrites the earlier one.
 TEST(MonsterSkillTable, TheMissingKindsKeepTheBssAndTheLastRecordWins)
 {
     std::vector<std::byte> file;
@@ -76,7 +76,7 @@ TEST(MonsterSkillTable, TheMissingKindsKeepTheBssAndTheLastRecordWins)
     EXPECT_EQ(table.Of(0).dword14, -1);
 }
 
-// 0x54a49b..0x54a4a0: la cuenta con signo; en 0 o negativa, ningún registro.
+// 0x54a49b..0x54a4a0: the count is signed; at 0 or negative, no record.
 TEST(MonsterSkillTable, ANegativeCountReadsNothing)
 {
     std::vector<std::byte> file;

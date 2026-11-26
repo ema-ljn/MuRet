@@ -4,8 +4,8 @@
 #include <memory>
 #include <string>
 
-// Un archivo temporal de C, para los tests que le pasan un std::FILE* a una salida en vez de
-// stderr (StderrSink, el aviso de FileSink), y la lectura de lo que quedó escrito.
+// A C temporary file, for the tests that pass a std::FILE* to an output instead of stderr (StderrSink, FileSink's
+// warning), and reading what was written.
 namespace Client::Tests
 {
 struct FileCloser
@@ -18,8 +18,8 @@ struct FileCloser
 
 using TemporaryFile = std::unique_ptr<std::FILE, FileCloser>;
 
-// Se borra al cerrarlo. Si no se pudo crear, nullptr. En MSVC, std::tmpfile da el aviso C4996 (que
-// es un error con /WX) y pide tmpfile_s.
+// Deleted when closed. nullptr if it could not be created. On MSVC, std::tmpfile gives warning C4996 (an error with
+// /WX) and asks for tmpfile_s.
 inline TemporaryFile OpenTemporaryFile()
 {
 #ifdef _MSC_VER
@@ -34,7 +34,7 @@ inline TemporaryFile OpenTemporaryFile()
 #endif
 }
 
-// Todo lo que tiene el archivo, desde el principio.
+// Everything in the file, from the start.
 inline std::string ReadAll(std::FILE* file)
 {
     std::rewind(file);

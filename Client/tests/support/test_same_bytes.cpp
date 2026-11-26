@@ -7,14 +7,12 @@
 #include <initializer_list>
 #include <string>
 
-// SameBytes y SameBytesWithoutValues: dónde difieren dos buffers, y que el segundo no diga qué
-// valen.
 namespace
 {
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
 
-// Dos buffers que difieren en el byte 2: 0xAB (171) contra 0xCD (205).
+// They differ at byte 2: 0xAB (171) against 0xCD (205).
 constexpr std::array<std::byte, 4> Actual = {std::byte{0x01}, std::byte{0x02}, std::byte{0xAB}, std::byte{0x04}};
 constexpr std::array<std::byte, 4> Expected = {std::byte{0x01}, std::byte{0x02}, std::byte{0xCD}, std::byte{0x04}};
 
@@ -35,7 +33,7 @@ TEST(SameBytesTest, SaysTheFirstDifferenceWithItsValues)
     EXPECT_NE(message.find("205"), std::string::npos) << message;
 }
 
-// El mensaje dice la posición, y ningún valor: ni en decimal ni en hexadecimal.
+// No value, neither in decimal nor in hex.
 TEST(SameBytesTest, WithoutValuesSaysOnlyWhere)
 {
     const ::testing::AssertionResult result = SameBytesWithoutValues(Actual, Expected);

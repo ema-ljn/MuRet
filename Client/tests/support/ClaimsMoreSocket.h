@@ -12,12 +12,10 @@
 #include <string_view>
 #include <vector>
 
-// Un ISocket roto, que dice haber movido Extra bytes más de los que podía, para ver que quien lo
-// usa no se pasa del buffer: el primer Receive llena el buffer con `first` y dice que leyó Extra
-// más, y el primer Send dice que tomó Extra más de los que se le dieron. Después Receive da
-// `reads`, una entrada por llamada, y 0 cuando no quedan, y Send toma 0. Conecta enseguida y no
-// cierra nada. Cada test usa una de las dos mentiras: el de la Connection, la de Receive, y el de
-// la SendQueue, la de Send.
+// A broken ISocket that claims Extra more bytes than it could, to check its user does not overrun the buffer: the
+// first Receive fills the buffer with `first` and claims Extra more, and the first Send claims Extra more than it was
+// given. Then Receive gives `reads`, one per call, and 0 when empty, and Send takes 0. Connects at once and never
+// closes. The Connection test uses the Receive lie, the SendQueue test the Send lie.
 namespace Client::Tests
 {
 class ClaimsMoreSocket final : public Network::ISocket
@@ -25,9 +23,9 @@ class ClaimsMoreSocket final : public Network::ISocket
 public:
     static constexpr std::size_t Extra = 5;
 
-    std::vector<std::byte> first;             // lo que trae el primer Receive, sin los Extra
-    std::deque<std::vector<std::byte>> reads; // lo que traen los siguientes
-    int sends = 0;                            // cuántas veces se llamó a Send
+    std::vector<std::byte> first;             // what the first Receive brings, without the Extra
+    std::deque<std::vector<std::byte>> reads; // what the next ones bring
+    int sends = 0;
 
     Core::Expected<Network::ConnectProgress, Network::SocketError> StartConnect(std::string_view,
                                                                                 std::uint16_t) override

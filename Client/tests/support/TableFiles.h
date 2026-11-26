@@ -10,13 +10,12 @@
 #include <span>
 #include <vector>
 
-// Ayudas para los tests de las tablas .bmd de registros de largo fijo (Gate, Item, Skill): armar
-// un archivo sintético como lo escribe el original, y comparar una tabla cargada con la memoria
-// del original.
+// Helpers for the tests of the fixed-length-record .bmd tables (Gate, Item, Skill): build a synthetic file as the
+// original writes it, and compare a loaded table with the original's memory.
 namespace Client::Tests
 {
-// Lo que habría en el archivo: cada registro cifrado con XOR3 desde su principio, como el escritor
-// del original. Los bytes que no llegan a un registro quedan como están.
+// What the file would hold: each record encrypted with XOR3 from its start, like the original's writer. The bytes
+// that do not reach a whole record stay as they are.
 inline std::vector<std::byte> EncryptRecords(std::vector<std::byte> records, std::size_t recordSize)
 {
     const std::span<std::byte> all(records);
@@ -27,8 +26,8 @@ inline std::vector<std::byte> EncryptRecords(std::vector<std::byte> records, std
     return records;
 }
 
-// `encrypted` con un checksum detrás, en 4 bytes little-endian, como lo guarda el escritor del
-// original después de los registros.
+// `encrypted` with a checksum after it, in 4 little-endian bytes, as the original's writer stores it after the
+// records.
 inline std::vector<std::byte> WithStoredChecksum(std::vector<std::byte> encrypted, std::uint32_t checksum)
 {
     constexpr unsigned BitsPerByte = 8;
@@ -39,9 +38,8 @@ inline std::vector<std::byte> WithStoredChecksum(std::vector<std::byte> encrypte
     return encrypted;
 }
 
-// El primer registro en que `table` y `memory` no coinciden, o std::nullopt si tienen los mismos
-// registros. Si a una le faltan registros que la otra tiene, el primero que falta cuenta como
-// distinto: una tabla vacía no es igual a una memoria llena.
+// The first record where `table` and `memory` differ, or std::nullopt if they have the same records. If one lacks
+// records the other has, the first missing one counts as different: an empty table is not equal to a full memory.
 template <std::size_t RecordSize>
 std::optional<std::size_t> FirstRecordThatDiffers(const Data::Tables::RecordTable<RecordSize>& table,
                                                   std::span<const std::byte> memory)

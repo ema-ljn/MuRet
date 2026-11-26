@@ -9,49 +9,45 @@
 #include <span>
 #include <vector>
 
-// Data\Local\NpcName(%s).txt, los nombres de los monstruos y los NPC (en el original, 0x54e7f0 con el tokenizador
-// 0x54e8d0, que la carga de los datos del juego, 0x61ccb0, llama en 0x61ed05 con "Data\Local\NpcName(%s).txt" y el
-// idioma de [0x5763350]). Los deja en 0x7681eb8: 512 registros de 0x36 bytes, el tipo (un word) y el nombre.
-//
-// El tokenizador lee de a un byte con getc (0x6a0641) y saltea los blancos (isspace) y los comentarios "//" hasta
-// el '\n'. Según el primer byte: '"' es una cadena hasta la otra comilla (sin escapes), en 0x7681db0; un dígito, '.'
-// o '-' es un número (los dígitos, '.' y '-' que siguen, con atof a un float en 0x76baac4; el byte que lo termina se
-// pierde); una letra es un nombre (letras, dígitos, '.' y '_', y el que lo termina vuelve con ungetc), también en
-// 0x7681db0; '#', ',', ';', '{' y '}' son ellos mismos, y cualquier otro, el 0x3c. El fin del archivo, y el byte 0xff
-// (getc lo compara en un char), es el 2.
-//
-// 0x54e7f0: mientras el token no sea el 2 ni el nombre "end", un registro más con el tipo en el ftol del último número
-// leído (sea cual sea el token), y dos tokens más: el nombre es la cadena que dejó el segundo (strcpy; "" si fue otra
-// cosa). Las comillas, el número y el nombre del archivo del laboratorio: " 84 1 \"King Orc\"".
+// Data\Local\NpcName(%s).txt, the monster and NPC names (in the original 0x54e7f0 with the tokenizer 0x54e8d0, which
+// the game data load, 0x61ccb0, calls at 0x61ed05 with "Data\Local\NpcName(%s).txt" and [0x5763350]'s language). It
+// leaves them at 0x7681eb8: 512 records of 0x36 bytes, the type (a word) and the name.
+// The tokenizer reads one byte at a time with getc (0x6a0641) and skips whitespace (isspace) and "//" comments up to
+// '\n'. By the first byte: '"' is a string up to the other quote (no escapes), at 0x7681db0; a digit, '.' or '-' is a
+// number (the digits, '.' and '-' that follow, atof to a float at 0x76baac4; the terminating byte is lost); a letter
+// is a name (letters, digits, '.' and '_'; the terminator goes back with ungetc), also at 0x7681db0; '#', ',', ';',
+// '{' and '}' are themselves, and anything else 0x3c. End of file, and byte 0xff (getc compares it as a char), is 2.
+// 0x54e7f0: while the token is neither 2 nor the name "end", one more record with the type in the ftol of the last
+// number read (whatever the token), and two more tokens: the name is the string the second left (strcpy; "" if it
+// was something else). The lab file's quotes, number and name: " 84 1 \"King Orc\"".
 namespace Client::Tables
 {
-// Los registros de 0x7681eb8..0x7688ab8.
+// The records of 0x7681eb8..0x7688ab8.
 inline constexpr std::size_t NpcNameCount = 512;
-// 0x36 bytes menos el word del tipo.
+// 0x36 bytes minus the type's word.
 inline constexpr std::size_t NpcNameBytes = 0x34;
-// 0x7681db0..0x7681eb8: la cadena del token, que sigue en la tabla.
+// 0x7681db0..0x7681eb8: the token's string, which goes on into the table.
 inline constexpr std::size_t NpcNameTokenBytes = 0x108;
-// [ebp − 0x64]: el número del token, en la pila de 0x54e8d0.
+// [ebp − 0x64]: the token's number, on 0x54e8d0's stack.
 inline constexpr std::size_t NpcNameNumberBytes = 0x64;
 
 struct NpcNameRecord
 {
-    // +0: el tipo del monstruo o del NPC.
+    // +0: the monster's or NPC's type.
     std::uint16_t type = 0;
-    // +2: el nombre con su '\0' y, después, lo que había (0: la tabla está en la .bss).
+    // +2: the name with its '\0' and then what was there (0: the table is in the .bss).
     std::array<char, NpcNameBytes> name{};
 
     friend bool operator==(const NpcNameRecord&, const NpcNameRecord&) = default;
 };
 
-// Los registros que escribe 0x54e7f0 con `file`, en su orden. Un nombre que no entra en sus 0x34 bytes con su '\0'
-// sigue, como el strcpy del original, en el tipo y el nombre de los registros que siguen, que el registro siguiente
-// pisa con lo suyo; los que solo toca ese nombre después del último leído también se devuelven. InvalidData donde el
-// original escribiría fuera de la tabla o no terminaría: un nombre que pasaría de 0x7688ab8, más de 512 registros
-// (después viene 0x7688ab8), una cadena o un nombre de 0x108 bytes o más, un número de 0x64 o más, un
-// comentario que llega al final del archivo sin '\n' (0x54e925 no sale nunca), un byte de 0x80 a 0xfe donde el
-// tokenizador le pregunta a isspace, isdigit o isalnum (con el char con signo, fuera de la tabla de la CRT) y un ftol
-// fuera de int64. El último número empieza en 0 (la .bss; *inferido*: en la versión de release ningún otro cargador
-// del tokenizador corre antes). Los bytes de 0 a 0x7f se clasifican como en la "C".
+// In 0x54e7f0's order. A name that does not fit its 0x34 bytes with its '\0' goes on, like the original's strcpy,
+// into the type and name of the following records, which the next record overwrites with its own; those only that
+// name touches after the last one read are returned too. InvalidData where the original would write outside the
+// table or never finish: a name that would pass 0x7688ab8, more than 512 records (0x7688ab8 follows), a string or
+// name of 0x108 bytes or more, a number of 0x64 or more, a comment reaching the end of the file without '\n'
+// (0x54e925 never exits), a byte from 0x80 to 0xfe where the tokenizer asks isspace, isdigit or isalnum (signed char,
+// outside the CRT's table) and an ftol outside int64. The last number starts at 0 (the .bss; *inferred*: in the
+// release build no other tokenizer loader runs before). Bytes 0 to 0x7f are classified as in the "C" locale.
 [[nodiscard]] Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::span<const std::byte> file);
 } // namespace Client::Tables

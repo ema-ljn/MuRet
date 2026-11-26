@@ -34,7 +34,7 @@ std::uint32_t ReadWord(std::span<const std::byte> bytes, std::size_t offset)
 
 Core::Expected<std::vector<MoveRequirement>, Data::DataError> LoadMoveRequirements(std::span<const std::byte> file)
 {
-    // 0x448467..0x448489: el int en 0 y fread(&cuenta, 4, 1).
+    // 0x448467..0x448489: the int at 0 and fread(&count, 4, 1).
     const auto count = static_cast<std::int32_t>(ReadWord(file, 0));
     std::vector<MoveRequirement> moves;
     if (count <= 0)
@@ -45,13 +45,13 @@ Core::Expected<std::vector<MoveRequirement>, Data::DataError> LoadMoveRequiremen
     moves.reserve(records);
     for (std::size_t i = 0; i < records; ++i)
     {
-        // 0x44849c..0x4484b3: operator new(0x50), fread de 0x50 y 0x449770 sobre ellos.
+        // 0x44849c..0x4484b3: operator new(0x50), fread of 0x50 and 0x449770 over them.
         std::array<std::byte, MoveRecordSize> record{};
         const std::span<const std::byte> source = file.subspan(MoveCountSize + i * MoveRecordSize, MoveRecordSize);
         std::ranges::copy(source, record.begin());
         Crypto::Xor3(record);
         const std::span<const std::byte> bytes(record);
-        // Los iteradores salen todos del mismo span: los de MSVC (Debug) no se comparan entre spans distintos.
+        // All iterators come from the same span: MSVC's (Debug) do not compare across spans.
         const std::span<const std::byte> nameBytes = bytes.subspan(NameOffset);
         const auto end = std::ranges::find(nameBytes, std::byte{0});
         if (end == nameBytes.end())

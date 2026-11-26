@@ -20,48 +20,48 @@ namespace Client::Tables
 {
 namespace
 {
-// Lo que devuelve 0x54e8d0 en EAX (y en [0x76baac0], salvo el 2).
+// What 0x54e8d0 returns in EAX (and in [0x76baac0], except 2).
 constexpr int TextToken = 0;
 constexpr int NumberToken = 1;
 constexpr int EndToken = 2;
 constexpr int OtherToken = 0x3c;
-// El byte que getc devuelve en EOF (-1) y que el tokenizador compara en un char: el 0xff del archivo es igual.
+// The byte getc returns at EOF (-1), which the tokenizer compares as a char: the file's 0xff is the same.
 constexpr unsigned char EndByte = 0xff;
 
-// Las preguntas a la CRT con el char con signo (MOVSX): el 0xff es EOF (-1), que las cuatro aceptan y para el que
-// devuelven 0; un byte de 0x80 a 0xfe da un índice negativo fuera de la tabla de la CRT, que MuRet no inventa.
+// The CRT is asked with the signed char (MOVSX): 0xff is EOF (-1), which all four accept and return 0 for; a byte from
+// 0x80 to 0xfe gives a negative index outside the CRT's table, which MuRet does not invent.
 bool IsOutsideTheCrtTable(unsigned char c)
 {
     return c >= 0x80 && c != EndByte;
 }
 
-// 0x6a0459 (isspace, máscara 8) en la "C": los cinco de control y el espacio.
+// 0x6a0459 (isspace, mask 8) in the "C" locale: the five control characters and the space.
 bool IsSpace(unsigned char c)
 {
     return c == ' ' || (c >= '\t' && c <= '\r');
 }
 
-// 0x6a0404 (isdigit, máscara 4).
+// 0x6a0404 (isdigit, mask 4).
 bool IsDigit(unsigned char c)
 {
     return c >= '0' && c <= '9';
 }
 
-// 0x6a0386 (isalpha, máscara 0x103).
+// 0x6a0386 (isalpha, mask 0x103).
 bool IsAlpha(unsigned char c)
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-// 0x6a04a9 (isalnum, máscara 0x107).
+// 0x6a04a9 (isalnum, mask 0x107).
 bool IsAlnum(unsigned char c)
 {
     return IsAlpha(c) || IsDigit(c);
 }
 
-// 0x6a05ea (atof) sobre lo que juntó el número (solo dígitos, '.' y '-'): un '-', los dígitos y un '.', hasta lo
-// primero que no siga el formato; sin dígitos, 0. Lo deja en un float con FSTP (al más cercano). Vacío si no entra
-// ni en el float ni en el int64 del ftol: con 0x63 bytes no hay otra cosa que el infinito o algo cerca.
+// 0x6a05ea (atof) over what the number gathered (only digits, '.' and '-'): a '-', the digits and a '.', up to the
+// first thing that breaks the format; without digits, 0. It stores a float with FSTP (to nearest). Empty if it fits
+// neither the float nor ftol's int64: with 0x63 bytes that can only be infinity or close to it.
 std::optional<float> Atof(std::string_view text)
 {
     double value = 0;
@@ -70,37 +70,37 @@ std::optional<float> Atof(std::string_view text)
         return 0.0f;
     if (error != std::errc{})
         return std::nullopt;
-    // Lejos de FLT_MAX, así el static_cast nunca se sale del float; lo de 2^63 para arriba no tiene ftol.
+    // Far from FLT_MAX, so the static_cast never leaves the float; from 2^63 up there is no ftol.
     constexpr double Limit = 0x1p64;
     if (std::abs(value) >= Limit)
         return std::nullopt;
     return static_cast<float>(value);
 }
 
-// 0x54e8d0 con el FILE de [0x7758554] sobre los bytes del archivo.
+// 0x54e8d0 with [0x7758554]'s FILE over the file's bytes.
 class Tokenizer
 {
 public:
     explicit Tokenizer(std::span<const std::byte> file) : m_file(file) {}
 
-    // El tipo del token, o InvalidData donde el original se colgaría o pisaría otra cosa.
+    // The token's type, or InvalidData where the original would hang or overwrite something.
     Core::Expected<int, Data::DataError> Next()
     {
-        // 0x54e8de: la cadena vacía, que queda así salvo en las cadenas y los nombres.
+        // 0x54e8de: the empty string, which stays so except for strings and names.
         m_text.clear();
         unsigned char c = Get();
         if (c == EndByte)
             return EndToken;
         for (;;)
         {
-            // 0x54e8f4..0x54e938: "//" hasta el '\n'. Con un '/' solo se pierde y sigue con el byte de después.
+            // 0x54e8f4..0x54e938: "//" up to the '\n'. A lone '/' is lost and it goes on with the next byte.
             if (c == '/')
             {
                 c = Get();
                 if (c == '/')
                 {
                     c = Get();
-                    // 0x54e925: el lazo solo mira el '\n'; en EOF, getc devuelve -1 para siempre.
+                    // 0x54e925: the loop only checks '\n'; at EOF getc returns -1 forever.
                     while (c != '\n')
                     {
                         if (m_position >= m_file.size())
@@ -118,7 +118,7 @@ public:
             if (c == EndByte)
                 return EndToken;
         }
-        // 0x54e96b: la tabla de 0x54eb54 para '"'..'}'; lo demás, isalpha.
+        // 0x54e96b: 0x54eb54's table for '"'..'}'; the rest, isalpha.
         switch (c)
         {
         case '"':
@@ -149,21 +149,21 @@ public:
         }
     }
 
-    // 0x7681db0 hasta su primer '\0' (una cadena puede traer uno del archivo), como la leen strcmp y strcpy.
+    // 0x7681db0 up to its first '\0' (a string can bring one from the file), as strcmp and strcpy read it.
     [[nodiscard]] std::string_view Text() const
     {
         const std::string_view text(m_text);
         return text.substr(0, text.find('\0'));
     }
 
-    // [0x76baac4]: el último número, aunque el token sea otro (0 en la .bss antes del primero).
+    // [0x76baac4]: the last number, even if the token is another (0 in the .bss before the first).
     [[nodiscard]] float Number() const
     {
         return m_number;
     }
 
 private:
-    // 0x6a0641 y 0x6a0672 (getc), en el char: el 0xff de EOF o el byte.
+    // 0x6a0641 and 0x6a0672 (getc), as a char: EOF's 0xff or the byte.
     unsigned char Get()
     {
         if (m_position >= m_file.size())
@@ -171,14 +171,14 @@ private:
         return std::to_integer<unsigned char>(m_file[m_position++]);
     }
 
-    // 0x6a067d (ungetc) del byte recién leído. Con el 0xff, MOVSX da EOF y ungetc no hace nada: el byte queda leído.
+    // 0x6a067d (ungetc) of the byte just read. With 0xff, MOVSX gives EOF and ungetc does nothing: the byte stays read.
     void Unget(unsigned char c)
     {
         if (c != EndByte)
             --m_position;
     }
 
-    // 0x54ea56..0x54eaa2: hasta la otra comilla (que se pierde) o el 0xff, sin escapes.
+    // 0x54ea56..0x54eaa2: up to the other quote (which is lost) or 0xff, without escapes.
     Core::Expected<int, Data::DataError> ReadString()
     {
         for (unsigned char c = Get(); c != '"' && c != EndByte; c = Get())
@@ -188,7 +188,8 @@ private:
         return TextToken;
     }
 
-    // 0x54e9d9..0x54ea4b: devuelve el primero con ungetc y junta '.', dígitos y '-'; el que termina no vuelve.
+    // 0x54e9d9..0x54ea4b: puts the first back with ungetc and gathers '.', digits and '-'; the terminator does not come
+    // back.
     Core::Expected<int, Data::DataError> ReadNumber(unsigned char first)
     {
         Unget(first);
@@ -205,7 +206,7 @@ private:
             }
             digits.push_back(static_cast<char>(c));
         }
-        // [ebp − 0x64]: con su '\0', 0x64 bytes; más pisaría el EBP guardado.
+        // [ebp − 0x64]: 0x64 bytes with its '\0'; more would overwrite the saved EBP.
         if (digits.size() >= NpcNameNumberBytes)
             return Core::Unexpected(Data::DataError::InvalidData);
         const std::optional<float> number = Atof(digits);
@@ -215,7 +216,8 @@ private:
         return NumberToken;
     }
 
-    // 0x54eac1..0x54eb1e: la letra y las letras, dígitos, '.' y '_' que siguen; el que termina vuelve con ungetc.
+    // 0x54eac1..0x54eb1e: the letter and the letters, digits, '.' and '_' that follow; the terminator comes back with
+    // ungetc.
     Core::Expected<int, Data::DataError> ReadName(unsigned char first)
     {
         m_text.push_back(static_cast<char>(first));
@@ -247,8 +249,8 @@ private:
 
 Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::span<const std::byte> file)
 {
-    // Los bytes de 0x7681eb8..0x7688ab8 como los escribe 0x54e7f0 (en la .bss, en 0): un nombre largo sigue en los
-    // registros que siguen, y el registro siguiente pisa lo que le toca.
+    // The bytes of 0x7681eb8..0x7688ab8 as 0x54e7f0 writes them (in the .bss, at 0): a long name goes on into the next
+    // records, and the next record overwrites its part.
     constexpr std::size_t RecordBytes = 2 + NpcNameBytes;
     constexpr std::size_t TableBytes = NpcNameCount * RecordBytes;
     std::vector<char> table(TableBytes, '\0');
@@ -257,13 +259,13 @@ Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::sp
     Tokenizer tokens(file);
     for (;;)
     {
-        // 0x54e814..0x54e85f: hasta el 2 o el nombre "end" (0x6c7a60) en un token 0.
+        // 0x54e814..0x54e85f: up to 2 or the name "end" (0x6c7a60) in a token 0.
         const auto token = tokens.Next();
         if (!token.HasValue())
             return Core::Unexpected(token.Error());
         if (token.Value() == EndToken || (token.Value() == TextToken && tokens.Text() == "end"))
             break;
-        // 0x54e861..0x54e884: el registro [0x7758560]++ y el word del ftol del último número.
+        // 0x54e861..0x54e884: the record [0x7758560]++ and the word of the last number's ftol.
         if (count >= NpcNameCount)
             return Core::Unexpected(Data::DataError::InvalidData);
         const std::optional<std::int32_t> type = Math::OriginalFtolLow(static_cast<double>(tokens.Number()));
@@ -274,8 +276,8 @@ Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::sp
         table[at] = static_cast<char>(word & 0xffu);
         table[at + 1] = static_cast<char>((word >> 8) & 0xffu);
         ++count;
-        // 0x54e887..0x54e8b4: dos tokens más y el strcpy de la cadena del segundo, que sigue en los registros que
-        // siguen si no entra en sus 0x34 bytes. Solo el que pasaría de 0x7688ab8 escribe fuera de la tabla.
+        // 0x54e887..0x54e8b4: two more tokens and the strcpy of the second's string, which goes on into the next
+        // records if it does not fit its 0x34 bytes. Only one that would pass 0x7688ab8 writes outside the table.
         for (int i = 0; i < 2; ++i)
         {
             if (const auto next = tokens.Next(); !next.HasValue())
@@ -289,7 +291,7 @@ Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::sp
         table[end - 1] = '\0';
         written = std::max(written, end);
     }
-    // Los registros leídos y los que tocó un nombre largo después del último.
+    // The records read and those a long name touched after the last.
     const std::size_t records = std::max(count, (written + RecordBytes - 1) / RecordBytes);
     std::vector<NpcNameRecord> loaded(records);
     for (std::size_t r = 0; r < records; ++r)

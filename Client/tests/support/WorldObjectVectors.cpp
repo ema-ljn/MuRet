@@ -18,7 +18,7 @@ namespace Client::Tests
 {
 namespace
 {
-// Un renglón partido en palabras, de izquierda a derecha.
+// A line split into words, left to right.
 class Words
 {
 public:
@@ -39,13 +39,13 @@ public:
         return static_cast<std::int32_t>(std::stol(Word()));
     }
 
-    // Los bits de un float, en hexadecimal.
+    // A float's bits, in hex.
     float Float()
     {
         return std::bit_cast<float>(static_cast<std::uint32_t>(std::stoul(Word(), nullptr, 16)));
     }
 
-    // Que no sobren palabras en el renglón.
+    // No words left over on the line.
     void End()
     {
         std::string extra;

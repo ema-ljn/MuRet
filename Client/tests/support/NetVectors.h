@@ -7,19 +7,17 @@
 #include <string_view>
 #include <vector>
 
-// Los vectores de red de CI (Client/tests/vectors/net/README.md): paquetes sintéticos, demasiado
-// largos para escribirlos en el test. Están en el repo, así que corren sin el cable del
-// laboratorio.
+// The CI network vectors (Client/tests/vectors/net/README.md): synthetic packets, too long to write in the test. They
+// are in the repo, so they run without the lab's wire.
 namespace Client::Tests
 {
-// La carpeta de los vectores. CMake la pasa en MU_CLIENT_NET_VECTORS_DIR.
+// CMake passes it in MU_CLIENT_NET_VECTORS_DIR.
 inline std::filesystem::path NetVectorsDir()
 {
     return MU_CLIENT_NET_VECTORS_DIR;
 }
 
-// Los bytes del vector `name` (por ejemplo "c2-long.bin"). Si no está, el test falla y devuelve
-// nada.
+// `name` is like "c2-long.bin". If it is missing, the test fails and it returns nothing.
 inline std::vector<std::byte> ReadNetVector(std::string_view name)
 {
     return ReadVectorFile(NetVectorsDir(), name);

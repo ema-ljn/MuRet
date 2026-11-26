@@ -13,7 +13,6 @@
 #include <span>
 #include <vector>
 
-// Client::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -34,7 +33,7 @@ std::vector<std::byte> PlainRecords()
     return BytePattern(SkillTableSize, 37, 11);
 }
 
-// Los registros cifrados y, detrás, el checksum que les corresponde más `offBy`: con 0, el bueno.
+// The encrypted records and, after them, their checksum plus `offBy`: with 0, the right one.
 std::vector<std::byte> SkillFile(const std::vector<std::byte>& plain, std::uint32_t offBy = 0)
 {
     const std::vector<std::byte> encrypted = EncryptRecords(plain, SkillRecordSize);
@@ -53,7 +52,7 @@ TEST(SkillTableTest, LoadsTheRecordsInTheClear)
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value(), plain), std::nullopt);
 }
 
-// Con un checksum que no coincide no hay tabla, como en el original ("File corrupted.").
+// No table, as in the original ("File corrupted.").
 TEST(SkillTableTest, AWrongChecksumIsAnError)
 {
     const auto loaded = LoadSkillTable(SkillFile(PlainRecords(), 1));
@@ -62,7 +61,6 @@ TEST(SkillTableTest, AWrongChecksumIsAnError)
     EXPECT_EQ(loaded.Error(), DataError::ChecksumMismatch);
 }
 
-// Un registro cambiado después de calcular el checksum también es un error.
 TEST(SkillTableTest, AChangedRecordIsAnError)
 {
     std::vector<std::byte> file = SkillFile(PlainRecords());
@@ -74,8 +72,8 @@ TEST(SkillTableTest, AChangedRecordIsAnError)
     EXPECT_EQ(loaded.Error(), DataError::ChecksumMismatch);
 }
 
-// Q-C24: sin los 4 bytes del checksum, o sin todos los registros, es un error y no hay tabla. El
-// original compararía con un checksum que no leyó, y casi siempre terminaría en "File corrupted.".
+// Q-C24: without the checksum's 4 bytes or without all the records. The original would compare with a checksum it
+// did not read, and almost always end in "File corrupted.".
 TEST(SkillTableTest, ShortFileIsAnError)
 {
     const std::vector<std::byte> file = SkillFile(PlainRecords());

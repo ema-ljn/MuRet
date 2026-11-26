@@ -9,12 +9,12 @@
 #include <optional>
 #include <span>
 
-// 0x40c660 y 0x40c850, cotejados con el PE c32bbd5f: 05, "Las tablas de los conjuntos".
+// 0x40c660 and 0x40c850, checked against PE c32bbd5f: 05, "Las tablas de los conjuntos".
 namespace Client::Tables
 {
 namespace
 {
-// Los registros de `file` si los sigue su checksum, o el error.
+// Or the error.
 Core::Expected<std::span<const std::byte>, Data::DataError> CheckedRecords(std::span<const std::byte> file,
                                                                            std::size_t recordsSize, std::uint32_t key)
 {

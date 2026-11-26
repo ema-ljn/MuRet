@@ -13,12 +13,11 @@
 #include <string>
 #include <vector>
 
-// La tabla de texturas falsa de los tests sin GL (CL5.3; la usan también las escenas de la CL5.4):
-// guarda lo que se sube por su slot y anota cada Load y cada Release, en orden. Con
-// `failNextLoad`, el próximo Load falla sin subir nada.
+// The fake texture table of the tests without GL: stores what is uploaded by slot and records each Load and each
+// Release, in order. With `failNextLoad`, the next Load fails without uploading anything.
 namespace Client::Tests
 {
-// Una llamada a la tabla, con su slot: para ver qué pasó antes, una subida o una suelta.
+// A call to the table, with its slot: to see what happened first, an upload or a release.
 struct StoreCall
 {
     enum class Kind : std::uint8_t
@@ -58,7 +57,6 @@ public:
         m_textures.erase(slot.value);
     }
 
-    // Lo que hay en `slot`, o std::nullopt.
     [[nodiscard]] std::optional<Data::Textures::LoadedTexture> Find(Render::TextureSlot slot) const
     {
         const auto found = m_textures.find(slot.value);
@@ -69,7 +67,6 @@ public:
         return found->second;
     }
 
-    // Cuántas texturas tiene ahora.
     [[nodiscard]] std::size_t Size() const
     {
         return m_textures.size();
@@ -77,10 +74,10 @@ public:
 
     int loadCalls = 0;
     bool failNextLoad = false;
-    // Los slots subidos y los soltados, en orden.
+    // The uploaded and the released slots, in order.
     std::vector<std::uint16_t> loaded;
     std::vector<std::uint16_t> released;
-    // Los dos, juntos y en orden.
+    // Both, together and in order.
     std::vector<StoreCall> calls;
 
 private:

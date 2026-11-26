@@ -10,8 +10,8 @@
 #include <span>
 #include <vector>
 
-// Client::Tables::LoadQuestTable: quest.bmd (0x418d10), 200 registros de 0x2a8 con el XOR3 de 0x418de0 desde el
-// primer byte de cada uno. Las misiones son inventadas.
+// quest.bmd (0x418d10): 200 records of 0x2a8 with 0x418de0's XOR3 from each one's first byte. The quests are made
+// up.
 namespace
 {
 using Client::Data::DataError;
@@ -44,7 +44,7 @@ TEST(QuestTable, ReadsEachFieldOfARecordAtItsOffset)
     const char name[] = "Una prueba";
     for (std::size_t i = 0; i + 1 < sizeof(name); ++i)
         record[5 + i] = static_cast<std::byte>(name[i]);
-    // El segundo pedido (+0x26 + 0x14): ítems 3/4, nivel 5, 6 de ellos, condición 9, la clase 2 y los diálogos.
+    // The second request (+0x26 + 0x14): items 3/4, level 5, 6 of them, condition 9, class 2 and the dialogs.
     const std::size_t entry = 0x26 + 0x14;
     Put(record, entry + 1, 1, 1);
     Put(record, entry + 2, 3, 1);
@@ -57,7 +57,7 @@ TEST(QuestTable, ReadsEachFieldOfARecordAtItsOffset)
     Put(record, entry + 0xe, 12, 2);
     Put(record, entry + 0x10, 13, 2);
     Put(record, entry + 0x12, 0xfffe, 2);
-    // La última condición (+0x168 + 15 · 0x14).
+    // The last condition (+0x168 + 15 · 0x14).
     const std::size_t condition = 0x168 + 15 * 0x14;
     Put(record, condition + 1, 0xff, 1);
     Put(record, condition + 2, 0xffff, 2);
@@ -105,9 +105,9 @@ TEST(QuestTable, ANameWithoutZeroKeepsItsThirtyTwoBytes)
     EXPECT_EQ(NameOf(loaded.Value()[0]).size(), 0x20u);
 }
 
-// 0x418d7c..0x418dba con el fread de 0x69fecb: con un registro y 4 bytes, el segundo tiene sus cuentas y el resto del
-// primero, que el XOR3 vuelve a cifrar; el tercero, el bloque descifrado otra vez. Con menos de un registro, el resto
-// del bloque sin iniciar es un error (Q-C1127).
+// 0x418d7c..0x418dba with 0x69fecb's fread: with a record and 4 bytes, the second has its counts and the rest of the
+// first, which the XOR3 encrypts again; the third, the block decrypted again. With less than a record, the rest of the
+// uninitialized block is an error (Q-C1127).
 TEST(QuestTable, AShortFileKeepsWhatItsFreadLeaves)
 {
     const auto tooShort = LoadQuestTable(std::vector<std::byte>(QuestRecordSize - 1));

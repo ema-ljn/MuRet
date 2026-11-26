@@ -11,11 +11,10 @@
 #include <string_view>
 #include <vector>
 
-// Los vectores de CI, que están en el repo (Client/tests/vectors/): se leen enteros, y si falta uno
-// el test falla.
+// The CI vectors, which are in the repo (Client/tests/vectors/): read whole, and if one is missing the test fails.
 namespace Client::Tests
 {
-// Los bytes del vector `name` de la carpeta `dir`. Si no está, el test falla y devuelve nada.
+// If it is missing, the test fails and it returns nothing.
 inline std::vector<std::byte> ReadVectorFile(const std::filesystem::path& dir, std::string_view name)
 {
     const std::optional<std::vector<char>> file = ReadFileBytes(dir / name);

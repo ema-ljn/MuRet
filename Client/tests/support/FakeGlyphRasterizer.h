@@ -7,10 +7,8 @@
 #include <cstddef>
 #include <string_view>
 
-// El rasterizador falso de los tests del texto (CL5.3): cada byte es una letra de `letterWidth`
-// columnas y la celda mide `height` filas, en las cuatro fuentes. La tinta de cada letra es el
-// bloque de 3 × 4 de arriba a la izquierda de su celda, así que un test sabe qué píxel tiene letra.
-// Cuenta las llamadas, para la caché (CL5.3, PR B).
+// Each byte is a letter `letterWidth` columns wide and the cell is `height` rows, in all four fonts. Each letter's ink
+// is the 3 × 4 block at its cell's top left, so a test knows which pixel has a letter. Counts calls, for the cache.
 namespace Client::Tests
 {
 class FakeGlyphRasterizer final : public Render::Text::IGlyphRasterizer

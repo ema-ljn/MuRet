@@ -11,7 +11,6 @@
 #include <span>
 #include <vector>
 
-// Client::Tables::LoadGateTable: Gate.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -34,8 +33,7 @@ TEST(GateTableTest, LoadsTheRecordsInTheClear)
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value(), plain), std::nullopt);
 }
 
-// Q-C24: un archivo corto es un error y no hay tabla. El original seguiría con los registros que
-// deja su buffer reusado.
+// Q-C24: the original would go on with the records its reused buffer leaves.
 TEST(GateTableTest, ShortFileIsAnError)
 {
     const auto oneByteShort = LoadGateTable(std::vector<std::byte>(GateTableSize - 1));
@@ -47,7 +45,7 @@ TEST(GateTableTest, ShortFileIsAnError)
     EXPECT_EQ(empty.Error(), DataError::FileTooShort);
 }
 
-// Los bytes de más se ignoran, aunque alcancen para un registro más.
+// Even if they are enough for one more record.
 TEST(GateTableTest, ExtraBytesAreIgnored)
 {
     const std::vector<std::byte> plain = BytePattern(GateTableSize + GateRecordSize, 37, 11);

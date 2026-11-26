@@ -15,11 +15,10 @@ std::uint64_t HashOf(std::string_view text)
     return Fnv1a64(std::as_bytes(std::span(text)));
 }
 
-// Sin bytes, el hash es la base.
 static_assert(Fnv1a64({}) == Client::Tests::Fnv1aOffsetBasis);
 
-// Los valores de los autores para el FNV-1a de 64 bits (test_fnv.c, en la página de Fnv1a.h). La
-// misma implementación está en tools/hash6b.c, que escribió lab-6b.txt.
+// The authors' values for the 64-bit FNV-1a (test_fnv.c, on Fnv1a.h's page). The same implementation is in
+// tools/hash6b.c, which wrote lab-6b.txt.
 TEST(Fnv1a64, GivesTheAuthorsValues)
 {
     EXPECT_EQ(HashOf(""), 0xcbf29ce484222325U);

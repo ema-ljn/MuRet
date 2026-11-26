@@ -15,7 +15,7 @@ namespace
 using Client::Maps::MapAtWorldLoadStart;
 using Client::Maps::WorldFolderAfterModels;
 
-// Cambiar sólo uno de los operandos a 32 no habilita la escritura nativa (05 § La carpeta de cada mapa).
+// Setting only one of the operands to 32 does not enable the native write (05 § La carpeta de cada mapa).
 TEST(WorldLoadIdentityTest, OnlyRemapsWhenBothDwordObservationsAreThirtyTwo)
 {
     EXPECT_EQ(MapAtWorldLoadStart(32, 32), 9);
@@ -38,7 +38,7 @@ TEST(WorldLoadIdentityTest, OnlyRemapsWhenBothDwordObservationsAreThirtyTwo)
     }
 }
 
-// Unir las fases ocultaría un cambio de mapa durante 0x616ec0: su lectura posterior es independiente.
+// Joining the phases would hide a map change during 0x616ec0: its later read is independent.
 TEST(WorldLoadIdentityTest, FolderUsesTheIndependentObservationAfterModels)
 {
     const std::int32_t initialMap = MapAtWorldLoadStart(32, 32);
@@ -84,7 +84,7 @@ TEST(WorldLoadIdentityTest, SignedRangeBoundariesAndDwordWrapMatchTheOriginal)
               0x80000000u);
 }
 
-// Literales de la proyección byte previa: detecta cualquier cambio, también 255 → 256.
+// Literals of the previous byte projection: they catch any change, also 255 → 256.
 TEST(WorldLoadIdentityTest, LegacyFolderProjectionPreservesEveryByte)
 {
     constexpr std::array<std::uint16_t, 256> ExpectedFolders{{

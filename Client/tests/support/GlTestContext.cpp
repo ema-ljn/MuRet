@@ -23,7 +23,7 @@ namespace Client::Tests
 {
 namespace
 {
-// La ventana no se dibuja: el tamaño da igual, y uno chico pide poco.
+// The window is not drawn: the size does not matter, and a small one asks for little.
 constexpr int HiddenWindowSide = 64;
 } // namespace
 
@@ -37,7 +37,7 @@ GlTestContext::GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context,
 {
 }
 
-// Si algo falla en el medio, lo creado se destruye al revés: el contexto, la ventana y SDL.
+// If something fails midway, what was created is destroyed in reverse: the context, the window and SDL.
 Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Create()
 {
     Core::Expected<std::unique_ptr<Platform::Sdl::SdlContext>, std::string> sdl = Platform::Sdl::SdlContext::Create();
@@ -46,7 +46,7 @@ Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Creat
         return Core::Unexpected(sdl.Error());
     }
 
-    // Como Platform::Sdl::Window::Create: los atributos del contexto van antes de crear la ventana.
+    // Like Platform::Sdl::Window::Create: the context attributes go before creating the window.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Platform::Sdl::GlMajorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Platform::Sdl::GlMinorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -56,7 +56,7 @@ Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Creat
     {
         return Core::Unexpected(std::string("no se pudo crear la ventana: ") + SDL_GetError());
     }
-    // SDL_GL_CreateContext también lo deja como el contexto actual de este hilo.
+    // SDL_GL_CreateContext also makes it this thread's current context.
     GlContextPtr context(SDL_GL_CreateContext(window.get()));
     if (!context)
     {
@@ -69,7 +69,7 @@ Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Creat
     {
         return Core::Unexpected(gl.Error());
     }
-    // El constructor es privado: make_unique no lo ve.
+    // The constructor is private: make_unique does not see it.
     return std::unique_ptr<GlTestContext>(
         new GlTestContext(std::move(sdl).Value(), std::move(window), std::move(context), gl.Value()));
 }

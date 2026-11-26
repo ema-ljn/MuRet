@@ -6,9 +6,8 @@
 #include <string_view>
 #include <vector>
 
-// Bytes escritos a mano en un test, como en las tablas de vectores:
-// Bytes({0xC1, 0x04, 0x20, 0xAA}). Cada valor se toma módulo 256, como lo convierte static_cast a
-// std::byte. Y los bytes de un texto, para compararlos con un campo: BytesOf("10209").
+// Bytes written by hand, as in the vector tables: Bytes({0xC1, 0x04, 0x20, 0xAA}). Each value is taken modulo 256, as
+// static_cast to std::byte does. And a text's bytes, to compare with a field: BytesOf("10209").
 namespace Client::Tests
 {
 inline std::vector<std::byte> Bytes(std::initializer_list<int> values)
@@ -22,7 +21,7 @@ inline std::vector<std::byte> Bytes(std::initializer_list<int> values)
     return bytes;
 }
 
-// Mira los bytes de `text`, sin copiarlos: el texto tiene que seguir vivo, como un literal.
+// Without copying: the text must stay alive, like a literal.
 inline std::span<const std::byte> BytesOf(std::string_view text)
 {
     return std::as_bytes(std::span(text));

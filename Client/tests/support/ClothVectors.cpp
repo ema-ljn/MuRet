@@ -19,7 +19,6 @@ namespace Client::Tests
 {
 namespace
 {
-// Un renglón partido en palabras, con lo que se va leyendo.
 class Line
 {
 public:
@@ -82,7 +81,7 @@ std::optional<std::string> ReadTheFile(const std::filesystem::path& path, ClothV
 
 std::optional<std::string> ReadClothVectors(const std::filesystem::path& path, ClothVectors& out)
 {
-    // Un número que no se entiende o un renglón cortado: stoll y stoul tiran; el error lleva el renglón.
+    // stoll and stoul throw on an unparsable number or a cut line; the error carries the line.
     std::string text;
     try
     {
@@ -185,7 +184,7 @@ std::optional<std::string> ReadTheFile(const std::filesystem::path& path, ClothV
             next();
             Line row(text);
             Math::BoneTransform m(0.0f);
-            // Los 12 floats en el orden de Half-Life: HL[0][0..3], HL[1][0..3], HL[2][0..3].
+            // Half-Life's order: HL[0][0..3], HL[1][0..3], HL[2][0..3].
             for (int r = 0; r < 3; ++r)
             {
                 for (int c = 0; c < 4; ++c)

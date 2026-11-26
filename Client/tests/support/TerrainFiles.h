@@ -18,21 +18,20 @@
 #include <utility>
 #include <vector>
 
-// Ayudas para los tests del terreno: armar un archivo sintético y cifrarlo como lo hace el
-// exportador del original, para que los cargadores lo descifren, y comparar una capa con un
-// volcado de memoria.
+// Helpers for the terrain tests: build a synthetic file and encrypt it as the original's exporter does, so that the
+// loaders decrypt it, and compare a layer with a memory dump.
 namespace Client::Tests
 {
-// Los mundos que trae el Data\ del laboratorio, por el N de su carpeta World<N>
-// (Client/docs/research/09-datos-disponibles.md). Todos tienen su .map, su .att y su .obj.
+// The worlds the lab's Data\ has, by the N of their World<N> folder
+// (Client/docs/research/09-datos-disponibles.md). All have their .map, .att and .obj.
 inline constexpr std::array<std::uint8_t, 20> LabWorlds = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
                                                            11, 12, 19, 25, 31, 32, 34, 35, 55, 56};
-// Los que traen TerrainHeight.OZB: todos menos World6, que no tiene (09, "Terreno").
+// The ones with TerrainHeight.OZB: all but World6, which has none (09, "Terreno").
 inline constexpr std::array<std::uint8_t, 19> LabWorldsWithHeights = {1,  2,  3,  4,  5,  7,  8,  9,  10, 11,
                                                                       12, 19, 25, 31, 32, 34, 35, 55, 56};
 
-// La inversa de DecryptK16, como la que usa el exportador del original (0x5f8960):
-// cifrado[i] = (plano[i] + previo) ^ K16Key[i % 16], con el mismo `previo` que el descifrado.
+// The inverse of DecryptK16, like the one the original's exporter uses (0x5f8960):
+// encrypted[i] = (plain[i] + previous) ^ K16Key[i % 16], with the same `previous` as decryption.
 inline std::vector<std::byte> EncryptK16(std::vector<std::byte> bytes)
 {
     using Crypto::K16Key;
@@ -48,9 +47,9 @@ inline std::vector<std::byte> EncryptK16(std::vector<std::byte> bytes)
     return bytes;
 }
 
-// Un valor por celda que se repite cada `period` celdas. Con un primo como 251, 241 o 239 no se
-// repite cada fila (256) ni cada capa (0x10000): una capa leída corrida o en el lugar de otra da
-// otros valores, y el test lo nota.
+// A value per cell that repeats every `period` cells. With a prime like 251, 241 or 239 it does not repeat every row
+// (256) or every layer (0x10000): a layer read shifted or in place of another gives other values, and the test
+// notices.
 inline std::uint8_t CellPattern(std::size_t cell, std::size_t period, std::uint8_t offset)
 {
     return static_cast<std::uint8_t>(cell % period + offset);
@@ -71,7 +70,7 @@ inline std::uint8_t AlphaPattern(std::size_t cell)
     return CellPattern(cell, 239, 3);
 }
 
-// Un EncTerrain.map en claro: versión 0, el mundo `world` y cada capa con su patrón.
+// A plain EncTerrain.map: version 0, world `world` and each layer with its pattern.
 inline std::vector<std::byte> PlainTerrainMapping(std::uint8_t world)
 {
     using Data::Terrain::TerrainCellCount;
@@ -89,9 +88,8 @@ inline std::vector<std::byte> PlainTerrainMapping(std::uint8_t world)
     return plain;
 }
 
-// Un atributo por celda, siempre debajo de TerrainAttributeLimit: 127 valores que no se repiten
-// cada fila. Para el byte de arriba de un WORD, otro patrón que nunca es cero, para ver que se
-// descarta.
+// One attribute per cell, always below TerrainAttributeLimit: 127 values that do not repeat every row. For a WORD's
+// high byte, another pattern that is never zero, to see that it is dropped.
 inline std::uint8_t AttributePattern(std::size_t cell)
 {
     return CellPattern(cell, 127, 0);
@@ -102,8 +100,8 @@ inline std::uint8_t AttributeHighBytePattern(std::size_t cell)
     return CellPattern(cell, 13, 1);
 }
 
-// Un EncTerrain.att en claro: la cabecera 00 `world` FF FF y cada celda con AttributePattern, en un
-// byte o en un WORD con AttributeHighBytePattern arriba.
+// A plain EncTerrain.att: header 00 `world` FF FF and each cell with AttributePattern, in a byte or in a WORD with
+// AttributeHighBytePattern on top.
 enum class AttributeCells
 {
     Bytes,
@@ -138,18 +136,18 @@ inline std::vector<std::byte> PlainTerrainAttributes(std::uint8_t world, Attribu
     return plain;
 }
 
-// El cifrado del .att, al revés que el descifrado: primero XOR3 y después K16.
+// The .att encryption, the reverse of decryption: XOR3 first and then K16.
 inline std::vector<std::byte> EncryptTerrainAttributes(std::vector<std::byte> plain)
 {
     Crypto::Xor3(plain);
     return EncryptK16(std::move(plain));
 }
 
-// Cuántos valores tiene un objeto: el tipo y los siete floats.
+// The type and the seven floats.
 inline constexpr std::size_t ObjectValueCount = 8;
 
-// Los valores de un objeto como los bits que guarda el archivo. Dos objetos son el mismo si tienen
-// los mismos bits, también con un NaN, que no es igual a sí mismo.
+// An object's values as the bits the file stores. Two objects are the same if they have the same bits, also with a
+// NaN, which is not equal to itself.
 inline std::array<std::uint32_t, ObjectValueCount> ObjectBits(const Data::Terrain::TerrainObject& object)
 {
     const auto bits = [](float value) { return std::bit_cast<std::uint32_t>(value); };
@@ -163,9 +161,9 @@ inline std::array<std::uint32_t, ObjectValueCount> ObjectBits(const Data::Terrai
             bits(object.scale)};
 }
 
-// `count` objetos con todos sus valores distintos entre sí y de un objeto al otro: si el
-// cargador lee un campo en el lugar de otro, o se corre de objeto, el test lo nota. Son floats
-// justos (múltiplos de 1/8), para que el test pueda escribirlos como números.
+// `count` objects with all their values distinct from each other and from one object to the next: if the loader
+// reads a field in place of another, or shifts objects, the test notices. They are exact floats (multiples of 1/8), so
+// that the test can write them as numbers.
 inline std::vector<Data::Terrain::TerrainObject> SampleTerrainObjects(std::size_t count)
 {
     std::vector<Data::Terrain::TerrainObject> objects;
@@ -180,9 +178,8 @@ inline std::vector<Data::Terrain::TerrainObject> SampleTerrainObjects(std::size_
     return objects;
 }
 
-// Un EncTerrain.obj en claro: versión 0, el mundo `world`, la cantidad `count` y `objects`. La
-// cantidad va aparte para poder escribir una que no es la de verdad: negativa, o más de los que
-// hay.
+// A plain EncTerrain.obj: version 0, world `world`, count `count` and `objects`. The count goes separately to be able
+// to write one that is not the real one: negative, or more than there are.
 inline std::vector<std::byte> PlainTerrainObjects(std::uint8_t world, std::int16_t count,
                                                   std::span<const Data::Terrain::TerrainObject> objects)
 {
@@ -200,26 +197,26 @@ inline std::vector<std::byte> PlainTerrainObjects(std::uint8_t world, std::int16
     return plain;
 }
 
-// La altura de cada celda en un TerrainHeight.OZB sintético. Con 251 no se repite cada fila: una
-// fila corrida da otros valores.
+// Each cell's height in a synthetic TerrainHeight.OZB. With 251 it does not repeat every row: a shifted row gives
+// other values.
 inline std::uint8_t HeightPattern(std::size_t cell)
 {
     return CellPattern(cell, 251, 0);
 }
 
-// Lo que ocupa la cabecera de un BMP de 8 bits con paleta de 256 colores: las dos cabeceras de 14 y
-// 40 bytes y 256 colores de 4. Es el bfOffBits de los 17 TerrainHeight.OZB de 8 bits del
-// laboratorio, 2 bytes menos de lo que lee el original (005f9020-terrainheight-ozb.md §6).
+// The size of an 8-bit BMP header with a 256-color palette: the two headers of 14 and 40 bytes and 256 colors of 4.
+// It is the bfOffBits of the lab's 17 8-bit TerrainHeight.OZB, 2 bytes less than what the original reads
+// (005f9020-terrainheight-ozb.md §6).
 inline constexpr std::size_t StandardBitmapHeaderSize = 14 + 40 + 256 * 4;
 static_assert(StandardBitmapHeaderSize == 0x436, "el bfOffBits que mide el research (005f9020 §6)");
-// Dónde está bfOffBits en un BMP: después de bfType (2 bytes), bfSize (4) y dos campos reservados de
-// 2. Son 4 bytes little-endian.
+// Where bfOffBits is in a BMP: after bfType (2 bytes), bfSize (4) and two reserved fields of 2. It is 4 little-endian
+// bytes.
 inline constexpr std::size_t BitmapOffBitsOffset = 2 + 4 + 2 + 2;
 static_assert(BitmapOffBitsOffset == 10, "el layout de BITMAPFILEHEADER");
 
-// Un TerrainHeight.OZB: el prefijo y la cabecera con un byte que no está en HeightPattern (0xFF),
-// y las alturas con HeightPattern desde TerrainHeightsValuesOffset. Si el cargador leyera desde
-// otro lugar, la celda 0 o la última saldrían con otro valor.
+// A TerrainHeight.OZB: the prefix and the header with a byte not in HeightPattern (0xFF), and the heights with
+// HeightPattern from TerrainHeightsValuesOffset. If the loader read from elsewhere, cell 0 or the last one would come
+// out with another value.
 inline std::vector<std::byte> PlainTerrainHeights()
 {
     using Data::Terrain::TerrainCellCount;
@@ -232,10 +229,9 @@ inline std::vector<std::byte> PlainTerrainHeights()
     return file;
 }
 
-// La primera celda en la que `layer` no es `expected`, o std::nullopt si son iguales. Compara
-// los bytes de cada valor: para el alfa, los cuatro de cada float, en el orden de la memoria del
-// original (little-endian, como x86). Si a `expected` le faltan bytes, la respuesta es la primera
-// celda incompleta; si le sobran, TerrainCellCount, la celda que vendría después de la última.
+// The first cell where `layer` is not `expected`, or std::nullopt if they are equal. Compares each value's bytes: for
+// alpha, the four of each float, in the original's memory order (little-endian, like x86). If `expected` lacks bytes,
+// the answer is the first incomplete cell; if it has extra, TerrainCellCount, the cell after the last one.
 template <typename T>
 std::optional<std::size_t> FirstCellThatDiffers(const Data::Terrain::TerrainLayer<T>& layer,
                                                 std::span<const std::byte> expected)

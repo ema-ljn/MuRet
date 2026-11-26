@@ -3,9 +3,8 @@
 #include <cstddef>
 #include <vector>
 
-// Bytes de prueba que no son todos iguales: el byte i vale i * multiplier + offset, módulo 256.
-// Es fill_pattern de mu-client/tests/assets/test_bmd_tables.c, de donde salen los vectores del
-// checksum: (1, 0) da 00 01 02…, y (37, 11) es su "patrón".
+// Byte i is i * multiplier + offset, modulo 256: mu-client/tests/assets/test_bmd_tables.c's fill_pattern, where the
+// checksum vectors come from. (1, 0) gives 00 01 02…, and (37, 11) is its "pattern".
 namespace Client::Tests
 {
 inline std::vector<std::byte> BytePattern(std::size_t size, std::size_t multiplier, std::size_t offset)

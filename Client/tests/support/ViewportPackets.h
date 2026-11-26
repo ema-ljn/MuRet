@@ -12,18 +12,17 @@
 #include <utility>
 #include <vector>
 
-// Los paquetes de los otros jugadores en el viewport armados con los structs que leen 0x4c8860 (0x12), 0x4ca780
-// (0x14), 0x4c92a0 (0x45), 0x4c8380 (0x25) y 0x4c6b40 (0xDF), y los de los monstruos que leen 0x4c9c60 (0x13), 0x4ca0b0
-// (0x1F) y 0x4e0980 (0x68): los offsets del ASM, no los del GS 0.97 (08, P-C160 y P-C172).
-// Los nombres son inventados.
+// The viewport packets of the other players built with the structs that 0x4c8860 (0x12), 0x4ca780 (0x14), 0x4c92a0
+// (0x45), 0x4c8380 (0x25) and 0x4c6b40 (0xDF) read, and those of the monsters that 0x4c9c60 (0x13), 0x4ca0b0 (0x1F)
+// and 0x4e0980 (0x68) read: the ASM's offsets, not the GS 0.97's (08, P-C160 and P-C172). The names are made up.
 namespace Client::Tests
 {
-// El equipo de la lista sin nada: las manos 0xfff, las cinco partes 0x1ff, sin alas (b[4] & 0xc en 3 y b[8] & 7 en
-// 0) ni mascota (b[4] & 3 en 3 y b[9] & 1 en 0).
+// The list's equipment with nothing: hands 0xfff, the five parts 0x1ff, no wings (b[4] & 0xc at 3 and b[8] & 7 at 0)
+// nor pet (b[4] & 3 at 3 and b[9] & 1 at 0).
 inline constexpr std::array<std::uint8_t, 17> NakedEquipment = {0xff, 0xff, 0xff, 0xff, 0xff, 0,    0, 0, 0xf8,
                                                                 0,    0,    0xf0, 0xff, 0xff, 0xff, 0, 0};
 
-// Un registro del 0x12 (0x2c bytes).
+// A 0x12 record (0x2c bytes).
 struct ViewportPlayerRecord
 {
     std::uint16_t key = 0;
@@ -39,7 +38,7 @@ struct ViewportPlayerRecord
     std::uint8_t directionAndPk = 0;
 };
 
-// Un registro del 0x45 (0x1c bytes).
+// A 0x45 record (0x1c bytes).
 struct TransformedRecordBytes
 {
     std::uint16_t key = 0;
@@ -54,7 +53,7 @@ struct TransformedRecordBytes
     std::uint8_t directionAndPk = 0;
 };
 
-// Un registro del 0x13 (0x10 bytes): el tipo alto entero en +2 (con los bits de +0x42d y +0x93).
+// A 0x13 record (0x10 bytes): the whole high type at +2 (with the bits of +0x42d and +0x93).
 struct MonsterRecordBytes
 {
     std::uint16_t key = 0;
@@ -69,7 +68,7 @@ struct MonsterRecordBytes
     std::uint8_t direction = 0;
 };
 
-// Un registro del 0x1F (0x18 bytes).
+// A 0x1F record (0x18 bytes).
 struct SummonRecordBytes
 {
     std::uint16_t key = 0;
@@ -84,7 +83,7 @@ struct SummonRecordBytes
     std::string_view owner{};
 };
 
-// Un registro del 0x68 (0x1c bytes).
+// A 0x68 record (0x1c bytes).
 struct ObjectRecordBytes
 {
     std::uint8_t kind = 0;
@@ -138,7 +137,7 @@ inline Network::Packet Built(std::vector<std::byte> bytes)
 }
 } // namespace ViewportDetail
 
-// El C2 12: pkt[4] la cuenta y los registros desde pkt[5].
+// The C2 12: pkt[4] the count and the records from pkt[5].
 inline Network::Packet ViewportPlayersPacket(std::span<const ViewportPlayerRecord> records)
 {
     using namespace ViewportDetail;
@@ -163,7 +162,7 @@ inline Network::Packet ViewportPlayersPacket(std::span<const ViewportPlayerRecor
     return Built(std::move(bytes));
 }
 
-// El C2 45.
+// The C2 45.
 inline Network::Packet TransformedPacket(std::span<const TransformedRecordBytes> records)
 {
     using namespace ViewportDetail;
@@ -187,7 +186,7 @@ inline Network::Packet TransformedPacket(std::span<const TransformedRecordBytes>
     return Built(std::move(bytes));
 }
 
-// El C2 13.
+// The C2 13.
 inline Network::Packet MonstersPacket(std::span<const MonsterRecordBytes> records)
 {
     using namespace ViewportDetail;
@@ -210,7 +209,7 @@ inline Network::Packet MonstersPacket(std::span<const MonsterRecordBytes> record
     return Built(std::move(bytes));
 }
 
-// El C2 1F.
+// The C2 1F.
 inline Network::Packet SummonsPacket(std::span<const SummonRecordBytes> records)
 {
     using namespace ViewportDetail;
@@ -234,7 +233,7 @@ inline Network::Packet SummonsPacket(std::span<const SummonRecordBytes> records)
     return Built(std::move(bytes));
 }
 
-// El C2 68.
+// The C2 68.
 inline Network::Packet ObjectsPacket(std::span<const ObjectRecordBytes> records)
 {
     using namespace ViewportDetail;
@@ -257,7 +256,7 @@ inline Network::Packet ObjectsPacket(std::span<const ObjectRecordBytes> records)
     return Built(std::move(bytes));
 }
 
-// El C1 14: pkt[3] la cuenta y las claves enteras, big-endian.
+// The C1 14: pkt[3] the count and the whole keys, big-endian.
 inline Network::Packet LeavePacket(std::span<const std::uint16_t> keys)
 {
     std::vector<std::byte> bytes(4 + keys.size() * 2);
@@ -273,7 +272,7 @@ inline Network::Packet LeavePacket(std::span<const std::uint16_t> keys)
     return ViewportDetail::Built(std::move(bytes));
 }
 
-// El C1 25: la clave entera en pkt[3..4] y los siete bytes del ítem desde pkt[5].
+// The C1 25: the whole key in pkt[3..4] and the item's seven bytes from pkt[5].
 inline Network::Packet EquipmentShownPacket(std::uint16_t key, const std::array<std::uint8_t, 7>& item)
 {
     std::vector<std::byte> bytes(12);
@@ -287,7 +286,7 @@ inline Network::Packet EquipmentShownPacket(std::uint16_t key, const std::array<
     return ViewportDetail::Built(std::move(bytes));
 }
 
-// El C1 DF: la clave entera y la celda.
+// The C1 DF: the whole key and the cell.
 inline Network::Packet PositionPacket(std::uint16_t key, std::uint8_t x, std::uint8_t y)
 {
     std::vector<std::byte> bytes{std::byte{0xc1},
@@ -300,8 +299,8 @@ inline Network::Packet PositionPacket(std::uint16_t key, std::uint8_t x, std::ui
     return ViewportDetail::Built(std::move(bytes));
 }
 
-// El 1A como lo arma PMSG_MAGICATTACK_COUNT_SEND: la cabecera C1, NumberH/NumberL, MagicNumber, X, Y, Count y las
-// claves de PMSG_MAGICATTACK_COUNT_INFO (NumberH/NumberL).
+// The 1A as PMSG_MAGICATTACK_COUNT_SEND builds it: the C1 header, NumberH/NumberL, MagicNumber, X, Y, Count and the
+// keys of PMSG_MAGICATTACK_COUNT_INFO (NumberH/NumberL).
 inline Network::Packet MagicAttackCountPacket(std::uint16_t key, std::uint8_t magic, std::uint8_t x, std::uint8_t y,
                                               std::span<const std::uint16_t> targets)
 {

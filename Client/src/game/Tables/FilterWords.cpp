@@ -51,8 +51,7 @@ Core::Expected<std::vector<std::string>, Data::DataError> LoadFilterWords(std::s
         }
         words.push_back(std::move(word));
     }
-    // Sin un registro vacío, 0x549fa0 sale por el tope (0x54a139) sin guardar la cuenta, que queda en
-    // 0: ninguna palabra.
+    // Without an empty record, 0x549fa0 exits at the cap (0x54a139) without storing the count, which stays 0: no words.
     return std::vector<std::string>{};
 }
 } // namespace Client::Tables

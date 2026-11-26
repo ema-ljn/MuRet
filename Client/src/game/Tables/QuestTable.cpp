@@ -81,17 +81,17 @@ std::string_view NameOf(const QuestRecord& quest)
 
 Core::Expected<QuestTable, Data::DataError> LoadQuestTable(std::span<const std::byte> file)
 {
-    // Con menos de 0x2a8 bytes, el resto del primer bloque es el de operator new sin iniciar.
+    // Below 0x2a8 bytes, the rest of the first block is operator new's, uninitialized.
     if (file.size() < QuestRecordSize)
         return Core::Unexpected(Data::DataError::FileTooShort);
     QuestTable table(QuestCount);
-    // 0x418d61..0x418d70: un solo bloque de operator new para los 200.
+    // 0x418d61..0x418d70: a single operator new block for all 200.
     std::array<std::byte, QuestRecordSize> block{};
     for (std::size_t i = 0; i < QuestCount; ++i)
     {
-        // 0x418d7c..0x418dba: fread de 0x2a8 en el bloque, 0x418de0 sobre él y la copia a +0xc + 0x2a8 i. El fread de
-        // la CRT (0x69fecb) copia lo que queda del archivo al principio del bloque y deja el resto, que es lo del
-        // registro anterior ya descifrado.
+        // 0x418d7c..0x418dba: fread of 0x2a8 into the block, 0x418de0 over it and the copy to +0xc + 0x2a8 i. The CRT's
+        // fread (0x69fecb) copies what is left of the file to the block's start and leaves the rest, the previous
+        // record already decrypted.
         const std::size_t start = std::min(i * QuestRecordSize, file.size());
         std::ranges::copy(file.subspan(start, std::min(QuestRecordSize, file.size() - start)), block.begin());
         Crypto::Xor3(block);

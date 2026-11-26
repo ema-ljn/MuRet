@@ -11,8 +11,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Tables::LoadCredits: credit.bmd (0x63ff30), 400 registros de 33 bytes con el XOR3 del login
-// (0x4c1690) de una vez sobre los 13.200. Las tablas son inventadas.
+// credit.bmd (0x63ff30): 400 records of 33 bytes with the login's XOR3 (0x4c1690) at once over the 13,200. The tables
+// are made up.
 namespace
 {
 using Client::Data::DataError;
@@ -33,7 +33,7 @@ void PutRecord(std::vector<std::byte>& file, std::size_t record, CreditKind kind
     }
 }
 
-// Un archivo de `size` bytes con tres registros y el final en el cuarto, cifrado.
+// A `size`-byte file with three records and the end in the fourth, encrypted.
 std::vector<std::byte> CipheredFile(std::size_t size)
 {
     std::vector<std::byte> file(size);
@@ -59,7 +59,7 @@ TEST(CreditsTest, TheRecordsComeOutDeciphered)
     EXPECT_EQ(credits.Value()[3], (CreditEntry{.kind = 0, .text = ""}));
 }
 
-// El texto va hasta el primer cero de sus 32 bytes; uno lleno no tiene cero y llega al final del registro.
+// A full text has no zero and reaches the end of the record.
 TEST(CreditsTest, AFullTextTakesTheThirtyTwoBytes)
 {
     std::vector<std::byte> file(CreditFileSize);
@@ -71,11 +71,11 @@ TEST(CreditsTest, AFullTextTakesTheThirtyTwoBytes)
 
     ASSERT_TRUE(credits.HasValue());
     EXPECT_EQ(credits.Value()[0].text, "abcdefghijklmnopqrstuvwxyz012345");
-    // Una clase que no es ninguna de las cuatro queda tal cual.
+    // A kind that is none of the four stays as is.
     EXPECT_EQ(credits.Value()[1].kind, 7);
 }
 
-// fread lee lo que haya: con menos, MuRet no tiene lo que quedaba en la ventana. Lo que sobra se ignora.
+// fread reads what there is: with less, MuRet does not have what was left in the window. The excess is ignored.
 TEST(CreditsTest, TheFileHasToBeWhole)
 {
     const std::vector<std::byte> shorter = CipheredFile(CreditFileSize - 1);
@@ -89,7 +89,7 @@ TEST(CreditsTest, TheFileHasToBeWhole)
     EXPECT_EQ(loaded.Value().size(), 400U);
 }
 
-// 0x63ffe0 lee la clase de cualquier índice: después del último, el final.
+// 0x63ffe0 reads the kind at any index: past the last, the end.
 TEST(CreditsTest, PastTheTableIsTheEnd)
 {
     const std::vector<CreditEntry> credits{{.kind = 3, .text = "Alguien"}};

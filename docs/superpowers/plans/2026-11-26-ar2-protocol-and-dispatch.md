@@ -132,6 +132,9 @@ struct PacketLayout { PacketCode code; std::size_t minimumSize; std::uint32_t re
 // Open(packet, layout) -> ProtocolResult<LayoutReader>; Read<Field>() -> T; Bytes(offset, count) -> a view;
 // Finish(value) -> ProtocolResult<V>.
 class LayoutReader;
+// Open, then read(reader), then Finish: what a reader calls.
+template <typename Read> auto ReadPacket(const Packet& packet, const PacketLayout& layout, Read read)
+    -> ProtocolResult<std::invoke_result_t<Read&, LayoutReader&>>;
 // The records start at `first` and measure Size; readOne gets each as std::span<const std::byte, Size>.
 template <std::size_t Size, typename ReadOne>
 auto ReadList(LayoutReader& reader, std::size_t first, std::size_t count, ReadOne readOne) -> std::vector<Record>;
@@ -140,7 +143,7 @@ auto ReadList(LayoutReader& reader, std::size_t first, std::size_t count, ReadOn
 
 `LayoutReader::Read` and `Bytes` past the end record `TooShort` once and return `T{}` or an empty view; `ReadList`
 records it when `count` records do not fit, before reading any. `Finish` returns that first error, or the value.
-Readers no longer test each field.
+A reader is one `ReadPacket` call and tests no field.
 
 - [ ] **Step 1: Write the failing tests:**
   - `PacketCode`: `SubcodeOffset(C1) == 3` and `SubcodeOffset(C2) == 4`.

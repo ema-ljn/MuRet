@@ -1,0 +1,6 @@
+original_va	original_body_bytes	original_symbol	muret_source	body_mode	instruction_fidelity	data_fidelity	behavior_test	link_status	notes
+0x10004b4f	107	mydll_util_bswap64	src/Native/ByteOrder.cpp	no_vm_boundary_observed	exact	not_applicable	passed	linked_exact	33 instructions and 107 bytes; no relocations.
+0x10004bba	84	mydll_util_bswap64_inplace	src/Native/ByteOrder.cpp	no_vm_boundary_observed	exact	not_applicable	passed	linked_exact	31 instructions and 84 bytes; preserves the stack sentinel initialization.
+0x10004c0e	84	mydll_util_bswap32_inplace	src/Native/ByteOrder.cpp	no_vm_boundary_observed	exact	not_applicable	passed	linked_exact	31 instructions and 84 bytes; preserves the stack sentinel initialization.
+0x1000e2f1	39	mydll_cmd_is_slash	src/Native/Commands.cpp	no_vm_boundary_observed	exact	not_applicable	pending	not_linked	Exact object body; independent behavior and linking are pending.
+0x1002c651	56	mydll_net_xor_aa	src/Native/Wire.cpp	no_vm_boundary_observed	exact	not_applicable	pending	not_linked	Exact object body; independent behavior and linking are pending.

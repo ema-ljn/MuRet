@@ -1,0 +1,6 @@
+simbolo_decorado	va	nota
+?mydll_util_bswap64@@YA_K_K@Z	0x10004b4f	Exact native byte-order helper.
+?mydll_util_bswap64_inplace@@YAXPAE@Z	0x10004bba	Exact native byte-order helper.
+?mydll_util_bswap32_inplace@@YAXPAE@Z	0x10004c0e	Exact native byte-order helper.
+_mydll_cmd_is_slash@12	0x1000e2f1	Exact native command recognizer; not linked yet.
+?mydll_net_xor_aa@@YGXPAEH@Z	0x1002c651	Exact native f60; not linked yet.

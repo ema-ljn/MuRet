@@ -13,6 +13,7 @@ from mubmd.core.errors import ErrorCode, MubmdError
 WORKSPACE_SUGGESTION: Final = "mubmd workspace init ~/mu/Data"
 LOCK_NAME: Final = ".mubmd.lock"
 LOCK_TIMEOUT_SECONDS: Final = 10.0
+BACKUP_SUFFIX: Final = ".orig"
 
 
 def write_lock(path: Path) -> FileLock:
@@ -57,7 +58,7 @@ def _locked(path: Path) -> Iterator[None]:
 
 
 def _back_up_once(path: Path) -> None:
-    backup = path.with_name(f"{path.name}.bak")
+    backup = path.with_name(f"{path.name}{BACKUP_SUFFIX}")
     if not path.exists() or backup.exists():
         return
     partial = backup.with_name(f"{backup.name}.{os.getpid()}.tmp")

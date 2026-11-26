@@ -64,8 +64,18 @@ def test_write_replaces_the_file(target: Path) -> None:
 def test_write_keeps_the_first_backup(target: Path) -> None:
     STORE.write(target, b"second", expected_sha256=STORE.sha256(target))
     STORE.write(target, b"third", expected_sha256=STORE.sha256(target))
-    assert target.with_name("Text.bmd.bak").read_bytes() == b"original"
+    assert target.with_name("Text.bmd.orig").read_bytes() == b"original"
     assert target.read_bytes() == b"third"
+
+
+def test_a_bak_from_the_reference_does_not_stop_the_backup(tmp_path: Path) -> None:
+    table = tmp_path / "skill.bmd"
+    theirs = tmp_path / "skill.bmd.bak"
+    table.write_bytes(b"original")
+    theirs.write_bytes(b"theirs")
+    STORE.write(table, b"new", expected_sha256=STORE.sha256(table))
+    assert table.with_name("skill.bmd.orig").read_bytes() == b"original"
+    assert theirs.read_bytes() == b"theirs"
 
 
 def test_a_stale_file_is_not_overwritten(target: Path) -> None:
@@ -86,7 +96,7 @@ def test_a_new_file_must_not_exist_yet(target: Path) -> None:
 def test_a_new_file_is_written(tmp_path: Path) -> None:
     STORE.write(tmp_path / "new.bmd", b"mine", expected_sha256=None)
     assert (tmp_path / "new.bmd").read_bytes() == b"mine"
-    assert not (tmp_path / "new.bmd.bak").exists()
+    assert not (tmp_path / "new.bmd.orig").exists()
 
 
 def test_a_failed_write_leaves_the_original(target: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -142,7 +152,7 @@ def test_a_backup_that_fails_halfway_leaves_no_backup(target: Path, monkeypatch:
 
 def test_a_backup_link_into_the_reference_is_not_followed(reference: Path, target: Path) -> None:
     planted = reference / "Local" / "planted.bmd"
-    backup = target.with_name("Text.bmd.bak")
+    backup = target.with_name("Text.bmd.orig")
     backup.symlink_to(planted)
     STORE.write(target, b"new", expected_sha256=STORE.sha256(target))
     assert not planted.exists()

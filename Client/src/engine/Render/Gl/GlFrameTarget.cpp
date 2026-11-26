@@ -21,7 +21,7 @@
 namespace Client::Render::Gl
 {
 Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
-GlFrameTarget::Create(const Platform::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
+GlFrameTarget::Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Frame::RasterizerFactory fonts,
                       std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log)
 {
     auto renderer = GlSpriteRenderer::Create(gl);
@@ -39,7 +39,7 @@ GlFrameTarget::Create(const Platform::GlFunctions& gl, TextureTable& textures, S
     std::unique_ptr<GlFrameTarget> target(new GlFrameTarget(gl, textures, std::move(renderer).Value(),
                                                             std::move(models).Value(), std::move(screen),
                                                             std::move(present), log));
-    auto text = Scenes::SceneText::Create(textures, target->m_sprites, std::move(fonts), first.width, log);
+    auto text = Frame::SceneText::Create(textures, target->m_sprites, std::move(fonts), first.width, log);
     if (!text.HasValue())
     {
         return Core::Unexpected(text.Error());
@@ -48,7 +48,7 @@ GlFrameTarget::Create(const Platform::GlFunctions& gl, TextureTable& textures, S
     return target;
 }
 
-GlFrameTarget::GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
+GlFrameTarget::GlFrameTarget(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
                              GlModelRenderer models, std::function<Core::PixelSize()> screen,
                              std::function<void()> present, Core::Log& log)
     : m_gl(&gl), m_textures(textures), m_renderer(std::move(renderer)), m_modelRenderer(std::move(models)),
@@ -56,7 +56,7 @@ GlFrameTarget::GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& text
 {
 }
 
-Scenes::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
+Frame::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
 {
     const Core::PixelSize screen = m_screen();
     m_text->FollowScreenWidth(screen.width);
@@ -68,14 +68,14 @@ Scenes::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
     m_gl->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_sprites.Begin(screen);
     m_models.Begin(Render::Pass3D{}, false);
-    m_canvas.emplace(Scenes::SceneCanvas{.sprites = m_sprites,
-                                         .text = m_text->Drawer(),
-                                         .world = m_world,
-                                         .models = m_models,
-                                         .flushSprites = [this] { FlushSprites(); },
-                                         .flushModels = [this] { FlushModels(); },
-                                         .screen = screen,
-                                         .frameClock = frameClock});
+    m_canvas.emplace(Frame::SceneCanvas{.sprites = m_sprites,
+                                        .text = m_text->Drawer(),
+                                        .world = m_world,
+                                        .models = m_models,
+                                        .flushSprites = [this] { FlushSprites(); },
+                                        .flushModels = [this] { FlushModels(); },
+                                        .screen = screen,
+                                        .frameClock = frameClock});
     return *m_canvas;
 }
 

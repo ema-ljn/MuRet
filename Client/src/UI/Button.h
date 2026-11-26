@@ -86,7 +86,7 @@ public:
     // el fondo en 0 no se ve. Sin pantalla (un lado en 0), nada. Da el
     // color con que lo dibujó, o nada si no lo dibujó: 0x63c710 lo deja como el color del texto
     // (DAT_006c8e5c), y lo que se dibuja después sin poner otro sale con él (Q-C83).
-    std::optional<std::uint32_t> DrawLabel(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
+    std::optional<std::uint32_t> DrawLabel(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
 private:
     [[nodiscard]] std::uint32_t LabelColor() const;

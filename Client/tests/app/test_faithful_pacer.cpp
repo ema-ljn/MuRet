@@ -28,7 +28,7 @@ using Client::App::FaithfulWaitMs;
 using Client::App::GameLoop;
 using Client::App::PacingMode;
 using Client::App::TickCountMs;
-using Client::App::WindowState;
+using Client::Platform::WindowState;
 using Client::Tests::FakeClock;
 using Client::Tests::LoopCall;
 using Client::Tests::RecordingClient;

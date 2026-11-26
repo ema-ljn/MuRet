@@ -77,7 +77,7 @@ struct ClientConfig
     int width = 640;
     int height = 480;
     // [Video] VSync. Vacío: lo decide Resolve (paso 4), según el Pacing.
-    std::optional<VSyncMode> vsync;
+    std::optional<Platform::VSyncMode> vsync;
     // [Video] Pacing.
     PacingMode pacing = PacingMode::Decoupled;
     // [Video] MaxFps, 0 o de MinFpsLimit a MaxFpsLimit: el tope de FPS del modo normal (el FpsCap
@@ -121,5 +121,5 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
 // El tope de FPS que usa el bucle: `maxFps` solo con el VSync que quedó en la ventana apagado, y
 // si no, 0 (sin tope), como el FpsCap de MuMain (ApplyVSyncPreferenceNow en Winmain.cpp). Con
 // VSync el swap ya frena al refresco, y un tope que no lo divide (50 en 60 Hz) dibujaría a saltos.
-[[nodiscard]] int EffectiveMaxFps(int maxFps, VSyncMode vsync);
+[[nodiscard]] int EffectiveMaxFps(int maxFps, Platform::VSyncMode vsync);
 } // namespace Client::App

@@ -19,9 +19,12 @@ class SpriteBatch;
 // un std::deque de entradas de 0x4c bytes (el texto en 64 y la posición en tres float), que llena 0x4381f0 desde el
 // cuerpo de los personajes (0x4fd603, el tipo 0xc5 con su nombre y +0x1d6, MonsterStepCases.h) y que vacía el dibujo,
 // 0x4383f0, lo primero de la pasada 2D (0x63764b). Nada de esto saca rand().
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ITextDrawer;
+} // namespace Client::Render::Frame
+namespace Client::Scenes
+{
 struct GameProjection;
 struct HudState;
 
@@ -47,7 +50,7 @@ struct WorldTextDrawContext
     // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, una entrada en la cola corta.
     const GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
-    ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     // La fuente del DC, 0x6c8e5c y 0x6c8e64 (quedan los del último texto) y 0x77f31b8 y 0x77f31bc (0x554180).
     HudState& hud;
     bool projecting = false;

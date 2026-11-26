@@ -19,7 +19,7 @@
 // fuentes del ancho de la pantalla, y su ITextDrawer sobre el lote del frame. El original crea las
 // fuentes una vez, con el ancho de la ventana (FontSet.h, FontHeightFor); en MuRet el área de
 // dibujo puede cambiar (otra densidad de pantalla), y con otro ancho se abren otras.
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 // Abre las fuentes para una pantalla de `screenWidth` de ancho: en main.cpp, el FreeTypeRasterizer
 // con los archivos de App::ChooseFontFiles; en los tests, uno falso.
@@ -59,4 +59,4 @@ private:
     Render::Text::TextCache m_cache;
     TextCacheDrawer m_drawer;
 };
-} // namespace Client::Scenes
+} // namespace Client::Render::Frame

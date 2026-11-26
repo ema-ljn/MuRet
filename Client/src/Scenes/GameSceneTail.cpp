@@ -60,8 +60,8 @@ private:
 };
 } // namespace
 
-Core::Expected<void, std::string> GameScene::DrawTheBirds(SceneCanvas& canvas, const World::TerrainPolygon& polygon,
-                                                          int frames)
+Core::Expected<void, std::string> GameScene::DrawTheBirds(Render::Frame::SceneCanvas& canvas,
+                                                          const World::TerrainPolygon& polygon, int frames)
 {
     WorldState& world = *m_context.world;
     FaunaDrawContext context{world.Fauna(),
@@ -99,7 +99,7 @@ void GameScene::FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawCon
                                            .glowDetail = m_context.world->Runtime().ui.glowDetail});
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
+Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, const Render::Pass3D& pass,
                                                          const World::TerrainPolygon& polygon, int frames)
 {
     WorldState& world = *m_context.world;
@@ -253,7 +253,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
         [&]() -> Core::Expected<bool, std::string> { return FrameKalima() != nullptr; }};
     return RunGameTailPasses(runtime.map, runtime.heroCellLayer, callbacks);
 }
-Core::Expected<void, std::string> GameScene::DrawKalimaWater(SceneCanvas& canvas)
+Core::Expected<void, std::string> GameScene::DrawKalimaWater(Render::Frame::SceneCanvas& canvas)
 {
     auto* kalima = FrameKalima();
     if (kalima == nullptr)

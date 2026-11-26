@@ -32,9 +32,12 @@ class PanelRegistry;
 // (0x451e40) y cada cartel (0x452a10, con su caja 0x452d50 y su quad 0x452e50); lo que el alta mide para él (0x452540:
 // el texto 1104, las dos líneas de 0x452f80 y el tamaño de 0x4531b0), y lo que leen los globos de chat: el título corto
 // (0x4518b0) y los colores del título (0x4517c0, 0x451af0, 0x451b50 y 0x451bb0). Solo 0x5bb8d0 saca rand().
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ITextDrawer;
+} // namespace Client::Render::Frame
+namespace Client::Scenes
+{
 class WorldState;
 struct ActorState;
 struct GameProjection;
@@ -146,7 +149,7 @@ struct ShopSignDrawContext
     // misma cámara, y 0x6205b0 lee lo mismo (*inferido*). Sin ella, un cartel corta.
     const GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
-    ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     // El SelectObject de 0x452d50: queda la fuente del último renglón dibujado.
     Render::Text::FontKind& dcFont;
     const Data::Text::TextTable* texts = nullptr;

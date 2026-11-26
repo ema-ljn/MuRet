@@ -16,7 +16,7 @@ namespace Client::Render::Gl
 namespace
 {
 // 0x620a00, 0x620a90 y 0x620980: la mezcla normal, la aditiva y ninguna.
-void SetBlendFunc(const Platform::GlFunctions& gl, BlendMode blend)
+void SetBlendFunc(const Platform::Sdl::GlFunctions& gl, BlendMode blend)
 {
     switch (blend)
     {
@@ -34,12 +34,12 @@ void SetBlendFunc(const Platform::GlFunctions& gl, BlendMode blend)
 }
 } // namespace
 
-GlSpriteRenderer::GlSpriteRenderer(const Platform::GlFunctions& gl, GlRenderer renderer)
+GlSpriteRenderer::GlSpriteRenderer(const Platform::Sdl::GlFunctions& gl, GlRenderer renderer)
     : m_gl(&gl), m_renderer(std::move(renderer))
 {
 }
 
-Core::Expected<GlSpriteRenderer, std::string> GlSpriteRenderer::Create(const Platform::GlFunctions& gl)
+Core::Expected<GlSpriteRenderer, std::string> GlSpriteRenderer::Create(const Platform::Sdl::GlFunctions& gl)
 {
     Core::Expected<GlRenderer, std::string> renderer = GlRenderer::Create(gl);
     if (!renderer.HasValue())

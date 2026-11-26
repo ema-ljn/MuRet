@@ -36,14 +36,14 @@ TEST(FontSetTest, TheStepFollowsTheWidth)
     EXPECT_EQ(FontStepFor(1920), 15);
 }
 
-// Las resoluciones que valen (App::IsValidResolution) son las cinco del original o un modo del
+// Las resoluciones que valen (Platform::IsValidResolution) son las cinco del original o un modo del
 // monitor, de cualquier ancho: las cinco con su paso, y unos modos de monitor de hoy.
 TEST(FontSetTest, EveryValidResolutionHasAStep)
 {
     constexpr std::array<int, 5> OriginalSteps = {12, 13, 14, 15, 15};
-    for (std::size_t i = 0; i < Client::App::OriginalResolutions.size(); ++i)
+    for (std::size_t i = 0; i < Client::Platform::OriginalResolutions.size(); ++i)
     {
-        EXPECT_EQ(FontStepFor(Client::App::OriginalResolutions[i].width), OriginalSteps[i]) << i;
+        EXPECT_EQ(FontStepFor(Client::Platform::OriginalResolutions[i].width), OriginalSteps[i]) << i;
     }
 
     EXPECT_EQ(FontStepFor(1152), 14);

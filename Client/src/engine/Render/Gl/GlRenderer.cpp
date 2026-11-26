@@ -35,7 +35,7 @@ const void* BufferOffset(std::size_t bytes)
 }
 
 // El formato de SpriteVertex para el VAO: dos floats de posición, dos de UV y cuatro de color.
-void DescribeVertices(const Platform::GlFunctions& gl)
+void DescribeVertices(const Platform::Sdl::GlFunctions& gl)
 {
     constexpr auto stride = static_cast<GLsizei>(sizeof(Render::SpriteVertex));
     gl.vertexAttribPointer(SpritePositionLocation, 2, GL_FLOAT, GL_FALSE, stride,
@@ -50,14 +50,14 @@ void DescribeVertices(const Platform::GlFunctions& gl)
 }
 } // namespace
 
-GlRenderer::GlRenderer(const Platform::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
+GlRenderer::GlRenderer(const Platform::Sdl::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
                        Uniforms uniforms)
     : m_gl(&gl), m_shader(std::move(shader)), m_vertexArray(std::move(vertexArray)),
       m_vertexBuffer(std::move(vertexBuffer)), m_uniforms(uniforms)
 {
 }
 
-Core::Expected<GlRenderer, std::string> GlRenderer::Create(const Platform::GlFunctions& gl)
+Core::Expected<GlRenderer, std::string> GlRenderer::Create(const Platform::Sdl::GlFunctions& gl)
 {
     Core::Expected<GlShader, std::string> shader = GlShader::Create(gl, SpriteVertexShader, SpriteFragmentShader);
     if (!shader.HasValue())

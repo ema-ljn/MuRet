@@ -6,14 +6,14 @@
 
 #include <vector>
 
-// Client::App::IsValidResolution y DescribeValidResolutions: las cinco del original o un modo del
+// Client::Platform::IsValidResolution y DescribeValidResolutions: las cinco del original o un modo del
 // monitor (decidido el 2026-11-03).
 namespace
 {
-using Client::App::DescribeValidResolutions;
-using Client::App::IsValidResolution;
-using Client::App::OriginalResolutions;
-using Client::App::Resolution;
+using Client::Platform::DescribeValidResolutions;
+using Client::Platform::IsValidResolution;
+using Client::Platform::OriginalResolutions;
+using Client::Platform::Resolution;
 
 TEST(ResolutionTest, TheFiveOfTheOriginalAreTheRegistryValues)
 {

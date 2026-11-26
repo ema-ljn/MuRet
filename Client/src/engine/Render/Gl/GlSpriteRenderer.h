@@ -25,7 +25,7 @@ class OPENGL_API GlSpriteRenderer
 public:
     // El pipeline de GlRenderer: el error trae el log del compilador de GLSL o el uniform que
     // falta.
-    [[nodiscard]] static Core::Expected<GlSpriteRenderer, std::string> Create(const Platform::GlFunctions& gl);
+    [[nodiscard]] static Core::Expected<GlSpriteRenderer, std::string> Create(const Platform::Sdl::GlFunctions& gl);
 
     // Dibuja `batch` en el framebuffer que esté atado, con el viewport y la matriz de su pantalla.
     // Un tramo con un slot que `textures` no tiene no se dibuja, y el slot sale una vez en `log`
@@ -33,9 +33,9 @@ public:
     void Draw(const SpriteBatch& batch, const TextureTable& textures, Core::Log& log);
 
 private:
-    GlSpriteRenderer(const Platform::GlFunctions& gl, GlRenderer renderer);
+    GlSpriteRenderer(const Platform::Sdl::GlFunctions& gl, GlRenderer renderer);
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     GlRenderer m_renderer;
     // Los slots que ya se avisaron.
     std::set<std::uint16_t> m_warnedSlots;

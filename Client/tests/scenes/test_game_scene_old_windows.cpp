@@ -57,7 +57,7 @@ public:
     }
 };
 
-class SceneClipboard final : public Client::UI::IClipboard
+class SceneClipboard final : public Client::Platform::IClipboard
 {
 public:
     [[nodiscard]] std::optional<std::string> ReadText() override

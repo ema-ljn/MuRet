@@ -171,7 +171,7 @@ std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& inp
     return std::nullopt;
 }
 
-void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
+void SelectionBar::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
                         std::string_view serverNotice)
 {
     if (!m_open)

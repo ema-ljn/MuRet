@@ -11,7 +11,7 @@
 
 // Lo que una escena necesita para dibujar un frame sin ver GL (CL5.4). Lo da el IFrameTarget en
 // BeginFrame y vale hasta su Present.
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 struct SceneCanvas
 {
@@ -37,4 +37,4 @@ struct SceneCanvas
     // cuenta desde que arrancó MuRet: con él se mueve la arena del login (Q-C65).
     Core::Duration frameClock{};
 };
-} // namespace Client::Scenes
+} // namespace Client::Render::Frame

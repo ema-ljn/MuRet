@@ -207,7 +207,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Advance(expected.random, 4); // PrepareFrame consulta/cierra espera después de la tela.
     Client::App::GameLoop loop(online.clock, manager, Client::App::PacingMode::Faithful);
 
-    ASSERT_EQ(loop.RunFrame(Client::App::WindowState{}, input), 1);
+    ASSERT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 1);
 
     ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
     ASSERT_EQ(game->Failure(), std::nullopt);

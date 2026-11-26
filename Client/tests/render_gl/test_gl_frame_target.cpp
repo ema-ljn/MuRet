@@ -50,6 +50,8 @@ using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::OriginalQuad;
 using Client::Render::TextureSlot;
+using Client::Render::Frame::RasterizerFactory;
+using Client::Render::Frame::SceneCanvas;
 using Client::Render::Gl::GlFrameTarget;
 using Client::Render::Gl::Rgba8;
 using Client::Render::Gl::TextureTable;
@@ -57,8 +59,6 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::IGlyphRasterizer;
 using Client::Render::Text::TextColors;
 using Client::Render::Text::TextStyle;
-using Client::Scenes::RasterizerFactory;
-using Client::Scenes::SceneCanvas;
 using Client::Tests::FakeGlyphRasterizer;
 using Client::Tests::FramebufferSide;
 
@@ -120,7 +120,7 @@ protected:
     {
         PFNGLGETUNIFORMIVPROC read = nullptr;
         std::string error;
-        if (!Client::Platform::LoadGlFunction(read, "glGetUniformiv", error))
+        if (!Client::Platform::Sdl::LoadGlFunction(read, "glGetUniformiv", error))
             return std::nullopt;
         GLint program = 0;
         Gl().getIntegerv(GL_CURRENT_PROGRAM, &program);

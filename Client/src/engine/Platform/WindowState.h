@@ -8,7 +8,7 @@
 // El estado de la ventana que mira el bucle (CL3.1): si sigue abierta, si se dibuja y su tamaño.
 // Platform traduce los eventos de SDL a WindowEvent, y Apply, que es pura, dice qué cambia cada
 // uno: así se prueba sin ventana.
-namespace Client::App
+namespace Client::Platform
 {
 enum class WindowEvent : std::uint8_t
 {
@@ -37,4 +37,4 @@ struct WindowState
 // Lo que cambia `event` en `state`. `size` solo cuenta con PixelSizeChanged, y uno con un lado en 0
 // o negativo no toca el tamaño: un área vacía no es un viewport.
 [[nodiscard]] ENGINE_API WindowState Apply(WindowState state, WindowEvent event, Core::PixelSize size = {});
-} // namespace Client::App
+} // namespace Client::Platform

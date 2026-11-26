@@ -97,7 +97,7 @@ public:
     // previa en su propio pase 3D, que no se oscurece, y lo demás) y el aviso. En cada frame del original,
     // la cámara y el trapecio de 0x5fbb00 (0x63475c), que deja en WorldRuntime para el primer paso del
     // juego; si el trapecio da error, el frame se corta y la escena queda en Failure.
-    void Render(SceneCanvas& canvas, float alpha) override;
+    void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
     // WorldLoading después de entrar. Si la sesión falla, la escena no se va: abre el aviso 0x70.
@@ -165,7 +165,7 @@ private:
     // 0x63e430 al final del paso de la ventana, que solo corre con ella arriba: la clase de la ventana
     // y el avance adicional: con un aviso arriba solo avanza desde 0x508ea0.
     void StepThePreview();
-    void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
+    void DrawTheCreateWindow(Render::Frame::SceneCanvas& canvas, float alpha);
     // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState: lo que
     // devuelve el último, que lee el conjunto completo de la cola de efectos.
     FullSetScan ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
@@ -179,20 +179,21 @@ private:
     [[nodiscard]] std::function<double(float, float)> TerrainHeight();
     // 0x634680 desde 0x6347e9 hasta 0x6213f0: la luz del elegido, el mundo, los personajes, la cola, las dos
     // 0x729 del elegido y el pase de ojo. Sin el mundo, solo los personajes.
-    void DrawTheWorldAndTheCharacters(SceneCanvas& canvas, float alpha, const Render::Pass3D& pass,
+    void DrawTheWorldAndTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, const Render::Pass3D& pass,
                                       const Render::Camera3D& camera, std::uint8_t map, FaunaDrawCarry* poseCarry,
                                       int scanFrames);
-    void DrawTheCharacters(SceneCanvas& canvas, float alpha, std::uint8_t map, FaunaDrawCarry* poseCarry,
+    void DrawTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, std::uint8_t map, FaunaDrawCarry* poseCarry,
                            int scanFrames);
     // Si Player.bmd tiene su esqueleto con acciones: sin ellas, 0x50ba30 sale antes (0x50ba87).
     [[nodiscard]] bool HasTheSkeleton() const;
     // 0x50db57..0x510a7a con un personaje de la lista, después de su cuerpo; un error queda en m_failure.
-    void DrawTheTail(SceneCanvas& canvas, ActorState& actor, std::size_t slot, const DrawnCharacter& drawn,
-                     FaunaDrawCarry& poseCarry, const FullSetScan& scan, bool originalFrame);
+    void DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, std::size_t slot,
+                     const DrawnCharacter& drawn, FaunaDrawCarry& poseCarry, const FullSetScan& scan,
+                     bool originalFrame);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
-    void DrawTheCursor(SceneCanvas& canvas) const;
+    void DrawTheCursor(Render::Frame::SceneCanvas& canvas) const;
     // 0x634949..0x63495f: los avisos y el área vieja, antes de la UI.
-    void DrawTheMessages(SceneCanvas& canvas);
+    void DrawTheMessages(Render::Frame::SceneCanvas& canvas);
     // Los cinco registros del pool como los lee 0x63cc60. MuRet saca de la lista de la sesión el lugar borrado sin
     // bajar el +0 de su registro (0x643374, Q-C104): uno que no está en la lista va como muerto. Sin el mundo, los
     // cinco muertos.
@@ -201,7 +202,7 @@ private:
     void UpdateTheBalloons();
     // 0x65fe00 → 0x63cf80, antes de las ventanas: cada personaje a z + 280 con la proyección del pase del mundo
     // (0x6205b0 con el caché de 0x620db0 en 0x634785). Un error queda en m_failure.
-    void DrawTheBalloons(SceneCanvas& canvas, const Render::Pass3D& pass, float fieldOfView);
+    void DrawTheBalloons(Render::Frame::SceneCanvas& canvas, const Render::Pass3D& pass, float fieldOfView);
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();

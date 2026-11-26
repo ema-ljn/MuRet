@@ -15,7 +15,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-namespace Client::Platform
+namespace Client::Audio::Sdl
 {
 class AUDIO_API SdlAudio final : public Audio::IPlayback
 {
@@ -45,4 +45,4 @@ private:
     explicit SdlAudio(std::unique_ptr<Impl> impl);
     std::unique_ptr<Impl> m_impl;
 };
-} // namespace Client::Platform
+} // namespace Client::Audio::Sdl

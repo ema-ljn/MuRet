@@ -13,7 +13,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Platform::SdlLog: los mensajes de SDL llegan al Core::Log con su nivel y partidos en
+// Client::Platform::Sdl::SdlLog: los mensajes de SDL llegan al Core::Log con su nivel y partidos en
 // líneas, ninguna excepción cruza SDL, y el destructor devuelve la salida por defecto. Sin
 // SDL_Init: SDL_Log no lo necesita.
 namespace
@@ -21,8 +21,8 @@ namespace
 using Client::Core::ILogSink;
 using Client::Core::Log;
 using Client::Core::LogLevel;
-using Client::Platform::LevelOf;
-using Client::Platform::SdlLog;
+using Client::Platform::Sdl::LevelOf;
+using Client::Platform::Sdl::SdlLog;
 using Client::Tests::RecordingSink;
 
 // Deja pasar todas las prioridades mientras dura el test (SDL filtra antes de llamar a la salida:

@@ -23,7 +23,7 @@ namespace Client::Render::Gl
 class OPENGL_API TextureTable final : public Render::ITextureStore
 {
 public:
-    explicit TextureTable(const Platform::GlFunctions& gl);
+    explicit TextureTable(const Platform::Sdl::GlFunctions& gl);
 
     // Las escenas la guardan como ITextureStore&: ni se copia ni se mueve.
     TextureTable(const TextureTable&) = delete;
@@ -45,7 +45,7 @@ public:
     void Release(TextureSlot slot) override;
 
 private:
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     // Uno por slot, los del original, los del texto y los de las marcas: el índice es el número de slot.
     std::vector<std::optional<GlTexture>> m_slots;
 };

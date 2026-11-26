@@ -139,7 +139,7 @@ public:
     // 0x6463b0 con la mezcla normal (el lote llega con la aditiva de la arena, Q-C80): la caja,
     // las piezas del marco con los renglones de la descripción, los botones con sus rótulos, las
     // barras y, con el grupo 20, sus tres textos. Ubica todo para `screen` antes, por si cambió.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     void Select(std::size_t group);
@@ -151,10 +151,11 @@ private:
     // Los pasos de 0x6463b0: la caja y, por renglón, las piezas del marco y la descripción; los
     // botones y las barras, que dan el color del último rótulo, o `textColor` sin ninguno; y los
     // textos del grupo 20 con ese color.
-    void DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen) const;
-    [[nodiscard]] std::uint32_t DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+    void DrawBoxAndDescription(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
+                               Core::PixelSize screen) const;
+    [[nodiscard]] std::uint32_t DrawButtons(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
                                             Core::PixelSize screen, std::uint32_t textColor) const;
-    void DrawGroupTwentyTexts(Scenes::ITextDrawer& text, std::uint32_t color) const;
+    void DrawGroupTwentyTexts(Render::Frame::ITextDrawer& text, std::uint32_t color) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

@@ -9,12 +9,12 @@
 
 #include <optional>
 
-// Client::Platform::WindowEventFor: la tabla de los SDL_EVENT_* a los WindowEvent, con eventos
+// Client::Platform::Sdl::WindowEventFor: la tabla de los SDL_EVENT_* a los WindowEvent, con eventos
 // armados a mano (sin SDL_Init).
 namespace
 {
-using Client::App::WindowEvent;
-using Client::Platform::WindowEventFor;
+using Client::Platform::WindowEvent;
+using Client::Platform::Sdl::WindowEventFor;
 
 // Un id cualquiera de "nuestra" ventana y otro de una ventana ajena.
 constexpr SDL_WindowID OurWindow = 3;

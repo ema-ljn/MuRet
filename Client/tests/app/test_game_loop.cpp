@@ -38,11 +38,11 @@ namespace
 using namespace std::chrono_literals;
 using Client::App::GameLoop;
 using Client::App::PacingMode;
-using Client::App::WindowState;
 using Client::Core::Duration;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Platform::WindowState;
 using Client::Tests::FakeClock;
 using Client::Tests::LoopCall;
 using Client::Tests::RecordingClient;
@@ -71,7 +71,7 @@ public:
     {
         ++m_calls.steps;
     }
-    void Render(Client::Scenes::SceneCanvas&, float) override
+    void Render(Client::Render::Frame::SceneCanvas&, float) override
     {
         ++m_calls.renders;
         m_clock.Advance(m_renderCost);

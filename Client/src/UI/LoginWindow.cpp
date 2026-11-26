@@ -175,7 +175,7 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Co
     return std::nullopt;
 }
 
-void LoginWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
+void LoginWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -267,7 +267,7 @@ LoginRequest LoginWindow::Cancel()
     return LoginRequest{.kind = LoginRequest::Kind::Cancel, .credentials = {}};
 }
 
-void LoginWindow::DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area,
+void LoginWindow::DrawField(Render::Frame::ITextDrawer& text, const TextField& field, const Rect& area,
                             Core::PixelSize screen) const
 {
     const int x = Render::Text::DesignX(area.x + FieldTextInset, screen);

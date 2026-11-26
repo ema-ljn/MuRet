@@ -8,38 +8,38 @@ namespace Client::Render::Gl
 {
 namespace
 {
-void DeleteTexture(const Platform::GlFunctions& gl, GLuint name)
+void DeleteTexture(const Platform::Sdl::GlFunctions& gl, GLuint name)
 {
     gl.deleteTextures(1, &name);
 }
 
-void DeleteBuffer(const Platform::GlFunctions& gl, GLuint name)
+void DeleteBuffer(const Platform::Sdl::GlFunctions& gl, GLuint name)
 {
     gl.deleteBuffers(1, &name);
 }
 
-void DeleteVertexArray(const Platform::GlFunctions& gl, GLuint name)
+void DeleteVertexArray(const Platform::Sdl::GlFunctions& gl, GLuint name)
 {
     gl.deleteVertexArrays(1, &name);
 }
 
-void DeleteFramebuffer(const Platform::GlFunctions& gl, GLuint name)
+void DeleteFramebuffer(const Platform::Sdl::GlFunctions& gl, GLuint name)
 {
     gl.deleteFramebuffers(1, &name);
 }
 
-void DeleteShader(const Platform::GlFunctions& gl, GLuint name)
+void DeleteShader(const Platform::Sdl::GlFunctions& gl, GLuint name)
 {
     gl.deleteShader(name);
 }
 
-void DeleteProgram(const Platform::GlFunctions& gl, GLuint name)
+void DeleteProgram(const Platform::Sdl::GlFunctions& gl, GLuint name)
 {
     gl.deleteProgram(name);
 }
 } // namespace
 
-GlName::GlName(const Platform::GlFunctions& gl, Deleter deleter, GLuint name)
+GlName::GlName(const Platform::Sdl::GlFunctions& gl, Deleter deleter, GLuint name)
     : m_gl(&gl), m_deleter(deleter), m_name(name)
 {
 }
@@ -82,40 +82,40 @@ void GlName::Release()
     m_name = 0;
 }
 
-GlName GenTexture(const Platform::GlFunctions& gl)
+GlName GenTexture(const Platform::Sdl::GlFunctions& gl)
 {
     GLuint name = 0;
     gl.genTextures(1, &name);
     return GlName(gl, DeleteTexture, name);
 }
 
-GlName GenBuffer(const Platform::GlFunctions& gl)
+GlName GenBuffer(const Platform::Sdl::GlFunctions& gl)
 {
     GLuint name = 0;
     gl.genBuffers(1, &name);
     return GlName(gl, DeleteBuffer, name);
 }
 
-GlName GenVertexArray(const Platform::GlFunctions& gl)
+GlName GenVertexArray(const Platform::Sdl::GlFunctions& gl)
 {
     GLuint name = 0;
     gl.genVertexArrays(1, &name);
     return GlName(gl, DeleteVertexArray, name);
 }
 
-GlName GenFramebuffer(const Platform::GlFunctions& gl)
+GlName GenFramebuffer(const Platform::Sdl::GlFunctions& gl)
 {
     GLuint name = 0;
     gl.genFramebuffers(1, &name);
     return GlName(gl, DeleteFramebuffer, name);
 }
 
-GlName CreateShader(const Platform::GlFunctions& gl, GLenum type)
+GlName CreateShader(const Platform::Sdl::GlFunctions& gl, GLenum type)
 {
     return GlName(gl, DeleteShader, gl.createShader(type));
 }
 
-GlName CreateProgram(const Platform::GlFunctions& gl)
+GlName CreateProgram(const Platform::Sdl::GlFunctions& gl)
 {
     return GlName(gl, DeleteProgram, gl.createProgram());
 }

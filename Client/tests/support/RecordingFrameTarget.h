@@ -70,7 +70,7 @@ struct RecordedFrame
     std::vector<FrameEvent> events;
 };
 
-class RecordingFrameTarget final : public Scenes::IFrameTarget
+class RecordingFrameTarget final : public Render::Frame::IFrameTarget
 {
 public:
     explicit RecordingFrameTarget(Core::PixelSize screen = {.width = 640, .height = 480})
@@ -83,7 +83,7 @@ public:
     RecordingFrameTarget(const RecordingFrameTarget&) = delete;
     RecordingFrameTarget& operator=(const RecordingFrameTarget&) = delete;
 
-    Scenes::SceneCanvas& BeginFrame(Core::Duration frameClock) override
+    Render::Frame::SceneCanvas& BeginFrame(Core::Duration frameClock) override
     {
         if (FrameOpen())
         {
@@ -95,14 +95,14 @@ public:
         m_sprites.Begin(m_screen);
         m_models.Begin(Render::Pass3D{}, false);
         m_synced = 0;
-        m_canvas.emplace(Scenes::SceneCanvas{.sprites = m_sprites,
-                                             .text = m_text,
-                                             .world = m_world,
-                                             .models = m_models,
-                                             .flushSprites = [this] { Flush(); },
-                                             .flushModels = [this] { FlushModels(); },
-                                             .screen = m_screen,
-                                             .frameClock = frameClock});
+        m_canvas.emplace(Render::Frame::SceneCanvas{.sprites = m_sprites,
+                                                    .text = m_text,
+                                                    .world = m_world,
+                                                    .models = m_models,
+                                                    .flushSprites = [this] { Flush(); },
+                                                    .flushModels = [this] { FlushModels(); },
+                                                    .screen = m_screen,
+                                                    .frameClock = frameClock});
         return *m_canvas;
     }
 
@@ -143,7 +143,7 @@ public:
 
 private:
     // Un mundo que llama a `draw`.
-    class WorldRecorder final : public Scenes::IWorldView
+    class WorldRecorder final : public Render::Frame::IWorldView
     {
     public:
         template <typename Draw> explicit WorldRecorder(Draw draw) : m_draw(std::move(draw)) {}
@@ -249,7 +249,7 @@ private:
     Render::ModelBatch m_models;
     RecordingTextDrawer m_text;
     WorldRecorder m_world;
-    std::optional<Scenes::SceneCanvas> m_canvas;
+    std::optional<Render::Frame::SceneCanvas> m_canvas;
     // Cuántos vértices del lote ya se anotaron, y cuántos textos.
     std::size_t m_synced = 0;
     std::size_t m_textsSynced = 0;

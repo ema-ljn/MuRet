@@ -8,7 +8,7 @@
 
 // SDL_Init y SDL_Quit con RAII (CL3.1, lo que en la CL0.3 era SdlVideo en main.cpp): SDL_Quit
 // corre aunque main salga por un error. Una Window necesita un SdlContext vivo.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 class PLATFORM_API SdlContext
 {
@@ -25,4 +25,4 @@ public:
 private:
     SdlContext() = default;
 };
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

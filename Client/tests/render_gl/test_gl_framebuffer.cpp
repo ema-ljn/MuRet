@@ -22,7 +22,7 @@ using GlFramebufferTest = Client::Tests::GlTest;
 // Un tamaño de cero o negativo no llega a GL: se prueba con una tabla vacía, sin contexto.
 TEST(GlFramebufferRulesTest, RefusesAnEmptySize)
 {
-    const Client::Platform::GlFunctions noGl{};
+    const Client::Platform::Sdl::GlFunctions noGl{};
     const Client::Core::Expected<GlFramebuffer, std::string> empty = GlFramebuffer::Create(noGl, 0, 64);
     ASSERT_FALSE(empty.HasValue());
     EXPECT_NE(empty.Error().find("0 × 64"), std::string::npos) << empty.Error();

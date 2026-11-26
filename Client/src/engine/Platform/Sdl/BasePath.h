@@ -7,9 +7,9 @@
 #include <string>
 
 // La carpeta del ejecutable, donde Main busca muret-client.ini (CL3.4), con SDL_GetBasePath.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // SDL la da en UTF-8, absoluta y terminada en separador, y la guarda (en SDL3 no se libera). Anda
 // antes de SDL_Init. Si SDL no la sabe, devuelve su error.
 PLATFORM_API Core::Expected<std::filesystem::path, std::string> ExecutableFolder();
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

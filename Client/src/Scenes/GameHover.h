@@ -26,9 +26,12 @@ class CrtRandom;
 // (un NPC o un jugador en un globo con 0x557170, un monstruo arriba al medio con 0x623690) y, con Alt, los nombres
 // de los ítems del piso (0x5ba790, CL9 hito 5: Scenes/FloorItemNames.h). Lee lo que deja el picking del frame
 // (0x59ec80): los personajes desde la CL9 (hito 1) y el ítem del piso desde el hito 5; los objetos quedan en −1.
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ITextDrawer;
+} // namespace Client::Render::Frame
+namespace Client::Scenes
+{
 class WorldState;
 struct GameDrawTailState;
 struct GameHudContext;
@@ -53,7 +56,7 @@ struct GameHoverContext
     // GetAsyncKeyState(0x12) en el momento del dibujo.
     bool altDown = false;
     Render::SpriteBatch& sprites;
-    ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     // Un dibujo intermedio de MuRet no escribe los globos (0x557170): el dibujo de los globos lee una copia de la
     // tabla del último frame del original, que es el que los escribe. Los demás estado que escribe le llegan en copias.
     bool projecting = false;

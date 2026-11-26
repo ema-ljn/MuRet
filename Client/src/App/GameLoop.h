@@ -53,13 +53,13 @@ public:
     // Cada paso recibe `input`, y después del primero GameLoop le llama a ConsumeEdges: un
     // apretón lo ve un solo paso, y en un frame sin pasos `input` no se toca y el apretón espera
     // al próximo (CL3.3, Q-C45). Devuelve cuántos pasos corrió.
-    int RunFrame(const WindowState& state, Input::InputState& input);
+    int RunFrame(const Platform::WindowState& state, Input::InputState& input);
     [[nodiscard]] const FrameStats& Stats() const;
     [[nodiscard]] float LastAlpha() const;
 
 private:
-    int RunDecoupled(const WindowState& state, Input::InputState& input);
-    int RunFaithful(const WindowState& state, Input::InputState& input);
+    int RunDecoupled(const Platform::WindowState& state, Input::InputState& input);
+    int RunFaithful(const Platform::WindowState& state, Input::InputState& input);
     void RunSteps(int steps, Input::InputState& input);
     // El tope de FPS, después de dibujar el frame que empezó en `frameStart`.
     void SleepRestOfFrame(Core::Duration frameStart);

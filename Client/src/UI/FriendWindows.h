@@ -18,10 +18,13 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
+namespace Client::Platform
+{
+class IClipboard;
+} // namespace Client::Platform
 namespace Client::UI
 {
 struct OldWindowDrawView;
-class IClipboard;
 // La x y la y de la primera vez (0x6599a0 con el panel 1, 0x659f3d, y 0x4906a0).
 inline constexpr std::int32_t FriendsWindowX = 0x186;
 inline constexpr std::int32_t FriendsWindowY = 0x106;
@@ -64,8 +67,8 @@ void BackspaceInTheOldEdit(OldWindowManager& manager);
 // (UI/OldEditLines.h, con `measure` para los renglones). Tab pasa el foco al EDIT de +0x98 (0x467d07) y deja en él la
 // lista de las flechas (`focusedList`, 0x5762ec0).
 void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl,
-                          IClipboard* clipboard = nullptr, const Render::Text::ITextMeasure* measure = nullptr,
-                          std::int32_t* focusedList = nullptr);
+                          Platform::IClipboard* clipboard = nullptr,
+                          const Render::Text::ITextMeasure* measure = nullptr, std::int32_t* focusedList = nullptr);
 void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start,
                               std::int32_t length);
 void PressEnterInTheOldEdit(OldWindowManager& manager);

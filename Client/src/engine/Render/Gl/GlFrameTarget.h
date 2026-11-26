@@ -34,13 +34,13 @@
 // limpio.
 namespace Client::Render::Gl
 {
-class OPENGL_API GlFrameTarget final : public Scenes::IFrameTarget
+class OPENGL_API GlFrameTarget final : public Frame::IFrameTarget
 {
 public:
     // `screen` da el área de dibujo de cada frame, y `present` presenta. La tabla y el log tienen
     // que vivir más. El error, si un renderer no compila o las fuentes del ancho de ahora no abren.
     [[nodiscard]] static Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
-    Create(const Platform::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
+    Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Frame::RasterizerFactory fonts,
            std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log);
 
     GlFrameTarget(const GlFrameTarget&) = delete;
@@ -49,7 +49,7 @@ public:
     GlFrameTarget& operator=(GlFrameTarget&&) = delete;
     ~GlFrameTarget() override = default;
 
-    Scenes::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
+    Frame::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
     void Present() override;
 
     // El GetTextExtentPointA del DC de los textos fuera del dibujo (el paso y la red): el de SceneText, con las
@@ -57,7 +57,7 @@ public:
     [[nodiscard]] const Render::Text::ITextMeasure& TextMeasure() const;
 
 private:
-    GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
+    GlFrameTarget(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
                   GlModelRenderer models, std::function<Core::PixelSize()> screen, std::function<void()> present,
                   Core::Log& log);
 
@@ -66,7 +66,7 @@ private:
     // Lo que juntó el lote del pase 3D, al framebuffer, y el lote vacío con el mismo pase.
     void FlushModels();
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     TextureTable& m_textures;
     GlSpriteRenderer m_renderer;
     GlModelRenderer m_modelRenderer;
@@ -76,8 +76,8 @@ private:
     SpriteBatch m_sprites;
     ModelBatch m_models;
     // Después del lote: su drawer lo guarda. Antes de la tabla no, que es de main.cpp.
-    std::unique_ptr<Scenes::SceneText> m_text;
-    Scenes::EmptyWorldView m_world;
-    std::optional<Scenes::SceneCanvas> m_canvas;
+    std::unique_ptr<Frame::SceneText> m_text;
+    Frame::EmptyWorldView m_world;
+    std::optional<Frame::SceneCanvas> m_canvas;
 };
 } // namespace Client::Render::Gl

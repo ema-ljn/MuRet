@@ -34,7 +34,7 @@ struct CommandLine
 {
     std::optional<std::uint64_t> maxFrames;
     std::optional<PacingMode> pacing;
-    std::optional<VSyncMode> vsync;
+    std::optional<Platform::VSyncMode> vsync;
     std::optional<int> maxFps;
     bool stats = false;
     bool autoLogin = false;

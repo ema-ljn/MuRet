@@ -10,7 +10,7 @@
 #include <utility>
 
 // SdlContext: el SDL_Init y el SDL_Quit del cliente.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -43,4 +43,4 @@ SdlContext::~SdlContext()
     SDL_Quit();
     s_alive = false;
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

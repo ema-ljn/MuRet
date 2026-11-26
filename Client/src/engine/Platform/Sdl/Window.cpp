@@ -17,7 +17,7 @@
 #include <utility>
 
 // Window: la ventana SDL3 y su contexto GL.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 void WindowDeleter::operator()(SDL_Window* window) const
 {
@@ -93,7 +93,7 @@ SDL_WindowID Window::Id() const
     return SDL_GetWindowID(m_window.get());
 }
 
-App::VSyncMode Window::VSync() const
+VSyncMode Window::VSync() const
 {
     return m_vsync.mode;
 }
@@ -145,4 +145,4 @@ bool Window::TextInputActive() const
 {
     return SDL_TextInputActive(m_window.get());
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

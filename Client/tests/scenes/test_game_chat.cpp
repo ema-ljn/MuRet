@@ -77,7 +77,7 @@ public:
     }
 };
 
-class FakeClipboard final : public Client::UI::IClipboard
+class FakeClipboard final : public Client::Platform::IClipboard
 {
 public:
     [[nodiscard]] std::optional<std::string> ReadText() override

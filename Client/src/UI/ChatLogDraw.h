@@ -12,7 +12,7 @@ namespace Client::Render
 class SpriteBatch;
 }
 
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ITextDrawer;
 }
@@ -39,7 +39,7 @@ inline constexpr std::uint16_t ChatAlphaButtonSlot = 0x644;
 struct ChatLogDrawContext
 {
     Render::SpriteBatch& sprites;
-    Scenes::ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     Render::Text::FontKind& dcFont;
     // 0x6c8e5c y 0x6c8e64.
     Render::Text::TextColors& textColors;

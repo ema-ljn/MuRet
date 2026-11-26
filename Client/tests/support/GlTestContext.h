@@ -35,7 +35,7 @@ inline constexpr const char* RequireGlVariable = "MU_CLIENT_REQUIRE_GL";
 // glTexImage2D la rechaza con GL_INVALID_VALUE. Es la forma de que el driver diga que no sin
 // quedarse sin memoria de verdad (la auditoría del 2026-11-03, AUD-C03). No usa TextureSide, que
 // no pasa de 512.
-[[nodiscard]] Data::Textures::Texture TextureOverTheGlLimit(const Platform::GlFunctions& gl);
+[[nodiscard]] Data::Textures::Texture TextureOverTheGlLimit(const Platform::Sdl::GlFunctions& gl);
 
 class GlTestContext
 {
@@ -53,21 +53,21 @@ public:
     GlTestContext& operator=(GlTestContext&&) = delete;
     ~GlTestContext() = default;
 
-    [[nodiscard]] const Platform::GlFunctions& Gl() const;
+    [[nodiscard]] const Platform::Sdl::GlFunctions& Gl() const;
 
 private:
-    using SdlPtr = std::unique_ptr<Platform::SdlContext>;
-    using WindowPtr = std::unique_ptr<SDL_Window, Platform::WindowDeleter>;
-    using GlContextPtr = std::unique_ptr<SDL_GLContextState, Platform::GlContextDeleter>;
+    using SdlPtr = std::unique_ptr<Platform::Sdl::SdlContext>;
+    using WindowPtr = std::unique_ptr<SDL_Window, Platform::Sdl::WindowDeleter>;
+    using GlContextPtr = std::unique_ptr<SDL_GLContextState, Platform::Sdl::GlContextDeleter>;
 
-    GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context, const Platform::GlFunctions& gl);
+    GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context, const Platform::Sdl::GlFunctions& gl);
 
     // Los miembros se destruyen al revés de como se declaran: el contexto antes que la ventana en
     // la que vive, y la ventana antes que el SDL_Quit.
     SdlPtr m_sdl;
     WindowPtr m_window;
     GlContextPtr m_context;
-    Platform::GlFunctions m_gl;
+    Platform::Sdl::GlFunctions m_gl;
 };
 
 // La base de los tests que abren GL. SetUp() abre el contexto; si no puede, saltea el test o, con
@@ -77,7 +77,7 @@ class GlTest : public ::testing::Test
 protected:
     void SetUp() override;
 
-    [[nodiscard]] const Platform::GlFunctions& Gl() const;
+    [[nodiscard]] const Platform::Sdl::GlFunctions& Gl() const;
 
     // El contexto va primero: lo que el test cree después (texturas, framebuffers, el renderer) se
     // destruye antes, con el contexto vivo.

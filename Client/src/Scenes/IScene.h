@@ -25,7 +25,7 @@ public:
     // Un paso de la lógica, 25 por segundo (02 § El ritmo).
     virtual void Step(const Input::InputState& input) = 0;
     // El dibujo del frame en `canvas`. alpha en [0, 1), como el de ILoopClient::Render.
-    virtual void Render(SceneCanvas& canvas, float alpha) = 0;
+    virtual void Render(Render::Frame::SceneCanvas& canvas, float alpha) = 0;
     // Lo que el dibujo del original lee al empezar para decidir si dibuja y presenta, aunque después
     // no lo haga: el juego lee el contador de la espera por la tabla de protección (0x6371b7..
     // 0x637229) y con más de 30 devuelve 0. SceneManager la llama una vez por frame: en la primera

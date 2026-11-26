@@ -11,7 +11,7 @@
 // en la lista que lee GDI: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts, y la del
 // usuario en HKCU (las fuentes instaladas sin ser administrador, desde Windows 10 1809). Solo en
 // Windows: en otro sistema no hay lista. La cara es un texto del juego, y no va a ningún mensaje.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // true si el valor `entryName` de la lista es de la cara `face`, la normal o con `bold` la
 // negrita: "<cara> (TrueType)" o "<cara> Bold (TrueType)", también "(OpenType)", y en una
@@ -29,4 +29,4 @@ namespace Client::Platform
 // después en HKCU, con la carpeta Fonts de Windows delante si el valor no trae la ruta entera.
 // std::nullopt si no está, si la cara está vacía o fuera de Windows.
 [[nodiscard]] PLATFORM_API std::optional<std::filesystem::path> FindSystemFontFile(std::string_view face, bool bold);
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

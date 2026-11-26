@@ -7,7 +7,7 @@
 // mundo, en el viewport que dice el original (en el login, 0x620db0(0, 25, 640, 430), 06 § El
 // login, el dibujo). Lo dibuja la CL7, para cualquier mapa; hasta entonces, EmptyWorldView, y donde
 // iría el mundo queda el negro con que empieza el frame (pregunta 3 del plan de la CL5).
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class IWorldView
 {
@@ -25,4 +25,4 @@ class EmptyWorldView final : public IWorldView
 public:
     void Draw(Render::Frame::SceneWorld /*world*/, const Render::Pass3D& /*pass*/, float /*alpha*/) override {}
 };
-} // namespace Client::Scenes
+} // namespace Client::Render::Frame

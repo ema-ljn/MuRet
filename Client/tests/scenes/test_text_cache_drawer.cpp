@@ -16,7 +16,7 @@
 
 #include <string>
 
-// Client::Scenes::TextCacheDrawer: el ITextDrawer de las escenas sobre el TextCache de la CL5.3.
+// Client::Render::Frame::TextCacheDrawer: el ITextDrawer de las escenas sobre el TextCache de la CL5.3.
 // El texto va al lote del frame; si no se puede dibujar, el error va al log una vez y el texto no
 // sale.
 namespace
@@ -26,11 +26,11 @@ using Client::Core::LogLevel;
 using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::TextureSlot;
+using Client::Render::Frame::TextCacheDrawer;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextCache;
 using Client::Render::Text::TextColors;
 using Client::Render::Text::TextStyle;
-using Client::Scenes::TextCacheDrawer;
 using Client::Tests::FakeGlyphRasterizer;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::RecordingSink;

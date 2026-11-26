@@ -9,7 +9,7 @@
 
 #include <string>
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 Core::Expected<Core::LocalTime, std::string> ReadLocalTime()
 {
@@ -21,4 +21,4 @@ Core::Expected<Core::LocalTime, std::string> ReadLocalTime()
         return Core::Unexpected(std::string("SDL_TimeToDateTime: ") + SDL_GetError());
     return Core::LocalTime{.month = local.month, .day = local.day, .hour = local.hour, .minute = local.minute};
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

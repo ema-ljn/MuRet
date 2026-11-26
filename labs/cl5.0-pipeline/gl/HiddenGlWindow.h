@@ -52,9 +52,9 @@ public:
     [[nodiscard]] const LabGl& Gl() const;
 
 private:
-    using SdlPtr = std::unique_ptr<Client::Platform::SdlContext>;
-    using WindowPtr = std::unique_ptr<SDL_Window, Client::Platform::WindowDeleter>;
-    using GlContextPtr = std::unique_ptr<SDL_GLContextState, Client::Platform::GlContextDeleter>;
+    using SdlPtr = std::unique_ptr<Client::Platform::Sdl::SdlContext>;
+    using WindowPtr = std::unique_ptr<SDL_Window, Client::Platform::Sdl::WindowDeleter>;
+    using GlContextPtr = std::unique_ptr<SDL_GLContextState, Client::Platform::Sdl::GlContextDeleter>;
 
     HiddenGlWindow(SdlPtr sdl, WindowPtr window, GlContextPtr context, const LabGl& gl);
 

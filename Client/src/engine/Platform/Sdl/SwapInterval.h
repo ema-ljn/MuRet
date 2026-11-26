@@ -6,12 +6,12 @@
 #include <string>
 
 // El intervalo de swap de la ventana (CL3.1): cómo cada VSyncMode se le pide a SDL.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // Lo que quedó al pedir un VSyncMode.
 struct SwapIntervalResult
 {
-    App::VSyncMode mode = App::VSyncMode::Off;
+    VSyncMode mode = VSyncMode::Off;
     // El SDL_GetError() del primer pedido que falló; vacío si quedó el modo pedido.
     std::string error;
 };
@@ -25,15 +25,15 @@ bool SdlSetSwapInterval(int interval);
 bool SdlGetSwapInterval(int* interval);
 
 // El intervalo que se le pasa a SDL_GL_SetSwapInterval: 1, -1 o 0.
-[[nodiscard]] PLATFORM_API int SwapIntervalFor(App::VSyncMode vsync);
+[[nodiscard]] PLATFORM_API int SwapIntervalFor(VSyncMode vsync);
 
 // "On", "Adaptive" u "Off", para los avisos.
-[[nodiscard]] PLATFORM_API const char* VSyncModeName(App::VSyncMode vsync);
+[[nodiscard]] PLATFORM_API const char* VSyncModeName(VSyncMode vsync);
 
 // Pide el intervalo al contexto actual; si Adaptive falla, prueba con On (lo recomienda la
 // documentación de SDL_GL_SetSwapInterval). Si nada entra, el modo es el que el contexto ya tenía
 // según `get`, u Off si `get` también falla (en Xvfb fallan el 1 y el 0).
-[[nodiscard]] PLATFORM_API SwapIntervalResult ApplySwapInterval(App::VSyncMode wanted,
+[[nodiscard]] PLATFORM_API SwapIntervalResult ApplySwapInterval(VSyncMode wanted,
                                                                 SetSwapIntervalFunction set = SdlSetSwapInterval,
                                                                 GetSwapIntervalFunction get = SdlGetSwapInterval);
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

@@ -15,14 +15,15 @@ namespace Client::Render::Gl
 // glReadPixels escribe 4 bytes por píxel, uno detrás del otro: un Rgba8 tiene que medir eso.
 static_assert(sizeof(Rgba8) == 4);
 
-GlFramebuffer::GlFramebuffer(const Platform::GlFunctions& gl, GlName color, GlName depth, GlName framebuffer, int width,
-                             int height)
+GlFramebuffer::GlFramebuffer(const Platform::Sdl::GlFunctions& gl, GlName color, GlName depth, GlName framebuffer,
+                             int width, int height)
     : m_gl(&gl), m_color(std::move(color)), m_depth(std::move(depth)), m_framebuffer(std::move(framebuffer)),
       m_width(width), m_height(height)
 {
 }
 
-Core::Expected<GlFramebuffer, std::string> GlFramebuffer::Create(const Platform::GlFunctions& gl, int width, int height)
+Core::Expected<GlFramebuffer, std::string> GlFramebuffer::Create(const Platform::Sdl::GlFunctions& gl, int width,
+                                                                 int height)
 {
     if (width <= 0 || height <= 0)
     {

@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::SceneText: el texto de las escenas en main.cpp, con las fuentes del ancho de la
+// Client::Render::Frame::SceneText: el texto de las escenas en main.cpp, con las fuentes del ancho de la
 // pantalla (FontSet.h, FontHeightFor). Con otro ancho, otras fuentes y la caché vacía
 // (TextCache::ChangeRasterizer); si no abren, siguen las de antes y el error va al log una vez.
 namespace
@@ -28,12 +28,12 @@ using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
+using Client::Render::Frame::RasterizerFactory;
+using Client::Render::Frame::SceneText;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::IGlyphRasterizer;
 using Client::Render::Text::TextColors;
 using Client::Render::Text::TextStyle;
-using Client::Scenes::RasterizerFactory;
-using Client::Scenes::SceneText;
 using Client::Tests::FakeGlyphRasterizer;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::RecordingSink;

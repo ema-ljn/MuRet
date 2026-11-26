@@ -117,7 +117,7 @@ Core::Expected<void, std::string> LoadingScene::LoadModels()
     return m_models->Load(m_context.dataRoot, m_context.textures, m_context.log);
 }
 
-void LoadingScene::Render(SceneCanvas& canvas, float /*alpha*/)
+void LoadingScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
 {
     canvas.sprites.SetBlend(Render::BlendMode::Alpha);
     for (const LoadingImage& image : Images)

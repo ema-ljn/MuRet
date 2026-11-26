@@ -380,7 +380,8 @@ InventoryServices GameScene::InventoryContext()
     return services;
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)
+Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::SceneCanvas& canvas,
+                                                              const GameProjection* projection)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;

@@ -23,9 +23,12 @@ class SpriteBatch;
 // la proyección (0x6205b0) y el dibujo de cada uno (0x555b00 con TextOut distinto de 1, 0x553e50 y 0x554000). Nada de
 // esto saca rand(). Escribe en cada entrada dónde quedó y cuánto mide (+0x278..+0x284), que lee el clic derecho del
 // paso (0x557650).
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ITextDrawer;
+} // namespace Client::Render::Frame
+namespace Client::Scenes
+{
 class WorldState;
 struct ChatBubble;
 struct GameProjection;
@@ -46,7 +49,7 @@ struct ChatBubbleDrawContext
     // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, un globo vivo corta.
     const GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
-    ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     // El SelectObject de 0x5a9050 (la normal) y los de la tienda de 0x555b00 (la negrita y la normal).
     Render::Text::FontKind& dcFont;
     // 0x6c8e5c y 0x6c8e64: quedan los del último renglón.

@@ -23,7 +23,8 @@ struct TextExtent
 };
 
 // GetTextExtentPointA sobre el DC de los textos (0x57634f4): lo que piden también el paso y los paquetes, como el área
-// de mensajes al agregar un renglón (0x555190). Lo cumplen el rasterizador y el que dibuja (Scenes::ITextDrawer).
+// de mensajes al agregar un renglón (0x555190). Lo cumplen el rasterizador y el que dibuja
+// (Render::Frame::ITextDrawer).
 class ITextMeasure
 {
 public:

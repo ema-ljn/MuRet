@@ -77,7 +77,7 @@ struct GameHudContext
     // corta.
     const GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
-    ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     // Text.bmd, Item.bmd y Skill.bmd; sin alguna, lo que la lee corta con error.
     const Data::Text::TextTable* texts = nullptr;
     const Data::Tables::ItemTable* items = nullptr;

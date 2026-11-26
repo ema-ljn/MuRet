@@ -95,16 +95,16 @@ public:
     void DrawBase(Render::SpriteBatch& sprites, Core::PixelSize screen) const;
     // 0x63e0a0 después de la vista previa: el fondo del nombre, la caja de los atributos y la franja,
     // los siete botones, los atributos, la descripción y el campo.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     void Place(Core::PixelSize screen);
     void Choose(std::uint8_t characterClass);
     void TypeInto(const Input::InputState& input);
     void CopyTheName();
-    void DrawAttributes(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
-    void DrawDescription(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
-    void DrawTheName(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
+    void DrawAttributes(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
+    void DrawDescription(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
+    void DrawTheName(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

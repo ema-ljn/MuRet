@@ -388,7 +388,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
     return std::nullopt;
 }
 
-void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
+void ServerListWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -402,7 +402,7 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
     DrawGroupTwentyTexts(text, lastLabel);
 }
 
-void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
                                              Core::PixelSize screen) const
 {
     // 1: la caja, abierta con un grupo elegido (0x645ba0).
@@ -441,7 +441,7 @@ void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Scene
     }
 }
 
-std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
                                             Core::PixelSize screen, std::uint32_t textColor) const
 {
     // 3: los botones con sus rótulos (0x66a090), primero los de grupo, y después las barras.
@@ -475,7 +475,7 @@ std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Scenes
     return textColor;
 }
 
-void ServerListWindow::DrawGroupTwentyTexts(Scenes::ITextDrawer& text, std::uint32_t color) const
+void ServerListWindow::DrawGroupTwentyTexts(Render::Frame::ITextDrawer& text, std::uint32_t color) const
 {
     // 4: con el grupo 20, sus tres textos, con el color del último rótulo (Q-C83). Uno vacío no
     // deja nada en la pantalla, como en las otras ventanas.

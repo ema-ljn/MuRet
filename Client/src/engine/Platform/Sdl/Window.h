@@ -16,7 +16,7 @@
 // La ventana del cliente con su contexto OpenGL 3.3 core (CL3.1, lo que en la CL0.3 era
 // CreateGlWindow en main.cpp). El contexto es un recurso que vive dentro de la ventana: se crea
 // después y se destruye antes.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // La ventana no cambia de tamaño, como la del original: su tamaño es una resolución que valga
 // (App/Resolution.h), y main.cpp la mira antes de crearla.
@@ -26,7 +26,7 @@ struct WindowOptions
     int width = 640;
     int height = 480;
     std::string title = "MuRet";
-    App::VSyncMode vsync = App::VSyncMode::On;
+    VSyncMode vsync = VSyncMode::On;
 };
 
 struct PLATFORM_API WindowDeleter
@@ -61,7 +61,7 @@ public:
     // El SDL_WindowID, para que PumpEvents descarte los eventos de otras ventanas.
     [[nodiscard]] SDL_WindowID Id() const;
     // El que quedó después de ApplySwapInterval.
-    [[nodiscard]] App::VSyncMode VSync() const;
+    [[nodiscard]] VSyncMode VSync() const;
     // Por qué no quedó el pedido (el SDL_GetError()); vacío si quedó.
     [[nodiscard]] const std::string& VSyncError() const;
     // La tabla de funciones de GL del contexto de esta ventana.
@@ -92,4 +92,4 @@ private:
     GlFunctions m_gl;
     SwapIntervalResult m_vsync;
 };
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

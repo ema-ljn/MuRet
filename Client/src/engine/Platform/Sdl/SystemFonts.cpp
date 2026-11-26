@@ -22,7 +22,7 @@
 #include <vector>
 #endif
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -214,4 +214,4 @@ std::optional<std::filesystem::path> FindSystemFontFile(std::string_view /*face*
     return std::nullopt;
 }
 #endif
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

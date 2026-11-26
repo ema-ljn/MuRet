@@ -84,7 +84,7 @@ void WorldLoadingScene::Step(const Input::InputState& /*input*/)
     m_done = m_drawn;
 }
 
-void WorldLoadingScene::Render(SceneCanvas& canvas, float /*alpha*/)
+void WorldLoadingScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
 {
     canvas.sprites.SetBlend(Render::BlendMode::Alpha);
     for (const Tile& tile : Tiles)

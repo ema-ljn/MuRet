@@ -19,7 +19,7 @@
 // texto no se puede dibujar (la tabla no subió una caja, no entra en los slots, o para hacerle
 // lugar habría que sacar uno que ya está en el lote), el texto no sale y el error va al log una
 // vez: el mismo texto se pide en cada frame. Ningún mensaje lleva el texto.
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ENGINE_API TextCacheDrawer final : public ITextDrawer
 {
@@ -46,4 +46,4 @@ private:
     // Los errores que ya fueron al log.
     std::set<std::string> m_logged;
 };
-} // namespace Client::Scenes
+} // namespace Client::Render::Frame

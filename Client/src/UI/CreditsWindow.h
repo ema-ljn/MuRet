@@ -73,7 +73,7 @@ public:
     // El botón (0x63c490) y, con el foco, 0x63f630 con los `elapsedMs` del paso.
     CreditsStep Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs, NewUiTurn turn = {});
     // 0x66a050 y 0x63f6b0.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
     [[nodiscard]] const Button& CloseButton() const;
     // +0x5b8, +0x5c8 y el alfa de las dos ilustraciones (+0xa0 y +0x148).
@@ -100,7 +100,7 @@ private:
     void StepRow(std::size_t row, double elapsedMs, CreditsStep& step);
     void StepIllustration(double elapsedMs, CreditsStep& step);
     [[nodiscard]] std::uint8_t KindAt(std::size_t index) const;
-    void DrawTexts(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
+    void DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
     std::span<const Data::Text::CreditEntry> m_credits;

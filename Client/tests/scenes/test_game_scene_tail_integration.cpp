@@ -392,7 +392,7 @@ TEST_F(GameSceneTailIntegrationTest, HeldGameLoopFramePublishesThePulseBeforeThe
     frame.clock.Advance(std::chrono::milliseconds{1000});
     Client::Input::InputState input;
     Client::App::GameLoop loop(frame.clock, *manager, Client::App::PacingMode::Decoupled, 0);
-    EXPECT_EQ(loop.RunFrame(Client::App::WindowState{}, input), 0);
+    EXPECT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 0);
     EXPECT_EQ(frame.target.frames.size(), frames);
     EXPECT_TRUE(manager->HoldsTheLastFrame());
     EXPECT_FALSE(manager->Failure());
@@ -411,7 +411,7 @@ TEST_F(GameSceneTailIntegrationTest, ADisabledWorldPublishesWithoutReadingTheWar
     const auto random = frame.cloth.random.State();
     Client::Input::InputState input;
     Client::App::GameLoop loop(frame.clock, *manager, Client::App::PacingMode::Decoupled, 0);
-    EXPECT_EQ(loop.RunFrame(Client::App::WindowState{}, input), 0);
+    EXPECT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 0);
     EXPECT_TRUE(manager->HoldsTheLastFrame());
     EXPECT_EQ(frame.target.frames.size(), frames);
     EXPECT_EQ(frame.cloth.random.State(), random);
@@ -426,7 +426,7 @@ TEST_F(GameSceneTailIntegrationTest, TheOrchestratorPublishesDuringTheRealWorldL
     frame.clock.Advance(std::chrono::milliseconds{1000});
     Client::Input::InputState input;
     Client::App::GameLoop loop(frame.clock, *manager, Client::App::PacingMode::Decoupled, 0);
-    EXPECT_EQ(loop.RunFrame(Client::App::WindowState{}, input), 0);
+    EXPECT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 0);
     ASSERT_EQ(frame.target.frames.size(), 1u);
     EXPECT_TRUE(frame.target.frames[0].presented);
     EXPECT_EQ(frame.target.frames[0].events.size(), 4u);

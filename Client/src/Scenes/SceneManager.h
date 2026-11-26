@@ -51,14 +51,14 @@ public:
     // escena y antes de Present, con su lienzo: lo que 0x637700 hace en todas las escenas alrededor del dibujo (la
     // captura de pantalla, 0x6381bb..0x63835a y 0x638586..0x6385da). Sus errores quedan en Failure y el frame no se
     // presenta. La fábrica, el frame, el reloj y el log viven más.
-    SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
+    SceneManager(SceneFactory factory, Render::Frame::IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                  std::function<std::optional<SceneId>()> takeSceneOrder = {},
                  std::function<void(Core::Duration)> beforeSceneFrame = {},
                  std::function<void(Core::Duration)> afterSceneFrame = {},
                  std::function<Core::Expected<void, std::string>()> afterSceneStep = {},
                  std::function<Core::Expected<void, std::string>()> beforeSceneDraw = {},
-                 std::function<Core::Expected<void, std::string>(SceneCanvas&)> afterSceneDraw = {});
+                 std::function<Core::Expected<void, std::string>(Render::Frame::SceneCanvas&)> afterSceneDraw = {});
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -118,7 +118,7 @@ private:
     bool TakeTheDrawFailure(const Core::Expected<void, std::string>& done);
 
     SceneFactory m_factory;
-    IFrameTarget& m_frame;
+    Render::Frame::IFrameTarget& m_frame;
     Core::IClock& m_clock;
     std::function<Core::Expected<void, std::string>()> m_pollNetwork;
     Core::Log& m_log;
@@ -131,7 +131,7 @@ private:
     std::function<Core::Expected<void, std::string>()> m_afterSceneStep;
     // Lo de 0x637700 antes y después del dibujo de cualquier escena.
     std::function<Core::Expected<void, std::string>()> m_beforeSceneDraw;
-    std::function<Core::Expected<void, std::string>(SceneCanvas&)> m_afterSceneDraw;
+    std::function<Core::Expected<void, std::string>(Render::Frame::SceneCanvas&)> m_afterSceneDraw;
     // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
     std::optional<SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;

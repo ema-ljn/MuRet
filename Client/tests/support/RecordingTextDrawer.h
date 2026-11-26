@@ -46,7 +46,7 @@ struct RecordedText
     int columns = 0;
 };
 
-class RecordingTextDrawer final : public Scenes::ITextDrawer
+class RecordingTextDrawer final : public Render::Frame::ITextDrawer
 {
 public:
     static constexpr int LetterWidth = 6;

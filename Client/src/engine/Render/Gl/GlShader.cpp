@@ -14,7 +14,7 @@ namespace Client::Render::Gl
 namespace
 {
 // El largo de GL_INFO_LOG_LENGTH cuenta el NUL del final; el texto es lo que dice `written`.
-std::string ShaderLog(const Platform::GlFunctions& gl, GLuint shader)
+std::string ShaderLog(const Platform::Sdl::GlFunctions& gl, GLuint shader)
 {
     GLint length = 0;
     gl.getShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
@@ -29,7 +29,7 @@ std::string ShaderLog(const Platform::GlFunctions& gl, GLuint shader)
     return log;
 }
 
-std::string ProgramLog(const Platform::GlFunctions& gl, GLuint program)
+std::string ProgramLog(const Platform::Sdl::GlFunctions& gl, GLuint program)
 {
     GLint length = 0;
     gl.getProgramiv(program, GL_INFO_LOG_LENGTH, &length);
@@ -44,7 +44,7 @@ std::string ProgramLog(const Platform::GlFunctions& gl, GLuint program)
     return log;
 }
 
-Core::Expected<GlName, std::string> Compile(const Platform::GlFunctions& gl, GLenum type, std::string_view kind,
+Core::Expected<GlName, std::string> Compile(const Platform::Sdl::GlFunctions& gl, GLenum type, std::string_view kind,
                                             std::string_view source)
 {
     GlName shader = CreateShader(gl, type);
@@ -65,7 +65,8 @@ Core::Expected<GlName, std::string> Compile(const Platform::GlFunctions& gl, GLe
     return shader;
 }
 
-Core::Expected<GlName, std::string> Link(const Platform::GlFunctions& gl, const GlName& vertex, const GlName& fragment)
+Core::Expected<GlName, std::string> Link(const Platform::Sdl::GlFunctions& gl, const GlName& vertex,
+                                         const GlName& fragment)
 {
     GlName program = CreateProgram(gl);
     if (program.Get() == 0)
@@ -85,10 +86,10 @@ Core::Expected<GlName, std::string> Link(const Platform::GlFunctions& gl, const 
 }
 } // namespace
 
-GlShader::GlShader(const Platform::GlFunctions& gl, GlName program) : m_gl(&gl), m_program(std::move(program)) {}
+GlShader::GlShader(const Platform::Sdl::GlFunctions& gl, GlName program) : m_gl(&gl), m_program(std::move(program)) {}
 
-Core::Expected<GlShader, std::string> GlShader::Create(const Platform::GlFunctions& gl, std::string_view vertexSource,
-                                                       std::string_view fragmentSource)
+Core::Expected<GlShader, std::string> GlShader::Create(const Platform::Sdl::GlFunctions& gl,
+                                                       std::string_view vertexSource, std::string_view fragmentSource)
 {
     const Core::Expected<GlName, std::string> vertex = Compile(gl, GL_VERTEX_SHADER, "vertex shader", vertexSource);
     if (!vertex.HasValue())

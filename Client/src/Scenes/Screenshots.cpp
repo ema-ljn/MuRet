@@ -125,7 +125,8 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
     return {};
 }
 
-Core::Expected<void, std::string> Screenshots::AfterTheDraw(const ScreenshotFrameContext& context, SceneCanvas& canvas,
+Core::Expected<void, std::string> Screenshots::AfterTheDraw(const ScreenshotFrameContext& context,
+                                                            Render::Frame::SceneCanvas& canvas,
                                                             Render::Frame::IScreenReader& reader)
 {
     if (!m_state.requested || !m_pending)

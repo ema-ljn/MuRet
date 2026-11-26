@@ -56,7 +56,7 @@ public:
     }
 };
 // Spy limitado al sink de depthMask: registra argumentos y sigue al GL real del contexto.
-const Client::Platform::GlFunctions* s_depthForward = nullptr;
+const Client::Platform::Sdl::GlFunctions* s_depthForward = nullptr;
 std::vector<GLboolean> s_depthCalls;
 void GLAPIENTRY RecordDepthMask(GLboolean value)
 {
@@ -64,7 +64,7 @@ void GLAPIENTRY RecordDepthMask(GLboolean value)
     s_depthForward->depthMask(value);
 }
 
-const Client::Platform::GlFunctions* s_stateForward = nullptr;
+const Client::Platform::Sdl::GlFunctions* s_stateForward = nullptr;
 std::vector<std::pair<GLint, GLint>> s_uniformCalls;
 int s_drawCalls = 0;
 void GLAPIENTRY RecordUniform(GLint location, GLint value)
@@ -85,7 +85,7 @@ protected:
     {
         PFNGLGETUNIFORMIVPROC read = nullptr;
         std::string error;
-        if (!Client::Platform::LoadGlFunction(read, "glGetUniformiv", error))
+        if (!Client::Platform::Sdl::LoadGlFunction(read, "glGetUniformiv", error))
             return std::nullopt;
         GLint program = 0;
         Gl().getIntegerv(GL_CURRENT_PROGRAM, &program);

@@ -20,19 +20,17 @@ namespace Client::Render
 {
 namespace
 {
-// El 640 × 480 del original.
 constexpr int OriginalWidth = 640;
 constexpr int OriginalHeight = 480;
 
-// 0x6b8c00: el far que llega a gluPerspective.
+// 0x6b8c00: scales the far that reaches gluPerspective.
 constexpr float FarScale = 1.4f;
 
-// Los ejes de los tres glRotatef.
 constexpr glm::vec3 XAxis{1.0f, 0.0f, 0.0f};
 constexpr glm::vec3 YAxis{0.0f, 1.0f, 0.0f};
 constexpr glm::vec3 ZAxis{0.0f, 0.0f, 1.0f};
 
-// 0x620db0: el rectángulo escalado en enteros y la y de GL desde abajo (0x620d10).
+// 0x620db0: the rectangle scaled in integers and GL's y from the bottom (0x620d10).
 glm::ivec4 ScaledViewport(Core::PixelSize screen, const ViewportRect& rect)
 {
     const int x = rect.x * screen.width / OriginalWidth;
@@ -42,8 +40,7 @@ glm::ivec4 ScaledViewport(Core::PixelSize screen, const ViewportRect& rect)
     return {x, screen.height - y - height, width, height};
 }
 
-// glRotatef en Y, en X si va, en Z, y glTranslatef(−posición): cada uno multiplica a la derecha,
-// como en la pila de GL.
+// glRotatef in Y, in X if needed, in Z, and glTranslatef(−position): each multiplies on the right, as on GL's stack.
 glm::mat4 CameraView(const Camera3D& camera)
 {
     glm::mat4 view = Math::RoundedRotate(glm::mat4(1.0f), glm::radians(camera.angles.y), YAxis);
@@ -69,11 +66,10 @@ Pass3D MakePass3D(Core::PixelSize screen, const ViewportRect& rect, const Camera
     return pass;
 }
 
-// 0x620480 arma el punto (dx · tx · d, −dy · ty · d, −d) en la cámara, con d el far de la cámara y
-// las tangentes de 0x6203c0, y lo lleva al mundo con la inversa de la vista. Acá dx y dy son las del
-// píxel en el viewport, de −1 a 1, y las tangentes salen de la perspectiva misma; la vertical, por
-// el alto de la pantalla sobre el del viewport, como la arma 0x6203c0 (Q-C109): el rayo no pasa por
-// el píxel en y salvo en la fila del centro.
+// 0x620480 builds the point (dx · tx · d, −dy · ty · d, −d) in camera space, with d the camera's far and 0x6203c0's
+// tangents, and takes it to the world with the inverse view. Here dx and dy are the pixel's in the viewport, −1 to 1,
+// and the tangents come from the perspective itself; the vertical one times screen height over viewport height, as
+// 0x6203c0 builds it (Q-C109): the ray misses the pixel in y except on the center row.
 std::pair<glm::vec3, glm::vec3> Pass3D::RayThrough(float x, float y) const
 {
     const float glY = static_cast<float>(screen.height) - y;

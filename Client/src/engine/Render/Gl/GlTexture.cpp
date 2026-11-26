@@ -20,22 +20,21 @@ using Data::Textures::PixelFormat;
 using Data::Textures::Texture;
 using Data::Textures::Wrap;
 
-// Sin mipmaps no hay otro filtro de lejos que GL_NEAREST o GL_LINEAR: con el
-// GL_NEAREST_MIPMAP_LINEAR que GL trae por defecto, la textura no estaría completa y se leería
-// negra.
+// Without mipmaps the min filter can only be GL_NEAREST or GL_LINEAR: with GL's default GL_NEAREST_MIPMAP_LINEAR the
+// texture would be incomplete and read as black.
 GLint GlFilter(Filter filter)
 {
     return static_cast<GLint>(filter == Filter::Linear ? GL_LINEAR : GL_NEAREST);
 }
 
-// El original pide GL_CLAMP (0x2900), que el perfil core no tiene (glTexParameteri daría
-// GL_INVALID_ENUM): va GL_CLAMP_TO_EDGE, y la diferencia en el borde con GL_LINEAR está en Q-C73.
+// The original asks for GL_CLAMP (0x2900), which the core profile lacks (glTexParameteri would give GL_INVALID_ENUM):
+// GL_CLAMP_TO_EDGE instead; the edge difference with GL_LINEAR is in Q-C73.
 GLint GlWrap(Wrap wrap)
 {
     return static_cast<GLint>(wrap == Wrap::Repeat ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 }
 
-// El formato con que sube el original cada uno, con el tamaño de 8 bits por canal fijo.
+// The format the original uploads each one with, with a fixed size of 8 bits per channel.
 GLint InternalFormat(PixelFormat format)
 {
     return static_cast<GLint>(format == PixelFormat::Rgb ? GL_RGB8 : GL_RGBA8);
@@ -46,12 +45,11 @@ GLenum PixelLayout(PixelFormat format)
     return format == PixelFormat::Rgb ? GL_RGB : GL_RGBA;
 }
 
-// Cuántas veces se llama a glGetError para vaciar los errores. GL puede tener varios guardados
-// (uno por bandera, y glGetError da uno por llamada); el tope es por si un driver no deja de dar
-// errores, para no quedarse en un bucle.
+// GL can hold several errors (one per flag, and glGetError returns one per call); the cap avoids an endless loop if a
+// driver never stops returning errors.
 constexpr int MaxPendingErrors = 16;
 
-// Saca los errores que tiene GL y da el primero, o GL_NO_ERROR si no había ninguno.
+// Drains GL's errors and returns the first, or GL_NO_ERROR if there were none.
 GLenum TakeErrors(const Platform::Sdl::GlFunctions& gl)
 {
     GLenum first = GL_NO_ERROR;
@@ -70,7 +68,7 @@ GLenum TakeErrors(const Platform::Sdl::GlFunctions& gl)
     return first;
 }
 
-// El nombre de un error de glGetError con su número, para el mensaje: "GL_INVALID_VALUE (0x501)".
+// For the message: "GL_INVALID_VALUE (0x501)".
 std::string ErrorText(GLenum error)
 {
     const char* name = nullptr;
@@ -102,7 +100,7 @@ std::string SizeText(const Texture& texture)
     return std::to_string(texture.textureWidth) + " × " + std::to_string(texture.textureHeight);
 }
 
-// Vacío si `texture` se puede subir: lados de 1 o más y los píxeles del buffer entero.
+// Empty if `texture` can be uploaded: sides of 1 or more and the whole buffer's pixels.
 std::string CheckBuffer(const Texture& texture)
 {
     if (texture.textureWidth <= 0 || texture.textureHeight <= 0)
@@ -132,8 +130,8 @@ Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::Sdl::Gl
         return Core::Unexpected(std::move(bufferError));
     }
 
-    // glGetError no dice qué llamada dejó un error: uno que ya estaba es de otra, y no se le echa
-    // la culpa a esta subida (AUD-C03 de la auditoría del 2026-11-03).
+    // glGetError does not say which call left an error: one already pending belongs to another call and is not blamed
+    // on this upload (AUD-C03).
     if (const GLenum previous = TakeErrors(gl); previous != GL_NO_ERROR)
     {
         return Core::Unexpected("antes de subir la textura de " + SizeText(texture) +
@@ -148,16 +146,15 @@ Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::Sdl::Gl
     gl.texImage2D(GL_TEXTURE_2D, 0, InternalFormat(texture.format), texture.textureWidth, texture.textureHeight, 0,
                   PixelLayout(texture.format), GL_UNSIGNED_BYTE, texture.pixels.data());
     gl.pixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
-    // Como el original: el filtro va de cerca y de lejos, y el wrap en los dos ejes.
+    // Like the original: the filter for both mag and min, the wrap on both axes.
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GlFilter(sampling.filter));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GlFilter(sampling.filter));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GlWrap(sampling.wrap));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GlWrap(sampling.wrap));
 
-    // Lo que GL marcó desde el chequeo de arriba es de esta subida: el glTexImage2D o, con
-    // GL_OUT_OF_MEMORY, cualquier otra de las llamadas. Se lee después de la última, así no queda
-    // nada para la llamada siguiente. El GlName borra el nombre al salir: GL desata lo que se
-    // borra, y GL_TEXTURE_2D queda en 0.
+    // Errors since the check above belong to this upload: the glTexImage2D or, with GL_OUT_OF_MEMORY, any of the calls.
+    // Read after the last call so nothing is left for the next one. The GlName deletes the name on exit: GL unbinds
+    // what is deleted, and GL_TEXTURE_2D is left at 0.
     if (const GLenum uploadError = TakeErrors(gl); uploadError != GL_NO_ERROR)
     {
         return Core::Unexpected("GL no aceptó la textura de " + SizeText(texture) + ": " + ErrorText(uploadError));

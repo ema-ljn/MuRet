@@ -7,7 +7,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
 
-// Define las macros FT_*_H de abajo: include-cleaner no ve ese uso.
+// Defines the FT_*_H macros below: include-cleaner does not see that use.
 #include <ft2build.h> // IWYU pragma: keep
 
 #include FT_FREETYPE_H
@@ -40,14 +40,14 @@ namespace
 {
 using Core::Unexpected;
 
-// El tamaño más grande de fuente que se lee. No sale del original: una TTF de Latin-1 pesa cientos
-// de KiB y una colección CJK unas decenas de MiB; con el tope, un dispositivo no se lee entero.
+// The largest font file read. Not from the original: a Latin-1 TTF weighs hundreds of KiB and a CJK collection a few
+// tens of MiB; the cap keeps a device from being read whole.
 constexpr std::uintmax_t MaxFontFileBytes = 64 * 1024 * 1024;
 
-// El hinting para un bit, sin los bitmaps de la fuente (FreeTypeRasterizer.h).
+// One-bit hinting, without the font's bitmaps (FreeTypeRasterizer.h).
 constexpr FT_Int32 LoadFlags = static_cast<FT_Int32>(FT_LOAD_TARGET_MONO | FT_LOAD_NO_BITMAP);
 
-// Un píxel en 26.6, el ensanche de la negrita simulada.
+// One pixel in 26.6, the synthetic bold's widening.
 constexpr FT_Pos OnePixel = 64;
 
 struct LibraryDeleter
@@ -71,12 +71,12 @@ using FaceHandle = std::unique_ptr<FT_FaceRec_, FaceDeleter>;
 
 std::string FreeTypeError(FT_Error error)
 {
-    // El puerto de vcpkg no trae los textos de los errores (la feature error-strings): el número.
+    // vcpkg's port lacks the error texts (the error-strings feature): the number.
     return std::format("error {:#04x} de FreeType", static_cast<unsigned>(error));
 }
 
-// Los bytes del archivo, que FreeType lee desde la memoria: así una ruta con letras que no son
-// ASCII abre igual en Windows, donde FT_New_Face pide la ruta en la página de códigos ANSI.
+// The file's bytes, which FreeType reads from memory: so a path with non-ASCII letters opens on Windows too, where
+// FT_New_Face wants the path in the ANSI code page.
 Core::Expected<std::vector<FT_Byte>, std::string> ReadFontFile(const std::filesystem::path& path)
 {
     const std::string name = Core::PathText(path);
@@ -113,9 +113,9 @@ Core::Expected<std::vector<FT_Byte>, std::string> ReadFontFile(const std::filesy
     return bytes;
 }
 
-// La celda de GDI con un alto positivo: el ascenso y el descenso de Windows de la tabla OS/2
-// (usWinAscent y usWinDescent), que en las fuentes de los runners son los mismos de la hhea
-// (*inferido*: lo dice la documentación de LOGFONT y de la OS/2). Sin OS/2, los de la hhea.
+// The GDI cell with a positive height: the Windows ascent and descent of the OS/2 table (usWinAscent and
+// usWinDescent), which in the runners' fonts match the hhea ones (*inferred*: from the LOGFONT and OS/2 docs). Without
+// OS/2, the hhea ones.
 struct CellMetrics
 {
     FT_Long ascent = 0;
@@ -132,23 +132,22 @@ CellMetrics CellOf(FT_Face face)
     return {static_cast<FT_Long>(face->ascender), -static_cast<FT_Long>(face->descender)};
 }
 
-// Una de las cuatro fuentes, abierta.
 struct Font
 {
     FaceHandle face;
-    // El alto de la celda y dónde cae la línea de base desde arriba, en píxeles.
+    // In pixels; the baseline is measured from the top.
     int height = 0;
     int baseline = 0;
     bool syntheticBold = false;
-    // El avance de cada byte, en píxeles, con el hinting: el que suma GetTextExtentPointA.
+    // Each byte's hinted advance in pixels: what GetTextExtentPointA adds up.
     std::array<int, 256> advances{};
 };
 } // namespace
 
 struct FreeTypeRasterizer::State
 {
-    // En este orden: los bytes viven más que las caras, y las caras se cierran antes que la
-    // biblioteca (los miembros se destruyen al revés).
+    // In this order: the bytes outlive the faces, and the faces close before the library (members are destroyed in
+    // reverse).
     std::vector<FT_Byte> regularBytes;
     std::vector<FT_Byte> boldBytes;
     LibraryHandle library;
@@ -157,8 +156,7 @@ struct FreeTypeRasterizer::State
 
 namespace
 {
-// Carga el glifo que corresponde al byte Windows-1252, con la negrita simulada si corresponde.
-// Devuelve el error de FreeType, o 0.
+// The glyph for the Windows-1252 byte, with the synthetic bold if needed. Returns FreeType's error, or 0.
 FT_Error LoadGlyph(const Font& font, unsigned char byte)
 {
     const FT_ULong codePoint = static_cast<FT_ULong>(Core::Windows1252CodePoint(byte));
@@ -170,10 +168,9 @@ FT_Error LoadGlyph(const Font& font, unsigned char byte)
     FT_GlyphSlot slot = font.face->glyph;
     if (font.syntheticBold && slot->format == FT_GLYPH_FORMAT_OUTLINE)
     {
-        // Ensancha el contorno un píxel hacia la derecha (el borde izquierdo queda donde estaba).
-        // Un contorno sin área (el guion bajo de algunas fuentes, que el hinting deja en una línea)
-        // no tiene sentido de giro, y FT_Outline_EmboldenXY lo rechaza: no hay qué ensanchar, y la
-        // letra queda como está, con su píxel de avance.
+        // Widens the outline one pixel to the right (the left edge stays). An outline without area (some fonts'
+        // underscore, which hinting flattens to a line) has no orientation and FT_Outline_EmboldenXY rejects it: the
+        // letter stays as is, with its advance pixel.
         if (FT_Outline_Get_Orientation(&slot->outline) != FT_ORIENTATION_NONE)
         {
             const FT_Error embolden = FT_Outline_EmboldenXY(&slot->outline, OnePixel, 0);
@@ -192,8 +189,8 @@ int AdvanceInPixels(FT_GlyphSlot slot)
     return static_cast<int>((slot->advance.x + OnePixel / 2) / OnePixel);
 }
 
-// La cara de una fuente al alto de su celda, con los avances de los 256 bytes. Error si un glifo no
-// carga o si la fuente no da letras de un bit.
+// The font's face at its cell height, with the advances of the 256 bytes. Error if a glyph does not load or the font
+// gives no one-bit letters.
 Core::Expected<void, std::string> SetUp(Font& font, int height, bool syntheticBold, const std::string& name)
 {
     font.height = height;
@@ -211,8 +208,8 @@ Core::Expected<void, std::string> SetUp(Font& font, int height, bool syntheticBo
     {
         return Unexpected(std::format("la fuente {} no dice el alto de su celda", name));
     }
-    // FT_SIZE_REQUEST_TYPE_SCALES: unidades de la fuente a píxeles en 26.6, en 16.16. La celda
-    // (ascenso más descenso) mide `height` píxeles, como en CreateFontA con un alto positivo.
+    // FT_SIZE_REQUEST_TYPE_SCALES: font units to 26.6 pixels, in 16.16. The cell (ascent plus descent) is `height`
+    // pixels, as in CreateFontA with a positive height.
     const FT_Fixed scale = FT_DivFix(static_cast<FT_Long>(height) * OnePixel, cellUnits);
     FT_Size_RequestRec request{};
     request.type = FT_SIZE_REQUEST_TYPE_SCALES;
@@ -237,7 +234,7 @@ Core::Expected<void, std::string> SetUp(Font& font, int height, bool syntheticBo
         font.advances[byte] = AdvanceInPixels(font.face->glyph);
     }
 
-    // Un glifo de prueba tiene que salir en un bit.
+    // A test glyph must come out in one bit.
     error = LoadGlyph(font, static_cast<unsigned char>('A'));
     if (error == 0)
     {
@@ -254,8 +251,8 @@ Core::Expected<void, std::string> SetUp(Font& font, int height, bool syntheticBo
     return {};
 }
 
-// La primera cara del archivo (la 0, también en una colección TTC). Los bytes tienen que vivir
-// lo que ella (FT_New_Memory_Face no los copia).
+// The file's first face (0, also in a TTC collection). The bytes must outlive it (FT_New_Memory_Face does not copy
+// them).
 Core::Expected<FaceHandle, std::string> OpenFace(FT_Library library, const std::vector<FT_Byte>& bytes,
                                                  const std::string& name)
 {
@@ -268,8 +265,8 @@ Core::Expected<FaceHandle, std::string> OpenFace(FT_Library library, const std::
     return FaceHandle(face);
 }
 
-// Las filas de un bitmap de arriba hacia abajo: con pitch negativo, buffer es la fila de abajo
-// (ftimage.h) y para bajar una fila se suma pitch igual.
+// Bitmap rows top to bottom: with a negative pitch, buffer is the bottom row (ftimage.h) and adding pitch still goes
+// down a row.
 const unsigned char* TopRow(const FT_Bitmap& bitmap)
 {
     if (bitmap.pitch >= 0 || bitmap.rows == 0)
@@ -279,8 +276,8 @@ const unsigned char* TopRow(const FT_Bitmap& bitmap)
     return bitmap.buffer + static_cast<std::ptrdiff_t>(bitmap.rows - 1) * -static_cast<std::ptrdiff_t>(bitmap.pitch);
 }
 
-// Copia un glifo de un bit a la tinta, con su esquina en (left, top); lo que cae afuera se pierde,
-// como TextOutA en el borde del DIB.
+// Copies a one-bit glyph to the ink with its corner at (left, top); what falls outside is lost, like TextOutA at the
+// DIB's edge.
 void CopyGlyph(const FT_Bitmap& bitmap, int left, int top, InkMask ink)
 {
     const unsigned char* row = TopRow(bitmap);
@@ -298,7 +295,7 @@ void CopyGlyph(const FT_Bitmap& bitmap, int left, int top, InkMask ink)
             {
                 continue;
             }
-            // FT_PIXEL_MODE_MONO: un bit por píxel, el de más a la izquierda en el bit alto.
+            // FT_PIXEL_MODE_MONO: one bit per pixel, the leftmost in the high bit.
             const bool set = (row[x / 8] & (0x80u >> (x % 8))) != 0;
             if (set)
             {
@@ -345,7 +342,7 @@ FreeTypeRasterizer::Open(const std::filesystem::path& regular, const std::option
     }
     state->library.reset(library);
 
-    // El intérprete v35 (FreeTypeRasterizer.h), antes de abrir las caras.
+    // The v35 interpreter (FreeTypeRasterizer.h), before opening the faces.
     FT_UInt interpreter = TT_INTERPRETER_VERSION_35;
     error = FT_Property_Set(library, "truetype", "interpreter-version", &interpreter);
     if (error != 0)
@@ -393,8 +390,8 @@ void FreeTypeRasterizer::DrawInk(FontKind font, std::string_view text, int first
     for (const char letter : text)
     {
         const auto byte = static_cast<unsigned char>(letter);
-        // Un glifo que no carga o no dibuja (Open ya los cargó a todos) queda sin tinta, y el texto
-        // sigue con su avance, como lo mide Measure.
+        // A glyph that does not load or render (Open already loaded them all) gets no ink, and the text goes on with
+        // its advance, as Measure measures it.
         const FT_GlyphSlot slot = face.face->glyph;
         if (LoadGlyph(face, byte) == 0 && FT_Render_Glyph(slot, FT_RENDER_MODE_MONO) == 0 &&
             slot->bitmap.pixel_mode == FT_PIXEL_MODE_MONO)

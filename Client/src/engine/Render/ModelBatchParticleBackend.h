@@ -25,12 +25,10 @@ class ModelBatch;
 enum class ModelCoordinateSpace : std::uint8_t;
 enum class ModelStateOperation : std::uint8_t;
 
-// Adapter CPU→ModelBatch→GlModelRenderer existente, sin renderer alternativo ni metadata propia.
-// Perfil productivo: alpha620a00(raw0/raw1), additive620a90, subtractive620b10, blended620c10 y621400. Las otras
-// familias de D2 que no representa este perfil fallan en su frontera, sin callbacks vacíos.
-// Antes de Release/cargas: comprobar ModelBatch::InvalidateTextureKnowledge y no usar este
-// backend entre esos efectos. Con trabajo pendiente la notificación falla; nunca resolver un
-// objeto reemplazado silenciosamente durante Draw. Sólo un backend/primitive por lote.
+// Adapter onto the existing ModelBatch → GlModelRenderer. Production profile: alpha 620a00(raw0/raw1), additive 620a90,
+// subtractive 620b10, blended 620c10 and 621400; the other D2 families fail at their boundary, without empty callbacks.
+// Before Release/loads: check ModelBatch::InvalidateTextureKnowledge (it fails with pending work) and do not use this
+// backend between those effects; never silently resolve a replaced object during Draw. One backend/primitive per batch.
 class ENGINE_API ModelBatchParticleBackend : public IParticleDrawBackend
 {
 public:
@@ -41,7 +39,7 @@ public:
     ModelBatchParticleBackend(const ModelBatchParticleBackend&) = delete;
     ModelBatchParticleBackend& operator=(const ModelBatchParticleBackend&) = delete;
 
-    [[nodiscard]] Result AlphaWriteDepth(); // 620a00(raw1), incluidos6208f0/620890.
+    [[nodiscard]] Result AlphaWriteDepth(); // 620a00(raw1), including 6208f0/620890.
     [[nodiscard]] Result AlphaInheritDepth() override;
     [[nodiscard]] Result Additive() override;
     [[nodiscard]] Result SubtractivePrefix() override;
@@ -61,8 +59,8 @@ public:
     [[nodiscard]] Result Vertex(const glm::vec3& position) override;
     [[nodiscard]] Result End() override;
 
-    // Modelo lógico World de5306a0: un Push/Pop, traslación acumulada y corners YA rotados por L5.
-    // No replica matrix modes GL ni una pila nativa de profundidad arbitraria.
+    // 5306a0's logical World model: one Push/Pop, accumulated translation and corners ALREADY rotated by L5. Does not
+    // replicate GL matrix modes or a native stack of arbitrary depth.
     [[nodiscard]] Result PushMatrix();
     [[nodiscard]] Result Translate(float x, float y, float z);
     [[nodiscard]] Result DrawWorldQuad(std::span<const glm::vec3, 4> corners, std::span<const glm::vec2, 4> uv);
@@ -73,8 +71,8 @@ public:
     [[nodiscard]] ModelBatch& Batch() const;
     [[nodiscard]] const ModelBatchParticleState& State() const;
     [[nodiscard]] bool IsDrawing() const;
-    // Lee el MISMO lote. Intervención ajena pierde la clave raw conocida, nunca deriva selector
-    // de un slot ni observa caches GL. Las escrituras propias reconocen su nuevo serial.
+    // Reads the SAME batch. A foreign intervention loses the known raw key; it never derives a selector from a slot nor
+    // observes GL caches. Own writes acknowledge their new serial.
     [[nodiscard]] Result SynchronizeBatch();
 
 private:
@@ -89,12 +87,12 @@ private:
     const std::reference_wrapper<const ITextureSlots> m_textures;
     ModelBatchParticleState m_state;
     std::optional<std::uint64_t> m_observedSerial;
-    // Scratch único del quad en curso; un fallo conserva el prefijo hasta destruir su dueño.
-    // Sólo el adapter que abrió el quad puede abandonar su marca al terminar el pase.
+    // The single scratch of the current quad; a failure keeps the prefix until its owner is destroyed. Only the adapter
+    // that opened the quad may drop its mark when the pass ends.
     bool m_ownsPrimitive = false;
     std::array<ModelVertex, 4> m_corners{};
     std::size_t m_cornerCount = 0;
-    // Base World del perfil portado; la vista se aplica por comando en el renderer existente.
+    // World base of the ported profile; the view is applied per command in the existing renderer.
     static constexpr Math::OriginalMatrix IdentityModel{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
     Math::OriginalMatrix m_model = IdentityModel;
     std::optional<Math::OriginalMatrix> m_savedModel;

@@ -37,10 +37,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Gl::GlModelRenderer: el ModelBatch de un pase en GL, con el estado de 0x620db0
-// (el viewport, la perspectiva, el depth test con GL_LEQUAL, el culling y la profundidad escrita) y
-// el de la mezcla de cada tramo (06 § El modelo en el binario). La cámara y el cuadrado son los de
-// GlDrawTest.h: el cuadrado llena el framebuffer de 64 × 64.
+// The camera and the square are GlDrawTest.h's: the square fills the 64 × 64 framebuffer.
 namespace
 {
 using Client::Core::PixelSize;
@@ -75,10 +72,9 @@ constexpr Rgba8 Green{0, 255, 0, 255};
 constexpr Color RedColor{1.0f, 0.0f, 0.0f, 1.0f};
 constexpr Color GreenColor{0.0f, 1.0f, 0.0f, 1.0f};
 
-// Un téxel blanco y uno gris al 50 %. Ninguno es de una escena del original.
+// A white texel and a 50 % gray one. Neither is from an original scene.
 constexpr TextureSlot WhiteSlot{0x1};
 constexpr TextureSlot GraySlot{0x2};
-// Uno que la tabla no tiene.
 constexpr TextureSlot MissingSlot{0x2a};
 
 constexpr PixelSize Screen{FramebufferSide, FramebufferSide};
@@ -95,8 +91,7 @@ LoadedTexture Rgba(TextureSlot slot, std::vector<std::uint8_t> pixel)
                     .pixels = std::move(pixel)}};
 }
 
-// Si la celda es `expected`, con uno de tolerancia por canal: la mezcla en 8 bits redondea como
-// quiere el driver.
+// One unit of tolerance per channel: 8-bit blending rounds as the driver likes.
 void ExpectNear(const std::optional<Rgba8>& cell, Rgba8 expected)
 {
     ASSERT_TRUE(cell.has_value());
@@ -127,7 +122,6 @@ protected:
         m_batch.Begin(TestPass(Screen));
     }
 
-    // El cuadrado de GlDrawTest.h en el lote.
     void AddSquare(const ModelDrawState& state, float depth, Color color, bool backFacing = false)
     {
         Client::Tests::AddSquare(m_batch, state, depth, color, backFacing);
@@ -139,7 +133,7 @@ protected:
         ASSERT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
     }
 
-    // La celda de una grilla de 2 × 2 sobre el framebuffer, con la fila de arriba primero.
+    // A cell of a 2 × 2 grid over the framebuffer, top row first.
     [[nodiscard]] std::optional<Rgba8> Cell(int index) const
     {
         return Cells(2, 2)[static_cast<std::size_t>(index)];
@@ -152,8 +146,8 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
 };
 
-// Con el depth test de 0x620db0 queda el más cerca en cada píxel, aunque llegue primero: el rojo a
-// 5 tapa al verde a 20 dibujado después.
+// With 0x620db0's depth test the nearest wins each pixel, even if it comes first: red at 5 covers green at 20 drawn
+// after.
 TEST_F(GlModelRendererTest, DrawsATriangleWithDepth)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 5.0f, RedColor);
@@ -167,8 +161,8 @@ TEST_F(GlModelRendererTest, DrawsATriangleWithDepth)
     }
 }
 
-// El pase del retrato de las cartas (0x495949) borra la profundidad al empezar: el verde a 20 de su lote tapa al rojo a
-// 5 que dejó el lote de antes.
+// The card portrait pass (0x495949) clears the depth on start: its batch's green at 20 covers the red at 5 the previous
+// batch left.
 TEST_F(GlModelRendererTest, APassThatClearsTheDepthDrawsOverTheOneBefore)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 5.0f, RedColor);
@@ -186,7 +180,7 @@ TEST_F(GlModelRendererTest, APassThatClearsTheDepthDrawsOverTheOneBefore)
     }
 }
 
-// La bandera 0x2000: sin depth test, lo que va después tapa.
+// Flag 0x2000: without the depth test, what comes later covers.
 TEST_F(GlModelRendererTest, TheDepthTestCanBeOff)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 5.0f, RedColor);
@@ -197,7 +191,7 @@ TEST_F(GlModelRendererTest, TheDepthTestCanBeOff)
     ExpectNear(Cell(0), Green);
 }
 
-// 0x620980 deja el culling prendido: la cara de atrás no sale. 0x620a00(1) lo apaga.
+// 0x620980 leaves culling on: the back face does not show. 0x620a00(1) turns it off.
 TEST_F(GlModelRendererTest, CullsTheBackFaces)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 10.0f, RedColor, true);
@@ -210,8 +204,8 @@ TEST_F(GlModelRendererTest, CullsTheBackFaces)
     ExpectNear(Cell(0), Green);
 }
 
-// 0x620a90 no escribe la profundidad: el verde opaco a 20, dibujado después, no queda tapado por el
-// rojo aditivo a 5, y lo pisa.
+// 0x620a90 does not write depth: the opaque green at 20, drawn after, is not hidden by the additive red at 5, and
+// covers it.
 TEST_F(GlModelRendererTest, TheAdditiveDoesNotWriteTheDepth)
 {
     AddSquare({WhiteSlot, ModelBlend::Additive, true}, 5.0f, RedColor);
@@ -222,8 +216,7 @@ TEST_F(GlModelRendererTest, TheAdditiveDoesNotWriteTheDepth)
     ExpectNear(Cell(0), Green);
 }
 
-// La sombra (0x620980 y la máscara apagada de 0x4eff40) no mezcla ni escribe la profundidad: lo que
-// va detrás y después se ve.
+// The shadow (0x620980 and 0x4eff40's mask off) neither blends nor writes depth: what is behind and after shows.
 TEST_F(GlModelRendererTest, TheShadowDoesNotWriteTheDepth)
 {
     AddSquare({std::nullopt, ModelBlend::Shadow, true}, 5.0f, RedColor);
@@ -234,8 +227,8 @@ TEST_F(GlModelRendererTest, TheShadowDoesNotWriteTheDepth)
     ExpectNear(Cell(0), Green);
 }
 
-// La sombra de un objeto del mundo (0x6002e0 con el caballo: 0x620a00(1) y la máscara apagada de
-// 0x4eff40) mezcla con el alfa del vértice: el negro al 0,7 sobre el blanco deja 0,3.
+// A world object's shadow (0x6002e0 with the horse: 0x620a00(1) and 0x4eff40's mask off) blends with the vertex alpha:
+// black at 0.7 over white leaves 0.3.
 TEST_F(GlModelRendererTest, TheBlendedShadowMixesWithItsAlpha)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1.0f, 1.0f, 1.0f, 1.0f});
@@ -246,7 +239,7 @@ TEST_F(GlModelRendererTest, TheBlendedShadowMixesWithItsAlpha)
     ExpectNear(Cell(0), Rgba8{77, 77, 77, 201});
 }
 
-// Y no escribe la profundidad: el verde opaco a 20, dibujado después, la pisa.
+// And it does not write depth: the opaque green at 20, drawn after, covers it.
 TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotWriteTheDepth)
 {
     AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 5.0f, Color{0.0f, 0.0f, 0.0f, 0.7f});
@@ -257,8 +250,8 @@ TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotWriteTheDepth)
     ExpectNear(Cell(0), Green);
 }
 
-// Y sin alpha test: 0x4eff40 lo apaga (0x620910(0)), y la sombra del mapa 7 va en 0,2. El negro al 0,2
-// sobre el blanco deja 0,8.
+// And no alpha test: 0x4eff40 turns it off (0x620910(0)), and map 7's shadow is at 0.2. Black at 0.2 over white leaves
+// 0.8.
 TEST_F(GlModelRendererTest, TheBlendedShadowHasNoAlphaTest)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1.0f, 1.0f, 1.0f, 1.0f});
@@ -269,8 +262,8 @@ TEST_F(GlModelRendererTest, TheBlendedShadowHasNoAlphaTest)
     ExpectNear(Cell(0), Rgba8{204, 204, 204, 214});
 }
 
-// El remolino 90 del mapa 55 (0x6002e0 con 0x620b10): GL_ZERO, GL_ONE_MINUS_SRC_COLOR. Sobre el blanco,
-// el color (0,25; 0,5; 0,75) deja lo que le falta, (0,75; 0,5; 0,25): oscurece donde la textura es clara.
+// Whirl 90 of map 55 (0x6002e0 with 0x620b10): GL_ZERO, GL_ONE_MINUS_SRC_COLOR. Over white, color (0.25; 0.5; 0.75)
+// leaves its complement, (0.75; 0.5; 0.25): it darkens where the texture is bright.
 TEST_F(GlModelRendererTest, TheSubtractiveDarkensWhereTheColorIsLight)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1.0f, 1.0f, 1.0f, 1.0f});
@@ -281,7 +274,7 @@ TEST_F(GlModelRendererTest, TheSubtractiveDarkensWhereTheColorIsLight)
     ExpectNear(Cell(0), Rgba8{191, 128, 64, 0});
 }
 
-// Y no escribe la profundidad: el verde opaco a 20, dibujado después, la pisa.
+// And it does not write depth: the opaque green at 20, drawn after, covers it.
 TEST_F(GlModelRendererTest, TheSubtractiveDoesNotWriteTheDepth)
 {
     AddSquare({WhiteSlot, ModelBlend::Subtractive, true}, 5.0f, Color{0.25f, 0.5f, 0.75f, 1.0f});
@@ -292,8 +285,7 @@ TEST_F(GlModelRendererTest, TheSubtractiveDoesNotWriteTheDepth)
     ExpectNear(Cell(0), Green);
 }
 
-// Ni recorta las caras de atrás (0x620a00 apaga el culling): una de atrás, roja al 0,7 sobre el vacío,
-// se ve.
+// Nor does it cull back faces (0x620a00 turns culling off): a back one, red at 0.7 over nothing, shows.
 TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotCull)
 {
     AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 10.0f, Color{1.0f, 0.0f, 0.0f, 0.7f}, true);
@@ -303,7 +295,7 @@ TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotCull)
     ExpectNear(Cell(0), Rgba8{179, 0, 0, 125});
 }
 
-// La opaca no mezcla: un alfa de 0,5 se escribe tal cual, sin el fondo.
+// Opaque does not blend: an alpha of 0.5 is written as is, without the background.
 TEST_F(GlModelRendererTest, TheOpaqueIgnoresTheAlpha)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 10.0f, Color{1.0f, 0.0f, 0.0f, 0.5f});
@@ -313,8 +305,7 @@ TEST_F(GlModelRendererTest, TheOpaqueIgnoresTheAlpha)
     ExpectNear(Cell(0), Rgba8{255, 0, 0, 128});
 }
 
-// La función fija recorta el color del vértice a [0, 1] antes de la textura: 1,34 por el gris al
-// 50 % da 128, no 171.
+// The fixed function clamps the vertex color to [0, 1] before the texture: 1.34 times 50 % gray gives 128, not 171.
 TEST_F(GlModelRendererTest, ClampsTheColorToOne)
 {
     AddSquare({GraySlot, ModelBlend::Opaque, true}, 10.0f, Color{1.34f, 1.34f, 1.34f, 1.0f});
@@ -327,7 +318,7 @@ TEST_F(GlModelRendererTest, ClampsTheColorToOne)
     ExpectNear(Cell(0), Red);
 }
 
-// El glAlphaFunc(GL_GREATER, 0,25) de 0x620a00: un alfa de 0,25 no pasa, uno de 0,3 sí.
+// 0x620a00's glAlphaFunc(GL_GREATER, 0.25): an alpha of 0.25 fails, one of 0.3 passes.
 TEST_F(GlModelRendererTest, TheAlphaTestCutsAtAQuarter)
 {
     AddSquare({WhiteSlot, ModelBlend::Alpha, true}, 10.0f, Color{1.0f, 1.0f, 1.0f, 0.25f});
@@ -340,8 +331,7 @@ TEST_F(GlModelRendererTest, TheAlphaTestCutsAtAQuarter)
     EXPECT_NE(Cell(0), Transparent);
 }
 
-// El viewport es el del pase: el rectángulo de arriba a la izquierda de 640 × 480 llena solo esa
-// cuarta parte.
+// The viewport is the pass's: the top-left rectangle of 640 × 480 fills only that quarter.
 TEST_F(GlModelRendererTest, UsesTheViewportOfThePass)
 {
     m_batch.Begin(TestPass(Screen, ViewportRect{0, 0, 320, 240}));
@@ -355,8 +345,8 @@ TEST_F(GlModelRendererTest, UsesTheViewportOfThePass)
     EXPECT_EQ(Cell(3), Transparent);
 }
 
-// El 2D que sigue al pase apaga el depth test y el culling, como 0x6219b0 → 0x620870: el quad del
-// SpriteBatch sale entero aunque el pase dejó escrita una profundidad más cerca que la suya.
+// The 2D after the pass turns the depth test and culling off, like 0x6219b0 → 0x620870: the SpriteBatch quad shows
+// whole even though the pass wrote a nearer depth.
 TEST_F(GlModelRendererTest, TheTwoDAfterTurnsTheDepthOff)
 {
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 1.1f, RedColor);
@@ -381,9 +371,8 @@ TEST_F(GlModelRendererTest, TheTwoDAfterTurnsTheDepthOff)
     }
 }
 
-// La niebla lineal de 0x42b0a0, acá negra de 10 a 30: con d la distancia al ojo (la profundidad del cuadrado), el
-// blanco queda en (30 − d) / 20, recortado a [0, 1]; el alfa no cambia. Van del más lejos al más cerca, para que el
-// depth test deje pasar cada uno.
+// 0x42b0a0's linear fog, here black from 10 to 30: with d the eye distance (the square's depth), white ends at
+// (30 − d) / 20, clamped to [0, 1]; alpha does not change. Drawn far to near so the depth test lets each one pass.
 TEST_F(GlModelRendererTest, TheLinearFogMixesByTheEyeDistance)
 {
     const ModelFog fog{.color = glm::vec3(0.0f), .start = 10.0f, .end = 30.0f};
@@ -401,7 +390,7 @@ TEST_F(GlModelRendererTest, TheLinearFogMixesByTheEyeDistance)
     }
 }
 
-// Q-C391: |z| del ojo no depende de la proyección; en ortográfica clip.w siempre vale 1.
+// Q-C391: eye |z| does not depend on the projection; in orthographic clip.w is always 1.
 TEST_F(GlModelRendererTest, OrthographicFogUsesTheTransformedEyeDepth)
 {
     auto pass = TestPass(Screen);
@@ -428,8 +417,8 @@ TEST_F(GlModelRendererTest, OrthographicEyeFogIgnoresTheWorldView)
     ExpectNear(Cell(0), Rgba8{128, 128, 128, 128});
 }
 
-// El color de la niebla es el del comando, y glDisable(GL_FOG) la saca: el verde a 40, después del fin, sale rojo
-// con la niebla y verde sin ella.
+// The fog color is the command's, and glDisable(GL_FOG) removes it: the green at 40, after the end, comes out red with
+// fog and green without.
 TEST_F(GlModelRendererTest, TheFogHasItsColorAndTurnsOff)
 {
     m_batch.SetFog(ModelFog{.color = glm::vec3(1.0f, 0.0f, 0.0f), .start = 10.0f, .end = 30.0f});
@@ -444,8 +433,8 @@ TEST_F(GlModelRendererTest, TheFogHasItsColorAndTurnsOff)
     ExpectNear(Cell(0), Green);
 }
 
-// GL_ADD (la 6ac/2, 0x5489eb): el gris al 50 % más (0,25; 0,5; 0,75) da (0,75; 1; 1), recortado, y el alfa es el del
-// téxel por el del color. Con GL_MODULATE, el mismo cuadrado da el producto.
+// GL_ADD (6ac/2, 0x5489eb): 50 % gray plus (0.25; 0.5; 0.75) gives (0.75; 1; 1), clamped, and alpha is the texel's
+// times the color's. With GL_MODULATE, the same square gives the product.
 TEST_F(GlModelRendererTest, TheAddTextureEnvSumsTheTexelAndTheColor)
 {
     const Color color{0.25f, 0.5f, 0.75f, 0.5f};
@@ -461,8 +450,8 @@ TEST_F(GlModelRendererTest, TheAddTextureEnvSumsTheTexelAndTheColor)
     ExpectNear(Cell(0), Rgba8{32, 64, 96, 128});
 }
 
-// Q-C29: un slot que nunca tuvo textura ata la textura por defecto, y la malla sale sin textura,
-// con el color de sus vértices. El slot sale una vez en el log como aviso.
+// Q-C29: a slot that never had a texture binds the default texture, so the mesh draws untextured with its vertex
+// colors.
 TEST_F(GlModelRendererTest, AMissingSlotDrawsUntexturedWithAWarning)
 {
     AddSquare({MissingSlot, ModelBlend::Opaque, true}, 10.0f, GreenColor);

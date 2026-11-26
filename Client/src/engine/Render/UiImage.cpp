@@ -10,16 +10,15 @@ namespace Client::Render
 {
 namespace
 {
-// El medio téxel de las UV, el 0,5 de 0x6b882c.
+// The UV half texel, 0x6b882c's 0.5.
 constexpr float HalfTexel = 0.5f;
 
-// Las inversas de 0x65eeb0 para su diseño de 800 × 600: 1/800 y 1/600 en float (0x6ba884 y
-// 0x6ba880). DesignScale las arma con 1.0f / tamaño, que da estos mismos bits.
+// The inverses of 0x65eeb0 for its 800 × 600 design: 1/800 and 1/600 as float (0x6ba884 and 0x6ba880). DesignScale
+// builds them with 1.0f / size, which gives these same bits.
 static_assert(std::bit_cast<std::uint32_t>(1.0f / 800) == 0x3aa3d70a, "la de 0x6ba884");
 static_assert(std::bit_cast<std::uint32_t>(1.0f / 600) == 0x3ada740e, "la de 0x6ba880");
 
-// Los cuatro bordes de un rectángulo, con la y para arriba: la posición de la imagen en su espacio,
-// o sus UV (con la v de la fila 0 en `top`).
+// A rectangle's four edges, y up: the image's position in its space, or its UVs (with row 0's v in `top`).
 struct Edges
 {
     float left = 0.0f;
@@ -28,18 +27,16 @@ struct Edges
     float bottom = 0.0f;
 };
 
-// Dónde queda la imagen en su espacio después de 0x647050 y de 0x6472e0(x, y, 3), con el ancla y
-// el corrimiento en 0.
+// Where the image lands in its space after 0x647050 and 0x6472e0(x, y, 3), with the anchor and the offset at 0.
 Edges PlacedEdges(const UiImage& image, Core::PixelSize screen)
 {
-    // 0x647080..0x6470bb: el alto de la pantalla en el espacio de la imagen (H / fy, en float) es
-    // el borde de arriba antes de ubicarla, y el de abajo, ese menos el alto, en float.
+    // 0x647080..0x6470bb: the screen height in the image's space (H / fy, as float) is the top edge before placing it,
+    // and the bottom, that minus the height, as float.
     const auto spaceHeight = static_cast<float>(static_cast<double>(screen.height) / static_cast<double>(image.scaleY));
     const auto firstBottom = static_cast<float>(static_cast<double>(spaceHeight) - image.height);
 
-    // 0x6472e0: el ancho y el alto salen de las esquinas que dejó 0x647050, y cada borde se
-    // guarda en float; el de la derecha y el de abajo salen del otro sin redondear (FADDP y FSUBRP
-    // con el valor de la pila).
+    // 0x6472e0: the width and height come from the corners 0x647050 left, and each edge is stored as float; the right
+    // and bottom edges come from the other one unrounded (FADDP and FSUBRP with the stack value).
     const double spanX = image.width;
     const double spanY = static_cast<double>(spaceHeight) - static_cast<double>(firstBottom);
     const double topInTheStack = static_cast<double>(spaceHeight) - image.y;
@@ -49,9 +46,8 @@ Edges PlacedEdges(const UiImage& image, Core::PixelSize screen)
                  .bottom = static_cast<float>(topInTheStack - spanY)};
 }
 
-// 0x6470c9..0x647151, con un slot: las UV a medio téxel de cada borde, salvo el lado que cambió
-// 0x647370, que llega al tamaño (fild del tamaño, fdiv por el de la textura y fst en float). Sin
-// slot quedan en 0 (0x6471e4).
+// 0x6470c9..0x647151, with a slot: UVs half a texel from each edge, except the side 0x647370 changed, which reaches the
+// size (fild of the size, fdiv by the texture's and fst to float). Without a slot they stay 0 (0x6471e4).
 Edges HalfTexelUv(const UiImage& image)
 {
     if (!image.slot.has_value())
@@ -67,12 +63,11 @@ Edges HalfTexelUv(const UiImage& image)
                  .bottom = (static_cast<float>(height) - bottomTexel) / image.textureHeight};
 }
 
-// 0x647560(k) con el cuadro de 0x647050 (0x647185..0x6471c5): el cuadro empieza en
-// ((frameLeft + 0,5) / tw, (frameTop + 0,5) / th), con cada entero pasado a float y la suma y la
-// división en la x87, guardadas en float. La u de la derecha es el ancho en u sin redondear (FSUB
-// en la pila) más la nueva izquierda; el alto en v se guarda en float antes (FSTP en [EBP + 8]) y
-// la de abajo es ese más la nueva de arriba. Se corre desde las UV de 0x647050; el original las
-// corre desde el cuadro de antes, que puede dar un ulp de diferencia y no se reproduce.
+// 0x647560(k) with 0x647050's frame (0x647185..0x6471c5): the frame starts at ((frameLeft + 0.5) / tw,
+// (frameTop + 0.5) / th), each integer converted to float and the sum and division on the x87, stored as float. The
+// right u is the unrounded u width (FSUB on the stack) plus the new left; the v height is stored as float first (FSTP
+// to [EBP + 8]) and the bottom v is that plus the new top. Shifted from 0x647050's UVs; the original shifts them from
+// the previous frame, which can differ by an ulp and is not reproduced.
 Edges FrameUv(const Edges& base, const UiImage& image, int frameTop)
 {
     const auto left = static_cast<float>((static_cast<double>(static_cast<float>(image.frameLeft)) + HalfTexel) /
@@ -87,8 +82,8 @@ Edges FrameUv(const Edges& base, const UiImage& image, int frameTop)
                  .bottom = static_cast<float>(static_cast<double>(spanV) + static_cast<double>(top))};
 }
 
-// Una esquina como la manda 0x647650: glVertex2f(x · fx, y · fy), cada producto en la x87 y
-// pasado a float al apilarlo.
+// A corner as 0x647650 sends it: glVertex2f(x · fx, y · fy), each product on the x87 and converted to float when
+// pushed.
 float ToScreen(float value, float scale)
 {
     return static_cast<float>(static_cast<double>(value) * static_cast<double>(scale));
@@ -113,7 +108,7 @@ QuadCorners UiImageCorners(const UiImage& image, Core::PixelSize screen)
 
 float DesignScale(int screenSize, int designSize)
 {
-    // FILD del tamaño y FMUL por la inversa en float; 0x65eeb0 lo guarda en float.
+    // FILD of the size and FMUL by the float inverse; 0x65eeb0 stores it as float.
     const float inverse = 1.0f / static_cast<float>(designSize);
     return static_cast<float>(static_cast<double>(screenSize) * static_cast<double>(inverse));
 }

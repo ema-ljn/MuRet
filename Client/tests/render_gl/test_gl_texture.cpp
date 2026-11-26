@@ -22,10 +22,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Gl::GlTexture: el buffer de lados potencia de 2 de un OZT o un OZJ (05 §
-// Texturas) subido como lo sube el original (0x63bd00 y 0x63b870), con el filtro y el wrap de su
-// tercer y cuarto argumento. Cada test lo dibuja con GlRenderer en el framebuffer y lee los téxeles
-// por celdas: con GL_NEAREST y el rectángulo que cubre el framebuffer, cada celda es un téxel.
+// Uploaded like the original (0x63bd00 and 0x63b870). Each test draws it with GlRenderer and reads the texels by cell:
+// with GL_NEAREST and the rectangle covering the framebuffer, each cell is a texel.
 namespace
 {
 using Client::Data::Textures::Filter;
@@ -48,7 +46,7 @@ constexpr Rgba8 Black{0, 0, 0, 255};
 
 constexpr Sampling NearestClamp{Filter::Nearest, Wrap::Clamp};
 
-// Una textura armada a mano: `pixels` es el buffer entero, de textureWidth × textureHeight.
+// A hand-built texture: `pixels` is the whole buffer, textureWidth × textureHeight.
 Texture MakeTexture(PixelFormat format, int width, int height, std::vector<std::uint8_t> pixels)
 {
     return Texture{.width = width,
@@ -59,8 +57,8 @@ Texture MakeTexture(PixelFormat format, int width, int height, std::vector<std::
                    .pixels = std::move(pixels)};
 }
 
-// El téxel (x, y) del buffer de `texture`, con y = 0 la primera fila que sube glTexImage2D. Uno
-// RGB, como lo lee GL de una textura sin alfa, con el alfa en 255.
+// Texel (x, y) of `texture`'s buffer, y = 0 being the first row glTexImage2D uploads. An RGB one reads with alpha 255,
+// as GL reads a texture without alpha.
 Rgba8 TexelOf(const Texture& texture, int x, int y)
 {
     const std::size_t bytes = Client::Data::Textures::BytesPerPixel(texture.format);
@@ -71,8 +69,8 @@ Rgba8 TexelOf(const Texture& texture, int x, int y)
     return Rgba8{texture.pixels[index], texture.pixels[index + 1], texture.pixels[index + 2], alpha};
 }
 
-// Si los píxeles no son el buffer entero, Upload no llama a GL: GL leería fuera del vector. Se
-// prueba con una tabla vacía, sin contexto. Un buffer de cero de lado tampoco pasa.
+// If the pixels are not the whole buffer, Upload does not call GL, which would read past the vector; so an empty table
+// without a context is enough.
 TEST(GlTextureRulesTest, RefusesPixelsThatAreNotTheWholeBuffer)
 {
     const Client::Platform::Sdl::GlFunctions noGl{};
@@ -87,18 +85,16 @@ TEST(GlTextureRulesTest, RefusesPixelsThatAreNotTheWholeBuffer)
     EXPECT_FALSE(GlTexture::Upload(noGl, empty, NearestClamp).HasValue());
 }
 
-// El nombre que da el driver falso, su GL_UNPACK_ALIGNMENT al empezar (el 4 de GL) y cuántas
-// veces da error el que no para: después da GL_NO_ERROR, así un Upload sin tope termina y el test
-// falla en vez de colgarse.
+// The fake driver's name, its starting GL_UNPACK_ALIGNMENT (GL's 4) and how many errors the never-clearing one gives:
+// then it gives GL_NO_ERROR, so an uncapped Upload ends and the test fails instead of hanging.
 constexpr GLuint FakeTextureName = 7;
 constexpr GLint FakeUnpackAlignment = 4;
 constexpr int EndlessDriverCalls = 1000;
 
-// Un driver falso para Upload, sin contexto, como el de test_gl_loader.cpp. Tiene varias banderas
-// de error, y glGetError da una por llamada: la referencia de glGetError pide llamarlo hasta que dé
-// GL_NO_ERROR. Mesa tiene una sola, así que con el contexto de los tests eso no se ve. glTexImage2D
-// suma sus errores a los pendientes, y el primer glTexParameteri los suyos. Es estado global porque
-// la tabla es de punteros a función, sin captura; el fixture lo deja limpio antes de cada test.
+// A fake Upload driver without a context, like test_gl_loader.cpp's. It has several error flags and glGetError returns
+// one per call: the glGetError reference says to call it until GL_NO_ERROR. Mesa has a single flag, so the test
+// context cannot show this. glTexImage2D adds its errors to the pending ones, and the first glTexParameteri its own.
+// Global because the table holds captureless function pointers; the fixture clears it before each test.
 struct FakeErrorDriver
 {
     std::deque<GLenum> pending;
@@ -183,7 +179,7 @@ protected:
         s_driver = FakeErrorDriver{};
     }
 
-    // La tabla con lo que llama Upload, del driver falso. Vive más que la textura que dé.
+    // Only what Upload calls. It outlives the texture it gives.
     static Client::Platform::Sdl::GlFunctions FakeGl()
     {
         Client::Platform::Sdl::GlFunctions gl{};
@@ -204,8 +200,7 @@ protected:
     }
 };
 
-// Dos errores de antes, en dos banderas: Upload los saca a los dos, nombra el primero como de otra
-// llamada y no le pide un nombre a GL.
+// Errors pending before Upload belong to another call.
 TEST_F(GlTextureDriverTest, TakesEveryPendingError)
 {
     s_driver.pending = {GL_INVALID_ENUM, GL_INVALID_OPERATION};
@@ -220,8 +215,7 @@ TEST_F(GlTextureDriverTest, TakesEveryPendingError)
     EXPECT_TRUE(s_driver.generated.empty());
 }
 
-// Dos errores de glTexImage2D: son de la subida, no de otra llamada. Upload da el primero, saca
-// los dos, borra el nombre que pidió y deja el alignment como estaba.
+// Errors from glTexImage2D belong to the upload, not to another call.
 TEST_F(GlTextureDriverTest, TakesEveryErrorOfTheUpload)
 {
     s_driver.texImageErrors = {GL_OUT_OF_MEMORY, GL_INVALID_VALUE};
@@ -238,9 +232,8 @@ TEST_F(GlTextureDriverTest, TakesEveryErrorOfTheUpload)
     EXPECT_EQ(s_driver.unpackAlignment, FakeUnpackAlignment);
 }
 
-// glTexParameteri también es de la subida. Con estos argumentos solo puede dar GL_OUT_OF_MEMORY,
-// que GL permite en cualquier llamada: Upload no da la textura ni lo deja pendiente, porque la
-// llamada siguiente lo culparía a otra.
+// glTexParameteri is part of the upload too. With these arguments it can only give GL_OUT_OF_MEMORY, which GL allows on
+// any call: Upload neither returns the texture nor leaves the error pending, because the next call would be blamed.
 TEST_F(GlTextureDriverTest, ATexParameterErrorIsTheUploads)
 {
     s_driver.texParameterErrors = {GL_OUT_OF_MEMORY};
@@ -255,8 +248,6 @@ TEST_F(GlTextureDriverTest, ATexParameterErrorIsTheUploads)
     EXPECT_EQ(s_driver.deleted, s_driver.generated);
 }
 
-// Un driver que no deja de dar errores no cuelga a Upload: deja de preguntar antes que el driver
-// deje de contestar.
 TEST_F(GlTextureDriverTest, StopsAskingADriverThatNeverClears)
 {
     s_driver.neverClears = true;
@@ -266,9 +257,8 @@ TEST_F(GlTextureDriverTest, StopsAskingADriverThatNeverClears)
     EXPECT_LT(s_driver.getErrorCalls, EndlessDriverCalls);
 }
 
-// El OZT sintético de 2 × 2, leído como en la CL1 (las filas dadas vuelta, en RGBA): los cuatro
-// téxeles salen como están en el buffer, con su alfa, y la fila 0 arriba, donde la pone el quad
-// del original. El tamaño es el del buffer.
+// The synthetic 2 × 2 OZT, read as Data does (rows flipped, RGBA): the four texels come out as in the buffer, with
+// their alpha, and row 0 at the top, where the original's quad puts it.
 TEST_F(GlTextureTest, UploadsAnRgbaTexture)
 {
     const auto ozt = Client::Data::Textures::LoadOztTexture(Client::Tests::PlainOzt(2, 2));
@@ -286,10 +276,9 @@ TEST_F(GlTextureTest, UploadsAnRgbaTexture)
                                        TexelOf(texture, 1, 1)}));
 }
 
-// Las filas RGB de 1 y 2 píxeles miden 3 y 6 bytes, y con el GL_UNPACK_ALIGNMENT de 4 que GL trae
-// por defecto la segunda empezaría en el byte 4 u 8 ("Lo que más puede morder", en el plan de la
-// CL5): Upload lo pone en 1 y las filas no se corren. Las de 4 o más de ancho ya miden un múltiplo
-// de 4: la de 3 × 2 en su buffer de 4 × 2 muestra además la columna que no es imagen, en cero.
+// 1- and 2-pixel RGB rows are 3 and 6 bytes, and with GL's default GL_UNPACK_ALIGNMENT of 4 the second would start at
+// byte 4 or 8: Upload sets it to 1 so rows do not shift. Rows 4 or more wide are already a multiple of 4: the 3 × 2 in
+// its 4 × 2 buffer also shows the non-image column, at zero.
 TEST_F(GlTextureTest, UploadsAnRgbTextureOfOddWidth)
 {
     const Texture twoWide = MakeTexture(PixelFormat::Rgb, 2, 2, {255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255});
@@ -311,8 +300,7 @@ TEST_F(GlTextureTest, UploadsAnRgbTextureOfOddWidth)
     }
 }
 
-// Upload deja GL_UNPACK_ALIGNMENT como estaba: lo que suba otro después (el texto de la CL5.3) no
-// hereda el 1.
+// Whatever uploads later (the text) must not inherit the 1.
 TEST_F(GlTextureTest, LeavesTheUnpackAlignmentAsItWas)
 {
     constexpr GLint Before = 2;
@@ -324,10 +312,8 @@ TEST_F(GlTextureTest, LeavesTheUnpackAlignmentAsItWas)
     EXPECT_EQ(after, Before);
 }
 
-// Lo que el driver no acepta no es una textura (AUD-C03): un lado mayor que GL_MAX_TEXTURE_SIZE da
-// GL_INVALID_VALUE en glTexImage2D. Upload da el error con su nombre, deja el alignment como
-// estaba y no deja el error pendiente para la llamada siguiente. Borró el nombre nuevo, que estaba
-// atado: GL_TEXTURE_2D queda en 0.
+// What the driver rejects is not a texture (AUD-C03): a side over GL_MAX_TEXTURE_SIZE gives GL_INVALID_VALUE in
+// glTexImage2D. The new name was bound when Upload deleted it, so GL_TEXTURE_2D ends at 0.
 TEST_F(GlTextureTest, RejectsADriverFailure)
 {
     constexpr GLint Before = 2;
@@ -347,9 +333,8 @@ TEST_F(GlTextureTest, RejectsADriverFailure)
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Un error que GL ya tenía de antes no es de esta subida: glGetError no dice qué llamada lo dejó.
-// Upload no sube, da un error que lo nombra como de antes y lo saca, así que la subida siguiente
-// anda. Un alignment de 3 (GL acepta 1, 2, 4 y 8) deja GL_INVALID_VALUE pendiente.
+// An error GL already had is not this upload's: glGetError does not say which call left it. An alignment of 3 (GL
+// accepts 1, 2, 4 and 8) leaves GL_INVALID_VALUE pending.
 TEST_F(GlTextureTest, ReportsAPreexistingGlError)
 {
     const Texture texture = MakeTexture(PixelFormat::Rgba, 1, 1, {255, 0, 0, 255});
@@ -364,13 +349,11 @@ TEST_F(GlTextureTest, ReportsAPreexistingGlError)
     EXPECT_TRUE(GlTexture::Upload(Gl(), texture, NearestClamp).HasValue());
 }
 
-// El tercer argumento del original va al filtro de cerca y al de lejos (06 § El login, al entrar).
-// De cerca, dos téxeles negro y blanco estirados a 64 píxeles: con Nearest son dos mitades, y con
-// Linear el medio es gris. De lejos, cuatro téxeles en un píxel, en el centro de la textura: con
-// Nearest es uno de ellos, y con Linear el promedio de los cuatro. Cuál de los cuatro no se fija:
-// el centro cae justo en el borde entre téxeles, y en una GPU de verdad la UV interpolada puede
-// quedar un poco antes o después (Mesa da el (1, 1)). Sin mipmaps: con el filtro de lejos que GL
-// trae por defecto, la textura no estaría completa y saldría negra.
+// The original's third argument goes to both mag and min filters (06 § El login, al entrar). Mag: black and white
+// texels stretched to 64 pixels give two halves with Nearest and gray in the middle with Linear. Min: four texels in
+// one pixel at the texture's center give one of them with Nearest and their average with Linear. Which one is not
+// fixed: the center falls right on the texel border, and on a real GPU the interpolated UV can land slightly before or
+// after (Mesa gives (1, 1)). No mipmaps: with GL's default min filter the texture would be incomplete and black.
 TEST_F(GlTextureTest, NearestAndLinearSampleAsAsked)
 {
     const Texture blackWhite = MakeTexture(PixelFormat::Rgb, 2, 1, {0, 0, 0, 255, 255, 255});
@@ -409,9 +392,8 @@ TEST_F(GlTextureTest, NearestAndLinearSampleAsAsked)
     }
 }
 
-// El cuarto argumento, en los dos ejes: con la u (o la v) de 0 a 2, Repeat dibuja la textura dos
-// veces y Clamp estira el último téxel. Clamp es GL_CLAMP_TO_EDGE, porque el GL_CLAMP del original
-// no existe en el perfil core (Q-C73).
+// The fourth argument, on both axes: with u (or v) from 0 to 2, Repeat draws the texture twice and Clamp stretches the
+// last texel. Clamp is GL_CLAMP_TO_EDGE, because the original's GL_CLAMP does not exist in the core profile (Q-C73).
 TEST_F(GlTextureTest, RepeatWrapsAndClampDoesNot)
 {
     const Texture acrossS = MakeTexture(PixelFormat::Rgb, 2, 1, {255, 0, 0, 0, 0, 255});

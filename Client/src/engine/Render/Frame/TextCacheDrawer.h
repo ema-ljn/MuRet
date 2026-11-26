@@ -15,16 +15,14 @@
 #include <string>
 #include <string_view>
 
-// El ITextDrawer de main.cpp (CL5.4): el TextCache de la CL5.3 sobre el lote del frame. Si un
-// texto no se puede dibujar (la tabla no subió una caja, no entra en los slots, o para hacerle
-// lugar habría que sacar uno que ya está en el lote), el texto no sale y el error va al log una
-// vez: el mismo texto se pide en cada frame. Ningún mensaje lleva el texto.
+// A text that cannot be drawn (the store did not upload a box, it does not fit the slots, or making room would evict
+// one already in the batch) is skipped and logged once: the same text comes every frame. No message carries the text.
 namespace Client::Render::Frame
 {
 class ENGINE_API TextCacheDrawer final : public ITextDrawer
 {
 public:
-    // La caché, el lote y el log tienen que vivir lo que él.
+    // The cache, the batch and the log must outlive it.
     TextCacheDrawer(Render::Text::TextCache& cache, Render::SpriteBatch& batch, Core::Log& log);
 
     [[nodiscard]] Render::Text::TextExtent Measure(Render::Text::FontKind font, std::string_view text) const override;
@@ -43,7 +41,6 @@ private:
     Render::Text::TextCache& m_cache;
     Render::SpriteBatch& m_batch;
     Core::Log& m_log;
-    // Los errores que ya fueron al log.
     std::set<std::string> m_logged;
 };
 } // namespace Client::Render::Frame

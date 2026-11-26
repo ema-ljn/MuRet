@@ -11,12 +11,10 @@
 #include <optional>
 #include <utility>
 
-// Un pase 3D como lo arma 0x620db0 (06 § Cámara): el viewport, la perspectiva y la vista de una
-// cámara, sin GL. Lo dibuja Gl::GlModelRenderer con el ModelBatch de la escena, y lo recibe el
-// IWorldView (CL7).
+// A 3D pass as 0x620db0 builds it (06 § Cámara): a camera's viewport, perspective and view, without GL.
 namespace Client::Render
 {
-// Lo que 0x620db0 recibe: un rectángulo en 640 × 480, con la y desde arriba.
+// What 0x620db0 receives: a rectangle in 640 × 480, y from the top.
 struct ViewportRect
 {
     int x = 0;
@@ -28,41 +26,40 @@ struct ViewportRect
 struct Camera3D
 {
     glm::vec3 position{};
-    // En grados: los de los tres glRotatef, x el pitch y z el yaw (DAT_07d36868, 6c y 70).
+    // In degrees: those of the three glRotatef, x the pitch and z the yaw (DAT_07d36868, 6c and 70).
     glm::vec3 angles{};
-    // DAT_07d36899: sin el glRotatef en X.
+    // DAT_07d36899: skips the glRotatef in X.
     bool skipXRotation = false;
-    float fieldOfView = 35.0f; // grados, el vertical
-    float nearPlane = 20.0f;   // `near` y `far` son macros de Windows
-    // Sin el × 1,4: MakePass3D lo multiplica para la perspectiva, y el rayo del mouse llega hasta acá.
+    float fieldOfView = 35.0f; // degrees, vertical
+    float nearPlane = 20.0f;   // `near` and `far` are Windows macros
+    // Without the × 1.4: MakePass3D applies it for the perspective, and the mouse ray reaches this far.
     float farPlane = 0.0f;
 };
 
 struct ENGINE_API Pass3D
 {
     Core::PixelSize screen;
-    // x, y desde abajo, ancho y alto, en píxeles de GL: lo de glViewport.
+    // x, y from the bottom, width and height, in GL pixels: glViewport's.
     glm::ivec4 viewport{};
     glm::mat4 projection{1.0f};
     glm::mat4 view{1.0f};
-    // El de la cámara, sin el × 1,4.
+    // The camera's, without the × 1.4.
     float farPlane = 0.0f;
-    // glClear(GL_DEPTH_BUFFER_BIT) al empezar el pase con el material (ModelBatch::Begin con initializeMaterial):
-    // solo el del retrato de las cartas (0x495949), que borra la profundidad del mundo antes de su modelo.
+    // glClear(GL_DEPTH_BUFFER_BIT) when the pass starts with the material (ModelBatch::Begin with initializeMaterial):
+    // only the card portrait's (0x495949), which clears the world's depth before its model.
     bool clearDepth = false;
 
-    // El segmento del mouse de 0x620480: de la posición de la cámara al punto del píxel (x, y) de la
-    // pantalla, con la y desde arriba, que está a farPlane delante de la cámara, sobre su eje.
+    // 0x620480's mouse segment: from the camera position to the point of screen pixel (x, y), y from the top, which
+    // lies farPlane ahead of the camera along its axis.
     [[nodiscard]] std::pair<glm::vec3, glm::vec3> RayThrough(float x, float y) const;
 
-    // Dónde cae un punto del mundo, en píxeles con la y desde arriba; std::nullopt si queda detrás
-    // de la cámara.
+    // Where a world point lands, in pixels with y from the top; std::nullopt if it is behind the camera.
     [[nodiscard]] std::optional<glm::vec2> Project(const glm::vec3& world) const;
 };
 
-// 0x620db0 en una pantalla de `screen` píxeles: el rectángulo escalado en enteros (x · W / 640,
-// y · H / 480), la y de GL desde abajo (0x620d10: H − y − h), gluPerspective(fov, w / h, near,
-// far · 1,4) con el ancho y el alto del viewport (0x6203c0, 0x6b8c00), y la vista de glRotatef en
-// Y, en X (salvo skipXRotation) y en Z, y glTranslatef(−posición).
+// 0x620db0 on a `screen`-pixel screen: the rectangle scaled in integers (x · W / 640, y · H / 480), GL's y from the
+// bottom (0x620d10: H − y − h), gluPerspective(fov, w / h, near, far · 1.4) with the viewport's width and height
+// (0x6203c0, 0x6b8c00), and the view of glRotatef in Y, in X (unless skipXRotation) and in Z, and
+// glTranslatef(−position).
 [[nodiscard]] ENGINE_API Pass3D MakePass3D(Core::PixelSize screen, const ViewportRect& rect, const Camera3D& camera);
 } // namespace Client::Render

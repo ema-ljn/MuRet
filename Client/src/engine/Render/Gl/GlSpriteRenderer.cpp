@@ -15,7 +15,7 @@ namespace Client::Render::Gl
 {
 namespace
 {
-// 0x620a00, 0x620a90 y 0x620980: la mezcla normal, la aditiva y ninguna.
+// 0x620a00, 0x620a90 and 0x620980: normal, additive and no blend.
 void SetBlendFunc(const Platform::Sdl::GlFunctions& gl, BlendMode blend)
 {
     switch (blend)
@@ -27,7 +27,7 @@ void SetBlendFunc(const Platform::Sdl::GlFunctions& gl, BlendMode blend)
         gl.blendFunc(GL_ONE, GL_ONE);
         return;
     case BlendMode::Opaque:
-        // 0x620980 apaga GL_BLEND: con (GL_ONE, GL_ZERO) el color que sale es el del quad, lo mismo.
+        // 0x620980 disables GL_BLEND: (GL_ONE, GL_ZERO) outputs the quad's color, the same.
         gl.blendFunc(GL_ONE, GL_ZERO);
         return;
     }
@@ -52,8 +52,7 @@ Core::Expected<GlSpriteRenderer, std::string> GlSpriteRenderer::Create(const Pla
 void GlSpriteRenderer::Draw(const SpriteBatch& batch, const TextureTable& textures, Core::Log& log)
 {
     m_renderer.Upload(batch.Vertices(), batch.Screen());
-    // 0x6219b0 → 0x620870: el 2D va sin profundidad ni culling, aunque el pase 3D de antes los dejó
-    // prendidos (CL6.3).
+    // 0x6219b0 → 0x620870: the 2D runs without depth or culling, even if the previous 3D pass left them on.
     m_gl->disable(GL_DEPTH_TEST);
     m_gl->disable(GL_CULL_FACE);
     m_gl->enable(GL_BLEND);
@@ -65,7 +64,7 @@ void GlSpriteRenderer::Draw(const SpriteBatch& batch, const TextureTable& textur
             texture = textures.Find(*command.texture);
             if (texture == nullptr)
             {
-                // insert dice si el slot es nuevo: solo entonces se avisa.
+                // Warn once per slot: insert reports whether it is new.
                 if (m_warnedSlots.insert(command.texture->value).second)
                 {
                     log.Warning("el slot {:#x} no tiene textura: lo que lo usa no se dibuja", command.texture->value);

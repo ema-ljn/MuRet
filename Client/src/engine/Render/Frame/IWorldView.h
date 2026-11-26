@@ -3,23 +3,19 @@
 #include "Render/Frame/SceneWorld.h"
 #include "Render/Pass3D.h"
 
-// El pase 3D de una escena (CL5.4): el terreno, los objetos, los personajes y los efectos del
-// mundo, en el viewport que dice el original (en el login, 0x620db0(0, 25, 640, 430), 06 § El
-// login, el dibujo). Lo dibuja la CL7, para cualquier mapa; hasta entonces, EmptyWorldView, y donde
-// iría el mundo queda el negro con que empieza el frame (pregunta 3 del plan de la CL5).
+// A scene's 3D pass (terrain, objects, characters and world effects) in the original's viewport (in the login,
+// 0x620db0(0, 25, 640, 430), 06 § El login, el dibujo).
 namespace Client::Render::Frame
 {
 class IWorldView
 {
 public:
     virtual ~IWorldView() = default;
-    // `alpha` en [0, 1), el de ILoopClient::Render, y `pass`, el de la escena: su viewport y su
-    // cámara (CL6.3). Va después del fin del 2D (flushSprites), y lo que dibuja la escena después va
-    // encima.
+    // `alpha` in [0, 1) is ILoopClient::Render's. Runs after the end of the 2D (flushSprites); what the scene draws
+    // afterwards goes on top.
     virtual void Draw(Render::Frame::SceneWorld world, const Render::Pass3D& pass, float alpha) = 0;
 };
 
-// El de la CL5: no dibuja nada.
 class EmptyWorldView final : public IWorldView
 {
 public:

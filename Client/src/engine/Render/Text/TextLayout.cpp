@@ -17,16 +17,15 @@ namespace Client::Render::Text
 {
 namespace
 {
-// Lo que mide 0x467060 en vez de un texto vacío (0x6c7ae4, con largo 1).
+// What 0x467060 measures instead of an empty text (0x6c7ae4, length 1).
 constexpr std::string_view EmptyTextMeasure = "0";
 
-// El 0,01 de 0x554000 (0x6b88d4) que se suma al ancho y al alto antes de pasarlos a UV.
+// 0x554000's 0.01 (0x6b88d4), added to the width and the height before converting them to UV.
 constexpr float TexelMargin = 0.01f;
 static_assert(std::bit_cast<std::uint32_t>(TexelMargin) == 0x3c23d70a, "el de 0x6b88d4");
 
-// Las cuentas de 0x6350b0: lea, shl y div, en 32 bits sin signo. El producto da la vuelta como el
-// del original, y la resta vuelve a int (sub en 0x6353de). Sin pantalla (un tamaño de 0, que el
-// original dividiría) no corre nada.
+// 0x6350b0's math: lea, shl and div, in unsigned 32 bits. The product wraps like the original's, and the subtraction
+// goes back to int (sub at 0x6353de). Without a screen (a size of 0, which the original would divide by) nothing runs.
 int Shrink(int position, int size, std::uint32_t designSize, int screenSize)
 {
     if (screenSize <= 0)
@@ -38,14 +37,14 @@ int Shrink(int position, int size, std::uint32_t designSize, int screenSize)
     return static_cast<int>(static_cast<std::uint32_t>(position) - inDesign);
 }
 
-// _ftol (0x69fd3c): trunca hacia el 0.
+// _ftol (0x69fd3c): truncates toward 0.
 int Truncate(double value)
 {
     return static_cast<int>(value);
 }
 
-// fld del tamaño en float, fadd del 0,01 y fdiv por el lado de la caja en la x87 de 53 bits, y
-// fstp en float. La suma entra entera en un double.
+// fld of the size as float, fadd of 0.01 and fdiv by the box side on the 53-bit x87, and fstp to float. The sum fits
+// exactly in a double.
 float BoxUv(int size, int boxSize)
 {
     return static_cast<float>((static_cast<double>(static_cast<float>(size)) + static_cast<double>(TexelMargin)) /
@@ -86,8 +85,8 @@ int BottomAlignedAt(int y, TextExtent extent, Core::PixelSize screen)
 
 int DesignX(int pixelX, Core::PixelSize screen)
 {
-    // Sin pantalla, como Shrink: la proporción sería 0. Con la x87 en 53 bits, la división en
-    // double da lo mismo.
+    // Without a screen, like Shrink: the ratio would be 0. With the x87 at 53 bits, the division in double gives the
+    // same.
     if (screen.width <= 0)
     {
         return pixelX;
@@ -147,8 +146,8 @@ std::vector<TextPiece> TextPiecesAtPixelOrigin(double textLeft, double xInPixels
 
 std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, Core::PixelSize screen)
 {
-    // DAT_05762ea8 y DAT_05762eac: W y H por las inversas de 640 y 480, en float
-    // (0x4b9441..0x4b9467), lo mismo que escala 0x620d50 con un punto.
+    // DAT_05762ea8 and DAT_05762eac: W and H times the inverses of 640 and 480, as float (0x4b9441..0x4b9467), the same
+    // as 0x620d50 scaling one point.
     const double ratioX = ScaleX(1.0f, screen);
     const double ratioY = ScaleY(1.0f, screen);
     const double textLeft = static_cast<double>(x) * ratioX;
@@ -164,7 +163,7 @@ std::vector<TextPiece> TextPiecesAtPixels(int pixelX, int pixelY, TextExtent ext
 
 CenteredInBox CenterInBox(int boxWidth, int textWidth)
 {
-    // 0x467120..0x46712f: mov, sub, cdq, sub, sar y lea. La división de C de C++ también trunca hacia el 0.
+    // 0x467120..0x46712f: mov, sub, cdq, sub, sar and lea. C++'s C division also truncates toward 0.
     const int textColumn = (boxWidth - textWidth) / 2;
     return CenteredInBox{.textColumn = textColumn, .width = textWidth + 2 * textColumn};
 }
@@ -178,12 +177,12 @@ CenteredInBox CenterInBox(const ITextMeasure& measure, FontKind font, std::strin
 
 OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, Core::PixelSize screen)
 {
-    // 0x554060..0x5540b4: con el modo 0, contra W en píxeles.
+    // 0x554060..0x5540b4: in mode 0, against W in pixels.
     if (x < 0)
         x = 0;
     if (screen.width < x + width)
         x = screen.width - width;
-    // 0x5540b6..0x55412a: el tope de abajo deja H · 47 / 640 (0x2f y 0x280) para la barra.
+    // 0x5540b6..0x55412a: the bottom cap leaves H · 47 / 640 (0x2f and 0x280) for the bar.
     if (clampY)
     {
         constexpr int BarRows = 0x2f;

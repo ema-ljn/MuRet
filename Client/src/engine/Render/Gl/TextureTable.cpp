@@ -34,7 +34,7 @@ Core::Expected<void, std::string> TextureTable::Load(std::span<const Data::Textu
             return Core::Unexpected(
                 std::format("no se subió la textura del slot {:#x}: {}", texture.slot, uploaded.Error()));
         }
-        // emplace borra la que había: su GlName la suelta con glDeleteTextures.
+        // emplace destroys the previous one: its GlName releases it with glDeleteTextures.
         m_slots[texture.slot].emplace(std::move(uploaded).Value());
     }
     return {};

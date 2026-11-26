@@ -35,7 +35,7 @@ GlFrameTarget::Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textur
         return Core::Unexpected(models.Error());
     }
     const Core::PixelSize first = screen();
-    // El constructor es privado: make_unique no lo ve.
+    // The constructor is private: make_unique cannot reach it.
     std::unique_ptr<GlFrameTarget> target(new GlFrameTarget(gl, textures, std::move(renderer).Value(),
                                                             std::move(models).Value(), std::move(screen),
                                                             std::move(present), log));
@@ -61,9 +61,9 @@ Frame::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
     const Core::PixelSize screen = m_screen();
     m_text->FollowScreenWidth(screen.width);
     m_gl->clearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    // El glClear de la profundidad respeta la máscara, y la mezcla aditiva del frame anterior la pudo
-    // dejar apagada. En el original la prende el primer pase de 0x637700, 0x620db0(0, 0, 640, 480),
-    // que va antes del glClear y no dibuja nada (06 § Cámara, las dos trazas).
+    // The depth glClear honors the mask, which the previous frame's additive blend may have left off. In the original
+    // the first pass of 0x637700, 0x620db0(0, 0, 640, 480), turns it on; it runs before the glClear and draws nothing
+    // (06 § Cámara, las dos trazas).
     m_gl->depthMask(GL_TRUE);
     m_gl->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_sprites.Begin(screen);
@@ -79,7 +79,7 @@ Frame::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
     return *m_canvas;
 }
 
-// Lo que quedó de un pase 3D sin su fin se dibuja antes del 2D, que va encima.
+// Leftovers of a 3D pass without its end are drawn before the 2D, which goes on top.
 void GlFrameTarget::Present()
 {
     FlushModels();

@@ -51,7 +51,7 @@ void ModelBatch::SetFog(const std::optional<ModelFog>& fog)
     if (m_fog == fog)
         return;
     m_fog = fog;
-    // 42b0a0/42b0f0: el toggle existe aunque no siga otro dibujo.
+    // 42b0a0/42b0f0: the toggle exists even if no other draw follows.
     ModelDrawCommand command = NewDraw();
     command.operation = ModelStateOperation::Fog;
     m_commands.push_back(command);
@@ -67,7 +67,7 @@ void ModelBatch::SetTextureEnv(TextureEnvMode mode)
     if (m_textureEnv == mode)
         return;
     m_textureEnv = mode;
-    // 548a06/548a4a: el cambio y el restore existen aunque no siga otro dibujo.
+    // 548a06/548a4a: the change and the restore exist even if no other draw follows.
     ModelDrawCommand command = NewDraw();
     command.operation = ModelStateOperation::TextureEnv;
     m_commands.push_back(command);

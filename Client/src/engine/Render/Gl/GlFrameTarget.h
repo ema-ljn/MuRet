@@ -22,23 +22,14 @@
 #include <optional>
 #include <string>
 
-// El IFrameTarget de main.cpp (CL5.4): el frame de una escena en GL. BeginFrame limpia el
-// framebuffer en negro, como el glClearColor(0, 0, 0, 1) del login y el glClear de color y
-// profundidad de 0x65f200, y da el lienzo con los dos lotes vacíos; el fin del 2D (flushSprites), el
-// del pase 3D (flushModels, CL6.3) y el Present dibujan lo juntado con el GlSpriteRenderer, el
-// GlModelRenderer y la TextureTable de las escenas, y el Present además presenta (el swap de la
-// ventana). El texto es el de SceneText, con las fuentes del ancho
-// de cada frame, y el mundo, el que no dibuja (EmptyWorldView) hasta la CL7.
-//
-// Necesita el contexto vivo y no deja errores de GL: la tabla de texturas sube con glGetError
-// limpio.
+// BeginFrame clears to black, like the login's glClearColor(0, 0, 0, 1) and 0x65f200's color and depth glClear.
+// Needs a live context and leaves no GL errors: the texture table uploads with a clean glGetError.
 namespace Client::Render::Gl
 {
 class OPENGL_API GlFrameTarget final : public Frame::IFrameTarget
 {
 public:
-    // `screen` da el área de dibujo de cada frame, y `present` presenta. La tabla y el log tienen
-    // que vivir más. El error, si un renderer no compila o las fuentes del ancho de ahora no abren.
+    // The table and the log must outlive it.
     [[nodiscard]] static Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
     Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Frame::RasterizerFactory fonts,
            std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log);
@@ -52,8 +43,8 @@ public:
     Frame::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
     void Present() override;
 
-    // El GetTextExtentPointA del DC de los textos fuera del dibujo (el paso y la red): el de SceneText, con las
-    // fuentes del ancho del último frame. Vive lo que el frame.
+    // The text DC's GetTextExtentPointA outside drawing (the step and the network): SceneText's, with the last frame's
+    // fonts. Lives as long as the frame target.
     [[nodiscard]] const Render::Text::ITextMeasure& TextMeasure() const;
 
 private:
@@ -61,9 +52,9 @@ private:
                   GlModelRenderer models, std::function<Core::PixelSize()> screen, std::function<void()> present,
                   Core::Log& log);
 
-    // Lo que juntó el lote, al framebuffer, y el lote vacío con su estado.
+    // Draws the batch to the framebuffer and empties it, keeping its state.
     void FlushSprites();
-    // Lo que juntó el lote del pase 3D, al framebuffer, y el lote vacío con el mismo pase.
+    // Draws the 3D pass batch to the framebuffer and empties it, keeping the same pass.
     void FlushModels();
 
     const Platform::Sdl::GlFunctions* m_gl;
@@ -75,7 +66,7 @@ private:
     Core::Log& m_log;
     SpriteBatch m_sprites;
     ModelBatch m_models;
-    // Después del lote: su drawer lo guarda. Antes de la tabla no, que es de main.cpp.
+    // After the batch, which its drawer holds. Not before the table, which belongs to main.cpp.
     std::unique_ptr<Frame::SceneText> m_text;
     Frame::EmptyWorldView m_world;
     std::optional<Frame::SceneCanvas> m_canvas;

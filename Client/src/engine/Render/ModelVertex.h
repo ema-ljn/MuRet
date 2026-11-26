@@ -5,19 +5,17 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
-// Un vértice del 3D: lo que el ModelBatch junta por cada esquina de un triángulo de un modelo, y lo
-// que Gl::GlModelRenderer sube al VBO tal cual, en este orden (su VAO lo describe así). El original
-// manda glTexCoord2f, glColor y glVertex3f por vértice, ya en el mundo (06 § El personaje, vértice a
-// vértice): no hay una matriz por modelo.
+// Gl::GlModelRenderer uploads it to the VBO as is, in this order (its VAO describes it so). The original sends
+// glTexCoord2f, glColor and glVertex3f per vertex, already in the world (06 § El personaje, vértice a vértice): there
+// is no per-model matrix.
 namespace Client::Render
 {
 struct ModelVertex
 {
-    glm::vec3 position{}; // en el mundo
+    glm::vec3 position{}; // world space
     glm::vec2 uv{};
-    // Sin recortar: la luz del original pasa de 1 (1,34 en la selección, hasta 3,45 con la luz por
-    // vértice del caballo), y la función fija la recorta a [0, 1] antes de rasterizar; acá la recorta
-    // el shader.
+    // Unclamped: the original's light exceeds 1 (1.34 in the selection, up to 3.45 with the horse's per-vertex light),
+    // and the fixed function clamps it to [0, 1] before rasterizing; here the shader clamps it.
     Color color{};
 };
 } // namespace Client::Render

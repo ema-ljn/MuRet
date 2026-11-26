@@ -55,7 +55,7 @@ public:
         return {};
     }
 };
-// Spy limitado al sink de depthMask: registra argumentos y sigue al GL real del contexto.
+// Spy limited to the depthMask sink: records the arguments and forwards to the context's real GL.
 const Client::Platform::Sdl::GlFunctions* s_depthForward = nullptr;
 std::vector<GLboolean> s_depthCalls;
 void GLAPIENTRY RecordDepthMask(GLboolean value)
@@ -98,7 +98,7 @@ protected:
     }
 };
 
-// 620f52..620fa5: el pase con política cero apaga fog aun sin comandos de dibujo.
+// 620f52..620fa5: the zero-policy pass turns fog off even without draw commands.
 TEST_F(GlParticleMaterialBackendTest, EmptyInitializingPassDisablesFogWhileContinuationPreservesIt)
 {
     Client::Render::ModelBatch batch;
@@ -132,7 +132,7 @@ TEST_F(GlParticleMaterialBackendTest, EmptyInitializingPassDisablesFogWhileConti
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Detecta que el sink ejecute tail/helpers prematuramente o ignore comandos sin geometría.
+// Catches a sink that runs tail/helpers early or ignores commands without geometry.
 TEST_F(GlParticleMaterialBackendTest, PrefixOnlyChangesBlendInRealGl)
 {
     Client::Render::ModelBatch batch;
@@ -159,7 +159,7 @@ TEST_F(GlParticleMaterialBackendTest, PrefixOnlyChangesBlendInRealGl)
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Detecta alpha raw0 que fuerce profundidad: el verde lejano debe poder sobrescribir al rojo.
+// Catches a raw0 alpha that forces depth: the far green must be able to overwrite the red.
 TEST_F(GlParticleMaterialBackendTest, InheritedDisabledWriteAllowsLaterFarGeometry)
 {
     Client::Render::ModelBatch batch;
@@ -184,7 +184,7 @@ TEST_F(GlParticleMaterialBackendTest, InheritedDisabledWriteAllowsLaterFarGeomet
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Detecta usar BlendedShadow para raw0: ese perfil no descarta alpha<=0,25.
+// Catches using BlendedShadow for raw0: that profile does not discard alpha <= 0.25.
 TEST_F(GlParticleMaterialBackendTest, RawZeroStillDiscardsLowAlphaFragments)
 {
     Client::Render::ModelBatch batch;
@@ -208,7 +208,7 @@ TEST_F(GlParticleMaterialBackendTest, RawZeroStillDiscardsLowAlphaFragments)
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// ZERO/ONE_MINUS_SRC_COLOR sobre blanco: 255*(1-c), con tolerancia de un byte por canal.
+// ZERO/ONE_MINUS_SRC_COLOR over white: 255*(1-c), with one byte of tolerance per channel.
 TEST_F(GlParticleMaterialBackendTest, SubtractiveChangesRealFramebufferChannels)
 {
     Client::Render::ModelBatch batch;
@@ -236,7 +236,7 @@ TEST_F(GlParticleMaterialBackendTest, SubtractiveChangesRealFramebufferChannels)
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Recorre binder raw negativo, material tardío, Begin/End reales y textura real del shader.
+// Covers the negative raw binder, late material, real Begin/End and the shader's real texture.
 TEST_F(GlParticleMaterialBackendTest, BackendQuadUsesExistingRendererAndRealTexture)
 {
     Client::Data::Textures::Texture pixels{
@@ -274,7 +274,7 @@ TEST_F(GlParticleMaterialBackendTest, BackendQuadUsesExistingRendererAndRealText
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     renderer.Value().Draw(batch, textures, log);
     const auto cells = Cells(2, 2);
-    // Filas de pantalla: superior primero; bytes de textura: inferior primero.
+    // Screen rows: top first; texture bytes: bottom first.
     const std::array<std::array<int, 3>, 4> expected{std::array{30, 165, 30}, std::array{120, 75, 50},
                                                      std::array{100, 30, 20}, std::array{10, 120, 60}};
     for (std::size_t i = 0; i < expected.size(); ++i)
@@ -308,12 +308,12 @@ TEST_F(GlParticleMaterialBackendTest, HelperWritesDepthMaskOnceAndHitsDoNotRepea
     s_depthCalls.clear();
     renderer.Value().Draw(batch, textures, log);
     s_depthForward = nullptr;
-    const std::vector<GLboolean> expected{GL_TRUE, GL_FALSE}; // BeginPass, luego6208b0; sin tail.
+    const std::vector<GLboolean> expected{GL_TRUE, GL_FALSE}; // BeginPass, then 6208b0; no tail.
     EXPECT_EQ(s_depthCalls, expected);
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Sin Draw que pueda reparar Binding: el nombre que dejó Upload se cambia a0 antes del sink.
+// No Draw that could repair Binding: the name Upload left is changed to 0 before the sink.
 TEST_F(GlParticleMaterialBackendTest, BindingOnlyRestoresPoisonedRealGlBinding)
 {
     Client::Data::Textures::Texture pixels{.width = 1,
@@ -363,7 +363,7 @@ void ClipRectangle(Client::Render::ModelBatch& batch, Client::Render::ModelDrawS
     batch.Triangle({v[0], v[2], v[3]});
 }
 
-// Clip→píxel: (x+1)*32. View traslada x+0,5 sólo a World: [20,28], Eye[4,12], World[52,60].
+// Clip→pixel: (x+1)*32. View translates x+0.5 only in World: [20,28], Eye[4,12], World[52,60].
 TEST_F(GlParticleMaterialBackendTest, NonidentityViewSeparatesWorldEyeWorldAcrossPartialCommands)
 {
     Client::Render::Pass3D pass;
@@ -457,7 +457,7 @@ TEST_F(GlParticleMaterialBackendTest, SubtractiveFogErrorStillExecutesReachedSta
     const GLint alphaLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "alphaTest");
     const GLint textureLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "textured");
     const GLint fogLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "fog");
-    // 620db0 publica alpha, textura y fog antes de los dos helpers de la cola.
+    // 620db0 publishes alpha, texture and fog before the tail's two helpers.
     const std::vector<std::pair<GLint, GLint>> expected{
         {alphaLocation, 0}, {textureLocation, 1}, {fogLocation, 0}, {alphaLocation, 0}, {textureLocation, 1}};
     EXPECT_EQ(s_uniformCalls, expected);

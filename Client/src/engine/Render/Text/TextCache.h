@@ -17,30 +17,24 @@
 #include <string_view>
 #include <vector>
 
-// Los textos ya rasterizados (CL5.3). El original rasteriza y sube cada texto en cada frame:
-// 0x467060 lo dibuja con TextOutA en el DIB, 0x465a00 lo pasa a la caja de 256 × 32 y 0x554000 la
-// sube al slot 0 con glTexImage2D antes de cada quad (06 § Texto). MuRet rasteriza un texto una vez
-// por fuente y colores, guarda sus cajas en slots del texto (TextureSlot.h) y las reusa mientras no
-// cambie. El contenido de una caja no depende de dónde va el texto: lo que cambia con la x y la
-// pantalla (el corte en el borde, la posición) lo pone TextPieces en el quad.
+// Rasterized texts. The original rasterizes each text with TextOutA (0x467060), converts it to the 256 × 32 box
+// (0x465a00) and uploads it to slot 0 (0x554000) before each quad, every frame (06 § Texto); MuRet does it once per
+// text, font and colors, and keeps the boxes in text slots. A box does not depend on where the text goes: TextPieces
+// puts the edge cut and the position in the quad.
 //
-// Tiene un tope: los slots que le dan. Cuando un texto nuevo no entra, salen los que hace más
-// tiempo que no se dibujan, y sus slots se sueltan, salvo uno que ya está en el lote donde se
-// dibuja: el lote guarda el slot de cada quad y Gl::GlSpriteRenderer lo busca recién al dibujar,
-// así que una caja soltada o pisada antes cambiaría lo que se ve. No es la caché de 0x466000 (un
-// árbol por hash con los slots de 0x466560, que en las escenas medidas no corre: pregunta 11 del
-// plan de la CL5).
-// Vive lo que la tabla donde sube, y no es para varios hilos.
+// Bounded by its slots: when a new text does not fit, the least recently drawn are evicted, except one already in the
+// batch being drawn: Gl::GlSpriteRenderer looks each quad's slot up only when drawing, so a box released or overwritten
+// earlier would change what is shown. Not 0x466000's cache (a hash tree with 0x466560's slots, which does not run in
+// the measured scenes). Lives as long as the table it uploads to; not thread-safe.
 namespace Client::Render::Text
 {
 class ENGINE_API TextCache
 {
 public:
-    // Sube las cajas a `store`, en los `slotCount` slots desde `firstSlot`. El rasterizador y la
-    // tabla tienen que vivir lo que la caché.
+    // The rasterizer and the store must outlive the cache.
     TextCache(const IGlyphRasterizer& rasterizer, ITextureStore& store, TextureSlot firstSlot = FirstTextTextureSlot,
               std::size_t slotCount = TextTextureSlotCount);
-    // Suelta los slots que usa.
+    // Releases the slots it uses.
     ~TextCache();
 
     TextCache(const TextCache&) = delete;
@@ -48,70 +42,65 @@ public:
     TextCache(TextCache&&) = delete;
     TextCache& operator=(TextCache&&) = delete;
 
-    // 0x554180(x, y, texto, 0, 0, 0) con TextOut distinto de 1, el del login: el texto en (x, y)
-    // de 640 × 480, con la fuente y los colores de `style`, como quads de TextPieces en `batch`
-    // (con su pantalla, su color y su mezcla). Un texto que no está se rasteriza y se sube; uno
-    // vacío no dibuja nada, como 0x467060. Error si la tabla no sube una caja, si el texto pide
-    // más cajas que los slots de la caché, o si para hacerle lugar habría que sacar un texto que ya
-    // está en `batch`. Un lote por frame: un texto de otro lote que todavía no se dibujó puede
-    // salir.
+    // 0x554180(x, y, text, 0, 0, 0) with TextOut other than 1, the login's: the text at (x, y) of 640 × 480 as
+    // TextPieces quads in `batch` (with its screen, color and blend). A missing text is rasterized and uploaded; an
+    // empty one draws nothing, like 0x467060. Error if the store does not upload a box, the text needs more boxes than
+    // the cache's slots, or making room would evict a text already in `batch`. One batch per frame: another batch's
+    // undrawn text may leave.
     [[nodiscard]] Core::Expected<void, std::string> Draw(SpriteBatch& batch, int x, int y, std::string_view text,
                                                          const TextStyle& style);
 
-    // 0x5542f0(x, y, texto, 0, 6, 0), el modo 6 de 0x467060 (el cartel de Slide.bmd): con x negativa, TextOutA en
-    // (x, 0) del DIB, así que se ven las columnas del texto desde −x (las de 640 × 480 tomadas como píxeles, Q-C519),
-    // cx + x de ancho, desde la x 0; sin ninguna, nada. Cada corte es otra entrada de la caché, como el original, que
-    // lo rasteriza en cada frame. Con x de 0 o más, Draw.
+    // 0x5542f0(x, y, text, 0, 6, 0), 0x467060's mode 6 (the Slide.bmd banner): with negative x, TextOutA at DIB (x, 0),
+    // so the text's columns from −x show (640 × 480 ones taken as pixels, Q-C519), cx + x wide, from x 0; with none,
+    // nothing. Each cut is another cache entry, like the original, which rasterizes it every frame. With x ≥ 0, Draw.
     [[nodiscard]] Core::Expected<void, std::string> DrawClippedAtLeft(SpriteBatch& batch, int x, int y,
                                                                       std::string_view text, const TextStyle& style);
 
-    // 0x467060 con un ancho (los modos 1 y 2 de 0x554180): una caja de `columns` columnas en (x, y) de 640 × 480, con
-    // el fondo entero y, en su columna 0, la columna `firstColumn` del texto: con más, lo de la izquierda queda
-    // afuera (el modo 1 con el ancho menor que cx); con menos de 0, la caja empieza con fondo (el modo 2, centrado).
-    // Lo que pasa del texto es fondo, aunque esté vacío. Pasadas las 256 columnas, las cajas de 256 y el corte en el
-    // borde derecho son los de TextPieces con el ancho de la caja. Cada caja es otra entrada de la caché. Sin columnas,
-    // nada. Error con menos de 0 columnas (una caja negativa en el modo 2: el rep stos de 0x4671cf limpiaría fuera del
-    // DIB, Q-C711), y los de Draw. Las columnas del modo 2 las da CenterInBox.
+    // 0x467060 with a width (modes 1 and 2 of 0x554180): a box of `columns` columns at (x, y) of 640 × 480, with the
+    // whole background and, at its column 0, text column `firstColumn`: with more, the left is cut (mode 1 with a width
+    // under cx); below 0, the box starts with background (mode 2, centered). Past the text is background, even if
+    // empty. Beyond 256 columns, the 256 boxes and the right-edge cut are TextPieces' with the box width. Each box is
+    // another cache entry. No columns, nothing. Error below 0 columns (a negative box in mode 2: 0x4671cf's rep stos
+    // would clear outside the DIB, Q-C711), plus Draw's. CenterInBox gives mode 2's columns.
     [[nodiscard]] Core::Expected<void, std::string> DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
                                                                 const TextStyle& style, int firstColumn, int columns);
 
-    // Como DrawColumns, con origen en píxeles para callers que ya calcularon la posición del EDIT.
+    // Like DrawColumns, with a pixel origin for callers that already computed the EDIT's position.
     [[nodiscard]] Core::Expected<void, std::string> DrawColumnsAtPixels(SpriteBatch& batch, int pixelX, int pixelY,
                                                                         std::string_view text, const TextStyle& style,
                                                                         int firstColumn, int columns);
 
-    // 0x553e50 y 0x554000 de un renglón de un globo (0x555b00): la caja de `box` con el texto en (0, 0), aunque esté
-    // vacío (el fondo solo), en (x, y) de la pantalla en píxeles, como la corre BoxedQuad. Cada caja es otra entrada
-    // de la caché, de un slot. Los errores, los de Draw.
+    // 0x553e50 and 0x554000 for a bubble line (0x555b00): `box`'s box with the text at (0, 0), even if empty
+    // (background only), at screen pixel (x, y), shifted as BoxedQuad does. Each box is another one-slot cache entry.
+    // Errors as Draw's.
     [[nodiscard]] Core::Expected<void, std::string> DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
                                                               const TextStyle& style, const BoxShape& box, bool clampY);
 
-    // GetTextExtentPointA, para ubicar el texto antes de dibujarlo (RightAlignedAt).
+    // GetTextExtentPointA, to place the text before drawing it (RightAlignedAt).
     [[nodiscard]] TextExtent Measure(FontKind font, std::string_view text) const;
 
-    // Otro rasterizador, el de otro ancho de pantalla (las fuentes cambian de alto, FontSet.h):
-    // vacía la caché y suelta sus slots. Entre frames, como Clear.
+    // For another screen width (fonts change height, FontSet.h): empties the cache and releases its slots. Between
+    // frames, like Clear.
     void ChangeRasterizer(const IGlyphRasterizer& rasterizer);
 
-    // Vacía la caché y suelta sus slots, aunque estén en un lote: entre frames.
+    // Empties the cache and releases its slots, even those in a batch: between frames.
     void Clear();
 
-    // Cuántos textos guarda y cuántos slots ocupan.
     [[nodiscard]] std::size_t Size() const;
     [[nodiscard]] std::size_t UsedSlots() const;
 
 private:
-    // La clave: la fuente, los colores, el texto, que en el índice apunta al de su entrada, y las columnas que el modo
-    // 6 deja afuera a la izquierda (negativas, las que el modo 2 deja antes del texto).
+    // The font, the colors, the text (in the index it points to its entry's), and the columns mode 6 leaves out on the
+    // left (negative: those mode 2 leaves before the text).
     struct Key
     {
         FontKind font = FontKind::Normal;
         TextColors colors;
         std::string_view text;
         int skipped = 0;
-        // La caja de un globo; con ancho 0, la de 0x467060.
+        // A bubble's box; with width 0, 0x467060's.
         BoxShape box{};
-        // Las columnas de la caja de DrawColumns; con 0, las del texto desde `skipped`.
+        // DrawColumns' box columns; with 0, the text's from `skipped`.
         int columns = 0;
     };
     struct KeyLess
@@ -126,26 +115,26 @@ private:
         int skipped = 0;
         BoxShape box{};
         int columns = 0;
-        // El ancho es el que se ve: el del texto menos `skipped`, el de la caja de DrawColumns o el de la del globo.
+        // The visible width: the text's minus `skipped`, DrawColumns' box's or the bubble box's.
         TextExtent extent;
-        // Una por cada 256 columnas del texto, en orden.
+        // One per 256 text columns, in order.
         std::vector<TextureSlot> boxes;
     };
     using Entries = std::list<Entry>;
 
-    // La entrada de `key`, rasterizada y subida si no estaba, al frente de la lista. Para hacerle
-    // lugar no saca una entrada que ya está en `batch`.
+    // `key`'s entry, rasterized and uploaded if missing, moved to the front. Never evicts an entry already in `batch`
+    // to make room.
     [[nodiscard]] Core::Expected<Entries::iterator, std::string> Find(const Key& key, const SpriteBatch& batch);
-    // Los quads de `entry` en (x, y), como TextPieces.
+    // `entry`'s quads at (x, y), like TextPieces.
     static void DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y);
     static void DrawPiecesAtPixels(SpriteBatch& batch, const Entry& entry, int pixelX, int pixelY);
-    // Saca la entrada del fondo de la lista (la que hace más tiempo que no se dibuja).
+    // Evicts the back of the list, the least recently drawn.
     void EvictOldest();
 
     const IGlyphRasterizer* m_rasterizer;
     ITextureStore* m_store;
     std::size_t m_slotCount;
-    // La más reciente adelante. Los nodos de una lista no se mueven: el índice apunta a sus textos.
+    // Most recent first. List nodes do not move: the index points to their texts.
     Entries m_entries;
     std::map<Key, Entries::iterator, KeyLess> m_index;
     std::vector<TextureSlot> m_freeSlots;

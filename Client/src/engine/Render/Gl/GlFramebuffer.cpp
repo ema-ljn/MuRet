@@ -12,7 +12,7 @@
 
 namespace Client::Render::Gl
 {
-// glReadPixels escribe 4 bytes por píxel, uno detrás del otro: un Rgba8 tiene que medir eso.
+// glReadPixels writes 4 contiguous bytes per pixel: an Rgba8 must be that size.
 static_assert(sizeof(Rgba8) == 4);
 
 GlFramebuffer::GlFramebuffer(const Platform::Sdl::GlFunctions& gl, GlName color, GlName depth, GlName framebuffer,
@@ -32,13 +32,13 @@ Core::Expected<GlFramebuffer, std::string> GlFramebuffer::Create(const Platform:
     }
     GlName color = GenTexture(gl);
     gl.bindTexture(GL_TEXTURE_2D, color.Get());
-    // Sin datos (nullptr): GL reserva la textura, y lo que se dibuje la llena.
+    // No data: GL allocates the texture and drawing fills it.
     gl.texImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    // La profundidad, también una textura y no un renderbuffer: así alcanzan las funciones que ya pide
-    // el cliente (GlFunctionList.h).
+    // Depth is also a texture, not a renderbuffer, so the functions the client already loads suffice
+    // (GlFunctionList.h).
     GlName depth = GenTexture(gl);
     gl.bindTexture(GL_TEXTURE_2D, depth.Get());
     gl.texImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT,
@@ -77,7 +77,7 @@ Core::PixelSize GlFramebuffer::Size() const
     return Core::PixelSize{m_width, m_height};
 }
 
-// GL_PACK_ALIGNMENT queda en 4: una fila RGBA mide un múltiplo de 4 y no lleva relleno.
+// GL_PACK_ALIGNMENT stays at 4: an RGBA row is a multiple of 4 bytes and has no padding.
 std::vector<Rgba8> GlFramebuffer::ReadPixels() const
 {
     std::vector<Rgba8> pixels(static_cast<std::size_t>(m_width) * static_cast<std::size_t>(m_height));

@@ -23,7 +23,7 @@ Core::Expected<std::unique_ptr<SceneText>, std::string> SceneText::Create(Render
     {
         return Core::Unexpected(rasterizer.Error());
     }
-    // El constructor es privado: make_unique no lo ve.
+    // The constructor is private: make_unique cannot reach it.
     return std::unique_ptr<SceneText>(
         new SceneText(store, batch, std::move(fonts), std::move(rasterizer).Value(), screenWidth, log));
 }
@@ -49,7 +49,7 @@ void SceneText::FollowScreenWidth(int screenWidth)
                     rasterizer.Error());
         return;
     }
-    // La caché deja el rasterizador viejo antes de que se destruya.
+    // The cache drops the old rasterizer before it is destroyed.
     std::unique_ptr<Render::Text::IGlyphRasterizer> next = std::move(rasterizer).Value();
     m_cache.ChangeRasterizer(*next);
     m_rasterizer = std::move(next);

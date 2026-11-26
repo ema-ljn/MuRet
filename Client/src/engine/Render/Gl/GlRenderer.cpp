@@ -24,17 +24,16 @@ namespace Client::Render::Gl
 {
 namespace
 {
-// El VBO es una copia de los SpriteVertex tal cual: ocho floats seguidos, sin relleno.
+// The VBO is a raw copy of the SpriteVertex array: eight packed floats.
 static_assert(std::is_standard_layout_v<Render::SpriteVertex>);
 static_assert(sizeof(Render::SpriteVertex) == 8 * sizeof(float));
 
-// glVertexAttribPointer recibe el desplazamiento dentro del VBO como si fuera un puntero.
+// glVertexAttribPointer takes the offset inside the VBO as a pointer.
 const void* BufferOffset(std::size_t bytes)
 {
     return reinterpret_cast<const void*>(bytes);
 }
 
-// El formato de SpriteVertex para el VAO: dos floats de posición, dos de UV y cuatro de color.
 void DescribeVertices(const Platform::Sdl::GlFunctions& gl)
 {
     constexpr auto stride = static_cast<GLsizei>(sizeof(Render::SpriteVertex));
@@ -95,16 +94,15 @@ void GlRenderer::Draw(std::span<const Render::SpriteVertex> vertices, const GlTe
 
 void GlRenderer::Upload(std::span<const Render::SpriteVertex> vertices, Core::PixelSize screen) const
 {
-    // gluOrtho2D(0, W, 0, H) es glm::ortho con near -1 y far 1 (la CL5.0 los comparó bit a bit).
+    // gluOrtho2D(0, W, 0, H) is glm::ortho with near -1 and far 1 (compared bit for bit).
     const glm::mat4 projection =
         glm::ortho(0.0f, static_cast<float>(screen.width), 0.0f, static_cast<float>(screen.height));
     m_gl->viewport(0, 0, screen.width, screen.height);
     m_gl->useProgram(m_shader.Program());
     m_gl->bindVertexArray(m_vertexArray.Get());
     m_gl->bindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer.Get());
-    // El VBO se llena de nuevo en cada llamada, como el lote en cada frame.
     m_gl->bufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices.size_bytes()), vertices.data(), GL_STREAM_DRAW);
-    // GL_FALSE: la matriz de glm ya está en column-major, como la espera GL.
+    // GL_FALSE: the glm matrix is already column-major, as GL expects.
     m_gl->uniformMatrix4fv(m_uniforms.projection, 1, GL_FALSE, glm::value_ptr(projection));
 }
 

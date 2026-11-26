@@ -15,21 +15,17 @@
 #include <optional>
 #include <string>
 
-// El texto de las escenas en main.cpp (CL5.4): el TextCache de la CL5.3 con el rasterizador de las
-// fuentes del ancho de la pantalla, y su ITextDrawer sobre el lote del frame. El original crea las
-// fuentes una vez, con el ancho de la ventana (FontSet.h, FontHeightFor); en MuRet el área de
-// dibujo puede cambiar (otra densidad de pantalla), y con otro ancho se abren otras.
+// The original creates the fonts once, with the window width (FontSet.h, FontHeightFor); in MuRet the drawing area can
+// change (another screen density), and another width opens other fonts.
 namespace Client::Render::Frame
 {
-// Abre las fuentes para una pantalla de `screenWidth` de ancho: en main.cpp, el FreeTypeRasterizer
-// con los archivos de App::ChooseFontFiles; en los tests, uno falso.
 using RasterizerFactory =
     std::function<Core::Expected<std::unique_ptr<Render::Text::IGlyphRasterizer>, std::string>(int screenWidth)>;
 
 class ENGINE_API SceneText
 {
 public:
-    // Las fuentes de `screenWidth`, o su error. La tabla, el lote y el log tienen que vivir más.
+    // The store, the batch and the log must outlive it.
     [[nodiscard]] static Core::Expected<std::unique_ptr<SceneText>, std::string>
     Create(Render::ITextureStore& store, Render::SpriteBatch& batch, RasterizerFactory fonts, int screenWidth,
            Core::Log& log);
@@ -40,8 +36,8 @@ public:
     SceneText& operator=(SceneText&&) = delete;
     ~SceneText() = default;
 
-    // Entre frames, con el ancho del que empieza: si cambió, las fuentes de ese ancho y la caché
-    // vacía. Si no abren, siguen las de antes y el error va al log una vez por ancho.
+    // Between frames, with the new frame's width: if it changed, that width's fonts and an empty cache. If they fail,
+    // the old ones stay and the error is logged once per width.
     void FollowScreenWidth(int screenWidth);
 
     ITextDrawer& Drawer();
@@ -54,7 +50,7 @@ private:
     Core::Log& m_log;
     std::unique_ptr<Render::Text::IGlyphRasterizer> m_rasterizer;
     int m_screenWidth;
-    // El último ancho que no abrió, para no repetir su error.
+    // The last width that failed, so its error is not repeated.
     std::optional<int> m_failedWidth;
     Render::Text::TextCache m_cache;
     TextCacheDrawer m_drawer;

@@ -6,29 +6,26 @@
 
 #include <string_view>
 
-// Un texto en (x, y) de 640 × 480, como 0x554180 con TextOut distinto de 1, el del login (CL5.4).
-// Lo implementa TextCacheDrawer sobre el TextCache de la CL5.3; los tests, el RecordingTextDrawer
-// de support/, que anota. Dibuja en el lote del frame, con el color y la mezcla que haya.
+// Text at (x, y) in 640 × 480, like 0x554180 with TextOut other than 1 (the login's). Draws into the frame batch with
+// the current color and blend.
 namespace Client::Render::Frame
 {
-// Measure (Render::Text::ITextMeasure) da el ancho y el alto del texto en píxeles, para ubicarlo.
+// Measure gives the text's width and height in pixels.
 class ITextDrawer : public Render::Text::ITextMeasure
 {
 public:
     virtual void Draw(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
-    // 0x467060 con el modo 6, el del cartel de Slide.bmd (0x46a816): con x negativa, el texto corrido −x columnas
-    // del DIB (píxeles, aunque la x es de 640 × 480: Q-C519) y dibujado desde la x 0, con cx + x columnas; con x de
-    // 0 o más, como Draw.
+    // 0x467060 in mode 6, the Slide.bmd banner's (0x46a816): with negative x, the text shifts −x DIB columns (pixels,
+    // although x is in 640 × 480: Q-C519) and is drawn from x 0 with cx + x columns; with x ≥ 0, like Draw.
     virtual void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
-    // 0x467060 con un ancho (los modos 1 y 2 de 0x554180): la caja de `columns` columnas desde x, con el fondo entero
-    // y la columna `firstColumn` del texto en su columna 0 (Render::Text::TextCache::DrawColumns).
+    // 0x467060 with a width (modes 1 and 2 of 0x554180): a box of `columns` columns from x, with the whole background
+    // and text column `firstColumn` at its column 0 (Render::Text::TextCache::DrawColumns).
     virtual void DrawColumns(int x, int y, std::string_view text, const Render::Text::TextStyle& style, int firstColumn,
                              int columns) = 0;
-    // Como DrawColumns, con la x e y directamente en píxeles, sin conversión a 640 × 480.
     virtual void DrawColumnsAtPixels(int pixelX, int pixelY, std::string_view text,
                                      const Render::Text::TextStyle& style, int firstColumn, int columns) = 0;
-    // 0x553e50 y 0x554000, un renglón de un globo (0x555b00): la caja de `box` en (x, y) de la pantalla en píxeles,
-    // corrida por 0x554000 (con 0x77f3b66, `clampY`, también la y). Con el texto vacío, el fondo solo.
+    // 0x553e50 and 0x554000, one line of a bubble (0x555b00): the `box` box at screen pixel (x, y), shifted by 0x554000
+    // (with 0x77f3b66, `clampY`, also y). With empty text, only the background.
     virtual void DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
                            const Render::Text::BoxShape& box, bool clampY) = 0;
 };

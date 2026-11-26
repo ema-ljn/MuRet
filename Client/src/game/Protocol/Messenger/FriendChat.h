@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/Outgoing.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -11,37 +11,37 @@
 #include <string_view>
 #include <vector>
 
-// El chat con un amigo (CL9 hito 10; 04, "Las cartas y el chat con un amigo"). Con el GameServer: el pedido de una
-// sala (CA) y la invitación (CB), que van y vuelven (0x4dce10 y 0x4dd020). Con el servidor del chat, una conexión
-// aparte por sala al puerto 55980 (0x49de50): lo que llega (00, 01, 02, 04 y 0D, que 0x4e1d50 despacha con la ventana
-// a 0x4dd1b0..0x4dd540) y lo que manda la ventana del chat (la entrada, 0x493530; el mensaje, 0x4944c0; la salida,
-// 0x493a70). La reconstrucción del GameServer 0.97 no tiene nada de esto: el oráculo es el ASM del cliente
-// (*estático*). Los handlers del servidor del chat leen el paquete por su lugar desde pkt[0], sea C1 o C2.
+// The chat with a friend (04, "Las cartas y el chat con un amigo"). With the GameServer: the request for a room (CA)
+// and the invitation (CB), which go and come back (0x4dce10 and 0x4dd020). With the chat server, a separate connection
+// per room to port 55980 (0x49de50): what arrives (00, 01, 02, 04 and 0D, which 0x4e1d50 dispatches with the window to
+// 0x4dd1b0..0x4dd540) and what the chat window sends (the entry, 0x493530; the message, 0x4944c0; the exit, 0x493a70).
+// The GameServer 0.97 reconstruction has none of this: the oracle is the client's ASM. The chat server's handlers read
+// the packet by position from pkt[0], C1 or C2.
 namespace Client::Protocol::Messenger
 {
-// Los del servidor del chat.
+// The chat server's.
 inline constexpr Network::Opcode RoomJoinOpcode{0x00};
 inline constexpr Network::Opcode RoomMemberOpcode{0x01};
 inline constexpr Network::Opcode RoomMembersOpcode{0x02};
 inline constexpr Network::Opcode RoomMessageOpcode{0x04};
 inline constexpr Network::Opcode RoomNoticeOpcode{0x0d};
-// El que manda el timer 1002 a cada sala (0x4a6550).
+// What the timer 1002 sends to each room (0x4a6550).
 inline constexpr Network::Opcode RoomPingOpcode{0x05};
-// El puerto del servidor del chat (0x49df17, PUSH 0xdaac).
+// 0x49df17, PUSH 0xdaac.
 inline constexpr std::uint16_t ChatPort = 55980;
 inline constexpr std::size_t ChatNameSize = 10;
-// CA: la IP en 15 bytes.
+// CA: the IP in 15 bytes.
 inline constexpr std::size_t ChatAddressSize = 15;
-// 04: el tope del mensaje (0x4dd3fc, con más no hace nada) y el del EDIT del chat (0x493220).
+// 04: the message's cap (0x4dd3fc, with more it does nothing) and the chat EDIT's (0x493220).
 inline constexpr std::uint8_t MessageLimit = 100;
-// 02: cada miembro, el número y el nombre.
+// 02: each member, the number and the name.
 inline constexpr std::size_t MemberRowSize = 11;
-// 0D: 0x4dd540 corta el texto en pkt[0x68].
+// 0D: 0x4dd540 cuts the text at pkt[0x68].
 inline constexpr std::size_t NoticeEnd = 0x68;
 
-// C1 CA (0x4dce10): pkt[3] la IP del servidor del chat (15), pkt[0x12] la sala (u16), pkt[0x14] el ticket (u32),
-// pkt[0x18] el tipo (0, la pedí yo; 1, me invitan o me llaman; 2, otra), pkt[0x19] el nombre (10) y pkt[0x23] el
-// resultado (0, no está; 1, bien; 2, fuera de línea).
+// C1 CA (0x4dce10): pkt[3] the chat server's IP (15), pkt[0x12] the room (u16), pkt[0x14] the ticket (u32), pkt[0x18]
+// the type (0, I asked for it; 1, I am invited or called; 2, another), pkt[0x19] the name (10) and pkt[0x23] the result
+// (0, not there; 1, fine; 2, offline).
 struct RoomAnswer
 {
     std::string address;
@@ -52,20 +52,21 @@ struct RoomAnswer
     std::uint8_t result = 0;
 };
 
-// C1 CB (0x4dd020): pkt[3] el resultado y pkt[4] la ventana del chat (u32).
+// C1 CB (0x4dd020): pkt[3] the result and pkt[4] the chat window (u32).
 struct InviteResult
 {
     std::uint8_t result = 0;
     std::uint32_t window = 0;
 };
 
-// 00 (0x4dd1b0): pkt[3] el resultado de entrar a la sala.
+// 00 (0x4dd1b0): pkt[3] the result of entering the room.
 struct JoinResult
 {
     std::uint8_t result = 0;
 };
 
-// 01 (0x4dd1e0): pkt[3] 0 entra o 1 sale, pkt[4] su número y pkt[5] su nombre (strncpy de 10: hasta el primer '\0').
+// 01 (0x4dd1e0): pkt[3] 0 comes in or 1 leaves, pkt[4] its number and pkt[5] its name (strncpy of 10: up to the first
+// '\0').
 struct Member
 {
     std::uint8_t kind = 0;
@@ -73,7 +74,7 @@ struct Member
     std::string name;
 };
 
-// 02 (0x4dd350): pkt[6] cuántos y desde pkt[8] los miembros de 11 bytes (el número y el nombre, con strncpy de 10).
+// 02 (0x4dd350): pkt[6] how many and from pkt[8] the members of 11 bytes (the number and the name, with strncpy of 10).
 struct MemberRow
 {
     std::uint8_t index = 0;
@@ -85,8 +86,8 @@ struct Members
     std::vector<MemberRow> members;
 };
 
-// 04 (0x4dd3d0): pkt[3] el número del que habla, pkt[4] el largo y desde pkt[5] el texto con el XOR de 3 bytes
-// (0x6c82e4). Con un largo de más de 100, el handler no hace nada y el texto queda vacío.
+// 04 (0x4dd3d0): pkt[3] the speaker's number, pkt[4] the length and from pkt[5] the text with the 3-byte XOR
+// (0x6c82e4). With a length over 100, the handler does nothing and the text stays empty.
 struct Message
 {
     std::uint8_t index = 0;
@@ -94,7 +95,7 @@ struct Message
     std::string text;
 };
 
-// 0D (0x4dd540): el texto desde pkt[5] hasta el primer '\0', cortado en pkt[0x68].
+// 0D (0x4dd540): the text from pkt[5] up to the first '\0', cut at pkt[0x68].
 struct Notice
 {
     std::string text;
@@ -107,26 +108,26 @@ struct Notice
 [[nodiscard]] Core::Expected<Members, Network::ProtocolError> ReadMembers(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Message, Network::ProtocolError> ReadMessage(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet);
-// Los handlers de 0x4e2a60 leen cada paquete por su lugar sin mirar su largo: con uno más corto que lo que leen (un
-// nombre o un texto sin su '\0' adentro, o menos bytes que los del largo del 04), el original sigue en el búfer de
-// recepción (Q-C1011). TooShort con esos; con uno que se lee entero o con otro opcode, nada. Los textos que terminan
-// adentro del paquete se leen aunque sea más corto que el lugar fijo (el 0D de largo 5 + texto + 1).
+// The handlers of 0x4e2a60 read each packet by position without looking at its length: with one shorter than what they
+// read (a name or a text without its '\0' inside, or fewer bytes than the 04's length), the original goes on into the
+// receive buffer (Q-C1011). TooShort with those; nothing with one read whole or with another opcode. The texts that end
+// inside the packet are read even if it is shorter than the fixed place (the 0D of length 5 + text + 1).
 [[nodiscard]] Core::Expected<void, Network::ProtocolError> CheckRoomPacket(const Network::Packet& packet);
 
-// 0x4c1690 y 0x4dd3d0: cada byte con FC CF AB (0x6c82e4) según su lugar % 3. Es su propia inversa.
+// 0x4c1690 and 0x4dd3d0: each byte with FC CF AB (0x6c82e4) by its place % 3. It is its own inverse.
 void FlipChatText(std::vector<std::byte>& bytes);
 
-// 0x49d0b0 con el 3 (el chat con el amigo elegido): C1 0D CA y el nombre, con el XOR32.
+// 0x49d0b0 with 3 (the chat with the chosen friend): C1 0D CA and the name, with the XOR32.
 [[nodiscard]] Outgoing WriteRoomRequest(std::string_view name);
-// 0x4944c0 con el 10 y 2: C1 14 CB, el nombre del invitado, un 0, la sala (u16) y la ventana (u32), con el XOR32.
+// 0x4944c0 with 10 and 2: C1 14 CB, the invitee's name, a 0, the room (u16) and the window (u32), with the XOR32.
 [[nodiscard]] Outgoing WriteInvite(std::string_view name, std::uint16_t room, std::uint32_t window);
-// 0x493530, por la conexión de la sala: C1 10 00, un 0, la sala (u16) y el ticket (_itoa en base 10 a 10 bytes en cero,
-// con el XOR de 3 bytes), con el XOR32.
+// 0x493530, through the room's connection: C1 10 00, a 0, the room (u16) and the ticket (_itoa in base 10 to 10 zeroed
+// bytes, with the 3-byte XOR), with the XOR32.
 [[nodiscard]] Outgoing WriteJoin(std::uint16_t room, std::uint32_t ticket);
-// 0x4944c0 con el 7: C1 04, un 0, el largo y el texto con el XOR de 3 bytes, con el XOR32.
+// 0x4944c0 with 7: C1 04, a 0, the length and the text with the 3-byte XOR, with the XOR32.
 [[nodiscard]] Outgoing WriteMessage(std::string_view text);
-// 0x493a70, al soltar la ventana: C1 03 01, que sale como está (no tiene bytes después del opcode).
+// 0x493a70, on letting the window go: C1 03 01, which goes out as is (it has no bytes after the opcode).
 [[nodiscard]] Outgoing WriteLeave();
-// 0x4a6550, cada 15 s (el timer 1002 de 0x48e470): C1 03 05, que sale como está.
+// 0x4a6550, every 15 s (the timer 1002 of 0x48e470): C1 03 05, which goes out as is.
 [[nodiscard]] Outgoing WritePing();
 } // namespace Client::Protocol::Messenger

@@ -1,15 +1,31 @@
 #include "Protocol/Pets/PetInfo.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
+
+#include <cstdint>
+#include <optional>
 
 namespace Client::Protocol::Pets
 {
+namespace
+{
+using Pet = Network::Field<std::uint8_t, 3>;
+using Kind = Network::Field<std::uint8_t, 4>;
+using Slot = Network::Field<std::uint8_t, 5>;
+using Level = Network::Field<std::uint8_t, 6>;
+using Experience = Network::Field<std::uint32_t, 8>;
+constexpr Network::PacketLayout PetInfoReplyLayout{
+    {Network::PacketType::C1, PetInfoOpcode, std::nullopt}, Experience::End, 0x4e4ca1};
+} // namespace
+
 Outgoing WritePetInfoRequest(const PetInfoRequest& request)
 {
     return Xor32C1(
@@ -18,17 +34,14 @@ Outgoing WritePetInfoRequest(const PetInfoRequest& request)
 
 Core::Expected<PetInfoReply, Network::ProtocolError> ReadPetInfoReply(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != PetInfoOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    const auto pet = reader.ReadU8();
-    const auto kind = reader.ReadU8();
-    const auto slot = reader.ReadU8();
-    const auto level = reader.ReadU8();
-    const auto padding = reader.ReadU8();
-    const auto experience = reader.ReadU32Le();
-    if (!pet || !kind || !slot || !level || !padding || !experience)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return PetInfoReply{.pet = *pet, .kind = *kind, .slot = *slot, .level = *level, .experience = *experience};
+    return Network::ReadPacket(packet, PetInfoReplyLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return PetInfoReply{.pet = reader.Read<Pet>(),
+                                                       .kind = reader.Read<Kind>(),
+                                                       .slot = reader.Read<Slot>(),
+                                                       .level = reader.Read<Level>(),
+                                                       .experience = reader.Read<Experience>()};
+                               });
 }
 } // namespace Client::Protocol::Pets

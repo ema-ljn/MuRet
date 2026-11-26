@@ -1,54 +1,47 @@
 #include "Protocol/Pets/PetOrders.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
+
+#include <bit>
+#include <cstdint>
+#include <optional>
 
 namespace Client::Protocol::Pets
 {
 namespace
 {
-// Un C1 de `opcode`, el lector desde pkt[4] (pkt[3] no lo lee nadie).
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
-{
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    if (!reader.ReadU8())
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return reader;
-}
+// Nobody reads pkt[3].
+using Order = Network::Field<std::uint8_t, 4>;
+using OrderKey = Network::Field<std::uint16_t, 5, std::endian::big>;
+constexpr Network::PacketLayout PetOrderLayout{
+    {Network::PacketType::C1, PetOrderOpcode, std::nullopt}, OrderKey::End, 0x4e4c0a};
+
+using AttackKind = Network::Field<std::uint8_t, 4>;
+using AttackOwner = Network::Field<std::uint16_t, 5, std::endian::big>;
+using AttackTarget = Network::Field<std::uint16_t, 7, std::endian::big>;
+constexpr Network::PacketLayout PetAttackLayout{
+    {Network::PacketType::C1, PetAttackOpcode, std::nullopt}, AttackTarget::End, 0x4e4c42};
 } // namespace
 
 Core::Expected<PetOrder, Network::ProtocolError> ReadPetOrder(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PetOrderOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto order = reader.ReadU8();
-    const auto key = reader.ReadU16Be();
-    if (!order || !key)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return PetOrder{*order, *key};
+    return Network::ReadPacket(packet, PetOrderLayout, [](Network::LayoutReader& reader)
+                               { return PetOrder{reader.Read<Order>(), reader.Read<OrderKey>()}; });
 }
 
 Core::Expected<PetAttack, Network::ProtocolError> ReadPetAttack(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, PetAttackOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto kind = reader.ReadU8();
-    const auto owner = reader.ReadU16Be();
-    const auto target = reader.ReadU16Be();
-    if (!kind || !owner || !target)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return PetAttack{*kind, *owner, *target};
+    return Network::ReadPacket(
+        packet, PetAttackLayout, [](Network::LayoutReader& reader)
+        { return PetAttack{reader.Read<AttackKind>(), reader.Read<AttackOwner>(), reader.Read<AttackTarget>()}; });
 }
 
 Outgoing WritePetCommand(const PetCommand& command)

@@ -1,5 +1,6 @@
 #include "Scenes/GameModels.h"
 
+#include "Assets/PlayerSkeleton.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -114,7 +115,7 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
                     continue;
                 }
                 Data::Models::Model model = std::move(loaded).Value();
-                auto skeleton = file.model == Data::Models::PlayerSkeletonModel ? Models::MakePlayerSkeleton(model)
+                auto skeleton = file.model == Data::Models::PlayerSkeletonModel ? Assets::MakePlayerSkeleton(model)
                                                                                 : Models::MakeSkeleton(model);
                 if (skeleton.HasValue())
                 {

@@ -2,7 +2,9 @@
 
 For each file git sees as renamed between two commits (-M50%), the old and the new file must have the same lines, as a
 multiset, once #include lines and blank lines are left out: a moved file may change its includes and nothing else.
-Renamed CMakeLists.txt, *.cmake, *.md and *.tsv files may change. Exits with 1 and lists each difference.
+A library's export macro (ENGINE_API, from cmake/AddLibrary.cmake) is left out too, so a file that moves out of a shared
+library may drop it. Renamed CMakeLists.txt, *.cmake, *.md and *.tsv files may change. Exits with 1 and lists each
+difference.
 
     python3 -I Client/tools/architecture/check_pure_move.py --base origin/refactor/client --head HEAD
 """
@@ -13,6 +15,7 @@ import subprocess
 import sys
 
 INCLUDE_LINE = re.compile(r'^\s*#\s*include\b')
+EXPORT_MACRO = re.compile(r'\b[A-Z][A-Z0-9]*_API\b\s*')
 MAY_CHANGE = ('CMakeLists.txt', '.cmake', '.md', '.tsv')
 
 
@@ -36,7 +39,8 @@ def renames(repo: str, base: str, head: str) -> list[tuple[str, str]]:
 
 
 def lines_of(text: str) -> collections.Counter:
-    return collections.Counter(line for line in text.splitlines() if line.strip() and not INCLUDE_LINE.match(line))
+    kept = (EXPORT_MACRO.sub('', line) for line in text.splitlines() if not INCLUDE_LINE.match(line))
+    return collections.Counter(line for line in kept if line.strip())
 
 
 def differences(repo: str, base: str, head: str) -> tuple[int, list[tuple[str, str, collections.Counter,

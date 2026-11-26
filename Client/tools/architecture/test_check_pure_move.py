@@ -50,6 +50,16 @@ class CheckPureMoveTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('using Rank = int;', output)
 
+    def test_dropped_export_macro_passes(self):
+        exported = GUILD_STATE.replace('#pragma once\n', '#pragma once\n#include "EngineApi.h"\n').replace(
+            'int MemberCount();', 'ENGINE_API int MemberCount();')
+        self.repo.write(STATE, exported)
+        self.base = self.repo.commit('export the guild')
+        self.move_state(GUILD_STATE)
+        self.repo.commit('refactor(AR3.1): move the guild out of the engine')
+        code, output = self.check()
+        self.assertEqual(code, 0, output)
+
     def test_renamed_docs_may_change(self):
         self.repo.move('docs/notes.md', 'docs/guild/notes.md')
         self.repo.write('docs/guild/notes.md', '# Notes\n\nThe guild state lives in game/Guild.\nIt has a rank.\n')

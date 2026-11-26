@@ -1,6 +1,7 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/CharacterStep.h"
 
+#include "Assets/PlayerSkeleton.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/ModelFiles.h"
@@ -803,7 +804,7 @@ std::optional<Skeleton> LoadPlayerSkeleton(const std::filesystem::path& dataRoot
         {
             return std::nullopt;
         }
-        auto skeleton = Client::Models::MakePlayerSkeleton(loaded.Value());
+        auto skeleton = Client::Assets::MakePlayerSkeleton(loaded.Value());
         if (!skeleton.HasValue())
         {
             return std::nullopt;

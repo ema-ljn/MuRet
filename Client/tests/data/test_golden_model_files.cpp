@@ -1,5 +1,6 @@
 #include "Data/Models/ModelFiles.h"
 
+#include "Assets/PlayerSkeleton.h"
 #include "Data/DataPath.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerActions.h"
@@ -24,6 +25,7 @@
 
 namespace
 {
+using Client::Assets::MakePlayerSkeleton;
 using Client::Data::ResolveDataPath;
 using Client::Data::Models::Bone;
 using Client::Data::Models::ItemModelFiles;
@@ -45,7 +47,6 @@ using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Models::ActionInfo;
-using Client::Models::MakePlayerSkeleton;
 using Client::Models::ModelTextureSlots;
 using Client::Render::TextureSlot;
 

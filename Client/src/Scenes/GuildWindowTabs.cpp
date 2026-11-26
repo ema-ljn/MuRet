@@ -348,7 +348,7 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& contex
         return Core::Unexpected(std::move(slot).Error());
     WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(left), static_cast<float>(rowY), UnionMarkSide,
                         UnionMarkSide, 1.0f, 1.0f);
-    const auto index = static_cast<std::int16_t>(context.world.Actors()[context.world.Runtime().hero].word1f2);
+    const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
     if (index < 0)
         creating = {};
     else if (static_cast<std::size_t>(index) >= GuildTableSize)
@@ -422,7 +422,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t x = window.base.x;
     const std::int32_t y = window.base.y;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
                                 MarkBoxSide, false);
     if (context.guildMarks == nullptr)
@@ -520,7 +520,7 @@ Core::Expected<void, std::string> DrawTheMembersTab(GameHudContext& context)
             !drawn.HasValue())
             return drawn;
     }
-    if (context.world.Actors()[runtime.hero].guildStatus != MasterStatus)
+    if (context.world.Hero().guildStatus != MasterStatus)
         return {};
     for (std::size_t button = 0; button < window.memberButtons.size(); ++button)
     {
@@ -540,7 +540,7 @@ Core::Expected<void, std::string> DrawTheUnionTab(GameHudContext& context)
     GuildWindowState& window = guild.window;
     const std::int32_t x = window.base.x + 0xf;
     const std::int32_t y = window.base.y + 0x62;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const auto index = static_cast<std::int16_t>(hero.word1f2);
     const auto name = GuildNameAt(guild, index);
     const auto alliance = UnionNameAt(guild, index);

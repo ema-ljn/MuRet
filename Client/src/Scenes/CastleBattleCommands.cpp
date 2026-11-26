@@ -278,7 +278,7 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
                 return CastleOwner(received, context);
             else if constexpr (std::is_same_v<Received, Battle::SiegeSide>)
             {
-                SiegeSide(received, runtime, world.Actors()[runtime.hero]);
+                SiegeSide(received, runtime, world.Hero());
                 return {};
             }
             else if constexpr (std::is_same_v<Received, Battle::PanelStatus>)

@@ -1696,7 +1696,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     Frame frame{.context = context,
                 .runtime = runtime,
                 .own = world.OwnCharacter(),
-                .hero = world.Actors()[runtime.hero],
+                .hero = world.Hero(),
                 .panels = panels.Registry()};
     HudState& hud = context.hud;
     hud.textColors.text = 0xffffffffu;
@@ -1888,7 +1888,7 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
         return Core::Unexpected(
             std::string("0x5ac3d8: el cursor de los objetos lee su tabla (0x7d34820), de la CL9.1"));
     GamePanels panels(world, context.random);
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     if (hero.safeZone == 0 && targets[2] != -1)
     {
         // 0x5ac53c..0x5ac60b (CL9 hito 3): atacable (0x558bb0) y el mouse fuera de la UI (0x775857c), el de atacar (4,

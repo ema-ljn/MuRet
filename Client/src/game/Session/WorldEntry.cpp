@@ -157,7 +157,7 @@ Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resour
     WorldState& world = resources.world;
     const ActorEquipmentContext equipment{.own = world.OwnCharacter(),
                                           .ownRecordAccesses = world.Runtime().ownRecordDepth,
-                                          .publishedHero = world.Actors()[world.Runtime().hero],
+                                          .publishedHero = world.Hero(),
                                           .fullSetScan = world.Runtime().fullSetScan,
                                           .stop = StopContextOf(resources, player),
                                           .itemSetTables = resources.itemSetTables,

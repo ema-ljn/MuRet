@@ -773,7 +773,7 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
     // 0x59b036..0x59b086: el chat abierto (0x6c8e68), el héroe en la zona segura (+0x3e2), un elegido, el derecho y
     // +0x376 del elegido en 0xff (solo lo escribe 0x5140c0, la cola del alta de un monstruo, con el tipo 255).
     const std::int32_t chosen = runtime.selectedTargets[2];
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     if (!runtime.ui.chatOpen || hero.safeZone == 0 || chosen == -1 || !runtime.ui.rightClick)
         return {};
     if (chosen < 0 || static_cast<std::size_t>(chosen) >= world.Actors().size())
@@ -809,7 +809,7 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
 Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     // En el juego, StepTheDialogs ya lo hizo en este paso: acá no cambia nada.
     LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
     // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).

@@ -43,7 +43,6 @@
 #include <cstdint>
 #include <format>
 #include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -273,7 +272,7 @@ void StepTheMarkEditor(WorldState& world, std::int32_t x, std::int32_t y, std::i
 {
     WorldRuntime& runtime = world.Runtime();
     GuildState& guild = runtime.guild;
-    world.Actors()[runtime.hero].angles.z = EditorHeroAngle;
+    world.Hero().angles.z = EditorHeroAngle;
     auto& mark = guild.table[CreatingIndex].mark;
     for (std::int32_t row = 0; row < GridSide; ++row)
     {
@@ -426,7 +425,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
     }
     if (!UI::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
         return {};
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     hero.word1f2 = NoGuildWord;
     HideTheNameField(input);
     std::fill_n(input.messageBuffer.begin(), ClearedMessageBytes, '\0');
@@ -591,7 +590,7 @@ void DrawInTheBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::
 Core::Expected<std::string, std::string> HeroGuildLine(GameHudContext& context, std::string_view where)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    const auto index = static_cast<std::int16_t>(context.world.Actors()[runtime.hero].word1f2);
+    const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
     if (index < 0 || static_cast<std::size_t>(index) >= GuildTableSize)
         return Core::Unexpected(std::format("{}: el gremio {} del héroe cae fuera de la tabla", where, index));
     return std::format("{} ( Score:{} )", NameOf(runtime.guild.table[static_cast<std::size_t>(index)].guildName),
@@ -624,13 +623,12 @@ void DrawTheButton(GameHudContext& context, const UI::OldButton& button)
 Core::Expected<void, std::string> DrawTheQuestion(GameHudContext& context, GuildState& guild, std::int32_t x,
                                                   std::int32_t y)
 {
-    WorldRuntime& runtime = context.world.Runtime();
     context.hud.textColors = PageColors;
     UI::OldButton& create = ButtonOf(guild, SecondGuildCreateButton);
     UI::OldButton& mark = ButtonOf(guild, SecondGuildMarkButton);
     const std::int32_t left = x + PageLeft;
     std::int32_t top = y + PageTop;
-    if (context.world.Actors()[runtime.hero].guildStatus == NoGuildStatus)
+    if (context.world.Hero().guildStatus == NoGuildStatus)
     {
         auto question = TextOf(context.texts, QuestionText, "0x656497");
         if (!question.HasValue())

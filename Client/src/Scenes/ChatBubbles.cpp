@@ -311,7 +311,7 @@ Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const Ch
 {
     WorldRuntime& runtime = world.Runtime();
     const std::span<const ActorState, ActorPoolSize> actors = world.Actors();
-    const ActorState& hero = actors[runtime.hero];
+    const ActorState& hero = world.Hero();
     for (ChatBubble& bubble : runtime.chat.bubbles)
     {
         if (bubble.nameTime > 0)

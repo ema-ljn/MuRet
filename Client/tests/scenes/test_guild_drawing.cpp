@@ -165,7 +165,7 @@ protected:
 
     Client::Scenes::ActorState& Hero()
     {
-        return m_world->Actors()[Runtime().hero];
+        return m_world->Hero();
     }
 
     Client::Core::Expected<void, std::string> Score(bool withMarks = true)

@@ -263,7 +263,7 @@ protected:
     Client::Core::Expected<void, std::string> DrawTheLife()
     {
         auto& runtime = game->world.Runtime();
-        ActorState& hero = game->world.Actors()[runtime.hero];
+        ActorState& hero = game->world.Hero();
         Client::Scenes::GameHudContext context{.world = game->world,
                                                .random = m_random,
                                                .ownRecordDepth = runtime.ownRecordDepth,

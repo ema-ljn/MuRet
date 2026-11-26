@@ -80,8 +80,7 @@ Core::Expected<void, std::string> RegistrationAction(const GameUiContext& contex
     auto& window = runtime.castleSiege.registration;
     if (window.state == 1)
     {
-        if (world.Actors()[runtime.hero].guildStatus != CastleUi::Master || window.registered != 0 ||
-            !Click(context, window.button))
+        if (world.Hero().guildStatus != CastleUi::Master || window.registered != 0 || !Click(context, window.button))
             return {};
         if (CastleUi::HeroCanRegister(world, context.random))
             return Send(context, Castle::WriteRegister());

@@ -204,7 +204,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
                                                 .random = random,
                                                 .particles = &world.Particles(),
                                                 .worldClock = worldClock,
-                                                .heroZ = world.Actors()[world.Runtime().hero].position.z,
+                                                .heroZ = world.Hero().position.z,
                                                 .cameraShake = nullptr,
                                                 .attributes = world.Map().terrain.attributes.get()};
     const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)

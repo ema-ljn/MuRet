@@ -218,7 +218,7 @@ protected:
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -246,7 +246,7 @@ protected:
                 name[at] = static_cast<std::byte>(text[at]);
         };
         Client::Scenes::PartyState& party = Runtime().social.party;
-        setName(m_world->Actors()[Runtime().hero].name, "Tejon");
+        setName(m_world->Hero().name, "Tejon");
         setName(party.slots[0].name, "Tejon");
         party.slots[0] = {.name = party.slots[0].name,
                           .map = 0,
@@ -426,7 +426,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     setName(party.slots[1].name, "Brezal");
     party.slots[1].number = 7;
     Runtime().hud.partyCount = 2;
-    setName(m_world->Actors()[Runtime().hero].name, "Arbusto");
+    setName(m_world->Hero().name, "Arbusto");
     RecordingRequests requests;
     const auto step = [&](std::int32_t x, std::int32_t y)
     {
@@ -443,7 +443,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     EXPECT_EQ(m_random.State(), Seed);
 
     // Un miembro que no es el jefe no puede echar a otro, pero sí salir.
-    setName(m_world->Actors()[Runtime().hero].name, "Brezal");
+    setName(m_world->Hero().name, "Brezal");
     requests.requests.clear();
     Click();
     ASSERT_TRUE(step(Left + 0x8c, Top + 0x37).HasValue());
@@ -725,7 +725,7 @@ TEST_P(GamePartyWindowTest, TheKickButtonPressesAndShowsItsHelp)
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
     Client::Scenes::PartyState& party = Runtime().social.party;
-    auto& heroName = m_world->Actors()[Runtime().hero].name;
+    auto& heroName = m_world->Hero().name;
     std::copy_n(party.slots[1].name.begin(), heroName.size(), heroName.begin());
     ASSERT_TRUE(Draw(0, 0).HasValue());
     slots.clear();

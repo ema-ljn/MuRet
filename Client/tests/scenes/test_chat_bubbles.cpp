@@ -323,7 +323,7 @@ TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
     Bubbles()[0].width = 40;
     Bubbles()[0].height = 20;
     auto& runtime = m_world->Runtime();
-    m_world->Actors()[runtime.hero].safeZone = 1;
+    m_world->Hero().safeZone = 1;
     runtime.ui.chatOpen = true;
     runtime.ui.rightClick = true;
 

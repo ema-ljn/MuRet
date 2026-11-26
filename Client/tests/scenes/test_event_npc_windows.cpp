@@ -136,7 +136,7 @@ protected:
     Client::Core::Expected<void, std::string> Draw(Client::UI::Point mouse, bool projecting = false)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = world->Hero();
         GameHudContext context{.world = *world,
                                .random = random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -324,7 +324,7 @@ TEST_F(EventNpcWindowTest, TheBloodCastleWindowDrawsItsBridges)
         sprites.Begin(Screen640);
         text.texts.clear();
         Runtime().map = 2;
-        world->Actors()[Runtime().hero].characterClass = characterClass;
+        world->Hero().characterClass = characterClass;
         world->OwnCharacter().level = 100;
         Open(1);
         const CrtRandom expected = Advanced(random, 7u * OwnRecordCloseRandoms);

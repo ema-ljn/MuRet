@@ -195,7 +195,7 @@ Core::Expected<void, std::string> AskForTheUnionList(const GuildWindowStepContex
     GuildState& guild = runtime.guild;
     if (guild.window.unionRequested != 0)
         return {};
-    const auto index = static_cast<std::int16_t>(context.world.Actors()[runtime.hero].word1f2);
+    const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
     const auto unionByte = UnionByteAt(guild, index);
     if (!unionByte)
         return Core::Unexpected(std::format("0x6519cc: el gremio {} del héroe cae fuera de la tabla", index));
@@ -434,7 +434,7 @@ Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext
         UI::ScrollTheList(list, window.members.size(), -list.rows);
     if (context.keyEdge(PageDownKey))
         UI::ScrollTheList(list, window.members.size(), list.rows);
-    if (context.world.Actors()[runtime.hero].guildStatus != MasterStatus)
+    if (context.world.Hero().guildStatus != MasterStatus)
         return {};
     return StepTheMasterButtons(context);
 }
@@ -448,7 +448,7 @@ struct HeroGuildNames
 
 Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(WorldState& world, std::string_view where)
 {
-    const auto index = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const auto index = static_cast<std::int16_t>(world.Hero().word1f2);
     const GuildState& guild = world.Runtime().guild;
     const auto name = GuildNameAt(guild, index);
     const auto alliance = UnionNameAt(guild, index);
@@ -506,7 +506,7 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
     if (!UI::ClickTheButton(window.tabButtons[GuildLeaveButton], globals, context.mouseX, context.mouseY))
         return {};
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     if (hero.guildStatus == MasterStatus)
     {
         auto names = HeroGuildNamesOf(context.world, "0x64fc55");
@@ -536,7 +536,7 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     StepTheGuildList(context, window.unionList, window.unions);
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     if (hero.guildStatus != MasterStatus)
         return {};
     auto names = HeroGuildNamesOf(context.world, "0x650c74");
@@ -686,7 +686,7 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
         if (auto closed = CloseTheGuildWindow(context.world, context.send); !closed.HasValue())
             return closed;
     }
-    if (context.world.Actors()[runtime.hero].guildStatus == NoGuildStatus)
+    if (context.world.Hero().guildStatus == NoGuildStatus)
         return {};
     if (runtime.movement.leftHeld)
     {
@@ -729,7 +729,7 @@ void AddTheGuildMember(WorldState& world, const GuildMemberSlot& slot)
     if (UI::ListCount(list, window.members.size()) == 0)
     {
         // 0x46c955: strcmp con el nombre del héroe (+0x1d9, diez bytes y lo que sigue: *inferido*, hasta el primer 0).
-        const auto& heroName = world.Actors()[runtime.hero].name;
+        const auto& heroName = world.Hero().name;
         std::string hero;
         for (const std::byte letter : heroName)
         {
@@ -864,7 +864,7 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
     context.hud.textColors = TitleColors;
     SelectFont(context, FontKind::Bold);
     WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const bool inAGuild = hero.guildStatus != NoGuildStatus;
     if (inAGuild)
     {

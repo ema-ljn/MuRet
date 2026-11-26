@@ -157,7 +157,7 @@ struct Pets
                 world.OwnCharacter(), Client::Scenes::OwnStatsContext{.itemSetTables = sets,
                                                                       .itemSets = &world.ItemSets(),
                                                                       .items = &items,
-                                                                      .publishedHero = world.Actors()[runtime.hero],
+                                                                      .publishedHero = world.Hero(),
                                                                       .ownRecordAccesses = runtime.ownRecordDepth,
                                                                       .random = cloth.random,
                                                                       .held = Client::Scenes::HeldItemOf(runtime),

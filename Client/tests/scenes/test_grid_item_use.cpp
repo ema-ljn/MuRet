@@ -514,7 +514,7 @@ TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)
         sent.clear();
         world.Runtime().ui.field5767954 = 0;
         Cell(7, 0).scalar1Low = level << 3;
-        world.Actors()[world.Runtime().hero].guildStatus = guild;
+        world.Hero().guildStatus = guild;
         const CrtRandom expected = Advanced(random, sends ? 1 + SendRandoms : 0);
         ASSERT_TRUE(RightClick(7, 0).HasValue());
         EXPECT_EQ(random.State(), expected.State());

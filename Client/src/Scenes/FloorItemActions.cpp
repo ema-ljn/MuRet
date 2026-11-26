@@ -176,7 +176,7 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
         if (!item.alive || !item.seen)
             continue;
         // 0x5ac947..0x5ac97b: la distancia en 3D a la posición del héroe (+0x10), en la x87.
-        const glm::vec3& hero = world.Actors()[runtime.hero].position;
+        const glm::vec3& hero = world.Hero().position;
         const double dx = static_cast<double>(item.position.x) - static_cast<double>(hero.x);
         const double dy = static_cast<double>(item.position.y) - static_cast<double>(hero.y);
         const double dz = static_cast<double>(item.position.z) - static_cast<double>(hero.z);
@@ -184,12 +184,12 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
         if (std::sqrt(dx * dx + dy * dy + dz * dz) >= SpaceDistance)
             continue;
         // 0x5ac996..0x5ac9c2.
-        world.Actors()[runtime.hero].movementType = PickUpMovement;
+        world.Hero().movementType = PickUpMovement;
         runtime.floor.chosen = static_cast<std::int32_t>(index);
         runtime.floor.fromSpace = 1;
         auto picked = PickUpTheFloorItem(context, item.position, fixedHeight);
         runtime.floor.fromSpace = 0;
-        world.Actors()[runtime.hero].movementType = 0;
+        world.Hero().movementType = 0;
         return picked;
     }
     return {};

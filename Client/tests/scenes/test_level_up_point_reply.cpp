@@ -166,7 +166,7 @@ void OpenRecalculateAndClose(Stage& stage)
         stage.world.OwnCharacter(), Client::Scenes::OwnStatsContext{.itemSetTables = &stage.sets,
                                                                     .itemSets = &stage.world.ItemSets(),
                                                                     .items = &stage.items,
-                                                                    .publishedHero = stage.world.Actors()[runtime.hero],
+                                                                    .publishedHero = stage.world.Hero(),
                                                                     .ownRecordAccesses = runtime.ownRecordDepth,
                                                                     .random = stage.cloth.random,
                                                                     .held = Client::Scenes::HeldItemOf(runtime),

@@ -250,7 +250,7 @@ TEST_P(FirstCreatedWorldEntryTest, TheFirstCreatedWizardDrawsItsClassBodyWithout
     ASSERT_NO_FATAL_FAILURE(ReceiveInventory(GetParam()));
 
     constexpr std::array<std::uint16_t, 5> WizardBody{0x2212, 0x221a, 0x2222, 0x222a, 0x2232};
-    const auto& hero = m_world->Actors()[m_world->Runtime().hero];
+    const auto& hero = m_world->Hero();
     for (std::size_t part = 0; part < WizardBody.size(); ++part)
         EXPECT_EQ(hero.body[part].model, WizardBody[part]);
 
@@ -288,7 +288,7 @@ TEST_F(CharacterFirstWorldEntryTest, ASecondCreatedWizardEntersAfterAnEquippedKn
     ASSERT_NO_FATAL_FAILURE(ReceiveInventory(true));
     ASSERT_NO_FATAL_FAILURE(DrawFrames());
 
-    const auto& hero = m_world->Actors()[m_world->Runtime().hero];
+    const auto& hero = m_world->Hero();
     ASSERT_NE(m_online.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(m_online.session.ChosenCharacter()->slot, 1);
     EXPECT_EQ(hero.characterClass, 0);

@@ -116,7 +116,7 @@ Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& re
     // borra a nadie).
     ResetTheCameraTour(runtime.events.cameraTour);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
-    resources.cameraInput.hero = world.Actors()[runtime.hero].position;
+    resources.cameraInput.hero = world.Hero().position;
     return {};
 }
 

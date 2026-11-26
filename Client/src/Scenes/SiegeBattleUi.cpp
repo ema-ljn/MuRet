@@ -80,7 +80,7 @@ bool SkillForPost(std::uint32_t skill, const ActorState& hero, bool initialize)
 Core::Expected<std::uint8_t, std::string> SkillCost(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
     if (context.skills == nullptr)
         return Core::Unexpected(std::string("0x65243e: sin Skill.bmd para la habilidad del asedio"));
@@ -306,7 +306,7 @@ Core::Expected<void, std::string> StepTheSiegeControls(const GameUiContext& cont
 void InitializeTheBattleSkill(WorldState& world, Crt::CrtRandom& random)
 {
     const WorldRuntime& runtime = world.Runtime();
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     if (!HasBattleRole(runtime, hero, false))
         return;
     std::uint32_t selected = FirstSiegeSkill;
@@ -324,7 +324,7 @@ void InitializeTheBattleSkill(WorldState& world, Crt::CrtRandom& random)
 Core::Expected<void, std::string> StepTheBattleSkill(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     if (!HasBattleRole(runtime, hero, false))
         return {};
     auto cost = SkillCost(context);
@@ -349,7 +349,7 @@ Core::Expected<void, std::string> StepTheBattleSkill(const GameUiContext& contex
 Core::Expected<void, std::string> StepTheBattleSkillChoice(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     if (!HasBattleRole(runtime, hero, true))
         return {};
     const std::int32_t x = context.mouseX;

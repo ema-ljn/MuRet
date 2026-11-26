@@ -510,7 +510,7 @@ protected:
 
     Client::Scenes::ActorState& Hero()
     {
-        return world.Actors()[world.Runtime().hero];
+        return world.Hero();
     }
 
     // La cuenta de la ranura rápida: pociones en la fila 0 del inventario.

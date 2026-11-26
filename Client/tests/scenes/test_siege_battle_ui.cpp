@@ -92,7 +92,7 @@ protected:
     {
         sprites.Begin({640, 480});
         auto& runtime = world->Runtime();
-        auto& hero = world->Actors()[runtime.hero];
+        auto& hero = world->Hero();
         return {.world = *world,
                 .random = random,
                 .ownRecordDepth = runtime.ownRecordDepth,
@@ -115,7 +115,7 @@ protected:
     void BattleRole()
     {
         auto& runtime = world->Runtime();
-        auto& hero = world->Actors()[runtime.hero];
+        auto& hero = world->Hero();
         runtime.siegeActive = true;
         hero.byte360 = 6;
         hero.guildStatus = 0x80;
@@ -352,7 +352,7 @@ TEST_F(SiegeUiTest, ShiftTemporarilyUsesTheSiegeSkillAndInsufficientPointsDoNotR
 {
     BattleRole();
     Cost(4);
-    auto& hero = world->Actors()[world->Runtime().hero];
+    auto& hero = world->Hero();
     world->OwnCharacter().SetSkillAt(7, 0x46);
     hero.skillIndex = 3;
     hero.byte372 = 4;
@@ -378,7 +378,7 @@ TEST_F(SiegeUiTest, ShiftTemporarilyUsesTheSiegeSkillAndInsufficientPointsDoNotR
 TEST_F(SiegeUiTest, InitialSelectionRejectsSlotZeroAndTheMasterSearchesEverySkillBeforeTheFirstAllowedOne)
 {
     BattleRole();
-    auto& hero = world->Actors()[world->Runtime().hero];
+    auto& hero = world->Hero();
     world->OwnCharacter().SetSkillAt(0, 0x46);
     world->OwnCharacter().SetSkillAt(7, 0x47);
     const CrtRandom expected = After(random, 5 * 3848);
@@ -440,7 +440,7 @@ TEST_F(SiegeUiTest, TheMapReadsEachVisibleActorEvenWhenItsDotEndsOutsideTheMap)
 {
     auto& runtime = world->Runtime();
     runtime.siegePanelKind = std::uint8_t{0};
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero.cellX = 255;
     hero.cellY = 0;
     auto& actor = world->Actors()[5];
@@ -463,7 +463,7 @@ TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask
 {
     auto& runtime = world->Runtime();
     runtime.siegePanelKind = std::uint8_t{2};
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero.cellY = 0;
     hero.flags78 = 0;
     auto& actor = world->Actors()[5];
@@ -519,7 +519,7 @@ TEST_F(SiegeUiTest, TheCommandMenuUsesTheNativeAtlasRectangles)
 TEST_F(SiegeUiTest, TheStatusMetricsSurviveAnUnrecognizedFollowingStatus)
 {
     auto& runtime = world->Runtime();
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero.cellX = 64;
     hero.cellY = 192;
     for (const std::uint8_t kind : {std::uint8_t{1}, std::uint8_t{2}})
@@ -563,7 +563,7 @@ TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetri
 {
     auto& runtime = world->Runtime();
     runtime.siegePanelKind = std::uint8_t{1};
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero.cellX = 64;
     hero.cellY = 192;
     runtime.siegePanel.status[0] = {1, 64, 192, 4, 2};
@@ -682,7 +682,7 @@ TEST_F(SiegeUiTest, TheCommanderPreviewDoesNotInventTheFirstUnknownStatusAtlas)
 {
     auto& runtime = world->Runtime();
     runtime.siegePanelKind = std::uint8_t{2};
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero.cellX = 64;
     hero.cellY = 192;
     auto& panel = runtime.siegePanel;
@@ -704,7 +704,7 @@ TEST_F(SiegeUiTest, TheCommanderPreviewDoesNotInventTheFirstUnknownStatusAtlas)
 TEST_F(SiegeUiTest, AStatusOutsideTheCropDoesNotSeedMetricsOrConsumeItsFlashBeforeAnUnknownStatus)
 {
     auto& runtime = world->Runtime();
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero.cellX = 64;
     hero.cellY = 192;
     for (const std::uint8_t kind : {std::uint8_t{1}, std::uint8_t{2}})

@@ -268,7 +268,7 @@ protected:
     GameHudContext Context()
     {
         Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = world.Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = world.Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -300,7 +300,7 @@ protected:
 
     void HeroIs(std::uint8_t characterClass)
     {
-        world.Actors()[world.Runtime().hero].characterClass = characterClass;
+        world.Hero().characterClass = characterClass;
     }
 
     TooltipLines& Lines()

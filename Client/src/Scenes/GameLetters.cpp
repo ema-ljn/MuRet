@@ -132,7 +132,7 @@ public:
         WorldRuntime& runtime = context.world.Runtime();
         m_view.texts = &m_texts;
         m_view.measure = m_measure ? &*m_measure : nullptr;
-        m_view.heroName = std::string(HeroNameOf(context.world.Actors()[runtime.hero]));
+        m_view.heroName = std::string(HeroNameOf(context.world.Hero()));
         // CL9 hito 10: el personaje del retrato (0x4dcd0e..0x4dcd69).
         if (context.worldEntry != nullptr)
             m_view.portrait = LetterPortraitHook(*context.worldEntry);

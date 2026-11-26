@@ -1149,7 +1149,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     // 0x5f45dd..0x5f461e: el nombre del héroe publicado.
     hud.textColors.text = 0xffffe6d2u;
     SelectFont(context, FontKind::Bold);
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     DrawText(context, x + 0x14, y + 0xfa, HeroNameOf(hero));
     // 0x5f4623..0x5f470b: el aviso que late y los tres renglones.
     hud.textColors.text = WarningPulseColor(context.worldClock);

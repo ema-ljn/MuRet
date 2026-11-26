@@ -86,7 +86,7 @@ struct Replies
     }
     Client::Scenes::ActorState& Hero()
     {
-        return world.Actors()[world.Runtime().hero];
+        return world.Hero();
     }
     Client::Scenes::WorldEntryResources Resources()
     {

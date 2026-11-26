@@ -620,7 +620,7 @@ Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, s
                                                       std::int32_t slot, std::int32_t siegeSkill)
 {
     WorldState& world = context.world;
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     const std::uint32_t heroClass = hero.characterClass & ClassBits;
     auto command = DrawTheCommandTooltip(context, x, y, slot, heroClass);
     if (!command.HasValue())

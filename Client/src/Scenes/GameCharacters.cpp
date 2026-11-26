@@ -211,7 +211,7 @@ Core::Expected<void, std::string> DressForTheWar(const WorldState& world, const 
     const auto own = GuildNameAt(guild, index);
     if (!own)
         return Core::Unexpected(std::format("0x50c9b8: el gremio {} cae fuera de la tabla (0x787aa48)", index));
-    const auto heroIndex = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const auto heroIndex = static_cast<std::int16_t>(world.Hero().word1f2);
     const auto heros = GuildNameAt(guild, heroIndex);
     if (!heros)
         return Core::Unexpected(std::format("0x50c9cf: el gremio {} del héroe cae fuera de la tabla", heroIndex));
@@ -266,7 +266,7 @@ Core::Expected<ClothLook, std::string> LookOfTheCloth(const WorldState& world, c
                                  static_cast<std::size_t>(rivalEnd - duel.rivalName.begin()));
     if (static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == duel.rivalKey && name == rival)
         look = {.wears = true, .color = RedCloth};
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     if (actor.key == hero.key && name == ChatNameOf(hero))
         look = {.wears = true, .color = BlueCloth};
     return look;
@@ -492,7 +492,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
     ActorState& drawn = originalFrame ? actor : projectedActor.emplace(actor);
     Crt::CrtRandom& random = originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
     const std::int32_t map = world.Runtime().map;
-    const std::uint8_t heroByte1a1 = world.Actors()[world.Runtime().hero].byte1a1;
+    const std::uint8_t heroByte1a1 = world.Hero().byte1a1;
     const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count());
     const GameHangingPass hangingPass{.batch = batch,
                                       .models = models,

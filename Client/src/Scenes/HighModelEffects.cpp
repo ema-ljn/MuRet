@@ -274,7 +274,7 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
     }
     effect.velocity = Rotated(rush, effect.transform.angles);
     WorldState& world = context.world;
-    if (effect.ownerContext != &world.Actors()[world.Runtime().hero])
+    if (effect.ownerContext != &world.Hero())
         return {};
     constexpr float Reach = -150.0f; // 0xc3160000
     constexpr float HitRadius = 150.0f;
@@ -615,7 +615,7 @@ Core::Expected<void, std::string> StepTheSiegeSpearman(World::ModelEffect& effec
                                                     .angles = effect.transform.angles,
                                                     .light = effect.light,
                                                     .subtype = FragmentSubtype};
-        const auto& hero = context.world.Actors()[context.world.Runtime().hero];
+        const auto& hero = context.world.Hero();
         if (auto made = World::CreateSiegeStone(arguments, context.world.Map().effects, hero.position, context.random);
             !made.HasValue())
             return Core::Unexpected(made.Error());

@@ -278,7 +278,7 @@ TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
 TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
 {
     Runtime().panels.trade = 0;
-    m_world->Actors()[Runtime().hero].characterClass = 4;
+    m_world->Hero().characterClass = 4;
     Client::Scenes::GamePanels panels(*m_world, m_random);
     panels.LendTheSession(*m_world, m_random, &m_requests);
     const auto opened = panels.Registry().Open(Client::UI::InventoryPanel);

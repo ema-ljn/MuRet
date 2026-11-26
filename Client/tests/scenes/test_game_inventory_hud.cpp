@@ -185,7 +185,7 @@ protected:
     GameHudContext Context()
     {
         Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = world.Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = world.Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,

@@ -189,8 +189,7 @@ NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::ui
 bool AnotherLeadsTheParty(const WorldState& world)
 {
     const WorldRuntime& runtime = world.Runtime();
-    return runtime.hud.partyCount > 0 &&
-           NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(world.Actors()[runtime.hero]);
+    return runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(world.Hero());
 }
 
 bool IsInTheParty(const WorldState& world, std::size_t index)
@@ -217,7 +216,7 @@ CellDistance CellDistanceToTheHero(WorldState& world, Crt::CrtRandom& random, st
 {
     const auto actors = world.Actors();
     ActorState& other = actors[index];
-    ActorState& hero = actors[world.Runtime().hero];
+    ActorState& hero = world.Hero();
     const std::int32_t otherX = ReadCell(other.cellX, other.cellXAccesses, random);
     const std::int32_t heroX = ReadCell(hero.cellX, hero.cellXAccesses, random);
     const std::int32_t otherY = ReadCell(other.cellY, other.cellYAccesses, random);
@@ -236,7 +235,7 @@ bool NextToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index)
 {
     const auto actors = world.Actors();
     ActorState& other = actors[index];
-    ActorState& hero = actors[world.Runtime().hero];
+    ActorState& hero = world.Hero();
     const std::int32_t otherX = ReadCell(other.cellX, other.cellXAccesses, random);
     const std::int32_t heroX = ReadCell(hero.cellX, hero.cellXAccesses, random);
     if (std::abs(otherX - heroX) > NextCell)
@@ -252,7 +251,7 @@ Core::Expected<bool, std::string> FacesTheHero(const WorldState& world, std::siz
     const auto other = ActionDirection(actors[index].angles.z);
     if (!other)
         return Core::Unexpected(std::string("0x56cf44: el ángulo del otro está fuera del _ftol (0x69fd3c)"));
-    const auto hero = ActionDirection(actors[world.Runtime().hero].angles.z);
+    const auto hero = ActionDirection(world.Hero().angles.z);
     if (!hero)
         return Core::Unexpected(std::string("0x56cf78: el ángulo del héroe está fuera del _ftol (0x69fd3c)"));
     return std::abs(static_cast<std::int32_t>(*other) - static_cast<std::int32_t>(*hero)) == Opposite;
@@ -329,7 +328,7 @@ Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& conte
 Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     // 0x56f13f..0x56f1b0.
     // strcmp: el nombre del héroe sigue en +0x1e3 si llena los diez bytes.
     if (runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(hero))

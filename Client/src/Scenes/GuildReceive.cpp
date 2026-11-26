@@ -204,7 +204,7 @@ template <std::size_t Size> void CopyName(std::array<char, Size>& target, const 
 
 ActorState& HeroOf(const GuildReceiveContext& context)
 {
-    return context.world.Actors()[context.world.Runtime().hero];
+    return context.world.Hero();
 }
 
 // +0x1f2 como lo lee MOVSX.
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> Send(const GuildReceiveContext& context, Proto
 // rival (solo el 62, con `rival`), 0 los demás.
 void MarkTheGuilds(WorldState& world, std::optional<std::int32_t> rival)
 {
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     for (std::size_t index = 0; index < ActorCount; ++index)
     {
         ActorState& actor = world.Actors()[index];

@@ -116,7 +116,7 @@ private:
 public:
     Shooting() : texts(Client::Tests::MakeTextTable({{ScreenshotText, "Guardada %s"}, {FirstGroupText, "Grupo Uno"}}))
     {
-        Client::Scenes::ActorState& hero = world.Actors()[world.Runtime().hero];
+        Client::Scenes::ActorState& hero = world.Hero();
         const std::string_view name = "Rolo";
         std::ranges::transform(name, hero.name.begin(), [](char c) { return static_cast<std::byte>(c); });
     }

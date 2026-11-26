@@ -272,7 +272,7 @@ Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger
         UI::SortTheFriends(manager.friendModel, UI::SameSort);
         UI::RefreshTheFriendTab(manager);
         // 0x4a6840: los chats con la lista de invitar abierta la rehacen.
-        UI::RefreshTheInvites(manager, HeroNameOf(context.world.Actors()[runtime.hero]));
+        UI::RefreshTheInvites(manager, HeroNameOf(context.world.Hero()));
         return {};
     }
     case NoSuchCharacter:
@@ -362,7 +362,7 @@ Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::Fr
     UI::RefreshTheFriendTab(manager);
     // 0x4dc7f4: 0x4a6840 y el chat con el amigo (0x4a6430; el −1 pasa el JBE y 0x490a00 no lo encuentra): con el
     // estado desde 0xfd (fuera de línea), 0x495630(1); si no, 0x495630(0).
-    const std::string_view hero = HeroNameOf(context.world.Actors()[runtime.hero]);
+    const std::string_view hero = HeroNameOf(context.world.Hero());
     UI::RefreshTheInvites(manager, hero);
     const std::int32_t id = UI::FindTheChatWith(manager, UI::FriendName(state.name), hero);
     if (id == 0)

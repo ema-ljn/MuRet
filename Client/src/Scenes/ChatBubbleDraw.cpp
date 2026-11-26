@@ -162,7 +162,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
         return Core::Unexpected(std::string("0x555b0f: un globo sin dueño"));
     const std::size_t ownerSlot = *bubble.owner;
     const ActorState& owner = actors[ownerSlot];
-    const ActorState& hero = actors[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     if ((owner.flags7c & HiddenBubbleFlag) == HiddenBubbleFlag)
         return {};
     // 0x555b2a..0x555bda: 0x4294b0 lee el byte del asedio (0x7239ec).

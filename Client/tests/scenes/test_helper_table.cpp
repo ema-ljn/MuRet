@@ -1624,7 +1624,7 @@ TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
     EXPECT_EQ(chaos.Horse().horse.alpha, 1.0f);
     EXPECT_EQ(first.Commands().size(), reference.Commands().size());
 
-    chaos.world.Actors()[chaos.world.Runtime().hero].byte1a1 = 1;
+    chaos.world.Hero().byte1a1 = 1;
     ModelBatch second;
     ASSERT_TRUE(chaos.Draw(second, Everything).HasValue());
     EXPECT_EQ(chaos.Horse().horse.alpha, static_cast<float>(1.0 - static_cast<double>(0.15f)));

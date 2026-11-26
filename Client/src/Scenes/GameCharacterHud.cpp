@@ -783,7 +783,7 @@ std::uint32_t PkNameColor(std::uint8_t pk)
 Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context)
 {
     WorldState& world = context.world;
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     Window window{.context = context, .own = world.OwnCharacter(), .hero = hero, .heroClass = hero.characterClass & 7u};
     context.hud.characterX = window.x;
     context.hud.characterY = window.y;

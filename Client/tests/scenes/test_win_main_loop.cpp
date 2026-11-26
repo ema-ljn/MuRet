@@ -310,7 +310,7 @@ TEST(WinMainLoopTest, TheMapMusicReadsTheDeviasChurchWithTheLoopsRandom)
         LoopTail tail;
         auto& runtime = tail.world->Runtime();
         runtime.map = DeviasMap;
-        auto& hero = tail.world->Actors()[runtime.hero];
+        auto& hero = tail.world->Hero();
         hero.safeZone = safeZone;
         hero.cellX = 205;
         hero.cellY = 13;

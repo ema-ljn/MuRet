@@ -119,7 +119,7 @@ Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
     const std::int32_t character = context.targets[2];
     const std::int32_t pickedOther = context.targets[4];
     // 0x5bbbc6..0x5bbc0a.
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     if (IsChaosCastle(runtime.map) && !ActorNameContains(hero, WebzenWord) &&
         (npc != NoTarget || character != NoTarget))
         return {};

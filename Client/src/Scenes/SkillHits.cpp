@@ -55,7 +55,7 @@ Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& reques
 {
     Protocol::Skills::SkillHitsSend hits{};
     const auto actors = world.Actors();
-    const ActorState* hero = &actors[world.Runtime().hero];
+    const ActorState* hero = &world.Hero();
     for (ActorState& actor : actors.first<NativeActorSlots>())
     {
         // 0x517b54..0x517b73: la distancia se calcula antes de mirar nada.
@@ -109,7 +109,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     if (hits.hits == 0)
         return false;
     // 0x517c11..0x517c72.
-    if (ActorNameContains(world.Actors()[runtime.hero], GameMasterName))
+    if (ActorNameContains(world.Hero(), GameMasterName))
         return true;
     // 0x517c74..0x5184c7: el C1 10, con la celda del punto (0x517deb y 0x517eed).
     const auto x = Math::OriginalFtolLow(D(request.point.x) * CellsPerUnit);

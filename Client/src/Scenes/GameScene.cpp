@@ -188,8 +188,7 @@ std::string MapText(std::int32_t map)
 // World::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
 bool HeroInTheCastleSiegeFog(const WorldState& world)
 {
-    return world.Runtime().map == CastleMap &&
-           World::InTheCastleSiegeFog(world.Actors()[world.Runtime().hero].position);
+    return world.Runtime().map == CastleMap && World::InTheCastleSiegeFog(world.Hero().position);
 }
 
 // 0x5f8928..0x5f8947: 0x6c9d58, que 0x5f87b0 prende fuera de los mapas 18 a 23 y 30.
@@ -386,7 +385,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.shake = F32(static_cast<double>(cameraInput.shake) * static_cast<double>(ShakeDecay));
     // 0x636dd4..0x636de3: sólo con el marcador inicial 0x43 busca la primera habilidad del asedio.
-    if (m_context.world->Actors()[runtime.hero].byte371 == 0x43)
+    if (m_context.world->Hero().byte371 == 0x43)
         InitializeTheBattleSkill(*m_context.world, m_context.cloth->random);
     // 0x636de8: 0x5fbf60, la ola de las celdas de la ventana del rango del último dibujo, con el reloj
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
@@ -492,7 +491,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     std::int32_t chaosCastleSelector = 0;
     if (chaosCastle)
     {
-        const ActorState& hero = world.Actors()[world.Runtime().hero];
+        const ActorState& hero = world.Hero();
         const World::ChaosCastlePreludeContext prelude{
             .random = &m_context.cloth->random,
             .heroPosition = hero.position,
@@ -516,7 +515,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     std::int32_t icarusSelector = 0;
     if (map == IcarusMap)
     {
-        const ActorState& hero = world.Actors()[world.Runtime().hero];
+        const ActorState& hero = world.Hero();
         icarus.emplace(IcarusObjectServices{
             .random = m_context.cloth->random,
             .heroPosition = hero.position,
@@ -544,7 +543,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
     if (bloodCastle)
     {
-        const ActorState& hero = world.Actors()[world.Runtime().hero];
+        const ActorState& hero = world.Hero();
         if (auto orb =
                 World::StepBloodCastlePrelude(m_context.cloth->random, hero.position, &world.Particles(), worldClock);
             !orb.HasValue())
@@ -560,11 +559,11 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
             .random = &m_context.cloth->random,
             .logicSteps = m_context.cloth->logicSteps,
-            .heroPosition = world.Actors()[world.Runtime().hero].position,
+            .heroPosition = world.Hero().position,
             .heroY =
                 [&world, this]()
             {
-                auto& actor = world.Actors()[world.Runtime().hero];
+                auto& actor = world.Hero();
                 const Models::LogicalAccess access(actor.cellYAccesses, m_context.cloth->random,
                                                    Models::SmallLogicalCloseRandoms, actor.cellYLeft);
                 return static_cast<std::int32_t>(actor.cellY);
@@ -573,9 +572,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             {
                 if (World::IsSiegeStoneEffect(args.type))
                 {
-                    const auto created =
-                        World::CreateSiegeStone(args, world.Map().effects,
-                                                world.Actors()[world.Runtime().hero].position, m_context.cloth->random);
+                    const auto created = World::CreateSiegeStone(args, world.Map().effects, world.Hero().position,
+                                                                 m_context.cloth->random);
                     if (!created.HasValue())
                         return Core::Unexpected(created.Error());
                     return {};
@@ -607,7 +605,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                                 .random = m_context.cloth->random,
                                                 .particles = &world.Particles(),
                                                 .worldClock = worldClock,
-                                                .heroZ = world.Actors()[world.Runtime().hero].position.z,
+                                                .heroZ = world.Hero().position.z,
                                                 .cameraShake = &CameraInputState().shake,
                                                 .attributes = world.Map().terrain.attributes.get()};
     const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
@@ -637,7 +635,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     }
     // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso; el 1 y el 4
     // crean efectos con modelo y la patada del 4 mira la acción del héroe.
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     const World::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
         .worldClock = worldClock,
@@ -913,7 +911,7 @@ Render::Camera3D GameScene::CameraOfTheFrame(Render::Frame::SceneCanvas& canvas,
 {
     WorldState& world = *m_context.world;
     const WorldRuntime& runtime = world.Runtime();
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     World::GameCameraInput& input = CameraInputState();
     // Lo que 0x635ae0 lee de los globales: el héroe publicado (0x743a170), el mundo (0x6c9dd0) y el reloj
     // del mundo (0x5767b88, en ms, para el mapa 5).
@@ -1015,7 +1013,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                 static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
             const World::ChaosCastleCellContext cellContext{
                 .area = m_context.world->Runtime().chaosCastleArea,
-                .heroZ = m_context.world->Actors()[m_context.world->Runtime().hero].position.z,
+                .heroZ = m_context.world->Hero().position.z,
                 .random = &FrameCloth().random,
                 .particles = &FrameParticles(),
                 .worldClock = std::cref(frameClock),
@@ -1033,7 +1031,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
             // 0x5fa695: en el 34, las UV del agua sacan rand() y sueltan las burbujas 698/0 (World::CrywolfWater).
             const float frameClock =
                 static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
-            const ActorState& hero = m_context.world->Actors()[m_context.world->Runtime().hero];
+            const ActorState& hero = m_context.world->Hero();
             const World::CrywolfWaterContext waterContext{.heroZ = hero.position.z,
                                                           .heroAngles = hero.angles,
                                                           .random = &FrameCloth().random,
@@ -1107,7 +1105,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         return loaded;
     }
     WorldState& world = *m_context.world;
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: el paso suma las luces
     // de los fuegos, las lámparas y la fauna al buffer dinámico. El reloj
     // del mundo (0x5767b88), el del frame, como el de la cámara.

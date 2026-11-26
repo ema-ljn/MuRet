@@ -1066,7 +1066,7 @@ TEST_F(CursorItemTest, TheSeniorCraftWindowKeepsTheDropWithItsNativeSignedGuildM
         runtime.panels.delegated.castleSiegeList = 1;
         runtime.panels.delegated.castleSiegeListMode = given.mode;
         runtime.ui.npcWindowX = 260;
-        auto& hero = world.Actors()[runtime.hero];
+        auto& hero = world.Hero();
         hero.word1f2 = given.mark;
         hero.guildStatus = given.guildStatus;
         Put(Potion, 0, 0);
@@ -1123,8 +1123,8 @@ TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
     {
         auto& runtime = world.Runtime();
         runtime.map = entry.map;
-        world.Actors()[runtime.hero].characterClass = entry.characterClass;
-        world.Actors()[runtime.hero].safeZone = entry.safeZone;
+        world.Hero().characterClass = entry.characterClass;
+        world.Hero().safeZone = entry.safeZone;
         world.OwnCharacter().level = entry.heroLevel;
         Put(EntryTicket, 0, 0);
         Cell(0, 0).scalar1Low = entry.itemLevel << 3;

@@ -127,7 +127,7 @@ MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::Crt
         if (characterClass == FirstScaledClass || characterClass == SecondScaledClass)
             check.level = static_cast<std::int32_t>(static_cast<double>(move.level) * static_cast<double>(LevelFactor));
     }
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     check.levelOk = level >= check.level;
     check.zenOk = money >= move.zen;
     check.allowed = check.levelOk && check.zenOk && hero.pk < OutlawPk;

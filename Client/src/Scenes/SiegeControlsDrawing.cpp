@@ -264,7 +264,7 @@ void DrawTheBattleClock(GameHudContext& context)
 Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     if (!runtime.siegeActive || !HasRole(hero) || static_cast<std::int16_t>(hero.word1f2) < 0 || hero.guildStatus == 0)
         return {};
     std::uint8_t cost = 0;

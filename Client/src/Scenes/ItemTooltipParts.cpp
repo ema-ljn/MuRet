@@ -56,7 +56,7 @@ bool IsExcellent(const World::ItemState& item)
 std::uint8_t HeroClassOf(const GameHudContext& context)
 {
     const WorldState& world = context.world;
-    return world.Actors()[world.Runtime().hero].characterClass;
+    return world.Hero().characterClass;
 }
 
 Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(GameHudContext& context, std::uint32_t skill,

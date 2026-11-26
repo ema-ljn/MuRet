@@ -177,7 +177,7 @@ protected:
 
     Client::Scenes::ActorState& Hero()
     {
-        return world.Actors()[world.Runtime().hero];
+        return world.Hero();
     }
 
     // La clase en el registro (+0xb) y en el héroe (+0x1d4).

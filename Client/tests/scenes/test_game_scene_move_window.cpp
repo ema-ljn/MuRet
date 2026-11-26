@@ -102,7 +102,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
         .index = 1, .name = "Campo", .searchName = {}, .level = 10, .zen = 100, .gate = 0}};
     world->OwnCharacter().level = 20;
     world->OwnCharacter().zen = 500;
-    auto& hero = world->Actors()[runtime.hero];
+    auto& hero = world->Hero();
     hero = Client::Tests::UnarmedPlayer();
     hero.alive = true;
     hero.name = Client::Tests::NameBytes("Heroe");

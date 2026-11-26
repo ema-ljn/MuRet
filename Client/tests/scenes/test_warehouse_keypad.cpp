@@ -160,7 +160,7 @@ protected:
         m_text.texts.clear();
         m_sprites.Begin(Screen640);
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

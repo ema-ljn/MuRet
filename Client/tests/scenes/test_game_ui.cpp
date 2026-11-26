@@ -1012,7 +1012,7 @@ TEST(GameUiTest, ThePickingOfTheWizardAndTheElfReadsTheOwnRecord)
     for (const std::uint8_t heroClass : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{1}, std::uint8_t{3}})
     {
         PickingFrame tested;
-        tested.world.Actors()[tested.world.Runtime().hero].characterClass = heroClass;
+        tested.world.Hero().characterClass = heroClass;
         const int draws = heroClass == 0 || heroClass == 2 ? SkillBarRandoms : 0;
         const CrtRandom expected = Advanced(tested.random, draws);
         ASSERT_TRUE(tested.Pick().HasValue());
@@ -1037,7 +1037,7 @@ TEST(GameUiTest, ThePickingSkipsTheOwnRecordWithTheUiOrAlt)
 TEST(GameUiTest, ThePickingAsksTheWorldWidthWithThePartyClosed)
 {
     PickingFrame tested;
-    tested.world.Actors()[tested.world.Runtime().hero].characterClass = 1;
+    tested.world.Hero().characterClass = 1;
     tested.world.Runtime().panels.inventory = 1;
     const CrtRandom expected = Advanced(tested.random, 2);
     ASSERT_TRUE(tested.Pick().HasValue());

@@ -35,7 +35,7 @@ void StepTheGameMusic(WorldState& world, Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = world.Runtime();
     StepWorldAmbience(runtime, random);
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
                             [&hero, &random] { return InTheDeviasChurch(hero, random); });
     StepTheCrywolfMusic(runtime);

@@ -223,7 +223,7 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
 {
     WorldState& world = resources.world;
     const WorldRuntime& runtime = world.Runtime();
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     const std::int32_t map = runtime.map;
     const std::uint16_t type = item.id;
     if (slot == PetSlot && !IsChaosCastle(map))
@@ -294,7 +294,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     {
         return Core::Unexpected(initialized.Error());
     }
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     const Models::Skeleton* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
     const bool isPlayer = hero.type == Tables::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)

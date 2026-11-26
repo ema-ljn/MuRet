@@ -281,7 +281,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
         master.name[i] = static_cast<std::byte>(GuildMaster[i]);
     master.byte1e3 = 0xcd;
     master.key = 0x0042;
-    ActorState& hero = m_world->Actors()[Runtime().hero];
+    ActorState& hero = m_world->Hero();
     hero.guildStatus = 0x80;
     hero.word1f2 = 0xffff;
     Client::UI::ChatInputState& input = Runtime().chat.input;
@@ -312,7 +312,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         master.name[i] = static_cast<std::byte>(GuildMaster[i]);
     master.byte1e3 = 0xcd;
     master.key = 0x0042;
-    m_world->Actors()[Runtime().hero].guildStatus = 0x80;
+    m_world->Hero().guildStatus = 0x80;
     for (int kind = 0; kind < 5; ++kind)
     {
         auto& delegated = Runtime().panels.delegated;
@@ -390,7 +390,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
         master.name[i] = static_cast<std::byte>(GuildMaster[i]);
     master.byte1e3 = 0xcd;
     master.key = 0x0042;
-    m_world->Actors()[Runtime().hero].guildStatus = 0x80;
+    m_world->Hero().guildStatus = 0x80;
     Client::Scenes::SelectionState selection(*m_world);
     Client::Models::ClothWorld cloth;
     Client::World::GameCamera camera;
@@ -441,7 +441,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheHerosGuild)
         master.name[i] = static_cast<std::byte>(GuildMaster[i]);
     master.byte1e3 = 0xcd;
     master.key = 0x0042;
-    ActorState& hero = m_world->Actors()[Runtime().hero];
+    ActorState& hero = m_world->Hero();
     hero.guildStatus = 0x80;
     hero.word1f2 = 12;
     ASSERT_TRUE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());

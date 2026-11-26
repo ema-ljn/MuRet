@@ -292,7 +292,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const Worl
         skill = OwnSkillByte(context.world.OwnCharacter(), runtime.movement.weaponSkill.slot);
     }
     // 0x5599db..0x559afa: las skills de la lista y los tipos del arma derecha del héroe publicado (+0x2b8, MOVSX).
-    const ActorState& published = context.world.Actors()[runtime.hero];
+    const ActorState& published = context.world.Hero();
     const auto right = static_cast<std::int32_t>(static_cast<std::int16_t>(published.hands[0].model));
     bool special = false;
     switch (skill)
@@ -351,7 +351,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
                 const auto own = OwnAccess(context);
                 WeaponSkillRequest& request = runtime.movement.weaponSkill;
                 request.active = 1;
-                request.slot = context.world.Actors()[runtime.hero].skillIndex;
+                request.slot = context.world.Hero().skillIndex;
                 const auto attackable = IsAttackable(context.world, context.controlDown);
                 if (!attackable.HasValue())
                     return Core::Unexpected(attackable.Error());
@@ -426,7 +426,7 @@ RightButton StepTheRightButton(ActorState& hero, std::uint8_t& skill, WorldState
             return RightButton::Leaves;
         skill = ReleasedChargedSkill;
         ui.rightHoldFrames = 1;
-        world.Actors()[world.Runtime().hero].byte1bc = 0;
+        world.Hero().byte1bc = 0;
     }
     ui.rightClick = false;
     return RightButton::Uses;
@@ -455,7 +455,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     std::uint8_t skill = 0;
     {
         const auto own = OwnAccess(context);
-        skill = OwnSkillByte(world.OwnCharacter(), world.Actors()[runtime.hero].skillIndex);
+        skill = OwnSkillByte(world.OwnCharacter(), world.Hero().skillIndex);
     }
     // 0x57d112: el alcance queda en un local que leen las ramas de las clases.
     const auto range = SkillRangeOf(skill, hero, context);
@@ -500,7 +500,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     }
     // 0x57d28f..0x57d2c3.
     state.followTarget = -1;
-    const ActorState& published = world.Actors()[runtime.hero];
+    const ActorState& published = world.Hero();
     if ((published.flags78 & HiddenHeroFlag) != HiddenHeroFlag)
     {
         const auto ordered = UseTheRavenOrder(hero, published.skillIndex, context);

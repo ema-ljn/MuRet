@@ -386,7 +386,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
     WindowDrawing::SelectFont(context, FontKind::Normal);
     hud.textColors = TextColors{.text = NpcNameText, .background = 0};
     // 0x41bde0..0x41be04: la clase entera del héroe (+0x1d4), sin el & 7.
-    const std::uint8_t heroClass = context.world.Actors()[runtime.hero].characterClass;
+    const std::uint8_t heroClass = context.world.Hero().characterClass;
     const bool special = (heroClass == 4 || heroClass == 3) && runtime.byte6eeda8 != 0;
     const auto npcRecord = RecordOf(quest, special ? SpecialNpcQuest : quest.current, "0x41be7c");
     if (!npcRecord.HasValue())

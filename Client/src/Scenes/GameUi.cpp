@@ -246,7 +246,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     ChatRuntime& chat = runtime.chat;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const UI::ChatLogGlobals globals{.leftClick = runtime.movement.pendingClick,
                                      .rightDown = ui.rightDown,
                                      .wheel = ui.wheel,
@@ -324,7 +324,7 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
     return StepTheContractWindow(
         ContractWindowContext{.runtime = runtime,
                               .texts = context.texts,
-                              .heroPet = context.world.Actors()[runtime.hero].pet.model,
+                              .heroPet = context.world.Hero().pet.model,
                               .mouseX = mouseX,
                               .mouseY = mouseY,
                               .send = context.chat != nullptr ? context.chat->send : ChatSender{}});
@@ -1174,7 +1174,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     const std::int32_t y = runtime.hud.characterY;
     if (InRect(context, x, y, x + CharacterWindowWidth, y + CharacterWindowHeight))
         runtime.ui.mouseOnUi = 1;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const std::int32_t buttons = (hero.characterClass & 7u) == DarkLordClass ? 5 : 4;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -1750,7 +1750,7 @@ void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int3
     if (!runtime.movement.pendingClick)
         return;
     runtime.movement.pendingClick = false;
-    context.world.Actors()[runtime.hero].skillIndex = index;
+    context.world.Hero().skillIndex = index;
     ui.skillListOpen = 0;
     runtime.RequestSound(ButtonSound);
     runtime.movement.mouseUpdateTime = 0;
@@ -1761,7 +1761,7 @@ void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int3
 // con y de 0x14a a 0x16e.
 void StepThePetOrderButtons(const GameUiContext& context)
 {
-    const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    const ActorState& hero = context.world.Hero();
     if (!hero.darkSpirit)
         return;
     constexpr std::uint8_t FirstOrder = 0x78;
@@ -1860,7 +1860,7 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
 // abajo. Dice si eligió.
 bool StepThePetOrderKeys(const GameUiContext& context)
 {
-    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    ActorState& hero = context.world.Hero();
     if ((hero.characterClass & 7u) != DarkLordClass || !context.input.IsDown(Key::Shift))
         return false;
     for (int order = 0; order < 4; ++order)
@@ -1882,7 +1882,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
 {
     WorldRuntime& runtime = context.world.Runtime();
     const OwnCharacterRecord& own = context.world.OwnCharacter();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
     if (place >= own.skillKeys.size())
@@ -1931,7 +1931,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
     if (InRect(context, 0x130, 0x1bc, 0x150, 0x1e0))
     {
         ui.skillTooltipX = 0x140;
-        ui.skillTooltip = context.world.Actors()[runtime.hero].skillIndex;
+        ui.skillTooltip = context.world.Hero().skillIndex;
         ui.skillTooltipY = 0x1bc;
         ui.mouseOnUi = 1;
         runtime.movement.mouseUpdateTime = 0;
@@ -1957,7 +1957,7 @@ void StepTheOldAreaRows(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const UI::MessageAreaState& area = runtime.chat.area;
     for (std::int32_t y = 0, shown = 0; y < OldAreaBottom; y += OldAreaRowHeight, ++shown)
     {
@@ -2081,7 +2081,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     UI::GameUiState& ui = runtime.ui;
     GameMovementState& movement = runtime.movement;
     const Input::InputState& input = context.input;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     // 0x59ff32..0x59ff3f: con el recorrido de la cámara (0x4033d0), nada.
     if (CameraTourRunning(runtime.events.cameraTour))
         return {};
@@ -2339,7 +2339,7 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
     if (const GameChatContext* chatContext = context.chat; chatContext != nullptr)
         view.badWord = [filter = chatContext->filter](std::string_view text)
         { return UI::ContainsAFilteredWord(text, filter, false); };
-    view.heroName = std::string(HeroNameOf(world.Actors()[runtime.hero]));
+    view.heroName = std::string(HeroNameOf(world.Hero()));
     view.field78abaac = runtime.ui.field78abaac;
     if (!effects)
     {
@@ -2631,7 +2631,7 @@ void KeepTheChosen(const FramePickingContext& context)
     }
     const bool mouse =
         runtime.movement.leftHeld || runtime.movement.pendingClick || runtime.ui.rightDown || runtime.ui.rightClick;
-    if (targets[4] == NoTarget || mouse || actors[runtime.hero].dying != 0)
+    if (targets[4] == NoTarget || mouse || context.world.Hero().dying != 0)
         targets[2] = NoTarget;
 }
 
@@ -2641,8 +2641,7 @@ std::array<std::uint8_t, 2> CharacterSearchOrder(const FramePickingContext& cont
 {
     constexpr std::uint8_t Monsters = 0x22;
     constexpr std::uint8_t Players = 1;
-    const WorldRuntime& runtime = context.world.Runtime();
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
     if (heroClass != 0 && heroClass != 2)
         return {Monsters, Players};

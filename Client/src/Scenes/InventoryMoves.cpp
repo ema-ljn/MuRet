@@ -280,7 +280,7 @@ std::uint32_t LevelOf(const ItemState& item)
 
 ActorState& HeroOf(WorldState& world)
 {
-    return world.Actors()[world.Runtime().hero];
+    return world.Hero();
 }
 
 Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
@@ -839,7 +839,7 @@ bool WindowKeepsTheItem(const WorldState& world, UI::PanelRegistry& panels, cons
              runtime.panels.delegated.castleSiegeListMode == CastleSiegeListMode)
     {
         // 0x6689d0: la marca WORD con signo y el estado de maestro del gremio del héroe publicado.
-        const ActorState& hero = world.Actors()[runtime.hero];
+        const ActorState& hero = world.Hero();
         constexpr std::uint8_t GuildMaster = 0x80;
         if (std::bit_cast<std::int16_t>(hero.word1f2) >= 0 && hero.guildStatus == GuildMaster &&
             drop.mouseX >= runtime.ui.npcWindowX)
@@ -911,7 +911,7 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
     constexpr std::int32_t FirstEventMap = 24;
     constexpr std::int32_t LastEventMap = 29;
     constexpr std::int32_t FinalEventMap = 36;
-    const std::uint8_t heroClass = world.Actors()[runtime.hero].characterClass & ClassMask;
+    const std::uint8_t heroClass = world.Hero().characterClass & ClassMask;
     const std::size_t offset = heroClass == 3 || heroClass == 4 ? SpecialClassOffset : 0;
     const std::int32_t level = world.OwnCharacter().level;
     if (level < TicketLowerLevels[offset + LevelOf(runtime.cursorItem)] ||
@@ -919,7 +919,7 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
         return false;
     // 0x437a20(1), con el acceso anidado: el cierre no consume rand() mientras sigue el del llamador.
     const Models::LogicalAccess nested(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    if (world.Actors()[runtime.hero].safeZone != 0)
+    if (world.Hero().safeZone != 0)
     {
         if (auto shown = Message(context.services, 1238, UI::ErrorMessage, "0x437b9b"); !shown.HasValue())
             return Core::Unexpected(shown.Error());

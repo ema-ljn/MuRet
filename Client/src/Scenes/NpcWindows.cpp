@@ -457,7 +457,7 @@ Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& res
         auto recalculated = RecalculateOwnStats(record, OwnStatsContext{.itemSetTables = resources.itemSetTables,
                                                                         .itemSets = &world.ItemSets(),
                                                                         .items = resources.items,
-                                                                        .publishedHero = world.Actors()[runtime.hero],
+                                                                        .publishedHero = world.Hero(),
                                                                         .ownRecordAccesses = runtime.ownRecordDepth,
                                                                         .random = resources.cloth.random,
                                                                         .held = HeldItemOf(runtime),

@@ -29,7 +29,7 @@ void SetRavenState(DarkSpirit& spirit, std::uint8_t state)
 
 void ApplyPetOrder(const Protocol::Pets::PetOrder& order, WorldState& world)
 {
-    ActorState& hero = world.Actors()[world.Runtime().hero];
+    ActorState& hero = world.Hero();
     if (!hero.darkSpirit)
         return;
     DarkSpirit& spirit = *hero.darkSpirit;

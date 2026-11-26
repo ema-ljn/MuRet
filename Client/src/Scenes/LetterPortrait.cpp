@@ -56,7 +56,6 @@
 #include <memory>
 #include <optional>
 #include <ratio>
-#include <span>
 #include <string>
 #include <string_view>
 
@@ -111,7 +110,7 @@ constexpr std::uint16_t LastFenrirHelper = 0x14c;
 
 ActorState& HeroOf(const WorldEntryResources& resources)
 {
-    return resources.world.Actors()[resources.world.Runtime().hero];
+    return resources.world.Hero();
 }
 
 const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)

@@ -282,7 +282,7 @@ protected:
 
     Scenes::ActorState& Hero()
     {
-        return m_world->Actors()[m_world->Runtime().hero];
+        return m_world->Hero();
     }
 
     GameServerReceived Sent()

@@ -181,7 +181,7 @@ protected:
                                                    bool withNames = true)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = world->Hero();
         GameHudContext context{.world = *world,
                                .random = random,
                                .ownRecordDepth = runtime.ownRecordDepth,

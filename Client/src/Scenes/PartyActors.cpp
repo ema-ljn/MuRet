@@ -107,7 +107,7 @@ void MatchThePartyMembers(WorldState& world, std::size_t index)
 void MarkTheMissingMembers(WorldState& world)
 {
     WorldRuntime& runtime = world.Runtime();
-    const std::string_view hero = NameView(world.Actors()[runtime.hero].name);
+    const std::string_view hero = NameView(world.Hero().name);
     for (std::size_t at = 0; at < Members(runtime); ++at)
     {
         PartySlot& slot = runtime.social.party.slots[at];
@@ -140,7 +140,7 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
     const std::int32_t width = panels.WorldWidth();
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     const auto heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
     const float left = F32(static_cast<double>(width) - ListFromTheRight);
     const auto mouseX = static_cast<double>(context.mouse.x);

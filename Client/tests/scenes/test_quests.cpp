@@ -93,7 +93,7 @@ struct Quests
     }
     Client::Scenes::ActorState& Hero()
     {
-        return world.Actors()[world.Runtime().hero];
+        return world.Hero();
     }
     QuestState& Quest()
     {

@@ -158,7 +158,7 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
     runtime.ui.chatOpen = false;
     UI::ResetTheTextBuffers(input, false);
     input.fieldCount = 0;
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     if (static_cast<std::int16_t>(hero.word1f2) == NoGuildIndex)
         hero.word1f2 = static_cast<std::uint16_t>(CreatingGuildIndex);
     return {};
@@ -213,7 +213,7 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& ch
     const std::size_t index = ActorWithKey(world, chat.key);
     const auto actors = world.Actors();
     const ActorState& speaker = actors[index];
-    if (actors[world.Runtime().hero].guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))
+    if (world.Hero().guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))
         return TalkToTheGuildMaster(context);
     auto measure = MeasureOf(context, "0x4e34d6");
     if (!measure.HasValue())

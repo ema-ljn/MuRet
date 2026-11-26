@@ -118,7 +118,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_EQ(selectionTerrain, &world.Map().terrain);
     ASSERT_EQ(world.Runtime().map, 54);
     ASSERT_TRUE(world.Runtime().drawingEnabled);
-    auto& hero = world.Actors()[world.Runtime().hero];
+    auto& hero = world.Hero();
     ASSERT_TRUE(hero.alive);
     ASSERT_EQ(hero.type, Client::Tables::PlayerSkeletonModel);
     const auto revision = hero.revision;

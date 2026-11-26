@@ -137,13 +137,13 @@ protected:
     {
         SetTheHeroName("Heroe");
         world.OwnCharacter().level = 10;
-        world.Actors()[world.Runtime().hero].type = Client::Tables::PlayerSkeletonModel;
+        world.Hero().type = Client::Tables::PlayerSkeletonModel;
         models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
     void SetTheHeroName(std::string_view name)
     {
-        auto& hero = world.Actors()[world.Runtime().hero];
+        auto& hero = world.Hero();
         hero.name.fill(std::byte{0});
         for (std::size_t i = 0; i < name.size() && i < hero.name.size(); ++i)
             hero.name[i] = static_cast<std::byte>(name[i]);
@@ -1039,7 +1039,7 @@ TEST_F(GameChat, OrderedEnterKeyUsesTheLegacyGameChatExactlyOnce)
 // C1 00 (Q-C776), con la dirección de su ángulo. No saca ningún rand().
 TEST_F(GameChat, AnEmoteSendsItsActionsBeforeTheChat)
 {
-    auto& hero = world.Actors()[world.Runtime().hero];
+    auto& hero = world.Hero();
     hero.animation.action = 1;
     hero.angles.z = 100.0f;
     ASSERT_TRUE(Type("\r").HasValue());
@@ -1080,7 +1080,7 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
     Client::Scenes::FaunaModelLoadContext load{folder.Path(), m_faunaStore, log, slots};
     const auto loaded = world.FaunaResources().LoadMonster(9, 0, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    auto& hero = world.Actors()[world.Runtime().hero];
+    auto& hero = world.Hero();
     hero.type = 0x15b;
     hero.animation.action = 1;
     hero.angles.z = 100.0f;
@@ -1101,7 +1101,7 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
 // ninguno.
 TEST_F(GameChat, AWalkingHeroSendsOnlyTheCaseAndAMountedOneNone)
 {
-    auto& hero = world.Actors()[world.Runtime().hero];
+    auto& hero = world.Hero();
     hero.animation.action = 0x0f;
     ASSERT_TRUE(Type("\rbueno;\r").HasValue());
     ASSERT_EQ(sent.size(), 2u);
@@ -1211,7 +1211,7 @@ TEST_F(GameChat, TheWhisperSwitchesWarnWithoutSending)
 // Muriéndose, /move no sale; lo demás sí.
 TEST_F(GameChat, ADyingHeroDoesNotSayMove)
 {
-    world.Actors()[world.Runtime().hero].dying = 1;
+    world.Hero().dying = 1;
     ASSERT_TRUE(Type("\r/mover\r").HasValue());
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(world.Runtime().panels.overlayMode, Client::UI::MoveOverlayMode);

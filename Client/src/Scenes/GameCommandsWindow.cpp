@@ -230,7 +230,7 @@ Core::Expected<void, std::string> SetTheStates(const WorldState& world, UI::Comm
                                                std::size_t index)
 {
     const ActorState& target = world.Actors()[index];
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     // 0x4061b7: el 9 (texto 947, amigos) en 0; su caso (0x40a0e1) no se alcanza.
     window.states[FriendCommand] = 0;
     auto& states = window.states;
@@ -449,7 +449,7 @@ Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context
                                                     std::size_t index)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    if (context.world.Actors()[runtime.hero].guildStatus != NoGuildStatus)
+    if (context.world.Hero().guildStatus != NoGuildStatus)
         return Refuse(chat, runtime.panels.delegated.commandsWindow, InAGuildText, UI::SystemMessage, "0x4085ec");
     if (!runtime.drawingEnabled)
         return {};
@@ -489,7 +489,7 @@ Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context
 Core::Expected<void, std::string> PlayTheEndOfAHostility(const GameChatContext& chat, std::string_view animation,
                                                          std::string_view action)
 {
-    ActorState& hero = chat.world.Actors()[chat.world.Runtime().hero];
+    ActorState& hero = chat.world.Hero();
     if (!chat.send)
         return Core::Unexpected(std::format("{}: el C1 18 sin el cable", action));
     if (chat.models == nullptr)
@@ -838,7 +838,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildJoin(const Game
 {
     WorldState& world = chat.world;
     WorldRuntime& runtime = world.Runtime();
-    if (world.Actors()[runtime.hero].guildStatus != NoGuildStatus)
+    if (world.Hero().guildStatus != NoGuildStatus)
         return UI::ChatCommandOutcome{.handled = true, .notices = {{InAGuildText, UI::SystemMessage}}};
     if (chat.texts == nullptr)
         return Core::Unexpected(std::string("0x573fbb: /guild sin Text.bmd"));
@@ -867,7 +867,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildRelation(const 
                                                                           UI::GuildRelationCommand command)
 {
     WorldState& world = chat.world;
-    if (world.Actors()[world.Runtime().hero].guildStatus == NoGuildStatus)
+    if (world.Hero().guildStatus == NoGuildStatus)
         return UI::ChatCommandOutcome{.handled = true, .notices = {{HeroWithoutAGuildText, UI::SystemMessage}}};
     if (chat.texts == nullptr)
         return Core::Unexpected(std::string("0x570db4: /union, /rival o /rivaloff sin Text.bmd"));

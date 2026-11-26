@@ -59,7 +59,7 @@ CreateBlastEffect(const World::ModelEffectArguments& arguments, ActorState* owne
     const World::BlastEffectServices services{
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
         .ownRecordCount = &world.OwnCharacter().bytef04,
-        .hero = &world.Actors()[world.Runtime().hero],
+        .hero = &world.Hero(),
         .skillHits = [&](const World::ModelEffect& effect, float radius) -> Core::Expected<void, std::string>
         {
             const SkillHitsRequest request{.skillIndex = effect.byte89,

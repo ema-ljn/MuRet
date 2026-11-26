@@ -343,6 +343,9 @@ game/Protocol/Npc/DialogAnswers.cpp	20	game/Protocol/Npc	game/Protocol/Npc	high	
 game/Protocol/Npc/DialogAnswers.h	25	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
 game/Session/Dispatcher.cpp	94	game/Session	game/Session	high	routes the packets that arrive; the session owns it
 game/Session/Dispatcher.h	79	game/Session	game/Session	high	routes the packets that arrive; the session owns it
+game/Session/ConnectServerOpcodes.cpp	30	game/Session	game/Session	high	the opcode tables: one row per case of the dispatcher, the handler the session calls (AR2.2)
+game/Session/GameServerOpcodes.cpp	303	game/Session	game/Session	high	the opcode tables: one row per case of the dispatcher, the handler the session calls (AR2.2)
+game/Session/OpcodeTable.h	81	game/Session	game/Session	high	the opcode tables: one row per case of the dispatcher, the handler the session calls (AR2.2)
 game/Protocol/Social/Duel.cpp	104	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
 game/Protocol/Social/Duel.h	76	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
 game/Protocol/Events/Events.cpp	424	game/Protocol/Events	game/Protocol/Events	high	the packets of Events

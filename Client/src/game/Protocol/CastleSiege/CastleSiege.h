@@ -4,7 +4,6 @@
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/FrontEnd/CharacterName.h"
-#include "Protocol/Opcodes.h"
 #include "Protocol/Outgoing.h"
 
 #include <array>
@@ -25,14 +24,6 @@
 // ignored. The battle's B2 (0x11..0x19, 0x1D, 0x1E and 0x20) are not read here (CastleBattle).
 namespace Client::Protocol::CastleSiege
 {
-// The ones the session registers. The other cases of 0x4e6140 (0x11..0x19, 0x1D, 0x1E and 0x20) are the battle's, and
-// 0x0A..0x0F, 0x1B and 0x1C fall to the default (0x4e5b4a): they still arrive as Unknown.
-inline constexpr std::array<Network::Subcode, 13> WindowSubcodes{
-    Castle::StateSubcode,        Castle::RegisterSubcode, Castle::GiveUpSubcode,    Castle::RegistrationSubcode,
-    Castle::RegisterMarkSubcode, Castle::NpcBuySubcode,   Castle::NpcRepairSubcode, Castle::NpcUpgradeSubcode,
-    Castle::TaxInfoSubcode,      Castle::TaxRateSubcode,  Castle::MoneyOutSubcode,  Castle::SiegeFlagsSubcode,
-    Castle::HuntZoneGateSubcode};
-
 // The names as 0x64b0f0, 0x46f7e0 and 0x470bb0 copy them (strncpy of 8 and of 10, no terminator in the packet).
 // GuildName is Protocol::Guild's type again: they unify when the chain joins.
 inline constexpr std::size_t GuildNameSize = 8;

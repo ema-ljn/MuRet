@@ -78,5 +78,51 @@ class CheckListsTest(unittest.TestCase):
         self.assertEqual(self.check(GAME + whisper), ['list0: SecondChatOpcode and ChatOpcode both name 0x00'])
 
 
+KEEPALIVE = 'inline constexpr Network::Opcode KeepaliveOpcode{0x0e}; // client only\n'
+ROWS = ('    Row(ChatOpcode, std::nullopt, 0x4e33e4, "Chat", &Call<&ServerSession::OnChat>),\n'
+        '    Row(KeepaliveOpcode, std::nullopt, 0, "Keepalive", SentOnly{}),\n'
+        '    Row(JoinOpcode, Join::HelloSubcode, 0x4e2b59,\n'
+        '        "Join Hello", &Call<&ServerSession::OnGameHello>),\n'
+        '    Row(JoinOpcode, Network::Subcode{0x0e}, 0x4e2b59, "Join 0E", Unported{}),\n')
+CASES_WITH_HELLO = CASES + '2\t0x00\t0xf1\t0x4e2b59\n'
+
+
+class CheckTablesTest(unittest.TestCase):
+    def check(self, rows, cases=CASES_WITH_HELLO):
+        return dispatcher_cases.check_tables(cases, {'game': GAME + KEEPALIVE}, {'table': rows})
+
+    def test_a_table_with_a_row_for_every_case_passes(self):
+        self.assertEqual(self.check(ROWS), [])
+
+    def test_reads_a_row_split_over_two_lines(self):
+        rows = dispatcher_cases.read_rows(ROWS, *dispatcher_cases.read_names({'game': GAME + KEEPALIVE}))
+        self.assertIn({'opcode': 0xF1, 'subcode': 0x00, 'address': 0x4E2B59, 'name': 'Join Hello', 'action': 'handler'},
+                      rows)
+
+    def test_a_case_without_a_row_fails(self):
+        self.assertEqual(self.check(ROWS.replace('Row(ChatOpcode', 'Skipped(ChatOpcode')), ['0x00 has no row'])
+
+    def test_a_case_of_the_f1_without_a_row_fails(self):
+        rows = ROWS.replace('    Row(JoinOpcode, Network::Subcode{0x0e}, 0x4e2b59, "Join 0E", Unported{}),\n', '')
+        self.assertEqual(self.check(rows), ['0xf1 0x0e has no row'])
+
+    def test_a_row_names_the_address_of_its_case(self):
+        self.assertEqual(self.check(ROWS.replace('0x4e33e4', '0x4e33e5')),
+                         ['table: Chat names 0x4e33e5, its case is 0x4e33e4'])
+
+    def test_a_code_the_client_only_writes_has_a_sent_only_row(self):
+        rows = ROWS.replace('    Row(KeepaliveOpcode, std::nullopt, 0, "Keepalive", SentOnly{}),\n', '')
+        self.assertEqual(self.check(rows), ['KeepaliveOpcode (0x0e) has no SentOnly row'])
+
+    def test_a_row_of_a_code_without_a_case_is_sent_only(self):
+        rows = ROWS.replace('"Keepalive", SentOnly{}', '"Keepalive", Unported{}')
+        self.assertEqual(self.check(rows), ['table: Keepalive has no case in 0x4e2b10 and is not SentOnly',
+                                            'KeepaliveOpcode (0x0e) has no SentOnly row'])
+
+    def test_an_unknown_name_fails(self):
+        self.assertEqual(self.check(ROWS + '    Row(WalkOpcode, std::nullopt, 0, "Walk", SentOnly{}),\n'),
+                         ['table: WalkOpcode is not in the lists'])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -643,8 +643,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     }
     // Lo global de la tela: el rand() de la CRT sembrado una vez con la hora, como srand(time(NULL)) en
     // 0x4bad9a, el viento base y el contador de pasos de lógica.
-    Client::Render::Models::ClothWorld clothWorld{
-        .random = Client::Crt::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
+    Client::Models::ClothWorld clothWorld{.random =
+                                              Client::Crt::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
     // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
     Client::Input::InputState input;
     Client::World::GameCamera camera;
@@ -762,7 +762,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
     const auto takeSceneOrder = [&world]() -> std::optional<Scenes::SceneId>
     { return std::exchange(world.Runtime().orderedScene, std::nullopt); };
-    Client::Render::Models::OriginalFrameCarry itemFrameCarry;
+    Client::Models::OriginalFrameCarry itemFrameCarry;
     const auto beforeSceneFrame = [&world, &itemFrameCarry, &startup](Core::Duration now)
     {
         if (itemFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing)) == 0)

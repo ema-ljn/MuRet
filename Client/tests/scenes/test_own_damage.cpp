@@ -25,7 +25,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::AttackDamageOf;
 using Client::Scenes::ItemSetOptionList;
 using Client::Scenes::MagicDamageOf;

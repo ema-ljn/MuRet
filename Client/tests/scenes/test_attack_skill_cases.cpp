@@ -64,7 +64,7 @@ constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t StrikerSlot = 5;
 constexpr std::size_t VictimSlot = 9;
 // El registro propio cerrado en 0: los 3.848 de 0x40b4d0.
-constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // Una lectura de +0x38e: un rand() al cerrarse en 0.
 constexpr int SkillRead = 1;
 // La entrada de Skill.bmd de 0x5526f0, cerrada en 0.

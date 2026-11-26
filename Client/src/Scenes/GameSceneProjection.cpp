@@ -62,7 +62,7 @@ World::TerrainLighting& GameScene::FrameLighting()
 {
     return m_projectingFrame ? m_projection->lighting : m_context.world->DynamicLighting().Lighting();
 }
-Render::Models::ClothWorld& GameScene::FrameCloth()
+Models::ClothWorld& GameScene::FrameCloth()
 {
     return m_projectingFrame ? m_projection->cloth : *m_context.cloth;
 }
@@ -95,7 +95,7 @@ std::uint8_t GameScene::ReadFrameHeroCell(bool x)
     auto& hero = m_context.world->Actors()[m_context.world->Runtime().hero];
     auto& depth = m_projectingFrame ? (x ? m_projection->heroXDepth : m_projection->heroYDepth)
                                     : (x ? hero.cellXAccesses : hero.cellYAccesses);
-    const Render::Models::LogicalAccess access(depth, FrameCloth().random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, FrameCloth().random, Models::SmallLogicalCloseRandoms);
     return x ? hero.cellX : hero.cellY;
 }
 } // namespace Client::Scenes

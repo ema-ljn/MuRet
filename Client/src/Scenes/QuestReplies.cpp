@@ -185,8 +185,8 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
         // 0x4ddbd5..0x4dddf2: el registro propio abierto alrededor de la suma.
         if (isHero)
         {
-            const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
+                                            Models::OwnRecordCloseRandoms);
             OwnCharacterRecord& record = world.OwnCharacter();
             record.levelUpPoints = static_cast<std::uint16_t>(record.levelUpPoints + result.value);
         }
@@ -200,8 +200,8 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
             static_cast<std::uint8_t>(static_cast<std::uint8_t>((result.value & 0x10u) | (result.value >> 4u)) >> 1u);
         if (isHero)
         {
-            const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
+                                            Models::OwnRecordCloseRandoms);
             world.OwnCharacter().characterClass = actor.characterClass;
         }
         if (auto created = CreateThePrizeSparkles(actor, resources, true, 0x4de0eb); !created.HasValue())
@@ -210,8 +210,8 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
     case Protocol::Quest::ClassPointsPrize:
         if (isHero)
         {
-            const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
+                                            Models::OwnRecordCloseRandoms);
             OwnCharacterRecord& record = world.OwnCharacter();
             record.levelUpPoints = static_cast<std::uint16_t>(record.levelUpPoints + result.value);
         }

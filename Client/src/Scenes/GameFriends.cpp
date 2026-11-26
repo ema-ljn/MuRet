@@ -183,7 +183,7 @@ void SendAFriendPacket(IGameUiRequests& requests, Crt::CrtRandom& random, const 
         static_cast<void>(random.Next());
         std::uint8_t serialDepth = 0;
         {
-            const Render::Models::LogicalAccess serial(serialDepth, random, Render::Models::SerialCloseRandoms);
+            const Models::LogicalAccess serial(serialDepth, random, Models::SerialCloseRandoms);
         }
     }
     requests.SendFriendPacket(FriendPacketOf(send));
@@ -197,8 +197,7 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
     // 0x491096: con 0x6c7b8c en 0, el texto 992 y nada más; está en 1.
     std::uint16_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = context.world.OwnCharacter().level;
     }
     if (level < UI::FriendsLevel)

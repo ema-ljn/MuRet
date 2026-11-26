@@ -8,15 +8,15 @@
 #include <cstddef>
 #include <optional>
 
-// Client::Render::Models::RayPicking: el segmento del mouse contra la caja de cada personaje, como
+// Client::Models::RayPicking: el segmento del mouse contra la caja de cada personaje, como
 // 0x622900 (una separación en 6 ejes) y 0x59e700 (gana el de menor distancia² de la cámara a su
 // origen), con la caja del jugador corrida de Q-C100 (06 § El picking).
 namespace
 {
-using Client::Render::Models::Box;
-using Client::Render::Models::NearestHit;
-using Client::Render::Models::PlayerBoxAt;
-using Client::Render::Models::SegmentHitsBox;
+using Client::Models::Box;
+using Client::Models::NearestHit;
+using Client::Models::PlayerBoxAt;
+using Client::Models::SegmentHitsBox;
 
 // Un cubo de 10 de lado centrado en el origen.
 constexpr Box UnitBox{{-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f}};

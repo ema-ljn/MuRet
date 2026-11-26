@@ -44,7 +44,7 @@ using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::WorldEntryResources;
 
 constexpr std::uint32_t Seed = 0x2468;
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::size_t HeroSlot = 7;
 
 struct Stage
@@ -87,7 +87,7 @@ struct Stage
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({});
     Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
@@ -161,7 +161,7 @@ TEST(LevelUpPointReplyTest, ANibbleAboveFourOnlyTakesThePointAndTheBp)
 void OpenRecalculateAndClose(Stage& stage)
 {
     Client::Scenes::WorldRuntime& runtime = stage.world.Runtime();
-    const Client::Render::Models::LogicalAccess access(runtime.ownRecordDepth, stage.cloth.random, Own);
+    const Client::Models::LogicalAccess access(runtime.ownRecordDepth, stage.cloth.random, Own);
     const auto recalculated = Client::Scenes::RecalculateOwnStats(
         stage.world.OwnCharacter(), Client::Scenes::OwnStatsContext{.itemSetTables = &stage.sets,
                                                                     .itemSets = &stage.world.ItemSets(),

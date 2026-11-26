@@ -77,7 +77,7 @@ struct Pool
 
     std::vector<JointState> joints = std::vector<JointState>(4);
     std::vector<ActorState> actors = std::vector<ActorState>(3);
-    std::unique_ptr<Client::Render::Models::ClothWorld> cloth = std::make_unique<Client::Render::Models::ClothWorld>();
+    std::unique_ptr<Client::Models::ClothWorld> cloth = std::make_unique<Client::Models::ClothWorld>();
     glm::vec3 startAngles{};
     Client::World::ModelEffects* effects = nullptr;
 };

@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 }
@@ -65,5 +65,5 @@ struct ActorPlacement
 [[nodiscard]] Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_t type,
                                                                const ActorPlacement& placement,
                                                                const ActorConstructionContext& context,
-                                                               Render::Models::ClothWorld& cloth);
+                                                               Models::ClothWorld& cloth);
 } // namespace Client::Scenes

@@ -48,7 +48,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::ActionInfo;
+using Client::Models::ActionInfo;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::ChosenKeyOf;
@@ -64,7 +64,7 @@ constexpr std::size_t VictimSlot = 7;
 // Una lectura de +0x38e (0x517630 y sus copias): un rand() al cerrarse en 0.
 constexpr int SkillRead = 1;
 // El registro propio cerrado en 0: los 3.848 de 0x40b4d0.
-constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // Un paso de +0x381 antes del frame 5 con blanco: la lectura de 0x4f97b0, el rand() de 0x4f5b97 y las dos lecturas
 // de 0x4f811b y 0x4f8a2c.
 constexpr int CountingStep = SkillRead + 1 + 2 * SkillRead;
@@ -189,7 +189,7 @@ struct AttackWorld
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
     CrtRandom random{Seed};
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> soundOrigins;
     bool controlDown = false;
@@ -1162,7 +1162,7 @@ TEST(AttackStepTest, AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline)
 
     AttackWorld tested;
     tested.skeleton.actions[SwordAttack] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
-    Client::Render::Models::SkeletonBone swordBone;
+    Client::Models::SkeletonBone swordBone;
     swordBone.actions.resize(tested.skeleton.actions.size());
     for (auto& keys : swordBone.actions)
         keys.resize(10);
@@ -1211,7 +1211,7 @@ TEST(AttackStepTest, FullSparkParticlesDoNotPreventTheVisibleSpearTrail)
         SCOPED_TRACE(visible);
         AttackWorld tested;
         tested.skeleton.actions[SpearAttack] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.actions.resize(tested.skeleton.actions.size());
         for (auto& keys : bone.actions)
             keys.resize(10);

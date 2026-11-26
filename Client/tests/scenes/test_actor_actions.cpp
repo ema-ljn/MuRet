@@ -110,9 +110,9 @@ protected:
 
     Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     SceneId m_scene = SceneId::Game;
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::Skeleton m_actorModelSkeleton = Client::Tests::PlayerActionsSkeleton();
-    const Client::Render::Models::Skeleton* m_actorSkeleton = nullptr;
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_actorModelSkeleton = Client::Tests::PlayerActionsSkeleton();
+    const Client::Models::Skeleton* m_actorSkeleton = nullptr;
     std::span<const std::int16_t> m_modelSounds{};
     const Client::Data::Terrain::TerrainLayer<std::uint16_t>* m_terrainWalls = nullptr;
     // Las armas de la matriz que llevan la marca +0x1e en Item.bmd.
@@ -564,9 +564,9 @@ TEST_F(ActorStopTest, MissingOrEmptyActorSkeletonLeavesTheAnimationAndRunsTheSuf
 {
     const std::array<std::int16_t, 10> noModelSound{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
     m_modelSounds = noModelSound;
-    Client::Render::Models::Skeleton emptySkeleton;
-    const std::array<const Client::Render::Models::Skeleton*, 2> skeletons{nullptr, &emptySkeleton};
-    for (const Client::Render::Models::Skeleton* skeleton : skeletons)
+    Client::Models::Skeleton emptySkeleton;
+    const std::array<const Client::Models::Skeleton*, 2> skeletons{nullptr, &emptySkeleton};
+    for (const Client::Models::Skeleton* skeleton : skeletons)
     {
         ActorState actor = UnarmedPlayer();
         actor.type = 0x154;

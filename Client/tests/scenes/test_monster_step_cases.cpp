@@ -245,8 +245,7 @@ protected:
         m_runtime = std::make_unique<WorldRuntime>();
         m_runtime->map = 30;
         m_pool = std::make_unique<std::array<ActorState, 400>>();
-        m_skeleton.actions.assign(6,
-                                  Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.25f, .keyCount = 10});
+        m_skeleton.actions.assign(6, Client::Models::ActionInfo{.repeats = true, .speed = 0.25f, .keyCount = 10});
     }
 
     CastleObjectStep Step()
@@ -269,7 +268,7 @@ protected:
 
     std::unique_ptr<WorldRuntime> m_runtime;
     std::unique_ptr<std::array<ActorState, 400>> m_pool;
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
 };
 
 // 0x42da9a: fuera del mapa 30 ninguno hace nada (Lorencia, Devias y Kalima).

@@ -274,7 +274,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
         {
             return std::optional<std::uint8_t>{};
         }
-        Render::Models::SetAction(actor.animation, context.playerSkeleton, SittingAction);
+        Models::SetAction(actor.animation, context.playerSkeleton, SittingAction);
         // 0x4f2416..0x4f2bea (0x4f2834..0x4f2bea por el piso): C1 05 18 con la dirección del ángulo del personaje
         // (+0x24, no el del héroe) y 0x82, y el sufijo (0x4f36be), también si el envío falla.
         auto sent = SendTheAction(actor.angles.z, Protocol::Movement::SittingAction, context.sendAction, "0x4f2416");
@@ -349,21 +349,19 @@ Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, con
         }
         if (stand.Value())
         {
-            Render::Models::SetAction(actor.animation, context.playerSkeleton, *stand.Value());
+            Models::SetAction(actor.animation, context.playerSkeleton, *stand.Value());
         }
         return Suffix(actor, context);
     }
 
     std::uint8_t cellY = 0;
     {
-        const Render::Models::LogicalAccess access(actor.cellYAccesses, context.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(actor.cellYAccesses, context.random, Models::SmallLogicalCloseRandoms);
         cellY = actor.cellY;
     }
     std::uint8_t cellX = 0;
     {
-        const Render::Models::LogicalAccess access(actor.cellXAccesses, context.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(actor.cellXAccesses, context.random, Models::SmallLogicalCloseRandoms);
         cellX = actor.cellX;
     }
 
@@ -383,7 +381,7 @@ Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, con
     }
     if (context.actorSkeleton != nullptr)
     {
-        Render::Models::SetAction(actor.animation, *context.actorSkeleton, stand);
+        Models::SetAction(actor.animation, *context.actorSkeleton, stand);
     }
     return Suffix(actor, context);
 }

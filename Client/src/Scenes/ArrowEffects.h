@@ -20,10 +20,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -104,8 +104,8 @@ struct ArrowStepContext
 // 0x5208a0 sobre una flecha viva: el rand() de la luz local (0x5208c5), el caso de su tipo, el choque (0x520170) y la
 // cola común (0x52cb98: la animación con `skeleton`, la velocidad girada y una vida menos), que corre también si el
 // choque la apagó. Corta, con lo de antes y sus rand(), donde pide algo sin portar.
-[[nodiscard]] Core::Expected<void, std::string>
-StepArrow(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton, const ArrowStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Models::Skeleton* skeleton,
+                                                          const ArrowStepContext& context);
 
 // 0x520170(efecto) fuera del paso de la flecha: el 0x60f/0xb de la 0xf8 con el skill 1 la pone en su posición y la
 // hace chocar desde el paso de los joints (0x53ae6d).

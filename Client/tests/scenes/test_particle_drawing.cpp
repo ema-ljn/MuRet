@@ -47,24 +47,24 @@ using Matrix = Client::Math::OriginalMatrix;
 constexpr Matrix Identity{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
 static_assert(!std::is_default_constructible_v<Request>);
 static_assert(!std::is_default_constructible_v<Client::Scenes::ParticleDrawServices>);
-static_assert(!std::is_constructible_v<
-              Client::Scenes::ParticleDrawServices, const Client::Render::Models::IModelLibrary&&,
-              std::reference_wrapper<Client::Render::IParticleDrawBackend>, std::reference_wrapper<const Matrix>>);
+static_assert(!std::is_constructible_v<Client::Scenes::ParticleDrawServices, const Client::Models::IModelLibrary&&,
+                                       std::reference_wrapper<Client::Render::IParticleDrawBackend>,
+                                       std::reference_wrapper<const Matrix>>);
 static_assert(!std::is_constructible_v<Client::Scenes::ParticleDrawServices,
-                                       std::reference_wrapper<const Client::Render::Models::IModelLibrary>,
+                                       std::reference_wrapper<const Client::Models::IModelLibrary>,
                                        Client::Render::IParticleDrawBackend&&, std::reference_wrapper<const Matrix>>);
 
 static_assert(!std::is_constructible_v<std::reference_wrapper<const glm::vec3>, glm::vec3&&>);
 static_assert(!std::is_constructible_v<std::reference_wrapper<const Matrix>, Matrix&&>);
 
-struct Library final : Client::Render::Models::IModelLibrary
+struct Library final : Client::Models::IModelLibrary
 {
     explicit Library(std::vector<std::string>& log) : events(log) {}
     std::vector<std::string>& events;
-    std::map<std::uint32_t, Client::Scenes::TextureMetadata> rows;
+    std::map<std::uint32_t, Client::Models::TextureMetadata> rows;
     void Put(std::int32_t selector, glm::vec2 size, std::uint8_t flag)
     {
-        Client::Scenes::TextureMetadata value(Client::Data::Textures::Texture{});
+        Client::Models::TextureMetadata value(Client::Data::Textures::Texture{});
         value.size = size;
         value.components = flag;
         rows.insert_or_assign(static_cast<std::uint32_t>(selector), value);
@@ -73,7 +73,7 @@ struct Library final : Client::Render::Models::IModelLibrary
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -81,7 +81,7 @@ struct Library final : Client::Render::Models::IModelLibrary
     {
         return {};
     }
-    std::optional<Client::Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    std::optional<Client::Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
         events.push_back("metadata:" + std::to_string(selector));
         const auto found = rows.find(selector);
@@ -220,8 +220,8 @@ protected:
 TEST_F(ParticleDrawingTest, PublicUnsignedMetadataKeepsHighBitSelectorsDistinctFromSlot16)
 {
     using MetadataQuery =
-        std::optional<Client::Scenes::TextureMetadata> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
-    EXPECT_TRUE((std::is_same_v<decltype(&Client::Render::Models::IModelLibrary::TextureMetadataOf), MetadataQuery>));
+        std::optional<Client::Models::TextureMetadata> (Client::Models::IModelLibrary::*)(std::uint32_t) const;
+    EXPECT_TRUE((std::is_same_v<decltype(&Client::Models::IModelLibrary::TextureMetadataOf), MetadataQuery>));
     m_library.Put(-1, {8, 16}, std::uint8_t{3});
     m_library.Put(std::numeric_limits<std::int32_t>::min(), {32, 64}, std::uint8_t{255});
     m_library.Put(0xffff, {1, 2}, std::uint8_t{1});

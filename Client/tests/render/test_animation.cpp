@@ -12,26 +12,26 @@
 #include <cstddef>
 #include <cstdint>
 
-// Client::Render::Models: el avance de la animación (0x4ec200), el cambio de acción (0x4ea030), la
+// Client::Models: el avance de la animación (0x4ec200), el cambio de acción (0x4ea030), la
 // mascota y las alas por tiempo (Q-C20) y la copia del render.
 namespace
 {
 using Client::App::FixedStep;
 using Client::Core::Duration;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::AdvanceAnimation;
-using Client::Render::Models::AdvanceByTime;
-using Client::Render::Models::AnimationScene;
-using Client::Render::Models::AnimationState;
-using Client::Render::Models::Interpolated;
-using Client::Render::Models::MaxOriginalFramesPerDraw;
-using Client::Render::Models::OriginalFrameCarry;
-using Client::Render::Models::OriginalFramePace;
-using Client::Render::Models::OriginalFrameTime;
-using Client::Render::Models::PetKeysPerOriginalFrame;
-using Client::Render::Models::SetAction;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::TimedAnimation;
+using Client::Models::ActionInfo;
+using Client::Models::AdvanceAnimation;
+using Client::Models::AdvanceByTime;
+using Client::Models::AnimationScene;
+using Client::Models::AnimationState;
+using Client::Models::Interpolated;
+using Client::Models::MaxOriginalFramesPerDraw;
+using Client::Models::OriginalFrameCarry;
+using Client::Models::OriginalFramePace;
+using Client::Models::OriginalFrameTime;
+using Client::Models::PetKeysPerOriginalFrame;
+using Client::Models::SetAction;
+using Client::Models::Skeleton;
+using Client::Models::TimedAnimation;
 
 using namespace std::chrono_literals;
 

@@ -306,8 +306,7 @@ void WriteTheKalimaLevels(Frame& frame)
         heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? KalimaCount : 0;
     std::int32_t ownLevel = 0;
     {
-        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         ownLevel = context.world.OwnCharacter().level;
     }
     lines.At("0x438071");
@@ -359,8 +358,7 @@ void WriteTheChaosCastleLevels(Frame& frame)
         heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? ChaosCastleCount : 0;
     std::int32_t level = 0;
     {
-        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = context.world.OwnCharacter().level;
     }
     lines.At("0x5b6874");

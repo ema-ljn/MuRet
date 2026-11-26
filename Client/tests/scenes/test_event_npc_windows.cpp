@@ -48,9 +48,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;

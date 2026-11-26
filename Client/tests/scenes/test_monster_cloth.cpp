@@ -45,10 +45,10 @@
 // la malla 2, el hueso 0x12, las banderas 0x400, las dos esferas y cinco pasos de 0,005f.
 namespace
 {
-using Client::Render::Models::Cloth;
-using Client::Render::Models::ClothBody;
-using Client::Render::Models::ClothWindSource;
-using Client::Render::Models::ClothWorld;
+using Client::Models::Cloth;
+using Client::Models::ClothBody;
+using Client::Models::ClothWindSource;
+using Client::Models::ClothWorld;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
 
@@ -89,13 +89,13 @@ Client::Data::Models::Mesh Robe()
     return mesh;
 }
 
-class ClothModels final : public Client::Render::Models::IModelLibrary
+class ClothModels final : public Client::Models::IModelLibrary
 {
 public:
     ClothModels()
     {
         using namespace Client::Math;
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
@@ -112,7 +112,7 @@ public:
     {
         return model == 0x20a ? nullptr : &m_model;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &m_skeleton;
     }
@@ -122,7 +122,7 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     std::array<Client::Render::TextureSlot, 3> m_textures{
         Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x301}, Client::Render::TextureSlot{0x302}};
@@ -145,7 +145,7 @@ TEST(MonsterMeshClothTest, TheMeshRobeUsesTheMapWind)
     {
         SCOPED_TRACE(static_cast<unsigned>(map));
         Client::Scenes::MonsterMeshCloth cloth;
-        std::array<Client::Render::Models::SkinnedMesh, 3> meshes;
+        std::array<Client::Models::SkinnedMesh, 3> meshes;
         meshes[2].positions = RobeAt({0.0f, 0.0f, 0.0f});
         ClothWorld world;
         world.windBase = 0.3f;
@@ -416,8 +416,7 @@ TEST_F(MonsterClothTest, BetweenOriginalFramesTheClothIsCarriedWithoutSteps)
 
     ASSERT_TRUE(Draw(Pass()).HasValue());
     const std::uint32_t state = m_clothWorld.random.State();
-    const std::vector<Client::Render::Models::ClothParticle> before(Worn()->Particles().begin(),
-                                                                    Worn()->Particles().end());
+    const std::vector<Client::Models::ClothParticle> before(Worn()->Particles().begin(), Worn()->Particles().end());
     monster.position.x += 5.0f;
     const auto result = Draw(between);
 

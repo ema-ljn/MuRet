@@ -13,7 +13,7 @@
 
 namespace
 {
-using Client::Render::Models::ShinePass;
+using Client::Models::ShinePass;
 using Client::Scenes::ItemShineClockOf;
 using Client::Scenes::ItemShineTexCoords;
 

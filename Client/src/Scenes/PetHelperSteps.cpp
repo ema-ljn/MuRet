@@ -149,7 +149,7 @@ Core::Expected<void, std::string> RaiseTheRidingDust(const HelperState& helper, 
 
 // 0x444bbc..0x444c4b: la acción y la velocidad del Fenrir por la del jinete. Devuelve si sigue al polvo (0x444c55):
 // las acciones quietas van directo al avance.
-bool TakeTheFenrirGait(HelperState& helper, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction)
+bool TakeTheFenrirGait(HelperState& helper, const Models::Skeleton& skeleton, std::uint8_t riderAction)
 {
     std::optional<std::uint8_t> calm;
     if (InRange(riderAction, 0x56, 0x61))
@@ -170,18 +170,18 @@ bool TakeTheFenrirGait(HelperState& helper, const Render::Models::Skeleton& skel
     }
     if (calm)
     {
-        Render::Models::SetAction(helper.horse.animation, skeleton, *calm);
+        Models::SetAction(helper.horse.animation, skeleton, *calm);
         helper.horse.speed = FenrirCalm;
         return false;
     }
     if (InRange(riderAction, 0x7a, 0x7d))
     {
-        Render::Models::SetAction(helper.horse.animation, skeleton, 1);
+        Models::SetAction(helper.horse.animation, skeleton, 1);
         helper.horse.speed = FenrirRun;
     }
     else if (InRange(riderAction, 0x6a, 0x75))
     {
-        Render::Models::SetAction(helper.horse.animation, skeleton, 2);
+        Models::SetAction(helper.horse.animation, skeleton, 2);
         helper.horse.speed = FenrirTrot;
     }
     return true;
@@ -243,8 +243,7 @@ Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, 
 } // namespace
 
 Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const ActorState& rider,
-                                                   const Render::Models::Skeleton& skeleton,
-                                                   const HelperStepContext& context)
+                                                   const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x4447e7");
     if (!safe.HasValue())
@@ -266,7 +265,7 @@ Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Ac
     }
     helper.angles = rider.angles;
     const RidingGait gait = RidingGaitOf(helper.type, map, rider.animation.action);
-    Render::Models::SetAction(helper.horse.animation, skeleton, gait.action);
+    Models::SetAction(helper.horse.animation, skeleton, gait.action);
     if (gait.gallop)
     {
         if (auto dust = RaiseTheRidingDust(helper, rider, context); !dust.HasValue())
@@ -280,7 +279,7 @@ Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Ac
 }
 
 Core::Expected<void, std::string> StepFenrir(HelperState& helper, const ActorState& rider,
-                                             const Render::Models::Skeleton& skeleton, const HelperStepContext& context)
+                                             const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x444b13");
     if (!safe.HasValue())

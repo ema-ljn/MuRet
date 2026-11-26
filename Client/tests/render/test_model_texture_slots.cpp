@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Models::ModelTextureSlots: 0x60d530, 0x60d550 y 0x60d5f0 como datos.
+// Client::Models::ModelTextureSlots: 0x60d530, 0x60d550 y 0x60d5f0 como datos.
 namespace Client::Render
 {
 // Para los mensajes de GoogleTest: el slot en hexadecimal, como el research.
@@ -37,8 +37,8 @@ using Client::Data::Textures::Filter;
 using Client::Data::Textures::Sampling;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
+using Client::Models::ModelTextureSlots;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ModelTextureSlots;
 
 // El primer slot de las partes del personaje (0x60f7d0) y el de los ítems (0x611850).
 constexpr TextureSlot PlayerParts{0x138};
@@ -102,7 +102,7 @@ TEST(ModelTextureSlotsTest, ARepeatedNameReusesItsSlot)
 TEST(ModelTextureSlotsTest, AReusedSlotKeepsEachRequestsExactTextureKey)
 {
     ModelTextureSlots slots(PlayerParts);
-    Client::Render::Models::ModelTextureRequests requests;
+    Client::Models::ModelTextureRequests requests;
     std::vector<std::optional<std::size_t>> bindings;
     const auto first = slots.Assign(ModelWith({"panel.tga.extra", "panel.tga.extra"}), "Player\\", ModelSampling,
                                     &requests, &bindings);

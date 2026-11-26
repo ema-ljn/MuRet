@@ -27,7 +27,7 @@ constexpr float CenterRadius = 50.0f; // 0x42480000
 constexpr float LowerRadius = 30.0f;  // 0x41f00000
 constexpr float LowerOffset = -20.0f; // 0xc1a00000
 
-const Render::Models::SkinnedMesh* ClothMeshOf(std::span<Render::Models::SkinnedMesh> meshes)
+const Models::SkinnedMesh* ClothMeshOf(std::span<Models::SkinnedMesh> meshes)
 {
     constexpr auto Index = static_cast<std::size_t>(MeshClothMesh);
     return Index < meshes.size() ? &meshes[Index] : nullptr;
@@ -35,12 +35,12 @@ const Render::Models::SkinnedMesh* ClothMeshOf(std::span<Render::Models::Skinned
 } // namespace
 
 Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Model& model, std::uint16_t type,
-                                                          std::span<Render::Models::SkinnedMesh> meshes,
-                                                          const Render::Models::ClothBody& body,
-                                                          Render::Models::ClothWorld& world, std::uint8_t map)
+                                                          std::span<Models::SkinnedMesh> meshes,
+                                                          const Models::ClothBody& body, Models::ClothWorld& world,
+                                                          std::uint8_t map)
 {
     constexpr auto Index = static_cast<std::size_t>(MeshClothMesh);
-    const Render::Models::SkinnedMesh* skinned = ClothMeshOf(meshes);
+    const Models::SkinnedMesh* skinned = ClothMeshOf(meshes);
     if (Index >= model.meshes.size() || skinned == nullptr ||
         skinned->positions.size() < model.meshes[Index].vertices.size())
         return Core::Unexpected(
@@ -48,12 +48,12 @@ Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Mo
     if (!m_cloth)
     {
         // 0x50bb0b..0x50bb8f: new de una, 0x455e30 y el +0x24 (0x455ea0) con (objeto, 2, 0x12, 0x400, −1).
-        Render::Models::Cloth& cloth = m_cloth.emplace();
+        Models::Cloth& cloth = m_cloth.emplace();
         cloth.BuildOnTheMesh(model.meshes[Index], MeshClothMesh, MeshClothBone, MeshClothFlags, skinned->positions);
         cloth.AddSphere({0.0f, 0.0f, 0.0f}, CenterRadius, MeshClothBone);
         cloth.AddSphere({0.0f, LowerOffset, 0.0f}, LowerRadius, MeshClothBone);
     }
-    Render::Models::ClothBody onTheMesh = body;
+    Models::ClothBody onTheMesh = body;
     onTheMesh.meshVertices = skinned->positions;
     m_simulatedBody = SimulatedBodyOf(onTheMesh);
     if (!m_cloth->Simulate(StepTime, StepsPerFrame, onTheMesh, world, Maps::ClothWindForMap(map)))
@@ -67,13 +67,12 @@ Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Mo
     return {};
 }
 
-void MonsterMeshCloth::DrawCurrent(std::span<Render::Models::SkinnedMesh> meshes,
-                                   const Render::Models::ClothBody& body) const
+void MonsterMeshCloth::DrawCurrent(std::span<Models::SkinnedMesh> meshes, const Models::ClothBody& body) const
 {
     constexpr auto Index = static_cast<std::size_t>(MeshClothMesh);
     if (!m_cloth || Index >= meshes.size())
         return;
-    Render::Models::SkinnedMesh& skinned = meshes[Index];
+    Models::SkinnedMesh& skinned = meshes[Index];
     m_cloth->WriteTheMesh(skinned.positions);
     if (!m_simulatedBody)
         return;

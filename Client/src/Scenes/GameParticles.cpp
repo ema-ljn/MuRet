@@ -90,9 +90,9 @@ Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Wor
     return {};
 }
 
-Core::Expected<glm::vec3, std::string> PosedDropPoint(const Render::Models::IModelLibrary& models,
-                                                      const DrawnObject& drawn, std::size_t bone,
-                                                      const glm::vec3& offset, const FaunaDrawCarry* retainedPose)
+Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrary& models, const DrawnObject& drawn,
+                                                      std::size_t bone, const glm::vec3& offset,
+                                                      const FaunaDrawCarry* retainedPose)
 {
     if (retainedPose != nullptr)
     {
@@ -103,7 +103,7 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Render::Models::IMod
     }
     // 0x5ffdf0 sale antes de posar con alpha<0,01; los dummy tampoco escriben el buffer global.
     constexpr float VisibleAlpha = 0.01f;
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
+    const Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
     if (drawn.alpha < VisibleAlpha || models.Find(drawn.model) == nullptr || skeleton == nullptr ||
         bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
     {
@@ -149,8 +149,8 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 
 Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
                                                           Crt::CrtRandom& random, const float& worldClock,
-                                                          const Render::Models::IModelLibrary& models,
-                                                          const DrawnObject& drawn, const FaunaDrawCarry* retainedPose)
+                                                          const Models::IModelLibrary& models, const DrawnObject& drawn,
+                                                          const FaunaDrawCarry* retainedPose)
 {
     const auto point = [&models, &drawn, retainedPose](std::size_t bone, const glm::vec3& offset)
     { return PosedDropPoint(models, drawn, bone, offset, retainedPose); };
@@ -203,8 +203,7 @@ Core::Expected<void, std::string> StepGameParticles(
     return {};
 }
 
-std::function<std::optional<float>(std::int32_t)>
-ParticleTextureHeightsOf(const Render::Models::IModelLibrary& textures)
+std::function<std::optional<float>(std::int32_t)> ParticleTextureHeightsOf(const Models::IModelLibrary& textures)
 {
     return [&textures](std::int32_t slot) -> std::optional<float>
     {
@@ -339,7 +338,7 @@ std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBon
 }
 
 Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,
-                                                    const Render::Models::IModelLibrary& textures,
+                                                    const Models::IModelLibrary& textures,
                                                     const Math::OriginalMatrix& view, float worldClock,
                                                     std::uint8_t mode)
 {

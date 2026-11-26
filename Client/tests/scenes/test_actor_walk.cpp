@@ -34,7 +34,7 @@ protected:
         value.map = 0;
         return value;
     }();
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({0x213, 0x227, 0xc12});
     Client::Crt::CrtRandom m_random{1};
     Client::Scenes::PlayerActionSpeeds m_speeds;

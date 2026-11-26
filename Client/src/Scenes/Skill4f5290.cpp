@@ -32,14 +32,14 @@ bool Riding(const ActorState& actor, std::uint16_t mount)
 Core::Expected<void, std::string> SetTheActorAction(ActorState& actor, std::uint8_t action,
                                                     const ActorCombatContext& context)
 {
-    const Render::Models::Skeleton* skeleton = nullptr;
+    const Models::Skeleton* skeleton = nullptr;
     if (actor.type == Data::Models::PlayerSkeletonModel)
         skeleton = context.playerSkeleton;
     else if (context.models != nullptr)
         skeleton = context.models->SkeletonOf(actor.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x4ea030: falta el esqueleto del modelo {:#x}", actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, action);
+    Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 

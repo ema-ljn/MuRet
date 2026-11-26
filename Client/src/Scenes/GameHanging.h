@@ -28,7 +28,7 @@ class FrameSprites;
 class Particles;
 } // namespace Client::World
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 }
@@ -48,7 +48,7 @@ struct GuildState;
 struct GameHangingPass
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
     std::span<const Math::BoneTransform> body;
     // El rand() global de 0x69fd70.

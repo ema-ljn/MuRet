@@ -75,8 +75,7 @@ std::uint32_t AfterRandoms(std::size_t count)
 // Cerrar el registro propio del héroe gasta 3848 rand() (0x50ccb5..0x50d219).
 constexpr std::size_t OwnRecordRandoms = 3848;
 
-void ExpectSameCloths(std::span<const Client::Render::Models::Cloth> actual,
-                      std::span<const Client::Render::Models::Cloth> expected)
+void ExpectSameCloths(std::span<const Client::Models::Cloth> actual, std::span<const Client::Models::Cloth> expected)
 {
     ASSERT_EQ(actual.size(), expected.size());
     for (std::size_t cloth = 0; cloth < actual.size(); ++cloth)
@@ -158,13 +157,13 @@ void ExpectSameSprites(std::span<const Client::World::Sprite> actual, std::span<
     }
 }
 
-class CharacterModels final : public Client::Render::Models::IModelLibrary
+class CharacterModels final : public Client::Models::IModelLibrary
 {
 public:
     CharacterModels()
     {
         using namespace Client::Math;
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
@@ -196,7 +195,7 @@ public:
             return &m_skeletonBody;
         return model == BootsModel || model == 0x20b || HasHand(model) ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == 0x20a || (handSkeletons && HasHand(model)) ? &m_skeleton : nullptr;
     }
@@ -213,7 +212,7 @@ private:
         return model == 0x212 || model == 0x220 || model == 0xc19 || model == 0xc17 || model == 0xe20;
     }
 
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     Client::Data::Models::Model m_angel;
     Client::Data::Models::Model m_skeletonBody;
@@ -281,7 +280,7 @@ protected:
 
     std::unique_ptr<Client::Scenes::WorldState> m_world;
     std::unique_ptr<Client::World::TerrainLighting> m_light;
-    Client::Render::Models::ClothWorld m_clothWorld;
+    Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
     CharacterModels m_models;
@@ -915,7 +914,7 @@ TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTea
 
 TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeOrFourCloths)
 {
-    using Client::Render::Models::OriginalFramePace;
+    using Client::Models::OriginalFramePace;
     for (const std::uint8_t characterClass : std::array<std::uint8_t, 2>{3, 4})
     {
         for (const auto pace : {OriginalFramePace::ByTheClock, OriginalFramePace::OncePerDraw})
@@ -955,11 +954,11 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDrawExistingClothsWithoutChang
         std::array<Client::Scenes::CharacterCloth, 401> cloths;
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
-        pass.pace = Client::Render::Models::OriginalFramePace::OncePerDraw;
+        pass.pace = Client::Models::OriginalFramePace::OncePerDraw;
         ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         const auto initial = cloths[0].Cloths();
         ASSERT_FALSE(initial.empty());
-        const std::vector<Client::Render::Models::Cloth> before(initial.begin(), initial.end());
+        const std::vector<Client::Models::Cloth> before(initial.begin(), initial.end());
         const std::uint32_t random = m_clothWorld.random.State();
         const std::uint8_t count = cloths[0].Count();
         pass.originalFrames = 0;
@@ -984,14 +983,14 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
     referenceWorld->Actors()[0] = m_world->Actors()[0];
     referenceWorld->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     referenceWorld->Map().terrain.attributes->cells.fill(0);
-    Client::Render::Models::ClothWorld referenceClothWorld = m_clothWorld;
+    Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
     std::array<Client::Scenes::CharacterCloth, 401> cloths;
     std::array<Client::Scenes::CharacterCloth, 401> referenceCloths;
     Client::World::FrameSprites sprites;
     Client::World::FrameSprites referenceSprites;
     GameCharacterPass pass = Pass();
     pass.originalFrames = 2;
-    pass.frameClock = Client::Render::Models::OriginalFrameTime;
+    pass.frameClock = Client::Models::OriginalFrameTime;
     pass.cloths = cloths;
     pass.sprites = &sprites;
     GameCharacterPass referencePass = pass;
@@ -1005,7 +1004,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
         referenceBatch.Begin(Client::Render::Pass3D{});
         referenceSprites.Clear();
         ASSERT_TRUE(referenceSprites.Create(0x777, {9.0f, 8.0f, 7.0f}, 1.0f, {1.0f, 0.5f, 0.25f}, 0.0f, 0));
-        referencePass.frameClock = Client::Render::Models::OriginalFrameTime * frame;
+        referencePass.frameClock = Client::Models::OriginalFrameTime * frame;
         const auto result =
             Client::Scenes::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1037,7 +1036,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referenceWorld->Actors()[0] = actor;
     referenceWorld->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     referenceWorld->Map().terrain.attributes->cells.fill(0);
-    Client::Render::Models::ClothWorld referenceClothWorld = m_clothWorld;
+    Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
     std::array<Client::Scenes::CharacterCloth, 401> cloths;
     std::array<Client::Scenes::CharacterCloth, 401> referenceCloths;
     Client::World::FrameSprites sprites;

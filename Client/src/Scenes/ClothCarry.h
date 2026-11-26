@@ -40,11 +40,11 @@ struct ClothCarry
     }
 };
 
-[[nodiscard]] SimulatedClothBody SimulatedBodyOf(const Render::Models::ClothBody& body);
+[[nodiscard]] SimulatedClothBody SimulatedBodyOf(const Models::ClothBody& body);
 
 // Lo que se movió el hueso `bone` de `then` a `now`. Ninguno si el hueso, la escala y la posición no
 // cambiaron (la tela se dibuja como quedó, bit a bit), si falta el hueso en alguno de los dos o si su
 // giro no se puede invertir.
-[[nodiscard]] std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then,
-                                                     const Render::Models::ClothBody& now, std::int32_t bone);
+[[nodiscard]] std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then, const Models::ClothBody& now,
+                                                     std::int32_t bone);
 } // namespace Client::Scenes

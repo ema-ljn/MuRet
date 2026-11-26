@@ -215,8 +215,8 @@ Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(GameHudContext& conte
     auto entry = SkillEntryOf(context, skill, where);
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
-    const Render::Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
+                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     return EntryByte(entry.Value(), offset);
 }
 
@@ -483,8 +483,8 @@ Core::Expected<void, std::string> WriteTheGiver(SkillFrame& frame, std::uint8_t 
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
     const std::span<const std::byte, Data::Tables::SkillRecordSize> record = entry.Value();
-    const Render::Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[giver], context.random,
-                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[giver], context.random,
+                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     std::string name;
     for (const std::byte value : record)
     {
@@ -514,9 +514,8 @@ Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
     const std::span<const std::byte, Data::Tables::SkillRecordSize> record = entry.Value();
-    const Render::Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[frame.skill],
-                                               context.random,
-                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[frame.skill], context.random,
+                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     if (EntryByte(record, OriginByte) == GivenOrigin)
     {
         if (auto given = WriteTheGiver(frame, EntryByte(record, GiverByte)); !given.HasValue())
@@ -633,8 +632,7 @@ Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, s
     TooltipWriter lines(context.hud.tooltip, context.texts, count);
     {
         // 0x5b90e6..0x5ba6b3: el registro propio, abierto hasta después del último renglón.
-        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (auto written = WriteTheSkill(context, lines, hero, heroClass, slot, siegeSkill); !written.HasValue())
             return written;
     }

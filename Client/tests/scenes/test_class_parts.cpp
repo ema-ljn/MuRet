@@ -71,7 +71,7 @@ protected:
     }
 
     Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     CrtRandom m_random{1};
 };
 

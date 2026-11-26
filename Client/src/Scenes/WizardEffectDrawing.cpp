@@ -39,9 +39,8 @@ constexpr std::int16_t ShieldHiddenMesh = 1;      // 0x602154
 // Las mallas posadas por el llamador o, sin ellas, las que posa acá como 0x5ffdf0 con el segundo argumento en 0
 // (0x52da99 → 0x602e90(efecto, 0, …)): WorldScratchOf, la normal girada por R · s. Vacío por debajo de 0,01 de alpha
 // o sin el modelo, su esqueleto o la pose.
-std::span<const Render::Models::SkinnedMesh> PosedOrScratch(const Render::Models::IModelLibrary& models,
-                                                            const DrawnObject& object,
-                                                            std::vector<Render::Models::SkinnedMesh>& scratch)
+std::span<const Models::SkinnedMesh> PosedOrScratch(const Models::IModelLibrary& models, const DrawnObject& object,
+                                                    std::vector<Models::SkinnedMesh>& scratch)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
@@ -51,12 +50,11 @@ std::span<const Render::Models::SkinnedMesh> PosedOrScratch(const Render::Models
     return scratch;
 }
 
-Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch,
-                                                  const Render::Models::IModelLibrary& models,
+Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                   const DrawnObject& object, Core::Duration frameClock)
 {
-    std::vector<Render::Models::SkinnedMesh> posed;
-    const std::span<const Render::Models::SkinnedMesh> meshes = PosedOrScratch(models, object, posed);
+    std::vector<Models::SkinnedMesh> posed;
+    const std::span<const Models::SkinnedMesh> meshes = PosedOrScratch(models, object, posed);
     if (meshes.empty())
         return true;
     if (auto drawn = DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, DarkBodyFlags); !drawn.HasValue())
@@ -66,12 +64,11 @@ Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch,
 
 // 0x60213e..0x60216b: RenderBody(0x1040, +0x174, +0x64, +0x68, +0x6c, +0x70, 1, −1), el cromo 0x1000 (Chrome4, la
 // textura del pase) con la 0x40, aditivo, sin la malla 1 y con lo demás del efecto; después, el pase común (0x602170).
-Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch,
-                                                      const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       const DrawnObject& object, Core::Duration frameClock)
 {
-    std::vector<Render::Models::SkinnedMesh> posed;
-    const std::span<const Render::Models::SkinnedMesh> meshes = PosedOrScratch(models, object, posed);
+    std::vector<Models::SkinnedMesh> posed;
+    const std::span<const Models::SkinnedMesh> meshes = PosedOrScratch(models, object, posed);
     if (meshes.empty())
         return {};
     DrawnObject chromed = object;
@@ -84,7 +81,7 @@ Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch,
 } // namespace
 
 Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& batch,
-                                                          const Render::Models::IModelLibrary& models,
+                                                          const Models::IModelLibrary& models,
                                                           const World::ModelEffect& effect, DrawnObject& object,
                                                           Core::Duration frameClock)
 {

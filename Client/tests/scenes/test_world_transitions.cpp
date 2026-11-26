@@ -115,7 +115,7 @@ struct Transition
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Data::Tables::ItemSetTables itemSets =

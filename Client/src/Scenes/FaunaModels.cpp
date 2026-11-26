@@ -62,7 +62,7 @@ FaunaResourceSound SoundOf(const ModelSoundFile& sound)
     return {sound.id, sound.path, sound.buffers, sound.flags};
 }
 
-Core::Expected<void, std::string> SetSpeed(Render::Models::Skeleton& skeleton, std::uint8_t action, float speed,
+Core::Expected<void, std::string> SetSpeed(Models::Skeleton& skeleton, std::uint8_t action, float speed,
                                            std::uint16_t model, std::string_view address)
 {
     if (action >= skeleton.actions.size())
@@ -77,7 +77,7 @@ FaunaModels::~FaunaModels()
 {
     Release();
 }
-void FaunaModels::Bind(const Render::Models::IModelLibrary* base)
+void FaunaModels::Bind(const Models::IModelLibrary* base)
 {
     m_base = base;
 }
@@ -85,7 +85,7 @@ Core::Expected<void, std::string> FaunaModels::InitializePrefix(std::uint16_t co
 {
     return m_prefix.Initialize(constructedBeforeBase);
 }
-const Render::Models::Skeleton* FaunaModels::PrefixModel() const
+const Models::Skeleton* FaunaModels::PrefixModel() const
 {
     return m_prefix.BorrowForSetAction();
 }
@@ -128,7 +128,7 @@ void FaunaModels::RegisterModelSounds(std::uint16_t model, Audio::IPlayback* aud
 void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context)
 {
     const auto first = context.slots.ToLoad().size();
-    Render::Models::ModelTextureRequests textureRequests;
+    Models::ModelTextureRequests textureRequests;
     std::vector<std::optional<std::size_t>> requestsByMesh;
     entry.textures = context.slots.Assign(entry.model, folder, MonsterSampling, &textureRequests, &requestsByMesh);
     m_store = &context.textures;
@@ -167,7 +167,7 @@ void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaMod
         }
         m_uploaded.push_back(slot);
         uploadedHere.push_back(slot);
-        m_metadata.insert_or_assign(request.slot, TextureMetadata(texture.Value().front().texture));
+        m_metadata.insert_or_assign(request.slot, Models::TextureMetadata(texture.Value().front().texture));
     }
     // 0x60d645: una coincidencia por nombre suma una referencia.
     if (m_sharedTextures != nullptr)
@@ -193,14 +193,14 @@ Core::Expected<void, std::string> FaunaModels::LoadFixedTexture(const Data::Text
     if (!uploaded.HasValue())
         return Core::Unexpected(uploaded.Error());
     m_uploaded.push_back(Render::TextureSlot{texture.slot});
-    m_metadata.insert_or_assign(texture.slot, TextureMetadata(loaded.Value().front().texture));
+    m_metadata.insert_or_assign(texture.slot, Models::TextureMetadata(loaded.Value().front().texture));
     return {};
 }
 
 Core::Expected<void, std::string> FaunaModels::ApplyMonsterTables(std::int32_t number, Entry& entry,
                                                                   FaunaModelLoadContext& context)
 {
-    Render::Models::Skeleton& skeleton = entry.skeleton;
+    Models::Skeleton& skeleton = entry.skeleton;
     const auto model = static_cast<std::uint16_t>(FirstMonsterModel + number);
     // 0x612e5a..0x612e9f.
     for (const ActionSpeedStore& store : CommonMonsterSpeeds())
@@ -294,7 +294,7 @@ Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, 
         return Core::Unexpected(std::format("0x612d90 no encuentra {} y el original cierra (0x612dd6..0x612de1, "
                                             "Q-C23, P-C173)",
                                             loaded.Error().path));
-    auto skeleton = Render::Models::MakeSkeleton(loaded.Value());
+    auto skeleton = Models::MakeSkeleton(loaded.Value());
     if (!skeleton.HasValue())
         return Core::Unexpected(std::format("0x612de1: el hueso {} de Monster\\{} cuelga de uno de después (Q-C108)",
                                             skeleton.Error().bone, Data::Models::ModelFileName("Monster", number + 1)));
@@ -341,7 +341,7 @@ Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, Faun
                 return Core::Unexpected(std::string("0x6127a4: NPC\\BloodCastle01.bmd cuelga los huesos 43 y 44 "
                                                     "del 45, que va después (Q-C108): la pose de MuRet no lo admite "
                                                     "(P-C240)"));
-            auto skeleton = Render::Models::MakeSkeleton(loaded.Value());
+            auto skeleton = Models::MakeSkeleton(loaded.Value());
             if (!skeleton.HasValue())
                 return Core::Unexpected(std::format("0x612270: el hueso {} de {} cuelga de uno de después (Q-C108)",
                                                     skeleton.Error().bone,
@@ -380,7 +380,7 @@ Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, Faun
     const auto found = m_models.find(model);
     if (found == m_models.end())
         return {};
-    for (Render::Models::ActionInfo& action : found->second.skeleton.actions)
+    for (Models::ActionInfo& action : found->second.skeleton.actions)
         action.speed = NpcActionSpeed;
     if (!found->second.model.meshes.empty())
         AssignTextures(found->second, NpcTextureFolder, context);
@@ -450,7 +450,7 @@ Core::Expected<void, std::string> FaunaModels::SetActionSpeed(std::uint16_t mode
                         "la fauna (sin cargar, el original escribe con su arreglo de acciones, "
                         "+0x30, vacío)",
                         address, action, model));
-    Render::Models::Skeleton& skeleton = found->second.skeleton;
+    Models::Skeleton& skeleton = found->second.skeleton;
     if (action >= skeleton.actions.size())
         return Core::Unexpected(
             std::format("{}: la velocidad de la acción {} del modelo {:#x}, que tiene {}: el original "
@@ -460,7 +460,7 @@ Core::Expected<void, std::string> FaunaModels::SetActionSpeed(std::uint16_t mode
     return {};
 }
 
-const Render::Models::Skeleton* FaunaModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* FaunaModels::SkeletonOf(std::uint16_t model) const
 {
     const auto found = m_models.find(model);
     return found != m_models.end() ? &found->second.skeleton : m_base != nullptr ? m_base->SkeletonOf(model) : nullptr;
@@ -472,7 +472,7 @@ std::span<const Render::TextureSlot> FaunaModels::MeshTextures(std::uint16_t mod
         return found->second.textures;
     return m_base != nullptr ? m_base->MeshTextures(model) : std::span<const Render::TextureSlot>{};
 }
-std::optional<TextureMetadata> FaunaModels::TextureMetadataOf(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> FaunaModels::TextureMetadataOf(std::uint32_t selector) const
 {
     if (m_sharedTextures != nullptr)
         return m_sharedTextures->Metadata(selector);

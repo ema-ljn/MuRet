@@ -124,7 +124,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
         floor.project = [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); };
         floor.onPose = [&](const DrawnObject& object)
         { return PublishFaunaFloorPose(FramePoseCarry(), *m_models, object); };
-        floor.posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); };
+        floor.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); };
         floor.onSkin = [&](const DrawnObject& object)
         { return TransformFaunaPose(FramePoseCarry(), *m_models, object); };
         if (itemState.initialized)
@@ -164,8 +164,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
     if (auto result = DrawHelpers(
             {canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
              [&](const DrawnObject& object) { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
-             true, [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); },
-             SceneId::Game, &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
+             true, [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, SceneId::Game,
+             &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
              // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
              [systemTime = static_cast<std::uint32_t>(
                   std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
@@ -187,8 +187,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
     { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); };
     effectResources.onUntranslatedPose = [&](const DrawnObject& object)
     { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, false); };
-    effectResources.posedMeshes = [&]()
-    { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); };
+    effectResources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); };
     effectResources.sprites = &FrameSpritesForDraw();
     effectResources.dynamicLighting = &FrameLighting();
     effectResources.attributes = &attributes;

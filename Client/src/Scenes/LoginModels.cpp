@@ -63,7 +63,7 @@ constexpr std::uint8_t FirstAction = 0x54;
 constexpr std::uint8_t SecondAction = 0x55;
 } // namespace
 
-void SingleModelLibrary::Set(std::uint16_t model, Data::Models::Model data, Render::Models::Skeleton skeleton,
+void SingleModelLibrary::Set(std::uint16_t model, Data::Models::Model data, Models::Skeleton skeleton,
                              std::vector<Render::TextureSlot> meshTextures)
 {
     m_model = model;
@@ -85,7 +85,7 @@ const Data::Models::Model* SingleModelLibrary::Find(std::uint16_t model) const
     return m_model == model ? &m_data : nullptr;
 }
 
-const Render::Models::Skeleton* SingleModelLibrary::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* SingleModelLibrary::SkeletonOf(std::uint16_t model) const
 {
     return m_model == model ? &m_skeleton : nullptr;
 }
@@ -148,9 +148,9 @@ GameLogic::CharacterAppearance LoginCharacter()
     return character;
 }
 
-Render::Models::ObjectTransform LoginCharacterTransform()
+Models::ObjectTransform LoginCharacterTransform()
 {
-    return Render::Models::ObjectTransform{{10603.0f, 14112.0f, 580.0f}, {0.0f, 0.0f, 188.0f}, 1.6f, 0.0f};
+    return Models::ObjectTransform{{10603.0f, 14112.0f, 580.0f}, {0.0f, 0.0f, 188.0f}, 1.6f, 0.0f};
 }
 
 DarkSpiritOwner LoginRavenOwner()

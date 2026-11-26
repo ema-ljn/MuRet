@@ -120,8 +120,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(ActorState& user, Ac
     // 0x55ffd6..0x560080: la skill del lugar, con el registro propio abierto y cerrado.
     std::uint8_t skill = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         skill = OwnSkillByte(world.OwnCharacter(), request.slot);
     }
     // 0x560080..0x5600dc: el blanco sin mirar el −1, que MuRet no lee fuera del pool.

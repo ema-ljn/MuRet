@@ -50,7 +50,7 @@ using Client::World::ItemState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x7a1e5u;
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;

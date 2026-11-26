@@ -256,7 +256,7 @@ TEST(KalimaWorldTest, RealLogicalHeroReadersCloseBeforeTheGateAndKeepAllFourNati
     CrtRandom expected(1);
     const auto close = [&]()
     {
-        for (std::uint16_t draw = 0; draw < Client::Render::Models::SmallLogicalCloseRandoms; ++draw)
+        for (std::uint16_t draw = 0; draw < Client::Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(expected.Next());
     };
     close();
@@ -274,8 +274,8 @@ TEST(KalimaWorldTest, RealLogicalHeroReadersCloseBeforeTheGateAndKeepAllFourNati
     const auto read = [&](bool x) -> Client::Core::Expected<std::int32_t, std::string>
     {
         {
-            const Client::Render::Models::LogicalAccess access(x ? xDepth : yDepth, random,
-                                                               Client::Render::Models::SmallLogicalCloseRandoms);
+            const Client::Models::LogicalAccess access(x ? xDepth : yDepth, random,
+                                                       Client::Models::SmallLogicalCloseRandoms);
         }
         reads.emplace_back(x ? "X" : "Y", random.State());
         return x ? 0 : 64;

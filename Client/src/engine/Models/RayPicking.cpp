@@ -10,7 +10,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 Box PlayerBoxAt(const glm::vec3& position)
 {
@@ -71,4 +71,4 @@ std::optional<std::size_t> NearestHit(const glm::vec3& origin, const glm::vec3& 
     }
     return nearest;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

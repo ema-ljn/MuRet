@@ -57,7 +57,7 @@ constexpr std::size_t VictimSlot = 7;
 constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
 constexpr std::uint16_t NoTarget = 0xffff;
 // El registro propio cerrado en 0: los 3.848 de 0x40b4d0.
-constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // [0x6c88ac] como lo deja 0x4f987d antes del caso.
 constexpr std::int32_t FullThreshold = 15;
 // Un valor que ningún caso escribe en [0x6c88ac], para ver si lo tocó.
@@ -92,9 +92,9 @@ template <typename T> std::string ErrorOf(const Client::Core::Expected<T, std::s
 }
 
 // Player.bmd con sus acciones y cuatro huesos, el 3 un dummy.
-Client::Render::Models::Skeleton SkeletonWithBones()
+Client::Models::Skeleton SkeletonWithBones()
 {
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     skeleton.bones.resize(Bones);
     skeleton.bones[DummyBone].dummy = true;
     return skeleton;
@@ -156,7 +156,7 @@ struct FrameWorld
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
     CrtRandom random{Seed};
-    Client::Render::Models::Skeleton skeleton = SkeletonWithBones();
+    Client::Models::Skeleton skeleton = SkeletonWithBones();
     std::vector<std::int32_t> sounds;
     Client::World::Particles particles;
     bool withParticles = true;

@@ -33,8 +33,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::ClothWorld;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ClothWorld;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::WorldLoadingScene;

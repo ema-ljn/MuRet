@@ -27,7 +27,7 @@ struct GameSceneFrameProjection
     World::TerrainLighting lighting{};
     World::ObjectModelStepState modelState{};
     GameItemRenderState items{};
-    Render::Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
+    Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     World::ModelEffects effects{};
     World::Particles particles{};
     std::vector<World::WorldObject> objects{};

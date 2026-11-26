@@ -495,7 +495,7 @@ TEST_P(NpcWindowDrawingTest, TheClosedWarehouseDrawsNothing)
 TEST_P(NpcWindowDrawingTest, TheWarehouseDrawsItsZenItsFeeAndItsButtons)
 {
     OpenTheWarehouse(60, 1234567);
-    const CrtRandom expected = Advanced(m_random, 2 * Client::Render::Models::OwnRecordCloseRandoms);
+    const CrtRandom expected = Advanced(m_random, 2 * Client::Models::OwnRecordCloseRandoms);
 
     const auto drawn = DrawTheWarehouse(0, 0);
 

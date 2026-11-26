@@ -39,7 +39,7 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     Client::Tests::FakeTextureStore store;
     Client::Scenes::SelectionWorld selection(store, log);
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    auto cloth = std::make_unique<Client::Render::Models::ClothWorld>();
+    auto cloth = std::make_unique<Client::Models::ClothWorld>();
     ActorState& owner = world->Actors()[1];
     owner.alive = true;
     owner.type = 0x1a5;
@@ -98,7 +98,7 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         Client::Tests::FakeTextureStore store;
         Client::Scenes::SelectionWorld selection(store, log);
         auto world = std::make_unique<Client::Scenes::WorldState>();
-        auto cloth = std::make_unique<Client::Render::Models::ClothWorld>();
+        auto cloth = std::make_unique<Client::Models::ClothWorld>();
         constexpr std::size_t HeroSlot = 3;
         world->Runtime().hero = HeroSlot;
         ActorState& owner = world->Actors()[HeroSlot];

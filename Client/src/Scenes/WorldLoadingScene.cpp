@@ -70,8 +70,8 @@ Core::Expected<void, std::string> WorldLoadingScene::Enter()
     }
     {
         // 0x635723..0x635963: abre el contador, escribe 0x98967f y lo cierra (0x412890).
-        const Render::Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
+                                           Models::SmallLogicalCloseRandoms);
         runtime.warpCounter = WorldLoadingWait;
     }
     // 0x635980, antes de las texturas.

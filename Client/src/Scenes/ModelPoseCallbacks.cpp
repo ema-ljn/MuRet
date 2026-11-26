@@ -10,8 +10,7 @@
 
 namespace Client::Scenes
 {
-Core::Expected<void, std::string> DrawPublishedObject(Render::ModelBatch& batch,
-                                                      const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawPublishedObject(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       const DrawnObject& object, Core::Duration frameClock,
                                                       const TailMeshProvider& posedMeshes)
 {

@@ -62,7 +62,7 @@ float X(std::uint16_t model)
 }
 
 // One triangle per model of `Models`, at x = X(model), on the texture slot given to it.
-class PartLibrary final : public Client::Render::Models::IModelLibrary
+class PartLibrary final : public Client::Models::IModelLibrary
 {
 public:
     void Add(std::uint16_t id, TextureSlot slot = TextureSlot{0x400})
@@ -84,7 +84,7 @@ public:
         const auto found = m_models.find(id);
         return found == m_models.end() ? nullptr : &found->second.model;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }

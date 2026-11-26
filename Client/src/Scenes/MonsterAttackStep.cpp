@@ -49,7 +49,7 @@ namespace Client::Scenes
 namespace
 {
 using Crt::CrtRandom;
-using Render::Models::LogicalAccess;
+using Models::LogicalAccess;
 
 // 0x517630 y los accesos en línea a +0x38e: una entrada de un byte, un rand() al cerrarla en 0.
 constexpr std::uint16_t SkillCloseRandoms = 1;
@@ -1797,7 +1797,7 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
             return StepTheBoneSkill(actor, victim, *found, slot, context, localLight);
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
-        const Render::Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(model);
+        const Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(model);
         if (model == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
             skeleton = context.playerSkeleton;
         if (skeleton == nullptr && context.models != nullptr)

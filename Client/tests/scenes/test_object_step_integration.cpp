@@ -41,14 +41,14 @@
 namespace
 {
 // El batch usa el mismo walker de producción; la falta de esqueleto permite aislar los servicios.
-class ObjectModels final : public Client::Render::Models::IModelLibrary
+class ObjectModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }

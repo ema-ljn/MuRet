@@ -63,12 +63,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
+using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::OwnRecordCloseRandoms;
-using Client::Render::Models::SmallLogicalCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;

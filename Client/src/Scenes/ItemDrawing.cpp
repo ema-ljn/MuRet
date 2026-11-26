@@ -67,7 +67,7 @@ Core::Expected<float, std::string> MaskedClassLight(const ItemDrawContext& conte
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                const ItemPartOwner& owner, const ItemPart& part,
                                                Core::Duration frameClock, const ItemDrawContext& context,
                                                const std::function<void(const glm::vec3&)>& onPartBox)
@@ -85,7 +85,7 @@ Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch, const 
     DrawnObject object;
     object.model = model;
     object.transform = owner.transform;
-    object.state = Render::Models::ObjectState{
+    object.state = Models::ObjectState{
         .blendMesh = owner.blendMesh,
         .light = owner.blendMeshLight != nullptr ? *owner.blendMeshLight : 1.0f,
         .uv = owner.uv,
@@ -97,16 +97,15 @@ Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch, const 
     object.skin = part.skin;
     if (!owner.outline.empty() && (owner.stateFlags & RiderFlag) == 0)
     {
-        if (owner.type == KalimaGate && owner.hiddenMesh != Render::Models::NoHiddenMesh)
+        if (owner.type == KalimaGate && owner.hiddenMesh != Models::NoHiddenMesh)
             return Cut("0x60ce4e", "the +0x58 texture of the outline of a part of the 0xc5", owner.type);
         if (owner.type == KalimaGate)
             DrawObjectOutlineOfTheFirstMesh(batch, models, object, frameClock, owner.bones, owner.outline);
         else
             DrawObjectOutline(batch, models, object, frameClock, owner.bones, owner.outline);
     }
-    object.state.hiddenMesh = Render::Models::NoHiddenMesh;
-    const std::vector<Render::Models::SkinnedMesh> meshes =
-        SkinObjectMeshes(models, object, owner.bones, owner.boneScale);
+    object.state.hiddenMesh = Models::NoHiddenMesh;
+    const std::vector<Models::SkinnedMesh> meshes = SkinObjectMeshes(models, object, owner.bones, owner.boneScale);
     if (onPartBox)
         onPartBox(owner.transform.position);
     if (PutsAClothOnThePart(model))
@@ -128,7 +127,7 @@ Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch, const 
     return drawn;
 }
 
-Core::Expected<void, std::string> DrawWornParts(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawWornParts(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                 const ItemPartOwner& owner, const WornParts& parts,
                                                 std::uint8_t characterClass, Core::Duration frameClock,
                                                 const ItemDrawContext& context,

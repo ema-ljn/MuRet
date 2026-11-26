@@ -15,10 +15,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::Data::Terrain
 {
 struct TerrainAttributes;
@@ -114,7 +114,7 @@ struct ModelEffectStepServices
 // (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos corta en 0x5252e6, donde el polvo
 // 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
-                    float worldClock, Crt::CrtRandom& random, KalimaWorld* kalima = nullptr,
+StepGameModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles& particles, float worldClock,
+                    Crt::CrtRandom& random, KalimaWorld* kalima = nullptr,
                     const ModelEffectStepServices& services = {});
 } // namespace Client::World

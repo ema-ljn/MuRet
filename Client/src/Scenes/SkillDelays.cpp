@@ -24,16 +24,15 @@ constexpr std::size_t DelayOffset = 0x28;       // int, la espera
 constexpr std::size_t RequirementOffset = 0x2e; // WORD, lo que pide de +0x36 + +0x20
 constexpr std::uint8_t NoDelaySkill = 0x4c;     // 0x552ee3: 0x552c50 no le pone espera
 
-Render::Models::LogicalAccess OwnAccess(const SkillDelayContext& context)
+Models::LogicalAccess OwnAccess(const SkillDelayContext& context)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random,
-                                         Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
-Render::Models::LogicalAccess EntryAccess(const SkillDelayContext& context, std::uint8_t skill)
+Models::LogicalAccess EntryAccess(const SkillDelayContext& context, std::uint8_t skill)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                         static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
+                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
 }
 
 Core::Expected<std::span<const std::byte, Data::Tables::SkillRecordSize>, std::string>

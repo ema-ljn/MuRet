@@ -165,7 +165,7 @@ struct ArrivingHero
     Client::Scenes::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills;
 };

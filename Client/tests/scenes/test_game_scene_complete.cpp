@@ -74,7 +74,7 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
         Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
         Client::Tests::FakeTextureStore textures;
         Client::Tests::FakeClock clock;
-        Client::Render::Models::ClothWorld cloth;
+        Client::Models::ClothWorld cloth;
         Client::Scenes::WorldState world;
         Client::World::GameCamera camera;
         Client::World::GameCameraInput cameraInput;
@@ -176,7 +176,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Client::Tests::FakeTextureStore textures;
     Client::Tests::FakeClock clock;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;

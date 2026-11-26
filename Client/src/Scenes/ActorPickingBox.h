@@ -20,5 +20,5 @@ struct ActorPickingBox
 [[nodiscard]] ActorPickingBox PickingBoxOf(const ActorState& actor);
 [[nodiscard]] ActorPickingBox PickingBoxFor(const glm::vec3& position, const glm::vec3& min, const glm::vec3& max);
 void PublishPickingBox(ActorState& actor, const glm::vec3& position, const glm::vec3& min, const glm::vec3& max);
-[[nodiscard]] Render::Models::Box AxisAlignedBoxOf(const ActorPickingBox& box);
+[[nodiscard]] Models::Box AxisAlignedBoxOf(const ActorPickingBox& box);
 } // namespace Client::Scenes

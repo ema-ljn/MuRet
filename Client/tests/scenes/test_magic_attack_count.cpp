@@ -64,14 +64,14 @@ constexpr std::size_t MonsterActionCount = 0x97;
 constexpr std::uint32_t SkillCloseRandoms = 1;
 constexpr std::uint32_t OwnRecordCloseRandoms = 0xf08;
 
-class PlayerModels final : public Client::Render::Models::IModelLibrary
+class PlayerModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == Client::Data::Models::PlayerSkeletonModel ? &player : nullptr;
     }
@@ -79,11 +79,11 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
 // Lo que 0x612d90 deja en WorldState::FaunaResources para un monstruo: solo sus acciones.
-class MonsterModels final : public Client::Render::Models::IModelLibrary
+class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
     MonsterModels()
@@ -94,7 +94,7 @@ public:
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == MonsterModel ? &monster : nullptr;
     }
@@ -102,7 +102,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton monster;
+    Client::Models::Skeleton monster;
 };
 
 // Un hueso que solo traslada a `at`.
@@ -223,7 +223,7 @@ protected:
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_input;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     PlayerModels m_models;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};

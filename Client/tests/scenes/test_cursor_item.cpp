@@ -54,7 +54,7 @@ using Client::Tests::SameBytes;
 using Client::World::ItemState;
 namespace Scenes = Client::Scenes;
 
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // Los dos rand() del envío en C3: el relleno y el serial de 0x40b0a0.
 constexpr int SendRandoms = 2;
 constexpr std::int32_t Left = 0x1c2 + 15;
@@ -1221,8 +1221,7 @@ TEST_F(CursorItemTest, AnElfWithABowTakesTheArrowsOfTheLastColumnIntoTheRightHan
     Put(Arrows, 6, 2);
     Put(Bolts, 7, 7);
     Scenes::WorldRuntime& runtime = world.Runtime();
-    const Client::Render::Models::LogicalAccess caller(runtime.ownRecordDepth, random,
-                                                       Client::Render::Models::OwnRecordCloseRandoms);
+    const Client::Models::LogicalAccess caller(runtime.ownRecordDepth, random, Client::Models::OwnRecordCloseRandoms);
     const CrtRandom expected = Advanced(random, SendRandoms);
 
     ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
@@ -1254,8 +1253,7 @@ TEST_F(CursorItemTest, AnElfWithACrossbowTakesTheBoltsIntoTheLeftHand)
     Put(Bolts, 1, 4);
     Scenes::WorldRuntime& runtime = world.Runtime();
     runtime.ui.field78abb39 = 1;
-    const Client::Render::Models::LogicalAccess caller(runtime.ownRecordDepth, random,
-                                                       Client::Render::Models::OwnRecordCloseRandoms);
+    const Client::Models::LogicalAccess caller(runtime.ownRecordDepth, random, Client::Models::OwnRecordCloseRandoms);
     const CrtRandom expected = random;
 
     ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 1).HasValue());

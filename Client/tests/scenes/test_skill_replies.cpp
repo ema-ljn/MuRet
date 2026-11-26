@@ -97,14 +97,14 @@ Client::Data::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t
 }
 
 // El esqueleto de los jugadores y el de un monstruo inventado.
-class SkillModels final : public Client::Render::Models::IModelLibrary
+class SkillModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == MonsterType || model == Client::Data::Models::PlayerSkeletonModel ? &skeleton : nullptr;
     }
@@ -112,7 +112,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
 struct Replies
@@ -167,7 +167,7 @@ struct Replies
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     SkillModels models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};

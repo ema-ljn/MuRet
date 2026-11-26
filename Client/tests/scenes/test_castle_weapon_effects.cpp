@@ -35,7 +35,7 @@
 #include <utility>
 namespace
 {
-class WeaponModels final : public Client::Render::Models::IModelLibrary
+class WeaponModels final : public Client::Models::IModelLibrary
 {
 public:
     WeaponModels()
@@ -46,7 +46,7 @@ public:
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -54,14 +54,14 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
 };
 class CastleWeaponEffectsTest : public testing::Test
 {
 protected:
     std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState selection{*world};
-    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{}};
+    Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{}};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     WeaponModels models;

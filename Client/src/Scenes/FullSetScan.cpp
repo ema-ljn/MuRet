@@ -93,7 +93,7 @@ bool IsComplete(const ScannedCharacter& character, std::size_t first, std::int32
 // 0x50591f..0x505ba3: el registro propio entre una apertura y un cierre por la tabla de protección.
 bool KeepsTheBonus(const OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(ownRecordAccesses, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(ownRecordAccesses, random, Models::OwnRecordCloseRandoms);
     return std::ranges::find(ArmorsThatKeepTheBonus, own.equipment[OwnArmorSlot].id) != ArmorsThatKeepTheBonus.end();
 }
 } // namespace

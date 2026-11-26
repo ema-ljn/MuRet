@@ -332,7 +332,7 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
         }
         return model;
     };
-    Client::Render::Models::ModelTextureSlots table(TextureSlot{0x3e5});
+    Client::Models::ModelTextureSlots table(TextureSlot{0x3e5});
     table.Assign(meshesNamed({"castlegate02.jpg", "cswalltop.JPG", "castlegatehide.jpg"}), "Skill\\", {});
     table.SetNext(TextureSlot{0x3ef});
     table.Assign(meshesNamed({"fire02.jpg", "fire01.jpg"}), "Skill\\", {});

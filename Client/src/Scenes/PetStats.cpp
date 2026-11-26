@@ -62,8 +62,7 @@ std::uint32_t NextExperience(std::uint32_t level)
 // +0x36 + +0x20 del registro propio, con el registro abierto y cerrado.
 std::uint32_t Allowance(WorldState& world, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     const OwnCharacterRecord& own = world.OwnCharacter();
     return static_cast<std::uint32_t>(own.word36) + own.leadership;
 }
@@ -71,8 +70,7 @@ std::uint32_t Allowance(WorldState& world, Crt::CrtRandom& random)
 // El byte de la durabilidad del lugar `slot` del equipo propio, con el registro abierto y cerrado.
 std::uint8_t OwnDurability(WorldState& world, Crt::CrtRandom& random, std::size_t slot)
 {
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return world.OwnCharacter().equipment[slot].durability;
 }
 
@@ -98,7 +96,7 @@ Core::Expected<void, std::string> RecalculateTheStats(const WorldEntryResources&
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return RecalculateOwnStats(world.OwnCharacter(), OwnStatsContext{.itemSetTables = resources.itemSetTables,
                                                                      .itemSets = &world.ItemSets(),
                                                                      .items = resources.items,
@@ -141,7 +139,7 @@ void TheHorse(const Protocol::Pet::PetInfoReply& reply, const WorldEntryResource
     if (reply.kind == LevelUpKind || reply.kind == LastKind)
         world.Actors()[runtime.hero].byte8 = static_cast<std::uint8_t>(reply.kind + KindToRiderByte);
     UpdatePetStats(DarkHorsePetStats, world, random);
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     World::ItemState& item = world.OwnCharacter().equipment[HorseEquipmentSlot];
     if (item.id == DarkHorseItem)
         AddTheDarkHorseOption(item, resources);
@@ -230,7 +228,7 @@ void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetSta
     std::uint32_t strength = 0;
     std::uint32_t word2a = 0;
     {
-        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& own = world.OwnCharacter();
         strength = own.strength;
         allowance = static_cast<std::uint32_t>(own.word36) + own.leadership;

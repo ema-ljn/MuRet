@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 }
@@ -36,7 +36,7 @@ inline constexpr std::size_t CreatedActorSearch = 400;
 [[nodiscard]] Core::Expected<std::size_t, std::string> CreateActor(WorldState& world, std::int32_t key,
                                                                    std::uint16_t type, const ActorPlacement& placement,
                                                                    const ActorConstructionContext& context,
-                                                                   Render::Models::ClothWorld& cloth);
+                                                                   Models::ClothWorld& cloth);
 
 // 0x510ff0(clave): el primero vivo con la clave (MOVSX) queda muerto: +0 en 0, 0x401040, apaga los ayudantes que lo
 // llevan (0x511031..0x51104b, como 0x443d40), suelta el cuervo (0x421d60), las telas (0x4fb1a0, lo de arriba) y la

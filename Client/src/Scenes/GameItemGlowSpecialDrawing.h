@@ -10,15 +10,12 @@
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-struct SkinnedMesh;
-}
 } // namespace Client::Render
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-}
+struct SkinnedMesh;
+} // namespace Client::Models
 
 namespace Client::Scenes
 {
@@ -26,7 +23,7 @@ struct DrawnObject;
 struct ItemDrawContext;
 // true corresponde al RET temprano nativo; false continúa el cuerpo común de60b3d0.
 [[nodiscard]] Core::Expected<bool, std::string>
-DrawEarlyItemGlow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, DrawnObject& object,
-                  Core::Duration clock, std::span<const Render::Models::SkinnedMesh> meshes, int level,
+DrawEarlyItemGlow(Render::ModelBatch& batch, const Models::IModelLibrary& models, DrawnObject& object,
+                  Core::Duration clock, std::span<const Models::SkinnedMesh> meshes, int level,
                   std::uint8_t packedLevel, const ItemDrawContext& context);
 } // namespace Client::Scenes

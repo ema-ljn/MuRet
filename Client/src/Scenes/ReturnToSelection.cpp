@@ -84,8 +84,8 @@ Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& re
     runtime.movement.followTarget = -1;
     {
         // 0x4c2575..0x4c264b: cierre independiente de 3.848 rand() cuando no quedan accesos.
-        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
+                                           Models::OwnRecordCloseRandoms);
         OwnCharacterRecord& own = world.OwnCharacter();
         own.speedAdjustBits = 0;
         own.word3e = 0;

@@ -388,8 +388,7 @@ Core::Expected<void, std::string> DrawTheRecovery(GameHudContext& context)
             return Core::Unexpected(std::move(line).Error());
         {
             // 0x44caf5..0x44cf1d: el zen (sin signo) contra el precio, con el registro propio abierto.
-            const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             if (context.world.OwnCharacter().zen < priced.price)
                 context.hud.textColors = ShortColors;
         }

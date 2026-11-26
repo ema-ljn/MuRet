@@ -95,7 +95,7 @@ Core::Expected<void, std::string> BeginTheWave(World::ModelEffect& effect, const
     constexpr double Lift = 50.0;                                   // 0x6b86b0
     effect.life = WaveLife;
     effect.turnDirection = WaveGrowth;
-    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.blendMesh = Models::EveryMeshBlends;
     effect.objectState.light = 1.0f;
     effect.transform.angles = glm::vec3(0.0f);
     effect.start = effect.transform.position;

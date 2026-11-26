@@ -23,10 +23,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -60,15 +60,15 @@ struct BodyPassArgs
 struct MonsterBodyModel
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     DrawnObject object;
-    std::span<const Render::Models::SkinnedMesh> meshes;
+    std::span<const Models::SkinnedMesh> meshes;
     Core::Duration frameClock{};
     // El reloj del mundo (0x5767b88) en ms, que lee la onda de 0x4ecc30 (la bandera 0x400, 0x4ed775).
     float worldClock = 0.0f;
     // Las mallas de otro 0x4ebc80 en medio de 0x6002e0 (0x60cd60 desde 0x43fc9d, a otra escala): `meshes` las mira
     // desde ahí, como el original lee 0x5786f9c en lo que sigue.
-    std::vector<Render::Models::SkinnedMesh> rescaled{};
+    std::vector<Models::SkinnedMesh> rescaled{};
     // RGB de5ffce0 antes de los tintes de6002e0:42e458 lo reconstruye para el proyectil12b.
     glm::vec3 preludeColor{1.0f};
     // 6c881c vigente: el accesorio12b de42e3d0 conserva el modo del actor (1,1.2,1.4).
@@ -99,7 +99,7 @@ struct MonsterBodyFrame
     float worldClock = 0.0f;
     // El rand() de la CRT y el contador de pasos protegido (0x7d3a0f0) con su textura del agua (0x7d2d360).
     Crt::CrtRandom& random;
-    Render::Models::ClothWorld& cloth;
+    Models::ClothWorld& cloth;
     // 0x4294b0: el byte del asedio.
     bool siegeActive = false;
     // El sonido pedido a 0x41ed10 (CL10); solo en los frames del original.

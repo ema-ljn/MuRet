@@ -70,13 +70,13 @@ TEST(ActorClothLifecycleTest, MapCleanupReleasesClothsInEveryPoolSlotExceptTheSe
     ASSERT_FALSE(error.has_value()) << *error;
     ASSERT_FALSE(vectors.frames.empty());
     const auto& frame = vectors.frames.front();
-    Client::Render::Models::ClothWorld clothWorld{.random = Client::Crt::CrtRandom(vectors.randomState)};
+    Client::Models::ClothWorld clothWorld{.random = Client::Crt::CrtRandom(vectors.randomState)};
 
     WorldState world;
     for (const std::size_t slot : {0u, 1u, 400u})
     {
         CharacterCloth& cloth = world.ActorCloths()[slot];
-        const Client::Render::Models::ClothBody body{
+        const Client::Models::ClothBody body{
             .bones = frame.bones, .angles = frame.angles, .scale = frame.scale, .position = frame.origin};
         ClothWearer wearer;
         wearer.characterClass = frame.characterClass;
@@ -199,8 +199,8 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
     const auto& frame = vectors.frames.front();
     const auto buildCloth = [&](CharacterCloth& cloth)
     {
-        Client::Render::Models::ClothWorld clothWorld{.random = CrtRandom(vectors.randomState)};
-        const Client::Render::Models::ClothBody body{
+        Client::Models::ClothWorld clothWorld{.random = CrtRandom(vectors.randomState)};
+        const Client::Models::ClothBody body{
             .bones = frame.bones, .angles = frame.angles, .scale = frame.scale, .position = frame.origin};
         ClothWearer wearer;
         wearer.characterClass = frame.characterClass;
@@ -216,7 +216,7 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
     ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
     const Client::Scenes::ActorConstructionContext construction{world.Map().terrain, 0,
                                                                 Client::World::CullingScene::Game, 450.0f};
-    Client::Render::Models::ClothWorld actorClothWorld{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld actorClothWorld{.random = CrtRandom(Seed)};
 
     const auto first = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
                                                    {100, 100, 0.0f}, construction, actorClothWorld);

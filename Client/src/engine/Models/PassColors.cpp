@@ -16,7 +16,7 @@
 #include <ratio>
 #include <span>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -239,13 +239,13 @@ glm::vec3 Lookup(std::span<const Entry> entries, std::uint16_t model, glm::vec3 
     return found != entries.end() && found->model == model ? found->color : fallback;
 }
 
-Color Opaque(glm::vec3 color)
+Render::Color Opaque(glm::vec3 color)
 {
-    return Color{color.x, color.y, color.z, 1.0f};
+    return Render::Color{color.x, color.y, color.z, 1.0f};
 }
 } // namespace
 
-Color ShineColorOf(std::uint16_t model)
+Render::Color ShineColorOf(std::uint16_t model)
 {
     return Opaque(Lookup(ShineColors, model, DefaultShineColor));
 }
@@ -255,17 +255,17 @@ glm::vec3 MetalFactorOf(std::uint16_t model)
     return Lookup(MetalFactors, model, DefaultMetalFactor);
 }
 
-Color SetColorOf(std::uint16_t model)
+Render::Color SetColorOf(std::uint16_t model)
 {
     return Opaque(Lookup(SetColors, model, DefaultSetColor));
 }
 
-Color ExcellentColorAt(Core::Duration clock)
+Render::Color ExcellentColorAt(Core::Duration clock)
 {
     const double milliseconds = std::chrono::duration<double, std::milli>(clock).count();
     // 0,002 y 0,3 como los floats de 0x6b89bc y 0x6b89dc.
     const auto k = static_cast<float>((Math::RoundedSin(milliseconds * static_cast<double>(0.002f)) + 1.0) * 0.5);
-    return Color{k, k * 0.3f, 1.0f - k, 1.0f};
+    return Render::Color{k, k * 0.3f, 1.0f - k, 1.0f};
 }
 
 double SetPulseAt(double milliseconds)
@@ -317,4 +317,4 @@ std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, s
         return std::nullopt;
     }
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

@@ -141,7 +141,7 @@ TEST(TarkanObjectsTest, TheWaterTypesScrollTheirV)
         ASSERT_TRUE(StepTarkanObject(object, globals).HasValue());
         EXPECT_EQ(object.state.uv.y, v);
         EXPECT_EQ(object.state.uv.x, 0.0f);
-        EXPECT_EQ(object.state.blendMesh, type == 0x48 ? 0 : Client::Render::Models::ObjectState{}.blendMesh);
+        EXPECT_EQ(object.state.blendMesh, type == 0x48 ? 0 : Client::Models::ObjectState{}.blendMesh);
     }
 }
 
@@ -194,8 +194,8 @@ TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
 
     auto plain = Object(0x51);
     ASSERT_TRUE(StepTarkanObject(plain, ObjectStepGlobals{}).HasValue());
-    EXPECT_EQ(plain.state.blendMesh, Client::Render::Models::ObjectState{}.blendMesh);
-    EXPECT_EQ(plain.state.hiddenMesh, Client::Render::Models::ObjectState{}.hiddenMesh);
+    EXPECT_EQ(plain.state.blendMesh, Client::Models::ObjectState{}.blendMesh);
+    EXPECT_EQ(plain.state.hiddenMesh, Client::Models::ObjectState{}.hiddenMesh);
     EXPECT_EQ(plain.light, Object(0x51).light);
 }
 
@@ -237,9 +237,9 @@ TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
     EXPECT_EQ(Client::World::TarkanAnimationSpeed(8, 0.25f), 1.0f);
     EXPECT_EQ(Client::World::TarkanAnimationSpeed(9, 0.25f), 0.25f);
 
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     skeleton.actions = {
-        Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10, .lockPositions = false}};
+        Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10, .lockPositions = false}};
     for (const std::uint8_t map : {std::uint8_t{8}, std::uint8_t{0}})
     {
         for (const std::int16_t type : {std::int16_t{8}, std::int16_t{9}})

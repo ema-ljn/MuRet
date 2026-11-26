@@ -30,7 +30,7 @@ namespace
 {
 using Client::GameLogic::BodyPart;
 using Client::GameLogic::CharacterAppearance;
-using Client::Render::Models::NoHiddenMesh;
+using Client::Models::NoHiddenMesh;
 using Client::Scenes::AdvanceRoutes;
 using Client::Scenes::LoginCharacter;
 using Client::Scenes::LoginCharacterActionAt;
@@ -176,7 +176,7 @@ TEST(LoginModelsTest, TheCharacterIsClassFourWithItsSet)
 // parado que 0x4f2250 le da con el caballo.
 TEST(LoginModelsTest, TheCharacterStandsAtItsPlace)
 {
-    const Client::Render::Models::ObjectTransform transform = LoginCharacterTransform();
+    const Client::Models::ObjectTransform transform = LoginCharacterTransform();
     EXPECT_EQ(transform.position, (glm::vec3{10603.0f, 14112.0f, 580.0f}));
     EXPECT_EQ(transform.angles, (glm::vec3{0.0f, 0.0f, 188.0f}));
     EXPECT_FLOAT_EQ(transform.scale, 1.6f);

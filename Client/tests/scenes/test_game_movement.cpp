@@ -53,14 +53,14 @@ using Client::Scenes::WorldState;
 
 constexpr std::uint16_t TransformedModel = 0x154;
 
-class MovementModels final : public Client::Render::Models::IModelLibrary
+class MovementModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
             return &player;
@@ -71,8 +71,8 @@ public:
         return {};
     }
 
-    Client::Render::Models::Skeleton player;
-    Client::Render::Models::Skeleton transformed;
+    Client::Models::Skeleton player;
+    Client::Models::Skeleton transformed;
 };
 
 class MovingHero
@@ -109,7 +109,7 @@ public:
     }
     WorldState world;
     CrtRandom random;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     MovementModels models;
     Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
 };

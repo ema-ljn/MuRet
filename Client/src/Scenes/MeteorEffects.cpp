@@ -109,8 +109,8 @@ void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext&
 // (+0x114), el anterior (+0x118) y su acción (+0x112), los ángulos (+0x1c), los de la cabeza (+0x28 y +0x2c) y las
 // banderas (0, 0). Sin acciones no hace nada; si no, deja en el modelo el frame y su key (+0xa4 y +0xa8), como
 // PoseWorldModel.
-Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect,
-                                                const Render::Models::Skeleton& skeleton, WorldState& world)
+Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect, const Models::Skeleton& skeleton,
+                                                WorldState& world)
 {
     auto& carry = world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
@@ -124,15 +124,15 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
         placement.action = 0;
         world.PlaceModel(type, placement);
     }
-    const Render::Models::AnimationState animation{.action = placement.action,
-                                                   .frame = effect.animation.frame,
-                                                   .previousAction = effect.animation.previousAction,
-                                                   .previousKey = effect.animation.previousKey};
+    const Models::AnimationState animation{.action = placement.action,
+                                           .frame = effect.animation.frame,
+                                           .previousAction = effect.animation.previousAction,
+                                           .previousKey = effect.animation.previousKey};
     // Con las banderas (0, 0) la raíz sólo gira: la escala y la posición del modelo no entran en la pose.
-    const Render::Models::ObjectTransform transform{.angles = effect.transform.angles};
+    const Models::ObjectTransform transform{.angles = effect.transform.angles};
     const glm::vec2 head{effect.copiedAngles.x, effect.copiedAngles.y};
-    if (!Render::Models::PoseSkeleton(skeleton, animation, transform, head,
-                                      std::span(carry.bones).first(skeleton.bones.size())))
+    if (!Models::PoseSkeleton(skeleton, animation, transform, head,
+                              std::span(carry.bones).first(skeleton.bones.size())))
         return Core::Unexpected(std::string("0x52624f: no se pudo posar el modelo del 0x13d"));
     const auto whole = Math::OriginalFtolLow(D(effect.animation.frame));
     if (!whole)
@@ -147,8 +147,7 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
 // 0x526254..0x526331: por cada hueso que no es dummy, rand() % 12; con 0, su punto (0x4ec110(modelo, hueso, 0, punto,
 // 1): la escala y el origen que el dibujo del efecto dejó en el modelo, PoseCarry::models, o los de la tabla en cero)
 // y las dos partículas.
-Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect,
-                                                const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect, const Models::Skeleton& skeleton,
                                                 const HighEffectStepContext& context)
 {
     constexpr int SparkOdds = 12; // 0xc
@@ -234,7 +233,7 @@ Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect, 
     return {};
 }
 
-Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, const Models::Skeleton* skeleton,
                                                 const HighEffectStepContext& context)
 {
     if (auto lit = LightTheMeteor(effect, context); !lit.HasValue())
@@ -255,8 +254,7 @@ Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, cons
     return SparkTheBones(effect, *skeleton, context);
 }
 
-Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch,
-                                                    const Render::Models::IModelLibrary& models,
+Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                     World::ModelEffect& effect, const DrawnObject& object,
                                                     Core::Duration frameClock, std::optional<float> worldClock)
 {
@@ -265,8 +263,8 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch,
     constexpr float VisibleAlpha = 0.01f; // 0x6b88d4, el de 0x5ffdf0
     constexpr std::uint32_t BodyFlags = 2;
     constexpr Render::TextureSlot RockTexture{0x63c};
-    std::vector<Render::Models::SkinnedMesh> posed;
-    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    std::vector<Models::SkinnedMesh> posed;
+    std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
         // Sin el scratch publicado, el de 0x5ffdf0 con el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …)):

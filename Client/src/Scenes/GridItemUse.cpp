@@ -100,8 +100,7 @@ Core::Expected<void, std::string> UseTheSkillItem(const InventoryMoveContext& co
                                                   const ItemState& hovered, std::int32_t cell)
 {
     WorldState& world = context.world;
-    const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (context.services.items == nullptr)
         return Core::Unexpected(std::string("0x5c90c1: lee *[0x7758550] (Item.bmd) y no está cargado"));
     const auto record = context.services.items->Record(hovered.id);
@@ -132,8 +131,7 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
     WorldRuntime& runtime = world.Runtime();
     std::uint16_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = world.OwnCharacter().level;
     }
     if (level < FruitLevel)
@@ -145,8 +143,7 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
     bool unequipped = true;
     std::uint8_t heroClass = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         // 0x5c8219..0x5c8237: los doce lugares del equipo, de a 0x48 desde +0xb6c; 0x5c8245: la clase (+0xb), entera.
         for (const ItemState& worn : world.OwnCharacter().equipment)
         {

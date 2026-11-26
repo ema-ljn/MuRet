@@ -23,7 +23,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Data::Models::ItemModel;
-using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::FullSetScan;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::ScannedCharacter;

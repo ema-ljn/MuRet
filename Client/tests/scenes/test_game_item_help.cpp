@@ -60,7 +60,7 @@ constexpr Color Red{1.0f, 0.2f, 0.1f, 1.0f};
 constexpr Color Green{0.1f, 1.0f, 0.5f, 1.0f};
 constexpr Color LightBlue{0.5f, 0.7f, 1.0f, 1.0f};
 // Una tabla nueva: 14 cierres del registro propio, de 3.848 rand() cada uno.
-constexpr std::uint32_t FillRandoms = 14 * Client::Render::Models::OwnRecordCloseRandoms;
+constexpr std::uint32_t FillRandoms = 14 * Client::Models::OwnRecordCloseRandoms;
 
 // Una espada (la franja 1), un escudo y una armadura de conjunto (la 3 y la 4), un bastón y un cetro, un pergamino
 // (la 5) y un ítem con requisitos que envuelven.

@@ -13,7 +13,7 @@
 #include <span>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -153,4 +153,4 @@ glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosi
     const double flatX = (x + spread) * z / (z - Horizon) + x + objectPosition.x;
     return {static_cast<float>(flatX), (world.y - objectPosition.y) + objectPosition.y, objectPosition.z + Lift};
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

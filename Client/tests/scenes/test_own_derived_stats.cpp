@@ -33,7 +33,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Data::Tables::ItemSetTables;
-using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::ItemSetOptionList;
 using Client::Scenes::ItemSetState;

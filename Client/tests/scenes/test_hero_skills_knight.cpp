@@ -198,7 +198,7 @@ struct KnightHero
     Client::Scenes::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = 10'000;
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Tables::SkillTable skills = SkillsWith({{.skill = 0x29},
                                                           {.skill = 0x2a},
                                                           {.skill = 0x30},

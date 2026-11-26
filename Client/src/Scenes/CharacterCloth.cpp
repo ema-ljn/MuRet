@@ -25,9 +25,9 @@ namespace Client::Scenes
 {
 namespace
 {
+using Models::Cloth;
+using Models::ClothShape;
 using Render::TextureSlot;
-using Render::Models::Cloth;
-using Render::Models::ClothShape;
 
 constexpr std::uint8_t DarkLord = 4;
 constexpr std::uint8_t MagicGladiator = 3;
@@ -159,17 +159,17 @@ template <std::size_t N> void AddSpheres(Cloth& cloth, const std::array<Sphere, 
     }
 }
 
-Render::ModelBlend BlendOf(Render::Models::ClothBlend blend, Render::ModelBlend previous)
+Render::ModelBlend BlendOf(Models::ClothBlend blend, Render::ModelBlend previous)
 {
     switch (blend)
     {
-    case Render::Models::ClothBlend::Opaque:
+    case Models::ClothBlend::Opaque:
         return Render::ModelBlend::Opaque;
-    case Render::Models::ClothBlend::Alpha:
+    case Models::ClothBlend::Alpha:
         return Render::ModelBlend::Alpha;
-    case Render::Models::ClothBlend::Additive:
+    case Models::ClothBlend::Additive:
         return Render::ModelBlend::Additive;
-    case Render::Models::ClothBlend::Previous:
+    case Models::ClothBlend::Previous:
         return previous;
     }
     return previous;
@@ -193,8 +193,8 @@ bool WearsAGridClothOfItsOwn(std::uint16_t monster)
 }
 
 void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16_t monster,
-                                          const Render::Models::ClothBody& body, Render::Models::ClothWorld& world,
-                                          std::uint8_t map, float worldTime)
+                                          const Models::ClothBody& body, Models::ClothWorld& world, std::uint8_t map,
+                                          float worldTime)
 {
     m_flares.clear();
     if (m_cloths.empty())
@@ -231,8 +231,7 @@ void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16
     Draw(batch, m_cloths[0], PlainClothColor, worldTime);
 }
 
-void CharacterCloth::DrawTheMonsterCloth(Render::ModelBatch& batch, const Render::Models::ClothBody& body,
-                                         float worldTime)
+void CharacterCloth::DrawTheMonsterCloth(Render::ModelBatch& batch, const Models::ClothBody& body, float worldTime)
 {
     m_flares.clear();
     if (m_cloths.empty())
@@ -256,7 +255,7 @@ void CharacterCloth::ReleaseResources()
     m_onTheMesh.Release();
 }
 
-void CharacterCloth::Build(const ClothWearer& wearer, const Render::Models::ClothBody& body)
+void CharacterCloth::Build(const ClothWearer& wearer, const Models::ClothBody& body)
 {
     if ((wearer.characterClass & ClassMask) == DarkLord)
     {
@@ -293,17 +292,16 @@ void CharacterCloth::Build(const ClothWearer& wearer, const Render::Models::Clot
     m_count = 1;
 }
 
-void CharacterCloth::Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
-                           Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
+void CharacterCloth::Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                           Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
                            const glm::vec3& color)
 {
     RunTheBlock(&batch, wearer, body, world, map, worldTime, wears, color);
 }
 
-void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& wearer,
-                             const Render::Models::ClothBody& body, Render::Models::ClothWorld& world, std::uint8_t map,
-                             Core::Duration clock, bool wears, const glm::vec3& color,
-                             Render::Models::OriginalFramePace pace)
+void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                             Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
+                             const glm::vec3& color, Models::OriginalFramePace pace)
 {
     const auto worldTime = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
     const int frames = m_frames.FramesAt(clock, pace);
@@ -319,17 +317,15 @@ void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& weare
     RunTheBlock(&batch, wearer, body, world, map, worldTime, wears, color);
 }
 
-void CharacterCloth::DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer,
-                                 const Render::Models::ClothBody& body, Core::Duration clock, bool wears,
-                                 const glm::vec3& color)
+void CharacterCloth::DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                                 Core::Duration clock, bool wears, const glm::vec3& color)
 {
     const auto worldTime = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
     DrawTheCloths(batch, wearer, body, worldTime, wears, color);
 }
 
-void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer,
-                                   const Render::Models::ClothBody& body, float worldTime, bool wears,
-                                   const glm::vec3& color)
+void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                                   float worldTime, bool wears, const glm::vec3& color)
 {
     m_flares.clear();
     if (!wears || (wearer.objectFlags & Hidden) != 0)
@@ -350,9 +346,9 @@ void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer&
     }
 }
 
-void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer,
-                                 const Render::Models::ClothBody& body, Render::Models::ClothWorld& world,
-                                 std::uint8_t map, float worldTime, bool wears, const glm::vec3& color)
+void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                                 Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
+                                 const glm::vec3& color)
 {
     m_flares.clear();
     if (!wears)
@@ -441,13 +437,13 @@ void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const g
                           const std::optional<ClothCarry>& carry)
 {
     const auto placed = [&carry](const glm::vec3& position) { return carry ? carry->Carried(position) : position; };
-    const Render::ModelBlend blend = BlendOf(Render::Models::FaceBlendOf(cloth.Flags()), m_lastBlend);
+    const Render::ModelBlend blend = BlendOf(Models::FaceBlendOf(cloth.Flags()), m_lastBlend);
     m_lastBlend = blend;
     glm::vec3 faceColor = color;
-    if ((cloth.Flags() & Render::Models::ClothGlows) != 0)
+    if ((cloth.Flags() & Models::ClothGlows) != 0)
     {
         const float glow = Cloth::GlowAt(worldTime);
-        for (Render::Models::ClothFlare flare : cloth.Flares(glow))
+        for (Models::ClothFlare flare : cloth.Flares(glow))
         {
             flare.position = placed(flare.position);
             m_flares.push_back(flare);
@@ -463,13 +459,13 @@ void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const g
             continue;
         }
         batch.SetState(Render::ModelDrawState{.texture = front ? cloth.Front() : cloth.Back(), .blend = blend});
-        const std::vector<Render::Models::ClothCorner> corners = cloth.Corners(front);
+        const std::vector<Models::ClothCorner> corners = cloth.Corners(front);
         for (std::size_t q = 0; q + 3 < corners.size(); q += 4)
         {
             std::array<Render::ModelVertex, 4> square{};
             for (std::size_t c = 0; c < 4; ++c)
             {
-                const Render::Models::ClothCorner& corner = corners[q + c];
+                const Models::ClothCorner& corner = corners[q + c];
                 square[c] = Render::ModelVertex{
                     .position = placed(particles[static_cast<std::size_t>(corner.particle)].position),
                     .uv = corner.uv,

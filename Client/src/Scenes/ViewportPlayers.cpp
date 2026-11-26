@@ -204,7 +204,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
         const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
         if (skeleton == nullptr)
             return Core::Unexpected(std::string("0x4ea030: falta Player.bmd para la acción del 0x12"));
-        Render::Models::SetAction(actor.animation, *skeleton, *action);
+        Models::SetAction(actor.animation, *skeleton, *action);
     }
     // 0x4c8adc..0x4c8aec.
     if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
@@ -373,14 +373,14 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
 // Una escritura de +0x41c o +0x420: abre la entrada, escribe y la cierra (4 rand() si queda sin accesos).
 void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     cell = value;
 }
 
 // Una lectura: abre, lee y cierra (0x40b800 o el cierre en línea).
 std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 

@@ -21,10 +21,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Render::Text
 {
@@ -71,7 +71,7 @@ struct GameChatContext
     UI::IClipboard* clipboard = nullptr;
     // Biblioteca base: el emote consulta primero FaunaResources(), donde el viewport carga los transformados,
     // y después ésta. 0x4ea030 mira las acciones del tipo del héroe; si ninguna ofrece el modelo, corta.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
 };
 
 // 0x6a0c01 (atoi) → 0x6a0b76 (atol de la CRT) con el locale "C": los blancos (el espacio y de 0x09 a 0x0d), un '-' o

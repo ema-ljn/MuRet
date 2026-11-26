@@ -110,7 +110,7 @@ namespace
 {
 using Client::App::SessionState;
 using Client::Crt::CrtRandom;
-using Client::Render::Models::ClothWorld;
+using Client::Models::ClothWorld;
 using Client::Scenes::GameScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
@@ -124,28 +124,28 @@ using Client::Tests::LoggedInSession;
 constexpr std::uint32_t Seed = 0x13572468u;
 // El cuerpo del héroe quieto en 0x508f00 (0x4fd5f0): el registro propio que abre y cierra 0x4fc450, con los
 // 3.848 rand() de 0x40b4d0, y el rand() % 6 de 0x4fd7e4.
-constexpr int HeroBodyDraws = Client::Render::Models::OwnRecordCloseRandoms + 1;
+constexpr int HeroBodyDraws = Client::Models::OwnRecordCloseRandoms + 1;
 // 0x637128: el viento de las partículas toma dos rand(), incluso con la tabla vacía.
 constexpr int ParticleWindDraws = 2;
 // 0x636ded..0x63705b, la UI del paso con todo cerrado: el registro propio de la barra de skills (0x5a05e5), las
 // consultas del comercio y de la tienda de NPC de Q, W y E (0x5a343e) y las de IsOpen(0) (0x5a5511).
-constexpr int GameUiStepDraws = Client::Render::Models::OwnRecordCloseRandoms + 2 + 2;
+constexpr int GameUiStepDraws = Client::Models::OwnRecordCloseRandoms + 2 + 2;
 // 0x636920, en el primer paso de la escena: 0x46b010 y 0x46b0e0, que abre y cierra el registro propio. Sin Slide.bmd
 // ningún tramo tiene textos y no sortea.
-constexpr int SlideStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int SlideStartDraws = Client::Models::OwnRecordCloseRandoms;
 // 0x4eb620, al empezar cada frame del original y antes del paso: en la escena 5, 0x552f10 (la espera de las skills)
 // abre y cierra el registro propio.
-constexpr int FrameStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int FrameStartDraws = Client::Models::OwnRecordCloseRandoms;
 // El primer paso de cada escena: el comienzo del frame, el cartel y, después, la UI del paso.
 constexpr int FirstStepDraws = FrameStartDraws + SlideStartDraws + GameUiStepDraws;
 // 0x637641: el picking del frame del Dark Wizard (la clase 0) lee su skill del registro propio (0x59efda).
-constexpr int FramePickingDraws = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int FramePickingDraws = Client::Models::OwnRecordCloseRandoms;
 // 0x637660: el HUD (0x5a7320) en el estado base: 19 cierres del registro propio (las flechas, los doce avisos de
 // durabilidad, la barra de abajo, la experiencia, el AG y los tres de la barra principal), los de las dos celdas del
 // héroe y nueve consultas del comercio y de la tienda de NPC (los avisos, las ventanas, el 3D, las grillas y el panel
 // del asedio).
 constexpr int HudBaseDraws =
-    19 * Client::Render::Models::OwnRecordCloseRandoms + 2 * Client::Render::Models::SmallLogicalCloseRandoms + 9;
+    19 * Client::Models::OwnRecordCloseRandoms + 2 * Client::Models::SmallLogicalCloseRandoms + 9;
 
 // El rand() de la CRT sembrado con Seed después de `draws` llamadas.
 CrtRandom RandomAfter(int draws)
@@ -164,13 +164,13 @@ CrtRandom Advanced(CrtRandom random, int draws)
         static_cast<void>(random.Next());
     return random;
 }
-constexpr int HeroActionPrefixRandoms = Client::Render::Models::OwnRecordCloseRandoms + 60;
+constexpr int HeroActionPrefixRandoms = Client::Models::OwnRecordCloseRandoms + 60;
 
 // El rand() después de un paso: `draws` de la escena y, detrás, la tela (0x637700).
 CrtRandom RandomAfterAStep(int draws)
 {
     ClothWorld reference{.random = RandomAfter(draws)};
-    Client::Render::Models::StepTheClothWorld(reference);
+    Client::Models::StepTheClothWorld(reference);
     return reference.random;
 }
 
@@ -215,7 +215,7 @@ Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Scene
                                                                    const Client::Scenes::ActorState& hero,
                                                                    Client::World::LeafWeather weather,
                                                                    std::int32_t heroCellLayer,
-                                                                   Client::Render::Models::ClothWorld& reference)
+                                                                   Client::Models::ClothWorld& reference)
 {
     Client::World::Leaves leaves;
     Client::Scenes::FaunaState fauna;
@@ -597,24 +597,24 @@ TEST(GameSceneTest, TheWorldWaitAgesItsRibbonOnce)
 }
 
 // Solo el esqueleto del caballo oscuro (0xbf), con una acción de una key en un hueso.
-class HorseSkeletonOnly final : public Client::Render::Models::IModelLibrary
+class HorseSkeletonOnly final : public Client::Models::IModelLibrary
 {
 public:
     HorseSkeletonOnly()
     {
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.parent = -1;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        bone.actions = {{Client::Models::BoneKey{}}};
         m_skeleton.bones = {bone};
         m_skeleton.actions = {
-            Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+            Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     }
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
         {
@@ -628,9 +628,9 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     // El jinete vivo pasa por el paso de los personajes (0x4f9580), que pide Player.bmd.
-    Client::Render::Models::Skeleton m_player = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_player = Client::Tests::PlayerActionsSkeleton();
 };
 
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
@@ -1188,7 +1188,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         std::vector<std::size_t> seen;
         std::uint32_t random = 0;
     };
-    constexpr Client::Core::Duration FrameTime = Client::Render::Models::OriginalFrameTime;
+    constexpr Client::Core::Duration FrameTime = Client::Models::OriginalFrameTime;
     constexpr Client::Core::Duration FirstFrame = std::chrono::milliseconds{1000};
     for (const Case& probe :
          {Case{0, 143, 120, false}, Case{2, 220, 30, true}, Case{34, 120, 114, false}, Case{34, 120, 114, true}})
@@ -1416,7 +1416,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         reference.random =
             Advanced(reference.random, 8 + HeroActionPrefixRandoms + 8 + HeroBodyDraws + 8 + 1 + ParticleWindDraws +
                                            GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
-        Client::Render::Models::StepTheClothWorld(reference);
+        Client::Models::StepTheClothWorld(reference);
 
         for (const std::size_t roof : probe.roofs)
         {
@@ -1703,7 +1703,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         reference.random =
             Advanced(reference.random, probe.draws + HeroActionPrefixRandoms + ParticleWindDraws +
                                            GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
-        Client::Render::Models::StepTheClothWorld(reference);
+        Client::Models::StepTheClothWorld(reference);
         EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold - 1);
         EXPECT_EQ(Cell(221, 11), before & ~0x02);
         if (probe.map == 0)
@@ -1728,7 +1728,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         EXPECT_EQ(Cell(119, 115) & 0x04, 0) << "las puertas se abren después del jugador sin armas";
         CrtRandom expected = reference.random;
         // 50e298..50e6af: dos cierres de byte38e, uno por mano vacía fuera de la espalda.
-        const int characterDraws = probe.seen ? Client::Render::Models::OwnRecordCloseRandoms + 1 + 2 : 0;
+        const int characterDraws = probe.seen ? Client::Models::OwnRecordCloseRandoms + 1 + 2 : 0;
         for (int i = 0; i < 4 + 8 + probe.objectDraws + characterDraws + HudBaseDraws; ++i)
         {
             static_cast<void>(expected.Next());
@@ -1905,7 +1905,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         reference.random =
             Advanced(reference.random, probe.draws + HeroActionPrefixRandoms + ParticleWindDraws +
                                            GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
-        Client::Render::Models::StepTheClothWorld(reference);
+        Client::Models::StepTheClothWorld(reference);
         EXPECT_TRUE(marks[17].live);
         EXPECT_EQ(marks[17].life, 59);
         EXPECT_EQ(marks[17].size, static_cast<float>(static_cast<double>(0.65f) + static_cast<double>(0.004f)));
@@ -1944,7 +1944,7 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
     reference.random =
         Advanced(reference.random, 8 + 8 + HeroBodyDraws + 8 + 1 + HeroActionPrefixRandoms + ParticleWindDraws +
                                        GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
-    Client::Render::Models::StepTheClothWorld(reference);
+    Client::Models::StepTheClothWorld(reference);
     const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
     EXPECT_TRUE(hero.seen);
     EXPECT_EQ(hero.safeZone, 0);
@@ -1983,8 +1983,7 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
         ASSERT_TRUE(scene.Failure().has_value());
         EXPECT_NE(scene.Failure()->find("0x4f9580"), std::string::npos) << *scene.Failure();
         EXPECT_EQ(cloth.random.State(),
-                  Advanced(reference.random, 8 + 8 + Client::Render::Models::OwnRecordCloseRandoms +
-                                                 HeroActionPrefixRandoms +
+                  Advanced(reference.random, 8 + 8 + Client::Models::OwnRecordCloseRandoms + HeroActionPrefixRandoms +
                                                  GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore))
                       .State());
         scene.Leave();

@@ -230,7 +230,7 @@ TEST_F(GameFriendsTest, BelowLevelSixOpeningSaysTheLevelText)
     m_world->OwnCharacter().level = 5;
     auto opened = Open();
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
-    EXPECT_EQ(m_random.State(), After(Client::Render::Models::OwnRecordCloseRandoms));
+    EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
     EXPECT_EQ(Manager().friends, 0);
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "falta nivel");
@@ -238,7 +238,7 @@ TEST_F(GameFriendsTest, BelowLevelSixOpeningSaysTheLevelText)
 
     opened = Open();
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
-    EXPECT_EQ(m_random.State(), After(2 * Client::Render::Models::OwnRecordCloseRandoms));
+    EXPECT_EQ(m_random.State(), After(2 * Client::Models::OwnRecordCloseRandoms));
     EXPECT_EQ(Runtime().chat.log.entries.size(), 1u);
 }
 
@@ -249,7 +249,7 @@ TEST_F(GameFriendsTest, AtLevelSixOpeningBuildsTheWindowAndTheHelpBanner)
     m_world->OwnCharacter().level = 6;
     const auto opened = Open();
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
-    EXPECT_EQ(m_random.State(), After(Client::Render::Models::OwnRecordCloseRandoms));
+    EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
     EXPECT_NE(Manager().friends, 0);
     EXPECT_EQ(Manager().windows.at(Manager().friends).frame.title, std::optional<std::string>("Amigos"));
     ASSERT_EQ(Runtime().hud.slides.normal.entries.size(), 1u);

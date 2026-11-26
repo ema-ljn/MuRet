@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
 }
@@ -18,7 +18,7 @@ struct FaunaStepContext;
 [[nodiscard]] double FaunaWave(float sine);
 [[nodiscard]] std::int32_t TurnFaunaAngle(std::int32_t from, std::int32_t target, std::int32_t step);
 void SteerFauna(FaunaObject& object, std::size_t index, std::span<FaunaObject> pool);
-void SetFaunaAction(FaunaObject& object, const Render::Models::Skeleton& skeleton, std::uint8_t action);
-void AdvanceFaunaAnimation(FaunaObject& object, const Render::Models::Skeleton& skeleton, float speed);
+void SetFaunaAction(FaunaObject& object, const Models::Skeleton& skeleton, std::uint8_t action);
+void AdvanceFaunaAnimation(FaunaObject& object, const Models::Skeleton& skeleton, float speed);
 void FinalizeFauna(FaunaObject& object);
 } // namespace Client::Scenes

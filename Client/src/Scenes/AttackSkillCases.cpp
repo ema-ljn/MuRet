@@ -440,8 +440,8 @@ void CountHeroVolley(const ActorState& actor, const CharacterStepContext& contex
 {
     if (&actor != &context.world.Actors()[context.world.Runtime().hero])
         return;
-    const Render::Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
+                                    Models::OwnRecordCloseRandoms);
     ++context.world.OwnCharacter().bytef04;
 }
 
@@ -565,8 +565,7 @@ Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const Characte
                                                               world.OwnCharacter().bytef04, context.random));
     if (&actor == &world.Actors()[runtime.hero])
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         ++world.OwnCharacter().bytef04;
     }
     RequestTheSound(context, FlameSound);

@@ -114,12 +114,12 @@ ActorState& HeroOf(const WorldEntryResources& resources)
     return resources.world.Actors()[resources.world.Runtime().hero];
 }
 
-const Render::Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
+const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
 {
     return resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
 }
 
-ActorStopContext StopContextOf(const WorldEntryResources& resources, const Render::Models::Skeleton& player)
+ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
 {
     const auto& terrain = resources.world.Map().terrain;
     return ActorStopContext{.runtime = resources.world.Runtime(),
@@ -261,8 +261,8 @@ Differences CompareWithTheHero(const ActorState& actor, const ActorState& hero)
 Differences CompareWithTheRecord(const ActorState& actor, std::uint8_t heroClass, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
-    const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                    Models::OwnRecordCloseRandoms);
     const auto& equipment = world.OwnCharacter().equipment;
     Differences differ;
     for (std::size_t part = 0; !differ.body && part < actor.body.size(); ++part)
@@ -312,7 +312,7 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
         // 0x496a79: 0x4fb1a0 antes de abrir el registro.
         portrait.cloth = CharacterCloth{};
         {
-            const Render::Models::LogicalAccess own(depth, random, Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
             actor.head = GameLogic::ClassPartModel(GameLogic::BodyPart::Helm, heroClass);
             for (std::size_t part = 0; part < actor.body.size(); ++part)
                 FillFromItem(actor.body[part], equipment[FirstBodySlot + part], ClassPart(part, heroClass));
@@ -321,18 +321,18 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
     }
     if (differ.hands)
     {
-        const Render::Models::LogicalAccess own(depth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
         for (std::size_t side = 0; side < actor.hands.size(); ++side)
             FillFromItem(actor.hands[side], equipment[side], NoItemModel);
     }
     if (differ.wings)
     {
-        const Render::Models::LogicalAccess own(depth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
         FillFromItem(actor.wings, equipment[WingsSlot], NoItemModel);
     }
     if (differ.pet)
     {
-        const Render::Models::LogicalAccess own(depth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
         FillFromItem(actor.pet, equipment[PetSlot], NoItemModel);
         actor.previousHad1c15 = actor.pet.model == HeightOffsetPet;
     }
@@ -460,10 +460,10 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
     {
         // 0x4961ee..0x4962b7: abre +0x41c y +0x420; 0x4962bc..0x4962c7 borra los 0x438 bytes (las entradas de la tabla
         // quedan); 0x4962c9..0x496354 cierra la X y después la Y.
-        std::optional<Render::Models::LogicalAccess> cellX;
-        cellX.emplace(actor.cellXAccesses, random, Render::Models::SmallLogicalCloseRandoms);
-        std::optional<Render::Models::LogicalAccess> cellY;
-        cellY.emplace(actor.cellYAccesses, random, Render::Models::SmallLogicalCloseRandoms);
+        std::optional<Models::LogicalAccess> cellX;
+        cellX.emplace(actor.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
+        std::optional<Models::LogicalAccess> cellY;
+        cellY.emplace(actor.cellYAccesses, random, Models::SmallLogicalCloseRandoms);
         const std::uint8_t xDepth = actor.cellXAccesses;
         const std::uint8_t yDepth = actor.cellYAccesses;
         const std::uint8_t byte38eDepth = actor.byte38eAccesses;
@@ -609,8 +609,8 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
         if (skeleton == nullptr)
             return Core::Unexpected(
                 std::format("0x495da7: la acción {:#x} sin las acciones del modelo {:#x}", chosen, actor.type));
-        Render::Models::SetAction(actor.animation, *skeleton,
-                                  TableAnimationOf(actor.characterClass, static_cast<std::uint8_t>(chosen)));
+        Models::SetAction(actor.animation, *skeleton,
+                          TableAnimationOf(actor.characterClass, static_cast<std::uint8_t>(chosen)));
     }
     // 0x495daf..0x495db8: 0x4fd5f0 y 0x505de0 con el mundo en curso.
     if (auto stepped = StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())

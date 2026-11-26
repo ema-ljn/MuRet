@@ -383,8 +383,7 @@ Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const Help
 
 // 0x4440b8..0x444766, el cuerpo del 0xbf.
 Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorState& rider,
-                                                   const Render::Models::Skeleton& skeleton,
-                                                   const HelperStepContext& context)
+                                                   const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x4440db");
     if (!safe.HasValue())
@@ -449,8 +448,7 @@ bool HasItsBody(std::uint16_t type)
     return type == DarkHorseModel || type == RiderlessHelper || IsRidingHelper(type);
 }
 
-Core::Expected<void, std::string> StepTheBody(HelperState& helper, ActorState& rider,
-                                              const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> StepTheBody(HelperState& helper, ActorState& rider, const Models::Skeleton& skeleton,
                                               const HelperStepContext& context)
 {
     if (helper.type == DarkHorseModel)
@@ -482,8 +480,7 @@ Core::Expected<void, std::string> StepHelper(HelperState& helper, ActorState& ri
     {
         return Core::Unexpected(std::format("0x444083: el paso del ayudante {:#x} no está portado", helper.type));
     }
-    const Render::Models::Skeleton* skeleton =
-        context.models != nullptr ? context.models->SkeletonOf(helper.type) : nullptr;
+    const Models::Skeleton* skeleton = context.models != nullptr ? context.models->SkeletonOf(helper.type) : nullptr;
     if (skeleton == nullptr)
     {
         return Core::Unexpected(
@@ -498,8 +495,8 @@ Core::Expected<void, std::string> StepHelper(HelperState& helper, ActorState& ri
     }
     // 0x445006..0x445039: +0xa0 del modelo con la acción, que lo portado no lee, y el avance.
     AdvanceDarkHorse(helper.horse, *skeleton,
-                     context.scene == SceneId::CharacterSelect ? Render::Models::AnimationScene::CharacterSelect
-                                                               : Render::Models::AnimationScene::Other);
+                     context.scene == SceneId::CharacterSelect ? Models::AnimationScene::CharacterSelect
+                                                               : Models::AnimationScene::Other);
     if (helper.type == RiderlessHelper)
     {
         FlyTheGuardianAngel(helper, rider, riderStart, context.random);
@@ -525,18 +522,18 @@ float DrawScaleOf(const HelperState& helper, SceneId scene)
 // Lo que se dibuja de un ayudante que no es el caballo: su lugar, sus ángulos y su escala, la animación entre dos
 // pasos, el blendMesh con su luz en 1, la U y la V en 0, sin malla oculta, el color de 0x5ffce0 con la luz por
 // vértice (la del terreno más la de +0xf4, el 3 de 0x443d70) y su alpha.
-DrawnObject DrawnHelper(const HelperState& helper, const Render::Models::Skeleton* skeleton,
-                        const glm::vec3& terrainLight, float stepAlpha)
+DrawnObject DrawnHelper(const HelperState& helper, const Models::Skeleton* skeleton, const glm::vec3& terrainLight,
+                        float stepAlpha)
 {
     DrawnObject drawn;
     drawn.model = helper.type;
     drawn.animation = helper.horse.animation;
     if (skeleton != nullptr && helper.horse.animation.action < skeleton->actions.size())
     {
-        drawn.animation = Render::Models::Interpolated(
-            helper.horse.animation, skeleton->actions[helper.horse.animation.action], helper.horse.speed, stepAlpha);
+        drawn.animation = Models::Interpolated(helper.horse.animation, skeleton->actions[helper.horse.animation.action],
+                                               helper.horse.speed, stepAlpha);
     }
-    drawn.transform = Render::Models::ObjectTransform{.position = helper.position, .angles = helper.angles};
+    drawn.transform = Models::ObjectTransform{.position = helper.position, .angles = helper.angles};
     drawn.transform.scale = helper.scale;
     drawn.state.blendMesh = helper.blendMesh;
     // 0x5ffd6a..0x5ffd8b (0x5ffce0): la luz del terreno más la propia (+0xf4..+0xfc).
@@ -685,7 +682,7 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
     const std::int32_t map = context.world.Runtime().map;
     if (helper.type == DarkHorseModel)
     {
-        const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
+        const Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
         auto drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
                                     context.stepAlpha);
         if (context.onPose)
@@ -742,7 +739,7 @@ Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const Helper
     DrawnObject drawn;
     if (helper.type == DarkHorseModel)
     {
-        const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
+        const Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
         drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
                                context.stepAlpha);
     }

@@ -106,7 +106,7 @@ void SteerFauna(FaunaObject& object, std::size_t index, std::span<FaunaObject> p
     object.angles.z =
         static_cast<float>(TurnFaunaAngle(Math::FtolLow(object.angles.z), target, Math::FtolLow(object.turnRate)));
 }
-void SetFaunaAction(FaunaObject& object, const Render::Models::Skeleton& skeleton, std::uint8_t action)
+void SetFaunaAction(FaunaObject& object, const Models::Skeleton& skeleton, std::uint8_t action)
 {
     if (action >= skeleton.actions.size() || action == object.action)
         return;
@@ -116,18 +116,17 @@ void SetFaunaAction(FaunaObject& object, const Render::Models::Skeleton& skeleto
     object.action = action;
     object.frame = 0;
 }
-void AdvanceFaunaAnimation(FaunaObject& object, const Render::Models::Skeleton& skeleton, float speed)
+void AdvanceFaunaAnimation(FaunaObject& object, const Models::Skeleton& skeleton, float speed)
 {
     if (object.action >= skeleton.actions.size())
         return;
-    Render::Models::AnimationState animation{object.action, object.frame, object.previousAction,
-                                             static_cast<std::int16_t>(Math::FtolLow(object.previousFrame))};
+    Models::AnimationState animation{object.action, object.frame, object.previousAction,
+                                     static_cast<std::int16_t>(Math::FtolLow(object.previousFrame))};
     const auto before = Math::FtolLow(object.frame);
     const auto& action = skeleton.actions[object.action];
     if (action.keyCount > 1 && Math::FtolLow(static_cast<double>(object.frame) + speed) != before)
         object.previousFrame = static_cast<float>(before);
-    static_cast<void>(
-        Render::Models::AdvanceAnimation(animation, action, speed, Render::Models::AnimationScene::Other));
+    static_cast<void>(Models::AdvanceAnimation(animation, action, speed, Models::AnimationScene::Other));
     object.frame = animation.frame;
     object.previousAction = animation.previousAction;
 }

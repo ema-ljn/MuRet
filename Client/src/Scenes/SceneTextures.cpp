@@ -39,7 +39,7 @@ Core::Expected<void, std::string> SceneTextures::Load(const std::filesystem::pat
     {
         m_sizes.insert_or_assign(texture.slot, TextureBufferSize{.width = texture.texture.textureWidth,
                                                                  .height = texture.texture.textureHeight});
-        m_metadata.insert_or_assign(static_cast<std::uint32_t>(texture.slot), TextureMetadata(texture.texture));
+        m_metadata.insert_or_assign(static_cast<std::uint32_t>(texture.slot), Models::TextureMetadata(texture.texture));
     }
     return {};
 }
@@ -72,7 +72,7 @@ TextureBufferSize SceneTextures::BufferSize(Render::TextureSlot slot) const
     return found == m_sizes.end() ? TextureBufferSize{} : found->second;
 }
 
-std::optional<TextureMetadata> SceneTextures::MetadataOf(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> SceneTextures::MetadataOf(std::uint32_t selector) const
 {
     const auto found = m_metadata.find(selector);
     return found == m_metadata.end() ? std::nullopt : std::optional(found->second);

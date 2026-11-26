@@ -47,8 +47,7 @@ constexpr bool DamageRises = true;
 // 0x4cf099..0x4cf17d: el registro propio abierto alrededor de la resta; un golpe de la vida o más la deja en 0.
 void HitTheHero(WorldState& world, std::uint16_t damage, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     OwnCharacterRecord& record = world.OwnCharacter();
     record.life = damage >= record.life ? std::uint16_t{0} : static_cast<std::uint16_t>(record.life - damage);
 }
@@ -80,7 +79,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Viewport
         return set;
     // 0x4cee28..0x4cefd7: pkt[5] en +0x38e, con la entrada de la tabla abierta.
     {
-        const Render::Models::LogicalAccess skill(caster.byte38eAccesses, random, Byte38eCloseRandoms);
+        const Models::LogicalAccess skill(caster.byte38eAccesses, random, Byte38eCloseRandoms);
         caster.byte38e = attack.magic;
     }
     caster.byte381 = SkillActive;

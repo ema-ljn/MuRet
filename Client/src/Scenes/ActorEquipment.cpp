@@ -213,8 +213,8 @@ Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& act
     }
     // 0x512a48..0x512aba lo abre; el cierre, en 0x512bea..0x512cc6 o en línea en 0x512efa..0x5130cf,
     // es el de este acceso, también cuando MuRet corta antes.
-    const Render::Models::LogicalAccess ownAccess(context.ownRecordAccesses, context.stop.random,
-                                                  Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess ownAccess(context.ownRecordAccesses, context.stop.random,
+                                          Models::OwnRecordCloseRandoms);
     ProjectCarried(actor, context.own);
     ActorStopResult stop;
     if (CallsStop(actor, context.stop.runtime.map))

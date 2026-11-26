@@ -12,7 +12,7 @@
 
 namespace
 {
-using Client::Render::Models::OriginalFramePace;
+using Client::Models::OriginalFramePace;
 using Client::Scenes::OriginalFramesOfTheSteps;
 
 // Cómo cuenta los frames del original el dibujo: por los pasos de la escena, o por el reloj del dibujo, como
@@ -31,7 +31,7 @@ std::vector<int> StepsPerOriginalFrame(double fps, int draws, Count count = Coun
                                        Client::Core::Duration jitter = {})
 {
     OriginalFramesOfTheSteps frames;
-    Client::Render::Models::OriginalFrameCarry drawClockFrames;
+    Client::Models::OriginalFrameCarry drawClockFrames;
     const auto drawTime = std::chrono::duration_cast<Client::Core::Duration>(std::chrono::duration<double>(1.0 / fps));
     Client::Core::Duration owed{};
     Client::Core::Duration clock{};

@@ -725,21 +725,21 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     // la posición en la raíz.
     DrawnObject object;
     object.model = placement.poseModel;
-    object.transform = Render::Models::ObjectTransform{.position = placement.position,
-                                                       .angles = placement.angles,
-                                                       .scale = placement.scale,
-                                                       .lockedRootHeight = placement.rootHeight};
+    object.transform = Models::ObjectTransform{.position = placement.position,
+                                               .angles = placement.angles,
+                                               .scale = placement.scale,
+                                               .lockedRootHeight = placement.rootHeight};
     // Sin el skin de la pose: lo hace 0x4ebc80 con el modelo que dibuja.
     object.alpha = 0.0f;
     if (auto posed = PublishFaunaFloorPose(resources.poseCarry, resources.models, object); !posed.HasValue())
         return posed;
     // 0x5e13f3: 0x607b60 con el que dibuja en +2, con sus rand(); 0x5e1404..0x5e1466: la escala, la posición, la luz
     // por vértice en 0 y +0x1d4 en 2. El alpha (+0x174) y la luz, en 1.
-    Render::Models::ObjectRandoms randoms{};
+    Models::ObjectRandoms randoms{};
     for (std::size_t index = 0; index < HangingRandomCount(placement.model); ++index)
         randoms[index] = random.Next();
     object.model = placement.model;
-    object.state = Render::Models::NativeItemObjectState(placement.model, resources.frameClock, randoms);
+    object.state = Models::NativeItemObjectState(placement.model, resources.frameClock, randoms);
     object.color = glm::vec3(1.0f);
     object.alpha = 1.0f;
     object.vertexLight = false;

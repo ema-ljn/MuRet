@@ -61,7 +61,7 @@ namespace
 {
 constexpr float PartBoxAlphaThreshold = 0.01f;
 using Math::BoneTransform;
-using Render::Models::ObjectState;
+using Models::ObjectState;
 
 // El contorno de 0x60cf70 con su modo 1: dos pases de 0x60cd60, a la escala de +0x94 (1,2, de 0x511290) y a
 // ella menos 0,02, sin luz y con 0x40 (0x4ecc30: aditivo, sin textura y sin escribir la profundidad). El color
@@ -134,18 +134,18 @@ std::uint16_t DrawnPartModel(GameLogic::BodyPart part, std::uint16_t model, std:
     return static_cast<std::uint16_t>(model + Data::Models::MaskHelmOffset);
 }
 
-Render::TextureSlot PassSlot(Render::Models::ShinePass pass)
+Render::TextureSlot PassSlot(Models::ShinePass pass)
 {
     switch (pass)
     {
-    case Render::Models::ShinePass::Shiny:
+    case Models::ShinePass::Shiny:
         return ShinyTextureSlot;
-    case Render::Models::ShinePass::Chrome:
+    case Models::ShinePass::Chrome:
         return ChromeTextureSlot;
-    case Render::Models::ShinePass::Chrome2:
-    case Render::Models::ShinePass::Chrome3:
-    case Render::Models::ShinePass::Chrome4:
-    case Render::Models::ShinePass::Chrome5:
+    case Models::ShinePass::Chrome2:
+    case Models::ShinePass::Chrome3:
+    case Models::ShinePass::Chrome4:
+    case Models::ShinePass::Chrome5:
         break;
     }
     return MetalTextureSlot;
@@ -154,21 +154,21 @@ Render::TextureSlot PassSlot(Render::Models::ShinePass pass)
 // El color de un pase de brillo, como lo pone 0x60b3d0 antes de su RenderBody: el 0x48 y el 0x44 con
 // el del ítem (0x608e00); el 0x240 y el 0x1040, el base por el factor del ítem (0x6093d0); y el de
 // set, el de 0x609560. Ninguno va por la luz del blendMesh: 0x4ecc30 los dibuja antes de esa rama.
-Render::Color ShineColorOf(Render::Models::ShinePass pass, std::uint16_t model, Render::Color base)
+Render::Color ShineColorOf(Models::ShinePass pass, std::uint16_t model, Render::Color base)
 {
     switch (pass)
     {
-    case Render::Models::ShinePass::Shiny:
-    case Render::Models::ShinePass::Chrome:
-        return Render::Models::ShineColorOf(model);
-    case Render::Models::ShinePass::Chrome2:
-    case Render::Models::ShinePass::Chrome4:
-    case Render::Models::ShinePass::Chrome5:
+    case Models::ShinePass::Shiny:
+    case Models::ShinePass::Chrome:
+        return Models::ShineColorOf(model);
+    case Models::ShinePass::Chrome2:
+    case Models::ShinePass::Chrome4:
+    case Models::ShinePass::Chrome5:
         break;
-    case Render::Models::ShinePass::Chrome3:
-        return Render::Models::SetColorOf(model);
+    case Models::ShinePass::Chrome3:
+        return Models::SetColorOf(model);
     }
-    const glm::vec3 factor = Render::Models::MetalFactorOf(model);
+    const glm::vec3 factor = Models::MetalFactorOf(model);
     return Render::Color{base.red * factor.x, base.green * factor.y, base.blue * factor.z, base.alpha};
 }
 
@@ -177,7 +177,7 @@ Render::Color ShineColorOf(Render::Models::ShinePass pass, std::uint16_t model, 
 struct CharacterFrame
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     const DrawnCharacter& character;
     Core::Duration clock{};
     std::minstd_rand& random;
@@ -224,7 +224,7 @@ std::int16_t BlendMeshOf(const MeshRole& role, std::size_t index, const ObjectSt
 // blendMesh menor que −1, o con el de su textura.
 bool Blends(const Data::Models::Mesh& mesh, std::int16_t blendMesh)
 {
-    return blendMesh < Render::Models::NoBlendMesh || mesh.texture == blendMesh;
+    return blendMesh < Models::NoBlendMesh || mesh.texture == blendMesh;
 }
 
 Render::Color Scaled(Render::Color color, float factor)
@@ -239,7 +239,7 @@ struct MeshDraw
     std::uint16_t model = 0;
     std::size_t index = 0;
     const Data::Models::Mesh* mesh = nullptr;
-    const Render::Models::SkinnedMesh* skinned = nullptr;
+    const Models::SkinnedMesh* skinned = nullptr;
     MeshRole role;
     std::optional<Render::TextureSlot> texture;
     Render::Color shade;
@@ -259,7 +259,7 @@ struct MeshDraw
 // mundo; las dos más `shift`.
 struct PassUv
 {
-    std::optional<Render::Models::ShinePass> shine;
+    std::optional<Models::ShinePass> shine;
     glm::vec2 shift{};
 };
 
@@ -280,7 +280,7 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
         const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
         if (itemClock)
             return ItemShineTexCoords(*uv.shine, draw.skinned->normals[normal], *itemClock) + uv.shift;
-        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal], draw.frameClock) + uv.shift;
+        return Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal], draw.frameClock) + uv.shift;
     }
     const Data::Models::TexCoord& texCoord = draw.mesh->texCoords[static_cast<std::size_t>(triangle.texCoords[corner])];
     return glm::vec2{texCoord.u, texCoord.v} + uv.shift;
@@ -303,7 +303,7 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
             if (normalLight)
             {
                 const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
-                const float light = Render::Models::NormalLight(draw.skinned->normals[normal]);
+                const float light = Models::NormalLight(draw.skinned->normals[normal]);
                 shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
             }
             corners[corner] = Render::ModelVertex{draw.skinned->positions[vertex],
@@ -368,19 +368,19 @@ struct SetFade
 // Un pase de brillo con su textura y sus UV, salvo en una malla sin brillo o en la que su ítem oculta
 // en ese pase; el de set, con el alpha que se va multiplicando, y el 0x1040 (el modo 0x1000 de
 // 0x4ecc30) con la U y la V del objeto.
-void DrawShinePass(Render::ModelBatch& batch, const MeshDraw& draw, Render::Models::ShinePass pass, SetFade& fade)
+void DrawShinePass(Render::ModelBatch& batch, const MeshDraw& draw, Models::ShinePass pass, SetFade& fade)
 {
-    if (!draw.role.shines || Render::Models::PassHiddenMesh(draw.model, pass, draw.object->hiddenMesh) == draw.index)
+    if (!draw.role.shines || Models::PassHiddenMesh(draw.model, pass, draw.object->hiddenMesh) == draw.index)
     {
         return;
     }
     Render::Color color = ShineColorOf(pass, draw.model, draw.shade);
-    if (pass == Render::Models::ShinePass::Chrome3)
+    if (pass == Models::ShinePass::Chrome3)
     {
         fade.factor *= fade.alpha;
         color = Scaled(color, fade.factor);
     }
-    const glm::vec2 shift = pass == Render::Models::ShinePass::Chrome4 ? draw.object->uv : glm::vec2{};
+    const glm::vec2 shift = pass == Models::ShinePass::Chrome4 ? draw.object->uv : glm::vec2{};
     Triangles(batch, draw, {PassSlot(pass), Render::ModelBlend::Additive, true}, color, PassUv{pass, shift});
 }
 
@@ -388,7 +388,7 @@ void DrawShinePass(Render::ModelBatch& batch, const MeshDraw& draw, Render::Mode
 // rama del blendMesh.
 void DrawExcellentPass(Render::ModelBatch& batch, const MeshDraw& draw)
 {
-    const Render::Color color = Render::Models::ExcellentColorAt(draw.frameClock);
+    const Render::Color color = Models::ExcellentColorAt(draw.frameClock);
     Triangles(batch, draw, {draw.texture, Render::ModelBlend::Additive, true},
               draw.blends ? Scaled(color, draw.object->light) : color, PassUv{std::nullopt, TexturedShift(draw)});
 }
@@ -472,15 +472,15 @@ bool IndicesInRange(const Data::Models::Mesh& mesh)
 // Un pase del contorno sobre una malla: sin textura, o la del blendMesh con la suya y por la luz
 // (0x4ecc30 con 0x40 pasa el blendMesh antes que lo demás). Una malla de cuatro componentes que no va
 // por esa rama no va (0x40 sin 0x2).
-void OutlineMeshAround(Render::ModelBatch& batch, const Render::Models::ObjectTransform& transform,
-                       const OutlinePass& pass, const MeshDraw& draw, std::span<const BoneTransform> bones)
+void OutlineMeshAround(Render::ModelBatch& batch, const Models::ObjectTransform& transform, const OutlinePass& pass,
+                       const MeshDraw& draw, std::span<const BoneTransform> bones)
 {
     if (!draw.blends && HasFourComponents(*draw.mesh))
     {
         return;
     }
-    Render::Models::SkinnedMesh skinned;
-    if (!Render::Models::SkinMeshAroundBones(*draw.mesh, bones, transform, pass.boneScale, skinned))
+    Models::SkinnedMesh skinned;
+    if (!Models::SkinMeshAroundBones(*draw.mesh, bones, transform, pass.boneScale, skinned))
     {
         return;
     }
@@ -519,7 +519,7 @@ void DrawOutline(const CharacterFrame& frame, std::span<const MeshDraw> draws, s
 // el que 0x509340 le arma con su modelo.
 struct ModelUse
 {
-    const Render::Models::ItemGlow& glow;
+    const Models::ItemGlow& glow;
     bool outlined = false;
     std::uint16_t objectType = Data::Models::PlayerSkeletonModel;
     ObjectState object;
@@ -561,8 +561,8 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
     {
         DrawBase(frame.batch, draw);
     }
-    SetFade fade{Render::Models::SetAlphaAt(frame.clock)};
-    for (const Render::Models::GlowPass& pass : use.glow.passes)
+    SetFade fade{Models::SetAlphaAt(frame.clock)};
+    for (const Models::GlowPass& pass : use.glow.passes)
     {
         for (const MeshDraw& draw : draws)
         {
@@ -581,14 +581,14 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
 // Las mallas de `modelId` que se dibujan, pasadas al mundo con `bones` y `object` en `skinned` (una
 // por malla): cada una con su papel, su textura (la piel y el pelo `skin`, +0x98 del modelo), `shade` y
 // `state`. Las de H, la oculta (0x12d), las rotas y las que no se pueden pasar al mundo no van.
-std::vector<MeshDraw> MeshDrawsOf(const Render::Models::IModelLibrary& models, std::uint16_t modelId,
+std::vector<MeshDraw> MeshDrawsOf(const Models::IModelLibrary& models, std::uint16_t modelId,
                                   const Data::Models::Model& model, std::span<const BoneTransform> bones,
-                                  const Render::Models::ObjectTransform& object, std::uint8_t skin, Render::Color shade,
+                                  const Models::ObjectTransform& object, std::uint8_t skin, Render::Color shade,
                                   const ObjectState& state, Core::Duration clock,
-                                  std::vector<Render::Models::SkinnedMesh>& skinned)
+                                  std::vector<Models::SkinnedMesh>& skinned)
 {
     const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
-    skinned.assign(model.meshes.size(), Render::Models::SkinnedMesh{});
+    skinned.assign(model.meshes.size(), Models::SkinnedMesh{});
     std::vector<MeshDraw> draws;
     draws.reserve(model.meshes.size());
     for (std::size_t index = 0; index < model.meshes.size(); ++index)
@@ -597,7 +597,7 @@ std::vector<MeshDraw> MeshDrawsOf(const Render::Models::IModelLibrary& models, s
         const MeshRole role = RoleOf(modelId, mesh, index);
         const MeshTexture texture = TextureOf(mesh, slots, index, skin);
         if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
-            !Render::Models::SkinMesh(mesh, bones, object, skinned[index]))
+            !Models::SkinMesh(mesh, bones, object, skinned[index]))
         {
             continue;
         }
@@ -633,7 +633,7 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     const glm::vec3 light =
         use.hanging ? frame.character.hangingLight.value_or(frame.character.light) : frame.character.light;
     const glm::vec3 shade = light * use.glow.baseFactor;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     std::vector<MeshDraw> draws =
         MeshDrawsOf(frame.models, modelId, *model, bones, frame.character.object,
                     SkinIndexOf(frame.character.appearance.characterClass),
@@ -710,15 +710,14 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
     for (const Data::Models::Mesh& mesh : model->meshes)
     {
         // 0x4eff40 no mira la textura: la malla de Shadow01 es la oculta (hide_m) y va igual.
-        Render::Models::SkinnedMesh skinned;
-        if (!IndicesInRange(mesh) || !Render::Models::SkinMesh(mesh, body, character.object, skinned))
+        Models::SkinnedMesh skinned;
+        if (!IndicesInRange(mesh) || !Models::SkinMesh(mesh, body, character.object, skinned))
         {
             continue;
         }
         for (glm::vec3& position : skinned.positions)
         {
-            position =
-                Render::Models::FlattenOnTheGround(position, character.object.position, ShadowSpreadOf(character.map));
+            position = Models::FlattenOnTheGround(position, character.object.position, ShadowSpreadOf(character.map));
         }
         MeshDraw draw;
         draw.mesh = &mesh;
@@ -732,7 +731,7 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
 struct DrawnPart
 {
     std::uint16_t model = 0;
-    Render::Models::ItemGlow glow;
+    Models::ItemGlow glow;
     bool helm = false;
 };
 
@@ -746,12 +745,12 @@ std::vector<DrawnPart> PartsInOrder(const GameLogic::CharacterAppearance& appear
         const GameLogic::WornItem& part = appearance.bodyParts[index];
         const auto bodyPart = static_cast<GameLogic::BodyPart>(index);
         parts.push_back(DrawnPart{DrawnPartModel(bodyPart, part.model, appearance.characterClass),
-                                  Render::Models::ItemGlowOf(part.level, part.excellent, part.ancient),
+                                  Models::ItemGlowOf(part.level, part.excellent, part.ancient),
                                   bodyPart == GameLogic::BodyPart::Helm});
     }
     if (appearance.head)
     {
-        parts.push_back(DrawnPart{*appearance.head, Render::Models::ItemGlow{}, false});
+        parts.push_back(DrawnPart{*appearance.head, Models::ItemGlow{}, false});
     }
     return parts;
 }
@@ -769,9 +768,9 @@ PartLight LightOf(const DrawnPart& part, float light, std::uint8_t characterClas
     PartLight result{light, light};
     if (part.helm && IsMaskedClass(characterClass))
     {
-        result = {Render::Models::MaskedClassLightAt(clock), Render::Models::MaskedClassLightAt(clock)};
+        result = {Models::MaskedClassLightAt(clock), Models::MaskedClassLightAt(clock)};
     }
-    if (const std::optional<float> written = Render::Models::ModelLightOf(part.model, clock))
+    if (const std::optional<float> written = Models::ModelLightOf(part.model, clock))
     {
         result.body = *written;
     }
@@ -796,13 +795,12 @@ void DrawParts(const CharacterFrame& frame, std::span<const BoneTransform> body)
         light = partLight.body;
         DrawModel(frame, part.model, body,
                   ModelUse{part.glow, frame.character.outlined, Data::Models::PlayerSkeletonModel,
-                           ObjectState{Render::Models::NoBlendMesh, light, {}, Render::Models::NoHiddenMesh},
-                           partLight.outline});
+                           ObjectState{Models::NoBlendMesh, light, {}, Models::NoHiddenMesh}, partLight.outline});
     }
 }
 
 // Los dos rand() de 0x607b60, de 0 a 32767 como el de MSVC.
-Render::Models::ObjectRandoms RandomsOf(std::minstd_rand& random)
+Models::ObjectRandoms RandomsOf(std::minstd_rand& random)
 {
     constexpr std::uint_fast32_t RandRange = 32768;
     const auto first = static_cast<int>(random() % RandRange);
@@ -810,13 +808,13 @@ Render::Models::ObjectRandoms RandomsOf(std::minstd_rand& random)
     return {first, second};
 }
 
-Render::Models::ObjectRandoms RandomsOf(const CharacterFrame& frame, std::uint16_t model)
+Models::ObjectRandoms RandomsOf(const CharacterFrame& frame, std::uint16_t model)
 {
     if (frame.character.originalRandom == nullptr)
     {
         return RandomsOf(frame.random);
     }
-    Render::Models::ObjectRandoms randoms{};
+    Models::ObjectRandoms randoms{};
     for (std::size_t index = 0; index < HangingRandomCount(model); ++index)
     {
         randoms[index] = frame.character.originalRandom->Next();
@@ -829,18 +827,17 @@ Render::Models::ObjectRandoms RandomsOf(const CharacterFrame& frame, std::uint16
 // el del cetro, con el hueso 0 de esa pose y el cuerpo del ítem, la escala del personaje (0x509397) y
 // `bodyOrigin` (+0x6c del modelo).
 void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const BoneTransform& root,
-                     const glm::vec3& bodyOrigin, const Render::Models::AnimationState& state,
-                     const Render::Models::ItemGlow& glow)
+                     const glm::vec3& bodyOrigin, const Models::AnimationState& state, const Models::ItemGlow& glow)
 {
     constexpr std::uint32_t HiddenAttachmentFlag = 0x4000;
-    if (!Render::Models::HangsAsAModel(modelId) || (frame.character.objectFlags & HiddenAttachmentFlag) != 0)
+    if (!Models::HangsAsAModel(modelId) || (frame.character.objectFlags & HiddenAttachmentFlag) != 0)
     {
         return;
     }
     // 0x5093bb inicializa el objeto antes de intentar la pose del ítem.
-    const std::optional<Render::Models::ObjectRandoms> originalRandoms =
+    const std::optional<Models::ObjectRandoms> originalRandoms =
         frame.character.originalRandom != nullptr ? std::optional{RandomsOf(frame, modelId)} : std::nullopt;
-    const Render::Models::Skeleton* skeleton = frame.models.SkeletonOf(modelId);
+    const Models::Skeleton* skeleton = frame.models.SkeletonOf(modelId);
     if (skeleton == nullptr)
     {
         return;
@@ -851,13 +848,13 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
         const auto retained = frame.character.poseBones(modelId);
         std::copy_n(retained.begin(), std::min(retained.size(), bones.size()), bones.begin());
     }
-    if (!Render::Models::PoseAttached(*skeleton, state, root, bones))
+    if (!Models::PoseAttached(*skeleton, state, root, bones))
     {
         return;
     }
     if (frame.character.onPose)
         frame.character.onPose(modelId, bones, frame.character.object, false);
-    const ObjectState object = Render::Models::HangingObjectState(
+    const ObjectState object = Models::HangingObjectState(
         modelId, frame.clock, originalRandoms.has_value() ? *originalRandoms : RandomsOf(frame, modelId));
     DrawModel(frame, modelId, bones, ModelUse{glow, false, modelId, object, object.light, true});
     const DrawnCharacter& character = frame.character;
@@ -881,8 +878,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
 // 0x4ec190 y 0x50966b: el origen del cuerpo de lo que cuelga de su lugar, el desplazamiento girado por el
 // hueso y por la escala del personaje, guardado en float, más su posición. Con el de las manos, en 0, es
 // la posición.
-glm::vec3 HangingOrigin(const BoneTransform& parent, const glm::vec3& offset,
-                        const Render::Models::ObjectTransform& object)
+glm::vec3 HangingOrigin(const BoneTransform& parent, const glm::vec3& offset, const Models::ObjectTransform& object)
 {
     const glm::vec3 turned = Math::OriginalVectorRotate(offset, Math::OriginalMatrixOf(parent));
     glm::vec3 origin{};
@@ -896,17 +892,16 @@ glm::vec3 HangingOrigin(const BoneTransform& parent, const glm::vec3& offset,
 
 // Lo que cuelga de su lugar: desde su hueso del cuerpo con el desplazamiento (0x509340 con la bandera
 // en 0).
-void DrawHanging(const CharacterFrame& frame, std::uint16_t modelId, Render::Models::AttachmentSlot slot,
-                 const Render::Models::AnimationState& state, std::span<const BoneTransform> body,
-                 const Render::Models::ItemGlow& glow)
+void DrawHanging(const CharacterFrame& frame, std::uint16_t modelId, Models::AttachmentSlot slot,
+                 const Models::AnimationState& state, std::span<const BoneTransform> body, const Models::ItemGlow& glow)
 {
-    const Render::Models::Attachment attachment = Render::Models::AttachmentOf(slot);
+    const Models::Attachment attachment = Models::AttachmentOf(slot);
     if (static_cast<std::size_t>(attachment.bone) >= body.size())
     {
         return;
     }
     const BoneTransform& parent = body[static_cast<std::size_t>(attachment.bone)];
-    DrawHangingFrom(frame, modelId, Render::Models::AttachmentRoot(parent, attachment.offset),
+    DrawHangingFrom(frame, modelId, Models::AttachmentRoot(parent, attachment.offset),
                     HangingOrigin(parent, attachment.offset, frame.character.object), state, glow);
 }
 
@@ -931,17 +926,15 @@ std::optional<GameLogic::WornItem> QuiverOf(const GameLogic::CharacterAppearance
 void DrawQuiver(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
     const std::optional<GameLogic::WornItem> quiver = QuiverOf(frame.character.appearance);
-    const auto bone =
-        static_cast<std::size_t>(Render::Models::AttachmentOf(Render::Models::AttachmentSlot::Wings).bone);
+    const auto bone = static_cast<std::size_t>(Models::AttachmentOf(Models::AttachmentSlot::Wings).bone);
     if (!quiver || bone >= body.size())
     {
         return;
     }
-    const Render::Models::ItemGlow glow =
-        Render::Models::ItemGlowOf(Render::Models::QuiverGlowLevel(quiver->level), quiver->excellent, false);
+    const Models::ItemGlow glow = Models::ItemGlowOf(Models::QuiverGlowLevel(quiver->level), quiver->excellent, false);
     // Por ese camino, el origen del cuerpo es la posición del personaje (0x509607).
-    DrawHangingFrom(frame, quiver->model, Render::Models::PlacedRoot(body[bone], Render::Models::QuiverPlacement),
-                    frame.character.object.position, Render::Models::AnimationState{}, glow);
+    DrawHangingFrom(frame, quiver->model, Models::PlacedRoot(body[bone], Models::QuiverPlacement),
+                    frame.character.object.position, Models::AnimationState{}, glow);
 }
 
 // flare01 (0x5ac) y la mezcla 0 de 0x5491e0, la aditiva.
@@ -965,10 +958,10 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
     wearer.wings = appearance.wings;
     wearer.objectFlags = character.objectFlags;
     wearer.monster = character.monster;
-    const Render::Models::ClothBody clothBody{.bones = body,
-                                              .angles = character.object.angles,
-                                              .scale = character.object.scale,
-                                              .position = character.object.position};
+    const Models::ClothBody clothBody{.bones = body,
+                                      .angles = character.object.angles,
+                                      .scale = character.object.scale,
+                                      .position = character.object.position};
     const bool wears =
         character.wearsCloth.value_or(WearsACloth(appearance.characterClass, character.map) ||
                                       (character.monster && WearsTheMonsterCloth(*character.monster, character.map)));
@@ -984,7 +977,7 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
     // Los destellos del casco blanco (0x455930), aditivos, en la tabla del frame.
     if (character.sprites != nullptr)
     {
-        for (const Render::Models::ClothFlare& flare : character.cloth->Flares())
+        for (const Models::ClothFlare& flare : character.cloth->Flares())
         {
             (void)character.sprites->Create(ClothFlareTexture, flare.position, flare.scale, glm::vec3(flare.light),
                                             0.0f, AdditiveSprite);
@@ -1010,15 +1003,15 @@ bool DrawTheBodyPass(const CharacterFrame& frame, std::span<const BoneTransform>
 void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
     const GameLogic::CharacterAppearance& appearance = frame.character.appearance;
-    using Render::Models::AttachmentSlot;
+    using Models::AttachmentSlot;
     for (const auto& [hand, slot] : {std::pair{appearance.rightHand, AttachmentSlot::RightHand},
                                      std::pair{appearance.leftHand, AttachmentSlot::LeftHand}})
     {
         if (hand && !SkippedInTheHand(hand->model))
         {
             // 0x509340 le pasa a 0x60b3d0 el set en 0: lo que cuelga no lleva su pase.
-            const Render::Models::ItemGlow glow = Render::Models::ItemGlowOf(hand->level, hand->excellent, false);
-            DrawHanging(frame, hand->model, slot, Render::Models::AnimationState{}, body, glow);
+            const Models::ItemGlow glow = Models::ItemGlowOf(hand->level, hand->excellent, false);
+            DrawHanging(frame, hand->model, slot, Models::AnimationState{}, body, glow);
         }
     }
 }
@@ -1051,10 +1044,9 @@ std::size_t HangingRandomCount(std::uint16_t model)
     return 0;
 }
 
-std::vector<BoneTransform> PoseCharacterBody(const Render::Models::IModelLibrary& models,
-                                             const DrawnCharacter& character)
+std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models, const DrawnCharacter& character)
 {
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr)
     {
         return {};
@@ -1065,15 +1057,15 @@ std::vector<BoneTransform> PoseCharacterBody(const Render::Models::IModelLibrary
         const auto retained = character.poseBones(Data::Models::PlayerSkeletonModel);
         std::copy_n(retained.begin(), std::min(retained.size(), body.size()), body.begin());
     }
-    if (!Render::Models::PoseSkeleton(*skeleton, character.body, character.object, character.headAngles, body))
+    if (!Models::PoseSkeleton(*skeleton, character.body, character.object, character.headAngles, body))
     {
         return {};
     }
     return body;
 }
 
-void DrawCharacter(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                   const DrawnCharacter& character, Core::Duration frameClock, CharacterDrawPass pass)
+void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnCharacter& character,
+                   Core::Duration frameClock, CharacterDrawPass pass)
 {
     const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
     if (body.empty())
@@ -1090,13 +1082,13 @@ void DrawCharacter(Render::ModelBatch& batch, const Render::Models::IModelLibrar
         return;
     }
     DrawQuiver(frame, body);
-    const Render::Models::ItemGlow noGlow{};
-    using Render::Models::AttachmentSlot;
+    const Models::ItemGlow noGlow{};
+    using Models::AttachmentSlot;
     if (appearance.wings)
     {
         DrawHanging(frame, *appearance.wings, AttachmentSlot::Wings, character.wings, body, noGlow);
     }
-    if (appearance.pet && Render::Models::DrawsThePet(*appearance.pet))
+    if (appearance.pet && Models::DrawsThePet(*appearance.pet))
     {
         DrawHanging(frame, *appearance.pet, AttachmentSlot::Pet, character.pet, body, noGlow);
     }
@@ -1109,9 +1101,8 @@ namespace
 constexpr std::uint8_t ChaosCastleBodySkin = 0;
 } // namespace
 
-Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
-                                                      const Render::Models::IModelLibrary& models,
-                                                      const Render::Models::IModelLibrary& angelModels,
+Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                      const Models::IModelLibrary& angelModels,
                                                       const DrawnCharacter& character, Core::Duration frameClock,
                                                       std::uint32_t flags)
 {
@@ -1133,13 +1124,13 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
         character.onPose(ChaosCastleBodyModel, body, character.object, false);
     // El objeto del personaje: sin blendMesh ni malla oculta y con la luz +0x68 en 1, como la deja 0x511290. En
     // estos mapas el lazo de las partes, que la cambia en el casco de la clase 4, no corre para un jugador.
-    const ObjectState state{Render::Models::NoBlendMesh, 1.0f, {}, Render::Models::NoHiddenMesh};
+    const ObjectState state{Models::NoBlendMesh, 1.0f, {}, Models::NoHiddenMesh};
     if (character.outlined)
     {
         // 0x60d04d: el contorno, antes de 0x5ffce0 y de 0x60b3d0.
         std::minstd_rand random(RandomSeedOf(frameClock));
         const CharacterFrame frame{batch, angelModels, character, frameClock, random};
-        std::vector<Render::Models::SkinnedMesh> outlineMeshes;
+        std::vector<Models::SkinnedMesh> outlineMeshes;
         std::vector<MeshDraw> draws =
             MeshDrawsOf(angelModels, ChaosCastleBodyModel, *model, body, character.object, ChaosCastleBodySkin,
                         Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
@@ -1150,11 +1141,11 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
     }
     if (character.alpha > PartBoxAlphaThreshold && character.onPartBox)
         character.onPartBox(character.object.position);
-    std::vector<Render::Models::SkinnedMesh> meshes(model->meshes.size());
+    std::vector<Models::SkinnedMesh> meshes(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         if (!IndicesInRange(model->meshes[index]) ||
-            !Render::Models::SkinMesh(model->meshes[index], body, character.object, meshes[index]))
+            !Models::SkinMesh(model->meshes[index], body, character.object, meshes[index]))
         {
             return Core::Unexpected(
                 std::string("0x60cf70: una malla del Angel (0x1f7) no se puede pasar a los huesos del cuerpo"));
@@ -1176,7 +1167,7 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
 namespace
 {
 MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, const Data::Models::Mesh& mesh,
-                          const Render::Models::SkinnedMesh& skinned, std::size_t index, const MeshRole& role,
+                          const Models::SkinnedMesh& skinned, std::size_t index, const MeshRole& role,
                           std::optional<Render::TextureSlot> texture, bool originalClock)
 {
     const auto blendMesh = BlendMeshOf(role, index, object.state);
@@ -1199,9 +1190,8 @@ MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, 
     return draw;
 }
 
-std::vector<MeshDraw> RetainedObjectMeshDraws(const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                                              Core::Duration frameClock,
-                                              std::span<const Render::Models::SkinnedMesh> meshes,
+std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& models, const DrawnObject& object,
+                                              Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
                                               bool forceVisible = false, bool rawMesh = false,
                                               bool originalClock = false)
 {
@@ -1225,21 +1215,20 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const Render::Models::IModelLibrar
 }
 } // namespace
 
-std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const Render::Models::IModelLibrary& models,
-                                                        const DrawnObject& object)
+std::vector<Models::SkinnedMesh> WorldScratchOf(const Models::IModelLibrary& models, const DrawnObject& object)
 {
     const Data::Models::Model* model = models.Find(object.model);
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    const Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     if (model == nullptr || skeleton == nullptr)
         return {};
     std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
-    if (!Render::Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    if (!Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
         return {};
-    std::vector<Render::Models::SkinnedMesh> skinned(model->meshes.size());
+    std::vector<Models::SkinnedMesh> skinned(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         if (IndicesInRange(model->meshes[index]))
-            static_cast<void>(Render::Models::SkinMeshInWorld(model->meshes[index], bones, skinned[index]));
+            static_cast<void>(Models::SkinMeshInWorld(model->meshes[index], bones, skinned[index]));
     }
     return skinned;
 }
@@ -1249,8 +1238,8 @@ namespace
 // Las mallas de un objeto del mundo posado como 0x5ffdf0 con el segundo argumento en 0, con su alpha y su luz por
 // vértice, o ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo. Sin el scratch
 // publicado, lo arma WorldScratchOf en `skinned`.
-std::vector<MeshDraw> ObjectMeshDraws(const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                                      Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned)
+std::vector<MeshDraw> ObjectMeshDraws(const Models::IModelLibrary& models, const DrawnObject& object,
+                                      Core::Duration clock, std::vector<Models::SkinnedMesh>& skinned)
 {
     if (!object.retainedMeshes.empty())
         return RetainedObjectMeshDraws(models, object, clock, object.retainedMeshes);
@@ -1284,20 +1273,20 @@ constexpr std::array<std::size_t, 2> DarkSpiritMeshes{3, 2};
 constexpr Render::Color DarkSpiritShadowColor{0.0f, 0.0f, 0.0f, 1.0f};
 } // namespace
 
-void DrawObject(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+void DrawObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock)
 {
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     for (const MeshDraw& draw : ObjectMeshDraws(models, object, frameClock, skinned))
     {
         DrawBase(batch, draw);
     }
 }
 
-void DrawObjectWithTexture(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                           const DrawnObject& object, Core::Duration frameClock, Render::TextureSlot texture)
+void DrawObjectWithTexture(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                           Core::Duration frameClock, Render::TextureSlot texture)
 {
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
     {
         draw.texture = texture;
@@ -1305,10 +1294,9 @@ void DrawObjectWithTexture(Render::ModelBatch& batch, const Render::Models::IMod
     }
 }
 
-void DrawObjectFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                          const DrawnObject& object, Core::Duration frameClock,
-                          std::span<const Render::Models::SkinnedMesh> meshes,
-                          std::optional<Render::Models::ShinePass> shine)
+void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                          Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
+                          std::optional<Models::ShinePass> shine)
 {
     SetFade fade{object.alpha, 1.0f};
     for (const auto& draw : RetainedObjectMeshDraws(models, object, frameClock, meshes, shine.has_value()))
@@ -1318,13 +1306,12 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Render::Models::IMode
             DrawBase(batch, draw);
             continue;
         }
-        if (!draw.role.shines ||
-            Render::Models::PassHiddenMesh(draw.model, *shine, draw.object->hiddenMesh) == draw.index)
+        if (!draw.role.shines || Models::PassHiddenMesh(draw.model, *shine, draw.object->hiddenMesh) == draw.index)
             continue;
-        if (*shine == Render::Models::ShinePass::Chrome || *shine == Render::Models::ShinePass::Shiny)
+        if (*shine == Models::ShinePass::Chrome || *shine == Models::ShinePass::Shiny)
         {
             // 60b130→608e00 recibe alpha y escala antes de RenderBody; el color incluye ese producto.
-            const auto color = Scaled(Render::Models::ShineColorOf(object.model), object.alpha);
+            const auto color = Scaled(Models::ShineColorOf(object.model), object.alpha);
             Triangles(batch, draw, {PassSlot(*shine), Render::ModelBlend::Additive, true}, color, PassUv{*shine, {}});
         }
         else
@@ -1332,31 +1319,30 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Render::Models::IMode
     }
 }
 
-std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const Render::Models::IModelLibrary& models,
-                                                          const DrawnObject& object,
-                                                          std::span<const BoneTransform> bones, float boneScale)
+std::vector<Models::SkinnedMesh> SkinObjectMeshes(const Models::IModelLibrary& models, const DrawnObject& object,
+                                                  std::span<const BoneTransform> bones, float boneScale)
 {
     const Data::Models::Model* model = models.Find(object.model);
     if (model == nullptr)
         return {};
-    std::vector<Render::Models::SkinnedMesh> skinned(model->meshes.size());
+    std::vector<Models::SkinnedMesh> skinned(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         if (IndicesInRange(model->meshes[index]))
-            static_cast<void>(Render::Models::SkinMeshAroundBones(model->meshes[index], bones, object.transform,
-                                                                  boneScale, skinned[index]));
+            static_cast<void>(
+                Models::SkinMeshAroundBones(model->meshes[index], bones, object.transform, boneScale, skinned[index]));
     }
     return skinned;
 }
 
-void DrawObjectOutline(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                       const DrawnObject& object, Core::Duration frameClock, std::span<const BoneTransform> bones,
+void DrawObjectOutline(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                       Core::Duration frameClock, std::span<const BoneTransform> bones,
                        std::span<const ObjectOutlinePass> passes)
 {
     const Data::Models::Model* model = models.Find(object.model);
     if (model == nullptr)
         return;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, object.skin,
                                                     Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
                                                     object.state, frameClock, skinned);
@@ -1371,7 +1357,7 @@ void DrawObjectOutline(Render::ModelBatch& batch, const Render::Models::IModelLi
     }
 }
 
-void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                      const DrawnObject& object, Core::Duration frameClock,
                                      std::span<const BoneTransform> bones, std::span<const ObjectOutlinePass> passes)
 {
@@ -1384,8 +1370,8 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Mo
     role.hidden = false;
     role.blendScript = false;
     const MeshTexture texture = TextureOf(mesh, models.MeshTextures(object.model), 0, object.skin);
-    Render::Models::SkinnedMesh skinned;
-    if (!texture.drawn || !IndicesInRange(mesh) || !Render::Models::SkinMesh(mesh, bones, object.transform, skinned))
+    Models::SkinnedMesh skinned;
+    if (!texture.drawn || !IndicesInRange(mesh) || !Models::SkinMesh(mesh, bones, object.transform, skinned))
         return;
     const std::int16_t blendMesh = BlendMeshOf(role, 0, object.state);
     const MeshDraw draw{object.model,
@@ -1403,8 +1389,8 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Mo
         OutlineMeshAround(batch, object.transform, OutlinePass{pass.boneScale, pass.color}, draw, bones);
 }
 
-void DrawObjectShadow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                      std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t map)
+void DrawObjectShadow(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                      std::span<const Models::SkinnedMesh> meshes, std::int32_t map)
 {
     const bool kalima =
         (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
@@ -1423,9 +1409,9 @@ void DrawObjectShadow(Render::ModelBatch& batch, const Render::Models::IModelLib
             mesh.texture == object.state.blendMesh || !IndicesInRange(mesh) ||
             meshes[index].positions.size() < mesh.vertices.size())
             continue;
-        Render::Models::SkinnedMesh flat = meshes[index];
+        Models::SkinnedMesh flat = meshes[index];
         for (glm::vec3& position : flat.positions)
-            position = Render::Models::FlattenOnTheGround(position, object.transform.position, spread);
+            position = Models::FlattenOnTheGround(position, object.transform.position, spread);
         MeshDraw draw;
         draw.mesh = &mesh;
         draw.skinned = &flat;
@@ -1435,9 +1421,9 @@ void DrawObjectShadow(Render::ModelBatch& batch, const Render::Models::IModelLib
 
 namespace
 {
-std::optional<Render::Models::ShinePass> ItemShine(std::uint32_t flags)
+std::optional<Models::ShinePass> ItemShine(std::uint32_t flags)
 {
-    using Render::Models::ShinePass;
+    using Models::ShinePass;
     if ((flags & 0x4) != 0)
         return ShinePass::Chrome;
     if ((flags & 0x8) != 0)
@@ -1454,8 +1440,8 @@ std::optional<Render::Models::ShinePass> ItemShine(std::uint32_t flags)
 }
 
 Core::Expected<void, std::string> ValidateItemMesh(const Data::Models::Mesh& mesh,
-                                                   std::span<const Render::Models::SkinnedMesh> meshes,
-                                                   std::size_t index, std::size_t textures, bool textureOverride)
+                                                   std::span<const Models::SkinnedMesh> meshes, std::size_t index,
+                                                   std::size_t textures, bool textureOverride)
 {
     if (!textureOverride && index >= textures)
         return Core::Unexpected(std::string("4ecc30: falta la textura de una malla del ítem"));
@@ -1468,8 +1454,7 @@ Core::Expected<void, std::string> ValidateItemMesh(const Data::Models::Mesh& mes
     return {};
 }
 
-Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags,
-                                 std::optional<Render::Models::ShinePass> shine)
+Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags, std::optional<Models::ShinePass> shine)
 {
     using Render::ModelBlend;
     // 0x4ecf22..0x4ecf34 → 0x4ed014: la malla del blendMesh (o todas, con el blendMesh en −2 o menos) sólo mira la
@@ -1477,8 +1462,8 @@ Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags,
     // (0x4ecf57).
     if (!shine && draw.blends)
         return (flags & 0x80) != 0 ? ModelBlend::Subtractive : ModelBlend::Additive;
-    if ((flags & 0x40) != 0 || shine == Render::Models::ShinePass::Chrome3 ||
-        shine == Render::Models::ShinePass::Chrome4 || shine == Render::Models::ShinePass::Chrome5)
+    if ((flags & 0x40) != 0 || shine == Models::ShinePass::Chrome3 || shine == Models::ShinePass::Chrome4 ||
+        shine == Models::ShinePass::Chrome5)
         return ModelBlend::Additive;
     if ((flags & 0x80) != 0)
         return ModelBlend::Subtractive;
@@ -1490,7 +1475,7 @@ Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags,
 }
 
 void DrawItemPassMesh(Render::ModelBatch& batch, const MeshDraw& draw, std::uint32_t flags,
-                      std::optional<Render::Models::ShinePass> shine, std::optional<Render::TextureSlot> texture,
+                      std::optional<Models::ShinePass> shine, std::optional<Render::TextureSlot> texture,
                       glm::vec3& currentColor, glm::vec3* storedColor)
 {
     if (shine && !draw.role.shines)
@@ -1498,7 +1483,7 @@ void DrawItemPassMesh(Render::ModelBatch& batch, const MeshDraw& draw, std::uint
     if (!shine && ((!draw.blends && (flags & 0x43) == 0) || ((flags & 0x3) == 0 && HasFourComponents(*draw.mesh))))
         return;
     // 4ed4bd: el 0x4000 sin una textura forzada va con el slot de la malla, no con uno del pase.
-    const bool ownSlot = !shine || *shine == Render::Models::ShinePass::Chrome5;
+    const bool ownSlot = !shine || *shine == Models::ShinePass::Chrome5;
     auto slot = texture ? texture : (ownSlot ? draw.texture : std::optional(PassSlot(*shine)));
     const auto blend = ItemPassBlend(draw, flags, shine);
     Render::Color color{currentColor.r, currentColor.g, currentColor.b, 1};
@@ -1515,13 +1500,12 @@ void DrawItemPassMesh(Render::ModelBatch& batch, const MeshDraw& draw, std::uint
         if (storedColor)
             *storedColor = currentColor;
     }
-    const auto shift =
-        shine == Render::Models::ShinePass::Chrome4 || (!shine && draw.scrolls) ? draw.object->uv : glm::vec2{};
+    const auto shift = shine == Models::ShinePass::Chrome4 || (!shine && draw.scrolls) ? draw.object->uv : glm::vec2{};
     Triangles(batch, draw, {slot, blend, true}, color, PassUv{shine, shift},
               !shine && draw.vertexLight && !draw.blends);
 }
 
-Render::Models::SkinnedMesh FlattenedItemMesh(const Render::Models::SkinnedMesh& mesh, const glm::vec3& origin)
+Models::SkinnedMesh FlattenedItemMesh(const Models::SkinnedMesh& mesh, const glm::vec3& origin)
 {
     // 4ed6f6..4ed76d: X/Z en PC53 hasta el store; Y tiene un spillF32 intermedio.
     constexpr double Spread = 2000.0;
@@ -1547,11 +1531,11 @@ Render::Models::SkinnedMesh FlattenedItemMesh(const Render::Models::SkinnedMesh&
 struct WavedMesh
 {
     Data::Models::Mesh mesh;
-    Render::Models::SkinnedMesh vertices;
+    Models::SkinnedMesh vertices;
 };
 
 Core::Expected<WavedMesh, std::string> WavedItemMesh(const Data::Models::Mesh& input,
-                                                     const Render::Models::SkinnedMesh& skinned, float worldClock)
+                                                     const Models::SkinnedMesh& skinned, float worldClock)
 {
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3be56042u)); // 0,007f (0x6ba144)
     constexpr double Reach = 28.0;                                                  // 0x6b880c
@@ -1596,11 +1580,11 @@ Core::Expected<WavedMesh, std::string> WavedItemMesh(const Data::Models::Mesh& i
 }
 } // namespace
 
-Core::Expected<void, std::string>
-DrawItemMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                 Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::int16_t mesh,
-                 std::uint32_t flags, std::optional<Render::TextureSlot> texture, glm::vec3* storedColor,
-                 std::optional<float> worldClock)
+Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                   const DrawnObject& object, Core::Duration frameClock,
+                                                   std::span<const Models::SkinnedMesh> meshes, std::int16_t mesh,
+                                                   std::uint32_t flags, std::optional<Render::TextureSlot> texture,
+                                                   glm::vec3* storedColor, std::optional<float> worldClock)
 {
     const auto* model = models.Find(object.model);
     if (!model)
@@ -1634,8 +1618,8 @@ DrawItemMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
         const auto assigned = TextureOf(input, slots, index, object.skin);
         if (!assigned.drawn)
             continue;
-        Render::Models::SkinnedMesh flattened;
-        const Render::Models::SkinnedMesh* vertices = &meshes[index];
+        Models::SkinnedMesh flattened;
+        const Models::SkinnedMesh* vertices = &meshes[index];
         const Data::Models::Mesh* corners = &input;
         WavedMesh waved;
         if ((flags & 0x20) != 0)
@@ -1707,10 +1691,10 @@ Core::Expected<Core::Duration, std::string> ItemFrameClock(Core::Duration clock,
     return Core::Duration(static_cast<std::int64_t>(nanos));
 }
 
-Core::Expected<void, std::string>
-DrawItemOptionPasses(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& base,
-                     Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
-                     const Render::Models::ItemGlow& glow, const ItemDrawContext& context)
+Core::Expected<void, std::string> DrawItemOptionPasses(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                       const DrawnObject& base, Core::Duration frameClock,
+                                                       std::span<const Models::SkinnedMesh> meshes,
+                                                       const Models::ItemGlow& glow, const ItemDrawContext& context)
 {
     const auto draws = RetainedObjectMeshDraws(models, base, frameClock, meshes, false, false, true);
     // 0x60cbff..0x60cc1c: T es el float del reloj del mundo; sin él, el reloj del frame. El alpha es el pulso en un
@@ -1718,12 +1702,11 @@ DrawItemOptionPasses(Render::ModelBatch& batch, const Render::Models::IModelLibr
     const double milliseconds = context.special && context.special->worldClock
                                     ? static_cast<double>(*context.special->worldClock)
                                     : std::chrono::duration<double, std::milli>(frameClock).count();
-    const double pulse = Render::Models::SetPulseAt(milliseconds);
+    const double pulse = Models::SetPulseAt(milliseconds);
     SetFade fade{static_cast<float>(pulse)};
     for (const auto& pass : glow.passes)
     {
-        if (pass.shine == Render::Models::ShinePass::Chrome3 && Render::Models::SetPulseIsOff(pulse) &&
-            context.originalFrame)
+        if (pass.shine == Models::ShinePass::Chrome3 && Models::SetPulseIsOff(pulse) && context.originalFrame)
         {
             if (!context.special || !context.special->random)
                 return Core::Unexpected(std::string("0x60cc29: falta el CRT del brillo ancient"));
@@ -1744,10 +1727,9 @@ DrawItemOptionPasses(Render::ModelBatch& batch, const Render::Models::IModelLibr
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch,
-                                                     const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                      const DrawnObject& object, Core::Duration frameClock,
-                                                     std::span<const Render::Models::SkinnedMesh> meshes,
+                                                     std::span<const Models::SkinnedMesh> meshes,
                                                      std::uint8_t packedLevel, std::uint8_t excellent,
                                                      std::uint8_t ancient, const ItemDrawContext& context)
 {
@@ -1757,16 +1739,15 @@ Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch,
         return Core::Unexpected(clock.Error());
     frameClock = clock.Value();
     auto level = ItemLevel(object.model, packedLevel);
-    if (detail < Render::Models::DefaultGlowDetail)
+    if (detail < Models::DefaultGlowDetail)
         level = std::min(level, 2 * static_cast<int>(detail) + 5);
     if (object.model >= 0x1e12 && object.model <= 0x1e18 && level > 0)
         level = 7;
     const bool hasExcellent =
         (excellent & 0x3f) != 0 && !(object.model >= 0x1a12 && object.model <= 0x1a18) && object.model != 0x1c30;
     const bool hasAncient = (ancient & 3) == 1 || (ancient & 3) == 2;
-    const auto glow =
-        Render::Models::ItemGlowOf(static_cast<std::uint8_t>(std::max(0, level)), hasExcellent && detail != 0,
-                                   hasAncient && detail != 0, Render::Models::DefaultGlowDetail);
+    const auto glow = Models::ItemGlowOf(static_cast<std::uint8_t>(std::max(0, level)), hasExcellent && detail != 0,
+                                         hasAncient && detail != 0, Models::DefaultGlowDetail);
     auto base = object;
     if (context.modelState)
     {
@@ -1811,10 +1792,11 @@ Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch,
     return DrawItemOptionPasses(batch, models, base, frameClock, meshes, glow, context);
 }
 
-Core::Expected<void, std::string>
-DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                 const DrawnCharacter& character, Core::Duration frameClock, std::uint16_t model, std::uint8_t level,
-                 const Render::Models::ObjectState& state, bool vertexLight, const ItemDrawContext& context)
+Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                   const DrawnCharacter& character, Core::Duration frameClock,
+                                                   std::uint16_t model, std::uint8_t level,
+                                                   const Models::ObjectState& state, bool vertexLight,
+                                                   const ItemDrawContext& context)
 {
     // 0x60cf99: con el alpha en 0,01 o menos (o NaN), nada.
     if (!(character.alpha > PartBoxAlphaThreshold))
@@ -1839,7 +1821,7 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
         // 0x60d04d: el contorno, con la malla oculta +0x58 del objeto (0x60ce68), antes de 0x5ffce0 y de 0x60b3d0.
         std::minstd_rand random(RandomSeedOf(frameClock));
         const CharacterFrame frame{batch, models, character, frameClock, random};
-        std::vector<Render::Models::SkinnedMesh> outlineMeshes;
+        std::vector<Models::SkinnedMesh> outlineMeshes;
         std::vector<MeshDraw> draws =
             MeshDrawsOf(models, model, *found, body, character.object, SkeletonBodySkin,
                         Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
@@ -1850,11 +1832,11 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
     }
     if (character.onPartBox)
         character.onPartBox(character.object.position);
-    std::vector<Render::Models::SkinnedMesh> meshes(found->meshes.size());
+    std::vector<Models::SkinnedMesh> meshes(found->meshes.size());
     for (std::size_t index = 0; index < found->meshes.size(); ++index)
     {
         if (!IndicesInRange(found->meshes[index]) ||
-            !Render::Models::SkinMesh(found->meshes[index], body, character.object, meshes[index]))
+            !Models::SkinMesh(found->meshes[index], body, character.object, meshes[index]))
             return Core::Unexpected(
                 std::format("0x60cf70: una malla del cuerpo del esqueleto {:#x} no se puede pasar a "
                             "los huesos del cuerpo",
@@ -1866,7 +1848,7 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
     object.animation = character.body;
     object.transform = character.object;
     object.state = state;
-    object.state.hiddenMesh = Render::Models::NoHiddenMesh;
+    object.state.hiddenMesh = Models::NoHiddenMesh;
     object.color = character.light;
     object.alpha = character.alpha;
     object.vertexLight = vertexLight;
@@ -1880,17 +1862,17 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
     return DrawItemFromMeshes(batch, models, object, frameClock, meshes, level, 0, 0, resources);
 }
 
-void DrawSubtractiveMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                         const DrawnObject& object, Core::Duration frameClock)
+void DrawSubtractiveMesh(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                         Core::Duration frameClock)
 {
-    if (object.state.blendMesh != Render::Models::EveryMeshBlends)
+    if (object.state.blendMesh != Models::EveryMeshBlends)
     {
         return;
     }
     DrawnObject white = object;
     white.color = glm::vec3(1.0f);
     white.alpha = 1.0f;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     for (const MeshDraw& draw : ObjectMeshDraws(models, white, frameClock, skinned))
     {
         if (draw.index != 0)
@@ -1902,18 +1884,18 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const Render::Models::IModel
     }
 }
 
-void DrawWaterspout(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+void DrawWaterspout(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                     Core::Duration frameClock)
 {
     // 0x600a62..0x600abd: las mallas 0 a 2, con +0x64, +0x68 y U = V = 0.
     ObjectState plain = object.state;
     plain.uv = glm::vec2{};
-    plain.hiddenMesh = Render::Models::NoHiddenMesh;
+    plain.hiddenMesh = Models::NoHiddenMesh;
     // 0x600ac2..0x600adf: la 3, con el blendMesh 3 fijo, +0x68, +0x6c y +0x70.
     ObjectState last = object.state;
     last.blendMesh = WaterspoutLastMesh;
-    last.hiddenMesh = Render::Models::NoHiddenMesh;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    last.hiddenMesh = Models::NoHiddenMesh;
+    std::vector<Models::SkinnedMesh> skinned;
     for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
     {
         const auto index = static_cast<std::int16_t>(draw.index);
@@ -1928,13 +1910,12 @@ void DrawWaterspout(Render::ModelBatch& batch, const Render::Models::IModelLibra
     }
 }
 
-Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch,
-                                                         const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                          DrawnObject& object, Core::Duration frameClock,
                                                          World::ObjectModelStepState* modelState)
 {
-    std::vector<Render::Models::SkinnedMesh> skinned;
-    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    std::vector<Models::SkinnedMesh> skinned;
+    std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
         static_cast<void>(ObjectMeshDraws(models, object, frameClock, skinned));
@@ -1961,12 +1942,12 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
     return {};
 }
 
-void DrawTarkanChrome(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+void DrawTarkanChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock)
 {
     ObjectState state = object.state;
-    state.hiddenMesh = Render::Models::NoHiddenMesh;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    state.hiddenMesh = Models::NoHiddenMesh;
+    std::vector<Models::SkinnedMesh> skinned;
     for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
     {
         if (draw.index != 0)
@@ -1984,14 +1965,13 @@ void DrawTarkanChrome(Render::ModelBatch& batch, const Render::Models::IModelLib
         {
             chromeColor = Scaled(chromeColor, draw.alpha);
         }
-        Triangles(batch, draw, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
-                  chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
+        Triangles(batch, draw, {PassSlot(Models::ShinePass::Chrome), Render::ModelBlend::Additive, true}, chromeColor,
+                  PassUv{Models::ShinePass::Chrome, glm::vec2{}});
         return;
     }
 }
 
-Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch,
-                                                   const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                    const DrawnObject& object, std::int16_t type, float worldClock,
                                                    Core::Duration frameClock)
 {
@@ -2015,8 +1995,8 @@ Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch,
     pass.state.uv.x = static_cast<float>(remainder * (glowing ? GlowStep : BaseStep));
     if (glowing)
         pass.color = glm::vec3(GlowColor);
-    std::vector<Render::Models::SkinnedMesh> skinned;
-    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    std::vector<Models::SkinnedMesh> skinned;
+    std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
         static_cast<void>(ObjectMeshDraws(models, pass, frameClock, skinned));
@@ -2028,12 +2008,12 @@ Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch,
     return DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, glowing ? GlowFlags : BaseFlags);
 }
 
-void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& horse,
+void DrawDarkHorse(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& horse,
                    std::int32_t map, Core::Duration frameClock)
 {
     DrawnObject white = horse;
     white.color = glm::vec3(1.0f);
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     const std::vector<MeshDraw> draws = ObjectMeshDraws(models, white, frameClock, skinned);
     for (const MeshDraw& draw : draws)
     {
@@ -2054,8 +2034,8 @@ void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrar
         {
             chromeColor = Scaled(chromeColor, chrome.alpha);
         }
-        Triangles(batch, chrome, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
-                  chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
+        Triangles(batch, chrome, {PassSlot(Models::ShinePass::Chrome), Render::ModelBlend::Additive, true}, chromeColor,
+                  PassUv{Models::ShinePass::Chrome, glm::vec2{}});
     }
     // 0x60073c..0x60075b: en los mapas 10, 24 a 29 y 36 no hay sombra.
     const bool kalima =
@@ -2072,10 +2052,10 @@ void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrar
     // 0x4eff40(−1, −1, 8, 9): la malla 8. Sale de MeshDrawsOf, como el cromo.
     if (const auto shadow = std::ranges::find(draws, DarkHorseShadowMesh, &MeshDraw::index); shadow != draws.end())
     {
-        Render::Models::SkinnedMesh flat = *shadow->skinned;
+        Models::SkinnedMesh flat = *shadow->skinned;
         for (glm::vec3& position : flat.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, horse.transform.position, ShadowSpreadOf(map));
+            position = Models::FlattenOnTheGround(position, horse.transform.position, ShadowSpreadOf(map));
         }
         MeshDraw draw = *shadow;
         draw.skinned = &flat;
@@ -2083,10 +2063,10 @@ void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrar
     }
 }
 
-void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& spirit,
+void DrawDarkSpirit(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& spirit,
                     float groundHeight, Core::Duration frameClock, std::int32_t map)
 {
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     const std::vector<MeshDraw> draws = ObjectMeshDraws(models, spirit, frameClock, skinned);
     for (const std::size_t mesh : DarkSpiritMeshes)
     {
@@ -2109,10 +2089,10 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibra
     const float spread = ShadowSpreadOf(map);
     for (const MeshDraw& draw : draws)
     {
-        Render::Models::SkinnedMesh flat = *draw.skinned;
+        Models::SkinnedMesh flat = *draw.skinned;
         for (glm::vec3& position : flat.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, ground, spread);
+            position = Models::FlattenOnTheGround(position, ground, spread);
         }
         MeshDraw shadow = draw;
         shadow.skinned = &flat;
@@ -2120,21 +2100,21 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibra
     }
 }
 
-void DrawBloodCastleShadow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                           const DrawnObject& object, float groundHeight, Core::Duration frameClock)
+void DrawBloodCastleShadow(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                           float groundHeight, Core::Duration frameClock)
 {
     // 0x4eff40(+0x64, 2, −1, −1): sin la malla 2 ni las que tienen la textura del blendMesh (+2 de la malla).
     constexpr std::size_t SkippedMesh = 2;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     const std::vector<MeshDraw> draws = ObjectMeshDraws(models, object, frameClock, skinned);
     const glm::vec3 ground(object.transform.position.x, object.transform.position.y, groundHeight);
     for (const MeshDraw& draw : draws)
     {
         if (draw.index == SkippedMesh || draw.mesh->texture == object.state.blendMesh || draw.mesh->triangles.empty())
             continue;
-        Render::Models::SkinnedMesh flat = *draw.skinned;
+        Models::SkinnedMesh flat = *draw.skinned;
         for (glm::vec3& position : flat.positions)
-            position = Render::Models::FlattenOnTheGround(position, ground, DefaultShadowSpread);
+            position = Models::FlattenOnTheGround(position, ground, DefaultShadowSpread);
         MeshDraw shadow = draw;
         shadow.skinned = &flat;
         Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
@@ -2146,9 +2126,8 @@ namespace
 // Las mallas que dejó 0x5ffdf0: el scratch que publicó la pose o, sin él, todas las del modelo posadas como
 // las posa DrawObject (WorldScratchOf), también las que no tienen textura (0x4ecc30 suelto y 0x4eff40 no miran el
 // script). Sin el modelo, sin el esqueleto o sin la pose, ninguna.
-std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const Render::Models::IModelLibrary& models,
-                                                           const DrawnObject& object,
-                                                           std::vector<Render::Models::SkinnedMesh>& skinned)
+std::span<const Models::SkinnedMesh> PosedMeshesOf(const Models::IModelLibrary& models, const DrawnObject& object,
+                                                   std::vector<Models::SkinnedMesh>& skinned)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
@@ -2160,7 +2139,7 @@ std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const Render::Models:
 // de +0x58, las que no tienen triángulos y las que tienen la textura del blendMesh (+2 de la malla), y aplasta
 // cada vértice desde model+0x6c..+0x74, que 0x5ffdf0 dejó en la posición del objeto, con el spread del 30.
 void DrawCastleSiegeShadow(Render::ModelBatch& batch, const Data::Models::Model& model, const DrawnObject& object,
-                           std::span<const Render::Models::SkinnedMesh> meshes)
+                           std::span<const Models::SkinnedMesh> meshes)
 {
     const float spread = ShadowSpreadOf(CastleSiegeMap);
     for (std::size_t index = 0; index < model.meshes.size() && index < meshes.size(); ++index)
@@ -2172,9 +2151,9 @@ void DrawCastleSiegeShadow(Render::ModelBatch& batch, const Data::Models::Model&
         {
             continue;
         }
-        Render::Models::SkinnedMesh flat = meshes[index];
+        Models::SkinnedMesh flat = meshes[index];
         for (glm::vec3& position : flat.positions)
-            position = Render::Models::FlattenOnTheGround(position, object.transform.position, spread);
+            position = Models::FlattenOnTheGround(position, object.transform.position, spread);
         MeshDraw draw;
         draw.mesh = &mesh;
         draw.skinned = &flat;
@@ -2192,8 +2171,7 @@ float CastleSiegeScroll(std::int32_t clock)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch,
-                                                  const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                   const DrawnObject& object, Core::Duration frameClock)
 {
     // 0x6003d1..0x600401: 0x4ecc30(malla, 0x4040, 0,5f (0x3f000000), +0x64, +0x68, +0x6c · 8f (0x6b86c4), +0x70 · 2,
@@ -2212,7 +2190,7 @@ Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch,
     shell.vertexLight = false;
     shell.state.uv = {static_cast<float>(static_cast<double>(object.state.uv.x) * ShellUScale),
                       static_cast<float>(static_cast<double>(object.state.uv.y) + object.state.uv.y)};
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     const auto meshes = PosedMeshesOf(models, shell, skinned);
     if (meshes.empty())
         return {};
@@ -2227,7 +2205,7 @@ Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch,
     return {};
 }
 
-Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                  const DrawnObject& fenrir, std::int32_t map, bool charging,
                                                  Core::Duration frameClock)
 {
@@ -2240,7 +2218,7 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
     DrawnObject white = fenrir;
     white.color = glm::vec3(1.0f);
     white.vertexLight = false;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     const auto meshes = PosedMeshesOf(models, white, skinned);
     if (meshes.empty())
         return {};
@@ -2267,9 +2245,9 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
         const Data::Models::Mesh& mesh = model->meshes[index];
         if (mesh.triangles.empty() || !IndicesInRange(mesh) || meshes[index].positions.size() < mesh.vertices.size())
             continue;
-        Render::Models::SkinnedMesh flat = meshes[index];
+        Models::SkinnedMesh flat = meshes[index];
         for (glm::vec3& position : flat.positions)
-            position = Render::Models::FlattenOnTheGround(position, fenrir.transform.position, spread);
+            position = Models::FlattenOnTheGround(position, fenrir.transform.position, spread);
         MeshDraw draw;
         draw.mesh = &mesh;
         draw.skinned = &flat;
@@ -2278,8 +2256,7 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
     return {};
 }
 
-Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch,
-                                                       const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                        World::ModelEffect& effect, const DrawnObject& input,
                                                        Core::Duration frameClock, const VertexEffectEmitter& emit)
 {
@@ -2296,7 +2273,7 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
             effect.objectState.hiddenMesh = -2;
         return {};
     }
-    std::vector<Render::Models::SkinnedMesh> temporary;
+    std::vector<Models::SkinnedMesh> temporary;
     const auto meshes = PosedMeshesOf(models, input, temporary);
     DrawnObject object = input;
     const auto draw = [&](std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt)
@@ -2370,8 +2347,7 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
     return {};
 }
 
-Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
-                                                      const Render::Models::IModelLibrary& models,
+Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       const DrawnObject& object, const CastleSiegeBodyPass& pass,
                                                       Core::Duration frameClock)
 {
@@ -2390,7 +2366,7 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
     if (model == nullptr)
         return true;
     constexpr std::uint32_t BaseFlags = 0x2, AdditiveFlags = 0x42, ChromeFlags = 0x44, ShinyFlags = 0x48;
-    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::vector<Models::SkinnedMesh> skinned;
     if (gate && pass.field04 != 0)
     {
         if (model->meshes.empty())
@@ -2514,16 +2490,15 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
     return true;
 }
 
-std::vector<Math::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
-                                                  const DrawnObject& object)
+std::vector<Math::OriginalMatrix> PosedWorldBones(const Models::IModelLibrary& models, const DrawnObject& object)
 {
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    const Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     if (skeleton == nullptr)
     {
         return {};
     }
     std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    if (!Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
     {
         return {};
     }
@@ -2548,17 +2523,17 @@ std::vector<Math::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLi
     return world;
 }
 
-std::optional<glm::vec3> PosedBonePoint(const Render::Models::IModelLibrary& models, const DrawnObject& object,
+std::optional<glm::vec3> PosedBonePoint(const Models::IModelLibrary& models, const DrawnObject& object,
                                         std::size_t bone, const glm::vec3& offset)
 {
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    const Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     // 0x4eb973: la pose saltea los dummy sin escribirlos; el buffer global queda con el de antes.
     if (skeleton == nullptr || bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
     {
         return std::nullopt;
     }
     std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    if (!Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
     {
         return std::nullopt;
     }

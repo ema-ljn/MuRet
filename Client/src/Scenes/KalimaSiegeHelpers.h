@@ -24,11 +24,12 @@ class CrtRandom;
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
+} // namespace Client::Render
+
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Models
-} // namespace Client::Render
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -107,7 +108,7 @@ struct KalimaSiegeHelperPass
 // aditivo (con +0x1d6 en 0) o el 0x61e de 0,8 verde, y rand() & 3 en 0 en las acciones 3 y 4 para la partícula 0x5ca
 // con la misma luz. Después salta la cadena de helpers.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass& pass,
-                                                                  const Render::Models::Skeleton& skeleton);
+                                                                  const Models::Skeleton& skeleton);
 
 // 0x42a1b0(0x61e, modo, x, y, lado, lado, luz): los dos calcos girados de 0x5fb2f0, con 0x620b10 en el modo 0x80 (la
 // luz pasa a v y después a v · (1 − v)) y con 0x620a90 en los demás (la luz por v), v = sin(T · 0,0015f) · 0,3f + 0,7f.

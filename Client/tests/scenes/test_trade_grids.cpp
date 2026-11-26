@@ -184,7 +184,7 @@ struct Game
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items =
         Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {SwordType, 1, 3, 0}, {0x1c00, 1, 1, 0xff}});

@@ -22,7 +22,7 @@
 
 namespace
 {
-class OneTriangle final : public Client::Render::Models::IModelLibrary
+class OneTriangle final : public Client::Models::IModelLibrary
 {
 public:
     OneTriangle()
@@ -39,7 +39,7 @@ public:
     {
         return &m_model;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }

@@ -55,9 +55,8 @@ glm::vec3 BonePoint(std::span<const Math::BoneTransform> bones, std::size_t bone
 // Las mallas posadas de `object`: las que publicó la pose del caller o, sin ellas, las que posa acá como 0x5ffdf0 con
 // el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …): WorldScratchOf, la normal girada por R · s); ninguna
 // con el alpha por debajo de 0,01 o sin orden (0x5ffe2a..0x5ffe3d), o sin el modelo, su esqueleto o la pose.
-std::span<const Render::Models::SkinnedMesh> MeshesOf(const Render::Models::IModelLibrary& models,
-                                                      const DrawnObject& object,
-                                                      std::vector<Render::Models::SkinnedMesh>& posed)
+std::span<const Models::SkinnedMesh> MeshesOf(const Models::IModelLibrary& models, const DrawnObject& object,
+                                              std::vector<Models::SkinnedMesh>& posed)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
@@ -76,7 +75,7 @@ Core::Expected<std::span<const Math::BoneTransform>, std::string> BonesOf(const 
 }
 
 // 0x601e68..0x601faf: el 0x11b.
-Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                               World::ModelEffect& effect, DrawnObject& object,
                                               Core::Duration frameClock, const HighEffectDrawServices& services)
 {
@@ -109,9 +108,9 @@ Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const R
 }
 
 // 0x43909e..0x439214 (0x438fe0): el 0x125.
-Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch,
-                                                      const Render::Models::IModelLibrary& models, DrawnObject& object,
-                                                      Core::Duration frameClock, const HighEffectDrawServices& services)
+Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                      DrawnObject& object, Core::Duration frameClock,
+                                                      const HighEffectDrawServices& services)
 {
     // 0x4390ab..0x4390b8: el color en 0,3 (0x3e99999a).
     object.color = glm::vec3(std::bit_cast<float>(0x3e99999au));
@@ -147,13 +146,12 @@ Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch,
 }
 
 // 0x602005..0x602044: el 0x140.
-Core::Expected<bool, std::string> DrawTheGuildMark(Render::ModelBatch& batch,
-                                                   const Render::Models::IModelLibrary& models, DrawnObject& object,
-                                                   Core::Duration frameClock)
+Core::Expected<bool, std::string> DrawTheGuildMark(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                   DrawnObject& object, Core::Duration frameClock)
 {
     // 0x60200b..0x602019: (0x3ecccccd, 0x3f19999a, edi = 1).
     object.color = {std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3f19999au), 1.0f};
-    std::vector<Render::Models::SkinnedMesh> posed;
+    std::vector<Models::SkinnedMesh> posed;
     const auto meshes = MeshesOf(models, object, posed);
     if (meshes.empty())
         return true;
@@ -175,8 +173,7 @@ bool HasHighEffectBody(const World::ModelEffect& effect)
     return effect.type == RingType || effect.type == KundunSpiritType || effect.type == GuildMarkType;
 }
 
-Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batch,
-                                                        const Render::Models::IModelLibrary& models,
+Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                         World::ModelEffect& effect, DrawnObject& object,
                                                         Core::Duration frameClock,
                                                         const HighEffectDrawServices& services)

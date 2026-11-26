@@ -159,7 +159,7 @@ protected:
     static constexpr std::uint16_t TargetKey = 0x1234;
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<std::vector<std::byte>> m_sent;
 };
 

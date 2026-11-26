@@ -147,8 +147,7 @@ Core::Expected<void, std::string> SharedTail::Use()
 {
     // 0x5808ef..0x5808fa: el registro propio (0x4e79a0), abierto hasta 0x599d4c..0x599d58 (0x40f370, los 3.848 rand()
     // si vuelve a 0).
-    const Render::Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random, Models::OwnRecordCloseRandoms);
     // 0x5808ff..0x580911: 0x551c70(skill, 1, 0, &maná, 0, &stamina).
     const auto cost = SkillCostOf(m_skill, m_context, "0x580911");
     if (!cost.HasValue())

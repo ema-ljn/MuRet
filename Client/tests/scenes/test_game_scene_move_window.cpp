@@ -68,7 +68,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
 
     Client::Tests::FakeTextureStore store;
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
     const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     // Lorencia cargada: el paso sigue después de la UI (las hojas leen el terreno).

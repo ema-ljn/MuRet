@@ -21,24 +21,24 @@
 #include <string>
 #include <vector>
 
-// Client::Render::Models::Cloth: la tela de la vtable 0x6b8cd8 contra el código real del main.exe,
+// Client::Models::Cloth: la tela de la vtable 0x6b8cd8 contra el código real del main.exe,
 // emulado (tests/vectors/cloth): cada paso de cada tela, partícula por partícula y bit a bit, las
 // caras, los sprites del brillo y los rand() que saca.
 namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Math::BoneTransform;
+using Client::Models::Cloth;
+using Client::Models::ClothBlend;
+using Client::Models::ClothBody;
+using Client::Models::ClothCorner;
+using Client::Models::ClothFlare;
+using Client::Models::ClothParticle;
+using Client::Models::ClothShape;
+using Client::Models::ClothWindSource;
+using Client::Models::ClothWorld;
+using Client::Models::FaceBlendOf;
 using Client::Render::TextureSlot;
-using Client::Render::Models::Cloth;
-using Client::Render::Models::ClothBlend;
-using Client::Render::Models::ClothBody;
-using Client::Render::Models::ClothCorner;
-using Client::Render::Models::ClothFlare;
-using Client::Render::Models::ClothParticle;
-using Client::Render::Models::ClothShape;
-using Client::Render::Models::ClothWindSource;
-using Client::Render::Models::ClothWorld;
-using Client::Render::Models::FaceBlendOf;
 using Client::Tests::ClothVectorEvent;
 using Client::Tests::ClothVectorFrame;
 using Client::Tests::ClothVectors;
@@ -83,7 +83,7 @@ void PrepareTheWorld(ClothWorld& world, const ClothVectorFrame& frame)
     world.openCounterAccesses = frame.openAccesses;
     for (int walk = 0; walk < frame.windWalks; ++walk)
     {
-        Client::Render::Models::WalkTheWind(world);
+        Client::Models::WalkTheWind(world);
     }
     EXPECT_EQ(Bits(world.windBase), Bits(frame.windBaseAfterTheWalks)) << "el viento base después del paseo";
 }
@@ -129,7 +129,7 @@ std::string NameOf(ClothBlend blend)
 void ExpectTheDrawing(const Cloth& cloth, const std::vector<ClothVectorEvent>& events, std::size_t& next,
                       const ClothVectorFrame& frame, std::string& previousBlend, const std::string& where)
 {
-    const bool glows = (cloth.Flags() & Client::Render::Models::ClothGlows) != 0;
+    const bool glows = (cloth.Flags() & Client::Models::ClothGlows) != 0;
     const float glow = Cloth::GlowAt(frame.worldTime);
     if (glows)
     {
@@ -396,7 +396,7 @@ TEST(ClothTest, TheWindBaseWalksBetweenItsLimits)
     world.random = CrtRandom(0);
     for (int i = 0; i < 2000; ++i)
     {
-        Client::Render::Models::WalkTheWind(world);
+        Client::Models::WalkTheWind(world);
         EXPECT_GE(world.windBase, -0.2f);
         EXPECT_LE(world.windBase, 1.0f);
     }
@@ -408,10 +408,10 @@ TEST(ClothTest, ALogicStepWalksFiveTimesAndCounts)
 {
     ClothWorld world{.random = CrtRandom(7)};
     ClothWorld walked{.random = CrtRandom(7)};
-    Client::Render::Models::StepTheClothWorld(world);
+    Client::Models::StepTheClothWorld(world);
     for (int i = 0; i < 5; ++i)
     {
-        Client::Render::Models::WalkTheWind(walked);
+        Client::Models::WalkTheWind(walked);
     }
     EXPECT_EQ(world.windBase, walked.windBase);
     EXPECT_EQ(world.logicSteps, 1);
@@ -438,7 +438,7 @@ TEST(ClothTest, ALogicStepWrapsTheCounterAt32Bits)
         ClothWorld walked{.random = CrtRandom(7)};
         for (int i = 0; i < 5; ++i)
         {
-            Client::Render::Models::WalkTheWind(walked);
+            Client::Models::WalkTheWind(walked);
         }
         if (openAccesses == 0)
         {
@@ -452,7 +452,7 @@ TEST(ClothTest, ALogicStepWrapsTheCounterAt32Bits)
             SCOPED_TRACE(::testing::Message() << transition.before << ", accesos " << openAccesses);
             ClothWorld world{
                 .random = CrtRandom(7), .logicSteps = transition.before, .openCounterAccesses = openAccesses};
-            Client::Render::Models::StepTheClothWorld(world);
+            Client::Models::StepTheClothWorld(world);
             EXPECT_EQ(world.logicSteps, transition.after);
             EXPECT_EQ(Bits(world.windBase), Bits(walked.windBase));
             EXPECT_EQ(world.random.State(), walked.random.State());

@@ -1758,7 +1758,7 @@ Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Crt::Cr
     return {};
 }
 } // namespace
-Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock, Crt::CrtRandom& random,
                                                       KalimaWorld* kalima, const ModelEffectStepServices& services)
 {

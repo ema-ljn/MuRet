@@ -46,10 +46,10 @@ using Client::Data::Textures::TextureFileName;
 using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
+using Client::Models::ActionInfo;
+using Client::Models::MakePlayerSkeleton;
+using Client::Models::ModelTextureSlots;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::MakePlayerSkeleton;
-using Client::Render::Models::ModelTextureSlots;
 
 // Los modelos de la selección que carga 0x61ca30: Logo05 en el 0xa4 y los NewFace en el 0xa8 a 0xac
 // (0x61cb92 y el bucle de 0x61cbb1).

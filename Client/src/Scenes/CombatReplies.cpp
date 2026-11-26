@@ -196,8 +196,7 @@ Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::Ki
     dead.dying = 1;
     dead.movement = 0;
     {
-        const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, combat.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(world.Runtime().ownRecordDepth, combat.random, Models::OwnRecordCloseRandoms);
         world.OwnCharacter().experience += reply.amount;
     }
     if (reply.amount == 0)

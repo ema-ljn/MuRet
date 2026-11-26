@@ -13,7 +13,7 @@ namespace Client::Data::Text
 class TextTable;
 }
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
 }
@@ -51,7 +51,7 @@ struct CastleObjectStep
     // 0x5f93c0(x, y); vacía, el 216 corta.
     std::function<double(float, float)> height{};
     // El modelo del personaje, para 0x4ea030; sin él, el 286 y el 287 cortan cuando cambian la acción.
-    const Render::Models::Skeleton* skeleton = nullptr;
+    const Models::Skeleton* skeleton = nullptr;
 };
 
 // 0x42da90(c, c), desde 0x508eed después de 0x505de0: fuera del mapa 30 nada. En el 30, por +0x376: el 216 (0xd8) se

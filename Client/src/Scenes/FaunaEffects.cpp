@@ -58,10 +58,9 @@ std::optional<std::size_t> CreateFaunaLightning(World::ModelEffects& effects, co
     return std::nullopt;
 }
 Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect, std::size_t physicalIndex,
-                                                     const Render::Models::Skeleton* skeleton,
-                                                     World::Particles& particles, World::FrameSprites& sprites,
-                                                     World::TerrainLighting& lighting,
-                                                     Render::Models::ClothWorld& cloth)
+                                                     const Models::Skeleton* skeleton, World::Particles& particles,
+                                                     World::FrameSprites& sprites, World::TerrainLighting& lighting,
+                                                     Models::ClothWorld& cloth)
 {
     if (!effect.alive)
         return {};

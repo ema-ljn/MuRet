@@ -17,11 +17,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct SkinnedMesh;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 class FrameSprites;
@@ -76,15 +76,13 @@ struct VertexEffectTables
 // - 0x607, con la luz en 1: rand() % 30 y con 0 la partícula 0x607/2 de escala 1.
 // Otro tipo o subtipo no hace nada. Todas las altas sin dueño y con la clave en −1 (los efectos); con la tabla llena,
 // ninguna y sin sus rand(). Los rand() de 0x4ee770 salen igual.
-[[nodiscard]] Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale,
-                                                                    std::span<const Render::Models::SkinnedMesh> meshes,
-                                                                    const VertexEffectCall& call,
-                                                                    const VertexEffectTables& tables,
-                                                                    Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string>
+EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale, std::span<const Models::SkinnedMesh> meshes,
+                    const VertexEffectCall& call, const VertexEffectTables& tables, Crt::CrtRandom& random);
 
 // EmitVertexEffectsOf con el modelo de `object` (sin él, nada), su escala y sólo la tabla de los efectos con modelo.
 [[nodiscard]] Core::Expected<void, std::string>
-EmitVertexEffects(const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                  std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
+EmitVertexEffects(const Models::IModelLibrary& models, const DrawnObject& object,
+                  std::span<const Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
                   std::int32_t subtype, World::ModelEffects& effects, Crt::CrtRandom& random);
 } // namespace Client::Scenes

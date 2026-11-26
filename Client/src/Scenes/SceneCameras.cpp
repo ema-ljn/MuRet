@@ -43,8 +43,8 @@ Render::Camera3D LoginCamera()
     return camera;
 }
 Render::Camera3D CameraForFrame(World::GameCamera& state, const World::GameCameraInput& input,
-                                Render::Models::OriginalFrameCarry& frames, Core::Duration clock,
-                                Render::Models::OriginalFramePace pace)
+                                Models::OriginalFrameCarry& frames, Core::Duration clock,
+                                Models::OriginalFramePace pace)
 {
     const int count = frames.FramesAt(clock, pace);
     if (count == 0)

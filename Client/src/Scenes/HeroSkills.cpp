@@ -151,21 +151,20 @@ bool Mounted(const ActorState& hero)
     return model == 0x1c14 || model == 0x1c15 || model == 0x1c16 || model == 0x1c37;
 }
 
-Render::Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
+Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random,
-                                         Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
-Render::Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
+Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                         static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
+                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
 }
 
 std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 

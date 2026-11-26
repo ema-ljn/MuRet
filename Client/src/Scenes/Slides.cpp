@@ -46,7 +46,7 @@ void QueueATimedSlide(WorldState& world, Crt::CrtRandom& random, bool gameScene)
     // 0x46b115..0x46b372: abre la entrada del registro propio, lee +0xe y la cierra.
     std::uint16_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         level = world.OwnCharacter().level;
     }
     const std::optional<std::string> text = UI::PickASlide(banner, level, random);

@@ -108,8 +108,7 @@ Core::Expected<void, std::string> Visitor(GameHudContext& context, UI::HuntZoneW
     }
     const auto amount = FormatZen(window.fee);
     {
-        const Render::Models::LogicalAccess access(context.ownRecordDepth, context.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         context.hud.textColors.text =
             context.world.OwnCharacter().zen < window.fee ? InsufficientMoney : SufficientMoney;
     }

@@ -1076,7 +1076,7 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
     Client::Tests::WriteSceneFile(folder.Path(), "Monster/emote.OZT", Client::Tests::PlainOzt(2, 2));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{{0x41c}};
+    Client::Models::ModelTextureSlots slots{{0x41c}};
     Client::Scenes::FaunaModelLoadContext load{folder.Path(), m_faunaStore, log, slots};
     const auto loaded = world.FaunaResources().LoadMonster(9, 0, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();

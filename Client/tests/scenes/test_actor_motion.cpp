@@ -41,7 +41,7 @@ protected:
         value.map = 0;
         return value;
     }();
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Crt::CrtRandom m_random{1};
     Client::Scenes::PlayerActionSpeeds m_speeds;
     std::unique_ptr<Client::World::TerrainWalls> m_walls = std::make_unique<Client::World::TerrainWalls>();
@@ -227,7 +227,7 @@ TEST_F(ActorMotionTest, ATransformedActorStopsWithItsOwnSkeletonAtArrival)
     actor.cellY = 20;
     actor.targetX = 11;
     actor.targetY = 20;
-    Client::Render::Models::Skeleton transformed;
+    Client::Models::Skeleton transformed;
     transformed.actions.resize(7);
     for (auto& action : transformed.actions)
         action.keyCount = 10;
@@ -260,7 +260,7 @@ TEST_F(ActorMotionTest, AnIdleTransformedActorReadsYAndXAndPreservesTheTwoCloseR
     const Client::Scenes::ActorWalkContext walk{
         {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
     Client::Crt::CrtRandom expected = m_random;
-    for (int access = 0; access < 2 * Client::Render::Models::SmallLogicalCloseRandoms; ++access)
+    for (int access = 0; access < 2 * Client::Models::SmallLogicalCloseRandoms; ++access)
         static_cast<void>(expected.Next());
 
     const auto stepped = Client::Scenes::StepOtherActorMotion(actor, walk, {m_runtime, m_random, {}}, m_walls->cells);

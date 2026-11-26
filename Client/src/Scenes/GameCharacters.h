@@ -21,11 +21,11 @@ namespace Client::Render
 class ModelBatch;
 }
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -58,7 +58,7 @@ struct ItemDrawContext;
 struct GameCharacterPass
 {
     const World::TerrainLighting* dynamicLighting = nullptr;
-    Render::Models::ClothWorld* clothWorld = nullptr;
+    Models::ClothWorld* clothWorld = nullptr;
     Core::Duration frameClock{};
     int originalFrames = 1;
     std::int32_t hovered = -1;
@@ -73,9 +73,8 @@ struct GameCharacterPass
     World::Particles* particles = nullptr;
     World::ModelEffects* effects = nullptr;
     const ItemDrawContext* itemContext = nullptr;
-    Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
-    std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Render::Models::ObjectTransform&,
-                       bool)>
+    Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock;
+    std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Models::ObjectTransform&, bool)>
         onPose{};
     // Publica las matrices del dibujo intermedio al buffer que presta el caller, sin avanzar el estado.
     bool publishProjectedPose = false;
@@ -83,7 +82,7 @@ struct GameCharacterPass
     std::function<std::span<const Math::BoneTransform>(std::uint16_t)> poseBones{};
     // Los modelos del mundo, donde 0x618970 carga el Angel (0x1f7) de Chaos Castle: en el original, el mismo
     // arreglo global. Sin ellos, un jugador en los mapas 18 a 23 corta.
-    const Render::Models::IModelLibrary* worldModels = nullptr;
+    const Models::IModelLibrary* worldModels = nullptr;
     // El trapecio de este dibujo (0x5fba90), que mira el cuervo (0x4182f0), y la altura fija de la cámara
     // (0x6c9d5c) de la altura del terreno bajo su sombra (0x5f93c0).
     const World::TerrainPolygon* polygon = nullptr;
@@ -109,14 +108,14 @@ struct GameCharacterPass
 // efectos. Entre frames del original, lo que cuelga y
 // los efectos se dibujan sobre una copia del personaje y del rand(): no avanza ni gasta nada.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
-                                                                   const Render::Models::IModelLibrary& models,
+                                                                   const Models::IModelLibrary& models,
                                                                    WorldState& world, const GameCharacterPass& pass);
 
 // 0x50ba30(personaje, personaje, 0) con un personaje fuera del pool, el del retrato de las cartas (0x4959d5): lo mismo
 // que DrawGameCharacters con un lugar, sin contorno, con `cloth` de tela, sin ser el héroe y con ActorPoolSize de dueño
 // de lo que crea. Con su +0x3e4, sin la sombra ni 0x505820. `originalFrame` como en DrawGameCharacters.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawCharacterOutsideThePool(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, WorldState& world,
+DrawCharacterOutsideThePool(Render::ModelBatch& batch, const Models::IModelLibrary& models, WorldState& world,
                             ActorState& actor, CharacterCloth& cloth, const GameCharacterPass& pass,
                             bool originalFrame);
 
@@ -131,8 +130,8 @@ DrawCharacterOutsideThePool(Render::ModelBatch& batch, const Render::Models::IMo
 // el cuervo, la luz dinámica, el terreno y su altura fija. Entre frames del original, sobre una copia del personaje y
 // del rand().
 [[nodiscard]] Core::Expected<void, std::string>
-DrawCharacterTail(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, WorldState& world,
-                  ActorState& actor, std::size_t slot, const DrawnCharacter& character, const GameCharacterPass& pass,
+DrawCharacterTail(Render::ModelBatch& batch, const Models::IModelLibrary& models, WorldState& world, ActorState& actor,
+                  std::size_t slot, const DrawnCharacter& character, const GameCharacterPass& pass,
                   const FullSetScan& scan, bool originalFrame);
 
 // Las guardas de la sombra de 0x50ba30 que miran al objeto y al mapa (0x50bbff..0x50bc71, DrawnCharacter::castsShadow):

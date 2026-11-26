@@ -68,8 +68,8 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(GameHudContext& 
     if (!record)
         return Core::Unexpected(std::format("{}: Skill.bmd no tiene la skill {}", where, skill));
     const std::span<const std::byte, Data::Tables::SkillRecordSize> entry = *record;
-    const Render::Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
+                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     SkillEntryFields fields;
     for (const std::byte value : entry)
     {

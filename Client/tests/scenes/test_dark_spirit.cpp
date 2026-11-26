@@ -49,17 +49,17 @@ std::uint32_t Hex(const std::string& word)
 }
 
 // Las acciones de DarkSpirit.bmd: 6, 4, 4 (con lock_positions) y 4 keys, todas repitiendo.
-Client::Render::Models::Skeleton RavenSkeleton()
+Client::Models::Skeleton RavenSkeleton()
 {
     struct Action
     {
         std::int16_t keys = 0;
         bool lock = false;
     };
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     for (const Action& action : std::array<Action, 4>{{{6, false}, {4, false}, {4, true}, {4, false}}})
     {
-        skeleton.actions.push_back(Client::Render::Models::ActionInfo{
+        skeleton.actions.push_back(Client::Models::ActionInfo{
             .repeats = true, .speed = 0.0f, .keyCount = action.keys, .lockPositions = action.lock});
     }
     return skeleton;
@@ -140,7 +140,7 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
     std::string line;
     ASSERT_TRUE(std::getline(file, line));
     ASSERT_EQ(line, "raven 1");
-    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    const Client::Models::Skeleton skeleton = RavenSkeleton();
     Terrain terrain;
     CrtRandom random;
     DarkSpirit spirit;
@@ -341,7 +341,7 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
     std::string line;
     ASSERT_TRUE(std::getline(file, line));
     ASSERT_EQ(line, "raven-safe-zone 1");
-    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    const Client::Models::Skeleton skeleton = RavenSkeleton();
     const std::vector<Client::Math::BoneTransform> ownerPose = OwnerPose();
     Terrain terrain;
     terrain.Build(3, 5);
@@ -513,7 +513,7 @@ TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
 // 0x417791: con el estado más allá de la tabla de 0x417f0c, la acción al dar la vuelta es la 0.
 TEST(DarkSpiritTest, AStateBeyondTheTableTakesActionZero)
 {
-    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    const Client::Models::Skeleton skeleton = RavenSkeleton();
     auto particles = std::make_unique<Client::World::Particles>();
     DarkSpirit spirit;
     spirit.position = OwnerPosition + glm::vec3(0.0f, 0.0f, 350.0f);
@@ -531,7 +531,7 @@ TEST(DarkSpiritTest, AStateBeyondTheTableTakesActionZero)
 // dueño, desde junto a él y pasada la subida, con la misma semilla.
 TEST(DarkSpiritTest, ItFliesHigherInTheLoginMap)
 {
-    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    const Client::Models::Skeleton skeleton = RavenSkeleton();
     const auto meanHeight = [&skeleton](std::uint8_t map)
     {
         auto particles = std::make_unique<Client::World::Particles>();

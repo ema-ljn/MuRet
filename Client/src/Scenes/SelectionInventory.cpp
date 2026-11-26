@@ -31,8 +31,7 @@ void ClearSelectionInventory(WorldState& world, Crt::CrtRandom& random)
 {
     {
         // El cierre de 0x5bc092 precede al acceso independiente de 0x633f96.
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         Clear(world.OwnCharacter().equipment);
     }
     Clear(world.Inventory().cells);

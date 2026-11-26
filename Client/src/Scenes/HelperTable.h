@@ -22,11 +22,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct SkinnedMesh;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -114,7 +114,7 @@ struct HelperStepContext
     WorldState& world;
     // Los modelos (0x5769ad8 + tipo · 0xe0), por las acciones que leen 0x4ea030 y 0x4ec200: los de Skill\ que carga
     // 0x615700 y Player\Helper01.bmd (el 0x1c12) de 0x60ff50. nullptr, o sin el del tipo: corta con uno vivo.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     Crt::CrtRandom& random;
     // El reloj del mundo (0x5767b88, en ms), con que 0x53fe70 gira las 5f2 al crearlas.
     float worldClock = 0.0f;
@@ -165,7 +165,7 @@ struct HelperStepContext
 struct HelperDrawContext
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     WorldState& world;
     Crt::CrtRandom& random;
     Core::Duration frameClock{};
@@ -175,7 +175,7 @@ struct HelperDrawContext
     bool originalFrame = true;
     std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
     bool publishProjectedPose = false;
-    std::function<std::span<const Render::Models::SkinnedMesh>()> posedMeshes{};
+    std::function<std::span<const Models::SkinnedMesh>()> posedMeshes{};
     // DAT_006d5dc8, por la escala de 0x4452db..0x445309: 1,6 en la 2 y 1 en la 4; en la 5, la del lugar con los
     // Fenrir y 1 con los demás.
     SceneId scene = SceneId::Game;

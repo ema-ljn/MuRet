@@ -60,9 +60,9 @@ bool IsOneOf(std::span<const std::uint8_t> values, std::uint8_t value)
 }
 
 // 0x4ea030 con el modelo del personaje.
-void SetModelAction(ActorState& actor, const Render::Models::Skeleton& skeleton, std::uint8_t action)
+void SetModelAction(ActorState& actor, const Models::Skeleton& skeleton, std::uint8_t action)
 {
-    Render::Models::SetAction(actor.animation, skeleton, action);
+    Models::SetAction(actor.animation, skeleton, action);
 }
 
 // Lo que 0x42d890 deja de la acción: la anterior (+0x112), la key (+0x118), la acción (+0x111) y el frame (+0x114), sin
@@ -76,7 +76,7 @@ void PutTheAction(ActorState& actor, std::uint8_t action)
 }
 
 // 0x42d890(c, c): fuera del mapa 30, 0. En el 30, por +0x376.
-bool FinishTheCastleObject(ActorState& actor, const Render::Models::Skeleton& skeleton, WorldRuntime& runtime)
+bool FinishTheCastleObject(ActorState& actor, const Models::Skeleton& skeleton, WorldRuntime& runtime)
 {
     if (runtime.map != CastleMap)
         return false;
@@ -145,8 +145,7 @@ float ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float s
     return speed;
 }
 
-Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
-                                                                 const Render::Models::Skeleton& skeleton,
+Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor, const Models::Skeleton& skeleton,
                                                                  WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     const std::uint16_t type = actor.type;

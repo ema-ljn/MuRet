@@ -28,7 +28,7 @@ TEST(LoadingModelPrefixTest, PublishesTheCrtChoiceBeforeARequiredFileFailsAndKee
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(1)};
+    Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(1)};
     const Client::Scenes::SceneContext context{
         .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = world.get()};
     Client::Scenes::GameModels models;
@@ -53,7 +53,7 @@ TEST(LoadingModelPrefixTest, KeepsTheZeroChoiceWithoutInventingAPrecedingConstru
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(302)};
+    Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(302)};
     const Client::Scenes::SceneContext context{
         .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = world.get()};
     Client::Scenes::GameModels models;

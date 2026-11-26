@@ -296,7 +296,7 @@ Core::Expected<void, std::string> ChaosCastleTrap(World::WorldObject& object, co
 // 0x405c7f y 0x405d95: −1 lo vuelve a dibujar y −2 lo esconde.
 void ShowChaosCastleObject(World::WorldObject& object, bool shown)
 {
-    object.state.hiddenMesh = shown ? Render::Models::NoHiddenMesh : World::HiddenObject;
+    object.state.hiddenMesh = shown ? Models::NoHiddenMesh : World::HiddenObject;
 }
 } // namespace
 

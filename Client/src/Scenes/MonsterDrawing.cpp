@@ -239,8 +239,7 @@ std::function<double(float, float)> BodyTerrainHeight(const WorldState& world, c
 // 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, el frame (+0x114) por 0x69fd3c en un short, en 0
 // si es negativa o si llega a las keys de la acción del modelo (+0xa0, en 0 si el modelo no la tiene). Sin acciones no
 // la toca; con un frame infinito, el original no está observado: tampoco.
-std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
-                                      const Render::Models::AnimationState& animation)
+std::optional<std::int16_t> PoseKeyOf(const Models::Skeleton& skeleton, const Models::AnimationState& animation)
 {
     const auto truncated = Math::OriginalFtolLow(D(animation.frame));
     if (skeleton.actions.empty() || !truncated)
@@ -258,8 +257,8 @@ std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
 struct MonsterFrame
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& items;
-    const Render::Models::IModelLibrary& fauna;
+    const Models::IModelLibrary& items;
+    const Models::IModelLibrary& fauna;
     WorldState& world;
     ActorState& actor;
     const GameCharacterPass& pass;
@@ -294,7 +293,7 @@ void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
 
 // 0x50bae7..0x50bbca: la tela sobre la malla (MonsterCloth.h) entre 0x5ffdf0 y 0x6002e0, sobre `meshes` (lo que dejó
 // 0x4ebc80 en 0x5786f9c) con los huesos `bones` y la posición del modelo. Entre frames del original, la de antes.
-Result StepTheMeshCloth(MonsterFrame& frame, std::span<Render::Models::SkinnedMesh> meshes,
+Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> meshes,
                         std::span<const BoneTransform> bones, const glm::vec3& position)
 {
     const ActorState& actor = frame.actor;
@@ -303,8 +302,7 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Render::Models::SkinnedMe
     // objeto + 0x190: la del lugar, en sus telas.
     CharacterCloth& worn = frame.pass.cloths[frame.slot];
     MonsterMeshCloth& cloth = worn.OnTheMesh();
-    const Render::Models::ClothBody body{
-        .bones = bones, .angles = actor.angles, .scale = actor.scale, .position = position};
+    const Models::ClothBody body{.bones = bones, .angles = actor.angles, .scale = actor.scale, .position = position};
     if (!frame.originalFrame)
     {
         cloth.DrawCurrent(meshes, body);
@@ -319,7 +317,7 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Render::Models::SkinnedMe
 // 0x602e90(objeto, 1, mode, special): 0x5ffdf0 (con su 0x5ffce0) y 0x6002e0: la pose en los huesos propios, el contorno
 // (con Outlined) y el cuerpo, con las mallas a la escala de `mode` alrededor de sus huesos. Con la tela sobre la malla
 // (0x50bae7), 0x5ffdf0 y 0x6002e0 van separados y la tela entre los dos, con el cuarto argumento en 0.
-Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton, std::uint16_t special, PoseMode mode)
+Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::uint16_t special, PoseMode mode)
 {
     ActorState& actor = frame.actor;
     const bool cloth = WearsClothOnTheMesh(actor.word376);
@@ -338,11 +336,11 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
         DrawnObject stale;
         stale.model = actor.type;
         stale.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
-        std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, stale, actor.bodyPose);
+        std::vector<Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, stale, actor.bodyPose);
         return StepTheMeshCloth(frame, meshes, actor.bodyPose, actor.position);
     }
     // 0x5ffe9d..0x5ffeef: el 0x18f y el 0x18e van 60 y 120 más allá en y (0x6b86cc y 0x6b86c8).
-    Render::Models::ObjectTransform transform{.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+    Models::ObjectTransform transform{.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     if (actor.type == 0x18f)
         transform.position.y = F32(D(actor.position.y) + 60.0);
     else if (actor.type == 0x18e)
@@ -361,7 +359,7 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     // dejó el dibujo anterior (Q-C318).
     std::vector<BoneTransform> bones(skeleton.bones.size(), BoneTransform(0.0f));
     std::copy_n(actor.bodyPose.begin(), std::min(actor.bodyPose.size(), bones.size()), bones.begin());
-    if (!Render::Models::PoseSkeleton(skeleton, actor.animation, transform, actor.headTurn.angles, bones))
+    if (!Models::PoseSkeleton(skeleton, actor.animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("0x4eb860: la pose del modelo {:#x} falló", actor.type));
     actor.bodyPose = bones;
     // 0x4eb8b3..0x4eb94c: frame/key en +0xa4/+0xa8 del modelo compartido; el paso del 0x1f5 lee la key (0x4fce92).
@@ -379,10 +377,10 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     object.animation = actor.animation;
     object.transform = transform;
     // +0x6c y +0x70 (la U y la V): 0x511290 las pone en 0; las escriben 0x433b2f y los casos de 0x505de0.
-    object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
-                                               .light = actor.blendMeshLight,
-                                               .uv = {actor.textureU, actor.textureV},
-                                               .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
+    object.state = Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
+                                       .light = actor.blendMeshLight,
+                                       .uv = {actor.textureU, actor.textureV},
+                                       .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.color = light.color;
     object.alpha = actor.alpha;
     object.vertexLight = light.vertexLight;
@@ -399,7 +397,7 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
             DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
     // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala de 0x6c881c por el modo, deja las mallas en 0x5786f9c.
-    std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
+    std::vector<Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
     if (!(actor.alpha < DrawnAlpha))
         PublishMonsterPickingBox(frame, transform.position);
     if (cloth)
@@ -518,7 +516,7 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
             frame.pass.sprites->Create(Flare, point(bone, glm::vec3(0.0f)), FlareScale, flareLight, 0.0f, 0));
     const glm::vec3 sparkLight{F32(D(v) * D(std::bit_cast<float>(0x3f19999au))),
                                F32(D(v) * D(std::bit_cast<float>(0x3f333333u))), red};
-    const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
     const auto bones = static_cast<std::int16_t>(skeleton != nullptr ? skeleton->bones.size() : 0);
     for (int spark = 0; spark < Sparks; ++spark)
     {
@@ -559,7 +557,7 @@ Result DrawTheFlareOf0x46(MonsterFrame& frame)
 // 0x60b130(modelo, objeto, tipo, +0x174, banderas, factor, textura) con el modelo de un monstruo. Sin el 0x10 y con un
 // tipo que no es el 0x188 (0x60b15e) ni uno de los ítems de 0x60b1dd..0x60b2cf, 0x608e00(tipo, +0x174, factor, +0x48,
 // banderas >> 8 & 1) deja en el color del modelo k = +0x174 · factor (en la x87) por el color del tipo: el de
-// Render::Models::ShineColorOf, salvo el 0x16d con el 0x100, que va por el caso 8 de 0x60936c, (0,8k; 0,8k; k).
+// Models::ShineColorOf, salvo el 0x16d con el 0x100, que va por el caso 8 de 0x60936c, (0,8k; 0,8k; k).
 // Después, RenderBody(banderas, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, textura), que no mira el 0x100.
 Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint32_t flags, float factor,
                         std::int32_t texture)
@@ -579,7 +577,7 @@ Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint3
     const Render::Color base =
         (flags & SecondColor) != 0 && actor.type == Gorgon
             ? Render::Color{std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f4ccccdu), 1.0f, 1.0f}
-            : Render::Models::ShineColorOf(actor.type);
+            : Models::ShineColorOf(actor.type);
     model.object.color = {F32(k * D(base.red)), F32(k * D(base.green)), F32(k * D(base.blue))};
     BodyPassArgs args = ActorPassArgs(actor);
     args.hiddenMesh = -1;
@@ -603,7 +601,7 @@ constexpr std::int32_t OwnTexture = -1;
 struct PosedBody
 {
     DrawnObject object;
-    std::vector<Render::Models::SkinnedMesh> meshes;
+    std::vector<Models::SkinnedMesh> meshes;
 };
 
 PosedBody PosedBodyOf(const MonsterFrame& frame)
@@ -617,10 +615,10 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
     // 0x60cf70 de la sombra (0x60d186, ya en el suelo) o, si no corre (sus guardas, o el 0x18e, el 0x18f y del 0xa8 al
     // 0xac), el de 0x5ffdf0.
     object.transform = {.position = frame.modelOrigin, .angles = actor.angles, .scale = actor.scale};
-    object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
-                                               .light = actor.blendMeshLight,
-                                               .uv = {actor.textureU, actor.textureV},
-                                               .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
+    object.state = Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
+                                       .light = actor.blendMeshLight,
+                                       .uv = {actor.textureU, actor.textureV},
+                                       .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.alpha = actor.alpha;
     object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;
     posed.meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
@@ -758,7 +756,7 @@ Result RunTheGridCloth(MonsterFrame& frame, std::string_view address)
     if (frame.slot >= frame.pass.cloths.size())
         return Core::Unexpected(std::format("{}: falta la tela persistente del lugar del personaje", address));
     CharacterCloth& cloth = frame.pass.cloths[frame.slot];
-    const Render::Models::ClothBody body{
+    const Models::ClothBody body{
         .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
     if (frame.originalFrame)
         cloth.FrameTheMonsterCloth(frame.batch, actor.word376, body, *frame.pass.clothWorld,
@@ -776,7 +774,7 @@ Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
     constexpr std::size_t FirstBone = 23;
     constexpr std::size_t SecondBone = 14;
     ActorState& actor = frame.actor;
-    const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50c248: falta el modelo {:#x} del +0x376 0x4d", actor.type));
     if (auto drawn = DrawTheBody(frame, *skeleton, 0, frame.outline); !drawn.HasValue())
@@ -827,7 +825,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
     }
     actor.dword64 = 0;
     actor.blendMeshLight = F32((1.0 - D(s) + 1.0) * D(Floor));
-    const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50c20b: falta el modelo {:#x} del +0x376 0x4d", actor.type));
     for (const PoseMode mode : {PoseMode::Wider, PoseMode::Widest})
@@ -849,7 +847,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
 }
 
 // Lo que 0x509340 lee del frame de 0x50ba30, con la biblioteca `models`.
-GameHangingPass HangingPassOf(MonsterFrame& frame, const Render::Models::IModelLibrary& models)
+GameHangingPass HangingPassOf(MonsterFrame& frame, const Models::IModelLibrary& models)
 {
     const GameCharacterPass& pass = frame.pass;
     return GameHangingPass{.batch = frame.batch,
@@ -1097,7 +1095,7 @@ Result RunTheCloth(MonsterFrame& frame)
         .wings = actor.wings.model == NoItemModel ? std::nullopt : std::optional<std::uint16_t>(actor.wings.model),
         .monster = actor.word376,
         .objectFlags = actor.flags78};
-    const Render::Models::ClothBody body{
+    const Models::ClothBody body{
         .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
     if (frame.originalFrame)
         cloth.Frame(frame.batch, wearer, body, *frame.pass.clothWorld, map, frame.worldClock, wears);
@@ -1105,7 +1103,7 @@ Result RunTheCloth(MonsterFrame& frame)
         cloth.DrawCurrent(frame.batch, wearer, body, frame.pass.frameClock, wears);
     if (frame.pass.sprites != nullptr)
     {
-        for (const Render::Models::ClothFlare& flare : cloth.Flares())
+        for (const Models::ClothFlare& flare : cloth.Flares())
             static_cast<void>(
                 frame.pass.sprites->Create(ClothFlare, flare.position, flare.scale, glm::vec3(flare.light), 0.0f, 0));
     }
@@ -1236,7 +1234,7 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
     if (type == 0x16e)
     {
         // 0x5108b6 (KalimaSiegeHelpers.h), con los huesos del modelo.
-        const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(type);
+        const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(type);
         if (skeleton == nullptr)
             return Core::Unexpected(std::format("0x5108b6: falta el modelo {:#x}", type));
         if (auto sparks = DrawTheBoneSparks(HelperPassOf(frame), *skeleton); !sparks.HasValue())
@@ -1467,15 +1465,15 @@ Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const
     return F32(*ground);
 }
 
-Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch,
-                                                  const Render::Models::IModelLibrary& models, WorldState& world,
-                                                  std::size_t slot, const GameCharacterPass& pass, bool originalFrame)
+Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                  WorldState& world, std::size_t slot, const GameCharacterPass& pass,
+                                                  bool originalFrame)
 {
     ActorState& stored = world.Actors()[slot];
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand del dibujo de los personajes");
-    const Render::Models::IModelLibrary& fauna = world.FaunaResources();
-    const Render::Models::Skeleton* skeleton = fauna.SkeletonOf(stored.type);
+    const Models::IModelLibrary& fauna = world.FaunaResources();
+    const Models::Skeleton* skeleton = fauna.SkeletonOf(stored.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));
     // Entre frames del original, sobre una copia del personaje y del rand(): no guarda nada.

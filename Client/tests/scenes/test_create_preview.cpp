@@ -23,10 +23,10 @@
 namespace
 {
 using Client::Core::PixelSize;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
+using Client::Models::ActionInfo;
+using Client::Models::BoneKey;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 using Client::Scenes::ChoosePreviewClass;
 using Client::Scenes::CreatePreview;
 using Client::Scenes::DrawnPreview;
@@ -37,7 +37,7 @@ using Client::Scenes::StepPreview;
 using Client::UI::Rect;
 
 // Dos acciones de 4 keys, la 1 sin repetir, en un hueso.
-class FaceModels final : public Client::Render::Models::IModelLibrary
+class FaceModels final : public Client::Models::IModelLibrary
 {
 public:
     FaceModels()

@@ -40,19 +40,19 @@ void PlayKalimaSound(WorldState& world, std::int32_t sound)
     world.Runtime().RequestSound(sound);
 }
 
-void RegionSoundOf(WorldState& world, Render::Models::ClothWorld& cloth)
+void RegionSoundOf(WorldState& world, Models::ClothWorld& cloth)
 {
     ActorState& hero = world.Actors()[world.Runtime().hero];
     const auto x = [&]
     {
-        const Render::Models::LogicalAccess access(hero.cellXAccesses, cloth.random,
-                                                   Render::Models::SmallLogicalCloseRandoms, hero.cellXLeft);
+        const Models::LogicalAccess access(hero.cellXAccesses, cloth.random, Models::SmallLogicalCloseRandoms,
+                                           hero.cellXLeft);
         return static_cast<std::int32_t>(hero.cellX);
     }();
     const auto y = [&]
     {
-        const Render::Models::LogicalAccess access(hero.cellYAccesses, cloth.random,
-                                                   Render::Models::SmallLogicalCloseRandoms, hero.cellYLeft);
+        const Models::LogicalAccess access(hero.cellYAccesses, cloth.random, Models::SmallLogicalCloseRandoms,
+                                           hero.cellYLeft);
         return static_cast<std::int32_t>(hero.cellY);
     }();
     constexpr std::int32_t MinX = 25, MaxX = 51, MinY = 44, MaxY = 119;
@@ -60,10 +60,9 @@ void RegionSoundOf(WorldState& world, Render::Models::ClothWorld& cloth)
         PlayKalimaSound(world, RegionSound + cloth.random.Next() % SoundAlternatives);
 }
 
-void OwnRecordSound(WorldState& world, Render::Models::ClothWorld& cloth)
+void OwnRecordSound(WorldState& world, Models::ClothWorld& cloth)
 {
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, cloth.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, cloth.random, Models::OwnRecordCloseRandoms);
     constexpr std::uint8_t LastLevel = 7;
     const auto& hero = world.Actors()[world.Runtime().hero];
     if (KalimaLevelOf(hero.characterClass, world.OwnCharacter().level) == LastLevel)
@@ -87,7 +86,7 @@ std::uint8_t KalimaLevelOf(std::uint8_t characterClass, std::uint16_t level)
     return Half;
 }
 
-Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& world, Render::Models::ClothWorld& cloth)
+Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& world, Models::ClothWorld& cloth)
 {
     PlayKalimaSound(world, AmbientSound);
     if (cloth.logicSteps % AmbientPeriod == 0)

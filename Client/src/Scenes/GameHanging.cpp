@@ -201,7 +201,7 @@ struct Frame
 };
 
 // El lugar de lo que cuelga por el camino de la bandera (0x5093d2..0x5095e2). El 0 de los ángulos es el de 0x6b86a0.
-Core::Expected<Render::Models::HangingPlacement, std::string> PlacementOf(const ActorState& actor, std::int32_t model)
+Core::Expected<Models::HangingPlacement, std::string> PlacementOf(const ActorState& actor, std::int32_t model)
 {
     // 0x5093f3..0x50947c: con el +0x376 de 0x84 a 0x86 (las estatuas de Blood Castle, 0x50c83b), el 0xc1c y el 0x225
     // en (90, 0, 90) y (0, 80, 120), y el 0xa24 en (10, 0, 0) y (0, 110, 80). Con otro modelo (0x5095e0), la matriz
@@ -210,23 +210,23 @@ Core::Expected<Render::Models::HangingPlacement, std::string> PlacementOf(const 
     if (actor.word376 >= 0x84 && actor.word376 <= 0x86)
     {
         if (model == 0xc1c || model == 0x225)
-            return Render::Models::HangingPlacement{{90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}};
+            return Models::HangingPlacement{{90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}};
         if (model == 0xa24)
-            return Render::Models::HangingPlacement{{10.0f, 0.0f, 0.0f}, {0.0f, 110.0f, 80.0f}};
+            return Models::HangingPlacement{{10.0f, 0.0f, 0.0f}, {0.0f, 110.0f, 80.0f}};
         return Core::Unexpected(std::format("0x5095e0: el lugar del modelo {:#x} con el +0x376 {:#x} es la matriz sin "
                                             "iniciar de la pila de 0x509340",
                                             model, actor.word376));
     }
     const bool crossbow = (model >= 0xa1a && model < Arrows) || model == 0xa22 || (model >= 0xa24 && model < 0xa26);
     if (crossbow)
-        return Render::Models::HangingPlacement{{0.0f, 20.0f, 180.0f}, {-10.0f, 8.0f, 40.0f}};
+        return Models::HangingPlacement{{0.0f, 20.0f, 180.0f}, {-10.0f, 8.0f, 40.0f}};
     if (model == 0xc1b)
-        return Render::Models::HangingPlacement{{110.0f, 180.0f, 90.0f}, {-10.0f, 5.0f, -10.0f}};
+        return Models::HangingPlacement{{110.0f, 180.0f, 90.0f}, {-10.0f, 5.0f, -10.0f}};
     if (model == 0xa26)
-        return Render::Models::HangingPlacement{{-60.0f, 0.0f, -80.0f}, {-5.0f, 20.0f, 0.0f}};
+        return Models::HangingPlacement{{-60.0f, 0.0f, -80.0f}, {-5.0f, 20.0f, 0.0f}};
     if ((model >= 0xa12 && model < 0xc12) || model == 0xc1a)
-        return Render::Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
-    return Render::Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-20.0f, 5.0f, 40.0f}};
+        return Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
+    return Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-20.0f, 5.0f, 40.0f}};
 }
 
 // 0x4ec190 y 0x50966b: el origen de lo que cuelga sin la bandera, con la escala `scale` del modelo del tipo.
@@ -610,15 +610,15 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
 {
     ActorState& actor = frame.actor;
     const GameHangingPass& pass = frame.pass;
-    if (!Render::Models::HangsAsAModel(static_cast<std::uint16_t>(model)) ||
+    if (!Models::HangsAsAModel(static_cast<std::uint16_t>(model)) ||
         (actor.flags78 & HiddenAttachmentFlag) == HiddenAttachmentFlag)
         return {};
     const auto type = static_cast<std::uint16_t>(model);
     // 0x5093bb: 0x607b60 arma el objeto con el tipo del ítem.
-    Render::Models::ObjectRandoms randoms{};
+    Models::ObjectRandoms randoms{};
     for (std::size_t index = 0; index < HangingRandomCount(type); ++index)
         randoms[index] = pass.random.Next();
-    const Render::Models::ObjectState state = Render::Models::NativeItemObjectState(type, pass.frameClock, randoms);
+    const Models::ObjectState state = Models::NativeItemObjectState(type, pass.frameClock, randoms);
     if (part.bone >= pass.body.size())
         return Core::Unexpected(
             std::format("0x509340: el hueso {:#x} del cuerpo no existe", static_cast<int>(part.bone)));
@@ -630,7 +630,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
         const auto placement = PlacementOf(actor, model);
         if (!placement.HasValue())
             return Core::Unexpected(placement.Error());
-        root = Render::Models::PlacedRoot(parent, placement.Value());
+        root = Models::PlacedRoot(parent, placement.Value());
     }
     else
     {
@@ -650,7 +650,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     }
     std::uint8_t value = 0;
     {
-        const Render::Models::LogicalAccess access(actor.byte38eAccesses, pass.random, Byte38eCloseRandoms);
+        const Models::LogicalAccess access(actor.byte38eAccesses, pass.random, Byte38eCloseRandoms);
         value = actor.byte38e;
     }
     // 0x509926: con '4', un jugador entre las acciones 0x22 y 0x97 y del frame 5 al 10.
@@ -665,7 +665,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     // 0x60b3d0 tampoco (su rand() es del set, que 0x509340 pasa en 0). La luz de 0x509a92 y el caso del modelo
     // corren igual. Así, la mano de un tipo que no es un ítem (0xff0 da 0x1202) no dibuja nada. Sin portar:
     // los efectos por nivel de 0x60b3d0 (0x530860, 0x5491e0) sobre un modelo así.
-    const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(type);
+    const Models::Skeleton* skeleton = pass.models.SkeletonOf(type);
     if (pass.models.Find(type) == nullptr || skeleton == nullptr)
         return ItemSprites(frame, model, origin);
     // 0x5093a3 y 0x50997e: la acción del modelo es la de la parte, salvo 0x1a18 en la zona segura (con el
@@ -681,12 +681,12 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
         return Core::Unexpected(std::format("0x4ec200: el modelo {:#x} no tiene la acción {}, que lee fuera de su "
                                             "arreglo (Q-C1119)",
                                             model, static_cast<int>(action)));
-    Render::Models::AnimationState animation = part.animation;
+    Models::AnimationState animation = part.animation;
     animation.action = action;
     if (pass.originalFrame && advances)
     {
-        static_cast<void>(Render::Models::AdvanceAnimation(animation, skeleton->actions[action], part.speed,
-                                                           Render::Models::AnimationScene::Other));
+        static_cast<void>(
+            Models::AdvanceAnimation(animation, skeleton->actions[action], part.speed, Models::AnimationScene::Other));
         part.animation.frame = animation.frame;
         part.animation.previousAction = animation.previousAction;
         part.animation.previousKey = animation.previousKey;
@@ -696,7 +696,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     if (carry.bones.size() < skeleton->bones.size())
         carry.bones.resize(skeleton->bones.size(), BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton->bones.size());
-    if (!Render::Models::PoseAttached(*skeleton, animation, root, bones))
+    if (!Models::PoseAttached(*skeleton, animation, root, bones))
         return Core::Unexpected(std::format("0x4eb860: la pose del modelo {:#x} que cuelga no es válida", model));
     DrawnObject object;
     object.model = type;
@@ -757,7 +757,7 @@ BackItem BackItemOf(const ActorState& actor, bool back)
 
 float PlayerActionSpeed(const GameHangingPass& pass, std::size_t action)
 {
-    const Render::Models::Skeleton* player = pass.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = pass.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     return player != nullptr && action < player->actions.size() ? player->actions[action].speed : 0.0f;
 }
 
@@ -839,7 +839,7 @@ Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
     if (static_cast<std::int16_t>(pet.model) != Helper02)
         return {};
     pet.bone = PetBone;
-    pet.speed = Render::Models::PetKeysPerOriginalFrame;
+    pet.speed = Models::PetKeysPerOriginalFrame;
     // 0x50dfa9: el excelente es el del arma de la espalda (Q-C297).
     if (auto hung = HangItem(frame, {20.0f, 0.0f, 0.0f}, pet, Helper02, pet.level, petExcellent, false);
         !hung.HasValue())
@@ -1104,7 +1104,7 @@ Result HangTheHand(Frame& frame, std::size_t index)
     ActorState& actor = frame.actor;
     std::uint8_t value = 0;
     {
-        const Render::Models::LogicalAccess access(actor.byte38eAccesses, frame.pass.random, Byte38eCloseRandoms);
+        const Models::LogicalAccess access(actor.byte38eAccesses, frame.pass.random, Byte38eCloseRandoms);
         value = actor.byte38e;
     }
     const std::uint8_t action = actor.animation.action;
@@ -1194,7 +1194,7 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
     if (MuSignBone >= pass.body.size())
         return Core::Unexpected(
             std::format("0x4144d6: el hueso {:#x} del cuerpo no existe", static_cast<int>(MuSignBone)));
-    const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(MuSign);
+    const Models::Skeleton* skeleton = pass.models.SkeletonOf(MuSign);
     if (pass.models.Find(MuSign) == nullptr || skeleton == nullptr)
         return Core::Unexpected(std::string("0x414470: falta Skill\\MuSign.bmd (0x12a) de la capa de los GM"));
     DrawnObject object;
@@ -1204,8 +1204,8 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
     // 0x414555: 0x4ec200 sobre la acción de +0x115 (0). Sin acciones o con una key no hace nada; entre frames
     // del original, la dibuja como quedó.
     if (pass.originalFrame && layer.animation.action < skeleton->actions.size())
-        static_cast<void>(Render::Models::AdvanceAnimation(layer.animation, skeleton->actions[layer.animation.action],
-                                                           MuSignSpeed, Render::Models::AnimationScene::Other));
+        static_cast<void>(Models::AdvanceAnimation(layer.animation, skeleton->actions[layer.animation.action],
+                                                   MuSignSpeed, Models::AnimationScene::Other));
     object.animation = layer.animation;
     // 0x414370: el blendMesh (+0x68) y la malla oculta (+0x5c) en −1, la luz del blendMesh en 1, la luz por
     // vértice (+0xec) prendida y el alpha en 1. 0x5ffce0 suma la luz del terreno, que 0x6002e0 pisa. La U, la V

@@ -61,7 +61,7 @@ TEST(ModelLoadCallsTest, TheFinalSkillQueriesKeepTheFirstTextureFolderThroughThe
     Models::Mesh gate;
     gate.textureName = "gate.jpg";
     models[0x10d].meshes.push_back(std::move(gate));
-    Client::Render::Models::ModelTextureSlots slots(Client::Render::TextureSlot{0x69});
+    Client::Models::ModelTextureSlots slots(Client::Render::TextureSlot{0x69});
     std::map<std::uint16_t, std::vector<Client::Render::TextureSlot>> bindings;
     for (const auto& call : Models::SiegeBeforeSkillTextureCalls())
         bindings[call.model] = slots.Assign(models.at(call.model), call.folder, Models::ModelTextureSampling);

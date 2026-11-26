@@ -162,8 +162,7 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
             std::uint8_t skill = 0;
             {
                 // 0x5e41d7..0x5e4448: el registro propio abierto para leer el byte de la skill del lugar de +0x425.
-                const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                        Render::Models::OwnRecordCloseRandoms);
+                const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
                 skill = OwnSkillByte(world.OwnCharacter(), hero.skillIndex);
             }
             const auto x = static_cast<double>(left);

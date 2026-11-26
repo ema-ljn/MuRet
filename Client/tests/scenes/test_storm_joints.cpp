@@ -289,7 +289,7 @@ struct FallingStar
         return Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect);
     }
 
-    Client::Core::Expected<void, std::string> Step(const Client::Render::Models::IModelLibrary* models = nullptr,
+    Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
                                                    Client::Scenes::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
@@ -500,7 +500,7 @@ struct Falling
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
     }
 
-    Client::Core::Expected<void, std::string> Step(const Client::Render::Models::IModelLibrary* models = nullptr,
+    Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
                                                    Client::Scenes::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
@@ -527,7 +527,7 @@ struct Falling
 
 // El 0x20b (Player\Shadow01) de prueba: una malla de tres vértices del hueso 0 y 30 triángulos (90 esquinas), un hueso
 // sin padre con su key en el origen y una acción de una key. Los demás modelos no están.
-class ShadowModels final : public Client::Render::Models::IModelLibrary
+class ShadowModels final : public Client::Models::IModelLibrary
 {
 public:
     ShadowModels()
@@ -536,16 +536,16 @@ public:
         mesh.vertices = {{0, {1.0f, 2.0f, 3.0f}}, {0, {-4.0f, 5.0f, 6.0f}}, {0, {7.0f, -8.0f, 9.0f}}};
         mesh.triangles.assign(30, {3, {0, 1, 2, 0}});
         model.meshes.push_back(mesh);
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t type) const override
     {
         return type == Client::Data::Models::PlayerShadowModel ? &model : nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
     {
         return type == Client::Data::Models::PlayerShadowModel ? &skeleton : nullptr;
     }
@@ -554,18 +554,18 @@ public:
         return {};
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
 };
 
 // Lo que no tiene el 0x20b: ni modelo ni esqueleto.
-class NoModels final : public Client::Render::Models::IModelLibrary
+class NoModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -821,7 +821,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
                                   {0x42ec02fdu, 0x4349cb0cu, 0x439bed9fu},
                                   {0x42c72af5u, 0x4364b34cu, 0x43962b7du}}}}};
     ShadowModels models;
-    Client::Render::Models::BoneKey& key = models.skeleton.bones[0].actions[0][0];
+    Client::Models::BoneKey& key = models.skeleton.bones[0].actions[0][0];
     key.position = {1.0f, 2.0f, 3.0f};
     key.rotation = glm::quat::wxyz(0.5f, 0.5f, 0.5f, 0.5f);
     for (const Case& probe : cases)

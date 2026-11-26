@@ -168,9 +168,8 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
 
 Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Character::CharacterEntry& entry,
                                                             const World::GameCamera& camera,
-                                                            World::GameCameraInput& input,
-                                                            Render::Models::ClothWorld& cloth,
-                                                            const Render::Models::Skeleton& playerSkeleton)
+                                                            World::GameCameraInput& input, Models::ClothWorld& cloth,
+                                                            const Models::Skeleton& playerSkeleton)
 {
     if (entry.slot >= SelectionActorCount)
     {
@@ -201,12 +200,12 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Char
 
 Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::CharacterEvent> events,
                                                         World::GameCamera& camera, World::GameCameraInput& input,
-                                                        Render::Models::ClothWorld* cloth,
-                                                        const Render::Models::Skeleton* playerSkeleton)
+                                                        Models::ClothWorld* cloth,
+                                                        const Models::Skeleton* playerSkeleton)
 {
-    const Render::Models::Skeleton emptySkeleton;
-    Render::Models::ClothWorld& sharedCloth = cloth != nullptr ? *cloth : m_localCloth;
-    const Render::Models::Skeleton& skeleton = playerSkeleton != nullptr ? *playerSkeleton : emptySkeleton;
+    const Models::Skeleton emptySkeleton;
+    Models::ClothWorld& sharedCloth = cloth != nullptr ? *cloth : m_localCloth;
+    const Models::Skeleton& skeleton = playerSkeleton != nullptr ? *playerSkeleton : emptySkeleton;
     for (const App::CharacterEvent& event : events)
     {
         if (const auto* list = std::get_if<App::CharacterListReceived>(&event))

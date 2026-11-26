@@ -99,14 +99,14 @@ Core::Expected<ActorStopContext, std::string> StopContextForActor(const ActorSta
                                                                   const World::WorldTerrain& terrain,
                                                                   std::string_view missingPlayer)
 {
-    static const Render::Models::Skeleton EmptySkeleton;
-    const Render::Models::Skeleton* playerSkeleton = context.playerSkeleton;
+    static const Models::Skeleton EmptySkeleton;
+    const Models::Skeleton* playerSkeleton = context.playerSkeleton;
     if (actor.type == Data::Models::PlayerSkeletonModel && playerSkeleton == nullptr)
         return Core::Unexpected(std::string(missingPlayer));
     if (playerSkeleton == nullptr)
         playerSkeleton = &EmptySkeleton;
 
-    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    const Models::Skeleton* actorSkeleton = nullptr;
     const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
     if (actor.type != Data::Models::PlayerSkeletonModel)
     {
@@ -131,8 +131,8 @@ Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext&
     std::int16_t right = 0;
     std::int16_t left = 0;
     {
-        const Render::Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
+                                        Models::OwnRecordCloseRandoms);
         right = std::bit_cast<std::int16_t>(context.world.OwnCharacter().equipment[0].id);
         left = std::bit_cast<std::int16_t>(context.world.OwnCharacter().equipment[1].id);
     }
@@ -188,7 +188,7 @@ Core::Expected<void, std::string> UpdateTheHead(ActorState& hero, const HeroMove
 
 std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
@@ -360,8 +360,8 @@ HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
 // Las manos del registro propio (+0xb6c y +0xbb4, MOVSX), en un acceso.
 std::pair<std::int32_t, std::int32_t> OwnHands(const HeroMovementContext& context)
 {
-    const Render::Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
+                                    Models::OwnRecordCloseRandoms);
     const auto& equipment = context.world.OwnCharacter().equipment;
     return {std::bit_cast<std::int16_t>(equipment[0].id), std::bit_cast<std::int16_t>(equipment[1].id)};
 }
@@ -684,11 +684,11 @@ void PublishHeroLayer(const ActorState& hero, WorldRuntime& runtime, const World
 std::int32_t StepTheCounter(WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     {
-        const Render::Models::LogicalAccess access(runtime.warpDepth, random, Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(runtime.warpDepth, random, Models::SmallLogicalCloseRandoms);
         if (runtime.warpCounter > 0)
             --runtime.warpCounter;
     }
-    const Render::Models::LogicalAccess access(runtime.warpDepth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(runtime.warpDepth, random, Models::SmallLogicalCloseRandoms);
     return runtime.warpCounter;
 }
 Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMovementContext& context)

@@ -11,20 +11,20 @@
 #include <ios>
 #include <optional>
 
-// Client::Render::Models::HangingObjectState, ModelLightOf y MaskedClassLightAt: lo que el objeto le
+// Client::Models::HangingObjectState, ModelLightOf y MaskedClassLightAt: lo que el objeto le
 // pasa a RenderBody (+0x64, +0x68, +0x6c, +0x70 y +0x58), con la tabla que sale de emular 0x607b60
 // sobre el main.exe con T = 1000 y 2500 y rand() en 7 (06 § Lo que cuelga).
 namespace
 {
 using Client::Math::RoundedSin;
-using Client::Render::Models::EveryMeshBlends;
-using Client::Render::Models::HangingObjectState;
-using Client::Render::Models::MaskedClassLightAt;
-using Client::Render::Models::ModelLightOf;
-using Client::Render::Models::NoBlendMesh;
-using Client::Render::Models::NoHiddenMesh;
-using Client::Render::Models::ObjectRandoms;
-using Client::Render::Models::ObjectState;
+using Client::Models::EveryMeshBlends;
+using Client::Models::HangingObjectState;
+using Client::Models::MaskedClassLightAt;
+using Client::Models::ModelLightOf;
+using Client::Models::NoBlendMesh;
+using Client::Models::NoHiddenMesh;
+using Client::Models::ObjectRandoms;
+using Client::Models::ObjectState;
 
 constexpr ObjectRandoms Sevens{7, 7};
 

@@ -329,7 +329,7 @@ Core::Expected<void, std::string> RequestTheLogout(const GameUiContext& context,
     static_cast<void>(context.random.Next());
     std::uint8_t serialDepth = 0;
     {
-        const Render::Models::LogicalAccess serial(serialDepth, context.random, Render::Models::SerialCloseRandoms);
+        const Models::LogicalAccess serial(serialDepth, context.random, Models::SerialCloseRandoms);
     }
     requests.Value()->RequestLogout(kind);
     return {};
@@ -642,8 +642,7 @@ Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& contex
     WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     const auto typed = static_cast<std::uint32_t>(runtime.social.typedMoney);
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (typed > context.world.OwnCharacter().zen + trade.ownMoney)
     {
         UI::PushDialog(runtime.dialogs, 0);
@@ -1172,7 +1171,7 @@ Core::Expected<Protocol::OptionData::OptionBody, std::string> OptionBodyOf(World
                                             "las skills (+0x16c del registro propio)"));
     Protocol::OptionData::OptionBody body{};
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& record = world.OwnCharacter();
         const auto& keys = record.skillKeys[*chosenSlot];
         for (std::size_t at = 0; at < OptionKeyPlaces; ++at)

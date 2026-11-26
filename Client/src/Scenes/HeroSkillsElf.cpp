@@ -187,8 +187,7 @@ Core::Expected<void, std::string> ElfBranch::SendTheMagicAttack(std::string_view
 // 0x57d790..0x57e12a: true si sigue a 0x57ce80, con el registro propio ya cerrado.
 Core::Expected<bool, std::string> ElfBranch::PassesTheHead()
 {
-    const Render::Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random, Models::OwnRecordCloseRandoms);
     const auto cost = SkillCostOf(m_skill, m_context, "0x57d803");
     if (!cost.HasValue())
         return Core::Unexpected(cost.Error());

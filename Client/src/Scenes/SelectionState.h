@@ -21,7 +21,7 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::World
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
 }
@@ -70,22 +70,21 @@ public:
                                                                         Crt::CrtRandom* random = nullptr);
     [[nodiscard]] Core::Expected<void, std::string> Apply(std::span<const App::CharacterEvent> events,
                                                           World::GameCamera& camera, World::GameCameraInput& input,
-                                                          Render::Models::ClothWorld* cloth = nullptr,
-                                                          const Render::Models::Skeleton* playerSkeleton = nullptr);
+                                                          Models::ClothWorld* cloth = nullptr,
+                                                          const Models::Skeleton* playerSkeleton = nullptr);
     // Se llama después de la cámara de selección: 0x634680 escribe Z a los cinco slots.
     void DrawSelection(World::GameCameraInput& input);
 
 private:
     [[nodiscard]] Core::Expected<void, std::string> Construct(const Protocol::Character::CharacterEntry& entry,
                                                               const World::GameCamera& camera,
-                                                              World::GameCameraInput& input,
-                                                              Render::Models::ClothWorld& cloth,
-                                                              const Render::Models::Skeleton& playerSkeleton);
+                                                              World::GameCameraInput& input, Models::ClothWorld& cloth,
+                                                              const Models::Skeleton& playerSkeleton);
     [[nodiscard]] Core::Expected<void, std::string> Fail(std::string error);
     WorldState& m_world;
     ActorState m_preview;
     // Solo quien prueba el estado sin el bucle usa este rand(); main aporta el de toda la sesión.
-    Render::Models::ClothWorld m_localCloth;
+    Models::ClothWorld m_localCloth;
     std::optional<World::WorldTerrain> m_ownedTerrain;
     const World::WorldTerrain* m_borrowedTerrain = nullptr;
     World::CullingScene m_scene = World::CullingScene::Other;

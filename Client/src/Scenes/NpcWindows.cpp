@@ -436,8 +436,7 @@ Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result,
     runtime.cursorItemCount = 0;
     runtime.cursorItem.occupied = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
         resources.world.OwnCharacter().zen = result.money;
     }
     runtime.RequestSound(ItemSound);
@@ -452,8 +451,7 @@ Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& res
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
         OwnCharacterRecord& record = world.OwnCharacter();
         record.zen = result.money;
         auto recalculated = RecalculateOwnStats(record, OwnStatsContext{.itemSetTables = resources.itemSetTables,
@@ -477,8 +475,7 @@ Core::Expected<void, std::string> ApplyWarehouseMoney(const Npc::WarehouseMoney&
     if (money.result == 0)
         return {};
     WorldRuntime& runtime = resources.world.Runtime();
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     OwnCharacterRecord& record = resources.world.OwnCharacter();
     record.warehouseZen = money.warehouseMoney;
     record.zen = money.inventoryMoney;

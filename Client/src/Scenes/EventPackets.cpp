@@ -470,7 +470,7 @@ private:
             if (!actor.alive || actor.type != Data::Models::PlayerSkeletonModel)
                 continue;
             actor.angles = {0.0f, 0.0f, GateAngle};
-            Render::Models::SetAction(actor.animation, *m_context.playerSkeleton, GateAction);
+            Models::SetAction(actor.animation, *m_context.playerSkeleton, GateAction);
         }
         return {};
     }
@@ -1287,8 +1287,8 @@ private:
             // 0x4e1071..0x4e1142: el nivel (+0xe) con el registro propio abierto.
             std::int32_t level = 0;
             {
-                const Render::Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
-                                                        Render::Models::OwnRecordCloseRandoms);
+                const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
+                                                Models::OwnRecordCloseRandoms);
                 level = m_world.OwnCharacter().level;
             }
             if (level >= ContractLevel)
@@ -1322,7 +1322,7 @@ private:
             return Core::Unexpected(std::format("0x4e11d9: 0x4ea030 sienta al héroe (0xca) con las acciones del modelo "
                                                 "{:#x}, que no está cargado",
                                                 hero.type));
-        Render::Models::SetAction(hero.animation, *skeleton, SittingAction);
+        Models::SetAction(hero.animation, *skeleton, SittingAction);
         // 0x4e11e1..0x4e15bd: el C1 05 18 con el rumbo del héroe (+0x24) y 0x82.
         const auto direction = Protocol::Movement::DirectionFromAngle(hero.angles.z);
         if (!direction.HasValue())

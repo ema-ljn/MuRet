@@ -150,8 +150,7 @@ void FillTheItemHelpLevels(GameHudContext& context, std::int32_t item, Record re
         ItemHelpRow& row = levels.rows[level];
         row = RowOf(item, record, static_cast<std::int32_t>(level));
         // 0x5aff9b..0x5b04c3: el registro propio se abre y se cierra en cada nivel.
-        const Render::Models::LogicalAccess access(context.ownRecordDepth, context.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         row[ItemHelpUsable] = UsableBy(context.world.OwnCharacter(), row);
     }
 }

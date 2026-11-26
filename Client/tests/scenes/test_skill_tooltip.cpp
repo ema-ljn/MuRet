@@ -36,8 +36,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;

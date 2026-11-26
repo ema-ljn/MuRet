@@ -392,8 +392,7 @@ Core::Expected<std::int32_t, std::string> FindTheArrows(const InventoryMoveConte
     std::int32_t right = EmptyHand;
     std::int32_t left = EmptyHand;
     {
-        const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& record = world.OwnCharacter();
         if ((record.characterClass & ClassMask) != ElfClass)
             return NoArrowCell;
@@ -470,8 +469,7 @@ Core::Expected<void, std::string> UpdateTheArrows(const InventoryMoveContext& co
     WorldRuntime& runtime = world.Runtime();
     bool equips = false;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         equips = (world.OwnCharacter().characterClass & ClassMask) == ElfClass && runtime.cursorItemCount == 0;
     }
     if (!equips)
@@ -599,8 +597,7 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
         ReleaseTheLayer(hero);
         hero.byte360 = WizardsRingLayer;
     }
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     world.OwnCharacter().equipment.at(place) = cursor;
     return {};
 }
@@ -655,8 +652,7 @@ void ReviewTheHeroAfterThePlacement(const WorldEntryResources& resources)
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     ActorState& hero = HeroOf(world);
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     const OwnCharacterRecord& record = world.OwnCharacter();
     if (record.equipment[PetSlot].id == EmptyOwnItemId)
         TurnOffHelpersOf(world.Helpers(), runtime.hero);
@@ -870,8 +866,7 @@ Core::Expected<bool, std::string> CheckTheWizardsRing(const InventoryMoveContext
     std::optional<std::int32_t> required;
     bool throws = true;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (cursor.id == WizardsRing)
         {
             const std::uint32_t level = LevelOf(cursor);
@@ -912,8 +907,7 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
     WorldRuntime& runtime = world.Runtime();
     if (runtime.cursorItem.id != EventTicket)
         return true;
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     constexpr std::size_t SpecialClassOffset = 7;
     constexpr std::int32_t FirstEventMap = 24;
     constexpr std::int32_t LastEventMap = 29;
@@ -925,8 +919,7 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
         InRange(runtime.map, FirstEventMap, LastEventMap) || runtime.map == FinalEventMap)
         return false;
     // 0x437a20(1), con el acceso anidado: el cierre no consume rand() mientras sigue el del llamador.
-    const Render::Models::LogicalAccess nested(runtime.ownRecordDepth, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess nested(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (world.Actors()[runtime.hero].safeZone != 0)
     {
         if (auto shown = Message(context.services, 1238, UI::ErrorMessage, "0x437b9b"); !shown.HasValue())
@@ -1102,8 +1095,7 @@ Core::Expected<void, std::string> RemoveInventoryItem(const InventoryMoveContext
     WorldRuntime& runtime = world.Runtime();
     ActorState& hero = HeroOf(world);
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         ItemState& item = world.OwnCharacter().equipment.at(place);
         if (item.id == EmptyOwnItemId)
             return {};
@@ -1347,8 +1339,7 @@ Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMov
     WorldRuntime& runtime = world.Runtime();
     {
         // 0x59bd3e..0x59bf17: abre el registro propio y lo cierra con su cuenta (3.848 rand() sin otros accesos).
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         ItemState& left = world.OwnCharacter().equipment[LeftHandSlot];
         runtime.cursorItem = left;
         runtime.cursorItemCount = static_cast<std::int32_t>(left.occupied);
@@ -1373,8 +1364,7 @@ Core::Expected<bool, std::string> CheckTheArrows(const InventoryMoveContext& con
     std::int32_t right = EmptyHand;
     std::int32_t left = EmptyHand;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         right = Signed(world.OwnCharacter().equipment[RightHandSlot].id);
         left = Signed(world.OwnCharacter().equipment[LeftHandSlot].id);
     }
@@ -1403,8 +1393,7 @@ Core::Expected<bool, std::string> CheckTheArrows(const InventoryMoveContext& con
     }
     // 0x561d5f..0x561e81 (la ballesta, que cierra con 0x40b4d0) y 0x561eb4..0x561f55 (el arco, con 0x40f370): el otro
     // acceso, cerrado después de 0x561840.
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (ammunition == static_cast<std::int32_t>(wanted) &&
         world.OwnCharacter().equipment[ammunitionSlot].durability != 0)
         return true;
@@ -2190,8 +2179,7 @@ Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Dur
     WorldRuntime& runtime = world.Runtime();
     if (durability.slot < FirstInventoryGridSlot)
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
         world.OwnCharacter().equipment.at(durability.slot).durability = durability.durability;
     }
     else
@@ -2225,7 +2213,7 @@ Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::Lif
                                                   Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = world.Runtime();
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     switch (refill.place)
     {
     case Protocol::Inventory::EndTheWaitPlace:
@@ -2245,8 +2233,7 @@ Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::Lif
 Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill, WorldState& world,
                                                   Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     OwnCharacterRecord& record = world.OwnCharacter();
     switch (refill.place)
     {
@@ -2296,8 +2283,7 @@ Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::Dr
         // 0x4d10f2..0x4d13c5: todo con el registro abierto, también 0x512a30 y 0x443d40.
         const auto place = static_cast<std::size_t>(result.slot);
         ActorState& hero = HeroOf(world);
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         ItemState& item = world.OwnCharacter().equipment.at(place);
         // 0x4d11b8..0x4d11df: el cuervo de +0x430.
         if (place == LeftHandSlot && item.id == DarkRaven)

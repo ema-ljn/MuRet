@@ -46,7 +46,7 @@ constexpr Render::TextureSlot GateTexturesStart{0x69};
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 std::size_t UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
                        Render::ITextureStore& textures, Core::Log& log,
-                       std::map<std::uint32_t, TextureMetadata>* metadata = nullptr)
+                       std::map<std::uint32_t, Models::TextureMetadata>* metadata = nullptr)
 {
     std::size_t skipped = 0;
     for (const Data::Textures::TextureSetEntry& entry : entries)
@@ -68,7 +68,7 @@ std::size_t UploadEach(const std::filesystem::path& dataRoot, std::span<const Da
         if (metadata != nullptr)
         {
             const Data::Textures::Texture& texture = loaded.Value().front().texture;
-            metadata->insert_or_assign(static_cast<std::uint32_t>(entry.slot), TextureMetadata(texture));
+            metadata->insert_or_assign(static_cast<std::uint32_t>(entry.slot), Models::TextureMetadata(texture));
         }
     }
     const auto uploaded = entries.size() - skipped;
@@ -114,9 +114,8 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
                     continue;
                 }
                 Data::Models::Model model = std::move(loaded).Value();
-                auto skeleton = file.model == Data::Models::PlayerSkeletonModel
-                                    ? Render::Models::MakePlayerSkeleton(model)
-                                    : Render::Models::MakeSkeleton(model);
+                auto skeleton = file.model == Data::Models::PlayerSkeletonModel ? Models::MakePlayerSkeleton(model)
+                                                                                : Models::MakeSkeleton(model);
                 if (skeleton.HasValue())
                 {
                     m_skeletons.insert_or_assign(file.model, std::move(skeleton).Value());
@@ -205,7 +204,7 @@ const Data::Models::Model* GameModels::Find(std::uint16_t model) const
     return found == m_models.end() ? nullptr : &found->second;
 }
 
-const Render::Models::Skeleton* GameModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* GameModels::SkeletonOf(std::uint16_t model) const
 {
     const auto found = m_skeletons.find(model);
     return found == m_skeletons.end() ? nullptr : &found->second;
@@ -217,7 +216,7 @@ std::span<const Render::TextureSlot> GameModels::MeshTextures(std::uint16_t mode
     return found == m_meshTextures.end() ? std::span<const Render::TextureSlot>{} : found->second;
 }
 
-std::optional<TextureMetadata> GameModels::TextureMetadataOf(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> GameModels::TextureMetadataOf(std::uint32_t selector) const
 {
     const auto found = m_textureMetadata.find(selector);
     return found == m_textureMetadata.end() ? std::nullopt : std::optional(found->second);
@@ -239,7 +238,7 @@ std::optional<glm::vec2> GameModels::TextureSize(Render::TextureSlot slot) const
     return metadata ? std::optional(metadata->size) : std::nullopt;
 }
 
-std::optional<TextureMetadata> GameModels::TakeStartupSelectionTexture(Render::ITextureStore& store)
+std::optional<Models::TextureMetadata> GameModels::TakeStartupSelectionTexture(Render::ITextureStore& store)
 {
     if (m_startupTextureStore != &store)
         return std::nullopt;
@@ -253,7 +252,7 @@ std::size_t GameModels::Count() const
     return m_models.size();
 }
 
-const Render::Models::ModelTextureSlots& GameModels::TextureSlots() const
+const Models::ModelTextureSlots& GameModels::TextureSlots() const
 {
     return m_slots;
 }

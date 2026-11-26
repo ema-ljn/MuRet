@@ -206,13 +206,13 @@ Result StateLight(DrawnObject& object, float time, const ItemDrawContext& contex
     return {};
 }
 } // namespace
-ItemShineClock ItemShineClockOf(Render::Models::ShinePass pass, Core::Duration clock)
+ItemShineClock ItemShineClockOf(Models::ShinePass pass, Core::Duration clock)
 {
     const float time = static_cast<float>(std::chrono::duration<double, std::milli>(clock).count());
     ItemShineClock shine;
     shine.word = ItemClockWord(time);
     shine.t = F32(static_cast<double>(shine.word % 10000) * 0.0001f);
-    if (pass != Render::Models::ShinePass::Chrome4 && pass != Render::Models::ShinePass::Chrome5)
+    if (pass != Models::ShinePass::Chrome4 && pass != Models::ShinePass::Chrome5)
         return shine;
     // CoreDuration es finito y acotado: ambos argumentos están dentro de |a|<2^63.
     shine.chrome4Cosine = F32(*Math::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
@@ -220,12 +220,12 @@ ItemShineClock ItemShineClockOf(Render::Models::ShinePass pass, Core::Duration c
     return shine;
 }
 
-glm::vec2 ItemShineTexCoords(Render::Models::ShinePass pass, const glm::vec3& normal, const ItemShineClock& clock)
+glm::vec2 ItemShineTexCoords(Models::ShinePass pass, const glm::vec3& normal, const ItemShineClock& clock)
 {
     const std::int32_t word = clock.word;
     const float t = clock.t;
     const double nx = normal.x, ny = normal.y, nz = normal.z;
-    using Render::Models::ShinePass;
+    using Models::ShinePass;
     switch (pass)
     {
     case ShinePass::Shiny:

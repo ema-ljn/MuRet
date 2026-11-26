@@ -62,7 +62,7 @@ struct FullSetScan
 // 0x505820(personaje), cdecl. Con alguna parte en 0xffff, o con una de nivel menor que 9 o de otro índice
 // ((modelo − 0x212) con el resto con signo de 512) que las botas, no hay conjunto: [0x743a178] en 0. Si
 // no, [0x743a178] es el nivel más chico. La clase 3 no mira el casco. [0x743a17c] queda en 1, salvo con
-// la clase 3 y el conjunto: abre el registro propio (Render::Models::LogicalAccess sobre
+// la clase 3 y el conjunto: abre el registro propio (Models::LogicalAccess sobre
 // `ownRecordAccesses`), lo pone en 0 si la armadura del registro (+0xc44) no es 0x100f, 0x1014, 0x1017
 // ni 0x1020, y lo cierra, con 3.848 rand() de `random` si deja la cuenta en 0.
 [[nodiscard]] FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRecord& own,

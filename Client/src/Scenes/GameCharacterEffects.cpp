@@ -515,7 +515,7 @@ Result Counter(const Tail& tail)
 // con un fstp; las que el caso pone en 0, un 0 literal.
 glm::vec3 FullSetColor(std::uint16_t boots, float alpha)
 {
-    const Render::Color shine = Render::Models::ShineColorOf(boots);
+    const Render::Color shine = Models::ShineColorOf(boots);
     const double k = D(alpha) * D(FullSetShineFactor);
     const auto times = [k](float component) { return component == 0.0f ? 0.0f : F32(k * D(component)); };
     return {times(shine.red), times(shine.green), times(shine.blue)};
@@ -953,7 +953,7 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 // (0x418a26). Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada. El final del grito (+0x38d en 15)
 // es EndTheShout.
 Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
-                                                     const Render::Models::Skeleton* skeleton, Crt::CrtRandom& random,
+                                                     const Models::Skeleton* skeleton, Crt::CrtRandom& random,
                                                      World::Particles* particles, float worldClock, WorldState* world)
 {
     if (spirit.state == FirstOrderState)
@@ -1086,7 +1086,7 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
 // vértices hacia el personaje, con él de dueño) y 0x4164f0(0), el estado y el contador de lejanía en 0. Siempre,
 // +0x38d en 0. `meshes` es el scratch del cuervo si se dibujó (`drawn`); si no, 0x4ee770 leería el del último modelo
 // posado y corta.
-Core::Expected<void, std::string> EndTheShout(DarkSpirit& spirit, std::span<const Render::Models::SkinnedMesh> meshes,
+Core::Expected<void, std::string> EndTheShout(DarkSpirit& spirit, std::span<const Models::SkinnedMesh> meshes,
                                               bool drawn, const GameRavenPass& pass)
 {
     constexpr std::int32_t ShoutMesh = 1, ShoutEffects = 0x5ac, ShoutJoints = 1;
@@ -1149,7 +1149,7 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
         const bool shell = (owner.flags78 & RiderFlag) != 0;
         if (!shell && (!pass.terrain.heights || !pass.terrain.attributes))
             return Core::Unexpected<std::string>("0x600a0b: faltan las alturas del terreno para la sombra del cuervo");
-        const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(DarkSpiritModel);
+        const Models::Skeleton* skeleton = pass.models.SkeletonOf(DarkSpiritModel);
         const glm::vec3 light = World::LightAt(*pass.lighting, spirit.position.x, spirit.position.y);
         // Los personajes del juego se dibujan como los dejó el paso: el cuervo también (`stepAlpha` en 0).
         DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, 0.0f);
@@ -1190,7 +1190,7 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
             return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
         if (spirit.state == SecondOrderState && spirit.byte38d == ShoutEnd)
         {
-            std::span<const Render::Models::SkinnedMesh> scratch{};
+            std::span<const Models::SkinnedMesh> scratch{};
             if (pass.carry != nullptr)
                 scratch = pass.carry->meshes;
             return EndTheShout(spirit, scratch, ravenPosed, pass);

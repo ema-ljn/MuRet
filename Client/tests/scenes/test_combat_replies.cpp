@@ -75,14 +75,14 @@ public:
 };
 
 // Los esqueletos de 0x4ea030 para los monstruos de los tests (Player.bmd va aparte, en el contexto).
-class CombatModels final : public Client::Render::Models::IModelLibrary
+class CombatModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == Monster || model == 0x172 || model == 0x19e || model == 0 ? &skeleton : nullptr;
     }
@@ -90,7 +90,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
 class CombatRepliesTest : public ::testing::Test
@@ -190,7 +190,7 @@ protected:
     static constexpr std::uint16_t HeroKey = 0x2a;
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
-    Client::Render::Models::Skeleton m_playerSkeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_playerSkeleton = Client::Tests::PlayerActionsSkeleton();
     CombatModels m_models;
     Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
     Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});

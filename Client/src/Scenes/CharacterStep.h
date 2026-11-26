@@ -23,11 +23,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::Render::Text
 {
 class ITextMeasure;
@@ -82,7 +82,7 @@ struct CharacterStepContext
     SceneId scene = SceneId::Game;
     // Player.bmd, el modelo 0x5769ad8 + 0x20a · 0xe0 de las acciones que leen 0x4f9580 y 0x4ec200. Sin él,
     // el cuerpo corta en 0x4f9580.
-    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    const Models::Skeleton* playerSkeleton = nullptr;
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
@@ -91,10 +91,10 @@ struct CharacterStepContext
     const Data::Tables::SkillTable* skills = nullptr;
     // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
     // 3). nullptr: un modelo que no es el 0x20a corta ahí.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
     const World::WorldTerrain* terrain = nullptr;
-    const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
+    const Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
     // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
     World::FrameSprites* sprites = nullptr;
@@ -104,7 +104,7 @@ struct CharacterStepContext
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
-    const Render::Models::Skeleton* newFaceSkeleton = nullptr;
+    const Models::Skeleton* newFaceSkeleton = nullptr;
     // Si está vacío, el overlay durable de world. Lo escribe cada Walk antes de animar ese actor.
     PlayerActionSpeeds* actionSpeeds = nullptr;
     float fixedHeight = 1200.0f;

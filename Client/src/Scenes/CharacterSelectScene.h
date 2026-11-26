@@ -74,12 +74,12 @@ public:
     // dibuja los fondos y no pide nada.
     // `gameSlots` es la tabla de los slots de la carga (GameModels::TextureSlots), que la vista previa
     // de la ventana de crear sigue desde 0x6f8; nullptr, una tabla vacía. Tiene que vivir más.
-    CharacterSelectScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
-                         App::ServerSession* session, const Render::Models::ModelTextureSlots* gameSlots = nullptr);
+    CharacterSelectScene(const SceneContext& context, const GameData& data, const Models::IModelLibrary& models,
+                         App::ServerSession* session, const Models::ModelTextureSlots* gameSlots = nullptr);
     CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
                          App::ServerSession* session);
     CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
-                         App::ServerSession* session, const Render::Models::ModelTextureSlots* gameSlots);
+                         App::ServerSession* session, const Models::ModelTextureSlots* gameSlots);
 
     // Como 0x633f20: su juego de texturas y sus modelos (0x61ca30: Logo05 y los NewFace de la vista
     // previa, SelectionModels), el de las ventanas, ninguno elegido, y el F3 00
@@ -218,7 +218,7 @@ private:
     void Choose(std::optional<std::uint8_t> slot);
     // Enter con uno elegido: el aviso 0x84 si está bloqueado, o el mundo.
     void TryToEnter();
-    [[nodiscard]] Render::Models::ObjectTransform ObjectOf(const Character& character) const;
+    [[nodiscard]] Models::ObjectTransform ObjectOf(const Character& character) const;
     // El buffer de un slot de las ventanas o de la escena.
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
@@ -231,18 +231,18 @@ private:
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
-    Render::Models::OriginalFrameCarry m_cameraFrames;
+    Models::OriginalFrameCarry m_cameraFrames;
     // Los frames del original de 0x505820 desde el dibujo (0x50c91e), como los de la cámara.
-    Render::Models::OriginalFrameCarry m_fullSetScanFrames;
-    Render::Models::OriginalFrameCarry m_previewDrawFrames;
+    Models::OriginalFrameCarry m_fullSetScanFrames;
+    Models::OriginalFrameCarry m_previewDrawFrames;
     // Los frames del original del mundo 54 desde el dibujo: con cero, el dibujo va sobre copias.
-    Render::Models::OriginalFrameCarry m_worldFrames;
+    Models::OriginalFrameCarry m_worldFrames;
     // Los de los avisos y el área vieja (0x554810 y 0x5554e0), lo mismo.
-    Render::Models::OriginalFrameCarry m_messageFrames;
+    Models::OriginalFrameCarry m_messageFrames;
     Render::Camera3D m_previewCamera;
     const Data::Text::TextTable* m_texts;
     const Data::Tables::ItemTable* m_items;
-    const Render::Models::IModelLibrary& m_models;
+    const Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     SceneTextures m_textures;
     SceneTextures m_windowTextures;
@@ -267,7 +267,7 @@ private:
     UI::NewUi m_ui;
     // Si ya se abrió la barra con la lista (0x65f4b0).
     bool m_openedTheBar = false;
-    const Render::Models::ModelTextureSlots* m_gameSlots;
+    const Models::ModelTextureSlots* m_gameSlots;
     GameModels* m_startupModels = nullptr;
     SelectionModels m_selectionModels;
     // Adaptador sin SelectionState: main conserva el NewFace en el estado durable de selección.

@@ -81,7 +81,7 @@ std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const World::Terr
     for (std::size_t index = 0; index < items.size(); ++index)
     {
         FloorItemState& item = items[index];
-        if (!item.alive || !item.seen || !Render::Models::SegmentHitsBox(ray.origin, ray.end, item.pickBox))
+        if (!item.alive || !item.seen || !Models::SegmentHitsBox(ray.origin, ray.end, item.pickBox))
             continue;
         item.vertexLight = false;
         item.light = glm::vec3(PickedLight);

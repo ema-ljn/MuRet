@@ -53,7 +53,7 @@ Core::Expected<void, std::string> StepTheGate(ActorState& actor, const CastleObj
     {
         if (step.skeleton == nullptr)
             return Core::Unexpected(std::format("{}: falta el modelo {:#x} para 0x4ea030", address, actor.type));
-        Render::Models::SetAction(actor.animation, *step.skeleton, action);
+        Models::SetAction(actor.animation, *step.skeleton, action);
         return {};
     };
     if (actor.byte110 == 0)

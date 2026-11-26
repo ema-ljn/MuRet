@@ -137,7 +137,7 @@ TEST_F(ObjectCollapseTest, TheRequestOnlyActsOnItsMap)
             ASSERT_TRUE(Collapse(object).HasValue());
             EXPECT_EQ(object.transform.angles.x, 0.0f);
             EXPECT_EQ(object.field8a, 0);
-            EXPECT_EQ(object.state.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+            EXPECT_EQ(object.state.hiddenMesh, Client::Models::NoHiddenMesh);
         }
         EXPECT_EQ(Request().counter, 0);
         EXPECT_EQ(m_random.State(), CrtRandom{7}.State());
@@ -154,7 +154,7 @@ TEST_F(ObjectCollapseTest, TheGateStartsFallingAtTwenty)
     gate.state.hiddenMesh = 3;
     ASSERT_TRUE(Collapse(gate).HasValue());
     EXPECT_EQ(gate.transform.angles.x, 36.0f);
-    EXPECT_EQ(gate.state.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+    EXPECT_EQ(gate.state.hiddenMesh, Client::Models::NoHiddenMesh);
     EXPECT_EQ(Runtime().lastSoundId, 0x89);
     EXPECT_EQ(Request().delay, 2.5f);
 
@@ -313,7 +313,7 @@ TEST_F(ObjectCollapseTest, TheNineAndTenOpenAtZero)
 
             Request().counter = 0;
             ASSERT_TRUE(Collapse(object).HasValue());
-            EXPECT_EQ(object.state.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+            EXPECT_EQ(object.state.hiddenMesh, Client::Models::NoHiddenMesh);
             EXPECT_EQ(object.field8a, 4);
             EXPECT_EQ(object.transform.angles.x, 0.0f);
             EXPECT_EQ(Request().counter, 0);
@@ -367,7 +367,7 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepsSinkWithTheirArea)
             EXPECT_EQ(object.transform.position.z, 300.0f);
             EXPECT_EQ(object.transform.angles.x, 0.0f);
             EXPECT_EQ(object.field8a, 0);
-            EXPECT_EQ(object.state.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+            EXPECT_EQ(object.state.hiddenMesh, Client::Models::NoHiddenMesh);
         }
         EXPECT_EQ(Request().counter, 0);
         EXPECT_EQ(m_random.State(), CrtRandom{7}.State());
@@ -532,7 +532,7 @@ TEST_F(ObjectCollapseTest, TheWalkResetsTheRequestHalfway)
     EXPECT_EQ(objects[0].state.hiddenMesh, Client::World::HiddenObject);
     EXPECT_EQ(objects[0].transform.angles.x, 90.0f);
     EXPECT_EQ(objects[1].field8a, 0);
-    EXPECT_EQ(objects[1].state.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+    EXPECT_EQ(objects[1].state.hiddenMesh, Client::Models::NoHiddenMesh);
     EXPECT_TRUE(objects[2].seen);
     EXPECT_FALSE(objects[1].seen);
     EXPECT_EQ(Request().map, -1);

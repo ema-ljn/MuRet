@@ -232,7 +232,7 @@ struct WizardHero
     std::uint32_t ticks = Ticks;
     bool withTicks = true;
     std::optional<glm::vec3> terrainPoint;
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills =
         SkillsWith({{1},    {5},    {6},    {8},    {9},    {0xa},  {0xc},  {0xd},  {0xe},  {0xf},

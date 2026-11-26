@@ -119,12 +119,12 @@ using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Models::ActionInfo;
+using Client::Models::BoneKey;
+using Client::Models::IModelLibrary;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
 using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::CharacterSlotHeight;
 using Client::Scenes::CharacterSlots;
@@ -211,7 +211,7 @@ public:
         return {};
     }
     // Las texturas de efectos de GameModels: las piden las partículas y los sprites del mundo 54.
-    [[nodiscard]] std::optional<Client::Scenes::TextureMetadata>
+    [[nodiscard]] std::optional<Client::Models::TextureMetadata>
     TextureMetadataOf(std::uint32_t selector) const override
     {
         return Client::Tests::EffectTextureMetadata(selector);
@@ -277,7 +277,7 @@ struct Harness
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
                      Client::Scenes::SelectionState* selectionState = nullptr,
                      Client::Scenes::WorldState* worldState = nullptr,
-                     Client::Render::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true,
+                     Client::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true,
                      const Client::Scenes::WorldEntryResources* worldEntry = nullptr)
         : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState),
           sharedRandom(sharedCloth)
@@ -483,7 +483,7 @@ struct Harness
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
     Client::Scenes::SelectionState* selection;
-    Client::Render::Models::ClothWorld* sharedRandom;
+    Client::Models::ClothWorld* sharedRandom;
     RecordingFrameTarget target;
     InputState input;
     std::int64_t steps = 0;
@@ -1201,7 +1201,7 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
@@ -1228,7 +1228,7 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     auto& own = world.OwnCharacter();
     own.byte6a = 3;
     own.words6c.fill(7);
@@ -1290,7 +1290,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
     {
         auto world = std::make_unique<Client::Scenes::WorldState>();
         Client::Scenes::SelectionState selection(*world);
-        Client::Render::Models::ClothWorld cloth;
+        Client::Models::ClothWorld cloth;
         ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
         FlatModels models;
         Client::World::GameCamera camera;
@@ -1350,7 +1350,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     Client::Scenes::WorldRuntime& runtime = world.Runtime();
@@ -1382,7 +1382,7 @@ TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
 
@@ -1398,7 +1398,7 @@ TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBody
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth, false);
 
@@ -1415,7 +1415,7 @@ TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreview
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
 
@@ -1433,7 +1433,7 @@ TEST(CharacterSelectSceneTest, ThePreviewAdvancesClosedTwiceUnderItsWindowAndOnc
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
@@ -1459,7 +1459,7 @@ TEST(CharacterSelectSceneTest, ThePreviewHeadBelongsToTheDurableSelectionBeforeT
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     selection.PreviewActor().headTurn.angles = {17.0f, 23.0f};
     selection.PreviewActor().headTurn.target = {61.0f, 83.0f};
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1476,7 +1476,7 @@ TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCou
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
@@ -1504,7 +1504,7 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     tested.models.EnableRaven();
@@ -1540,7 +1540,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     tested.models.EnableHelpers();
@@ -1568,7 +1568,7 @@ TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     tested.models.EnableHelpers();
@@ -1602,7 +1602,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePoo
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
@@ -1636,7 +1636,7 @@ TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClot
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
@@ -2491,7 +2491,7 @@ TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeF
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
@@ -2510,7 +2510,7 @@ TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastF
 {
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState selection(*world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, world.get(), &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.online.LogIn());
@@ -2543,7 +2543,7 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
@@ -2581,11 +2581,11 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 // último. Con el alpha por debajo de 0,5 (0x50bc05) no tiene sombra y no la copia. Un frame intermedio no la toca.
 TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 {
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
     constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState selection(*world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, world.get(), &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
@@ -2623,7 +2623,7 @@ TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFou
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
@@ -2659,10 +2659,10 @@ int DrawsBetween(Client::Crt::CrtRandom before, std::uint32_t after)
 // hacía: un frame de la lista sacaba unos 380.
 TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 {
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
@@ -2689,7 +2689,7 @@ TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
     ASSERT_GE(held, 0);
-    constexpr int Close = Client::Render::Models::OwnRecordCloseRandoms;
+    constexpr int Close = Client::Models::OwnRecordCloseRandoms;
     EXPECT_LT(held, Close);
     EXPECT_GE(closed, Close);
     // Los objetos y los efectos del 54 sacan unos pocos rand() más o menos de un frame a otro.
@@ -2703,7 +2703,7 @@ TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     tested.models.EnableRaven();
@@ -2733,7 +2733,7 @@ TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPos
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
@@ -2767,7 +2767,7 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
@@ -2796,14 +2796,14 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
     ASSERT_TRUE(face.HasValue());
     ASSERT_FALSE(face.Value().meshes.empty());
     const Client::Data::Models::Mesh& mesh = face.Value().meshes[0];
-    Client::Render::Models::SkinnedMesh unscaled;
-    ASSERT_TRUE(Client::Render::Models::SkinMesh(mesh, preview.bodyPose, {}, unscaled));
+    Client::Models::SkinnedMesh unscaled;
+    ASSERT_TRUE(Client::Models::SkinMesh(mesh, preview.bodyPose, {}, unscaled));
     ASSERT_FALSE(mesh.triangles.empty());
     ASSERT_GE(drawn->modelVertices.size(), 3 * mesh.triangles.size());
     const auto lightOf = [&](std::size_t triangle, std::size_t corner)
     {
         const auto normal = static_cast<std::size_t>(mesh.triangles[triangle].normals[corner]);
-        return Client::Render::Models::NormalLight(unscaled.normals[normal]);
+        return Client::Models::NormalLight(unscaled.normals[normal]);
     };
     const float base = drawn->modelVertices[0].color.red / lightOf(0, 0);
     for (std::size_t triangle = 0; triangle < mesh.triangles.size(); ++triangle)
@@ -2823,7 +2823,7 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
@@ -2920,10 +2920,10 @@ TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
         EXPECT_TRUE(line.has_value());
         return Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 10, line ? line->texture.textureHeight : 1);
     };
-    Client::Render::Models::ClothWorld joinedCloth;
+    Client::Models::ClothWorld joinedCloth;
     Harness joined(true, false, false, nullptr, nullptr, &joinedCloth);
     ASSERT_NO_FATAL_FAILURE(openTheWindow(joined));
-    Client::Render::Models::ClothWorld stayedCloth;
+    Client::Models::ClothWorld stayedCloth;
     Harness stayed(true, false, false, nullptr, nullptr, &stayedCloth);
     ASSERT_NO_FATAL_FAILURE(openTheWindow(stayed));
     const Client::UI::EscapeWindowLayout layout = layoutOf(joined);

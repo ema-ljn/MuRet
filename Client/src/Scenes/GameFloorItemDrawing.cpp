@@ -91,7 +91,7 @@ Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemSta
 }
 Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemState& item,
                                              const FloorItemDrawContext& context, DrawnObject object,
-                                             std::span<const Render::Models::SkinnedMesh> meshes)
+                                             std::span<const Models::SkinnedMesh> meshes)
 {
     auto resources = context.itemContext ? *context.itemContext : ItemDrawContext{};
     auto special = resources.special ? *resources.special : ItemSpecialDrawContext{};
@@ -138,8 +138,7 @@ Core::Expected<void, std::string> Body(FaunaDrawCarry& local, FloorItemState& it
     }
     if (context.onPose && !context.posedMeshes)
         return Core::Unexpected(std::string("0x4ebc80: falta el scratch retenido del piso"));
-    const auto meshes =
-        context.onPose ? context.posedMeshes() : std::span<const Render::Models::SkinnedMesh>(local.meshes);
+    const auto meshes = context.onPose ? context.posedMeshes() : std::span<const Models::SkinnedMesh>(local.meshes);
     return RenderItem(local, item, context, object, meshes);
 }
 

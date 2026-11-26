@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 }
@@ -17,5 +17,5 @@ class WorldState;
 // 606560→6061c0→4385a0: antes de cualquier objeto, aun con el pool vacío. Devuelve el selector
 // local del pase; WorldRuntime conserva el count anterior hasta completar este prefijo.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& world,
-                                                                                Render::Models::ClothWorld& cloth);
+                                                                                Models::ClothWorld& cloth);
 } // namespace Client::Scenes

@@ -202,7 +202,7 @@ Result SampleParticles(ActorState& actor, const Trail& trail, const glm::vec3& p
     return {};
 }
 
-Result SampleRibbon(ActorState& actor, const Trail& trail, const Render::Models::Skeleton& skeleton,
+Result SampleRibbon(ActorState& actor, const Trail& trail, const Models::Skeleton& skeleton,
                     const CharacterStepContext& context)
 {
     const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
@@ -233,7 +233,7 @@ Result SampleRibbon(ActorState& actor, const Trail& trail, const Render::Models:
 }
 } // namespace
 
-Core::Expected<void, std::string> EmitWeaponTrail(ActorState& actor, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> EmitWeaponTrail(ActorState& actor, const Models::Skeleton* skeleton,
                                                   const CharacterStepContext& context)
 {
     const Trail trail = TrailOf(actor);

@@ -53,12 +53,12 @@ namespace Client::Scenes
 struct DrawnCharacter
 {
     GameLogic::CharacterAppearance appearance;
-    Render::Models::AnimationState body;
-    Render::Models::ObjectTransform object;
+    Models::AnimationState body;
+    Models::ObjectTransform object;
     glm::vec2 headAngles{};
     // La mascota y las alas avanzan por tiempo (Render/Models/Animation.h).
-    Render::Models::AnimationState pet;
-    Render::Models::AnimationState wings;
+    Models::AnimationState pet;
+    Models::AnimationState wings;
     // La luz del personaje, canal por canal: la base de 0x50ba30 más +0xf4 (0,4 y 1,4 el elegido en la
     // selección; en el login, la del terreno en su lugar más 0,3).
     glm::vec3 light{0.4f, 0.4f, 0.4f};
@@ -83,7 +83,7 @@ struct DrawnCharacter
     // global que lee (el viento, el contador y el rand()) y el mapa de la escena. Sin las dos, va sin
     // tela.
     CharacterCloth* cloth = nullptr;
-    Render::Models::ClothWorld* clothWorld = nullptr;
+    Models::ClothWorld* clothWorld = nullptr;
     // +0x376: el número de monstruo (0xffff en un jugador). Con el 0x37, la tela de ese monstruo (0x50c951,
     // WearsTheMonsterCloth).
     std::optional<std::uint16_t> monster;
@@ -101,14 +101,13 @@ struct DrawnCharacter
     // El sorteo de los cinco del cetro entre frames de MuRet (World::ScepterGlowCarry): con él, una vez por
     // frame del original; sin él, en cada DrawCharacter.
     World::ScepterGlowCarry* scepter = nullptr;
-    // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
+    // Cómo cuentan los frames del original la tela y el cetro (Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
-    Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
+    Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock;
     // Publica matrices ya calculadas: el cuerpo con la cabeza (también el de Chaos Castle) y lo que cuelga, con su
     // raíz real. El cuerpo va al buffer propio del personaje (+0x120, 0x511bf7), no al global: quien lo recibe
     // decide dónde lo guarda.
-    std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Render::Models::ObjectTransform&,
-                       bool)>
+    std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Models::ObjectTransform&, bool)>
         onPose{};
     std::function<std::span<const Math::BoneTransform>(std::uint16_t)> poseBones{};
     // Publica la caja después de dibujar partes y contornos, antes del cuerpo del personaje.
@@ -158,9 +157,8 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // MaskHelmMale de cada uno. Los casos por modelo de 0x60b3d0 que alcanza un personaje: la malla que
 // algunos ítems ocultan en sus pases, el cromo de Spear10 antes y el set que se apaga malla a malla.
 // Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
-void DrawCharacter(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                   const DrawnCharacter& character, Core::Duration frameClock,
-                   CharacterDrawPass pass = CharacterDrawPass::All);
+void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnCharacter& character,
+                   Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
 
 // Las guardas de la sombra de 0x50ba30 (0x50bc05..0x50bc71: castsShadow y, fuera de la zona segura, sin las mascotas
 // que se montan): con ellas, en Blood Castle el que muere empujado baja al terreno (0x50bc77..0x50bcbd) y 0x50bcec
@@ -177,14 +175,14 @@ void DrawCharacter(Render::ModelBatch& batch, const Render::Models::IModelLibrar
 // `models` posa el cuerpo (0x20a) y `angelModels` tiene el 0x1f7, con las texturas de su carga.
 inline constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
 [[nodiscard]] Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
-                                                                    const Render::Models::IModelLibrary& models,
-                                                                    const Render::Models::IModelLibrary& angelModels,
+                                                                    const Models::IModelLibrary& models,
+                                                                    const Models::IModelLibrary& angelModels,
                                                                     const DrawnCharacter& character,
                                                                     Core::Duration frameClock, std::uint32_t flags);
 
 // Los huesos del cuerpo de `character` como los posa DrawCharacter (0x4eb860 con la cabeza): el buffer
 // propio del personaje, +0x120. Sin el esqueleto del 0x20a o si la pose falla, vacío.
-[[nodiscard]] std::vector<Math::BoneTransform> PoseCharacterBody(const Render::Models::IModelLibrary& models,
+[[nodiscard]] std::vector<Math::BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models,
                                                                  const DrawnCharacter& character);
 
 // Cuántos rand() saca 0x607b60 al armar el objeto de lo que cuelga con el tipo `model`: uno con Sword15
@@ -196,9 +194,9 @@ inline constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
 struct DrawnObject
 {
     std::uint16_t model = 0;
-    Render::Models::AnimationState animation;
-    Render::Models::ObjectTransform transform;
-    Render::Models::ObjectState state;
+    Models::AnimationState animation;
+    Models::ObjectTransform transform;
+    Models::ObjectState state;
     glm::vec3 color{1.0f, 1.0f, 1.0f};
     // +0x174, el alpha que se le pasa a RenderBody.
     float alpha = 1.0f;
@@ -209,7 +207,7 @@ struct DrawnObject
     // model+88: selección compartida publicada por el paso de objetos, sin luz y con UV corridas.
     std::optional<std::int16_t> unlitMesh{};
     // Scratch publicado por la pose del caller; los renderers especializados tampoco vuelven a posar.
-    std::span<const Render::Models::SkinnedMesh> retainedMeshes{};
+    std::span<const Models::SkinnedMesh> retainedMeshes{};
 };
 
 // 0x602e90 con un objeto sin casos por tipo: 0x5ffdf0 no lo dibuja con el alpha por debajo de 0,01, y
@@ -217,40 +215,39 @@ struct DrawnObject
 // RenderBody(2): el pase base de cada malla, sin brillo y sin contorno, con el script de su textura y
 // el blendMesh, la luz, la U, la V y la malla oculta del objeto. Con el alpha por debajo de 0,99 cada
 // malla va con la mezcla normal y ese alpha (0x4ecc30); con la luz por vértice, cada esquina va con
-// el color por la luz de su normal (Render::Models::NormalLight), salvo la del blendMesh. Un modelo
+// el color por la luz de su normal (Models::NormalLight), salvo la del blendMesh. Un modelo
 // que la biblioteca no tiene no se dibuja.
-void DrawObject(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+void DrawObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
 
 // RenderBody(2, …, `texture`) (0x4ef0c0) con un objeto del mundo: el pase base de DrawObject con `texture`
 // forzada en cada malla, que es de tres componentes (como Chrome01): opaca, o con la mezcla normal y el
 // alpha por debajo de 0,99, o aditiva y por la luz en la rama del blendMesh.
-void DrawObjectWithTexture(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                           const DrawnObject& object, Core::Duration frameClock, Render::TextureSlot texture);
+void DrawObjectWithTexture(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                           Core::Duration frameClock, Render::TextureSlot texture);
 
 // RenderBody sobre el scratch ya transformado de 4ebc80: conserva los dummy y los vértices
 // retenidos cuando otra familia no vuelve a posar. shine elige un pase adicional de 60b130.
-void DrawObjectFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                          const DrawnObject& object, Core::Duration frameClock,
-                          std::span<const Render::Models::SkinnedMesh> meshes,
-                          std::optional<Render::Models::ShinePass> shine = std::nullopt);
+void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                          Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
+                          std::optional<Models::ShinePass> shine = std::nullopt);
 
 // 0x4ebc80 sobre `bones`, los huesos que posó 0x5ffdf0 en el buffer propio (+0x120): una por malla del modelo de
 // `object`, en su orden, con su escala y su posición; también las que no tienen textura, que 0x4eff40 no mira. Una
 // malla con índices fuera de rango queda vacía. Sin el modelo, ninguna. `boneScale` es el 0x6c881c que deja 0x5ffdf0
-// por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Render::Models::SkinMeshAroundBones).
-[[nodiscard]] std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const Render::Models::IModelLibrary& models,
-                                                                        const DrawnObject& object,
-                                                                        std::span<const Math::BoneTransform> bones,
-                                                                        float boneScale = 1.0f);
+// por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Models::SkinMeshAroundBones).
+[[nodiscard]] std::vector<Models::SkinnedMesh> SkinObjectMeshes(const Models::IModelLibrary& models,
+                                                                const DrawnObject& object,
+                                                                std::span<const Math::BoneTransform> bones,
+                                                                float boneScale = 1.0f);
 
 // El scratch de 0x5ffdf0 con el segundo argumento en 0 (0x602e90 de un objeto del mundo en 0x604a47, de un efecto en
 // 0x52da99, de un ayudante en 0x44532e o del cuervo en 0x41834e) cuando nadie lo publicó: 0x4eb860 con la bandera en 1
 // (PoseWorldSkeleton, los dummy con la identidad) y 0x4ebc80 con Translate en 0 (SkinMeshInWorld, 0x6001a1), todas las
 // mallas del modelo, las normales con la escala dentro (R · s). No mira el alpha. La que no se puede posar queda
 // vacía. Sin el modelo, el esqueleto o la pose, ninguna.
-[[nodiscard]] std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const Render::Models::IModelLibrary& models,
-                                                                      const DrawnObject& object);
+[[nodiscard]] std::vector<Models::SkinnedMesh> WorldScratchOf(const Models::IModelLibrary& models,
+                                                              const DrawnObject& object);
 
 // Un pase de 0x60cd60: la escala que 0x4ebc80 lee de 0x6c881c y el color del modelo (+0x48..+0x50).
 struct ObjectOutlinePass
@@ -264,14 +261,14 @@ struct ObjectOutlinePass
 // pase y RenderBody(0x40) sin luz, sin textura, aditiva y sin escribir la profundidad, salvo la del blendMesh, con
 // su textura y por su luz (como el contorno de las partes de DrawCharacter); sin la malla oculta. El caller mira
 // antes el +0x78 & 0x4000 (0x60cd74) y el caso del 0xc5 (0x60cdd9).
-void DrawObjectOutline(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                       const DrawnObject& object, Core::Duration frameClock, std::span<const Math::BoneTransform> bones,
+void DrawObjectOutline(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                       Core::Duration frameClock, std::span<const Math::BoneTransform> bones,
                        std::span<const ObjectOutlinePass> passes);
 
 // El contorno del 0xc5 (0x60cdd9..0x60ce55): como DrawObjectOutline, pero solo la malla 0 con 0x4ecc30 (0x60ce4e), sin
 // el script de su textura (oculta, o su propio blendMesh, que mira 0x4ef0c0) y sin la malla oculta: el +0x58 va de
 // textura, que el contorno no usa salvo en la rama del blendMesh. El caller corta con +0x58 distinto de −1.
-void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                      const DrawnObject& object, Core::Duration frameClock,
                                      std::span<const Math::BoneTransform> bones,
                                      std::span<const ObjectOutlinePass> passes);
@@ -281,8 +278,8 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Mo
 // 0). 0x4eff40(+0x64, +0x58, −1, −1): sin la malla oculta, las que no tienen triángulos y las que tienen la textura
 // del blendMesh (+2 de la malla), cada vértice aplastado desde la posición del objeto (model+0x6c..+0x74, que copió
 // 0x60cf70) con el abanico del mapa. El caller mira +0x1bc, +0x78 & 0x4000 y +0x92 (0x60b46f..0x60b49f).
-void DrawObjectShadow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                      std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t map);
+void DrawObjectShadow(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                      std::span<const Models::SkinnedMesh> meshes, std::int32_t map);
 
 struct ItemSpecialDrawContext;
 // Globales de60b3d0 prestados por el dueño del frame y su scratch proyectado.
@@ -301,13 +298,13 @@ struct ItemDrawContext
     // Recibe sólo los stores nativos de alpha, separado del alpha temporal de dibujo.
     float* storedAlpha = nullptr;
     // 0x6c9dcc, the options' glow detail.
-    std::uint8_t glowDetail = Render::Models::DefaultGlowDetail;
+    std::uint8_t glowDetail = Models::DefaultGlowDetail;
 };
 
 // 60b3d0: cuerpo y opciones sobre los huesos/mallas que publicó el caller, sin volver a posar.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawItemFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                   Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::uint8_t level,
+DrawItemFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                   Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes, std::uint8_t level,
                    std::uint8_t excellent, std::uint8_t ancient, const ItemDrawContext& context = {});
 
 // 0x50d2aa..0x50d35e: un 0x20a con el subtipo 0xd1..0xd3 no lleva sus seis partes sino el cuerpo entero del esqueleto
@@ -318,9 +315,9 @@ DrawItemFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrar
 // del picking (0x4ebc80) aunque el modelo no esté cargado; y 0x60b3d0 con `level` (el nivel ya extraído, >> 3 & 0xf),
 // sin excelente ni set, y 2. `vertexLight` es +0xe8 del objeto (0x60cffa).
 [[nodiscard]] Core::Expected<void, std::string>
-DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                 const DrawnCharacter& character, Core::Duration frameClock, std::uint16_t model, std::uint8_t level,
-                 const Render::Models::ObjectState& state, bool vertexLight, const ItemDrawContext& context);
+DrawSkeletonBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnCharacter& character,
+                 Core::Duration frameClock, std::uint16_t model, std::uint8_t level, const Models::ObjectState& state,
+                 bool vertexLight, const ItemDrawContext& context);
 
 // 4ecc30/4ef0c0: mesh<0 recorre RenderBody; mesh>=0 pide esa malla directamente.
 // Los pases especiales prestan las mismas mallas y no calculan otra pose.
@@ -329,8 +326,8 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
 // El 0x400 sin el 0x20 es la onda de 4ed775: cada esquina corrida por su normal girada en
 // sin((931 · vértice + ftol(T)) · 0,007f) · 28, con T el reloj del mundo (`worldClock`, 0x5767b88); sin él, corta.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawItemMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                 Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::int16_t mesh,
+DrawItemMeshPass(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                 Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes, std::int16_t mesh,
                  std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt,
                  glm::vec3* storedColor = nullptr, std::optional<float> worldClock = std::nullopt);
 
@@ -338,15 +335,14 @@ DrawItemMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
 // y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose
 // (0x68b181c) 0x4ec110 sin trasladar: 0x4eb860 lo deja en el mundo con su octavo argumento en 1. Sin el
 // modelo, con menos huesos o con ese hueso dummy (0x4eb973 no lo escribe), nullopt.
-[[nodiscard]] std::optional<glm::vec3> PosedBonePoint(const Render::Models::IModelLibrary& models,
-                                                      const DrawnObject& object, std::size_t bone,
-                                                      const glm::vec3& offset);
+[[nodiscard]] std::optional<glm::vec3> PosedBonePoint(const Models::IModelLibrary& models, const DrawnObject& object,
+                                                      std::size_t bone, const glm::vec3& offset);
 
 // Un modelo que un dibujo posó en el buffer global de la pose (sin buffer propio, +0x11c en 0), con la
 // biblioteca de la que sale.
 struct PosedInTheBuffer
 {
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     DrawnObject object;
 };
 
@@ -359,8 +355,8 @@ struct PosedInTheBuffer
 // 1, U, V, −1), la malla 0 sola, en blanco y sin luz por vértice, con ModelBlend::Subtractive y la U y
 // la V del objeto. Sin el blendMesh (antes de su primer paso), 0x4ecc30 no ata textura ni cambia la
 // mezcla (Q-C135): no la dibuja. Un modelo que la biblioteca no tiene no se dibuja.
-void DrawSubtractiveMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                         const DrawnObject& object, Core::Duration frameClock);
+void DrawSubtractiveMesh(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                         Core::Duration frameClock);
 
 // 0x602e90 con el caso del 0x69 de Lorencia en 0x6002e0 (0x600a4a..0x600ae6): entre 0x4ecc10 y 0x4ecc20
 // (glPushMatrix y glPopMatrix), cuatro 0x4ecc30(malla, 2, alpha, blendMesh, luz, U, V, −1) sin RenderBody:
@@ -368,7 +364,7 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const Render::Models::IModel
 // la U y la V del objeto. Cada una, el pase base de DrawObject, sin la malla oculta (+0x58) ni los scripts
 // R y H, que mira RenderBody y no 0x4ecc30; Waterspout01 no tiene ninguno. Sin el glColor de RenderBody:
 // con la luz por vértice, cada esquina lleva el suyo. Un modelo que la biblioteca no tiene no se dibuja.
-void DrawWaterspout(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+void DrawWaterspout(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                     Core::Duration frameClock);
 
 // 0x602e90 con el 0x51 de Tarkan en 0x6002e0 (0x600c81..0x600cdc): entre 0x4ecc10 y 0x4ecc20, dos
@@ -377,7 +373,7 @@ void DrawWaterspout(Render::ModelBatch& batch, const Render::Models::IModelLibra
 // no tiene ninguno); después el 0x44 con Chrome01 (0x5c0): las UV del cromo con la normal en el mundo,
 // aditivo y con el color del modelo (el de 0x5ffce0, sin la luz por vértice), por el alpha si es menor que
 // 0,99 (Q-C95). Sin el cromo si la malla tiene N. Un modelo que la biblioteca no tiene no se dibuja.
-void DrawTarkanChrome(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+void DrawTarkanChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock);
 
 // 0x425260 (desde 0x602ed0) con el 0x29 (0x4255f3) y el 0x41/0x42 (0x42588d) de Aida, entre 0x4ecc10 y
@@ -389,18 +385,18 @@ void DrawTarkanChrome(Render::ModelBatch& batch, const Render::Models::IModelLib
 // esos tipos tienen en Aida. Los demás tipos, o un modelo que la biblioteca no tiene, no dibujan nada. No
 // saca rand() ni toca el objeto: va en cada dibujo de MuRet, no sólo en los frames del original.
 [[nodiscard]] Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch,
-                                                                 const Render::Models::IModelLibrary& models,
+                                                                 const Models::IModelLibrary& models,
                                                                  const DrawnObject& object, std::int16_t type,
                                                                  float worldClock, Core::Duration frameClock);
 
 // 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
-// (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
+// (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Models::ShinePass::Chrome) de
 // las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor
 // que 0,99; y, en el mundo `map` (0x6c9dd0), la sombra de la malla 8 (0x4eff40 entre 8 y 9) en (0, 0, 0,
 // 0,7), mezclada y aplastada sobre el piso desde su lugar: sin sombra en los mapas 10, 24 a 29 y 36, y
 // en 0,2 en el 7 (0x60073c..0x600787). Las normales llevan la escala del objeto, para la luz y para las
 // UV del cromo.
-void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& horse,
+void DrawDarkHorse(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& horse,
                    std::int32_t map, Core::Duration frameClock);
 
 // 0x602e90 con el caso del cuervo (0xc0) de 0x6002e0, con el nivel de la mascota en 0 (el A9 que lo
@@ -409,13 +405,13 @@ void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrar
 // la sombra de las cinco mallas (0x4eff40(−1, −1, −1, −1), también las que no se dibujan, Q-C132) en
 // (0, 0, 0, 1), mezclada y aplastada sobre `groundHeight`, la altura del terreno bajo el cuervo
 // (0x600a0b). En el mapa `map` 10, 24 a 29 y 36 no hay sombra, y en el 7 va con alpha 0,2 (0x6009a9..0x6009e5).
-void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& spirit,
+void DrawDarkSpirit(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& spirit,
                     float groundHeight, Core::Duration frameClock, std::int32_t map);
 
 // 0x602e90(objeto, 0, 0, 10) en 0x6002e0 (0x60033c..0x600435), con `object` como lo posó 0x5ffdf0 (que no mira el
 // 10): lo que reciben el ayudante (0x445310) y el cuervo (0x420e11) con el +0x78 & 0x4000 de su jinete o de su dueño.
 // El color del modelo en 1 (0x60039d) y, de la malla 0 a la última, 0x4ecc30(malla, 0x4040, 0,5, blendMesh, luz,
-// U · 8, V · 2, 0x620) suelto, sin RenderBody: el pase de brillo 0x4000 (Render::Models::ShinePass::Chrome5), que
+// U · 8, V · 2, 0x620) suelto, sin RenderBody: el pase de brillo 0x4000 (Models::ShinePass::Chrome5), que
 // 0x4ecc30 mira antes que el blendMesh y el 0x40, con Effect\Chrome02 (0x620) forzada, aditivo, sin la luz por
 // vértice y con el alpha 0,5 en vez del del objeto. Cada malla que lo dibuja multiplica antes en el lugar el color
 // del modelo por 0,5 (0x4ed3fd, Q-C95): la k-ésima que dibuja, desde 0, va en 0,5 a la k + 1. Como 0x4ecc30 suelto,
@@ -423,7 +419,7 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibra
 // las de la textura oculta 0x12d y las que tienen N o el +0 de 0x60ff50 (0x4ed07a). Ni sombra ni el pase de cada tipo
 // (DrawDarkHorse, DrawDarkSpirit, RenderBody(2), DrawFenrirBody). Un modelo que la biblioteca no tiene no dibuja nada.
 [[nodiscard]] Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch,
-                                                                const Render::Models::IModelLibrary& models,
+                                                                const Models::IModelLibrary& models,
                                                                 const DrawnObject& object, Core::Duration frameClock);
 
 // 0x602e90 con los Fenrir (0x14a a 0x14c) en 0x6002e0 (0x60277b..0x60292b), entre 0x4ecc10 y 0x4ecc20: el color del
@@ -433,7 +429,7 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibra
 // las mallas con triángulos (0x4eff40(−1, −1, −1, −1)) en (0, 0, 0, 0,7), o 0,2 en el 7, mezclada y aplastada desde
 // su lugar con el abanico del mapa. Sin el modelo, nada; el error es el de 0x4ecc30.
 [[nodiscard]] Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch,
-                                                               const Render::Models::IModelLibrary& models,
+                                                               const Models::IModelLibrary& models,
                                                                const DrawnObject& fenrir, std::int32_t map,
                                                                bool charging, Core::Duration frameClock);
 
@@ -441,15 +437,15 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibra
 // (0x4eff40(blendMesh, 2, −1, −1)) de las mallas con triángulos, salvo la 2 y las de la textura del blendMesh,
 // en (0, 0, 0, 1) (0x620a00(1) y glColor4f), mezclada y aplastada sobre `groundHeight`, la altura del terreno
 // bajo el objeto (0x600d80).
-void DrawBloodCastleShadow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                           const DrawnObject& object, float groundHeight, Core::Duration frameClock);
+void DrawBloodCastleShadow(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                           float groundHeight, Core::Duration frameClock);
 
 // Lo que 0x42cc10 (la cadena de 0x6002e0 en el mapa 30, después de 0x438fe0) lee del objeto y de afuera.
-using VertexEffectEmitter = std::function<Core::Expected<void, std::string>(
-    std::int32_t, const DrawnObject&, std::span<const Render::Models::SkinnedMesh>)>;
+using VertexEffectEmitter = std::function<Core::Expected<void, std::string>(std::int32_t, const DrawnObject&,
+                                                                            std::span<const Models::SkinnedMesh>)>;
 // 601c62..60236f: cuerpos12b/c, fragmentos12d..133 y10a/b, chrome y4ee770 alimpacto.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawCastleWeaponBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, World::ModelEffect& effect,
+DrawCastleWeaponBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
                      const DrawnObject& object, Core::Duration frameClock, const VertexEffectEmitter& emit = {});
 
 struct CastleSiegeBodyPass
@@ -463,7 +459,7 @@ struct CastleSiegeBodyPass
     // 0x5767b88, el reloj del mundo en ms.
     float worldClock = 0.0f;
     // 42cfcb: 4ee770(0,12f,0,0,0), sobre los vértices del buffer recién posado.
-    std::function<Core::Expected<void, std::string>(const DrawnObject&, std::span<const Render::Models::SkinnedMesh>)>
+    std::function<Core::Expected<void, std::string>(const DrawnObject&, std::span<const Models::SkinnedMesh>)>
         emitGateVertices{};
 };
 
@@ -487,12 +483,12 @@ struct CastleSiegeBodyPass
 // Después de cada caso, el model+0x88 vuelve a 0xff, que en el 30 es lo que esos tipos ya tienen, y el color del
 // modelo lo vuelve a poner 0x5ffce0. Un modelo que la biblioteca no tiene no dibuja nada.
 [[nodiscard]] Core::Expected<bool, std::string>
-DrawCastleSiegeBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+DrawCastleSiegeBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                     const CastleSiegeBodyPass& pass, Core::Duration frameClock);
 
 // Los huesos de `object` posados como los posa DrawObject, en el mundo (la rotación por la escala; la
 // traslación por la escala más la posición, en float, como PosedBonePoint): lo que deja 0x4eb860 con su
 // octavo argumento en 1 en un buffer propio. Sin el modelo, vacío.
-[[nodiscard]] std::vector<Math::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
+[[nodiscard]] std::vector<Math::OriginalMatrix> PosedWorldBones(const Models::IModelLibrary& models,
                                                                 const DrawnObject& object);
 } // namespace Client::Scenes

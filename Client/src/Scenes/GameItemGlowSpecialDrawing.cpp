@@ -30,8 +30,8 @@ using Math::F32;
 class EarlyItemRenderer
 {
 public:
-    EarlyItemRenderer(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, DrawnObject& input,
-                      Core::Duration clock, std::span<const Render::Models::SkinnedMesh> meshes,
+    EarlyItemRenderer(Render::ModelBatch& batch, const Models::IModelLibrary& models, DrawnObject& input,
+                      Core::Duration clock, std::span<const Models::SkinnedMesh> meshes,
                       const ItemDrawContext& drawContext)
         : object(input), context(drawContext), m_batch(batch), m_models(models), m_clock(clock), m_meshes(meshes)
     {
@@ -83,9 +83,9 @@ public:
 
 private:
     Render::ModelBatch& m_batch;
-    const Render::Models::IModelLibrary& m_models;
+    const Models::IModelLibrary& m_models;
     Core::Duration m_clock;
-    std::span<const Render::Models::SkinnedMesh> m_meshes;
+    std::span<const Models::SkinnedMesh> m_meshes;
 };
 Result Fenrir(EarlyItemRenderer& draw, int level)
 {
@@ -225,10 +225,9 @@ Result EarlyCase(EarlyItemRenderer& draw, int level, std::uint8_t packedLevel)
     }
 }
 } // namespace
-Core::Expected<bool, std::string> DrawEarlyItemGlow(Render::ModelBatch& batch,
-                                                    const Render::Models::IModelLibrary& models, DrawnObject& object,
-                                                    Core::Duration clock,
-                                                    std::span<const Render::Models::SkinnedMesh> meshes, int level,
+Core::Expected<bool, std::string> DrawEarlyItemGlow(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                    DrawnObject& object, Core::Duration clock,
+                                                    std::span<const Models::SkinnedMesh> meshes, int level,
                                                     std::uint8_t packedLevel, const ItemDrawContext& context)
 {
     const auto type = object.model;

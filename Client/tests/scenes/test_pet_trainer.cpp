@@ -56,7 +56,7 @@ using Client::Tests::SameBytes;
 using Client::World::ItemState;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr int C3 = 2;
 constexpr std::uint16_t Horse = 0x1a04;
 constexpr std::uint16_t Raven = 0x1a05;

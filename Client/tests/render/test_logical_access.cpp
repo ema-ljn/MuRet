@@ -7,7 +7,7 @@
 #include <array>
 #include <cstdint>
 
-// Client::Render::Models::LogicalAccess: un acceso a una entrada de la tabla de protección del
+// Client::Models::LogicalAccess: un acceso a una entrada de la tabla de protección del
 // original (06 § La tabla de protección, Q-C125 y Q-C183). Los rand() que se esperan son los de la
 // lectura estática del research: 4 al cerrar una variable de 4 bytes (0x412890, y en línea en
 // 0x40b570 y 0x40b800) y 3.848 al cerrar el registro propio (0x40b4d0, uno por cada byte de los 0xf08). La
@@ -15,9 +15,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::LogicalAccess;
-using Client::Render::Models::OwnRecordCloseRandoms;
-using Client::Render::Models::SmallLogicalCloseRandoms;
+using Client::Models::LogicalAccess;
+using Client::Models::OwnRecordCloseRandoms;
+using Client::Models::SmallLogicalCloseRandoms;
 
 constexpr std::uint32_t Seed = 0x2f1d;
 // Lo que gasta cada cierre según el research, escrito aparte de las constantes que se prueban.

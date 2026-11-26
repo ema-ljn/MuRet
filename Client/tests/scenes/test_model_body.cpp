@@ -43,8 +43,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::Skeleton;
+using Client::Models::ActionInfo;
+using Client::Models::Skeleton;
 using Client::Scenes::ActorState;
 using Client::Scenes::ModelActionEnd;
 
@@ -553,7 +553,7 @@ TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
 }
 
 // La biblioteca del mapa detrás de FaunaResources con el 0x1f5 (un NPC) en el esqueleto de Monster02.
-class TraderLibrary final : public Client::Render::Models::IModelLibrary
+class TraderLibrary final : public Client::Models::IModelLibrary
 {
 public:
     explicit TraderLibrary(const Skeleton& skeleton, std::uint16_t model = 0x1f5) : m_skeleton(skeleton), m_model(model)

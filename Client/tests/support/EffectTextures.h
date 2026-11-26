@@ -27,13 +27,13 @@ namespace Client::Tests
                                { return entry.slot == selector; });
 }
 
-[[nodiscard]] inline std::optional<Scenes::TextureMetadata> EffectTextureMetadata(std::uint32_t selector)
+[[nodiscard]] inline std::optional<Models::TextureMetadata> EffectTextureMetadata(std::uint32_t selector)
 {
     if (!IsEffectTexture(selector))
     {
         return std::nullopt;
     }
-    Scenes::TextureMetadata metadata(Data::Textures::Texture{});
+    Models::TextureMetadata metadata(Data::Textures::Texture{});
     metadata.size = {32.0f, 32.0f};
     metadata.components = 3;
     return metadata;
@@ -46,16 +46,16 @@ namespace Client::Tests
 }
 
 // Una biblioteca de modelos de test con las texturas de efectos de GameModels encima.
-class WithEffectTextures final : public Render::Models::IModelLibrary
+class WithEffectTextures final : public Models::IModelLibrary
 {
 public:
-    explicit WithEffectTextures(const Render::Models::IModelLibrary& base) : m_base(base) {}
+    explicit WithEffectTextures(const Models::IModelLibrary& base) : m_base(base) {}
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
     {
         return m_base.get().Find(model);
     }
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return m_base.get().SkeletonOf(model);
     }
@@ -63,7 +63,7 @@ public:
     {
         return m_base.get().MeshTextures(model);
     }
-    [[nodiscard]] std::optional<Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
         return IsEffectTexture(selector) ? EffectTextureMetadata(selector) : m_base.get().TextureMetadataOf(selector);
     }
@@ -77,6 +77,6 @@ public:
     }
 
 private:
-    std::reference_wrapper<const Render::Models::IModelLibrary> m_base;
+    std::reference_wrapper<const Models::IModelLibrary> m_base;
 };
 } // namespace Client::Tests

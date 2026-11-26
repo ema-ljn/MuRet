@@ -154,12 +154,12 @@ float FirstLum()
     return static_cast<float>(static_cast<double>(81.0f) * static_cast<double>(0.01f));
 }
 
-class HangingModels final : public Client::Render::Models::IModelLibrary
+class HangingModels final : public Client::Models::IModelLibrary
 {
 public:
     explicit HangingModels(std::set<std::uint16_t> items) : m_items(std::move(items))
     {
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
         // La acción 1 tiene dos keys: lo que cuelga en ella puede avanzar.
@@ -189,7 +189,7 @@ public:
     {
         return m_items.contains(model) ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == Player || m_items.contains(model) ? &m_skeleton : nullptr;
     }
@@ -200,7 +200,7 @@ public:
 
 private:
     std::set<std::uint16_t> m_items;
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     std::array<Client::Render::TextureSlot, 1> m_texture{Client::Render::TextureSlot{0x300}};
 };
@@ -231,7 +231,7 @@ protected:
         m_actor.hands[1].bone = 0x2a;
     }
 
-    GameHangingPass Pass(const Client::Render::Models::IModelLibrary& models)
+    GameHangingPass Pass(const Client::Models::IModelLibrary& models)
     {
         return {.batch = m_batch,
                 .models = models,

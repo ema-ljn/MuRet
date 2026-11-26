@@ -90,7 +90,7 @@ TEST(LoginActorTest, MissingWorldDataCutsAfterThePreviousCellRandoms)
         }
         Client::Scenes::ActorState actor;
         Client::Scenes::WorldRuntime runtime;
-        Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
+        Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
         const auto built = Client::Scenes::ConstructLoginActor(
             actor, {.terrain = terrain, .map = 55, .scene = Client::World::CullingScene::Login, .fixedHeight = 450.0f},
@@ -109,7 +109,7 @@ TEST(LoginActorTest, TheHorseChoosesItsStandingActionWithoutItemBmd)
     Client::Scenes::ActorState actor;
     actor.headTurn.angles = {20.0f, 30.0f};
     Client::Scenes::WorldRuntime runtime;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     const auto built = Client::Scenes::ConstructLoginActor(
         actor, {.terrain = terrain, .map = 55, .scene = Client::World::CullingScene::Login, .fixedHeight = 450.0f},
@@ -132,7 +132,7 @@ TEST(LoginActorTest, OpenCellAndCounterAccessesKeepTheirBirthRandoms)
     actor.cellXAccesses = 1;
     actor.cellYAccesses = 1;
     Client::Scenes::WorldRuntime runtime;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed), .openCounterAccesses = 1};
+    Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed), .openCounterAccesses = 1};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     const auto built = Client::Scenes::ConstructLoginActor(
         actor, {.terrain = terrain, .map = 55, .scene = Client::World::CullingScene::Login, .fixedHeight = 450.0f},

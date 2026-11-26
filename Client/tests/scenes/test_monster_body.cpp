@@ -121,13 +121,13 @@ void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
     }
 }
 
-class BodyModels final : public Client::Render::Models::IModelLibrary
+class BodyModels final : public Client::Models::IModelLibrary
 {
 public:
     BodyModels()
     {
         using namespace Client::Math;
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
@@ -152,7 +152,7 @@ public:
     {
         return &m_model;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &m_skeleton;
     }
@@ -167,7 +167,7 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     std::array<Client::Render::TextureSlot, MeshCount> m_textures{};
 };
@@ -305,20 +305,20 @@ protected:
     BodyModels m_models;
     Client::Render::ModelBatch m_batch;
     std::unique_ptr<ActorState> m_actor;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     std::optional<std::int32_t> m_sound;
     float m_shake = 0.0f;
     bool m_siegeActive = false;
     float m_boneScale = 1.0f;
     // La escala y la posición que 0x5ffdf0 copió al modelo (+0x68 y +0x6c): las del objeto del dibujo.
-    Client::Render::Models::ObjectTransform m_transform{};
+    Client::Models::ObjectTransform m_transform{};
     std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
     std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
     // La tabla de joints (0x74a8d78): vacía salvo en Kundun al morir.
     std::vector<Client::Scenes::JointState> m_joints;
     std::vector<Client::Math::BoneTransform> m_bones{Client::Math::BoneTransform(1.0f)};
     std::function<double(float, float)> m_terrainHeight{};
-    std::vector<Client::Render::Models::SkinnedMesh> m_meshes;
+    std::vector<Client::Models::SkinnedMesh> m_meshes;
     glm::vec3 m_color{};
 };
 
@@ -553,7 +553,7 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     mesh.triangles.assign(1, {1, {0, 0, 0, 0}});
     model.meshes.push_back(mesh);
     const glm::vec3 corner{100.0f, 200.0f, 30.0f};
-    std::vector<Client::Render::Models::SkinnedMesh> posed(1);
+    std::vector<Client::Models::SkinnedMesh> posed(1);
     posed[0].positions = {corner};
     const auto after = [](std::size_t count)
     {

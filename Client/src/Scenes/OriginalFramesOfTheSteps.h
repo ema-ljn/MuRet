@@ -26,11 +26,11 @@ public:
     // fiel (OncePerDraw), todos. Si no, lo es el dibujo que trae al menos un paso nuevo y completa 46,875 ms de
     // pasos desde el frame anterior. Como mucho uno por dibujo: lo que sobra de un frame más se descarta, y por
     // debajo de 21,33 FPS cada dibujo es un frame, con más pasos, como el original en una máquina lenta.
-    [[nodiscard]] int FramesAtDraw(Render::Models::OriginalFramePace pace);
+    [[nodiscard]] int FramesAtDraw(Models::OriginalFramePace pace);
 
     // Lo que daría FramesAtDraw ahora, sin contar el dibujo: si el próximo es un frame del original. Lo pregunta el
     // PrepareFrame del juego antes del dibujo, para olvidar solo en un frame del original lo que ese frame reescribe.
-    [[nodiscard]] bool NextDrawIsAnOriginalFrame(Render::Models::OriginalFramePace pace) const;
+    [[nodiscard]] bool NextDrawIsAnOriginalFrame(Models::OriginalFramePace pace) const;
 
 private:
     std::uint64_t m_steps = 0;

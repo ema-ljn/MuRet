@@ -45,7 +45,7 @@ struct ItemDrawResources
     World::ModelEffects& effects;
     std::int32_t map = 0;
     bool originalFrame = true;
-    std::uint8_t glowDetail = Render::Models::DefaultGlowDetail;
+    std::uint8_t glowDetail = Models::DefaultGlowDetail;
 };
 
 // Arma `special` y `item` sobre `resources`: los joints de los ítems sólo los 613/4 y 614/14 de Helper07 con su

@@ -10,7 +10,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -94,4 +94,4 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
     }
     return {};
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

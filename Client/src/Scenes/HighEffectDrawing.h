@@ -18,10 +18,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 class FrameSprites;
@@ -67,9 +67,7 @@ struct HighEffectDrawServices
 // Después todos van a 0x602365, que con +0x78 & 2 repite RenderBody(2) con el blendMesh −2 y la luz 1: un efecto con
 // modelo no escribe su +0x78 (nadie lo hace entre 0x518cf0 y 0x52ce13), así que acá no corre. Devuelve true si lo
 // dibujó; false si el efecto no tiene caso acá. Sin los sprites, el CRT, los huesos o el reloj que pide, corta.
-[[nodiscard]] Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batch,
-                                                                      const Render::Models::IModelLibrary& models,
-                                                                      World::ModelEffect& effect, DrawnObject& object,
-                                                                      Core::Duration frameClock,
-                                                                      const HighEffectDrawServices& services);
+[[nodiscard]] Core::Expected<bool, std::string>
+DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
+                      DrawnObject& object, Core::Duration frameClock, const HighEffectDrawServices& services);
 } // namespace Client::Scenes

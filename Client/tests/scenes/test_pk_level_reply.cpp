@@ -80,7 +80,7 @@ struct Stage
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(0x1357)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(0x1357)};
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({});
     Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(

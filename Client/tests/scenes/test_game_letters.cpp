@@ -785,7 +785,7 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     Client::Scenes::SendAFriendPacket(requests, m_random, m_sent[0]);
     ASSERT_EQ(requests.sent.size(), 1u);
     EXPECT_EQ(requests.sent[0], BytesOf(letter));
-    EXPECT_EQ(m_random.State(), After(1 + Client::Render::Models::SerialCloseRandoms));
+    EXPECT_EQ(m_random.State(), After(1 + Client::Models::SerialCloseRandoms));
     const std::uint32_t before = m_random.State();
     Client::Scenes::SendAFriendPacket(
         requests, m_random, FriendSend{.kind = FriendSendKind::LetterRead, .value = 0, .name = {}, .index = 7});

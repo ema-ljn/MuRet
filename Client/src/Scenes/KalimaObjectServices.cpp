@@ -62,7 +62,7 @@ bool HasWaterOverlay(std::int16_t type)
     return true;
 }
 
-Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                  const DrawnObject& drawn, Core::Duration frameClock, std::int16_t mesh,
                                                  std::uint32_t flags,
                                                  std::optional<Render::TextureSlot> texture = std::nullopt)
@@ -75,7 +75,7 @@ Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, cons
     return DrawItemMeshPass(batch, models, drawn, frameClock, local.meshes, mesh, flags, texture);
 }
 
-Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                DrawnObject& drawn, Core::Duration frameClock,
                                                const GameObjectPass& pass)
 {
@@ -164,8 +164,7 @@ Core::Expected<void, std::string> WaterfallSound(const GameObjectPass& pass, std
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch,
-                                                       const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                        const World::WorldObject& object, const DrawnObject& drawn,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {

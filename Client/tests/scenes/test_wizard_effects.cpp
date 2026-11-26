@@ -36,7 +36,7 @@ using Client::Scenes::ActorState;
 
 // Los esqueletos del juego (0x5769ad8 + tipo · 0xe0): Player.bmd con 0xc3 acciones y un monstruo con 6; el resto no
 // está (el registro sin acciones).
-class PushedModels final : public Client::Render::Models::IModelLibrary
+class PushedModels final : public Client::Models::IModelLibrary
 {
 public:
     static constexpr std::uint16_t Monster = 0x10;
@@ -49,7 +49,7 @@ public:
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
             return &player;
@@ -59,8 +59,8 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton player;
-    Client::Render::Models::Skeleton monster;
+    Client::Models::Skeleton player;
+    Client::Models::Skeleton monster;
 };
 
 // 0x524a8d..0x524b21: el 0xc2/4 que toca el suelo recorre los 400 primeros personajes del pool y empuja a los vivos,

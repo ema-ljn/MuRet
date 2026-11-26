@@ -337,11 +337,11 @@ Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, con
     {
         if (actor.type == Data::Models::PlayerSkeletonModel)
         {
-            Render::Models::SetAction(actor.animation, context.stop.playerSkeleton, *action.Value());
+            Models::SetAction(actor.animation, context.stop.playerSkeleton, *action.Value());
         }
         else if (context.actorSkeleton != nullptr)
         {
-            Render::Models::SetAction(actor.animation, *context.actorSkeleton, *action.Value());
+            Models::SetAction(actor.animation, *context.actorSkeleton, *action.Value());
         }
     }
     return StepSound(actor, context);

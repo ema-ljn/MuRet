@@ -28,14 +28,14 @@
 
 namespace
 {
-class MaterialModels : public Client::Render::Models::IModelLibrary
+class MaterialModels : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -53,13 +53,13 @@ public:
         m_slotSelector = selector;
         return Client::Render::TextureSlot{41};
     }
-    std::optional<Client::Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t) const override
+    std::optional<Client::Models::TextureMetadata> TextureMetadataOf(std::uint32_t) const override
     {
         ++m_metadataQueries;
         Client::Data::Textures::Texture texture;
         texture.textureWidth = 32;
         texture.textureHeight = 16;
-        return Client::Scenes::TextureMetadata(texture);
+        return Client::Models::TextureMetadata(texture);
     }
 
     [[nodiscard]] const std::optional<std::uint32_t>& SlotSelector() const
@@ -144,11 +144,11 @@ TEST(ParticleMaterialBackendTest, OnlyTheAdapterThatOpenedAQuadCanWriteOrFinishI
 TEST(ParticleMaterialBackendTest, PhysicalSlotLookupKeepsPublicUnsignedRaw32Api)
 {
     using SlotLookup =
-        std::optional<Client::Render::TextureSlot> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
+        std::optional<Client::Render::TextureSlot> (Client::Models::IModelLibrary::*)(std::uint32_t) const;
     using MetadataLookup =
-        std::optional<Client::Scenes::TextureMetadata> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
-    EXPECT_TRUE((std::is_same_v<decltype(&Client::Render::Models::IModelLibrary::TextureSlotOf), SlotLookup>));
-    EXPECT_TRUE((std::is_same_v<decltype(&Client::Render::Models::IModelLibrary::TextureMetadataOf), MetadataLookup>));
+        std::optional<Client::Models::TextureMetadata> (Client::Models::IModelLibrary::*)(std::uint32_t) const;
+    EXPECT_TRUE((std::is_same_v<decltype(&Client::Models::IModelLibrary::TextureSlotOf), SlotLookup>));
+    EXPECT_TRUE((std::is_same_v<decltype(&Client::Models::IModelLibrary::TextureMetadataOf), MetadataLookup>));
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     SlotLookupModels models;

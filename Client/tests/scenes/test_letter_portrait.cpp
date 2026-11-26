@@ -128,22 +128,22 @@ int DrawsBetween(CrtRandom from, const CrtRandom& to)
 
 // Lo que dibuja el retrato: Player.bmd con un hueso y una key en cada acción, el caballo oscuro (0xbf) con sus siete
 // acciones de 10 keys en un hueso, y un triángulo para el caballo, la sombra (0x20b) y la armadura del Dark Knight.
-class PortraitModels final : public Client::Render::Models::IModelLibrary
+class PortraitModels final : public Client::Models::IModelLibrary
 {
 public:
     PortraitModels()
     {
-        Client::Render::Models::SkeletonBone body;
-        body.actions.assign(Client::Tests::PlayerActionCount, {Client::Render::Models::BoneKey{}});
+        Client::Models::SkeletonBone body;
+        body.actions.assign(Client::Tests::PlayerActionCount, {Client::Models::BoneKey{}});
         m_player.bones.push_back(body);
         m_player.actions.assign(Client::Tests::PlayerActionCount, {.keyCount = 1});
         constexpr std::size_t HorseActions = 7;
         constexpr std::int16_t HorseKeys = 10;
-        Client::Render::Models::SkeletonBone horse;
-        Client::Render::Models::BoneKey still;
+        Client::Models::SkeletonBone horse;
+        Client::Models::BoneKey still;
         still.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         horse.actions.assign(HorseActions,
-                             std::vector<Client::Render::Models::BoneKey>(static_cast<std::size_t>(HorseKeys), still));
+                             std::vector<Client::Models::BoneKey>(static_cast<std::size_t>(HorseKeys), still));
         m_horse.bones.push_back(horse);
         m_horse.actions.assign(HorseActions, {.repeats = true, .speed = 0.0f, .keyCount = HorseKeys});
         Client::Data::Models::Mesh mesh;
@@ -162,7 +162,7 @@ public:
                            model == ClassPartModel(BodyPart::Armor, DarkKnight);
         return drawn ? &m_triangle : nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == PlayerSkeletonModel)
             return &m_player;
@@ -174,8 +174,8 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_player;
-    Client::Render::Models::Skeleton m_horse;
+    Client::Models::Skeleton m_player;
+    Client::Models::Skeleton m_horse;
     Client::Data::Models::Model m_triangle;
     std::array<Client::Render::TextureSlot, 1> m_textures{Client::Render::TextureSlot{0x300}};
 };
@@ -207,8 +207,8 @@ struct Game
                 .cloth = cloth,
                 .camera = camera,
                 .cameraInput = input,
-                .models = drawable ? static_cast<const Client::Render::Models::IModelLibrary&>(drawn)
-                                   : static_cast<const Client::Render::Models::IModelLibrary&>(models),
+                .models = drawable ? static_cast<const Client::Models::IModelLibrary&>(drawn)
+                                   : static_cast<const Client::Models::IModelLibrary&>(models),
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log};
@@ -221,7 +221,7 @@ struct Game
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     // Con `drawable`, los modelos de lo que dibuja el retrato en vez de los de arriba.
     bool drawable = false;
@@ -688,7 +688,7 @@ public:
     ~PortraitDrawing() = default;
 
     // Con `cloth` de rand() del frame: el del juego o, entre frames, su copia.
-    Client::Scenes::LetterPortraitDraw Draw(Client::Render::Models::ClothWorld& cloth, bool originalFrame)
+    Client::Scenes::LetterPortraitDraw Draw(Client::Models::ClothWorld& cloth, bool originalFrame)
     {
         Client::Scenes::WorldRuntime& runtime = m_game.world.Runtime();
         ActorState& hero = m_game.Hero();
@@ -946,7 +946,7 @@ TEST_F(LetterPortraitTest, AnIntermediateDrawLeavesThePortraitAsTheLastFrameLeft
         game->portrait.actor.animation.frame = 3.0f;
         const LetterPortrait before = game->portrait;
         const CrtRandom random = game->cloth.random;
-        Client::Render::Models::ClothWorld projected = game->cloth;
+        Client::Models::ClothWorld projected = game->cloth;
         PortraitDrawing drawing(*game);
         const auto resources = game->Resources();
         ASSERT_TRUE(Client::Scenes::DrawTheLetterPortrait(part, drawing.Draw(projected, false), resources).HasValue());

@@ -598,8 +598,7 @@ Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Crt::C
             // 0x5fdc6f..0x5fe12e: el nivel del registro propio, abierto y cerrado.
             std::uint16_t level = 0;
             {
-                const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random,
-                                                        Render::Models::OwnRecordCloseRandoms);
+                const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
                 level = world.OwnCharacter().level;
             }
             if (level < CapeHeroLevel)

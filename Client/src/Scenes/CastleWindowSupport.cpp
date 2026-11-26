@@ -92,14 +92,13 @@ bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random)
 {
     if (world.Actors()[world.Runtime().hero].guildStatus != Master)
         return false;
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return world.OwnCharacter().level >= 200;
 }
 
 std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::OwnRecordCloseRandoms);
     std::uint32_t count = 0;
     for (const auto& item : world.Inventory().cells)
     {
@@ -111,7 +110,7 @@ std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t
 
 std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::OwnRecordCloseRandoms);
     const auto& cells = world.Inventory().cells;
     for (std::size_t i = 0; i < cells.size(); ++i)
     {

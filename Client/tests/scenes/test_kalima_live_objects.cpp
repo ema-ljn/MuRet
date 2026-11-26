@@ -337,7 +337,7 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     resources.kalimaPass = &pass;
     resources.onPose = [&](const Client::Scenes::DrawnObject& drawn)
     { return Client::Scenes::PublishFaunaPose(pose, models, drawn, true); };
-    resources.posedMeshes = [&]() { return std::span<const Client::Render::Models::SkinnedMesh>(pose.meshes); };
+    resources.posedMeshes = [&]() { return std::span<const Client::Models::SkinnedMesh>(pose.meshes); };
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, effects->Effects(),

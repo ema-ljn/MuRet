@@ -31,10 +31,10 @@ struct ItemShineClock
 };
 
 // 4ecc30: el reloj del pase `pass`, con el float completo para las fases.
-[[nodiscard]] ItemShineClock ItemShineClockOf(Render::Models::ShinePass pass, Core::Duration clock);
+[[nodiscard]] ItemShineClock ItemShineClockOf(Models::ShinePass pass, Core::Duration clock);
 
 // 4ecc30: las UV de una esquina con la normal en el mundo y el reloj de su pase.
-[[nodiscard]] glm::vec2 ItemShineTexCoords(Render::Models::ShinePass pass, const glm::vec3& normal,
+[[nodiscard]] glm::vec2 ItemShineTexCoords(Models::ShinePass pass, const glm::vec3& normal,
                                            const ItemShineClock& clock);
 
 // 60be05..60c5c3: stores y emisores de los ítems, sobre la pose retenida del caller.

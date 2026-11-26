@@ -94,7 +94,7 @@ TEST(TextureMetadataConversionTest, DecodedRgbAndRgbaUseBufferDimensionsAndActua
     ASSERT_TRUE(rgb.HasValue());
     EXPECT_EQ(rgb.Value().width, 13);
     EXPECT_EQ(rgb.Value().height, 11);
-    const Client::Scenes::TextureMetadata rgbMetadata(rgb.Value());
+    const Client::Models::TextureMetadata rgbMetadata(rgb.Value());
     EXPECT_EQ(rgbMetadata.size, (glm::vec2{16, 16}));
     EXPECT_EQ(rgbMetadata.components, 3);
 
@@ -102,19 +102,19 @@ TEST(TextureMetadataConversionTest, DecodedRgbAndRgbaUseBufferDimensionsAndActua
     ASSERT_TRUE(rgba.HasValue());
     EXPECT_EQ(rgba.Value().width, 3);
     EXPECT_EQ(rgba.Value().height, 5);
-    const Client::Scenes::TextureMetadata rgbaMetadata(rgba.Value());
+    const Client::Models::TextureMetadata rgbaMetadata(rgba.Value());
     EXPECT_EQ(rgbaMetadata.size, (glm::vec2{4, 8}));
     EXPECT_EQ(rgbaMetadata.components, 4);
 }
 
-class LibraryWithoutTextureMetadata final : public Client::Render::Models::IModelLibrary
+class LibraryWithoutTextureMetadata final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -138,7 +138,7 @@ TEST_F(TextureMetadataTest, LoadedEffectsUseExactRawSelectorsAndShareTheLegacySi
 {
     Client::Scenes::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
-    const Client::Render::Models::IModelLibrary& library = models;
+    const Client::Models::IModelLibrary& library = models;
     const auto metadata = library.TextureMetadataOf(0x5ac);
     ASSERT_TRUE(metadata.has_value());
     EXPECT_EQ(metadata->size, (glm::vec2{16, 16}));
@@ -192,7 +192,7 @@ TEST_F(TextureMetadataTest, OnlyUploadedEffectsPublishTheSlotOfTheirSelector)
     Client::Scenes::GameModels models;
     EXPECT_FALSE(models.TextureSlotOf(0x5ac).has_value()) << "antes de cargar";
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
-    const Client::Render::Models::IModelLibrary& library = models;
+    const Client::Models::IModelLibrary& library = models;
     EXPECT_EQ(library.TextureSlotOf(0x5ac), std::optional(Client::Render::TextureSlot{0x5ac}));
     EXPECT_EQ(library.TextureSlotOf(0x622), std::optional(Client::Render::TextureSlot{0x622}));
     EXPECT_FALSE(library.TextureSlotOf(0x5fd).has_value());
@@ -229,7 +229,7 @@ TEST_F(TextureMetadataTest, MissingRuntimeImagesPublishNeitherMetadataNorPhysica
 
 TEST_F(TextureMetadataTest, ReloadFailureRetainsTheOldRowAndValueSnapshotsOutliveTheOwner)
 {
-    std::optional<Client::Scenes::TextureMetadata> snapshot;
+    std::optional<Client::Models::TextureMetadata> snapshot;
     {
         Client::Scenes::GameModels models;
         ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());

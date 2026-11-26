@@ -20,7 +20,7 @@
 // (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario"): como datos, sin GL,
 // para comparar con las trazas y con lor_slots.bin, que nombran slots (pregunta 13 del plan de la
 // CL6). Qué escena empieza en qué slot es de quien la arma (CL6.3).
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct TextureRequestNames
 {
@@ -39,7 +39,7 @@ class ENGINE_API ModelTextureSlots
 {
 public:
     // 0x60d530: el próximo slot libre en `next`; la búsqueda por nombre empieza en el 0.
-    explicit ModelTextureSlots(TextureSlot next);
+    explicit ModelTextureSlots(Render::TextureSlot next);
 
     // Las rutas de ToLoad apuntan a las que guarda: una copia apuntaría a las del otro. Movido, siguen
     // valiendo, porque un std::deque movido no mueve sus elementos.
@@ -52,40 +52,40 @@ public:
     // Una tabla con los mismos nombres y el próximo libre en `next`, sin nada que subir: la de un
     // cargador que viene después y sigue con la tabla global (0x61ca30 con 0x60d530(0x6f8)). Esta no
     // cambia.
-    [[nodiscard]] ModelTextureSlots ContinuedAt(TextureSlot next) const;
+    [[nodiscard]] ModelTextureSlots ContinuedAt(Render::TextureSlot next) const;
 
     // 0x60d530 otra vez, como cada cargador del original: corre el próximo libre y deja lo que ya
     // tiene nombre. Puede ir para atrás (0x615700 vuelve al 0x138, Q-C89).
-    void SetNext(TextureSlot next);
+    void SetNext(Render::TextureSlot next);
 
     // 0x60d5f0: el slot de cada malla de `model`, en su orden. Cada nombre de textura se busca, sin la
     // carpeta y distinguiendo mayúsculas (Q-C90), en los slots del 0 al próximo libre: si está, la
     // malla usa ese; si no, se pide `folder` + el nombre en el próximo, que se corre aunque el archivo
     // falte. Después, las de la piel y el pelo van a su slot fijo (Data::Models::SkinSlotOf), y el
     // que se pidió queda ocupado. `sampling` es el de las OZJ: las OZT van siempre con GL_NEAREST.
-    std::vector<TextureSlot> Assign(const Data::Models::Model& model, std::string_view folder,
-                                    Data::Textures::Sampling sampling);
+    std::vector<Render::TextureSlot> Assign(const Data::Models::Model& model, std::string_view folder,
+                                            Data::Textures::Sampling sampling);
     // Lleva el vínculo entre cada malla y su petición. La piel y los nombres ya residentes no tienen petición.
-    std::vector<TextureSlot> Assign(const Data::Models::Model& model, std::string_view folder,
-                                    Data::Textures::Sampling sampling, ModelTextureRequests* requests,
-                                    std::vector<std::optional<std::size_t>>* bindings);
+    std::vector<Render::TextureSlot> Assign(const Data::Models::Model& model, std::string_view folder,
+                                            Data::Textures::Sampling sampling, ModelTextureRequests* requests,
+                                            std::vector<std::optional<std::size_t>>* bindings);
 
     // Lo que pidió Assign y hay que subir, en orden, con el slot y el muestreo de cada una
     // (Data::Textures::LoadTextureSet): la carpeta, el nombre hasta el primer punto y la extensión del
     // cargador del original (Data::Models::ModelTextureLoaderOf), así abre el mismo archivo.
     [[nodiscard]] std::span<const Data::Textures::TextureSetEntry> ToLoad() const;
 
-    [[nodiscard]] TextureSlot Next() const;
+    [[nodiscard]] Render::TextureSlot Next() const;
 
     // El nombre desnudo que guarda `slot`, como la tabla de 0x7d3a198: el de la última malla que lo
     // pidió, o vacío si nadie lo pidió o si está fuera de la tabla. Para comparar con un volcado.
-    [[nodiscard]] std::string_view NameOf(TextureSlot slot) const;
+    [[nodiscard]] std::string_view NameOf(Render::TextureSlot slot) const;
     // 63c150 borra el nombre al soltar la última referencia física.
-    void SetName(TextureSlot slot, std::string_view name);
+    void SetName(Render::TextureSlot slot, std::string_view name);
 
 private:
-    std::optional<TextureSlot> Find(std::string_view name) const;
-    TextureSlot Request(std::string_view folder, std::string_view name, Data::Textures::Sampling sampling);
+    std::optional<Render::TextureSlot> Find(std::string_view name) const;
+    Render::TextureSlot Request(std::string_view folder, std::string_view name, Data::Textures::Sampling sampling);
 
     // El nombre desnudo que guarda cada slot, como la tabla de 0x7d3a198; vacío, sin nombre.
     std::vector<std::string> m_names;
@@ -95,4 +95,4 @@ private:
     std::deque<std::string> m_paths;
     std::vector<Data::Textures::TextureSetEntry> m_toLoad;
 };
-} // namespace Client::Render::Models
+} // namespace Client::Models

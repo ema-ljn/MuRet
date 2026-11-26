@@ -134,7 +134,7 @@ Core::Expected<void, std::string> WithTheOwnRecord(const BlastEffectServices& se
 {
     if (services.ownRecordDepth == nullptr || services.ownRecordCount == nullptr)
         return Core::Unexpected(Cut(address, "el alta abre el registro propio (0x7681eb4), que no llegó"));
-    const Render::Models::LogicalAccess access(*services.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(*services.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     inside(*services.ownRecordCount);
     return {};
 }
@@ -616,8 +616,8 @@ enum class Tail : std::uint8_t
     None
 };
 
-void FinishTheStep(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
-                   const ModelEffectStepServices& services, Tail tail, const glm::vec3& before)
+void FinishTheStep(ModelEffect& effect, const Models::Skeleton* skeleton, const ModelEffectStepServices& services,
+                   Tail tail, const glm::vec3& before)
 {
     if (tail == Tail::None)
     {
@@ -635,9 +635,8 @@ void FinishTheStep(ModelEffect& effect, const Render::Models::Skeleton* skeleton
             if (effect.animation.action != NoAction && skeleton != nullptr &&
                 effect.animation.action < skeleton->actions.size())
             {
-                const Render::Models::ActionInfo& action = skeleton->actions[effect.animation.action];
-                if (Render::Models::AdvanceAnimation(effect.animation, action, effect.speed,
-                                                     Render::Models::AnimationScene::Other))
+                const Models::ActionInfo& action = skeleton->actions[effect.animation.action];
+                if (Models::AdvanceAnimation(effect.animation, action, effect.speed, Models::AnimationScene::Other))
                 {
                     effect.animation.frame = static_cast<float>(action.keyCount);
                     effect.animation.action = NoAction;
@@ -1334,7 +1333,7 @@ CreateBlastModelEffect(ModelEffects& effects, const ModelEffectArguments& argume
     return slot;
 }
 
-Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                        Particles& particles, float worldClock, CrtRandom& random,
                                                        int lightDraw, KalimaWorld* kalima,
                                                        const ModelEffectStepServices& services)

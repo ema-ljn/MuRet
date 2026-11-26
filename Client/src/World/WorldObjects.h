@@ -41,14 +41,14 @@ enum class ObjectScene : std::uint8_t
 // Proyección tipada de los campos usados de 0x1d4 bytes; no reproduce el layout i386.
 struct WorldObject
 {
-    WorldObjectIdentity identity = 0;          // ID del caller; 0 en la proyección sin registro
-    std::int16_t type = 0;                     // +0x2, el modelo
-    Render::Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    Render::Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
-    std::int32_t field04 = 0;                  // +0x4, en 0 de 0x606660; lo miran las puertas del 30
-    std::uint8_t field08 = 0;                  // +0x8, byte escrito por creación del mapa 30
-    float field84 = 0.0f;                      // +0x84, store FP del mapa 30/tipo 41
-    std::uint8_t field91 = 0;                  // +0x91, byte escrito por creación del mapa 30
+    WorldObjectIdentity identity = 0;  // ID del caller; 0 en la proyección sin registro
+    std::int16_t type = 0;             // +0x2, el modelo
+    Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
+    Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
+    std::int32_t field04 = 0;          // +0x4, en 0 de 0x606660; lo miran las puertas del 30
+    std::uint8_t field08 = 0;          // +0x8, byte escrito por creación del mapa 30
+    float field84 = 0.0f;              // +0x84, store FP del mapa 30/tipo 41
+    std::uint8_t field91 = 0;          // +0x91, byte escrito por creación del mapa 30
     // +0x8a: 4 cuando 0x5ff960 abre el 9 o el 10 de 11..17; 1 en el 3 de 18..23 que 0x4055b0 elige.
     std::int16_t field8a = 0;
     std::int32_t field60 = 0;     // +0x60, la cuenta del 3 de 18..23 (0x4055b0 la pone en 10, 0x4059d0 la baja)
@@ -66,7 +66,7 @@ struct WorldObject
     float alpha = 1.0f;                            // +0x174
     float targetAlpha = 1.0f;                      // +0x170
     bool vertexLight = true;                       // +0xe8
-    Render::Models::AnimationState animation;      // +0x111 la acción, +0x114 el frame
+    Models::AnimationState animation;              // +0x111 la acción, +0x114 el frame
     // +0x16c: se vio en el último dibujo; 0x606560 solo avanza los que tienen esto.
     bool seen = false;
     // +8 de su sector (0x7d325d4 + 0x10 · (x · 16 + y), .bss 0): el sector pasó el trapecio del último dibujo
@@ -178,7 +178,7 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // (0x4ec200, con la acción de `skeleton`, si tiene) y los casos del mapa: en el 0x37, los marcadores
 // 0x54, 0x55, 0x57 y 0x59 se ocultan, el remolino 0x56 gira −0,6° (alpha 0,2, luz (1, 0, 0) y todas
 // las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
-void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton);
+void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton);
 
 struct TerrainLighting;
 struct ObjectModelStepState;
@@ -231,7 +231,7 @@ struct ObjectStepGlobals
 // héroe/editor/sonido prestados. Un binding ausente corta donde lo pide el ASM, conservando RNG, partículas y stores
 // anteriores. En el 0x37 corre lo de StepWorldObject; los demás mapas cortan antes de tocar el objeto.
 [[nodiscard]] Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
-                                                                       const Render::Models::Skeleton* skeleton,
+                                                                       const Models::Skeleton* skeleton,
                                                                        Crt::CrtRandom& random,
                                                                        const ObjectStepGlobals& globals);
 
@@ -262,7 +262,7 @@ struct ObjectDraw
     // 0,01, que sale antes (0x5ffe3d); también los de +0x58 en −2, que 0x6002e0 no dibuja.
     bool posed = false;
     float alpha = 1.0f;
-    Render::Models::ObjectState state;
+    Models::ObjectState state;
     // +0x48..+0x50 del modelo, el que le pone 0x5ffce0.
     glm::vec3 color{1.0f};
     bool vertexLight = false;

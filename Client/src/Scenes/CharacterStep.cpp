@@ -195,14 +195,14 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 // El registro de un monstruo o un NPC existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc u
 // Object35, que 0x60da30 saltea, o un tipo sin caso de carga) está en 0, sin acciones (+0x26), y 0x4ea030, 0x4f9580 y
 // 0x505de0 lo toman como un modelo vacío.
-const Render::Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
+const Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
 {
-    static const Render::Models::Skeleton ZeroRecord;
+    static const Models::Skeleton ZeroRecord;
     if (actor.type == Data::Models::PlayerSkeletonModel)
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
-    const Render::Models::Skeleton* loaded = context.world.FaunaResources().SkeletonOf(actor.type);
+    const Models::Skeleton* loaded = context.world.FaunaResources().SkeletonOf(actor.type);
     return loaded != nullptr ? loaded : &ZeroRecord;
 }
 
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
                                                      const CharacterStepContext& context)
 {
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
-    const Render::Models::Skeleton* own = ModelSkeletonOf(actor, context);
+    const Models::Skeleton* own = ModelSkeletonOf(actor, context);
     if (actor.movement != 0 && own == nullptr)
     {
         return Core::Unexpected(std::format("0x4f37c0: falta el esqueleto del personaje del lugar {}", slot));
@@ -232,8 +232,8 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
     {
         return Core::Unexpected(std::string("0x508ba0: falta el TerrainWall para reintentar el camino"));
     }
-    const Render::Models::Skeleton empty;
-    const Render::Models::Skeleton& skeleton = context.playerSkeleton != nullptr ? *context.playerSkeleton : empty;
+    const Models::Skeleton empty;
+    const Models::Skeleton& skeleton = context.playerSkeleton != nullptr ? *context.playerSkeleton : empty;
     PlayerActionSpeeds& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
     const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
     const ActorWalkContext walk{
@@ -263,8 +263,7 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     const OwnEquipmentOverride held = HeldItemOf(runtime);
     // 0x4fc46a..0x4fc556: abre el registro propio en línea; 0x4fc617..0x4fc767 lo cierra en línea, con los
     // 3.848 rand() de 0x40b4d0 si la cuenta queda en 0.
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     // 0x4fc55b..0x4fc58a: +0x3e baja si es positivo y, en 0, apaga el bit 0x01 de +0x3c y llama a 0x54fe10.
     if (own.word3e > 0)
     {
@@ -322,7 +321,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
 {
     // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
-    const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
+    const Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
         return Core::Unexpected(std::format("0x4f9580: el modelo {:#x} del lugar {} (0x5769ad8 + tipo · 0xe0) no está "
@@ -335,7 +334,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     {
         return frozen;
     }
-    Render::Models::AnimationState& animation = actor.animation;
+    Models::AnimationState& animation = actor.animation;
     const std::uint8_t action = animation.action;
     const auto publishedAction = context.world.ModelPlacement(actor.type).action;
     if (publishedAction >= skeleton->actions.size())
@@ -344,7 +343,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
                                             "{:#x}",
                                             publishedAction, slot, skeleton->actions.size(), actor.type));
     }
-    const Render::Models::ActionInfo& info = skeleton->actions[publishedAction];
+    const Models::ActionInfo& info = skeleton->actions[publishedAction];
     // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0. La de Player.bmd, con la de cada personaje.
     const PlayerActionSpeeds& speeds =
         context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
@@ -388,15 +387,15 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     }
     // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21). El NewFace es el
     // objeto suelto de la selección; 4ec200 consulta la escena vigente, no el tipo.
-    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect
-                                                     ? Render::Models::AnimationScene::CharacterSelect
-                                                     : Render::Models::AnimationScene::Other;
+    const Models::AnimationScene scene = context.scene == SceneId::CharacterSelect
+                                             ? Models::AnimationScene::CharacterSelect
+                                             : Models::AnimationScene::Other;
     // 4ec21b usa el BYTE +a0 publicado antes de animar, aunque el actor haya cambiado de acción.
     if (info.keyCount <= 1)
         return false;
     auto advanced = animation;
     advanced.action = publishedAction;
-    const bool finished = Render::Models::AdvanceAnimation(advanced, info, speed, scene);
+    const bool finished = Models::AdvanceAnimation(advanced, info, speed, scene);
     animation.frame = advanced.frame;
     animation.previousAction = advanced.previousAction;
     animation.previousKey = advanced.previousKey;
@@ -444,12 +443,12 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const Characte
     if (stops)
     {
         const auto& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
-        static const Render::Models::Skeleton emptyPlayerSkeleton;
-        const Render::Models::Skeleton* playerSkeleton = context.playerSkeleton;
+        static const Models::Skeleton emptyPlayerSkeleton;
+        const Models::Skeleton* playerSkeleton = context.playerSkeleton;
         if (playerSkeleton == nullptr)
             playerSkeleton = &emptyPlayerSkeleton;
         const bool player = actor.type == Data::Models::PlayerSkeletonModel;
-        const Render::Models::Skeleton* actorSkeleton = player ? nullptr : ModelSkeletonOf(actor, context);
+        const Models::Skeleton* actorSkeleton = player ? nullptr : ModelSkeletonOf(actor, context);
         const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
         const auto stopped = SetActorStop(
             actor, ActorStopContext{.runtime = context.world.Runtime(),
@@ -507,7 +506,7 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
             return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
         // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
-        const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
+        const Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
         const auto end = FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
@@ -542,7 +541,7 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
     constexpr std::uint16_t TraderModel = 0x1f5;
     if (actor.type == TraderModel)
     {
-        const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
+        const Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
         const std::uint8_t action = actor.animation.action;
         if (action >= skeleton.actions.size())
             return Core::Unexpected(std::format("0x4fce9c: la acción {} del 0x1f5 del lugar {} está fuera de su modelo",
@@ -552,7 +551,7 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
         {
             constexpr int OddsOfTheOtherAction = 32;
             const std::uint8_t next = context.random.Next() % OddsOfTheOtherAction == 0 ? 1 : 0;
-            Render::Models::SetAction(actor.animation, skeleton, next);
+            Models::SetAction(actor.animation, skeleton, next);
         }
     }
     return {};
@@ -588,7 +587,7 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
 // con 0x40b240, 0x40b2f0 y 0x412890), con los cuatro rand() del último cierre.
 std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return value;
 }
 
@@ -719,7 +718,7 @@ glm::vec3 SharedBonePoint(const ActorState& actor, std::size_t bone, const glm::
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
-const Render::Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
+const Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
 {
     if (actor.type != Data::Models::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
     {
@@ -1038,7 +1037,7 @@ Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, cons
 }
 
 // 506e57..506f5a: la pose sin publicar usa la matriz0 de Q-C318, no equivale a puntero120NULL.
-Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, const Models::Skeleton& skeleton,
                                                          const CharacterStepContext& context)
 {
     constexpr std::size_t PastBone = 40, BoneStep = 2;
@@ -1062,7 +1061,7 @@ Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, cons
 }
 
 // 506f62..506fc1: diez selecciones de hueso y partículas5d9/0 ya portadas; count0 conserva rand antes del IDIV.
-Core::Expected<void, std::string> EmitRandomBoneFires(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitRandomBoneFires(ActorState& actor, const Models::Skeleton& skeleton,
                                                       const CharacterStepContext& context)
 {
     constexpr int Count = 10;
@@ -1164,7 +1163,7 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
 {
     // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15 y sale.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
-    const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
+    const Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
         return Core::Unexpected(
@@ -1380,13 +1379,11 @@ LogicalCell ReadLogicalCell(ActorState& actor, Crt::CrtRandom& random)
 {
     LogicalCell cell;
     {
-        const Render::Models::LogicalAccess access(actor.cellYAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(actor.cellYAccesses, random, Models::SmallLogicalCloseRandoms);
         cell.y = actor.cellY;
     }
     {
-        const Render::Models::LogicalAccess access(actor.cellXAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(actor.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
         cell.x = actor.cellX;
     }
     return cell;

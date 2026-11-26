@@ -53,7 +53,7 @@ constexpr std::uint16_t SmallModel = 0x20;
 constexpr std::uint16_t TransformedModel = 0x154;
 constexpr std::uint32_t SittingFlag = 0x200000;
 
-class ReplyModels final : public Client::Render::Models::IModelLibrary
+class ReplyModels final : public Client::Models::IModelLibrary
 {
 public:
     ReplyModels()
@@ -65,7 +65,7 @@ public:
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
             return &player;
@@ -77,9 +77,9 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::Skeleton small;
-    Client::Render::Models::Skeleton transformed;
+    Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton small;
+    Client::Models::Skeleton transformed;
 };
 
 // 0x4cb871..0x4cbcc8: la animación de cada acción para las otras clases y para el elfo.
@@ -161,7 +161,7 @@ protected:
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_input;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     ReplyModels m_models;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};

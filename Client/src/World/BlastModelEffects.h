@@ -13,10 +13,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 // Los efectos con modelo del lote "switch" de la CL11 (0x518cf0 y 0x5208a0): las piedras y las chispas de las skills
 // de los magos y de los monstruos que no tienen su propio archivo. Cada alta y cada paso citan su dirección; lo que
@@ -66,7 +66,7 @@ CreateBlastModelEffect(ModelEffects& effects, const ModelEffectArguments& argume
 // de los BMD de [0xad, 0x151), 0x51fc80 con los ángulos o, el 0x10f, sin ellos; el 0xf3 y el 0xf4 sólo pierden la
 // vida; los 0xe7..0xe9 y el 0x113 sin dueño salen sin cola). Deja `before` en previousPosition.
 [[nodiscard]] Core::Expected<void, std::string>
-StepBlastModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
-                     float worldClock, Crt::CrtRandom& random, int lightDraw, KalimaWorld* kalima,
+StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles& particles, float worldClock,
+                     Crt::CrtRandom& random, int lightDraw, KalimaWorld* kalima,
                      const ModelEffectStepServices& services);
 } // namespace Client::World

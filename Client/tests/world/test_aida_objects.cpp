@@ -119,7 +119,7 @@ TEST(AidaObjectsTest, TheEmittersHideTheirMeshButNotTheButterflyPost)
     auto post = Object(0x3c);
     CrtRandom random(7);
     ASSERT_TRUE(StepWorldObjectChecked(post, SelectionMap, nullptr, random, step.globals).HasValue());
-    EXPECT_EQ(post.state.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+    EXPECT_EQ(post.state.hiddenMesh, Client::Models::NoHiddenMesh);
 }
 
 // 0x4251fb: el 0x246 sale con cada objeto, también de un tipo sin caso; sin emisor, corta después de los

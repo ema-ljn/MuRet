@@ -43,7 +43,7 @@ void PublishPickingBox(ActorState& actor, const glm::vec3& position, const glm::
     actor.field168 = box.axisZ.z;
 }
 
-Render::Models::Box AxisAlignedBoxOf(const ActorPickingBox& box)
+Models::Box AxisAlignedBoxOf(const ActorPickingBox& box)
 {
     glm::vec3 min = box.origin;
     glm::vec3 max = box.origin;

@@ -567,13 +567,13 @@ TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
     EXPECT_EQ(object.field8a, 1);
     EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
 
-    object.state.hiddenMesh = Client::Render::Models::NoHiddenMesh;
+    object.state.hiddenMesh = Client::Models::NoHiddenMesh;
     for (std::int32_t expected = 8; expected >= 4; --expected)
     {
         ASSERT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(object, pass).HasValue());
         EXPECT_EQ(object.field60, expected);
         EXPECT_EQ(object.field8a, 1);
-        object.state.hiddenMesh = Client::Render::Models::NoHiddenMesh;
+        object.state.hiddenMesh = Client::Models::NoHiddenMesh;
     }
     ASSERT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(object, pass).HasValue());
     EXPECT_EQ(object.field60, 4);

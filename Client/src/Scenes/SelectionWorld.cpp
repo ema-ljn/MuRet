@@ -83,7 +83,7 @@ const Data::Models::Model* SelectionTextureLibrary::Find(std::uint16_t model) co
     return m_world.Find(model);
 }
 
-const Render::Models::Skeleton* SelectionTextureLibrary::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* SelectionTextureLibrary::SkeletonOf(std::uint16_t model) const
 {
     return m_world.SkeletonOf(model);
 }
@@ -93,7 +93,7 @@ std::span<const Render::TextureSlot> SelectionTextureLibrary::MeshTextures(std::
     return m_world.MeshTextures(model);
 }
 
-std::optional<TextureMetadata> SelectionTextureLibrary::TextureMetadataOf(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> SelectionTextureLibrary::TextureMetadataOf(std::uint32_t selector) const
 {
     if (auto scene = m_scene.MetadataOf(selector))
         return scene;
@@ -119,7 +119,7 @@ std::optional<glm::vec2> SelectionTextureLibrary::TextureSize(Render::TextureSlo
 struct SelectionWorld::Projection
 {
     World::TerrainLighting lighting{};
-    Render::Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
+    Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     World::Particles particles{};
     World::ModelEffects effects{};
     std::vector<World::WorldObject> objects{};
@@ -136,8 +136,8 @@ SelectionWorld::SelectionWorld(Render::ITextureStore& store, Core::Log& log)
 SelectionWorld::~SelectionWorld() = default;
 
 Core::Expected<void, std::string> SelectionWorld::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
-                                                       const Render::Models::ModelTextureSlots* gameSlots,
-                                                       const Render::Models::IModelLibrary* globalModels)
+                                                       const Models::ModelTextureSlots* gameSlots,
+                                                       const Models::IModelLibrary* globalModels)
 {
     if (m_tiles.LoadedMap() != map)
     {
@@ -233,7 +233,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
     return {};
 }
 
-Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world, Render::Models::ClothWorld& cloth,
+Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world, Models::ClothWorld& cloth,
                                                               float worldClock,
                                                               const std::function<double(float, float)>& height,
                                                               std::uint32_t systemTime)
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
     return {};
 }
 
-void SelectionWorld::BeginFrame(WorldState& world, Render::Models::ClothWorld& cloth, int frames)
+void SelectionWorld::BeginFrame(WorldState& world, Models::ClothWorld& cloth, int frames)
 {
     m_world = &world;
     m_cloth = &cloth;
@@ -327,7 +327,7 @@ Crt::CrtRandom& SelectionWorld::FrameRandom()
     return m_projecting ? m_projection->cloth.random : m_cloth->random;
 }
 
-Render::Models::ClothWorld& SelectionWorld::FrameCloth()
+Models::ClothWorld& SelectionWorld::FrameCloth()
 {
     return m_projecting ? m_projection->cloth : *m_cloth;
 }
@@ -466,7 +466,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(WorldState
     resources.onPose = [&](const DrawnObject& object) { return PublishFaunaPose(poseCarry, m_models, object, true); };
     resources.onUntranslatedPose = [&](const DrawnObject& object)
     { return PublishFaunaPose(poseCarry, m_models, object, false); };
-    resources.posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry.meshes); };
+    resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry.meshes); };
     resources.sprites = &FrameSprites();
     resources.dynamicLighting = &FrameLighting();
     resources.random = &FrameRandom();

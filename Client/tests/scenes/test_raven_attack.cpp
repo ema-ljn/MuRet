@@ -25,10 +25,10 @@ using Client::Scenes::DarkSpiritTargets;
 
 constexpr std::uint8_t Lorencia = 0;
 
-Client::Render::Models::Skeleton RavenSkeleton()
+Client::Models::Skeleton RavenSkeleton()
 {
-    Client::Render::Models::Skeleton skeleton;
-    skeleton.actions.assign(4, Client::Render::Models::ActionInfo{.repeats = true, .keyCount = 4});
+    Client::Models::Skeleton skeleton;
+    skeleton.actions.assign(4, Client::Models::ActionInfo{.repeats = true, .keyCount = 4});
     return skeleton;
 }
 
@@ -46,7 +46,7 @@ struct Raven
 
     DarkSpirit spirit;
     DarkSpiritOwner owner;
-    Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    Client::Models::Skeleton skeleton = RavenSkeleton();
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     CrtRandom random;
 };

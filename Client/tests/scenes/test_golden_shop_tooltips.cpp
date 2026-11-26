@@ -678,7 +678,7 @@ protected:
     Client::Scenes::SelectionState m_selection{m_world};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
-    Client::Render::Models::ClothWorld m_cloth{.random = CrtRandom(0x1357)};
+    Client::Models::ClothWorld m_cloth{.random = CrtRandom(0x1357)};
     Client::Scenes::SingleModelLibrary m_models;
     std::optional<Client::Data::Tables::ItemTable> m_items;
     std::optional<Client::Data::Text::TextTable> m_texts;

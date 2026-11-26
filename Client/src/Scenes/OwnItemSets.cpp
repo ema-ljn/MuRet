@@ -448,8 +448,7 @@ std::uint16_t* CopyOf(OwnStatCopies& copies, std::uint8_t kind)
 Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, const World::ItemState& item,
                                                        std::size_t slot, const OwnStatsContext& context)
 {
-    const Render::Models::LogicalAccess access(context.ownRecordAccesses, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
     // 0x40e038..0x40e075: la contribución de valor 0 es nula cualquiera sea el selector.
     // El acceso lógico queda alrededor, con su cierre y RNG nativos.
     if (item.durability == 0 || (item.id == EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
@@ -496,8 +495,7 @@ Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece
         {
             continue;
         }
-        const Render::Models::LogicalAccess access(context.ownRecordAccesses, context.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
         const World::ItemState& item = own.equipment[slot];
         if ((requirements != nullptr && !MeetsRequirements(item, *requirements)) ||
             RepeatsItsPair(slot, item, previous))
@@ -520,8 +518,7 @@ Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece
 // 0x40e3b3..0x40e494: abre el registro, copia sus cuatro stats y lo cierra.
 OwnStatCopies ReadStatCopies(const OwnCharacterRecord& own, const OwnStatsContext& context)
 {
-    const Render::Models::LogicalAccess access(context.ownRecordAccesses, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
     return {.strength = own.strength, .agility = own.agility, .vitality = own.vitality, .energy = own.energy};
 }
 } // namespace

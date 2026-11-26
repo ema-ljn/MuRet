@@ -31,7 +31,7 @@ inline constexpr std::uint16_t NoItemModel = 0xffff;
 // el frame y +0x11c la key anterior), que 0x414470 avanza con 0x4ec200; el lugar lo vuelve a calcular cada vez.
 struct GameMasterLayer
 {
-    Render::Models::AnimationState animation;
+    Models::AnimationState animation;
     // +0x178 de la capa (el +0x174 de su objeto): 0x414370 lo pone en 1 y solo 0x5ffdf0 lo baja, en Chaos Castle
     // con +0x1a1 del héroe.
     float alpha = 1.0f;
@@ -51,7 +51,7 @@ struct ActorItemPart
     std::uint8_t bone = 0;
     // +6 la acción, +7 la anterior, +8 el frame y +0xc la key anterior de lo que cuelga, que 0x509340
     // avanza con 0x4ec200 en cada frame. Nadie los pone a 0 al construir: quedan los del uso anterior.
-    Render::Models::AnimationState animation{};
+    Models::AnimationState animation{};
     // +0x10: lo que avanza por frame, que 0x50ba30 escribe antes de cada 0x509340.
     float speed = 0.0f;
 };
@@ -140,7 +140,7 @@ struct ActorState
     std::uint8_t byte8 = 0;
     // La acción en +0x111, la anterior en +0x112, el frame en +0x114 y la key anterior en +0x118: lo que
     // pone 0x4ea030.
-    Render::Models::AnimationState animation{};
+    Models::AnimationState animation{};
     std::uint8_t characterClass = 0;                            // +0x1d4
     std::uint8_t skin = 0;                                      // +0x1d5
     std::uint16_t level = 0;                                    // +0x1d6, nivel de la lista o del F3 03
@@ -343,7 +343,7 @@ struct ActorState
     // targetX/Y (+0x39a/b); 0x511290 inicializa las dos parejas con el mismo valor.
     std::uint8_t cellX = 0;
     std::uint8_t cellY = 0;
-    // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Render::Models::LogicalAccess).
+    // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Models::LogicalAccess).
     std::uint8_t cellXAccesses = 0;
     std::uint8_t cellYAccesses = 0;
     // Los cuatro bytes de +0x41c y +0x420 como los deja el último acceso de 0x511290: si su cierre dejó la cuenta en

@@ -54,9 +54,9 @@ Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorS
     const bool isPlayer = actor.type == Data::Models::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
         return Core::Unexpected(std::string("0x4f2250: falta Player.bmd en la transición"));
-    static const Render::Models::Skeleton EmptySkeleton;
-    const Render::Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
-    const Render::Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, actor.type);
+    static const Models::Skeleton EmptySkeleton;
+    const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
+    const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, actor.type);
     return ActorStopContext{.runtime = resources.world.Runtime(),
                             .scene = SceneId::Game,
                             .playerSkeleton = *playerSkeleton,
@@ -185,9 +185,9 @@ Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, cons
         return Core::Unexpected(stop.Error());
     constexpr std::uint8_t TeleportAction = 0x93;
     if (actor.type == Data::Models::PlayerSkeletonModel)
-        Render::Models::SetAction(actor.animation, stop.Value().playerSkeleton, TeleportAction);
+        Models::SetAction(actor.animation, stop.Value().playerSkeleton, TeleportAction);
     else if (stop.Value().actorSkeleton != nullptr)
-        Render::Models::SetAction(actor.animation, *stop.Value().actorSkeleton, TeleportAction);
+        Models::SetAction(actor.animation, *stop.Value().actorSkeleton, TeleportAction);
     actor.animation.frame = 5.0f;
     actor.byte80 = 3;
     actor.alphaTarget = 1.0f;

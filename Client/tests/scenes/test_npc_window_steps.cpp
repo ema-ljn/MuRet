@@ -69,7 +69,7 @@ using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 using Client::World::ItemState;
 
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // Los del paso con el inventario abierto y nada bajo el mouse (test_game_inventory_step.cpp): los del inventario y
 // sus hermanas, antes de 0x5d8d50, y los de la barra de skills, la cadena de Q, W y E y la cola IsOpen(0), después.
 constexpr int InventoryWindowRandoms = 8 + 13 * Own;

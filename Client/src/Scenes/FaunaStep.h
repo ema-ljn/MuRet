@@ -13,12 +13,12 @@
 #include <string>
 #include <system_error>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 struct WorldTerrain;
@@ -44,13 +44,13 @@ struct FaunaStepContext
     const std::uint8_t& heroFlag;
     const World::WorldTerrain& terrain;
     World::TerrainLighting& lighting;
-    const Render::Models::IModelLibrary& models;
-    Render::Models::ClothWorld& cloth;
+    const Models::IModelLibrary& models;
+    Models::ClothWorld& cloth;
     float worldTime;
     FaunaStepEffects effects{};
     // Sólo SetAction con tipo firmado -1: BMD construido previo a la base si su desplazamiento>0.
     // La ausencia mantiene la frontera de memoria; el binding no fabrica esa precondición.
-    const Render::Models::Skeleton* prefixModel = nullptr;
+    const Models::Skeleton* prefixModel = nullptr;
     float fixedHeight = 1200;
     WorldRuntime* runtime = nullptr;
 };

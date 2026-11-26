@@ -110,14 +110,14 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
 }
 
 // La biblioteca del mapa, detrás de FaunaResources: Player.bmd, también en el modelo del monstruo de Lorencia.
-class MonsterModels final : public Client::Render::Models::IModelLibrary
+class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == PlayerSkeletonModel ? &skeleton : nullptr;
     }
@@ -126,7 +126,7 @@ public:
         return {};
     }
 
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
 // El mundo del juego, en el heap: WorldState pesa unos 350 KB.
@@ -167,7 +167,7 @@ struct Game
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     MonsterModels models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Data::Tables::ItemSetTables sets =

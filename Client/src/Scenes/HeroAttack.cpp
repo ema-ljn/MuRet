@@ -156,8 +156,8 @@ float AttackRange(const ActorState& hero, const HeroArrivalContext& context)
     std::int32_t right = 0;
     std::int32_t left = 0;
     {
-        const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.combat.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.combat.random,
+                                        Models::OwnRecordCloseRandoms);
         left = std::bit_cast<std::int16_t>(world.OwnCharacter().equipment[1].id);
         right = std::bit_cast<std::int16_t>(world.OwnCharacter().equipment[0].id);
     }
@@ -175,7 +175,7 @@ float AttackRange(const ActorState& hero, const HeroArrivalContext& context)
 
 std::uint8_t ReadTheCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
@@ -334,7 +334,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
     // registro se abre y se cierra igual.
     std::uint32_t skill = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         skill = (request.active & 0xffu) != 0 ? OwnSkillByte(world.OwnCharacter(), request.slot) : request.slot;
     }
     if (skill > LastSkill)

@@ -88,13 +88,13 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-class MonsterModels final : public Client::Render::Models::IModelLibrary
+class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
     MonsterModels()
     {
         using namespace Client::Math;
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
@@ -147,7 +147,7 @@ public:
     {
         return model == 0x20a ? nullptr : &m_model;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &m_skeleton;
     }
@@ -157,7 +157,7 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     std::vector<Client::Render::TextureSlot> m_texture{Client::Render::TextureSlot{0x300}};
 };
@@ -244,7 +244,7 @@ protected:
     MonsterModels m_models;
     std::unique_ptr<Client::Scenes::WorldState> m_world;
     std::unique_ptr<Client::World::TerrainLighting> m_light;
-    Client::Render::Models::ClothWorld m_clothWorld;
+    Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
@@ -1015,7 +1015,7 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
         std::vector<Client::Scenes::CharacterCloth> cloths(4);
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
-        Client::Render::Models::ClothWorld expectedWorld = m_clothWorld;
+        Client::Models::ClothWorld expectedWorld = m_clothWorld;
 
         const auto result = Draw(pass);
 
@@ -1035,7 +1035,7 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
         expectedBatch.Begin(Client::Render::Pass3D{});
         Client::Scenes::ClothWearer wearer;
         wearer.monster = std::uint16_t{0x37};
-        const Client::Render::Models::ClothBody body{
+        const Client::Models::ClothBody body{
             .bones = monster.bodyPose, .angles = monster.angles, .scale = monster.scale, .position = monster.position};
         expected.Frame(expectedBatch, wearer, body, expectedWorld, static_cast<std::uint8_t>(value.map), 0.0f, true);
         ASSERT_EQ(expected.Cloths().size(), 1u);
@@ -1081,7 +1081,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         std::vector<Client::Scenes::CharacterCloth> cloths(4);
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
-        Client::Render::Models::ClothWorld expectedWorld = m_clothWorld;
+        Client::Models::ClothWorld expectedWorld = m_clothWorld;
 
         const auto result = Draw(pass);
 
@@ -1127,7 +1127,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         Client::Scenes::CharacterCloth expected;
         Client::Render::ModelBatch expectedBatch;
         expectedBatch.Begin(Client::Render::Pass3D{});
-        const Client::Render::Models::ClothBody body{
+        const Client::Models::ClothBody body{
             .bones = phoenix.bodyPose, .angles = phoenix.angles, .scale = phoenix.scale, .position = phoenix.position};
         expected.FrameTheMonsterCloth(expectedBatch, 0x4d, body, expectedWorld, static_cast<std::uint8_t>(map), 0.0f);
         ASSERT_EQ(expected.Cloths().size(), 1u);
@@ -1172,7 +1172,7 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
             std::vector<Client::Scenes::CharacterCloth> cloths(6);
             GameCharacterPass pass = Pass();
             pass.cloths = cloths;
-            Client::Render::Models::ClothWorld expectedWorld = m_clothWorld;
+            Client::Models::ClothWorld expectedWorld = m_clothWorld;
 
             const auto result = Draw(pass);
 
@@ -1189,7 +1189,7 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
             Client::Scenes::CharacterCloth expected;
             Client::Render::ModelBatch expectedBatch;
             expectedBatch.Begin(Client::Render::Pass3D{});
-            const Client::Render::Models::ClothBody body{
+            const Client::Models::ClothBody body{
                 .bones = crust.bodyPose, .angles = crust.angles, .scale = crust.scale, .position = crust.position};
             expected.FrameTheMonsterCloth(expectedBatch, value.monster, body, expectedWorld,
                                           static_cast<std::uint8_t>(map), 0.0f);
@@ -1336,8 +1336,8 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             // El cuerpo, la sombra (sin ella en el 11, como Spider) y los pases del arma (0x60b3d0).
             ASSERT_GE(vertices.size(), 9u);
             // El hueso 0 de lo que cuelga es la raíz: el hueso 1 del cuerpo por el lugar, a la escala del modelo.
-            const Client::Math::BoneTransform root = Client::Render::Models::PlacedRoot(
-                statue.bodyPose[1], Client::Render::Models::HangingPlacement{value.angles, value.translation});
+            const Client::Math::BoneTransform root = Client::Models::PlacedRoot(
+                statue.bodyPose[1], Client::Models::HangingPlacement{value.angles, value.translation});
             const glm::vec3 expected = root[3] * value.scale + statue.position;
             EXPECT_NEAR(vertices[6].position.x, expected.x, 1e-3f);
             EXPECT_NEAR(vertices[6].position.y, expected.y, 1e-3f);
@@ -1834,10 +1834,10 @@ TEST_F(MonsterDrawingTest, InChaosCastleTheHeroFlagFadesTheStoredAlpha)
 
 // Las partes de los NPC del alta (0x5141e0): la biblioteca del monstruo con un triángulo propio por cada modelo de
 // parte, corrido en x por el número del modelo menos 0x1d0, para ver el orden; `missing` no está cargado.
-class PartModels final : public Client::Render::Models::IModelLibrary
+class PartModels final : public Client::Models::IModelLibrary
 {
 public:
-    explicit PartModels(const Client::Render::Models::IModelLibrary& body) : m_body(body)
+    explicit PartModels(const Client::Models::IModelLibrary& body) : m_body(body)
     {
         for (std::uint16_t model = 0x1da; model <= 0x1f0; ++model)
         {
@@ -1856,7 +1856,7 @@ public:
             return &m_parts[static_cast<std::size_t>(model - 0x1da)];
         return m_body.Find(model);
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return m_body.SkeletonOf(model);
     }
@@ -1868,7 +1868,7 @@ public:
     std::uint16_t missing = 0;
 
 private:
-    const Client::Render::Models::IModelLibrary& m_body;
+    const Client::Models::IModelLibrary& m_body;
     std::vector<Client::Data::Models::Model> m_parts;
 };
 

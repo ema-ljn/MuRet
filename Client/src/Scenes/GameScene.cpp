@@ -209,10 +209,10 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 }
 } // namespace
 
-GameScene::GameScene(const SceneContext& context, App::ServerSession* session,
-                     const Render::Models::IModelLibrary* models, const Data::Tables::ItemTable* items,
-                     const Render::Models::ModelTextureSlots* gameSlots, const Data::Tables::GateTable* gates,
-                     const Data::Tables::SkillTable* skills, const Data::Text::TextTable* texts, GameChatTables chat)
+GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const Models::IModelLibrary* models,
+                     const Data::Tables::ItemTable* items, const Models::ModelTextureSlots* gameSlots,
+                     const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills,
+                     const Data::Text::TextTable* texts, GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
       m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
       m_sandTextures(context.textures, SandTextureSet), m_guildMarks(context.textures), m_tiles(context.textures)
@@ -295,7 +295,7 @@ void GameScene::Step(const Input::InputState& input)
     }
     if (m_context.cloth != nullptr)
     {
-        Render::Models::StepTheClothWorld(*m_context.cloth);
+        Models::StepTheClothWorld(*m_context.cloth);
     }
     // Lo que las ventanas del paso dejaron para las salas del chat con un amigo (Enter en un chat, los chats que se
     // soltaron, también los de 0x48ea50): el original lo manda en el momento, por la conexión de cada sala.
@@ -565,8 +565,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                 [&world, this]()
             {
                 auto& actor = world.Actors()[world.Runtime().hero];
-                const Render::Models::LogicalAccess access(actor.cellYAccesses, m_context.cloth->random,
-                                                           Render::Models::SmallLogicalCloseRandoms, actor.cellYLeft);
+                const Models::LogicalAccess access(actor.cellYAccesses, m_context.cloth->random,
+                                                   Models::SmallLogicalCloseRandoms, actor.cellYLeft);
                 return static_cast<std::int32_t>(actor.cellY);
             },
             .emit = [&world, this](const World::ModelEffectArguments& args) -> Core::Expected<void, std::string>
@@ -718,8 +718,8 @@ void GameScene::PrepareFrame()
     std::int32_t counter = 0;
     {
         // 0x6371b7..0x637229: lo lee con un acceso que se cierra (0x40b800) aunque después no dibuje.
-        const Render::Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
+                                           Models::SmallLogicalCloseRandoms);
         counter = runtime.warpCounter;
     }
     // 0x63722e: cmp esi, 0x1e y jle, con signo.
@@ -1244,7 +1244,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .pace = OriginalFramePaceOf(m_context.pacing),
                           .onPose =
                               [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
-                                  const Render::Models::ObjectTransform& transform, bool translated)
+                                  const Models::ObjectTransform& transform, bool translated)
                           {
                               const auto published =
                                   PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);

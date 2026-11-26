@@ -140,13 +140,13 @@ std::uint32_t SeedWith(int modulus, int remainder, int second = 0, int secondRem
 using Client::Math::F32;
 
 // Una biblioteca sin modelos: el dibujo de 0x6046a0 solo cuenta y no dibuja.
-struct NoModels final : Client::Render::Models::IModelLibrary
+struct NoModels final : Client::Models::IModelLibrary
 {
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -156,7 +156,7 @@ struct NoModels final : Client::Render::Models::IModelLibrary
     }
 };
 // Dos mallas: el caso51 sólo debe repetir la0. Cada consulta durante un pase observa model+88.
-struct AltarModels final : Client::Render::Models::IModelLibrary
+struct AltarModels final : Client::Models::IModelLibrary
 {
     explicit AltarModels(Client::World::ObjectModelStepState& state) : shared(state)
     {
@@ -167,10 +167,10 @@ struct AltarModels final : Client::Render::Models::IModelLibrary
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "altar.jpg";
         model.meshes = {mesh, mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
@@ -179,7 +179,7 @@ struct AltarModels final : Client::Render::Models::IModelLibrary
             selections.push_back(selected);
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -190,7 +190,7 @@ struct AltarModels final : Client::Render::Models::IModelLibrary
     Client::World::ObjectModelStepState& shared;
     mutable std::vector<std::int8_t> selections;
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 2> textures{Client::Render::TextureSlot{0x41c},
                                                         Client::Render::TextureSlot{0x41d}};
 };

@@ -53,7 +53,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
 }
 std::int32_t ReadCell(ActorState& actor, Crt::CrtRandom& random, bool x, std::uint8_t& depth)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return x ? actor.cellX : actor.cellY;
 }
 std::uint32_t SideOf(std::uint32_t flags, std::int32_t offsetY)

@@ -16,10 +16,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -50,8 +50,7 @@ struct SiegeStoneStepServices
     std::function<void(std::int32_t, const glm::vec3&)> sound{};
 };
 // 5208a0, 527c62..5290: vuelo/contacto nativo y epílogo, sin51fc80 genérico.
-[[nodiscard]] Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect,
-                                                               const Render::Models::Skeleton* skeleton,
+[[nodiscard]] Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                                Particles& particles, Crt::CrtRandom& random,
                                                                const SiegeStoneStepServices& services);
 

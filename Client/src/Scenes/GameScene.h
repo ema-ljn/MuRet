@@ -57,7 +57,7 @@ struct ObjectModelStepState;
 struct WorldObject;
 } // namespace Client::World
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 }
@@ -100,9 +100,8 @@ public:
     // slots de la carga (GameModels::TextureSlots), que siguen los modelos especiales del mapa (WorldModels);
     // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja. `chat` es lo
     // que lee la entrada del chat; vacío, sin filtro y sin los nombres de los conjuntos.
-    GameScene(const SceneContext& context, App::ServerSession* session,
-              const Render::Models::IModelLibrary* models = nullptr, const Data::Tables::ItemTable* items = nullptr,
-              const Render::Models::ModelTextureSlots* gameSlots = nullptr,
+    GameScene(const SceneContext& context, App::ServerSession* session, const Models::IModelLibrary* models = nullptr,
+              const Data::Tables::ItemTable* items = nullptr, const Models::ModelTextureSlots* gameSlots = nullptr,
               const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr,
               const Data::Text::TextTable* texts = nullptr, GameChatTables chat = {});
 
@@ -211,7 +210,7 @@ private:
     void ObserveMapLoad();
     [[nodiscard]] GameDrawTailState& FrameTail();
     [[nodiscard]] World::TerrainLighting& FrameLighting();
-    [[nodiscard]] Render::Models::ClothWorld& FrameCloth();
+    [[nodiscard]] Models::ClothWorld& FrameCloth();
     [[nodiscard]] World::ObjectModelStepState& FrameModelState();
     [[nodiscard]] GameItemRenderState& FrameItemRender();
     [[nodiscard]] World::ModelEffects& FrameEffects();
@@ -226,9 +225,9 @@ private:
 
     SceneContext m_context;
     App::ServerSession* m_session;
-    const Render::Models::IModelLibrary* m_models;
+    const Models::IModelLibrary* m_models;
     const Data::Tables::ItemTable* m_items;
-    const Render::Models::ModelTextureSlots* m_gameSlots;
+    const Models::ModelTextureSlots* m_gameSlots;
     const Data::Tables::GateTable* m_gates;
     const Data::Tables::SkillTable* m_skills;
     const Data::Text::TextTable* m_texts;

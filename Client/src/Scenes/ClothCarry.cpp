@@ -28,14 +28,13 @@ glm::vec3 OriginOf(const Math::BoneTransform& bone, float scale, const glm::vec3
 }
 } // namespace
 
-SimulatedClothBody SimulatedBodyOf(const Render::Models::ClothBody& body)
+SimulatedClothBody SimulatedBodyOf(const Models::ClothBody& body)
 {
     return SimulatedClothBody{
         .bones = {body.bones.begin(), body.bones.end()}, .scale = body.scale, .position = body.position};
 }
 
-std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then, const Render::Models::ClothBody& now,
-                                       std::int32_t bone)
+std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then, const Models::ClothBody& now, std::int32_t bone)
 {
     const auto index = static_cast<std::size_t>(bone);
     if (bone < 0 || index >= then.bones.size() || index >= now.bones.size() || then.scale == 0.0f)

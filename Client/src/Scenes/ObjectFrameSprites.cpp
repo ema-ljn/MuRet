@@ -188,7 +188,7 @@ Core::Expected<void, std::string> DeviasBeams(int commonRandom, const GameObject
 
 // 0x4eb860 con el frame de 0x5ffdf0 (+0x114): el short de ftol, en 0 si es negativo o no es una key de la
 // acción del modelo (+0xa0, que 0x5ffdf0 copió del objeto y 0x4eb860 deja en 0 si el modelo no la tiene).
-std::int16_t PosedKey(const Render::Models::Skeleton& skeleton, const Render::Models::AnimationState& animation)
+std::int16_t PosedKey(const Models::Skeleton& skeleton, const Models::AnimationState& animation)
 {
     const std::size_t modelAction = animation.action < skeleton.actions.size() ? animation.action : 0;
     const auto key = static_cast<std::int16_t>(Math::FtolLow(static_cast<double>(animation.frame)));
@@ -199,7 +199,7 @@ std::int16_t PosedKey(const Render::Models::Skeleton& skeleton, const Render::Mo
 
 // 0x6031f7..0x603242.
 Core::Expected<void, std::string> SwitchDeviasAction(World::WorldObject& object, const GameObjectPass& pass,
-                                                     const Render::Models::Skeleton* skeleton, bool posed)
+                                                     const Models::Skeleton* skeleton, bool posed)
 {
     if (skeleton == nullptr || skeleton->actions.empty())
     {
@@ -223,14 +223,14 @@ Core::Expected<void, std::string> SwitchDeviasAction(World::WorldObject& object,
     if (pass.random == nullptr)
         return Core::Unexpected(std::string("0x60321a: el 0x67 saca rand(), y el pase no lo tiene"));
     const std::uint8_t next = pass.random->Next() % SwitchOdds == 0 ? SwitchedAction : RestingAction;
-    Render::Models::SetAction(object.animation, *skeleton, next);
+    Models::SetAction(object.animation, *skeleton, next);
     return {};
 }
 } // namespace
 
 Core::Expected<void, std::string> StepDeviasObjectFrame(World::WorldObject& object, int commonRandom,
-                                                        const GameObjectPass& pass,
-                                                        const Render::Models::Skeleton* skeleton, bool posed)
+                                                        const GameObjectPass& pass, const Models::Skeleton* skeleton,
+                                                        bool posed)
 {
     if (object.type == DeviasBeamObject)
         return DeviasBeams(commonRandom, pass);

@@ -1377,14 +1377,14 @@ constexpr int SwingSampleCount = 10;
 
 struct Swing
 {
-    const Render::Models::Skeleton* skeleton = nullptr;
+    const Models::Skeleton* skeleton = nullptr;
     float first = 0.0f;
     float step = 0.0f;
 };
 
 Core::Expected<Swing, std::string> SwingOf(WorldState& world, const ActorState& actor, std::uint8_t speedAction)
 {
-    const Render::Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
     if (skeleton == nullptr || skeleton->actions.size() <= speedAction)
     {
         return Core::Unexpected(std::format("0x432bd0: el modelo {:#x} no tiene la acción {} cuya velocidad lee la "

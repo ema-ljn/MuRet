@@ -218,7 +218,7 @@ protected:
 
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
     Client::Input::InputState m_input;

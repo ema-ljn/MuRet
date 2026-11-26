@@ -110,7 +110,7 @@ TEST(WorldStateTest, PreparingTheChosenCopiesItIntoTheOwnRecord)
         std::uint8_t depth;
         int draws;
     };
-    for (const Case& probe : {Case{0, Client::Render::Models::OwnRecordCloseRandoms}, Case{1, 0}})
+    for (const Case& probe : {Case{0, Client::Models::OwnRecordCloseRandoms}, Case{1, 0}})
     {
         SCOPED_TRACE(static_cast<int>(probe.depth));
         WorldState world;

@@ -122,7 +122,7 @@ protected:
     std::uint8_t m_accesses = 0;
     ActorState m_hero;
     Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
     // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
     Client::Data::Tables::ItemSetTables m_sets =
@@ -235,7 +235,7 @@ TEST_F(ActorEquipmentTest, WithByte3e3TheClothesStayAndTheRecordCloses)
     EXPECT_EQ(actor.scale, 7.0f);
     EXPECT_EQ(actor.run, 0);
     EXPECT_EQ(m_accesses, 0);
-    EXPECT_EQ(m_random.State(), AfterDraws(seed, 1 + Client::Render::Models::OwnRecordCloseRandoms).State());
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, 1 + Client::Models::OwnRecordCloseRandoms).State());
 
     m_random = CrtRandom(seed);
     m_accesses = 1;
@@ -348,7 +348,7 @@ TEST_F(ActorEquipmentTest, TheStatsRunWholeBeforeTheClose)
     EXPECT_EQ(m_own.wordef8, 0);
     EXPECT_EQ(actor.head, NoItemModel);
     EXPECT_EQ(m_accesses, 0);
-    EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Render::Models::OwnRecordCloseRandoms).State());
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Models::OwnRecordCloseRandoms).State());
 }
 
 // 0x512eda..0x512eec: 0x505820 con el héroe ya vestido y con el registro abierto por 0x512a30, así que el
@@ -381,7 +381,7 @@ TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
     ExpectScan(13, 1);
     EXPECT_EQ(m_own.word62, 80 + 16);
     EXPECT_EQ(m_accesses, 0);
-    EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Render::Models::OwnRecordCloseRandoms).State());
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Models::OwnRecordCloseRandoms).State());
 
     // Con la 8 5, [0x743a17c] queda en 0 y +0x62 no suma.
     m_random = CrtRandom(seed);
@@ -390,7 +390,7 @@ TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
     ASSERT_TRUE(Apply(hero).HasValue());
     ExpectScan(13, 0);
     EXPECT_EQ(m_own.word62, 80);
-    EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Render::Models::OwnRecordCloseRandoms).State());
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Models::OwnRecordCloseRandoms).State());
 
     // Otra clase mira el casco: el más chico es 9, que no tiene factor, y [0x743a17c] queda en 1.
     hero = DressedInUntouched(1);

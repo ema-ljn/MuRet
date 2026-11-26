@@ -34,7 +34,7 @@
 
 namespace
 {
-class KalimaModel final : public Client::Render::Models::IModelLibrary
+class KalimaModel final : public Client::Models::IModelLibrary
 {
 public:
     explicit KalimaModel(bool twoMeshes = false)
@@ -48,9 +48,9 @@ public:
         m_model.meshes = {mesh};
         if (twoMeshes)
             m_model.meshes.push_back(mesh);
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.parent = -1;
-        Client::Render::Models::BoneKey key;
+        Client::Models::BoneKey key;
         key.rotation = Client::Math::AngleQuaternion({0, 0, 0});
         bone.actions = {{key}};
         m_skeleton.bones = {bone};
@@ -60,7 +60,7 @@ public:
     {
         return &m_model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &m_skeleton;
     }
@@ -80,7 +80,7 @@ public:
 
 private:
     Client::Data::Models::Model m_model;
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     std::array<Client::Render::TextureSlot, 2> m_textures{Client::Render::TextureSlot{100},
                                                           Client::Render::TextureSlot{101}};
 };

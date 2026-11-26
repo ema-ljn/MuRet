@@ -10,7 +10,7 @@
 // Cuánto brilla una parte por su nivel, como 0x60b3d0 (Client/docs/research/06-render-escenas-y-ui.md,
 // "El modelo en el binario", Q-C97): el factor del color del pase base y los pases que van después,
 // en orden. *Estático*; el nivel 13 (el base, el 141, el 115 y el 120) está **verificado** en la traza.
-namespace Client::Render::Models
+namespace Client::Models
 {
 // Un pase de brillo: uno con las UV de la normal (ShinePass), o, sin él, el 0x42 de un ítem
 // excelente, que repite la malla con su textura y aditiva.
@@ -45,4 +45,4 @@ inline constexpr std::uint8_t DefaultGlowDetail = 4;
 {
     return level == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>(2 * level + 1);
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

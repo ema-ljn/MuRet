@@ -18,7 +18,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 99;

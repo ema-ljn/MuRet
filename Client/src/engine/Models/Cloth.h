@@ -19,7 +19,7 @@
 // 4"). Cada cuenta sigue el orden de la x87 del original con la precisión en 53 bits: lo que el
 // original guarda en un float se redondea a float acá, y lo que deja en la pila sigue en double. Los
 // tests comparan cada paso, bit a bit, con el código real del main.exe emulado (tests/vectors/cloth).
-namespace Client::Render::Models
+namespace Client::Models
 {
 // Lo que la tela lee de los globales del original, y su rand(): el viento base (0x7245f0), el viento
 // de este paso (0x7245f4..0x7245fc; la z no la escribe nadie y queda en 0) y el contador protegido de
@@ -94,8 +94,8 @@ struct ClothShape
     std::int32_t rows = 2;
     float width = 1.0f;
     float height = 1.0f;
-    TextureSlot front{0};
-    TextureSlot back{0};
+    Render::TextureSlot front{0};
+    Render::TextureSlot back{0};
     std::uint32_t flags = 0;
 };
 
@@ -219,11 +219,11 @@ public:
     {
         return m_flags;
     }
-    [[nodiscard]] TextureSlot Front() const
+    [[nodiscard]] Render::TextureSlot Front() const
     {
         return m_front;
     }
-    [[nodiscard]] TextureSlot Back() const
+    [[nodiscard]] Render::TextureSlot Back() const
     {
         return m_back;
     }
@@ -258,8 +258,8 @@ private:
     [[nodiscard]] bool Constrain(const ClothBody& body);
 
     std::int32_t m_bone = 0;
-    TextureSlot m_front{0};
-    TextureSlot m_back{0};
+    Render::TextureSlot m_front{0};
+    Render::TextureSlot m_back{0};
     std::uint32_t m_flags = 0;
     glm::vec3 m_anchor{};
     float m_width = 1.0f;
@@ -278,4 +278,4 @@ private:
     std::int32_t m_mesh = -1;
     std::vector<std::int16_t> m_vertexBones;
 };
-} // namespace Client::Render::Models
+} // namespace Client::Models

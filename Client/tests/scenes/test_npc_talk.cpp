@@ -188,7 +188,7 @@ public:
     WorldState world;
     CrtRandom random;
     std::optional<CrtRandom> randomAtTheWalk;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
     TypedLetters letters;
     Client::Data::Text::TextTable texts =
@@ -483,7 +483,7 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
         tested->Hero().type = 0x154;
         tested->Hero().animation.action = 2;
         tested->Hero().movement = 1;
-        const CrtRandom expected = Advanced(tested->random, 2 * Client::Render::Models::SmallLogicalCloseRandoms + 1);
+        const CrtRandom expected = Advanced(tested->random, 2 * Client::Models::SmallLogicalCloseRandoms + 1);
         const auto stopped = Client::Scenes::TalkToTheNpc(tested->Hero(), tested->Context());
         ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
         EXPECT_TRUE(tested->events.empty());

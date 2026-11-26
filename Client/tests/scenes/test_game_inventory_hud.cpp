@@ -58,10 +58,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
+using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::OwnRecordCloseRandoms;
-using Client::Render::Models::SmallLogicalCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;
@@ -126,7 +126,7 @@ std::optional<Corners> NthQuadOf(const SpriteBatch& sprites, std::uint16_t slot,
 
 // Los modelos inventados del pase de la UI: un triángulo con el vértice 0 en el origen de su hueso, que cae en la
 // posición del objeto.
-class UiModels final : public Client::Render::Models::IModelLibrary
+class UiModels final : public Client::Models::IModelLibrary
 {
 public:
     UiModels()
@@ -138,16 +138,16 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "plain.jpg";
         model.meshes = {mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -156,7 +156,7 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
 };
 

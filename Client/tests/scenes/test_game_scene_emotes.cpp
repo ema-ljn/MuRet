@@ -74,7 +74,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     // Fauna conserva el backend: store vive más que world, también si un ASSERT termina el test antes.
     Client::Tests::FakeTextureStore store;
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
@@ -94,7 +94,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     ASSERT_EQ(online.session.State(), Client::App::SessionState::EnteringWorld);
     ASSERT_FALSE(world->Runtime().drawingEnabled);
 
-    Client::Render::Models::ModelTextureSlots slots{FaunaFirstTexture};
+    Client::Models::ModelTextureSlots slots{FaunaFirstTexture};
     Client::Scenes::FaunaModelLoadContext load{dataRoot, store, online.log, slots};
     const auto loaded = world->FaunaResources().LoadMonster(Monster32Resource, LorenciaMap, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();

@@ -134,7 +134,7 @@ struct Game
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Data::Tables::ItemSetTables sets =
@@ -571,9 +571,9 @@ TEST_P(CommandsWindowTest, TheTradeCommandAsksTheChosenAndClosesTheWindow)
     EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 0);
     EXPECT_EQ(Window().chosen, -1);
     EXPECT_EQ(Window().target, -1);
-    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(
-                                    Seed, 4 * CellRandoms + Client::Render::Models::OwnRecordCloseRandoms + C3Randoms)
-                                    .State());
+    EXPECT_EQ(
+        m_random.State(),
+        Client::Tests::AfterDraws(Seed, 4 * CellRandoms + Client::Models::OwnRecordCloseRandoms + C3Randoms).State());
 }
 
 // 0x40646a y 0x4064aa: sin el nivel de 0x6c8dc8, el aviso 478; con la tienda personal del otro, el 493 con el 2. Los
@@ -649,14 +649,14 @@ TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 }
 
 // Player.bmd para todos los tipos: la animación del comando 8 (0x4ea030).
-class CommandModels final : public Client::Render::Models::IModelLibrary
+class CommandModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &player;
     }
@@ -664,7 +664,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
 // Los comandos del gremio (del 5 al 8, CL9 hito 8): sus avisos inventados y el cable en claro (el XOR32 en línea).

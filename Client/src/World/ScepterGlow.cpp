@@ -89,7 +89,7 @@ void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, 
 
 void ScepterGlowCarry::Create(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                               const glm::vec3& bodyOrigin, Crt::CrtRandom& random, Core::Duration clock,
-                              Render::Models::OriginalFramePace pace)
+                              Models::OriginalFramePace pace)
 {
     const int frames = m_frames.FramesAt(clock, pace);
     for (int frame = 0; frame < frames; ++frame)

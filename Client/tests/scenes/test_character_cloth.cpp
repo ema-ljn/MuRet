@@ -31,11 +31,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::Cloth;
+using Client::Models::ClothBody;
+using Client::Models::ClothWorld;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
-using Client::Render::Models::Cloth;
-using Client::Render::Models::ClothBody;
-using Client::Render::Models::ClothWorld;
 using Client::Scenes::CharacterCloth;
 using Client::Scenes::ClothWearer;
 using Client::Tests::ClothVectorEvent;
@@ -113,7 +113,7 @@ void ExpectTheBlockCase(const std::string& name)
         world.openCounterAccesses = frame.openAccesses;
         for (int walk = 0; walk < frame.windWalks; ++walk)
         {
-            Client::Render::Models::WalkTheWind(world);
+            Client::Models::WalkTheWind(world);
         }
         EXPECT_EQ(Bits(world.windBase), Bits(frame.windBaseAfterTheWalks)) << where;
         const ClothBody body{
@@ -375,7 +375,7 @@ TEST(CharacterClothTest, TheClothRunsAtTheFrameRateOfTheOriginal)
             cloth.Advance(batch, lord.wearer, lord.body, world, lord.map, clock, true);
             EXPECT_FALSE(batch.Vertices().empty()) << fps << " FPS, frame " << frame << ": cada frame dibuja";
         }
-        const auto originals = 1 + clock / Client::Render::Models::OriginalFrameTime;
+        const auto originals = 1 + clock / Client::Models::OriginalFrameTime;
         EXPECT_LT(originals, fps) << "la tela no corre una vez por frame de MuRet";
         for (std::int64_t original = 0; original < originals; ++original)
         {
@@ -400,8 +400,7 @@ TEST(CharacterClothTest, AtTheOriginalFrameRateEachFrameRunsTheBlockOnce)
     {
         ModelBatch ours;
         ours.Begin(Client::Render::Pass3D{});
-        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map, Client::Render::Models::OriginalFrameTime * frame,
-                      true);
+        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map, Client::Models::OriginalFrameTime * frame, true);
         ModelBatch theirs;
         theirs.Begin(Client::Render::Pass3D{});
         reference.Frame(theirs, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);
@@ -425,9 +424,8 @@ TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClo
         const Client::Core::Duration late = frame == 0 ? 300us : 100us;
         ModelBatch ours;
         ours.Begin(Client::Render::Pass3D{});
-        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map,
-                      Client::Render::Models::OriginalFrameTime * frame + late, true, Client::Scenes::PlainClothColor,
-                      Client::Render::Models::OriginalFramePace::OncePerDraw);
+        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map, Client::Models::OriginalFrameTime * frame + late,
+                      true, Client::Scenes::PlainClothColor, Client::Models::OriginalFramePace::OncePerDraw);
         ModelBatch theirs;
         theirs.Begin(Client::Render::Pass3D{});
         reference.Frame(theirs, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);
@@ -443,7 +441,7 @@ TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClo
 TEST(CharacterClothTest, AfterARestartTheNextAdvanceRunsTheBlockOnce)
 {
     using namespace std::chrono_literals;
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
     const LoginLord lord = ReadTheLoginLord();
     ClothWorld world{.random = CrtRandom(3)};
     ClothWorld referenceWorld{.random = CrtRandom(3)};
@@ -518,7 +516,7 @@ TEST(CharacterClothTest, ReleasingResourcesPreservesTheOriginalFrameClock)
     EXPECT_TRUE(cloth.Cloths().empty());
     EXPECT_EQ(cloth.Count(), 0u);
     EXPECT_EQ(advance(BetweenFrames), 0u);
-    EXPECT_GT(advance(Client::Render::Models::OriginalFrameTime), 0u);
+    EXPECT_GT(advance(Client::Models::OriginalFrameTime), 0u);
 }
 
 std::vector<glm::vec3> PositionsOf(const ModelBatch& batch)

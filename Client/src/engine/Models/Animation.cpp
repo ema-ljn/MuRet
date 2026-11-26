@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -129,4 +129,4 @@ AnimationState Interpolated(const AnimationState& state, const ActionInfo& actio
     (void)AdvanceAnimation(copy, action, speed * alpha, AnimationScene::Other);
     return copy;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

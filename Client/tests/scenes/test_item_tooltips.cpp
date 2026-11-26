@@ -50,8 +50,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;
@@ -294,7 +294,7 @@ protected:
                                                    std::uint8_t grid = 0)
     {
         GameHudContext context = Context();
-        const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
+        const Client::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
         return Client::Scenes::DrawTheItemTooltip(
             Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item, .grid = grid});
     }
@@ -327,7 +327,7 @@ protected:
     Client::Core::Expected<void, std::string> Repair(ItemState item, std::int32_t x = 320, std::int32_t y = 300)
     {
         GameHudContext context = Context();
-        const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
+        const Client::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
         return Client::Scenes::DrawTheRepairTooltip(
             Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item});
     }

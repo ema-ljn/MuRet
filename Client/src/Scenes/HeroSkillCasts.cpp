@@ -89,22 +89,21 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-Render::Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
+Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random,
-                                         Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
-Render::Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
+Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                         static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
+                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
 }
 
 // Una celda lógica (+0x41c o +0x420) con 0x40b570/0x412810 y 0x40b800: 4 rand() al cerrarla en 0.
 std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
@@ -178,7 +177,7 @@ Core::Expected<void, std::string> SetPlayerAction(ActorState& actor, std::uint8_
 {
     if (context.playerSkeleton == nullptr)
         return Core::Unexpected(std::format("{}: 0x4ea030 sin las acciones de Player.bmd", where));
-    Render::Models::SetAction(actor.animation, *context.playerSkeleton, action);
+    Models::SetAction(actor.animation, *context.playerSkeleton, action);
     return {};
 }
 
@@ -205,7 +204,7 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
         return {};
     std::uint8_t carried = 0;
     {
-        const Render::Models::LogicalAccess access(caster.byte38eAccesses, context.random, Byte38eCloseRandoms);
+        const Models::LogicalAccess access(caster.byte38eAccesses, context.random, Byte38eCloseRandoms);
         carried = caster.byte38e;
     }
     std::size_t slot = 0;
@@ -336,8 +335,8 @@ Core::Expected<SkillCost, std::string> SkillCostOf(std::uint8_t skill, const Her
     const auto record = context.skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::format("{}: Skill.bmd no tiene la skill {}", where, skill));
-    const Render::Models::LogicalAccess entry(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                              static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess entry(context.world.Runtime().movement.skillDepths[skill], context.random,
+                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     return SkillCost{.mana = WordAt(*record, ManaOffset), .stamina = WordAt(*record, StaminaOffset)};
 }
 

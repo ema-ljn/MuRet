@@ -243,8 +243,7 @@ const World::Leaves& WorldState::Leaves() const
 void WorldState::PrepareSelectedActor(const Protocol::Character::CharacterEntry& chosen, Crt::CrtRandom& random)
 {
     {
-        const Render::Models::LogicalAccess access(m_runtime.ownRecordDepth, random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(m_runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         m_own.level = chosen.level;
         m_own.characterClass = Protocol::Character::CharacterClassOf(chosen.classByte);
         m_own.skin = 0;

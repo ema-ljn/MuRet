@@ -77,7 +77,7 @@ void DrawTheC3Randoms(Crt::CrtRandom& random)
     static_cast<void>(random.Next());
     std::uint8_t serialDepth = 0;
     {
-        const Render::Models::LogicalAccess serial(serialDepth, random, Render::Models::SerialCloseRandoms);
+        const Models::LogicalAccess serial(serialDepth, random, Models::SerialCloseRandoms);
     }
 }
 
@@ -113,14 +113,14 @@ Core::Expected<std::string_view, std::string> TextOf(const HeroMovementContext& 
 Core::Expected<ActorStopContext, std::string> StopContextForHero(const ActorState& hero,
                                                                  const HeroMovementContext& context)
 {
-    static const Render::Models::Skeleton EmptySkeleton;
+    static const Models::Skeleton EmptySkeleton;
     const bool player = hero.type == Data::Models::PlayerSkeletonModel;
     if (player && context.playerSkeleton == nullptr)
         return Core::Unexpected(std::string("0x5674e5: falta Player.bmd"));
 
-    const Render::Models::Skeleton* playerSkeleton =
+    const Models::Skeleton* playerSkeleton =
         context.playerSkeleton != nullptr ? context.playerSkeleton : &EmptySkeleton;
-    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    const Models::Skeleton* actorSkeleton = nullptr;
     if (!player)
     {
         actorSkeleton = context.world.FaunaResources().SkeletonOf(hero.type);
@@ -174,8 +174,7 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
     // 0x567521..0x5675ed: el nivel (+0xe, sin signo) del registro propio, abierto y cerrado por la tabla.
     std::int32_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = context.world.OwnCharacter().level;
     }
     // 0x567618..0x567651: el aviso y la salida, sin poner 0x6c8e54 en −1.

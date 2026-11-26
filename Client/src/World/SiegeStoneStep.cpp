@@ -250,15 +250,14 @@ Result Fragment(ModelEffect& effect, Particles& particles, Crt::CrtRandom& rando
         return ParticleAt(effect, particles, random, TorchFlameParticle, 1, .2f, {1, .6f, .2f});
     return {};
 }
-void Epilogue(ModelEffect& effect, const Render::Models::Skeleton* skeleton)
+void Epilogue(ModelEffect& effect, const Models::Skeleton* skeleton)
 {
     constexpr std::uint8_t NoAction = 255;
     if (effect.animation.action != NoAction && skeleton != nullptr &&
         effect.animation.action < skeleton->actions.size())
     {
         const auto& action = skeleton->actions[effect.animation.action];
-        if (Render::Models::AdvanceAnimation(effect.animation, action, effect.speed,
-                                             Render::Models::AnimationScene::Other))
+        if (Models::AdvanceAnimation(effect.animation, action, effect.speed, Models::AnimationScene::Other))
         {
             effect.animation.frame = static_cast<float>(action.keyCount);
             effect.animation.action = NoAction;
@@ -269,7 +268,7 @@ void Epilogue(ModelEffect& effect, const Render::Models::Skeleton* skeleton)
         effect.alive = false;
 }
 } // namespace
-Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                  Particles& particles, Crt::CrtRandom& random,
                                                  const SiegeStoneStepServices& services)
 {

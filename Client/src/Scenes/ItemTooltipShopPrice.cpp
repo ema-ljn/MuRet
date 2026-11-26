@@ -102,8 +102,7 @@ Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& cont
     // rand() si su cuenta vuelve a 0), en la propia también.
     std::uint32_t zen = 0;
     {
-        const Render::Models::LogicalAccess access(context.ownRecordDepth, context.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         zen = context.world.OwnCharacter().zen;
     }
     // 0x5b360e..0x5b367e: sin signo, el zen que no alcanza; solo mirando la de otro, el 423 en rojo y en negrita, y un

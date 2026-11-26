@@ -150,7 +150,7 @@ Result FellTheObject(World::WorldObject& object, const ObjectCollapseContext& co
     if (collapse.counter == FallStartCounter)
     {
         angle = FallStartAngle;
-        object.state.hiddenMesh = Render::Models::NoHiddenMesh;
+        object.state.hiddenMesh = Models::NoHiddenMesh;
         // 0x41ed10(0x89, 0, 0): RequestSound despacha el efecto.
         context.runtime.RequestSound(FallSound);
     }
@@ -220,7 +220,7 @@ Result CollapseTheObject(World::WorldObject& object, const ObjectCollapseContext
     {
         if (collapse.counter != 0)
             return {};
-        object.state.hiddenMesh = Render::Models::NoHiddenMesh;
+        object.state.hiddenMesh = Models::NoHiddenMesh;
         object.field8a = OpenedMark;
         return {};
     }

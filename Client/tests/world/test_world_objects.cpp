@@ -474,7 +474,7 @@ TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
     Client::World::StepWorldObject(whirlpool, Login, nullptr);
     EXPECT_LT(whirlpool.alpha, 0.01f);
     EXPECT_EQ(whirlpool.transform.angles.z, yaw) << "el giro del caso 0x56 no corre";
-    EXPECT_EQ(whirlpool.state.blendMesh, Client::Render::Models::NoBlendMesh);
+    EXPECT_EQ(whirlpool.state.blendMesh, Client::Models::NoBlendMesh);
 }
 
 // El rand() de la CRT con la semilla 7 después de `draws` llamadas.

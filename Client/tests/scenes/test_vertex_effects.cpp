@@ -33,7 +33,7 @@
 
 namespace
 {
-class VertexModels final : public Client::Render::Models::IModelLibrary
+class VertexModels final : public Client::Models::IModelLibrary
 {
 public:
     VertexModels()
@@ -46,7 +46,7 @@ public:
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -61,7 +61,7 @@ TEST(VertexEffectsTest, RepeatedCornersConsumeThreeDrawsEachEvenWithAFullEffectP
 {
     VertexModels models;
     const Client::Scenes::DrawnObject object;
-    const std::array meshes{Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     for (auto& effect : effects->Effects())
         effect.alive = true;
@@ -78,7 +78,7 @@ TEST(VertexEffectsTest, GateChildrenUseThePublishedScratchAndRunTheirConstructor
     models.model.meshes[0].triangles.resize(1);
     models.model.meshes[0].triangles[0].polygon = 1;
     const Client::Scenes::DrawnObject object;
-    const std::array meshes{Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(2), expected(2);
     // CRT seed2:45%3=0; segundo sorteo elige12f/130; ocho del constructor.
@@ -97,7 +97,7 @@ TEST(VertexEffectsTest, AnInvalidMeshAndSignedEmptyPolygonsDoNotConsumeRandom)
     VertexModels models;
     for (auto& triangle : models.model.meshes[0].triangles)
         triangle.polygon = 0xff;
-    const std::array meshes{Client::Render::Models::SkinnedMesh{}};
+    const std::array meshes{Client::Models::SkinnedMesh{}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(1);
     const Client::Scenes::DrawnObject object;
@@ -112,7 +112,7 @@ TEST(VertexEffectsTest, TheTwoProjectileFamiliesPreserveTheirDifferentChildSubty
     models.model.meshes[0].triangles.resize(1);
     models.model.meshes[0].triangles[0].polygon = 1;
     const Client::Scenes::DrawnObject object;
-    const std::array meshes{Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     for (const std::int32_t family : {0x12d, 0x12e})
     {
         auto effects = std::make_unique<Client::World::ModelEffects>();
@@ -134,7 +134,7 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
     VertexModels models;
     models.model.meshes[0].triangles.assign(1500, {1, {0, 0, 0, 0}});
     const Client::Scenes::DrawnObject object;
-    const std::array meshes{Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     for (const std::int32_t subtype : {0, 1, 2})
     {
         SCOPED_TRACE(subtype);
@@ -179,7 +179,7 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
 }
 
 using Client::Crt::CrtRandom;
-using Client::Render::Models::SkinnedMesh;
+using Client::Models::SkinnedMesh;
 using Client::Scenes::EmitVertexEffectsOf;
 
 // Un modelo con `count` triángulos de una esquina (el vértice 0) en la malla 0.
@@ -288,7 +288,7 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
     models.model.meshes[0].triangles.assign(40, {3, {0, 1, 2, 0}});
     const Client::Scenes::DrawnObject object;
     const std::array meshes{
-        Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}, glm::vec3{44, 55, 66}, glm::vec3{77, 88, 99}}, {}}};
+        Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}, glm::vec3{44, 55, 66}, glm::vec3{77, 88, 99}}, {}}};
     for (const std::int32_t subtype : {0, 1})
     {
         SCOPED_TRACE(subtype);

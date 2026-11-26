@@ -462,7 +462,7 @@ TEST(Particle60f3Test, LegacyStepDoesNotAcquireNewAdmission)
 }
 
 constexpr std::int32_t LateSelector = 0x12345678;
-class Library final : public Render::Models::IModelLibrary
+class Library final : public Models::IModelLibrary
 {
 public:
     mutable std::vector<std::uint32_t> queries;
@@ -471,7 +471,7 @@ public:
     {
         return nullptr;
     }
-    const Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -479,12 +479,12 @@ public:
     {
         return {};
     }
-    std::optional<Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
         queries.push_back(selector);
         if (selector != Type && selector != LateSelector)
             return std::nullopt;
-        Scenes::TextureMetadata result(Data::Textures::Texture{});
+        Models::TextureMetadata result(Data::Textures::Texture{});
         result.size = {8, 16};
         result.components = selector == Type ? 3 : colorFlag;
         return result;

@@ -304,7 +304,7 @@ bool StopTheHiddenAttack(DarkSpirit& spirit, const DarkSpiritOwner& owner, const
 
 // 0x4179ef..0x417b2e: el 5 y el 2. La matriz de los ángulos (0x5fc8f0) y el avance de (0, −velocidad, 0) girado, sin
 // mirar si la velocidad es 0. `dx` y `dy` son los del destino antes de avanzar (0x417814).
-void Charge(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, glm::vec3 destination, float dx, float dy)
+void Charge(DarkSpirit& spirit, const Models::Skeleton& skeleton, glm::vec3 destination, float dx, float dy)
 {
     const Math::OriginalMatrix matrix = Math::OriginalAngleMatrix(spirit.angles);
     const glm::vec3 move = Math::OriginalVectorRotate(glm::vec3(0.0f, -spirit.speed, 0.0f), matrix);
@@ -342,7 +342,7 @@ void Charge(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, glm::v
         spirit.speed = F32(static_cast<double>(spirit.speed) - ReturnBrake);
     }
     // 0x417adb y 0x417b26: 0x4ea030(3).
-    Render::Models::SetAction(spirit.animation, skeleton, AttackAction);
+    Models::SetAction(spirit.animation, skeleton, AttackAction);
 }
 
 // 0x417847..0x41789d: el 6, con +0x3b0 distinto de 0xffff, gira 40 hacia ese personaje (0x4e93f0 desde su posición
@@ -370,7 +370,7 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtR
         {
             continue;
         }
-        for (std::uint16_t k = 0; k < Render::Models::SmallLogicalCloseRandoms; ++k)
+        for (std::uint16_t k = 0; k < Models::SmallLogicalCloseRandoms; ++k)
         {
             static_cast<void>(random.Next());
         }
@@ -403,16 +403,16 @@ void MissTheView(DarkSpirit& spirit)
     }
 }
 
-DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skeleton* skeleton,
-                            const glm::vec3& terrainLight, float stepAlpha)
+DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton, const glm::vec3& terrainLight,
+                            float stepAlpha)
 {
     DrawnObject drawn;
     drawn.model = DarkSpiritModel;
     drawn.animation = spirit.animation;
     if (skeleton != nullptr && spirit.animation.action < skeleton->actions.size())
     {
-        drawn.animation = Render::Models::Interpolated(spirit.animation, skeleton->actions[spirit.animation.action],
-                                                       FrameStep, stepAlpha);
+        drawn.animation =
+            Models::Interpolated(spirit.animation, skeleton->actions[spirit.animation.action], FrameStep, stepAlpha);
     }
     drawn.transform.position = spirit.position + ((spirit.position - spirit.previousPosition) * stepAlpha);
     drawn.transform.angles = spirit.angles;
@@ -423,10 +423,9 @@ DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skel
     return drawn;
 }
 
-DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton,
-                                 const DarkSpiritOwner& owner, std::uint8_t map, World::Particles& particles,
-                                 float worldClock, Crt::CrtRandom& random, std::int32_t counter,
-                                 const DarkSpiritTargets& targets)
+DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& skeleton, const DarkSpiritOwner& owner,
+                                 std::uint8_t map, World::Particles& particles, float worldClock,
+                                 Crt::CrtRandom& random, std::int32_t counter, const DarkSpiritTargets& targets)
 {
     spirit.previousPosition = spirit.position;
     DarkSpiritStepped stepped;
@@ -438,12 +437,12 @@ DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skele
     stepped.stopsTheAttack = StopTheHiddenAttack(spirit, owner, targets);
     FollowTheSafeZone(spirit, owner);
     if (spirit.animation.action < skeleton.actions.size() &&
-        Render::Models::AdvanceAnimation(spirit.animation, skeleton.actions[spirit.animation.action], FrameStep,
-                                         Render::Models::AnimationScene::Other))
+        Models::AdvanceAnimation(spirit.animation, skeleton.actions[spirit.animation.action], FrameStep,
+                                 Models::AnimationScene::Other))
     {
         // 0x417791: más allá de la tabla, la 0.
-        Render::Models::SetAction(spirit.animation, skeleton,
-                                  spirit.state < ActionOfState.size() ? ActionOfState[spirit.state] : 0);
+        Models::SetAction(spirit.animation, skeleton,
+                          spirit.state < ActionOfState.size() ? ActionOfState[spirit.state] : 0);
     }
     // 0x4177b1..0x417822: el destino, el blanco de +8 con +0x1ad en 1 o el dueño, y la distancia en float antes de
     // moverse.

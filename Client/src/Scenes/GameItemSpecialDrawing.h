@@ -21,19 +21,16 @@ class CrtRandom;
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-struct SkinnedMesh;
-} // namespace Models
 } // namespace Client::Render
 namespace Client::World
 {
 class FrameSprites;
 }
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-}
+struct SkinnedMesh;
+} // namespace Client::Models
 
 namespace Client::Scenes
 {
@@ -58,7 +55,7 @@ struct ItemSpecialDrawContext
 
 // 609640 completo, incluido RenderBody del default, sobre la pose retenida del caller.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawSpecialItemMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                      Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
+DrawSpecialItemMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
+                      Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
                       const ItemSpecialDrawContext& context = {});
 } // namespace Client::Scenes

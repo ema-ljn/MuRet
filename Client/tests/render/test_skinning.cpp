@@ -13,19 +13,19 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Render::Models::SkinMesh: 0x4ebc80, un hueso por vértice y sin pesos.
+// Client::Models::SkinMesh: 0x4ebc80, un hueso por vértice y sin pesos.
 namespace
 {
 using Client::Data::Models::Mesh;
 using Client::Math::AngleMatrix;
 using Client::Math::BoneTransform;
-using Client::Render::Models::FlattenOnTheGround;
-using Client::Render::Models::NormalLight;
-using Client::Render::Models::ObjectTransform;
-using Client::Render::Models::SkinMesh;
-using Client::Render::Models::SkinMeshAroundBones;
-using Client::Render::Models::SkinMeshInWorld;
-using Client::Render::Models::SkinnedMesh;
+using Client::Models::FlattenOnTheGround;
+using Client::Models::NormalLight;
+using Client::Models::ObjectTransform;
+using Client::Models::SkinMesh;
+using Client::Models::SkinMeshAroundBones;
+using Client::Models::SkinMeshInWorld;
+using Client::Models::SkinnedMesh;
 
 constexpr float Tolerance = 1e-4f;
 

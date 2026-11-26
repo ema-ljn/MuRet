@@ -51,7 +51,7 @@ constexpr std::int16_t InvisibleBird = Assets::RidingSpearModel;
 constexpr std::int16_t StormBird = Assets::Monster32Model;
 constexpr std::int32_t Icarus = 10;
 using Math::F32;
-Render::Models::AnimationState AnimationOf(const FaunaObject& object)
+Models::AnimationState AnimationOf(const FaunaObject& object)
 {
     return {object.action, object.frame, object.previousAction,
             static_cast<std::int16_t>(Math::FtolLow(object.previousFrame))};
@@ -218,9 +218,9 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, FaunaObject
     if (bird && object.model == StormBird && object.counter == 1)
     {
         DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
-                             Render::Models::ShinePass::Shiny);
+                             Models::ShinePass::Shiny);
         DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
-                             Render::Models::ShinePass::Chrome);
+                             Models::ShinePass::Chrome);
     }
     if (bird && context.originalFrame)
     {
@@ -282,16 +282,16 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
 // en 1), las normales sin la escala; con él, `bones` ya en el mundo (Translate en 0), las normales con la escala que
 // traen los huesos.
 void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model, std::span<const Math::BoneTransform> bones,
-                    const Render::Models::ObjectTransform& transform, bool world)
+                    const Models::ObjectTransform& transform, bool world)
 {
     if (carry.meshes.size() < model.meshes.size())
         carry.meshes.resize(model.meshes.size());
     for (std::size_t i = 0; i < model.meshes.size(); ++i)
     {
-        Render::Models::SkinnedMesh mesh;
+        Models::SkinnedMesh mesh;
         auto& output = carry.meshes[i];
-        const bool skinned = world ? Render::Models::SkinMeshInWorld(model.meshes[i], bones, mesh)
-                                   : Render::Models::SkinMesh(model.meshes[i], bones, transform, mesh);
+        const bool skinned = world ? Models::SkinMeshInWorld(model.meshes[i], bones, mesh)
+                                   : Models::SkinMesh(model.meshes[i], bones, transform, mesh);
         if (!skinned)
         {
             // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
@@ -310,7 +310,7 @@ void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model, std
     }
 }
 } // namespace
-Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
                                                    const DrawnObject& object, bool translated)
 {
     if (object.alpha < VisibleAlpha)
@@ -332,15 +332,14 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
     // en 1 posa en el buffer propio ([esi+0x120]) y 0x6001a1 con +0x11c en 0, en el global 0x68b181c. Las dos poses
     // saltean los dummy (0x4eb973), que quedan con lo que tenía el buffer.
     const bool posed =
-        translated
-            ? Render::Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones)
-            : Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones);
+        translated ? Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones)
+                   : Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones);
     if (!posed)
         return Core::Unexpected(std::string("5ffdf0: pose de fauna inválida"));
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, translated);
 }
-Core::Expected<void, std::string>
-PublishFaunaFloorPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, const DrawnObject& object)
+Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
+                                                        const DrawnObject& object)
 {
     const auto* skeleton = models.SkeletonOf(object.model);
     if (skeleton == nullptr)
@@ -349,20 +348,19 @@ PublishFaunaFloorPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary
     if (carry.bones.size() < count)
         carry.bones.resize(count, Math::BoneTransform(0));
     auto bones = std::span(carry.bones).first(count);
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, {}, bones))
+    if (!Models::PoseSkeleton(*skeleton, object.animation, object.transform, {}, bones))
         return Core::Unexpected(std::string("608b0a: pose de ítem del piso inválida"));
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, false,
                                object.alpha > VisibleAlpha);
 }
-Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
                                                      const DrawnObject& object)
 {
     return PublishFaunaPoseRaw(carry, models, object.model, carry.bones, object.transform, false);
 }
-Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry,
-                                                      const Render::Models::IModelLibrary& models,
+Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
                                                       std::uint16_t modelId, std::span<const Math::BoneTransform> bones,
-                                                      const Render::Models::ObjectTransform& transform, bool translated,
+                                                      const Models::ObjectTransform& transform, bool translated,
                                                       bool skin)
 {
     const auto* model = models.Find(modelId);

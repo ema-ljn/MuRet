@@ -11,7 +11,7 @@
 
 // Lo que un objeto le pasa a RenderBody (0x4ef0c0) en cada pase de 0x60b3d0, y quién lo escribe
 // (Client/docs/research/06-render-escenas-y-ui.md, "El script en un personaje" y "Lo que cuelga").
-namespace Client::Render::Models
+namespace Client::Models
 {
 // Sin blendMesh: ninguna malla va por esa rama de 0x4ecc30, salvo las de R.
 inline constexpr std::int16_t NoBlendMesh = -1;
@@ -53,4 +53,4 @@ using ObjectRandoms = std::array<int, 2>;
 // La luz que 0x50ba30 le pone al personaje de la clase 4 en la parte del casco: sin(0,001 · T) ·
 // 0,1 + 0,7, con los floats de 0x6b89c8, 0x6b87b8 y 0x6b8a5c.
 [[nodiscard]] ENGINE_API float MaskedClassLightAt(Core::Duration clock);
-} // namespace Client::Render::Models
+} // namespace Client::Models

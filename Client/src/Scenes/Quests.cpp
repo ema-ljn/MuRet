@@ -459,8 +459,8 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
             {
                 std::uint16_t level = 0;
                 {
-                    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                            Render::Models::OwnRecordCloseRandoms);
+                    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                    Models::OwnRecordCloseRandoms);
                     level = context.world.OwnCharacter().level;
                 }
                 if (condition.minLevel > level)
@@ -471,8 +471,8 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
             {
                 std::uint16_t level = 0;
                 {
-                    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                            Render::Models::OwnRecordCloseRandoms);
+                    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                    Models::OwnRecordCloseRandoms);
                     level = context.world.OwnCharacter().level;
                 }
                 if (condition.maxLevel < level)
@@ -488,8 +488,8 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
                 }
                 std::uint32_t money = 0;
                 {
-                    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                            Render::Models::OwnRecordCloseRandoms);
+                    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                    Models::OwnRecordCloseRandoms);
                     money = context.world.OwnCharacter().zen;
                 }
                 quest.zen = condition.zen;

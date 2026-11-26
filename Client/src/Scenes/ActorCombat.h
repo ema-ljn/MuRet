@@ -14,11 +14,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::Scenes
 {
 class WorldState;
@@ -36,8 +36,8 @@ struct ActorCombatContext
 {
     WorldState& world;
     Crt::CrtRandom& random;
-    const Render::Models::Skeleton* playerSkeleton = nullptr;
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::Skeleton* playerSkeleton = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
     // La tabla de sonidos del modelo (ModelSounds); vacía, la de WorldRuntime::modelSounds. Sin ninguna de las dos, las
     // diez WORD en 0 de 0x60dc80 (SoundsOrZeros): 0x4f4a10 saca su rand() y pide el 0xd2 (08, P-C253).

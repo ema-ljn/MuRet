@@ -38,8 +38,7 @@ void NameABone(WorldRuntime& runtime, std::size_t actor, std::string_view name, 
 
 Core::Expected<std::size_t, std::string> CreateActor(WorldState& world, std::int32_t key, std::uint16_t type,
                                                      const ActorPlacement& placement,
-                                                     const ActorConstructionContext& context,
-                                                     Render::Models::ClothWorld& cloth)
+                                                     const ActorConstructionContext& context, Models::ClothWorld& cloth)
 {
     const auto actors = world.Actors();
     // 0x512885..0x5128a0, y 0x5128c3..0x5128df.

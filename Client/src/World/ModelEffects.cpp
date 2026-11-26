@@ -183,7 +183,7 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
     effect.transform.position = position;
     effect.transform.angles = angles;
     effect.vertexLight = true;
-    effect.objectState = Render::Models::ObjectState{};
+    effect.objectState = Models::ObjectState{};
     effect.animation.action = 0;
     effect.animation.frame = 0.0f;
     effect.animation.previousKey = 0;
@@ -438,7 +438,7 @@ std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& posit
         effect.copiedAngles.z = F32(static_cast<double>(effect.copiedAngles.z) + CopiedYaw);
         effect.turnDirection = EarthquakeLift;
         // 0x51a8d8..0x51a90f: la cuenta sube entre la apertura y el cierre.
-        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         ++ownRecordCount;
         return slot;
     }
@@ -684,7 +684,7 @@ std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& positio
             continue;
         InitializeOwnerlessEffect(effect, FlameJetEffect, position, angles, light);
         effect.life = FlameJetLife;
-        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         return slot;
     }
     return std::nullopt;
@@ -714,7 +714,7 @@ std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectAr
         return std::nullopt;
     ModelEffect& effect = m_effects[*slot];
     effect.life = FlameJetLife;
-    const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     effect.word8c = ownRecordCount;
     return slot;
 }
@@ -1143,7 +1143,7 @@ std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffe
     if (!slot)
         return std::nullopt;
     auto& effect = m_effects[*slot];
-    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.blendMesh = Models::EveryMeshBlends;
     effect.life = 30;
     effect.transform.scale = 0;
     effect.velocity = {0, -40, 0};
@@ -1165,7 +1165,7 @@ std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArgum
     // 0x51c173: el +50 de lo común y el −50 del subtipo, cada uno con su fstp.
     effect.transform.position.z =
         F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + Lift)) - Lift);
-    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.blendMesh = Models::EveryMeshBlends;
     effect.objectState.light = 1;
     const bool slow = effect.subtype <= LastSlowWave;
     effect.life = slow ? 15 : 10;
@@ -1207,7 +1207,7 @@ std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectA
     constexpr double Lift = 130.0; // 0x6ba194
     effect.transform.scale = 2;
     effect.life = effect.subtype == ShortSubtype ? ShortLife : LongLife;
-    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.blendMesh = Models::EveryMeshBlends;
     effect.velocity = {0, -60, 0};
     effect.start = arguments.position;
     effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + Lift);
@@ -1343,7 +1343,7 @@ std::optional<std::size_t> ModelEffects::CreateNoriaEffect(std::int16_t type, co
         ModelEffect& effect = m_effects[slot];
         InitializeCommonEffect(effect, type, position, angles, sourceLight, 0.0f);
         effect.life = 0xffffff;
-        effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+        effect.objectState.blendMesh = Models::EveryMeshBlends;
         if (type == LastTowerEffect)
         {
             effect.transform.scale = 0.6f;
@@ -1379,7 +1379,7 @@ std::span<const ModelEffect> ModelEffects::Effects() const
     return m_effects;
 }
 
-void StepModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton)
+void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton)
 {
     if (!effect.alive)
     {
@@ -1390,13 +1390,12 @@ void StepModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skelet
         StepDragon(effect);
     }
     // 0x52cc04..0x52cc7b: la animación a +0xd8. 0x4ec200 devuelve 0 cuando la acción termina o da la
-    // vuelta (Render::Models::AdvanceAnimation, true): el frame queda en sus keys y la acción en 0xff.
+    // vuelta (Models::AdvanceAnimation, true): el frame queda en sus keys y la acción en 0xff.
     if (effect.animation.action != NoAction && skeleton != nullptr &&
         effect.animation.action < skeleton->actions.size())
     {
-        const Render::Models::ActionInfo& action = skeleton->actions[effect.animation.action];
-        if (Render::Models::AdvanceAnimation(effect.animation, action, effect.speed,
-                                             Render::Models::AnimationScene::Other))
+        const Models::ActionInfo& action = skeleton->actions[effect.animation.action];
+        if (Models::AdvanceAnimation(effect.animation, action, effect.speed, Models::AnimationScene::Other))
         {
             effect.animation.frame = static_cast<float>(action.keyCount);
             effect.animation.action = NoAction;

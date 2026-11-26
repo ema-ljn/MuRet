@@ -115,7 +115,7 @@ Core::Expected<void, std::string> StepTheRing(JointState& joint, const JointKern
             std::format("0x536187: falta el contador compartido del joint 0x10f/{}", joint.subtype));
     const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
     if (services.cloth->openCounterAccesses == 0)
-        for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
+        for (std::uint16_t draw = 0; draw < Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(services.random->Next());
     const auto index = static_cast<std::uint32_t>(services.index);
     constexpr std::uint32_t PhaseStride = 53731;
@@ -245,7 +245,7 @@ Core::Expected<void, std::string> StepTheBeam(JointState& joint, const JointKern
         return Core::Unexpected(std::string("0x535e66: falta el contador compartido del joint 0x10f/2"));
     const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
     if (services.cloth->openCounterAccesses == 0)
-        for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
+        for (std::uint16_t draw = 0; draw < Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(services.random->Next());
     constexpr std::uint32_t PhaseStride = 17721;                        // 0x535e4e..0x535e62
     constexpr float DirectionScale = std::bit_cast<float>(0x3fb33333u); // 0x535e3f, 1,4f

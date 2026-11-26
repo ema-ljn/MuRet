@@ -48,7 +48,7 @@ void EquipTheLoginActor(ActorState& actor)
 }
 } // namespace
 
-void PrepareLoginPresentationActor(ActorState& actor, const Render::Models::Skeleton& skeleton)
+void PrepareLoginPresentationActor(ActorState& actor, const Models::Skeleton& skeleton)
 {
     EquipTheLoginActor(actor);
     actor.alive = true;
@@ -63,12 +63,12 @@ void PrepareLoginPresentationActor(ActorState& actor, const Render::Models::Skel
     actor.position = transform.position;
     actor.angles = transform.angles;
     actor.scale = transform.scale;
-    Render::Models::SetAction(actor.animation, skeleton, LoginCharacterStandingAction);
+    Models::SetAction(actor.animation, skeleton, LoginCharacterStandingAction);
 }
 
 Core::Expected<void, std::string> ConstructLoginActor(ActorState& actor, const ActorConstructionContext& construction,
-                                                      WorldRuntime& runtime, Render::Models::ClothWorld& cloth,
-                                                      const Render::Models::Skeleton& skeleton)
+                                                      WorldRuntime& runtime, Models::ClothWorld& cloth,
+                                                      const Models::Skeleton& skeleton)
 {
     const auto built = ConstructActor(actor, Data::Models::PlayerSkeletonModel, {}, construction, cloth);
     if (!built.HasValue())

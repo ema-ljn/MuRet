@@ -14,7 +14,7 @@ namespace Client::World
 struct ModelEffect;
 }
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 }
@@ -38,7 +38,7 @@ struct DrawnObject;
 // único 0x109 que crea el original), que va sólo por el común.
 // Devuelve true si lo dibujó; false si sigue el pase común de `object` (con el color que le haya puesto).
 [[nodiscard]] Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& batch,
-                                                                        const Render::Models::IModelLibrary& models,
+                                                                        const Models::IModelLibrary& models,
                                                                         const World::ModelEffect& effect,
                                                                         DrawnObject& object, Core::Duration frameClock);
 } // namespace Client::Scenes

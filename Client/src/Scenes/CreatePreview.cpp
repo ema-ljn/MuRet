@@ -101,8 +101,8 @@ std::array<Data::Models::ModelFile, 1 + NewFaceCount> SelectionModelFiles()
 
 Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::path& dataRoot,
                                                         Render::ITextureStore& textures, Core::Log& log,
-                                                        const Render::Models::ModelTextureSlots* gameSlots,
-                                                        std::optional<TextureMetadata> startupTexture)
+                                                        const Models::ModelTextureSlots* gameSlots,
+                                                        std::optional<Models::TextureMetadata> startupTexture)
 {
     Release();
     m_startupTexture = startupTexture;
@@ -113,7 +113,7 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
     // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
     m_textures.reset();
     m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SelectionModelsFirstSlot)
-                                         : Render::Models::ModelTextureSlots(SelectionModelsFirstSlot));
+                                         : Models::ModelTextureSlots(SelectionModelsFirstSlot));
     for (const Data::Models::ModelFile& file : SelectionModelFiles())
     {
         auto model = Data::Models::LoadModelFile(dataRoot, file);
@@ -123,13 +123,13 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
                         model.Error().path);
             continue;
         }
-        auto skeleton = Render::Models::MakeSkeleton(model.Value());
+        auto skeleton = Models::MakeSkeleton(model.Value());
         if (!skeleton.HasValue())
         {
             log.Warning("el modelo {} de la selección no tiene un esqueleto que se pueda posar", file.model);
             continue;
         }
-        Render::Models::Skeleton posed = std::move(skeleton).Value();
+        Models::Skeleton posed = std::move(skeleton).Value();
         if (file.model != SelectionLogoModel)
         {
             for (std::size_t action = 0; action < posed.actions.size() && action <= GreetingAction; ++action)
@@ -168,7 +168,7 @@ const Data::Models::Model* SelectionModels::Find(std::uint16_t model) const
     return found == m_models.end() ? nullptr : &found->second;
 }
 
-const Render::Models::Skeleton* SelectionModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* SelectionModels::SkeletonOf(std::uint16_t model) const
 {
     const auto found = m_skeletons.find(model);
     return found == m_skeletons.end() ? nullptr : &found->second;
@@ -180,7 +180,7 @@ std::span<const Render::TextureSlot> SelectionModels::MeshTextures(std::uint16_t
     return found == m_meshTextures.end() ? std::span<const Render::TextureSlot>{} : found->second;
 }
 
-std::optional<TextureMetadata> SelectionModels::TextureMetadataOf(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> SelectionModels::TextureMetadataOf(std::uint32_t selector) const
 {
     const auto uploaded = m_textures ? m_textures->MetadataOf(selector) : std::nullopt;
     if (uploaded)
@@ -201,29 +201,28 @@ std::optional<glm::vec2> SelectionModels::TextureSize(Render::TextureSlot slot) 
     return metadata ? std::optional(metadata->size) : std::nullopt;
 }
 
-const Render::Models::ModelTextureSlots* SelectionModels::TextureSlots() const
+const Models::ModelTextureSlots* SelectionModels::TextureSlots() const
 {
     return m_slots ? &*m_slots : nullptr;
 }
 
-void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass,
-                        const Render::Models::IModelLibrary& models)
+void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const Models::IModelLibrary& models)
 {
     preview.characterClass = characterClass;
     preview.type = NewFaceOf(characterClass);
     preview.alive = true;
     preview.position = PreviewPosition;
     preview.animation = {};
-    if (const Render::Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(characterClass)))
+    if (const Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(characterClass)))
     {
-        Render::Models::SetAction(preview.animation, *skeleton, GreetingAction);
+        Models::SetAction(preview.animation, *skeleton, GreetingAction);
     }
 }
 
 Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
-                                                 const Render::Models::IModelLibrary& models,
+                                                 const Models::IModelLibrary& models,
                                                  const ActorConstructionContext& construction,
-                                                 Render::Models::ClothWorld& cloth)
+                                                 Models::ClothWorld& cloth)
 {
     preview.characterClass = characterClass;
     const auto built = ConstructActor(preview, NewFaceOf(characterClass), {}, construction, cloth);
@@ -234,27 +233,27 @@ Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::ui
     preview.byte88 = 0;
     if (const auto* skeleton = models.SkeletonOf(preview.type))
     {
-        Render::Models::SetAction(preview.animation, *skeleton, GreetingAction);
+        Models::SetAction(preview.animation, *skeleton, GreetingAction);
     }
     return {};
 }
 
-void StepPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models)
+void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models)
 {
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(preview.characterClass));
+    const Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(preview.characterClass));
     if (skeleton == nullptr || preview.animation.action >= skeleton->actions.size())
     {
         return;
     }
-    const Render::Models::ActionInfo& action = skeleton->actions[preview.animation.action];
-    if (Render::Models::AdvanceAnimation(preview.animation, action, action.speed * NewFaceSpeedFactor,
-                                         Render::Models::AnimationScene::CharacterSelect))
+    const Models::ActionInfo& action = skeleton->actions[preview.animation.action];
+    if (Models::AdvanceAnimation(preview.animation, action, action.speed * NewFaceSpeedFactor,
+                                 Models::AnimationScene::CharacterSelect))
     {
-        Render::Models::SetAction(preview.animation, *skeleton, StandingAction);
+        Models::SetAction(preview.animation, *skeleton, StandingAction);
     }
 }
 
-DrawnObject DrawnPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models, float stepAlpha,
+DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& models, float stepAlpha,
                          int originalFrames)
 {
     const ClassPose& pose = ClassPoses[preview.characterClass < NewFaceCount ? preview.characterClass : 1];
@@ -268,12 +267,11 @@ DrawnObject DrawnPreview(CreatePreview& preview, const Render::Models::IModelLib
     DrawnObject drawn;
     drawn.model = NewFaceOf(preview.characterClass);
     drawn.animation = preview.animation;
-    if (const Render::Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
+    if (const Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
         skeleton != nullptr && preview.animation.action < skeleton->actions.size())
     {
-        const Render::Models::ActionInfo& action = skeleton->actions[preview.animation.action];
-        drawn.animation =
-            Render::Models::Interpolated(preview.animation, action, action.speed * NewFaceSpeedFactor, stepAlpha);
+        const Models::ActionInfo& action = skeleton->actions[preview.animation.action];
+        drawn.animation = Models::Interpolated(preview.animation, action, action.speed * NewFaceSpeedFactor, stepAlpha);
     }
     drawn.transform.position = preview.position;
     drawn.transform.angles = preview.angles;

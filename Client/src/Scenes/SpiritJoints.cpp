@@ -63,7 +63,7 @@ Core::Expected<void, std::string> ReadTheVolley(JointState& joint, CrtRandom& ra
     if (services == nullptr || services->ownRecordDepth == nullptr || services->ownVolley == nullptr)
         return Core::Unexpected(
             std::format("{:#x}: falta el registro propio del joint {:#x}/{:#x}", address, joint.type, joint.subtype));
-    const Render::Models::LogicalAccess own(*services->ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(*services->ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     joint.volley = *services->ownVolley;
     return {};
 }
@@ -346,7 +346,7 @@ Core::Expected<void, std::string> Wander(JointState& joint, const JointKernels::
             std::format("0x53994e: falta el contador compartido del joint {:#x}/{}", joint.type, joint.subtype));
     const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
     if (services.cloth->openCounterAccesses == 0)
-        for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
+        for (std::uint16_t draw = 0; draw < Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(services.random->Next());
     const auto phase = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(services.index) + steps);
     const auto direction = Math::Detail::FaunaDirectionPC53(phase);

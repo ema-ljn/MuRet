@@ -178,17 +178,16 @@ struct Frame
 };
 
 // Un acceso al registro propio ([0x7681eb4]): abre sin gastar y, si lo deja en 0, cierra con 3.848 rand().
-Render::Models::LogicalAccess OwnAccess(const Frame& frame)
+Models::LogicalAccess OwnAccess(const Frame& frame)
 {
-    return Render::Models::LogicalAccess(frame.context.ownRecordDepth, frame.context.random,
-                                         Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(frame.context.ownRecordDepth, frame.context.random, Models::OwnRecordCloseRandoms);
 }
 
 // Un acceso a la entrada `skill` de Skill.bmd (0x76bd1d8 + 0x3c · skill): 60 rand() al cerrarla en 0 (0x40f600).
-Render::Models::LogicalAccess SkillAccess(const Frame& frame, std::uint32_t skill)
+Models::LogicalAccess SkillAccess(const Frame& frame, std::uint32_t skill)
 {
-    return Render::Models::LogicalAccess(frame.runtime.movement.skillDepths[skill], frame.context.random,
-                                         static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    return Models::LogicalAccess(frame.runtime.movement.skillDepths[skill], frame.context.random,
+                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
 }
 
 Core::Expected<std::string_view, std::string> TextOf(const Frame& frame, std::size_t index, std::string_view where)
@@ -1567,14 +1566,14 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
     sprites.SetColor(Color{0.6f, 0.6f, 0.6f, 1.0f});
     std::uint8_t cell = 0;
     {
-        const Render::Models::LogicalAccess access(frame.context.cellXDepth, frame.context.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(frame.context.cellXDepth, frame.context.random,
+                                           Models::SmallLogicalCloseRandoms);
         cell = frame.hero.cellX;
     }
     UI::DrawNumber(sprites, 24.0f, 462.0f, cell, 8.0f, 9.0f);
     {
-        const Render::Models::LogicalAccess access(frame.context.cellYDepth, frame.context.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(frame.context.cellYDepth, frame.context.random,
+                                           Models::SmallLogicalCloseRandoms);
         cell = frame.hero.cellY;
     }
     UI::DrawNumber(sprites, 48.0f, 462.0f, cell, 8.0f, 9.0f);
@@ -1638,13 +1637,13 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
     std::uint8_t x = 0;
     std::uint8_t y = 0;
     {
-        const Render::Models::LogicalAccess access(frame.context.cellXDepth, frame.context.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(frame.context.cellXDepth, frame.context.random,
+                                           Models::SmallLogicalCloseRandoms);
         x = frame.hero.cellX;
     }
     {
-        const Render::Models::LogicalAccess access(frame.context.cellYDepth, frame.context.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(frame.context.cellYDepth, frame.context.random,
+                                           Models::SmallLogicalCloseRandoms);
         y = frame.hero.cellY;
     }
     if (x < SwitchZoneLeft || x > SwitchZoneRight || y < SwitchZoneTop || y > SwitchZoneBottom)

@@ -284,7 +284,7 @@ void ClearTheParts(ActorState& actor)
 void AccessTheCell(std::uint8_t& accesses, std::uint8_t value, std::uint32_t& left, Crt::CrtRandom& random)
 {
     left = value;
-    const Render::Models::LogicalAccess access(accesses, random, Render::Models::SmallLogicalCloseRandoms, left);
+    const Models::LogicalAccess access(accesses, random, Models::SmallLogicalCloseRandoms, left);
 }
 
 // La celda: escribe X y después Y, cada una en su acceso (0x412890 al cerrar), y las copias en claro.
@@ -299,12 +299,12 @@ void WriteTheCell(ActorState& actor, const ActorPlacement& placement, Crt::CrtRa
 }
 
 // El contador de pasos (0x7d3a0f0), con la cuenta de accesos que lleva la tela.
-std::int32_t ReadTheStepCounter(Render::Models::ClothWorld& cloth)
+std::int32_t ReadTheStepCounter(Models::ClothWorld& cloth)
 {
     const std::int32_t steps = cloth.logicSteps;
     if (cloth.openCounterAccesses == 0)
     {
-        for (std::uint16_t i = 0; i < Render::Models::SmallLogicalCloseRandoms; ++i)
+        for (std::uint16_t i = 0; i < Models::SmallLogicalCloseRandoms; ++i)
         {
             static_cast<void>(cloth.random.Next());
         }
@@ -423,8 +423,7 @@ double ConstructionHeight(const ActorConstructionContext& context, float x, floa
 }
 
 Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_t type, const ActorPlacement& placement,
-                                                 const ActorConstructionContext& context,
-                                                 Render::Models::ClothWorld& cloth)
+                                                 const ActorConstructionContext& context, Models::ClothWorld& cloth)
 {
     const bool previousHad1c15 = actor.previousHad1c15;
     SetTheStartingState(actor, type);

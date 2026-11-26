@@ -8,14 +8,12 @@
 #include <optional>
 #include <span>
 
-// Cuánto avanza cada acción de Player.bmd por paso de lógica: el lector no escribe la velocidad de una
-// acción (Q-C87) y 0x60dbe0 la fija a mano al final, después de Shadow (0x60f335..0x60f754), en
-// keys por paso de 40 ms (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto avanza la
-// animación"). Lo que hace el paso con ella es de la CL6.2.
+// The reader does not write an action's speed (Q-C87): 0x60dbe0 sets it by hand at the end, after Shadow
+// (0x60f335..0x60f754), in keys per 40 ms step (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto avanza la
+// animación").
 namespace Client::Data::Models
 {
-// Una escritura de 0x60dbe0: la misma velocidad en las acciones de `first` a `last`, un bucle o una
-// sola instrucción del original.
+// One write of 0x60dbe0: the same speed for actions `first` to `last`, a loop or a single instruction of the original.
 struct ActionSpeedWrite
 {
     std::uint8_t first = 0;
@@ -23,15 +21,14 @@ struct ActionSpeedWrite
     float speed = 0.0f;
 };
 
-// Las 181 escrituras, en el orden del original y agrupadas como las escribe: 47 instrucciones. Las de
-// después pisan a las de antes.
+// The 181 writes, in the original's order and grouped as it writes them: 47 instructions. Later ones overwrite
+// earlier ones.
 [[nodiscard]] ENGINE_API std::span<const ActionSpeedWrite> PlayerActionSpeeds();
 
-// La velocidad que deja la última escritura que toca `action`, o std::nullopt si ninguna la toca: 57
-// de las 205 se quedan con lo que había en el heap (Q-C87, P-C14 a).
+// std::nullopt if no write touches `action`: 57 of the 205 keep whatever was on the heap (Q-C87, P-C14 a).
 [[nodiscard]] ENGINE_API std::optional<float> PlayerActionSpeed(std::size_t action);
 
-// Las que no repiten y se quedan en la última key: 0x60dbe0 les pone +0 en 1 (0x60f54c..0x60f585), en
-// este orden.
+// The ones that do not repeat and stay on the last key: 0x60dbe0 sets their +0 to 1 (0x60f54c..0x60f585), in this
+// order.
 inline constexpr std::array<std::uint8_t, 4> PlayerActionsWithoutRepeat = {195, 196, 193, 68};
 } // namespace Client::Data::Models

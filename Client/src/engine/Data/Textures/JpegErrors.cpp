@@ -1,7 +1,7 @@
 #include "Data/Textures/JpegErrors.h"
 
 #include <csetjmp>
-#include <cstdio> // jpeglib.h usa FILE y no incluye su header
+#include <cstdio> // jpeglib.h uses FILE without including its header
 
 #include <jpeglib.h>
 

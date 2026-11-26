@@ -10,64 +10,44 @@
 #include <memory>
 #include <span>
 
-// TerrainHeight.OZB, la altura de cada celda de un mundo (Client/docs/research/
-// 05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador de 0x5f9020). Se lee
-// de Data\World<N>\TerrainHeight.OZB.
-//
-// Sin cifrar. Es un BMP de 256 × 256 en grises, con 4 bytes delante que el original saltea (su
-// exportador, 0x63b280, repite ahí los 4 primeros del BMP). En claro:
-//
-//   offset   qué es
-//   0        4 bytes que no se leen
-//   4        lo que el original toma como cabecera del BMP: 0x438 bytes
-//   0x43C    un byte por celda, en el orden de CellIndex (TerrainGrid.h), sin dar vuelta las filas
-//
-// Q-C02: el original no mira bfOffBits, el campo donde el BMP dice dónde empiezan sus píxeles.
-// En los BMP de 8 bits del laboratorio dice 0x436, y el original lee 2 bytes más adelante: cada
-// fila le queda corrida dos celdas. Se reproduce, porque el agua y los atributos del mundo se
-// editaron sobre el terreno así, corrido, como lo ve el juego (005f9020-terrainheight-ozb.md §6).
-//
-// Por eso no lo lee una biblioteca de BMP. La que ya está en el proyecto, SDL_LoadBMP_IO de SDL3,
-// salta a bfOffBits y da vuelta las filas: con el de Devias da 64.500 alturas distintas de las del
-// original. Y no carga el de World11 (cortado) ni el de World19 (sin "BM"). Son unas pocas líneas.
+// TerrainHeight.OZB (Client/docs/research/05-formatos-de-datos.md, "Terreno de un mundo"; the loader at 0x5f9020).
+// Unencrypted: a 256 × 256 grayscale BMP with 4 leading bytes the original skips (its exporter, 0x63b280, repeats the
+// BMP's first 4 there). Q-C02: the original ignores bfOffBits; the lab's 8-bit BMPs say 0x436 and the original reads
+// 2 bytes further on, so each row is shifted two cells. Reproduced, because the world's water and attributes were
+// edited over the shifted terrain, as the game sees it (005f9020-terrainheight-ozb.md §6). A BMP library does not fit:
+// SDL_LoadBMP_IO jumps to bfOffBits and flips the rows (64,500 heights differ on Devias) and does not load World11
+// (cut) or World19 (no "BM").
 namespace Client::Data::Terrain
 {
-// Los bytes del principio que el original saltea con fseek antes de leer el BMP (0x5f91d3).
+// The original skips them with fseek before reading the BMP (0x5f91d3).
 inline constexpr std::size_t TerrainHeightsPrefixSize = 4;
-// Lo que el original copia como cabecera del BMP: 0x10e dwords (005f9020 §2). Un BMP de 8 bits con
-// paleta tiene 0x436 (14 + 40 + 256 colores de 4 bytes); el original toma 2 bytes de más. De la
-// cabecera no se queda nada: en el original solo la lee el guardador de 0x5f92b0, una herramienta
-// de desarrollo (005f9020 §2).
+// What the original copies as the BMP header: 0x10e dwords (005f9020 §2). An 8-bit BMP with a palette has 0x436
+// (14 + 40 + 256 colors of 4 bytes); the original takes 2 bytes more. Nothing of it is kept: in the original only the
+// saver at 0x5f92b0, a development tool, reads it (005f9020 §2).
 inline constexpr std::size_t TerrainHeightsBitmapHeaderSize = 0x438;
-// Dónde está la altura de la celda 0 en el archivo.
 inline constexpr std::size_t TerrainHeightsValuesOffset = TerrainHeightsPrefixSize + TerrainHeightsBitmapHeaderSize;
 static_assert(TerrainHeightsValuesOffset == 0x43C, "el origen que mide el research (005f9020 §2)");
-// El archivo entero: el prefijo y los 0x10438 bytes que lee el original con un solo fread.
+// The prefix and the 0x10438 bytes the original reads with a single fread.
 inline constexpr std::size_t TerrainHeightsSize = TerrainHeightsValuesOffset + TerrainCellCount;
 static_assert(TerrainHeightsSize == 66620, "el tamaño que mide el research (005f9020 §6)");
 
-// Por cuánto se multiplica cada byte para pasarlo a altura, la constante de 0x6b8b94. Todos los
-// bytes por 1,5 o por 3 dan un float justo, sin redondeo.
+// The constant at 0x6b8b94. Every byte times 1.5 or 3 gives an exact float, without rounding.
 inline constexpr float TerrainHeightsScale = 1.5f;
-// La de un solo mundo, el 0x37 del original (0x6b86b8), que guarda su terreno en World56.
+// The original's world 0x37 alone (0x6b86b8), which keeps its terrain in World56.
 inline constexpr float TerrainHeightsScaleOfWorld56 = 3.0f;
-// La carpeta de ese mundo: World56. Ningún otro mundo la comparte (05, Terreno de un mundo).
+// No other world shares it (05, Terreno de un mundo).
 inline constexpr std::uint8_t TerrainHeightsWorldWithDoubleScale = 56;
 
 struct TerrainHeights
 {
-    // La altura de cada celda, en las unidades del mundo: el byte por TerrainHeightsScale.
+    // In world units: the byte times TerrainHeightsScale.
     TerrainLayer<float> cells;
 };
 
-// Lee las alturas de `file`, el TerrainHeight.OZB de la carpeta World<world>.
-//   - Las alturas ocupan 256 KB y van en el heap, como el mapeo del .map (TerrainMapping.h).
-//   - No mira la cabecera del BMP, como el original: en el laboratorio, la de World11 es de un BMP
-//     de 24 bits y la de World19 son todos ceros, y los dos cargan (Q-C02).
-//   - Si `file` es más corto que TerrainHeightsSize, devuelve DataError::FileTooShort. El original
-//     no mira lo que lee su fread, y las celdas que faltan quedan con lo que había en el heap
-//     (Q-C24).
-//   - Si es más largo, el resto se ignora, como en el original.
+// The heights take 256 KB and go on the heap, like the .map mapping (TerrainMapping.h). The BMP header is not checked,
+// as in the original: in the lab World11's is a 24-bit BMP's and World19's is all zeros, and both load (Q-C02). A
+// `file` shorter than TerrainHeightsSize is DataError::FileTooShort: the original ignores what its fread read and the
+// missing cells keep what was on the heap (Q-C24). Anything longer is ignored, as in the original.
 ENGINE_API Core::Expected<std::unique_ptr<TerrainHeights>, DataError>
 LoadTerrainHeights(std::span<const std::byte> file, std::uint8_t world);
 } // namespace Client::Data::Terrain

@@ -8,7 +8,7 @@
 #include <csetjmp>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio> // jpeglib.h usa FILE y no incluye su header
+#include <cstdio> // jpeglib.h uses FILE without including its header
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -21,22 +21,22 @@
 
 namespace Client::Data::Textures
 {
-// La API de la libjpeg 6b, con la que el original crea su compresor (jpeg_CreateCompress con la versión 62, 0x63b17a).
+// The libjpeg 6b API the original creates its compressor with (jpeg_CreateCompress with version 62, 0x63b17a).
 static_assert(JPEG_LIB_VERSION == 62, "la API de la libjpeg 6b, la del original (0x63b150)");
 
-// La versión de libjpeg-turbo que se comparó con la 6b en los vectores de la captura (JpegWriter.h), fijada en
-// vcpkg.json, como en JpegImage.cpp.
+// The libjpeg-turbo version compared with 6b on the screenshot vectors (JpegWriter.h), pinned in vcpkg.json, as in
+// JpegImage.cpp.
 static_assert(LIBJPEG_TURBO_VERSION_NUMBER == 3002000, "libjpeg-turbo 3.2.0, la comparada con la 6b");
 
 namespace
 {
-// OUTPUT_BUF_SIZE del destino de stdio de la 6b (jdatadst.c): escribe de a 4.096 bytes.
+// 6b's stdio destination OUTPUT_BUF_SIZE (jdatadst.c): it writes 4,096 bytes at a time.
 constexpr std::size_t OutputBufferSize = 4096;
-// 0x63b1c8: input_components, con in_color_space en JCS_RGB (0x63b1d2).
+// 0x63b1c8: input_components, with in_color_space JCS_RGB (0x63b1d2).
 constexpr int RgbComponents = 3;
 
-// El destino de jpeg_stdio_dest (jdatadst.c de la 6b) sobre un std::ofstream. libjpeg ve solo `manager`, el primer
-// miembro: el struct es standard-layout, así que desde su dirección se vuelve al struct entero.
+// jpeg_stdio_dest (6b's jdatadst.c) over a std::ofstream. libjpeg sees only `manager`, the first member: the struct
+// is standard-layout, so its address leads back to the whole struct.
 struct StreamDestination
 {
     jpeg_destination_mgr manager{};
@@ -49,14 +49,13 @@ StreamDestination& DestinationOf(j_compress_ptr info)
     return *reinterpret_cast<StreamDestination*>(info->dest);
 }
 
-// ERREXIT(info, JERR_FILE_WRITE) de jdatadst.c, sin el cast de C de la macro.
+// ERREXIT(info, JERR_FILE_WRITE) of jdatadst.c, without the macro's C cast.
 void ExitOnWriteError(j_compress_ptr info)
 {
     info->err->msg_code = JERR_FILE_WRITE;
     info->err->error_exit(reinterpret_cast<j_common_ptr>(info));
 }
 
-// fwrite de `size` bytes del buffer: si no salen todos, el error de escritura.
 void WriteOrExit(j_compress_ptr info, std::size_t size)
 {
     StreamDestination& destination = DestinationOf(info);
@@ -67,10 +66,9 @@ void WriteOrExit(j_compress_ptr info, std::size_t size)
 }
 } // namespace
 
-// libjpeg llama a estas tres como funciones de C, así que lo son (JpegErrors.h). static: no salen de este archivo.
+// libjpeg calls these three as C functions, so they are (JpegErrors.h).
 extern "C"
 {
-    // init_destination: el buffer entero, libre.
     static void InitDestination(j_compress_ptr info)
     {
         StreamDestination& destination = DestinationOf(info);
@@ -78,7 +76,6 @@ extern "C"
         destination.manager.free_in_buffer = destination.buffer.size();
     }
 
-    // empty_output_buffer: el buffer lleno, al archivo, y otra vez libre.
     static boolean EmptyOutputBuffer(j_compress_ptr info)
     {
         WriteOrExit(info, OutputBufferSize);
@@ -86,7 +83,7 @@ extern "C"
         return TRUE;
     }
 
-    // term_destination: lo que quedó, al archivo, y el fflush; con el archivo en error, el error de escritura.
+    // With the file in error, the write error.
     static void TermDestination(j_compress_ptr info)
     {
         StreamDestination& destination = DestinationOf(info);
@@ -101,8 +98,7 @@ extern "C"
 
 namespace
 {
-// El compresor de libjpeg, que se libera al salir por cualquier camino (regla 8), como el Decompressor de
-// JpegImage.cpp: liberar uno que no llegó a crearse no hace nada de más.
+// Freeing one that was never created does nothing extra, like JpegImage.cpp's Decompressor.
 struct Compressor
 {
     jpeg_compress_struct info{};
@@ -112,7 +108,7 @@ struct Compressor
 
     Compressor(std::jmp_buf& target, std::ofstream& stream) : jump(target)
     {
-        // 0x63b161: jpeg_std_error, con el error que salta al setjmp de Compress (JpegErrors.h).
+        // 0x63b161: jpeg_std_error, with the error that jumps to Compress's setjmp (JpegErrors.h).
         info.err = jpeg_std_error(&errors);
         errors.error_exit = JpegJumpOnError;
         errors.output_message = JpegDiscardMessage;
@@ -130,10 +126,8 @@ struct Compressor
     Compressor& operator=(const Compressor&) = delete;
 };
 
-// Comprime en el archivo de `compressor` con las llamadas de 0x63b150. Devuelve false si libjpeg cortó.
-//
-// Como en Decompress (JpegImage.cpp), entre el setjmp y libjpeg no vive ningún objeto con destructor: el compresor,
-// su jmp_buf y el archivo son de quien llama. Lo que cambia después del setjmp nadie lo lee después del salto.
+// With 0x63b150's calls. As in Decompress (JpegImage.cpp), no object with a destructor lives between setjmp and
+// libjpeg: the compressor, its jmp_buf and the file are the caller's, and nobody reads what changes after setjmp.
 bool Compress(Compressor& compressor, int width, int height, std::span<const std::uint8_t> bottomUpRgb, int quality)
 {
     jpeg_compress_struct& info = compressor.info;
@@ -141,8 +135,8 @@ bool Compress(Compressor& compressor, int width, int height, std::span<const std
     {
         return false;
     }
-    // 0x63b166..0x63b17a: jpeg_CreateCompress, que vuelve a poner en cero todo menos err y client_data; después, el
-    // destino (0x63b1aa, jpeg_stdio_dest).
+    // 0x63b166..0x63b17a: jpeg_CreateCompress, which zeroes everything but err and client_data; then the destination
+    // (0x63b1aa, jpeg_stdio_dest).
     jpeg_CreateCompress(&info, JPEG_LIB_VERSION, sizeof(info));
     info.dest = &compressor.destination.manager;
     // 0x63b1af..0x63b1d2.
@@ -150,16 +144,16 @@ bool Compress(Compressor& compressor, int width, int height, std::span<const std
     info.image_height = static_cast<JDIMENSION>(height);
     info.input_components = RgbComponents;
     info.in_color_space = JCS_RGB;
-    // 0x63b1dc, 0x63b1ee y 0x63b1fc.
+    // 0x63b1dc, 0x63b1ee and 0x63b1fc.
     jpeg_set_defaults(&info);
     jpeg_set_quality(&info, quality, TRUE);
     jpeg_start_compress(&info, TRUE);
-    // 0x63b210..0x63b250: la fila n del JPEG es la (alto − n − 1) del buffer, de ancho · 3 bytes.
+    // 0x63b210..0x63b250: JPEG row n is buffer row (height − n − 1), width · 3 bytes wide.
     const std::size_t rowSize = static_cast<std::size_t>(width) * RgbComponents;
     while (info.next_scanline < info.image_height)
     {
         const std::size_t source = std::size_t{info.image_height - info.next_scanline - 1};
-        // libjpeg pide filas sin const y no las escribe.
+        // libjpeg takes non-const rows and does not write them.
         JSAMPROW row = const_cast<JSAMPLE*>(bottomUpRgb.data() + source * rowSize);
         jpeg_write_scanlines(&info, &row, 1);
     }
@@ -178,7 +172,7 @@ Core::Expected<JpegWrite, std::string> WriteJpegFile(const std::filesystem::path
         return Core::Unexpected(std::format("0x63b150: {} × {} no es el tamaño de una pantalla de {} bytes", width,
                                             height, bottomUpRgb.size()));
     }
-    // 0x63b182..0x63b19f: fopen(nombre, "wb"), que crea el archivo o lo vacía; sin él, 0 sin escribir nada.
+    // 0x63b182..0x63b19f: fopen(name, "wb"), which creates or empties the file; without it, 0 and nothing written.
     std::ofstream stream(file, std::ios::binary | std::ios::trunc);
     if (!stream)
     {
@@ -192,7 +186,7 @@ Core::Expected<JpegWrite, std::string> WriteJpegFile(const std::filesystem::path
                                             "del juego con exit(1), el error_exit de jpeg_std_error)",
                                             Core::PathText(file), compressor.errors.msg_code));
     }
-    // 0x63b262: fclose, sin mirar lo que da; el destino ya hizo el fflush y miró el error.
+    // 0x63b262: fclose, ignoring its result; the destination already flushed and checked the error.
     return JpegWrite::Written;
 }
 } // namespace Client::Data::Textures

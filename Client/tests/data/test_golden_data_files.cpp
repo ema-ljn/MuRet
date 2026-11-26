@@ -4,14 +4,12 @@
 
 #include <filesystem>
 
-// Tests golden de ejemplo: leen el Data\ real, el del repo o el de MU_CLIENT_GOLDEN_DIR
-// (Client/tests/support/GoldenDir.h).
 namespace
 {
 using GoldenDataFiles = Client::Tests::GoldenDataTest;
 
-// Las claves del cifrado C3/C4 (Client/docs/research/03-red-y-cifrado.md, "C3/C4: cifrado por
-// bloques con Enc1.dat y Dec2.dat"). En el Data\ del laboratorio miden 54 bytes cada una.
+// The C3/C4 keys (Client/docs/research/03-red-y-cifrado.md, "C3/C4: cifrado por bloques con Enc1.dat y Dec2.dat").
+// In the lab's Data\ each is 54 bytes.
 TEST_F(GoldenDataFiles, KeyFilesForC3C4Exist)
 {
     for (const char* name : {"Enc1.dat", "Dec2.dat"})
@@ -22,7 +20,7 @@ TEST_F(GoldenDataFiles, KeyFilesForC3C4Exist)
     }
 }
 
-// main.exe pide "Data\\Player\\Player.bmd"; en el laboratorio la carpeta es player\.
+// main.exe asks for "Data\\Player\\Player.bmd"; in the lab the folder is player\.
 TEST_F(GoldenDataFiles, FindsPlayerModelWhateverTheCase)
 {
     const auto path = DataFile("Player\\Player.bmd");

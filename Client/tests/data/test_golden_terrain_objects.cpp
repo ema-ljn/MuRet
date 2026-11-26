@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-// EncTerrain.obj reales, los de la carpeta golden (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Core::ByteReader;
@@ -37,15 +36,14 @@ using Client::Tests::ObjectBits;
 using Client::Tests::ObjectValueCount;
 using Client::Tests::ReadFileBytes;
 
-// La ruta que arma el original: "Data\\%s\\EncTerrain%d.obj" con "World%d" (0x6d12b8, en 0x61a560).
+// The path the original builds: "Data\\%s\\EncTerrain%d.obj" with "World%d" (0x6d12b8, at 0x61a560).
 std::string ObjectsFile(std::uint8_t world)
 {
     const std::string number = std::to_string(world);
     return "World" + number + "\\EncTerrain" + number + ".obj";
 }
 
-// Los objetos del archivo `path` de World<world>, o std::nullopt (con el test ya fallado) si no
-// cargan.
+// std::nullopt, with the test already failed, if they do not load.
 std::optional<std::vector<TerrainObject>> LoadObjects(const std::filesystem::path& path, std::uint8_t world)
 {
     const std::optional<std::vector<char>> file = ReadFileBytes(path);
@@ -66,7 +64,7 @@ std::optional<std::vector<TerrainObject>> LoadObjects(const std::filesystem::pat
 class GoldenTerrainObjects : public Client::Tests::GoldenDataTest
 {
 protected:
-    // Los objetos de World<world>, o std::nullopt (con el test ya fallado) si no cargan.
+    // std::nullopt, with the test already failed, if they do not load.
     std::optional<std::vector<TerrainObject>> LoadWorld(std::uint8_t world) const
     {
         const auto path = DataFile(ObjectsFile(world));
@@ -87,8 +85,7 @@ bool IsFinite(const TerrainObject& object)
            std::isfinite(object.scale);
 }
 
-// Cada archivo trae exactamente los objetos que dice su cabecera, ni un byte más. El de World6
-// no trae ninguno: mide 4 bytes.
+// Exactly the objects the header declares, not a byte more. World6's has none: it is 4 bytes.
 TEST_F(GoldenTerrainObjects, LoadsEveryWorldOfTheLab)
 {
     for (const std::uint8_t world : LabWorlds)
@@ -107,10 +104,9 @@ TEST_F(GoldenTerrainObjects, LoadsEveryWorldOfTheLab)
     }
 }
 
-// Lo que midió el research en el EncTerrain1.obj real, el mismo archivo que el del laboratorio
-// (00607370-encterrain-obj.md §8, con su SHA-256): 2870 objetos de 109 tipos, de 0 a 153, todos con
-// floats finitos y escalas de 0,30 a 3,28. Los bits del primer objeto y del segundo salen de los
-// bytes descifrados que da el research; el resto del primero, de los valores que da redondeados.
+// What the research measured in the real EncTerrain1.obj, the same file as the lab's (00607370-encterrain-obj.md §8,
+// with its SHA-256): 2870 objects of 109 types, 0 to 153, all finite floats and scales from 0.30 to 3.28. The first
+// two objects' bits come from the research's decrypted bytes; the rest of the first, from its rounded values.
 TEST_F(GoldenTerrainObjects, LorenciaHasWhatTheResearchMeasured)
 {
     const std::optional<std::vector<TerrainObject>> objects = LoadWorld(1);
@@ -145,7 +141,6 @@ TEST_F(GoldenTerrainObjects, LorenciaHasWhatTheResearchMeasured)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(second.position[2]), 0xC1A6D765u);
 }
 
-// Un objeto del laboratorio, por el mundo y su lugar en el archivo.
 struct ObjectPlace
 {
     std::uint8_t world = 0;
@@ -153,16 +148,15 @@ struct ObjectPlace
     bool operator==(const ObjectPlace&) const = default;
 };
 
-// GoogleTest lo usa para mostrar una lista distinta de la esperada.
+// GoogleTest uses it to show a list that differs from the expected one.
 [[maybe_unused]] void PrintTo(const ObjectPlace& place, std::ostream* out)
 {
     *out << "World" << int{place.world} << " #" << place.index;
 }
 
-// Q-C28: los objetos raros de todo el laboratorio, que el cargador deja como vienen. Los únicos con
-// un float que no es un número son el 492 y el 493 de Devias, con la y en 0xFFFFFFFF; el único con
-// tipo negativo es el 18 de World7, -515, y los dos que lo siguen son todo ceros. Cuatro tienen la
-// escala negativa.
+// Q-C28: the lab's odd objects, which the loader keeps as they come. The only ones with a float that is not a number
+// are Devias's 492 and 493, with y at 0xFFFFFFFF; the only negative type is World7's 18, -515, and the two after it
+// are all zeros. Four have a negative scale.
 TEST_F(GoldenTerrainObjects, TheOddObjectsOfTheLab)
 {
     std::vector<ObjectPlace> notFinite;
@@ -211,27 +205,25 @@ TEST_F(GoldenTerrainObjects, TheOddObjectsOfTheLab)
     EXPECT_EQ((*world7)[18].type, -515);
 }
 
-// Cómo guarda el original cada objeto en obj_nodes.bin, de la captura de los objetos de Lorencia
-// (README de mu-golden): la lista y la dirección del nodo (dos u32), y después los 0x1D4 bytes del
-// objeto que reserva 0x606660.
+// How the original stores each object in obj_nodes.bin, from the Lorencia objects capture (mu-golden's README): the
+// list and the node's address (two u32), then the object's 0x1D4 bytes that 0x606660 allocates.
 constexpr std::size_t NodeHeaderSize = 2 * sizeof(std::uint32_t);
 constexpr std::size_t NodeObjectSize = 0x1D4;
 constexpr std::size_t NodeSize = NodeHeaderSize + NodeObjectSize;
 static_assert(NodeSize == 0x1DC, "el nodo que da el README de mu-golden (2870 × 0x1DC)");
-// Dónde quedan los campos del archivo dentro del objeto. Están medidos sobre los volcados, no
-// leídos en el asm de 0x606660 (05-formatos-de-datos.md, el .obj, y OBJ_NODE_* en
-// mu-client/tests/assets/test_terrain_golden.c del repo de research).
+// Measured on the dumps, not read in 0x606660's asm (05-formatos-de-datos.md, the .obj, and OBJ_NODE_* in the research
+// repo's mu-client/tests/assets/test_terrain_golden.c).
 constexpr std::size_t NodeTypeOffset = 2;
 constexpr std::size_t NodeScaleOffset = 12;
 constexpr std::size_t NodePositionOffset = 16;
 constexpr std::size_t NodeAngleOffset = 28;
-// La escena de la captura (0x6D5DC8). 0x606660 cambia la escala de algunos objetos en las escenas 2
-// y 4 (mu-client/docs/component-terrain.md), así que la comparación vale para esta.
+// The capture's scene (0x6D5DC8). 0x606660 changes some objects' scale in scenes 2 and 4
+// (mu-client/docs/component-terrain.md), so the comparison holds for this one.
 constexpr std::int32_t SceneOfTheCapture = 5;
 
 using ObjectValues = std::array<std::uint32_t, ObjectValueCount>;
 
-// Los valores de un objeto de la memoria, en el orden de ObjectBits.
+// In the order of ObjectBits.
 ObjectValues NodeValues(std::span<const std::byte> object)
 {
     const auto readU32 = [object](std::size_t offset)
@@ -247,7 +239,7 @@ ObjectValues NodeValues(std::span<const std::byte> object)
             readU32(NodeScaleOffset)};
 }
 
-// Un int32 de un volcado de 4 bytes, como g_world o la escena.
+// From a 4-byte dump, like g_world or the scene.
 std::optional<std::int32_t> DumpInt32(const std::filesystem::path& path)
 {
     const std::optional<std::vector<char>> bytes = ReadFileBytes(path);
@@ -259,11 +251,9 @@ std::optional<std::int32_t> DumpInt32(const std::filesystem::path& path)
     return std::bit_cast<std::int32_t>(reader.ReadU32Le().value_or(0));
 }
 
-// Los objetos de Lorencia son los que tenía en memoria el main.exe original, en la escena 5: los
-// mismos, con los mismos bits, en el mismo orden y tantos como su contador (0x07D36598). El
-// original los reparte en 256 listas, una por bloque del mapa (0x606660), cada una en el orden del
-// archivo; como el archivo ya viene ordenado por bloque, las listas leídas de la 0 a la 255 dan el
-// orden del archivo. En qué bloque cae cada objeto es de la CL7.
+// Lorencia's objects as the original main.exe had them in scene 5: the same, with the same bits, in the same order
+// and as many as its counter (0x07D36598). The original spreads them over 256 lists, one per map block (0x606660),
+// each in file order; since the file is already sorted by block, lists 0 to 255 give the file's order.
 TEST_F(MemoryTerrainObjects, LorenciaEqualsTheOriginalsMemory)
 {
     const auto path = DataFile(ObjectsFile(LorenciaObjectsCapture.world));

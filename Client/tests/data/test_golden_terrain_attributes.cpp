@@ -19,8 +19,6 @@
 #include <string_view>
 #include <vector>
 
-// EncTerrain.att reales: los de la carpeta golden y, si está, el volcado de la memoria del original
-// (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Core::ByteReader;
@@ -39,15 +37,15 @@ using Client::Tests::ReadFileBytes;
 
 using GoldenTerrainAttributes = Client::Tests::GoldenDataTest;
 
-// La ruta que arma el original: "Data\\%s\\EncTerrain%d.att" con "World%d" (0x6c7314, en 0x61a560).
+// The path the original builds: "Data\\%s\\EncTerrain%d.att" with "World%d" (0x6c7314, at 0x61a560).
 std::string AttributesFile(std::uint8_t world)
 {
     const std::string number = std::to_string(world);
     return "World" + number + "\\EncTerrain" + number + ".att";
 }
 
-// En LabWorlds, el 1 y los del 31 en adelante tienen dos bytes por celda; el resto, uno. El 31 y el
-// 56 tienen celdas con el byte de arriba distinto de cero, que se descarta.
+// In LabWorlds, world 1 and those from 31 on have two bytes per cell; the rest, one. 31 and 56 have cells whose high
+// byte is not zero, and it is dropped.
 
 TEST_F(GoldenTerrainAttributes, LoadsEveryWorldOfTheLab)
 {
@@ -67,8 +65,8 @@ TEST_F(GoldenTerrainAttributes, LoadsEveryWorldOfTheLab)
     }
 }
 
-// Los .att con otro número en el nombre, que el original elige según el estado del juego
-// (0x61a6ea, 0x61a710). Su cabecera dice el número de la carpeta, no el del nombre.
+// The original picks these by game state (0x61a6ea, 0x61a710). Their header says the folder's number, not the
+// name's.
 TEST_F(GoldenTerrainAttributes, LoadsTheVariantsWithTheWorldOfTheirFolder)
 {
     struct Variant
@@ -94,10 +92,9 @@ TEST_F(GoldenTerrainAttributes, LoadsTheVariantsWithTheWorldOfTheirFolder)
     }
 }
 
-// El .att de Lorencia es de dos bytes por celda, y en él se ve si el cargador se queda con el byte
-// correcto: de las 7.939 celdas de agua (el tile 5 de la capa 1 del .map), 7.818 tienen el
-// atributo 4. Es el contraste que hizo el research entre los dos archivos
-// (005f87b0-encterrain-map.md §8). Con el byte de arriba, que en Lorencia es siempre cero, darían 0.
+// Lorencia's .att has two bytes per cell, which shows whether the loader keeps the right byte: of the 7,939 water
+// cells (tile 5 of the .map's layer 1), 7,818 have attribute 4, the research's cross-check of both files
+// (005f87b0-encterrain-map.md §8). The high byte, always zero in Lorencia, would give 0.
 TEST_F(GoldenTerrainAttributes, LorenciaWaterHasAttribute4)
 {
     const auto attributesPath = DataFile(AttributesFile(1));
@@ -132,8 +129,7 @@ TEST_F(GoldenTerrainAttributes, LorenciaWaterHasAttribute4)
     EXPECT_EQ(waterWithAttribute4, 7818u);
 }
 
-// Una celda que el juego cambió después de cargar: dónde está, qué trae el archivo y qué tenía la
-// memoria del original.
+// A cell the game changed after loading: where it is, what the file has and what the original's memory had.
 struct ChangedCell
 {
     std::uint8_t x;
@@ -149,9 +145,8 @@ void PrintTo(const ChangedCell& cell, std::ostream* out)
     *out << "(" << int{cell.x} << ", " << int{cell.y} << "): " << cell.file << " -> " << cell.memory;
 }
 
-// Las celdas en las que los atributos que carga MuRet no son los del volcado `memory`, los WORD de
-// 0x07D0D348, en el orden de las celdas, fila por fila. Una celda que falta en el volcado cuenta
-// como distinta, con 0 en memoria.
+// The cells where MuRet's attributes differ from the dump `memory`, the WORDs at 0x07D0D348, in cell order, row by
+// row. A cell missing from the dump counts as different, with 0 in memory.
 std::vector<ChangedCell> CompareWithMemory(const TerrainAttributes& attributes, std::span<const std::byte> memory)
 {
     ByteReader reader(memory);
@@ -172,8 +167,7 @@ std::vector<ChangedCell> CompareWithMemory(const TerrainAttributes& attributes, 
 class MemoryTerrainAttributes : public Client::Tests::MemoryDumpTest
 {
 protected:
-    // Las celdas que difieren entre el .att de la captura y su volcado `name`. Marca el test como
-    // fallado si falta algo.
+    // Fails the test if something is missing.
     std::optional<std::vector<ChangedCell>> CellsThatDiffer(const MemoryCapture& capture, std::string_view name) const
     {
         const auto path = DataFile(AttributesFile(capture.world));
@@ -205,11 +199,9 @@ protected:
     }
 };
 
-// Los atributos son los que tenía en memoria el main.exe original después de cargar el mismo
-// archivo, en Devias (World3; s31_att.bin), salvo 10 celdas que el juego ya había cambiado cuando
-// se leyó la memoria. Son las que lista el research (s31-assets/byte-a-byte.md): el bit 0x02 de la
-// celda del personaje, puesto en (199, 19) y limpiado en (9, 79), y el 0x04 limpiado en dos
-// pasajes de 4 celdas.
+// The original main.exe's memory after loading the same file, in Devias (World3; s31_att.bin), but for 10 cells the
+// game had already changed when the memory was read, as the research lists them (s31-assets/byte-a-byte.md): the
+// character cell's bit 0x02, set at (199, 19) and cleared at (9, 79), and 0x04 cleared in two 4-cell passages.
 TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryInDeviasButForTheGameState)
 {
     const auto changed = CellsThatDiffer(DeviasCapture, "s31_att.bin");
@@ -222,9 +214,9 @@ TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryInDeviasButForTheGameSta
     EXPECT_EQ(*changed, gameState);
 }
 
-// Lo mismo en Lorencia (World1; lor_att.bin), salvo 7 celdas (byte-a-byte.md, el segundo mapa): el
-// bit 0x02 puesto en (141, 117) y (130, 121) y limpiado en (221, 11), y el 0x04 limpiado en las
-// mismas 4 celdas de (118..121, 115) que en Devias, aunque es otro mapa.
+// The same in Lorencia (World1; lor_att.bin), but for 7 cells (byte-a-byte.md, the second map): bit 0x02 set at
+// (141, 117) and (130, 121) and cleared at (221, 11), and 0x04 cleared in the same 4 cells of (118..121, 115) as in
+// Devias, though it is another map.
 TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryInLorenciaButForTheGameState)
 {
     const auto changed = CellsThatDiffer(LorenciaCapture, "lor_att.bin");

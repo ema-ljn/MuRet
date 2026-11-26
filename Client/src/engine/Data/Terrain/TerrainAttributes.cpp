@@ -17,8 +17,8 @@ namespace Client::Data::Terrain
 {
 namespace
 {
-// La cabecera en claro es 00 N FF FF (005f8390-encterrain-att.md, "Formato"): el primer byte y
-// los dos últimos son fijos, y el del medio es el mundo, que se mira aparte.
+// The plain header is 00 N FF FF (005f8390-encterrain-att.md, "Formato"): the first byte and the last two are fixed,
+// and the middle one is the world, checked separately.
 constexpr std::byte HeaderStart{0x00};
 constexpr std::byte HeaderEnd{0xFF};
 
@@ -27,7 +27,6 @@ bool IsTheHeader(std::span<const std::byte> plain)
     return plain[0] == HeaderStart && plain[2] == HeaderEnd && plain[3] == HeaderEnd;
 }
 
-// Las celdas y el mundo de la cabecera, sin compararlo.
 struct DecodedAttributes
 {
     std::unique_ptr<TerrainAttributes> attributes;
@@ -49,7 +48,7 @@ Core::Expected<DecodedAttributes, DataError> DecodeTerrainAttributes(std::span<c
         return Core::Unexpected(DataError::InvalidData);
     }
 
-    // Con dos bytes por celda, el de abajo es el primero (little-endian) y el de arriba se tira.
+    // With two bytes per cell, the low one comes first (little-endian) and the high one is dropped.
     const std::size_t cellSize = file.size() == TerrainAttributesSizeWithWordCells ? 2 : 1;
     auto attributes = std::make_unique<TerrainAttributes>();
     for (std::size_t cell = 0; cell < TerrainCellCount; ++cell)

@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 
-// Client::Data::Textures::TextureSide: el lado de la textura para el de una imagen.
 namespace
 {
 using Client::Data::Textures::BytesPerPixel;
@@ -10,7 +9,6 @@ using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::TextureMaxSide;
 using Client::Data::Textures::TextureSide;
 
-// La potencia de 2 que cubre el lado, desde 1.
 TEST(TextureTest, TheSideIsThePowerOf2ThatCoversTheImage)
 {
     EXPECT_EQ(TextureSide(1), 1);
@@ -22,7 +20,7 @@ TEST(TextureTest, TheSideIsThePowerOf2ThatCoversTheImage)
     EXPECT_EQ(TextureSide(511), 512);
 }
 
-// Con tope en 512, aunque la imagen sea más grande: los cargadores la rechazan antes.
+// The loaders reject a larger image first.
 TEST(TextureTest, TheSideStopsAt512)
 {
     EXPECT_EQ(TextureMaxSide, 512);
@@ -31,7 +29,7 @@ TEST(TextureTest, TheSideStopsAt512)
     EXPECT_EQ(TextureSide(800), 512);
 }
 
-// El OZT deja pasar un lado de cero o negativo, y la textura queda de 1.
+// The OZT lets a zero or negative side through.
 TEST(TextureTest, ZeroOrANegativeSideGives1)
 {
     EXPECT_EQ(TextureSide(0), 1);

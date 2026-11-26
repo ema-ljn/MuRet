@@ -1,21 +1,18 @@
 #pragma once
 
-#include <cstdio> // jpeglib.h usa FILE y no incluye su header
+#include <cstdio> // jpeglib.h uses FILE without including its header
 
 #include <jpeglib.h>
 
-// Cómo cortan los errores de libjpeg en MuRet, lo comparten el decodificador (JpegImage.cpp) y el
-// compresor de la captura (JpegWriter.cpp). El original deja el error_exit de jpeg_std_error, que
-// muestra el mensaje y sale del proceso con exit(1); MuRet salta con longjmp al setjmp de quien
-// llamó, que devuelve el error. libjpeg las llama como funciones de C, así que lo son: una función
-// de C y una de C++ son de tipos distintos ([dcl.link]).
+// The original keeps jpeg_std_error's error_exit, which shows the message and exits with exit(1); MuRet longjmps to
+// the caller's setjmp, which returns the error. libjpeg calls these as C functions, so they are: a C function and a
+// C++ one have different types ([dcl.link]).
 extern "C"
 {
-    // error_exit: libjpeg lo llama ante un error y no puede volver. Salta al jmp_buf que quien
-    // llama dejó en client_data.
+    // error_exit: libjpeg calls it on an error and it cannot return. Jumps to the jmp_buf the caller left in
+    // client_data.
     [[noreturn]] void JpegJumpOnError(j_common_ptr info);
 
-    // output_message: los mensajes no se muestran. En el original van al stderr de un programa de
-    // Windows, que no se ve.
+    // output_message: messages are not shown. In the original they go to a Windows program's stderr, which nobody sees.
     void JpegDiscardMessage(j_common_ptr info);
 }

@@ -10,15 +10,14 @@ namespace Client::Data::Models
 {
 namespace
 {
-// Las carpetas que pasan los dos cargadores, sin el "Data\\" del principio, que pone LoadModelFile.
+// Without the leading "Data\\", which LoadModelFile adds.
 constexpr std::string_view PlayerFolder = "Player\\";
 constexpr std::string_view ItemFolder = "Item\\";
 constexpr std::string_view SkillFolder = "Skill\\";
 constexpr std::string_view BloodCastleFolder = "Object12\\";
 constexpr std::string_view EffectFolder = "Effect\\";
 
-// Cada llamada a 0x60da30 de 0x60dbe0 en el modo Data\, desde 0x60e8fc: el modelo, la carpeta, el
-// nombre y el número, con la dirección de la llamada (las de un bucle se repiten).
+// Each call to 0x60da30 from 0x60dbe0 in the Data\ mode, from 0x60e8fc, with the call's address (a loop's repeat).
 constexpr std::array<ModelFile, 213> PlayerFiles = {{
     {0x20a, PlayerFolder, "Player", -1},         // 0x60e90d
     {0x2212, PlayerFolder, "HelmClass", 1},      // 0x60e980
@@ -235,7 +234,7 @@ constexpr std::array<ModelFile, 213> PlayerFiles = {{
     {0x20b, PlayerFolder, "Shadow", 1},          // 0x60f2f4
 }};
 
-// Las de 0x60ff50 en el modo Data\, desde 0x610906.
+// 0x60ff50's, in the Data\ mode, from 0x610906.
 constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0x212, ItemFolder, "Sword", 1},              // 0x61091d
     {0x213, ItemFolder, "Sword", 2},              // 0x61091d
@@ -482,7 +481,7 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0xc1e, ItemFolder, "HDK_Staff", -1},         // 0x6117f8
 }};
 
-// 0x615700: las cargas de la rama Data en orden del ASM. ManyFlag es opcional.
+// 0x615700: the Data branch's loads in ASM order. ManyFlag is optional.
 constexpr std::array<ModelFile, 106> SkillFiles = {{
     {0xc1, SkillFolder, "Ice", 1},                 // 0x615d20
     {0xca, SkillFolder, "Ice", 2},                 // 0x615d36

@@ -7,36 +7,27 @@
 #include <optional>
 #include <span>
 
-// El checksum de Item.bmd y Skill.bmd (Client/docs/research/05-formatos-de-datos.md, "Tablas
-// .bmd"; lo calculan los cargadores de 0x54b9e0 y 0x54acf0). Va en el archivo, después de la
-// tabla, y se calcula sobre la tabla tal como está ahí, cifrada:
-//
-//   acc = key << 9
-//   por cada dword i (little-endian): acc ^= dword o acc += dword, según la paridad de i
-//   si i % 4 == 0: acc ^= (acc + key) >> ((i & 7) + 1)
-//
-// Las cuentas son en 32 bits sin signo, que dan la vuelta (módulo 2^32) como en el original. Los
-// bytes que sobran después del último dword completo no cuentan.
+// The checksum of Item.bmd and Skill.bmd (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd"; computed by
+// the loaders at 0x54b9e0 and 0x54acf0). It follows the table in the file and is computed over the table as stored,
+// encrypted. Unsigned 32-bit arithmetic that wraps like the original's; bytes after the last whole dword do not count.
 namespace Client::Data::Tables
 {
-// Qué dwords entran con XOR; los demás se suman.
 enum class ChecksumParity
 {
     XorOddDwords,  // Item.bmd
     XorEvenDwords, // Skill.bmd
 };
 
-// La clave del checksum de cada tabla (05 § Tablas .bmd): da la semilla, `key << 9`, y se vuelve
-// a sumar en cada mezcla. Con otra clave sale otro checksum, aunque los bytes sean los mismos.
+// (05 § Tablas .bmd) It seeds `key << 9` and is added again on every mix: another key gives another checksum for the
+// same bytes.
 inline constexpr std::uint32_t ItemChecksumKey = 0xE2F1;
 inline constexpr std::uint32_t SkillChecksumKey = 0x5A18;
 
 [[nodiscard]] ENGINE_API std::uint32_t TableChecksum(std::span<const std::byte> bytes, std::uint32_t key,
                                                      ChecksumParity parity);
 
-// El checksum que guarda el archivo: el dword little-endian que sigue a sus `recordsSize` bytes de
-// registros, o std::nullopt si `file` no llega a tenerlo. Lo que venga después no cuenta, como con
-// el fread de 4 bytes del original.
+// The little-endian dword after the `recordsSize` bytes of records, or std::nullopt if `file` is shorter. Anything
+// after it does not count, as with the original's 4-byte fread.
 [[nodiscard]] ENGINE_API std::optional<std::uint32_t> StoredChecksum(std::span<const std::byte> file,
                                                                      std::size_t recordsSize);
 } // namespace Client::Data::Tables

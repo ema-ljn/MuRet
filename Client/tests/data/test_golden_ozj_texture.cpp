@@ -21,8 +21,6 @@
 #include <string_view>
 #include <vector>
 
-// OZJ reales: los de la carpeta golden y, si está, los buffers de textura de la memoria del original
-// (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Data::DataError;
@@ -38,7 +36,6 @@ using Client::Tests::SameBytes;
 using GoldenOzjTexture = Client::Tests::GoldenDataTest;
 using MemoryOzjTexture = Client::Tests::MemoryDumpTest;
 
-// La textura de `path`, o el error con que no cargó.
 Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path& path)
 {
     const std::optional<std::vector<char>> file = ReadFileBytes(path);
@@ -50,15 +47,14 @@ Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path&
     return LoadOzjTexture(std::as_bytes(std::span(*file)));
 }
 
-// Los 2.387 OZJ del laboratorio cargan salvo ocho, que el original tampoco carga: los 7 TGA de
-// Q-C14, que libjpeg rechaza, y skill\null.OZJ, de 800 × 600, más grande que 512. Que todos son en
-// color lo mira test_golden_jpeg_image.cpp.
+// All 2,387 lab OZJs load but eight the original does not load either: the 7 TGAs of Q-C14, which libjpeg rejects,
+// and skill\null.OZJ, 800 × 600, over 512. test_golden_jpeg_image.cpp checks they are all color.
 TEST_F(GoldenOzjTexture, LoadsEveryOzjOfTheLabButTheTgaAndTheOneOver512)
 {
     std::size_t files = 0;
     std::vector<std::string> rejected;
-    // Sin error_code: si no se puede recorrer la carpeta, el iterador tira filesystem_error y el
-    // test falla con su mensaje.
+    // Without error_code: if the folder cannot be walked, the iterator throws filesystem_error and the test fails with
+    // its message.
     for (const auto& entry : std::filesystem::recursive_directory_iterator(m_dataRoot))
     {
         if (!entry.is_regular_file() || !HasExtension(entry.path(), ".ozj"))
@@ -78,8 +74,7 @@ TEST_F(GoldenOzjTexture, LoadsEveryOzjOfTheLabButTheTgaAndTheOneOver512)
         EXPECT_EQ(texture.format, PixelFormat::Rgb) << name;
         EXPECT_GT(texture.width, 0) << name;
         EXPECT_GT(texture.height, 0) << name;
-        // Ninguno de los que cargan pasa de 512, así que el lado es la potencia de 2 más chica que
-        // lo cubre.
+        // None that loads exceeds 512, so the side is the smallest power of 2 that covers it.
         EXPECT_EQ(static_cast<unsigned>(texture.textureWidth), std::bit_ceil(static_cast<unsigned>(texture.width)))
             << name;
         EXPECT_EQ(static_cast<unsigned>(texture.textureHeight), std::bit_ceil(static_cast<unsigned>(texture.height)))
@@ -100,10 +95,8 @@ TEST_F(GoldenOzjTexture, LoadsEveryOzjOfTheLabButTheTgaAndTheOneOver512)
                         }));
 }
 
-// Las texturas son las que tenía en memoria el main.exe original, en su tabla de texturas
-// (0x07D3A198, el buffer de +0x34), en la captura de Lorencia: los 9 tiles OZJ de World1, en los
-// slots 0x23 a 0x2b (README de mu-golden). Son todas de lados potencia de 2, así que el buffer es
-// la imagen.
+// The original main.exe's texture table in memory (0x07D3A198, the buffer at +0x34) in the Lorencia capture: World1's
+// 9 OZJ tiles in slots 0x23 to 0x2b (mu-golden's README). All have power-of-2 sides, so the buffer is the image.
 TEST_F(MemoryOzjTexture, EqualsTheOriginalsMemory)
 {
     struct Slot

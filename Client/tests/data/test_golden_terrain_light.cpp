@@ -18,8 +18,6 @@
 #include <string_view>
 #include <vector>
 
-// TerrainLight.OZJ reales: los de la carpeta golden y, si está, la luz que tenía en memoria el
-// original (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Core::EqualsIgnoringAsciiCase;
@@ -35,12 +33,11 @@ using Client::Tests::SameBytes;
 
 using GoldenTerrainLight = Client::Tests::GoldenDataTest;
 
-// Las luces del laboratorio: un TerrainLight.OZJ en 19 de sus 20 mundos (World6 no tiene), más
-// TerrainLight2 y dos de prueba (TerrainLightTest y TerrainLightTest2) en World31, y TerrainLight1 y
-// TerrainLight2 en World35.
+// A TerrainLight.OZJ in 19 of the lab's 20 worlds (World6 has none), plus TerrainLight2 and two test ones
+// (TerrainLightTest and TerrainLightTest2) in World31, and TerrainLight1 and TerrainLight2 in World35.
 constexpr std::size_t TerrainLightFilesOfTheLab = 24;
 
-// Si `path` es una luz: TerrainLight<algo>.OZJ, sin distinguir mayúsculas.
+// TerrainLight<something>.OZJ, ignoring case.
 bool IsTerrainLight(const std::filesystem::path& path)
 {
     constexpr std::string_view prefix = "TerrainLight";
@@ -49,7 +46,6 @@ bool IsTerrainLight(const std::filesystem::path& path)
            EqualsIgnoringAsciiCase(std::string_view(stem).substr(0, prefix.size()), prefix);
 }
 
-// La luz de `path`, o el error con que no cargó.
 Client::Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadFile(const std::filesystem::path& path)
 {
     const std::optional<std::vector<char>> file = ReadFileBytes(path);
@@ -61,7 +57,7 @@ Client::Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadFile(const 
     return LoadTerrainLight(std::as_bytes(std::span(*file)));
 }
 
-// Las 24 luces del laboratorio cargan: todas son de 256 × 256 y en color.
+// All 256 × 256 color.
 TEST_F(GoldenTerrainLight, LoadsEveryLightOfTheLab)
 {
     std::size_t files = 0;
@@ -79,8 +75,8 @@ TEST_F(GoldenTerrainLight, LoadsEveryLightOfTheLab)
     EXPECT_EQ(files, TerrainLightFilesOfTheLab);
 }
 
-// La luz es la que tenía en memoria el original en 0x078ecc10, con los mismos bits: la de Devias
-// (s31_light.bin) y la de Lorencia (lor_light.bin).
+// The light the original had at 0x078ecc10, with the same bits: Devias's (s31_light.bin) and Lorencia's
+// (lor_light.bin).
 class MemoryTerrainLight : public Client::Tests::MemoryDumpTest
 {
 protected:

@@ -9,11 +9,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::TableChecksum: el checksum de Item.bmd y Skill.bmd.
-//
-// Los valores esperados son los de mu-client/tests/assets/test_bmd_tables.c, que los sacó de
-// assets_reference.py del laboratorio. El de dos dwords a mano es la actividad 12 de la guía de la
-// CL1.0: queda para que lo agregues vos.
+// The expected values are mu-client/tests/assets/test_bmd_tables.c's, taken from the lab's assets_reference.py.
 namespace
 {
 using Client::Data::Tables::ChecksumParity;
@@ -34,8 +30,7 @@ TEST(TableChecksumTest, MatchesTheResearchVectors)
     EXPECT_EQ(TableChecksum(pattern, SkillChecksumKey, ChecksumParity::XorEvenDwords), 0xA9B5ED92u);
 }
 
-// El checksum guardado es el dword que sigue a los registros, en little-endian. Los bytes que
-// vienen después no cuentan.
+// Little-endian. Bytes after it do not count.
 TEST(TableChecksumTest, StoredChecksumFollowsTheRecords)
 {
     std::vector<std::byte> file = BytePattern(8, 1, 0);
@@ -44,7 +39,6 @@ TEST(TableChecksumTest, StoredChecksumFollowsTheRecords)
     EXPECT_EQ(StoredChecksum(file, 8), 0xE2F1u);
 }
 
-// Sin los 4 bytes enteros después de los registros, o sin los registros, no hay checksum.
 TEST(TableChecksumTest, NoStoredChecksumWithoutItsFourBytes)
 {
     const std::vector<std::byte> file = BytePattern(11, 1, 0);
@@ -60,7 +54,6 @@ TEST(TableChecksumTest, EmptyGivesTheSeed)
     EXPECT_EQ(TableChecksum({}, SkillChecksumKey, ChecksumParity::XorEvenDwords), SkillChecksumKey << 9);
 }
 
-// Los bytes que no llegan a un dword no cuentan.
 TEST(TableChecksumTest, IgnoresAnIncompleteLastDword)
 {
     const std::vector<std::byte> sequence = BytePattern(7, 1, 0);
@@ -70,7 +63,7 @@ TEST(TableChecksumTest, IgnoresAnIncompleteLastDword)
               TableChecksum(bytes.first(4), ItemChecksumKey, ChecksumParity::XorOddDwords));
 }
 
-// Con la misma clave, la paridad cambia el resultado: no es un detalle que se pueda invertir.
+// With the same key, the parity changes the result: it cannot be inverted.
 TEST(TableChecksumTest, ParityMatters)
 {
     const std::vector<std::byte> sequence = BytePattern(32, 1, 0);

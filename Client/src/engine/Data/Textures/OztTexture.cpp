@@ -17,15 +17,13 @@ namespace
 {
 using Core::ByteReader;
 
-// El orden de los bytes de un píxel en el archivo: azul, verde, rojo y alfa, como los guarda un
-// TGA de 32 bits.
+// As a 32-bit TGA stores them.
 constexpr std::size_t FileBlue = 0;
 constexpr std::size_t FileGreen = 1;
 constexpr std::size_t FileRed = 2;
 constexpr std::size_t FileAlpha = 3;
 
-// Los tres campos de la cabecera que lee el original. El ancho y el alto van con signo, como los
-// compara él.
+// Width and height are signed, as the original compares them.
 struct OztHeader
 {
     int width = 0;
@@ -33,12 +31,10 @@ struct OztHeader
     std::uint8_t bitsPerPixel = 0;
 };
 
-// Los campos van seguidos, así que se leen de corrido desde el ancho.
 static_assert(OztHeightOffset == OztWidthOffset + sizeof(std::int16_t) &&
                   OztBitsPerPixelOffset == OztHeightOffset + sizeof(std::int16_t),
               "el ancho, el alto y los bits por píxel van seguidos (0063bd00-ozt-loader.md)");
 
-// La cabecera de `file`, o std::nullopt si el archivo no llega a OztHeaderSize.
 std::optional<OztHeader> ReadHeader(std::span<const std::byte> file)
 {
     if (file.size() < OztHeaderSize)
@@ -56,8 +52,7 @@ std::optional<OztHeader> ReadHeader(std::span<const std::byte> file)
     return OztHeader{std::bit_cast<std::int16_t>(*width), std::bit_cast<std::int16_t>(*height), *bitsPerPixel};
 }
 
-// Copia la fila `row` de la imagen, que empieza en `source`, a la fila alto - 1 - row de la
-// textura, pasando cada píxel de BGRA a RGBA.
+// Image row `row` goes to texture row height - 1 - row, each pixel from BGRA to RGBA.
 void CopyRow(std::span<const std::byte> source, Texture& texture, int row)
 {
     const std::size_t pixelSize = BytesPerPixel(PixelFormat::Rgba);

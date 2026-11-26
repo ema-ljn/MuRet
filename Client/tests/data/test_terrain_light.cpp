@@ -16,9 +16,8 @@
 #include <span>
 #include <vector>
 
-// LoadTerrainLight con OZJ armados desde los vectores de CI. Lo que se prueba es lo de la luz:
-// cada byte por 1/255 y las filas dadas vuelta, contra lo que da DecodeJpeg (sus tests están en
-// test_jpeg_image.cpp), y el tamaño que se acepta.
+// OZJs built from the CI vectors. What is tested is the light: each byte times 1/255 and the rows flipped, against
+// what DecodeJpeg gives (its tests are in test_jpeg_image.cpp), and the accepted size.
 namespace
 {
 using Client::Data::DataError;
@@ -33,7 +32,6 @@ using Client::Tests::OzjOf;
 using Client::Tests::ReadJpegVector;
 using Client::Tests::SameBytes;
 
-// El error de cargar `file`, o std::nullopt si cargó.
 std::optional<DataError> LoadError(std::span<const std::byte> file)
 {
     const auto loaded = LoadTerrainLight(file);
@@ -44,7 +42,7 @@ std::optional<DataError> LoadError(std::span<const std::byte> file)
     return loaded.Error();
 }
 
-// La celda (x, y) es el píxel x de la fila 255 - y del JPEG, con cada canal por la constante.
+// Cell (x, y) is pixel x of the JPEG's row 255 - y, each channel times the constant.
 TEST(TerrainLightTest, EachCellIsAPixelOfTheFlippedImageTimesTheScale)
 {
     const std::vector<std::byte> jpeg = ReadJpegVector("light-256.jpg");
@@ -72,8 +70,8 @@ TEST(TerrainLightTest, EachCellIsAPixelOfTheFlippedImageTimesTheScale)
     }
 }
 
-// Q-C31: solo entra una luz de 256 × 256 en color, la que llena la tabla del original. Una de un
-// lado más chico (el alto o el ancho), una más grande o una en grises son InvalidData.
+// Q-C31: only a 256 × 256 color light fits the original's table. A smaller side (height or width), a larger one or a
+// grayscale one are InvalidData.
 TEST(TerrainLightTest, OnlyTakesALightOf256By256InColor)
 {
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-256x255.jpg"))), DataError::InvalidData);
@@ -82,9 +80,8 @@ TEST(TerrainLightTest, OnlyTakesALightOf256By256InColor)
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-gray-256.jpg"))), DataError::InvalidData);
 }
 
-// Q-C32: en un JPEG de un solo scan, como light-256, lo que viene después de la última fila no se
-// lee. Con un segundo SOI antes del EOI, que jpeg_finish_decompress rechaza, la luz es la misma: el
-// original ya la escribió en la tabla cuando lo rechaza.
+// Q-C32: in a single-scan JPEG, like light-256, what follows the last row is not read. With a second SOI before the
+// EOI, which jpeg_finish_decompress rejects, the light is the same: the original has written the table by then.
 TEST(TerrainLightTest, WhatComesAfterTheLastRowIsNotRead)
 {
     std::vector<std::byte> jpeg = ReadJpegVector("light-256.jpg");
@@ -101,7 +98,7 @@ TEST(TerrainLightTest, WhatComesAfterTheLastRowIsNotRead)
         SameBytes(std::as_bytes(std::span(light.Value()->cells)), std::as_bytes(std::span(expected.Value()->cells))));
 }
 
-// Sin bytes después de los 24 no hay JPEG: FileTooShort. Lo que no es un JPEG es InvalidData.
+// What is not a JPEG is InvalidData.
 TEST(TerrainLightTest, AFileWithoutJpegIsTooShort)
 {
     const std::vector<std::byte> file = OzjOf(ReadJpegVector("light-256.jpg"));

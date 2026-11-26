@@ -10,7 +10,6 @@
 #include <string_view>
 #include <system_error>
 
-// Client::Data::ResolveDataPath contra un Data\ armado en una carpeta temporal.
 namespace
 {
 namespace fs = std::filesystem;
@@ -20,8 +19,8 @@ class DataPathTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // Con un sufijo al azar, dos corridas a la vez (Debug y Release, dos worktrees) no se
-        // borran la carpeta una a la otra.
+        // A random suffix keeps two simultaneous runs (Debug and Release, two worktrees) from deleting each other's
+        // folder.
         const std::string testName = ::testing::UnitTest::GetInstance()->current_test_info()->name();
         m_root =
             fs::temp_directory_path() / ("muret-datapath-" + testName + "-" + std::to_string(std::random_device{}()));
@@ -35,14 +34,14 @@ protected:
         fs::remove_all(m_root, error);
     }
 
-    // No se llama CreateFile: en Windows <windows.h> la define como macro (CreateFileW).
+    // Not CreateFile: on Windows <windows.h> defines it as a macro (CreateFileW).
     void WriteDataFile(const fs::path& relative) const
     {
         fs::create_directories((m_root / relative).parent_path());
         std::ofstream(m_root / relative) << "x";
     }
 
-    // ResolveDataPath sin errores de E/S: un error acá es una falla del test.
+    // An I/O error here is a test failure.
     std::optional<fs::path> Resolve(std::string_view originalPath) const
     {
         std::error_code error;
@@ -51,7 +50,7 @@ protected:
         return path;
     }
 
-    // ¿Este sistema de archivos distingue mayúsculas? (ext4 sí; NTFS y APFS, por defecto, no.)
+    // ext4 does not; NTFS and APFS do by default.
     bool FileSystemIgnoresCase() const
     {
         WriteDataFile("CaseProbe");
@@ -76,15 +75,15 @@ TEST_F(DataPathTest, FindsAnExactPath)
 
 TEST_F(DataPathTest, AcceptsBackslashesAndIgnoresCaseLikeWindows)
 {
-    // Como en el Data\ del laboratorio: la carpeta en minúscula y la extensión en mayúscula.
+    // As in the lab's Data\: the folder lowercase and the extension uppercase.
     WriteDataFile("player/Player.BMD");
 
     const auto path = Resolve("Player\\player.bmd");
 
     ASSERT_TRUE(path.has_value());
     ASSERT_TRUE(fs::is_regular_file(*path));
-    // Es el mismo archivo. El nombre devuelto no se compara: en Linux es el del disco
-    // ("Player.BMD"), pero en Windows el primer intento ya lo encuentra con la grafía pedida.
+    // The returned name is not compared: on Linux it is the disk's ("Player.BMD"), but on Windows the first attempt
+    // already finds it with the requested case.
     EXPECT_TRUE(fs::equivalent(*path, m_root / "player" / "Player.BMD"));
 }
 
@@ -101,7 +100,7 @@ TEST_F(DataPathTest, SkipsDotsAndEmptyParts)
 TEST_F(DataPathTest, StopsAtTheFirstNulLikeACString)
 {
     WriteDataFile("Player/Player.bmd");
-    // Un nombre de largo fijo de un .bmd, completado con ceros.
+    // A .bmd fixed-length name, zero-padded.
     constexpr std::string_view FixedSizeName("Player\\Player.bmd\0\0\0", 20);
 
     const auto path = Resolve(FixedSizeName);
@@ -121,7 +120,7 @@ TEST_F(DataPathTest, ReturnsNulloptWhenTheFileIsMissing)
 TEST_F(DataPathTest, RejectsPathsThatAreNotDataFiles)
 {
     WriteDataFile("Enc1.dat");
-    // Player\ existe, así que "Player\..\.." falla por el "..", no porque falte la carpeta.
+    // Player\ exists, so "Player\..\.." fails for the "..", not for a missing folder.
     WriteDataFile("Player/Player.bmd");
 
     EXPECT_FALSE(Resolve("").has_value());
@@ -130,9 +129,9 @@ TEST_F(DataPathTest, RejectsPathsThatAreNotDataFiles)
     EXPECT_FALSE(Resolve("\\Enc1.dat").has_value());
     EXPECT_FALSE(Resolve("/Enc1.dat").has_value());
     EXPECT_FALSE(Resolve("C:\\Enc1.dat").has_value());
-    // Windows tampoco abre "archivo\" (ERROR_INVALID_NAME).
+    // Windows does not open "file\" either (ERROR_INVALID_NAME).
     EXPECT_FALSE(Resolve("Enc1.dat\\").has_value());
-    // Solo puntos: es Data\ misma, no algo adentro.
+    // Only dots: Data\ itself, not something inside it.
     EXPECT_FALSE(Resolve(".").has_value());
     EXPECT_FALSE(Resolve(".\\.").has_value());
 }
@@ -146,7 +145,7 @@ TEST_F(DataPathTest, IgnoresBrokenSymlinks)
         GTEST_SKIP() << "no se pudo crear el symlink (en Windows hace falta permiso): " << error.message();
     }
 
-    // Tal cual y sin mayúsculas: el symlink aparece al recorrer la carpeta, pero no existe.
+    // The symlink shows up when walking the folder but does not exist.
     EXPECT_FALSE(Resolve("Roto.bmd").has_value());
     EXPECT_FALSE(Resolve("ROTO.BMD").has_value());
 }
@@ -162,7 +161,7 @@ TEST_F(DataPathTest, PrefersTheExactNameWhenBothCasesExist)
 
     EXPECT_EQ(Resolve("Item\\a.bmd"), m_root / "Item" / "a.bmd");
     EXPECT_EQ(Resolve("item\\b.bmd"), m_root / "item" / "b.bmd");
-    // Sin coincidencia exacta, la primera en orden de bytes: "Item" < "item".
+    // Without an exact match, the first in byte order: "Item" < "item".
     EXPECT_EQ(Resolve("ITEM\\a.bmd"), m_root / "Item" / "a.bmd");
 }
 
@@ -174,7 +173,7 @@ TEST_F(DataPathTest, FoldsOnlyAsciiLetters)
     }
     WriteDataFile(fs::path(u8"\u00C4.bmd")); // "Ä.bmd"
 
-    // "Ä" es C3 84 y "ä" es C3 A4 en UTF-8: no son letras ASCII, así que no se igualan.
+    // "Ä" is C3 84 and "ä" is C3 A4 in UTF-8: not ASCII letters, so they do not match.
     EXPECT_FALSE(Resolve("\xC3\xA4.bmd").has_value());
     EXPECT_TRUE(Resolve("\xC3\x84.BMD").has_value());
 }
@@ -184,15 +183,14 @@ TEST_F(DataPathTest, ReportsFoldersThatCannotBeRead)
     WriteDataFile("Enc1.dat");
     std::error_code error;
 
-    // La "carpeta" Data\ es un archivo: no se puede recorrer.
+    // The Data\ "folder" is a file: it cannot be walked.
     EXPECT_FALSE(Client::Data::ResolveDataPath(m_root / "Enc1.dat", "Player.bmd", error).has_value());
     EXPECT_TRUE(error);
 
-    // No existe la carpeta Data\.
     EXPECT_FALSE(Client::Data::ResolveDataPath(m_root / "NoData", "Player.bmd", error).has_value());
     EXPECT_TRUE(error);
 
-    // Sin carpeta: un error de quien llama, no "no está".
+    // A caller error, not "missing".
     EXPECT_FALSE(Client::Data::ResolveDataPath(fs::path(), "Player.bmd", error).has_value());
     EXPECT_EQ(error, std::make_error_code(std::errc::invalid_argument));
 }

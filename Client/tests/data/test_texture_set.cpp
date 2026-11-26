@@ -24,10 +24,8 @@
 #include <utility>
 #include <vector>
 
-// Un juego de texturas leído del disco como lo pide el original: el nombre con la extensión del
-// cargador (0x63b870 y 0x63bd00), buscado sin mayúsculas, y cada textura con su slot y su
-// muestreo. Los archivos son sintéticos, en una carpeta temporal; el Data\ del laboratorio lo
-// prueba el golden de scenes/.
+// The name with the loader's extension (0x63b870 and 0x63bd00), found ignoring case. Synthetic files in a temporary
+// folder; the golden test of scenes/ covers the lab's Data\.
 namespace
 {
 using Client::Data::DataError;
@@ -53,7 +51,6 @@ using Client::Tests::TemporaryFolder;
 
 namespace fs = std::filesystem;
 
-// Escribe `bytes` en `root / relative`, con sus carpetas.
 void WriteFile(const fs::path& root, const fs::path& relative, std::span<const std::byte> bytes)
 {
     const fs::path path = root / relative;
@@ -66,30 +63,29 @@ void WriteFile(const fs::path& root, const fs::path& relative, std::span<const s
     ASSERT_TRUE(file.good()) << "no se pudo escribir " << relative.generic_string();
 }
 
-// La textura que da el cargador con esos bytes, para comparar con lo que trae el juego.
+// To compare with what the set brings.
 Texture Loaded(Client::Core::Expected<Texture, DataError> texture)
 {
     EXPECT_TRUE(texture.HasValue());
     return texture.HasValue() ? std::move(texture).Value() : Texture{};
 }
 
-// El error de LoadTextureSet, o el de la prueba si cargó.
+// Or the test's failure if it loaded.
 TextureSetError ErrorOf(const Client::Core::Expected<std::vector<LoadedTexture>, TextureSetError>& loaded)
 {
     EXPECT_FALSE(loaded.HasValue());
     return loaded.HasValue() ? TextureSetError{} : loaded.Error();
 }
 
-// El original corta el nombre en el primer punto y le pone la extensión de su cargador: el OZJ a
-// lo que pide como .jpg y el OZT a lo que pide como .tga (09 § El Data\, con
-// Monster\bossmap1_R.jpg.jpg).
+// The original cuts the name at the first dot and adds its loader's extension: OZJ for what it asks as .jpg, OZT for
+// .tga (09 § El Data\, with Monster\bossmap1_R.jpg.jpg).
 TEST(TextureSetTest, ChangesTheExtensionLikeTheOriginal)
 {
     EXPECT_EQ(TextureLoaderOf("Logo\\Login_Back01.jpg"), TextureLoader::Ozj);
     EXPECT_EQ(TextureLoaderOf("Interface\\cha_bt.TGA"), TextureLoader::Ozt);
     EXPECT_EQ(TextureLoaderOf("Interface\\deco.Tga"), TextureLoader::Ozt);
     EXPECT_EQ(TextureLoaderOf("Monster\\bossmap1_R.jpg.jpg"), TextureLoader::Ozj);
-    // Ningún cargador de textura pide otra: un .bmp es un BMP (OZB), y sin extensión no hay cuál.
+    // No texture loader asks for another: a .bmp is a BMP (OZB), and without an extension there is none.
     EXPECT_EQ(TextureLoaderOf("Interface\\deco.bmp"), std::nullopt);
     EXPECT_EQ(TextureLoaderOf("Interface\\deco"), std::nullopt);
     EXPECT_EQ(TextureLoaderOf("Interface\\deco.jpgx"), std::nullopt);
@@ -99,15 +95,14 @@ TEST(TextureSetTest, ChangesTheExtensionLikeTheOriginal)
     EXPECT_EQ(TextureFileName("Monster\\bossmap1_R.jpg.jpg", TextureLoader::Ozj), "Monster\\bossmap1_R.OZJ");
 }
 
-// Sin punto, el original deja sin escribir el byte que va antes de la extensión, y el nombre lleva
-// lo que había en la pila (Q-C74): MuRet pone el punto, como si lo hubiera.
+// Without a dot the original leaves the byte before the extension unwritten and the name carries whatever was on the
+// stack (Q-C74): MuRet puts the dot, as if there were one.
 TEST(TextureSetTest, ANameWithoutADotGetsOne)
 {
     EXPECT_EQ(TextureFileName("Interface\\deco", TextureLoader::Ozj), "Interface\\deco.OZJ");
     EXPECT_EQ(TextureFileName("Interface\\deco", TextureLoader::Ozt), "Interface\\deco.OZT");
 }
 
-// Lo pedido se busca con ResolveDataPath: la carpeta y el archivo pueden estar en otras mayúsculas.
 TEST(TextureSetTest, FindsTheFileInAnyCase)
 {
     const TemporaryFolder data("textureset-case");
@@ -120,7 +115,7 @@ TEST(TextureSetTest, FindsTheFileInAnyCase)
     EXPECT_EQ(loaded.Value().size(), 1u);
 }
 
-// Una que falta corta, como "File not exist" en el original (Q-C23), con la ruta que se pidió.
+// Like "File not exist" in the original (Q-C23), with the requested path.
 TEST(TextureSetTest, AMissingFileSaysItsPath)
 {
     const TemporaryFolder data("textureset-missing");
@@ -136,8 +131,7 @@ TEST(TextureSetTest, AMissingFileSaysItsPath)
     EXPECT_NE(Describe(error).find("Logo\\Login_Back01.jpg"), std::string::npos) << Describe(error);
 }
 
-// Una que está y no se lee también corta, con lo que dijo el cargador. El original la deja sin
-// subir y no avisa (Q-C29, el OZT de 24 bits).
+// The original skips the upload silently (Q-C29, the 24-bit OZT).
 TEST(TextureSetTest, AnUnreadableFileSaysWhy)
 {
     const TemporaryFolder data("textureset-unreadable");
@@ -152,7 +146,7 @@ TEST(TextureSetTest, AnUnreadableFileSaysWhy)
     EXPECT_NE(Describe(error).find("Monster\\wolfa02.tga"), std::string::npos) << Describe(error);
 }
 
-// Una entrada que no es .jpg ni .tga es un error de la tabla, no del disco: no se busca.
+// An error in the table, not on disk: it is not looked up.
 TEST(TextureSetTest, AnUnknownExtensionIsRefused)
 {
     const TemporaryFolder data("textureset-unknown");
@@ -165,8 +159,7 @@ TEST(TextureSetTest, AnUnknownExtensionIsRefused)
     EXPECT_EQ(error.path, "Interface\\deco.bmp");
 }
 
-// En el orden de la tabla, cada una con su slot y su muestreo, y leída con el cargador de su
-// extensión: el OZJ en RGB y el OZT en RGBA.
+// The OZJ in RGB and the OZT in RGBA.
 TEST(TextureSetTest, LoadsInOrder)
 {
     const TemporaryFolder data("textureset-order");
@@ -201,7 +194,6 @@ TEST(TextureSetTest, LoadsInOrder)
     EXPECT_TRUE(textures[1].texture.pixels == expectedMe.pixels);
 }
 
-// Un juego vacío no lee nada y no falla.
 TEST(TextureSetTest, AnEmptySetLoadsNothing)
 {
     const TemporaryFolder data("textureset-empty");

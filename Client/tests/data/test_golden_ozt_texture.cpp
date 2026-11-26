@@ -19,8 +19,6 @@
 #include <string_view>
 #include <vector>
 
-// OZT reales: los de la carpeta golden y, si está, los buffers de textura de la memoria del original
-// (Client/tests/support/GoldenDir.h).
 namespace
 {
 using Client::Data::DataError;
@@ -34,10 +32,9 @@ using Client::Tests::SameBytes;
 using GoldenOztTexture = Client::Tests::GoldenDataTest;
 using MemoryOztTexture = Client::Tests::MemoryDumpTest;
 
-// Los OZT del laboratorio (05-formatos-de-datos.md, la tabla de formatos).
+// 05-formatos-de-datos.md, the formats table.
 constexpr std::size_t OztFilesOfTheLab = 664;
 
-// La textura de `path`, o el error con que no cargó.
 Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path& path)
 {
     const std::optional<std::vector<char>> file = ReadFileBytes(path);
@@ -49,14 +46,13 @@ Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path&
     return LoadOztTexture(std::as_bytes(std::span(*file)));
 }
 
-// Los 664 OZT del laboratorio cargan, salvo Monster\wolfa02.OZT, que es de 24 bits y el original
-// rechaza. Cada textura tiene lados potencia de 2 que cubren la imagen.
+// Monster\wolfa02.OZT is 24-bit and the original rejects it.
 TEST_F(GoldenOztTexture, LoadsEveryOztOfTheLabButTheOneOf24Bits)
 {
     std::size_t files = 0;
     std::vector<std::string> rejected;
-    // Sin error_code: si no se puede recorrer la carpeta, el iterador tira filesystem_error y el
-    // test falla con su mensaje (el error_code del constructor no cubre los pasos siguientes).
+    // Without error_code: if the folder cannot be walked, the iterator throws filesystem_error and the test fails with
+    // its message (the constructor's error_code does not cover the later steps).
     for (const auto& entry : std::filesystem::recursive_directory_iterator(m_dataRoot))
     {
         if (!entry.is_regular_file() || !HasExtension(entry.path(), ".ozt"))
@@ -75,7 +71,7 @@ TEST_F(GoldenOztTexture, LoadsEveryOztOfTheLabButTheOneOf24Bits)
         const Texture& texture = loaded.Value();
         EXPECT_GT(texture.width, 0) << name;
         EXPECT_GT(texture.height, 0) << name;
-        // Ninguno pasa de 512, así que el lado es la potencia de 2 más chica que lo cubre.
+        // None exceeds 512, so the side is the smallest power of 2 that covers it.
         EXPECT_EQ(static_cast<unsigned>(texture.textureWidth), std::bit_ceil(static_cast<unsigned>(texture.width)))
             << name;
         EXPECT_EQ(static_cast<unsigned>(texture.textureHeight), std::bit_ceil(static_cast<unsigned>(texture.height)))
@@ -86,10 +82,9 @@ TEST_F(GoldenOztTexture, LoadsEveryOztOfTheLabButTheOneOf24Bits)
     EXPECT_EQ(rejected, (std::vector<std::string>{"Monster/wolfa02.OZT"}));
 }
 
-// Las texturas son las que tenía en memoria el main.exe original, en su tabla de texturas
-// (0x07D3A198, el buffer de +0x34), en la captura de Lorencia: los 9 cursores de los slots 0x02 a
-// 0x0a y TileGrass01.OZT de World1 en el 0x32 (README de mu-golden; el research las comparó en
-// s31-assets/byte-a-byte.md). Son todas de lados potencia de 2, así que el buffer es la imagen.
+// The original main.exe's texture table in memory (0x07D3A198, the buffer at +0x34) in the Lorencia capture: the 9
+// cursors in slots 0x02 to 0x0a and World1's TileGrass01.OZT at 0x32 (mu-golden's README; the research compared them
+// in s31-assets/byte-a-byte.md). All have power-of-2 sides, so the buffer is the image.
 TEST_F(MemoryOztTexture, EqualsTheOriginalsMemory)
 {
     struct Slot

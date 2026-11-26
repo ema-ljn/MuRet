@@ -12,7 +12,6 @@
 #include <optional>
 #include <vector>
 
-// Client::Data::Textures::LoadOztTexture: OZT, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;
@@ -29,7 +28,7 @@ using Client::Tests::TgaHeaderSize;
 
 static_assert(OztPixelsOffset == OztPrefixSize + TgaHeaderSize);
 
-// El píxel RGBA (x, y) de la textura, con y = 0 la primera fila que se sube a OpenGL.
+// y = 0 is the first row uploaded to OpenGL.
 std::array<std::uint8_t, 4> TexturePixel(const Texture& texture, int x, int y)
 {
     const auto at =
@@ -38,14 +37,14 @@ std::array<std::uint8_t, 4> TexturePixel(const Texture& texture, int x, int y)
     return {texture.pixels[at], texture.pixels[at + 1], texture.pixels[at + 2], texture.pixels[at + 3]};
 }
 
-// Lo que se espera en la textura para el píxel (x, y) del archivo: en RGBA y en la fila alto - 1 - y.
+// RGBA, in row height - 1 - y.
 std::array<std::uint8_t, 4> Rgba(int x, int y)
 {
     const std::array<std::uint8_t, 4> bgra = FilePixel(x, y);
     return {bgra[2], bgra[1], bgra[0], bgra[3]};
 }
 
-// Cada píxel del archivo en su lugar de la textura, y el resto en cero.
+// The rest zero.
 void ExpectTheImage(const Texture& texture)
 {
     ASSERT_EQ(texture.pixels.size(), static_cast<std::size_t>(texture.textureWidth * texture.textureHeight) * 4);
@@ -61,7 +60,6 @@ void ExpectTheImage(const Texture& texture)
     }
 }
 
-// El error de cargar `file`, o std::nullopt si cargó.
 std::optional<DataError> LoadError(const std::vector<std::byte>& file)
 {
     const auto loaded = LoadOztTexture(file);
@@ -72,7 +70,6 @@ std::optional<DataError> LoadError(const std::vector<std::byte>& file)
     return loaded.Error();
 }
 
-// Las filas se dan vuelta y cada píxel pasa de BGRA a RGBA.
 TEST(OztTextureTest, FlipsTheRowsAndPutsRedFirst)
 {
     const auto loaded = LoadOztTexture(PlainOzt(4, 2));
@@ -90,8 +87,7 @@ TEST(OztTextureTest, FlipsTheRowsAndPutsRedFirst)
               (std::array{lastPixelOfTheFile[2], lastPixelOfTheFile[1], lastPixelOfTheFile[0], lastPixelOfTheFile[3]}));
 }
 
-// Una imagen que no es de potencias de 2 queda en la esquina de una textura que sí lo es, sin
-// escalar, y el resto queda en cero.
+// Unscaled, the rest zero.
 TEST(OztTextureTest, AnImageOfOtherSidesGoesInTheCornerOfThePowerOf2)
 {
     const auto loaded = LoadOztTexture(PlainOzt(3, 5));
@@ -102,7 +98,7 @@ TEST(OztTextureTest, AnImageOfOtherSidesGoesInTheCornerOfThePowerOf2)
     ASSERT_NO_FATAL_FAILURE(ExpectTheImage(loaded.Value()));
 }
 
-// Solo se aceptan 32 bits por píxel, como en el original (cmp al,0x20).
+// As in the original (cmp al,0x20).
 TEST(OztTextureTest, OnlyAccepts32BitsPerPixel)
 {
     for (const std::uint8_t bitsPerPixel : {std::uint8_t{0}, std::uint8_t{8}, std::uint8_t{24}, std::uint8_t{33}})
@@ -111,8 +107,7 @@ TEST(OztTextureTest, OnlyAccepts32BitsPerPixel)
     }
 }
 
-// En una imagen grande, cada píxel sigue en su lugar: la más grande que acepta el original, y una
-// alta que no es de potencias de 2, con más filas que las que entran en un byte.
+// The largest the original accepts, and a tall non-power-of-2 one with more rows than a byte holds.
 TEST(OztTextureTest, ALargeImageKeepsEveryPixel)
 {
     for (const auto& [width, height] : {std::array<std::int16_t, 2>{512, 512}, std::array<std::int16_t, 2>{5, 300}})
@@ -124,7 +119,6 @@ TEST(OztTextureTest, ALargeImageKeepsEveryPixel)
     }
 }
 
-// Un lado de 512 entra; uno de 513, no.
 TEST(OztTextureTest, AcceptsSidesUpTo512)
 {
     EXPECT_EQ(LoadError(PlainOzt(512, 1)), std::nullopt);
@@ -133,7 +127,7 @@ TEST(OztTextureTest, AcceptsSidesUpTo512)
     EXPECT_EQ(LoadError(PlainOzt(1, 513)), DataError::InvalidData);
 }
 
-// El original compara el ancho y el alto con signo: cero o negativo pasan, y no copia nada.
+// The original compares width and height signed: zero or negative pass, and it copies nothing.
 TEST(OztTextureTest, ZeroOrANegativeSideLoadsWithoutPixels)
 {
     for (const auto& [width, height] : {std::array<std::int16_t, 2>{0, 4}, std::array<std::int16_t, 2>{4, 0},
@@ -149,14 +143,14 @@ TEST(OztTextureTest, ZeroOrANegativeSideLoadsWithoutPixels)
         EXPECT_EQ(loaded.Value().height, height);
         EXPECT_EQ(loaded.Value().textureWidth, width > 0 ? 4 : 1);
         EXPECT_EQ(loaded.Value().textureHeight, height > 0 ? 4 : 1);
-        // El buffer está igual, entero y en cero: el original lo pide y lo sube aunque no copie nada.
+        // The original allocates and uploads the buffer even if it copies nothing.
         ASSERT_NO_FATAL_FAILURE(ExpectTheImage(loaded.Value())) << width << " × " << height;
     }
 }
 
-// El original no mira el prefijo ni los campos del TGA que no son el tamaño y los bits por píxel:
-// el largo del id, el tipo de imagen (10 sería comprimido) ni el descriptor (0x28 diría que el
-// origen está arriba). Lee igual píxeles sin comprimir desde 0x16 y da vuelta las filas.
+// The original ignores the prefix and the TGA fields other than size and bits per pixel: the id length, the image
+// type (10 would be compressed) and the descriptor (0x28 would put the origin on top). It still reads uncompressed
+// pixels from 0x16 and flips the rows.
 TEST(OztTextureTest, ReadsOnlyTheSizeAndTheBitsPerPixel)
 {
     std::vector<std::byte> file = PlainOzt(3, 2);
@@ -164,8 +158,8 @@ TEST(OztTextureTest, ReadsOnlyTheSizeAndTheBitsPerPixel)
     {
         file[prefix] = std::byte{0xA5};
     }
-    file[OztPrefixSize] = std::byte{5};      // el largo del id
-    file[OztPrefixSize + 2] = std::byte{10}; // el tipo de imagen
+    file[OztPrefixSize] = std::byte{5};      // the id length
+    file[OztPrefixSize + 2] = std::byte{10}; // the image type
     file[OztBitsPerPixelOffset + 1] = std::byte{0x28};
 
     const auto loaded = LoadOztTexture(file);
@@ -174,8 +168,8 @@ TEST(OztTextureTest, ReadsOnlyTheSizeAndTheBitsPerPixel)
     ASSERT_NO_FATAL_FAILURE(ExpectTheImage(loaded.Value()));
 }
 
-// Q-C24: el original no mira el tamaño. Falta la cabecera, el final de la del TGA (los bytes que
-// no se leen antes de los píxeles), todos los píxeles o uno.
+// Q-C24: the original ignores the size. Missing: the header, the end of the TGA's (the unread bytes before the
+// pixels), all the pixels or one.
 TEST(OztTextureTest, AShortFileIsAnError)
 {
     const std::vector<std::byte> whole = PlainOzt(2, 3);
@@ -188,8 +182,7 @@ TEST(OztTextureTest, AShortFileIsAnError)
     }
 }
 
-// La cabecera completa alcanza para rechazar: los bits por píxel se miran antes que los píxeles,
-// como en el original, que rechaza el OZT de 24 bits del laboratorio aunque le falten píxeles.
+// As in the original, which rejects the lab's 24-bit OZT even if pixels are missing.
 TEST(OztTextureTest, TheBitsPerPixelComeBeforeTheMissingPixels)
 {
     std::vector<std::byte> file = PlainOzt(2, 2, 24);
@@ -198,7 +191,7 @@ TEST(OztTextureTest, TheBitsPerPixelComeBeforeTheMissingPixels)
     EXPECT_EQ(LoadError(file), DataError::InvalidData);
 }
 
-// Lo que sigue a los píxeles se ignora, como el pie de 26 bytes de los TGA del laboratorio.
+// Like the lab TGAs' 26-byte footer.
 TEST(OztTextureTest, IgnoresTheBytesAfterThePixels)
 {
     std::vector<std::byte> file = PlainOzt(2, 2);

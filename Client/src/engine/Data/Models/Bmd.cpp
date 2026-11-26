@@ -27,10 +27,10 @@ using Core::Unexpected;
 
 template <typename T> using Read = Core::Expected<T, DataError>;
 
-// Un hueso que no es dummy lleva este byte en 0 (05).
+// A non-dummy bone has this byte at 0 (05).
 constexpr std::uint8_t RealBoneByte = 0;
 
-// Las tres cantidades de la cabecera del modelo, en el orden del archivo.
+// In file order.
 struct ModelCounts
 {
     std::size_t meshes = 0;
@@ -38,7 +38,7 @@ struct ModelCounts
     std::size_t actions = 0;
 };
 
-// Las cinco cantidades de la cabecera de una malla, en el orden del archivo.
+// In file order.
 struct MeshCounts
 {
     std::size_t vertices = 0;
@@ -58,7 +58,7 @@ std::optional<std::int16_t> ReadInt16(ByteReader& reader)
     return std::bit_cast<std::int16_t>(*bits);
 }
 
-// Una cantidad del archivo: un int16 que no puede ser negativo.
+// An int16 that cannot be negative.
 Read<std::size_t> ReadCount(ByteReader& reader)
 {
     const std::optional<std::int16_t> count = ReadInt16(reader);
@@ -73,7 +73,7 @@ Read<std::size_t> ReadCount(ByteReader& reader)
     return static_cast<std::size_t>(*count);
 }
 
-// Tres floats: 4 bytes little-endian cada uno, que std::bit_cast pasa a float sin tocar un bit.
+// 4 little-endian bytes each, which std::bit_cast turns into a float without changing a bit.
 std::optional<std::array<float, 3>> ReadVector(ByteReader& reader)
 {
     std::array<float, 3> vector{};
@@ -89,7 +89,7 @@ std::optional<std::array<float, 3>> ReadVector(ByteReader& reader)
     return vector;
 }
 
-// Un nombre de largo fijo, hasta el primer 0 (o entero, si no tiene).
+// Fixed length, up to the first 0 (or whole if it has none).
 std::optional<std::string> ReadName(ByteReader& reader)
 {
     const std::optional<std::span<const std::byte>> bytes = reader.ReadBytes(BmdNameSize);
@@ -106,9 +106,8 @@ std::optional<std::string> ReadName(ByteReader& reader)
     return name;
 }
 
-// Lee `count` elementos de `elementSize` bytes con `readOne`, sin pedir memoria antes de saber que
-// entran: una cantidad grande en un archivo corto no reserva nada. Lo único que no ocupa bytes son
-// los BoneKeys de las acciones sin keys, y esos los cuenta ReadBone.
+// Allocates only once the elements are known to fit: a large count in a short file reserves nothing. Only the
+// BoneKeys of actions without keys take no bytes, and ReadBone counts those.
 template <typename T, typename ReadOne>
 std::optional<std::vector<T>> ReadEach(ByteReader& reader, std::size_t count, std::size_t elementSize, ReadOne readOne)
 {
@@ -167,7 +166,6 @@ std::optional<TexCoord> ReadTexCoord(ByteReader& reader)
     return TexCoord{std::bit_cast<float>(*u), std::bit_cast<float>(*v)};
 }
 
-// Los cuatro int16 de un juego de índices, que empieza en `offset` del triángulo.
 std::array<std::int16_t, 4> ReadIndices(std::span<const std::byte> triangle, std::size_t offset)
 {
     ByteReader reader(triangle.subspan(offset));
@@ -179,7 +177,7 @@ std::array<std::int16_t, 4> ReadIndices(std::span<const std::byte> triangle, std
     return indices;
 }
 
-// Un triángulo entero, de 64 bytes, del que se leen el tipo y los tres juegos de índices.
+// 64 bytes, of which only the type and the three index sets are read.
 std::optional<Triangle> ReadTriangle(ByteReader& reader)
 {
     const std::optional<std::span<const std::byte>> bytes = reader.ReadBytes(BmdTriangleSize);
@@ -232,8 +230,8 @@ Read<Mesh> ReadMesh(ByteReader& reader)
     std::optional<std::vector<Triangle>> triangles =
         ReadEach<Triangle>(reader, counts.Value().triangles, BmdTriangleSize, ReadTriangle);
     std::optional<std::string> textureName = ReadName(reader);
-    // Una parte que no entró no avanza el lector, y las que siguen leen corrido: el resultado no se
-    // usa, porque falta la anterior.
+    // A part that did not fit leaves the reader where it was, so the next ones read shifted; their result is unused
+    // because the earlier part is missing.
     if (!vertices || !normals || !texCoords || !triangles || !textureName)
     {
         return Unexpected(DataError::FileTooShort);
@@ -270,8 +268,7 @@ Read<Action> ReadAction(ByteReader& reader)
     return action;
 }
 
-// Las keys de un hueso en una acción de `keyCount` keys: todas las posiciones y después todas las
-// rotaciones.
+// All the positions, then all the rotations.
 std::optional<BoneKeys> ReadBoneKeys(ByteReader& reader, std::size_t keyCount)
 {
     std::optional<std::vector<std::array<float, 3>>> positions =
@@ -285,8 +282,8 @@ std::optional<BoneKeys> ReadBoneKeys(ByteReader& reader, std::size_t keyCount)
     return BoneKeys{std::move(*positions), std::move(*rotations)};
 }
 
-// Un hueso. Uno que se posa lleva un BoneKeys por acción y descuenta las acciones de
-// `posedActionsLeft` (MaxPosedBoneActions) antes de pedir memoria para ellas.
+// A posed bone takes one BoneKeys per action and subtracts them from `posedActionsLeft` (MaxPosedBoneActions) before
+// allocating.
 Read<Bone> ReadBone(ByteReader& reader, const std::vector<Action>& actions, std::size_t& posedActionsLeft)
 {
     const std::optional<std::uint8_t> dummy = reader.ReadU8();
@@ -326,8 +323,7 @@ Read<Bone> ReadBone(ByteReader& reader, const std::vector<Action>& actions, std:
     return bone;
 }
 
-// Las mallas, las acciones y los huesos, en ese orden: los huesos van después porque sus keys
-// dependen de las acciones.
+// Bones go after the actions because their keys depend on them.
 Read<Model> ReadParts(ByteReader& reader, Model model, const ModelCounts& counts)
 {
     for (std::size_t k = 0; k < counts.meshes; ++k)
@@ -362,7 +358,6 @@ Read<Model> ReadParts(ByteReader& reader, Model model, const ModelCounts& counts
     return model;
 }
 
-// El contenido, en claro: el nombre, las tres cantidades (mallas, huesos y acciones) y las partes.
 Read<Model> ReadContent(std::uint8_t version, std::span<const std::byte> content)
 {
     ByteReader reader(content);
@@ -406,7 +401,7 @@ Core::Expected<Model, DataError> LoadBmd(std::span<const std::byte> file)
     {
         return Unexpected(DataError::FileTooShort);
     }
-    // K16 desde el primer byte del bloque, sobre una copia: los bytes del que llama no se tocan.
+    // On a copy, so the caller's bytes stay untouched.
     const std::span<const std::byte> block = file.subspan(BmdEncryptedOffset, *size);
     std::vector<std::byte> content(block.begin(), block.end());
     Crypto::DecryptK16(content);

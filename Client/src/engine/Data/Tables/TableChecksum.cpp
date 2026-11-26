@@ -13,8 +13,8 @@ using Client::Core::ByteReader;
 using Client::Data::Tables::ChecksumParity;
 
 constexpr unsigned SeedShift = 9;
-constexpr std::size_t MixPeriod = 4;    // cada cuántos dwords se mezcla
-constexpr std::size_t MixShiftMask = 7; // corre (índice & 7) + 1 bits: 1 o 5, con MixPeriod 4
+constexpr std::size_t MixPeriod = 4;    // in dwords
+constexpr std::size_t MixShiftMask = 7; // shifts (index & 7) + 1 bits: 1 or 5, with MixPeriod 4
 
 bool UsesXor(std::size_t index, ChecksumParity parity)
 {

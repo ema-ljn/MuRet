@@ -16,8 +16,8 @@
 #include <string_view>
 #include <vector>
 
-// DecodeJpeg contra los vectores de CI: cada uno, decodificado, tiene que dar los mismos bytes que
-// la IJG libjpeg 6b, la del original (Client/tests/vectors/jpeg/README.md).
+// Each CI vector, decoded, must give the same bytes as the IJG libjpeg 6b, the original's
+// (Client/tests/vectors/jpeg/README.md).
 namespace
 {
 using Client::Data::DataError;
@@ -25,11 +25,10 @@ using Client::Data::Textures::DecodeJpeg;
 using Client::Tests::ReadJpegVector;
 using Client::Tests::SameBytes;
 
-// El lado más grande que se pide en estos tests: el de una textura.
+// A texture's.
 constexpr int AnySide = Client::Data::Textures::TextureMaxSide;
 
-// Un vector y lo que tiene que dar: su tamaño, sus bytes por píxel y, en <nombre>.6b.raw, los
-// píxeles que da la 6b.
+// Its size, its bytes per pixel and, in <name>.6b.raw, the pixels 6b gives.
 struct Vector
 {
     std::string_view name;
@@ -38,11 +37,10 @@ struct Vector
     int components;
 };
 
-// Los tres tipos de JPEG del laboratorio (baseline 4:4:4 con un reinicio por fila de MCU, baseline
-// 4:2:0 de lados que no son múltiplo del bloque, y progresivo 4:4:4); un 4:4:0, que turbo agranda
-// distinto que la 6b si no se le apaga el filtro (Q-C33); uno en grises, uno CMYK y uno cortado; y
-// uno con un componente al doble de alto y otro al doble de ancho, tan angosto que la 6b no usa el
-// filtro en ninguno (Q-C33).
+// The lab's three JPEG kinds (baseline 4:4:4 with a restart per MCU row, baseline 4:2:0 with sides that are not a
+// block multiple, and progressive 4:4:4); a 4:4:0, which turbo upsamples unlike 6b unless the filter is off (Q-C33);
+// a grayscale, a CMYK and a cut one; and one with a component at double height and another at double width, so
+// narrow that 6b uses the filter on neither (Q-C33).
 constexpr std::array<Vector, 8> DecodedBy6b{{
     {"baseline-444-dri", 16, 24, 3},
     {"baseline-420", 13, 11, 3},
@@ -54,7 +52,6 @@ constexpr std::array<Vector, 8> DecodedBy6b{{
     {"mixed-sampling-narrow", 4, 16, 3},
 }};
 
-// El error de decodificar `jpeg`, o std::nullopt si decodificó.
 std::optional<DataError> DecodeError(std::span<const std::byte> jpeg, int maxSide)
 {
     const auto decoded = DecodeJpeg(jpeg, maxSide);
@@ -65,8 +62,7 @@ std::optional<DataError> DecodeError(std::span<const std::byte> jpeg, int maxSid
     return decoded.Error();
 }
 
-// Cada vector da los mismos píxeles que la 6b, con las filas de arriba hacia abajo: en RGB, en
-// grises o en CMYK, que libjpeg no pasa a RGB, y el original tampoco.
+// Rows top to bottom: RGB, grayscale, or CMYK, which libjpeg does not convert to RGB and neither does the original.
 TEST(JpegImageTest, DecodesLikeTheLibjpeg6b)
 {
     for (const Vector& vector : DecodedBy6b)
@@ -85,9 +81,8 @@ TEST(JpegImageTest, DecodesLikeTheLibjpeg6b)
     }
 }
 
-// Un JPEG cortado en el medio de los datos no es un error: libjpeg avisa, completa la imagen y
-// sigue, como en el original. Este, el vector "truncated" de arriba, turbo lo completa como la 6b;
-// no todos los cortados dan lo mismo en las dos (Q-C33).
+// Cut in the middle of its data is not an error: libjpeg warns, completes the image and goes on, as in the original.
+// turbo completes this one, the "truncated" vector above, like 6b; not every cut one comes out the same (Q-C33).
 TEST(JpegImageTest, AJpegCutInTheMiddleOfItsDataStillDecodes)
 {
     const std::vector<std::byte> whole = ReadJpegVector("baseline-444-dri.jpg");
@@ -98,8 +93,7 @@ TEST(JpegImageTest, AJpegCutInTheMiddleOfItsDataStillDecodes)
     EXPECT_EQ(DecodeError(cut, AnySide), std::nullopt);
 }
 
-// Lo que libjpeg no puede leer es InvalidData: nada, un TGA (Q-C14), un JPEG que termina en su
-// marcador de inicio, o uno cortado antes de sus datos.
+// Nothing, a TGA (Q-C14), a JPEG that ends at its start marker, or one cut before its data.
 TEST(JpegImageTest, WhatLibjpegCannotReadIsInvalidData)
 {
     const std::vector<std::byte> whole = ReadJpegVector("baseline-444-dri.jpg");
@@ -114,10 +108,9 @@ TEST(JpegImageTest, WhatLibjpegCannotReadIsInvalidData)
     EXPECT_EQ(DecodeError(withoutData, AnySide), DataError::InvalidData);
 }
 
-// Lo que la 6b no lee es InvalidData, como en el original (Q-C33): la 6b corta con
-// JERR_ARITH_NOTIMPL, JERR_SOF_UNSUPPORTED y JERR_BAD_PRECISION, y con JERR_NO_HUFF_TABLE en los
-// dos sin tablas de Huffman, al que le faltan en su único scan y al que le faltan en el segundo.
-// turbo lee todos menos el de 12 bits, que con la API de 8 bits rechaza más tarde.
+// As in the original (Q-C33): 6b stops with JERR_ARITH_NOTIMPL, JERR_SOF_UNSUPPORTED and JERR_BAD_PRECISION, and with
+// JERR_NO_HUFF_TABLE on the two without Huffman tables, missing in its only scan and in the second. turbo reads all
+// but the 12-bit one, which the 8-bit API rejects later.
 TEST(JpegImageTest, WhatThe6bCannotReadIsInvalidData)
 {
     EXPECT_EQ(DecodeError(ReadJpegVector("arithmetic.jpg"), AnySide), DataError::InvalidData);
@@ -127,9 +120,9 @@ TEST(JpegImageTest, WhatThe6bCannotReadIsInvalidData)
     EXPECT_EQ(DecodeError(ReadJpegVector("no-huffman-tables-scan-2.jpg"), AnySide), DataError::InvalidData);
 }
 
-// Q-C33: con componentes al doble de alto y otros al doble de ancho no hay cómo dar lo de la 6b, y
-// queda lo de turbo, con el filtro prendido para todos. Si este test falla porque turbo da otra
-// cosa, cambió cómo agranda: hay que volver a mirar UpsampleLikeThe6b.
+// Q-C33: with components at double height and others at double width 6b's result cannot be matched, and turbo's
+// stays, with the filter on for all. If this fails because turbo gives something else, its upsampling changed:
+// revisit UpsampleLikeThe6b.
 TEST(JpegImageTest, ASamplingThatMixesDoubleHeightAndDoubleWidthDecodesLikeTurbo)
 {
     const std::vector<std::byte> turbo = ReadJpegVector("mixed-sampling.turbo.raw");
@@ -141,7 +134,7 @@ TEST(JpegImageTest, ASamplingThatMixesDoubleHeightAndDoubleWidthDecodesLikeTurbo
     EXPECT_TRUE(SameBytes(std::as_bytes(std::span(decoded.Value().pixels)), turbo));
 }
 
-// El vector `name`.jpg con un segundo SOI justo antes de su EOI, el FF D9 del final.
+// A second SOI right before its EOI, the final FF D9.
 std::vector<std::byte> WithASecondSoiAtTheEnd(std::string_view name)
 {
     std::vector<std::byte> jpeg = ReadJpegVector(std::string(name) + ".jpg");
@@ -156,9 +149,8 @@ std::vector<std::byte> WithASecondSoiAtTheEnd(std::string_view name)
     return jpeg;
 }
 
-// En un JPEG de un solo scan, lo que viene después de la última fila no se lee (Q-C32): con un
-// segundo SOI antes del EOI, que jpeg_finish_decompress rechaza, la imagen es la misma. El original
-// ya la usó cuando lo rechaza.
+// Single scan (Q-C32): with a second SOI before the EOI, which jpeg_finish_decompress rejects, the image is the same.
+// The original has used it by the time it rejects it.
 TEST(JpegImageTest, WhatComesAfterTheLastRowIsNotRead)
 {
     const std::vector<std::byte> expected = ReadJpegVector("baseline-444-dri.6b.raw");
@@ -169,14 +161,14 @@ TEST(JpegImageTest, WhatComesAfterTheLastRowIsNotRead)
     EXPECT_TRUE(SameBytes(std::as_bytes(std::span(decoded.Value().pixels)), expected));
 }
 
-// En uno de varios scans, como un progresivo, las dos libjpeg leen todo antes de la primera fila,
-// en jpeg_start_decompress, y la 6b corta con el segundo SOI (JERR_SOI_DUPLICATE): InvalidData.
+// Multi-scan: both libjpegs read everything in jpeg_start_decompress, and 6b stops on the second SOI
+// (JERR_SOI_DUPLICATE): InvalidData.
 TEST(JpegImageTest, AProgressiveJpegIsReadToTheEndBeforeItsFirstRow)
 {
     EXPECT_EQ(DecodeError(WithASecondSoiAtTheEnd("progressive-444"), AnySide), DataError::InvalidData);
 }
 
-// El ancho y el alto se miran contra maxSide, cada uno por su lado. Con 0 o menos, nada entra.
+// Width and height are checked against maxSide separately. With 0 or less, nothing fits.
 TEST(JpegImageTest, ASideOverTheLimitIsInvalidData)
 {
     const std::vector<std::byte> wide = ReadJpegVector("flat-512x8.jpg");

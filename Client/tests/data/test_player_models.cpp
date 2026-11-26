@@ -15,7 +15,6 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Models: los modelos que cargan 0x60dbe0 y 0x60ff50, con los números de la CL6.1.
 namespace
 {
 using Client::Data::Models::FirstItemModel;
@@ -31,7 +30,6 @@ using Client::Data::Models::PlayerModelFiles;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::Data::Models::SkillModelFiles;
 
-// Las filas de `files` que se llaman `name`.
 std::vector<ModelFile> Named(std::span<const ModelFile> files, std::string_view name)
 {
     std::vector<ModelFile> named;
@@ -39,7 +37,7 @@ std::vector<ModelFile> Named(std::span<const ModelFile> files, std::string_view 
     return named;
 }
 
-// El esqueleto es la primera carga, sin número (0x60e90d).
+// 0x60e90d
 TEST(PlayerModelsTest, ThePlayerIsModel0x20a)
 {
     ASSERT_FALSE(PlayerModelFiles().empty());
@@ -51,7 +49,7 @@ TEST(PlayerModelsTest, ThePlayerIsModel0x20a)
     EXPECT_EQ(player.number, -1);
 }
 
-// 213 cargas, la última Shadow01.bmd en el 0x20b (0x60f2f4).
+// The last is Shadow01.bmd at 0x20b (0x60f2f4).
 TEST(PlayerModelsTest, ShadowIsTheLastOfTwoHundredAndThirteen)
 {
     ASSERT_EQ(PlayerModelFiles().size(), 213u);
@@ -61,19 +59,19 @@ TEST(PlayerModelsTest, ShadowIsTheLastOfTwoHundredAndThirteen)
     EXPECT_EQ(shadow.number, 1);
 }
 
-// 0x60ff50: el 0x212 más 512 por grupo más el índice.
+// 0x60ff50: 0x212 plus 512 per group plus the index.
 TEST(PlayerModelsTest, ItemModelsAreGroupTimes512PlusIndex)
 {
     EXPECT_EQ(ItemModel(0, 0), FirstItemModel);
     EXPECT_EQ(ItemModel(0, 0), 0x212);
     EXPECT_EQ(ItemModel(7, 0), 0x1012);
     EXPECT_EQ(ItemModel(13, 5), 0x212 + 13 * 512 + 5);
-    // Las partes de las clases son el grupo 16.
+    // The classes' parts are group 16.
     EXPECT_EQ(ItemModel(16, 0), 0x2212);
 }
 
-// Las partes de cada clase, de la 1 a la 5, y las de la segunda clase, de la 1 a la 3: el casco
-// 0x2212 + n − 1, la armadura 8 después, y así de a 8.
+// Each class's parts, 1 to 5, and the second class's, 1 to 3: the helm 0x2212 + n − 1, the armor 8 after, and so on
+// in steps of 8.
 TEST(PlayerModelsTest, ClassPartsAreOneToFive)
 {
     constexpr std::array<std::string_view, 5> Parts = {"HelmClass", "ArmorClass", "PantClass", "GloveClass",
@@ -94,7 +92,7 @@ TEST(PlayerModelsTest, ClassPartsAreOneToFive)
     }
 }
 
-// HelmMale N es el índice N − 1 del grupo 7, y ArmorMale N el del grupo 8 (0x60eaea..).
+// HelmMale N is index N − 1 of group 7, and ArmorMale N that of group 8 (0x60eaea..).
 TEST(PlayerModelsTest, HelmMaleOneIsItemZero)
 {
     const std::vector<ModelFile> helms = Named(PlayerModelFiles(), "HelmMale");
@@ -112,7 +110,7 @@ TEST(PlayerModelsTest, HelmMaleOneIsItemZero)
     EXPECT_EQ(helms.front().number, 1);
 }
 
-// Cada fila es un modelo de la tabla del original, y ninguno se carga dos veces.
+// None is loaded twice.
 TEST(PlayerModelsTest, EveryRowIsAModelOfTheTable)
 {
     for (const std::span<const ModelFile> files : {PlayerModelFiles(), ItemModelFiles()})
@@ -127,7 +125,7 @@ TEST(PlayerModelsTest, EveryRowIsAModelOfTheTable)
     }
 }
 
-// 0x615700: las llamadas de carga de esta tabla, incluidas las flechas de 0x616095..0x616496.
+// 0x615700: this table's load calls, including the arrows of 0x616095..0x616496.
 TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
 {
     const std::span<const ModelFile> files = SkillModelFiles();
@@ -194,7 +192,7 @@ TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
     }
 }
 
-// 243 cargas de ítems, todos desde el 0x212. La primera es Sword01, el índice 0 del grupo 0.
+// All from 0x212. The first is Sword01, index 0 of group 0.
 TEST(PlayerModelsTest, TheItemLoaderStartsWithTheSwords)
 {
     ASSERT_EQ(ItemModelFiles().size(), 243u);
@@ -207,8 +205,7 @@ TEST(PlayerModelsTest, TheItemLoaderStartsWithTheSwords)
         std::ranges::all_of(ItemModelFiles(), [](const ModelFile& file) { return file.model >= FirstItemModel; }));
 }
 
-// Las cinco mallas que 0x60ff50 marca al final son de ítems suyos: la 1 de Spear01, Sword11, Mace07 y
-// MagicBox07 y la 2 de Staff07.
+// Mesh 1 of Spear01, Sword11, Mace07 and MagicBox07 and mesh 2 of Staff07.
 TEST(PlayerModelsTest, The0x60ff50MarksFiveMeshesOfItsItems)
 {
     std::vector<std::string> marked;
@@ -222,8 +219,7 @@ TEST(PlayerModelsTest, The0x60ff50MarksFiveMeshesOfItsItems)
     EXPECT_EQ(marked, (std::vector<std::string>{"Spear1:1", "Sword11:1", "Staff7:2", "Mace7:1", "MagicBox7:1"}));
 }
 
-// La máscara de cada casco de la clase 4 es el MaskHelmMale de su número, cargado por 0x60dbe0: los
-// HelmMale01, 06, 07, 09 y 10 con MaskHelmMale01, 06, 07, 09 y 10.
+// Loaded by 0x60dbe0: HelmMale01, 06, 07, 09 and 10 with MaskHelmMale01, 06, 07, 09 and 10.
 TEST(PlayerModelsTest, EachMaskIsTheMaskHelmOfItsHelm)
 {
     for (const std::uint16_t helm : HelmsWithMask)

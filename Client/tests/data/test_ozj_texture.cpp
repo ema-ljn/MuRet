@@ -14,9 +14,8 @@
 #include <string_view>
 #include <vector>
 
-// LoadOzjTexture con OZJ armados desde los vectores de CI: el JPEG lo decodifica DecodeJpeg (sus
-// tests están en test_jpeg_image.cpp), y acá se prueba lo del OZJ: los 24 bytes que no se leen, la
-// textura de potencias de 2, las filas sin dar vuelta y los rechazos.
+// OZJs built from the CI vectors. DecodeJpeg's own tests are in test_jpeg_image.cpp; here, the OZJ part: the 24
+// unread bytes, the power-of-2 texture, the unflipped rows and the rejections.
 namespace
 {
 using Client::Data::DataError;
@@ -31,10 +30,8 @@ using Client::Tests::SameBytes;
 
 static_assert(OzjRepeatedBytes == OzjPrefixSize);
 
-// Los bytes por píxel de una textura RGB.
 constexpr std::size_t RgbSize = Client::Data::Textures::BytesPerPixel(PixelFormat::Rgb);
 
-// El error de cargar `file`, o std::nullopt si cargó.
 std::optional<DataError> LoadError(std::span<const std::byte> file)
 {
     const auto loaded = LoadOzjTexture(file);
@@ -45,8 +42,8 @@ std::optional<DataError> LoadError(std::span<const std::byte> file)
     return loaded.Error();
 }
 
-// Cada fila de `image` (de `rowSize` bytes, como las da la 6b) al principio de su fila de la
-// textura, en el mismo orden, y el resto de la textura en cero.
+// Each row of `image` (`rowSize` bytes, as 6b gives them) at the start of its texture row, in order, and the rest of
+// the texture zero.
 void ExpectTheRows(const Texture& texture, std::span<const std::byte> image, std::size_t rowSize)
 {
     const std::size_t textureRowSize = static_cast<std::size_t>(texture.textureWidth) * RgbSize;
@@ -65,7 +62,7 @@ void ExpectTheRows(const Texture& texture, std::span<const std::byte> image, std
     }
 }
 
-// Los píxeles de la 6b, en RGB y con las filas en el orden del JPEG: el OZJ no las da vuelta.
+// RGB, rows in JPEG order: the OZJ does not flip them.
 TEST(OzjTextureTest, KeepsTheRowsOfTheJpeg)
 {
     const auto loaded = LoadOzjTexture(OzjOf(ReadJpegVector("baseline-444-dri.jpg")));
@@ -79,8 +76,7 @@ TEST(OzjTextureTest, KeepsTheRowsOfTheJpeg)
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("baseline-444-dri.6b.raw"), 16 * RgbSize));
 }
 
-// Una imagen de 13 × 11 queda en la esquina de una textura de 16 × 16, sin escalar, y el resto en
-// cero (Q-C30).
+// Unscaled in the corner of a 16 × 16 texture, the rest zero (Q-C30).
 TEST(OzjTextureTest, AnImageOfOtherSidesGoesInTheCornerOfThePowerOf2)
 {
     const auto loaded = LoadOzjTexture(OzjOf(ReadJpegVector("baseline-420.jpg")));
@@ -91,7 +87,7 @@ TEST(OzjTextureTest, AnImageOfOtherSidesGoesInTheCornerOfThePowerOf2)
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("baseline-420.6b.raw"), 13 * RgbSize));
 }
 
-// Los 24 bytes del principio no se leen: con otros, la textura es la misma.
+// Other leading bytes give the same texture.
 TEST(OzjTextureTest, TheBytesBeforeTheJpegAreNotRead)
 {
     std::vector<std::byte> file = OzjOf(ReadJpegVector("baseline-444-dri.jpg"));
@@ -107,8 +103,8 @@ TEST(OzjTextureTest, TheBytesBeforeTheJpegAreNotRead)
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("baseline-444-dri.6b.raw"), 16 * RgbSize));
 }
 
-// Q-C31: un JPEG en grises da un byte por píxel, y el original copia esa fila tal cual al
-// principio de una de 3 bytes por píxel: llena un tercio, con un gris por byte.
+// Q-C31: a grayscale JPEG gives one byte per pixel, and the original copies that row as is to the start of a
+// 3-byte-per-pixel one: it fills a third, one gray per byte.
 TEST(OzjTextureTest, AGrayJpegFillsAThirdOfEachRow)
 {
     const auto loaded = LoadOzjTexture(OzjOf(ReadJpegVector("gray.jpg")));
@@ -119,9 +115,8 @@ TEST(OzjTextureTest, AGrayJpegFillsAThirdOfEachRow)
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("gray.6b.raw"), 8));
 }
 
-// Q-C31: un JPEG CMYK da 4 bytes por píxel, y el original copia la fila tal cual. Si el ancho no
-// pasa de 3/4 del de la textura, entra: los 3 píxeles de cmyk-3x2 son 12 bytes, lo que ocupan 4 de
-// la textura. OpenGL los lee como RGB.
+// Q-C31: a CMYK JPEG gives 4 bytes per pixel, and the original copies the row as is. It fits if the width is at most
+// 3/4 of the texture's: cmyk-3x2's 3 pixels are 12 bytes, 4 texture pixels. OpenGL reads them as RGB.
 TEST(OzjTextureTest, ACmykRowThatFitsIsCopiedAsIs)
 {
     const auto loaded = LoadOzjTexture(OzjOf(ReadJpegVector("cmyk-3x2.jpg")));
@@ -133,16 +128,15 @@ TEST(OzjTextureTest, ACmykRowThatFitsIsCopiedAsIs)
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("cmyk-3x2.6b.raw"), 3 * 4));
 }
 
-// Q-C31: si la fila no entra, como los 4 píxeles CMYK de cmyk-4x2 (16 bytes) en una textura de 4 de
-// ancho (12), el original escribe en la fila siguiente y, en la última, fuera del buffer. MuRet no
-// lo carga.
+// Q-C31: if the row does not fit, like cmyk-4x2's 4 CMYK pixels (16 bytes) in a 4-wide texture (12), the original
+// writes into the next row and, on the last, past the buffer. MuRet does not load it.
 TEST(OzjTextureTest, ARowThatDoesNotFitIsInvalidData)
 {
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("cmyk-4x2.jpg"))), DataError::InvalidData);
 }
 
-// Un lado de 512 entra; uno de 513, no, como en el original: 0x63b870 compara cada lado con 0x200
-// sin signo (CMP EAX,0x200 y JA, en 0x63bb17 y 0x63bb28).
+// As in the original: 0x63b870 compares each side with 0x200 unsigned (CMP EAX,0x200 and JA, at 0x63bb17 and
+// 0x63bb28).
 TEST(OzjTextureTest, AcceptsSidesUpTo512)
 {
     const auto wide = LoadOzjTexture(OzjOf(ReadJpegVector("flat-512x8.jpg")));
@@ -154,8 +148,7 @@ TEST(OzjTextureTest, AcceptsSidesUpTo512)
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("flat-8x513.jpg"))), DataError::InvalidData);
 }
 
-// Sin bytes después de los 24 no hay JPEG: FileTooShort. Con uno solo ya hay qué pasarle a
-// libjpeg, que no lo puede leer.
+// With a single byte there is already something to give libjpeg, which cannot read it.
 TEST(OzjTextureTest, AFileWithoutJpegIsTooShort)
 {
     const std::vector<std::byte> file = OzjOf(ReadJpegVector("baseline-444-dri.jpg"));
@@ -166,11 +159,10 @@ TEST(OzjTextureTest, AFileWithoutJpegIsTooShort)
     EXPECT_EQ(LoadError(std::span(file).first(OzjPrefixSize + 1)), DataError::InvalidData);
 }
 
-// Q-C14: siete OZJ del laboratorio son TGA. libjpeg los rechaza ("Not a JPEG file"), como en el
-// original, y la textura no carga.
+// Q-C14: seven lab OZJs are TGA. libjpeg rejects them ("Not a JPEG file"), as in the original.
 TEST(OzjTextureTest, ATgaIsNotAJpeg)
 {
-    // Un TGA sin comprimir de 2 × 2 con su cabecera de 18 bytes, como empiezan esos siete.
+    // An uncompressed 2 × 2 TGA with its 18-byte header, as those seven start.
     std::vector<std::byte> tga(18 + 2 * 2 * 4);
     tga[2] = std::byte{2};
 

@@ -8,20 +8,19 @@
 #include <cstdint>
 #include <span>
 
-// Los modelos del personaje y de los ítems, como los carga el original: 0x60dbe0 (el avance 1 de la
-// carga, 0x61ccb0) y 0x60ff50 (el avance 3) (Client/docs/research/06-render-escenas-y-ui.md, "El
-// modelo en el binario"). Cada fila es una llamada a 0x60da30, en el orden del original y con su
-// dirección: las tablas salen de emular esos dos cargadores sobre el main.exe de c32bbd5f.
+// As the original loads them: 0x60dbe0 (load step 1 of 0x61ccb0) and 0x60ff50 (step 3)
+// (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario"). Each row is a call to 0x60da30, in the
+// original's order and with its address: the tables come from emulating both loaders on main.exe c32bbd5f.
 namespace Client::Data::Models
 {
-// El número de la tabla de modelos de Player.bmd, el esqueleto (0x60e90d).
+// The skeleton (0x60e90d).
 inline constexpr std::uint16_t PlayerSkeletonModel = 0x20a;
-// Shadow01.bmd, la sombra que 0x50ba30 dibuja debajo de cada personaje (0x60f2f4).
+// Shadow01.bmd, the shadow 0x50ba30 draws under each character (0x60f2f4).
 inline constexpr std::uint16_t PlayerShadowModel = 0x20b;
-// La cantidad de modelos de la tabla del original: 0x489d de 0xe0 bytes (0x60dc23).
+// 0x489d models of 0xe0 bytes (0x60dc23).
 inline constexpr std::size_t ModelTableSize = 0x489d;
 
-// 0x60ff50: el modelo de un ítem es el 0x212 más 512 por su grupo más su índice.
+// 0x60ff50: an item's model is 0x212 plus 512 per group plus its index.
 inline constexpr std::uint16_t FirstItemModel = 0x212;
 inline constexpr std::uint16_t ItemModelsPerGroup = 512;
 [[nodiscard]] constexpr std::uint16_t ItemModel(std::uint8_t group, std::uint16_t index)
@@ -29,29 +28,27 @@ inline constexpr std::uint16_t ItemModelsPerGroup = 512;
     return static_cast<std::uint16_t>(FirstItemModel + group * ItemModelsPerGroup + index);
 }
 
-// Los huesos que 0x60dbe0 escribe en +0x54, +0x58 y +0x5c del esqueleto (0x60f301..0x60f32b): la
-// cabeza, y dos que serían los pies (*inferido*).
+// The bones 0x60dbe0 writes at +0x54, +0x58 and +0x5c of the skeleton (0x60f301..0x60f32b): the head, and two that
+// would be the feet (*inferred*).
 inline constexpr std::int16_t PlayerHeadBone = 20;
 inline constexpr std::array<std::int16_t, 2> PlayerFootBones = {6, 13};
 
-// Los cascos que 0x50ba30 dibuja con su máscara en la clase 4: el modelo + 0x328b, los
-// MaskHelmMale01, 06, 07, 09 y 10 de 0x60dbe0.
+// The helms 0x50ba30 draws with their mask in class 4: the model + 0x328b, 0x60dbe0's MaskHelmMale01, 06, 07, 09
+// and 10.
 inline constexpr std::uint16_t MaskHelmOffset = 0x328b;
 inline constexpr std::array<std::uint16_t, 5> HelmsWithMask{0x1012, 0x1017, 0x1018, 0x101a, 0x101b};
 
-// Las 213 cargas de 0x60dbe0 en el modo Data\: Player.bmd, las partes de cada clase, las del equipo
-// y Shadow01.bmd. Todas están en el Data\ del laboratorio.
+// The 213 loads of 0x60dbe0 in the Data\ mode: Player.bmd, each class's parts, the equipment's and Shadow01.bmd. All
+// are in the lab's Data\.
 [[nodiscard]] ENGINE_API std::span<const ModelFile> PlayerModelFiles();
 
-// Las 243 de 0x60ff50, cada una con un modelo distinto: las armas, los escudos, los ítems y las
-// cuatro mascotas de Player\ (Helper01 a 04). En el laboratorio faltan solo los tres giftbox (09),
-// que el original saltea sin avisar.
+// The 243 of 0x60ff50, each a different model: weapons, shields, items and Player\'s four pets (Helper01 to 04). The
+// lab lacks only the three giftbox (09), which the original skips silently.
 [[nodiscard]] ENGINE_API std::span<const ModelFile> ItemModelFiles();
 
-// Las 106 cargas de 0x615700 en la rama Data, en orden nativo. ManyFlag es opcional y puede faltar.
+// The 106 loads of 0x615700 in the Data branch, in native order. ManyFlag is optional and may be missing.
 [[nodiscard]] ENGINE_API std::span<const ModelFile> SkillModelFiles();
 
-// Una malla de un modelo de la tabla.
 struct ModelMesh
 {
     std::uint16_t model = 0;
@@ -60,9 +57,8 @@ struct ModelMesh
     friend bool operator==(const ModelMesh&, const ModelMesh&) = default;
 };
 
-// Las cinco mallas a las que 0x60ff50, al final (0x6117fd..0x611847), les prende el byte +0, con el
-// que 0x4ecc30 no les corre los pases de brillo: la 1 de Spear01, Sword11, Mace07 y MagicBox07 y la 2
-// de Staff07.
+// The five meshes whose byte +0 0x60ff50 turns on at the end (0x6117fd..0x611847), so 0x4ecc30 runs no shine passes
+// on them: mesh 1 of Spear01, Sword11, Mace07 and MagicBox07 and mesh 2 of Staff07.
 inline constexpr std::array<ModelMesh, 5> MeshesWithoutShine{{
     {0x812, 1},  // Spear01
     {0x21c, 1},  // Sword11

@@ -16,9 +16,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Data::Models::PlayerTextureCalls, ItemTextureCalls y PlayerFixedTextures: las llamadas de
-// 0x60f7d0 y 0x611850 a 0x60d5f0, en su orden y con su carpeta, y lo que 0x60f7d0 sube a mano
-// (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario").
+// 0x60f7d0's and 0x611850's calls to 0x60d5f0, in their order and with their folder, and what 0x60f7d0 uploads by
+// hand (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario").
 namespace
 {
 using Client::Data::Models::FenrirTextureCalls;
@@ -55,7 +54,7 @@ TEST(ModelTextureCallsTest, ThePlayerLoaderCallsTwoHundredAndFourteenTimesWithPl
     EXPECT_EQ(calls.back().model, 0x1033);
 }
 
-// El lazo de 0x1227 a 0x122a saltea el 0x1229 - 0x200 (0x60fa0b).
+// The loop from 0x1227 to 0x122a skips 0x1229 - 0x200 (0x60fa0b).
 TEST(ModelTextureCallsTest, ThePlayerLoaderSkips0x1029)
 {
     EXPECT_FALSE(Calls(PlayerTextureCalls(), 0x1029));
@@ -63,11 +62,11 @@ TEST(ModelTextureCallsTest, ThePlayerLoaderSkips0x1029)
     EXPECT_TRUE(Calls(PlayerTextureCalls(), 0x1028));
 }
 
-// 291 llamadas, casi todas con Item\; las otras seis, en su orden.
+// Almost all with Item\; the other six, in their order.
 TEST(ModelTextureCallsTest, TheItemLoaderCallsTwoHundredAndNinetyOneTimes)
 {
-    // Con int y no std::uint16_t: armar el par desde los literales int haría la conversión
-    // adentro de std::pair, y MSVC la avisa (C4242).
+    // int and not std::uint16_t: building the pair from int literals would convert inside std::pair, and MSVC warns
+    // (C4242).
     const std::span<const ModelTextureCall> calls = ItemTextureCalls();
     std::vector<std::pair<int, std::string_view>> others;
     for (const ModelTextureCall& call : calls)
@@ -88,8 +87,8 @@ TEST(ModelTextureCallsTest, TheItemLoaderCallsTwoHundredAndNinetyOneTimes)
     EXPECT_EQ(others, expected);
 }
 
-// Los Helper01 a 03 están en Player\, pero sus texturas son de Item\ (el lazo de 0x412, + 0x1800):
-// con Player\, fairy.jpg, satan.jpg y unicon.jpg no están, y el original se cerraría (Q-C23).
+// Helper01 to 03 are in Player\, but their textures come from Item\ (the loop of 0x412, + 0x1800): with Player\,
+// fairy.jpg, satan.jpg and unicon.jpg are not found and the original would close (Q-C23).
 TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
 {
     for (const std::uint16_t helper : {std::uint16_t{0x1c12}, std::uint16_t{0x1c13}, std::uint16_t{0x1c14}})
@@ -101,8 +100,8 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
     }
 }
 
-// NativeSkillLoadTest comprueba el barrido de 0x616e20 y las llamadas sueltas para Gate01/02,
-// y LaceArrow (0x11c), fuera de estas tablas.
+// NativeSkillLoadTest checks the sweep of 0x616e20 and the separate calls for Gate01/02 and LaceArrow (0x11c),
+// outside these tables.
 TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
 {
     std::set<std::uint16_t> called;
@@ -131,9 +130,8 @@ TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
     }
 }
 
-// Las 45 consultas explícitas de 0x615700 después de su 0x60d530(0x3b8), empezando por las de
-// 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7), las del cuervo (0x6169c2), las de HellGate
-// (0x6169e0) y las del Dinorant (0x6169fb).
+// The 45 explicit lookups of 0x615700 after its 0x60d530(0x3b8): first 0x145, 0x146 and 0x147, then the horse's
+// (0x6169a7), the raven's (0x6169c2), HellGate's (0x6169e0) and the Dinorant's (0x6169fb).
 TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFifth)
 {
     const std::span<const ModelTextureCall> calls = SkillTextureCalls();
@@ -161,8 +159,8 @@ TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFi
                                                   0x132, 0x133, 0x134, 0x135, 0x13c, 0x13d, 0x13e, 0x137, 0x140}));
 }
 
-// 0x615f77, 0x615fab y 0x615fdc: los Fenrir, con Skill\, y 0x616010: su rayo 0x14d, con Effect\, antes del
-// 0x60d530(0x3b8) de 0x615700. 0x616181 añade las de Arrow_Spark al mismo bloque.
+// 0x615f77, 0x615fab and 0x615fdc: the Fenrir, with Skill\, and 0x616010: their bolt 0x14d, with Effect\, before
+// 0x615700's 0x60d530(0x3b8). 0x616181 adds Arrow_Spark's to the same block.
 TEST(ModelTextureCallsTest, TheFenrirAskForTheirTexturesBeforeTheSkillBlock)
 {
     std::vector<std::uint16_t> models;
@@ -174,14 +172,14 @@ TEST(ModelTextureCallsTest, TheFenrirAskForTheirTexturesBeforeTheSkillBlock)
     EXPECT_EQ(models, (std::vector<std::uint16_t>{0x14a, 0x14b, 0x14c, 0x14d, 0xf9}));
 }
 
-// 0x2901 y 0x2600 en todas: repitiendo y sin filtro.
+// 0x2901 and 0x2600 in all: repeating and unfiltered.
 TEST(ModelTextureCallsTest, TheModelTexturesRepeatWithoutFilter)
 {
     EXPECT_EQ(ModelTextureSampling.filter, Filter::Nearest);
     EXPECT_EQ(ModelTextureSampling.wrap, Wrap::Repeat);
 }
 
-// La piel, el pelo y las cuatro capas, sin filtro y sin repetir; 0x12d y 0x135 quedan vacíos.
+// Unfiltered and clamped; 0x12d and 0x135 stay empty.
 TEST(ModelTextureCallsTest, TheFixedTexturesAreTheSkinTheHairAndTheRobes)
 {
     std::vector<std::uint16_t> slots;

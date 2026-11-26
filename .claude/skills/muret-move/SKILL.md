@@ -40,9 +40,10 @@ file belongs to is the [`muret-module`](../muret-module/SKILL.md) skill.
      --map Client/docs/research/coverage/module-map.tsv --baseline Client/tools/architecture/layers-baseline.tsv
    ```
 
-   `check_pure_move.py` compares each renamed file's lines without its includes and blank lines, and lists any line
-   that changed or went missing. It does not look at the files that were only edited: in a move those are include lines
-   and build paths, so read `git diff -M50% --diff-filter=M` before pushing.
+   `check_pure_move.py` compares each renamed file's lines without its includes, blank lines and export macros (a file
+   that leaves the engine drops its `ENGINE_API`), and lists any line that changed or went missing. It does not look at
+   the files that were only edited: in a move those are include lines and build paths, so read
+   `git diff -M50% --diff-filter=M` before pushing.
 5. Commit and title the PR `refactor(AR<epic>.<milestone>): move <what> to Client/src/<root>`. CI's "Refactor moves and
    comments" step runs `check_pure_move.py` on every PR titled `type(ARn)` or `type(ARn.m)`.
 6. If the base moves before the merge, merge it in and rerun `move.py` with the same modules: it moves the files the

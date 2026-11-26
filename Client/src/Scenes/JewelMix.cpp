@@ -1,8 +1,8 @@
 #include "Scenes/JewelMix.h"
 
 #include "Core/Expected.h"
-#include "Protocol/Connection/Logout.h"
-#include "Protocol/JewelMix.h"
+#include "Protocol/Session/Logout.h"
+#include "Protocol/ChaosMix/JewelMix.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"

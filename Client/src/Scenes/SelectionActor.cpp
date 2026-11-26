@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorCharacterSet.h"

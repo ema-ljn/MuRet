@@ -1,4 +1,4 @@
-#include "Protocol/BuildConstants.h"
+#include "Protocol/Session/BuildConstants.h"
 
 #include <gtest/gtest.h>
 

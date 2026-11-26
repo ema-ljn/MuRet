@@ -7,7 +7,7 @@
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Character/PkLevel.h"
+#include "Protocol/Player/PkLevel.h"
 #include "Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ActorState.h"

@@ -6,7 +6,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/DialogTable.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Quest.h"
+#include "Protocol/Quests/Quest.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"

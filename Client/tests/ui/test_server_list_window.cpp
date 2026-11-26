@@ -3,7 +3,7 @@
 #include "Core/PixelSize.h"
 #include "Tables/TextTable.h"
 #include "Input/InputState.h"
-#include "Protocol/Connection/ServerList.h"
+#include "Protocol/Session/ServerList.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"

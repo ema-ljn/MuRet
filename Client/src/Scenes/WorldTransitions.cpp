@@ -4,7 +4,7 @@
 #include "Core/IClock.h"
 #include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
-#include "Protocol/World.h"
+#include "Protocol/Movement/World.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorConstruction.h"

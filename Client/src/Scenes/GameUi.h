@@ -4,7 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Tables/SkillTable.h"
 #include "Scenes/ActorPickingBox.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
 #include "UI/Widget.h"

@@ -5,7 +5,7 @@
 #include "Maps/MapId.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Models/Animation.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalAngles.h"

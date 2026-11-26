@@ -6,7 +6,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/TextTable.h"
 #include "Input/InputState.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"

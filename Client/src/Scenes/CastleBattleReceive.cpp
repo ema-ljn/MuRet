@@ -1,7 +1,7 @@
 #include "Scenes/CastleBattleReceive.h"
 
 #include "Core/Expected.h"
-#include "Protocol/CastleBattle.h"
+#include "Protocol/CastleSiege/CastleBattle.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/CastleFlagUpload.h"
 #include "Scenes/CastleBattleCommands.h"

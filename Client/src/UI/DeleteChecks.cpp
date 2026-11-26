@@ -1,7 +1,7 @@
 #include "UI/DeleteChecks.h"
 
 #include "Tables/TextTable.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "UI/GameText.h"
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"

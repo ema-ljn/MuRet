@@ -1,8 +1,8 @@
 #include "Network/Packet.h"
 #include "Network/Xor32Packet.h"
-#include "Protocol/Character/CharacterList.h"
-#include "Protocol/Character/CharacterSelect.h"
-#include "Protocol/Character/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterSelect.h"
+#include "Protocol/FrontEnd/Opcodes.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

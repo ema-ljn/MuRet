@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/SiegeControls.h"
+#include "Protocol/CastleSiege/SiegeControls.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

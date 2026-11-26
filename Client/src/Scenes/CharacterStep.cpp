@@ -1,7 +1,7 @@
 #include "Scenes/CharacterStep.h"
 #include "Maps/MapId.h"
 #include "Scenes/SiegeBattleUi.h"
-#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Pets/PetOrders.h"
 
 #include "Scenes/ActorPickingBox.h"
 #include "Math/OriginalRotation.h"

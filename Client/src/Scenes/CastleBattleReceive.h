@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/CastleBattle.h"
+#include "Protocol/CastleSiege/CastleBattle.h"
 #include "Scenes/CastleSiegeReceive.h"
 
 #include <cstdint>

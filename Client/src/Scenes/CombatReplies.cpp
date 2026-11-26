@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Maps/MapId.h"
-#include "Protocol/Combat.h"
+#include "Protocol/Combat/Combat.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"

@@ -7,7 +7,7 @@
 #include "Input/InputState.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"

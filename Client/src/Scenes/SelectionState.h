@@ -3,7 +3,7 @@
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldState.h"

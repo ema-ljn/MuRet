@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/SkillTable.h"
 #include "Maps/MapId.h"
-#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Pets/PetOrders.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"

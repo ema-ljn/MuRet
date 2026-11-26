@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Protocol/Character/Opcodes.h"
+#include "Protocol/FrontEnd/Opcodes.h"
 
 #include <array>
 #include <cstddef>

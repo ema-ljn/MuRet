@@ -11,7 +11,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/GameDialogSteps.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/MacroFile.h"
 #include "support/Bytes.h"

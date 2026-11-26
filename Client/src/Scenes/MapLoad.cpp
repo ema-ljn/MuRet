@@ -10,7 +10,7 @@
 #include "Maps/WorldFolder.h"
 #include "Maps/WorldLoadIdentity.h"
 #include "Maps/MapId.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/EventMapObject.h"

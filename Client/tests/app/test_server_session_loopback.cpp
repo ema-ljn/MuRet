@@ -16,8 +16,8 @@
 #include "Network/SystemSocket.h"
 #include "Network/Xor32Packet.h"
 #include "Network/XorRemap/XorRemapObfuscation.h"
-#include "Protocol/Character/CharacterSelect.h"
-#include "Protocol/Connection/Login.h"
+#include "Protocol/FrontEnd/CharacterSelect.h"
+#include "Protocol/Session/Login.h"
 
 #include "support/AppPrinters.h"
 #include "support/CharacterPackets.h"

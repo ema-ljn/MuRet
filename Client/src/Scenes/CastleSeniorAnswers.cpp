@@ -1,7 +1,7 @@
 #include "Scenes/CastleSeniorAnswers.h"
 
 #include "Core/Log.h"
-#include "Protocol/CastleSiege.h"
+#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/Outgoing.h"
 #include "UI/CastleSiegeState.h"
 

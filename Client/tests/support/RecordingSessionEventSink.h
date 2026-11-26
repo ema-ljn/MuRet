@@ -6,7 +6,7 @@
 #include "App/SessionState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
-#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 
 #include <cstddef>
 #include <functional>

@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/World.h"
+#include "Protocol/Movement/World.h"
 
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"

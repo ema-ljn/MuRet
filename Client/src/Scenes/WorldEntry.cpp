@@ -5,7 +5,7 @@
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Maps/MapId.h"
-#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Models/IModelLibrary.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"

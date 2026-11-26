@@ -1,11 +1,11 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Connection/Login.h"
+#include "Protocol/Session/Login.h"
 
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
-#include "Protocol/BuildConstants.h"
+#include "Protocol/Session/BuildConstants.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 

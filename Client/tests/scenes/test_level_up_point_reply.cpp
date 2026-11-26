@@ -7,7 +7,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
-#include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Player/LevelUpPoint.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/LoginModels.h"

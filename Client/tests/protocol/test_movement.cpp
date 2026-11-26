@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 
 #include "Network/Delivery.h"
 #include "Network/ProtocolError.h"

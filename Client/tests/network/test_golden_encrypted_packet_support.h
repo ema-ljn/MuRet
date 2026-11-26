@@ -6,7 +6,7 @@
 #include "Network/IObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
-#include "Protocol/Character/InventoryList.h"
+#include "Protocol/Items/InventoryList.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

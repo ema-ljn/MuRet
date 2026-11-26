@@ -5,7 +5,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Core/StderrSink.h"
-#include "Protocol/CastleSiege.h"
+#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Scenes/CastleSeniorAnswers.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

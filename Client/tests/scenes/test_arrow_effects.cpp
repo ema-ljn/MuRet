@@ -5,7 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Math/HalfLifeMath.h"
 #include "Scenes/GameDrawTail.h"
 #include "Models/LogicalAccess.h"

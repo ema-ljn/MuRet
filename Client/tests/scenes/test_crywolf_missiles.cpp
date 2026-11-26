@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/EventPackets.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
 #include "World/ModelEffects.h"

@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Pathfinding/PathFinder.h"
 #include "Maps/MapId.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"

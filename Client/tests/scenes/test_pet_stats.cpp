@@ -6,7 +6,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
-#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pets/PetInfo.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"

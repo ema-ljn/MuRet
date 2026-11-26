@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/DialogAnswers.h"
+#include "Protocol/Npc/DialogAnswers.h"
 
 #include "Network/Delivery.h"
 

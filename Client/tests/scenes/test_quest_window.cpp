@@ -8,7 +8,7 @@
 #include "Tables/DialogTable.h"
 #include "Tables/TextTable.h"
 #include "Input/InputState.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"

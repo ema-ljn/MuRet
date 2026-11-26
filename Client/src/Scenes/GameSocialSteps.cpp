@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Duel.h"
+#include "Protocol/Social/Duel.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Trade.h"
+#include "Protocol/Social/Trade.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"

@@ -8,7 +8,7 @@
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Network/Xor32Packet.h"
-#include "Protocol/Inventory.h"
+#include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Render/Text/FontSet.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/DynamicWorldLight.h"

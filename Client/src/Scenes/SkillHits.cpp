@@ -5,7 +5,7 @@
 #include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"

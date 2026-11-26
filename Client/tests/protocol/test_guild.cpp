@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

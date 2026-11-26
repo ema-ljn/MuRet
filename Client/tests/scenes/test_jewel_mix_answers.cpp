@@ -5,7 +5,7 @@
 #include "Tables/TextTable.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"

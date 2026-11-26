@@ -11,7 +11,7 @@
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/Cloth.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"

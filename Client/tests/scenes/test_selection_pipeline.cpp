@@ -12,7 +12,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/PacketSerials.h"
-#include "Protocol/Character/CharacterDelete.h"
+#include "Protocol/FrontEnd/CharacterDelete.h"
 #include "Render/ModelBatch.h"
 #include "Models/Animation.h"
 #include "Models/Cloth.h"

@@ -4,7 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Tables/ItemTable.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Protocol/Outgoing.h"
 
 #include <cstdint>

@@ -298,81 +298,81 @@ engine/Platform/Sdl/Window.cpp	148	engine/Platform/Sdl	engine/Platform/Sdl	high	
 engine/Platform/Sdl/Window.h	94	engine/Platform/Sdl	engine/Platform/Sdl	high	engine or protocol layer, no game state
 engine/Platform/Sdl/WindowEvents.cpp	84	engine/Platform/Sdl	engine/Platform/Sdl	high	engine or protocol layer, no game state
 engine/Platform/Sdl/WindowEvents.h	29	engine/Platform/Sdl	engine/Platform/Sdl	high	engine or protocol layer, no game state
-Protocol/BuildConstants.h	32	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/CastleBattle.cpp	397	Protocol	game/Protocol/CastleSiege	high	the packets of CastleSiege
-Protocol/CastleBattle.h	189	Protocol	game/Protocol/CastleSiege	high	the packets of CastleSiege
-Protocol/CastleSiege.cpp	707	Protocol	game/Protocol/CastleSiege	high	the packets of CastleSiege
-Protocol/CastleSiege.h	277	Protocol	game/Protocol/CastleSiege	high	the packets of CastleSiege
-Protocol/Character/CharacterCreate.cpp	69	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterCreate.h	47	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterDelete.cpp	56	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterDelete.h	40	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterList.cpp	84	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterList.h	75	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterName.cpp	43	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterName.h	27	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterSelect.cpp	72	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterSelect.h	27	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/CharacterSelectResult.h	35	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/InventoryList.cpp	51	Protocol	game/Protocol/Items	high	the packets of Items
-Protocol/Character/InventoryList.h	38	Protocol	game/Protocol/Items	high	the packets of Items
-Protocol/Character/LevelUpPoint.cpp	44	Protocol	game/Protocol/Player	high	the packets of Player
-Protocol/Character/LevelUpPoint.h	39	Protocol	game/Protocol/Player	high	the packets of Player
-Protocol/Character/Opcodes.h	30	Protocol	game/Protocol/FrontEnd	high	the packets of FrontEnd
-Protocol/Character/PkLevel.cpp	25	Protocol	game/Protocol/Player	high	the packets of Player
-Protocol/Character/PkLevel.h	21	Protocol	game/Protocol/Player	high	the packets of Player
-Protocol/Chat/ChatSend.cpp	42	Protocol	game/Protocol/Chat	high	the packets of Chat
-Protocol/Chat/ChatSend.h	35	Protocol	game/Protocol/Chat	high	the packets of Chat
-Protocol/Combat.cpp	98	Protocol	game/Protocol/Combat	high	the packets of Combat
-Protocol/Combat.h	62	Protocol	game/Protocol/Combat	high	the packets of Combat
-Protocol/Connection/Hello.cpp	45	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Hello.h	30	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Keepalive.cpp	50	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Keepalive.h	39	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Login.cpp	99	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Login.h	56	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Logout.cpp	54	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Logout.h	48	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/MainCheck.cpp	111	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/MainCheck.h	47	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/MapServerMove.cpp	101	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/MapServerMove.h	66	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/Opcodes.h	37	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/ServerList.cpp	96	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/Connection/ServerList.h	58	Protocol	game/Protocol/Session	high	the packets of Session
-Protocol/DialogAnswers.cpp	20	Protocol	game/Protocol/Npc	high	the packets of Npc
-Protocol/DialogAnswers.h	25	Protocol	game/Protocol/Npc	high	the packets of Npc
+game/Protocol/Session/BuildConstants.h	32	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/CastleSiege/CastleBattle.cpp	397	game/Protocol/CastleSiege	game/Protocol/CastleSiege	high	the packets of CastleSiege
+game/Protocol/CastleSiege/CastleBattle.h	189	game/Protocol/CastleSiege	game/Protocol/CastleSiege	high	the packets of CastleSiege
+game/Protocol/CastleSiege/CastleSiege.cpp	707	game/Protocol/CastleSiege	game/Protocol/CastleSiege	high	the packets of CastleSiege
+game/Protocol/CastleSiege/CastleSiege.h	277	game/Protocol/CastleSiege	game/Protocol/CastleSiege	high	the packets of CastleSiege
+game/Protocol/FrontEnd/CharacterCreate.cpp	69	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterCreate.h	47	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterDelete.cpp	56	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterDelete.h	40	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterList.cpp	84	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterList.h	75	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterName.cpp	43	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterName.h	27	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterSelect.cpp	72	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterSelect.h	27	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/FrontEnd/CharacterSelectResult.h	35	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/Items/InventoryList.cpp	51	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
+game/Protocol/Items/InventoryList.h	38	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
+game/Protocol/Player/LevelUpPoint.cpp	44	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
+game/Protocol/Player/LevelUpPoint.h	39	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
+game/Protocol/FrontEnd/Opcodes.h	30	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
+game/Protocol/Player/PkLevel.cpp	25	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
+game/Protocol/Player/PkLevel.h	21	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
+game/Protocol/Chat/ChatSend.cpp	42	game/Protocol/Chat	game/Protocol/Chat	high	the packets of Chat
+game/Protocol/Chat/ChatSend.h	35	game/Protocol/Chat	game/Protocol/Chat	high	the packets of Chat
+game/Protocol/Combat/Combat.cpp	98	game/Protocol/Combat	game/Protocol/Combat	high	the packets of Combat
+game/Protocol/Combat/Combat.h	62	game/Protocol/Combat	game/Protocol/Combat	high	the packets of Combat
+game/Protocol/Session/Hello.cpp	45	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Hello.h	30	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Keepalive.cpp	50	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Keepalive.h	39	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Login.cpp	99	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Login.h	56	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Logout.cpp	54	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Logout.h	48	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/MainCheck.cpp	111	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/MainCheck.h	47	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/MapServerMove.cpp	101	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/MapServerMove.h	66	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/Opcodes.h	37	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/ServerList.cpp	96	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Session/ServerList.h	58	game/Protocol/Session	game/Protocol/Session	high	the packets of Session
+game/Protocol/Npc/DialogAnswers.cpp	20	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
+game/Protocol/Npc/DialogAnswers.h	25	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
 Protocol/Dispatcher.cpp	94	Protocol	game/Session	high	routes the packets that arrive; the session owns it
 Protocol/Dispatcher.h	79	Protocol	game/Session	high	routes the packets that arrive; the session owns it
-Protocol/Duel.cpp	104	Protocol	game/Protocol/Social	high	the packets of Social
-Protocol/Duel.h	76	Protocol	game/Protocol/Social	high	the packets of Social
-Protocol/Events.cpp	424	Protocol	game/Protocol/Events	high	the packets of Events
-Protocol/Events.h	365	Protocol	game/Protocol/Events	high	the packets of Events
-Protocol/FloorItems.cpp	185	Protocol	game/Protocol/Items	high	the packets of Items
-Protocol/FloorItems.h	146	Protocol	game/Protocol/Items	high	the packets of Items
-Protocol/FriendChat.cpp	273	Protocol	game/Protocol/Messenger	high	the packets of Messenger
-Protocol/FriendChat.h	134	Protocol	game/Protocol/Messenger	high	the packets of Messenger
-Protocol/Friends.cpp	158	Protocol	game/Protocol/Messenger	high	the packets of Messenger
-Protocol/Friends.h	89	Protocol	game/Protocol/Messenger	high	the packets of Messenger
-Protocol/Guild.cpp	493	Protocol	game/Protocol/Guild	high	the packets of Guild
-Protocol/Guild.h	303	Protocol	game/Protocol/Guild	high	the packets of Guild
-Protocol/Inventory.cpp	177	Protocol	game/Protocol/Items	high	the packets of Items
-Protocol/Inventory.h	131	Protocol	game/Protocol/Items	high	the packets of Items
-Protocol/JewelMix.cpp	19	Protocol	game/Protocol/ChaosMix	high	the packets of ChaosMix
-Protocol/JewelMix.h	24	Protocol	game/Protocol/ChaosMix	high	the packets of ChaosMix
-Protocol/Letters.cpp	174	Protocol	game/Protocol/Messenger	high	the packets of Messenger
-Protocol/Letters.h	116	Protocol	game/Protocol/Messenger	high	the packets of Messenger
-Protocol/Messages.cpp	117	Protocol	game/Protocol/Chat	high	the packets of Chat
-Protocol/Messages.h	78	Protocol	game/Protocol/Chat	high	the packets of Chat
-Protocol/Movement.cpp	163	Protocol	game/Protocol/Movement	high	the packets of Movement
-Protocol/Movement.h	93	Protocol	game/Protocol/Movement	high	the packets of Movement
-Protocol/NpcWindows.cpp	263	Protocol	game/Protocol/Npc	high	the packets of Npc
-Protocol/NpcWindows.h	186	Protocol	game/Protocol/Npc	high	the packets of Npc
-Protocol/Opcodes.h	266	Protocol	game/Protocol	high	the protocol's shared kit: the opcode list and the outgoing packet
-Protocol/OptionData.cpp	57	Protocol	game/Protocol/Player	high	the packets of Player
-Protocol/OptionData.h	45	Protocol	game/Protocol/Player	high	the packets of Player
-Protocol/Outgoing.cpp	23	Protocol	game/Protocol	high	the protocol's shared kit: the opcode list and the outgoing packet
-Protocol/Outgoing.h	35	Protocol	game/Protocol	high	the protocol's shared kit: the opcode list and the outgoing packet
+game/Protocol/Social/Duel.cpp	104	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
+game/Protocol/Social/Duel.h	76	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
+game/Protocol/Events/Events.cpp	424	game/Protocol/Events	game/Protocol/Events	high	the packets of Events
+game/Protocol/Events/Events.h	365	game/Protocol/Events	game/Protocol/Events	high	the packets of Events
+game/Protocol/Items/FloorItems.cpp	185	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
+game/Protocol/Items/FloorItems.h	146	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
+game/Protocol/Messenger/FriendChat.cpp	273	game/Protocol/Messenger	game/Protocol/Messenger	high	the packets of Messenger
+game/Protocol/Messenger/FriendChat.h	134	game/Protocol/Messenger	game/Protocol/Messenger	high	the packets of Messenger
+game/Protocol/Messenger/Friends.cpp	158	game/Protocol/Messenger	game/Protocol/Messenger	high	the packets of Messenger
+game/Protocol/Messenger/Friends.h	89	game/Protocol/Messenger	game/Protocol/Messenger	high	the packets of Messenger
+game/Protocol/Guild/Guild.cpp	493	game/Protocol/Guild	game/Protocol/Guild	high	the packets of Guild
+game/Protocol/Guild/Guild.h	303	game/Protocol/Guild	game/Protocol/Guild	high	the packets of Guild
+game/Protocol/Items/Inventory.cpp	177	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
+game/Protocol/Items/Inventory.h	131	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
+game/Protocol/ChaosMix/JewelMix.cpp	19	game/Protocol/ChaosMix	game/Protocol/ChaosMix	high	the packets of ChaosMix
+game/Protocol/ChaosMix/JewelMix.h	24	game/Protocol/ChaosMix	game/Protocol/ChaosMix	high	the packets of ChaosMix
+game/Protocol/Messenger/Letters.cpp	174	game/Protocol/Messenger	game/Protocol/Messenger	high	the packets of Messenger
+game/Protocol/Messenger/Letters.h	116	game/Protocol/Messenger	game/Protocol/Messenger	high	the packets of Messenger
+game/Protocol/Chat/Messages.cpp	117	game/Protocol/Chat	game/Protocol/Chat	high	the packets of Chat
+game/Protocol/Chat/Messages.h	78	game/Protocol/Chat	game/Protocol/Chat	high	the packets of Chat
+game/Protocol/Movement/Movement.cpp	163	game/Protocol/Movement	game/Protocol/Movement	high	the packets of Movement
+game/Protocol/Movement/Movement.h	93	game/Protocol/Movement	game/Protocol/Movement	high	the packets of Movement
+game/Protocol/Npc/NpcWindows.cpp	263	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
+game/Protocol/Npc/NpcWindows.h	186	game/Protocol/Npc	game/Protocol/Npc	high	the packets of Npc
+game/Protocol/Opcodes.h	266	game/Protocol	game/Protocol	high	the protocol's shared kit: the opcode list and the outgoing packet
+game/Protocol/Player/OptionData.cpp	57	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
+game/Protocol/Player/OptionData.h	45	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
+game/Protocol/Outgoing.cpp	23	game/Protocol	game/Protocol	high	the protocol's shared kit: the opcode list and the outgoing packet
+game/Protocol/Outgoing.h	35	game/Protocol	game/Protocol	high	the protocol's shared kit: the opcode list and the outgoing packet
 engine/Network/PacketFields.cpp	50	engine/Network	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
 engine/Network/PacketFields.h	42	engine/Network	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
 engine/Network/Field.h	31	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
@@ -381,27 +381,27 @@ engine/Network/LayoutReader.h	82	engine/Network	engine/Network	high	packet layou
 engine/Network/PacketCode.h	32	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
 engine/Network/PacketLayout.h	17	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
 engine/Network/ReadList.h	35	engine/Network	engine/Network	high	packet layouts: a packet's code, its fields at fixed offsets and their reader, no game knowledge (AR2.1)
-Protocol/Party.cpp	139	Protocol	game/Protocol/Party	high	the packets of Party
-Protocol/Party.h	100	Protocol	game/Protocol/Party	high	the packets of Party
-Protocol/PersonalShop.cpp	280	Protocol	game/Protocol/PersonalShop	high	the packets of PersonalShop
-Protocol/PersonalShop.h	193	Protocol	game/Protocol/PersonalShop	high	the packets of PersonalShop
-Protocol/Pet/PetInfo.cpp	33	Protocol	game/Protocol/Pets	high	the packets of Pets
-Protocol/Pet/PetInfo.h	65	Protocol	game/Protocol/Pets	high	the packets of Pets
-Protocol/Pet/PetOrders.cpp	60	Protocol	game/Protocol/Pets	high	the packets of Pets
-Protocol/Pet/PetOrders.h	56	Protocol	game/Protocol/Pets	high	the packets of Pets
+game/Protocol/Party/Party.cpp	139	game/Protocol/Party	game/Protocol/Party	high	the packets of Party
+game/Protocol/Party/Party.h	100	game/Protocol/Party	game/Protocol/Party	high	the packets of Party
+game/Protocol/PersonalShop/PersonalShop.cpp	280	game/Protocol/PersonalShop	game/Protocol/PersonalShop	high	the packets of PersonalShop
+game/Protocol/PersonalShop/PersonalShop.h	193	game/Protocol/PersonalShop	game/Protocol/PersonalShop	high	the packets of PersonalShop
+game/Protocol/Pets/PetInfo.cpp	33	game/Protocol/Pets	game/Protocol/Pets	high	the packets of Pets
+game/Protocol/Pets/PetInfo.h	65	game/Protocol/Pets	game/Protocol/Pets	high	the packets of Pets
+game/Protocol/Pets/PetOrders.cpp	60	game/Protocol/Pets	game/Protocol/Pets	high	the packets of Pets
+game/Protocol/Pets/PetOrders.h	56	game/Protocol/Pets	game/Protocol/Pets	high	the packets of Pets
 engine/Network/ProtocolError.h	17	engine/Network	engine/Network	high	the errors of reading or writing a packet, no game knowledge (AR1.1)
-Protocol/Quest.cpp	117	Protocol	game/Protocol/Quests	high	the packets of Quests
-Protocol/Quest.h	80	Protocol	game/Protocol/Quests	high	the packets of Quests
-Protocol/SiegeControls.cpp	31	Protocol	game/Protocol/CastleSiege	high	the packets of CastleSiege
-Protocol/SiegeControls.h	17	Protocol	game/Protocol/CastleSiege	high	the packets of CastleSiege
-Protocol/Skill.cpp	259	Protocol	game/Protocol/Skills	high	the packets of Skills
-Protocol/Skill.h	212	Protocol	game/Protocol/Skills	high	the packets of Skills
-Protocol/Trade.cpp	180	Protocol	game/Protocol/Social	high	the packets of Social
-Protocol/Trade.h	130	Protocol	game/Protocol/Social	high	the packets of Social
-Protocol/Viewport.cpp	362	Protocol	game/Protocol/Actors	high	the packets of Actors
-Protocol/Viewport.h	219	Protocol	game/Protocol/Actors	high	the packets of Actors
-Protocol/World.cpp	101	Protocol	game/Protocol/Movement	high	the packets of Movement
-Protocol/World.h	75	Protocol	game/Protocol/Movement	high	the packets of Movement
+game/Protocol/Quests/Quest.cpp	117	game/Protocol/Quests	game/Protocol/Quests	high	the packets of Quests
+game/Protocol/Quests/Quest.h	80	game/Protocol/Quests	game/Protocol/Quests	high	the packets of Quests
+game/Protocol/CastleSiege/SiegeControls.cpp	31	game/Protocol/CastleSiege	game/Protocol/CastleSiege	high	the packets of CastleSiege
+game/Protocol/CastleSiege/SiegeControls.h	17	game/Protocol/CastleSiege	game/Protocol/CastleSiege	high	the packets of CastleSiege
+game/Protocol/Skills/Skill.cpp	259	game/Protocol/Skills	game/Protocol/Skills	high	the packets of Skills
+game/Protocol/Skills/Skill.h	212	game/Protocol/Skills	game/Protocol/Skills	high	the packets of Skills
+game/Protocol/Social/Trade.cpp	180	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
+game/Protocol/Social/Trade.h	130	game/Protocol/Social	game/Protocol/Social	high	the packets of Social
+game/Protocol/Actors/Viewport.cpp	362	game/Protocol/Actors	game/Protocol/Actors	high	the packets of Actors
+game/Protocol/Actors/Viewport.h	219	game/Protocol/Actors	game/Protocol/Actors	high	the packets of Actors
+game/Protocol/Movement/World.cpp	101	game/Protocol/Movement	game/Protocol/Movement	high	the packets of Movement
+game/Protocol/Movement/World.h	75	game/Protocol/Movement	game/Protocol/Movement	high	the packets of Movement
 engine/Render/Billboard.cpp	115	engine/Render	engine/Render	high	engine or protocol layer, no game state
 engine/Render/Billboard.h	52	engine/Render	engine/Render	high	engine or protocol layer, no game state
 engine/Render/Frame/IScreenReader.h	19	engine/Render/Frame	engine/Render/Frame	high	the screenshot's read of the drawn frame, implemented by GL (AR1.1)

@@ -5,7 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/SkillTable.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"

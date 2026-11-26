@@ -1,7 +1,7 @@
 #include "Scenes/PetTooltip.h"
 
 #include "Core/Expected.h"
-#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pets/PetInfo.h"
 #include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"

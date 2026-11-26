@@ -7,7 +7,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Tables/PlayerModels.h"
-#include "Protocol/Viewport.h"
+#include "Protocol/Actors/Viewport.h"
 #include "Models/Cloth.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"

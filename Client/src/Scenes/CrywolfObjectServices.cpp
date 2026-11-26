@@ -5,7 +5,7 @@
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldRuntime.h"

@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 
 #include "Network/Delivery.h"
 #include "Network/Packet.h"

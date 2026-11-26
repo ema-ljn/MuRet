@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Quest.h"
+#include "Protocol/Quests/Quest.h"
 
 #include "Network/Delivery.h"
 #include "Network/ProtocolError.h"

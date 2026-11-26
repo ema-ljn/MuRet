@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Player/LevelUpPoint.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"

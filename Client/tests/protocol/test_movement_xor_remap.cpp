@@ -1,4 +1,4 @@
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 
 #include "App/LabXorRemapTables.h"
 #include "Network/XorRemap/XorRemapObfuscation.h"

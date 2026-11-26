@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Viewport.h"
+#include "Protocol/Actors/Viewport.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"

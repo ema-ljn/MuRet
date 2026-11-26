@@ -3,7 +3,7 @@
 #include "Tables/PlayerModels.h"
 
 #include "Crt/CrtRandom.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterCloth.h"

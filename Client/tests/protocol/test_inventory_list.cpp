@@ -1,4 +1,4 @@
-#include "Protocol/Character/InventoryList.h"
+#include "Protocol/Items/InventoryList.h"
 
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"

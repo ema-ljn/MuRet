@@ -3,7 +3,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Pets/PetOrders.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"

@@ -13,7 +13,7 @@
 #include "Tables/TextTable.h"
 #include "Pathfinding/Path.h"
 #include "Pathfinding/PathCell.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"

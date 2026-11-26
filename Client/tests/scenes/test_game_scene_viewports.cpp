@@ -9,7 +9,7 @@
 #include "Tables/ItemTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
-#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Render/ModelVertex.h"
 #include "Models/Cloth.h"
 #include "Math/RoundedTransforms.h"

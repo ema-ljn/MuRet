@@ -1,0 +1,258 @@
+#include "Protocol/Skills/Skill.h"
+
+#include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/Packet.h"
+#include "Network/PacketWriter.h"
+#include "Protocol/Outgoing.h"
+#include "Network/PacketFields.h"
+#include "Network/ProtocolError.h"
+#include "Protocol/Opcodes.h"
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+
+namespace Client::Protocol::Skill
+{
+namespace
+{
+constexpr std::uint16_t SucceededBit = 0x8000;
+constexpr std::uint16_t TargetMask = 0x7fff;
+
+// Un C1 de `opcode` (o un C3 descifrado, que llega como C1): el lector desde pkt[3].
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
+{
+    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
+    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
+}
+
+constexpr Network::PacketKind SkillListKind{Network::PacketType::C1, CharacterOpcode, Character::SkillListSubcode};
+constexpr Network::PacketKind SummonLifeKind{Network::PacketType::C1, CharacterOpcode, Character::SummonLifeSubcode};
+} // namespace
+
+Core::Expected<MagicAttack, Network::ProtocolError> ReadMagicAttack(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, MagicAttackOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto skill = reader.ReadU8();
+    const auto source = reader.ReadU16Be();
+    const auto target = reader.ReadU16Be();
+    if (!skill || !source || !target)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    // 0x4cce2f..0x4cce55: el SAR 0xf del blanco entero y el AND 0x7fff.
+    return MagicAttack{*skill, *source, static_cast<std::uint16_t>(*target & TargetMask),
+                       (*target & SucceededBit) != 0};
+}
+
+Core::Expected<DurationMagic, Network::ProtocolError> ReadDurationMagic(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, DurationMagicOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto skill = reader.ReadU8();
+    const auto key = reader.ReadU16Be();
+    const auto x = reader.ReadU8();
+    const auto y = reader.ReadU8();
+    const auto direction = reader.ReadU8();
+    if (!skill || !key || !x || !y || !direction)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    return DurationMagic{*skill, *key, *x, *y, *direction};
+}
+
+Core::Expected<MagicCancel, Network::ProtocolError> ReadMagicCancel(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, MagicCancelOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto skill = reader.ReadU8();
+    const auto key = reader.ReadU16Be();
+    if (!skill || !key)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    return MagicCancel{*skill, *key};
+}
+
+Core::Expected<ActorState, Network::ProtocolError> ReadActorState(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, ActorStateOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto type = reader.ReadU8();
+    // 0x4cbe22: MOV ESI,[pkt+4], el DWORD en little endian.
+    const auto mask = reader.ReadU32Le();
+    const auto key = reader.ReadU16Be();
+    if (!type || !mask || !key)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    return ActorState{*type, *mask, *key};
+}
+
+Core::Expected<ActorEffect, Network::ProtocolError> ReadActorEffect(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, ActorEffectOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    // 0x4dbf59..0x4dbf61: AH = pkt[3] y AL = pkt[4].
+    const auto key = reader.ReadU16Be();
+    const auto kind = reader.ReadU8();
+    if (!key || !kind)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    return ActorEffect{*key, *kind};
+}
+
+Core::Expected<SkillTarget, Network::ProtocolError> ReadSkillTarget(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, SkillTargetOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto skill = reader.ReadU8();
+    // 0x4cc29d y 0x4cc2a3: MOV DI,[pkt+6] y MOV AX,[pkt+4], los WORD en little endian.
+    const auto source = reader.ReadU16Le();
+    const auto target = reader.ReadU16Le();
+    if (!skill || !source || !target)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    return SkillTarget{*skill, *source, *target};
+}
+
+Core::Expected<SkillList, Network::ProtocolError> ReadSkillList(const Network::Packet& packet)
+{
+    auto fields = Network::FieldsAfterSubcode(packet, SkillListKind);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto count = reader.ReadU8();
+    const auto list = reader.ReadU8();
+    if (!count || !list)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    SkillList read{.count = *count, .list = *list, .slot = 0, .skill = 0, .entries = {}};
+    // 0x4c507c, 0x4c5145 y 0x4c522e: cuál de las cuatro formas.
+    if (*count == SkillListRemoveOne || *count == SkillListAddOne || *list == SkillListClearSlot)
+    {
+        // 0x4c52ab..0x4c52ad: la lista 2 vacía no toca pkt[6]; FE y FF ya tienen prioridad por count.
+        if (*count == 0)
+            return read;
+        const auto slot = reader.ReadU8();
+        if (!slot)
+            return Core::Unexpected(Network::ProtocolError::TooShort);
+        read.slot = *slot;
+        if (*count == SkillListAddOne)
+        {
+            const auto skill = reader.ReadU8();
+            if (!skill)
+                return Core::Unexpected(Network::ProtocolError::TooShort);
+            read.skill = *skill;
+        }
+        return read;
+    }
+    // 0x4c537e..0x4c5390: stride de tres, pero sólo lee el lugar y la skill. El último padding no se consulta.
+    constexpr std::size_t EntrySize = 3;
+    read.entries.reserve(*count);
+    for (std::uint8_t entry = 0; entry < *count; ++entry)
+    {
+        const auto bytes = reader.ReadBytes(EntrySize - 1);
+        if (!bytes)
+            return Core::Unexpected(Network::ProtocolError::TooShort);
+        read.entries.push_back(
+            SkillListEntry{std::to_integer<std::uint8_t>((*bytes)[0]), std::to_integer<std::uint8_t>((*bytes)[1])});
+        if (entry + 1 < *count && !reader.ReadU8())
+            return Core::Unexpected(Network::ProtocolError::TooShort);
+    }
+    return read;
+}
+
+Core::Expected<LevelUp, Network::ProtocolError> ReadLevelUp(const Network::Packet& packet)
+{
+    constexpr Network::PacketKind LevelUpKind{Network::PacketType::C1, CharacterOpcode, Character::LevelUpSubcode};
+    auto fields = Network::FieldsAfterSubcode(packet, LevelUpKind);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    constexpr std::size_t ServerFieldsSize = 14;
+    if (reader.Remaining() < ServerFieldsSize)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    LevelUp reply;
+    reply.level = *reader.ReadU16Le();
+    reply.levelUpPoints = *reader.ReadU16Le();
+    reply.maxLife = *reader.ReadU16Le();
+    reply.maxMana = *reader.ReadU16Le();
+    reply.maxBp = *reader.ReadU16Le();
+    reply.addedPoints = *reader.ReadU16Le();
+    reply.maxAddedPoints = *reader.ReadU16Le();
+    // Q-C1369: el emisor 1.02i omite estas dos palabras.
+    reply.word48 = reader.ReadU16Le().value_or(0);
+    reply.word4a = reader.ReadU16Le().value_or(0);
+    return reply;
+}
+
+Core::Expected<SummonLife, Network::ProtocolError> ReadSummonLife(const Network::Packet& packet)
+{
+    auto fields = Network::FieldsAfterSubcode(packet, SummonLifeKind);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    const auto life = fields.Value().ReadU8();
+    if (!life)
+        return Core::Unexpected(Network::ProtocolError::TooShort);
+    return SummonLife{*life};
+}
+
+Outgoing WriteClearSkillReport(Network::Opcode head)
+{
+    return EncryptedC1(
+        Network::PacketWriter::C1(JoinOpcode, Join::DecryptErrorSubcode).PutU8(0).PutU8(Network::ByteOf(head)));
+}
+
+Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
+{
+    return EncryptedC1(Network::PacketWriter::C1(MagicAttackOpcode)
+                           .PutU8(skill)
+                           .PutU8(static_cast<std::uint8_t>(key >> 8))
+                           .PutU8(static_cast<std::uint8_t>(key & 0xffu)));
+}
+
+Outgoing WriteSkillHits(const SkillHitsSend& send)
+{
+    auto writer = Network::PacketWriter::C1(SkillHitsOpcode);
+    const std::size_t hits = std::min<std::size_t>(send.hits, MaxSkillHits);
+    writer.PutU8(send.skill).PutU8(send.x).PutU8(send.y).PutU8(send.volley).PutU8(static_cast<std::uint8_t>(hits));
+    for (std::size_t hit = 0; hit < hits; ++hit)
+    {
+        const std::uint16_t key = send.keys[hit];
+        writer.PutU8(static_cast<std::uint8_t>(key >> 8))
+            .PutU8(static_cast<std::uint8_t>(key & 0xffu))
+            .PutU8(send.extra);
+    }
+    return EncryptedC1(writer);
+}
+
+Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y)
+{
+    return EncryptedC1(Network::PacketWriter::C1(TeleportOpcode).PutU8(0).PutU8(x).PutU8(y));
+}
+
+Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y)
+{
+    return EncryptedC1(Network::PacketWriter::C1(TargetTeleportOpcode).PutU16Le(key).PutU8(x).PutU8(y));
+}
+
+Outgoing WriteDurationMagic(const DurationMagicSend& send)
+{
+    return EncryptedC1(Network::PacketWriter::C1(DurationMagicOpcode)
+                           .PutU8(send.skill)
+                           .PutU8(send.x)
+                           .PutU8(send.y)
+                           .PutU8(send.direction)
+                           .PutU8(send.towards)
+                           .PutU8(send.back)
+                           .PutU8(static_cast<std::uint8_t>(send.key >> 8))
+                           .PutU8(static_cast<std::uint8_t>(send.key & 0xffu))
+                           .PutU8(send.magicKey));
+}
+} // namespace Client::Protocol::Skill

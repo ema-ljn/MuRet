@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/WorldRuntime.h"

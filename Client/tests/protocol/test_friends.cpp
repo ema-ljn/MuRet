@@ -1,4 +1,4 @@
-#include "Protocol/Friends.h"
+#include "Protocol/Messenger/Friends.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

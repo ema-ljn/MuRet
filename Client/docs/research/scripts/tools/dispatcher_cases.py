@@ -6,7 +6,7 @@
       --out Client/docs/research/coverage/dispatcher-cases.tsv
   python3 -I Client/docs/research/scripts/tools/dispatcher_cases.py check \
       --cases Client/docs/research/coverage/dispatcher-cases.tsv \
-      --lists Client/src/Protocol/Opcodes.h Client/src/Protocol/Connection/Opcodes.h
+      --lists Client/src/game/Protocol/Opcodes.h Client/src/game/Protocol/Session/Opcodes.h
 
 Three levels, each a byte map into a jump table (paso3-protocolo.md, section 2): the opcode (0x00 to 0xF4, map1 and
 jt1), the byte after an F1 (pkt[3], map2 and jt2) and the result of an F1 01 (pkt[4], map3 and jt3). A code whose slot

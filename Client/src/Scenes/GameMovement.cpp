@@ -10,7 +10,7 @@
 #include "Pathfinding/PathCell.h"
 #include "Pathfinding/PathFinder.h"
 #include "Maps/MapId.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/IModelLibrary.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"

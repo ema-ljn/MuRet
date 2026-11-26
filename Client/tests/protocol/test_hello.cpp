@@ -1,6 +1,6 @@
-#include "Protocol/Connection/Hello.h"
+#include "Protocol/Session/Hello.h"
 
-#include "Protocol/BuildConstants.h"
+#include "Protocol/Session/BuildConstants.h"
 #include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"

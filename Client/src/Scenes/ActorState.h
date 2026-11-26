@@ -2,7 +2,7 @@
 
 #include "GameLogic/CharacterAppearance.h"
 #include "Pathfinding/Path.h"
-#include "Protocol/Character/Opcodes.h"
+#include "Protocol/FrontEnd/Opcodes.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Scenes/CharacterHead.h"

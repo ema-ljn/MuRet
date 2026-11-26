@@ -1,7 +1,7 @@
 #include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
-#include "Protocol/SiegeControls.h"
+#include "Protocol/CastleSiege/SiegeControls.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/WorldRuntime.h"

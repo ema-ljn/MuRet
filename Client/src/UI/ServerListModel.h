@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Protocol/Connection/ServerList.h"
+#include "Protocol/Session/ServerList.h"
 
 #include <cstddef>
 #include <cstdint>

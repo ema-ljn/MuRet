@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Math/X87.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
 #include "Scenes/ActorState.h"

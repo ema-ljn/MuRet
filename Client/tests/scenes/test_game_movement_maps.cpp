@@ -11,7 +11,7 @@
 #include "Pathfinding/Path.h"
 #include "Pathfinding/PathCell.h"
 #include "Network/Packet.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"

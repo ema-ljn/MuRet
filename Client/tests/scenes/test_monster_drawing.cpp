@@ -9,7 +9,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Models/Attachment.h"

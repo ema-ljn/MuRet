@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/X87.h"
-#include "Protocol/Party.h"
+#include "Protocol/Party/Party.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"

@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Combat.h"
+#include "Protocol/Combat/Combat.h"
 
 #include "Network/Delivery.h"
 #include "Network/Packet.h"

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/SkillTable.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorCombat.h"
 

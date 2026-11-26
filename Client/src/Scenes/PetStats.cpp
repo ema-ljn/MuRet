@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pets/PetInfo.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"

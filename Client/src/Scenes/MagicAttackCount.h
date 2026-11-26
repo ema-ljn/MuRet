@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/Viewport.h"
+#include "Protocol/Actors/Viewport.h"
 
 #include <cstdint>
 #include <string>

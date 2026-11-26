@@ -43,7 +43,7 @@
 #include "Platform/Sdl/SystemFonts.h"
 #include "Platform/Sdl/Window.h"
 #include "Platform/Sdl/WindowEvents.h"
-#include "Protocol/Connection/MainCheck.h"
+#include "Protocol/Session/MainCheck.h"
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/Gl/GlScreenReader.h"
 #include "Render/Gl/TextureTable.h"

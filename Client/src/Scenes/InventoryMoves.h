@@ -3,8 +3,8 @@
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"
 #include "Pathfinding/PathCell.h"
-#include "Protocol/FloorItems.h"
-#include "Protocol/Inventory.h"
+#include "Protocol/Items/FloorItems.h"
+#include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/NpcWindowState.h"
 

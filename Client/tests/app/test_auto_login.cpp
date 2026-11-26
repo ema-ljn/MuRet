@@ -10,8 +10,8 @@
 #include "Network/Connection.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/PacketSerials.h"
-#include "Protocol/BuildConstants.h"
-#include "Protocol/Connection/Login.h"
+#include "Protocol/Session/BuildConstants.h"
+#include "Protocol/Session/Login.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"

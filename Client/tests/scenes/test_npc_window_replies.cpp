@@ -12,7 +12,7 @@
 #include "Tables/TextTable.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
-#include "Protocol/NpcWindows.h"
+#include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"

@@ -9,7 +9,7 @@
 #include "Core/Log.h"
 #include "Network/Connection.h"
 #include "Network/IdentityObfuscation.h"
-#include "Protocol/BuildConstants.h"
+#include "Protocol/Session/BuildConstants.h"
 
 #include "support/CharacterPackets.h"
 #include "support/FakeClock.h"

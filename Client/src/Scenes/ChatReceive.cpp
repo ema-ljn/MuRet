@@ -1,8 +1,8 @@
 #include "Scenes/ChatReceive.h"
 
 #include "Core/Expected.h"
-#include "Protocol/Messages.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Chat/Messages.h"
+#include "Protocol/Player/OptionData.h"
 #include "Models/LogicalAccess.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"

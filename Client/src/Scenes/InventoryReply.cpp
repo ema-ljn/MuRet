@@ -1,7 +1,7 @@
 #include "Scenes/InventoryReply.h"
 
 #include "Core/Expected.h"
-#include "Protocol/Character/InventoryList.h"
+#include "Protocol/Items/InventoryList.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/HelperTable.h"

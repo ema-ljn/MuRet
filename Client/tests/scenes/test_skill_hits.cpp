@@ -5,7 +5,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"

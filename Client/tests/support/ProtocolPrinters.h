@@ -3,7 +3,7 @@
 // ve. Por eso cada include de este header se queda.
 // IWYU pragma: always_keep
 
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/Dispatcher.h"
 #include "Network/PacketFields.h"
 #include "support/NetworkPrinters.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 
 #include <cstdint>
 #include <variant>

@@ -5,7 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"

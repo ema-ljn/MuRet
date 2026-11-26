@@ -5,7 +5,7 @@
 #include "Data/Models/Model.h"
 #include "Tables/PlayerModels.h"
 #include "Network/Delivery.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"

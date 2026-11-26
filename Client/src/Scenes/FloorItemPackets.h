@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Protocol/FloorItems.h"
-#include "Protocol/Inventory.h"
+#include "Protocol/Items/FloorItems.h"
+#include "Protocol/Items/Inventory.h"
 
 #include <glm/ext/vector_float3.hpp>
 

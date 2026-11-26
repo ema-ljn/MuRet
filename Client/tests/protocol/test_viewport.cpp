@@ -1,4 +1,4 @@
-#include "Protocol/Viewport.h"
+#include "Protocol/Actors/Viewport.h"
 
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"

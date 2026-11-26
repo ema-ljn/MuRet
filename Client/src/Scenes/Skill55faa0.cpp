@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"

@@ -7,7 +7,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldState.h"
 #include "App/CharacterEvent.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Data/DataPath.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "World/GameCamera.h"

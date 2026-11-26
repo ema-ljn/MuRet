@@ -1,6 +1,6 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/SiegeBattleUi.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"

@@ -21,9 +21,8 @@ struct BestFit
     std::uint8_t byte;
 };
 
-// Los 441 pares best-fit del NLS XP CP1252 default_fit que no tienen byte directo (12-codificacion.md).
-// Basado en encode1252.csv del probe privado (SHA-256:
-// 572e7b7d87b2178b002e1c460783a7de1d040f45650139647f74c5185aabee95).
+// The 441 best-fit pairs of the XP NLS CP1252 default_fit that have no direct byte (12-codificacion.md). From the
+// private probe's encode1252.csv (SHA-256: 572e7b7d87b2178b002e1c460783a7de1d040f45650139647f74c5185aabee95).
 constexpr std::array<BestFit, 441> BestFits = {{
     BestFit{0x0100, 0x41}, BestFit{0x0101, 0x61}, BestFit{0x0102, 0x41}, BestFit{0x0103, 0x61}, BestFit{0x0104, 0x41},
     BestFit{0x0105, 0x61}, BestFit{0x0106, 0x43}, BestFit{0x0107, 0x63}, BestFit{0x0108, 0x43}, BestFit{0x0109, 0x63},

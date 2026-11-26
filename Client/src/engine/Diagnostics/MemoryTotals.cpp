@@ -37,7 +37,7 @@ std::uint32_t MemoryLoadPercent(std::uint64_t total, std::uint64_t available)
     const std::uint64_t used = total - std::min(available, total);
     if (used > std::numeric_limits<std::uint64_t>::max() / Percent)
     {
-        // used * 100 desbordaría; con un total así de grande, total / 100 no pierde nada que se vea.
+        // used * 100 would overflow; with a total this large, total / 100 loses nothing visible.
         return static_cast<std::uint32_t>(used / (total / Percent));
     }
     return static_cast<std::uint32_t>(used * Percent / total);

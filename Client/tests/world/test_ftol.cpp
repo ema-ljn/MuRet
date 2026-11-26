@@ -7,8 +7,8 @@
 #include <limits>
 #include <optional>
 
-// Vectores analíticos del contrato FTOL64→low32 con invalid enmascarada. Protegen la extracción
-// de TerrainHeight (double sin store) y Particles (float promovido exactamente), sin oracle nativo.
+// Analytic vectors for the FTOL64→low32 contract with invalid masked. They guard the extraction of TerrainHeight
+// (double without a store) and Particles (float promoted exactly), with no native oracle.
 namespace
 {
 TEST(FtolTest, TruncatesBeforeProjectingSignedLow32)

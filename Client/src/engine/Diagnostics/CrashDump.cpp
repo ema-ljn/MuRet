@@ -12,13 +12,13 @@ namespace Client::Diagnostics
 {
 namespace
 {
-// La firma y la versión de la cabecera: 'W', 'D', 'M', 'P' y 2 (0x67f8c9..0x67f8e9).
+// Header signature and version (0x67f8c9..0x67f8e9).
 constexpr std::array<std::byte, 4> Signature{std::byte{'W'}, std::byte{'D'}, std::byte{'M'}, std::byte{'P'}};
 constexpr std::uint8_t Version = 2;
-// El dwLength del MEMORYSTATUS (0x67f9a4).
+// MEMORYSTATUS dwLength (0x67f9a4).
 constexpr std::uint32_t MemoryStatusLength = 0x20;
 
-// Escribe en orden, sin relleno, en little-endian, sobre un buffer que ya se sabe que alcanza.
+// In order, unpadded, little-endian, into a buffer already known to fit.
 class DumpWriter
 {
 public:
@@ -45,7 +45,7 @@ public:
         m_position += bytes.size();
     }
 
-    // Un texto de largo fijo, tal cual: ya viene terminado en 0 y con el resto en 0.
+    // As is: it already ends in 0 and the rest is 0.
     template <std::size_t Size> void Text(const std::array<char, Size>& text)
     {
         for (const char character : text)
@@ -81,7 +81,7 @@ void WriteMemoryStatus(DumpWriter& writer, const MemoryStatus32& memory)
     writer.Dword(memory.availableVirtual);
 }
 
-// El CONTEXT de x86 en el orden de winnt.h: 0x2cc bytes.
+// The x86 CONTEXT in winnt.h order: 0x2cc bytes.
 void WriteContext(DumpWriter& writer, const X86Context& context)
 {
     writer.Dword(context.contextFlags);
@@ -101,7 +101,7 @@ void WriteContext(DumpWriter& writer, const X86Context& context)
     writer.Bytes(context.extendedRegisters);
 }
 
-// La cabecera de 0x516 bytes, en el orden en que la arma 0x67f840 (la tabla de 02).
+// The 0x516-byte header, in the order 0x67f840 builds it (the table in 02).
 void WriteHeader(DumpWriter& writer, const CrashReport& report)
 {
     writer.Bytes(Signature);

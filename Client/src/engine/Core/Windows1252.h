@@ -8,8 +8,8 @@
 
 namespace Client::Core
 {
-// Decodifica un byte Windows-1252 según la conversión observada en XP (12-codificacion.md).
+// The conversion observed on XP (12-codificacion.md).
 [[nodiscard]] ENGINE_API char32_t Windows1252CodePoint(std::uint8_t byte);
-// Decodifica una secuencia de bytes CP1252 a UTF-8 sin normalizar.
+// To UTF-8, without normalizing.
 [[nodiscard]] ENGINE_API std::string DecodeWindows1252(std::string_view bytes);
 } // namespace Client::Core

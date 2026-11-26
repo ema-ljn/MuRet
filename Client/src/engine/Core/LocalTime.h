@@ -1,7 +1,6 @@
 #pragma once
 
-// La hora local, lo que el original lee de GetLocalTime (el SYSTEMTIME) y usa: el nombre de la captura de pantalla
-// (0x6381c7). La lee Platform (Platform/LocalTime.h).
+// The SYSTEMTIME the original reads with GetLocalTime for the screenshot name (0x6381c7).
 namespace Client::Core
 {
 struct LocalTime

@@ -29,9 +29,7 @@
 #include <signal.h>
 #endif
 
-// Client::Diagnostics::CrashHandler: instalar y desinstalar en el proceso del test, y en Linux una
-// caída de verdad en un proceso hijo (EXPECT_EXIT), que deja MuError.dmp y la línea del log en una
-// carpeta temporal. El proceso del test no se cae.
+// On Linux a real crash runs in a child process (EXPECT_EXIT), so the test process does not crash.
 namespace
 {
 namespace fs = std::filesystem;
@@ -39,7 +37,6 @@ using Client::Diagnostics::CrashHandler;
 using Client::Tests::TemporaryFolder;
 } // namespace
 
-// Uno solo a la vez: mientras hay uno, otro no se instala; al morir, se puede instalar de nuevo.
 TEST(CrashHandlerTest, InstallsOneAtATime)
 {
     const TemporaryFolder folder("crash-handler");
@@ -60,7 +57,7 @@ TEST(CrashHandlerTest, InstallsOneAtATime)
     EXPECT_TRUE(again.HasValue());
 }
 
-// Las rutas van a un buffer fijo: una que no entra no se instala, y un log que no entra no se usa.
+// Paths go to a fixed buffer.
 TEST(CrashHandlerTest, RejectsPathsThatDoNotFit)
 {
     const fs::path tooLong(std::string(Client::Diagnostics::MaxCrashPathLength + 1, 'x'));
@@ -85,7 +82,7 @@ using Client::Diagnostics::Crc32;
 using Client::Diagnostics::ExceptionCodeForSignal;
 using Client::Tests::ReadFileBytes;
 
-// Offsets de la cabecera de MuError.dmp (test_crash_dump.cpp los prueba uno por uno).
+// MuError.dmp header offsets (test_crash_dump.cpp checks them one by one).
 constexpr std::size_t TimeOffset = 0x009;
 constexpr std::size_t SystemOffset = 0x00d;
 constexpr std::size_t ProcessorOffset = 0x08d;
@@ -125,8 +122,7 @@ std::string FileText(const fs::path& path)
     return bytes ? std::string(bytes->begin(), bytes->end()) : std::string();
 }
 
-// Lo que corre en el hijo: instala, apunta el log si hay uno, y se cae con `signal`. Si algo de
-// antes falla, sale con un código y el EXPECT_EXIT lo ve.
+// Runs in the child. If a step before the crash fails, it exits with a code the EXPECT_EXIT sees.
 void CrashWith(int signal, const fs::path& dump, const std::optional<fs::path>& log)
 {
     if (!Client::Tests::SuppressSystemCrashReports())
@@ -147,7 +143,7 @@ void CrashWith(int signal, const fs::path& dump, const std::optional<fs::path>& 
     std::_Exit(4);
 }
 
-// Una carpeta con un log que ya tiene una línea, como el de MuRet después de arrancar.
+// A log that already has a line, like MuRet's after starting.
 class CrashHandlerDeathTest : public testing::Test
 {
 protected:
@@ -171,7 +167,6 @@ private:
 };
 } // namespace
 
-// Los códigos de Windows de cada señal, con el si_code del kernel o sin él (raise, kill).
 TEST(CrashHandlerTest, MapsSignalsToWindowsExceptionCodes)
 {
     EXPECT_EQ(ExceptionCodeForSignal(SIGSEGV, SEGV_MAPERR), 0xC0000005u);
@@ -192,8 +187,6 @@ TEST(CrashHandlerTest, MapsSignalsToWindowsExceptionCodes)
 
 void NotTheCrashHandler(int /*signal*/) {}
 
-// Instalar cambia la acción de las cinco señales y pone la pila aparte; desinstalar deja las de
-// antes.
 TEST(CrashHandlerTest, RestoresTheSignalActionsAndTheStack)
 {
     struct sigaction previous
@@ -238,8 +231,7 @@ TEST(CrashHandlerTest, RestoresTheSignalActionsAndTheStack)
     sigaction(SIGFPE, &defaultAction, nullptr);
 }
 
-// Un acceso inválido: el hijo muere por la señal, como sin manejador, y deja el volcado con lo que
-// junta Linux y la línea al final del log.
+// The child dies by the signal, as with no handler.
 TEST_F(CrashHandlerDeathTest, WritesTheDumpAndTheLogLineOnACrash)
 {
     const auto before = static_cast<std::uint32_t>(std::time(nullptr));
@@ -263,7 +255,7 @@ TEST_F(CrashHandlerDeathTest, WritesTheDumpAndTheLogLineOnACrash)
     EXPECT_EQ(DwordAt(*dump, MemoryOffset), 0x20u);
     EXPECT_LE(DwordAt(*dump, MemoryOffset + 4), 100u);
 
-    // El ejecutable es este mismo test: su nombre y su CRC.
+    // The executable is this test itself.
     const fs::path self = fs::read_symlink("/proc/self/exe");
     EXPECT_EQ(TextAt(*dump, ExecutableOffset), self.filename().string());
     const auto selfBytes = ReadFileBytes(self);
@@ -274,13 +266,13 @@ TEST_F(CrashHandlerDeathTest, WritesTheDumpAndTheLogLineOnACrash)
     EXPECT_GE(DwordAt(*dump, ThreadsOffset), 1u);
     EXPECT_EQ(dump->at(HasVersionOffset), 0);
 
-    // El primer módulo es el ejecutable, el primer archivo de /proc/self/maps.
+    // The first module is the executable, the first file in /proc/self/maps.
     ASSERT_GE(modules, 1u);
     ASSERT_LE(modules, 48u);
     EXPECT_EQ(TextAt(*dump, CrashHeaderSize), self.filename().string());
     EXPECT_LE(frames, 64u);
 #ifdef __x86_64__
-    // CONTEXT_i386 con CONTROL, INTEGER, SEGMENTS y la imagen de FXSAVE.
+    // CONTEXT_i386 with CONTROL, INTEGER, SEGMENTS and the FXSAVE image.
     EXPECT_EQ(DwordAt(*dump, ContextOffset), 0x00010027u);
 #endif
     EXPECT_EQ(DwordAt(*dump, ExceptionCodeOffset), 0xC0000005u);
@@ -289,7 +281,7 @@ TEST_F(CrashHandlerDeathTest, WritesTheDumpAndTheLogLineOnACrash)
     EXPECT_EQ(FileText(LogPath()), std::string(FirstLogLine) + "[error] Save DumpFile complete - MuError.dmp\n");
 }
 
-// Sin SetLogFile no hay línea, como el original con el log cerrado; el volcado sale igual.
+// Like the original with the log closed; the dump still comes out.
 TEST_F(CrashHandlerDeathTest, WritesNoLogLineWithoutALogFile)
 {
     EXPECT_EXIT(CrashWith(SIGFPE, DumpPath(), std::nullopt), testing::KilledBySignal(SIGFPE), "");
@@ -301,8 +293,8 @@ TEST_F(CrashHandlerDeathTest, WritesNoLogLineWithoutALogFile)
     EXPECT_EQ(FileText(LogPath()), FirstLogLine);
 }
 
-// Si el volcado no se puede escribir entero, tampoco: el original abre, no mira sus fwrite y deja la
-// línea igual (Q-C245). /dev/full abre y no deja escribir nada.
+// Nor when the dump cannot be written whole: the original opens, does not check its fwrite and writes the line anyway
+// (Q-C245). /dev/full opens and lets nothing be written.
 TEST_F(CrashHandlerDeathTest, WritesNoLogLineWhenTheDumpCannotBeWritten)
 {
     EXPECT_EXIT(CrashWith(SIGSEGV, "/dev/full", LogPath()), testing::KilledBySignal(SIGSEGV), "");
@@ -310,7 +302,7 @@ TEST_F(CrashHandlerDeathTest, WritesNoLogLineWhenTheDumpCannotBeWritten)
     EXPECT_EQ(FileText(LogPath()), FirstLogLine);
 }
 
-// Si el volcado no abre (su carpeta no existe), tampoco hay línea: 0x4b9b27 la salta.
+// A dump that does not open (its folder does not exist): 0x4b9b27 skips the line.
 TEST_F(CrashHandlerDeathTest, WritesNoLogLineWhenTheDumpCannotBeOpened)
 {
     const fs::path missing = DumpPath().parent_path() / "missing" / "MuError.dmp";

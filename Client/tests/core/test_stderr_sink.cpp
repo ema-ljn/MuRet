@@ -6,7 +6,6 @@
 
 #include <gtest/gtest.h>
 
-// Client::Core::StderrSink, contra un archivo temporal en vez de stderr.
 namespace
 {
 using Client::Core::Log;

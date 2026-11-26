@@ -11,21 +11,20 @@ namespace Client::Platform::Sdl
 {
 Core::Duration SdlClock::Now()
 {
-    // SDL_GetTicksNS devuelve Uint64; en int64 entran 292 años desde que arrancó SDL.
+    // SDL_GetTicksNS returns Uint64; an int64 holds 292 years since SDL started.
     return Core::Duration{static_cast<std::int64_t>(SDL_GetTicksNS())};
 }
 
 void SdlClock::SleepFor(Core::Duration duration)
 {
-    // SDL_DelayPrecise recibe Uint64: una duración negativa pasada así sería una espera de siglos,
-    // así que se recorta antes del cast.
+    // SDL_DelayPrecise takes Uint64: a negative duration passed like that would be a centuries-long wait, so it is
+    // clipped before the cast.
     if (duration <= Core::Duration::zero())
     {
         return;
     }
-    // SDL_DelayPrecise espera activamente el último tramo. Con SDL_DelayNS o
-    // std::this_thread::sleep_for, un despertar tarde en el modo fiel puede caer en el cuarto tick
-    // de 15,625 ms y dar un frame de 62 ms en vez de 46,875.
+    // SDL_DelayPrecise busy-waits the last stretch. With SDL_DelayNS or std::this_thread::sleep_for, a late wake in the
+    // faithful mode can land on the fourth 15.625 ms tick and give a 62 ms frame instead of 46.875.
     SDL_DelayPrecise(static_cast<Uint64>(duration.count()));
 }
 } // namespace Client::Platform::Sdl

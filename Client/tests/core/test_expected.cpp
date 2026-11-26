@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-// Client::Core::Expected: un valor o un error, nunca los dos.
 namespace
 {
 using Client::Core::Expected;
@@ -37,7 +36,7 @@ TEST(ExpectedTest, HoldsAnError)
     EXPECT_EQ(result.Error(), "archivo corto");
 }
 
-// Con T y E del mismo tipo, lo que dice qué es cada uno es Unexpected, no el tipo.
+// With T and E of the same type, Unexpected, not the type, tells which is which.
 TEST(ExpectedTest, ValueAndErrorOfTheSameType)
 {
     const Expected<int, int> value = 7;
@@ -49,8 +48,7 @@ TEST(ExpectedTest, ValueAndErrorOfTheSameType)
     EXPECT_EQ(error.Error(), 7);
 }
 
-// Una tabla cargada se mueve afuera, no se copia. Con un tipo que no se puede copiar, compila solo
-// si Value() mueve.
+// With a non-copyable type it compiles only if Value() moves.
 TEST(ExpectedTest, MovesTheValueOut)
 {
     Expected<std::unique_ptr<int>, int> result = std::make_unique<int>(5);
@@ -66,9 +64,8 @@ Expected<std::string, int> LoadName()
     return std::string("Lorencia");
 }
 
-// Value() de un temporal devuelve el valor y no una referencia adentro del temporal, que muere al
-// terminar la línea. Con una referencia (como std::expected), `name` quedaría colgando, y GCC lo
-// marca con -Wdangling-reference.
+// With a reference (as std::expected returns), `name` would dangle when the temporary dies at the end of the line, and
+// GCC flags it with -Wdangling-reference.
 TEST(ExpectedTest, ValueOfATemporaryCanBeKept)
 {
     const std::string& name = LoadName().Value();
@@ -257,8 +254,7 @@ TEST(ExpectedOrElseTest, MovesAMoveOnlyValueOutOfATemporary)
     EXPECT_EQ(*kept.Value(), 5);
 }
 
-// Pedir el valor de uno que tiene un error es un bug de quien llama: el programa se corta ahí, con
-// un mensaje, en vez de seguir con un valor que no existe. GoogleTest lo prueba en otro proceso.
+// A caller bug: the program stops there with a message instead of going on with a value that does not exist.
 TEST(ExpectedDeathTest, ValueOfAnErrorStopsTheProgram)
 {
     const Expected<int, std::string> result = Unexpected(std::string("archivo corto"));
@@ -283,7 +279,7 @@ TEST(ExpectedDeathTest, ErrorOfAValueStopsTheProgram)
         "de un Expected que no tiene error");
 }
 
-// Un valor cuyo move tira una excepción, solo cuando se le pide.
+// Its move throws, only when asked to.
 struct MoveThrows
 {
     bool armed = false;
@@ -301,9 +297,8 @@ struct MoveThrows
     }
 };
 
-// Si el move del valor tira mientras un Expected pasa de error a valor, el std::variant de adentro
-// queda sin ninguno de los dos (valueless_by_exception). Pedirle el error también es un bug de
-// quien llama, y corta con el mismo mensaje.
+// If the value's move throws while an Expected goes from error to value, the inner std::variant holds neither
+// (valueless_by_exception). Asking it for the error is also a caller bug, and stops with the same message.
 TEST(ExpectedDeathTest, ErrorOfOneWithNeitherStopsTheProgram)
 {
     Expected<MoveThrows, int> result = Unexpected(1);
@@ -321,8 +316,6 @@ TEST(ExpectedDeathTest, ErrorOfOneWithNeitherStopsTheProgram)
         "de un Expected que no tiene error");
 }
 
-// Expected<void, E>: lo que solo puede fallar (subir las texturas de una escena, CL5.1). Un
-// Expected construido sin nada es el éxito, así una función hace `return {};`.
 Expected<void, std::string> SucceedsUnless(bool fail)
 {
     if (fail)

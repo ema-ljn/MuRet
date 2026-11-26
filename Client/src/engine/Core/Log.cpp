@@ -21,8 +21,7 @@ std::string_view LevelPrefix(LogLevel level)
     case LogLevel::Error:
         return "[error] ";
     }
-    // Un valor que no es ninguno de los cuatro (un static_cast de un número): se escribe como
-    // error, que es lo que más se ve.
+    // A value that is none of the four (a static_cast of a number) is written as error, the most visible.
     return "[error] ";
 }
 
@@ -52,8 +51,8 @@ void Log::WriteFormatted(LogLevel level, std::string_view format, std::format_ar
     }
     catch (const std::format_error&)
     {
-        // Un aviso con un formato roto no puede cortar el cliente: se escribe el formato, que es lo
-        // que hay que arreglar.
+        // A message with a broken format cannot stop the client: the format is written, since that is what needs
+        // fixing.
         Write(LogLevel::Error, std::string("formato de log inválido: ").append(format));
         return;
     }

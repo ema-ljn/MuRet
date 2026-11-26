@@ -28,8 +28,6 @@
 #include <sys/resource.h>
 #endif
 
-// Client::Core::FileSink: agregar, el tope, aperturas independientes, dos hilos y una ruta que no
-// abre, en una carpeta temporal; una escritura que falla, con /dev/full y con un tope de tamaño.
 namespace
 {
 namespace fs = std::filesystem;
@@ -44,7 +42,7 @@ using Client::Tests::OpenTemporaryFile;
 using Client::Tests::ReadAll;
 using Client::Tests::TemporaryFolder;
 
-// "ñ" en UTF-8, para las rutas que no son ASCII (PathText y, en Windows, la ruta ancha de abrir).
+// For non-ASCII paths (PathText and, on Windows, the wide path used to open).
 constexpr std::string_view EnyeUtf8 = "\xC3\xB1";
 
 std::string ReadText(const fs::path& path)
@@ -77,7 +75,7 @@ TEST(FileSinkTest, WritesOneLinePerMessage)
     log.Info("uno");
     log.Warning("dos {}", 2);
 
-    // Se lee con el FileSink todavía abierto: cada línea ya está en el disco (el flush).
+    // Read with the FileSink still open: each line is already on disk (the flush).
     EXPECT_EQ(ReadText(path), "[info] uno\n[warning] dos 2\n");
 }
 
@@ -111,8 +109,8 @@ TEST(FileSinkTest, EmptiesAFileOverTheCap)
     EXPECT_EQ(ReadText(path), "[info] de esta\n");
 }
 
-// Q-C48 (07-quirks-y-bugs): dos sinks deben agregar sin pisarse. El que vació al abrir también
-// tiene que agregar después de lo que escribió el otro; dos hilos del mismo sink no prueban eso.
+// Q-C48 (07-quirks-y-bugs): two sinks must append without overwriting each other. The one that emptied on open must
+// also append after what the other wrote; two threads of the same sink do not test that.
 TEST(FileSinkTest, AppendsFromIndependentSinksAfterTheCap)
 {
     const TemporaryFolder folder("file-sink");
@@ -131,7 +129,7 @@ TEST(FileSinkTest, AppendsFromIndependentSinksAfterTheCap)
     EXPECT_EQ(ReadText(path), "BBB\nAAAA\nCCC\n");
 }
 
-// Q-C48: el tope se supera; alcanzarlo exactamente no borra el log de la corrida anterior.
+// Q-C48: the cap must be exceeded; reaching it exactly does not erase the previous run's log.
 TEST(FileSinkTest, KeepsAFileExactlyAtTheCap)
 {
     const TemporaryFolder folder("file-sink");
@@ -149,7 +147,7 @@ TEST(FileSinkTest, KeepsAFileExactlyAtTheCap)
 
 TEST(FileSinkTest, KeepsLinesWholeFromTwoThreads)
 {
-    constexpr int LinesPerThread = 1000; // bastantes para que los dos hilos se crucen
+    constexpr int LinesPerThread = 1000; // enough for the two threads to interleave
     const TemporaryFolder folder("file-sink");
     const fs::path path = folder.Path() / "muret-client.log";
     auto opened = FileSink::Open(path);
@@ -194,8 +192,8 @@ TEST(FileSinkTest, NamesAPathThatDoesNotOpen)
     EXPECT_NE(opened.Error().find(PathText(path)), std::string::npos) << opened.Error();
 }
 
-// Un archivo que abre y falla en cada escritura, como un disco lleno: /dev/full da ENOSPC. Windows
-// no tiene uno así, y ahí los tests que lo usan se saltean (AUD-C02 se prueba solo en Linux).
+// A file that opens and fails on every write, like a full disk: /dev/full gives ENOSPC. Windows has no such file, so
+// the tests that use it are skipped there (AUD-C02 is tested on Linux only).
 std::optional<fs::path> FullDevice()
 {
 #ifdef _WIN32
@@ -211,7 +209,7 @@ std::optional<fs::path> FullDevice()
 #endif
 }
 
-// El aviso de FileSink, con la ruta como la escribe PathText.
+// With the path as PathText writes it.
 std::string FailureNotice(const fs::path& path)
 {
     return "[warning] no se pudo escribir en el archivo de log " + PathText(path) + ": el log sigue solo en stderr\n";
@@ -254,8 +252,8 @@ TEST(FileSinkTest, ReportsAWriteFailureOnce)
     EXPECT_EQ(ReadAll(notice.get()), FailureNotice(*full));
 }
 
-// Como en main: el Tee manda cada línea a stderr y al archivo. Con el archivo roto, stderr sigue
-// recibiendo todas, y el aviso va por su lado, sin volver a entrar al Log ni al Tee.
+// As in main. With the file broken, stderr still gets every line, and the notice goes on its own, without re-entering
+// the Log or the Tee.
 TEST(FileSinkTest, StderrKeepsTheLinesAfterTheFileFails)
 {
     const std::optional<fs::path> full = FullDevice();
@@ -282,9 +280,9 @@ TEST(FileSinkTest, StderrKeepsTheLinesAfterTheFileFails)
 }
 
 #ifndef _WIN32
-// Mientras vive, ningún archivo del proceso crece más allá de `bytes`: escribir más allá da EFBIG.
-// La señal que manda el sistema (SIGXFSZ) terminaría el test, y se ignora. A diferencia de
-// /dev/full, el archivo vuelve a andar al sacar el tope, y así se ve si FileSink vuelve a intentar.
+// While it lives, no file of the process grows past `bytes`: writing past gives EFBIG. The signal the system sends
+// (SIGXFSZ) would end the test, so it is ignored. Unlike /dev/full, the file works again once the cap is lifted, which
+// shows whether FileSink retries.
 class FileSizeLimit
 {
 public:
@@ -327,9 +325,8 @@ private:
 };
 #endif
 
-// Sin reintentos: después del fallo no llega nada más al archivo, aunque vuelva a haber lugar. Ni
-// las líneas siguientes ni, al cerrar, la que falló, que el ofstream de libstdc++ guarda en su
-// buffer y su destructor vuelve a mandar.
+// After the failure nothing more reaches the file, even with room again: neither the next lines nor, on close, the one
+// that failed, which libstdc++'s ofstream keeps in its buffer and its destructor sends again.
 TEST(FileSinkTest, WritesNothingAfterAFailure)
 {
 #ifdef _WIN32
@@ -337,8 +334,8 @@ TEST(FileSinkTest, WritesNothingAfterAFailure)
 #else
     const TemporaryFolder folder("file-sink");
     const fs::path path = folder.Path() / "muret-client.log";
-    // Lo de otra corrida, más largo que el aviso: el tope vale para todos los archivos del proceso,
-    // también para el temporal del aviso.
+    // Another run's content, longer than the notice: the cap applies to every file of the process, the notice's
+    // temporary file too.
     const std::string previous = std::string(1023, 'x') + '\n';
     ASSERT_LT(FailureNotice(path).size(), previous.size());
     std::ofstream(path) << previous;

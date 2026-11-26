@@ -11,8 +11,7 @@
 #include <map>
 #include <span>
 
-// Client::Diagnostics::WalkCrashFrames: la cadena de EBP de 0x6829f0 sobre una memoria inventada,
-// con huecos que no se pueden leer.
+// The 0x6829f0 EBP chain, over an invented memory with unreadable holes.
 namespace
 {
 using Client::Diagnostics::CrashFrame;
@@ -20,7 +19,7 @@ using Client::Diagnostics::IMemoryReader;
 using Client::Diagnostics::MaxCrashFrames;
 using Client::Diagnostics::WalkCrashFrames;
 
-// Una memoria de a bytes: lo que no se escribió no se puede leer.
+// What was not written cannot be read.
 class FakeMemory final : public IMemoryReader
 {
 public:
@@ -51,7 +50,7 @@ private:
     std::map<std::uint64_t, std::byte> m_bytes;
 };
 
-// Un frame de 32 bits: el anterior guardado, la vuelta y `arguments` dwords.
+// The saved previous frame, the return address and `arguments` dwords.
 void WriteFrame32(FakeMemory& memory, std::uint32_t frame, std::uint32_t previous, std::uint32_t returnAddress,
                   std::size_t arguments)
 {
@@ -64,7 +63,6 @@ void WriteFrame32(FakeMemory& memory, std::uint32_t frame, std::uint32_t previou
 }
 } // namespace
 
-// Tres frames encadenados; el último apunta a algo que no se puede leer y ahí termina.
 TEST(CrashFramesTest, FollowsTheChainUntilItCannotBeRead)
 {
     FakeMemory memory;
@@ -83,7 +81,6 @@ TEST(CrashFramesTest, FollowsTheChainUntilItCannotBeRead)
     EXPECT_EQ(frames[2].returnAddress, 0x403030u);
 }
 
-// Un frame que no se puede leer no cuenta.
 TEST(CrashFramesTest, GivesNothingForAnUnreadableFramePointer)
 {
     const FakeMemory memory;
@@ -92,8 +89,8 @@ TEST(CrashFramesTest, GivesNothingForAnUnreadableFramePointer)
     EXPECT_EQ(WalkCrashFrames(0x1000, 4, memory, frames), 0u);
 }
 
-// Los dwords se leen de a uno hasta el primero que falta; los demás quedan en 0 (0x6828ca). La
-// vuelta que no se puede leer, también en 0.
+// Dwords are read one by one up to the first missing one; the rest stay 0 (0x6828ca). An unreadable return address
+// too.
 TEST(CrashFramesTest, LeavesWhatCannotBeReadInZero)
 {
     FakeMemory memory;
@@ -109,7 +106,7 @@ TEST(CrashFramesTest, LeavesWhatCannotBeReadInZero)
     EXPECT_EQ(frames[0].arguments[5], 0u);
 }
 
-// Una cadena que vuelve sobre sí misma corta en 64 (0x682be2).
+// A chain that loops back on itself stops at 64 (0x682be2).
 TEST(CrashFramesTest, StopsAt64Frames)
 {
     FakeMemory memory;
@@ -119,8 +116,8 @@ TEST(CrashFramesTest, StopsAt64Frames)
     EXPECT_EQ(WalkCrashFrames(0x5000, 4, memory, frames), MaxCrashFrames);
 }
 
-// En MuRet de 64 bits los punteros miden 8: la vuelta va después de 8 bytes, los dwords después de
-// 16, y cada dirección se guarda con sus 32 bits de abajo.
+// In 64-bit MuRet pointers are 8 bytes: the return address comes after 8 bytes, the dwords after 16, and each address
+// keeps its low 32 bits.
 TEST(CrashFramesTest, ReadsEightBytePointersAndKeepsTheLow32Bits)
 {
     FakeMemory memory;

@@ -9,46 +9,33 @@
 
 #include <optional>
 
-// De los eventos de SDL a los de Input: lo único del input que ve SDL (el resto, InputState, no).
-// Contrato: el plan de la CL3, sub-ola CL3.3. No llama a SDL: se prueba con un SDL_Event armado a
-// mano, sin SDL_Init y sin ventana.
-//
-// Las teclas van por scancode, la posición física. El original usa los VK de GetAsyncKeyState, que
-// siguen el layout (en AZERTY, la tecla de la Q da 'A'): en QWERTY coinciden, en otro no.
-// Shift, Ctrl y Alt salen por lado (ShiftLeft, ...): las lógicas las arma InputState (Key.h).
-//
-// La rueda va en muescas enteras, como en el original, pero sin perder lo que no llega a una
-// muesca. El original hace `(short)HIWORD(wParam) / 0x78` en cada WM_MOUSEWHEEL y asigna el
-// resultado (0x4af4e0): un delta menor que 120 (una rueda de alta resolución manda 30 o 40) no
-// mueve nada, y con dos mensajes en un frame gana el último. Acá sale de `integer_y`, que SDL
-// acumula en muescas enteras (desde 3.2.12) y guarda el resto entre eventos (residual_scroll_y),
-// e InputState suma: una diferencia elegida. No sale de `y`, que es fraccionaria en un touchpad.
-// Con SDL_MOUSEWHEEL_FLIPPED (el scroll "natural") se le cambia el signo, para que sea positiva
-// hacia adelante siempre. Un evento sin muesca entera no es un evento, y la rueda horizontal
-// (`x`, `integer_x`) se descarta: en macOS, Shift y la rueda llegan como horizontal.
+// Does not call SDL: tested with a hand-built SDL_Event, without SDL_Init or a window. Keys go by scancode, the
+// physical position; the original uses GetAsyncKeyState's VKs, which follow the layout (on AZERTY the Q key gives
+// 'A'), so they only match on QWERTY. The wheel goes in whole notches, as in the original, without losing what does
+// not reach one. The original does `(short)HIWORD(wParam) / 0x78` per WM_MOUSEWHEEL and assigns the result
+// (0x4af4e0): a delta under 120 (a high-resolution wheel sends 30 or 40) moves nothing, and with two messages in a
+// frame the last wins. Here it comes from `integer_y`, which SDL accumulates in whole notches (since 3.2.12) keeping
+// the remainder between events (residual_scroll_y), and InputState sums: a chosen difference. Not from `y`, which is
+// fractional on a touchpad. SDL_MOUSEWHEEL_FLIPPED ("natural" scroll) flips the sign, so forward is always positive.
+// An event without a whole notch is not an event, and the horizontal wheel (`x`, `integer_x`) is dropped: on macOS,
+// Shift and the wheel arrive as horizontal.
 namespace Client::Platform::Sdl
 {
-// La tecla de un scancode; uno que el cliente no usa da std::nullopt. El Enter del teclado
-// numérico también: el original lo ve como VK_RETURN, pero con una sola Key::Enter, soltar uno de
-// los dos con el otro abajo la soltaría; queda para la CL8, con su lado, como Shift (P-C08).
+// A scancode the client does not use gives std::nullopt. So does the keypad Enter: the original sees it as VK_RETURN,
+// but with a single Key::Enter, releasing one with the other down would release it; left for CL8, with its side, like
+// Shift (P-C08).
 [[nodiscard]] PLATFORM_API std::optional<Input::Key> KeyFor(SDL_Scancode scancode);
 
-// El evento de Input de un SDL_Event. Da std::nullopt con un evento que no es de input, una tecla
-// o un botón que el cliente no usa (X1, X2) y una rueda sin muesca entera. Las repeticiones de
-// navegación y Delete se conservan como KeyDown repetidos para el EDIT; Backspace, Tab y Enter
-// siguen como Text con su byte (InputEvent.h), como el WM_CHAR repetido del EDIT (CL5.5). Las
-// otras repeticiones no son eventos.
-// SDL_EVENT_WINDOW_FOCUS_LOST da FocusLost (PumpEvents lo pasa también al estado de la ventana).
-// Cada DOWN izquierdo con clicks par positivo da ButtonDoubleClick: equivale al WM_LBUTTONDBLCLK que sustituye el
-// segundo WM_LBUTTONDOWN. Los flancos físicos siguen disponibles para la selección, que tiene su propio reloj.
-//
-// La posición del mouse va en píxeles del framebuffer (CL5.5): SDL la da en coordenadas de la
-// ventana, y `pixelDensity` (SDL_GetWindowPixelDensity) es cuántos píxeles mide cada una. Una
-// densidad que no es positiva y finita cuenta como 1: SDL da 0 si falla.
-//
-// SDL_EVENT_TEXT_INPUT da Text con el texto copiado (SDL lo libera en el próximo SDL_PollEvent);
-// uno vacío no es un evento. SDL_EVENT_TEXT_EDITING da Composition con su texto copiado, start y
-// length, incluso vacío cuando el IME cancela la composición; no agrega nada al Text() legado.
+// std::nullopt for a non-input event, a key or button the client does not use (X1, X2) and a wheel without a whole
+// notch. Navigation and Delete repeats stay as repeated KeyDowns for the EDIT; Backspace, Tab and Enter go on as Text
+// with their byte (InputEvent.h), like the EDIT's repeated WM_CHAR. Other repeats are not events. Each left DOWN with
+// an even positive clicks gives ButtonDoubleClick: the WM_LBUTTONDBLCLK that replaces the second WM_LBUTTONDOWN. The
+// physical edges stay available for the selection, which has its own clock. The mouse position is in framebuffer
+// pixels: SDL gives window coordinates and `pixelDensity` (SDL_GetWindowPixelDensity) is the pixels per coordinate; a
+// density that is not positive and finite counts as 1, since SDL gives 0 on failure. SDL_EVENT_TEXT_INPUT gives Text
+// with the text copied (SDL frees it on the next SDL_PollEvent); an empty one is not an event. SDL_EVENT_TEXT_EDITING
+// gives Composition with its text copied, start and length, even empty when the IME cancels the composition; it adds
+// nothing to the legacy Text().
 [[nodiscard]] PLATFORM_API std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event,
                                                                           float pixelDensity = 1.0f);
 } // namespace Client::Platform::Sdl

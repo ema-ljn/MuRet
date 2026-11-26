@@ -19,9 +19,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Frame::SceneText: el texto de las escenas en main.cpp, con las fuentes del ancho de la
-// pantalla (FontSet.h, FontHeightFor). Con otro ancho, otras fuentes y la caché vacía
-// (TextCache::ChangeRasterizer); si no abren, siguen las de antes y el error va al log una vez.
 namespace
 {
 using Client::Core::Log;
@@ -41,8 +38,8 @@ using Client::Tests::RecordingSink;
 constexpr TextStyle Login{FontKind::Normal, TextColors{0xffffffff, 0x80000000}};
 constexpr const char* Synthetic = "abc";
 
-// Un rasterizador falso cuya letra mide el ancho de la pantalla dividido por 100, así un test ve
-// con qué ancho se abrió. Los anchos de `failing` no abren.
+// A fake rasterizer whose letter measures the screen width divided by 100, so a test sees which width it was opened
+// with. The widths in `failing` do not open.
 struct Fonts
 {
     RasterizerFactory Factory()
@@ -94,7 +91,7 @@ TEST(SceneTextTest, OpensTheFontsForTheScreenWidth)
     EXPECT_EQ(text->Drawer().Measure(FontKind::Normal, Synthetic).width, 3 * 6);
 }
 
-// Sin las fuentes del primer ancho no hay texto: el error corta, como en main.cpp.
+// Without the first width's fonts there is no text: the error stops it, as in main.cpp.
 TEST(SceneTextTest, FontsThatDoNotOpenFailTheCreate)
 {
     Harness tested;
@@ -118,7 +115,7 @@ TEST(SceneTextTest, TheSameWidthKeepsTheFonts)
     EXPECT_EQ(tested.fonts.opened, std::vector<int>{640});
 }
 
-// Otro ancho: otras fuentes, y lo que la caché subió con las de antes se suelta.
+// Another width: other fonts, and what the cache uploaded with the old ones is released.
 TEST(SceneTextTest, AnotherWidthOpensOtherFonts)
 {
     Harness tested;
@@ -135,13 +132,13 @@ TEST(SceneTextTest, AnotherWidthOpensOtherFonts)
     EXPECT_EQ(text->Drawer().Measure(FontKind::Normal, Synthetic).width, 3 * 12);
     EXPECT_EQ(tested.store.Size(), 0u);
 
-    // Y de vuelta, otra vez las del primero.
+    // And back, the first width's fonts again.
     text->FollowScreenWidth(640);
     EXPECT_EQ(tested.fonts.opened, (std::vector<int>{640, 1280, 640}));
 }
 
-// Si las del ancho nuevo no abren, el texto sigue con las de antes, y el error va al log una vez
-// por ancho aunque se pida en cada frame.
+// If the new width's fonts do not open, the text keeps the old ones, and the error goes to the log once per width even
+// if requested every frame.
 TEST(SceneTextTest, FontsThatDoNotOpenKeepTheOldOnes)
 {
     Harness tested;
@@ -160,12 +157,12 @@ TEST(SceneTextTest, FontsThatDoNotOpenKeepTheOldOnes)
     EXPECT_NE(tested.sink.lines[0].find("la fuente falsa no abre"), std::string::npos) << tested.sink.lines[0];
     EXPECT_EQ(tested.fonts.opened, (std::vector<int>{640, 1280}));
 
-    // Con otro ancho que sí abre, cambia.
+    // With another width that does open, it changes.
     text->FollowScreenWidth(800);
     EXPECT_EQ(text->Drawer().Measure(FontKind::Normal, Synthetic).width, 3 * 8);
 
-    // Y el que no abrió se prueba otra vez si vuelve después de otro, con su aviso: no queda
-    // marcado para siempre.
+    // And the one that did not open is tried again if it comes back after another, with its warning: it is not marked
+    // forever.
     text->FollowScreenWidth(1280);
     EXPECT_EQ(tested.fonts.opened, (std::vector<int>{640, 1280, 800, 1280}));
     EXPECT_EQ(tested.sink.lines.size(), 2u);

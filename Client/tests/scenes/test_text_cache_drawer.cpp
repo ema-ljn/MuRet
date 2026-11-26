@@ -16,9 +16,6 @@
 
 #include <string>
 
-// Client::Render::Frame::TextCacheDrawer: el ITextDrawer de las escenas sobre el TextCache de la CL5.3.
-// El texto va al lote del frame; si no se puede dibujar, el error va al log una vez y el texto no
-// sale.
 namespace
 {
 using Client::Core::Log;
@@ -37,7 +34,7 @@ using Client::Tests::RecordingSink;
 
 constexpr PixelSize Screen{640, 480};
 constexpr TextStyle Login{FontKind::Normal, TextColors{0xffffffff, 0x80000000}};
-// Un texto sintético: los de Text.bmd no van a los tests.
+// Synthetic: Text.bmd texts do not go in the tests.
 constexpr const char* Synthetic = "texto de prueba";
 
 struct Harness
@@ -79,7 +76,7 @@ TEST(TextCacheDrawerTest, MeasuresWithTheRasterizer)
     EXPECT_EQ(extent.height, 13);
 }
 
-// La tabla no sube: el texto no sale, y el error va al log una vez aunque se repita en cada frame.
+// The table does not upload: the text does not show, and the error goes to the log once even if repeated every frame.
 TEST(TextCacheDrawerTest, AnErrorGoesToTheLogOnce)
 {
     Harness tested;
@@ -97,15 +94,15 @@ TEST(TextCacheDrawerTest, AnErrorGoesToTheLogOnce)
     EXPECT_NE(tested.sink.lines[0].find("la tabla falsa no sube"), std::string::npos) << tested.sink.lines[0];
     EXPECT_EQ(tested.sink.lines[0].find(Synthetic), std::string::npos) << "el texto no va al log";
 
-    // Y cuando la tabla sube, sale.
+    // And once the table uploads, it shows.
     tested.batch.Begin(Screen);
     tested.drawer.Draw(10, 20, Synthetic, Login);
     EXPECT_EQ(tested.batch.Vertices().size(), 6u);
 }
 
-// DrawColumns va a la caché con su caja: el texto (90 columnas) centrado en 300 desde x = 10 son dos cajas, de 256 y
-// de 44. Una caja de menos de 0 columnas (el modo 2 con una caja negativa, 0x4671cf) no dibuja, y su error va al log
-// una vez.
+// DrawColumns goes to the cache with its box: the text (90 columns) centered in 300 from x = 10 is two boxes, of 256
+// and 44. A box of less than 0 columns (mode 2 with a negative box, 0x4671cf) draws nothing, and its error goes to the
+// log once.
 TEST(TextCacheDrawerTest, DrawsAWindowOfColumnsInBoxesOf256)
 {
     Harness tested;

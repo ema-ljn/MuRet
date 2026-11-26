@@ -2,17 +2,15 @@
 
 #include <gtest/gtest.h>
 
-// Client::Platform::Sdl::FindSystemFontFile y la regla de los nombres de la lista de fuentes de Windows
-// (HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts; CL5.3, pregunta 8 del plan de la CL5).
-// Un valor se llama como sus caras, separadas por " & " en una colección, y su tipo entre
-// paréntesis; la negrita es la cara con " Bold". Las caras de estos tests son inventadas.
+// Windows' font list (HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts) names a value after its faces,
+// separated by " & " in a collection, with its type in parentheses; bold is the face with " Bold". The faces in these
+// tests are invented.
 namespace
 {
 using Client::Platform::Sdl::FindSystemFontFile;
 using Client::Platform::Sdl::FontEntryNamesFace;
 using Client::Platform::Sdl::HasSystemFontList;
 
-// La normal es el nombre exacto de la cara, y la negrita, el nombre con " Bold".
 TEST(SystemFontsTest, AnEntryNamesItsFace)
 {
     EXPECT_TRUE(FontEntryNamesFace("Cara (TrueType)", "Cara", false));
@@ -22,7 +20,6 @@ TEST(SystemFontsTest, AnEntryNamesItsFace)
     EXPECT_FALSE(FontEntryNamesFace("Cara Bold Italic (TrueType)", "Cara", true));
 }
 
-// Un .ttc nombra todas sus caras.
 TEST(SystemFontsTest, ACollectionNamesEachFace)
 {
     EXPECT_TRUE(FontEntryNamesFace("Una & Otra & Tercera (TrueType)", "Otra", false));
@@ -30,14 +27,13 @@ TEST(SystemFontsTest, ACollectionNamesEachFace)
     EXPECT_FALSE(FontEntryNamesFace("Una & Otra & Tercera (TrueType)", "Una & Otra", false));
 }
 
-// GDI no mira mayúsculas en el nombre de la cara.
+// GDI ignores case in the face name.
 TEST(SystemFontsTest, TheCaseDoesNotMatter)
 {
     EXPECT_TRUE(FontEntryNamesFace("CARA (TrueType)", "cara", false));
     EXPECT_TRUE(FontEntryNamesFace("cara bold (OpenType)", "Cara", true));
 }
 
-// Un nombre que empieza como la cara es otra cara.
 TEST(SystemFontsTest, APrefixIsAnotherFace)
 {
     EXPECT_FALSE(FontEntryNamesFace("Cara Light (TrueType)", "Cara", false));
@@ -45,15 +41,15 @@ TEST(SystemFontsTest, APrefixIsAnotherFace)
     EXPECT_FALSE(FontEntryNamesFace("Caras (TrueType)", "Cara", false));
 }
 
-// FreeTypeRasterizer pide contornos (FT_LOAD_NO_BITMAP): las fuentes de mapa de bits de la lista
-// (las .fon, sin "(TrueType)" ni "(OpenType)") no cuentan.
+// FreeTypeRasterizer asks for outlines (FT_LOAD_NO_BITMAP): the list's bitmap fonts (the .fon ones, without
+// "(TrueType)" or "(OpenType)") do not count.
 TEST(SystemFontsTest, OnlyOutlineFontsCount)
 {
     EXPECT_FALSE(FontEntryNamesFace("Cara 8,10,12,14 (All res)", "Cara 8,10,12,14", false));
     EXPECT_FALSE(FontEntryNamesFace("Cara", "Cara", false));
 }
 
-// Una cara vacía (el texto 0 de un Text.bmd sin cara) no se encuentra nunca.
+// Text 0 of a Text.bmd with no face.
 TEST(SystemFontsTest, AnEmptyFaceIsNeverFound)
 {
     EXPECT_FALSE(FontEntryNamesFace(" (TrueType)", "", false));
@@ -61,8 +57,8 @@ TEST(SystemFontsTest, AnEmptyFaceIsNeverFound)
 }
 
 #ifndef _WIN32
-// Fuera de Windows no hay lista: main.cpp no le pasa una búsqueda a App::ChooseFontFiles, y sin
-// [Video] FontFile su error dice que el cliente no la busca.
+// main.cpp passes App::ChooseFontFiles no search, and without [Video] FontFile its error says the client does not look
+// for the face.
 TEST(SystemFontsTest, OutsideWindowsThereIsNoList)
 {
     EXPECT_FALSE(HasSystemFontList());
@@ -70,7 +66,7 @@ TEST(SystemFontsTest, OutsideWindowsThereIsNoList)
     EXPECT_FALSE(FindSystemFontFile("Cara", true).has_value());
 }
 #else
-// En Windows, la lista del registro: main.cpp le pasa FindSystemFontFile a App::ChooseFontFiles.
+// main.cpp passes FindSystemFontFile to App::ChooseFontFiles.
 TEST(SystemFontsTest, WindowsHasTheList)
 {
     EXPECT_TRUE(HasSystemFontList());

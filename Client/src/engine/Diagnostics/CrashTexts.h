@@ -7,28 +7,25 @@
 #include <string>
 #include <string_view>
 
-// Los tres textos de la cabecera de MuError.dmp y la línea del log, como los arma el original
-// (02 § El manejador de caídas): el sistema (0x683ed0), el procesador (0x684730) y la excepción
-// (0x680260). Son funciones puras, sobre lo que el manejador leyó del sistema, y no piden memoria
-// salvo CrashLogLine, que corre al instalar. Cada texto se corta en 127 bytes y el 0, como el
-// lstrcpynA que lo copia a la cabecera.
+// As the original builds them (02 § El manejador de caídas): the system (0x683ed0), the processor (0x684730) and the
+// exception (0x680260). Pure functions that allocate nothing except CrashLogLine, which runs on install. Each text is
+// cut at 127 bytes and the 0, like the lstrcpynA that copies it to the header.
 namespace Client::Diagnostics
 {
-// Lo que 0x683ed0 lee de GetVersionExA, y el ProductType del registro que mira solo con 5.0.
+// What 0x683ed0 reads from GetVersionExA, and the registry ProductType it checks only on 5.0.
 struct OsVersion
 {
     std::uint32_t major = 0;
     std::uint32_t minor = 0;
     std::uint32_t build = 0;
     std::uint32_t platformId = 0;
-    // szCSDVersion, el service pack.
+    // szCSDVersion
     std::string_view servicePack{};
     // HKLM\SYSTEM\CurrentControlSet\Control\ProductOptions, ProductType.
     std::string_view productType{};
 };
 
-// Lo que 0x684730 lee con cpuid: el fabricante de la hoja 0 (EBX, EDX y ECX) y la firma de la 1
-// (EAX).
+// What 0x684730 reads with cpuid: the vendor from leaf 0 (EBX, EDX and ECX) and the signature from leaf 1 (EAX).
 struct CpuId
 {
     std::uint32_t vendorEbx = 0;
@@ -37,35 +34,29 @@ struct CpuId
     std::uint32_t signature = 0;
 };
 
-// El texto del sistema de 0x683ed0: el nombre por la versión ("Windows XP", o "Unknown 6.2"), el
-// build y el service pack entre paréntesis, pegado: "Windows XP Build 2600(Service Pack 3)".
+// 0x683ed0: the name by version ("Windows XP", or "Unknown 6.2"), the build and the service pack in parentheses, with
+// no space: "Windows XP Build 2600(Service Pack 3)".
 [[nodiscard]] ENGINE_API CrashText SystemText(const OsVersion& version);
 
-// El de MuRet en Linux, que no tiene GetVersionExA: el sistema y la versión de uname,
-// "Linux 6.8.0" (Q-C241).
+// MuRet's on Linux, which has no GetVersionExA: uname's system and release, "Linux 6.8.0" (Q-C241).
 [[nodiscard]] ENGINE_API CrashText PosixSystemText(std::string_view systemName, std::string_view release);
 
-// El texto del procesador de 0x684730: el fabricante, " - ", el modelo de su tabla y la velocidad,
-// "GenuineIntel - Pentium 4 CPU 3.19GHz".
+// 0x684730: the vendor, " - ", the model from its table and the speed, "GenuineIntel - Pentium 4 CPU 3.19GHz".
 [[nodiscard]] ENGINE_API CrashText ProcessorText(const CpuId& cpu, std::int64_t megahertz);
 
-// Los MHz de 0x684ed0: los ciclos del TSC sobre el tiempo de la muestra, truncados a Hz y
-// divididos por un millón. 0 si la muestra no tiene tiempo.
+// 0x684ed0: the TSC cycles over the sample time, truncated to Hz and divided by a million. 0 if the sample has no time.
 [[nodiscard]] ENGINE_API std::int64_t MegahertzFromSample(std::uint64_t cycles, std::int64_t ticks,
                                                           std::int64_t ticksPerSecond);
 
-// El texto de la excepción de 0x680260, por su código. Un acceso inválido suma
-// " : reading inaccessible 0x%08X" o " : writing ...", según ExceptionInformation[0] y con la
-// dirección de ExceptionInformation[1]. MuRet escribe la dirección entera: más de 8 dígitos si no
-// entra en 32 bits (Q-C241).
+// 0x680260, by code. An access violation adds " : reading inaccessible 0x%08X" or " : writing ...", by
+// ExceptionInformation[0], with the address in ExceptionInformation[1]. MuRet writes the whole address: more than 8
+// digits if it does not fit in 32 bits (Q-C241).
 [[nodiscard]] ENGINE_API CrashText ExceptionText(std::uint32_t code, std::uint64_t accessKind,
                                                  std::uint64_t accessAddress);
 
-// El mensaje que 0x4b9a70 deja en MuError.log cuando el volcado salió bien (0x6c80b4), sin el
-// "\r\n".
+// What 0x4b9a70 leaves in MuError.log when the dump succeeds (0x6c80b4), without the "\r\n".
 inline constexpr std::string_view DumpSavedMessage = "Save DumpFile complete - MuError.dmp";
 
-// La línea de MuRet: el mensaje con el prefijo del Log, como la escribiría Log::Error, sin el fin de
-// línea, que pone quien la escribe.
+// The message with the Log prefix, as Log::Error would write it, without the line end, which the writer adds.
 [[nodiscard]] ENGINE_API std::string CrashLogLine();
 } // namespace Client::Diagnostics

@@ -13,74 +13,59 @@
 #include <string_view>
 #include <vector>
 
-// El teclado y el mouse del frame, armados con los eventos y no consultados al sistema: un apretón
-// y su soltada entre dos lecturas se ven igual (SDL_GetKeyboardState no los ve, y el original
-// tampoco, Q-C45).
-// Contrato: el plan de la CL3, sub-ola CL3.3 (la tabla de flancos está en su paso 1), y
-// Client/docs/research/02-arranque-y-ciclo-de-vida.md, "El teclado y el mouse: en el paso y en el
-// frame (P-C08)".
-//
-// "Está abajo" (IsDown) es estado: vale mientras no llegue la soltada. "Se apretó" y "se soltó"
-// (WasPressed, WasReleased) son flancos: valen desde el último ConsumeEdges, que GameLoop llama
-// después del primer paso del frame. Así un apretón lo ve un solo paso, como en el original, donde
-// el primer lector borra el bit bajo; y en un frame sin pasos (el original no los tiene) espera al
-// próximo.
-//
-// Shift, Ctrl y Alt son lógicas (Key.h): IsDown es el OR de sus dos lados, como VK_SHIFT, y sus
-// flancos son los del OR: se apretó cuando el primer lado bajó y se soltó cuando subió el último.
-// Un KeyDown o KeyUp de una tecla lógica se ignora: las manda Platform por lado, y un evento
-// lógico suelto no diría qué lado sigue abajo.
+// Built from events, not polled: a press and its release between two reads are still seen (SDL_GetKeyboardState misses
+// them, and so does the original, Q-C45). Client/docs/research/02-arranque-y-ciclo-de-vida.md, "El teclado y el mouse:
+// en el paso y en el frame (P-C08)". The edges (WasPressed, WasReleased) count from the last ConsumeEdges, which
+// GameLoop calls after the frame's first step, so one step sees a press, as in the original where the first reader
+// clears the low bit; a frame without steps (the original has none) waits for the next. Shift, Ctrl and Alt are the OR
+// of their sides, like VK_SHIFT, with the OR's edges. A logical KeyDown or KeyUp is ignored: Platform sends sides, and
+// a lone logical event would not say which side is still down.
 namespace Client::Input
 {
 class ENGINE_API InputState
 {
 public:
-    // Suma un evento. Un KeyDown con la tecla ya abajo no es un flanco, y un KeyUp con la tecla
-    // arriba tampoco (lo mismo con los botones). FocusLost suelta todo lo que está abajo, con su
-    // WasReleased, y borra los WasPressed, la rueda y el texto: el paso siguiente no ve un clic de
-    // antes del alt-tab (como MuMain, Winmain.cpp). Una rueda que no es finita (NaN, infinito) se
-    // descarta: envenenaría la suma hasta ConsumeEdges.
+    // A KeyDown with the key already down is not an edge, nor a KeyUp with it up (same for buttons). FocusLost releases
+    // everything down, with its WasReleased, and clears the WasPressed, the wheel and the text: the next step sees no
+    // click from before the alt-tab (like MuMain, Winmain.cpp). A non-finite wheel (NaN, infinity) is dropped: it would
+    // poison the sum until ConsumeEdges.
     void Apply(const InputEvent& event);
 
     [[nodiscard]] bool IsDown(Key key) const;
-    // Desde el último ConsumeEdges.
+    // Since the last ConsumeEdges.
     [[nodiscard]] bool WasPressed(Key key) const;
     [[nodiscard]] bool WasReleased(Key key) const;
-    // GetAsyncKeyState(vk) == 0x8001: WasPressed, si ningún lector lo tomó antes en este paso. El
-    // original borra el bit bajo en cada lectura (Q-C45): de los que leen el mismo apretón con
-    // 0x8001, lo ve el primero. La UI nueva (0x65fc30) lee antes que el paso de la escena, así que
-    // un Esc que toma una ventana no lo ve la escena (CL8, hito 8). Lo devuelve ConsumeEdges.
-    // Es const como la consulta del original, y marca la tecla como tomada.
+    // GetAsyncKeyState(vk) == 0x8001: WasPressed, if no reader took it earlier in this step. The original clears the
+    // low bit on each read (Q-C45): of those reading the same press with 0x8001, the first sees it. The new UI
+    // (0x65fc30) reads before the scene step, so the scene does not see an Esc a window took (CL8, milestone 8).
+    // ConsumeEdges clears the mark. const like the original's query, and it marks the key as taken.
     [[nodiscard]] bool TakePress(Key key) const;
     [[nodiscard]] bool IsDown(MouseButton button) const;
     [[nodiscard]] bool WasPressed(MouseButton button) const;
     [[nodiscard]] bool WasReleased(MouseButton button) const;
-    // Estado del mouse del WndProc del juego, distinto de los flancos físicos del botón.
+    // The game WndProc's mouse state, separate from the button's physical edges.
     [[nodiscard]] const MouseMessageState& MouseMessages() const;
-    // Una actualización de 0x7d36849 por los mensajes nuevos: true con DBL, false con el mensaje siguiente.
-    // Se publica una sola vez al juego; sin mensajes, se conserva lo que dejó su consumidor. ConsumeEdges no la
-    // borra antes de publicarla. Es const como TakePress: sólo marca que esa actualización ya se tomó.
+    // One update of 0x7d36849 from the new messages: true with DBL, false with the next message. Published to the game
+    // once; with no messages, what its consumer left stays. ConsumeEdges does not clear it before it is published.
+    // const like TakePress: it only marks that update as taken.
     [[nodiscard]] std::optional<bool> TakeDoubleClickMessage() const;
-    // Las muescas sumadas desde el último ConsumeEdges.
+    // Summed since the last ConsumeEdges.
     [[nodiscard]] float Wheel() const;
-    // Las muescas del último evento de la rueda desde el último ConsumeEdges, o 0 sin ninguno: lo que deja el
-    // último WM_MOUSEWHEEL en el global del original, que no suma.
+    // The last wheel event's notches since the last ConsumeEdges, or 0 with none: what the last WM_MOUSEWHEEL leaves in
+    // the original's global, which does not sum.
     [[nodiscard]] float LastWheel() const;
-    // La última posición, en píxeles del framebuffer (InputEvent.h); 0 hasta el primer Motion.
+    // In framebuffer pixels (InputEvent.h); 0 until the first Motion.
     [[nodiscard]] float MouseX() const;
     [[nodiscard]] float MouseY() const;
-    // Lo tecleado desde el último ConsumeEdges, en UTF-8 y en orden, como la rueda (CL5.5): el
-    // texto de cada Text y, en su lugar, un BackspaceChar, un TabChar o un EnterChar por cada apretón de esas
-    // teclas (InputEvent.h), para que lo de antes y lo de después de un Tab o un Backspace del
-    // mismo paso no se mezclen. Vale hasta el próximo Apply o ConsumeEdges. FocusLost lo borra,
-    // como los apretones.
+    // Typed since the last ConsumeEdges, UTF-8 and in order: each Text's text and, in its place, a BackspaceChar,
+    // TabChar or EnterChar per press of those keys (InputEvent.h), so what comes before and after a Tab or Backspace in
+    // the same step does not mix. Valid until the next Apply or ConsumeEdges. FocusLost clears it, like the presses.
     [[nodiscard]] std::string_view Text() const;
-    // Texto, composición y teclas de edición en orden de llegada. La vista vale hasta el próximo
-    // Apply o ConsumeEdges; un frame sin paso no la consume.
+    // In arrival order. The view is valid until the next Apply or ConsumeEdges; a frame without a step does not consume
+    // it.
     [[nodiscard]] std::span<const TextInputEvent> TextInputEvents() const;
 
-    // Lo llama GameLoop después de un paso: borra los flancos, la rueda y el texto, no lo que está
-    // abajo.
+    // GameLoop calls it after a step: clears the edges, the wheel and the text, not what is down.
     void ConsumeEdges();
 
 private:
@@ -89,14 +74,14 @@ private:
     void Press(MouseButton button);
     void Release(MouseButton button);
     void ReleaseEverything();
-    // Pone la tecla lógica de un lado (Shift de ShiftLeft) en el OR de sus dos lados, con su flanco
-    // si cambió. Con una tecla que no es un lado, no hace nada.
+    // Sets a side's logical key (Shift for ShiftLeft) to the OR of its two sides, with its edge if it changed. Does
+    // nothing for a key that is not a side.
     void UpdateLogical(Key side);
 
     std::bitset<KeyCount> m_keysDown;
     std::bitset<KeyCount> m_keysPressed;
     std::bitset<KeyCount> m_keysReleased;
-    // Los apretones que ya tomó un TakePress en este paso.
+    // The presses a TakePress already took in this step.
     mutable std::bitset<KeyCount> m_keysTaken;
     std::bitset<MouseButtonCount> m_buttonsDown;
     std::bitset<MouseButtonCount> m_buttonsPressed;

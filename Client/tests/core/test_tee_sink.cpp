@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-// Client::Core::TeeSink: la misma línea a las dos salidas.
 namespace
 {
 using Client::Core::Log;

@@ -12,9 +12,6 @@
 #include <string_view>
 #include <vector>
 
-// Client::Platform::Sdl::IsValidProcAddress, HasRequiredGlVersion, la lista de GlFunctionList.h y el
-// orden de LoadGlFunctions con un driver falso: lo de GlLoader que se prueba sin ventana ni
-// contexto.
 namespace
 {
 using Client::Platform::Sdl::GlFunctionNames;
@@ -29,7 +26,7 @@ TEST(GlLoaderTest, RejectsTheInvalidAddresses)
     EXPECT_FALSE(IsValidProcAddress(1));
     EXPECT_FALSE(IsValidProcAddress(2));
     EXPECT_FALSE(IsValidProcAddress(3));
-    // El -1 de algunos drivers de Windows.
+    // The -1 of some Windows drivers.
     EXPECT_FALSE(IsValidProcAddress(UINTPTR_MAX));
     EXPECT_TRUE(IsValidProcAddress(4));
 }
@@ -47,13 +44,12 @@ TEST(GlLoaderTest, RequiresTheCoreProfile)
 {
     EXPECT_TRUE(IsCoreProfile(GL_CONTEXT_CORE_PROFILE_BIT));
     EXPECT_FALSE(IsCoreProfile(GL_CONTEXT_COMPATIBILITY_PROFILE_BIT));
-    // Antes de la 3.2 la consulta no existe y el entero queda en 0.
+    // Before 3.2 the query does not exist and the integer stays 0.
     EXPECT_FALSE(IsCoreProfile(0));
 }
 
-// La X-macro no repite una función (dos líneas con el mismo nombre de GL pedirían dos veces lo
-// mismo, en dos miembros), y cada nombre es el de una función de GL, como lo espera
-// SDL_GL_GetProcAddress: empieza con "gl". Los miembros repetidos no compilan.
+// Two lines with the same GL name would request the same thing twice, in two members, and each name is a GL function
+// as SDL_GL_GetProcAddress expects it: it starts with "gl". Repeated members do not compile.
 TEST(GlLoaderTest, EveryFunctionHasItsName)
 {
     const std::set<std::string_view> unique(GlFunctionNames.begin(), GlFunctionNames.end());
@@ -65,9 +61,8 @@ TEST(GlLoaderTest, EveryFunctionHasItsName)
     }
 }
 
-// Las dos con que se pregunta qué contexto dio el driver van primero: LoadGlFunctions mira la
-// versión y el perfil antes de pedir el resto, así que un driver viejo dice su versión y no la
-// primera función de la 3.3 que no tiene.
+// LoadGlFunctions checks the version and the profile before requesting the rest, so an old driver reports its version
+// and not the first 3.3 function it lacks.
 TEST(GlLoaderTest, TheContextIsAskedFirst)
 {
     ASSERT_GE(GlFunctionNames.size(), 2u);
@@ -75,9 +70,8 @@ TEST(GlLoaderTest, TheContextIsAskedFirst)
     EXPECT_EQ(GlFunctionNames[1], "glGetIntegerv");
 }
 
-// Un driver falso para LoadGlFunctions, sin ventana: qué versión y qué perfil dice, qué función
-// no tiene y qué nombres le pidieron, en orden. Es estado global porque el pedido es un puntero a
-// función, sin captura; el fixture lo deja en un 3.3 core completo antes de cada test.
+// The version and profile it reports, the function it lacks and the names requested, in order. Global state because the
+// lookup is a function pointer with no capture; the fixture resets it to a full 3.3 core before each test.
 struct FakeDriver
 {
     GLint major = 3;
@@ -94,8 +88,8 @@ const GLubyte* GLAPIENTRY FakeGetString(GLenum /*name*/)
     return reinterpret_cast<const GLubyte*>("2.1 falso");
 }
 
-// Antes de la 3.0, GL_MAJOR_VERSION no existe: un driver de verdad deja el entero como estaba y
-// marca GL_INVALID_ENUM. El falso hace lo mismo con un 0.0.
+// Before 3.0, GL_MAJOR_VERSION does not exist: a real driver leaves the integer as it was and sets GL_INVALID_ENUM.
+// The fake does the same with a 0.0.
 void GLAPIENTRY FakeGetIntegerv(GLenum name, GLint* value)
 {
     if (name == GL_MAJOR_VERSION && s_driver.major >= 3)
@@ -112,7 +106,7 @@ void GLAPIENTRY FakeGetIntegerv(GLenum name, GLint* value)
     }
 }
 
-// Lo que da por las demás: LoadGlFunctions las pide y no las llama.
+// What it gives for the rest: LoadGlFunctions requests them and does not call them.
 void GLAPIENTRY FakeAnyFunction() {}
 
 SDL_FunctionPointer FakeLookup(const char* name)
@@ -143,8 +137,8 @@ protected:
     }
 };
 
-// Un driver viejo (un 2.1, sin las de la 3.3) dice su versión: LoadGlFunctions mira el contexto con
-// las dos primeras y no pide ninguna más, así que el error no es la primera de la 3.3 que falta.
+// A 2.1 driver, without the 3.3 functions: LoadGlFunctions checks the context with the first two and requests no more,
+// so the error is not the first missing 3.3 function.
 TEST_F(GlLoaderDriverTest, AnOldDriverSaysItsVersion)
 {
     s_driver.major = 2;
@@ -158,7 +152,7 @@ TEST_F(GlLoaderDriverTest, AnOldDriverSaysItsVersion)
     EXPECT_EQ(s_driver.requested, (std::vector<std::string>{"glGetString", "glGetIntegerv"}));
 }
 
-// Un 3.3 sin el perfil core (el de compatibilidad) no alcanza, y tampoco pide el resto.
+// A 3.3 without the core profile (the compatibility one) is not enough, and the rest is not requested either.
 TEST_F(GlLoaderDriverTest, ACompatibilityContextIsRefused)
 {
     s_driver.profileMask = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
@@ -170,7 +164,7 @@ TEST_F(GlLoaderDriverTest, ACompatibilityContextIsRefused)
     EXPECT_EQ(s_driver.requested.size(), 2u);
 }
 
-// Con un 3.3 core, la primera que falta corta, con su nombre, y las de después no se piden.
+// With a 3.3 core, the first missing one stops it, named, and the later ones are not requested.
 TEST_F(GlLoaderDriverTest, TheFirstMissingFunctionIsNamed)
 {
     s_driver.missing = "glTexImage2D";
@@ -182,7 +176,6 @@ TEST_F(GlLoaderDriverTest, TheFirstMissingFunctionIsNamed)
     EXPECT_EQ(s_driver.requested.back(), "glTexImage2D");
 }
 
-// Con todo, pide cada una de la lista una vez, en su orden, y ningún puntero queda en nulo.
 TEST_F(GlLoaderDriverTest, AFullDriverGivesEveryFunction)
 {
     const auto gl = LoadGlFunctions(FakeLookup);

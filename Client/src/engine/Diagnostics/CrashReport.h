@@ -6,42 +6,38 @@
 #include <cstdint>
 #include <string_view>
 
-// Lo que junta el manejador de caídas para MuError.dmp, con los campos y los anchos del original
-// (02 § El manejador de caídas): el volcado de 0x67f840 es de un proceso x86, así que cada
-// dirección y cada registro mide 32 bits. Lo arma Diagnostics::CrashHandler al caer y lo escribe
-// WriteCrashDump. Es un agregado sin memoria dinámica: vive en un buffer estático que se llena
-// después de la caída sin pedir memoria.
+// The original's fields and widths (02 § El manejador de caídas): the 0x67f840 dump is of an x86 process, so every
+// address and register is 32 bits. No dynamic memory: it lives in a static buffer filled after the crash.
 namespace Client::Diagnostics
 {
-// Los textos de la cabecera: lstrcpynA con 0x80 (0x67f947), 127 bytes y el 0.
+// Header texts: lstrcpynA with 0x80 (0x67f947), 127 bytes and the 0.
 inline constexpr std::size_t CrashTextSize = 0x80;
-// La ruta de un módulo: lstrcpynA con 0x100 (0x67fe1c).
+// lstrcpynA with 0x100 (0x67fe1c).
 inline constexpr std::size_t CrashModulePathSize = 0x100;
-// Los módulos que se guardan: el recorrido corta en 48 (cmp ebp,0x30 en 0x67feae).
+// The walk stops at 48 (cmp ebp,0x30 at 0x67feae).
 inline constexpr std::size_t MaxCrashModules = 0x30;
-// Los frames: 64 como mucho (cmp eax,0x40 en 0x682be2).
+// At most 64 (cmp eax,0x40 at 0x682be2).
 inline constexpr std::size_t MaxCrashFrames = 0x40;
-// Los dwords que guarda cada frame desde la dirección de vuelta (cmp edi,0x10 en 0x6828d7).
+// The dwords each frame keeps from the return address (cmp edi,0x10 at 0x6828d7).
 inline constexpr std::size_t CrashFrameArguments = 0x10;
-// El VS_FIXEDFILEINFO del ejecutable: 13 dwords (0x67fb62) que van enteros al archivo (0x67ff84).
+// The executable's VS_FIXEDFILEINFO: 13 dwords (0x67fb62) written whole to the file (0x67ff84).
 inline constexpr std::size_t VersionInfoSize = 0x34;
-// El FLOATING_SAVE_AREA y los ExtendedRegisters (la imagen de FXSAVE) del CONTEXT de x86.
+// The x86 CONTEXT's FLOATING_SAVE_AREA and ExtendedRegisters (the FXSAVE image).
 inline constexpr std::size_t X86FloatSaveSize = 0x70;
 inline constexpr std::size_t X86ExtendedRegistersSize = 0x200;
 
-// Un texto de la cabecera, terminado en 0 y con el resto en 0.
+// 0-terminated, with the rest 0.
 using CrashText = std::array<char, CrashTextSize>;
 
-// Copia `text` a un campo de largo fijo como lstrcpynA: hasta Size - 1 bytes y el 0, con el resto
-// del campo en 0. No pide memoria.
+// Like lstrcpynA: up to Size - 1 bytes and the 0, with the rest of the field 0. Allocates nothing.
 template <std::size_t Size> void CopyCrashText(std::array<char, Size>& field, std::string_view text)
 {
     field.fill('\0');
     std::copy_n(text.begin(), std::min(text.size(), Size - 1), field.begin());
 }
 
-// El MEMORYSTATUS de GlobalMemoryStatus (0x67f9b0), sin dwLength, que es siempre 32. Cada SIZE_T
-// es de 32 bits, como en el original.
+// The MEMORYSTATUS of GlobalMemoryStatus (0x67f9b0), without dwLength, which is always 32. Each SIZE_T is 32 bits, as
+// in the original.
 struct MemoryStatus32
 {
     std::uint32_t memoryLoad = 0;
@@ -53,8 +49,8 @@ struct MemoryStatus32
     std::uint32_t availableVirtual = 0;
 };
 
-// El CONTEXT de x86 (0x2cc bytes), en el orden de winnt.h. El original lo copia entero desde la
-// excepción (0x67fedb); el walk de los frames lee Ebp.
+// The x86 CONTEXT (0x2cc bytes), in winnt.h order. The original copies it whole from the exception (0x67fedb); the
+// frame walk reads Ebp.
 struct X86Context
 {
     std::uint32_t contextFlags = 0;
@@ -84,7 +80,7 @@ struct X86Context
     std::array<std::byte, X86ExtendedRegistersSize> extendedRegisters{};
 };
 
-// Un módulo, como lo copia 0x67fe6a de un MODULEENTRY32.
+// As 0x67fe6a copies it from a MODULEENTRY32.
 struct CrashModule
 {
     CrashText name{};
@@ -93,7 +89,7 @@ struct CrashModule
     std::uint32_t size = 0;
 };
 
-// Un frame de la cadena de EBP (0x682890): dónde está, adónde vuelve y los dwords que siguen.
+// An EBP chain frame (0x682890): where it is, where it returns and the dwords that follow.
 struct CrashFrame
 {
     std::uint32_t framePointer = 0;
@@ -113,14 +109,14 @@ struct CrashReport
     std::uint32_t threadCount = 0;
     bool hasVersionInfo = false;
     std::array<std::byte, VersionInfoSize> versionInfo{};
-    // Cuántos de `modules` van al archivo.
+    // How many of `modules` go to the file.
     std::uint32_t moduleCount = 0;
     std::array<CrashModule, MaxCrashModules> modules{};
     X86Context context;
     std::uint32_t exceptionCode = 0;
     std::uint32_t exceptionAddress = 0;
     CrashText exceptionText{};
-    // Cuántos de `frames` van al archivo.
+    // How many of `frames` go to the file.
     std::uint32_t frameCount = 0;
     std::array<CrashFrame, MaxCrashFrames> frames{};
 };

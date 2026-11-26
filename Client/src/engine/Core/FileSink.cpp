@@ -28,8 +28,8 @@ Expected<std::unique_ptr<FileSink>, std::string> FileSink::Open(const std::files
     std::ofstream file(path, overTheCap ? (std::ios::out | std::ios::trunc) : (std::ios::out | std::ios::app));
     if (overTheCap && file.is_open())
     {
-        // El vaciado es solo al abrir: después también agrega al final para no pisar lo que
-        // escriba otro sink. Mantener trunc dejaría este stream con su propio cursor (Q-C48).
+        // Truncated only on open: afterwards it also appends, so it does not overwrite what another sink writes.
+        // Keeping trunc would leave this stream with its own cursor (Q-C48).
         file.close();
         if (file)
         {
@@ -40,7 +40,7 @@ Expected<std::unique_ptr<FileSink>, std::string> FileSink::Open(const std::files
     {
         return Unexpected("no se pudo abrir el archivo de log " + PathText(path));
     }
-    // Con new y no make_unique: el constructor es privado.
+    // new and not make_unique: the constructor is private.
     std::string notice =
         "[warning] no se pudo escribir en el archivo de log " + PathText(path) + ": el log sigue solo en stderr\n";
     return std::unique_ptr<FileSink>(new FileSink(std::move(file), std::move(notice), noticeOutput));
@@ -58,17 +58,15 @@ void FileSink::Write(LogLevel /*level*/, std::string_view line)
     const std::scoped_lock lock(m_mutex);
     if (!m_file.is_open())
     {
-        return; // falló antes, y ya avisó
+        return; // failed before and already warned
     }
     m_file.write(text.data(), static_cast<std::streamsize>(text.size()));
     m_file.flush();
     if (!m_file)
     {
-        // Se cierra en el momento. En libstdc++, lo que no se pudo escribir queda en el buffer del
-        // ofstream: close lo prueba una vez más, ahora, y abierto lo mandaría su destructor al
-        // salir, cuando quizás ya hay lugar. Después no se intenta más. El aviso, una sola vez y
-        // con un fwrite, no por el Log: desde un sink, el Log volvería a entrar al Tee, que tiene
-        // su mutex tomado.
+        // Closed now: in libstdc++ the unwritten bytes stay in the ofstream's buffer and close retries them once; left
+        // open, its destructor would send them at exit, when there may be room. The notice goes once with fwrite, not
+        // through the Log: from a sink, the Log would re-enter the Tee, which holds its mutex.
         m_file.close();
         std::fwrite(m_failureNotice.data(), 1, m_failureNotice.size(), m_noticeOutput);
     }

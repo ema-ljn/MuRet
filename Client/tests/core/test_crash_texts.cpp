@@ -8,8 +8,7 @@
 #include <string>
 #include <string_view>
 
-// Client::Diagnostics: los textos de la cabecera de MuError.dmp (el sistema de 0x683ed0, el
-// procesador de 0x684730 y la excepción de 0x680260) y la línea del log de 0x4b9b34.
+// The system of 0x683ed0, the processor of 0x684730, the exception of 0x680260 and the log line of 0x4b9b34.
 namespace
 {
 using Client::Diagnostics::CpuId;
@@ -23,7 +22,6 @@ using Client::Diagnostics::PosixSystemText;
 using Client::Diagnostics::ProcessorText;
 using Client::Diagnostics::SystemText;
 
-// El texto hasta el 0.
 std::string_view Text(const CrashText& text)
 {
     const std::string_view all(text.data(), text.size());
@@ -33,7 +31,7 @@ std::string_view Text(const CrashText& text)
 constexpr std::uint32_t Nt = 2;
 constexpr std::uint32_t Windows9x = 1;
 
-// El fabricante de cpuid, en EBX, EDX y ECX.
+// The cpuid vendor, in EBX, EDX and ECX.
 constexpr CpuId Intel{.vendorEbx = 0x756e6547, .vendorEdx = 0x49656e69, .vendorEcx = 0x6c65746e, .signature = 0};
 constexpr CpuId Amd{.vendorEbx = 0x68747541, .vendorEdx = 0x69746e65, .vendorEcx = 0x444d4163, .signature = 0};
 
@@ -62,7 +60,7 @@ TEST(CrashTextsTest, NamesTheNtFamily)
               "Windows 2003 family Build 3790");
 }
 
-// Windows 2000 suma lo que dice el ProductType del registro, sin mirar mayúsculas (_stricmp).
+// Case-insensitive, as _stricmp.
 TEST(CrashTextsTest, AddsTheWindows2000ProductType)
 {
     const auto windows2000 = [](std::string_view productType)
@@ -77,8 +75,7 @@ TEST(CrashTextsTest, AddsTheWindows2000ProductType)
     EXPECT_EQ(windows2000(""), "Windows 2000 Build 2195");
 }
 
-// En 95, 98 y Me el build va partido, con un espacio al final, y la letra del service pack nombra
-// la edición.
+// On 95, 98 and Me the build is split, with a trailing space, and the service pack letter names the edition.
 TEST(CrashTextsTest, SplitsTheBuildOfWindows9x)
 {
     EXPECT_EQ(
@@ -91,8 +88,8 @@ TEST(CrashTextsTest, SplitsTheBuildOfWindows9x)
               "Windows Me Build 4.90.3000 ");
 }
 
-// Lo que no conoce lleva la versión: así sale cualquier Windows de después de XP, al que
-// GetVersionExA le dice 6.2.
+// What it does not know carries the version: that is how any Windows after XP comes out, since GetVersionExA tells it
+// 6.2.
 TEST(CrashTextsTest, CallsANewerSystemUnknown)
 {
     EXPECT_EQ(Text(SystemText({.major = 6, .minor = 2, .build = 9200, .platformId = Nt})), "Unknown 6.2 Build 9200");
@@ -104,7 +101,7 @@ TEST(CrashTextsTest, NamesALinuxSystemWithUname)
     EXPECT_EQ(Text(PosixSystemText("Linux", "6.8.0-45-generic")), "Linux 6.8.0-45-generic");
 }
 
-// Como el lstrcpynA que lo copia: 127 bytes y el 0.
+// Like the lstrcpynA that copies it: 127 bytes and the 0.
 TEST(CrashTextsTest, CutsATextAt127Bytes)
 {
     const std::string release(200, 'r');
@@ -122,7 +119,7 @@ TEST(CrashTextsTest, NamesIntelProcessors)
     EXPECT_EQ(Text(ProcessorText(WithSignature(Intel, 6, 6), 400)), "GenuineIntel - Pentium Celeron CPU 400MHz");
     EXPECT_EQ(Text(ProcessorText(WithSignature(Intel, 6, 3), 300)), "GenuineIntel - Pentium 2 CPU 300MHz");
     EXPECT_EQ(Text(ProcessorText(WithSignature(Intel, 6, 1), 200)), "GenuineIntel - Pentium Pro CPU 200MHz");
-    // De la familia 3 a la 5, la tabla no dice nada: quedan los dos espacios.
+    // From family 3 to 5 the table says nothing: the two spaces remain.
     EXPECT_EQ(Text(ProcessorText(WithSignature(Intel, 5, 2), 133)), "GenuineIntel -  CPU 133MHz");
     EXPECT_EQ(Text(ProcessorText(WithSignature(Intel, 7, 0), 900)), "GenuineIntel - Unknown CPU 900MHz");
 }
@@ -136,7 +133,7 @@ TEST(CrashTextsTest, NamesAmdProcessors)
     EXPECT_EQ(Text(ProcessorText(WithSignature(Amd, 15, 0), 2000)), "AuthenticAMD - AMD Unknown CPU 2.00GHz");
 }
 
-// Otro fabricante: el texto entero pasa a ser "Unknown". 1000 MHz justos todavía van en MHz.
+// Exactly 1000 MHz still goes in MHz.
 TEST(CrashTextsTest, CallsOtherVendorsUnknown)
 {
     const CpuId other{.vendorEbx = 0x746e6543, .vendorEdx = 0x48727561, .vendorEcx = 0x736c7561, .signature = 0x6F0};
@@ -146,12 +143,11 @@ TEST(CrashTextsTest, CallsOtherVendorsUnknown)
     EXPECT_EQ(Text(ProcessorText(other, 1001)), "Unknown CPU 1.00GHz");
 }
 
-// Los ciclos sobre el tiempo, en Hz truncados y después en MHz.
 TEST(CrashTextsTest, MeasuresMegahertzFromASample)
 {
-    // 159.600.000 ciclos en 50 ms: 3.192.000.000 Hz.
+    // 159,600,000 cycles in 50 ms: 3,192,000,000 Hz.
     EXPECT_EQ(MegahertzFromSample(159600000, 50000000, 1000000000), 3192);
-    // Con la frecuencia de QueryPerformanceCounter de un XP (3.579.545 Hz).
+    // With an XP's QueryPerformanceCounter frequency (3,579,545 Hz).
     EXPECT_EQ(MegahertzFromSample(22500000, 178977, 3579545), 450);
     EXPECT_EQ(MegahertzFromSample(1000, 0, 1000000000), 0);
     EXPECT_EQ(MegahertzFromSample(1000, -5, 1000000000), 0);
@@ -162,9 +158,9 @@ TEST(CrashTextsTest, DescribesAnAccessViolationWithItsAddress)
 {
     EXPECT_EQ(Text(ExceptionText(0xC0000005, 0, 0x10)), "Access violation : reading inaccessible 0x00000010");
     EXPECT_EQ(Text(ExceptionText(0xC0000005, 1, 0xDEADBEEF)), "Access violation : writing inaccessible 0xDEADBEEF");
-    // Cualquier valor que no sea 0 es una escritura, también el 8 de DEP.
+    // Any value other than 0 is a write, DEP's 8 too.
     EXPECT_EQ(Text(ExceptionText(0xC0000005, 8, 0x401000)), "Access violation : writing inaccessible 0x00401000");
-    // MuRet es de 64 bits: la dirección va entera.
+    // MuRet is 64-bit: the whole address goes in.
     EXPECT_EQ(Text(ExceptionText(0xC0000005, 0, 0x7FFE12345678)),
               "Access violation : reading inaccessible 0x7FFE12345678");
 }
@@ -179,7 +175,7 @@ TEST(CrashTextsTest, NamesTheOtherExceptions)
     EXPECT_EQ(Text(ExceptionText(0xE06D7363, 0, 0)), "Unknown exception");
 }
 
-// La línea del log: el mensaje de 0x6c80b4 sin el "\r\n", con el prefijo de Log::Error.
+// The 0x6c80b4 message without the "\r\n", with Log::Error's prefix.
 TEST(CrashTextsTest, WritesTheLogLineLikeLogError)
 {
     EXPECT_EQ(CrashLogLine(), "[error] Save DumpFile complete - MuError.dmp");

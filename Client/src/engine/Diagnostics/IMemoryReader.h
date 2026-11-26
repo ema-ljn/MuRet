@@ -4,9 +4,8 @@
 #include <cstdint>
 #include <span>
 
-// Leer memoria del propio proceso sin caerse si no se puede: el IsBadReadPtr del original
-// (0x68289b, 0x6828c2, 0x682bcd). El manejador de caídas tiene uno por sistema
-// (Diagnostics::CrashHandler) y los tests, una memoria inventada.
+// Reads the process's own memory without crashing when it cannot: the original's IsBadReadPtr (0x68289b, 0x6828c2,
+// 0x682bcd).
 namespace Client::Diagnostics
 {
 class IMemoryReader
@@ -14,8 +13,7 @@ class IMemoryReader
 public:
     virtual ~IMemoryReader() = default;
 
-    // Copia `out.size()` bytes desde `address` y devuelve true; si alguno no se puede leer,
-    // devuelve false. No pide memoria: corre después de la caída.
+    // false if any byte is unreadable. Allocates nothing: it runs after the crash.
     [[nodiscard]] virtual bool Read(std::uint64_t address, std::span<std::byte> out) const = 0;
 
 protected:

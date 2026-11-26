@@ -8,6 +8,6 @@
 
 namespace Client::Core
 {
-// Lee un escalar UTF-8 desde `offset` y avanza si está bien formado; si no, deja el cursor intacto.
+// Advances `offset` only if the scalar is well-formed.
 [[nodiscard]] ENGINE_API std::optional<char32_t> ReadUtf8CodePoint(std::string_view text, std::size_t& offset);
 } // namespace Client::Core

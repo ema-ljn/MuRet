@@ -10,8 +10,6 @@
 #include <string>
 #include <utility>
 
-// Client::Input::InputState: el teclado y el mouse por frame, con sus flancos (plan de la CL3,
-// sub-ola CL3.3, la tabla del paso 1).
 namespace
 {
 using Client::Input::InputEvent;
@@ -52,12 +50,12 @@ TEST(InputStateTest, AHeldKeyIsPressedOnce)
     InputState input;
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::A));
 
-    // Frame 1: abajo y recién apretada.
+    // Frame 1: down and just pressed.
     EXPECT_TRUE(input.IsDown(Key::A));
     EXPECT_TRUE(input.WasPressed(Key::A));
     input.ConsumeEdges();
 
-    // Frames 2 y 3: sigue abajo, pero el apretón ya se consumió.
+    // Frames 2 and 3: still down, but the press was already consumed.
     for (int frame = 2; frame <= 3; ++frame)
     {
         EXPECT_TRUE(input.IsDown(Key::A)) << "frame " << frame;
@@ -67,8 +65,8 @@ TEST(InputStateTest, AHeldKeyIsPressedOnce)
     }
 }
 
-// Q-C45 (CL8, hito 8): de los que leen el apretón con 0x8001, lo ve el primero; WasPressed sigue
-// viéndolo, y el paso siguiente arranca sin nada tomado.
+// Q-C45 (CL8, milestone 8): of those reading the press with 0x8001, the first sees it; WasPressed still sees it, and
+// the next step starts with nothing taken.
 TEST(InputStateTest, APressIsTakenByTheFirstReader)
 {
     InputState input;
@@ -106,7 +104,7 @@ TEST(InputStateTest, ASecondKeyDownIsNotAnEdge)
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Escape));
     input.ConsumeEdges();
 
-    // El auto-repeat lo filtra Platform; un KeyDown más con la tecla abajo tampoco es un apretón.
+    // Platform filters the auto-repeat; another KeyDown with the key down is not a press either.
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Escape));
 
     EXPECT_TRUE(input.IsDown(Key::Escape));
@@ -139,7 +137,7 @@ TEST(InputStateTest, FocusLostClearsTheWheelAndThePresses)
 
     input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
 
-    // Apretadas en el mismo frame: no / no / sí. El paso siguiente no ve el clic ni la rueda.
+    // Pressed in the same frame: no / no / yes. The next step sees neither the click nor the wheel.
     EXPECT_FALSE(input.IsDown(Key::A));
     EXPECT_FALSE(input.WasPressed(Key::A));
     EXPECT_TRUE(input.WasReleased(Key::A));
@@ -205,7 +203,7 @@ TEST(InputStateTest, MotionKeepsTheLastPosition)
 
     EXPECT_FLOAT_EQ(input.MouseX(), 300.0f);
     EXPECT_FLOAT_EQ(input.MouseY(), 140.0f);
-    // La posición no es un flanco: ConsumeEdges no la toca.
+    // The position is not an edge: ConsumeEdges does not touch it.
     input.ConsumeEdges();
     EXPECT_FLOAT_EQ(input.MouseX(), 300.0f);
     EXPECT_FLOAT_EQ(input.MouseY(), 140.0f);
@@ -221,7 +219,7 @@ TEST(InputStateTest, MouseButtonsAreEdgesToo)
     EXPECT_FALSE(input.WasReleased(MouseButton::Right));
     input.ConsumeEdges();
 
-    // Un segundo ButtonDown con el botón abajo no es un apretón.
+    // A second ButtonDown with the button down is not a press.
     input.Apply(ButtonEvent(InputEvent::Kind::ButtonDown, MouseButton::Right));
     EXPECT_TRUE(input.IsDown(MouseButton::Right));
     EXPECT_FALSE(input.WasPressed(MouseButton::Right));
@@ -236,8 +234,8 @@ TEST(InputStateTest, MouseButtonsAreEdgesToo)
     EXPECT_FALSE(input.WasReleased(MouseButton::Right));
 }
 
-// Q-C47: el original acota la posición de la UI nueva al tamaño de la ventana (0x640940); acá
-// queda la del evento, también fuera de la ventana (con el mouse capturado), hasta la CL5.
+// Q-C47: the original clamps the new UI's position to the window size (0x640940); here the event's stays, also outside
+// the window (with the mouse captured), until CL5.
 TEST(InputStateTest, MotionIsNotClamped)
 {
     InputState input;
@@ -254,7 +252,7 @@ TEST(InputStateTest, APressReleaseAndPressInOneFrameKeepsBothEdges)
     input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::Space));
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Space));
 
-    // sí / sí / sí, y después de ConsumeEdges sí / no / no.
+    // yes / yes / yes, and after ConsumeEdges yes / no / no.
     EXPECT_TRUE(input.IsDown(Key::Space));
     EXPECT_TRUE(input.WasPressed(Key::Space));
     EXPECT_TRUE(input.WasReleased(Key::Space));
@@ -267,7 +265,7 @@ TEST(InputStateTest, APressReleaseAndPressInOneFrameKeepsBothEdges)
 
 TEST(InputStateTest, AKeyUpWithTheKeyUpIsNotAnEdge)
 {
-    // Una tecla o un botón apretados antes de tener el foco: llega la soltada sin el apretón.
+    // A key or a button pressed before having the focus: the release arrives without the press.
     InputState input;
     input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::Tab));
     input.Apply(ButtonEvent(InputEvent::Kind::ButtonUp, MouseButton::Middle));
@@ -349,12 +347,12 @@ TEST(InputStateTest, TheModifierEdgesAreThoseOfTheOr)
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::AltLeft));
     input.ConsumeEdges();
 
-    // El segundo lado no es un apretón de Alt, aunque sí del lado.
+    // The second side is not an Alt press, though it is a press of the side.
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::AltRight));
     EXPECT_FALSE(input.WasPressed(Key::Alt));
     EXPECT_TRUE(input.WasPressed(Key::AltRight));
 
-    // Soltar uno y volver a apretarlo, con el otro abajo, no da flancos de Alt.
+    // Releasing one and pressing it again, with the other down, gives no Alt edges.
     input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::AltLeft));
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::AltLeft));
     EXPECT_TRUE(input.IsDown(Key::Alt));
@@ -370,7 +368,7 @@ TEST(InputStateTest, ALogicalKeyEventIsIgnored)
     EXPECT_FALSE(input.IsDown(Key::Shift));
     EXPECT_FALSE(input.WasPressed(Key::Shift));
 
-    // Con un lado abajo, un KeyUp lógico no lo suelta.
+    // With a side down, a logical KeyUp does not release it.
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::ShiftLeft));
     input.ConsumeEdges();
     input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::Shift));
@@ -379,7 +377,7 @@ TEST(InputStateTest, ALogicalKeyEventIsIgnored)
     EXPECT_FALSE(input.WasReleased(Key::Shift));
 }
 
-// El texto tecleado (CL5.5): lo de cada Text se junta, en orden, hasta ConsumeEdges, como la rueda.
+// Each Text's text joins, in order, until ConsumeEdges, like the wheel.
 TEST(InputStateTest, CollectsTheTypedText)
 {
     InputState input;
@@ -403,7 +401,7 @@ TEST(InputStateTest, ConsumeEdgesEmptiesIt)
     EXPECT_EQ(input.Text(), "d");
 }
 
-// Como un clic de antes del alt-tab, lo tecleado antes de perder el foco no lo ve el paso.
+// Like a click from before the alt-tab, the step does not see what was typed before losing the focus.
 TEST(InputStateTest, FocusLostEmptiesTheText)
 {
     InputState input;
@@ -414,8 +412,8 @@ TEST(InputStateTest, FocusLostEmptiesTheText)
     EXPECT_EQ(input.Text(), "");
 }
 
-// Backspace, Tab y Enter conservan el texto legacy y además entregan un solo evento Key con los
-// modificadores de ese punto del flujo. El adaptador del juego decide si usar el EDIT o el chat.
+// Backspace, Tab and Enter keep the legacy text and also deliver a single Key event with the modifiers at that point of
+// the stream. The game adapter decides whether to use the EDIT or the chat.
 TEST(InputStateTest, BackspaceAndTabGoInTheTextInOrder)
 {
     InputState input;
@@ -453,7 +451,7 @@ TEST(InputStateTest, BackspaceAndTabGoInTheTextInOrder)
     EXPECT_EQ(events[5].kind, Client::Input::TextInputEvent::Kind::Text);
 }
 
-// Enter también conserva el WM_CHAR legacy, sin duplicarlo en el flujo ordenado.
+// Enter also keeps the legacy WM_CHAR, without duplicating it in the ordered stream.
 TEST(InputStateTest, EnterGoesInTheTextInOrder)
 {
     InputState input;
@@ -470,7 +468,6 @@ TEST(InputStateTest, EnterGoesInTheTextInOrder)
     EXPECT_EQ(events[1].key, Key::Enter);
 }
 
-// El texto no es una tecla: no aprieta ninguna.
 TEST(InputStateTest, TheTextPressesNoKey)
 {
     InputState input;

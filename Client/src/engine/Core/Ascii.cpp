@@ -8,8 +8,7 @@ namespace Client::Core
 {
 char ToLowerAscii(char c)
 {
-    // El byte sin signo: con un char con signo, los >= 0x80 son negativos, y así quedan afuera de
-    // la A a la Z con cualquiera de los dos.
+    // Unsigned: with a signed char, bytes >= 0x80 are negative, so they stay outside A to Z either way.
     const auto byte = static_cast<unsigned char>(c);
     if (byte < 'A' || byte > 'Z')
     {
@@ -18,9 +17,8 @@ char ToLowerAscii(char c)
     return static_cast<char>(byte - 'A' + 'a');
 }
 
-// operator== de string_view compara bytes exactos, y la biblioteca estándar no trae una comparación
-// sin mayúsculas. ranges::equal sí deja proyectar: pasa cada char de los dos lados por ToLowerAscii
-// antes del ==, y si los tamaños difieren devuelve false sin comparar nada.
+// The standard library has no case-insensitive comparison; ranges::equal projects both sides through ToLowerAscii and
+// returns false on different sizes without comparing.
 bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b)
 {
     return std::ranges::equal(a, b, std::ranges::equal_to{}, ToLowerAscii, ToLowerAscii);

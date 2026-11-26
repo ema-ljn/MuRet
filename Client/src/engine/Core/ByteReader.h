@@ -9,39 +9,32 @@
 #include <ranges>
 #include <span>
 
-// Lee enteros de un buffer de bytes, en orden, sin pasarse del final.
-//
-// Los archivos de Data\ guardan los enteros en little-endian: el byte menos significativo primero,
-// como los dejaba el x86 del original. El tamaño de un C2/C4 va al revés, en big-endian
-// (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Acá se arman byte por byte con
-// desplazamientos, y no casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni
-// las reglas de alias, y su resultado dependería del orden de bytes de la máquina (guía de la
-// CL1.0, actividades 4 y 9). Lo usan Data, Network y Protocol.
+// Data\ files store integers little-endian, as the original's x86 left them; a C2/C4 size is big-endian
+// (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Built with shifts, not by casting the buffer to
+// std::uint32_t*: a cast ignores alignment and aliasing rules, and its result would depend on the machine's byte order.
 namespace Client::Core
 {
 class ENGINE_API ByteReader
 {
 public:
-    // No copia los bytes: `buffer` tiene que seguir vivo mientras se lea.
+    // Does not copy the bytes: `buffer` must stay alive while reading.
     explicit ByteReader(std::span<const std::byte> buffer);
 
-    // Un std::span<const T> acepta un temporal, y `ByteReader reader(LoadFile());` quedaría
-    // colgando en la primera lectura. Este constructor lo rechaza: toma los rangos temporales que
-    // son dueños de sus bytes (un std::vector, un std::array), y no los que solo los miran (un
-    // std::span) ni las variables, que siguen usando el de arriba.
+    // A std::span<const T> accepts a temporary, so `ByteReader reader(LoadFile());` would dangle on the first read.
+    // This rejects the temporaries that own their bytes (a std::vector, a std::array); views and lvalues use the one
+    // above.
     template <typename Range>
         requires std::ranges::range<Range> && (!std::ranges::borrowed_range<Range>)
     explicit ByteReader(Range&& temporary) = delete;
 
-    // Cada lectura avanza lo que leyó. Si no quedan bytes suficientes devuelve std::nullopt, sin
-    // leer nada y sin avanzar.
+    // Each read advances past what it read. With too few bytes left it returns std::nullopt, reading and advancing
+    // nothing.
     [[nodiscard]] std::optional<std::uint8_t> ReadU8();
     [[nodiscard]] std::optional<std::uint16_t> ReadU16Le();
     [[nodiscard]] std::optional<std::uint32_t> ReadU32Le();
     [[nodiscard]] std::optional<std::uint16_t> ReadU16Be();
 
-    // Los `count` bytes que siguen, sin copiarlos: miran el mismo buffer. Es para los campos de
-    // largo fijo, como un texto de 16 bytes del protocolo.
+    // Not copied: a view into the same buffer.
     [[nodiscard]] std::optional<std::span<const std::byte>> ReadBytes(std::size_t count);
 
     [[nodiscard]] std::size_t Remaining() const;

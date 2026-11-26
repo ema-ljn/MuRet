@@ -4,8 +4,6 @@
 
 #include <gtest/gtest.h>
 
-// Client::Platform::Sdl::SwapIntervalFor y ApplySwapInterval, con dobles de SDL_GL_SetSwapInterval y
-// SDL_GL_GetSwapInterval: sin ventana ni contexto.
 namespace
 {
 using Client::Platform::VSyncMode;
@@ -13,13 +11,13 @@ using Client::Platform::Sdl::ApplySwapInterval;
 using Client::Platform::Sdl::SwapIntervalFor;
 using Client::Platform::Sdl::SwapIntervalResult;
 
-// Un driver sin adaptativo: solo entra el 1.
+// A driver without adaptive: only 1 sticks.
 bool SetOnlyOn(int interval)
 {
     return interval == 1;
 }
 
-// Un driver que no deja cambiar nada (el llvmpipe de Xvfb).
+// A driver that lets nothing change (Xvfb's llvmpipe).
 bool SetNothing(int /*interval*/)
 {
     return false;
@@ -30,7 +28,7 @@ bool SetEverything(int /*interval*/)
     return true;
 }
 
-// El contexto se quedó sin espera.
+// The context was left with no wait.
 bool GetZero(int* interval)
 {
     *interval = 0;

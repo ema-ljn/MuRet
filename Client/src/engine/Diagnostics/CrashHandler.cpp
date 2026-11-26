@@ -25,7 +25,7 @@
 #include <string_view>
 
 #if defined(_WIN32)
-// Sin las macros min y max de <windows.h>, que pisan std::min, ni lo que el manejador no necesita.
+// No min and max macros from <windows.h>, which clobber std::min, and nothing the handler does not need.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -33,7 +33,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-// Después de <windows.h>, que define lo que usa.
+// After <windows.h>, which defines what it uses.
 #include <tlhelp32.h>
 
 #include <intrin.h>
@@ -64,42 +64,42 @@ namespace Client::Diagnostics
 namespace
 {
 using PathChar = std::filesystem::path::value_type;
-// Una ruta copiada al instalar, terminada en 0.
+// Copied on install, 0-terminated.
 using StoredPath = std::array<PathChar, MaxCrashPathLength + 1>;
 
-// El fin de línea del FileSink: su ofstream es de texto, y en Windows escribe "\n" como "\r\n", el
-// mismo fin que el mensaje del original (0x6c80b4).
+// The FileSink's line end: its ofstream is text, and on Windows writes "\n" as "\r\n", the same end as the original's
+// message (0x6c80b4).
 #if defined(_WIN32)
 constexpr std::string_view LineEnd = "\r\n";
 #else
 constexpr std::string_view LineEnd = "\n";
 #endif
 
-// Lo que mide la muestra de la velocidad del procesador: el Sleep(0x32) de 0x684d40.
+// The Sleep(0x32) of 0x684d40.
 constexpr unsigned SampleMilliseconds = 50;
-// El bit 4 de EDX en la hoja 1 de cpuid: hay TSC (0x684ee1). Sin él, 0x684ed0 da 0 MHz.
+// Bit 4 of EDX in cpuid leaf 1: there is a TSC (0x684ee1). Without it, 0x684ed0 gives 0 MHz.
 constexpr std::uint32_t CpuidTscBit = 0x10;
-// Para leer /proc/self/maps y el ejecutable de a pedazos.
+// To read /proc/self/maps and the executable in chunks.
 constexpr std::size_t ReadBufferSize = 256 * 1024;
 constexpr std::size_t MaxLogLineSize = 128;
 
 #if defined(__linux__)
-// Las señales de una caída: las que en Windows serían una excepción sin manejar. SIGABRT no, como
-// en el original: abort() de la CRT no pasa por el filtro.
+// The signals that on Windows would be an unhandled exception. Not SIGABRT, as in the original: the CRT's abort() does
+// not go through the filter.
 constexpr std::array HandledSignals{SIGSEGV, SIGBUS, SIGILL, SIGFPE, SIGTRAP};
-// La pila aparte, para que un desborde de la pila principal también llegue al manejador.
+// A separate stack, so a main stack overflow also reaches the handler.
 constexpr std::size_t AlternateStackSize = 64 * 1024;
 #endif
 
-// Todo lo que usa el manejador después de la caída, armado antes: no puede pedir memoria.
+// Everything the handler uses after the crash, built before: it cannot allocate.
 struct CrashState
 {
     std::atomic<bool> installed{false};
-    // El primer hilo que cae lo toma; otro que caiga a la vez espera a que el proceso termine.
+    // The first thread to crash takes it; another crashing at the same time waits for the process to end.
     std::atomic_flag handling;
     StoredPath dumpPath{};
     StoredPath logPath{};
-    // Se apaga mientras SetLogFile copia la ruta, así el manejador no lee una a medias.
+    // Off while SetLogFile copies the path, so the handler does not read half of one.
     std::atomic<bool> hasLogPath{false};
     std::array<char, MaxLogLineSize> logLine{};
     std::size_t logLineLength = 0;
@@ -109,12 +109,12 @@ struct CrashState
 #if defined(_WIN32)
     LPTOP_LEVEL_EXCEPTION_FILTER previousFilter = nullptr;
 #elif defined(__linux__)
-    // Hecho una vez al instalar: uname no está en la lista de funciones seguras en una señal.
+    // Done once on install: uname is not on the async-signal-safe list.
     CrashText systemText{};
     std::array<struct sigaction, HandledSignals.size()> previousActions{};
     stack_t previousStack{};
     alignas(16) std::array<std::byte, AlternateStackSize> alternateStack{};
-    // El caño de PipeMemoryReader.
+    // PipeMemoryReader's pipe.
     int pipeRead = -1;
     int pipeWrite = -1;
 #endif
@@ -144,8 +144,8 @@ std::span<const std::byte> LogLineBytes()
     return std::as_bytes(std::span(s_state.logLine).first(s_state.logLineLength));
 }
 
-// Lo que 0x4b9a70 hace con el reporte ya armado: el archivo y, si se escribió entero, la línea
-// del log. Declaradas acá y definidas por sistema.
+// What 0x4b9a70 does with the finished report: the file and, if written whole, the log line. Declared here, defined
+// per system.
 bool WriteNewFile(const PathChar* path, std::span<const std::byte> bytes);
 void AppendToFile(const PathChar* path, std::span<const std::byte> bytes);
 
@@ -163,10 +163,10 @@ void WriteDumpAndLogLine()
 }
 
 #if defined(_WIN32)
-// ---- Windows: SetUnhandledExceptionFilter, como 0x67f710 ----
+// ---- Windows: SetUnhandledExceptionFilter, like 0x67f710 ----
 
-// IsBadReadPtr del original (0x68289b): ReadProcessMemory sobre el propio proceso devuelve FALSE
-// en vez de una excepción si algo no se puede leer.
+// The original's IsBadReadPtr (0x68289b): ReadProcessMemory on the own process returns FALSE instead of raising an
+// exception when something is unreadable.
 class ProcessMemoryReader final : public IMemoryReader
 {
 public:
@@ -181,15 +181,15 @@ public:
 
 bool WriteNewFile(const PathChar* path, std::span<const std::byte> bytes)
 {
-    // El fopen(..., "wb") de 0x67f89b: crea o vacía, compartido.
+    // The fopen(..., "wb") of 0x67f89b: creates or truncates, shared.
     const HANDLE file = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS,
                                     FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE)
     {
         return false;
     }
-    // El original no mira sus fwrite (0x67ff67) y da por escrito un archivo que solo abrió;
-    // MuRet pide que entre entero (Q-C245).
+    // The original does not check its fwrite (0x67ff67) and counts as written a file it only opened; MuRet requires it
+    // whole (Q-C245).
     DWORD written = 0;
     const bool wrote = WriteFile(file, bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr) != FALSE &&
                        written == bytes.size();
@@ -199,8 +199,7 @@ bool WriteNewFile(const PathChar* path, std::span<const std::byte> bytes)
 
 void AppendToFile(const PathChar* path, std::span<const std::byte> bytes)
 {
-    // El FileSink lo tiene abierto compartido: otro handle que agrega escribe después de su última
-    // línea, que ya pasó por su flush.
+    // The FileSink has it open shared: another appending handle writes after its last line, already flushed.
     const HANDLE file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS,
                                     FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE)
@@ -212,10 +211,9 @@ void AppendToFile(const PathChar* path, std::span<const std::byte> bytes)
     CloseHandle(file);
 }
 
-// El texto de 0x683ed0. GetVersionExA está marcada como obsoleta, y es la que usa el original:
-// en Windows 8.1 o más nuevo, sin un manifiesto que diga otra cosa, contesta 6.2 ("Unknown 6.2"),
-// como al original. El ProductType del registro solo cuenta con 5.0 (Windows 2000), que no corre
-// MuRet de 64 bits: no se lee.
+// The text of 0x683ed0. GetVersionExA is deprecated and is what the original uses: on Windows 8.1 or newer, without a
+// manifest saying otherwise, it answers 6.2 ("Unknown 6.2"), as to the original. The registry ProductType only matters
+// for 5.0 (Windows 2000), which does not run 64-bit MuRet, so it is not read.
 CrashText ReadSystemText()
 {
     OSVERSIONINFOA info{};
@@ -256,8 +254,8 @@ CpuId ReadCpuId(bool& hasTsc)
     return cpu;
 }
 
-// 0x684ed0: con la prioridad más alta y en el procesador 0, los ciclos del TSC durante 50 ms de
-// QueryPerformanceCounter. Después deja todo como estaba.
+// 0x684ed0: at the highest priority and on processor 0, the TSC cycles over 50 ms of QueryPerformanceCounter. Then it
+// restores everything.
 std::int64_t SampleMegahertz()
 {
     LARGE_INTEGER frequency{};
@@ -295,7 +293,7 @@ CrashText ReadProcessorText()
     return ProcessorText(cpu, hasTsc ? SampleMegahertz() : 0);
 }
 
-// GlobalMemoryStatus (0x67f9b0), en 64 bits.
+// GlobalMemoryStatus (0x67f9b0), in 64 bits.
 MemoryStatus32 ReadMemory()
 {
     MEMORYSTATUSEX status{};
@@ -313,8 +311,8 @@ MemoryStatus32 ReadMemory()
     return ToMemoryStatus32(totals, status.dwMemoryLoad);
 }
 
-// Un nombre de toolhelp en la página ANSI, como lo da la versión A que usa el original. MuRet pide
-// la W, que no depende de que UNICODE esté definido, y la pasa con CP_ACP: los mismos bytes.
+// A toolhelp name in the ANSI page, as the A version the original uses gives it. MuRet calls the W one, which does not
+// depend on UNICODE being defined, and converts it with CP_ACP: the same bytes.
 template <std::size_t Size> void CopyAnsiText(std::array<char, Size>& field, const wchar_t* text)
 {
     constexpr std::size_t AnsiBufferSize = 2 * MAX_PATH;
@@ -324,8 +322,7 @@ template <std::size_t Size> void CopyAnsiText(std::array<char, Size>& field, con
     CopyCrashText(field, written > 0 ? std::string_view(ansi.data()) : std::string_view());
 }
 
-// El recorrido de los procesos de 0x67f9c9..0x67fa42: el propio, por su id, da el nombre del
-// ejecutable y los hilos.
+// The process walk of 0x67f9c9..0x67fa42: its own entry, by id, gives the executable name and the threads.
 void ReadProcessEntry(CrashReport& report)
 {
     const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -347,8 +344,8 @@ void ReadProcessEntry(CrashReport& report)
     CloseHandle(snapshot);
 }
 
-// 0x683bd0 sobre el ejecutable. El original abre el nombre del proceso, relativo a la carpeta
-// actual; MuRet, su ruta entera (Q-C243).
+// 0x683bd0 on the executable. The original opens the process name, relative to the current folder; MuRet, its full path
+// (Q-C243).
 std::optional<std::uint32_t> ExecutableCrc()
 {
     std::array<wchar_t, MaxCrashPathLength> path{};
@@ -388,7 +385,7 @@ std::optional<std::uint32_t> ExecutableCrc()
     return crc.Value();
 }
 
-// Los módulos de 0x67fdb9..0x67feb1, hasta 48.
+// The modules of 0x67fdb9..0x67feb1, up to 48.
 std::uint32_t ReadModules(std::uint32_t processId, std::span<CrashModule, MaxCrashModules> modules)
 {
     const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, processId);
@@ -437,13 +434,13 @@ Registers64 RegistersOf(const CONTEXT& context)
     registers.debugRegisters = {context.Dr0, context.Dr1, context.Dr2, context.Dr3, context.Dr6, context.Dr7};
     registers.fxsave = std::as_bytes(std::span(&context.FltSave, 1));
 #else
-    // MuRet se compila para x64 (los presets de CMake). En otra arquitectura el CONTEXT va en 0.
+    // MuRet builds for x64 (the CMake presets). On another architecture the CONTEXT stays 0.
     static_cast<void>(context);
 #endif
     return registers;
 }
 
-// Lo que junta el filtro (0x680180) y 0x67f840, en el orden de la cabecera.
+// What the filter (0x680180) and 0x67f840 collect, in header order.
 void FillReport(const EXCEPTION_POINTERS& pointers)
 {
     CrashReport& report = s_state.report;
@@ -457,7 +454,7 @@ void FillReport(const EXCEPTION_POINTERS& pointers)
     {
         report.executableCrc = *crc;
     }
-    // Main.exe no tiene recursos de versión: GetFileVersionInfoSizeA daría 0 (Q-C243).
+    // Main.exe has no version resources: GetFileVersionInfoSizeA would give 0 (Q-C243).
     report.hasVersionInfo = false;
     report.moduleCount = ReadModules(report.processId, report.modules);
     const Registers64 registers = RegistersOf(*pointers.ContextRecord);
@@ -472,13 +469,13 @@ void FillReport(const EXCEPTION_POINTERS& pointers)
         static_cast<std::uint32_t>(WalkCrashFrames(registers.rbp, sizeof(void*), memory, report.frames));
 }
 
-// El filtro: 0x680180 con 0x4b9a70 adentro. Devuelve EXCEPTION_EXECUTE_HANDLER, como el original
-// con la bandera en 0 (0x680220): el proceso termina sin el diálogo del sistema.
+// The filter: 0x680180 with 0x4b9a70 inside. Returns EXCEPTION_EXECUTE_HANDLER, as the original with the flag at 0
+// (0x680220): the process ends without the system dialog.
 LONG WINAPI HandleUnhandledException(EXCEPTION_POINTERS* pointers)
 {
     if (s_state.handling.test_and_set())
     {
-        // Otro hilo ya está escribiendo el volcado: el proceso termina cuando ese vuelva.
+        // Another thread is already writing the dump: the process ends when it returns.
         Sleep(INFINITE);
     }
     if (pointers != nullptr && pointers->ExceptionRecord != nullptr && pointers->ContextRecord != nullptr)
@@ -502,10 +499,10 @@ void UninstallPlatform()
 }
 
 #elif defined(__linux__)
-// ---- Linux: sigaction, en una pila aparte ----
+// ---- Linux: sigaction, on a separate stack ----
 
-// IsBadReadPtr del original (0x68289b): write() desde una dirección que no se puede leer devuelve
-// EFAULT en vez de una señal. Lo escrito en el caño se vuelve a leer en el momento.
+// The original's IsBadReadPtr (0x68289b): write() from an unreadable address returns EFAULT instead of a signal. What
+// goes into the pipe is read back right away.
 class PipeMemoryReader final : public IMemoryReader
 {
 public:
@@ -517,7 +514,7 @@ public:
         {
             return false;
         }
-        // Lo que entró se saca siempre, aunque falte una parte, para dejar el caño vacío.
+        // Always drained, even if a part is missing, to leave the pipe empty.
         const auto received = read(s_state.pipeRead, out.data(), static_cast<std::size_t>(sent));
         return received == sent && static_cast<std::size_t>(sent) == out.size();
     }
@@ -542,19 +539,19 @@ bool WriteAll(int file, std::span<const std::byte> bytes)
     return true;
 }
 
-// Para los archivos nuevos: rw-r--r--, menos lo que saque la umask.
+// rw-r--r--, minus what the umask removes.
 constexpr mode_t NewFileMode = 0644;
 
 bool WriteNewFile(const PathChar* path, std::span<const std::byte> bytes)
 {
-    // El fopen(..., "wb") de 0x67f89b: crea o vacía.
+    // The fopen(..., "wb") of 0x67f89b: creates or truncates.
     const int file = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, NewFileMode);
     if (file < 0)
     {
         return false;
     }
-    // El original no mira sus fwrite (0x67ff67) y da por escrito un archivo que solo abrió;
-    // MuRet pide que entre entero (Q-C245).
+    // The original does not check its fwrite (0x67ff67) and counts as written a file it only opened; MuRet requires it
+    // whole (Q-C245).
     const bool wrote = WriteAll(file, bytes);
     const bool closed = close(file) == 0;
     return wrote && closed;
@@ -562,7 +559,7 @@ bool WriteNewFile(const PathChar* path, std::span<const std::byte> bytes)
 
 void AppendToFile(const PathChar* path, std::span<const std::byte> bytes)
 {
-    // O_APPEND, como el FileSink: la línea va después de la última que escribió, ya con su flush.
+    // O_APPEND, like the FileSink: the line goes after the last one it wrote, already flushed.
     const int file = open(path, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, NewFileMode);
     if (file < 0)
     {
@@ -572,7 +569,7 @@ void AppendToFile(const PathChar* path, std::span<const std::byte> bytes)
     close(file);
 }
 
-// Lee `path` entero, hasta llenar el buffer de lectura. Devuelve lo que leyó.
+// Whole, up to the read buffer's size.
 std::string_view ReadSmallFile(const char* path)
 {
     const int file = open(path, O_RDONLY | O_CLOEXEC);
@@ -662,8 +659,8 @@ std::int64_t Nanoseconds(const timespec& time)
     return static_cast<std::int64_t>(time.tv_sec) * NanosecondsPerSecond + time.tv_nsec;
 }
 
-// 0x684ed0 con un reloj de Linux en vez de QueryPerformanceCounter, y sin cambiar la prioridad ni
-// el procesador: sched_setaffinity no es segura dentro de una señal.
+// 0x684ed0 with a Linux clock instead of QueryPerformanceCounter, without changing the priority or the processor:
+// sched_setaffinity is not async-signal-safe.
 std::int64_t SampleMegahertz()
 {
     constexpr std::int64_t NanosecondsPerSecond = 1000000000;
@@ -686,7 +683,7 @@ CrashText ReadProcessorText()
     return ProcessorText(cpu, hasTsc ? SampleMegahertz() : 0);
 }
 
-// El bit 1 del código de error de una falla de página: fue una escritura.
+// Bit 1 of a page fault's error code: it was a write.
 constexpr std::uint64_t PageFaultWrite = 0x2;
 
 Registers64 RegistersOf(const ucontext_t& context)
@@ -704,7 +701,7 @@ Registers64 RegistersOf(const ucontext_t& context)
     registers.rsp = value(REG_RSP);
     registers.rip = value(REG_RIP);
     registers.eflags = static_cast<std::uint32_t>(value(REG_EFL));
-    // cs, gs y fs de a 16 bits, y ss en los de arriba. ds y es no están en x86-64: quedan en 0.
+    // cs, gs and fs 16 bits each, and ss in the top bits. ds and es are not in x86-64: they stay 0.
     const std::uint64_t segments = value(REG_CSGSFS);
     registers.segCs = static_cast<std::uint16_t>(segments);
     registers.segGs = static_cast<std::uint16_t>(segments >> SegmentBits);
@@ -717,14 +714,14 @@ Registers64 RegistersOf(const ucontext_t& context)
     return registers;
 }
 
-// ExceptionInformation[0] de un acceso inválido: 0 al leer, 1 al escribir.
+// ExceptionInformation[0] of an access violation: 0 on read, 1 on write.
 std::uint64_t AccessKind(int signal, const ucontext_t& context)
 {
     const auto error = static_cast<std::uint64_t>(context.uc_mcontext.gregs[REG_ERR]);
     return signal == SIGSEGV && (error & PageFaultWrite) != 0 ? 1 : 0;
 }
 #else
-// Otra arquitectura: sin cpuid ni los registros de x86-64.
+// Another architecture: no cpuid and no x86-64 registers.
 CrashText ReadProcessorText()
 {
     return ProcessorText(CpuId{}, 0);
@@ -741,9 +738,8 @@ std::uint64_t AccessKind(int /*signal*/, const ucontext_t& /*context*/)
 }
 #endif
 
-// GlobalMemoryStatus con sysinfo: la física libre más los buffers, y la de "page file" con la
-// swap sumada. El espacio de direcciones de un proceso de 64 bits (128 TiB en x86-64) no entra en
-// 32 bits: queda en 0xFFFFFFFF, como en Windows de 64 bits (Q-C242).
+// GlobalMemoryStatus with sysinfo: free physical plus buffers, and "page file" with the swap added. A 64-bit process's
+// address space (128 TiB on x86-64) does not fit in 32 bits: it stays 0xFFFFFFFF, as on 64-bit Windows (Q-C242).
 MemoryStatus32 ReadMemory()
 {
     constexpr std::uint64_t AddressSpace = std::uint64_t{1} << 47;
@@ -766,7 +762,7 @@ MemoryStatus32 ReadMemory()
     return ToMemoryStatus32(totals, MemoryLoadPercent(totalPhysical, availablePhysical));
 }
 
-// El nombre del ejecutable, el de su ruta en /proc/self/exe, y su CRC.
+// The executable's name, from its path in /proc/self/exe, and its CRC.
 void ReadExecutable(CrashReport& report)
 {
     constexpr const char* SelfExe = "/proc/self/exe";
@@ -793,7 +789,7 @@ void FillReport(int signal, const siginfo_t& info, const ucontext_t* context)
     report.processId = static_cast<std::uint32_t>(getpid());
     ReadExecutable(report);
     report.threadCount = ThreadCountFromProcStat(ReadSmallFile("/proc/self/stat")).value_or(0);
-    // Linux no tiene recursos de versión (Q-C243).
+    // Linux has no version resources (Q-C243).
     report.hasVersionInfo = false;
     report.moduleCount =
         static_cast<std::uint32_t>(ModulesFromProcMaps(ReadSmallFile("/proc/self/maps"), report.modules));
@@ -801,7 +797,7 @@ void FillReport(int signal, const siginfo_t& info, const ucontext_t* context)
     report.context = ToX86Context(registers);
     report.exceptionCode = ExceptionCodeForSignal(signal, info.si_code);
     report.exceptionAddress = Low32(registers.rip);
-    // La dirección de la falla, si la señal es del procesador: la de raise o kill no tiene una.
+    // Only a processor signal has a fault address; one from raise or kill does not.
     const std::uint64_t faultAddress =
         info.si_code > 0 ? static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(info.si_addr)) : 0;
     const std::uint64_t accessKind = context != nullptr ? AccessKind(signal, *context) : 0;
@@ -815,7 +811,7 @@ void HandleSignal(int signal, siginfo_t* info, void* context)
 {
     if (s_state.handling.test_and_set())
     {
-        // Otro hilo ya está escribiendo el volcado: este espera a que el proceso termine.
+        // Another thread is already writing the dump: this one waits for the process to end.
         for (;;)
         {
             pause();
@@ -826,9 +822,8 @@ void HandleSignal(int signal, siginfo_t* info, void* context)
         FillReport(signal, *info, static_cast<const ucontext_t*>(context));
         WriteDumpAndLogLine();
     }
-    // La acción por defecto y la señal otra vez: el proceso muere por ella, como sin manejador. La
-    // del procesador vuelve a darse al volver de acá; la de raise queda pendiente hasta entonces,
-    // porque mientras corre el manejador está bloqueada.
+    // The default action and the signal again: the process dies by it, as with no handler. A processor signal fires
+    // again on return from here; a raised one stays pending until then, because it is blocked while the handler runs.
     struct sigaction defaultAction
     {
     };
@@ -894,7 +889,7 @@ void UninstallPlatform()
 }
 
 #else
-// ---- Otro sistema: sin manejador ----
+// ---- Other systems: no handler ----
 
 bool WriteNewFile(const PathChar* /*path*/, std::span<const std::byte> /*bytes*/)
 {
@@ -922,7 +917,7 @@ Core::Expected<std::unique_ptr<CrashHandler>, std::string> CrashHandler::Install
     {
         return Core::Unexpected("la ruta del volcado es demasiado larga: " + Core::PathText(dumpPath));
     }
-    // La línea, armada ahora: después de la caída no se puede pedir memoria.
+    // Built now: after the crash nothing can allocate.
     const std::string line = CrashLogLine().append(LineEnd);
     s_state.logLineLength = std::min(line.size(), s_state.logLine.size());
     std::copy_n(line.begin(), s_state.logLineLength, s_state.logLine.begin());
@@ -933,7 +928,7 @@ Core::Expected<std::unique_ptr<CrashHandler>, std::string> CrashHandler::Install
         return Core::Unexpected(installed.Error());
     }
     s_state.installed.store(true);
-    // Con new y no make_unique: el constructor es privado.
+    // new and not make_unique: the constructor is private.
     return std::unique_ptr<CrashHandler>(new CrashHandler());
 }
 

@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <span>
 
-// Client::Diagnostics::ToX86Context: los registros de x86-64 en el CONTEXT de x86 de MuError.dmp.
 namespace
 {
 using Client::Diagnostics::FxsaveSize;
@@ -18,7 +17,7 @@ using Client::Diagnostics::Registers64;
 using Client::Diagnostics::ToX86Context;
 using Client::Diagnostics::X86Context;
 
-// CONTEXT_i386 con CONTROL, INTEGER y SEGMENTS.
+// CONTEXT_i386 with CONTROL, INTEGER and SEGMENTS.
 constexpr std::uint32_t BaseFlags = 0x00010007;
 
 Registers64 SampleRegisters()
@@ -44,7 +43,6 @@ Registers64 SampleRegisters()
 }
 } // namespace
 
-// Cada registro con sus 32 bits de abajo, en su campo del CONTEXT.
 TEST(Registers64Test, KeepsTheLow32BitsOfEachRegister)
 {
     const X86Context context = ToX86Context(SampleRegisters());
@@ -64,7 +62,6 @@ TEST(Registers64Test, KeepsTheLow32BitsOfEachRegister)
     EXPECT_EQ(context.segDs, 0x2Bu);
     EXPECT_EQ(context.segFs, 0x53u);
     EXPECT_EQ(context.segSs, 0x2Bu);
-    // Sin los de depuración ni FXSAVE, esas partes quedan en 0.
     EXPECT_EQ(context.dr7, 0u);
     EXPECT_TRUE(std::all_of(context.extendedRegisters.begin(), context.extendedRegisters.end(),
                             [](std::byte value) { return value == std::byte{0}; }));
@@ -72,7 +69,6 @@ TEST(Registers64Test, KeepsTheLow32BitsOfEachRegister)
                             [](std::byte value) { return value == std::byte{0}; }));
 }
 
-// Con los registros de depuración (Windows), Dr0..Dr3, Dr6 y Dr7 y su bandera.
 TEST(Registers64Test, CopiesTheDebugRegistersWhenThereAreSome)
 {
     Registers64 registers = SampleRegisters();
@@ -88,7 +84,7 @@ TEST(Registers64Test, CopiesTheDebugRegistersWhenThereAreSome)
     EXPECT_EQ(context.dr7, 0x400u);
 }
 
-// La imagen de FXSAVE va entera en ExtendedRegisters, que tiene el mismo formato.
+// ExtendedRegisters has the same format as the FXSAVE image.
 TEST(Registers64Test, CopiesTheFxsaveImage)
 {
     std::array<std::byte, FxsaveSize> fxsave{};
@@ -104,7 +100,7 @@ TEST(Registers64Test, CopiesTheFxsaveImage)
     EXPECT_EQ(context.extendedRegisters[FxsaveSize - 1], std::byte{0xEE});
 }
 
-// Una imagen corta no se copia: sería leer de más.
+// Copying it would read too far.
 TEST(Registers64Test, IgnoresAShortFxsaveImage)
 {
     const std::array<std::byte, 16> fxsave{std::byte{0x7F}};

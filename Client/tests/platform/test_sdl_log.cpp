@@ -13,9 +13,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Platform::Sdl::SdlLog: los mensajes de SDL llegan al Core::Log con su nivel y partidos en
-// líneas, ninguna excepción cruza SDL, y el destructor devuelve la salida por defecto. Sin
-// SDL_Init: SDL_Log no lo necesita.
+// Without SDL_Init: SDL_Log does not need it.
 namespace
 {
 using Client::Core::ILogSink;
@@ -25,8 +23,8 @@ using Client::Platform::Sdl::LevelOf;
 using Client::Platform::Sdl::SdlLog;
 using Client::Tests::RecordingSink;
 
-// Deja pasar todas las prioridades mientras dura el test (SDL filtra antes de llamar a la salida:
-// por defecto, de INFO para arriba en la categoría de la aplicación) y las vuelve a las de SDL.
+// Lets every priority through while the test lasts (SDL filters before calling the output: by default, INFO and up in
+// the application category) and then restores SDL's.
 class AllSdlPriorities
 {
 public:
@@ -44,7 +42,6 @@ public:
     AllSdlPriorities& operator=(const AllSdlPriorities&) = delete;
 };
 
-// Una salida que tira en cada línea.
 class ThrowingSink final : public ILogSink
 {
 public:
@@ -54,7 +51,7 @@ public:
     }
 };
 
-// Una salida que, en su primera línea, hace loguear a SDL desde el mismo hilo.
+// On its first line, it makes SDL log from the same thread.
 class ReentrantSink final : public ILogSink
 {
 public:
@@ -109,7 +106,7 @@ TEST(SdlLogTest, SplitsTheLinesOfAMessage)
     Log log(sink, LogLevel::Debug);
     const SdlLog sdlLog(log);
 
-    // El reporte de SDL_assert va con "\n\n%s\n\n"; SDL corta solo el último fin de línea.
+    // SDL_assert's report goes with "\n\n%s\n\n"; SDL trims only the last line end.
     SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR, "%s", "\n\nx\n\n");
     SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR, "%s", "uno\r\ndos");
 
@@ -123,7 +120,7 @@ TEST(SdlLogTest, AnExceptionInTheSinkDoesNotCrossSdl)
     Log log(sink, LogLevel::Debug);
     const SdlLog sdlLog(log);
 
-    // Si la excepción cruzara el callback noexcept, el proceso terminaría acá.
+    // If the exception crossed the noexcept callback, the process would end here.
     SDL_Log("%s", "a una salida que tira");
 
     SUCCEED();
@@ -137,7 +134,7 @@ TEST(SdlLogTest, AReentrantMessageGoesToStderr)
 
     SDL_Log("%s", "afuera");
 
-    // El de adentro fue a stderr: al Log solo llegó el de afuera, y nada se trabó.
+    // The inner one went to stderr: only the outer one reached the Log, and nothing hung.
     EXPECT_EQ(sink.recorded.lines, (std::vector<std::string>{"[info] SDL: afuera"}));
 }
 

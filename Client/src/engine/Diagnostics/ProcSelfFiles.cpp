@@ -15,7 +15,7 @@ namespace Client::Diagnostics
 {
 namespace
 {
-// Una línea de /proc/self/maps: "inicio-fin permisos offset dispositivo inodo   ruta".
+// A /proc/self/maps line: "start-end perms offset device inode   path".
 struct MapsLine
 {
     std::uint64_t start = 0;
@@ -23,7 +23,7 @@ struct MapsLine
     std::string_view path{};
 };
 
-// El campo que sigue en `rest`, saltando los espacios de adelante, y `rest` queda después de él.
+// Skips the leading spaces; `rest` is left after the field.
 std::string_view NextField(std::string_view& rest)
 {
     const std::size_t begin = std::min(rest.find_first_not_of(' '), rest.size());
@@ -75,7 +75,7 @@ std::uint32_t Saturated32(std::uint64_t value)
     return static_cast<std::uint32_t>(std::min<std::uint64_t>(value, std::numeric_limits<std::uint32_t>::max()));
 }
 
-// La ruta como queda guardada (cortada en 255 bytes), para reconocer los mapeos de un mismo archivo.
+// As stored (cut at 255 bytes), to recognize the mappings of the same file.
 std::string_view StoredPath(const CrashModule& module)
 {
     const std::string_view path(module.path.data(), module.path.size());
@@ -122,8 +122,8 @@ std::size_t ModulesFromProcMaps(std::string_view maps, std::span<CrashModule, Ma
 
 std::optional<std::uint32_t> ThreadCountFromProcStat(std::string_view stat)
 {
-    // Los campos van desde el 3, después del nombre entre paréntesis, que puede tener espacios y
-    // paréntesis: se cuenta desde el último ')'.
+    // Fields count from 3, after the name in parentheses, which can hold spaces and parentheses: count from the last
+    // ')'.
     constexpr int ThreadsField = 20;
     constexpr int FirstFieldAfterName = 3;
     constexpr int Decimal = 10;

@@ -10,7 +10,7 @@
 #include <string_view>
 
 #ifdef _WIN32
-// Sin las macros min y max de <windows.h>, que pisan std::min, ni lo que el registro no necesita.
+// No min and max macros from <windows.h>, which clobber std::min, and nothing the registry does not need.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -28,7 +28,7 @@ namespace
 {
 using namespace std::string_view_literals;
 
-// Los tipos de la lista que tienen contornos. Las .fon dicen otra cosa, o nada.
+// The list's types that have outlines. .fon entries say something else, or nothing.
 constexpr std::array OutlineSuffixes{" (TrueType)"sv, " (OpenType)"sv};
 constexpr std::string_view FaceSeparator = " & ";
 constexpr std::string_view BoldSuffix = " Bold";
@@ -86,7 +86,6 @@ namespace
 {
 constexpr const char* FontsKey = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
 
-// Una clave abierta del registro, que se cierra sola.
 class RegistryKey
 {
 public:
@@ -118,7 +117,7 @@ private:
     HKEY m_key = nullptr;
 };
 
-// La carpeta Fonts de Windows, donde están los archivos que la lista de HKLM nombra sin ruta.
+// Windows' Fonts folder, where the files the HKLM list names without a path are.
 std::filesystem::path FontsFolder()
 {
     std::array<char, MAX_PATH + 1> windows{};
@@ -130,9 +129,8 @@ std::filesystem::path FontsFolder()
     return std::filesystem::path(std::string(windows.data(), length)) / "Fonts";
 }
 
-// El primer valor de texto de la lista de `root` que nombra la cara. Con las funciones A del
-// registro, como CreateFontA recibe la cara: los nombres y las rutas, en la página de códigos del
-// sistema, que es la que std::filesystem::path usa con MSVC para un std::string.
+// With the registry's A functions, as CreateFontA receives the face: names and paths in the system code page, which
+// std::filesystem::path uses with MSVC for a std::string.
 std::optional<std::filesystem::path> SearchList(HKEY root, std::string_view face, bool bold)
 {
     const RegistryKey key(root);
@@ -165,7 +163,7 @@ std::optional<std::filesystem::path> SearchList(HKEY root, std::string_view face
         {
             continue;
         }
-        // REG_SZ puede traer su 0 del final, o no traerlo.
+        // REG_SZ may or may not carry its trailing 0.
         std::string file(reinterpret_cast<const char*>(data.data()), dataBytes);
         while (!file.empty() && file.back() == '\0')
         {

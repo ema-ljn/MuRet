@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <limits>
 
-// Client::Diagnostics: la memoria de 64 bits en el MEMORYSTATUS de 32 de MuError.dmp.
 namespace
 {
 using Client::Diagnostics::MemoryLoadPercent;
@@ -18,7 +17,7 @@ using Client::Diagnostics::ToMemoryStatus32;
 constexpr std::uint64_t GiB = std::uint64_t{1} << 30;
 } // namespace
 
-// Lo que entra en 32 bits va tal cual, en el orden de MEMORYSTATUS.
+// In MEMORYSTATUS order.
 TEST(MemoryTotalsTest, KeepsValuesThatFit)
 {
     const MemoryTotals totals{.totalPhysical = GiB,
@@ -39,8 +38,8 @@ TEST(MemoryTotalsTest, KeepsValuesThatFit)
     EXPECT_EQ(status.availableVirtual, 0x7A000000u);
 }
 
-// Lo que no entra queda en 0xFFFFFFFF, el -1 de GlobalMemoryStatus: los 16 GiB de una máquina de
-// hoy y los 128 TiB de direcciones de un proceso de 64 bits.
+// 0xFFFFFFFF, GlobalMemoryStatus' -1: the 16 GiB of a current machine and the 128 TiB of addresses of a 64-bit
+// process.
 TEST(MemoryTotalsTest, SaturatesValuesThatDoNotFit)
 {
     const MemoryTotals totals{.totalPhysical = 16 * GiB,
@@ -66,9 +65,9 @@ TEST(MemoryTotalsTest, ComputesTheLoadLikeWindows)
     EXPECT_EQ(MemoryLoadPercent(3, 2), 33u);
     EXPECT_EQ(MemoryLoadPercent(GiB, GiB), 0u);
     EXPECT_EQ(MemoryLoadPercent(GiB, 0), 100u);
-    // Más disponible que total no da negativo, y sin total no hay porcentaje.
+    // More available than total does not go negative, and with no total there is no percentage.
     EXPECT_EQ(MemoryLoadPercent(GiB, 2 * GiB), 0u);
     EXPECT_EQ(MemoryLoadPercent(0, 0), 0u);
-    // Con totales enormes, sin desbordar.
+    // Huge totals, without overflow.
     EXPECT_EQ(MemoryLoadPercent(std::numeric_limits<std::uint64_t>::max(), 0), 100u);
 }

@@ -11,10 +11,8 @@
 #include <string>
 #include <utility>
 
-// Client::Platform::Sdl::Window: lo que se le pide a SDL de la ventana de verdad (CL5.5): el texto
-// tecleado y la densidad de píxeles. Abre la ventana con su contexto 3.3 core, así que necesita
-// pantalla: lleva la etiqueta gl y, sin pantalla, se saltea, salvo con MU_CLIENT_REQUIRE_GL=1
-// (como los de render_gl/, support/GlTestContext.h).
+// Opens the window with its 3.3 core context, so it needs a display: it has the gl label and is skipped without one,
+// unless MU_CLIENT_REQUIRE_GL=1 (like the render_gl/ tests, support/GlTestContext.h).
 namespace
 {
 using Client::Platform::Sdl::SdlContext;
@@ -47,13 +45,12 @@ protected:
                      << "=1 falla";
     }
 
-    // SDL va primero: la ventana se destruye antes del SDL_Quit.
+    // SDL goes first: the window is destroyed before SDL_Quit.
     std::unique_ptr<SdlContext> m_sdl;
     std::optional<Window> m_window;
 };
 
-// SDL no manda SDL_EVENT_TEXT_INPUT hasta SDL_StartTextInput (SDL_keyboard.h): la ventana lo
-// prende y lo apaga.
+// SDL does not send SDL_EVENT_TEXT_INPUT until SDL_StartTextInput (SDL_keyboard.h).
 TEST_F(WindowTest, StartsAndStopsTheTextInput)
 {
     ASSERT_TRUE(m_window->StartTextInput().HasValue());
@@ -63,8 +60,7 @@ TEST_F(WindowTest, StartsAndStopsTheTextInput)
     EXPECT_FALSE(m_window->TextInputActive());
 }
 
-// La densidad que InputEventFor usa para pasar el mouse a píxeles del framebuffer: sin
-// SDL_WINDOW_HIGH_PIXEL_DENSITY, en Xvfb, 1.
+// Without SDL_WINDOW_HIGH_PIXEL_DENSITY, on Xvfb, 1.
 TEST_F(WindowTest, HasAPositivePixelDensity)
 {
     EXPECT_GT(m_window->PixelDensity(), 0.0f);

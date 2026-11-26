@@ -7,17 +7,14 @@
 #include <mutex>
 #include <string_view>
 
-// Cada línea a stderr, con su fin de línea, en un solo fwrite: el lock del FILE (POSIX y el CRT de
-// MSVC) la deja entera también contra otro que escriba a stderr sin pasar por acá (un fprintf, la
-// salida por defecto de SDL). El std::mutex ordena las de esta salida. stderr no tiene buffer: la
-// línea sale al escribirla.
+// One fwrite per line: the FILE lock (POSIX and the MSVC CRT) keeps it whole against other stderr writers that bypass
+// this (an fprintf, SDL's default output). The std::mutex orders this sink's lines. stderr is unbuffered.
 namespace Client::Core
 {
 class ENGINE_API StderrSink final : public ILogSink
 {
 public:
-    // `output` es stderr; un test pasa un std::tmpfile() para leer lo que se escribió. No es
-    // dueña: no lo cierra.
+    // Not owned: it is not closed. A test passes a std::tmpfile() to read what was written.
     explicit StderrSink(std::FILE* output = stderr);
 
     void Write(LogLevel level, std::string_view line) override;

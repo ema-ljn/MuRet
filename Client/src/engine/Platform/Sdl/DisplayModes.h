@@ -8,15 +8,13 @@
 #include <string>
 #include <vector>
 
-// Los modos del monitor, para Platform::IsValidResolution: los que lista MuMain en sus opciones
-// (MuGetSupportedDisplayResolutions, con SDL_GetFullscreenDisplayModes) y el del escritorio.
+// For Platform::IsValidResolution: the ones MuMain lists in its options (MuGetSupportedDisplayResolutions, with
+// SDL_GetFullscreenDisplayModes) and the desktop's.
 namespace Client::Platform::Sdl
 {
-// El ancho y el alto de los modos del monitor principal: primero el del escritorio y después los de
-// pantalla completa, en el orden de SDL (del más grande al más chico) y con repetidos, porque SDL
-// da un modo por frecuencia y por densidad. El del escritorio va siempre: hay monitores que no
-// listan ninguno de pantalla completa (Xvfb da 0). Necesita el SdlContext vivo. El error, sin
-// monitor principal o sin ningún modo, trae el SDL_GetError().
+// The desktop's first, then the fullscreen ones in SDL's order (largest to smallest) and with repeats, because SDL
+// gives a mode per refresh rate and density. The desktop's always goes: some monitors list no fullscreen mode (Xvfb
+// gives 0). Needs the SdlContext alive. The error, with no primary monitor or no mode, carries SDL_GetError().
 [[nodiscard]] PLATFORM_API Core::Expected<std::vector<Resolution>, std::string>
 MonitorResolutions(const SdlContext& sdl);
 } // namespace Client::Platform::Sdl

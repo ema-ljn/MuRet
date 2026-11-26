@@ -6,7 +6,7 @@
 #include <span>
 #include <string_view>
 
-// Client::Diagnostics::Crc32: el CRC-32 con que 0x683bd0 firma el ejecutable en MuError.dmp.
+// The CRC-32 0x683bd0 signs the executable with in MuError.dmp.
 namespace
 {
 using Client::Diagnostics::Crc32;
@@ -17,7 +17,7 @@ std::span<const std::byte> Bytes(std::string_view text)
 }
 } // namespace
 
-// El valor de prueba del CRC-32 de siempre (el de zlib y PNG).
+// The usual CRC-32 check value (zlib's and PNG's).
 TEST(Crc32Test, MatchesTheStandardCheckValue)
 {
     Crc32 crc;
@@ -31,7 +31,7 @@ TEST(Crc32Test, IsZeroWithoutBytes)
     EXPECT_EQ(Crc32{}.Value(), 0u);
 }
 
-// De a pedazos da lo mismo que de una vez, como el original sobre el archivo mapeado.
+// Like the original over the mapped file.
 TEST(Crc32Test, GivesTheSameValueInPieces)
 {
     Crc32 whole;

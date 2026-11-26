@@ -19,7 +19,7 @@ Core::Expected<std::filesystem::path, std::string> ExecutableFolder()
     {
         return Core::Unexpected(std::string("no se sabe la carpeta del ejecutable: ") + SDL_GetError());
     }
-    // Como char8_t, path la lee como UTF-8; con char, en Windows usaría la página ANSI.
+    // As char8_t, path reads it as UTF-8; with char, Windows would use the ANSI page.
     const std::size_t length = std::strlen(basePath);
     std::u8string utf8(length, u8'\0');
     std::transform(basePath, basePath + length, utf8.begin(), [](char c) { return static_cast<char8_t>(c); });

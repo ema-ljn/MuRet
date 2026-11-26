@@ -11,9 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Diagnostics::WriteCrashDump: MuError.dmp byte a byte, contra un archivo armado a mano con
-// los offsets que escribe 0x67f840 (02 § El manejador de caídas): cada campo en su lugar, sin
-// relleno, en little-endian.
+// Against a hand-built file with the offsets 0x67f840 writes (02 § El manejador de caídas).
 namespace
 {
 using Client::Diagnostics::CopyCrashText;
@@ -29,7 +27,7 @@ using Client::Diagnostics::VersionInfoSize;
 using Client::Diagnostics::WriteCrashDump;
 using Client::Diagnostics::X86ExtendedRegistersSize;
 
-// Los offsets de la cabecera, como los ve el original sobre su buffer de 0x516 bytes.
+// As the original sees them on its 0x516-byte buffer.
 constexpr std::size_t TimeOffset = 0x009;
 constexpr std::size_t SystemOffset = 0x00d;
 constexpr std::size_t ProcessorOffset = 0x08d;
@@ -45,7 +43,7 @@ constexpr std::size_t ExceptionCodeOffset = 0x48a;
 constexpr std::size_t ExceptionAddressOffset = 0x48e;
 constexpr std::size_t ExceptionTextOffset = 0x492;
 constexpr std::size_t FrameCountOffset = 0x512;
-// Dentro del CONTEXT de x86 (winnt.h).
+// Inside the x86 CONTEXT (winnt.h).
 constexpr std::size_t ContextDr7 = 0x18;
 constexpr std::size_t ContextFloatSave = 0x1c;
 constexpr std::size_t ContextSegGs = 0x8c;
@@ -54,13 +52,12 @@ constexpr std::size_t ContextEbp = 0xb4;
 constexpr std::size_t ContextEip = 0xb8;
 constexpr std::size_t ContextSegSs = 0xc8;
 constexpr std::size_t ContextExtendedRegisters = 0xcc;
-// Dentro de un módulo (0x67fe6a) y de un frame (0x67ffd1).
+// Inside a module (0x67fe6a) and a frame (0x67ffd1).
 constexpr std::size_t ModulePathOffset = 0x80;
 constexpr std::size_t ModuleBaseOffset = 0x180;
 constexpr std::size_t ModuleSizeOffset = 0x184;
 constexpr std::size_t FrameArgumentsOffset = 0x8;
 
-// Un archivo esperado, armado campo por campo sobre bytes en 0.
 class ExpectedFile
 {
 public:
@@ -98,8 +95,7 @@ private:
     std::vector<std::byte> m_bytes;
 };
 
-// Un reporte inventado: un sistema y un procesador, dos módulos y tres frames, con un acceso
-// inválido al leer 0x00000010.
+// An access violation reading 0x00000010.
 CrashReport SampleReport()
 {
     CrashReport report;
@@ -151,7 +147,7 @@ CrashReport SampleReport()
 }
 } // namespace
 
-// Lo que mide cada parte: la cabecera es la del campo 0x005, y los registros, los de los fwrite.
+// The header's size is the one in field 0x005, and the records', the fwrite ones.
 TEST(CrashDumpTest, RecordSizesAreTheOriginals)
 {
     EXPECT_EQ(CrashHeaderSize, 0x516u);
@@ -226,8 +222,7 @@ TEST(CrashDumpTest, WritesTheHeaderModulesAndFramesByteForByte)
     EXPECT_EQ(output, expected.Bytes());
 }
 
-// Con la versión, sus 0x34 bytes van entre la cabecera y los módulos (0x67ff7a), y el byte 0x1b9
-// es 1.
+// With the version, its 0x34 bytes go between the header and the modules (0x67ff7a), and byte 0x1b9 is 1.
 TEST(CrashDumpTest, PutsTheVersionInfoBeforeTheModules)
 {
     CrashReport report;
@@ -247,7 +242,6 @@ TEST(CrashDumpTest, PutsTheVersionInfoBeforeTheModules)
     EXPECT_EQ(output[CrashHeaderSize + VersionInfoSize], std::byte{'m'});
 }
 
-// Sin módulos ni frames, el archivo es solo la cabecera, con las dos cuentas en 0.
 TEST(CrashDumpTest, AnEmptyReportIsJustTheHeader)
 {
     std::vector<std::byte> output(MaxCrashDumpSize, std::byte{0xCC});
@@ -257,14 +251,12 @@ TEST(CrashDumpTest, AnEmptyReportIsJustTheHeader)
     EXPECT_EQ(output[MemoryOffset], std::byte{0x20});
     EXPECT_EQ(output[ModuleCountOffset], std::byte{0});
     EXPECT_EQ(output[FrameCountOffset], std::byte{0});
-    // Los textos vacíos van enteros en 0.
     EXPECT_TRUE(std::all_of(output.begin() + SystemOffset, output.begin() + ProcessorOffset,
                             [](std::byte value) { return value == std::byte{0}; }));
-    // Lo que sigue a la cabecera no se toca.
     EXPECT_EQ(output[CrashHeaderSize], std::byte{0xCC});
 }
 
-// Una cuenta de más se toma como el tope: el original nunca junta más de 48 y 64.
+// The original never collects more than 48 and 64.
 TEST(CrashDumpTest, CapsTheCountsAtTheOriginalLimits)
 {
     CrashReport report;
@@ -278,7 +270,6 @@ TEST(CrashDumpTest, CapsTheCountsAtTheOriginalLimits)
     EXPECT_EQ(output[FrameCountOffset], std::byte{64});
 }
 
-// Un buffer que no alcanza: no escribe nada y devuelve 0.
 TEST(CrashDumpTest, ReturnsZeroWhenTheBufferIsTooSmall)
 {
     std::vector<std::byte> output(CrashHeaderSize - 1, std::byte{0xCC});

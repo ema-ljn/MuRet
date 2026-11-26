@@ -64,6 +64,9 @@ After the move's squash, on its own branch, titled `docs(AR<epic>.<milestone>): 
 
 - Each comment of the moved code becomes the one-line citation (`// 0x4d3200`) plus a short why the code cannot say, in
   English (CODING_RULES §9). Longer explanations go to a note in `Client/docs/research/`.
+- A citation of a piece MuRet does not port keeps saying so on the line that cites the address, in words the
+  reference's cut regex reads (`CUT` in `build_roadmap_matrix.py`): `not ported`, `MuRet does not …`. The regex reads
+  one line at a time, so a marker on the next line counts the citation as ported.
 - Check it, as CI does for every `docs(ARn.m)` title:
 
   ```bash

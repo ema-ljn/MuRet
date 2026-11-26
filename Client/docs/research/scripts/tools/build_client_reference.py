@@ -62,7 +62,8 @@ ADDR = re.compile(r'0[xX](?:00)?([4-6][0-9a-fA-F]{5})\b')
 # La misma regex de cortes que build_roadmap_matrix.py: una línea así no cuenta como portada.
 CUT = re.compile(r'cut\(|Unexpected\(|\bCL ?(9|10|11)\b|\bCL(9|10|11)\.|es de la CL|es del hito|\bcorte\b|'
                  r'cortad|sin portar|no se porta|queda para|llegan? con|\bstub\b|gancho|'
-                 r'\btodavía no\b|\bMuRet no\b|\bno (?:lo |la |los |las )?porta', re.I)
+                 r'\btodavía no\b|\bMuRet no\b|\bno (?:lo |la |los |las )?porta|\bnot ported\b|\bMuRet (?:does|did) not\b|'
+                 r"\bMuRet doesn't\b", re.I)
 # Citas que no son cortes pero dicen que la pieza no está: falsos positivos de "citada".
 PEND = re.compile(r'no (?:está|están|estaba) portad|\bno portad|no est[áa] hech|sin hacer|son del área de mensajes',
                   re.I)

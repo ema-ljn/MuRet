@@ -45,8 +45,8 @@ enum class ClothWindSource
 ENGINE_API void WalkTheWind(ClothWorld& world);
 
 // What 0x637700 does for the cloth on each logic step of scenes 2, 4 and 5: the wind walk five times (0x637cec) and the
-// counter plus 1 (0x637f8c), which draws another 4 rand() when its access closes. The other rand() calls of 0x637700
-// are for other things and MuRet does not draw them here.
+// counter plus 1 (0x637f8c), which draws another 4 rand() when its access closes.
+// MuRet does not draw the other rand() calls of 0x637700 here: they are for other things.
 ENGINE_API void StepTheClothWorld(ClothWorld& world);
 
 // A particle (0x3c bytes, vtable 0x6b8cbc). The position is in world space.

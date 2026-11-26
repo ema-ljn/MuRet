@@ -25,8 +25,9 @@ using ModelSoundTable = std::map<std::uint16_t, ModelSounds>;
 // 0x612d90(monster): the switch of 0x613127..0x613130 (0x615340's table, 0 to 0x56) calls 0x612c80 on model 0x152 +
 // monster with its case's ten WORDs, except 0xc and 0xd, which both write 0x15e's and 0x15f's. Cases without
 // 0x612c80 (0x26, 0x38, 0x3c, 0x3d, 0x4a, 0x4b, 0x4e to 0x55 and 0x57 on) write nothing. What precedes the switch
-// (actions, scale and the skip of an already loaded model, 0x612dba..0x612dee) belongs to the model load, which MuRet
-// does not do (08, P-C176): it always writes, and with the same values gives the same as the original.
+// (actions, scale and the skip of an already loaded model) belongs to the model load.
+// MuRet does not do it (0x612dba..0x612dee, 08, P-C176): it always writes, and with the same values gives the same as
+// the original.
 void WriteMonsterSounds(std::int32_t monster, ModelSoundTable& table);
 
 // Or nothing if nobody wrote it.

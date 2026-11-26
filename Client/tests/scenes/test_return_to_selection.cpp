@@ -17,9 +17,11 @@
 #include "Scenes/DarkHorse.h"
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/HelperTable.h"
 #include "Session/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
@@ -334,6 +336,193 @@ TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
     EXPECT_EQ(runtime.quest.current, 0);
     EXPECT_EQ(runtime.quest.states[0], 0);
     EXPECT_EQ(runtime.panels.delegated.quest, 0);
+}
+
+// 0x4c268a..0x4c26d2: what the quest reset leaves (AR3.2 moves the quests out of WorldRuntime).
+TEST(ReturnToSelectionWithoutDataTest, TheQuestResetLeavesTheEvolutionTheRecordsAndTheZen)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::QuestState& quest = tested->world.Runtime().quest;
+    quest.evolution = 1;
+    quest.flags = {1, 2, 3, 4};
+    quest.reached = 5;
+    quest.byte21380 = 6;
+    quest.byte21381 = 7;
+    quest.byte21382 = 8;
+    quest.dialog = 9;
+    quest.currentState = 10;
+    quest.byte21387 = 11;
+    quest.zen = 12;
+    const std::size_t records = quest.records.size();
+
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
+
+    EXPECT_EQ(quest.evolution, 1);
+    EXPECT_EQ(quest.flags, (std::array<std::uint8_t, 4>{0, 0, 0, 4}));
+    EXPECT_EQ(quest.reached, 0);
+    EXPECT_EQ(quest.byte21380, 6);
+    EXPECT_EQ(quest.byte21381, 0);
+    EXPECT_EQ(quest.byte21382, 0);
+    EXPECT_EQ(quest.dialog, 0);
+    EXPECT_EQ(quest.currentState, 10);
+    EXPECT_EQ(quest.byte21387, 11);
+    EXPECT_EQ(quest.zen, 12u);
+    EXPECT_EQ(quest.records.size(), records);
+}
+
+// 0x4c2480 empties the guild's notice and leaves the rest of the guild.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesOnlyTheGuildNotice)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::GuildState& guild = tested->world.Runtime().guild;
+    guild.tableCount = 1;
+    guild.memberCount = 2;
+    guild.score = 3;
+    guild.requester = 4;
+    guild.warOn = 1;
+    guild.warType = 1;
+    guild.warTeam = 2;
+    guild.rival[0] = 'R';
+    guild.ourScore = 5;
+    guild.theirScore = 6;
+    guild.rivalIndex = 7;
+    guild.heroGuildIndex = 8;
+    guild.heroGuildStatus = 9;
+    guild.relation = 10;
+    guild.createStep = 11;
+    guild.kickMember = 12;
+    guild.window.tab = 2;
+    guild.window.members.emplace_back();
+    guild.window.notice.emplace_back();
+    guild.window.noticeList.scroll = 3;
+    guild.window.unions.emplace_back();
+    guild.window.dialog = 13;
+
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
+
+    EXPECT_TRUE(guild.window.notice.empty());
+    EXPECT_EQ(guild.window.noticeList.scroll, 0);
+    EXPECT_EQ(guild.tableCount, 1u);
+    EXPECT_EQ(guild.memberCount, 2);
+    EXPECT_EQ(guild.score, 3);
+    EXPECT_EQ(guild.requester, 4);
+    EXPECT_EQ(guild.warOn, 1);
+    EXPECT_EQ(guild.warType, 1);
+    EXPECT_EQ(guild.warTeam, 2);
+    EXPECT_EQ(guild.rival[0], 'R');
+    EXPECT_EQ(guild.ourScore, 5);
+    EXPECT_EQ(guild.theirScore, 6);
+    EXPECT_EQ(guild.rivalIndex, 7);
+    EXPECT_EQ(guild.heroGuildIndex, 8);
+    EXPECT_EQ(guild.heroGuildStatus, 9);
+    EXPECT_EQ(guild.relation, 10);
+    EXPECT_EQ(guild.createStep, 11);
+    EXPECT_EQ(guild.kickMember, 12);
+    EXPECT_EQ(guild.window.tab, 2);
+    EXPECT_EQ(guild.window.members.size(), 1u);
+    EXPECT_EQ(guild.window.unions.size(), 1u);
+    EXPECT_EQ(guild.window.dialog, 13u);
+}
+
+// 0x4c2480..0x4c249c restarts the siege clock but keeps its hour, minute and tick; the castle's other globals stay.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnRestartsTheSiegeClockAndKeepsTheCastle)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    auto& clock = runtime.siegeBattleUi.clock;
+    clock = {.blink = 0, .x = 1, .y = 2, .hours = 3, .minutes = 4, .blinkTime = 5.0f, .tick = 6};
+    runtime.siegeBattleUi.gateKey = 7;
+    runtime.siegeActive = true;
+    runtime.previousSiegeActive = true;
+    runtime.siegeMusicTime = 8.0f;
+    runtime.castleByte7239d8 = 2;
+    runtime.castleGatesClosed = 1;
+    runtime.castleMarkX = 9.0f;
+    runtime.castleMarkY = 10.0f;
+    runtime.castleFlags7239e4 = 0x20000;
+    runtime.siegePanelKind = 1;
+    runtime.siegePanel.selected = 11;
+    runtime.castleSiegeInfo.emplace();
+    runtime.castleSiege.data.bytes[0] = 12;
+    runtime.castleSiege.huntZone.fee = 13;
+    runtime.castleSiege.battle.ownerMarkRevision = 14;
+
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
+
+    EXPECT_EQ(clock.blink, 1);
+    EXPECT_EQ(clock.x, 243);
+    EXPECT_EQ(clock.y, 400);
+    EXPECT_EQ(clock.blinkTime, 0.0f);
+    EXPECT_EQ(clock.hours, 3u);
+    EXPECT_EQ(clock.minutes, 4u);
+    EXPECT_EQ(clock.tick, 6u);
+    EXPECT_EQ(runtime.siegeBattleUi.gateKey, 7);
+    EXPECT_TRUE(runtime.siegeActive);
+    EXPECT_TRUE(runtime.previousSiegeActive);
+    EXPECT_EQ(runtime.siegeMusicTime, 8.0f);
+    EXPECT_EQ(runtime.castleByte7239d8, 2);
+    EXPECT_EQ(runtime.castleGatesClosed, 1);
+    EXPECT_EQ(runtime.castleMarkX, 9.0f);
+    EXPECT_EQ(runtime.castleMarkY, 10.0f);
+    EXPECT_EQ(runtime.castleFlags7239e4, 0x20000u);
+    EXPECT_EQ(runtime.siegePanelKind, 1);
+    EXPECT_EQ(runtime.siegePanel.selected, 11);
+    EXPECT_TRUE(runtime.castleSiegeInfo.has_value());
+    EXPECT_EQ(runtime.castleSiege.data.bytes[0], 12);
+    EXPECT_EQ(runtime.castleSiege.huntZone.fee, 13u);
+    EXPECT_EQ(runtime.castleSiege.battle.ownerMarkRevision, 14u);
+}
+
+// 0x4c2480 empties only the personal shops of the social state: the trade, the party and the duel stay.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnKeepsTheTradeThePartyAndTheDuel)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::SocialState& social = tested->world.Runtime().social;
+    social.trade.otherLevel = 1;
+    social.trade.ownMoney = 2;
+    social.trade.ownOk = 1;
+    social.party.requestKey = 3;
+    social.duel.active = 1;
+    social.duel.rivalScore = 4;
+    social.confirmBox.id = 5;
+    social.confirmBox.lines.emplace_back("line");
+    social.dialogFieldLimit = 8;
+    social.moneyField = 1;
+    social.typedMoney = 6;
+
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
+
+    EXPECT_EQ(social.trade.otherLevel, 1u);
+    EXPECT_EQ(social.trade.ownMoney, 2u);
+    EXPECT_EQ(social.trade.ownOk, 1);
+    EXPECT_EQ(social.party.requestKey, 3);
+    EXPECT_EQ(social.duel.active, 1);
+    EXPECT_EQ(social.duel.rivalScore, 4);
+    EXPECT_EQ(social.confirmBox.id, 5);
+    EXPECT_EQ(social.confirmBox.lines.size(), 1u);
+    EXPECT_EQ(social.dialogFieldLimit, 8);
+    EXPECT_EQ(social.moneyField, 1);
+    EXPECT_EQ(social.typedMoney, 6);
+}
+
+// With the trainer's box empty, 0x4c2480 leaves the NPC windows' grids and globals as they were.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnKeepsTheNpcWindows)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::NpcWindowState& npc = tested->world.Runtime().npcWindows;
+    npc.chaosRates[0] = 1;
+    npc.chaosMixState = 2;
+    npc.field7d2dc9d = 3;
+    npc.warehouseLocked = 1;
+    npc.field78abb1c = 4;
+
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
+
+    EXPECT_EQ(npc.chaosRates[0], 1);
+    EXPECT_EQ(npc.chaosMixState, 2);
+    EXPECT_EQ(npc.field7d2dc9d, 3);
+    EXPECT_EQ(npc.warehouseLocked, 1);
+    EXPECT_EQ(npc.field78abb1c, 4);
 }
 
 // 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38; y

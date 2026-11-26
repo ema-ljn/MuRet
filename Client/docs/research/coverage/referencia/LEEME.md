@@ -21,6 +21,7 @@ hasta que alguien las vuelva a revisar.
 | `funciones.tsv` | 5.648 | **una fila por función del `main.exe`**: ola, estado, cuánto está hecho, dónde está en MuRet (archivo y símbolo), tests, cortes, 07/08, VM, llamadores, los textos de su pseudocódigo y, si falta, por qué |
 | `trazas.tsv` | ~55.800 | **cada cita de una VA en `Client/src` y `Client/tests`**: la función que la contiene, archivo:línea, el símbolo de MuRet (función, tabla o caso de test) y si es un corte |
 | `trazas-docs.tsv` | ~29.500 | lo mismo en `Client/docs/research` y `docs/` (sin los TSV derivados): dónde está documentada cada función |
+| `globals.tsv` | ~1.230 | **each address of the original's `.data` that `Client/src` cites**: the data member that holds it (its home), the home's module and the other modules citing it (AR3) |
 | `huecos.tsv` | ~300 | **los bloques contiguos de funciones vivas sin citar ni explicar**, con quién los llama desde código citado y sus textos: dónde buscar lo que falta portar |
 | `archivos.tsv` | ~1.410 | cada archivo de `Client/src`: qué funciones del original cita, de qué ola, sus cortes, qué tests lo cubren y su último commit |
 | `ids.tsv` | ~1.120 | cada fila Q-C de 07 y P-C de 08: estado, clase o tipo, ola, si pide VM, las funciones que nombra y qué hace MuRet |
@@ -161,6 +162,19 @@ función y antes de la siguiente; vacío si es de datos), `seccion` (`código`, 
 
 Un corte es una línea que cumple la misma regex que usa `build_roadmap_matrix.py` (`Unexpected(`, `cut(`, "es de la
 CL", "CL9"...). Por eso las cotas y estas tablas cuentan igual.
+
+### `globals.tsv`
+
+One row per address of the `.data` (`0x6c6000` up to `0x7d5eb64`, its virtual size) that a comment or a string of
+`Client/src` cites (`scripts/tools/reference_globals.py`). A number in the code is a value (a flag, a text line's key),
+and so is a power of two (a flag's bit), so neither gives a row.
+
+`va`, `home` (`Struct::member` of each data member of a struct or class in a header that cites the address in its own
+comment or in the comment block right above it; a reference member only views the address, and a function, a
+constant or an enum's entry is not a home), `file` and `line` (the first home), `module` (the map's `target` of that
+file), `users` (the modules of the other files that cite it, sorted, without the home's) and `flag` (`no-home`,
+`two-homes` or empty). AR3 gives each global a home in the state of its module: a `no-home` row has no member citing it
+yet, and a `two-homes` row has more than one (a copy, a pointer or a view field beside the global's owner).
 
 ### `huecos.tsv`
 

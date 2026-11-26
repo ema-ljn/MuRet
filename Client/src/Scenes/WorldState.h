@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Kernel/GameContext.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterCloth.h"
@@ -42,7 +43,7 @@ class CrtRandom;
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los personajes de la lista".
 namespace Client::Scenes
 {
-inline constexpr std::size_t ActorPoolSize = 401;
+inline constexpr std::size_t ActorPoolSize = Kernel::ActorPoolSize;
 // 0x4c20a0 pone cada personaje de la lista en chars[lugar], con el lugar de 0 a 4.
 inline constexpr std::size_t SelectionActorCount = 5;
 
@@ -70,6 +71,9 @@ public:
     WorldState(WorldState&&) = delete;
     WorldState& operator=(WorldState&&) = delete;
 
+    // The shared core, which the accessors below forward to.
+    [[nodiscard]] Kernel::GameContext& Context();
+    [[nodiscard]] const Kernel::GameContext& Context() const;
     [[nodiscard]] std::span<ActorState, ActorPoolSize> Actors();
     [[nodiscard]] std::span<const ActorState, ActorPoolSize> Actors() const;
     [[nodiscard]] std::span<CharacterCloth, ActorPoolSize> ActorCloths();
@@ -139,16 +143,10 @@ public:
     void PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& chosen, Crt::CrtRandom& random);
 
 private:
-    // Los 401 personajes y sus telas (≈ 540 KB) van al heap: con ellos dentro, un WorldState local (main.cpp, los
-    // tests) pasaba los 900 KB y desbordaba la pila de 1 MB de Windows en el Debug de MSVC.
-    std::unique_ptr<std::array<ActorState, ActorPoolSize>> m_actors =
-        std::make_unique<std::array<ActorState, ActorPoolSize>>();
+    Kernel::GameContext m_context;
+    // On the heap for the same reason as the actor pool (GameContext.h).
     std::unique_ptr<std::array<CharacterCloth, ActorPoolSize>> m_actorCloths =
         std::make_unique<std::array<CharacterCloth, ActorPoolSize>>();
-    OwnCharacterRecord m_own;
-    OwnInventory m_inventory;
-    WorldRuntime m_runtime;
-    WorldMap m_map;
     ItemSetState m_itemSets;
     HelperTable m_helpers{};
     std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();

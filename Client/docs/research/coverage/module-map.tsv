@@ -1470,3 +1470,5 @@ World/WorldTerrain.cpp	400	World	game/Terrain	medium	the terrain, out of Kernel 
 World/WorldTerrain.h	133	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 main.cpp	974	main.cpp	app	high	composition root
 game/Kernel/ActorSpirit.h	51	game/Kernel	game/Kernel	high	the raven's per-actor fields, which the actor holds; its logic is game/Pets (AR3.1)
+game/Kernel/GameContext.h	57	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
+game/Kernel/GameContext.cpp	83	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)

@@ -165,7 +165,8 @@ private:
     GameClientOptions m_options;
     Models::ClothWorld m_cloth;
     World::GameCamera m_camera;
-    // 0x4bafa6..0x4bafdf: WinMain zeroes the pool of 401 characters and the own record, and the hero is character 0.
+    // 0x4bafa6..0x4bafc2: WinMain zeroes the pool of 401 characters and the own record; 0x4bafad..0x4bafdf: the hero
+    // is character 0.
     Scenes::WorldState m_world;
     World::GameCameraInput m_cameraInput;
     Scenes::SelectionState m_selection;

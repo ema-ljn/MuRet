@@ -3,6 +3,13 @@
 Estas reglas valen para todo cambio de código en MuRet, lo escriba una persona o un agente. Leelas
 antes de commitear.
 
+**Compiler exception: `Server/MyDll/` only.** Throughout its reimplementation, the DLL and its
+target-side tests use the subset of C++ accepted by Visual C++ 6.0 and a standalone x86 build for
+Windows Server 2003 R2. Modernization starts only after the reimplementation is complete.
+Modern language and test tooling requirements do not apply to that legacy build. Naming,
+formatting, ownership, documentation and test coverage still apply. All other components keep
+the C++20 baseline.
+
 > Adaptadas de [`docs/CODING_RULES.md` de sven-n/MuMain](https://github.com/sven-n/MuMain/blob/main/docs/CODING_RULES.md).
 > Se conservan sus doce reglas, traducidas. Se sacó lo que es propio de un cliente (C#, UI,
 > render) y se agregó lo del DataServer: sus capas, el research como contrato y la regla 13 de

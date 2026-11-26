@@ -18,15 +18,15 @@
 namespace
 {
 using Client::Network::ProtocolError;
-using Client::Protocol::Viewport::ReadEquipmentShown;
-using Client::Protocol::Viewport::ReadLeave;
-using Client::Protocol::Viewport::ReadMagicAttackCount;
-using Client::Protocol::Viewport::ReadMonsters;
-using Client::Protocol::Viewport::ReadObjects;
-using Client::Protocol::Viewport::ReadPlayers;
-using Client::Protocol::Viewport::ReadPosition;
-using Client::Protocol::Viewport::ReadSummons;
-using Client::Protocol::Viewport::ReadTransformed;
+using Client::Protocol::Actors::ReadEquipmentShown;
+using Client::Protocol::Actors::ReadLeave;
+using Client::Protocol::Actors::ReadMagicAttackCount;
+using Client::Protocol::Actors::ReadMonsters;
+using Client::Protocol::Actors::ReadObjects;
+using Client::Protocol::Actors::ReadPlayers;
+using Client::Protocol::Actors::ReadPosition;
+using Client::Protocol::Actors::ReadSummons;
+using Client::Protocol::Actors::ReadTransformed;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

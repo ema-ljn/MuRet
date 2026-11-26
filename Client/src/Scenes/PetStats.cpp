@@ -77,7 +77,7 @@ std::uint8_t OwnDurability(WorldState& world, Crt::CrtRandom& random, std::size_
 // Si 0x421db0 escribe la entrada de la mascota en la tabla de 0x723960: con la ventana abierta, siempre (0x421e00); con
 // la ventana cerrada, con un ítem en el cartel y sin el entrenador abierto con la casilla debajo de 12
 // (0x421eee..0x421f16).
-bool WritesTheTable(const Protocol::Pet::PetInfoReply& reply, WorldState& world, Crt::CrtRandom& random,
+bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, WorldState& world, Crt::CrtRandom& random,
                     bool windowOpen)
 {
     if (windowOpen)
@@ -108,7 +108,7 @@ Core::Expected<void, std::string> RecalculateTheStats(const WorldEntryResources&
 }
 
 // 0x421db0 con la ventana de la mascota abierta (0x421dc7..0x421ead).
-Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pet::PetInfoReply& reply,
+Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInfoReply& reply,
                                                     const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -127,7 +127,7 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pet::PetInfo
 }
 
 // 0x421fb6..0x422196: el caballo del héroe, en la casilla 8.
-void TheHorse(const Protocol::Pet::PetInfoReply& reply, const WorldEntryResources& resources)
+void TheHorse(const Protocol::Pets::PetInfoReply& reply, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
@@ -171,7 +171,7 @@ Core::Expected<void, std::string> SparkTheRaven(DarkSpirit& raven, int joints, b
 }
 
 // 0x421db0 con la ventana cerrada (0x421ef2..0x422196).
-Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pet::PetInfoReply& reply,
+Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetInfoReply& reply,
                                                       const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -272,7 +272,7 @@ void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experie
     raven.word45a = static_cast<std::uint16_t>(current * 16 + 1000);
 }
 
-Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pet::PetInfoReply& reply,
+Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoReply& reply,
                                                const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();

@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // Campos de F3/03 sin transformar: Client/docs/research/04-protocolo.md, "La entrada al mundo".
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 struct CharacterSelectResult
 {
@@ -32,4 +32,4 @@ struct CharacterSelectResult
     // Q-C144: el original lee 0x32..0x33, aunque sean padding del struct del GameServer.
     std::uint16_t leadership = 0;
 };
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

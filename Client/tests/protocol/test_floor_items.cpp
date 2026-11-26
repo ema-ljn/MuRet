@@ -25,8 +25,8 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace FloorItems = Client::Protocol::FloorItems;
-namespace Inventory = Client::Protocol::Inventory;
+namespace FloorItems = Client::Protocol::Items;
+namespace Inventory = Client::Protocol::Items;
 
 // Un ítem inventado: una espada (0), nivel 3, durabilidad 0x2c, sin opciones.
 constexpr Inventory::ItemData InventedSword{std::byte{0x00}, std::byte{0x18}, std::byte{0x2c}, std::byte{0x00},

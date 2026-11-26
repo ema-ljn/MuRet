@@ -10,7 +10,7 @@
 #include <vector>
 
 // El wire F3/10: Client/docs/research/04-protocolo.md, "El F3 10, el inventario".
-namespace Client::Protocol::Character
+namespace Client::Protocol::Items
 {
 inline constexpr std::size_t InventoryItemDataSize = 7;
 inline constexpr std::size_t InventoryEntrySize = InventoryItemDataSize + sizeof(std::uint8_t);
@@ -35,4 +35,4 @@ struct InventoryList
 // inicialización, el flag de admisión y la aplicación son de Scenes::ApplyInventory y de
 // Scenes::PlaceInventoryItem (06, "El F3 10, el inventario").
 [[nodiscard]] Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Network::Packet& packet);
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::Items

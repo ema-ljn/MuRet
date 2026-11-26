@@ -21,7 +21,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Character::CharacterEntry;
+using Client::Protocol::FrontEnd::CharacterEntry;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
@@ -135,7 +135,7 @@ TEST(WorldStateTest, PreparingTheChosenCopiesItIntoTheOwnRecord)
                                              std::byte{0x7a}, std::byte{0x7a}, std::byte{0x7a}, std::byte{0x7a},
                                              std::byte{0x7a}, std::byte{0x7a}, std::byte{0x7a}}));
         EXPECT_EQ(own.level, 0x0123);
-        EXPECT_EQ(own.characterClass, Client::Protocol::Character::CharacterClassOf(0x30));
+        EXPECT_EQ(own.characterClass, Client::Protocol::FrontEnd::CharacterClassOf(0x30));
         EXPECT_EQ(own.skin, 0);
         EXPECT_EQ(world.Runtime().loadingOnceFlag, 0);
         EXPECT_EQ(world.Runtime().ownRecordDepth, probe.depth);

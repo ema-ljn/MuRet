@@ -37,9 +37,9 @@ public:
     {
         world.push_back(event);
         worldStates.push_back(session.State());
-        trace.push_back(std::holds_alternative<Protocol::Character::CharacterSelectResult>(event) ? "entry"
-                        : std::holds_alternative<App::ReturnToSelectionReceived>(event)           ? "selection"
-                                                                                                  : "inventory");
+        trace.push_back(std::holds_alternative<Protocol::FrontEnd::CharacterSelectResult>(event) ? "entry"
+                        : std::holds_alternative<App::ReturnToSelectionReceived>(event)          ? "selection"
+                                                                                                 : "inventory");
         return onWorld ? onWorld(event, session) : Core::Expected<void, std::string>{};
     }
 

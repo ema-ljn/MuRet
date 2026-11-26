@@ -14,9 +14,9 @@
 // oráculo es el ASM del cliente. Los lectores son los campos que leen 0x4dac90 (AA) y los casos del dispatcher
 // 0x4e2b10 (AB 0x4e4d10, AC 0x4e4d75, AD 0x4e4dd1); los escritores, lo que arman 0x406050 (AA y AB), 0x56c440 (AA y AB)
 // y 0x5ebca0 (AC).
-namespace Client::Protocol::Duel
+namespace Client::Protocol::Social
 {
-using Name = std::array<std::byte, Character::NameSize>;
+using Name = std::array<std::byte, FrontEnd::NameSize>;
 
 // El AA del GS (0x4dac90): C1 10 AA, el resultado en pkt[3] (distinto de 0, empezó), la clave del rival en pkt[4..5]
 // (big-endian) y su nombre en pkt[6..15]. Con 0 solo lee el nombre.
@@ -68,4 +68,4 @@ struct DuelScore
 // El AC del cliente (0x5ebca0: sí 0x5ebd3f, no 0x5ec55d): C1 10 AC, la respuesta (1 sí, 0 no), la clave de 0x78abadc
 // en big-endian y el nombre de 0x78abae0, con el XOR32 y en C3.
 [[nodiscard]] Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const Name& name);
-} // namespace Client::Protocol::Duel
+} // namespace Client::Protocol::Social

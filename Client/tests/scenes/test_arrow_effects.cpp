@@ -1091,10 +1091,10 @@ TEST(ArrowEffectsTest, TheFlaggedArrowSendsTheHits)
             EXPECT_GE(tested.sounds[0], 0x4b);
             EXPECT_LE(tested.sounds[0], 0x4e);
             ASSERT_EQ(tested.sent.size(), 1u);
-            Client::Protocol::Skill::SkillHitsSend expected{.skill = 0x18, .x = 9, .y = 9, .volley = 9, .hits = 1};
+            Client::Protocol::Skills::SkillHitsSend expected{.skill = 0x18, .x = 9, .y = 9, .volley = 9, .hits = 1};
             expected.keys[0] = 0x0789;
             EXPECT_TRUE(Client::Tests::SameBytes(tested.sent[0].packet.Bytes(),
-                                                 Client::Protocol::Skill::WriteSkillHits(expected).packet.Bytes()));
+                                                 Client::Protocol::Skills::WriteSkillHits(expected).packet.Bytes()));
         }
     }
 }
@@ -1229,10 +1229,10 @@ TEST(ArrowEffectsTest, ThePiercingArrowHitsAndWaitsWithOrWithoutATrailSlot)
         EXPECT_EQ(impact.width, 30);
         EXPECT_EQ(impact.life, 20);
         ASSERT_EQ(tested.sent.size(), 1u);
-        Client::Protocol::Skill::SkillHitsSend expected{.skill = 0x34, .x = 9, .y = 9, .volley = 9, .hits = 1};
+        Client::Protocol::Skills::SkillHitsSend expected{.skill = 0x34, .x = 9, .y = 9, .volley = 9, .hits = 1};
         expected.keys[0] = 0x0789;
         EXPECT_TRUE(Client::Tests::SameBytes(tested.sent[0].packet.Bytes(),
-                                             Client::Protocol::Skill::WriteSkillHits(expected).packet.Bytes()));
+                                             Client::Protocol::Skills::WriteSkillHits(expected).packet.Bytes()));
 
         tested.HitDrawIs(1 + fireDraws, false);
         const CrtRandom waiting = tested.random;

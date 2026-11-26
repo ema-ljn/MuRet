@@ -22,20 +22,20 @@
 #include <optional>
 #include <string>
 
-// Client::Protocol::Character, crear un personaje (F3 01: 0x63d990 y 0x4c2290), con nombres
+// Client::Protocol::FrontEnd, crear un personaje (F3 01: 0x63d990 y 0x4c2290), con nombres
 // sintéticos.
 namespace
 {
 using Client::Network::Delivery;
 using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::Character::CharacterClassOf;
-using Client::Protocol::Character::CharacterCreated;
-using Client::Protocol::Character::NameAsText;
-using Client::Protocol::Character::NameFromText;
-using Client::Protocol::Character::NameUpToItsEnd;
-using Client::Protocol::Character::ReadCharacterCreateResult;
-using Client::Protocol::Character::WriteCharacterCreate;
+using Client::Protocol::FrontEnd::CharacterClassOf;
+using Client::Protocol::FrontEnd::CharacterCreated;
+using Client::Protocol::FrontEnd::NameAsText;
+using Client::Protocol::FrontEnd::NameFromText;
+using Client::Protocol::FrontEnd::NameUpToItsEnd;
+using Client::Protocol::FrontEnd::ReadCharacterCreateResult;
+using Client::Protocol::FrontEnd::WriteCharacterCreate;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::NameBytes;

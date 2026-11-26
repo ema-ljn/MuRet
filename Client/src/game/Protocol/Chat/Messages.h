@@ -14,7 +14,7 @@
 // original copia, pero solo los que llegaron (Q-C510): lo que quede afuera del paquete es como un '\0', también en el
 // nombre del 00 y del 02. Tipo u opcode distintos → WrongPacket; sin los campos fijos del 01, el 0C o el 0D →
 // TooShort. Los bytes sobrantes se ignoran.
-namespace Client::Protocol::Messages
+namespace Client::Protocol::Chat
 {
 // pkt[3..12]: el nombre de quien habla. Con los diez llenos no trae '\0'; 0x4c6070 y 0x4e34ea le agregan uno.
 inline constexpr std::size_t SpeakerNameSize = 10;
@@ -69,4 +69,4 @@ struct Notice
 [[nodiscard]] Core::Expected<KeyChat, Network::ProtocolError> ReadKeyChat(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<WhisperResult, Network::ProtocolError> ReadWhisperResult(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet);
-} // namespace Client::Protocol::Messages
+} // namespace Client::Protocol::Chat

@@ -94,7 +94,7 @@ Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Acto
     if (!passes.HasValue())
         return Core::Unexpected(passes.Error());
     if (passes.Value())
-        SendTheSkillPacket(context, Protocol::Skill::WriteMagicAttack(skill, target.key));
+        SendTheSkillPacket(context, Protocol::Skills::WriteMagicAttack(skill, target.key));
     return {};
 }
 } // namespace
@@ -168,7 +168,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
                 LowByteOf(static_cast<double>(turned.angles.z) * static_cast<double>(DirectionScale));
             if (!x || !y || !direction)
                 return Core::Unexpected(std::string("0x55e890: la celda o el rumbo del 1E fuera del perfil ftol"));
-            SendTheSkillPacket(context, Protocol::Skill::WriteDurationMagic(
+            SendTheSkillPacket(context, Protocol::Skills::WriteDurationMagic(
                                             {.skill = skill, .x = *x, .y = *y, .direction = *direction, .key = key}));
         }
         if (auto hit = SetTheHitAction(user, combat); !hit.HasValue())

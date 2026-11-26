@@ -19,7 +19,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -92,4 +92,4 @@ Outgoing WriteClearWorldEntryReport()
                            .PutU8(ClearReplyFirst)
                            .PutU8(ClearWorldEntryHead));
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

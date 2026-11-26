@@ -48,7 +48,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Models::OwnRecordCloseRandoms;
-using Client::Protocol::Pet::PetInfoReply;
+using Client::Protocol::Pets::PetInfoReply;
 using Client::Scenes::ActorState;
 using Client::Scenes::DarkSpirit;
 using Client::Scenes::PetStats;

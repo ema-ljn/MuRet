@@ -16,11 +16,11 @@ using Client::Network::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
-namespace Character = Client::Protocol::Character;
+namespace Player = Client::Protocol::Player;
 
 TEST(PkLevelProtocolTest, ReadsTheKeyBigEndianAndTheLevel)
 {
-    const auto read = Character::ReadPkLevel(PacketOf(Bytes({0xc1, 0x07, 0xf3, 0x08, 0x12, 0x34, 0x05})));
+    const auto read = Player::ReadPkLevel(PacketOf(Bytes({0xc1, 0x07, 0xf3, 0x08, 0x12, 0x34, 0x05})));
     ASSERT_TRUE(read.HasValue());
     EXPECT_EQ(read.Value().key, 0x1234);
     EXPECT_EQ(read.Value().level, 5);
@@ -29,9 +29,9 @@ TEST(PkLevelProtocolTest, ReadsTheKeyBigEndianAndTheLevel)
 // 0x4d3b5f..0x4d3b86 lee pkt[4], pkt[5] y pkt[6]: sin los siete bytes, TooShort; otro subcódigo, WrongPacket.
 TEST(PkLevelProtocolTest, NeedsSevenBytesAndTheSubcode08)
 {
-    EXPECT_EQ(ErrorOf(Character::ReadPkLevel(PacketOf(Bytes({0xc1, 0x06, 0xf3, 0x08, 0x12, 0x34})))),
+    EXPECT_EQ(ErrorOf(Player::ReadPkLevel(PacketOf(Bytes({0xc1, 0x06, 0xf3, 0x08, 0x12, 0x34})))),
               ProtocolError::TooShort);
-    EXPECT_EQ(ErrorOf(Character::ReadPkLevel(PacketOf(Bytes({0xc1, 0x07, 0xf3, 0x06, 0x12, 0x34, 0x05})))),
+    EXPECT_EQ(ErrorOf(Player::ReadPkLevel(PacketOf(Bytes({0xc1, 0x07, 0xf3, 0x06, 0x12, 0x34, 0x05})))),
               ProtocolError::WrongPacket);
 }
 } // namespace

@@ -7,11 +7,11 @@
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::Player
 {
 Core::Expected<PkLevel, Network::ProtocolError> ReadPkLevel(const Network::Packet& packet)
 {
-    constexpr Network::PacketKind PkLevelKind{Network::PacketType::C1, CharacterOpcode, PkLevelSubcode};
+    constexpr Network::PacketKind PkLevelKind{Network::PacketType::C1, CharacterOpcode, Character::PkLevelSubcode};
     auto fields = Network::FieldsAfterSubcode(packet, PkLevelKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
@@ -22,4 +22,4 @@ Core::Expected<PkLevel, Network::ProtocolError> ReadPkLevel(const Network::Packe
         return Core::Unexpected(Network::ProtocolError::TooShort);
     return PkLevel{.key = *key, .level = *level};
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::Player

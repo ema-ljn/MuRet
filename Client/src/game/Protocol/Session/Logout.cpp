@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -48,4 +48,4 @@ Outgoing WriteWindowClose()
 {
     return ClearC1(Network::PacketWriter::C1(WindowCloseOpcode));
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

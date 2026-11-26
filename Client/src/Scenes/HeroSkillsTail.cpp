@@ -223,7 +223,7 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
     if (!back)
         return Core::Unexpected(std::string("0x59409f: 0x4e9920 fuera del perfil de ftol"));
     // 0x5940a7..0x5940c5: la clave de 0x558eb0 con 0x7758588, o 0xffff con −1.
-    std::uint16_t key = Protocol::Skill::NoSkillTargetKey;
+    std::uint16_t key = Protocol::Skills::NoSkillTargetKey;
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosen =
@@ -246,15 +246,15 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
         SendTheSkillPacket(
-            m_context, Protocol::Skill::WriteDurationMagic({.skill = m_skill,
-                                                            .x = x,
-                                                            .y = y,
-                                                            .direction = static_cast<std::uint8_t>(
-                                                                static_cast<std::uint32_t>(direction.Value()) & 0xffu),
-                                                            .towards = towards,
-                                                            .back = *back,
-                                                            .key = key,
-                                                            .magicKey = NoMagicKey}));
+            m_context, Protocol::Skills::WriteDurationMagic({.skill = m_skill,
+                                                             .x = x,
+                                                             .y = y,
+                                                             .direction = static_cast<std::uint8_t>(
+                                                                 static_cast<std::uint32_t>(direction.Value()) & 0xffu),
+                                                             .towards = towards,
+                                                             .back = *back,
+                                                             .key = key,
+                                                             .magicKey = NoMagicKey}));
     }
     // 0x594de9: las velocidades, con el registro propio todavía abierto.
     RefreshCombatActionSpeeds(m_world, m_context.random);
@@ -281,7 +281,7 @@ Core::Expected<void, std::string> SharedTail::SendTheMagicAttack(const MagicAtta
             return Core::Unexpected(std::format("{}: el elegido {} está fuera del pool", site.chosenKey, chosen));
         key = m_world.Actors()[static_cast<std::size_t>(chosen)].key;
     }
-    SendTheSkillPacket(m_context, Protocol::Skill::WriteMagicAttack(m_skill, key));
+    SendTheSkillPacket(m_context, Protocol::Skills::WriteMagicAttack(m_skill, key));
     return {};
 }
 

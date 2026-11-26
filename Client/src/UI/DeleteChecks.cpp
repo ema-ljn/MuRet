@@ -34,9 +34,9 @@ bool FreeDeletionGroup(const Tables::TextTable* texts, std::optional<std::uint16
     return name == free;
 }
 
-NoticeId NoticeOfDeleteButton(const Protocol::Character::CharacterEntry& chosen, bool freeDeletionGroup)
+NoticeId NoticeOfDeleteButton(const Protocol::FrontEnd::CharacterEntry& chosen, bool freeDeletionGroup)
 {
-    if (chosen.guildStatus != Protocol::Character::NoGuildStatus)
+    if (chosen.guildStatus != Protocol::FrontEnd::NoGuildStatus)
     {
         return GuildMemberNotice;
     }

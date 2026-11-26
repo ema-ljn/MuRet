@@ -91,9 +91,9 @@ Name NameAt(std::span<const std::byte> bytes, std::size_t at)
     return name;
 }
 
-Inventory::ItemData ItemAt(std::span<const std::byte> bytes, std::size_t at)
+Items::ItemData ItemAt(std::span<const std::byte> bytes, std::size_t at)
 {
-    Inventory::ItemData item{};
+    Items::ItemData item{};
     std::ranges::copy(bytes.subspan(at, item.size()), item.begin());
     return item;
 }
@@ -183,7 +183,7 @@ Core::Expected<ShopClosed, Network::ProtocolError> ReadShopClosed(const Network:
 
 Core::Expected<ShopNotice, Network::ProtocolError> ReadShopNotice(const Network::Packet& packet)
 {
-    auto read = BytesOf(packet, NoticeNameAt + Character::NameSize);
+    auto read = BytesOf(packet, NoticeNameAt + FrontEnd::NameSize);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     return ShopNotice{.name = NameAt(read.Value(), NoticeNameAt)};
@@ -191,7 +191,7 @@ Core::Expected<ShopNotice, Network::ProtocolError> ReadShopNotice(const Network:
 
 Core::Expected<ShopTitle, Network::ProtocolError> ReadShopTitle(const Network::Packet& packet)
 {
-    auto read = BytesOf(packet, TitleNameAt + Character::NameSize);
+    auto read = BytesOf(packet, TitleNameAt + FrontEnd::NameSize);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     const std::span<const std::byte> bytes = read.Value();

@@ -41,7 +41,7 @@ struct SkillHitsRequest
 // (+0x16c), no son el héroe ([0x743a170]) ni se están muriendo (+0x389), a `radius` o menos en el plano (la raíz en la
 // x87 con PC53, guardada en float; NaN entra), y son monstruos (+0x88 en 2) o el jugador de la clave: hasta cinco.
 // Con la skill 8 o 9, a cada uno con +0x394 en 0 le pone +0x398 en 10. Sin ninguno, false. Con "webzen" en el nombre
-// del héroe, true sin mandar. Si no, el C1 10 (Protocol::Skill::WriteSkillHits) con la celda del punto (ftol de
+// del héroe, true sin mandar. Si no, el C1 10 (Protocol::Skills::WriteSkillHits) con la celda del punto (ftol de
 // 0x69fd3c; fuera del entero, corta en 0x517deb) y en C3: sus dos rand() (el relleno y el serial) salen también sin
 // `send`. true.
 [[nodiscard]] Core::Expected<bool, std::string>

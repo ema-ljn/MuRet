@@ -136,7 +136,7 @@ public:
     // el nivel, la clase, la piel y el nombre, lo cierra con sus 3.848 rand() de `random` si queda sin
     // accesos (0x40f370 o 0x40b4d0) y baja loadingOnceFlag. La escena suelta lo suyo en su Leave
     // (0x61cc50).
-    void PrepareSelectedActor(const Protocol::Character::CharacterEntry& chosen, Crt::CrtRandom& random);
+    void PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& chosen, Crt::CrtRandom& random);
 
 private:
     // Los 401 personajes y sus telas (≈ 540 KB) van al heap: con ellos dentro, un WorldState local (main.cpp, los

@@ -26,7 +26,7 @@ inline constexpr std::uint8_t ListedResult = 1;
 // 0x4dae80 y 0x4dafe0: el título, de 36 bytes con el terminador en el 37 de la pila.
 inline constexpr std::size_t TitleSize = 36;
 
-using Name = std::array<std::byte, Character::NameSize>;
+using Name = std::array<std::byte, FrontEnd::NameSize>;
 
 // Una entrada de 0x26 bytes del 3F 00 (0x4dae80): la clave en big-endian y el título.
 struct ShopTitleEntry
@@ -99,7 +99,7 @@ struct PriceResult
 struct ShopListEntry
 {
     std::uint8_t slot = 0;
-    Inventory::ItemData item{};
+    Items::ItemData item{};
     std::int32_t price = 0;
 };
 
@@ -132,7 +132,7 @@ struct ShopRefresh
 struct ShopPurchase
 {
     std::uint8_t result = 0;
-    Inventory::ItemData item{};
+    Items::ItemData item{};
     std::uint8_t slot = 0;
 };
 

@@ -17,7 +17,7 @@ using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-namespace DialogAnswers = Client::Protocol::DialogAnswers;
+namespace DialogAnswers = Client::Protocol::Npc;
 
 // 0x628594..0x628947: C1 06 AF 01, el nivel 3 y el lugar 0x14.
 TEST(DialogAnswersProtocolTest, TheChaosCastleEntryIsAClearXor32C1WithTheLevelAndTheSlot)

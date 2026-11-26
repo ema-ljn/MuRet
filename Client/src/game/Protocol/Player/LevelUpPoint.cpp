@@ -11,16 +11,17 @@
 
 #include <cstdint>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::Player
 {
 Outgoing WriteLevelUpPoint(std::uint8_t stat)
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, LevelUpPointSubcode).PutU8(stat));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::LevelUpPointSubcode).PutU8(stat));
 }
 
 Core::Expected<LevelUpPointResult, Network::ProtocolError> ReadLevelUpPointResult(const Network::Packet& packet)
 {
-    constexpr Network::PacketKind LevelUpPointKind{Network::PacketType::C1, CharacterOpcode, LevelUpPointSubcode};
+    constexpr Network::PacketKind LevelUpPointKind{Network::PacketType::C1, CharacterOpcode,
+                                                   Character::LevelUpPointSubcode};
     auto fields = Network::FieldsAfterSubcode(packet, LevelUpPointKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
@@ -41,4 +42,4 @@ Core::Expected<LevelUpPointResult, Network::ProtocolError> ReadLevelUpPointResul
     reply.maxBp = *bp;
     return reply;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::Player

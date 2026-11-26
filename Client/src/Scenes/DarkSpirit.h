@@ -118,7 +118,7 @@ struct DarkSpiritTargets
 };
 
 // Lo que el paso pide afuera: el grito (0x41ed10(0x1d1)) y el A7 que corta el ataque (C1 07 A7 00 78 FF FF,
-// Protocol::Pet::WritePetCommand).
+// Protocol::Pets::WritePetCommand).
 struct DarkSpiritStepped
 {
     bool shouts = false;

@@ -13,17 +13,17 @@
 
 #include <gtest/gtest.h>
 
-// Client::Protocol::Pet, el pedido de la información de una mascota (A9), C->S.
+// Client::Protocol::Pets, el pedido de la información de una mascota (A9), C->S.
 namespace
 {
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Pet::DarkHorsePet;
-using Client::Protocol::Pet::InventoryPlace;
-using Client::Protocol::Pet::LoginScenePetInfoRequest;
-using Client::Protocol::Pet::PetSlot;
-using Client::Protocol::Pet::WritePetInfoRequest;
+using Client::Protocol::Pets::DarkHorsePet;
+using Client::Protocol::Pets::InventoryPlace;
+using Client::Protocol::Pets::LoginScenePetInfoRequest;
+using Client::Protocol::Pets::PetSlot;
+using Client::Protocol::Pets::WritePetInfoRequest;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -54,7 +54,7 @@ TEST(PetInfoTest, PutsEachFieldAtItsOffset)
 // en el DWORD de pkt[8], little endian; pkt[7] no lo lee nadie (CL9 hito 4).
 TEST(PetInfoTest, TheReplyReadsEachFieldAndTheExperienceInLittleEndian)
 {
-    const auto reply = Client::Protocol::Pet::ReadPetInfoReply(
+    const auto reply = Client::Protocol::Pets::ReadPetInfoReply(
         Client::Tests::PacketOf(Bytes({0xc1, 12, 0xa9, 1, 0xfe, 8, 42, 0xee, 0x78, 0x56, 0x34, 0x12})));
     ASSERT_TRUE(reply.HasValue());
     EXPECT_EQ(reply.Value().pet, 1);
@@ -64,10 +64,10 @@ TEST(PetInfoTest, TheReplyReadsEachFieldAndTheExperienceInLittleEndian)
     EXPECT_EQ(reply.Value().experience, 0x12345678u);
     using Client::Network::ProtocolError;
     using Client::Tests::ErrorOf;
-    EXPECT_EQ(ErrorOf(Client::Protocol::Pet::ReadPetInfoReply(
+    EXPECT_EQ(ErrorOf(Client::Protocol::Pets::ReadPetInfoReply(
                   Client::Tests::PacketOf(Bytes({0xc1, 11, 0xa9, 1, 0xfe, 8, 42, 0xee, 0x78, 0x56, 0x34})))),
               ProtocolError::TooShort);
-    EXPECT_EQ(ErrorOf(Client::Protocol::Pet::ReadPetInfoReply(
+    EXPECT_EQ(ErrorOf(Client::Protocol::Pets::ReadPetInfoReply(
                   Client::Tests::PacketOf(Bytes({0xc1, 12, 0xa8, 1, 0xfe, 8, 42, 0xee, 0x78, 0x56, 0x34, 0x12})))),
               ProtocolError::WrongPacket);
 }

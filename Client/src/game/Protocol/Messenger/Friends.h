@@ -14,7 +14,7 @@
 // Los amigos (CL9 hito 9; 04, "Los amigos"): lo que llega (C0 en un C2, C1..C4 en un C1; 0x4dc010..0x4dc720) y lo que
 // manda la ventana de amigos (0x48ee60, 0x4a3030, 0x4a2be0, 0x49d0b0 y 0x4a3b80). La reconstrucción del GameServer
 // 0.97 no tiene amigos: el oráculo es el ASM del cliente (*estático*).
-namespace Client::Protocol::Friends
+namespace Client::Protocol::Messenger
 {
 // Los nombres van en 10 bytes; el cliente los copia con strncpy a un buffer de 11 en cero.
 inline constexpr std::size_t FriendNameSize = 10;
@@ -83,4 +83,4 @@ ReadFriendDeleteResult(const Network::Packet& packet);
 [[nodiscard]] Outgoing WriteFriendDelete(std::string_view name);
 // 0x4a2be0 (el 12 con 1) y 0x4a3030 (el botón del estado): C1 04 C4 y 0 (fuera de línea) o 1, con el XOR32.
 [[nodiscard]] Outgoing WriteFriendState(std::uint8_t state);
-} // namespace Client::Protocol::Friends
+} // namespace Client::Protocol::Messenger

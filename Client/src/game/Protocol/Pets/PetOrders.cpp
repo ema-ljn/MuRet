@@ -8,7 +8,7 @@
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
 
-namespace Client::Protocol::Pet
+namespace Client::Protocol::Pets
 {
 namespace
 {
@@ -56,4 +56,4 @@ Outgoing WritePetCommand(const PetCommand& command)
     return Xor32C1(
         Network::PacketWriter::C1(PetOrderOpcode).PutU8(command.pet).PutU8(command.command).PutU16Be(command.key));
 }
-} // namespace Client::Protocol::Pet
+} // namespace Client::Protocol::Pets

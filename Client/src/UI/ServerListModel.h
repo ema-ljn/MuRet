@@ -41,7 +41,7 @@ struct ServerGroup
     // El lugar de 0x4c1860, del 4 al 24.
     int slot = 0;
     // En el orden de la lista, hasta ServersPerGroup.
-    std::vector<Protocol::Connection::ServerEntry> servers;
+    std::vector<Protocol::Session::ServerEntry> servers;
 };
 
 struct ServerGroups
@@ -58,7 +58,7 @@ struct ServerGroups
 [[nodiscard]] std::optional<int> GroupSlot(std::uint16_t group);
 
 // Reparte la lista en sus grupos, en el orden de la pantalla.
-[[nodiscard]] ServerGroups GroupServers(std::span<const Protocol::Connection::ServerEntry> list);
+[[nodiscard]] ServerGroups GroupServers(std::span<const Protocol::Session::ServerEntry> list);
 
 // El texto del nombre del grupo: 540 + g, salvo el 12 (559), el 19 (552) y el 20 (1829).
 [[nodiscard]] std::size_t GroupNameText(std::uint16_t group);

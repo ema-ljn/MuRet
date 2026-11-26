@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Client::Protocol::Quest
+namespace Client::Protocol::Quests
 {
 namespace
 {
@@ -115,4 +115,4 @@ Outgoing WriteTalk(std::int16_t key)
     const auto low = static_cast<std::uint8_t>(static_cast<std::uint16_t>(key) & 0xffu);
     return EncryptedC1(Network::PacketWriter::C1(TalkOpcode).PutU8(high).PutU8(low));
 }
-} // namespace Client::Protocol::Quest
+} // namespace Client::Protocol::Quests

@@ -43,7 +43,7 @@ namespace Client::Scenes
 {
 namespace
 {
-namespace Npc = Protocol::NpcWindows;
+namespace Npc = Protocol::Npc;
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones.
 constexpr std::int32_t ButtonSound = 0x19;
@@ -682,7 +682,7 @@ Core::Expected<void, std::string> LeaveThePanel2000(const GameUiContext& context
         runtime.movement.leftHeld = false;
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    if (auto sent = Send(context, Protocol::Connection::WriteWindowClose(), "0x5e7738/0x5e7992: el C1 03 31");
+    if (auto sent = Send(context, Protocol::Session::WriteWindowClose(), "0x5e7738/0x5e7992: el C1 03 31");
         !sent.HasValue())
         return sent;
     return panels.CloseAll();

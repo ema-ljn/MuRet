@@ -176,7 +176,7 @@ struct SessionSettings
 {
     ServerAddress connectServer; // de la config o de /u /p (CL3.4)
     // El ejecutable que suma la respuesta al 03 del GS: el nombre que 0x4ad270 saca de la línea de
-    // comandos (Protocol::Connection::MainCheckFileName), relativo a la carpeta actual como el
+    // comandos (Protocol::Session::MainCheckFileName), relativo a la carpeta actual como el
     // CreateFileA de 0x4aec13. Vacío, o si no se abre, la suma va en 0, como en 0x4aec28.
     std::filesystem::path mainCheckFile{};
 };
@@ -247,25 +247,25 @@ public:
     // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
     // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
     void SendAction(std::uint8_t direction, std::uint8_t action);
-    // 0x61c210: el C1 1C F3 30 con las opciones (Protocol::OptionData::WriteOptionData), en claro. Lo piden el menú
+    // 0x61c210: el C1 1C F3 30 con las opciones (Protocol::Player::WriteOptionData), en claro. Lo piden el menú
     // de Esc (0x624036, 0x6247ee y 0x624eec) y la entrada a los mapas 30 y 31.
-    [[nodiscard]] Core::Expected<void, std::string> SendOptionData(const Protocol::OptionData::OptionBody& body);
+    [[nodiscard]] Core::Expected<void, std::string> SendOptionData(const Protocol::Player::OptionBody& body);
     void RequestGate(std::uint8_t gate);
     void ConfirmTeleport();
     void RequestCrywolfState();
     // El chat (C1 00) y el susurro (C1 02) que arma la entrada del chat (Protocol::Chat), como los demás de mundo: sin
     // un GameServer abierto, un aviso y nada. Lo que lleva no va al log.
     void SendChat(Protocol::Outgoing packet);
-    // El B9 02 de 0x42a760 al cargar el 30 (Protocol::World::WriteCastleSiegeState).
+    // El B9 02 de 0x42a760 al cargar el 30 (Protocol::Movement::WriteCastleSiegeState).
     void RequestCastleSiegeState();
-    // El 24 del ítem del cursor (Protocol::Inventory::WriteItemMove), en C3. Los dos rand() del envío los saca la
+    // El 24 del ítem del cursor (Protocol::Items::WriteItemMove), en C3. Los dos rand() del envío los saca la
     // escena antes.
-    [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
+    [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Items::ItemMove& move);
     // CL9 hito 5: el C1 05 22 (0x5650c0), el C1 06 23 (0x5dfe27) y el C1 06 26 (0x59ff10 y 0x5c4110), en C3. Los dos
     // rand() del envío los saca la escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendPickUp(std::uint16_t index);
-    [[nodiscard]] Core::Expected<void, std::string> SendDrop(const Protocol::FloorItems::Drop& drop);
-    [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::FloorItems::UseItem& use);
+    [[nodiscard]] Core::Expected<void, std::string> SendDrop(const Protocol::Items::Drop& drop);
+    [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::Items::UseItem& use);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
     // Los C1 del castillo (Protocol::CastleSiege; CL9 hito 12), como los demás de mundo: sin un GameServer abierto, un
@@ -274,25 +274,25 @@ public:
     // Los C1 del gremio, de la alianza y de la guerra (Protocol::Guild; CL9 hito 8), como los demás de mundo: sin un
     // GameServer abierto, un aviso y nada.
     void SendGuildPacket(Protocol::Outgoing packet);
-    // Los paquetes de las ventanas de los NPC (Protocol::NpcWindows, CL9 hito 6), como los demás de mundo. Los rand()
+    // Los paquetes de las ventanas de los NPC (Protocol::Npc, CL9 hito 6), como los demás de mundo. Los rand()
     // del C3 los saca la escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendNpcWindowPacket(Protocol::Outgoing packet);
     // Las misiones y los NPC (CL9 hito 2), por el GS en el mundo. Los rand() del relleno y del serial de los C3 los
-    // saca la escena antes. El C3 A0 de 0x63693a y 0x5676a6 (Protocol::Quest::WriteQuestListRequest).
+    // saca la escena antes. El C3 A0 de 0x63693a y 0x5676a6 (Protocol::Quests::WriteQuestListRequest).
     void RequestQuestList();
-    // El C3 A2 de 0x419bd0 y 0x41a9e0 (Protocol::Quest::WriteSetQuest).
+    // El C3 A2 de 0x419bd0 y 0x41a9e0 (Protocol::Quests::WriteSetQuest).
     void SendSetQuest(std::uint8_t quest, std::uint8_t state);
-    // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quest::WriteTalk).
+    // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quests::WriteTalk).
     void SendTalk(std::int16_t key);
     // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones, y de cerrar un NPC de evento (0x658a18
-    // y 0x658c0e, CL9 hito 11) (Protocol::Connection::WriteWindowClose).
+    // y 0x658c0e, CL9 hito 11) (Protocol::Session::WriteWindowClose).
     void SendWindowClose();
     // CL9 hito 11: el C1 03 97 de SendMove con 0x78abb00 en 1 o 2 (Protocol::Events::WriteEventWindowLeave), en claro,
     // y el C1 06 AF 02 x y de 0x4fbee8 en Chaos Castle (Protocol::Events::WriteChaosCastleReposition), con el XOR
     // de 32.
     [[nodiscard]] Core::Expected<void, std::string> SendEventWindowLeave();
     [[nodiscard]] Core::Expected<void, std::string> SendChaosCastleReposition(std::uint8_t x, std::uint8_t y);
-    // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
+    // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Messenger), como los demás de mundo.
     void SendFriendPacket(Protocol::Outgoing packet);
     // Los paquetes de mundo que arman los pasos de la UI para el comercio, la party y el duelo (CL9 hito 7), como los
     // demás de mundo: sin un GameServer abierto, un aviso y nada.
@@ -311,7 +311,7 @@ public:
     // IChatRoomLinks. Cada sala es una Network::Connection con las claves del GameServer (lo que llega por ella pasa
     // por el mismo camino, 0x4e1d50); Poll las recorre después del GameServer, en el orden de las salas, como 0x49e510
     // recorre su mapa, y le da al sink un ChatRoomPacket por paquete y un ChatRoomClosed al cerrarse. Un paquete más
-    // corto que lo que lee su handler se ignora con un aviso (Protocol::FriendChat::CheckRoomPacket). Una que no llegó
+    // corto que lo que lee su handler se ignora con un aviso (Protocol::Messenger::CheckRoomPacket). Una que no llegó
     // a abrir se olvida; una abierta que se cerró queda anotada hasta CloseChatRoom (lo que se le manda, se descarta).
     // Cada ChatRoomPingPeriod desde la construcción, con alguna sala anotada, le da un ChatRoomPingDue.
     void OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address) override;
@@ -326,7 +326,7 @@ public:
 
     // La lista del F4 06, en el orden en que llegó, desde que llega hasta el próximo Start o la
     // próxima lista. Vacía antes.
-    [[nodiscard]] std::span<const Protocol::Connection::ServerEntry> ServerList() const;
+    [[nodiscard]] std::span<const Protocol::Session::ServerEntry> ServerList() const;
 
     // En ChoosingServer, manda el F4 03 con `code` (0x645e10, el clic en un servidor de la lista).
     // El código no se mira contra la lista: lo da la ventana, que solo tiene los de la lista. En
@@ -366,14 +366,14 @@ public:
     // entrada, también durante el callback y después de un fallo de aplicación. El sink recibe
     // cada construcción cruda del paquete, en orden, sin deduplicar el evento.
     // std::nullopt antes de recibir la lista.
-    [[nodiscard]] const std::optional<Protocol::Character::CharacterList>& Characters() const;
+    [[nodiscard]] const std::optional<Protocol::FrontEnd::CharacterList>& Characters() const;
 
     // En ChoosingCharacter, elige al de `slot` si está en la lista; con std::nullopt o un lugar que
     // no está, a ninguno (el -1 de 0x6342c0). No manda nada. En otro estado, un aviso y nada.
     void ChooseCharacter(std::optional<std::uint8_t> slot);
 
     // El elegido, de la lista; nullptr si no hay. Vale hasta el próximo Start.
-    [[nodiscard]] const Protocol::Character::CharacterEntry* ChosenCharacter() const;
+    [[nodiscard]] const Protocol::FrontEnd::CharacterEntry* ChosenCharacter() const;
 
     // En ChoosingCharacter con uno elegido, manda el F3 03 con su nombre (0x636290) y espera la
     // entrada. Sin elegido, o en otro estado, un aviso y nada.
@@ -385,21 +385,21 @@ public:
     // filtros) son de la ventana de crear.
     void CreateCharacter(std::string_view name, std::uint8_t characterClass);
 
-    // El pkt[4] de la última respuesta del F3 01 (Protocol::Character::CharacterCreated, o el de un
+    // El pkt[4] de la última respuesta del F3 01 (Protocol::FrontEnd::CharacterCreated, o el de un
     // aviso), desde que llega hasta el próximo CreateCharacter o Start. std::nullopt antes.
     [[nodiscard]] std::optional<std::uint8_t> CreateResult() const;
 
     // En ChoosingCharacter con uno elegido, manda el F3 02 con su nombre y los bytes del campo de la
     // ventana de borrar (0x643740), y espera la respuesta. El código no va al log. Sin elegido, o en
     // otro estado, un aviso y nada.
-    void DeleteCharacter(std::span<const std::byte, Protocol::Character::DeleteCodeSize> code);
+    void DeleteCharacter(std::span<const std::byte, Protocol::FrontEnd::DeleteCodeSize> code);
 
     // En ChoosingCharacter o InWorld, manda el pedido de salida F1 02 con `kind` (0x647f60, el C3 que arma
     // la ventana de Esc) y sigue en el mismo estado: lo que cambia es la respuesta (OnLogoutResult). Los
     // rand() de la CRT de 0x647f60 los saca quien lo pide. En otro estado, un aviso y nada.
     void RequestLogout(std::uint8_t kind);
 
-    // El pkt[4] de la última respuesta del F3 02 (Protocol::Character::CharacterDeleted, o el de un
+    // El pkt[4] de la última respuesta del F3 02 (Protocol::FrontEnd::CharacterDeleted, o el de un
     // aviso), desde que llega hasta el próximo DeleteCharacter o Start. std::nullopt antes.
     [[nodiscard]] std::optional<std::uint8_t> DeleteResult() const;
 
@@ -466,7 +466,7 @@ private:
     void OnNotice(const Network::Packet& packet);
     // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
     void OnCastleSiege(const Network::Packet& packet);
-    // CL9 hito 13: los de la batalla (Protocol::CastleBattle::ReadCastleBattlePacket).
+    // CL9 hito 13: los de la batalla (Protocol::CastleSiege::ReadCastleBattlePacket).
     void OnCastleBattle(const Network::Packet& packet);
     // CL9 hito 13: el B1 00, el cambio de servidor del mapa (0x4e5056 → 0x412b30).
     void OnMapServerMove(const Network::Packet& packet);
@@ -563,7 +563,7 @@ private:
     SessionState m_state = SessionState::Idle;
     Core::Duration m_stateSince{}; // desde cuándo está en m_state
     std::optional<SessionFailure> m_failure;
-    std::vector<Protocol::Connection::ServerEntry> m_serverList;
+    std::vector<Protocol::Session::ServerEntry> m_serverList;
     std::optional<std::uint16_t> m_chosenServer;
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
@@ -574,8 +574,8 @@ private:
     // 0x576792c: la cuenta del login, que vuelve en el B1 01. No va al log.
     std::string m_account;
     // +4 y +0x18 del objeto de 0x6eed7c: el último B1 00 (0x412aa0), hasta Start (0x4129d0 desde 0x4c2f4c).
-    std::optional<Protocol::Connection::MapServerMove> m_mapServerMove;
-    std::optional<Protocol::Character::CharacterList> m_characters;
+    std::optional<Protocol::Session::MapServerMove> m_mapServerMove;
+    std::optional<Protocol::FrontEnd::CharacterList> m_characters;
     std::optional<std::string> m_applicationFailure;
     // Solo durante el ApplyWorld de un F3 03: ahí vale PublishWorldEntry.
     bool m_applyingWorldEntry = false;

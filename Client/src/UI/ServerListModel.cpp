@@ -65,12 +65,12 @@ std::optional<int> GroupSlot(std::uint16_t group)
     return SlotBase - SlotTable[group];
 }
 
-ServerGroups GroupServers(std::span<const Protocol::Connection::ServerEntry> list)
+ServerGroups GroupServers(std::span<const Protocol::Session::ServerEntry> list)
 {
     // Por lugar, para que salgan en el orden de la pantalla.
     std::map<int, ServerGroup> bySlot;
     ServerGroups grouped;
-    for (const Protocol::Connection::ServerEntry& entry : list)
+    for (const Protocol::Session::ServerEntry& entry : list)
     {
         const std::uint16_t group = GroupOf(entry.code);
         const std::optional<int> slot = GroupSlot(group);

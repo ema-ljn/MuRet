@@ -18,7 +18,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Protocol::Letters
+namespace Client::Protocol::Messenger
 {
 namespace
 {
@@ -172,4 +172,4 @@ Outgoing WriteLetterListRequest()
 {
     return ClearC1(Network::PacketWriter::C1(LetterListRequestOpcode));
 }
-} // namespace Client::Protocol::Letters
+} // namespace Client::Protocol::Messenger

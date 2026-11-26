@@ -41,7 +41,7 @@
 // inventados.
 namespace
 {
-namespace Quest = Client::Protocol::Quest;
+namespace Quest = Client::Protocol::Quests;
 
 constexpr std::uint32_t Seed = 0xa3;
 constexpr int OwnRecordClose = 0xf08;

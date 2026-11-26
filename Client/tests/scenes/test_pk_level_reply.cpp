@@ -41,7 +41,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Character::PkLevel;
+using Client::Protocol::Player::PkLevel;
 using Client::Scenes::WorldEntryResources;
 
 constexpr std::size_t ChosenSlot = 9;

@@ -15,12 +15,12 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::FloorItems
+namespace Client::Protocol::Items
 {
 namespace
 {
 // 0x4d0ba0: la clave (2), la celda (2) y el ítem (7).
-constexpr std::size_t CreateEntrySize = 4 + Inventory::ItemDataSize;
+constexpr std::size_t CreateEntrySize = 4 + Items::ItemDataSize;
 constexpr std::size_t KeySize = 2;
 
 // Un paquete de `type` y `opcode`: el lector desde el byte que sigue al opcode (pkt[3] en un C1, pkt[4] en un C2).
@@ -32,9 +32,9 @@ Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network:
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(type)));
 }
 
-Inventory::ItemData ItemFrom(std::span<const std::byte> bytes)
+Items::ItemData ItemFrom(std::span<const std::byte> bytes)
 {
-    Inventory::ItemData item{};
+    Items::ItemData item{};
     std::ranges::copy(bytes, item.begin());
     return item;
 }
@@ -58,7 +58,7 @@ Core::Expected<FloorItemsCreate, Network::ProtocolError> ReadFloorItemsCreate(co
         entry.key = *reader.ReadU16Be();
         entry.x = *reader.ReadU8();
         entry.y = *reader.ReadU8();
-        entry.item = ItemFrom(*reader.ReadBytes(Inventory::ItemDataSize));
+        entry.item = ItemFrom(*reader.ReadBytes(Items::ItemDataSize));
         create.items.push_back(entry);
     }
     return create;
@@ -94,7 +94,7 @@ Core::Expected<PickUpResult, Network::ProtocolError> ReadPickUpResult(const Netw
         return pickUp;
     // 0x4d1051: el sonido lee el tipo de los bytes desde pkt[4] también con el zen, así que el original lee siete
     // bytes en cualquier caso (los del zen son sus cuatro y lo que sigue).
-    const auto item = reader.ReadBytes(Inventory::ItemDataSize);
+    const auto item = reader.ReadBytes(Items::ItemDataSize);
     if (!item)
         return Core::Unexpected(Network::ProtocolError::TooShort);
     pickUp.item = ItemFrom(*item);
@@ -183,4 +183,4 @@ Outgoing WriteUseItem(const UseItem& use)
 {
     return EncryptedC1(Network::PacketWriter::C1(UseItemOpcode).PutU8(use.slot).PutU8(use.target).PutU8(use.kind));
 }
-} // namespace Client::Protocol::FloorItems
+} // namespace Client::Protocol::Items

@@ -14,7 +14,7 @@
 // 04 § Las skills (CL9 hito 4): lo que llega de las skills y de los estados de los personajes. Los lectores son la
 // parte pura de los handlers de 0x4e2b10; lo que hacen con el mundo es de Scenes (SkillReplies). Como los demás
 // lectores, WrongPacket con otro tipo u opcode, TooShort si faltan campos, y los bytes de más se ignoran.
-namespace Client::Protocol::Skill
+namespace Client::Protocol::Skills
 {
 // 0x4cc530: C1/C3 08 19 [skill] [fuente H L] [blanco H L], en big endian. El bit 15 del blanco dice si la skill
 // salió (va a +0x38d de la fuente) y el original busca el blanco con los 15 de abajo; la fuente, con los 16.
@@ -194,4 +194,4 @@ struct DurationMagicSend
 };
 [[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicSend& send);
 
-} // namespace Client::Protocol::Skill
+} // namespace Client::Protocol::Skills

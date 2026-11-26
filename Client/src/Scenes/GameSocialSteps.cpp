@@ -114,7 +114,7 @@ Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
     }
     trade.ownOk = trade.ownOk != 0 ? 0 : 1;
     trade.changed = 1;
-    return SendInC3(context, Protocol::Trade::WriteTradeOkButton(trade.ownOk), "0x5ed1a0");
+    return SendInC3(context, Protocol::Social::WriteTradeOkButton(trade.ownOk), "0x5ed1a0");
 }
 
 // 0x5ed4cc..0x5ed936.
@@ -126,16 +126,16 @@ Core::Expected<void, std::string> PressTheCancelButton(const GameUiContext& cont
     if (runtime.cursorItemCount != 0)
         return {};
     runtime.social.trade.changed = 0;
-    if (auto sent = SendInC3(context, Protocol::Trade::WriteTradeCancel(), "0x5ed525"); !sent.HasValue())
+    if (auto sent = SendInC3(context, Protocol::Social::WriteTradeCancel(), "0x5ed525"); !sent.HasValue())
         return sent;
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
     return {};
 }
 
-Protocol::Duel::Name RivalName(const DuelState& duel)
+Protocol::Social::Name RivalName(const DuelState& duel)
 {
-    Protocol::Duel::Name name{};
+    Protocol::Social::Name name{};
     std::ranges::copy(std::span(duel.rivalName).first(name.size()), name.begin());
     return name;
 }
@@ -175,7 +175,7 @@ Core::Expected<void, std::string> StepTheDuelRequest(const GameUiContext& contex
     const auto answer = [&](std::uint8_t accepted, const char* where) -> Core::Expected<void, std::string>
     {
         const auto key = static_cast<std::uint16_t>(duel.rivalKey & 0xffff);
-        if (auto sent = SendInC3(context, Protocol::Duel::WriteDuelAnswer(accepted, key, RivalName(duel)), where);
+        if (auto sent = SendInC3(context, Protocol::Social::WriteDuelAnswer(accepted, key, RivalName(duel)), where);
             !sent.HasValue())
             return sent;
         runtime.ui.field78abad9 = 0;

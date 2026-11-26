@@ -27,7 +27,7 @@ void SetRavenState(DarkSpirit& spirit, std::uint8_t state)
 }
 } // namespace
 
-void ApplyPetOrder(const Protocol::Pet::PetOrder& order, WorldState& world)
+void ApplyPetOrder(const Protocol::Pets::PetOrder& order, WorldState& world)
 {
     ActorState& hero = world.Actors()[world.Runtime().hero];
     if (!hero.darkSpirit)
@@ -36,14 +36,14 @@ void ApplyPetOrder(const Protocol::Pet::PetOrder& order, WorldState& world)
     spirit.order = order.order;
     if (spirit.state != ChargingState && spirit.state != ShoutingState)
         spirit.byte1ad = 0;
-    if (order.order != Protocol::Pet::FollowTargetOrder)
+    if (order.order != Protocol::Pets::FollowTargetOrder)
         return;
     // 0x41653d..0x41655e: +0x1ad en 1 y el blanco en el personaje de la clave, esté o no.
     spirit.byte1ad = 1;
     spirit.target = ActorWithKey(world, order.key);
 }
 
-void ApplyPetAttack(const Protocol::Pet::PetAttack& attack, const WorldEntryResources& resources)
+void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     ActorState& owner = world.Actors()[ActorWithKey(world, attack.owner)];

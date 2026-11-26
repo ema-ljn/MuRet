@@ -88,7 +88,7 @@ Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Acto
     if (!passes.HasValue())
         return Core::Unexpected(passes.Error());
     if (passes.Value())
-        SendTheSkillPacket(context, Protocol::Skill::WriteMagicAttack(skill, target.key));
+        SendTheSkillPacket(context, Protocol::Skills::WriteMagicAttack(skill, target.key));
     return {};
 }
 

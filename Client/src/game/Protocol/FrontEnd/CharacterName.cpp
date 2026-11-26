@@ -11,7 +11,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 std::array<std::byte, NameSize> NameUpToItsEnd(std::span<const std::byte, NameSize> name)
 {
@@ -40,4 +40,4 @@ std::optional<std::array<std::byte, NameSize>> NameFromText(std::string_view tex
     std::ranges::transform(text, name.begin(), [](char value) { return static_cast<std::byte>(value); });
     return name;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

@@ -46,7 +46,7 @@ struct Sent
 class RecordingRequests final : public Client::Scenes::IGameUiRequests
 {
 public:
-    void SendOptionData(const Client::Protocol::OptionData::OptionBody& /*body*/) override {}
+    void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}
     void RequestLogout(std::uint8_t /*kind*/) override {}
     void RequestPartyList() override {}
     void SendGuildPacket(Client::Protocol::Outgoing packet) override

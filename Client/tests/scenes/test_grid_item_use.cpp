@@ -42,7 +42,7 @@ namespace
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
-using Client::Protocol::FloorItems::UseItem;
+using Client::Protocol::Items::UseItem;
 using Client::Scenes::InventoryMoveContext;
 using Client::Scenes::InventoryServices;
 using Client::Scenes::WorldState;
@@ -174,7 +174,7 @@ protected:
     // El C1 06 26 que salió, descifrado.
     [[nodiscard]] std::vector<std::byte> SentBytes(std::size_t which) const
     {
-        const auto packet = Client::Protocol::FloorItems::WriteUseItem(sent.at(which));
+        const auto packet = Client::Protocol::Items::WriteUseItem(sent.at(which));
         const auto decoded = Xor32Decode(packet.packet);
         const std::span<const std::byte> plain = decoded.Bytes();
         return {plain.begin(), plain.end()};
@@ -339,8 +339,8 @@ TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWi
     for (auto& item : runtime.npcWindows.grid)
         item.id = Scenes::EmptyOwnItemId;
     Put(Sword, 1, 1, 3u << 3);
-    std::vector<Client::Protocol::Inventory::ItemMove> moves;
-    services.sendItemMove = [&moves](const Client::Protocol::Inventory::ItemMove& move)
+    std::vector<Client::Protocol::Items::ItemMove> moves;
+    services.sendItemMove = [&moves](const Client::Protocol::Items::ItemMove& move)
     {
         moves.push_back(move);
         return Expected<void, std::string>{};
@@ -387,8 +387,8 @@ TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPasswor
     auto& runtime = world.Runtime();
     runtime.panels.warehouse = 1;
     runtime.hud.inventoryX = 450;
-    std::vector<Client::Protocol::Inventory::ItemMove> moves;
-    services.sendItemMove = [&moves](const Client::Protocol::Inventory::ItemMove& move)
+    std::vector<Client::Protocol::Items::ItemMove> moves;
+    services.sendItemMove = [&moves](const Client::Protocol::Items::ItemMove& move)
     {
         moves.push_back(move);
         return Expected<void, std::string>{};

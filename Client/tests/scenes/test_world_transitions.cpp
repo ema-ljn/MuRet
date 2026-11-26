@@ -183,7 +183,7 @@ TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAnd
         EXPECT_EQ(tested.world.Runtime().warpCounter, 9999999);
         EXPECT_EQ(tested.Hero().alpha, 1.0f);
     };
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 0},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0},
                                                       Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(publisher.confirmations, 1);
@@ -207,7 +207,7 @@ TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
 {
     auto gate = std::make_unique<Transition>();
     Publisher publisher;
-    const auto gated = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 0},
+    const auto gated = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0},
                                                      Transition::PlayerKey, gate->Resources(), publisher);
     ASSERT_TRUE(gated.HasValue()) << gated.Error();
     const Client::Scenes::MapBanner& shown = gate->world.Runtime().hud.mapBanner;
@@ -217,7 +217,7 @@ TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
     EXPECT_EQ(*shown.pendingImage, "Interface\\lorencia.tga");
 
     auto magic = std::make_unique<Transition>();
-    const auto moved = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{0, 0, 30, 31, 0},
+    const auto moved = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{0, 0, 30, 31, 0},
                                                      Transition::PlayerKey, magic->Resources(), publisher);
     ASSERT_TRUE(moved.HasValue()) << moved.Error();
     const Client::Scenes::MapBanner& quiet = magic->world.Runtime().hud.mapBanner;
@@ -229,8 +229,9 @@ TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
 TEST(WorldTransitionsTest, RegenShowsTheMapBanner)
 {
     auto tested = std::make_unique<Transition>();
-    const auto result = Client::Scenes::ApplyRegen(Client::Protocol::World::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
-                                                   Transition::PlayerKey, tested->Resources());
+    const auto result =
+        Client::Scenes::ApplyRegen(Client::Protocol::Movement::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
+                                   Transition::PlayerKey, tested->Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const Client::Scenes::MapBanner& banner = tested->world.Runtime().hud.mapBanner;
     EXPECT_EQ(banner.state, Client::Scenes::MapBannerState::FadingIn);
@@ -255,7 +256,7 @@ TEST(WorldTransitionsTest, TeleportReturnsTheCursorToItsInventoryFootprintBefore
     tested->Hero().cellX = 10;
     tested->Hero().cellY = 11;
 
-    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{0, 0, 30, 31, 2},
+    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{0, 0, 30, 31, 2},
                                                 Transition::PlayerKey, tested->Resources(), publisher);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -288,7 +289,7 @@ TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBefor
     tested->Hero().cellY = 11;
     const auto before = tested->cloth.random.State();
 
-    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 2},
+    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 2},
                                                 Transition::PlayerKey, tested->Resources(), publisher);
 
     ASSERT_FALSE(result.HasValue());
@@ -308,7 +309,7 @@ TEST(WorldTransitionsTest, AnotherMapFailureRetainsThePrefixBeforeConfirmation)
     tested.world.Actors()[8].alive = true;
     tested.world.Actors()[8].key = 44;
     tested.world.Runtime().warpCounter = 9999999;
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 3, 30, 31, 2},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 3, 30, 31, 2},
                                                       Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("EncTerrain4.att"), std::string::npos) << result.Error();
@@ -329,8 +330,9 @@ TEST(WorldTransitionsTest, RegenKeepsItsOwnFieldsAndSlotWithoutTouchingTheWarpCo
     hero.word1f2 = 0x1234;
     tested.world.Runtime().warpCounter = 9999999;
     tested.world.OwnCharacter().strength = 123;
-    const auto result = Client::Scenes::ApplyRegen(Client::Protocol::World::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
-                                                   Transition::PlayerKey, tested.Resources());
+    const auto result =
+        Client::Scenes::ApplyRegen(Client::Protocol::Movement::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
+                                   Transition::PlayerKey, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(hero.guildStatus, 5);
     EXPECT_EQ(hero.byte369, 6);
@@ -382,7 +384,7 @@ TEST(WorldTransitionsTest, MagicTeleportRetainsTheCounterAndOtherActorsWithoutAc
     tested.world.Actors()[8].alive = true;
     tested.world.Actors()[8].key = 44;
     tested.world.DrawTail().floorItems[0].alive = true;
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{0, 3, 30, 31, 2},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{0, 3, 30, 31, 2},
                                                       Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(publisher.confirmations, 0);
@@ -412,12 +414,12 @@ TEST_F(WorldTransitionsMapsTest, ATeleportToAnotherMapWelcomesToIt)
     tested.texts = Client::Tests::MakeTextTable({{30, "<mapa 0>"}, {33, "<mapa 3>"}, {484, " <bienvenida>"}});
     const auto& log = tested.world.Runtime().chat.log.entries;
 
-    const auto same = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 2},
+    const auto same = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 2},
                                                     Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(same.HasValue()) << same.Error();
     EXPECT_TRUE(log.empty());
 
-    const auto noria = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 3, 30, 31, 2},
+    const auto noria = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 3, 30, 31, 2},
                                                      Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(noria.HasValue()) << noria.Error();
     ASSERT_EQ(log.size(), 1u);
@@ -431,20 +433,20 @@ TEST_F(WorldTransitionsMapsTest, ReentersLorenciaAndNoriaWithTheSameDurableState
     Transition tested;
     Publisher publisher;
     tested.dataRoot = m_dataRoot;
-    const auto first = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 3, 30, 31, 2},
+    const auto first = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 3, 30, 31, 2},
                                                      Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_EQ(tested.world.Runtime().map, 3);
     EXPECT_EQ(tested.Hero().key, Transition::PlayerKey);
     EXPECT_EQ(publisher.confirmations, 1);
     EXPECT_EQ(tested.world.Map().effects.Effects()[0].type, 322);
-    const auto back = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{25, 0, 133, 127, 4},
+    const auto back = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{25, 0, 133, 127, 4},
                                                     Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(back.HasValue()) << back.Error();
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(tested.Hero().cellX, 133);
     EXPECT_EQ(publisher.confirmations, 2);
-    const auto again = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 3, 32, 33, 0},
+    const auto again = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 3, 32, 33, 0},
                                                      Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_TRUE(again.HasValue()) << again.Error();
     EXPECT_EQ(tested.world.Runtime().map, 3);
@@ -537,7 +539,7 @@ TEST(WorldTransitionsTest, TeleportTickCountWrapsAndRetainsLogicalAccessDepths)
     tested.Hero().cellXAccesses = 1;
     tested.Hero().cellYAccesses = 1;
     tested.world.Runtime().warpDepth = 1;
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 2},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 2},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.world.Runtime().movement.lastTeleportMs, 123u);
@@ -600,7 +602,7 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
     tested.world.Runtime().panels.eventNpc = 1;
     tested.world.Runtime().warpCounter = 9999999;
     tested.Hero().alpha = 1.0f;
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 0},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0},
                                                       Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x657ab0(0x1000)"), std::string::npos) << result.Error();
@@ -624,7 +626,7 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleResetsTheCommandsAndContinues
     commands.commandsWindow.chosen = 7;
     commands.commandsWindow.states.fill(0xff);
     auto resources = tested.Resources();
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(commands.commands, 0);
@@ -644,7 +646,7 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEqui
     tested.world.Runtime().warpCounter = 9999999;
     auto resources = tested.Resources();
     resources.itemSetTables = nullptr;
-    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
+    const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
@@ -746,8 +748,9 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         ASSERT_TRUE(box.HasValue()) << box.Error();
         runtime.oldWindows.focus = box.Value();
         runtime.chat.input.focus = Client::UI::ChatFocus::Message;
-        const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, pass.to, 133, 127, 0},
-                                                          Transition::PlayerKey, tested.Resources(), publisher);
+        const auto result =
+            Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, pass.to, 133, 127, 0},
+                                          Transition::PlayerKey, tested.Resources(), publisher);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(runtime.map, pass.to);
         EXPECT_EQ(runtime.lastSoundId, 0x9e);
@@ -783,8 +786,9 @@ TEST(WorldTransitionsTest, RegenRetainsThePublishedAndRebuiltSlotsAsDistinctNati
     rebuilt.pk = 99;
     rebuilt.word1f2 = 0x5678;
     tested.world.Actors()[400].alive = true;
-    const auto result = Client::Scenes::ApplyRegen(Client::Protocol::World::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
-                                                   Transition::PlayerKey, tested.Resources());
+    const auto result =
+        Client::Scenes::ApplyRegen(Client::Protocol::Movement::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
+                                   Transition::PlayerKey, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.world.Runtime().hero, 7u);
     EXPECT_EQ(tested.world.Runtime().heroSlot, 9);

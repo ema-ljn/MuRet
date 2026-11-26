@@ -49,8 +49,8 @@ using Network::Packet;
 using Network::PacketSerials;
 using Network::PacketType;
 using Network::SerialCheck;
-using Protocol::Character::InventoryList;
-using Protocol::Character::ReadInventoryList;
+using Protocol::Items::InventoryList;
+using Protocol::Items::ReadInventoryList;
 
 using ByteVector = std::vector<std::byte>;
 

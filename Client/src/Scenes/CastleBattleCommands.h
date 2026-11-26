@@ -10,5 +10,5 @@ namespace Client::Scenes
 {
 // Los B2 11..19/1D/1E del dispatcher, con sus mensajes, ventanas y efectos sobre el mismo mundo.
 [[nodiscard]] Core::Expected<void, std::string>
-ApplyCastleBattleCommand(const Protocol::CastleBattle::CastleBattlePacket& packet, const CastleReceiveContext& context);
+ApplyCastleBattleCommand(const Protocol::CastleSiege::CastleBattlePacket& packet, const CastleReceiveContext& context);
 } // namespace Client::Scenes

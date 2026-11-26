@@ -82,7 +82,7 @@ std::string_view CString(std::string_view text)
 }
 
 // El nombre de pkt[3..12] en el buffer de 11 bytes en cero.
-std::string SpeakerName(const Protocol::Messages::SpokenText& spoken)
+std::string SpeakerName(const Protocol::Chat::SpokenText& spoken)
 {
     std::string name;
     for (const std::byte value : spoken.name)
@@ -179,7 +179,7 @@ std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
     return KeySearched;
 }
 
-Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat, const ChatReceiveContext& context)
+Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, const ChatReceiveContext& context)
 {
     auto measure = MeasureOf(context, "0x4c6070");
     if (!measure.HasValue())
@@ -200,15 +200,14 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat
     if (mark == BubbleMark)
         return AddChatBubbleByName(context.world, bubbleMeasure, name, CopiedText(raw, 1, MarkedTextBytes),
                                    ChatBubbleMode::Log);
-    const std::string_view text = CopiedText(raw, 0, Protocol::Messages::SpokenTextSize);
+    const std::string_view text = CopiedText(raw, 0, Protocol::Chat::SpokenTextSize);
     if (auto bubble = AddChatBubbleByName(context.world, bubbleMeasure, name, text, ChatBubbleMode::Chat);
         !bubble.HasValue())
         return bubble;
     return AddMessage(context, name, text, UI::ChatMessage);
 }
 
-Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat& chat,
-                                               const ChatReceiveContext& context)
+Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& chat, const ChatReceiveContext& context)
 {
     WorldState& world = context.world;
     const std::size_t index = ActorWithKey(world, chat.key);
@@ -224,14 +223,14 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat
         ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
 }
 
-Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper& whisper,
+Core::Expected<void, std::string> ApplyWhisper(const Protocol::Chat::Whisper& whisper,
                                                const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     if (runtime.chat.whisperBlocked)
         return {};
     const std::string name = SpeakerName(whisper);
-    const std::string_view text = CopiedText(whisper.text, 0, Protocol::Messages::SpokenTextSize);
+    const std::string_view text = CopiedText(whisper.text, 0, Protocol::Chat::SpokenTextSize);
     // 0x554d20(10, nombre): el nivel (+0xe) se lee con el registro abierto, y la lista se mira después de cerrarlo.
     std::uint16_t level = 0;
     {
@@ -245,7 +244,7 @@ Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper
     return AddMessage(context, name, text, UI::WhisperMessage);
 }
 
-Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Messages::WhisperResult& result,
+Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Chat::WhisperResult& result,
                                                      const ChatReceiveContext& context)
 {
     if (result.result != 0)
@@ -257,8 +256,7 @@ Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Messages::W
     return AddMessage(context, target, text.Value(), UI::ErrorMessage);
 }
 
-Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& notice,
-                                              const ChatReceiveContext& context)
+Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& notice, const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     const std::string_view text = CString(notice.text);
@@ -309,7 +307,7 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& 
     return {};
 }
 
-Core::Expected<void, std::string> ApplyOptionData(const Protocol::OptionData::OptionData& data,
+Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::OptionData& data,
                                                   const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();

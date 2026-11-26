@@ -18,7 +18,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Protocol::Friends
+namespace Client::Protocol::Messenger
 {
 namespace
 {
@@ -156,4 +156,4 @@ Outgoing WriteFriendState(std::uint8_t state)
 {
     return Xor32C1(Network::PacketWriter::C1(FriendStateOpcode).PutU8(state));
 }
-} // namespace Client::Protocol::Friends
+} // namespace Client::Protocol::Messenger

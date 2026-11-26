@@ -18,7 +18,7 @@
 // motor de envío, y el F4 03 llega al cable con su 03 sin tocar. Lo que se lee es lo que deja la
 // capa de FoxAnti (CL2.4): la lista llega al cable como F4 02 y FoxAnti la pasa a F4 06, y el
 // código que se elige vuelve a ella para que lo traduzca de vuelta.
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 // F4 02: C1 04 F4 02, en claro.
 [[nodiscard]] Outgoing WriteServerListRequest();
@@ -56,4 +56,4 @@ struct ServerAddress
 // leen los primeros 15 bytes, como el original (0x4e3341), hasta el primer \0, o los 15 si no hay
 // ninguno: el byte 16 no se lee nunca.
 [[nodiscard]] Core::Expected<ServerAddress, Network::ProtocolError> ReadServerAddress(const Network::Packet& packet);
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

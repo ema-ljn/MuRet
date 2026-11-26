@@ -53,7 +53,7 @@ void HitTheHero(WorldState& world, std::uint16_t damage, Crt::CrtRandom& random)
 }
 } // namespace
 
-Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Viewport::MagicAttackCount& attack,
+Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::MagicAttackCount& attack,
                                                         std::uint16_t playerKey, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;

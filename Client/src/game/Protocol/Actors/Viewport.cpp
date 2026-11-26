@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Protocol::Viewport
+namespace Client::Protocol::Actors
 {
 namespace
 {
@@ -301,9 +301,9 @@ Core::Expected<Position, Network::ProtocolError> ReadPosition(const Network::Pac
         return Core::Unexpected(Network::ProtocolError::TooShort);
     return Position{*key, *x, *y};
 }
-} // namespace Client::Protocol::Viewport
+} // namespace Client::Protocol::Actors
 
-namespace Client::Protocol::Viewport
+namespace Client::Protocol::Actors
 {
 Core::Expected<Monsters, Network::ProtocolError> ReadMonsters(const Network::Packet& packet)
 {
@@ -363,4 +363,4 @@ Core::Expected<MagicAttackCount, Network::ProtocolError> ReadMagicAttackCount(co
     }
     return attack;
 }
-} // namespace Client::Protocol::Viewport
+} // namespace Client::Protocol::Actors

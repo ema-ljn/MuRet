@@ -74,7 +74,7 @@ public:
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
     // 0x659ff6..0x65a8a3 y 0x65c039..0x65c946: con `send`, abrir la mascota, o el inventario con un Dark Lord, manda
-    // los pedidos del cuervo y del caballo (C1 06 A9 00 00 01 y A9 01 00 08, Protocol::Pet::WritePetInfoRequest). Lo
+    // los pedidos del cuervo y del caballo (C1 06 A9 00 00 01 y A9 01 00 08, Protocol::Pets::WritePetInfoRequest). Lo
     // presta el paso de la UI y LendTheSession; sin él, abrirlos corta.
     void LendThePetRequests(std::function<void(Protocol::Outgoing)> send);
     // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la

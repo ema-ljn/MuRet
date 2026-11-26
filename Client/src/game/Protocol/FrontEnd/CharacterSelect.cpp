@@ -15,11 +15,11 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 namespace
 {
-constexpr Network::PacketKind SelectKind{Network::PacketType::C1, CharacterOpcode, SelectSubcode};
+constexpr Network::PacketKind SelectKind{Network::PacketType::C1, CharacterOpcode, Character::SelectSubcode};
 // 04-protocolo, "La entrada al mundo": 0x34 bytes en total, 0x30 después del subcódigo.
 // Q-C144: Leadership ocupa los últimos dos; los WORD fuera de ese paquete no son campos.
 constexpr std::size_t SelectResultFieldsSize = 0x30;
@@ -28,7 +28,7 @@ constexpr std::size_t SelectResultPaddingSize = 2; // pkt[0x26..0x27], antes del
 
 Outgoing WriteCharacterSelect(std::span<const std::byte, NameSize> name)
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, SelectSubcode).PutBytes(name));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::SelectSubcode).PutBytes(name));
 }
 
 Core::Expected<CharacterSelectResult, Network::ProtocolError> ReadCharacterSelectResult(const Network::Packet& packet)
@@ -70,4 +70,4 @@ Core::Expected<CharacterSelectResult, Network::ProtocolError> ReadCharacterSelec
     result.leadership = *reader.ReadU16Le();
     return result;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

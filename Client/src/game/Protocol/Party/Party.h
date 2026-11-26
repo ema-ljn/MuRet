@@ -19,7 +19,7 @@ namespace Client::Protocol::Party
 // 0x4d67e0: cada miembro ocupa 0x18 bytes desde pkt[5].
 inline constexpr std::size_t MemberWireSize = 0x18;
 
-using Name = std::array<std::byte, Character::NameSize>;
+using Name = std::array<std::byte, FrontEnd::NameSize>;
 
 // 0x659aa6..0x659b94: C1 03 42 armado en la pila y mandado con send si el socket de 0x6c82a0 (+0xc) no es −1. No
 // pasa por el XOR32 ni por el cifrado del C3: va en claro.

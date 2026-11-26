@@ -15,20 +15,20 @@
 
 #include <gtest/gtest.h>
 
-// Client::Protocol::Connection, la salida: la respuesta F1 02 que manda el GameServer (04, "El
+// Client::Protocol::Session, la salida: la respuesta F1 02 que manda el GameServer (04, "El
 // flujo de conexión"; Q-C106).
 namespace
 {
 using Client::Network::Delivery;
 using Client::Network::ProtocolError;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Connection::LogoutQuitsTheGame;
-using Client::Protocol::Connection::LogoutReturnsToSelection;
-using Client::Protocol::Connection::LogoutReturnsToServerList;
-using Client::Protocol::Connection::ReadLogoutResult;
-using Client::Protocol::Connection::WriteClearLogoutReport;
-using Client::Protocol::Connection::WriteLogoutRequest;
-using Client::Protocol::Connection::WriteWindowClose;
+using Client::Protocol::Session::LogoutQuitsTheGame;
+using Client::Protocol::Session::LogoutReturnsToSelection;
+using Client::Protocol::Session::LogoutReturnsToServerList;
+using Client::Protocol::Session::ReadLogoutResult;
+using Client::Protocol::Session::WriteClearLogoutReport;
+using Client::Protocol::Session::WriteLogoutRequest;
+using Client::Protocol::Session::WriteWindowClose;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

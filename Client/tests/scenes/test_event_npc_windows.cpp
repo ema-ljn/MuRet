@@ -168,7 +168,7 @@ protected:
                                     .chat = &chat,
                                     .texts = &texts};
         Client::Scenes::GamePanels panels(*world, random);
-        panels.LendTheWindowClose([this]() { sent.push_back(Client::Protocol::Connection::WriteWindowClose()); });
+        panels.LendTheWindowClose([this]() { sent.push_back(Client::Protocol::Session::WriteWindowClose()); });
         return Client::Scenes::StepTheEventNpcWindow(context, panels.Registry());
     }
 
@@ -403,7 +403,7 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(),
-                                             Client::Protocol::Connection::WriteWindowClose().packet.Bytes()));
+                                             Client::Protocol::Session::WriteWindowClose().packet.Bytes()));
         EXPECT_EQ(Runtime().panels.eventNpc, 0);
         EXPECT_EQ(Runtime().panels.inventory, 0);
         EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);

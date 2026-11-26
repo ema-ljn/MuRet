@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -107,4 +107,4 @@ Outgoing WriteMainCheckReply(std::uint32_t sum)
 {
     return EncryptedC1(Network::PacketWriter::C1(MainCheckOpcode).PutU8(MainCheckReplyPadding).PutU32Le(sum));
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

@@ -226,7 +226,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], App::CommandLine comm
         {
             return std::nullopt;
         }
-        server->mainCheckFile = Client::Protocol::Connection::MainCheckFileName(rawCommandLine);
+        server->mainCheckFile = Client::Protocol::Session::MainCheckFileName(rawCommandLine);
     }
     return Startup{.folder = folder,
                    .commandLine = std::move(commandLine),

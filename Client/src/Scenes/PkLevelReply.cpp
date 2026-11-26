@@ -65,7 +65,7 @@ Core::Expected<std::string, std::string> MurdererLine(const WorldEntryResources&
 }
 } // namespace
 
-Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Character::PkLevel& packet,
+Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& packet,
                                                const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;

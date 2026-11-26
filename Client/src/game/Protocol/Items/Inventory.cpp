@@ -15,7 +15,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::Inventory
+namespace Client::Protocol::Items
 {
 namespace
 {
@@ -173,4 +173,4 @@ Core::Expected<ItemPut, Network::ProtocolError> ReadItemPut(const Network::Packe
         return Core::Unexpected(Network::ProtocolError::TooShort);
     return ItemPut{*slot, *item};
 }
-} // namespace Client::Protocol::Inventory
+} // namespace Client::Protocol::Items

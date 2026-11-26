@@ -115,7 +115,7 @@ Core::Expected<void, std::string> CloseGate(const GameUiContext& context)
     WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeGate = 0;
     runtime.siegeBattleUi.gateKey = 0;
-    return Send(context, Protocol::Connection::WriteWindowClose());
+    return Send(context, Protocol::Session::WriteWindowClose());
 }
 
 Core::Expected<void, std::string> CloseWeapon(const GameUiContext& context)
@@ -123,7 +123,7 @@ Core::Expected<void, std::string> CloseWeapon(const GameUiContext& context)
     WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeWeapon = 0;
     runtime.siegeBattleUi.weaponChoice = 0;
-    return Send(context, Protocol::Connection::WriteWindowClose());
+    return Send(context, Protocol::Session::WriteWindowClose());
 }
 
 Core::Expected<void, std::string> StepWeapon(const GameUiContext& context)
@@ -157,8 +157,8 @@ Core::Expected<void, std::string> StepWeapon(const GameUiContext& context)
     if (runtime.movement.pendingClick && runtime.siegeBattleUi.weaponChoice != 0 &&
         InsideInclusive(x, y, 470, 330, 620, 378))
     {
-        auto sent = Send(context, Protocol::SiegeControls::WriteWeapon(runtime.siegeBattleUi.weaponKey,
-                                                                       runtime.siegeBattleUi.weaponChoice));
+        auto sent = Send(context, Protocol::CastleSiege::WriteWeapon(runtime.siegeBattleUi.weaponKey,
+                                                                     runtime.siegeBattleUi.weaponChoice));
         if (!sent.HasValue())
             return sent;
         if (auto closed = CloseWeapon(context); !closed.HasValue())
@@ -185,8 +185,8 @@ Core::Expected<void, std::string> StepGate(const GameUiContext& context)
     {
         ConsumeLeft(runtime);
         auto sent =
-            Send(context, Protocol::SiegeControls::WriteGate(runtime.siegeBattleUi.gateState != OpenGateFlag ? 1 : 0,
-                                                             runtime.siegeBattleUi.gateKey));
+            Send(context, Protocol::CastleSiege::WriteGate(runtime.siegeBattleUi.gateState != OpenGateFlag ? 1 : 0,
+                                                           runtime.siegeBattleUi.gateKey));
         if (!sent.HasValue())
             return sent;
         return CloseGate(context);

@@ -19,7 +19,7 @@ using Client::GameLogic::CharacterAppearance;
 using Client::GameLogic::ClassAppearance;
 using Client::GameLogic::ClassPartModel;
 using Client::GameLogic::ItemLevelOf;
-using Client::Protocol::Character::EquipmentSize;
+using Client::Protocol::FrontEnd::EquipmentSize;
 
 using EquipmentBytes = std::array<std::byte, EquipmentSize>;
 

@@ -197,7 +197,7 @@ protected:
                                                             .name = "Zorzal",
                                                             .targetX = Byte(x + 3),
                                                             .targetY = y}}};
-        auto read = Client::Protocol::Viewport::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
+        auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
         ASSERT_TRUE(read.HasValue());
         const auto applied = Client::Scenes::ApplyViewportPlayers(read.Value(), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();

@@ -11,7 +11,7 @@
 // volver a la selección o volver a la lista de servidores, y lo que el cliente manda al seguirla.
 // Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión" (F1 02), y Q-C106, Q-C79
 // y Q-C211 a Q-C215 en 07-quirks-y-bugs.md.
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 // El resultado que cierra el juego: 0x4c2710 hace SendMessageA(WM_DESTROY) (0x4c391b), en
 // cualquier escena y llegue cifrado o no. Con 1 va a la selección y con 2 a la lista (Q-C79); con
@@ -45,4 +45,4 @@ inline constexpr std::uint8_t LogoutReturnsToServerList = 2;
 // nombre sale de lo que hace el cliente al mandarlo, que cierra lo suyo (+0x21383 de [0x710148] en 0, y
 // 0x724580 y 0x724584 en 0; inferido).
 [[nodiscard]] Outgoing WriteWindowClose();
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

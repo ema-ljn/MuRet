@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Protocol::Character, la lista de personajes: pedirla (F3 00, C->S) y leerla (F3 00, S->C,
+// Client::Protocol::FrontEnd, la lista de personajes: pedirla (F3 00, C->S) y leerla (F3 00, S->C,
 // 0x4c20a0), con los bytes del 04 (La selección de personaje) escritos a mano y nombres sintéticos
 // (support/CharacterPackets.h).
 namespace
@@ -31,12 +31,12 @@ using Client::Network::ProtocolError;
 using Client::Network::TextField;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Character::CharacterClassOf;
-using Client::Protocol::Character::CharacterEntry;
-using Client::Protocol::Character::CharacterList;
-using Client::Protocol::Character::IsLocked;
-using Client::Protocol::Character::ReadCharacterList;
-using Client::Protocol::Character::WriteCharacterListRequest;
+using Client::Protocol::FrontEnd::CharacterClassOf;
+using Client::Protocol::FrontEnd::CharacterEntry;
+using Client::Protocol::FrontEnd::CharacterList;
+using Client::Protocol::FrontEnd::IsLocked;
+using Client::Protocol::FrontEnd::ReadCharacterList;
+using Client::Protocol::FrontEnd::WriteCharacterListRequest;
 using Client::Tests::Bytes;
 using Client::Tests::CharacterEntryFields;
 using Client::Tests::CharacterListBytes;

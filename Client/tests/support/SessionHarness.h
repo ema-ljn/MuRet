@@ -50,7 +50,7 @@ struct LoggedInSession
         socket.reads = {AddressReply("10.0.0.2", 55901)};
         static_cast<void>(session.Poll());
         static_cast<void>(session.Poll());
-        socket.reads = {GameHello(1, Protocol::ClientVersion)};
+        socket.reads = {GameHello(1, Protocol::Session::ClientVersion)};
         static_cast<void>(session.Poll());
         session.SubmitCredentials(App::Credentials{"user0001", "pass0002"});
         socket.reads = {LoginResult(1)};

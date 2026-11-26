@@ -15,7 +15,7 @@
 // "C3/C4", y el plan de la CL2 (CL2.5).
 //
 // Los dos que manda el cliente llevan el XOR32 y salen cifrados como C3.
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 // Lo que mide la cuenta y la clave en el login: 10 bytes cada una, completadas con \0.
 inline constexpr std::size_t CredentialSize = 10;
@@ -53,4 +53,4 @@ inline constexpr std::uint8_t LoginAccepted = 1;
 // F1 03: C1 06 F1 03 00 F3, con el XOR32 y para cifrar. Lo manda la respuesta del F3 03 que llega
 // sin cifrar, en vez de entrar al mundo (0x4c396a; 04, "La entrada al mundo").
 [[nodiscard]] Outgoing WriteClearWorldEntryReport();
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

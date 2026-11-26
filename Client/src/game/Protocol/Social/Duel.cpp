@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Protocol::Duel
+namespace Client::Protocol::Social
 {
 namespace
 {
@@ -26,7 +26,7 @@ Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network:
 
 std::optional<Name> ReadName(Core::ByteReader& reader)
 {
-    const auto bytes = reader.ReadBytes(Character::NameSize);
+    const auto bytes = reader.ReadBytes(FrontEnd::NameSize);
     if (!bytes)
         return std::nullopt;
     Name name{};
@@ -102,4 +102,4 @@ Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const Name& n
 {
     return EncryptedC1(Network::PacketWriter::C1(DuelRequestOpcode).PutU8(accepted).PutU16Be(key).PutBytes(name));
 }
-} // namespace Client::Protocol::Duel
+} // namespace Client::Protocol::Social

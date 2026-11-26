@@ -440,13 +440,13 @@ std::int32_t CompareTradeItems(const ItemState& a, const ItemState& b)
 }
 
 Core::Expected<std::optional<Protocol::Outgoing>, std::string>
-ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntryResources& resources)
+ApplyTradeRequest(const Protocol::Social::TradeRequest& request, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     GamePanels panels(world, resources.cloth.random);
     if (panels.Registry().IsOpen(UI::PersonalShopPanel) || panels.Registry().IsOpen(UI::OtherShopPanel))
-        return std::optional<Protocol::Outgoing>{Protocol::Trade::WriteTradeResponse(0)};
+        return std::optional<Protocol::Outgoing>{Protocol::Social::WriteTradeResponse(0)};
     TradeState& trade = runtime.social.trade;
     trade.otherName.back() = std::byte{0};
     Copy(trade.otherName, request.name);
@@ -464,10 +464,10 @@ ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntry
 Protocol::Outgoing ApplyClearTradeRequest(Crt::CrtRandom& random)
 {
     random.Discard(C3Randoms);
-    return Protocol::Trade::WriteClearTradeRequestReport();
+    return Protocol::Social::WriteClearTradeRequestReport();
 }
 
-Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::TradeResponse& response,
+Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Social::TradeResponse& response,
                                                      const WorldEntryResources& resources)
 {
     if (response.response == TradeRefused)
@@ -505,7 +505,7 @@ Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::Trad
     return {};
 }
 
-Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Trade::TradeItemRemoved& removed,
+Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Social::TradeItemRemoved& removed,
                                                         const WorldEntryResources& resources)
 {
     constexpr std::uint8_t NoSlot = 0xff;
@@ -528,7 +528,7 @@ Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Trade::T
     return {};
 }
 
-Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::TradeItemAdded& added,
+Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Social::TradeItemAdded& added,
                                                       const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
@@ -572,18 +572,18 @@ Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::Tra
     return {};
 }
 
-void ApplyTradeMoneyResult(const Protocol::Trade::TradeMoneyResult& result, WorldState& world)
+void ApplyTradeMoneyResult(const Protocol::Social::TradeMoneyResult& result, WorldState& world)
 {
     TradeState& trade = world.Runtime().social.trade;
     trade.ownMoney = result.accepted != 0 ? trade.sentMoney : 0;
 }
 
-void ApplyTradeOtherMoney(const Protocol::Trade::TradeOtherMoney& money, WorldState& world)
+void ApplyTradeOtherMoney(const Protocol::Social::TradeOtherMoney& money, WorldState& world)
 {
     world.Runtime().social.trade.otherMoney = money.money;
 }
 
-void ApplyTradeOkState(const Protocol::Trade::TradeOkState& state, WorldState& world)
+void ApplyTradeOkState(const Protocol::Social::TradeOkState& state, WorldState& world)
 {
     WorldRuntime& runtime = world.Runtime();
     TradeState& trade = runtime.social.trade;
@@ -596,7 +596,7 @@ void ApplyTradeOkState(const Protocol::Trade::TradeOkState& state, WorldState& w
     runtime.RequestSound(TradeOkSound);
 }
 
-Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Trade::TradeResult& result,
+Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Social::TradeResult& result,
                                                    const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -672,7 +672,7 @@ Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Crt::Crt
             return Core::Unexpected(std::string("0x657fe1: el C1 03 3D al cerrar el comercio sin el cable"));
         // El relleno y el serial del C3 (0x40b0a0).
         random.Discard(C3Randoms);
-        send(Protocol::Trade::WriteTradeCancel());
+        send(Protocol::Social::WriteTradeCancel());
     }
     for (std::size_t slot = 0; slot < trade.ownGrid.size(); ++slot)
     {
@@ -766,7 +766,7 @@ void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, C
     }
 }
 
-Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart& start,
+Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Social::DuelStart& start,
                                                  const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
@@ -792,7 +792,8 @@ Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart
     return {};
 }
 
-Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Duel::DuelEnd& end, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Social::DuelEnd& end,
+                                               const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
     DuelState& duel = runtime.social.duel;
@@ -807,7 +808,7 @@ Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Duel::DuelEnd& en
     return {};
 }
 
-void ApplyDuelRequest(const Protocol::Duel::DuelRequest& request, WorldState& world)
+void ApplyDuelRequest(const Protocol::Social::DuelRequest& request, WorldState& world)
 {
     WorldRuntime& runtime = world.Runtime();
     if (runtime.dialogs.current == DuelBusyDialog)
@@ -918,7 +919,7 @@ Core::Expected<void, std::string> AddSocialNotice(const WorldEntryResources& res
     return Message(resources, text, type, where);
 }
 
-void ApplyDuelScore(const Protocol::Duel::DuelScore& score, WorldState& world)
+void ApplyDuelScore(const Protocol::Social::DuelScore& score, WorldState& world)
 {
     DuelState& duel = world.Runtime().social.duel;
     if (duel.rivalKey == score.firstKey)

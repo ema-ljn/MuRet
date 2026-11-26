@@ -36,7 +36,7 @@ namespace Client::Scenes
 {
 namespace
 {
-namespace Battle = Protocol::CastleBattle;
+namespace Battle = Protocol::CastleSiege;
 
 Core::Expected<std::string, std::string> Text(const CastleReceiveContext& context, std::size_t index)
 {

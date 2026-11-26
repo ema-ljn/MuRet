@@ -39,7 +39,7 @@ constexpr float CellSize = 100.0f;
 constexpr float CellCenter = 50.0f;
 constexpr float DirectionDegrees = 45.0f;
 using Maps::IsChaosCastle;
-void WriteHeroCells(ActorState& hero, const Protocol::World::Teleport& reply, const WorldEntryResources& resources)
+void WriteHeroCells(ActorState& hero, const Protocol::Movement::Teleport& reply, const WorldEntryResources& resources)
 {
     {
         const Models::LogicalAccess x(hero.cellXAccesses, resources.cloth.random, Models::SmallLogicalCloseRandoms);
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& reso
     runtime.byte6c8e4d = 0xff;
     return StopTransitionHero(hero, resources);
 }
-void ApplyRegenStats(const Protocol::World::Regen& reply, const WorldEntryResources& resources)
+void ApplyRegenStats(const Protocol::Movement::Regen& reply, const WorldEntryResources& resources)
 {
     const Models::LogicalAccess own(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
                                     Models::OwnRecordCloseRandoms);
@@ -142,7 +142,7 @@ void ApplyRegenStats(const Protocol::World::Regen& reply, const WorldEntryResour
     record.experience = reply.experience;
     record.zen = reply.zen;
 }
-Core::Expected<void, std::string> RebuildRegenHero(const Protocol::World::Regen& reply, std::uint16_t playerKey,
+Core::Expected<void, std::string> RebuildRegenHero(const Protocol::Movement::Regen& reply, std::uint16_t playerKey,
                                                    const WorldEntryResources& resources)
 {
     auto& world = resources.world;
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> RebuildRegenHero(const Protocol::World::Regen&
     CreateTransitionArrival(hero, resources);
     return {};
 }
-Core::Expected<void, std::string> ChangeRegenMap(const Protocol::World::Regen& reply, std::uint16_t playerKey,
+Core::Expected<void, std::string> ChangeRegenMap(const Protocol::Movement::Regen& reply, std::uint16_t playerKey,
                                                  ActorState& hero, const WorldEntryResources& resources)
 {
     const auto oldMap = resources.world.Runtime().map;
@@ -207,7 +207,7 @@ Core::Expected<void, std::string> ChangeRegenMap(const Protocol::World::Regen& r
     return RefreshTransitionHeight(hero, resources);
 }
 } // namespace
-Core::Expected<void, std::string> ApplyTeleport(const Protocol::World::Teleport& reply, std::uint16_t playerKey,
+Core::Expected<void, std::string> ApplyTeleport(const Protocol::Movement::Teleport& reply, std::uint16_t playerKey,
                                                 const WorldEntryResources& resources,
                                                 IWorldTransitionPublisher& publisher)
 {
@@ -237,7 +237,7 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::World::Teleport&
     ShowTheMapBanner(runtime.hud.mapBanner, runtime.map);
     return {};
 }
-Core::Expected<void, std::string> ApplyRegen(const Protocol::World::Regen& reply, std::uint16_t playerKey,
+Core::Expected<void, std::string> ApplyRegen(const Protocol::Movement::Regen& reply, std::uint16_t playerKey,
                                              const WorldEntryResources& resources)
 {
     auto& world = resources.world;

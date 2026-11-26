@@ -10,7 +10,7 @@
 // El pedido de poner un punto de los de subir de nivel (F3 06, C->S), desde los botones de la ventana del personaje
 // (0x5e468e..0x5e4a12, CL8 hito 5): C1 05 F3 06 y la estadística, con el XOR32 desde el byte 3, como lo arma el
 // PacketWriter del original en la pila y lo manda con send() sin pasar por la cola (04-protocolo, "F3 06").
-namespace Client::Protocol::Character
+namespace Client::Protocol::Player
 {
 // Las estadísticas de los botones, de arriba hacia abajo: la fuerza, la agilidad, la vitalidad, la energía y, solo
 // el Dark Lord (la clase 4), el comando.
@@ -37,4 +37,4 @@ struct LevelUpPointResult
 // con la vitalidad o la energía (0x4d332d y 0x4d333b): sin los 10 bytes, TooShort.
 [[nodiscard]] Core::Expected<LevelUpPointResult, Network::ProtocolError>
 ReadLevelUpPointResult(const Network::Packet& packet);
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::Player

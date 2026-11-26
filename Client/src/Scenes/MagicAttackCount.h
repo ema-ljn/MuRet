@@ -21,7 +21,7 @@ struct WorldEntryResources;
 // de 15, que sube) y, si la clave es la del jugador (`playerKey`, [0x57678bc]), la vida (+0x22) del registro propio
 // baja +0x384 hasta 0 (abierto y cerrado por la tabla: 3.848 rand() al cerrarse). Sin el modelo cargado del que pega o
 // con un golpe que corta, corta con la dirección.
-[[nodiscard]] Core::Expected<void, std::string>
-ApplyMagicAttackCount(const Protocol::Viewport::MagicAttackCount& attack, std::uint16_t playerKey,
-                      const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::MagicAttackCount& attack,
+                                                                      std::uint16_t playerKey,
+                                                                      const WorldEntryResources& resources);
 } // namespace Client::Scenes

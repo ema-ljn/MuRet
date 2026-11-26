@@ -166,7 +166,7 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     return {};
 }
 
-Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Character::CharacterEntry& entry,
+Core::Expected<void, std::string> SelectionState::Construct(const Protocol::FrontEnd::CharacterEntry& entry,
                                                             const World::GameCamera& camera,
                                                             World::GameCameraInput& input, Models::ClothWorld& cloth,
                                                             const Models::Skeleton& playerSkeleton)
@@ -213,7 +213,7 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
             // 0x4c20b3..0x4c2101: antes de los personajes, sin guerra ni rival (0x576796c, 0x6c82f0 y 0x5767804) y
             // +0x374 de los 400 por el gremio del héroe publicado, como 0x4c1800 (CL9 hito 8).
             ClearTheWar(m_world);
-            for (const Protocol::Character::CharacterEntry& entry : list->list.characters)
+            for (const Protocol::FrontEnd::CharacterEntry& entry : list->list.characters)
             {
                 const auto constructed = Construct(entry, camera, input, sharedCloth, skeleton);
                 if (!constructed.HasValue())

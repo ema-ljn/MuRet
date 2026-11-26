@@ -21,7 +21,7 @@ class Packet;
 // abierto, que es el del CS. MuRet lo manda igual, al abrir el CS (la ServerSession), porque es lo
 // que el CS del original ve primero. El que sale ya en el juego, el del caballo oscuro desde la UI
 // de las mascotas (0x424230), es de la CL8.
-namespace Client::Protocol::Pet
+namespace Client::Protocol::Pets
 {
 // La mascota.
 inline constexpr std::uint8_t DarkRavenPet = 0; // el cuervo oscuro, el ítem 13, 5
@@ -60,4 +60,4 @@ struct PetInfoReply
 
 // El A9 que llega, C1 y sin mirar el cifrado ni el largo en el original: MuRet da TooShort sin los 12 bytes.
 [[nodiscard]] Core::Expected<PetInfoReply, Network::ProtocolError> ReadPetInfoReply(const Network::Packet& packet);
-} // namespace Client::Protocol::Pet
+} // namespace Client::Protocol::Pets

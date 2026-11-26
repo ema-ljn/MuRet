@@ -1255,7 +1255,7 @@ public:
     {
         if (m_choose && !m_chosen)
         {
-            m_world.PrepareSelectedActor(Client::Protocol::Character::CharacterEntry{}, m_random);
+            m_world.PrepareSelectedActor(Client::Protocol::FrontEnd::CharacterEntry{}, m_random);
             m_chosen = true;
         }
     }
@@ -1416,7 +1416,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     draw();
     EXPECT_EQ(target.frames.size(), 3u) << "con 31 sigue el mosaico";
 
-    Client::Protocol::Character::CharacterSelectResult reply;
+    Client::Protocol::FrontEnd::CharacterSelectResult reply;
     reply.map = 0;
     reply.x = 133;
     reply.y = 127;

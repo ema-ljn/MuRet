@@ -138,14 +138,14 @@ Core::Expected<void, std::string> DressTheNewClass(ActorState& actor, const Worl
 }
 } // namespace
 
-void ApplyQuestFlag(const Protocol::Quest::QuestFlag& flag, WorldState& world)
+void ApplyQuestFlag(const Protocol::Quests::QuestFlag& flag, WorldState& world)
 {
     QuestState& quest = world.Runtime().quest;
     if (flag.index < quest.flags.size())
         quest.flags[flag.index] = flag.value;
 }
 
-void ApplyQuestList(const Protocol::Quest::QuestList& list, const WorldEntryResources& resources)
+void ApplyQuestList(const Protocol::Quests::QuestList& list, const WorldEntryResources& resources)
 {
     // 0x418e20: lo que la copia escribiría después del objeto (+0x21398) se descarta con un aviso (Q-C1126).
     if (const std::size_t outside = ApplyTheQuestList(resources.world, list.count, std::span(list.states));
@@ -154,13 +154,13 @@ void ApplyQuestList(const Protocol::Quest::QuestList& list, const WorldEntryReso
                               list.count, outside);
 }
 
-Core::Expected<void, std::string> ApplyQuestState(const Protocol::Quest::QuestStateChange& change,
+Core::Expected<void, std::string> ApplyQuestState(const Protocol::Quests::QuestStateChange& change,
                                                   const WorldEntryResources& resources)
 {
     return ShowTheNewState(resources, change.index, change.state);
 }
 
-Core::Expected<void, std::string> ApplySetQuestResult(const Protocol::Quest::SetQuestResult& result,
+Core::Expected<void, std::string> ApplySetQuestResult(const Protocol::Quests::SetQuestResult& result,
                                                       const WorldEntryResources& resources)
 {
     if (result.result != 0)
@@ -168,7 +168,7 @@ Core::Expected<void, std::string> ApplySetQuestResult(const Protocol::Quest::Set
     return ShowTheNewState(resources, result.index, result.state);
 }
 
-Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestResult& result,
+Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::QuestResult& result,
                                                    const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -181,7 +181,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
     const bool isHero = slot == runtime.hero;
     switch (result.kind)
     {
-    case Protocol::Quest::PointsPrize:
+    case Protocol::Quests::PointsPrize:
         // 0x4ddbd5..0x4dddf2: el registro propio abierto alrededor de la suma.
         if (isHero)
         {
@@ -194,7 +194,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
             return created;
         runtime.RequestSound(PointsPrizeSound);
         return {};
-    case Protocol::Quest::ClassChangePrize:
+    case Protocol::Quests::ClassChangePrize:
         // 0x4dde7b..0x4dde91: la clase antes de mirar si es el héroe.
         actor.characterClass =
             static_cast<std::uint8_t>(static_cast<std::uint8_t>((result.value & 0x10u) | (result.value >> 4u)) >> 1u);
@@ -207,7 +207,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
         if (auto created = CreateThePrizeSparkles(actor, resources, true, 0x4de0eb); !created.HasValue())
             return created;
         return DressTheNewClass(actor, resources, 0x4de140);
-    case Protocol::Quest::ClassPointsPrize:
+    case Protocol::Quests::ClassPointsPrize:
         if (isHero)
         {
             const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
@@ -218,7 +218,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
         if (auto created = CreateThePrizeSparkles(actor, resources, true, 0x4de3bc); !created.HasValue())
             return created;
         return DressTheNewClass(actor, resources, 0x4de411);
-    case Protocol::Quest::EffectPrize:
+    case Protocol::Quests::EffectPrize:
         if (auto created = CreateThePrizeSparkles(actor, resources, true, 0x4de470); !created.HasValue())
             return created;
         return DressTheNewClass(actor, resources, 0x4de4c5);

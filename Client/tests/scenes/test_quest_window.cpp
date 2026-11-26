@@ -135,7 +135,7 @@ CrtRandom Advanced(CrtRandom random, int count)
 class RecordingRequests final : public Client::Scenes::IGameUiRequests
 {
 public:
-    void SendOptionData(const Client::Protocol::OptionData::OptionBody& /*body*/) override
+    void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override
     {
         requests.emplace_back("F3 30");
     }

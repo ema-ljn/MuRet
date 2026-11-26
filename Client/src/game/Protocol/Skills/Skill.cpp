@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Protocol::Skill
+namespace Client::Protocol::Skills
 {
 namespace
 {
@@ -255,4 +255,4 @@ Outgoing WriteDurationMagic(const DurationMagicSend& send)
                            .PutU8(static_cast<std::uint8_t>(send.key & 0xffu))
                            .PutU8(send.magicKey));
 }
-} // namespace Client::Protocol::Skill
+} // namespace Client::Protocol::Skills

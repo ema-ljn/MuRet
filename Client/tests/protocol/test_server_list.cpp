@@ -18,18 +18,18 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Protocol::Connection, la lista de servidores: pedirla (F4 02), leerla (F4 06), elegir uno
+// Client::Protocol::Session, la lista de servidores: pedirla (F4 02), leerla (F4 06), elegir uno
 // (F4 03) y leer adónde conectarse, con los bytes del cable del 04.
 namespace
 {
 using Client::Network::Delivery;
 using Client::Network::ProtocolError;
-using Client::Protocol::Connection::ReadServerAddress;
-using Client::Protocol::Connection::ReadServerList;
-using Client::Protocol::Connection::ServerEntry;
-using Client::Protocol::Connection::WriteCreditsNotice;
-using Client::Protocol::Connection::WriteServerListRequest;
-using Client::Protocol::Connection::WriteServerSelect;
+using Client::Protocol::Session::ReadServerAddress;
+using Client::Protocol::Session::ReadServerList;
+using Client::Protocol::Session::ServerEntry;
+using Client::Protocol::Session::WriteCreditsNotice;
+using Client::Protocol::Session::WriteServerListRequest;
+using Client::Protocol::Session::WriteServerSelect;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

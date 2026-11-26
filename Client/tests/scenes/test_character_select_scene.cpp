@@ -1140,8 +1140,8 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
     EXPECT_EQ(tested.online.session.State(), SessionState::WaitingDeleteResult);
     const std::vector<Client::Network::Packet> deletes = tested.DeletesSent();
     ASSERT_EQ(deletes.size(), 1u);
-    const auto expected = Client::Protocol::Character::WriteCharacterDelete(
-        Client::Tests::NameBytes("char0002"), Client::Protocol::Character::DeleteCodeFromText("1234"));
+    const auto expected = Client::Protocol::FrontEnd::WriteCharacterDelete(
+        Client::Tests::NameBytes("char0002"), Client::Protocol::FrontEnd::DeleteCodeFromText("1234"));
     EXPECT_TRUE(Client::Tests::SameBytes(deletes[0].Bytes(), Client::Network::Xor32Decode(expected.packet).Bytes()));
     EXPECT_TRUE(Draws(tested.Frame(), "espere"));
     EXPECT_FALSE(tested.scene->WantsTextInput());
@@ -1707,7 +1707,7 @@ TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWi
     ASSERT_FALSE(visible->modelVertices.empty());
     const auto retained = selection.Slots()[DeletedSlot];
     tested.online.session.ChooseCharacter(DeletedSlot);
-    tested.online.session.DeleteCharacter(Client::Protocol::Character::DeleteCodeFromText("1234"));
+    tested.online.session.DeleteCharacter(Client::Protocol::FrontEnd::DeleteCodeFromText("1234"));
     tested.online.socket.reads = {Client::Tests::Bytes({0xc1, 0x05, 0xf3, 0x02, 0x01})};
 
     ASSERT_NO_FATAL_FAILURE(tested.Poll());
@@ -2077,7 +2077,7 @@ TEST(CharacterSelectSceneTest, ACreationSendsF301AndTheNewOneEnters)
     EXPECT_EQ(tested.online.session.State(), SessionState::WaitingCreateResult);
     const std::vector<Client::Network::Packet> creates = tested.CharacterPacketsSent(0x01);
     ASSERT_EQ(creates.size(), 1u);
-    const auto expected = Client::Protocol::Character::WriteCharacterCreate(Client::Tests::NameBytes("char0003"), 1);
+    const auto expected = Client::Protocol::FrontEnd::WriteCharacterCreate(Client::Tests::NameBytes("char0003"), 1);
     EXPECT_TRUE(Client::Tests::SameBytes(creates[0].Bytes(), Client::Network::Xor32Decode(expected.packet).Bytes()));
     std::vector<FrameEvent> events = tested.Frame();
     EXPECT_FALSE(ShowsTheCreateWindow(events));

@@ -62,45 +62,45 @@ struct NpcWindowContext
 // El 30 cifrado (0x4d250c..0x4d28f6): 0x657a90 (cerrar todo), lo que abre el NPC según pkt[3] (la tabla de 0x4d2914),
 // los dos sonidos (0x19 y 0x1c, CL10) y el pedido del cursor (NpcWindowState::cursorWarpRequested). Con 3, las seis
 // tasas de pkt[4..9]; las que el paquete no trae quedan en 0 (Q-C920).
-[[nodiscard]] Core::Expected<void, std::string> ApplyTalkResult(const Protocol::NpcWindows::TalkResult& talk,
+[[nodiscard]] Core::Expected<void, std::string> ApplyTalkResult(const Protocol::Npc::TalkResult& talk,
                                                                 const WorldEntryResources& resources);
 
 // El 31 (0x4c5f60): con la grilla 3, 0x7d2dc80 en 2, los sonidos 0x57 y 0x44, la caja del caos vacía y cada entrada
 // con 0x5bc740(0x7d2d380, 8, 4, lugar, datos, 1); con la 5, la caja del entrenador; con otra, la grilla de
 // 0x78a7070 vacía y cada entrada con 0x5bc150.
-[[nodiscard]] Core::Expected<void, std::string> ApplyItemList(const Protocol::NpcWindows::ItemList& list,
+[[nodiscard]] Core::Expected<void, std::string> ApplyItemList(const Protocol::Npc::ItemList& list,
                                                               const WorldEntryResources& resources);
 
 // El 32 (0x4e3c2a..0x4e3c58): con un lugar, 0x5bc740(0x78a9bb0, 8, 8, lugar, datos, 0) y el sonido 0x1d; siempre,
 // 0x5767950 en 0.
-[[nodiscard]] Core::Expected<void, std::string> ApplyBuyResult(const Protocol::NpcWindows::BuyResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyBuyResult(const Protocol::Npc::BuyResult& result,
                                                                const WorldEntryResources& resources);
 
 // El 33 (0x4e3c6e..0x4e3cc6): con 0, 0x5be150; si no, el cursor vacío y el zen nuevo en +0xecc del registro propio,
 // abierto (0x4e79a0 y 0x40f370), y el sonido 0x1d.
-[[nodiscard]] Core::Expected<void, std::string> ApplySellResult(const Protocol::NpcWindows::SellResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplySellResult(const Protocol::Npc::SellResult& result,
                                                                 const WorldEntryResources& resources);
 
 // El 34 (0x4e3cd7..0x4e3d24): con zen, en +0xecc del registro propio abierto, 0x550d10 y el sonido 0x25.
-[[nodiscard]] Core::Expected<void, std::string> ApplyRepairResult(const Protocol::NpcWindows::RepairResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyRepairResult(const Protocol::Npc::RepairResult& result,
                                                                   const WorldEntryResources& resources);
 
 // El 81 (0x4e4692..0x4e46ce): con pkt[3] distinto de 0, el zen del almacén (+0xed0) y el del inventario (+0xecc) con
 // el registro propio abierto.
-[[nodiscard]] Core::Expected<void, std::string> ApplyWarehouseMoney(const Protocol::NpcWindows::WarehouseMoney& money,
+[[nodiscard]] Core::Expected<void, std::string> ApplyWarehouseMoney(const Protocol::Npc::WarehouseMoney& money,
                                                                     const WorldEntryResources& resources);
 
 // El 82 y el 87 (0x4e4819..0x4e485d): el cursor vacío y, con el diálogo 0x73, su cierre y la entrada del chat.
-[[nodiscard]] Core::Expected<void, std::string> ApplyNpcWindowClosed(const Protocol::NpcWindows::NpcWindowClosed&,
+[[nodiscard]] Core::Expected<void, std::string> ApplyNpcWindowClosed(const Protocol::Npc::NpcWindowClosed&,
                                                                      const WorldEntryResources& resources);
 
 // El 83 (0x4e46df..0x4e47f2, las tablas de 0x4e60c0 y 0x4e60dc): 0 y 1 la traba del almacén, 0xa, 0xb y 0xd sus
 // diálogos, 0xc lo que esperaba la contraseña.
-[[nodiscard]] Core::Expected<void, std::string> ApplyWarehouseState(const Protocol::NpcWindows::WarehouseState& state,
+[[nodiscard]] Core::Expected<void, std::string> ApplyWarehouseState(const Protocol::Npc::WarehouseState& state,
                                                                     const WorldEntryResources& resources);
 
 // El 86 (0x4da280, las tablas de 0x4da38c y 0x4da3a8): el resultado de la mezcla.
-[[nodiscard]] Core::Expected<void, std::string> ApplyChaosMixResult(const Protocol::NpcWindows::ChaosMixResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyChaosMixResult(const Protocol::Npc::ChaosMixResult& result,
                                                                     const WorldEntryResources& resources);
 
 // 0x5c4472..0x5c4a89, desde 0x5c4110 con el modo de reparar: el clic consumido, los dos rand() del C3 y el C1 05 34

@@ -13,7 +13,7 @@ namespace Client::Core
 class Log;
 }
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 struct CharacterSelectResult;
 }
@@ -43,7 +43,7 @@ struct OwnCharacterRecord
     // equipo todavía viejo (06, fila 5).
     // Q-C144: el original copia a +0x48 y +0x4a los WORD de pkt[0x34..0x37], fuera de los 0x34
     // bytes del paquete; MuRet los deja en 0 y lo avisa en `log`.
-    void ApplyStats(const Protocol::Character::CharacterSelectResult& reply, Core::Log& log);
+    void ApplyStats(const Protocol::FrontEnd::CharacterSelectResult& reply, Core::Log& log);
 
     // 0x4c3940, fila 7 (0x4c47c8..0x4c47da): en los doce lugares, el tipo en −1, el dword de +4
     // (scalar1Low) y el byte de +0x1b (flags1b) en 0, porque el equipo lo trae el F3 10. El resto de
@@ -67,10 +67,10 @@ struct OwnCharacterRecord
     void SetSkillAt(std::size_t index, std::uint8_t skill);
 
     // 06, "La lógica": lo copia la selección (0x6342c0) y la respuesta no lo cambia.
-    std::array<std::byte, Protocol::Character::NameSize + 1> name{}; // +0, hasta la clase
-    std::uint8_t characterClass = 0;                                 // +0xb
-    std::uint8_t skin = 0;                                           // +0xc
-    std::uint16_t level = 0;                                         // +0xe
+    std::array<std::byte, Protocol::FrontEnd::NameSize + 1> name{}; // +0, hasta la clase
+    std::uint8_t characterClass = 0;                                // +0xb
+    std::uint8_t skin = 0;                                          // +0xc
+    std::uint16_t level = 0;                                        // +0xe
 
     // 04, la tabla de la respuesta del F3 03: adónde va cada campo.
     std::uint32_t experience = 0;     // +0x10

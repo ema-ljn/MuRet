@@ -9,7 +9,7 @@
 
 // 04 § Los cambios de mapa y § El clima y Crywolf: formatos puros de warp, revivir y clima.
 // Network entrega los C3 entrantes ya descifrados como C1; la escena decide cuándo enviar.
-namespace Client::Protocol::World
+namespace Client::Protocol::Movement
 {
 // 0x4e36b5: pkt[3] entero. El nibble alto selecciona la rama; >1 no cambia la meta.
 struct Weather
@@ -63,4 +63,4 @@ struct Regen
 // 06 § Los objetos de Castle Siege, 0x42a7d3..0x42a99e (0x42a760, al cargar el 30): C1 04 B9 02, con XOR32 y
 // Delivery::Clear (send directo, con el socket del GS abierto).
 [[nodiscard]] Outgoing WriteCastleSiegeState();
-} // namespace Client::Protocol::World
+} // namespace Client::Protocol::Movement

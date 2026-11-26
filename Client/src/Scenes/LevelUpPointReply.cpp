@@ -18,7 +18,7 @@ namespace Client::Scenes
 {
 namespace
 {
-namespace Character = Protocol::Character;
+namespace Player = Protocol::Player;
 
 // 0x4d320c: TEST byte [pkt + 4], 0xf0.
 constexpr std::uint8_t AddedBits = 0xf0;
@@ -26,7 +26,7 @@ constexpr std::uint8_t AddedBits = 0xf0;
 constexpr std::uint8_t StatBits = 0x0f;
 } // namespace
 
-Core::Expected<void, std::string> ApplyLevelUpPointResult(const Character::LevelUpPointResult& reply,
+Core::Expected<void, std::string> ApplyLevelUpPointResult(const Player::LevelUpPointResult& reply,
                                                           const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -41,21 +41,21 @@ Core::Expected<void, std::string> ApplyLevelUpPointResult(const Character::Level
         --own.levelUpPoints;
         switch (reply.result & StatBits)
         {
-        case Character::StrengthPoint: // 0x4d32eb
+        case Player::StrengthPoint: // 0x4d32eb
             ++own.strength;
             break;
-        case Character::AgilityPoint: // 0x4d3327
+        case Player::AgilityPoint: // 0x4d3327
             ++own.agility;
             break;
-        case Character::VitalityPoint: // 0x4d332d
+        case Player::VitalityPoint: // 0x4d332d
             ++own.vitality;
             own.maxLife = reply.maxLifeOrMana;
             break;
-        case Character::EnergyPoint: // 0x4d333b
+        case Player::EnergyPoint: // 0x4d333b
             ++own.energy;
             own.maxMana = reply.maxLifeOrMana;
             break;
-        case Character::CommandPoint: // 0x4d3349
+        case Player::CommandPoint: // 0x4d3349
             ++own.leadership;
             break;
         default: // 0x4d32e2: JA a 0x4d334d.

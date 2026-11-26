@@ -99,7 +99,7 @@ constexpr std::uint8_t HeroX = 0x88;
 constexpr std::uint8_t HeroY = 0x82;
 constexpr std::uint8_t DarkKnight = 1 << 5;
 
-using Equipment = std::array<std::byte, Client::Protocol::Character::EquipmentSize>;
+using Equipment = std::array<std::byte, Client::Protocol::FrontEnd::EquipmentSize>;
 
 // Sin nada: las manos 0xfff, las alas de b[4] en 3 con b[8] & 7 en 0 y la mascota de b[4] en 3 con b[9] & 1 en 0.
 Equipment NothingWorn()
@@ -1071,14 +1071,14 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
         Client::UI::AddALetter(manager.letterModel, 7, "Tordo", "Saludos", "2026/11/13", "10:20", 0);
         Equipment equipment = NothingWorn();
         equipment[4] = std::byte{0xfe};
-        const Client::Protocol::Letters::LetterRead read{.index = 7,
-                                                         .length = 9,
-                                                         .portraitClass = 0x20,
-                                                         .equipment = equipment,
-                                                         .direction = 0x4f,
-                                                         .action = 2,
-                                                         .body = "Hola che",
-                                                         .copy = {}};
+        const Client::Protocol::Messenger::LetterRead read{.index = 7,
+                                                           .length = 9,
+                                                           .portraitClass = 0x20,
+                                                           .equipment = equipment,
+                                                           .direction = 0x4f,
+                                                           .action = 2,
+                                                           .body = "Hola che",
+                                                           .copy = {}};
         const Client::Scenes::ChatReceiveContext context{.world = game->world,
                                                          .random = game->cloth.random,
                                                          .measure = &m_letters,

@@ -20,5 +20,5 @@ namespace Client::UI
 // El aviso que abre el botón de borrar con `chosen`, en este orden: con gremio (+0x368 distinto de
 // 0xff), el 0x92; de nivel 80 o más (0x6d5e24) fuera del grupo libre, el 0x83; con las banderas
 // 0x12, el 0x61; si no, la confirmación 0x5e.
-[[nodiscard]] NoticeId NoticeOfDeleteButton(const Protocol::Character::CharacterEntry& chosen, bool freeDeletionGroup);
+[[nodiscard]] NoticeId NoticeOfDeleteButton(const Protocol::FrontEnd::CharacterEntry& chosen, bool freeDeletionGroup);
 } // namespace Client::UI

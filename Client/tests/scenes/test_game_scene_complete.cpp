@@ -186,7 +186,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     Client::Scenes::GameModels models;
     const auto loaded = models.Load(m_dataRoot, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    Client::Protocol::Character::CharacterSelectResult reply;
+    Client::Protocol::FrontEnd::CharacterSelectResult reply;
     reply.map = GetParam();
     reply.x = 135;
     reply.y = 125;
@@ -259,7 +259,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
         for (const std::uint8_t destination : {std::uint8_t{3}, std::uint8_t{0}})
         {
             SCOPED_TRACE(static_cast<int>(destination));
-            const Client::Protocol::World::Teleport teleport{1, destination, 135, 125, 1};
+            const Client::Protocol::Movement::Teleport teleport{1, destination, 135, 125, 1};
             const auto changed = Client::Scenes::ApplyTeleport(teleport, 1, resources, publisher);
             ASSERT_TRUE(changed.HasValue()) << changed.Error();
             EXPECT_EQ(world.Runtime().hero, hero);

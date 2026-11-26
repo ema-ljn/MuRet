@@ -17,7 +17,7 @@
 // 0x4dc840, 0x4dc9e0, 0x4dcb70 y 0x4dcd90) y lo que mandan las ventanas de las cartas (la de escribir, 0x498820, y la
 // pestaña de las cartas, 0x4a11b0). La reconstrucción del GameServer 0.97 no tiene cartas: el oráculo es el ASM del
 // cliente (*estático*). El dispatcher (0x4e2b10) no tiene caso para el C9.
-namespace Client::Protocol::Letters
+namespace Client::Protocol::Messenger
 {
 // El nombre en 10 bytes, el asunto en 0x20 y el cuerpo hasta 1000 (0x3e8).
 inline constexpr std::size_t LetterNameSize = 10;
@@ -110,4 +110,4 @@ ReadLetterDeleteResult(const Network::Packet& packet);
 
 // El nombre o el asunto en `size` bytes con ceros detrás, cortado en el primer '\0' (strncpy).
 [[nodiscard]] std::vector<std::byte> FixedText(std::string_view text, std::size_t size);
-} // namespace Client::Protocol::Letters
+} // namespace Client::Protocol::Messenger

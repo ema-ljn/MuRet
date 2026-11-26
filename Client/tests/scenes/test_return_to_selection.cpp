@@ -133,9 +133,9 @@ Client::Tables::ItemSetTables NoSets()
 }
 
 // La respuesta del F3 03 en la celda (x, y) de `map`, con la dirección 0, el PK 4 y el CtlCode 0x20.
-Client::Protocol::Character::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y)
+Client::Protocol::FrontEnd::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y)
 {
-    Client::Protocol::Character::CharacterSelectResult reply;
+    Client::Protocol::FrontEnd::CharacterSelectResult reply;
     reply.map = map;
     reply.x = x;
     reply.y = y;

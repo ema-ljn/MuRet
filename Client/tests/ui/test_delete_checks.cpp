@@ -14,7 +14,7 @@
 // (0x63edf0), con el elegido y el grupo del servidor elegido.
 namespace
 {
-using Client::Protocol::Character::CharacterEntry;
+using Client::Protocol::FrontEnd::CharacterEntry;
 using Client::UI::BlockedAccountNotice;
 using Client::UI::ConfirmDeletionNotice;
 using Client::UI::FreeDeletionGroup;

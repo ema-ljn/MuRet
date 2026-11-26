@@ -361,7 +361,7 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
         clear();
         trade.ownOk = trade.ownOk == 0 ? 1 : 0;
         trade.changed = 1;
-        if (auto sent = SendInC3(context, Protocol::Trade::WriteTradeOkButton(trade.ownOk), "0x5d968e");
+        if (auto sent = SendInC3(context, Protocol::Social::WriteTradeOkButton(trade.ownOk), "0x5d968e");
             !sent.HasValue())
             return Core::Unexpected(std::move(sent).Error());
         return false;

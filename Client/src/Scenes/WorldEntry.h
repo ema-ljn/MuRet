@@ -30,7 +30,7 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 struct CharacterSelectResult;
 }
@@ -130,7 +130,7 @@ struct WorldEntryResult
 // corre todo de nuevo sobre lo que dejó la primera, con la carga del mapa siempre, otro lugar para el
 // héroe y el anterior vivo si no cae en el suyo (06, "Una segunda respuesta").
 [[nodiscard]] Core::Expected<WorldEntryResult, std::string>
-ApplyWorldEntry(const Protocol::Character::CharacterSelectResult& reply, std::uint16_t playerKey,
+ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply, std::uint16_t playerKey,
                 const WorldEntryResources& resources, IWorldEntryPublisher& publisher);
 
 // Lo que sigue a 0x512a30 (0x4c4725..0x4c4b60) sobre el héroe de WorldRuntime::heroSlot, ya vestido:

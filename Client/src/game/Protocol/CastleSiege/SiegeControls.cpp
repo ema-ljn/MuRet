@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace Client::Protocol::SiegeControls
+namespace Client::Protocol::CastleSiege
 {
 Outgoing WriteWeapon(std::uint16_t key, std::uint8_t choice)
 {
@@ -27,4 +27,4 @@ Outgoing WriteCommand(std::uint8_t row, std::uint8_t x, std::uint8_t y, std::uin
     return Xor32C1(
         Network::PacketWriter::C1(CastleOpcode, Castle::CommandSubcode).PutU8(row).PutU8(x).PutU8(y).PutU8(command));
 }
-} // namespace Client::Protocol::SiegeControls
+} // namespace Client::Protocol::CastleSiege

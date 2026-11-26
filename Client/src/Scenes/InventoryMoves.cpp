@@ -623,9 +623,9 @@ Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext&
     context.random.Discard(2);
     if (!context.services.sendUseItem)
         return Core::Unexpected(std::format("{}: el C1 06 26 (como 0x5a30dc y 0x5c5e4a) sin la sesión", use.where));
-    const Protocol::FloorItems::UseItem packet{.slot = static_cast<std::uint8_t>(use.slot & 0xff),
-                                               .target = static_cast<std::uint8_t>(use.target & 0xff),
-                                               .kind = runtime.ui.field78abb26};
+    const Protocol::Items::UseItem packet{.slot = static_cast<std::uint8_t>(use.slot & 0xff),
+                                          .target = static_cast<std::uint8_t>(use.target & 0xff),
+                                          .kind = runtime.ui.field78abb26};
     if (auto sent = context.services.sendUseItem(packet); !sent.HasValue())
         return sent;
     // 0x5a3296..0x5a32c9 (y 0x5c6030, 0x5d8c9a): el tipo de la casilla lugar − 12 después del envío. Con un lugar
@@ -668,7 +668,7 @@ void ReviewTheHeroAfterThePlacement(const WorldEntryResources& resources)
 }
 } // namespace
 
-Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item,
+Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Items::ItemData& item,
                                                  const WorldEntryResources& resources)
 {
     const InventoryItemBytes bytes(item);
@@ -681,8 +681,7 @@ Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protoc
 }
 
 Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<World::ItemState> cells, std::int32_t columns,
-                                                            std::uint8_t slot,
-                                                            const Protocol::Inventory::ItemData& item,
+                                                            std::uint8_t slot, const Protocol::Items::ItemData& item,
                                                             const WorldEntryResources& resources,
                                                             std::string_view where)
 {
@@ -965,7 +964,7 @@ Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& c
     context.random.Discard(2);
     if (!context.services.sendDrop)
         return Core::Unexpected(std::string("0x5e04cc: el C1 06 23 sin la sesión"));
-    const Protocol::FloorItems::Drop thrown{
+    const Protocol::Items::Drop thrown{
         .x = cell.Value()->x, .y = cell.Value()->y, .slot = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff)};
     if (auto sent = context.services.sendDrop(thrown); !sent.HasValue())
         return sent;
@@ -1186,7 +1185,7 @@ Core::Expected<void, std::string> SendTheCursorItemBetween(const InventoryMoveCo
     context.random.Discard(2);
     const ItemState& cursor = runtime.cursorItem;
     const auto byte = [](std::uint32_t value) { return static_cast<std::byte>(value & 0xffu); };
-    const Protocol::Inventory::ItemMove move{
+    const Protocol::Items::ItemMove move{
         .sourceFlag = sourceGrid,
         .sourceSlot = sourceSlot,
         .item = {byte(cursor.id), byte(cursor.scalar1Low), byte(cursor.durability), byte(cursor.flags1b),
@@ -1886,7 +1885,7 @@ Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext&
         context.random.Discard(2);
         if (!context.services.sendGamePacket)
             return Core::Unexpected(std::string("0x5cf438: el C1 04 3C sin la sesión"));
-        context.services.sendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
+        context.services.sendGamePacket(Protocol::Social::WriteTradeOkButton(0));
         if (runtime.ui.field78abb39 != 0)
             return true;
         if (auto sent = SendTheCursorItem(context, targetSlot, InventoryGridFlag, TradeGridFlag); !sent.HasValue())
@@ -2032,7 +2031,7 @@ void MoveTheShopPrice(PersonalShopState& shops, std::int32_t origin, std::uint8_
 
 // 0x4d1ccc..0x4d1cf4: 0x5bc740(0x78a92a8, 8, 4, pkt[4], pkt + 5, 0): el ítem en la grilla propia del comercio y la cola
 // del último argumento en 0.
-Core::Expected<void, std::string> PlaceInTheTradeGrid(std::uint8_t slot, const Protocol::Inventory::ItemData& item,
+Core::Expected<void, std::string> PlaceInTheTradeGrid(std::uint8_t slot, const Protocol::Items::ItemData& item,
                                                       const WorldEntryResources& resources)
 {
     const InventoryItemBytes bytes(item);
@@ -2052,18 +2051,18 @@ Core::Expected<void, std::string> ReplayTheTradeResult(const WorldEntryResources
     TradeState& trade = resources.world.Runtime().social.trade;
     if (trade.resultDeferred == 0)
         return {};
-    const Protocol::Trade::TradeResult deferred{.result = trade.deferredHead[3], .head = trade.deferredHead};
+    const Protocol::Social::TradeResult deferred{.result = trade.deferredHead[3], .head = trade.deferredHead};
     if (auto applied = ApplyTradeResult(deferred, resources); !applied.HasValue())
         return applied;
     trade.resultDeferred = 0;
     return {};
 }
 
-Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Inventory::ItemMoveResult& result,
+Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Items::ItemMoveResult& result,
                                                     const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
-    if (result.result == Protocol::Inventory::ItemMoveRejected)
+    if (result.result == Protocol::Items::ItemMoveRejected)
     {
         const InventoryServices services = InventoryServicesOf(resources);
         return ReturnTheCursorItem(
@@ -2112,7 +2111,7 @@ Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Inventory::I
 }
 } // namespace
 
-Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,
+Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Items::ItemMoveResult& result,
                                                       const WorldEntryResources& resources)
 {
     const InventoryItemBytes bytes(result.item);
@@ -2133,10 +2132,10 @@ Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory:
     return ReplayTheTradeResult(resources);
 }
 
-Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Inventory::ItemDelete& deleted,
+Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Items::ItemDelete& deleted,
                                                   const WorldEntryResources& resources)
 {
-    if (deleted.slot != Protocol::Inventory::NoItemToDelete)
+    if (deleted.slot != Protocol::Items::NoItemToDelete)
     {
         WorldRuntime& runtime = resources.world.Runtime();
         const InventoryServices services = InventoryServicesOf(resources);
@@ -2172,7 +2171,7 @@ Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Inventory::Ite
     return {};
 }
 
-Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Durability& durability,
+Core::Expected<void, std::string> ApplyDurability(const Protocol::Items::Durability& durability,
                                                   const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -2209,20 +2208,20 @@ Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Dur
     return {};
 }
 
-Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::LifeRefill& refill, WorldState& world,
+Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Items::LifeRefill& refill, WorldState& world,
                                                   Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = world.Runtime();
     const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     switch (refill.place)
     {
-    case Protocol::Inventory::EndTheWaitPlace:
+    case Protocol::Items::EndTheWaitPlace:
         runtime.ui.field5767954 = 0;
         return {};
-    case Protocol::Inventory::MaximumPlace:
+    case Protocol::Items::MaximumPlace:
         world.OwnCharacter().maxLife = refill.life;
         return {};
-    case Protocol::Inventory::CurrentPlace:
+    case Protocol::Items::CurrentPlace:
         world.OwnCharacter().life = refill.life;
         return {};
     default:
@@ -2230,18 +2229,18 @@ Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::Lif
     }
 }
 
-Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill, WorldState& world,
+Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Items::ManaRefill& refill, WorldState& world,
                                                   Crt::CrtRandom& random)
 {
     const Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     OwnCharacterRecord& record = world.OwnCharacter();
     switch (refill.place)
     {
-    case Protocol::Inventory::MaximumPlace:
+    case Protocol::Items::MaximumPlace:
         record.maxMana = refill.mana;
         record.maxBp = refill.bp;
         return {};
-    case Protocol::Inventory::CurrentPlace:
+    case Protocol::Items::CurrentPlace:
         record.mana = refill.mana;
         record.bp = refill.bp;
         return {};
@@ -2251,7 +2250,7 @@ Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::Man
     }
 }
 
-Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPut& put,
+Core::Expected<void, std::string> ApplyItemPut(const Protocol::Items::ItemPut& put,
                                                const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
@@ -2263,14 +2262,14 @@ Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPu
     return {};
 }
 
-Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::DropResult& result,
+Core::Expected<void, std::string> ApplyDropResult(const Protocol::Items::DropResult& result,
                                                   const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     const InventoryServices services = InventoryServicesOf(resources);
     const InventoryMoveContext context{.world = world, .random = resources.cloth.random, .services = services};
-    if (result.result == Protocol::FloorItems::DropRejected)
+    if (result.result == Protocol::Items::DropRejected)
     {
         // 0x4d13e0..0x4d13e5.
         if (auto returned = ReturnTheCursorItem(context); !returned.HasValue())
@@ -2306,10 +2305,10 @@ Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::Dr
     return {};
 }
 
-void ApplyShortDropResult(const Protocol::FloorItems::ShortDropResult& result, WorldState& world)
+void ApplyShortDropResult(const Protocol::Items::ShortDropResult& result, WorldState& world)
 {
     WorldRuntime& runtime = world.Runtime();
-    if (result.result && *result.result != Protocol::FloorItems::DropRejected)
+    if (result.result && *result.result != Protocol::Items::DropRejected)
     {
         // 0x4d13c7.
         runtime.cursorItemCount = 0;
@@ -2319,7 +2318,7 @@ void ApplyShortDropResult(const Protocol::FloorItems::ShortDropResult& result, W
     runtime.floor.pendingDrop = -1;
 }
 
-Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory::EquipmentChange& change,
+Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::EquipmentChange& change,
                                                        const WorldEntryResources& resources)
 {
     // 0x5139f0 con el índice de 0x5110d0 (el 400 sin ninguno, que en el arreglo de 401 existe) mira el tipo (+2) y,

@@ -300,7 +300,7 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
             auto body = Client::Scenes::OptionBodyOf(world, tested.random, std::uint8_t{0});
             if (!body.HasValue())
                 return Client::Core::Unexpected(std::move(body).Error());
-            options.push_back(Client::Protocol::OptionData::WriteOptionData(body.Value()));
+            options.push_back(Client::Protocol::Player::WriteOptionData(body.Value()));
             macros = Client::UI::WrittenMacros(runtime.chat.input.macros);
             // 61c210 abre/cierra dentro del acceso de599ef0: el cierre interior no consume3.848 rand().
             EXPECT_EQ(runtime.ownRecordDepth, 1);

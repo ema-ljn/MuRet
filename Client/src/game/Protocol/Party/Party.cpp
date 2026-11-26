@@ -31,7 +31,7 @@ Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network:
 
 std::optional<PartyMember> ReadMember(Core::ByteReader& reader)
 {
-    const auto name = reader.ReadBytes(Character::NameSize);
+    const auto name = reader.ReadBytes(FrontEnd::NameSize);
     const auto number = reader.ReadU8();
     const auto map = reader.ReadU8();
     const auto x = reader.ReadU8();

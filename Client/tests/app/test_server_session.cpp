@@ -141,24 +141,24 @@ using Client::Network::SerialCheck;
 using Client::Network::SocketError;
 using Client::Network::Xor32Decode;
 using Client::Platform::WindowState;
-using Client::Protocol::ClientVersion;
-using Client::Protocol::Character::CharacterEntry;
-using Client::Protocol::Character::CharacterSelectResult;
 using Client::Protocol::Character::CreateSubcode;
-using Client::Protocol::Character::DeleteCodeSize;
 using Client::Protocol::Character::DeleteSubcode;
-using Client::Protocol::Character::InventoryList;
 using Client::Protocol::Character::ListSubcode;
 using Client::Protocol::Character::SelectSubcode;
-using Client::Protocol::Character::WriteCharacterCreate;
-using Client::Protocol::Character::WriteCharacterDelete;
-using Client::Protocol::Character::WriteCharacterSelect;
-using Client::Protocol::Connection::Keepalive;
-using Client::Protocol::Connection::KeepaliveAdjust20;
-using Client::Protocol::Connection::LoginRequest;
-using Client::Protocol::Connection::ServerEntry;
-using Client::Protocol::Connection::WriteKeepalive;
-using Client::Protocol::Connection::WriteLoginRequest;
+using Client::Protocol::FrontEnd::CharacterEntry;
+using Client::Protocol::FrontEnd::CharacterSelectResult;
+using Client::Protocol::FrontEnd::DeleteCodeSize;
+using Client::Protocol::FrontEnd::WriteCharacterCreate;
+using Client::Protocol::FrontEnd::WriteCharacterDelete;
+using Client::Protocol::FrontEnd::WriteCharacterSelect;
+using Client::Protocol::Items::InventoryList;
+using Client::Protocol::Session::ClientVersion;
+using Client::Protocol::Session::Keepalive;
+using Client::Protocol::Session::KeepaliveAdjust20;
+using Client::Protocol::Session::LoginRequest;
+using Client::Protocol::Session::ServerEntry;
+using Client::Protocol::Session::WriteKeepalive;
+using Client::Protocol::Session::WriteLoginRequest;
 using Client::Scenes::IScene;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
@@ -236,8 +236,8 @@ ByteVector OnlyTheSerial()
 // El esquema de la alternativa real debe poseer entradas y siete bytes opacos, no vistas al Packet.
 // El runtime de abajo comprueba lifecycle y valores; por sí solo no demuestra ausencia de vistas.
 static_assert(std::is_same_v<std::variant_alternative_t<1, WorldEvent>, InventoryList>);
-static_assert(std::is_same_v<decltype(InventoryList::items), std::vector<Client::Protocol::Character::InventoryEntry>>);
-static_assert(std::is_same_v<decltype(Client::Protocol::Character::InventoryEntry::item), std::array<std::byte, 7>>);
+static_assert(std::is_same_v<decltype(InventoryList::items), std::vector<Client::Protocol::Items::InventoryEntry>>);
+static_assert(std::is_same_v<decltype(Client::Protocol::Items::InventoryEntry::item), std::array<std::byte, 7>>);
 
 ByteVector EmptyInventoryReply()
 {
@@ -668,21 +668,21 @@ TEST(ServerSessionTest, TheEncryptedSkillsReachTheWorld)
     static_cast<void>(tested.session.Poll());
     const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 8u);
-    const auto* attack = std::get_if<Client::Protocol::Skill::MagicAttack>(&events[0]);
+    const auto* attack = std::get_if<Client::Protocol::Skills::MagicAttack>(&events[0]);
     ASSERT_NE(attack, nullptr);
     EXPECT_EQ(attack->source, 0x1234);
     EXPECT_EQ(attack->target, 0x0056);
     EXPECT_TRUE(attack->succeeded);
-    EXPECT_NE(std::get_if<Client::Protocol::Skill::DurationMagic>(&events[1]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skill::MagicCancel>(&events[2]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skill::ActorState>(&events[3]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skill::ActorEffect>(&events[4]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skill::SkillTarget>(&events[5]), nullptr);
-    const auto* list = std::get_if<Client::Protocol::Skill::SkillList>(&events[6]);
+    EXPECT_NE(std::get_if<Client::Protocol::Skills::DurationMagic>(&events[1]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skills::MagicCancel>(&events[2]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skills::ActorState>(&events[3]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skills::ActorEffect>(&events[4]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skills::SkillTarget>(&events[5]), nullptr);
+    const auto* list = std::get_if<Client::Protocol::Skills::SkillList>(&events[6]);
     ASSERT_NE(list, nullptr);
     EXPECT_EQ(list->slot, 2);
     EXPECT_EQ(list->skill, 0x11);
-    const auto* summon = std::get_if<Client::Protocol::Skill::SummonLife>(&events[7]);
+    const auto* summon = std::get_if<Client::Protocol::Skills::SummonLife>(&events[7]);
     ASSERT_NE(summon, nullptr);
     EXPECT_EQ(summon->life, 0x42);
     // El 73 cifrado no hace nada (0x4d5b10).
@@ -734,7 +734,7 @@ TEST(ServerSessionTest, LevelUpReceptionsPreserveRepeatedEventsAndRejectTruncati
     ASSERT_EQ(events.size(), 2u);
     for (const auto& event : events)
     {
-        const auto* level = std::get_if<Client::Protocol::Skill::LevelUp>(&event);
+        const auto* level = std::get_if<Client::Protocol::Skills::LevelUp>(&event);
         ASSERT_NE(level, nullptr);
         EXPECT_EQ(level->level, 9);
         EXPECT_EQ(level->maxBp, 5);
@@ -751,11 +751,11 @@ TEST(ServerSessionTest, TheRavenOrdersReachTheWorld)
     static_cast<void>(tested.session.Poll());
     const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 2u);
-    const auto* order = std::get_if<Client::Protocol::Pet::PetOrder>(&events[0]);
+    const auto* order = std::get_if<Client::Protocol::Pets::PetOrder>(&events[0]);
     ASSERT_NE(order, nullptr);
     EXPECT_EQ(order->order, 3);
     EXPECT_EQ(order->key, 0x1234);
-    const auto* attack = std::get_if<Client::Protocol::Pet::PetAttack>(&events[1]);
+    const auto* attack = std::get_if<Client::Protocol::Pets::PetAttack>(&events[1]);
     ASSERT_NE(attack, nullptr);
     EXPECT_EQ(attack->kind, 1);
     EXPECT_EQ(attack->owner, 0x1234);
@@ -771,7 +771,7 @@ TEST(ServerSessionTest, ThePetInfoReachesTheWorld)
     static_cast<void>(tested.session.Poll());
     const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
-    const auto* info = std::get_if<Client::Protocol::Pet::PetInfoReply>(&events[0]);
+    const auto* info = std::get_if<Client::Protocol::Pets::PetInfoReply>(&events[0]);
     ASSERT_NE(info, nullptr);
     EXPECT_EQ(info->slot, 1);
     EXPECT_EQ(info->level, 7);
@@ -1261,7 +1261,7 @@ TEST(ServerSessionTest, WithTheGameServerThe00IsTheChat)
     EXPECT_EQ(tested.Warnings(), Lines{});
     const auto events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
-    EXPECT_NE(std::get_if<Client::Protocol::Messages::Chat>(&events[0]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Chat::Chat>(&events[0]), nullptr);
 
     tested.session.ResendServerListRequest();
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({sentToTheConnectServer, ListRequest()})));
@@ -3015,8 +3015,8 @@ TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
     EXPECT_EQ(entry.level, 513);
     EXPECT_EQ(entry.flags, 0x81);
     EXPECT_EQ(entry.classByte, 0x21);
-    const std::array<std::byte, Client::Protocol::Character::EquipmentSize> equipment{std::byte{0x12}, std::byte{0x34},
-                                                                                      std::byte{0x56}};
+    const std::array<std::byte, Client::Protocol::FrontEnd::EquipmentSize> equipment{std::byte{0x12}, std::byte{0x34},
+                                                                                     std::byte{0x56}};
     EXPECT_EQ(entry.equipment, equipment);
     EXPECT_EQ(entry.guildStatus, 0x72);
     EXPECT_FALSE(entry.withoutEquipment);
@@ -3277,7 +3277,7 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
             EXPECT_EQ(created.classByte, 0x20);
             EXPECT_EQ(created.guildStatus, 0xff);
             EXPECT_TRUE(created.withoutEquipment);
-            EXPECT_EQ(created.equipment, (std::array<std::byte, Client::Protocol::Character::EquipmentSize>{}));
+            EXPECT_EQ(created.equipment, (std::array<std::byte, Client::Protocol::FrontEnd::EquipmentSize>{}));
             // Se vuelve a consultar: el alta puede haber realocado el vector.
             ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
             EXPECT_EQ(tested.session.ChosenCharacter()->slot, 0);
@@ -3318,7 +3318,7 @@ TEST(ServerSessionTest, CharacterEventsDeliverListCreationAndDeletionPayloadsInO
     EXPECT_EQ(created->entry.level, 1);
     EXPECT_EQ(created->entry.flags, 0);
     EXPECT_EQ(created->entry.classByte, 0x20);
-    const std::array<std::byte, Client::Protocol::Character::EquipmentSize> noEquipment{};
+    const std::array<std::byte, Client::Protocol::FrontEnd::EquipmentSize> noEquipment{};
     EXPECT_EQ(created->entry.equipment, noEquipment);
     EXPECT_TRUE(created->entry.withoutEquipment);
     EXPECT_EQ(created->entry.guildStatus, 0xff);
@@ -3971,12 +3971,12 @@ TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
     EXPECT_TRUE(hit->flag);
     EXPECT_TRUE(hit->doubleHit);
     EXPECT_EQ(hit->type, 1);
-    const auto* warped = std::get_if<Client::Protocol::World::Teleport>(&tested.eventSink.world[2]);
+    const auto* warped = std::get_if<Client::Protocol::Movement::Teleport>(&tested.eventSink.world[2]);
     ASSERT_NE(warped, nullptr);
     EXPECT_EQ(warped->gate, 23);
     EXPECT_EQ(warped->map, 3);
     EXPECT_EQ(warped->direction, 0);
-    const auto* revived = std::get_if<Client::Protocol::World::Regen>(&tested.eventSink.world[3]);
+    const auto* revived = std::get_if<Client::Protocol::Movement::Regen>(&tested.eventSink.world[3]);
     ASSERT_NE(revived, nullptr);
     EXPECT_EQ(revived->x, 21);
     EXPECT_EQ(revived->map, 2);
@@ -4003,23 +4003,23 @@ TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
     tested.socket.reads = {Join({players, transformed, shown, position, leave})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
     ASSERT_EQ(tested.eventSink.world.size(), 5u);
-    const auto* arrived = std::get_if<Client::Protocol::Viewport::Players>(&tested.eventSink.world[0]);
+    const auto* arrived = std::get_if<Client::Protocol::Actors::Players>(&tested.eventSink.world[0]);
     ASSERT_NE(arrived, nullptr);
     ASSERT_EQ(arrived->records.size(), 1u);
     EXPECT_EQ(arrived->records[0].key, 0x45);
     EXPECT_TRUE(arrived->records[0].isNew);
     EXPECT_EQ(arrived->packet.size(), 5u + 0x2c);
-    const auto* changed = std::get_if<Client::Protocol::Viewport::Transformed>(&tested.eventSink.world[1]);
+    const auto* changed = std::get_if<Client::Protocol::Actors::Transformed>(&tested.eventSink.world[1]);
     ASSERT_NE(changed, nullptr);
     ASSERT_EQ(changed->records.size(), 1u);
     EXPECT_EQ(changed->records[0].type, 0x0123);
-    const auto* equipped = std::get_if<Client::Protocol::Viewport::EquipmentShown>(&tested.eventSink.world[2]);
+    const auto* equipped = std::get_if<Client::Protocol::Actors::EquipmentShown>(&tested.eventSink.world[2]);
     ASSERT_NE(equipped, nullptr);
     EXPECT_EQ(equipped->key, 0x45);
-    const auto* moved = std::get_if<Client::Protocol::Viewport::Position>(&tested.eventSink.world[3]);
+    const auto* moved = std::get_if<Client::Protocol::Actors::Position>(&tested.eventSink.world[3]);
     ASSERT_NE(moved, nullptr);
     EXPECT_EQ(moved->x, 140);
-    const auto* left = std::get_if<Client::Protocol::Viewport::Leave>(&tested.eventSink.world[4]);
+    const auto* left = std::get_if<Client::Protocol::Actors::Leave>(&tested.eventSink.world[4]);
     ASSERT_NE(left, nullptr);
     EXPECT_EQ(left->keys, (std::vector<std::uint16_t>{0x8045}));
     // 0x4e372e: de los cinco, solo el 12 deja su copia en la cola.
@@ -4044,17 +4044,17 @@ TEST(ServerSessionTest, TheMonsterPacketsReachTheSinkInWireOrder)
     tested.socket.reads = {Join({monsters, summons, objects, shortMonsters})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
     ASSERT_EQ(tested.eventSink.world.size(), 3u);
-    const auto* arrived = std::get_if<Client::Protocol::Viewport::Monsters>(&tested.eventSink.world[0]);
+    const auto* arrived = std::get_if<Client::Protocol::Actors::Monsters>(&tested.eventSink.world[0]);
     ASSERT_NE(arrived, nullptr);
     ASSERT_EQ(arrived->records.size(), 1u);
     EXPECT_EQ(arrived->records[0].key, 0x46);
     EXPECT_TRUE(arrived->records[0].isNew);
     EXPECT_EQ(arrived->records[0].type, 0x115);
-    const auto* summoned = std::get_if<Client::Protocol::Viewport::Summons>(&tested.eventSink.world[1]);
+    const auto* summoned = std::get_if<Client::Protocol::Actors::Summons>(&tested.eventSink.world[1]);
     ASSERT_NE(summoned, nullptr);
     ASSERT_EQ(summoned->records.size(), 1u);
     EXPECT_EQ(summoned->records[0].type, 0x98);
-    const auto* objected = std::get_if<Client::Protocol::Viewport::Objects>(&tested.eventSink.world[2]);
+    const auto* objected = std::get_if<Client::Protocol::Actors::Objects>(&tested.eventSink.world[2]);
     ASSERT_NE(objected, nullptr);
     ASSERT_EQ(objected->records.size(), 1u);
     EXPECT_EQ(objected->records[0].kind, 2);
@@ -4119,7 +4119,7 @@ TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFie
 // El ítem es inventado.
 TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
 {
-    namespace Inventory = Client::Protocol::Inventory;
+    namespace Inventory = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     auto equipment = Bytes({0xc1, 0x18, 0xf3, 0x13, 0x12, 0x34, 0});
@@ -4180,7 +4180,7 @@ TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
 // escena); el 26 corto con 0xff se ignora. Los valores son inventados.
 TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
 {
-    namespace Inventory = Client::Protocol::Inventory;
+    namespace Inventory = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {Join({Bytes({0xc1, 7, 0x26, 0xfe, 0x01, 0x2c, 0}), Bytes({0xc1, 5, 0x26, 0xff, 0x01}),
@@ -4251,7 +4251,7 @@ TEST(ServerSessionTest, TheKillsAndTheDeathReachTheWorldAndTheClearOnesAreReport
 // 20 de entradas de 9 bytes no escribe nada fijo y no llega. Los valores son inventados.
 TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
 {
-    namespace FloorItems = Client::Protocol::FloorItems;
+    namespace FloorItems = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
@@ -4275,7 +4275,7 @@ TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
 // como el 22 corto que solo suelta el pedido (07 Q-C1240).
 TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
 {
-    namespace FloorItems = Client::Protocol::FloorItems;
+    namespace FloorItems = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
@@ -4292,7 +4292,7 @@ TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
 // descartaba y el punto sumado no se veía.
 TEST(ServerSessionTest, TheLevelUpPointReplyReachesTheWorld)
 {
-    namespace Character = Client::Protocol::Character;
+    namespace Player = Client::Protocol::Player;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
@@ -4300,7 +4300,7 @@ TEST(ServerSessionTest, TheLevelUpPointReplyReachesTheWorld)
     ASSERT_TRUE(tested.session.Poll().HasValue());
     const auto events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
-    const auto* point = std::get_if<Character::LevelUpPointResult>(&events[0]);
+    const auto* point = std::get_if<Player::LevelUpPointResult>(&events[0]);
     ASSERT_NE(point, nullptr);
     EXPECT_EQ(point->result, 0x12);
     EXPECT_EQ(point->maxLifeOrMana, 0x1234);
@@ -4311,7 +4311,7 @@ TEST(ServerSessionTest, TheLevelUpPointReplyReachesTheWorld)
 // llega al mundo: sin su handler se descartaba con un aviso.
 TEST(ServerSessionTest, ThePkLevelReachesTheWorld)
 {
-    namespace Character = Client::Protocol::Character;
+    namespace Player = Client::Protocol::Player;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
@@ -4319,7 +4319,7 @@ TEST(ServerSessionTest, ThePkLevelReachesTheWorld)
     ASSERT_TRUE(tested.session.Poll().HasValue());
     const auto events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
-    const auto* level = std::get_if<Character::PkLevel>(&events[0]);
+    const auto* level = std::get_if<Player::PkLevel>(&events[0]);
     ASSERT_NE(level, nullptr);
     EXPECT_EQ(level->key, 0x1234);
     EXPECT_EQ(level->level, 3);
@@ -4444,7 +4444,7 @@ TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
         ASSERT_TRUE(tested.session.Poll().HasValue());
         ASSERT_EQ(tested.eventSink.world.size(), 4u) << split;
         EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Walk>(tested.eventSink.world[0]));
-        EXPECT_TRUE(std::holds_alternative<Client::Protocol::World::Teleport>(tested.eventSink.world[1]));
+        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Teleport>(tested.eventSink.world[1]));
         EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[2]));
         const auto* last = std::get_if<Client::Protocol::Movement::Walk>(&tested.eventSink.world[3]);
         ASSERT_NE(last, nullptr);
@@ -4508,7 +4508,7 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
 // 0x4e4b3a..0x4e4bf2: el 9F y los A0..A3 llegan al mundo en orden, sin guarda de escena. Los valores son inventados.
 TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
 {
-    namespace Quest = Client::Protocol::Quest;
+    namespace Quest = Client::Protocol::Quests;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {Join({Bytes({0xc1, 5, 0x9f, 1, 0x22}), Bytes({0xc1, 4, 0xa0, 3}),
@@ -4566,7 +4566,7 @@ TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
 // 1 (CL9 hito 6). Valores inventados.
 TEST(ServerSessionTest, TheTrainerMixReachesTheWorldWithItsItem)
 {
-    namespace Npc = Client::Protocol::NpcWindows;
+    namespace Npc = Client::Protocol::Npc;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
@@ -4648,7 +4648,7 @@ TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     const auto before = tested.GameServerReads().packets.size();
-    Client::Protocol::OptionData::OptionBody body{};
+    Client::Protocol::Player::OptionBody body{};
     body[0] = 0x21;
     body[10] = 0x0a;
     body[0x17] = 0x5c;
@@ -4702,8 +4702,8 @@ TEST(ServerSessionTest, TheCastleAndBattlePacketsReachTheWorld)
     const auto* registered = std::get_if<Castle::CastleSiegePacket>(&events[0]);
     ASSERT_NE(registered, nullptr);
     EXPECT_EQ(std::get<Castle::RegisterResult>(*registered).result, 3);
-    EXPECT_EQ(std::get<Client::Protocol::CastleBattle::SiegeSide>(
-                  std::get<Client::Protocol::CastleBattle::CastleBattlePacket>(events[1]))
+    EXPECT_EQ(std::get<Client::Protocol::CastleSiege::SiegeSide>(
+                  std::get<Client::Protocol::CastleSiege::CastleBattlePacket>(events[1]))
                   .side,
               0);
     EXPECT_EQ(std::get<Castle::KillCount>(std::get<Castle::CastleSiegePacket>(events[2])).value, 4);
@@ -4720,7 +4720,7 @@ TEST(ServerSessionTest, TheCastleAndBattlePacketsReachTheWorld)
 // handler; un BA que no trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
 TEST(ServerSessionTest, TheCastleBattlePacketsReachTheWorld)
 {
-    namespace Battle = Client::Protocol::CastleBattle;
+    namespace Battle = Client::Protocol::CastleSiege;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     std::vector<std::byte> holder = Bytes({0xc1, 0x1b, 0xb2, 0x20, 0x01, 0x3d});
@@ -4974,7 +4974,7 @@ TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
     EXPECT_EQ(socket.connects[0].host, "10.0.0.9");
     EXPECT_EQ(socket.connects[0].port, 55980);
     EXPECT_EQ(session.ChatRoomCount(), 1u);
-    const Client::Protocol::Outgoing join = Client::Protocol::FriendChat::WriteJoin(0x0304, 77);
+    const Client::Protocol::Outgoing join = Client::Protocol::Messenger::WriteJoin(0x0304, 77);
     const ByteVector joinBytes(join.packet.Bytes().begin(), join.packet.Bytes().end());
     session.SendToChatRoom(0x0304, join);
     EXPECT_TRUE(socket.sent.empty());
@@ -5010,7 +5010,7 @@ TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
 
     session.CloseChatRoom(0x0304);
     EXPECT_EQ(session.ChatRoomCount(), 0u);
-    session.SendToChatRoom(0x0304, Client::Protocol::FriendChat::WritePing());
+    session.SendToChatRoom(0x0304, Client::Protocol::Messenger::WritePing());
     EXPECT_TRUE(rooms.tested.Logged(LogLevel::Warning, "no tiene conexión"));
 }
 

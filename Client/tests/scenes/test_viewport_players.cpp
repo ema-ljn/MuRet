@@ -73,7 +73,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Viewport::Players;
+using Client::Protocol::Actors::Players;
 using Client::Scenes::ActorState;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
@@ -142,7 +142,7 @@ struct Cell
 
 Players Read(std::span<const ViewportPlayerRecord> records)
 {
-    auto read = Client::Protocol::Viewport::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
+    auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
     EXPECT_TRUE(read.HasValue());
     return std::move(read).Value();
 }
@@ -650,7 +650,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     info.emplace();
     info->fill(0xff);
 
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Viewport::Leave{{0x8123, 0x013d}}, world);
+    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x8123, 0x013d}}, world);
     EXPECT_FALSE(leaving.alive);
     EXPECT_FALSE(leaving.darkSpirit.has_value());
     EXPECT_FALSE(world.Helpers()[*helper.Value()].alive);
@@ -667,7 +667,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     info.reset();
     world.Actors()[5].alive = true;
     world.Actors()[5].key = 0x0007;
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Viewport::Leave{{0x0007}}, world);
+    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x0007}}, world);
     EXPECT_FALSE(world.Actors()[5].alive);
 }
 
@@ -678,7 +678,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
 {
     Load(0);
     const std::array<Client::Tests::TransformedRecordBytes, 1> hidden{{{.key = 0x0456, .name = "webzen"}}};
-    auto read = Client::Protocol::Viewport::ReadTransformed(Client::Tests::TransformedPacket(hidden));
+    auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(hidden));
     ASSERT_TRUE(read.HasValue());
     EXPECT_TRUE(Client::Scenes::ApplyTransformed(read.Value(), game->Resources()).HasValue());
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
@@ -692,7 +692,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
                                                                        .targetX = cell.x,
                                                                        .targetY = cell.y,
                                                                        .directionAndPk = 0x31}}};
-    read = Client::Protocol::Viewport::ReadTransformed(Client::Tests::TransformedPacket(shown));
+    read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
     const auto applied = Client::Scenes::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
@@ -713,7 +713,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
 {
     Load(0);
     const std::array<Client::Tests::TransformedRecordBytes, 1> shown{{{.key = 0x0456, .x = 130, .y = 130, .type = 68}}};
-    const auto read = Client::Protocol::Viewport::ReadTransformed(Client::Tests::TransformedPacket(shown));
+    const auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
     const auto applied = Client::Scenes::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_FALSE(applied.HasValue());
@@ -736,13 +736,13 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 1u);
     Actor(1).word376 = 7;
-    Client::Protocol::Viewport::TransformedRecord record{.key = 0x0456,
-                                                         .x = cell.x,
-                                                         .y = cell.y,
-                                                         .type = 0x0123,
-                                                         .targetX = Byte(cell.x + 2),
-                                                         .targetY = cell.y,
-                                                         .directionAndPk = 0x31};
+    Client::Protocol::Actors::TransformedRecord record{.key = 0x0456,
+                                                       .x = cell.x,
+                                                       .y = cell.y,
+                                                       .type = 0x0123,
+                                                       .targetX = Byte(cell.x + 2),
+                                                       .targetY = cell.y,
+                                                       .directionAndPk = 0x31};
     record.name[0] = std::byte{'T'};
     const auto walked = Client::Scenes::FinishTheTransformed(1, record, 2, game->Resources());
     ASSERT_TRUE(walked.HasValue()) << walked.Error();
@@ -803,7 +803,7 @@ TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication
     resources.textMeasure = &measure;
     resources.screen = [] { return Client::Core::PixelSize{640, 480}; };
     constexpr std::uint32_t BlessingFlag = 0x2000000;
-    const Client::Protocol::Viewport::TransformedRecord record{
+    const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
     for (std::size_t count = 1; count <= 2; ++count)
     {
@@ -825,7 +825,7 @@ TEST_F(ViewportPlayersTest, TheBlessingFlagOnAnotherActorNeedsNoMessageResources
     Actor(1) = Client::Tests::UnarmedPlayer(1);
     Actor(1).alive = true;
     constexpr std::uint32_t BlessingFlag = 0x2000000;
-    const Client::Protocol::Viewport::TransformedRecord record{
+    const Client::Protocol::Actors::TransformedRecord record{
         .key = 0x456, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
     const auto applied = Client::Scenes::FinishTheTransformed(1, record, 0, game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
@@ -838,7 +838,7 @@ TEST_F(ViewportPlayersTest, AMissingBlessingTextKeepsThePrefixAndLeavesTheFinalF
     Load(0);
     const Cell cell = FreeRow();
     constexpr std::uint32_t BlessingFlag = 0x2000000;
-    const Client::Protocol::Viewport::TransformedRecord record{
+    const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag | 1u, .targetX = cell.x, .targetY = cell.y};
     const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, game->Resources());
     ASSERT_FALSE(applied.HasValue());
@@ -861,7 +861,7 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     resources.textMeasure = &measure;
     auto& chat = game->world.Runtime().chat;
     chat.log.entries.push_back({.name = "", .text = "previo"});
-    const Client::Protocol::Viewport::TransformedRecord record{
+    const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = 0x2000000, .targetX = cell.x, .targetY = cell.y};
 
     const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, resources);
@@ -896,7 +896,7 @@ protected:
     }
     Client::Core::Expected<void, std::string> Show(std::uint16_t key, const std::array<std::uint8_t, 7>& item)
     {
-        auto read = Client::Protocol::Viewport::ReadEquipmentShown(Client::Tests::EquipmentShownPacket(key, item));
+        auto read = Client::Protocol::Actors::ReadEquipmentShown(Client::Tests::EquipmentShownPacket(key, item));
         EXPECT_TRUE(read.HasValue());
         return Client::Scenes::ApplyEquipmentShown(read.Value(), game->Resources());
     }
@@ -987,7 +987,7 @@ TEST_F(ShownEquipmentTest, TheWholeKeyWithTheNewBitFindsNobody)
 // 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399.
 TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
 {
-    const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
+    const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
     ASSERT_TRUE(Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources()).HasValue());
     EXPECT_EQ(Other().cellX, 140);
@@ -1001,7 +1001,7 @@ TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
 // 0x4c6c9d llama 0x51fe10(posición, 0): dos sorteos por intento, cinco por alta efectiva y ninguna 0x5ed.
 TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
 {
-    const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
+    const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
     Other().type = 0xf1;
     Other().cellX = 138;
@@ -1035,7 +1035,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
 // 0x51fe4b/0x51fe6e preceden la búsqueda de slot 0x53fe70. Llenar el pool no corta los otros intentos.
 TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
 {
-    const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
+    const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
     Other().type = 0xf1;
     Other().cellX = 138;

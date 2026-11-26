@@ -29,9 +29,9 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace Trade = Client::Protocol::Trade;
+namespace Trade = Client::Protocol::Social;
 namespace Party = Client::Protocol::Party;
-namespace Duel = Client::Protocol::Duel;
+namespace Duel = Client::Protocol::Social;
 
 // "Arbusto" y "Brezal", nombres inventados, con ceros hasta los 10 bytes.
 constexpr std::array<std::byte, 10> Arbusto{std::byte{'A'}, std::byte{'r'}, std::byte{'b'}, std::byte{'u'},

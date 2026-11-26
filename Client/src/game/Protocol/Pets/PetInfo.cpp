@@ -8,7 +8,7 @@
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
 
-namespace Client::Protocol::Pet
+namespace Client::Protocol::Pets
 {
 Outgoing WritePetInfoRequest(const PetInfoRequest& request)
 {
@@ -31,4 +31,4 @@ Core::Expected<PetInfoReply, Network::ProtocolError> ReadPetInfoReply(const Netw
         return Core::Unexpected(Network::ProtocolError::TooShort);
     return PetInfoReply{.pet = *pet, .kind = *kind, .slot = *slot, .level = *level, .experience = *experience};
 }
-} // namespace Client::Protocol::Pet
+} // namespace Client::Protocol::Pets

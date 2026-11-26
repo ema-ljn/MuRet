@@ -254,7 +254,7 @@ struct ActorState
     std::int16_t word8a = 0;
     std::uint8_t controlCode = 0; // +0x1d8, el CtlCode de la respuesta del F3 03
     // +0x1d9: el nombre. La respuesta del F3 03 copia ahí los diez bytes del registro propio (0x4c47a2).
-    std::array<std::byte, Protocol::Character::NameSize> name{};
+    std::array<std::byte, Protocol::FrontEnd::NameSize> name{};
     // +0x1a1: sólo lo escriben los paquetes de 0x4d07c0 y 0x4d0a30 (CL9.5); en Chaos Castle, prendido en el
     // héroe, 0x5ffdf0 baja el alpha de cada objeto que posa (0x5ffe09).
     std::uint8_t byte1a1 = 0;

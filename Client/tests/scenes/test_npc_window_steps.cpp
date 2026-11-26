@@ -215,9 +215,9 @@ protected:
             messages.push_back(index);
             return Client::Core::Expected<void, std::string>{};
         };
-        services.sendItemMove = [this](const Client::Protocol::Inventory::ItemMove& move)
+        services.sendItemMove = [this](const Client::Protocol::Items::ItemMove& move)
         {
-            sent.push_back(Client::Protocol::Inventory::WriteItemMove(move));
+            sent.push_back(Client::Protocol::Items::WriteItemMove(move));
             return Client::Core::Expected<void, std::string>{};
         };
     }

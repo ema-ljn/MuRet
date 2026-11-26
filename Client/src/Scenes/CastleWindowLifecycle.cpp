@@ -83,7 +83,7 @@ Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, WorldSta
             return Core::Unexpected(std::move(inventory).Error());
     }
     auto& window = runtime.castleSiege.senior;
-    send(window.closeWith87 ? Protocol::NpcWindows::WriteChaosBoxClose() : Protocol::Connection::WriteWindowClose());
+    send(window.closeWith87 ? Protocol::Npc::WriteChaosBoxClose() : Protocol::Session::WriteWindowClose());
     runtime.RequestSound(WindowCloseSound);
     if (auto cancelled = CancelOwnedDialog(world, send, window.dialogId); !cancelled.HasValue())
         return Core::Unexpected(std::move(cancelled).Error());
@@ -97,7 +97,7 @@ Core::Expected<bool, std::string> CloseHunt(WorldState& world, const CastleSende
         return true;
     if (!send)
         return Core::Unexpected(std::string("0x6487d0: cerrar HuntZone sin el cable"));
-    send(Protocol::Connection::WriteWindowClose());
+    send(Protocol::Session::WriteWindowClose());
     runtime.panels.delegated.secondCastleSiege = 0;
     if (auto cancelled = CancelOwnedDialog(world, send, runtime.castleSiege.huntZone.dialogId); !cancelled.HasValue())
         return Core::Unexpected(std::move(cancelled).Error());
@@ -151,7 +151,7 @@ void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Crt::CrtR
 {
     panels.LendTheSession(world, random, send, {});
     if (send)
-        panels.LendTheWindowClose([send]() { send(Protocol::Connection::WriteWindowClose()); });
+        panels.LendTheWindowClose([send]() { send(Protocol::Session::WriteWindowClose()); });
     panels.LendTheCastleRequests(world, send, services);
     if (entryResources == nullptr)
         return;

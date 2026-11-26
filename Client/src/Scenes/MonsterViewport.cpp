@@ -95,7 +95,7 @@ float AngleStepOf(const ActorState& actor)
     return step;
 }
 
-Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Viewport::MonsterRecord& record,
+Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Actors::MonsterRecord& record,
                                                      const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -169,7 +169,7 @@ Core::Expected<std::string, std::string> FormatTheSummonName(std::string_view fo
 }
 
 // 0x517400(dueño, clave, tipo, X, Y, recién llegado).
-Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Viewport::SummonRecord& record,
+Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::SummonRecord& record,
                                                       const WorldEntryResources& resources)
 {
     const auto created = CreateMonster(record.type, record.x, record.y, record.key, resources);
@@ -231,7 +231,7 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Viewport::
 }
 
 // 0x4ca516..0x4ca5bf: el dueño (diez bytes, con +0x1e3 en 0 antes), el Text 485 y el nombre que tenía.
-Core::Expected<void, std::string> NameAfterTheOwner(ActorState& actor, const Protocol::Viewport::SummonRecord& record,
+Core::Expected<void, std::string> NameAfterTheOwner(ActorState& actor, const Protocol::Actors::SummonRecord& record,
                                                     const WorldEntryResources& resources)
 {
     // 0x76e0a38, el registro 485 de Text.bmd.
@@ -270,7 +270,7 @@ bool IsSummonType(std::uint16_t type)
     return type >= FirstSummon && type <= LastSummon;
 }
 
-Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Viewport::SummonRecord& record,
+Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::SummonRecord& record,
                                                     const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -349,7 +349,7 @@ void TurnAtRandom(ActorState& actor, Crt::CrtRandom& random)
 }
 
 // 0x4e0c1d..0x4e0e52, el registro de un jugador.
-Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Viewport::ObjectRecord& record,
+Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::ObjectRecord& record,
                                                     const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -389,7 +389,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Viewport::Ob
 }
 
 // 0x4e09ca..0x4e0c18, el registro de un monstruo (un 0 de 0x5141e0 pasa al siguiente, 0x4e0a06).
-Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Viewport::ObjectRecord& record,
+Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Actors::ObjectRecord& record,
                                                      const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -467,10 +467,10 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     return {};
 }
 
-Core::Expected<void, std::string> ApplyViewportMonsters(const Protocol::Viewport::Monsters& monsters,
+Core::Expected<void, std::string> ApplyViewportMonsters(const Protocol::Actors::Monsters& monsters,
                                                         const WorldEntryResources& resources)
 {
-    for (const Protocol::Viewport::MonsterRecord& record : monsters.records)
+    for (const Protocol::Actors::MonsterRecord& record : monsters.records)
     {
         if (auto applied = ApplyMonsterRecord(record, resources); !applied.HasValue())
             return applied;
@@ -478,10 +478,10 @@ Core::Expected<void, std::string> ApplyViewportMonsters(const Protocol::Viewport
     return {};
 }
 
-Core::Expected<void, std::string> ApplySummons(const Protocol::Viewport::Summons& summons,
+Core::Expected<void, std::string> ApplySummons(const Protocol::Actors::Summons& summons,
                                                const WorldEntryResources& resources)
 {
-    for (const Protocol::Viewport::SummonRecord& record : summons.records)
+    for (const Protocol::Actors::SummonRecord& record : summons.records)
     {
         if (auto applied = ApplySummonRecord(record, resources); !applied.HasValue())
             return applied;
@@ -489,13 +489,13 @@ Core::Expected<void, std::string> ApplySummons(const Protocol::Viewport::Summons
     return {};
 }
 
-Core::Expected<void, std::string> ApplyViewportObjects(const Protocol::Viewport::Objects& objects,
+Core::Expected<void, std::string> ApplyViewportObjects(const Protocol::Actors::Objects& objects,
                                                        const WorldEntryResources& resources)
 {
     constexpr std::uint8_t PlayerKind = 1;
     constexpr std::uint8_t FirstMonsterKind = 2;
     constexpr std::uint8_t LastMonsterKind = 3;
-    for (const Protocol::Viewport::ObjectRecord& record : objects.records)
+    for (const Protocol::Actors::ObjectRecord& record : objects.records)
     {
         Core::Expected<void, std::string> applied{};
         if (record.kind == PlayerKind)

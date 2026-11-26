@@ -50,7 +50,7 @@ using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::ProtocolError;
 using Client::Network::XorRemap::XorRemapObfuscation;
-using Client::Protocol::Connection::ReadServerList;
+using Client::Protocol::Session::ReadServerList;
 using Client::Tests::Bytes;
 using Client::Tests::CutPackets;
 using Client::Tests::ErrorOf;

@@ -14,8 +14,8 @@
 // 04 § Las ventanas de los NPC (CL9 hito 6): lo que abre un NPC (30), la lista de su grilla (31), comprar (32),
 // vender (33), reparar (34), el almacén (81, 82 y 83) y la caja del caos (86 y 87). Los que llegan los atiende el
 // dispatcher 0x4e2b10 (0x4e3c2a..0x4e3d24 y 0x4e4692..0x4e4862) o su handler; los que salen, las ventanas. El cierre
-// de la tienda (C1 03 31) es Protocol::Connection::WriteWindowClose.
-namespace Client::Protocol::NpcWindows
+// de la tienda (C1 03 31) es Protocol::Session::WriteWindowClose.
+namespace Client::Protocol::Npc
 {
 inline constexpr Network::Opcode PersonalNumberOpcode = EventDialogOpcode;
 
@@ -173,4 +173,4 @@ using WarehouseNumber = std::array<std::byte, WarehouseNumberSize>;
 // 0x65a956..0x65ac07: el pedido que abrir la caja del caos manda antes de abrir el inventario, C1 04 BD 09 con el
 // XOR32 y en claro.
 [[nodiscard]] Outgoing WriteChaosRateRequest();
-} // namespace Client::Protocol::NpcWindows
+} // namespace Client::Protocol::Npc

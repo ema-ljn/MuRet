@@ -85,11 +85,11 @@ void AskForThePet(GameHudContext& hud, std::uint32_t key, const World::ItemState
 {
     WorldRuntime& runtime = hud.world.Runtime();
     runtime.petTooltipQuery = PetTooltipQuery{.key = key, .type = item.id, .scalar = item.scalar1Low};
-    const Protocol::Pet::PetInfoRequest request{.pet = pet,
-                                                .place = static_cast<std::uint8_t>(runtime.ui.field78abb28),
-                                                .slot = static_cast<std::uint8_t>(runtime.ui.field78abb2c)};
+    const Protocol::Pets::PetInfoRequest request{.pet = pet,
+                                                 .place = static_cast<std::uint8_t>(runtime.ui.field78abb28),
+                                                 .slot = static_cast<std::uint8_t>(runtime.ui.field78abb2c)};
     if (hud.send)
-        hud.send(Protocol::Pet::WritePetInfoRequest(request));
+        hud.send(Protocol::Pets::WritePetInfoRequest(request));
 }
 
 // 0x42324c..0x42350b: el nivel pedido del caballo y, con el registro propio abierto, lo que le falta al héroe.
@@ -226,7 +226,7 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
     WorldRuntime& runtime = world.Runtime();
     const bool horse = item.id == DarkHorseItem;
     // 0x422a1a..0x422a2d y 0x423c7c..0x423c85: el byte de la mascota, 1 el caballo y 0 el cuervo.
-    const std::uint8_t pet = horse ? Protocol::Pet::DarkHorsePet : Protocol::Pet::DarkRavenPet;
+    const std::uint8_t pet = horse ? Protocol::Pets::DarkHorsePet : Protocol::Pets::DarkRavenPet;
     // 0x4229d4..0x422a12: otro lugar, otro tipo u otro D+4 que los del último pedido.
     const std::uint32_t key = ((static_cast<std::uint32_t>(context.y) & KeyMask) << KeyShift) |
                               (static_cast<std::uint32_t>(context.x) & KeyMask);
@@ -252,8 +252,8 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
         constexpr std::uint32_t SaleDivisor = 3;
         constexpr std::uint32_t PriceRounding = 100;
         constexpr std::size_t PriceText = 63;
-        const PetPriceLevels levels{.raven = pets[Protocol::Pet::DarkRavenPet].level,
-                                    .horse = pets[Protocol::Pet::DarkHorsePet].level};
+        const PetPriceLevels levels{.raven = pets[Protocol::Pets::DarkRavenPet].level,
+                                    .horse = pets[Protocol::Pets::DarkHorsePet].level};
         const std::uint32_t price = PetBasePrice(item.id, levels) / SaleDivisor / PriceRounding * PriceRounding;
         lines.At("0x422a55");
         lines.PrintText(PriceText, std::string_view(FormatZen(price)));

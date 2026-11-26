@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-// Client::Protocol::Connection, la suma del ejecutable: el 03 del GameServer y su respuesta (04, "La
+// Client::Protocol::Session, la suma del ejecutable: el 03 del GameServer y su respuesta (04, "La
 // suma del ejecutable (03)"; Q-C319). Los valores esperados salen de una transliteración por
 // registros de 0x4ad400 y 0x4ad3d0 (ASM c32bbd5f), aparte del código de MuRet.
 namespace
@@ -28,11 +28,11 @@ namespace
 using Client::Network::Delivery;
 using Client::Network::ProtocolError;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Connection::MainCheckFileName;
-using Client::Protocol::Connection::MainCheckSum;
-using Client::Protocol::Connection::MainCheckTable;
-using Client::Protocol::Connection::ReadMainCheckKey;
-using Client::Protocol::Connection::WriteMainCheckReply;
+using Client::Protocol::Session::MainCheckFileName;
+using Client::Protocol::Session::MainCheckSum;
+using Client::Protocol::Session::MainCheckTable;
+using Client::Protocol::Session::ReadMainCheckKey;
+using Client::Protocol::Session::WriteMainCheckReply;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

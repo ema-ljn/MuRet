@@ -245,7 +245,7 @@ Core::Expected<void, std::string> WizardBranch::SendTheMagicAttack(std::uint16_t
     if (!passes.HasValue())
         return Core::Unexpected(passes.Error());
     if (passes.Value())
-        SendTheSkillPacket(m_context, Protocol::Skill::WriteMagicAttack(m_skill, key));
+        SendTheSkillPacket(m_context, Protocol::Skills::WriteMagicAttack(m_skill, key));
     return {};
 }
 
@@ -441,11 +441,12 @@ Core::Expected<void, std::string> WizardBranch::CastAround(std::uint8_t action, 
         const auto direction = DirectionOf(m_hero, where);
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
-        SendTheSkillPacket(m_context, Protocol::Skill::WriteDurationMagic({.skill = m_skill,
-                                                                           .x = cell.x,
-                                                                           .y = cell.y,
-                                                                           .direction = direction.Value(),
-                                                                           .key = Protocol::Skill::NoSkillTargetKey}));
+        SendTheSkillPacket(m_context,
+                           Protocol::Skills::WriteDurationMagic({.skill = m_skill,
+                                                                 .x = cell.x,
+                                                                 .y = cell.y,
+                                                                 .direction = direction.Value(),
+                                                                 .key = Protocol::Skills::NoSkillTargetKey}));
     }
     RefreshCombatActionSpeeds(m_world, m_context.random);
     if (auto acted = Act(m_hero, action, m_context); !acted.HasValue())
@@ -522,13 +523,13 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
         // 0x58e6d9..0x58e6fe: 0x57cf90 en línea, con +0x1bd del héroe.
         const std::uint8_t magicKey = NextMagicKey(m_state, m_hero.magicKey);
         SendTheSkillPacket(m_context,
-                           Protocol::Skill::WriteDurationMagic({.skill = m_skill,
-                                                                .x = cell.x,
-                                                                .y = cell.y,
-                                                                .direction = direction.Value(),
-                                                                .back = *relative,
-                                                                .key = static_cast<std::uint16_t>(key.Value()),
-                                                                .magicKey = magicKey}));
+                           Protocol::Skills::WriteDurationMagic({.skill = m_skill,
+                                                                 .x = cell.x,
+                                                                 .y = cell.y,
+                                                                 .direction = direction.Value(),
+                                                                 .back = *relative,
+                                                                 .key = static_cast<std::uint16_t>(key.Value()),
+                                                                 .magicKey = magicKey}));
     }
     // 0x58eb62..0x58eb7a.
     m_hero.movement = 0;
@@ -630,12 +631,12 @@ Core::Expected<void, std::string> WizardBranch::CastTheMagicKey()
             return Core::Unexpected(direction.Error());
         // 0x58f822..0x58f849: 0x57cf90 en línea, con +0x1bd del héroe.
         const std::uint8_t magicKey = NextMagicKey(m_state, m_hero.magicKey);
-        SendTheSkillPacket(m_context, Protocol::Skill::WriteDurationMagic({.skill = m_skill,
-                                                                           .x = cell.x,
-                                                                           .y = cell.y,
-                                                                           .direction = direction.Value(),
-                                                                           .key = Protocol::Skill::NoSkillTargetKey,
-                                                                           .magicKey = magicKey}));
+        SendTheSkillPacket(m_context, Protocol::Skills::WriteDurationMagic({.skill = m_skill,
+                                                                            .x = cell.x,
+                                                                            .y = cell.y,
+                                                                            .direction = direction.Value(),
+                                                                            .key = Protocol::Skills::NoSkillTargetKey,
+                                                                            .magicKey = magicKey}));
     }
     return SetTheHitAction(m_hero, CombatContextOf(m_context));
 }
@@ -664,11 +665,12 @@ Core::Expected<void, std::string> WizardBranch::CastTheFlame()
         const auto direction = DirectionOf(m_hero, "0x590ef9");
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
-        SendTheSkillPacket(m_context, Protocol::Skill::WriteDurationMagic({.skill = m_skill,
-                                                                           .x = cell.Value().x,
-                                                                           .y = cell.Value().y,
-                                                                           .direction = direction.Value(),
-                                                                           .key = Protocol::Skill::NoSkillTargetKey}));
+        SendTheSkillPacket(m_context,
+                           Protocol::Skills::WriteDurationMagic({.skill = m_skill,
+                                                                 .x = cell.Value().x,
+                                                                 .y = cell.Value().y,
+                                                                 .direction = direction.Value(),
+                                                                 .key = Protocol::Skills::NoSkillTargetKey}));
     }
     return SetTheHitAction(m_hero, CombatContextOf(m_context));
 }
@@ -679,7 +681,7 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
 {
     if (!IsPlayer(m_hero))
         return {};
-    std::uint16_t key = Protocol::Skill::NoSkillTargetKey;
+    std::uint16_t key = Protocol::Skills::NoSkillTargetKey;
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosenKey =
@@ -697,11 +699,11 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
         const auto direction = DirectionOf(m_hero, "0x591c67");
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
-        SendTheSkillPacket(m_context, Protocol::Skill::WriteDurationMagic({.skill = m_skill,
-                                                                           .x = cell.Value().x,
-                                                                           .y = cell.Value().y,
-                                                                           .direction = direction.Value(),
-                                                                           .key = key}));
+        SendTheSkillPacket(m_context, Protocol::Skills::WriteDurationMagic({.skill = m_skill,
+                                                                            .x = cell.Value().x,
+                                                                            .y = cell.Value().y,
+                                                                            .direction = direction.Value(),
+                                                                            .key = key}));
     }
     if (auto hit = SetTheHitAction(m_hero, CombatContextOf(m_context)); !hit.HasValue())
         return hit;
@@ -749,8 +751,8 @@ Core::Expected<void, std::string> WizardBranch::Teleport()
         return {};
     m_state.gateRequestBlocked = 1;
     SendTheSkillPacket(m_context,
-                       Protocol::Skill::WriteTeleportMagic(static_cast<std::uint8_t>(m_state.targetX & 0xffu),
-                                                           static_cast<std::uint8_t>(m_state.targetY & 0xffu)));
+                       Protocol::Skills::WriteTeleportMagic(static_cast<std::uint8_t>(m_state.targetX & 0xffu),
+                                                            static_cast<std::uint8_t>(m_state.targetY & 0xffu)));
     // 0x59383f..0x593857: con 0x1000 en +0x78, 0x4e6910; 0x593061 ya salió con él (*estático*).
     return ActTheTeleport(m_hero, m_context);
 }
@@ -856,8 +858,8 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     }
     m_state.gateRequestBlocked = 1;
     SendTheSkillPacket(m_context,
-                       Protocol::Skill::WriteTargetTeleport(target.key, static_cast<std::uint8_t>(cellX & 0xff),
-                                                            static_cast<std::uint8_t>(cellY & 0xff)));
+                       Protocol::Skills::WriteTargetTeleport(target.key, static_cast<std::uint8_t>(cellX & 0xff),
+                                                             static_cast<std::uint8_t>(cellY & 0xff)));
     return ActTheTeleport(target, m_context);
 }
 } // namespace

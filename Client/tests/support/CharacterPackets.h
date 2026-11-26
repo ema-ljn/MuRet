@@ -24,7 +24,7 @@ struct CharacterEntryFields
     std::uint16_t level = 1;
     std::uint8_t flags = 0;
     std::uint8_t classByte = 0;
-    std::array<std::uint8_t, Protocol::Character::EquipmentSize> equipment{};
+    std::array<std::uint8_t, Protocol::FrontEnd::EquipmentSize> equipment{};
     std::uint8_t guildStatus = 0xFF;
 };
 
@@ -33,10 +33,10 @@ struct CharacterEntryFields
 inline constexpr std::size_t UnreadEntryByte = 0xB;
 
 // Los 10 bytes de `name`, con ceros detrás. Un nombre de más de 10 bytes hace fallar el test.
-inline std::array<std::byte, Protocol::Character::NameSize> NameBytes(std::string_view name)
+inline std::array<std::byte, Protocol::FrontEnd::NameSize> NameBytes(std::string_view name)
 {
-    EXPECT_LE(name.size(), Protocol::Character::NameSize) << "un nombre de más de 10 bytes";
-    std::array<std::byte, Protocol::Character::NameSize> bytes{};
+    EXPECT_LE(name.size(), Protocol::FrontEnd::NameSize) << "un nombre de más de 10 bytes";
+    std::array<std::byte, Protocol::FrontEnd::NameSize> bytes{};
     const std::size_t size = std::min(name.size(), bytes.size());
     std::ranges::transform(name.substr(0, size), bytes.begin(),
                            [](char value) { return static_cast<std::byte>(value); });
@@ -47,7 +47,7 @@ inline std::array<std::byte, Protocol::Character::NameSize> NameBytes(std::strin
 // little-endian, las banderas, la clase, el equipo y el estado en el gremio.
 inline std::vector<std::byte> CharacterEntryBytes(const CharacterEntryFields& fields)
 {
-    std::vector<std::byte> bytes(Protocol::Character::EntrySize, std::byte{0});
+    std::vector<std::byte> bytes(Protocol::FrontEnd::EntrySize, std::byte{0});
     bytes[0] = std::byte{fields.slot};
     const auto name = NameBytes(fields.name);
     std::ranges::copy(name, bytes.begin() + 1);
@@ -66,7 +66,7 @@ inline std::vector<std::byte> CharacterEntryBytes(const CharacterEntryFields& fi
 inline std::vector<std::byte> CharacterListBytes(const std::vector<CharacterEntryFields>& entries, std::uint8_t count,
                                                  std::uint8_t creatableClasses = 0, std::uint8_t notice = 0)
 {
-    const std::size_t size = 7 + Protocol::Character::EntrySize * entries.size();
+    const std::size_t size = 7 + Protocol::FrontEnd::EntrySize * entries.size();
     EXPECT_LE(size, 0xFFu) << "una lista que no entra en un C1";
     std::vector<std::byte> bytes = {std::byte{0xC1}, static_cast<std::byte>(size), std::byte{0xF3},
                                     std::byte{0x00}, std::byte{creatableClasses},  std::byte{notice},

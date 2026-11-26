@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Protocol::Skill: lo que llega de las skills (04 § Las skills, CL9 hito 4), con claves inventadas.
+// Client::Protocol::Skills: lo que llega de las skills (04 § Las skills, CL9 hito 4), con claves inventadas.
 namespace
 {
 using Client::Network::Delivery;
@@ -28,7 +28,7 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace Skill = Client::Protocol::Skill;
+namespace Skill = Client::Protocol::Skills;
 
 // 0x4d30d0: el GS manda siete WORD; las dos lecturas fuera del struct son opcionales.
 TEST(SkillProtocolTest, LevelUpReadsTheServerPacketAndOptionalWords)

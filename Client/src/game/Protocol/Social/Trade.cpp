@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Protocol::Trade
+namespace Client::Protocol::Social
 {
 namespace
 {
@@ -33,7 +33,7 @@ Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network:
 
 std::optional<Name> ReadName(Core::ByteReader& reader)
 {
-    const auto bytes = reader.ReadBytes(Character::NameSize);
+    const auto bytes = reader.ReadBytes(FrontEnd::NameSize);
     if (!bytes)
         return std::nullopt;
     Name name{};
@@ -95,7 +95,7 @@ Core::Expected<TradeItemAdded, Network::ProtocolError> ReadTradeItemAdded(const 
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
     const auto slot = reader.ReadU8();
-    const auto bytes = reader.ReadBytes(Inventory::ItemDataSize);
+    const auto bytes = reader.ReadBytes(Items::ItemDataSize);
     if (!slot || !bytes)
         return Core::Unexpected(Network::ProtocolError::TooShort);
     TradeItemAdded added{.slot = *slot};
@@ -176,4 +176,4 @@ Outgoing WriteClearTradeRequestReport()
                            .PutU8(0)
                            .PutU8(Network::ByteOf(TradeRequestOpcode)));
 }
-} // namespace Client::Protocol::Trade
+} // namespace Client::Protocol::Social

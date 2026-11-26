@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Protocol::Character, entrar al mundo con el elegido (F3 03, C->S, 0x636290), con nombres
+// Client::Protocol::FrontEnd, entrar al mundo con el elegido (F3 03, C->S, 0x636290), con nombres
 // sintéticos.
 namespace
 {
@@ -28,9 +28,9 @@ using Client::Network::Delivery;
 using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Character::CharacterSelectResult;
-using Client::Protocol::Character::ReadCharacterSelectResult;
-using Client::Protocol::Character::WriteCharacterSelect;
+using Client::Protocol::FrontEnd::CharacterSelectResult;
+using Client::Protocol::FrontEnd::ReadCharacterSelectResult;
+using Client::Protocol::FrontEnd::WriteCharacterSelect;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::NameBytes;

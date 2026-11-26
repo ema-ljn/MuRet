@@ -1726,7 +1726,7 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
         m_world->Map().effects.Clear();
         m_world->Runtime().lastSoundId.reset();
 
-        Client::Scenes::ApplyMagicCancel(Client::Protocol::Skill::MagicCancel{skill, GlowKey}, resources);
+        Client::Scenes::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources);
 
         EXPECT_EQ(glow.byte110, strike);
         EXPECT_EQ(glow.flags78, 0u);

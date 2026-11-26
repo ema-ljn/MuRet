@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::Items
 {
 struct InventoryList;
 }
@@ -33,5 +33,5 @@ void ClearForInventoryReply(const WorldEntryResources& resources);
 // orden y con las repetidas (Scenes::PlaceInventoryItem). La primera que corta deja lo que hicieron las de
 // antes.
 [[nodiscard]] Core::Expected<InventoryReplyResult, std::string>
-ApplyInventory(const Protocol::Character::InventoryList& list, const WorldEntryResources& resources);
+ApplyInventory(const Protocol::Items::InventoryList& list, const WorldEntryResources& resources);
 } // namespace Client::Scenes

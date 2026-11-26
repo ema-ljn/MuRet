@@ -97,7 +97,7 @@ namespace Client::Scenes
 {
 namespace
 {
-void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& weather)
+void ApplyWeather(const Protocol::Movement::Weather& received, World::LeafWeather& weather)
 {
     // 0x4e36c4/0x4e36ed: sólo target; el default de 0x4e5b4a no escribe nada ni pide rand().
     constexpr std::uint8_t NibbleShift = 4;
@@ -128,7 +128,7 @@ WorldEntryResources WithTheSession(const WorldEntryResources& resources, App::Se
 // 04 § Las ventanas de los NPC (Scenes/NpcWindows.h).
 template <typename Event> constexpr bool IsNpcWindowEvent(const Event&)
 {
-    namespace Npc = Protocol::NpcWindows;
+    namespace Npc = Protocol::Npc;
     return std::is_same_v<Event, Npc::TalkResult> || std::is_same_v<Event, Npc::ItemList> ||
            std::is_same_v<Event, Npc::BuyResult> || std::is_same_v<Event, Npc::SellResult> ||
            std::is_same_v<Event, Npc::RepairResult> || std::is_same_v<Event, Npc::WarehouseMoney> ||
@@ -139,7 +139,7 @@ template <typename Event> constexpr bool IsNpcWindowEvent(const Event&)
 std::optional<Core::Expected<void, std::string>>
 ApplyNpcWindowEvent(const App::WorldEvent& event, const WorldEntryResources& unbound, App::ServerSession& session)
 {
-    namespace Npc = Protocol::NpcWindows;
+    namespace Npc = Protocol::Npc;
     if (std::visit([](const auto& value) { return !IsNpcWindowEvent(value); }, event))
         return std::nullopt;
     const WorldEntryResources resources = WithTheSession(unbound, session);
@@ -167,7 +167,7 @@ ApplyNpcWindowEvent(const App::WorldEvent& event, const WorldEntryResources& unb
 // Lo que el chat que llega lee del juego y de la sesión: 0x6d5edc es el elegido de la lista.
 ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, App::ServerSession& session)
 {
-    const Protocol::Character::CharacterEntry* chosen = session.ChosenCharacter();
+    const Protocol::FrontEnd::CharacterEntry* chosen = session.ChosenCharacter();
     return ChatReceiveContext{.world = resources.world,
                               .random = resources.cloth.random,
                               .measure = resources.textMeasure,
@@ -269,7 +269,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
-    if (const auto* attack = std::get_if<Protocol::Viewport::MagicAttackCount>(&event))
+    if (const auto* attack = std::get_if<Protocol::Actors::MagicAttackCount>(&event))
         return ApplyMagicAttackCount(*attack, session.PlayerIndex(), m_resources);
     // CL9 hito 3: el 0x16 y el 0x9C (0x4cf200, 0x4cfce0) y el 0x17 (0x4d0a30).
     if (const auto* experience = std::get_if<Protocol::Combat::KillExperience>(&event))
@@ -279,14 +279,14 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
     if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
         return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
                                 { session.SendAction(direction, sent); });
-    if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
+    if (const auto* teleport = std::get_if<Protocol::Movement::Teleport>(&event))
     {
         SessionPublisher publisher(session);
         return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
     }
-    if (const auto* regen = std::get_if<Protocol::World::Regen>(&event))
+    if (const auto* regen = std::get_if<Protocol::Movement::Regen>(&event))
         return ApplyRegen(*regen, session.PlayerIndex(), WithTheSession(m_resources, session));
-    if (const auto* chat = std::get_if<Protocol::Messages::Chat>(&event))
+    if (const auto* chat = std::get_if<Protocol::Chat::Chat>(&event))
     {
         // 0x4c6095: en el login, el 00 es el saludo del CS y pide la lista por el socket abierto.
         if (m_resources.scene && m_resources.scene() == SceneId::Login)
@@ -296,20 +296,20 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
         }
         return ApplyChat(*chat, ChatContextOf(m_resources, session));
     }
-    if (const auto* chat = std::get_if<Protocol::Messages::KeyChat>(&event))
+    if (const auto* chat = std::get_if<Protocol::Chat::KeyChat>(&event))
     {
         // 0x4e345c: el 01 del Guild Master abre la ventana 2 del gremio, y lo que eso cierra manda por el GameServer.
         ChatReceiveContext context = ChatContextOf(m_resources, session);
         context.guildSend = [&session](Protocol::Outgoing packet) { session.SendGuildPacket(std::move(packet)); };
         return ApplyKeyChat(*chat, context);
     }
-    if (const auto* whisper = std::get_if<Protocol::Messages::Whisper>(&event))
+    if (const auto* whisper = std::get_if<Protocol::Chat::Whisper>(&event))
         return ApplyWhisper(*whisper, ChatContextOf(m_resources, session));
-    if (const auto* result = std::get_if<Protocol::Messages::WhisperResult>(&event))
+    if (const auto* result = std::get_if<Protocol::Chat::WhisperResult>(&event))
         return ApplyWhisperResult(*result, ChatContextOf(m_resources, session));
-    if (const auto* notice = std::get_if<Protocol::Messages::Notice>(&event))
+    if (const auto* notice = std::get_if<Protocol::Chat::Notice>(&event))
         return ApplyNotice(*notice, ChatContextOf(m_resources, session));
-    if (const auto* options = std::get_if<Protocol::OptionData::OptionData>(&event))
+    if (const auto* options = std::get_if<Protocol::Player::OptionData>(&event))
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
     if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
         return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
@@ -317,28 +317,28 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
         return std::move(*skill);
     if (auto viewport = ApplyViewport(event))
         return *viewport;
-    if (const auto* list = std::get_if<Protocol::Friends::FriendList>(&event))
+    if (const auto* list = std::get_if<Protocol::Messenger::FriendList>(&event))
         return ApplyFriendList(*list, ChatContextOf(m_resources, session));
-    if (const auto* added = std::get_if<Protocol::Friends::FriendAddResult>(&event))
+    if (const auto* added = std::get_if<Protocol::Messenger::FriendAddResult>(&event))
         return ApplyFriendAddResult(*added, ChatContextOf(m_resources, session));
-    if (const auto* request = std::get_if<Protocol::Friends::FriendRequest>(&event))
+    if (const auto* request = std::get_if<Protocol::Messenger::FriendRequest>(&event))
         return ApplyFriendRequest(*request, ChatContextOf(m_resources, session));
-    if (const auto* deleted = std::get_if<Protocol::Friends::FriendDeleteResult>(&event))
+    if (const auto* deleted = std::get_if<Protocol::Messenger::FriendDeleteResult>(&event))
         return ApplyFriendDeleteResult(*deleted, ChatContextOf(m_resources, session));
-    if (const auto* state = std::get_if<Protocol::Friends::FriendState>(&event))
+    if (const auto* state = std::get_if<Protocol::Messenger::FriendState>(&event))
         return ApplyFriendState(*state, ChatContextOf(m_resources, session));
     // CL9 hito 10.
-    if (const auto* sent = std::get_if<Protocol::Letters::LetterSendResult>(&event))
+    if (const auto* sent = std::get_if<Protocol::Messenger::LetterSendResult>(&event))
         return ApplyLetterSendResult(*sent, ChatContextOf(m_resources, session));
-    if (const auto* row = std::get_if<Protocol::Letters::LetterRow>(&event))
+    if (const auto* row = std::get_if<Protocol::Messenger::LetterRow>(&event))
         return ApplyLetterRow(*row, ChatContextOf(m_resources, session));
-    if (const auto* letter = std::get_if<Protocol::Letters::LetterRead>(&event))
+    if (const auto* letter = std::get_if<Protocol::Messenger::LetterRead>(&event))
         return ApplyLetterRead(*letter, ChatContextOf(m_resources, session));
-    if (const auto* deleted = std::get_if<Protocol::Letters::LetterDeleteResult>(&event))
+    if (const auto* deleted = std::get_if<Protocol::Messenger::LetterDeleteResult>(&event))
         return ApplyLetterDeleteResult(*deleted, ChatContextOf(m_resources, session));
-    if (const auto* answer = std::get_if<Protocol::FriendChat::RoomAnswer>(&event))
+    if (const auto* answer = std::get_if<Protocol::Messenger::RoomAnswer>(&event))
         return ApplyRoomAnswer(*answer, ChatContextOf(m_resources, session));
-    if (const auto* invited = std::get_if<Protocol::FriendChat::InviteResult>(&event))
+    if (const auto* invited = std::get_if<Protocol::Messenger::InviteResult>(&event))
         return ApplyInviteResult(*invited, ChatContextOf(m_resources, session));
     if (const auto* room = std::get_if<App::ChatRoomPacket>(&event))
         return ApplyRoomPacket(room->window, room->packet, ChatContextOf(m_resources, session));
@@ -356,7 +356,7 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
                                                                                   App::ServerSession& session)
 {
     WorldState& world = m_resources.world;
-    if (const auto* request = std::get_if<Protocol::Trade::TradeRequest>(&event))
+    if (const auto* request = std::get_if<Protocol::Social::TradeRequest>(&event))
     {
         auto reply = ApplyTradeRequest(*request, m_resources);
         if (!reply.HasValue())
@@ -366,33 +366,33 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
             session.SendGamePacket(std::move(*reply.Value()));
         return Core::Expected<void, std::string>{};
     }
-    if (std::holds_alternative<Protocol::Trade::ClearTradeRequest>(event))
+    if (std::holds_alternative<Protocol::Social::ClearTradeRequest>(event))
     {
         session.SendGamePacket(ApplyClearTradeRequest(m_resources.cloth.random));
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* response = std::get_if<Protocol::Trade::TradeResponse>(&event))
+    if (const auto* response = std::get_if<Protocol::Social::TradeResponse>(&event))
         return ApplyTradeResponse(*response, WithTheSession(m_resources, session));
-    if (const auto* removed = std::get_if<Protocol::Trade::TradeItemRemoved>(&event))
+    if (const auto* removed = std::get_if<Protocol::Social::TradeItemRemoved>(&event))
         return ApplyTradeItemRemoved(*removed, m_resources);
-    if (const auto* added = std::get_if<Protocol::Trade::TradeItemAdded>(&event))
+    if (const auto* added = std::get_if<Protocol::Social::TradeItemAdded>(&event))
         return ApplyTradeItemAdded(*added, m_resources);
-    if (const auto* money = std::get_if<Protocol::Trade::TradeMoneyResult>(&event))
+    if (const auto* money = std::get_if<Protocol::Social::TradeMoneyResult>(&event))
     {
         ApplyTradeMoneyResult(*money, world);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* other = std::get_if<Protocol::Trade::TradeOtherMoney>(&event))
+    if (const auto* other = std::get_if<Protocol::Social::TradeOtherMoney>(&event))
     {
         ApplyTradeOtherMoney(*other, world);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* ok = std::get_if<Protocol::Trade::TradeOkState>(&event))
+    if (const auto* ok = std::get_if<Protocol::Social::TradeOkState>(&event))
     {
         ApplyTradeOkState(*ok, world);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* result = std::get_if<Protocol::Trade::TradeResult>(&event))
+    if (const auto* result = std::get_if<Protocol::Social::TradeResult>(&event))
         return ApplyTradeResult(*result, m_resources);
     if (const auto* invite = std::get_if<Protocol::Party::PartyRequest>(&event))
     {
@@ -413,16 +413,16 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
         ApplyPartyLife(*life, world, m_resources.log);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* start = std::get_if<Protocol::Duel::DuelStart>(&event))
+    if (const auto* start = std::get_if<Protocol::Social::DuelStart>(&event))
         return ApplyDuelStart(*start, m_resources);
-    if (const auto* end = std::get_if<Protocol::Duel::DuelEnd>(&event))
+    if (const auto* end = std::get_if<Protocol::Social::DuelEnd>(&event))
         return ApplyDuelEnd(*end, m_resources);
-    if (const auto* duel = std::get_if<Protocol::Duel::DuelRequest>(&event))
+    if (const auto* duel = std::get_if<Protocol::Social::DuelRequest>(&event))
     {
         ApplyDuelRequest(*duel, world);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* score = std::get_if<Protocol::Duel::DuelScore>(&event))
+    if (const auto* score = std::get_if<Protocol::Social::DuelScore>(&event))
     {
         ApplyDuelScore(*score, world);
         return Core::Expected<void, std::string>{};
@@ -470,45 +470,45 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
 // las mascotas (Scenes/PetStats.h). nullopt si `event` no es una.
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkillEvent(const App::WorldEvent& event)
 {
-    if (const auto* attack = std::get_if<Protocol::Skill::MagicAttack>(&event))
+    if (const auto* attack = std::get_if<Protocol::Skills::MagicAttack>(&event))
         return ApplyMagicAttack(*attack, m_resources);
-    if (const auto* magic = std::get_if<Protocol::Skill::DurationMagic>(&event))
+    if (const auto* magic = std::get_if<Protocol::Skills::DurationMagic>(&event))
         return ApplyDurationMagic(*magic, m_resources);
-    if (const auto* cancel = std::get_if<Protocol::Skill::MagicCancel>(&event))
+    if (const auto* cancel = std::get_if<Protocol::Skills::MagicCancel>(&event))
     {
         ApplyMagicCancel(*cancel, m_resources);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* state = std::get_if<Protocol::Skill::ActorState>(&event))
+    if (const auto* state = std::get_if<Protocol::Skills::ActorState>(&event))
         return ApplyActorState(*state, m_resources);
-    if (const auto* effect = std::get_if<Protocol::Skill::ActorEffect>(&event))
+    if (const auto* effect = std::get_if<Protocol::Skills::ActorEffect>(&event))
         return ApplyActorEffect(*effect, m_resources);
-    if (const auto* target = std::get_if<Protocol::Skill::SkillTarget>(&event))
+    if (const auto* target = std::get_if<Protocol::Skills::SkillTarget>(&event))
         return ApplySkillTarget(*target, m_resources);
-    if (const auto* list = std::get_if<Protocol::Skill::SkillList>(&event))
+    if (const auto* list = std::get_if<Protocol::Skills::SkillList>(&event))
         return ApplySkillList(*list, m_resources);
-    if (const auto* level = std::get_if<Protocol::Skill::LevelUp>(&event))
+    if (const auto* level = std::get_if<Protocol::Skills::LevelUp>(&event))
         return ApplyLevelUp(*level, m_resources);
-    if (const auto* point = std::get_if<Protocol::Character::LevelUpPointResult>(&event))
+    if (const auto* point = std::get_if<Protocol::Player::LevelUpPointResult>(&event))
         return ApplyLevelUpPointResult(*point, m_resources);
-    if (const auto* pk = std::get_if<Protocol::Character::PkLevel>(&event))
+    if (const auto* pk = std::get_if<Protocol::Player::PkLevel>(&event))
         return ApplyPkLevel(*pk, m_resources);
-    if (const auto* summon = std::get_if<Protocol::Skill::SummonLife>(&event))
+    if (const auto* summon = std::get_if<Protocol::Skills::SummonLife>(&event))
     {
         ApplySummonLife(*summon, m_resources);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* order = std::get_if<Protocol::Pet::PetOrder>(&event))
+    if (const auto* order = std::get_if<Protocol::Pets::PetOrder>(&event))
     {
         ApplyPetOrder(*order, m_resources.world);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* attack = std::get_if<Protocol::Pet::PetAttack>(&event))
+    if (const auto* attack = std::get_if<Protocol::Pets::PetAttack>(&event))
     {
         ApplyPetAttack(*attack, m_resources);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* info = std::get_if<Protocol::Pet::PetInfoReply>(&event))
+    if (const auto* info = std::get_if<Protocol::Pets::PetInfoReply>(&event))
         return ApplyPetInfo(*info, m_resources);
     return std::nullopt;
 }
@@ -525,24 +525,24 @@ void SessionEventApplier::ClearLogoutRequest()
 
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)
 {
-    if (const auto* players = std::get_if<Protocol::Viewport::Players>(&event))
+    if (const auto* players = std::get_if<Protocol::Actors::Players>(&event))
         return ApplyViewportPlayers(*players, m_resources);
-    if (const auto* leave = std::get_if<Protocol::Viewport::Leave>(&event))
+    if (const auto* leave = std::get_if<Protocol::Actors::Leave>(&event))
     {
         ApplyViewportLeave(*leave, m_resources.world);
         return Core::Expected<void, std::string>{};
     }
-    if (const auto* transformed = std::get_if<Protocol::Viewport::Transformed>(&event))
+    if (const auto* transformed = std::get_if<Protocol::Actors::Transformed>(&event))
         return ApplyTransformed(*transformed, m_resources);
-    if (const auto* shown = std::get_if<Protocol::Viewport::EquipmentShown>(&event))
+    if (const auto* shown = std::get_if<Protocol::Actors::EquipmentShown>(&event))
         return ApplyEquipmentShown(*shown, m_resources);
-    if (const auto* position = std::get_if<Protocol::Viewport::Position>(&event))
+    if (const auto* position = std::get_if<Protocol::Actors::Position>(&event))
         return ApplyViewportPosition(*position, m_resources);
-    if (const auto* monsters = std::get_if<Protocol::Viewport::Monsters>(&event))
+    if (const auto* monsters = std::get_if<Protocol::Actors::Monsters>(&event))
         return ApplyViewportMonsters(*monsters, m_resources);
-    if (const auto* summons = std::get_if<Protocol::Viewport::Summons>(&event))
+    if (const auto* summons = std::get_if<Protocol::Actors::Summons>(&event))
         return ApplySummons(*summons, m_resources);
-    if (const auto* objects = std::get_if<Protocol::Viewport::Objects>(&event))
+    if (const auto* objects = std::get_if<Protocol::Actors::Objects>(&event))
         return ApplyViewportObjects(*objects, m_resources);
     return std::nullopt;
 }
@@ -550,7 +550,7 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewp
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,
                                                                          App::ServerSession& session)
 {
-    if (const auto* weather = std::get_if<Protocol::World::Weather>(&event))
+    if (const auto* weather = std::get_if<Protocol::Movement::Weather>(&event))
     {
         ApplyWeather(*weather, m_resources.world.Runtime().leafWeather);
         return {};
@@ -578,11 +578,11 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
     if (auto npc = ApplyNpcWindowEvent(event, m_resources, session))
         return *std::move(npc);
-    if (const auto* battle = std::get_if<Protocol::CastleBattle::CastleBattlePacket>(&event))
+    if (const auto* battle = std::get_if<Protocol::CastleSiege::CastleBattlePacket>(&event))
         return ApplyCastleBattlePacket(*battle, CastleContextOf(m_resources, session));
     if (std::holds_alternative<App::MapServerLeft>(event))
     {
-        const Protocol::Character::CharacterEntry* chosen = session.ChosenCharacter();
+        const Protocol::FrontEnd::CharacterEntry* chosen = session.ChosenCharacter();
         return ApplyMapServerLeave(m_resources,
                                    chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt);
     }
@@ -600,71 +600,71 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     {
         return ApplyMapServerJoin(WithTheSession(m_resources, session));
     }
-    if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
+    if (const auto* moved = std::get_if<Protocol::Items::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
-    if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))
+    if (const auto* life = std::get_if<Protocol::Items::LifeRefill>(&event))
         return ApplyLifeRefill(*life, m_resources.world, m_resources.cloth.random);
-    if (const auto* mana = std::get_if<Protocol::Inventory::ManaRefill>(&event))
+    if (const auto* mana = std::get_if<Protocol::Items::ManaRefill>(&event))
         return ApplyManaRefill(*mana, m_resources.world, m_resources.cloth.random);
-    if (const auto* deleted = std::get_if<Protocol::Inventory::ItemDelete>(&event))
+    if (const auto* deleted = std::get_if<Protocol::Items::ItemDelete>(&event))
         return ApplyItemDelete(*deleted, m_resources);
-    if (const auto* durability = std::get_if<Protocol::Inventory::Durability>(&event))
+    if (const auto* durability = std::get_if<Protocol::Items::Durability>(&event))
         return ApplyDurability(*durability, m_resources);
-    if (const auto* change = std::get_if<Protocol::Inventory::EquipmentChange>(&event))
+    if (const auto* change = std::get_if<Protocol::Items::EquipmentChange>(&event))
         return ApplyEquipmentChange(*change, m_resources);
-    if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
+    if (const auto* put = std::get_if<Protocol::Items::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
     if (auto social = ApplySocial(event, session))
         return *social;
     // Las misiones (CL9 hito 2).
-    if (const auto* flag = std::get_if<Protocol::Quest::QuestFlag>(&event))
+    if (const auto* flag = std::get_if<Protocol::Quests::QuestFlag>(&event))
     {
         ApplyQuestFlag(*flag, m_resources.world);
         return {};
     }
-    if (const auto* list = std::get_if<Protocol::Quest::QuestList>(&event))
+    if (const auto* list = std::get_if<Protocol::Quests::QuestList>(&event))
     {
         ApplyQuestList(*list, m_resources);
         return {};
     }
-    if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
+    if (const auto* state = std::get_if<Protocol::Quests::QuestStateChange>(&event))
         return ApplyQuestState(*state, WithTheSession(m_resources, session));
-    if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))
+    if (const auto* set = std::get_if<Protocol::Quests::SetQuestResult>(&event))
         return ApplySetQuestResult(*set, WithTheSession(m_resources, session));
-    if (const auto* result = std::get_if<Protocol::Quest::QuestResult>(&event))
+    if (const auto* result = std::get_if<Protocol::Quests::QuestResult>(&event))
         return ApplyQuestResult(*result, m_resources);
     // CL9 hito 5.
-    if (const auto* created = std::get_if<Protocol::FloorItems::FloorItemsCreate>(&event))
+    if (const auto* created = std::get_if<Protocol::Items::FloorItemsCreate>(&event))
         return ApplyFloorItemsCreate(*created, m_resources);
-    if (const auto* deleted = std::get_if<Protocol::FloorItems::FloorItemsDelete>(&event))
+    if (const auto* deleted = std::get_if<Protocol::Items::FloorItemsDelete>(&event))
     {
         ApplyFloorItemsDelete(*deleted, m_resources.world);
         return {};
     }
-    if (const auto* picked = std::get_if<Protocol::FloorItems::PickUpResult>(&event))
+    if (const auto* picked = std::get_if<Protocol::Items::PickUpResult>(&event))
         return ApplyPickUpResult(*picked, m_resources);
-    if (const auto* dropped = std::get_if<Protocol::FloorItems::DropResult>(&event))
+    if (const auto* dropped = std::get_if<Protocol::Items::DropResult>(&event))
         return ApplyDropResult(*dropped, m_resources);
-    if (const auto* fruit = std::get_if<Protocol::FloorItems::StatFruit>(&event))
+    if (const auto* fruit = std::get_if<Protocol::Items::StatFruit>(&event))
         return ApplyStatFruit(*fruit, m_resources.world, m_resources.cloth.random, m_resources.texts);
-    if (const auto* zen = std::get_if<Protocol::FloorItems::ShortZenPickUp>(&event))
+    if (const auto* zen = std::get_if<Protocol::Items::ShortZenPickUp>(&event))
         return ApplyShortZenPickUp(*zen, m_resources);
-    if (std::holds_alternative<Protocol::FloorItems::ShortPickUpResult>(event))
+    if (std::holds_alternative<Protocol::Items::ShortPickUpResult>(event))
     {
         ApplyShortPickUpResult(m_resources.world);
         return {};
     }
-    if (const auto* dropped = std::get_if<Protocol::FloorItems::ShortDropResult>(&event))
+    if (const auto* dropped = std::get_if<Protocol::Items::ShortDropResult>(&event))
     {
         ApplyShortDropResult(*dropped, m_resources.world);
         return {};
     }
-    if (std::holds_alternative<Protocol::FloorItems::ShortStatFruit>(event))
+    if (std::holds_alternative<Protocol::Items::ShortStatFruit>(event))
     {
         ApplyShortStatFruit(m_resources.world);
         return {};
     }
-    if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
+    if (const auto* inventory = std::get_if<Protocol::Items::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);
         if (!applied.HasValue())
@@ -702,7 +702,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             m_resources.log.Warning("se descarta el resto del paquete de evento: {}", *applied.Value().discarded);
         return {};
     }
-    const auto& reply = std::get<Protocol::Character::CharacterSelectResult>(event);
+    const auto& reply = std::get<Protocol::FrontEnd::CharacterSelectResult>(event);
     SessionPublisher publisher(session);
     const auto entered = ApplyWorldEntry(reply, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
     if (!entered.HasValue())

@@ -47,7 +47,7 @@ TEST(WeatherProtocolTest, KeepsTheWholeWeatherByteIncludingUnknownHighNibbles)
 {
     for (int code = 0; code <= 0xff; ++code)
     {
-        const auto weather = Client::Protocol::World::ReadWeather(PacketOf(Bytes({0xc1, 4, 0x0f, code})));
+        const auto weather = Client::Protocol::Movement::ReadWeather(PacketOf(Bytes({0xc1, 4, 0x0f, code})));
         ASSERT_TRUE(weather.HasValue()) << code;
         EXPECT_EQ(weather.Value().code, code);
     }
@@ -58,20 +58,20 @@ TEST(WeatherProtocolTest, RejectsWrongOpcodesAndContainersBeforeReadingTheField)
     for (auto bytes : {Bytes({0xc1, 3, 0x0e}), Bytes({0xc2, 0, 5, 0x0f, 0x17}), Bytes({0xc3, 4, 0x0f, 0x17}),
                        Bytes({0xc4, 0, 5, 0x0f, 0x17})})
     {
-        EXPECT_EQ(Client::Tests::ErrorOf(Client::Protocol::World::ReadWeather(PacketOf(std::move(bytes)))),
+        EXPECT_EQ(Client::Tests::ErrorOf(Client::Protocol::Movement::ReadWeather(PacketOf(std::move(bytes)))),
                   Client::Network::ProtocolError::WrongPacket);
     }
 }
 
 TEST(WeatherProtocolTest, RequiresTheWeatherByte)
 {
-    EXPECT_EQ(Client::Tests::ErrorOf(Client::Protocol::World::ReadWeather(PacketOf(Bytes({0xc1, 3, 0x0f})))),
+    EXPECT_EQ(Client::Tests::ErrorOf(Client::Protocol::Movement::ReadWeather(PacketOf(Bytes({0xc1, 3, 0x0f})))),
               Client::Network::ProtocolError::TooShort);
 }
 
 TEST(WeatherProtocolTest, IgnoresTrailingBytes)
 {
-    const auto weather = Client::Protocol::World::ReadWeather(PacketOf(Bytes({0xc1, 6, 0x0f, 0x1f, 0x00, 0xff})));
+    const auto weather = Client::Protocol::Movement::ReadWeather(PacketOf(Bytes({0xc1, 6, 0x0f, 0x1f, 0x00, 0xff})));
     ASSERT_TRUE(weather.HasValue());
     EXPECT_EQ(weather.Value().code, 0x1f);
 }
@@ -131,7 +131,7 @@ TEST(WeatherApplierTest, AllThreeBranchesChangeOnlyTheTargetAndConsumeNoRandom)
     {
         SCOPED_TRACE(code);
         tested.world.Runtime().leafWeather = before;
-        const Client::App::WorldEvent event = Client::Protocol::World::Weather{static_cast<std::uint8_t>(code)};
+        const Client::App::WorldEvent event = Client::Protocol::Movement::Weather{static_cast<std::uint8_t>(code)};
 
         ASSERT_TRUE(tested.applier.ApplyWorld(event, tested.online.session).HasValue());
 
@@ -192,7 +192,7 @@ TEST(WeatherSessionTest, AppliesTheThreeBranchesInWireOrderWithoutAdvancingTheRa
     constexpr std::array<std::uint8_t, 4> NativeCodes{0x17, 0x27, 0x1f, 0x0f};
     for (std::size_t index = 0; index < NativeCodes.size(); ++index)
     {
-        const auto* weather = std::get_if<Client::Protocol::World::Weather>(&events[index]);
+        const auto* weather = std::get_if<Client::Protocol::Movement::Weather>(&events[index]);
         ASSERT_NE(weather, nullptr);
         EXPECT_EQ(weather->code, NativeCodes[index]);
     }

@@ -10,7 +10,7 @@
 // que no puede ser el nombre: es del jugador (el plan de la CL6, "El nombre del personaje").
 namespace
 {
-using Client::Protocol::Character::CharacterEntry;
+using Client::Protocol::FrontEnd::CharacterEntry;
 using Client::Tests::NameBytes;
 
 TEST(ProtocolPrintersTest, ACharacterEntryShowsItsSlotAndTheLengthOfItsName)

@@ -51,13 +51,13 @@ inline std::vector<std::byte> Join(std::initializer_list<std::vector<std::byte>>
 
 // La lista como la lee main.exe (F4 06): la cantidad en dos bytes big-endian y, por servidor, el
 // código en little-endian, la carga y un byte que no se lee.
-inline std::vector<std::byte> ServerListWithLoads(std::span<const Protocol::Connection::ServerEntry> entries)
+inline std::vector<std::byte> ServerListWithLoads(std::span<const Protocol::Session::ServerEntry> entries)
 {
     const std::size_t size = 7 + 4 * entries.size();
     std::vector<std::byte> bytes =
         Bytes({0xC2, static_cast<int>(size >> 8), static_cast<int>(size & 0xFF), 0xF4, 0x06,
                static_cast<int>(entries.size() >> 8), static_cast<int>(entries.size() & 0xFF)});
-    for (const Protocol::Connection::ServerEntry& entry : entries)
+    for (const Protocol::Session::ServerEntry& entry : entries)
     {
         const std::vector<std::byte> written = Bytes({entry.code & 0xFF, entry.code >> 8, entry.load, 0x00});
         bytes.insert(bytes.end(), written.begin(), written.end());
@@ -68,10 +68,10 @@ inline std::vector<std::byte> ServerListWithLoads(std::span<const Protocol::Conn
 // La lista con la carga en 0.
 inline std::vector<std::byte> ServerList(std::initializer_list<std::uint16_t> codes)
 {
-    std::vector<Protocol::Connection::ServerEntry> entries;
+    std::vector<Protocol::Session::ServerEntry> entries;
     for (const std::uint16_t code : codes)
     {
-        entries.push_back(Protocol::Connection::ServerEntry{code, 0});
+        entries.push_back(Protocol::Session::ServerEntry{code, 0});
     }
     return ServerListWithLoads(entries);
 }

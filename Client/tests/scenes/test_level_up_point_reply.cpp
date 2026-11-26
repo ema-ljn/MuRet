@@ -39,7 +39,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Character::LevelUpPointResult;
+using Client::Protocol::Player::LevelUpPointResult;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::WorldEntryResources;
 

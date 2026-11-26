@@ -61,24 +61,24 @@ struct FriendsOpenContext
 
 // 0x4dc010: la lista entera (vacía y llena, por nombre y por estado), la pestaña, 0x4918d0(1), el tope de las cartas
 // (0x5767970) y, con cartas, el texto 1072 con cuántas y el tope.
-[[nodiscard]] Core::Expected<void, std::string> ApplyFriendList(const Protocol::Friends::FriendList& list,
+[[nodiscard]] Core::Expected<void, std::string> ApplyFriendList(const Protocol::Messenger::FriendList& list,
                                                                 const ChatReceiveContext& context);
 
 // 0x4dc3d0: el resultado de agregar. 1, el texto 1075 y el amigo a la lista; 0, 3, 4, 5 y 6, una caja (0x48ee60(10))
 // con el texto 1047 (con el nombre), 1048, 1049 (con el nombre), 1050 o 1068.
-[[nodiscard]] Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Friends::FriendAddResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger::FriendAddResult& result,
                                                                      const ChatReceiveContext& context);
 
 // 0x4dc5b0: "<nombre><1051>" en una caja de dos botones (0x48ee60(9), dueño −1) que guarda el nombre (0x4a4440), y el
 // sonido 0x2a.
-[[nodiscard]] Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Friends::FriendRequest& request,
+[[nodiscard]] Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Messenger::FriendRequest& request,
                                                                    const ChatReceiveContext& context);
 
 // 0x4dc690: 0, la caja con el texto 1052; 1, el amigo fuera de la lista.
 [[nodiscard]] Core::Expected<void, std::string>
-ApplyFriendDeleteResult(const Protocol::Friends::FriendDeleteResult& result, const ChatReceiveContext& context);
+ApplyFriendDeleteResult(const Protocol::Messenger::FriendDeleteResult& result, const ChatReceiveContext& context);
 
 // 0x4dc720: con 0xfc, todos fuera de línea y 0x4918d0(0); si no, el estado del amigo.
-[[nodiscard]] Core::Expected<void, std::string> ApplyFriendState(const Protocol::Friends::FriendState& state,
+[[nodiscard]] Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::FriendState& state,
                                                                  const ChatReceiveContext& context);
 } // namespace Client::Scenes

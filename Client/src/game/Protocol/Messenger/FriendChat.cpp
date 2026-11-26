@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Protocol::FriendChat
+namespace Client::Protocol::Messenger
 {
 namespace
 {
@@ -230,13 +230,13 @@ Core::Expected<void, Network::ProtocolError> CheckRoomPacket(const Network::Pack
 
 Outgoing WriteRoomRequest(std::string_view name)
 {
-    return Xor32C1(Network::PacketWriter::C1(RoomRequestOpcode).PutBytes(Letters::FixedText(name, ChatNameSize)));
+    return Xor32C1(Network::PacketWriter::C1(RoomRequestOpcode).PutBytes(Messenger::FixedText(name, ChatNameSize)));
 }
 
 Outgoing WriteInvite(std::string_view name, std::uint16_t room, std::uint32_t window)
 {
     return Xor32C1(Network::PacketWriter::C1(RoomInviteOpcode)
-                       .PutBytes(Letters::FixedText(name, ChatNameSize))
+                       .PutBytes(Messenger::FixedText(name, ChatNameSize))
                        .PutU8(0)
                        .PutU16Le(room)
                        .PutU32Le(window));
@@ -246,7 +246,7 @@ Outgoing WriteJoin(std::uint16_t room, std::uint32_t ticket)
 {
     // _itoa(ticket, buf, 10): el ticket es un int; uno desde 0x80000000 sale con el signo.
     const auto value = static_cast<std::int32_t>(ticket);
-    std::vector<std::byte> digits = Letters::FixedText(std::to_string(value), TicketSize);
+    std::vector<std::byte> digits = Messenger::FixedText(std::to_string(value), TicketSize);
     FlipChatText(digits);
     return Xor32C1(Network::PacketWriter::C1(RoomJoinOpcode).PutU8(0).PutU16Le(room).PutBytes(digits));
 }
@@ -273,4 +273,4 @@ Outgoing WritePing()
 {
     return ClearC1(Network::PacketWriter::C1(RoomPingOpcode));
 }
-} // namespace Client::Protocol::FriendChat
+} // namespace Client::Protocol::Messenger

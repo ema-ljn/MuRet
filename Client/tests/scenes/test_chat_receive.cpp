@@ -54,12 +54,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Messages::Chat;
-using Client::Protocol::Messages::KeyChat;
-using Client::Protocol::Messages::Notice;
-using Client::Protocol::Messages::Whisper;
-using Client::Protocol::Messages::WhisperResult;
-using Client::Protocol::OptionData::OptionData;
+using Client::Protocol::Chat::Chat;
+using Client::Protocol::Chat::KeyChat;
+using Client::Protocol::Chat::Notice;
+using Client::Protocol::Chat::Whisper;
+using Client::Protocol::Chat::WhisperResult;
+using Client::Protocol::Player::OptionData;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;

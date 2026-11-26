@@ -15,19 +15,19 @@
 #include <string_view>
 #include <vector>
 
-// Client::Protocol::Connection::ReadServerHello: el saludo F1 00 del GameServer.
+// Client::Protocol::Session::ReadServerHello: el saludo F1 00 del GameServer.
 namespace
 {
 using Client::Network::ProtocolError;
-using Client::Protocol::ClientVersion;
-using Client::Protocol::Connection::HelloAccepted;
-using Client::Protocol::Connection::ReadServerHello;
+using Client::Protocol::Session::ClientVersion;
+using Client::Protocol::Session::HelloAccepted;
+using Client::Protocol::Session::ReadServerHello;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 
 // La versión de un saludo, como texto para compararla.
-std::string_view VersionOf(const Client::Protocol::Connection::ServerHello& hello)
+std::string_view VersionOf(const Client::Protocol::Session::ServerHello& hello)
 {
     return {hello.version.data(), hello.version.size()};
 }
@@ -109,7 +109,7 @@ TEST(HelloTest, PreservesEveryVersionByteAndIgnoresATrailingByte)
     EXPECT_EQ(withTail.Value().result, 2);
     EXPECT_EQ(exact.Value().playerIndex, 0x34A0);
     EXPECT_EQ(withTail.Value().playerIndex, 0x34A0);
-    constexpr std::array<unsigned char, Client::Protocol::VersionSize> expected{0x00, 0x7F, 0x80, 0xFF, 0x39};
+    constexpr std::array<unsigned char, Client::Protocol::Session::VersionSize> expected{0x00, 0x7F, 0x80, 0xFF, 0x39};
     for (std::size_t index = 0; index < expected.size(); ++index)
     {
         EXPECT_EQ(static_cast<unsigned char>(exact.Value().version[index]), expected[index]);

@@ -19,7 +19,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -93,4 +93,4 @@ Core::Expected<Outgoing, Network::ProtocolError> WriteMapServerAuth(const MapSer
         .PutBytes(BytesOf(ClientSerial));
     return EncryptedC1(writer);
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

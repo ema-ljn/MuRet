@@ -161,23 +161,23 @@ float Real(std::uint32_t bits)
     return std::bit_cast<float>(bits);
 }
 
-Client::Protocol::Viewport::Monsters ReadMonsters(std::span<const MonsterRecordBytes> records)
+Client::Protocol::Actors::Monsters ReadMonsters(std::span<const MonsterRecordBytes> records)
 {
-    auto read = Client::Protocol::Viewport::ReadMonsters(Client::Tests::MonstersPacket(records));
+    auto read = Client::Protocol::Actors::ReadMonsters(Client::Tests::MonstersPacket(records));
     EXPECT_TRUE(read.HasValue());
     return std::move(read).Value();
 }
 
-Client::Protocol::Viewport::Summons ReadSummons(std::span<const SummonRecordBytes> records)
+Client::Protocol::Actors::Summons ReadSummons(std::span<const SummonRecordBytes> records)
 {
-    auto read = Client::Protocol::Viewport::ReadSummons(Client::Tests::SummonsPacket(records));
+    auto read = Client::Protocol::Actors::ReadSummons(Client::Tests::SummonsPacket(records));
     EXPECT_TRUE(read.HasValue());
     return std::move(read).Value();
 }
 
-Client::Protocol::Viewport::Objects ReadObjects(std::span<const ObjectRecordBytes> records)
+Client::Protocol::Actors::Objects ReadObjects(std::span<const ObjectRecordBytes> records)
 {
-    auto read = Client::Protocol::Viewport::ReadObjects(Client::Tests::ObjectsPacket(records));
+    auto read = Client::Protocol::Actors::ReadObjects(Client::Tests::ObjectsPacket(records));
     EXPECT_TRUE(read.HasValue());
     return std::move(read).Value();
 }
@@ -626,7 +626,7 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
         }
         const auto wire = mode == 0 ? Client::Tests::Bytes({0xc1, 7, 0xb2, 0x11, 1, 0x56, 0x78})
                                     : Client::Tests::Bytes({0xc1, 8, 0xb7, 0, 1, mode, 0x12, 0x34});
-        const auto reply = Client::Protocol::CastleBattle::ReadCastleBattlePacket(Client::Tests::PacketOf(wire));
+        const auto reply = Client::Protocol::CastleSiege::ReadCastleBattlePacket(Client::Tests::PacketOf(wire));
         ASSERT_TRUE(reply.HasValue());
         std::size_t extraSends = 0;
         const auto opened = Client::Scenes::ApplyCastleBattlePacket(

@@ -107,7 +107,7 @@ template <std::size_t Size> std::string TextOf(const std::array<std::byte, Size>
 
 // Los siete bytes de un ítem del 39 (0x5bc740): el tipo en el byte 0, el bit 8 en el 0x80 del 3 y los de arriba en
 // el 5.
-Client::Protocol::Inventory::ItemData ItemBytes(std::uint16_t type, std::uint8_t level, std::uint8_t durability = 20)
+Client::Protocol::Items::ItemData ItemBytes(std::uint16_t type, std::uint8_t level, std::uint8_t durability = 20)
 {
     return {static_cast<std::byte>(type & 0xff),
             static_cast<std::byte>(level << 3),
@@ -238,7 +238,7 @@ bool WarnedWith(const Stage& stage, std::string_view text)
 // 0x4d4af0 y 0x4d5570 con el comercio abierto: el pedido (sin tiendas, sin rand()), la respuesta 1 (Open(0x20)).
 void OpenTheTrade(Stage& stage)
 {
-    const Client::Protocol::Trade::TradeRequest request{NameOf<10>("Arbusto")};
+    const Client::Protocol::Social::TradeRequest request{NameOf<10>("Arbusto")};
     const auto asked = Client::Scenes::ApplyTradeRequest(request, stage.Resources());
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     ASSERT_FALSE(asked.Value().has_value());

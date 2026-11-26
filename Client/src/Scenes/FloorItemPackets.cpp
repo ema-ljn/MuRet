@@ -177,7 +177,7 @@ Core::Expected<void, std::string> SystemLine(const WorldEntryResources& resource
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, UI::SystemMessage);
 }
 
-Core::Expected<void, std::string> PickUpMessage(const Protocol::FloorItems::PickUpResult& result,
+Core::Expected<void, std::string> PickUpMessage(const Protocol::Items::PickUpResult& result,
                                                 const WorldEntryResources& resources)
 {
     const WorldRuntime& runtime = resources.world.Runtime();
@@ -189,7 +189,7 @@ Core::Expected<void, std::string> PickUpMessage(const Protocol::FloorItems::Pick
     const auto picked = TextOf(resources.texts, PickedUpText, "0x4d0f85");
     if (!picked.HasValue())
         return Core::Unexpected(picked.Error());
-    if (result.result == Protocol::FloorItems::ZenPickedUp)
+    if (result.result == Protocol::Items::ZenPickedUp)
     {
         // 0x4d0f5f..0x4d0fb4: con el elegido vivo.
         if (!chosen.alive)
@@ -246,7 +246,7 @@ Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Table
 }
 
 // 0x4de53a..0x4de7e4 (sumar) y 0x4de849..0x4dea4c (restar): el stat del registro propio, los puntos y el aviso.
-Core::Expected<void, std::string> EatTheFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
+Core::Expected<void, std::string> EatTheFruit(const Protocol::Items::StatFruit& fruit, WorldState& world,
                                               Crt::CrtRandom& random, const Tables::TextTable* texts, bool adding)
 {
     // 0x4deb74 y 0x4deb88: el stat del lugar y su texto (la energía, la vitalidad, la agilidad, la fuerza y el
@@ -289,7 +289,7 @@ Core::Expected<void, std::string> EatTheFruit(const Protocol::FloorItems::StatFr
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Protocol::Inventory::ItemData& bytes,
+Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Protocol::Items::ItemData& bytes,
                                                   const glm::vec3& position, bool dropped,
                                                   const FloorItemCreation& creation)
 {
@@ -371,7 +371,7 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
     return {};
 }
 
-Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::FloorItems::FloorItemsCreate& create,
+Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::FloorItemsCreate& create,
                                                         const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -390,7 +390,7 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::FloorIte
         { runtime.RequestSound(sound, position); },
         .effects = &world.Map().effects};
     auto& items = world.DrawTail().floorItems;
-    for (const Protocol::FloorItems::FloorItemEntry& entry : create.items)
+    for (const Protocol::Items::FloorItemEntry& entry : create.items)
     {
         // 0x4d0be6..0x4d0c19: el índice, con los de 1000 o más en el 0, y el bit 15 de "recién caído".
         std::int32_t index = entry.key & FloorItemIndexMask;
@@ -407,7 +407,7 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::FloorIte
     return {};
 }
 
-void ApplyFloorItemsDelete(const Protocol::FloorItems::FloorItemsDelete& deleted, WorldState& world)
+void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, WorldState& world)
 {
     auto& items = world.DrawTail().floorItems;
     for (const std::uint16_t key : deleted.keys)
@@ -418,21 +418,21 @@ void ApplyFloorItemsDelete(const Protocol::FloorItems::FloorItemsDelete& deleted
     }
 }
 
-Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::PickUpResult& result,
+Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickUpResult& result,
                                                     const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
-    if (result.result != Protocol::FloorItems::NothingPickedUp)
+    if (result.result != Protocol::Items::NothingPickedUp)
     {
-        if (result.result == Protocol::FloorItems::ZenPickedUp)
+        if (result.result == Protocol::Items::ZenPickedUp)
         {
             // 0x4d0ce0..0x4d0f5f: el zen en +0xecc con el registro abierto.
             const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
                                             Models::OwnRecordCloseRandoms);
             world.OwnCharacter().zen = result.zen;
         }
-        else if (result.result != Protocol::FloorItems::PickedUpElsewhere)
+        else if (result.result != Protocol::Items::PickedUpElsewhere)
         {
             // 0x4d0fc0..0x4d0fd5: 0x5bc740(0x78a9bb0, 8, 8, lugar, pkt + 4, 0).
             if (auto placed = PlaceMovedItem(result.result, result.item, resources); !placed.HasValue())
@@ -449,7 +449,7 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::
     return {};
 }
 
-Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::FloorItems::ShortZenPickUp& result,
+Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::ShortZenPickUp& result,
                                                       const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -459,7 +459,7 @@ Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::FloorItems
         const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
         world.OwnCharacter().zen = result.zen;
     }
-    const Protocol::FloorItems::PickUpResult zen{.result = Protocol::FloorItems::ZenPickedUp, .zen = result.zen};
+    const Protocol::Items::PickUpResult zen{.result = Protocol::Items::ZenPickedUp, .zen = result.zen};
     if (auto said = PickUpMessage(zen, resources); !said.HasValue())
         return said;
     // 0x4d10b9.
@@ -473,7 +473,7 @@ void ApplyShortPickUpResult(WorldState& world)
     world.Runtime().floor.pendingPickUp = -1;
 }
 
-Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
+Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFruit& fruit, WorldState& world,
                                                  Crt::CrtRandom& random, const Tables::TextTable* texts)
 {
     // 0x4de522..0x4de533, la tabla de 0x4deb4c por 0x4deb20.

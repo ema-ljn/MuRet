@@ -40,7 +40,7 @@ using Client::App::CharacterCreated;
 using Client::App::CharacterDeleted;
 using Client::App::CharacterEvent;
 using Client::App::CharacterListReceived;
-using Client::Protocol::Character::CharacterEntry;
+using Client::Protocol::FrontEnd::CharacterEntry;
 using Client::Scenes::SelectionState;
 using Client::Scenes::WorldState;
 using Client::World::CullingScene;

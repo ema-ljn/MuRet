@@ -240,12 +240,12 @@ const World::Leaves& WorldState::Leaves() const
 // El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la
 // clase de 0x517270, la piel 0 (0x4c21d9; la de crear es la de la vista previa, que nadie escribe),
 // el nivel de [0xc] y los diez bytes del nombre con el cero de +0x1e3. MuRet los toma de la entrada.
-void WorldState::PrepareSelectedActor(const Protocol::Character::CharacterEntry& chosen, Crt::CrtRandom& random)
+void WorldState::PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& chosen, Crt::CrtRandom& random)
 {
     {
         const Models::LogicalAccess access(m_runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         m_own.level = chosen.level;
-        m_own.characterClass = Protocol::Character::CharacterClassOf(chosen.classByte);
+        m_own.characterClass = Protocol::FrontEnd::CharacterClassOf(chosen.classByte);
         m_own.skin = 0;
         // 0x634433..0x63444e: un strcpy desde +0x1d9. Copia hasta el primer cero, incluido, y lo que
         // sigue en el registro queda como estaba.

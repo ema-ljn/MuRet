@@ -28,8 +28,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Pet::PetAttack;
-using Client::Protocol::Pet::PetOrder;
+using Client::Protocol::Pets::PetAttack;
+using Client::Protocol::Pets::PetOrder;
 using Client::Scenes::ActorState;
 using Client::Scenes::DarkSpirit;
 

@@ -1382,7 +1382,7 @@ TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
         EXPECT_FALSE(cut.walked);
 
         int dressed = 0;
-        std::vector<Client::Protocol::Inventory::ItemMove> sent;
+        std::vector<Client::Protocol::Items::ItemMove> sent;
         const Client::Scenes::InventoryServices inventory{.items = nullptr,
                                                           .dressTheHero =
                                                               [&dressed]
@@ -1393,7 +1393,7 @@ TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
                                                           .replaceTheRaven = {},
                                                           .systemMessage = {},
                                                           .sendItemMove =
-                                                              [&sent](const Client::Protocol::Inventory::ItemMove& move)
+                                                              [&sent](const Client::Protocol::Items::ItemMove& move)
                                                           {
                                                               sent.push_back(move);
                                                               return Client::Core::Expected<void, std::string>{};

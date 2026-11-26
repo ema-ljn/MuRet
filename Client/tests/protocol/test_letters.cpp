@@ -29,8 +29,8 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace Letters = Client::Protocol::Letters;
-namespace Chat = Client::Protocol::FriendChat;
+namespace Letters = Client::Protocol::Messenger;
+namespace Chat = Client::Protocol::Messenger;
 
 // La clave del XOR32 (0x6b8648), escrita acá de nuevo para no comparar el código consigo mismo.
 constexpr std::array<int, 32> Xor32Key{0xe7, 0x6d, 0x3a, 0x89, 0xbc, 0xb2, 0x9f, 0x73, 0x23, 0xa8, 0xfe,

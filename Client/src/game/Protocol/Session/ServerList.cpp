@@ -21,7 +21,7 @@
 #include <span>
 #include <vector>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -88,4 +88,4 @@ Core::Expected<ServerAddress, Network::ProtocolError> ReadServerAddress(const Ne
 {
     return Network::ReadPacket(packet, AddressLayout, ReadAddress);
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

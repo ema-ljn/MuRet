@@ -56,14 +56,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Skill::ActorEffect;
-using Client::Protocol::Skill::DurationMagic;
-using Client::Protocol::Skill::MagicAttack;
-using Client::Protocol::Skill::MagicCancel;
-using Client::Protocol::Skill::SkillList;
-using Client::Protocol::Skill::SkillListEntry;
-using Client::Protocol::Skill::SkillTarget;
-using Client::Protocol::Skill::SummonLife;
+using Client::Protocol::Skills::ActorEffect;
+using Client::Protocol::Skills::DurationMagic;
+using Client::Protocol::Skills::MagicAttack;
+using Client::Protocol::Skills::MagicCancel;
+using Client::Protocol::Skills::SkillList;
+using Client::Protocol::Skills::SkillListEntry;
+using Client::Protocol::Skills::SkillTarget;
+using Client::Protocol::Skills::SummonLife;
 using Client::Scenes::ActorState;
 
 constexpr std::uint16_t HeroKey = 0x21;
@@ -577,7 +577,7 @@ TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
     ActorState& caster = tested->Actor(CasterIndex);
     caster.position = {700, 800, 90};
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x40, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x40, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x40u);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
@@ -1046,17 +1046,17 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     caster.flags78 = 0x30;
     caster.flags7c = 0x200123;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x10, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags7c, 0x200000u);
     caster.flags7c = 0x123;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x10, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags7c, 0u);
     // 0x4cbe47: sin prender, 0x4e6380 con la máscara (ApplyEffectFlags): el 4 se prende y +0x7c queda.
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x4, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x4, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x34u);
     EXPECT_EQ(caster.flags7c, 0u);
@@ -1064,7 +1064,7 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     // abajo.
     caster.position = {1000, 2000, 300};
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x1000, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x1000, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x1034u);
     const auto& joints = tested->world.DrawTail().joints;
@@ -1084,7 +1084,7 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     EXPECT_FALSE(joints[3].alive);
     // El 0x400 (CL9 hito 4): el 0x5ac/2 del personaje, y sigue.
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x400, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x400, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x1434u);
     const auto& flare = tested->world.Map().effects.Effects()[0];
@@ -1116,13 +1116,13 @@ TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
                                      });
     };
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x100, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x100, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78 & 0x100u, 0x100u);
     EXPECT_EQ(rings(), 5);
     joints[1].alive = false;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x100, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x100, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(rings(), 4);
 }
@@ -1131,11 +1131,11 @@ TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
 TEST(SkillRepliesTest, TheActorStateOfTypeOneKnowsThePublishedHero)
 {
     auto tested = std::make_unique<Replies>();
-    const auto hero = Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x2000000, HeroKey},
+    const auto hero = Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x2000000, HeroKey},
                                                       tested->Resources());
     ASSERT_FALSE(hero.HasValue());
     EXPECT_NE(hero.Error().find("0x4e68f5"), std::string::npos) << hero.Error();
-    ASSERT_TRUE(Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x2000000, CasterKey},
+    ASSERT_TRUE(Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x2000000, CasterKey},
                                                 tested->Resources())
                     .HasValue());
     EXPECT_EQ(tested->Actor(CasterIndex).flags78, 0x2000000u);
@@ -1157,7 +1157,7 @@ TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
     effects[OldIce].ownerContext = &caster;
 
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x20, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x20, CasterKey}, tested->Resources())
             .HasValue());
 
     EXPECT_EQ(caster.flags78, 0x20u);
@@ -1181,7 +1181,7 @@ TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
     const auto alive = std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; });
     const auto state = tested->cloth.random.State();
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x20, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), alive);
     EXPECT_EQ(tested->cloth.random.State(), state);
@@ -1193,12 +1193,12 @@ TEST(SkillRepliesTest, TheActorStateOfAnotherTypeLowersTheLitFlag)
     ActorState& caster = tested->Actor(CasterIndex);
     caster.flags78 = 0x30;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{2, 0x20, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x10u);
     // Sin prender, nada.
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{2, 0x20, CasterKey}, tested->Resources())
+        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x10u);
 }
@@ -1399,8 +1399,8 @@ TEST(SkillRepliesTest, LevelUpUpdatesTheOwnRecordBeforeEffectsWithoutActorGuards
             auto expected = Advanced(tested->cloth.random, OwnRecordRandoms);
             if (!full)
                 expected = Advanced(expected, 45);
-            const auto applied = Client::Scenes::ApplyLevelUp(Client::Protocol::Skill::LevelUp{level, 2, 3, 4, 5, 6, 7},
-                                                              tested->Resources());
+            const auto applied = Client::Scenes::ApplyLevelUp(
+                Client::Protocol::Skills::LevelUp{level, 2, 3, 4, 5, 6, 7}, tested->Resources());
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
             EXPECT_EQ(own.level, level);
             EXPECT_EQ(own.levelUpPoints, 2);
@@ -1547,7 +1547,7 @@ TEST(SkillRepliesTest, TheEmptyClearListStillRecountsAndClosesBothAccesses)
         tested->world.Runtime().ownRecordDepth = depth;
         const auto expected =
             Advanced(tested->cloth.random, (depth == 0 ? 2 * OwnRecordRandoms : 0) + SkillEntryRandoms);
-        const auto read = Client::Protocol::Skill::ReadSkillList(
+        const auto read = Client::Protocol::Skills::ReadSkillList(
             Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 6, 0xf3, 0x11, 0, 2})));
 
         ASSERT_TRUE(read.HasValue());

@@ -75,8 +75,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Character::InventoryEntry;
-using Client::Protocol::Character::InventoryList;
+using Client::Protocol::Items::InventoryEntry;
+using Client::Protocol::Items::InventoryList;
 using Client::Scenes::ActorState;
 using Client::Scenes::ApplyInventory;
 using Client::Scenes::EmptyOwnItemId;
@@ -113,7 +113,7 @@ constexpr std::uint8_t ChaosCastleMap = 18;
 
 // Los siete bytes de un ítem del F3 10 para `type` (0x54b3a0 al revés): el bit 8 en el 0x80 del byte 3 y
 // los bits 9 a 12 arriba del byte 5. El byte 6 y los cuatro de abajo del 5 no los lee nadie.
-std::array<std::byte, Client::Protocol::Character::InventoryItemDataSize>
+std::array<std::byte, Client::Protocol::Items::InventoryItemDataSize>
 ItemBytes(std::uint16_t type, std::uint8_t byte1 = 0, std::uint8_t durability = 20, std::uint8_t byte3 = 0,
           std::uint8_t byte4 = 0)
 {
@@ -900,7 +900,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     runtime.cursorItem.occupied = 1;
     runtime.cursorItemCount = 1;
     const auto moved = Client::Scenes::ApplyItemMoveResult(
-        Client::Protocol::Inventory::ItemMoveResult{.result = 0, .slot = 12 + 9, .item = ItemBytes(Apple)},
+        Client::Protocol::Items::ItemMoveResult{.result = 0, .slot = 12 + 9, .item = ItemBytes(Apple)},
         tested.Resources());
     ASSERT_TRUE(moved.HasValue()) << moved.Error();
     EXPECT_EQ(runtime.ui.field78abb39, 0);
@@ -919,7 +919,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     back.cursorGrid = Client::Scenes::CursorGrid::Inventory;
     back.slot78a6758 = 12 + 1;
     const auto rejected = Client::Scenes::ApplyItemMoveResult(
-        Client::Protocol::Inventory::ItemMoveResult{.result = 0xff, .slot = 0, .item = {}}, refused.Resources());
+        Client::Protocol::Items::ItemMoveResult{.result = 0xff, .slot = 0, .item = {}}, refused.Resources());
     ASSERT_TRUE(rejected.HasValue()) << rejected.Error();
     EXPECT_EQ(back.ui.field78abb39, 0);
     EXPECT_EQ(back.cursorItemCount, 0);
@@ -938,7 +938,7 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
 
     const auto worn = Client::Scenes::ApplyDurability(
-        Client::Protocol::Inventory::Durability{.slot = 12 + 2, .durability = 7, .endsTheWait = 0}, tested.Resources());
+        Client::Protocol::Items::Durability{.slot = 12 + 2, .durability = 7, .endsTheWait = 0}, tested.Resources());
     ASSERT_TRUE(worn.HasValue()) << worn.Error();
     for (const std::size_t cell : {2u, 10u, 18u})
         EXPECT_EQ(tested.Cell(cell).durability, 7) << cell;
@@ -948,7 +948,7 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     const CrtRandom before = tested.cloth.random;
     runtime.ui.field5767954 = 10;
     const auto helm = Client::Scenes::ApplyDurability(
-        Client::Protocol::Inventory::Durability{.slot = 3, .durability = 9, .endsTheWait = 1}, tested.Resources());
+        Client::Protocol::Items::Durability{.slot = 3, .durability = 9, .endsTheWait = 1}, tested.Resources());
     ASSERT_TRUE(helm.HasValue()) << helm.Error();
     EXPECT_EQ(tested.world.OwnCharacter().equipment[3].durability, 9);
     EXPECT_EQ(runtime.ui.field5767954, 0);
@@ -958,7 +958,7 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
 
     runtime.ui.field5767954 = 10;
     const auto deleted = Client::Scenes::ApplyItemDelete(
-        Client::Protocol::Inventory::ItemDelete{.slot = 12 + 6, .endsTheWait = 1}, tested.Resources());
+        Client::Protocol::Items::ItemDelete{.slot = 12 + 6, .endsTheWait = 1}, tested.Resources());
     ASSERT_TRUE(deleted.HasValue()) << deleted.Error();
     EXPECT_EQ(tested.Cell(6).id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ui.field5767954, 0);
@@ -966,7 +966,7 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     // Desde el 0x4c, sin mirar la tienda de otro (0x6c931c en −1): la grilla de la tienda (0x78ab0b8).
     ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(0x4c + 1, ItemBytes(Apple), tested.Resources()).HasValue());
     const auto shop = Client::Scenes::ApplyItemDelete(
-        Client::Protocol::Inventory::ItemDelete{.slot = 0x4c + 1, .endsTheWait = 0}, tested.Resources());
+        Client::Protocol::Items::ItemDelete{.slot = 0x4c + 1, .endsTheWait = 0}, tested.Resources());
     ASSERT_TRUE(shop.HasValue()) << shop.Error();
     EXPECT_EQ(tested.world.Inventory().secondCells[1].id, EmptyOwnItemId);
 }
@@ -982,7 +982,7 @@ TEST_F(InventoryReplyTest, TheLifeRefillWritesTheRecordOrSpendsThePotion)
     Client::Scenes::WorldState& world = tested->world;
     Client::Scenes::WorldRuntime& runtime = world.Runtime();
     CrtRandom& random = tested->cloth.random;
-    namespace Inventory = Client::Protocol::Inventory;
+    namespace Inventory = Client::Protocol::Items;
     const auto refill = [&](std::uint8_t place, std::uint16_t life)
     { return Client::Scenes::ApplyLifeRefill(Inventory::LifeRefill{.place = place, .life = life}, world, random); };
 
@@ -1032,7 +1032,7 @@ TEST_F(InventoryReplyTest, TheManaRefillWritesTheManaAndTheBpOrSpendsThePotion)
     ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 9, ItemBytes(Apple, 0, 1), tested->Resources()).HasValue());
     Client::Scenes::WorldState& world = tested->world;
     CrtRandom& random = tested->cloth.random;
-    namespace Inventory = Client::Protocol::Inventory;
+    namespace Inventory = Client::Protocol::Items;
     const auto refill = [&](std::uint8_t place, std::uint16_t mana, std::uint16_t bp)
     {
         return Client::Scenes::ApplyManaRefill(Inventory::ManaRefill{.place = place, .mana = mana, .bp = bp}, world,
@@ -1071,7 +1071,7 @@ TEST_F(InventoryReplyTest, TheEquipmentChangeUpdatesPlayersAndTheSentinelOnlyWhe
     ActorState& hero = tested.PublishedHero();
     hero.key = 0x1234;
     hero.byte3e3 = 1;
-    Client::Protocol::Inventory::EquipmentChange change{.key = 0x9234};
+    Client::Protocol::Items::EquipmentChange change{.key = 0x9234};
     change.equipment[0] = std::byte{7};
     change.equipment[4] = std::byte{3}; // Sin mascota ni ayudante.
     // 0x5110d0 compara MOVSX del WORD de la clave: 0x9234 no coincide con un actor de clave 0x1234.
@@ -1104,7 +1104,7 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
     Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
     runtime.cursorItemCount = 1;
     const auto put = Client::Scenes::ApplyItemPut(
-        Client::Protocol::Inventory::ItemPut{.slot = 12 + 4, .item = ItemBytes(Apple)}, tested.Resources());
+        Client::Protocol::Items::ItemPut{.slot = 12 + 4, .item = ItemBytes(Apple)}, tested.Resources());
     ASSERT_TRUE(put.HasValue()) << put.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(tested.Cell(4).id, Apple);
@@ -1112,10 +1112,10 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
 
     hero.key = 0x1234;
     const auto nobody = Client::Scenes::ApplyEquipmentChange(
-        Client::Protocol::Inventory::EquipmentChange{.key = 0x4321, .equipment = {}}, tested.Resources());
+        Client::Protocol::Items::EquipmentChange{.key = 0x4321, .equipment = {}}, tested.Resources());
     EXPECT_TRUE(nobody.HasValue()) << nobody.Error();
     const auto player = Client::Scenes::ApplyEquipmentChange(
-        Client::Protocol::Inventory::EquipmentChange{.key = 0x1234, .equipment = {}}, tested.Resources());
+        Client::Protocol::Items::EquipmentChange{.key = 0x1234, .equipment = {}}, tested.Resources());
     ASSERT_TRUE(player.HasValue()) << player.Error();
     EXPECT_EQ(hero.pet.model, 0x1c12);
     EXPECT_TRUE(std::ranges::any_of(tested.world.Helpers(), [](const HelperState& helper) { return helper.alive; }));
@@ -1130,7 +1130,7 @@ TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNati
         Stage tested = Fresh();
         ActorState& hero = tested.PublishedHero();
         hero.key = 0x1234;
-        Client::Protocol::Inventory::EquipmentChange change{.key = 0x1234};
+        Client::Protocol::Items::EquipmentChange change{.key = 0x1234};
         for (std::size_t index = 0; index < change.equipment.size(); ++index)
             change.equipment[index] = static_cast<std::byte>(Client::Tests::NakedEquipment[index]);
         if (upgraded)

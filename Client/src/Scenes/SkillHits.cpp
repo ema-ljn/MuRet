@@ -50,10 +50,10 @@ void MarkTheStunned(ActorState& actor, std::uint8_t skill)
 }
 
 // 0x517b44..0x517c0b: hasta cinco claves, de los 400 en orden.
-Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, WorldState& world, std::uint8_t skill,
-                                                 bool siegePlayers)
+Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, WorldState& world,
+                                                  std::uint8_t skill, bool siegePlayers)
 {
-    Protocol::Skill::SkillHitsSend hits{};
+    Protocol::Skills::SkillHitsSend hits{};
     const auto actors = world.Actors();
     const ActorState* hero = &actors[world.Runtime().hero];
     for (ActorState& actor : actors.first<NativeActorSlots>())
@@ -72,7 +72,7 @@ Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request
         MarkTheStunned(actor, skill);
         hits.keys[hits.hits] = actor.key;
         ++hits.hits;
-        if (hits.hits >= Protocol::Skill::MaxSkillHits)
+        if (hits.hits >= Protocol::Skills::MaxSkillHits)
             break;
     }
     return hits;
@@ -105,7 +105,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
             return false;
         siegePlayers = true;
     }
-    Protocol::Skill::SkillHitsSend hits = CollectTheTargets(request, world, skill, siegePlayers);
+    Protocol::Skills::SkillHitsSend hits = CollectTheTargets(request, world, skill, siegePlayers);
     if (hits.hits == 0)
         return false;
     // 0x517c11..0x517c72.
@@ -125,7 +125,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     // 0x518515..0x518606: el relleno y el serial del C3.
     random.Discard(2);
     if (send)
-        send(Protocol::Skill::WriteSkillHits(hits));
+        send(Protocol::Skills::WriteSkillHits(hits));
     return true;
 }
 } // namespace Client::Scenes

@@ -57,13 +57,13 @@ constexpr std::uint16_t SilentWord376 = 0x4d;
 // 0x53d8d0 y 0x53d930: el destello del que se va y del que llega.
 constexpr std::int16_t SparkEffect = 0x5c6;
 
-using Protocol::Skill::ActorEffect;
-using Protocol::Skill::DurationMagic;
-using Protocol::Skill::MagicAttack;
-using Protocol::Skill::MagicCancel;
-using Protocol::Skill::SkillList;
-using Protocol::Skill::SkillTarget;
-using Protocol::Skill::SummonLife;
+using Protocol::Skills::ActorEffect;
+using Protocol::Skills::DurationMagic;
+using Protocol::Skills::MagicAttack;
+using Protocol::Skills::MagicCancel;
+using Protocol::Skills::SkillList;
+using Protocol::Skills::SkillTarget;
+using Protocol::Skills::SummonLife;
 
 bool Riding(const ActorState& actor, std::uint16_t mount)
 {
@@ -846,7 +846,7 @@ void ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& reso
     RemoveActorFlag(mask, actor, world);
 }
 
-Core::Expected<void, std::string> ApplyActorState(const Protocol::Skill::ActorState& state,
+Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorState& state,
                                                   const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -914,7 +914,7 @@ Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, co
     return LevelUpEffect(resources.world.Actors()[index], resources);
 }
 
-Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skill::LevelUp& reply,
+Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& reply,
                                                const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -954,12 +954,12 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
     Crt::CrtRandom& random = resources.cloth.random;
     {
         const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        if (list.count == Protocol::Skill::SkillListRemoveOne)
+        if (list.count == Protocol::Skills::SkillListRemoveOne)
             own.SetSkillAt(list.slot, 0);
-        else if (list.count == Protocol::Skill::SkillListAddOne)
+        else if (list.count == Protocol::Skills::SkillListAddOne)
             own.SetSkillAt(list.slot, list.skill);
         // 0x4c52a6..0x4c52c2: el mismo lugar `cantidad` veces.
-        else if (list.list == Protocol::Skill::SkillListClearSlot)
+        else if (list.list == Protocol::Skills::SkillListClearSlot)
         {
             if (list.count > 0)
                 own.SetSkillAt(list.slot, 0);
@@ -972,7 +972,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
                 own.words6c.fill(0);
                 own.skillsAc.fill(0);
             }
-            for (const Protocol::Skill::SkillListEntry& entry : list.entries)
+            for (const Protocol::Skills::SkillListEntry& entry : list.entries)
                 own.SetSkillAt(entry.slot, entry.skill);
             if ((world.Actors()[runtime.hero].characterClass & 7u) == SummonerLikeClass)
             {

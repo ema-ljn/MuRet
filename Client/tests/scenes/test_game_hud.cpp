@@ -631,7 +631,7 @@ TEST_F(GameHudTest, TheLifeAndTheManaPacketsMoveTheOrbs)
     EXPECT_EQ(orbV(0xea), 0.0f);
     EXPECT_EQ(orbV(0xeb), 0.0f);
 
-    namespace Inventory = Client::Protocol::Inventory;
+    namespace Inventory = Client::Protocol::Items;
     ASSERT_TRUE(Client::Scenes::ApplyLifeRefill(Inventory::LifeRefill{.place = Inventory::CurrentPlace, .life = 25},
                                                 world, random)
                     .HasValue());

@@ -25,7 +25,7 @@ template <typename... Args>
     auto text = CastleUi::Text(context.texts, address);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    Center(context, x, y, UI::Sprintf(text.Value(), args...), width);
+    Center(context, x, y, Crt::Sprintf(text.Value(), args...), width);
     return {};
 }
 template <typename... Args>

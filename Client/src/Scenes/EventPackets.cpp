@@ -332,22 +332,22 @@ private:
         return *text;
     }
 
-    [[nodiscard]] Core::Expected<UI::FormatArgument, std::string> TextArgument(std::size_t index,
-                                                                               std::string_view where) const
+    [[nodiscard]] Core::Expected<Crt::FormatArgument, std::string> TextArgument(std::size_t index,
+                                                                                std::string_view where) const
     {
         auto text = Text(index, where);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        return UI::FormatArgument{UI::TextArgument{.index = index, .text = text.Value()}};
+        return Crt::FormatArgument{Crt::TextArgument{.index = index, .text = text.Value()}};
     }
 
     // `function` con el formato `format` de Text.bmd en un buffer de `bufferBytes`: lo que no entra con su '\0'
     // pisaría lo que sigue y corta.
-    [[nodiscard]] Core::Expected<std::string, std::string> Format(UI::FormatFunction function, std::string_view format,
-                                                                  std::span<const UI::FormatArgument> arguments,
+    [[nodiscard]] Core::Expected<std::string, std::string> Format(Crt::FormatFunction function, std::string_view format,
+                                                                  std::span<const Crt::FormatArgument> arguments,
                                                                   std::size_t bufferBytes, std::string_view where) const
     {
-        auto formatted = UI::FormatOriginal(function, format, arguments, where);
+        auto formatted = Crt::FormatOriginal(function, format, arguments, where);
         if (!formatted.HasValue())
             return Core::Unexpected(std::move(formatted).Error());
         if (formatted.Value().size() >= bufferBytes)
@@ -357,8 +357,8 @@ private:
         return formatted;
     }
 
-    [[nodiscard]] Core::Expected<std::string, std::string> FormatText(UI::FormatFunction function, std::size_t format,
-                                                                      std::span<const UI::FormatArgument> arguments,
+    [[nodiscard]] Core::Expected<std::string, std::string> FormatText(Crt::FormatFunction function, std::size_t format,
+                                                                      std::span<const Crt::FormatArgument> arguments,
                                                                       std::size_t bufferBytes,
                                                                       std::string_view where) const
     {
@@ -385,8 +385,8 @@ private:
     }
 
     // sprintf o wsprintfA de un formato de Text.bmd y 0x632e30 con lo que salió.
-    Applied FormattedMessageBox(UI::FormatFunction function, std::size_t format,
-                                std::span<const UI::FormatArgument> arguments, std::size_t bufferBytes,
+    Applied FormattedMessageBox(Crt::FormatFunction function, std::size_t format,
+                                std::span<const Crt::FormatArgument> arguments, std::size_t bufferBytes,
                                 std::string_view where)
     {
         auto text = FormatText(function, format, arguments, bufferBytes, where);
@@ -615,9 +615,9 @@ private:
             auto argument = TextArgument(*prefix, "0x4d6a3e");
             if (!argument.HasValue())
                 return Core::Unexpected(std::move(argument).Error());
-            const std::array<UI::FormatArgument, 1> arguments{argument.Value()};
+            const std::array<Crt::FormatArgument, 1> arguments{argument.Value()};
             auto formatted =
-                Format(UI::FormatFunction::Sprintf, ItemPrefixFormat, arguments, ItemNoticeBuffer, "0x4d6a3e");
+                Format(Crt::FormatFunction::Sprintf, ItemPrefixFormat, arguments, ItemNoticeBuffer, "0x4d6a3e");
             if (!formatted.HasValue())
                 return Core::Unexpected(std::move(formatted).Error());
             line = std::move(formatted).Value();
@@ -649,8 +649,8 @@ private:
         auto acquired = TextArgument(ItemAcquiredText, "0x4d6b36");
         if (!acquired.HasValue())
             return Core::Unexpected(std::move(acquired).Error());
-        const std::array<UI::FormatArgument, 2> arguments{UI::StringArgument{.text = line}, acquired.Value()};
-        auto text = Format(UI::FormatFunction::Sprintf, ItemNoticeFormat, arguments, ItemNoticeBuffer, "0x4d6b36");
+        const std::array<Crt::FormatArgument, 2> arguments{Crt::StringArgument{.text = line}, acquired.Value()};
+        auto text = Format(Crt::FormatFunction::Sprintf, ItemNoticeFormat, arguments, ItemNoticeBuffer, "0x4d6b36");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
         if (m_context.measure == nullptr)
@@ -677,12 +677,12 @@ private:
 
     Applied On(const Events::EventOpenTime& packet)
     {
-        constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+        constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
         if (packet.kind == DevilSquareOpenTime)
         {
             if (packet.value4 == 0)
                 return MessageBoxOf(DevilSquareOpenText, "0x4da8dc");
-            const std::array<UI::FormatArgument, 1> arguments{std::int32_t{packet.value4}};
+            const std::array<Crt::FormatArgument, 1> arguments{std::int32_t{packet.value4}};
             return FormattedMessageBox(Wsprintf, DevilSquareMinutesText, arguments, PageStackBuffer, "0x4da901");
         }
         if (packet.kind == BloodCastleOpenTime)
@@ -692,10 +692,10 @@ private:
                 return Core::Unexpected(std::move(name).Error());
             if (packet.value4 == 0)
             {
-                const std::array<UI::FormatArgument, 1> arguments{name.Value()};
+                const std::array<Crt::FormatArgument, 1> arguments{name.Value()};
                 return FormattedMessageBox(Wsprintf, CanEnterNowText, arguments, PageStackBuffer, "0x4da938");
             }
-            const std::array<UI::FormatArgument, 2> arguments{std::int32_t{packet.value4}, name.Value()};
+            const std::array<Crt::FormatArgument, 2> arguments{std::int32_t{packet.value4}, name.Value()};
             return FormattedMessageBox(Wsprintf, CanEnterInText, arguments, PageStackBuffer, "0x4da968");
         }
         if (packet.kind == ChaosCastleOpenTime)
@@ -708,20 +708,20 @@ private:
     // (único lector, 0x633300 con 0x482).
     Applied OpenTheChaosCastleTime(const Events::EventOpenTime& packet)
     {
-        constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+        constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
         const auto remaining = static_cast<std::int32_t>((packet.value4 << 8u) | packet.value6);
         auto name = TextArgument(ChaosCastleName, "0x4da9a3");
         if (!name.HasValue())
             return Core::Unexpected(std::move(name).Error());
         if (remaining == 0)
         {
-            const std::array<UI::FormatArgument, 1> nowArguments{name.Value()};
-            auto first = FormatText(Wsprintf, CanEnterNowText, nowArguments, UI::TextRecordBytes, "0x4da9b2");
+            const std::array<Crt::FormatArgument, 1> nowArguments{name.Value()};
+            auto first = FormatText(Wsprintf, CanEnterNowText, nowArguments, Crt::TextRecordBytes, "0x4da9b2");
             if (!first.HasValue())
                 return Core::Unexpected(std::move(first).Error());
-            const std::array<UI::FormatArgument, 3> openArguments{name.Value(), std::int32_t{packet.value5},
-                                                                  ChaosCastleOpenArgument};
-            auto second = FormatText(Wsprintf, ChaosCastleOpenText, openArguments, UI::TextRecordBytes, "0x4da9ce");
+            const std::array<Crt::FormatArgument, 3> openArguments{name.Value(), std::int32_t{packet.value5},
+                                                                   ChaosCastleOpenArgument};
+            auto second = FormatText(Wsprintf, ChaosCastleOpenText, openArguments, Crt::TextRecordBytes, "0x4da9ce");
             if (!second.HasValue())
                 return Core::Unexpected(std::move(second).Error());
             const std::array<std::string_view, 2> texts{first.Value(), second.Value()};
@@ -729,11 +729,11 @@ private:
         }
         const std::int32_t hours = remaining / MinutesPerHour;
         const std::int32_t minutes = remaining - hours * MinutesPerHour;
-        const std::array<UI::FormatArgument, 1> hourArguments{hours};
-        auto first = FormatText(Wsprintf, ChaosCastleHoursText, hourArguments, UI::TextRecordBytes, "0x4daa17");
+        const std::array<Crt::FormatArgument, 1> hourArguments{hours};
+        auto first = FormatText(Wsprintf, ChaosCastleHoursText, hourArguments, Crt::TextRecordBytes, "0x4daa17");
         if (!first.HasValue())
             return Core::Unexpected(std::move(first).Error());
-        const std::array<UI::FormatArgument, 2> minuteArguments{minutes, name.Value()};
+        const std::array<Crt::FormatArgument, 2> minuteArguments{minutes, name.Value()};
         auto second = FormatText(Wsprintf, CanEnterInText, minuteArguments, PageStackBuffer, "0x4daa39");
         if (!second.HasValue())
             return Core::Unexpected(std::move(second).Error());
@@ -741,7 +741,7 @@ private:
         // el registro 1155 y abre el 0x9a igual: dentro del handler se descarta el resto del paquete, sin el 0x9a, y la
         // sesión sigue con el aviso (Q-C1109; los textos no van al log, solo su largo).
         std::string joined = std::move(first).Value() + second.Value();
-        if (joined.size() >= UI::TextRecordBytes)
+        if (joined.size() >= Crt::TextRecordBytes)
             return Discard(std::format("0x4daa73: el strcat ocupa {} bytes con su '\\0' y pisa el registro 1155 de "
                                        "Text.bmd (Q-C1109)",
                                        joined.size() + 1));
@@ -897,8 +897,8 @@ private:
         auto argument = TextArgument(name, where);
         if (!argument.HasValue())
             return Core::Unexpected(std::move(argument).Error());
-        const std::array<UI::FormatArgument, 1> arguments{argument.Value()};
-        return FormattedMessageBox(UI::FormatFunction::Sprintf, EntryOverText, arguments, SmallStackBuffer, where);
+        const std::array<Crt::FormatArgument, 1> arguments{argument.Value()};
+        return FormattedMessageBox(Crt::FormatFunction::Sprintf, EntryOverText, arguments, SmallStackBuffer, where);
     }
 
     // sprintf(buffer, 853, nombre, número): el "% d" toma el puntero al nombre e imprime su dirección (Q-C1321).
@@ -907,14 +907,14 @@ private:
         auto argument = TextArgument(name, where);
         if (!argument.HasValue())
             return Core::Unexpected(std::move(argument).Error());
-        const std::array<UI::FormatArgument, 2> arguments{argument.Value(), capacity};
-        return FormattedMessageBox(UI::FormatFunction::Sprintf, CapacityText, arguments, SmallStackBuffer, where);
+        const std::array<Crt::FormatArgument, 2> arguments{argument.Value(), capacity};
+        return FormattedMessageBox(Crt::FormatFunction::Sprintf, CapacityText, arguments, SmallStackBuffer, where);
     }
 
     Applied TimesPerDayBox(std::string_view where)
     {
-        const std::array<UI::FormatArgument, 1> arguments{TimesPerDay};
-        return FormattedMessageBox(UI::FormatFunction::Sprintf, TimesPerDayText, arguments, LargeStackBuffer, where);
+        const std::array<Crt::FormatArgument, 1> arguments{TimesPerDay};
+        return FormattedMessageBox(Crt::FormatFunction::Sprintf, TimesPerDayText, arguments, LargeStackBuffer, where);
     }
 
     // ----- 9B (0x4e4999): con el objeto, su método +8.
@@ -1139,7 +1139,7 @@ private:
     // sprintf(buffer de 0x100, "%s%s %s", título, 1816, 868), el mensaje y 0x402e50.
     Applied JewelMessage(std::size_t title, std::string_view where)
     {
-        std::array<UI::FormatArgument, 3> arguments{};
+        std::array<Crt::FormatArgument, 3> arguments{};
         const std::array<std::size_t, 3> texts{title, JewelToText, JewelTimesText};
         for (std::size_t index = 0; index < texts.size(); ++index)
         {
@@ -1148,7 +1148,7 @@ private:
                 return Core::Unexpected(std::move(argument).Error());
             arguments[index] = argument.Value();
         }
-        auto text = Format(UI::FormatFunction::Sprintf, JewelFormat, arguments, PageStackBuffer, where);
+        auto text = Format(Crt::FormatFunction::Sprintf, JewelFormat, arguments, PageStackBuffer, where);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
         if (auto said = Message(text.Value(), where); !said.HasValue())
@@ -1587,16 +1587,16 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::T
     auto formatText = textOf(format);
     if (!formatText.HasValue())
         return Core::Unexpected(std::move(formatText).Error());
-    std::vector<UI::FormatArgument> arguments;
+    std::vector<Crt::FormatArgument> arguments;
     if (name)
     {
         auto nameText = textOf(*name);
         if (!nameText.HasValue())
             return Core::Unexpected(std::move(nameText).Error());
-        arguments.emplace_back(UI::TextArgument{.index = *name, .text = nameText.Value()});
+        arguments.emplace_back(Crt::TextArgument{.index = *name, .text = nameText.Value()});
     }
     arguments.emplace_back(left);
-    auto text = UI::FormatOriginal(UI::FormatFunction::Wsprintf, formatText.Value(), arguments, "0x40bb56");
+    auto text = Crt::FormatOriginal(Crt::FormatFunction::Wsprintf, formatText.Value(), arguments, "0x40bb56");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
     if (text.Value().size() >= PageStackBuffer)

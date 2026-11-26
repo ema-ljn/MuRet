@@ -10,7 +10,7 @@ namespace
 constexpr std::array<std::byte, 3> Xor3Key = {std::byte{0xFC}, std::byte{0xCF}, std::byte{0xAB}};
 } // namespace
 
-namespace Client::Core
+namespace Client::Crypto
 {
 void Xor3(std::span<std::byte> bytes)
 {
@@ -19,4 +19,4 @@ void Xor3(std::span<std::byte> bytes)
         bytes[i] ^= Xor3Key[i % Xor3Key.size()];
     }
 }
-} // namespace Client::Core
+} // namespace Client::Crypto

@@ -145,12 +145,12 @@ void Connection::Send(Packet packet, Delivery delivery)
             m_log.Warning("se descarta un {} que va cifrado: {}", KindOf(packet), NoKeys);
             return;
         }
-        Core::Expected<Packet, Crypto::CryptoError> encrypted =
+        Core::Expected<Packet, Client::Crypto::CryptoError> encrypted =
             EncryptPacket(packet, m_keys->encryption, m_serials, m_obfuscation, NextPadding());
         if (!encrypted.HasValue())
         {
             m_log.Warning("no se cifra un {} que iba a salir: {}", KindOf(packet),
-                          Crypto::CryptoErrorText(encrypted.Error()));
+                          Client::Crypto::CryptoErrorText(encrypted.Error()));
             return;
         }
         packet = std::move(encrypted).Value();
@@ -309,13 +309,13 @@ Core::Expected<Packet, Undecryptable> Connection::Decrypt(const Packet& encrypte
         m_log.Warning("se descarta un {} que llegó: {}", KindOf(encrypted), NoKeys);
         return Core::Unexpected(Undecryptable{std::nullopt});
     }
-    Core::Expected<DecryptedPacket, Crypto::CryptoError> decrypted =
+    Core::Expected<DecryptedPacket, Client::Crypto::CryptoError> decrypted =
         DecryptPacket(encrypted, m_keys->decryption, m_serials);
     if (!decrypted.HasValue())
     {
-        const Crypto::CryptoError error = decrypted.Error();
+        const Client::Crypto::CryptoError error = decrypted.Error();
         m_log.Warning("se descarta un {} que llegó: no se descifra ({})", KindOf(encrypted),
-                      Crypto::CryptoErrorText(error));
+                      Client::Crypto::CryptoErrorText(error));
         return Core::Unexpected(Undecryptable{error});
     }
     DecryptedPacket result = std::move(decrypted).Value();

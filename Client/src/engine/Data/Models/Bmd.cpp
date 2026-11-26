@@ -409,7 +409,7 @@ Core::Expected<Model, DataError> LoadBmd(std::span<const std::byte> file)
     // K16 desde el primer byte del bloque, sobre una copia: los bytes del que llama no se tocan.
     const std::span<const std::byte> block = file.subspan(BmdEncryptedOffset, *size);
     std::vector<std::byte> content(block.begin(), block.end());
-    Terrain::DecryptK16(content);
+    Crypto::DecryptK16(content);
     return ReadContent(version, content);
 }
 } // namespace Client::Data::Models

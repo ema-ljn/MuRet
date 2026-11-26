@@ -56,7 +56,7 @@ void PutText(std::vector<std::byte>& table, std::size_t index, std::string_view 
 // Lo que habría en el archivo: la tabla cifrada con XOR3.
 std::vector<std::byte> Encrypt(std::vector<std::byte> table)
 {
-    Client::Core::Xor3(table);
+    Client::Crypto::Xor3(table);
     return table;
 }
 

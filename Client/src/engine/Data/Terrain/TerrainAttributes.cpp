@@ -42,8 +42,8 @@ Core::Expected<DecodedAttributes, DataError> DecodeTerrainAttributes(std::span<c
     }
 
     std::vector<std::byte> plain(file.begin(), file.end());
-    DecryptK16(plain);
-    Core::Xor3(plain);
+    Crypto::DecryptK16(plain);
+    Crypto::Xor3(plain);
     if (!IsTheHeader(plain))
     {
         return Core::Unexpected(DataError::InvalidData);

@@ -94,7 +94,7 @@ Core::Expected<QuestTable, DataError> LoadQuestTable(std::span<const std::byte> 
         // registro anterior ya descifrado.
         const std::size_t start = std::min(i * QuestRecordSize, file.size());
         std::ranges::copy(file.subspan(start, std::min(QuestRecordSize, file.size() - start)), block.begin());
-        Core::Xor3(block);
+        Crypto::Xor3(block);
         const std::span<const std::byte> bytes(block);
         QuestRecord& quest = table[i];
         quest.entryCount = static_cast<std::int16_t>(WordAt(bytes, 0));

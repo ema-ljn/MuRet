@@ -19,21 +19,21 @@
 #include <type_traits>
 #include <vector>
 
-// Client::Network::Crypto::EncryptBlock y DecryptBlock: los bloques del SimpleModulus, con claves
+// Client::Crypto::EncryptBlock y DecryptBlock: los bloques del SimpleModulus, con claves
 // sintéticas escritas acá. Los bloques cifrados que se esperan los dio encrypt_block de
 // c3c4_reference.py, en el repo de research, y los descifrados, decrypt_block.
 namespace
 {
-using Client::Network::Crypto::CipherBlockSize;
-using Client::Network::Crypto::CryptoError;
-using Client::Network::Crypto::DecryptBlock;
-using Client::Network::Crypto::DecryptedBlock;
-using Client::Network::Crypto::DecryptionKey;
-using Client::Network::Crypto::EncryptBlock;
-using Client::Network::Crypto::EncryptionKey;
-using Client::Network::Crypto::Lanes;
-using Client::Network::Crypto::MaxModulus;
-using Client::Network::Crypto::PlainBlockSize;
+using Client::Crypto::CipherBlockSize;
+using Client::Crypto::CryptoError;
+using Client::Crypto::DecryptBlock;
+using Client::Crypto::DecryptedBlock;
+using Client::Crypto::DecryptionKey;
+using Client::Crypto::EncryptBlock;
+using Client::Crypto::EncryptionKey;
+using Client::Crypto::Lanes;
+using Client::Crypto::MaxModulus;
+using Client::Crypto::PlainBlockSize;
 using Client::Tests::Below;
 using Client::Tests::Encryption;
 using Client::Tests::FixedSeed;

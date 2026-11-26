@@ -1140,7 +1140,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     auto levelFormat = TextOf(context, TradeLevelFormatText, "0x5f4577");
     if (!levelFormat.HasValue())
         return Core::Unexpected(levelFormat.Error());
-    const std::string level = UI::Sprintf(levelFormat.Value(), floor);
+    const std::string level = Crt::Sprintf(levelFormat.Value(), floor);
     SelectFont(context, FontKind::Bold);
     auto levelLabel = TextOf(context, TradeLevelText, "0x5f45a8");
     if (!levelLabel.HasValue())

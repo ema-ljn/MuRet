@@ -518,8 +518,8 @@ Core::Expected<void, std::string> ApplySiegeGuildList(const Castle::SiegeGuildLi
         ClearGuildList(window.siegeGuildList, window.siegeGuilds);
         for (const auto& entry : list.entries)
             AppendGuild(window.siegeGuildList, window.siegeGuilds, entry.name, entry.marks, entry.first, entry.second);
-        Core::Msvc6Sort(window.siegeGuilds, [](const UI::CastleGuildRow& left, const UI::CastleGuildRow& right)
-                        { return std::bit_cast<std::int32_t>(left.marks) < std::bit_cast<std::int32_t>(right.marks); });
+        Crt::Msvc6Sort(window.siegeGuilds, [](const UI::CastleGuildRow& left, const UI::CastleGuildRow& right)
+                       { return std::bit_cast<std::int32_t>(left.marks) < std::bit_cast<std::int32_t>(right.marks); });
         return {};
     }
     return {};

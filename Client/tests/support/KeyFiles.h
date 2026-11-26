@@ -23,7 +23,7 @@ namespace Client::Tests
 // std::nullopt.
 template <typename Key>
 std::optional<Key> LoadKeyFile(const std::optional<std::filesystem::path>& path,
-                               Core::Expected<Key, Network::Crypto::CryptoError> (*load)(std::span<const std::byte>))
+                               Core::Expected<Key, Crypto::CryptoError> (*load)(std::span<const std::byte>))
 {
     if (!path)
     {

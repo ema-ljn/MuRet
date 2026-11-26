@@ -43,13 +43,13 @@
 namespace
 {
 using Client::Core::ByteReader;
+using Client::Crypto::DecryptionKey;
+using Client::Crypto::LoadDecryptionKey;
 using Client::Network::DecryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::Xor32Decode;
-using Client::Network::Crypto::DecryptionKey;
-using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Protocol::VersionSize;
 using Client::Protocol::Connection::HelloAccepted;
 using Client::Protocol::Connection::LoginAccepted;

@@ -208,7 +208,7 @@ inline void PrintTo(Status status, std::ostream* out)
 }
 } // namespace Client::Network::SocketApi
 
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 inline void PrintTo(CryptoError error, std::ostream* out)
 {
@@ -241,4 +241,4 @@ inline void PrintTo(CryptoError error, std::ostream* out)
     }
     *out << "CryptoError fuera del enum";
 }
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

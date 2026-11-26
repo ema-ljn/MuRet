@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -174,4 +174,4 @@ std::size_t WriteCrashDump(const CrashReport& report, std::span<std::byte> outpu
     }
     return writer.Position();
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

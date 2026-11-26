@@ -302,8 +302,8 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& con
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
         const std::string text = events.timeKind == 3
-                                     ? UI::Sprintf(format.Value(), events.timeValue % 60)
-                                     : UI::Sprintf(format.Value(), events.timeValue / 60, events.timeValue % 60);
+                                     ? Crt::Sprintf(format.Value(), events.timeValue % 60)
+                                     : Crt::Sprintf(format.Value(), events.timeValue / 60, events.timeValue % 60);
         if (events.timeKind == 3 || events.timeValue < 60)
             hud.textColors.text = 0xff0affffu;
         GamePanels panels(context.world, context.random);
@@ -330,7 +330,7 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& con
         auto text = PositionsTextOf(context, index, "0x5a7eb0");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        DrawText(context, x, y, UI::Sprintf(text.Value()));
+        DrawText(context, x, y, Crt::Sprintf(text.Value()));
         return {};
     };
     hud.textColors.text = 0xfffff0c8u;
@@ -414,7 +414,7 @@ Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)
     if (!position.HasValue())
         return Core::Unexpected(std::move(position).Error());
     DrawInTheMiddle(context, left, y + PositionsQuestionTop,
-                    UI::Sprintf(question.Value(), NameOf(guild.chosenName), position.Value()), box);
+                    Crt::Sprintf(question.Value(), NameOf(guild.chosenName), position.Value()), box);
     auto hint = PositionsTextOf(context, PositionsHintText, "0x64f36d");
     if (!hint.HasValue())
         return Core::Unexpected(std::move(hint).Error());

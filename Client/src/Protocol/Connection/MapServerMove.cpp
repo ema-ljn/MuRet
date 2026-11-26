@@ -85,7 +85,7 @@ Core::Expected<Outgoing, ProtocolError> WriteMapServerAuth(const MapServerAuth& 
         return Core::Unexpected(ProtocolError::FieldTooLong);
     }
     AuthNameBytes account = NameField(auth.account);
-    Core::Xor3(account);
+    Crypto::Xor3(account);
     const AuthNameBytes character = NameField(auth.character.substr(0, AuthNameMax));
     Network::PacketWriter writer = Network::PacketWriter::C1(MapServerOpcode);
     writer.PutU8(MapServerAuthSubcode)

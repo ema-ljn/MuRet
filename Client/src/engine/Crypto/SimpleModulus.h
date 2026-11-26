@@ -23,7 +23,7 @@
 //
 // No protege nada: las claves están en los archivos del cliente y del servidor (la guía de la
 // CL2.0, actividad 5).
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 // Los carriles de 16 bits de un bloque.
 inline constexpr std::size_t LaneCount = 4;
@@ -121,4 +121,4 @@ struct DecryptedBlock
 // cambio en el byte del largo útil no lo ve.
 [[nodiscard]] ENGINE_API std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
                                                                     std::span<const std::byte, CipherBlockSize> cipher);
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

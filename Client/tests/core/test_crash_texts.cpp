@@ -8,20 +8,20 @@
 #include <string>
 #include <string_view>
 
-// Client::Core::Crash: los textos de la cabecera de MuError.dmp (el sistema de 0x683ed0, el
+// Client::Diagnostics: los textos de la cabecera de MuError.dmp (el sistema de 0x683ed0, el
 // procesador de 0x684730 y la excepción de 0x680260) y la línea del log de 0x4b9b34.
 namespace
 {
-using Client::Core::Crash::CpuId;
-using Client::Core::Crash::CrashLogLine;
-using Client::Core::Crash::CrashText;
-using Client::Core::Crash::CrashTextSize;
-using Client::Core::Crash::ExceptionText;
-using Client::Core::Crash::MegahertzFromSample;
-using Client::Core::Crash::OsVersion;
-using Client::Core::Crash::PosixSystemText;
-using Client::Core::Crash::ProcessorText;
-using Client::Core::Crash::SystemText;
+using Client::Diagnostics::CpuId;
+using Client::Diagnostics::CrashLogLine;
+using Client::Diagnostics::CrashText;
+using Client::Diagnostics::CrashTextSize;
+using Client::Diagnostics::ExceptionText;
+using Client::Diagnostics::MegahertzFromSample;
+using Client::Diagnostics::OsVersion;
+using Client::Diagnostics::PosixSystemText;
+using Client::Diagnostics::ProcessorText;
+using Client::Diagnostics::SystemText;
 
 // El texto hasta el 0.
 std::string_view Text(const CrashText& text)

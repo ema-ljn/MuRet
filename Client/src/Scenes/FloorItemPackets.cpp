@@ -197,14 +197,14 @@ Core::Expected<void, std::string> PickUpMessage(const Protocol::FloorItems::Pick
         const auto zen = TextOf(resources.texts, ZenText, "0x4d0f8a");
         if (!zen.HasValue())
             return Core::Unexpected(zen.Error());
-        return SystemLine(resources, UI::Sprintf("%d %s %s", chosen.value, zen.Value(), picked.Value()), "0x4d0faf");
+        return SystemLine(resources, Crt::Sprintf("%d %s %s", chosen.value, zen.Value(), picked.Value()), "0x4d0faf");
     }
     // 0x4d0fdd..0x4d1049: el nombre del elegido por su tipo y su nivel, vivo o no.
     const auto name = ItemNameOf(resources.items, resources.texts, &resources.world.Runtime().npcNames,
                                  static_cast<std::uint16_t>(chosen.itemType), (chosen.value >> 3) & 15);
     if (!name.HasValue())
         return Core::Unexpected(std::format("0x4d1019: {}", name.Error()));
-    return SystemLine(resources, UI::Sprintf("%s %s", std::string_view(name.Value()), picked.Value()), "0x4d1049");
+    return SystemLine(resources, Crt::Sprintf("%s %s", std::string_view(name.Value()), picked.Value()), "0x4d1049");
 }
 
 Core::Expected<void, std::string> FruitBox(WorldState& world, const Data::Text::TextTable* texts, std::size_t text,
@@ -226,7 +226,7 @@ Core::Expected<void, std::string> FormattedFruitBox(WorldState& world, const Dat
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     WorldRuntime& runtime = world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, UI::Sprintf(line.Value()));
+    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(line.Value()));
     return {};
 }
 
@@ -241,7 +241,7 @@ Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Data:
     if (!argument.HasValue())
         return Core::Unexpected(argument.Error());
     WorldRuntime& runtime = world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, UI::Sprintf(format.Value(), argument.Value()));
+    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(format.Value(), argument.Value()));
     return {};
 }
 
@@ -284,7 +284,7 @@ Core::Expected<void, std::string> EatTheFruit(const Protocol::FloorItems::StatFr
         return Core::Unexpected(tail.Error());
     UI::OpenMessageBox(
         runtime.dialogBox, runtime.dialogs,
-        UI::Sprintf(format.Value(), statName.Value(), static_cast<std::int32_t>(fruit.points), tail.Value()));
+        Crt::Sprintf(format.Value(), statName.Value(), static_cast<std::int32_t>(fruit.points), tail.Value()));
     return {};
 }
 } // namespace

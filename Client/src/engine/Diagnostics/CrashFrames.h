@@ -10,7 +10,7 @@
 
 // La lista de frames de MuError.dmp: la cadena de EBP que arma el filtro antes de escribir
 // (0x6829f0 y 0x682890; 02 § El manejador de caídas).
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // Recorre la cadena desde `framePointer` (el Ebp del CONTEXT, +0xb4) y llena `frames`: por cada
 // frame que se puede leer, su dirección, la de vuelta (lo que sigue al frame anterior guardado) y
@@ -24,4 +24,4 @@ namespace Client::Core::Crash
 [[nodiscard]] ENGINE_API std::size_t WalkCrashFrames(std::uint64_t framePointer, std::size_t pointerSize,
                                                      const IMemoryReader& memory,
                                                      std::span<CrashFrame, MaxCrashFrames> frames);
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

@@ -234,7 +234,7 @@ void WriteNewLine(TooltipLines& lines, std::size_t& next)
 
 void WriteSetTitle(TooltipLines& lines, std::size_t& next, std::string_view name, std::string_view title)
 {
-    lines.text[next] = UI::Sprintf("%s %s", name, title);
+    lines.text[next] = Crt::Sprintf("%s %s", name, title);
     lines.colors[next] = TooltipGold;
     lines.bold[next] = 1;
     ++next;
@@ -472,7 +472,7 @@ Core::Expected<void, std::string> WriteTheSetOption(const Data::Text::TextTable*
     const std::optional<std::string_view> format = UI::TextAt(texts, index);
     if (!format)
         return Core::Unexpected(std::format("0x40d530: sin el texto {} de Text.bmd", index));
-    line = UI::Sprintf(*format, static_cast<std::int32_t>(value));
+    line = Crt::Sprintf(*format, static_cast<std::int32_t>(value));
     return {};
 }
 
@@ -549,7 +549,7 @@ Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context)
         return Core::Unexpected(tail.Error());
     // 0x40ed06..0x40ed64: las negritas de estos cuatro no las escribe (quedan las del anterior).
     lines.text[0] = "\n";
-    lines.text[1] = UI::Sprintf("%s %s %s", std::string_view(NameOf(set)), title.Value(), tail.Value());
+    lines.text[1] = Crt::Sprintf("%s %s %s", std::string_view(NameOf(set)), title.Value(), tail.Value());
     lines.colors[1] = TooltipGold;
     lines.text[2] = "\n";
     lines.text[3] = "\n";

@@ -11,23 +11,23 @@
 #include <string_view>
 #include <vector>
 
-// Client::Core::Crash::WriteCrashDump: MuError.dmp byte a byte, contra un archivo armado a mano con
+// Client::Diagnostics::WriteCrashDump: MuError.dmp byte a byte, contra un archivo armado a mano con
 // los offsets que escribe 0x67f840 (02 § El manejador de caídas): cada campo en su lugar, sin
 // relleno, en little-endian.
 namespace
 {
-using Client::Core::Crash::CopyCrashText;
-using Client::Core::Crash::CrashDumpSize;
-using Client::Core::Crash::CrashFrameRecordSize;
-using Client::Core::Crash::CrashHeaderSize;
-using Client::Core::Crash::CrashModuleRecordSize;
-using Client::Core::Crash::CrashReport;
-using Client::Core::Crash::MaxCrashDumpSize;
-using Client::Core::Crash::MaxCrashFrames;
-using Client::Core::Crash::MaxCrashModules;
-using Client::Core::Crash::VersionInfoSize;
-using Client::Core::Crash::WriteCrashDump;
-using Client::Core::Crash::X86ExtendedRegistersSize;
+using Client::Diagnostics::CopyCrashText;
+using Client::Diagnostics::CrashDumpSize;
+using Client::Diagnostics::CrashFrameRecordSize;
+using Client::Diagnostics::CrashHeaderSize;
+using Client::Diagnostics::CrashModuleRecordSize;
+using Client::Diagnostics::CrashReport;
+using Client::Diagnostics::MaxCrashDumpSize;
+using Client::Diagnostics::MaxCrashFrames;
+using Client::Diagnostics::MaxCrashModules;
+using Client::Diagnostics::VersionInfoSize;
+using Client::Diagnostics::WriteCrashDump;
+using Client::Diagnostics::X86ExtendedRegistersSize;
 
 // Los offsets de la cabecera, como los ve el original sobre su buffer de 0x516 bytes.
 constexpr std::size_t TimeOffset = 0x009;

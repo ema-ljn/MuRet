@@ -46,8 +46,8 @@ protected:
         const auto& loaded = m_world->Map();
         ASSERT_NE(loaded.terrain.mapping, nullptr);
         ASSERT_NE(loaded.terrain.heights, nullptr);
-        Client::Core::Crash::Crc32 first;
-        Client::Core::Crash::Crc32 second;
+        Client::Diagnostics::Crc32 first;
+        Client::Diagnostics::Crc32 second;
         first.Update(std::as_bytes(std::span(loaded.terrain.mapping->layer1)));
         second.Update(std::as_bytes(std::span(loaded.terrain.mapping->layer2)));
         // Firma independiente de World10: inventario Data de map-sweep-2026-11-10.

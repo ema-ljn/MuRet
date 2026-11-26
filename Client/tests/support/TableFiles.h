@@ -22,7 +22,7 @@ inline std::vector<std::byte> EncryptRecords(std::vector<std::byte> records, std
     const std::span<std::byte> all(records);
     for (std::size_t offset = 0; recordSize <= all.size() - offset; offset += recordSize)
     {
-        Core::Xor3(all.subspan(offset, recordSize));
+        Crypto::Xor3(all.subspan(offset, recordSize));
     }
     return records;
 }

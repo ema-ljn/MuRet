@@ -465,7 +465,7 @@ Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x
             name = SkillRecordName(record.Value());
         }
         lines.text[0] = "\n";
-        lines.text[1] = UI::Sprintf("%s", std::string_view(name));
+        lines.text[1] = Crt::Sprintf("%s", std::string_view(name));
         lines.colors[1] = TooltipBlue;
         lines.bold[1] = 1;
         lines.text[2] = "\n";
@@ -474,7 +474,7 @@ Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x
             const auto text = TextOf(frame, index, "0x5a6888");
             if (!text.HasValue())
                 return Core::Unexpected(text.Error());
-            lines.text[line] = UI::Sprintf(text.Value());
+            lines.text[line] = Crt::Sprintf(text.Value());
             return {};
         };
         if (icon == ThreeLinesIcon)
@@ -1677,9 +1677,9 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
                                                 half));
         const auto number = static_cast<std::int32_t>(half + 1);
         // 0x6c9288, 0x6c9298 y 0x6c92a8 son el mismo texto; 0x6c92b8, sin el nombre.
-        const std::string line = withName ? UI::Sprintf("%s%d / %s / %s", title.Value(), number,
-                                                        std::string_view(*guild), std::string_view(*name))
-                                          : UI::Sprintf("%s%d / %s", title.Value(), number, std::string_view(*guild));
+        const std::string line = withName ? Crt::Sprintf("%s%d / %s / %s", title.Value(), number,
+                                                         std::string_view(*guild), std::string_view(*name))
+                                          : Crt::Sprintf("%s%d / %s", title.Value(), number, std::string_view(*guild));
         DrawHelp(frame, 0, SwitchLinesTop + (static_cast<int>(half) * SwitchLineStep), line);
     }
     return {};

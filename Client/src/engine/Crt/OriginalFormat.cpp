@@ -12,7 +12,7 @@
 #include <utility>
 #include <variant>
 
-namespace Client::UI
+namespace Client::Crt
 {
 namespace
 {
@@ -209,4 +209,4 @@ Core::Expected<std::string, std::string> FormatOriginal(FormatFunction function,
     }
     return out;
 }
-} // namespace Client::UI
+} // namespace Client::Crt

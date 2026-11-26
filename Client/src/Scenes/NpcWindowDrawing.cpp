@@ -269,7 +269,7 @@ Core::Expected<void, std::string> DrawTheNpcShop(GameHudContext& context, UI::Pa
     auto taxFormat = TextOf(context, ShopTaxText, "0x5f4823");
     if (!taxFormat.HasValue())
         return Core::Unexpected(taxFormat.Error());
-    const std::string tax = UI::Sprintf(taxFormat.Value(), runtime.npcWindows.taxRate);
+    const std::string tax = Crt::Sprintf(taxFormat.Value(), runtime.npcWindows.taxRate);
     DrawTitle(context, x + TitleLeft, y + TaxTop, tax);
 
     // 0x5f486a..0x5f4a37: comprar y vender, apretados con el modo de la tienda (0x78abb27) en 0 y en 1.

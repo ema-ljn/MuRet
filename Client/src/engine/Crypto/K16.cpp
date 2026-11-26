@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Data::Terrain
+namespace Client::Crypto
 {
 // Las cuentas se hacen en int, como todo en C++, y cada resultado vuelve a 8 bits con un cast
 // explícito: eso es lo que hace dar la vuelta (0x10 - 0x20 da 0xF0, 0xF0 + 0x3D da 0x2D).
@@ -19,4 +19,4 @@ void DecryptK16(std::span<std::byte> bytes)
         previous = static_cast<std::uint8_t>(encrypted + K16Step);
     }
 }
-} // namespace Client::Data::Terrain
+} // namespace Client::Crypto

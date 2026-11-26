@@ -103,7 +103,7 @@ Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCo
             return Core::Unexpected(std::move(opened).Error());
         return ChatCommandOutcome{.handled = true, .notices = {}};
     }
-    std::string text = Sprintf(TextOr(context.texts, ShopLevelText), static_cast<std::int32_t>(ShopLevel));
+    std::string text = Crt::Sprintf(TextOr(context.texts, ShopLevelText), static_cast<std::int32_t>(ShopLevel));
     if (text.size() >= LevelTextBufferSize)
         return Core::Unexpected(std::format("0x576866: el texto {} con el nivel pasa los {} bytes de la pila",
                                             ShopLevelText, LevelTextBufferSize));

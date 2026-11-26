@@ -43,7 +43,7 @@ CredentialField Credential(std::string_view text)
 {
     CredentialField field{};
     std::ranges::copy(std::as_bytes(std::span(text)), field.begin());
-    Core::Xor3(field);
+    Crypto::Xor3(field);
     return field;
 }
 

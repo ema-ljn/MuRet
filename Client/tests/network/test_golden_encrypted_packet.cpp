@@ -33,14 +33,14 @@
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable ni de lo descifrado.
 namespace
 {
+using Client::Crypto::CipherBlockSize;
+using Client::Crypto::DecryptedBlock;
+using Client::Crypto::DecryptionKey;
+using Client::Crypto::EncryptionKey;
+using Client::Crypto::PlainBlockSize;
 using Client::Network::EncryptPacket;
 using Client::Network::IdentityObfuscation;
 using Client::Network::PacketSerials;
-using Client::Network::Crypto::CipherBlockSize;
-using Client::Network::Crypto::DecryptedBlock;
-using Client::Network::Crypto::DecryptionKey;
-using Client::Network::Crypto::EncryptionKey;
-using Client::Network::Crypto::PlainBlockSize;
 using Client::Tests::SameBytesWithoutValues;
 using Client::Tests::WireDirection;
 using Client::Tests::GoldenEncryptedPacketSupport::CountOf;

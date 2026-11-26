@@ -9,7 +9,7 @@
 // que en un proceso de 32 bits da cada valor en 32 bits; MuRet la lee en 64 (GlobalMemoryStatusEx
 // en Windows, sysinfo en Linux) y la pasa a esos 32 bits acá, con una función pura que se prueba
 // en cualquier sistema.
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // Los seis totales de MEMORYSTATUS, en bytes y sin cortar.
 struct MemoryTotals
@@ -29,4 +29,4 @@ struct MemoryTotals
 // El porcentaje en uso, de 0 a 100, como el dwMemoryLoad de Windows: lo que no está disponible
 // sobre el total, truncado. 0 sin total. Lo usa Linux, que no lo da hecho.
 [[nodiscard]] ENGINE_API std::uint32_t MemoryLoadPercent(std::uint64_t total, std::uint64_t available);
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

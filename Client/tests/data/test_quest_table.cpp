@@ -30,7 +30,7 @@ void Put(std::span<std::byte> bytes, std::size_t offset, std::uint32_t value, st
 std::vector<std::byte> EncryptedFile(std::vector<std::byte> plain)
 {
     for (std::size_t i = 0; i < QuestCount; ++i)
-        Client::Core::Xor3(std::span(plain).subspan(i * QuestRecordSize, QuestRecordSize));
+        Client::Crypto::Xor3(std::span(plain).subspan(i * QuestRecordSize, QuestRecordSize));
     return plain;
 }
 
@@ -122,8 +122,8 @@ TEST(QuestTable, AShortFileKeepsWhatItsFreadLeaves)
     Put(plain, QuestRecordSize, 7, 2);
     Put(plain, QuestRecordSize + 2, 8, 2);
     std::vector<std::byte> file = plain;
-    Client::Core::Xor3(std::span(file).first(QuestRecordSize));
-    Client::Core::Xor3(std::span(file).subspan(QuestRecordSize, QuestRecordSize));
+    Client::Crypto::Xor3(std::span(file).first(QuestRecordSize));
+    Client::Crypto::Xor3(std::span(file).subspan(QuestRecordSize, QuestRecordSize));
     file.resize(QuestRecordSize + 4);
 
     const auto loaded = LoadQuestTable(file);

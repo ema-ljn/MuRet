@@ -11,14 +11,14 @@
 #include <map>
 #include <span>
 
-// Client::Core::Crash::WalkCrashFrames: la cadena de EBP de 0x6829f0 sobre una memoria inventada,
+// Client::Diagnostics::WalkCrashFrames: la cadena de EBP de 0x6829f0 sobre una memoria inventada,
 // con huecos que no se pueden leer.
 namespace
 {
-using Client::Core::Crash::CrashFrame;
-using Client::Core::Crash::IMemoryReader;
-using Client::Core::Crash::MaxCrashFrames;
-using Client::Core::Crash::WalkCrashFrames;
+using Client::Diagnostics::CrashFrame;
+using Client::Diagnostics::IMemoryReader;
+using Client::Diagnostics::MaxCrashFrames;
+using Client::Diagnostics::WalkCrashFrames;
 
 // Una memoria de a bytes: lo que no se escribió no se puede leer.
 class FakeMemory final : public IMemoryReader

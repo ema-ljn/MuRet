@@ -35,15 +35,15 @@ inline constexpr std::array<std::uint8_t, 19> LabWorldsWithHeights = {1,  2,  3,
 // cifrado[i] = (plano[i] + previo) ^ K16Key[i % 16], con el mismo `previo` que el descifrado.
 inline std::vector<std::byte> EncryptK16(std::vector<std::byte> bytes)
 {
-    using Data::Terrain::K16Key;
-    std::uint8_t previous = Data::Terrain::K16Seed;
+    using Crypto::K16Key;
+    std::uint8_t previous = Crypto::K16Seed;
     for (std::size_t i = 0; i < bytes.size(); ++i)
     {
         const auto plain = std::to_integer<std::uint8_t>(bytes[i]);
         const auto key = std::to_integer<std::uint8_t>(K16Key[i % K16Key.size()]);
         const auto encrypted = static_cast<std::uint8_t>(static_cast<std::uint8_t>(plain + previous) ^ key);
         bytes[i] = std::byte{encrypted};
-        previous = static_cast<std::uint8_t>(encrypted + Data::Terrain::K16Step);
+        previous = static_cast<std::uint8_t>(encrypted + Crypto::K16Step);
     }
     return bytes;
 }
@@ -141,7 +141,7 @@ inline std::vector<std::byte> PlainTerrainAttributes(std::uint8_t world, Attribu
 // El cifrado del .att, al revés que el descifrado: primero XOR3 y después K16.
 inline std::vector<std::byte> EncryptTerrainAttributes(std::vector<std::byte> plain)
 {
-    Core::Xor3(plain);
+    Crypto::Xor3(plain);
     return EncryptK16(std::move(plain));
 }
 

@@ -6,7 +6,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 namespace
 {
@@ -202,4 +202,4 @@ std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key, std::span<c
         static_cast<std::uint8_t>(std::to_integer<std::uint8_t>(cipher[UsefulSizeIndex]) ^ checksum ^ UsefulSizeXor);
     return block;
 }
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

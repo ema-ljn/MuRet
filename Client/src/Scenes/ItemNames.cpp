@@ -182,7 +182,7 @@ Core::Expected<std::string, std::string> TransformationRingName(const Data::Text
         const auto text = TextOf(texts, TransformationRingText);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        name = UI::Sprintf("%s %s", std::string_view(NpcNameAt(*npcNames, index)), text.Value());
+        name = Crt::Sprintf("%s %s", std::string_view(NpcNameAt(*npcNames, index)), text.Value());
     }
     return name;
 }
@@ -237,7 +237,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
             return Core::Unexpected(std::format("0x5b1d60: el premio {} del boleto (Item.bmd+0x2d) lee 0x6c9350 + {} "
                                                 "· 100, en la .data que sigue a los diez premios, que MuRet no tiene",
                                                 index, index));
-        return UI::Sprintf("%s", *prize);
+        return Crt::Sprintf("%s", *prize);
     }
     if (type == Type180b)
     {
@@ -247,14 +247,14 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
             return Core::Unexpected(first.Error());
         if (!second.HasValue())
             return Core::Unexpected(second.Error());
-        return UI::Sprintf("%s %s", first.Value(), second.Value());
+        return Crt::Sprintf("%s %s", first.Value(), second.Value());
     }
     if (type == 0x1c0b && level >= FirstPlusBox && level <= LastPlusBox)
     {
         const auto text = TextOf(texts, PlusBoxText);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        return UI::Sprintf("%s +%d", text.Value(), level - PlusBoxBase);
+        return Crt::Sprintf("%s +%d", text.Value(), level - PlusBoxBase);
     }
     if (const std::optional<NameCase> fixed = FixedCase(type, level))
     {
@@ -270,7 +270,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
             const auto text = TextOf(texts, fixed->text);
             if (!text.HasValue())
                 return Core::Unexpected(text.Error());
-            return fixed->kind == NameKind::Text ? std::string(text.Value()) : UI::Sprintf(text.Value());
+            return fixed->kind == NameKind::Text ? std::string(text.Value()) : Crt::Sprintf(text.Value());
         }
         case NameKind::TextAndRecord:
         {
@@ -280,7 +280,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
             const auto name = recordName();
             if (!name.HasValue())
                 return name;
-            return UI::Sprintf("%s %s", text.Value(), std::string_view(name.Value()));
+            return Crt::Sprintf("%s %s", text.Value(), std::string_view(name.Value()));
         }
         }
     }
@@ -289,7 +289,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
     auto name = recordName();
     if (!name.HasValue() || level == 0)
         return name;
-    return UI::Sprintf("%s +%d", std::string_view(name.Value()), level);
+    return Crt::Sprintf("%s +%d", std::string_view(name.Value()), level);
 }
 
 bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const NpcNameTable* npcNames)

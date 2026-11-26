@@ -16,7 +16,7 @@
 // i se cuenta desde el principio de `bytes`. Aplicarlo por partes da lo mismo que de una vez solo
 // si cada parte arranca en un múltiplo de 3, como los registros de 300 bytes de Text.bmd. El login
 // lo aplica a la cuenta y a la clave por separado, así que en cada campo vuelve a empezar en FC.
-namespace Client::Core
+namespace Client::Crypto
 {
 ENGINE_API void Xor3(std::span<std::byte> bytes);
-} // namespace Client::Core
+} // namespace Client::Crypto

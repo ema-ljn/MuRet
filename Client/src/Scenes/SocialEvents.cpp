@@ -784,7 +784,7 @@ Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart
         return Core::Unexpected(std::move(format).Error());
     const std::string rival = NameText(duel.rivalName);
     if (auto shown =
-            MessageText(resources, UI::Sprintf(format.Value(), std::string_view(rival)), UI::ErrorMessage, "0x4dac90");
+            MessageText(resources, Crt::Sprintf(format.Value(), std::string_view(rival)), UI::ErrorMessage, "0x4dac90");
         !shown.HasValue())
         return shown;
     if (start.result != 0)
@@ -871,7 +871,7 @@ Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::
             break;
         name.push_back(static_cast<char>(std::to_integer<std::uint8_t>(letter)));
     }
-    const std::string text = UI::Sprintf(format.Value(), std::string_view(name));
+    const std::string text = Crt::Sprintf(format.Value(), std::string_view(name));
     if (text.size() >= ShopNoticeBufferSize)
         return Core::Unexpected(std::format("0x4e4f93: el texto {} con el nombre no entra en los {} bytes de la pila",
                                             ShopNoticeText, ShopNoticeBufferSize));

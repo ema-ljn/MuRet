@@ -11,7 +11,7 @@
 // Los registros de un proceso x86-64 al caer, como los dan el CONTEXT de Windows de 64 bits y el
 // ucontext_t de Linux. MuRet es de 64 bits, y MuError.dmp guarda el CONTEXT de x86 de 0x2cc bytes
 // que el original copia entero (0x67fedb): ToX86Context los pasa a ese formato (Q-C241).
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // Lo que mide la imagen de FXSAVE: el FltSave de Windows x64 y el fpregs de Linux.
 inline constexpr std::size_t FxsaveSize = X86ExtendedRegistersSize;
@@ -46,4 +46,4 @@ struct Registers64
 // (MuRet no lo arma desde FXSAVE). ContextFlags dice qué partes van llenas: CONTEXT_i386 con
 // CONTROL, INTEGER y SEGMENTS, más DEBUG_REGISTERS y EXTENDED_REGISTERS si están.
 [[nodiscard]] ENGINE_API X86Context ToX86Context(const Registers64& registers);
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

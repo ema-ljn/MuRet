@@ -55,7 +55,7 @@ Core::Expected<MonsterSkillTable, DataError> LoadMonsterSkillTable(std::span<con
         // 0x54a4a8..0x54a4b0: fread de 0x1c en el bloque y 0x5496c0 sobre él.
         std::array<std::byte, MonsterSkillRecordSize> block{};
         std::ranges::copy(file.subspan(offset, MonsterSkillRecordSize), block.begin());
-        Core::Xor3(block);
+        Crypto::Xor3(block);
         const std::span<const std::byte> bytes(block);
         const std::int32_t kind = Int32At(bytes, 0);
         if (kind < 0 || kind > LastKind)

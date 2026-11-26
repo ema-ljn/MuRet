@@ -22,7 +22,7 @@
 // por la posición en el archivo, no en la capa. Como `previo` sale del byte cifrado, que está en
 // el archivo, un pedazo del medio se puede descifrar sin lo anterior: alcanza con saber dónde
 // empieza y cuál es el byte cifrado de antes. DecryptK16 no hace eso: descifra desde el principio.
-namespace Client::Data::Terrain
+namespace Client::Crypto
 {
 // La clave: los 16 bytes que cada cargador del original arma en la pila, uno por uno.
 inline constexpr std::array<std::byte, 16> K16Key = {
@@ -38,4 +38,4 @@ inline constexpr std::uint8_t K16Step = 0x3D;
 
 // Descifra `bytes` en el lugar. `bytes` tiene que ser el archivo desde su primer byte.
 ENGINE_API void DecryptK16(std::span<std::byte> bytes);
-} // namespace Client::Data::Terrain
+} // namespace Client::Crypto

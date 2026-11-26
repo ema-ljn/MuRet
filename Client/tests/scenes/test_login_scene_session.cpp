@@ -241,7 +241,7 @@ std::vector<std::byte> CreditFile(std::initializer_list<CreditRecord> records)
         }
         first += Client::Data::Text::CreditRecordSize;
     }
-    Client::Core::Xor3(file);
+    Client::Crypto::Xor3(file);
     return file;
 }
 

@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -42,4 +42,4 @@ std::uint32_t MemoryLoadPercent(std::uint64_t total, std::uint64_t available)
     }
     return static_cast<std::uint32_t>(used * Percent / total);
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

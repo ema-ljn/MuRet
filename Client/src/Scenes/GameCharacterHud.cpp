@@ -105,7 +105,7 @@ constexpr std::uint32_t LevelBonusFlag = 0x2000000;
 constexpr std::int32_t GladiatorSetArmors[] = {0x100f, 0x1014, 0x1017, 0x1020};
 
 // Los sprintf de 0x5ee2e0 sobre un texto de Text.bmd (Q-C590).
-using UI::Sprintf;
+using Crt::Sprintf;
 
 using Math::F32;
 using Math::Truncate;

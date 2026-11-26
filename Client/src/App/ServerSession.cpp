@@ -153,8 +153,8 @@ std::string_view Awaited(SessionState state)
 // bloques enteros, como contesta probablemente el original (03, "C3/C4").
 bool DeservesTheReport(const Network::Undecryptable& undecryptable)
 {
-    return undecryptable.error == Network::Crypto::CryptoError::ChecksumMismatch ||
-           undecryptable.error == Network::Crypto::CryptoError::NotWholeBlocks;
+    return undecryptable.error == Crypto::CryptoError::ChecksumMismatch ||
+           undecryptable.error == Crypto::CryptoError::NotWholeBlocks;
 }
 
 // 0x4c20a0 construye en orden sobre pool[slot]: la última entrada reemplaza la anterior.

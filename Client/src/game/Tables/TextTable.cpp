@@ -38,7 +38,7 @@ Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> fi
     std::vector<char> records(TextTableSize);
     const std::span<std::byte> decoded = std::as_writable_bytes(std::span(records));
     std::ranges::copy(file.first(TextTableSize), decoded.begin());
-    Core::Xor3(decoded);
+    Crypto::Xor3(decoded);
     return TextTable(std::move(records));
 }
 } // namespace Client::Data::Text

@@ -59,7 +59,7 @@
 #endif
 #endif
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -489,7 +489,7 @@ LONG WINAPI HandleUnhandledException(EXCEPTION_POINTERS* pointers)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-Expected<void, std::string> InstallPlatform()
+Core::Expected<void, std::string> InstallPlatform()
 {
     s_state.previousFilter = SetUnhandledExceptionFilter(HandleUnhandledException);
     return {};
@@ -850,12 +850,12 @@ void ClosePipe()
     }
 }
 
-Expected<void, std::string> InstallPlatform()
+Core::Expected<void, std::string> InstallPlatform()
 {
     std::array<int, 2> ends{};
     if (pipe2(ends.data(), O_CLOEXEC | O_NONBLOCK) != 0)
     {
-        return Unexpected(std::string("no se pudo abrir el caño del manejador de caídas"));
+        return Core::Unexpected(std::string("no se pudo abrir el caño del manejador de caídas"));
     }
     s_state.pipeRead = ends[0];
     s_state.pipeWrite = ends[1];
@@ -868,7 +868,7 @@ Expected<void, std::string> InstallPlatform()
     if (sigaltstack(&stack, &s_state.previousStack) != 0)
     {
         ClosePipe();
-        return Unexpected(std::string("no se pudo poner la pila aparte del manejador de caídas"));
+        return Core::Unexpected(std::string("no se pudo poner la pila aparte del manejador de caídas"));
     }
     struct sigaction action
     {
@@ -903,34 +903,34 @@ bool WriteNewFile(const PathChar* /*path*/, std::span<const std::byte> /*bytes*/
 
 void AppendToFile(const PathChar* /*path*/, std::span<const std::byte> /*bytes*/) {}
 
-Expected<void, std::string> InstallPlatform()
+Core::Expected<void, std::string> InstallPlatform()
 {
-    return Unexpected(std::string("este sistema no tiene manejador de caídas"));
+    return Core::Unexpected(std::string("este sistema no tiene manejador de caídas"));
 }
 
 void UninstallPlatform() {}
 #endif
 } // namespace
 
-Expected<std::unique_ptr<CrashHandler>, std::string> CrashHandler::Install(const std::filesystem::path& dumpPath)
+Core::Expected<std::unique_ptr<CrashHandler>, std::string> CrashHandler::Install(const std::filesystem::path& dumpPath)
 {
     if (s_state.installed.load())
     {
-        return Unexpected(std::string("ya hay un manejador de caídas instalado"));
+        return Core::Unexpected(std::string("ya hay un manejador de caídas instalado"));
     }
     if (!CopyPath(s_state.dumpPath, dumpPath))
     {
-        return Unexpected("la ruta del volcado es demasiado larga: " + PathText(dumpPath));
+        return Core::Unexpected("la ruta del volcado es demasiado larga: " + Core::PathText(dumpPath));
     }
     // La línea, armada ahora: después de la caída no se puede pedir memoria.
     const std::string line = CrashLogLine().append(LineEnd);
     s_state.logLineLength = std::min(line.size(), s_state.logLine.size());
     std::copy_n(line.begin(), s_state.logLineLength, s_state.logLine.begin());
     s_state.hasLogPath.store(false);
-    const Expected<void, std::string> installed = InstallPlatform();
+    const Core::Expected<void, std::string> installed = InstallPlatform();
     if (!installed.HasValue())
     {
-        return Unexpected(installed.Error());
+        return Core::Unexpected(installed.Error());
     }
     s_state.installed.store(true);
     // Con new y no make_unique: el constructor es privado.
@@ -959,4 +959,4 @@ bool CrashHandler::IsInstalled()
 {
     return s_state.installed.load();
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

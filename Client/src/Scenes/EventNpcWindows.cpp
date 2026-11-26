@@ -167,12 +167,12 @@ Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable
 
 // sprintf (0x69fd9b) de un texto de Text.bmd a los 64 bytes de la pila.
 Core::Expected<std::string, std::string> RowText(const GameHudContext& context, std::size_t index,
-                                                 std::span<const UI::FormatArgument> arguments, std::string_view where)
+                                                 std::span<const Crt::FormatArgument> arguments, std::string_view where)
 {
     auto format = TextOf(context.texts, index, where);
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    auto text = UI::FormatOriginal(UI::FormatFunction::Sprintf, format.Value(), arguments, where);
+    auto text = Crt::FormatOriginal(Crt::FormatFunction::Sprintf, format.Value(), arguments, where);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
     if (text.Value().size() >= RowBuffer)
@@ -188,10 +188,10 @@ Core::Expected<std::string, std::string> ButtonText(const GameHudContext& contex
 {
     if (levels[1] > OpenMaximum)
     {
-        const std::array<UI::FormatArgument, 2> arguments{number, levels[0]};
+        const std::array<Crt::FormatArgument, 2> arguments{number, levels[0]};
         return RowText(context, openText, arguments, where);
     }
-    const std::array<UI::FormatArgument, 3> arguments{number, levels[0], levels[1]};
+    const std::array<Crt::FormatArgument, 3> arguments{number, levels[0], levels[1]};
     return RowText(context, text, arguments, where);
 }
 

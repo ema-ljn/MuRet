@@ -7,14 +7,14 @@
 #include <string_view>
 #include <vector>
 
-// Client::UI::FormatOriginal (CL9 hito 11): el sprintf de la CRT (0x69fd9b) y wsprintfA ([0x6b851c]) con los
+// Client::Crt::FormatOriginal (CL9 hito 11): el sprintf de la CRT (0x69fd9b) y wsprintfA ([0x6b851c]) con los
 // argumentos que pasa el original, para los textos de Text.bmd que usan de formato los paquetes de los eventos.
 namespace
 {
-using Client::UI::FormatArgument;
-using Client::UI::FormatFunction;
-using Client::UI::FormatOriginal;
-using Client::UI::TextArgument;
+using Client::Crt::FormatArgument;
+using Client::Crt::FormatFunction;
+using Client::Crt::FormatOriginal;
+using Client::Crt::TextArgument;
 
 std::string Formatted(FormatFunction function, std::string_view format, const std::vector<FormatArgument>& arguments)
 {
@@ -54,7 +54,7 @@ TEST(OriginalFormatTest, WsprintfCopiesTheSpaceAndTakesNoArgument)
 TEST(OriginalFormatTest, ANumberConversionOfATextPrintsItsAddress)
 {
     const std::vector<FormatArgument> arguments{TextArgument{.index = 1146, .text = "Blood Castle"}, 10};
-    const std::uint32_t address = Client::UI::TextTableAddress + 1146u * Client::UI::TextRecordBytes;
+    const std::uint32_t address = Client::Crt::TextTableAddress + 1146u * Client::Crt::TextRecordBytes;
     EXPECT_EQ(Formatted(FormatFunction::Sprintf, "%d y %d", arguments), std::to_string(address) + " y 10");
     EXPECT_EQ(Formatted(FormatFunction::Sprintf, "%X", arguments), "77110D4");
     EXPECT_EQ(address, 0x077110d4u);

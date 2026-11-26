@@ -25,6 +25,7 @@
 namespace
 {
 using Client::App::LabXorRemapTables;
+using Client::Crypto::DecryptionKey;
 using Client::Network::Connection;
 using Client::Network::DecryptPacket;
 using Client::Network::Packet;
@@ -32,7 +33,6 @@ using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::SerialCheck;
 using Client::Network::XorRemapObfuscation;
-using Client::Network::Crypto::DecryptionKey;
 using Client::Tests::CutPackets;
 using Client::Tests::SameBytesWithoutValues;
 using Client::Tests::WireDirection;

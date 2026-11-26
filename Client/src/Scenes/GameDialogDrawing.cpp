@@ -1119,7 +1119,7 @@ Core::Expected<void, std::string> DrawTheJewelChoice(Frame& frame)
         }
         Quad(frame, MessageBoxSlot, static_cast<float>(JewelBundleLeft), y, JewelBundleWidth, JewelBundleHeight,
              MessageBoxDu, 1.0f);
-        auto written = Fits(UI::Sprintf(format.Value(), bundle * JewelsPerBundle, bundle * ZenPerBundle),
+        auto written = Fits(Crt::Sprintf(format.Value(), bundle * JewelsPerBundle, bundle * ZenPerBundle),
                             JewelBundleRoom, "0x62f1dc");
         if (!written.HasValue())
             return Core::Unexpected(std::move(written).Error());
@@ -1187,7 +1187,7 @@ Core::Expected<void, std::string> DrawTheJewelUnmix(Frame& frame)
     auto format = TextOf(frame, FreeCellsText);
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    auto written = Fits(UI::Sprintf(format.Value(), FreeCellsOf(frame.context.world)), FreeCellsRoom, "0x62f6bd");
+    auto written = Fits(Crt::Sprintf(format.Value(), FreeCellsOf(frame.context.world)), FreeCellsRoom, "0x62f6bd");
     if (!written.HasValue())
         return Core::Unexpected(std::move(written).Error());
     hud.textColors.text = UnmixNotesColor;
@@ -1265,7 +1265,7 @@ Core::Expected<void, std::string> DrawTheJewelResult(Frame& frame)
     if (!tail.HasValue())
         return Core::Unexpected(std::move(tail).Error());
     auto written =
-        Fits(UI::Sprintf("%s%s %s", title.Value(), result.Value(), tail.Value()), JewelResultRoom, "0x62fd43");
+        Fits(Crt::Sprintf("%s%s %s", title.Value(), result.Value(), tail.Value()), JewelResultRoom, "0x62fd43");
     if (!written.HasValue())
         return Core::Unexpected(std::move(written).Error());
     hud.dcFont = Render::Text::FontKind::Bold;
@@ -1342,7 +1342,7 @@ Core::Expected<void, std::string> DrawTheWarningBox(Frame& frame, std::int32_t i
             auto text = TextOf(frame, LuckButtonTexts[index]);
             if (!text.HasValue())
                 return Core::Unexpected(std::move(text).Error());
-            auto written = Fits(UI::Sprintf("%s", text.Value()), LuckButtonRoom, "0x630ed3");
+            auto written = Fits(Crt::Sprintf("%s", text.Value()), LuckButtonRoom, "0x630ed3");
             if (!written.HasValue())
                 return Core::Unexpected(std::move(written).Error());
             DrawTheLuckButton(frame, button, top, written.Value());
@@ -1382,7 +1382,7 @@ Core::Expected<std::string, std::string> TheMixTitle(const Frame& frame)
         auto creative = format(664);
         if (!creative.HasValue())
             return Core::Unexpected(std::move(creative).Error());
-        return UI::Sprintf(creative.Value(), kind - 10);
+        return Crt::Sprintf(creative.Value(), kind - 10);
     }
     case 0xf:
         index = 1413;
@@ -1415,7 +1415,7 @@ Core::Expected<std::string, std::string> TheMixTitle(const Frame& frame)
             return Core::Unexpected(std::move(first).Error());
         if (!cape.HasValue())
             return Core::Unexpected(std::move(cape).Error());
-        return UI::Sprintf("%s(%s)", first.Value(), cape.Value());
+        return Crt::Sprintf("%s(%s)", first.Value(), cape.Value());
     }
     case 0x18:
         index = 1172;
@@ -1432,7 +1432,7 @@ Core::Expected<std::string, std::string> TheMixTitle(const Frame& frame)
     auto text = format(index);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    return UI::Sprintf(text.Value());
+    return Crt::Sprintf(text.Value());
 }
 
 // 0x632637..0x632a2a: los renglones de los de sí y no que van a 0x632637, cada uno centrado en su x. No vuelve al
@@ -1739,21 +1739,21 @@ Core::Expected<void, std::string> DrawTheInvitation(Frame& frame, std::int32_t i
     {
         const WorldState& world = frame.context.world;
         const ActorState& inviter = world.Actors()[InviterOf(world, frame.runtime.social.party.requestKey)];
-        DrawCentered(frame, InvitationRowY - PartyRowStep, UI::Sprintf(format.Value(), ChatNameOf(inviter)));
+        DrawCentered(frame, InvitationRowY - PartyRowStep, Crt::Sprintf(format.Value(), ChatNameOf(inviter)));
         auto question = TextOf(frame, PartyQuestionText);
         if (!question.HasValue())
             return Core::Unexpected(std::move(question).Error());
-        DrawCentered(frame, InvitationRowY + PartyRowStep, UI::Sprintf(question.Value()));
+        DrawCentered(frame, InvitationRowY + PartyRowStep, Crt::Sprintf(question.Value()));
         return {};
     }
     frame.context.hud.dcFont = Render::Text::FontKind::BigBold;
     DrawCentered(frame, InvitationRowY - TradeRowStep,
-                 UI::Sprintf(format.Value(), TradeNameOf(frame.runtime.social.trade)));
+                 Crt::Sprintf(format.Value(), TradeNameOf(frame.runtime.social.trade)));
     frame.context.hud.dcFont = Render::Text::FontKind::Normal;
     auto question = TextOf(frame, TradeQuestionText);
     if (!question.HasValue())
         return Core::Unexpected(std::move(question).Error());
-    DrawCentered(frame, InvitationRowY + TradeRowStep, UI::Sprintf(question.Value()));
+    DrawCentered(frame, InvitationRowY + TradeRowStep, Crt::Sprintf(question.Value()));
     return {};
 }
 
@@ -1767,11 +1767,11 @@ Core::Expected<void, std::string> DrawTheWarRequest(Frame& frame)
     const GuildState& guild = frame.runtime.guild;
     const auto end = std::ranges::find(guild.rival, '\0');
     const std::string_view rival(guild.rival.data(), static_cast<std::size_t>(end - guild.rival.begin()));
-    DrawCentered(frame, InvitationRowY - WarRowStep, UI::Sprintf(format.Value(), rival));
+    DrawCentered(frame, InvitationRowY - WarRowStep, Crt::Sprintf(format.Value(), rival));
     auto question = TextOf(frame, guild.warType == 0 ? WarQuestionText : TypedWarQuestionText);
     if (!question.HasValue())
         return Core::Unexpected(std::move(question).Error());
-    DrawCentered(frame, InvitationRowY + WarRowStep, UI::Sprintf(question.Value()));
+    DrawCentered(frame, InvitationRowY + WarRowStep, Crt::Sprintf(question.Value()));
     return {};
 }
 

@@ -38,6 +38,12 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::Crypto::CryptoError;
+using Client::Crypto::DecryptBlock;
+using Client::Crypto::DecryptedBlock;
+using Client::Crypto::EncryptBlock;
+using Client::Crypto::EncryptionKey;
+using Client::Crypto::PlainBlockSize;
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
 using Client::Network::HeaderSize;
@@ -49,12 +55,6 @@ using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::SerialCheck;
-using Client::Network::Crypto::CryptoError;
-using Client::Network::Crypto::DecryptBlock;
-using Client::Network::Crypto::DecryptedBlock;
-using Client::Network::Crypto::EncryptBlock;
-using Client::Network::Crypto::EncryptionKey;
-using Client::Network::Crypto::PlainBlockSize;
 using Client::Tests::Below;
 using Client::Tests::BytePattern;
 using Client::Tests::Bytes;
@@ -304,9 +304,9 @@ TEST(EncryptedPacketTest, PutsThePaddingRightAfterTheUsefulBytes)
 
     ASSERT_TRUE(encrypted.HasValue());
     const std::span<const std::byte> cipher = AfterHeader(encrypted.Value());
-    ASSERT_EQ(cipher.size(), Client::Network::Crypto::CipherBlockSize);
+    ASSERT_EQ(cipher.size(), Client::Crypto::CipherBlockSize);
     const std::optional<DecryptedBlock> block =
-        DecryptBlock(identity.decryption, cipher.first<Client::Network::Crypto::CipherBlockSize>());
+        DecryptBlock(identity.decryption, cipher.first<Client::Crypto::CipherBlockSize>());
     ASSERT_TRUE(block.has_value());
     EXPECT_TRUE(SameBytes(block->bytes, Bytes({0x00, 0xF1, 0x7B, 0xC1, 0x73, 0xA5, 0x00, 0x00})));
     EXPECT_EQ(block->usefulSize, 5);
@@ -756,9 +756,9 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsTheSerialTheUsefulBytesAndThePadding)
     EXPECT_TRUE(SameBytes(seen, Bytes({0x04, 0xF1, 0x7B, 0xC1, 0x73, 0xA5})));
     ASSERT_TRUE(encrypted.HasValue());
     const std::span<const std::byte> cipher = AfterHeader(encrypted.Value());
-    ASSERT_EQ(cipher.size(), Client::Network::Crypto::CipherBlockSize);
+    ASSERT_EQ(cipher.size(), Client::Crypto::CipherBlockSize);
     const std::optional<DecryptedBlock> block =
-        DecryptBlock(identity.decryption, cipher.first<Client::Network::Crypto::CipherBlockSize>());
+        DecryptBlock(identity.decryption, cipher.first<Client::Crypto::CipherBlockSize>());
     ASSERT_TRUE(block.has_value());
     EXPECT_TRUE(SameBytes(block->bytes, Bytes({0x04, 0x5A, 0x7B, 0xC1, 0x73, 0xA5, 0x00, 0x00})));
     EXPECT_EQ(block->usefulSize, 5);
@@ -785,7 +785,7 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
         expected[0] = std::byte{0x07};
         expected.push_back(std::byte{0xA5});
         EXPECT_TRUE(SameBytes(seen, expected)) << "un C" << (type == PacketType::C1 ? 1 : 2);
-        EXPECT_EQ(AfterHeader(encrypted.Value()).size(), Client::Network::Crypto::CipherBlockSize);
+        EXPECT_EQ(AfterHeader(encrypted.Value()).size(), Client::Crypto::CipherBlockSize);
     }
 }
 

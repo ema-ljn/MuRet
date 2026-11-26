@@ -1207,8 +1207,8 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
         SCOPED_TRACE(probe.map);
         const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, probe.points);
         ASSERT_TRUE(format.has_value());
-        const auto points = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format,
-                                                       std::vector<Client::UI::FormatArgument>{42, 70}, "test");
+        const auto points = Client::Crt::FormatOriginal(Client::Crt::FormatFunction::Wsprintf, *format,
+                                                        std::vector<Client::Crt::FormatArgument>{42, 70}, "test");
         ASSERT_TRUE(points.HasValue()) << points.Error();
         for (const bool projecting : {true, false})
         {
@@ -1248,8 +1248,10 @@ TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
     const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, 828);
     const std::optional<std::string_view> name = Client::UI::TextAt(&*data.text, 1147);
     ASSERT_TRUE(format && name);
-    const std::vector<Client::UI::FormatArgument> arguments{Client::UI::TextArgument{.index = 1147, .text = *name}, 18};
-    const auto expected = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format, arguments, "test");
+    const std::vector<Client::Crt::FormatArgument> arguments{Client::Crt::TextArgument{.index = 1147, .text = *name},
+                                                             18};
+    const auto expected =
+        Client::Crt::FormatOriginal(Client::Crt::FormatFunction::Wsprintf, *format, arguments, "test");
     ASSERT_TRUE(expected.HasValue()) << expected.Error();
     for (const std::int32_t map : {0, 2, 9, 11, 18})
     {
@@ -1479,7 +1481,7 @@ TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
     {
         const std::optional<std::string_view> help = Client::UI::TextAt(&*data.text, texts[i]);
         ASSERT_TRUE(help.has_value());
-        EXPECT_EQ(lines.text[3 + i], Client::UI::Sprintf(*help)) << i;
+        EXPECT_EQ(lines.text[3 + i], Client::Crt::Sprintf(*help)) << i;
     }
     EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipWhiteOnRed);
     EXPECT_EQ(lines.colors[5], Client::Scenes::TooltipWhite);

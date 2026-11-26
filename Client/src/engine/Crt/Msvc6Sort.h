@@ -10,7 +10,7 @@
 // que los iguales queden donde los deja el original, MuRet corre el mismo algoritmo y no el std::sort de su STL.
 // `items` es un contenedor con operator[] y size() (un std::deque o un std::vector), y `less` el comparador del
 // original, que puede no ser un orden estricto.
-namespace Client::Core
+namespace Client::Crt
 {
 // _SORT_MAX: hasta 16, solo la inserción (0x49c260: la cuenta contra 0x11).
 inline constexpr std::ptrdiff_t Msvc6SortMax = 16;
@@ -118,4 +118,4 @@ template <typename Items, typename Less> void Msvc6Sort(Items& items, Less less)
     for (std::ptrdiff_t at = Msvc6SortMax; at != count; ++at)
         Msvc6Detail::UnguardedInsert(items, at, typename Items::value_type(items[static_cast<std::size_t>(at)]), less);
 }
-} // namespace Client::Core
+} // namespace Client::Crt

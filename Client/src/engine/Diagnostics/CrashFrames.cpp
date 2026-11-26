@@ -9,7 +9,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -85,4 +85,4 @@ std::size_t WalkCrashFrames(std::uint64_t framePointer, std::size_t pointerSize,
     }
     return count;
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

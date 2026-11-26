@@ -36,7 +36,7 @@
 // No restaura la resolución: el original llama a ChangeDisplaySettingsA(NULL, 0) (0x4b9b66)
 // porque cambia el modo del escritorio para su pantalla completa, y MuRet no lo cambia nunca (su
 // ventana es una ventana, Platform/Window.h). No hay nada que deshacer (Q-C244).
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // El nombre de 0x6c80dc. Relativo a la carpeta actual, como el fopen(..., "wb") de 0x67f840.
 inline constexpr std::string_view CrashDumpFileName = "MuError.dmp";
@@ -50,7 +50,7 @@ class ENGINE_API CrashHandler
 public:
     // Instala el manejador, que escribe el volcado en `dumpPath` (main pasa CrashDumpFileName). Un
     // error si ya hay uno instalado, si la ruta es demasiado larga o si el sistema no lo deja.
-    [[nodiscard]] static Expected<std::unique_ptr<CrashHandler>, std::string>
+    [[nodiscard]] static Core::Expected<std::unique_ptr<CrashHandler>, std::string>
     Install(const std::filesystem::path& dumpPath);
 
     // Desinstala y deja lo que había antes: el filtro anterior, como 0x67f740, o las acciones de
@@ -74,4 +74,4 @@ public:
 private:
     CrashHandler() = default;
 };
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

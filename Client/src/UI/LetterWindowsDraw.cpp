@@ -492,7 +492,7 @@ Core::Expected<void, std::string> DrawTheReadWindow(OldWindowManager& manager, O
     // sprintf(1014, +0x780, +0x88b, +0x89b) con los colores que haya: los del último renglón del cuerpo.
     const LetterEntry& entry = letter.entry;
     static_cast<void>(DrawText(context, Steps::ClientX(read, ReadHeaderX), Steps::ClientY(read, ReadHeaderY),
-                               Sprintf(TextAt(view, ReadHeaderText), entry.name, entry.date, entry.time)));
+                               Crt::Sprintf(TextAt(view, ReadHeaderText), entry.name, entry.date, entry.time)));
     for (const OldButton& button : letter.buttons)
         DrawTheButton(context, button, view);
     sprites.SetBlend(Render::BlendMode::Opaque);

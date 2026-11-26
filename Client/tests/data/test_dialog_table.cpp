@@ -38,7 +38,7 @@ void PutText(std::span<std::byte> bytes, std::size_t offset, std::string_view te
 std::vector<std::byte> EncryptedFile(std::vector<std::byte> plain)
 {
     for (std::size_t i = 0; i < DialogCount; ++i)
-        Client::Core::Xor3(std::span(plain).subspan(i * DialogRecordSize, DialogRecordSize));
+        Client::Crypto::Xor3(std::span(plain).subspan(i * DialogRecordSize, DialogRecordSize));
     return plain;
 }
 
@@ -102,8 +102,8 @@ TEST(DialogTable, AShortFileKeepsWhatItsFreadLeaves)
     PutInt(second, 0x12c, 1);
     PutText(second, 0x180, "Otro");
     std::vector<std::byte> file = plain;
-    Client::Core::Xor3(std::span(file).first(DialogRecordSize));
-    Client::Core::Xor3(std::span(file).subspan(DialogRecordSize, DialogRecordSize));
+    Client::Crypto::Xor3(std::span(file).first(DialogRecordSize));
+    Client::Crypto::Xor3(std::span(file).subspan(DialogRecordSize, DialogRecordSize));
     file.resize(DialogRecordSize + Half);
 
     const auto loaded = LoadDialogTable(file);

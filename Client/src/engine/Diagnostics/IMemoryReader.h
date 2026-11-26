@@ -6,8 +6,8 @@
 
 // Leer memoria del propio proceso sin caerse si no se puede: el IsBadReadPtr del original
 // (0x68289b, 0x6828c2, 0x682bcd). El manejador de caídas tiene uno por sistema
-// (Crash::CrashHandler) y los tests, una memoria inventada.
-namespace Client::Core::Crash
+// (Diagnostics::CrashHandler) y los tests, una memoria inventada.
+namespace Client::Diagnostics
 {
 class IMemoryReader
 {
@@ -25,4 +25,4 @@ protected:
     IMemoryReader(IMemoryReader&&) = default;
     IMemoryReader& operator=(IMemoryReader&&) = default;
 };
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

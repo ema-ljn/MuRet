@@ -57,7 +57,7 @@ std::vector<std::byte> FileWith(std::int32_t count, std::span<const FakeMove> mo
         PutWord(record, 0x44, static_cast<std::uint32_t>(moves[i].level));
         PutWord(record, 0x48, moves[i].zen);
         PutWord(record, 0x4c, static_cast<std::uint32_t>(moves[i].gate));
-        Client::Core::Xor3(record);
+        Client::Crypto::Xor3(record);
     }
     return file;
 }
@@ -143,10 +143,10 @@ TEST(MoveRequirementsTest, ANameRunsIntoTheSearchNameAndMustEndInItsRecord)
 
     std::vector<std::byte> unended = FileWith(1, longName);
     const std::span<std::byte> record = std::span(unended).subspan(4, MoveRecordSize);
-    Client::Core::Xor3(record);
+    Client::Crypto::Xor3(record);
     for (std::size_t i = 4; i < MoveRecordSize; ++i)
         record[i] = std::byte{'x'};
-    Client::Core::Xor3(record);
+    Client::Crypto::Xor3(record);
     const auto broken = LoadMoveRequirements(unended);
     ASSERT_FALSE(broken.HasValue());
     EXPECT_EQ(broken.Error(), DataError::InvalidData);

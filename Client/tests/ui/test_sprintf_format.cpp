@@ -7,7 +7,7 @@
 
 namespace
 {
-using Client::UI::Sprintf;
+using Client::Crt::Sprintf;
 
 TEST(SprintfFormat, PlacesIntegersAndTextsInOrder)
 {

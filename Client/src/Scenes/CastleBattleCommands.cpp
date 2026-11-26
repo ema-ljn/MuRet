@@ -47,13 +47,13 @@ Core::Expected<std::string, std::string> Text(const CastleReceiveContext& contex
 }
 
 Core::Expected<std::string, std::string> Formatted(const CastleReceiveContext& context, std::size_t index,
-                                                   std::span<const UI::FormatArgument> arguments,
-                                                   UI::FormatFunction function = UI::FormatFunction::Wsprintf)
+                                                   std::span<const Crt::FormatArgument> arguments,
+                                                   Crt::FormatFunction function = Crt::FormatFunction::Wsprintf)
 {
     auto text = Text(context, index);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    return UI::FormatOriginal(function, text.Value(), arguments, "la respuesta del asedio");
+    return Crt::FormatOriginal(function, text.Value(), arguments, "la respuesta del asedio");
 }
 
 Core::Expected<void, std::string> CancelPopup(const CastleReceiveContext& context)
@@ -94,12 +94,13 @@ Core::Expected<void, std::string> CrownAccess(const Battle::CrownAccess& access,
         return Popup(context, std::span(lines).first(1), 3000);
     }
     const auto second = ActorWithKey(context.world, access.secondKey);
-    const std::array<UI::FormatArgument, 1> secondName{UI::StringArgument{HeroNameOf(context.world.Actors()[second])}};
+    const std::array<Crt::FormatArgument, 1> secondName{
+        Crt::StringArgument{HeroNameOf(context.world.Actors()[second])}};
     auto message = Formatted(context, 1486, secondName);
     if (!message.HasValue())
         return Core::Unexpected(std::move(message).Error());
     lines[0] = std::move(message).Value();
-    const std::array<UI::FormatArgument, 1> firstName{UI::StringArgument{HeroNameOf(context.world.Actors()[first])}};
+    const std::array<Crt::FormatArgument, 1> firstName{Crt::StringArgument{HeroNameOf(context.world.Actors()[first])}};
     message = Formatted(context, 1488, firstName);
     if (!message.HasValue())
         return Core::Unexpected(std::move(message).Error());
@@ -125,9 +126,9 @@ Core::Expected<void, std::string> CrownRegistration(const Battle::CrownRegistrat
         auto label = Text(context, textIndex);
         if (!label.HasValue())
             return Core::Unexpected(std::move(label).Error());
-        const std::array<UI::FormatArgument, 2> args{UI::TextArgument{textIndex, label.Value()},
-                                                     std::bit_cast<std::int32_t>(crown.elapsed / 1000u)};
-        line = Formatted(context, 1980, args, UI::FormatFunction::Sprintf);
+        const std::array<Crt::FormatArgument, 2> args{Crt::TextArgument{textIndex, label.Value()},
+                                                      std::bit_cast<std::int32_t>(crown.elapsed / 1000u)};
+        line = Formatted(context, 1980, args, Crt::FormatFunction::Sprintf);
     }
     else
         line = Text(context, crown.result == 1 ? 1490 : crown.result == 3 ? 1492 : 1982);
@@ -174,7 +175,7 @@ Core::Expected<void, std::string> CastleOwner(const Battle::CastleOwner& owner, 
     if (owner.result == 1)
         if (auto applied = ApplyTheCastleOwner(guild, context.world); !applied.HasValue())
             return applied;
-    const std::array<UI::FormatArgument, 1> args{UI::StringArgument{guild}};
+    const std::array<Crt::FormatArgument, 1> args{Crt::StringArgument{guild}};
     auto message = Formatted(context, std::size_t{1496} + owner.result, args);
     if (!message.HasValue())
         return Core::Unexpected(std::move(message).Error());

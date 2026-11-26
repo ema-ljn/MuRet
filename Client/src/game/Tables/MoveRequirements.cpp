@@ -49,7 +49,7 @@ Core::Expected<std::vector<MoveRequirement>, DataError> LoadMoveRequirements(std
         std::array<std::byte, MoveRecordSize> record{};
         const std::span<const std::byte> source = file.subspan(MoveCountSize + i * MoveRecordSize, MoveRecordSize);
         std::ranges::copy(source, record.begin());
-        Core::Xor3(record);
+        Crypto::Xor3(record);
         const std::span<const std::byte> bytes(record);
         // Los iteradores salen todos del mismo span: los de MSVC (Debug) no se comparan entre spans distintos.
         const std::span<const std::byte> nameBytes = bytes.subspan(NameOffset);

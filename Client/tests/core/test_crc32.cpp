@@ -6,10 +6,10 @@
 #include <span>
 #include <string_view>
 
-// Client::Core::Crash::Crc32: el CRC-32 con que 0x683bd0 firma el ejecutable en MuError.dmp.
+// Client::Diagnostics::Crc32: el CRC-32 con que 0x683bd0 firma el ejecutable en MuError.dmp.
 namespace
 {
-using Client::Core::Crash::Crc32;
+using Client::Diagnostics::Crc32;
 
 std::span<const std::byte> Bytes(std::string_view text)
 {

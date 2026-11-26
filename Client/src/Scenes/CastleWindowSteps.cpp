@@ -364,7 +364,7 @@ Core::Expected<void, std::string> SeniorNpcDialog(const GameUiContext& context, 
     if (!last.HasValue())
         return Core::Unexpected(std::move(last).Error());
     if (action == 0)
-        second.Value() = UI::Sprintf(second.Value(), CastleUi::NpcCost(data, at));
+        second.Value() = Crt::Sprintf(second.Value(), CastleUi::NpcCost(data, at));
     else
     {
         const auto type = data.U32(at + UI::RecordType);
@@ -374,7 +374,7 @@ Core::Expected<void, std::string> SeniorNpcDialog(const GameUiContext& context, 
                           : CastleUi::RecoveryLevel(data, at);
         const auto requirement = statue ? (tier == 0 ? 3 : tier == 1 ? 5 : 7) : (tier == 0 ? 2 : tier == 1 ? 3 : 4);
         const auto zen = action == 1 ? 1000000 : action == 2 ? 3000000 : 5000000;
-        second.Value() = UI::Sprintf(second.Value(), requirement, zen);
+        second.Value() = Crt::Sprintf(second.Value(), requirement, zen);
     }
     const std::array<std::string, 3> lines{std::move(first).Value(), std::move(second).Value(),
                                            std::move(last).Value()};
@@ -430,9 +430,9 @@ Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
             return Core::Unexpected(std::move(store).Error());
         if (!confirm.HasValue())
             return Core::Unexpected(std::move(confirm).Error());
-        const std::array<std::string, 3> lines{UI::Sprintf(chaos.Value(), runtime.castleSiege.data.U32(UI::ChaosTaxAt)),
-                                               UI::Sprintf(store.Value(), runtime.castleSiege.data.U32(UI::StoreTaxAt)),
-                                               std::move(confirm).Value()};
+        const std::array<std::string, 3> lines{
+            Crt::Sprintf(chaos.Value(), runtime.castleSiege.data.U32(UI::ChaosTaxAt)),
+            Crt::Sprintf(store.Value(), runtime.castleSiege.data.U32(UI::StoreTaxAt)), std::move(confirm).Value()};
         auto popup = CastleUi::Popup(context, lines, UI::PanelDialogOwner::CastleTaxes, UI::PanelDialogConfirm);
         if (!popup.HasValue())
             return Core::Unexpected(std::move(popup).Error());

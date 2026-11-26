@@ -36,7 +36,7 @@ void PutRecord(std::vector<std::byte>& file, std::int32_t kind, const std::array
     for (const std::int32_t skill : skills)
         Put(record, skill);
     Put(record, last);
-    Client::Core::Xor3(record);
+    Client::Crypto::Xor3(record);
     file.insert(file.end(), record.begin(), record.end());
 }
 

@@ -211,10 +211,10 @@ void XorRemapObfuscation::BeforeEncrypt(std::span<std::byte> sealed) const
     {
         return;
     }
-    Crypto::Xor32DecodeBytes(sealed, SealedFirstChained, SealedKeyShift);
+    Client::Crypto::Xor32DecodeBytes(sealed, SealedFirstChained, SealedKeyShift);
     sealed[SealedOpcodeIndex] = static_cast<std::byte>(
         Remap(m_tables.encryptedRemaps, std::to_integer<std::uint8_t>(sealed[SealedOpcodeIndex])));
-    Crypto::Xor32EncodeBytes(sealed, SealedFirstChained, SealedKeyShift);
+    Client::Crypto::Xor32EncodeBytes(sealed, SealedFirstChained, SealedKeyShift);
 }
 
 // Como encode_outbound: C1 06 F4 03 cambia el código y no toca el XOR32, que no lleva; cualquier

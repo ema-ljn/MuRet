@@ -12,7 +12,7 @@
 // cartel del set y la ventana del personaje (Q-C590). MuRet no le pasa el texto al CRT: lo recorre con la máquina de
 // estados de _output (0x6a5904, con la tabla de clases y estados de 0x6bdb14, leída del binario; lo que hace cada
 // estado es el output.c de Visual C++ 6, *inferido*) y pone sus propios argumentos, de a uno, en cada marca.
-namespace Client::UI
+namespace Client::Crt
 {
 // Un argumento de 32 bits de la pila de sprintf: un entero (lo que empuja el original, con o sin signo según quién
 // lo lee) o un texto (el puntero de un %s).
@@ -60,4 +60,4 @@ template <typename... Arguments> [[nodiscard]] std::string Sprintf(std::string_v
     const std::array<SprintfArgument, sizeof...(Arguments) + 1> list{SprintfArgument(arguments)..., SprintfArgument(0)};
     return FormatLikeSprintf(format, std::span<const SprintfArgument>(list.data(), sizeof...(Arguments)));
 }
-} // namespace Client::UI
+} // namespace Client::Crt

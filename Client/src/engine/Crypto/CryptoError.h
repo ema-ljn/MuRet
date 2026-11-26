@@ -11,7 +11,7 @@
 // InvalidKey corrige un bug del original: Q-C41 en 07-quirks-y-bugs.md. De los del descifrado,
 // ChecksumMismatch es donde el original también mira (0x685b30 devuelve -1), y NotWholeBlocks,
 // InvalidBlock y TooShort, donde sigue sin mirar (03, "C3/C4").
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 enum class CryptoError : std::uint8_t
 {
@@ -28,4 +28,4 @@ enum class CryptoError : std::uint8_t
 // El error en palabras, para el log (la Connection, CL4.4): "el checksum de un bloque no coincide".
 // Nunca dice un valor de la clave ni del paquete.
 [[nodiscard]] ENGINE_API std::string_view CryptoErrorText(CryptoError error);
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

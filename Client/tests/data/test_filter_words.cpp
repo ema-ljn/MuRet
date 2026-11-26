@@ -62,7 +62,7 @@ TEST(FilterWordsTest, TheWordsEndAtTheFirstEmptyRecord)
     std::span<std::byte> fourth(file.data() + 3 * FilterRecordSize, FilterRecordSize);
     std::ranges::fill(fourth, std::byte{0});
     fourth[0] = std::byte{'x'};
-    Client::Core::Xor3(fourth);
+    Client::Crypto::Xor3(fourth);
     const std::uint32_t sum =
         Client::Data::Tables::TableChecksum(std::span(file).first(FilterTableSize), FilterNameChecksumKey,
                                             Client::Data::Tables::ChecksumParity::XorOddDwords);

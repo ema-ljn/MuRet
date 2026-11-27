@@ -6,7 +6,8 @@ from typing import Any
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.adapters.web.conftest import Collected, start_web, stop_web
+from mutools.adapters.web.library import PAGE_SIZE
+from tests.adapters.web.conftest import MANY_FOLDER, MANY_PLATES, Collected, start_web, stop_web
 
 pytestmark = pytest.mark.browser
 
@@ -15,6 +16,7 @@ READY = "window.mutoolsViewer && window.mutoolsViewer.ready"
 READY_MS = 30_000
 NEAR = 0.01
 PLAYING_FPS = 30
+TALLEST_PAGE = 1300
 COUNT_CONTEXTS = """
 window.webglCanvases = new Set();
 const getContext = HTMLCanvasElement.prototype.getContext;
@@ -148,6 +150,18 @@ def test_the_finder_opens_a_model_without_a_reload(page: Page, served: str) -> N
 
     assert page.evaluate("window.sameDocument") is True
     assert page.url.endswith("/?file=Item%2FSword01.bmd")
+
+
+def test_a_big_folder_keeps_the_page_its_height(page: Page, served: str) -> None:
+    opened(page, served, f"{MANY_FOLDER}/Sword00.bmd")
+    page.evaluate("window.sameDocument = true")
+
+    expect(page.locator(".mt-plate")).to_have_count(PAGE_SIZE)
+    assert page.evaluate("document.documentElement.scrollHeight") < TALLEST_PAGE
+    page.get_by_role("button", name="Next page").click()
+
+    expect(page.locator(".mt-plate")).to_have_count(MANY_PLATES - PAGE_SIZE)
+    assert page.evaluate("window.sameDocument") is True
 
 
 def test_the_plates_share_one_webgl_context(page: Page, served: str) -> None:

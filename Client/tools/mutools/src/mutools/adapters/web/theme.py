@@ -97,6 +97,18 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {{ outline: 
 .mt-plate-empty {{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 400; color: var(--muted); }}
 .mt-plate-facts {{ font-size: 13px; font-weight: 400; color: var(--muted); margin-top: -6px; }}
+.mt-pager {{ display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums lining-nums; }}
+.mt-page {{ min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; display: inline-flex;
+  align-items: center; justify-content: center; text-align: center; font-size: 14px; color: var(--muted); }}
+.mt-page:hover {{ color: var(--ink); }}
+.mt-page.mt-on {{ background: var(--fill); color: var(--on-fill); font-weight: 700; }}
+.mt-page-gap {{ min-width: 18px; text-align: center; color: var(--faint); }}
+.mt-page-turn {{ width: 30px; height: 30px; border-radius: 15px; display: inline-flex; align-items: center;
+  justify-content: center; color: var(--ink); border: 1px solid rgba(228, 227, 221, 0.15); }}
+.mt-page-turn:first-child {{ margin-right: 6px; }}
+.mt-page-turn:last-child {{ margin-left: 6px; }}
+.mt-page-turn:hover {{ border-color: var(--ink); }}
+.mt-page-turn[disabled] {{ color: var(--faint); border-color: rgba(228, 227, 221, 0.08); cursor: default; }}
 .mt-quiet {{ color: var(--muted); }}
 
 @property --glow {{ syntax: "<color>"; inherits: true; initial-value: #2C2A2B; }}

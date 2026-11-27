@@ -288,7 +288,7 @@ class MutoolsApp(App[None]):
         self.run_worker(self.open_path(event.path))
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        if self.session is None or event.row_key.value is None:
+        if self.session is None or event.row_key.value is None or not event.data_table.is_attached:
             return
         if isinstance(event.data_table, FieldList):
             pointer = event.data_table.pointer_of(event.row_key.value)

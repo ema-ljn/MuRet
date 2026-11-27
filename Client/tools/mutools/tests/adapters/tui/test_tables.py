@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from textual.pilot import Pilot
+from textual.widgets import DataTable
 
 from mutools.adapters.storage import LocalFileStore
 from mutools.adapters.tui.app import MutoolsApp
@@ -322,6 +323,16 @@ async def test_item_rows_keep_their_section(working_copy: Path) -> None:
         table = await open_table(app, pilot, working_copy / "Local" / "item.bmd")
         assert str(table.get_cell("7168", "section")) == "14"
         assert str(table.get_cell("0", "value")) == "Kris"
+
+
+async def test_a_row_highlighted_after_the_page_is_gone_changes_nothing(working_copy: Path) -> None:
+    app = MutoolsApp(LocalFileStore(), working_copy)
+    async with app.run_test(size=SIZE) as pilot:
+        table = await open_table(app, pilot, working_copy / "Local" / "item.bmd")
+        (key, *_) = table.rows
+        await app.query_one("#document").remove()
+        app.post_message(DataTable.RowHighlighted(table, 0, key))
+        await pilot.pause()
 
 
 async def test_a_table_of_numbers_labels_its_rows_with_their_values(working_copy: Path) -> None:

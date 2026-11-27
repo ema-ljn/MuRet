@@ -264,8 +264,9 @@ reference folder opens read-only: it can be searched, not edited.
 `mutools web ~/mu/Data` serves a page from this machine and opens it in the browser: the studio. It needs the `web`
 extra. A model instead of a folder opens its folder with that model chosen.
 
-- **The library**, on the left, shows one folder at a time as plates with a picture of each model. `Folders` opens the
-  index of folders with their counts; the search finds a model by name in every folder.
+- **The library**, on the left, shows one folder at a time as plates with a picture of each model, eight to a page,
+  with the pages above them; the chosen model opens on its page. `Folders` opens the index of folders with their
+  counts; the search finds a model by name in every folder and starts on its first page.
 - **The vitrine**, in the middle, holds the chosen model: it turns, moves and zooms with the mouse, and its glow takes
   the color of the model's textures. Above it are the views (`Textured`, `Lit`, `Wire`) and the switches: `Bones`
   draws the skeleton, `Additive` draws the model as light on black, for the effects, and a piece of a character (a

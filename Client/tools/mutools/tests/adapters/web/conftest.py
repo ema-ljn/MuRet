@@ -13,6 +13,7 @@ from nicegui.testing import User
 from playwright.sync_api import Browser, Page, sync_playwright
 
 from mutools.adapters.storage import LocalFileStore
+from mutools.adapters.web.library import PAGE_SIZE
 from mutools.adapters.web.server import build
 from mutools.app.checks import TextureFiles
 from mutools.core.formats.model_textures import texture_use
@@ -30,6 +31,8 @@ BROWSER_MODELS = (
     "player/Helper03.bmd",
     "player/Player.bmd",
 )
+MANY_FOLDER = "Many"
+MANY_PLATES = PAGE_SIZE + 1
 MUTOOLS = Path(sys.executable).parent / "mutools"
 ADDRESS = re.compile(r"http://127\.0\.0\.1:\d+")
 STOP_SECONDS = 20
@@ -99,6 +102,9 @@ def served_folder(tmp_path_factory: pytest.TempPathFactory, reference_data: Path
             target = folder / source.relative_to(reference_data)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
+    (folder / MANY_FOLDER).mkdir()
+    for number in range(MANY_PLATES):
+        shutil.copyfile(folder / BROWSER_MODELS[0], folder / MANY_FOLDER / f"Sword{number:02}.bmd")
     return folder
 
 

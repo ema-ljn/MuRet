@@ -40,7 +40,6 @@
 #include "Protocol/Pets/PetOrders.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Quests/Quest.h"
-#include "Protocol/Actors/Viewport.h"
 #include "Protocol/Movement/World.h"
 #include "Protocol/FrontEnd/CharacterCreate.h"
 #include "Protocol/FrontEnd/CharacterDelete.h"
@@ -57,6 +56,7 @@
 #include "Scenes/SceneManager.h"
 
 #include "support/AppPrinters.h"
+#include "support/BareWorld.h"
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/FakeClock.h"
@@ -162,6 +162,7 @@ using Client::Scenes::IScene;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
 using Client::Tests::AddressReply;
+using Client::Tests::BareWorld;
 using Client::Tests::BusyReply;
 using Client::Tests::Bytes;
 using Client::Tests::CharacterEntryFields;
@@ -3943,11 +3944,14 @@ TEST(ServerSessionTest, TheLogDoesNotHaveTheCharacterNames)
                                      { return line.find("char000") != std::string::npos; }));
 }
 
-// 04 § Caminar y pegar y cambios de mapa: el reparto nuevo no pierde los mensajes de un lote.
-TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
+// 04 § Caminar y pegar y cambios de mapa: el reparto nuevo no pierde los mensajes de un lote. The D3 goes through its
+// row to the world, before the others.
+TEST(ServerSessionTest, WalkDamageTeleportAndRegenArriveInWireOrder)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     const auto walk = Bytes({0xc1, 8, 0xd3, 0x12, 0x34, 7, 9, 0xf0});
     const auto damage = Bytes({0xc1, 8, 0xd7, 0x92, 0x34, 0x13, 0x57, 0xc1});
     const auto teleport = Bytes({0xc1, 8, 0x1c, 0x17, 3, 11, 12, 0});
@@ -3955,14 +3959,9 @@ TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
         Bytes({0xc1, 24, 0xf3, 4, 21, 22, 2, 0, 0x34, 0x12, 0x78, 0x56, 0xbc, 0x9a, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8});
     tested.socket.reads = {Join({walk, damage, FromTheGameServer(teleport, tested.gameServerSends), regen})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
-    ASSERT_EQ(tested.eventSink.world.size(), 4u);
-    const auto* moved = std::get_if<Client::Protocol::Movement::Walk>(&tested.eventSink.world[0]);
-    ASSERT_NE(moved, nullptr);
-    EXPECT_EQ(moved->characterId, 0x1234);
-    EXPECT_EQ(moved->cell.x, 7);
-    EXPECT_EQ(moved->cell.y, 9);
-    EXPECT_EQ(moved->direction, 15);
-    const auto* hit = std::get_if<Client::Protocol::Movement::Damage>(&tested.eventSink.world[1]);
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0}));
+    ASSERT_EQ(tested.eventSink.world.size(), 3u);
+    const auto* hit = std::get_if<Client::Protocol::Movement::Damage>(&tested.eventSink.world[0]);
     ASSERT_NE(hit, nullptr);
     EXPECT_EQ(hit->characterId, 0x1234);
     EXPECT_EQ(hit->amount, 0x1357);
@@ -3970,12 +3969,12 @@ TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
     EXPECT_TRUE(hit->flag);
     EXPECT_TRUE(hit->doubleHit);
     EXPECT_EQ(hit->type, 1);
-    const auto* warped = std::get_if<Client::Protocol::Movement::Teleport>(&tested.eventSink.world[2]);
+    const auto* warped = std::get_if<Client::Protocol::Movement::Teleport>(&tested.eventSink.world[1]);
     ASSERT_NE(warped, nullptr);
     EXPECT_EQ(warped->gate, 23);
     EXPECT_EQ(warped->map, 3);
     EXPECT_EQ(warped->direction, 0);
-    const auto* revived = std::get_if<Client::Protocol::Movement::Regen>(&tested.eventSink.world[3]);
+    const auto* revived = std::get_if<Client::Protocol::Movement::Regen>(&tested.eventSink.world[2]);
     ASSERT_NE(revived, nullptr);
     EXPECT_EQ(revived->x, 21);
     EXPECT_EQ(revived->map, 2);
@@ -3987,8 +3986,9 @@ TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// 04 § Los otros jugadores: el 12, el 14, el 45, el 25 y el DF llegan al mundo en el orden del cable.
-TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
+// 04 § Los otros jugadores: the 12, 45, 25, DF and 14 are read by their rows (without a world, the session drops them
+// after reading), and of the five only the 12 leaves its copy in the ring (0x4e372e).
+TEST(ServerSessionTest, TheViewportPacketsAreReadAndOnlyThe12IsCopied)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
@@ -4001,35 +4001,17 @@ TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
     const auto position = Bytes({0xc1, 7, 0xdf, 0x00, 0x45, 140, 141});
     tested.socket.reads = {Join({players, transformed, shown, position, leave})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
-    ASSERT_EQ(tested.eventSink.world.size(), 5u);
-    const auto* arrived = std::get_if<Client::Protocol::Actors::Players>(&tested.eventSink.world[0]);
-    ASSERT_NE(arrived, nullptr);
-    ASSERT_EQ(arrived->records.size(), 1u);
-    EXPECT_EQ(arrived->records[0].key, 0x45);
-    EXPECT_TRUE(arrived->records[0].isNew);
-    EXPECT_EQ(arrived->packet.size(), 5u + 0x2c);
-    const auto* changed = std::get_if<Client::Protocol::Actors::Transformed>(&tested.eventSink.world[1]);
-    ASSERT_NE(changed, nullptr);
-    ASSERT_EQ(changed->records.size(), 1u);
-    EXPECT_EQ(changed->records[0].type, 0x0123);
-    const auto* equipped = std::get_if<Client::Protocol::Actors::EquipmentShown>(&tested.eventSink.world[2]);
-    ASSERT_NE(equipped, nullptr);
-    EXPECT_EQ(equipped->key, 0x45);
-    const auto* moved = std::get_if<Client::Protocol::Actors::Position>(&tested.eventSink.world[3]);
-    ASSERT_NE(moved, nullptr);
-    EXPECT_EQ(moved->x, 140);
-    const auto* left = std::get_if<Client::Protocol::Actors::Leave>(&tested.eventSink.world[4]);
-    ASSERT_NE(left, nullptr);
-    EXPECT_EQ(left->keys, (std::vector<std::uint16_t>{0x8045}));
-    // 0x4e372e: de los cinco, solo el 12 deja su copia en la cola.
+    EXPECT_TRUE(tested.eventSink.world.empty());
+    EXPECT_FALSE(std::ranges::any_of(tested.sink.lines, [](const std::string& line)
+                                     { return line.find("no se puede leer") != std::string::npos; }));
     ASSERT_EQ(tested.eventSink.packetCopies.size(), 1u);
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], players));
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// 04 § Los monstruos y los NPC que entran: el 13, el 1F y el 68 llegan al mundo en el orden del cable, sin copia en la
-// cola (0x4e37d1, 0x4e37e9 y 0x4e4643); uno corto se ignora.
-TEST(ServerSessionTest, TheMonsterPacketsReachTheSinkInWireOrder)
+// 04 § Los monstruos y los NPC que entran: the 13, 1F and 68 are read by their rows, without a copy in the ring
+// (0x4e37d1, 0x4e37e9 and 0x4e4643); a short one is ignored with a warning.
+TEST(ServerSessionTest, TheMonsterPacketsAreReadAndAShortOneIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
@@ -4042,22 +4024,13 @@ TEST(ServerSessionTest, TheMonsterPacketsReachTheSinkInWireOrder)
     const auto shortMonsters = Bytes({0xc2, 0, 6, 0x13, 1, 0x80});
     tested.socket.reads = {Join({monsters, summons, objects, shortMonsters})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
-    ASSERT_EQ(tested.eventSink.world.size(), 3u);
-    const auto* arrived = std::get_if<Client::Protocol::Actors::Monsters>(&tested.eventSink.world[0]);
-    ASSERT_NE(arrived, nullptr);
-    ASSERT_EQ(arrived->records.size(), 1u);
-    EXPECT_EQ(arrived->records[0].key, 0x46);
-    EXPECT_TRUE(arrived->records[0].isNew);
-    EXPECT_EQ(arrived->records[0].type, 0x115);
-    const auto* summoned = std::get_if<Client::Protocol::Actors::Summons>(&tested.eventSink.world[1]);
-    ASSERT_NE(summoned, nullptr);
-    ASSERT_EQ(summoned->records.size(), 1u);
-    EXPECT_EQ(summoned->records[0].type, 0x98);
-    const auto* objected = std::get_if<Client::Protocol::Actors::Objects>(&tested.eventSink.world[2]);
-    ASSERT_NE(objected, nullptr);
-    ASSERT_EQ(objected->records.size(), 1u);
-    EXPECT_EQ(objected->records[0].kind, 2);
-    EXPECT_EQ(objected->records[0].key, 0x48);
+    EXPECT_TRUE(tested.eventSink.world.empty());
+    const auto unreadable = std::ranges::count_if(tested.sink.lines, [](const std::string& line)
+                                                  { return line.find("no se puede leer") != std::string::npos; });
+    EXPECT_EQ(unreadable, 1);
+    EXPECT_TRUE(std::ranges::any_of(
+        tested.sink.lines, [](const std::string& line)
+        { return line.find("se ignoran los monstruos del viewport (13): no se puede leer") != std::string::npos; }));
     EXPECT_TRUE(tested.eventSink.packetCopies.empty());
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
@@ -4409,18 +4382,20 @@ TEST(ServerSessionTest, AWorldApplicationFailureStopsTheMovementBatchAtTheSecond
         }
         return {};
     };
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     tested.socket.reads = {Join({Bytes({0xc1, 8, 0xd3, 0, 1, 2, 3, 0x70}), Bytes({0xc1, 8, 0xd7, 0, 1, 0, 2, 0}),
                                  FromTheGameServer(Bytes({0xc1, 8, 0x1c, 1, 2, 3, 4, 5}), tested.gameServerSends)})};
     const auto result = tested.session.Poll();
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), "falló el daño después del movimiento");
-    ASSERT_EQ(tested.eventSink.world.size(), 2u);
-    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Walk>(tested.eventSink.world[0]));
-    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[1]));
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0}));
+    ASSERT_EQ(tested.eventSink.world.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[0]));
     EXPECT_TRUE(tested.eventSink.packetCopies.empty());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
     EXPECT_FALSE(tested.session.Poll().HasValue());
-    EXPECT_EQ(tested.eventSink.world.size(), 2u);
+    EXPECT_EQ(tested.eventSink.world.size(), 1u);
 }
 
 TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
@@ -4429,10 +4404,16 @@ TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        // The walks are the player's (the F1 00 gave key 5): they write its cell and its direction.
+        const auto world = std::make_unique<BareWorld>();
+        tested.eventSink.routedWorld = &world->resources;
+        auto& hero = world->world.Hero();
+        hero.alive = true;
+        hero.key = tested.session.PlayerIndex();
         const auto sequence =
-            Join({Bytes({0xc1, 8, 0xd3, 0, 1, 2, 3, 0xf0}),
+            Join({Bytes({0xc1, 8, 0xd3, 0, 5, 2, 3, 0xf0}),
                   FromTheGameServer(Bytes({0xc1, 8, 0x1c, 1, 2, 3, 4, 5}), tested.gameServerSends),
-                  Bytes({0xc1, 8, 0xd7, 0, 1, 0, 2, 0x40}), Bytes({0xc1, 8, 0xd3, 0, 1, 4, 5, 0x70})});
+                  Bytes({0xc1, 8, 0xd7, 0, 1, 0, 2, 0x40}), Bytes({0xc1, 8, 0xd3, 0, 5, 4, 5, 0x70})});
         if (split >= sequence.size())
         {
             break;
@@ -4441,14 +4422,13 @@ TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
         ASSERT_TRUE(tested.session.Poll().HasValue());
         tested.socket.reads = {ByteVector(sequence.begin() + static_cast<std::ptrdiff_t>(split), sequence.end())};
         ASSERT_TRUE(tested.session.Poll().HasValue());
-        ASSERT_EQ(tested.eventSink.world.size(), 4u) << split;
-        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Walk>(tested.eventSink.world[0]));
-        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Teleport>(tested.eventSink.world[1]));
-        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[2]));
-        const auto* last = std::get_if<Client::Protocol::Movement::Walk>(&tested.eventSink.world[3]);
-        ASSERT_NE(last, nullptr);
-        EXPECT_EQ(last->cell.x, 4);
-        EXPECT_EQ(last->direction, 7);
+        EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0, 2})) << split;
+        ASSERT_EQ(tested.eventSink.world.size(), 2u) << split;
+        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Teleport>(tested.eventSink.world[0]));
+        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[1]));
+        EXPECT_EQ(hero.cellX, 4) << split;
+        EXPECT_EQ(hero.cellY, 5) << split;
+        EXPECT_EQ(hero.direction, 7) << split;
     }
 }
 

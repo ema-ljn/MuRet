@@ -514,6 +514,22 @@ std::uint16_t ServerSession::PlayerIndex() const
     return m_playerIndex;
 }
 
+const Scenes::WorldEntryResources* ServerSession::RoutedWorld() const
+{
+    return m_eventSink.RoutedWorld();
+}
+
+void ServerSession::IgnoreUnreadable(std::string_view ignored)
+{
+    m_log.Warning("{}: {}", ignored, Unreadable);
+}
+
+void ServerSession::FinishRoutedReception(Core::Expected<void, std::string> applied)
+{
+    m_eventSink.AfterWorldReception(*this);
+    static_cast<void>(CheckApplication(std::move(applied)));
+}
+
 std::uint32_t ServerSession::StartCount() const
 {
     return m_starts;
@@ -1993,17 +2009,6 @@ void ServerSession::PollTheChatRooms()
 }
 
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
-void ServerSession::OnWalk(const Network::Packet& packet)
-{
-    const auto walk = Protocol::Movement::ReadWalk(packet);
-    if (!walk.HasValue())
-    {
-        m_log.Warning("se ignora el movimiento (D3): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(walk.Value(), *this)));
-}
-
 void ServerSession::OnDamage(const Network::Packet& packet)
 {
     const auto damage = Protocol::Movement::ReadDamage(packet);
@@ -2259,85 +2264,6 @@ void ServerSession::OnAction(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(action.Value(), *this)));
 }
 
-// 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5 y 0x4e3716: el dispatcher no mira la escena ni el flag de cifrado.
-void ServerSession::OnViewportPlayers(const Network::Packet& packet)
-{
-    const auto players = Protocol::Actors::ReadPlayers(packet);
-    if (!players.HasValue())
-    {
-        m_log.Warning("se ignoran los jugadores del viewport (12): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(players.Value(), *this)));
-}
-
-void ServerSession::OnViewportLeave(const Network::Packet& packet)
-{
-    const auto leave = Protocol::Actors::ReadLeave(packet);
-    if (!leave.HasValue())
-    {
-        m_log.Warning("se ignoran las bajas del viewport (14): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(leave.Value(), *this)));
-}
-
-void ServerSession::OnTransformed(const Network::Packet& packet)
-{
-    const auto transformed = Protocol::Actors::ReadTransformed(packet);
-    if (!transformed.HasValue())
-    {
-        m_log.Warning("se ignoran los transformados del viewport (45): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(transformed.Value(), *this)));
-}
-
-void ServerSession::OnEquipmentShown(const Network::Packet& packet)
-{
-    const auto shown = Protocol::Actors::ReadEquipmentShown(packet);
-    if (!shown.HasValue())
-    {
-        m_log.Warning("se ignora el equipo de otro (25): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(shown.Value(), *this)));
-}
-
-void ServerSession::OnViewportPosition(const Network::Packet& packet)
-{
-    const auto position = Protocol::Actors::ReadPosition(packet);
-    if (!position.HasValue())
-    {
-        m_log.Warning("se ignora la posición de otro (DF): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
-}
-
-// 0x4e37d1, 0x4e37e9 y 0x4e4643: el 13, el 1F y el 68, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
-void ServerSession::OnViewportMonsters(const Network::Packet& packet)
-{
-    const auto monsters = Protocol::Actors::ReadMonsters(packet);
-    if (!monsters.HasValue())
-    {
-        m_log.Warning("se ignoran los monstruos del viewport (13): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(monsters.Value(), *this)));
-}
-
-void ServerSession::OnSummons(const Network::Packet& packet)
-{
-    const auto summons = Protocol::Actors::ReadSummons(packet);
-    if (!summons.HasValue())
-    {
-        m_log.Warning("se ignoran los invocados del viewport (1F): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
-}
-
 void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
 {
     const auto attack = Protocol::Actors::ReadMagicAttackCount(packet);
@@ -2347,17 +2273,6 @@ void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
-}
-
-void ServerSession::OnViewportObjects(const Network::Packet& packet)
-{
-    const auto objects = Protocol::Actors::ReadObjects(packet);
-    if (!objects.HasValue())
-    {
-        m_log.Warning("se ignoran los objetos del viewport (68): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(objects.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

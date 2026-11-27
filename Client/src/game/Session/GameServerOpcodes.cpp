@@ -1,7 +1,13 @@
 #include "Session/OpcodeTable.h"
 
 #include "Network/Packet.h"
+#include "Protocol/Actors/Viewport.h"
+#include "Protocol/Movement/Movement.h"
 #include "Protocol/Opcodes.h"
+#include "Scenes/MonsterViewport.h"
+#include "Scenes/MovementReplies.h"
+#include "Scenes/ViewportPlayers.h"
+#include "Session/Route.h"
 #include "Session/ServerSession.h"
 
 #include <array>
@@ -28,11 +34,18 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(KeepaliveOpcode, std::nullopt, 0, "Keepalive", SentOnly{}),
         Row(WeatherOpcode, std::nullopt, 0x4e36b5, "Weather", &Call<&ServerSession::OnWeather>),
         Row(SkillHitsOpcode, std::nullopt, 0, "SkillHits", SentOnly{}),
-        Row(ViewportPlayersOpcode, std::nullopt, 0x4e372e, "ViewportPlayers", &Call<&ServerSession::OnViewportPlayers>,
+        // 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5, 0x4e3716, 0x4e37d1, 0x4e37e9 and 0x4e4643: the viewport's cases look
+        // at neither the scene nor the encryption flag.
+        Row(ViewportPlayersOpcode, std::nullopt, 0x4e372e, "ViewportPlayers",
+            &Route<"se ignoran los jugadores del viewport (12)", &Protocol::Actors::ReadPlayers,
+                   &Scenes::ApplyViewportPlayers>,
             CopiedToRing),
         Row(ViewportMonstersOpcode, std::nullopt, 0x4e37d1, "ViewportMonsters",
-            &Call<&ServerSession::OnViewportMonsters>),
-        Row(ViewportLeaveOpcode, std::nullopt, 0x4e3819, "ViewportLeave", &Call<&ServerSession::OnViewportLeave>),
+            &Route<"se ignoran los monstruos del viewport (13)", &Protocol::Actors::ReadMonsters,
+                   &Scenes::ApplyViewportMonsters>),
+        Row(ViewportLeaveOpcode, std::nullopt, 0x4e3819, "ViewportLeave",
+            &Route<"se ignoran las bajas del viewport (14)", &Protocol::Actors::ReadLeave,
+                   &Scenes::ApplyViewportLeave>),
         // The 0.97 GameServer's 15 (GCDamageSend) has no case.
         Row(KillExperienceOpcode, std::nullopt, 0x4e3a74, "KillExperience", &Call<&ServerSession::OnKillExperience>),
         Row(DeathOpcode, std::nullopt, 0x4e3ab2, "Death", &Call<&ServerSession::OnDeath>),
@@ -44,7 +57,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(MagicCancelOpcode, std::nullopt, 0x4e3a44, "MagicCancel", &Call<&ServerSession::OnMagicCancel>),
         Row(TeleportOpcode, std::nullopt, 0x4e3e98, "Teleport", &Call<&ServerSession::OnTeleport>, CopiedToRing),
         Row(DurationMagicOpcode, std::nullopt, 0x4e3a21, "DurationMagic", &Call<&ServerSession::OnDurationMagic>),
-        Row(ViewportSummonsOpcode, std::nullopt, 0x4e37e9, "ViewportSummons", &Call<&ServerSession::OnSummons>),
+        Row(ViewportSummonsOpcode, std::nullopt, 0x4e37e9, "ViewportSummons",
+            &Route<"se ignoran los invocados del viewport (1F)", &Protocol::Actors::ReadSummons,
+                   &Scenes::ApplySummons>),
         Row(FloorItemCreateOpcode, std::nullopt, 0x4e3831, "FloorItemCreate",
             &Call<&ServerSession::OnFloorItemsCreate>),
         Row(FloorItemDeleteOpcode, std::nullopt, 0x4e3849, "FloorItemDelete",
@@ -52,7 +67,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(PickUpOpcode, std::nullopt, 0x4e389a, "PickUp", &Call<&ServerSession::OnPickUpResult>),
         Row(DropOpcode, std::nullopt, 0x4e38b2, "Drop", &Call<&ServerSession::OnDropResult>),
         Row(ItemMoveOpcode, std::nullopt, 0x4e38ca, "ItemMove", &Call<&ServerSession::OnItemMove>, CopiedToRing),
-        Row(EquipmentShownOpcode, std::nullopt, 0x4e3973, "EquipmentShown", &Call<&ServerSession::OnEquipmentShown>),
+        Row(EquipmentShownOpcode, std::nullopt, 0x4e3973, "EquipmentShown",
+            &Route<"se ignora el equipo de otro (25)", &Protocol::Actors::ReadEquipmentShown,
+                   &Scenes::ApplyEquipmentShown>),
         Row(LifeOpcode, std::nullopt, 0x4e3b70, "Life", &Call<&ServerSession::OnLifeRefill>),
         Row(ManaOpcode, std::nullopt, 0x4e3b88, "Mana", &Call<&ServerSession::OnManaRefill>),
         Row(ItemDeleteOpcode, std::nullopt, 0x4e3ba0, "ItemDelete", &Call<&ServerSession::OnItemDelete>),
@@ -99,7 +116,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(PartyListOpcode, std::nullopt, 0x4e4083, "PartyList", &Call<&ServerSession::OnPartyList>),
         Row(PartyLeaveOpcode, std::nullopt, 0x4e409b, "PartyLeave", &Call<&ServerSession::OnPartyLeave>),
         Row(PartyLifeOpcode, std::nullopt, 0x4e4174, "PartyLife", &Call<&ServerSession::OnPartyLife>),
-        Row(TransformedOpcode, std::nullopt, 0x4e3801, "Transformed", &Call<&ServerSession::OnTransformed>),
+        Row(TransformedOpcode, std::nullopt, 0x4e3801, "Transformed",
+            &Route<"se ignoran los transformados del viewport (45)", &Protocol::Actors::ReadTransformed,
+                   &Scenes::ApplyTransformed>),
         Row(MapAttributesOpcode, std::nullopt, 0x4e41d1, "MapAttributes", &Call<&ServerSession::OnEventPacket>),
         Row(ItemAcquiredOpcode, std::nullopt, 0x4e41e9, "ItemAcquired", &Call<&ServerSession::OnEventPacket>),
         Row(ActorEffectOpcode, std::nullopt, 0x4e4201, "ActorEffect", &Call<&ServerSession::OnActorEffect>),
@@ -120,7 +139,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(ViewportGuildOpcode, std::nullopt, 0x4e42af, "ViewportGuild", &Call<&ServerSession::OnGuild>),
         Row(GuildInfoOpcode, std::nullopt, 0x4e42c7, "GuildInfo", &Call<&ServerSession::OnGuild>),
         Row(ViewportUnionOpcode, std::nullopt, 0x4e44aa, "ViewportUnion", &Call<&ServerSession::OnGuild>),
-        Row(ViewportObjectsOpcode, std::nullopt, 0x4e4643, "ViewportObjects", &Call<&ServerSession::OnViewportObjects>),
+        Row(ViewportObjectsOpcode, std::nullopt, 0x4e4643, "ViewportObjects",
+            &Route<"se ignoran los objetos del viewport (68)", &Protocol::Actors::ReadObjects,
+                   &Scenes::ApplyViewportObjects>),
         Row(SkillTargetOpcode, std::nullopt, 0x4e39e2, "SkillTarget", &Call<&ServerSession::OnSkillTarget>),
         Row(PingOpcode, std::nullopt, 0x4e465b, "Ping", Unported{}),
         Row(Report73Opcode, std::nullopt, 0x4e4673, "Report73", &Call<&ServerSession::OnReport73>),
@@ -245,9 +266,12 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(RoomRequestOpcode, std::nullopt, 0x4e5b26, "RoomRequest", &Call<&ServerSession::OnRoomAnswer>),
         Row(RoomInviteOpcode, std::nullopt, 0x4e5b3e, "RoomInvite", &Call<&ServerSession::OnInviteResult>),
         Row(NoticeAnswerOpcode, std::nullopt, 0, "NoticeAnswer", SentOnly{}),
-        Row(WalkOpcode, std::nullopt, 0x4e36fa, "Walk", &Call<&ServerSession::OnWalk>),
+        Row(WalkOpcode, std::nullopt, 0x4e36fa, "Walk",
+            &Route<"se ignora el movimiento (D3)", &Protocol::Movement::ReadWalk, &Scenes::ApplyWalkReply>),
         Row(AttackOpcode, std::nullopt, 0x4e398b, "Attack", &Call<&ServerSession::OnDamage>),
-        Row(PositionOpcode, std::nullopt, 0x4e3716, "Position", &Call<&ServerSession::OnViewportPosition>),
+        Row(PositionOpcode, std::nullopt, 0x4e3716, "Position",
+            &Route<"se ignora la posición de otro (DF)", &Protocol::Actors::ReadPosition,
+                   &Scenes::ApplyViewportPosition>),
         Row(GuildAssignResultOpcode, std::nullopt, 0x4e442c, "GuildAssignResult", &Call<&ServerSession::OnGuild>),
         Row(RelationshipRequestOpcode, std::nullopt, 0x4e4444, "RelationshipRequest", &Call<&ServerSession::OnGuild>),
         Row(RelationshipResultOpcode, std::nullopt, 0x4e446e, "RelationshipResult", &Call<&ServerSession::OnGuild>),

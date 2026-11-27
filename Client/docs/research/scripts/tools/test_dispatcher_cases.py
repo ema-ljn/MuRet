@@ -99,6 +99,12 @@ class CheckTablesTest(unittest.TestCase):
         self.assertIn({'opcode': 0xF1, 'subcode': 0x00, 'address': 0x4E2B59, 'name': 'Join Hello', 'action': 'handler'},
                       rows)
 
+    def test_reads_a_routed_row(self):
+        routed = ROWS.replace('&Call<&ServerSession::OnChat>',
+                              '\n        &Route<"se ignora el chat (00)", &Protocol::Chat::ReadChat, &Scenes::ApplyChat>')
+        rows = dispatcher_cases.read_rows(routed, *dispatcher_cases.read_names({'game': GAME + KEEPALIVE}))
+        self.assertIn({'opcode': 0x00, 'subcode': None, 'address': 0x4E33E4, 'name': 'Chat', 'action': 'handler'}, rows)
+
     def test_a_case_without_a_row_fails(self):
         self.assertEqual(self.check(ROWS.replace('Row(ChatOpcode', 'Skipped(ChatOpcode')), ['0x00 has no row'])
 

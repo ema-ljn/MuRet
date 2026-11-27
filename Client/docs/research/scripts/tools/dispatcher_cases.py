@@ -40,7 +40,7 @@ OPCODE = re.compile(r'^\s*inline constexpr Network::Opcode (?P<name>\w+)\{0x(?P<
 SUBCODE = re.compile(r'^\s*inline constexpr Network::Subcode (?P<name>\w+)\{0x(?P<code>[0-9a-fA-F]{2})\};')
 NAMESPACE = re.compile(r'^namespace (?P<name>\w+)$')
 ROW = re.compile(r'\bRow\(\s*(?P<opcode>[\w:]+),\s*(?P<subcode>std::nullopt|Network::Subcode\{0x[0-9a-fA-F]{2}\}|[\w:]+),'
-                 r'\s*(?P<address>0x[0-9a-fA-F]+|0),\s*"(?P<name>[^"]*)",\s*(?P<action>[^,()]+?)\s*[,)]')
+                 r'\s*(?P<address>0x[0-9a-fA-F]+|0),\s*"(?P<name>[^"]*)",\s*(?P<action>[^,()<]+?)\s*[,)<]')
 RAW_SUBCODE = re.compile(r'Network::Subcode\{0x(?P<code>[0-9a-fA-F]{2})\}')
 F1 = 0xF1
 CLIENT_ONLY = '// client only'

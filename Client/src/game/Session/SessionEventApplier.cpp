@@ -62,7 +62,6 @@
 #include "Session/IWorldEntryPublisher.h"
 #include "Session/IWorldTransitionPublisher.h"
 #include "Scenes/MagicAttackCount.h"
-#include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/PersonalShopLists.h"
@@ -76,7 +75,6 @@
 #include "Scenes/SkillReplies.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/ViewportPacketRing.h"
-#include "Scenes/ViewportPlayers.h"
 #include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -253,21 +251,27 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
                                        &m_resources.cloth, m_resources.models.SkeletonOf(Tables::PlayerSkeletonModel));
 }
 
-// Lo que las ventanas de los chats dejaron para sus salas (un chat que se soltó sale de la suya) sale al final de cada
-// recepción.
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,
                                                                   App::ServerSession& session)
 {
     auto applied = ApplyWorldEvent(event, session);
-    FlushTheChatRoomOrders(m_resources.world.Runtime().oldWindows.chatRooms, &session);
+    AfterWorldReception(session);
     return applied;
+}
+
+const WorldEntryResources* SessionEventApplier::RoutedWorld() const
+{
+    return &m_resources;
+}
+
+void SessionEventApplier::AfterWorldReception(App::ServerSession& session)
+{
+    FlushTheChatRoomOrders(m_resources.world.Runtime().oldWindows.chatRooms, &session);
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App::WorldEvent& event,
                                                                        App::ServerSession& session)
 {
-    if (const auto* walk = std::get_if<Protocol::Movement::Walk>(&event))
-        return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
     if (const auto* attack = std::get_if<Protocol::Actors::MagicAttackCount>(&event))
@@ -316,8 +320,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
         return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
     if (auto skill = ApplySkillEvent(event); skill)
         return std::move(*skill);
-    if (auto viewport = ApplyViewport(event))
-        return *viewport;
     if (const auto* list = std::get_if<Protocol::Messenger::FriendList>(&event))
         return ApplyFriendList(*list, ChatContextOf(m_resources, session));
     if (const auto* added = std::get_if<Protocol::Messenger::FriendAddResult>(&event))
@@ -522,30 +524,6 @@ void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
 void SessionEventApplier::ClearLogoutRequest()
 {
     m_resources.world.Runtime().ui.logoutRequested = false;
-}
-
-std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)
-{
-    if (const auto* players = std::get_if<Protocol::Actors::Players>(&event))
-        return ApplyViewportPlayers(*players, m_resources);
-    if (const auto* leave = std::get_if<Protocol::Actors::Leave>(&event))
-    {
-        ApplyViewportLeave(*leave, m_resources.world);
-        return Core::Expected<void, std::string>{};
-    }
-    if (const auto* transformed = std::get_if<Protocol::Actors::Transformed>(&event))
-        return ApplyTransformed(*transformed, m_resources);
-    if (const auto* shown = std::get_if<Protocol::Actors::EquipmentShown>(&event))
-        return ApplyEquipmentShown(*shown, m_resources);
-    if (const auto* position = std::get_if<Protocol::Actors::Position>(&event))
-        return ApplyViewportPosition(*position, m_resources);
-    if (const auto* monsters = std::get_if<Protocol::Actors::Monsters>(&event))
-        return ApplyViewportMonsters(*monsters, m_resources);
-    if (const auto* summons = std::get_if<Protocol::Actors::Summons>(&event))
-        return ApplySummons(*summons, m_resources);
-    if (const auto* objects = std::get_if<Protocol::Actors::Objects>(&event))
-        return ApplyViewportObjects(*objects, m_resources);
-    return std::nullopt;
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,

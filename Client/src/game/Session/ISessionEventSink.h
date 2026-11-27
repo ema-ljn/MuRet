@@ -8,6 +8,11 @@
 #include <span>
 #include <string>
 
+namespace Client::Scenes
+{
+struct WorldEntryResources;
+}
+
 namespace Client::App
 {
 class ServerSession;
@@ -37,5 +42,12 @@ public:
     // 0x4c273f: todo F1/02 legible libera la salida pedida, incluso en claro o con motivo desconocido.
     // Los consumidores sin UI no conservan ese global.
     virtual void ClearLogoutRequest() {}
+    // The world a routed row's handler takes its parts from (Session/Route.h). A sink without one drops those packets.
+    [[nodiscard]] virtual const Scenes::WorldEntryResources* RoutedWorld() const
+    {
+        return nullptr;
+    }
+    // What follows each routed reception, before its result is checked; ApplyWorld does it itself.
+    virtual void AfterWorldReception(ServerSession&) {}
 };
 } // namespace Client::App

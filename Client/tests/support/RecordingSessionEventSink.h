@@ -55,6 +55,19 @@ public:
             onLogoutResponse();
     }
 
+    const Scenes::WorldEntryResources* RoutedWorld() const override
+    {
+        return routedWorld;
+    }
+
+    // Each routed reception, as the number of world events before it.
+    void AfterWorldReception(App::ServerSession& session) override
+    {
+        routedAfter.push_back(world.size());
+        if (onRoutedReception)
+            onRoutedReception(session);
+    }
+
     std::vector<App::CharacterEvent> TakeCharacterEvents()
     {
         return std::exchange(characters, {});
@@ -73,5 +86,9 @@ public:
     std::function<Core::Expected<void, std::string>(const App::CharacterEvent&, const App::ServerSession&)> onCharacter;
     std::function<Core::Expected<void, std::string>(const App::WorldEvent&, App::ServerSession&)> onWorld;
     std::function<void()> onLogoutResponse;
+    // Without it, the routed rows' packets are read and dropped (Session/Route.h).
+    const Scenes::WorldEntryResources* routedWorld = nullptr;
+    std::vector<std::size_t> routedAfter;
+    std::function<void(App::ServerSession&)> onRoutedReception;
 };
 } // namespace Client::Tests

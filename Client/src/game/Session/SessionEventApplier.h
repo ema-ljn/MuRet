@@ -35,6 +35,9 @@ public:
     // La copia del dispatcher a la cola de la .bss (WorldRuntime::viewportPackets), con StoreViewportPacket.
     void CopyToPacketRing(std::span<const std::byte> packet) override;
     void ClearLogoutRequest() override;
+    [[nodiscard]] const WorldEntryResources* RoutedWorld() const override;
+    // The orders the chat windows left for their rooms (a chat that was let go leaves its own).
+    void AfterWorldReception(App::ServerSession& session) override;
 
 private:
     Core::Expected<void, std::string> ApplyWorldEvent(const App::WorldEvent& event, App::ServerSession& session);
@@ -43,8 +46,6 @@ private:
     std::optional<Core::Expected<void, std::string>> ApplySocial(const App::WorldEvent& event,
                                                                  App::ServerSession& session);
     std::optional<Core::Expected<void, std::string>> ApplySkillEvent(const App::WorldEvent& event);
-    // Los otros jugadores en el viewport (ViewportPlayers.h). nullopt si `event` no es uno de ellos.
-    std::optional<Core::Expected<void, std::string>> ApplyViewport(const App::WorldEvent& event);
     WorldEntryResources m_resources;
 };
 } // namespace Client::Scenes

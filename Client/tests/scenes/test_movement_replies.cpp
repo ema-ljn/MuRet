@@ -11,6 +11,7 @@
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/PlayerKey.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/Cloth.h"
 #include "Math/OriginalAngles.h"
@@ -120,7 +121,7 @@ TEST(MovementRepliesTest, AnIdleHeroEchoWritesOnlyTheLogicalCellsAndDirection)
     hero.targetY = 25;
     hero.position = {2050.0f, 2150.0f, 33.0f};
     ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
-                                               Replies::PlayerKey, tested.Resources())
+                                               Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(hero.cellX, 30);
     EXPECT_EQ(hero.cellY, 31);
@@ -137,13 +138,13 @@ TEST(MovementRepliesTest, MovingAndDyingHeroEchoesHaveDistinctPrefixes)
     hero.movement = 1;
     hero.cellX = 20;
     ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
-                                               Replies::PlayerKey, tested.Resources())
+                                               Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(hero.cellX, 20);
     EXPECT_EQ(hero.direction, 15);
     hero.dying = 1;
     ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 4},
-                                               Replies::PlayerKey, tested.Resources())
+                                               Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(hero.direction, 15);
     EXPECT_EQ(tested.cloth.random.State(), 1u);
@@ -153,8 +154,8 @@ TEST(MovementRepliesTest, UnknownIdsLeaveTheSentinelUntouched)
     Replies tested;
     auto& sentinel = tested.world.Actors()[400];
     sentinel.direction = 7;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{666, {30, 31}, 15}, Replies::PlayerKey,
-                                               tested.Resources())
+    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{666, {30, 31}, 15},
+                                               Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(sentinel.direction, 7);
     EXPECT_EQ(tested.cloth.random.State(), 1u);
@@ -189,8 +190,9 @@ TEST(MovementRepliesTest, OtherActorUsesTheLiveWallsAndKeepsLogicalPositionUntil
     other.cellY = 21;
     other.position = {2050.0f, 2150.0f, 33.0f};
     tested.world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(21, 21)] = 4;
-    const auto applied = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {23, 21}, 15},
-                                                        Replies::PlayerKey, tested.Resources());
+    const auto applied =
+        Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {23, 21}, 15},
+                                       Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(other.targetX, 23);
     EXPECT_EQ(other.targetY, 21);
@@ -226,8 +228,9 @@ TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
         other.position = {2050.0f, 2150.0f, 33.0f};
         auto& goal = tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(24, 21)];
         goal = 0x02;
-        const auto applied = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {24, 21}, 15},
-                                                            Replies::PlayerKey, tested->Resources());
+        const auto applied =
+            Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {24, 21}, 15},
+                                           Client::Kernel::PlayerKey{Replies::PlayerKey}, tested->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(other.movement, 1);
         ASSERT_GT(other.path.count, 1);
@@ -247,8 +250,8 @@ TEST(MovementRepliesTest, CooldownPreservesAnExistingPathButStillUpdatesTheTarge
     other.movementCooldown = 1;
     other.path.count = 4;
     other.movement = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15}, Replies::PlayerKey,
-                                               tested.Resources())
+    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+                                               Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(other.path.count, 4);
     EXPECT_EQ(other.movement, 1);
@@ -262,7 +265,7 @@ TEST(MovementRepliesTest, NestedLogicalCellsDoNotCloseTheOuterEntries)
     tested.Hero().cellXAccesses = 1;
     tested.Hero().cellYAccesses = 1;
     ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
-                                               Replies::PlayerKey, tested.Resources())
+                                               Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(tested.Hero().cellXAccesses, 1);
     EXPECT_EQ(tested.Hero().cellYAccesses, 1);
@@ -490,7 +493,7 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
                                                         tested.camera, tested.input,     models, nullptr,
                                                         nullptr,       tested.log};
     const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
-                                                       Replies::PlayerKey, resources);
+                                                       Client::Kernel::PlayerKey{Replies::PlayerKey}, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(other.cellX, 30);
     EXPECT_EQ(other.cellY, 31);
@@ -525,8 +528,9 @@ TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
                 return (random.Next() & 15) != 0;
             });
         tested->cloth.random = Client::Crt::CrtRandom(seed);
-        const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
-                                                           Replies::PlayerKey, tested->Resources());
+        const auto result =
+            Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+                                           Client::Kernel::PlayerKey{Replies::PlayerKey}, tested->Resources());
         tested->world.FaunaResources().Bind(nullptr);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(other.cellX, 30);
@@ -548,8 +552,9 @@ TEST(MovementRepliesTest, AFailedOtherPathRunsStopAfterClosingItsLogicalCoordina
     other.cellY = 21;
     other.movement = 1;
     other.animation.action = 13;
-    const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
-                                                       Replies::PlayerKey, tested.Resources());
+    const auto result =
+        Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+                                       Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(other.movement, 0);
     EXPECT_EQ(other.animation.action, 1);
@@ -572,8 +577,9 @@ TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
     other.movement = 1;
     other.animation.action = 2;
 
-    const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
-                                                       Replies::PlayerKey, tested.Resources());
+    const auto result =
+        Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+                                       Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     tested.world.FaunaResources().Bind(nullptr);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();

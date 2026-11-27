@@ -1,6 +1,6 @@
 ---
 name: python-testing-patterns
-description: Use when writing or reviewing Python tests in MuRet (the mubmd tool under Client/tools/bmd, the research scripts) - pytest fixtures, parametrize, fakes, async tests, test-driven development, real-data round trips. Ranked below CODING_RULES §13 (one behavior, one test) and the tool's plan.
+description: Use when writing or reviewing Python tests in MuRet (mutools, under Client/tools/mutools, and the research scripts) - pytest fixtures, parametrize, fakes, async tests, test-driven development, real-data round trips. Ranked below CODING_RULES §13 (one behavior, one test) and the tool's plan.
 license: MIT
 metadata:
   upstream: https://github.com/wshobson/agents/tree/c96b5f6552dba32e4492307493ee613581430715/plugins/python-development/skills/python-testing-patterns
@@ -24,9 +24,9 @@ and [`references/advanced-patterns.md`](references/advanced-patterns.md).
    [plan](../../../docs/superpowers/plans/2026-11-25-bmd-editor.md).
 4. This skill and, last, `references/`.
 
-## Which idea is which part of mubmd
+## Which idea is which part of mutools
 
-| The skill says | In mubmd |
+| The skill says | In mutools |
 | --- | --- |
 | Arrange, act, assert; one behavior per test | CODING_RULES §13. A test's name says the behavior (`test_a_stale_file_is_not_overwritten`). |
 | Fixtures | `tests/conftest.py`: `reference_data`, `working_copy` (a few files copied to `tmp_path`, never the 370 MB), `text_bytes`. |

@@ -1,6 +1,6 @@
 ---
 name: python-type-safety
-description: Use when typing Python in MuRet (the mubmd tool under Client/tools/bmd, the research scripts) - annotations, generics, protocols, type narrowing, mypy strict. Ranked below CODING_RULES and the tool's spec.
+description: Use when typing Python in MuRet (mutools, under Client/tools/mutools, and the research scripts) - annotations, generics, protocols, type narrowing, mypy strict. Ranked below CODING_RULES and the tool's spec.
 license: MIT
 metadata:
   upstream: https://github.com/wshobson/agents/tree/c96b5f6552dba32e4492307493ee613581430715/plugins/python-development/skills/python-type-safety
@@ -23,9 +23,9 @@ annotations, generics, protocols, narrowing and strict checking. This file is Mu
    [plan](../../../docs/superpowers/plans/2026-11-25-bmd-editor.md).
 4. This skill and, last, `references/`.
 
-## Which idea is which part of mubmd
+## Which idea is which part of mutools
 
-| The skill says | In mubmd |
+| The skill says | In mutools |
 | --- | --- |
 | Annotate every public signature; strict mypy in CI | `mypy --strict` over `src` and `tests` in `bmd-tool.yml`. |
 | `T \| None`, modern syntax | Python 3.12: `type JsonValue = ...` aliases and `class FormatCodec[D](Protocol)` generics. |

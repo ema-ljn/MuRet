@@ -1,6 +1,6 @@
 ---
 name: python-error-handling
-description: Use when designing or reviewing how Python code in MuRet (the mubmd tool under Client/tools/bmd, the research scripts) validates input and reports errors - fail fast, one exception with stable codes, findings for partial failures, exception chaining. Ranked below CODING_RULES and the tool's spec, whose error codes are a contract.
+description: Use when designing or reviewing how Python code in MuRet (mutools, under Client/tools/mutools, and the research scripts) validates input and reports errors - fail fast, one exception with stable codes, findings for partial failures, exception chaining. Ranked below CODING_RULES and the tool's spec, whose error codes are a contract.
 license: MIT
 metadata:
   upstream: https://github.com/wshobson/agents/tree/c96b5f6552dba32e4492307493ee613581430715/plugins/python-development/skills/python-error-handling
@@ -24,14 +24,14 @@ upstream skill is in [`references/upstream-skill.md`](references/upstream-skill.
    [plan](../../../docs/superpowers/plans/2026-11-25-bmd-editor.md).
 4. This skill and, last, `references/`.
 
-## Which idea is which part of mubmd
+## Which idea is which part of mutools
 
-| The skill says | In mubmd |
+| The skill says | In mutools |
 | --- | --- |
 | Fail fast, validate at the boundary | The CLI and `from_view` check every value against the format before anything is written; a write is verified by decoding it again. |
-| Meaningful, specific exceptions | One `MubmdError` with an `ErrorCode` (`TEXT_TOO_LONG`, `STALE_FILE`, ...), a message with the limit, a `suggestion` and a JSON Pointer. The codes are an API contract: never renamed within an output schema version. |
+| Meaningful, specific exceptions | One `MutoolsError` with an `ErrorCode` (`TEXT_TOO_LONG`, `STALE_FILE`, ...), a message with the limit, a `suggestion` and a JSON Pointer. The codes are an API contract: never renamed within an output schema version. |
 | Partial failures do not abort the batch | Findings, not exceptions: `validate` and `roundtrip` over a folder report every file; a warning (`PRINTF_CHANGED`) never stops a write. `apply` is the exception on purpose: all operations or none. |
-| Chain exceptions | `raise MubmdError(...) from error` when an `OSError` or `UnicodeEncodeError` becomes a code. |
+| Chain exceptions | `raise MutoolsError(...) from error` when an `OSError` or `UnicodeEncodeError` becomes a code. |
 | Map errors to standard outcomes | The CLI maps each code to one exit code (2 usage, 20 not found, 30 precondition) and writes the error as JSON on stderr. |
 | Test error paths | Every code the CLI can return has a test. |
 

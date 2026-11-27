@@ -3,35 +3,19 @@ import re
 from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
 
 import pytest
 
-from mubmd.core.documents.model import Model
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.formats.model_format import ModelFormat
 from mubmd.core.formats.model_view import MODEL_FIELDS, model_from_view, model_view
 from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.leaves import leaves
-from mubmd.core.pointer import format_pointer, resolve
-from mubmd.core.ports import CatalogFile
+from mubmd.core.pointer import format_pointer
 from tests.conftest import MODEL_FILES
+from tests.models import CODEC, at, model_file, model_of, view_of
 
-CODEC = ModelFormat()
 VIEW_HEADER = {"/format_version", "/format", "/encoding"}
 FIRST_POSITION = "/meshes/0/vertices/0/position/0"
-
-
-def model_of(reference_data: Path, name: str) -> Model:
-    return CODEC.decode((reference_data / name).read_bytes(), CatalogFile(Path(name).name, None, read_by_client=False))
-
-
-def view_of(reference_data: Path, name: str) -> JsonObject:
-    return model_view(model_of(reference_data, name))
-
-
-def at(view: JsonValue, pointer: str) -> Any:
-    return resolve(view, pointer)
 
 
 def refused(view: JsonObject) -> MubmdError:
@@ -124,9 +108,7 @@ def test_counts_follow_the_lists(reference_data: Path) -> None:
     vertices.append(deepcopy(vertices[0]))
     longer = CODEC.encode(model_from_view(view))
     assert len(longer) == len(data) + 16
-    assert (
-        len(CODEC.decode(longer, CatalogFile("Sword01.bmd", None, read_by_client=False)).meshes[0].vertices) == 43 * 16
-    )
+    assert len(CODEC.decode(longer, model_file("Sword01.bmd")).meshes[0].vertices) == 43 * 16
 
 
 def eleven_keys(view: JsonObject) -> None:

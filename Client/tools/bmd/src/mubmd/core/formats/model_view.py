@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from itertools import chain
 from math import isfinite
 from struct import Struct
@@ -15,6 +15,7 @@ from mubmd.core.documents.model import (
     Model,
 )
 from mubmd.core.documents.text_table import decode_text, encode_fixed_text
+from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.formats.record_fields import (
     FLOAT32,
     float_bytes,
@@ -27,6 +28,8 @@ from mubmd.core.formats.record_fields import (
     view_encoding,
 )
 from mubmd.core.json_types import VIEW_VERSION, JsonObject, JsonValue
+from mubmd.core.leaves import is_leaf
+from mubmd.core.pointer import child, list_index, parse_pointer
 from mubmd.core.ports import FieldInfo
 
 MODEL_FORMAT_NAME: Final = "model"
@@ -96,6 +99,10 @@ def _triangle_view(polygon: int, raw: bytes, *rest: Any) -> JsonObject:
     return view
 
 
+def _uv_view(*parts: bytes) -> JsonValue:
+    return _vector_view(parts)
+
+
 def _vectors_view(block: bytes, layout: Struct) -> list[JsonValue]:
     return [_vector_view(parts) for parts in layout.iter_unpack(block)]
 
@@ -106,7 +113,7 @@ def _mesh_view(mesh: Mesh, encoding: str) -> JsonObject:
         "texture_name": text_view(mesh.texture_name, encoding),
         "vertices": [_vertex_view(*item) for item in VERTEX.iter_unpack(mesh.vertices)],
         "normals": [_normal_view(*item) for item in NORMAL.iter_unpack(mesh.normals)],
-        "uvs": _vectors_view(mesh.uvs, UV),
+        "uvs": [_uv_view(*item) for item in UV.iter_unpack(mesh.uvs)],
         "triangles": [_triangle_view(*item) for item in TRIANGLE.iter_unpack(mesh.triangles)],
     }
 
@@ -118,14 +125,18 @@ def _action_view(action: Action) -> JsonObject:
     return view
 
 
+def _bone_action_view(keys: bytes, offset: int, action: Action) -> JsonObject:
+    size = action.keys * KEY_SIZE
+    positions = _vectors_view(keys[offset : offset + size], KEY)
+    rotations = _vectors_view(keys[offset + size : offset + 2 * size], KEY)
+    return {"positions": positions, "rotations": rotations}
+
+
 def _bone_actions_view(keys: bytes, actions: tuple[Action, ...]) -> Iterator[JsonValue]:
     offset = 0
     for action in actions:
-        size = action.keys * KEY_SIZE
-        positions = _vectors_view(keys[offset : offset + size], KEY)
-        rotations = _vectors_view(keys[offset + size : offset + 2 * size], KEY)
-        yield {"positions": positions, "rotations": rotations}
-        offset += 2 * size
+        yield _bone_action_view(keys, offset, action)
+        offset += 2 * action.keys * KEY_SIZE
 
 
 def _bone_view(bone: Bone, actions: tuple[Action, ...], encoding: str) -> JsonObject:
@@ -244,6 +255,10 @@ def _normal_bytes(value: JsonValue, pointer: str) -> bytes:
     )
 
 
+def _uv_bytes(value: JsonValue, pointer: str) -> bytes:
+    return b"".join(_vector_parts(value, UV_WIDTH, pointer))
+
+
 def _corners(value: JsonValue, pointer: str) -> list[int]:
     if not isinstance(value, list) or len(value) != CORNERS:
         raise invalid(f"Expected a list of {CORNERS} indices", pointer)
@@ -291,14 +306,17 @@ def _action(value: JsonValue, pointer: str) -> Action:
     return Action(keys, lock, _vectors_bytes(item["positions"], POSITION_WIDTH, f"{pointer}/positions", keys))
 
 
+def _bone_action_bytes(value: JsonValue, action: Action, pointer: str) -> bytes:
+    lists = _members(value, pointer, BONE_ACTION_MEMBERS)
+    positions = _vectors_bytes(lists["positions"], POSITION_WIDTH, f"{pointer}/positions", action.keys)
+    return positions + _vectors_bytes(lists["rotations"], POSITION_WIDTH, f"{pointer}/rotations", action.keys)
+
+
 def _bone_keys(value: JsonValue, actions: tuple[Action, ...], pointer: str) -> bytes:
-    parts: list[bytes] = []
-    for index, (item, action) in enumerate(zip(_items(value, pointer, len(actions)), actions, strict=True)):
-        place = f"{pointer}/{index}"
-        lists = _members(item, place, BONE_ACTION_MEMBERS)
-        parts.append(_vectors_bytes(lists["positions"], POSITION_WIDTH, f"{place}/positions", action.keys))
-        parts.append(_vectors_bytes(lists["rotations"], POSITION_WIDTH, f"{place}/rotations", action.keys))
-    return b"".join(parts)
+    items = zip(_items(value, pointer, len(actions)), actions, strict=True)
+    return b"".join(
+        _bone_action_bytes(item, action, f"{pointer}/{index}") for index, (item, action) in enumerate(items)
+    )
 
 
 def _bone(value: JsonValue, actions: tuple[Action, ...], encoding: str, pointer: str) -> Bone:
@@ -357,6 +375,114 @@ def model_from_view(view: JsonObject) -> Model:
         _after_block(root, version),
         encoding,
     )
+
+
+_MESH_ELEMENTS: Final[dict[str, tuple[Struct, Callable[..., JsonValue], Callable[[JsonValue, str], bytes]]]] = {
+    "vertices": (VERTEX, _vertex_view, _vertex_bytes),
+    "normals": (NORMAL, _normal_view, _normal_bytes),
+    "uvs": (UV, _uv_view, _uv_bytes),
+    "triangles": (TRIANGLE, _triangle_view, _triangle_bytes),
+}
+
+
+def _not_found(pointer: str) -> MubmdError:
+    return MubmdError(ErrorCode.POINTER_NOT_FOUND, f"No single value at {pointer}", pointer=pointer)
+
+
+def _picked(token: str, length: int, pointer: str) -> int:
+    index = list_index(token, length)
+    if index is None:
+        raise _not_found(pointer)
+    return index
+
+
+def _replaced(container: JsonValue, tokens: Sequence[str], value: JsonValue, pointer: str) -> JsonValue:
+    if not tokens:
+        if not is_leaf(container):
+            raise _not_found(pointer)
+        return value
+    inner = _replaced(child(container, tokens[0], pointer), tokens[1:], value, pointer)
+    if isinstance(container, dict):
+        return {**container, tokens[0]: inner}
+    items = list(container) if isinstance(container, list) else []
+    items[int(tokens[0])] = inner
+    return items
+
+
+def _mesh_leaf(model: Model, tokens: Sequence[str], value: JsonValue, pointer: str) -> int | None:
+    index = _picked(tokens[0], len(model.meshes), pointer)
+    mesh = model.meshes[index]
+    match tokens[1:]:
+        case ("texture",):
+            _int16(value, pointer)
+        case ("texture_name",):
+            text_bytes(value, NAME_SIZE, model.encoding, pointer)
+            return NAME_SIZE - 1
+        case (part, item, *inside) if part in _MESH_ELEMENTS:
+            layout, element_view, element_bytes = _MESH_ELEMENTS[part]
+            block: bytes = getattr(mesh, part)
+            position = _picked(item, len(block) // layout.size, pointer)
+            element = element_view(*layout.unpack_from(block, position * layout.size))
+            element_bytes(_replaced(element, inside, value, pointer), f"/meshes/{index}/{part}/{position}")
+        case _:
+            raise _not_found(pointer)
+    return None
+
+
+def _action_leaf(model: Model, tokens: Sequence[str], value: JsonValue, pointer: str) -> None:
+    index = _picked(tokens[0], len(model.actions), pointer)
+    action = model.actions[index]
+    edited = _action(_replaced(_action_view(action), tokens[1:], value, pointer), f"/actions/{index}")
+    real_bone = next((bone for bone, item in enumerate(model.bones) if not item.dummy), None)
+    if edited.keys != action.keys and real_bone is not None:
+        raise invalid(
+            f"Each bone has {action.keys:,} positions and rotations for action {index}",
+            f"/bones/{real_bone}/actions/{index}/positions",
+        )
+
+
+def _bone_leaf(model: Model, tokens: Sequence[str], value: JsonValue, pointer: str) -> int | None:
+    index = _picked(tokens[0], len(model.bones), pointer)
+    bone = model.bones[index]
+    match tokens[1:]:
+        case ("dummy",) if bone.dummy:
+            _integer(value, 1, BYTE_MAX, pointer)
+        case ("name",) if not bone.dummy:
+            text_bytes(value, NAME_SIZE, model.encoding, pointer)
+            return NAME_SIZE - 1
+        case ("parent",) if not bone.dummy:
+            _int16(value, pointer)
+        case ("actions", item, *inside) if not bone.dummy:
+            position = _picked(item, len(model.actions), pointer)
+            offset = 2 * KEY_SIZE * sum(action.keys for action in model.actions[:position])
+            element = _bone_action_view(bone.keys, offset, model.actions[position])
+            place = f"/bones/{index}/actions/{position}"
+            _bone_action_bytes(_replaced(element, inside, value, pointer), model.actions[position], place)
+        case _:
+            raise _not_found(pointer)
+    return None
+
+
+def leaf_limit(model: Model, pointer: str, value: JsonValue) -> int | None:
+    match parse_pointer(pointer):
+        case ("version",):
+            _integer(value, 0, BYTE_MAX, pointer)
+        case ("name",):
+            _name_bytes(value, model.encoding)
+            return NAME_SIZE
+        case ("trailing",):
+            read_hex(value, pointer)
+        case ("after_block",) if model.after_block:
+            read_hex(value, pointer)
+        case ("meshes", _, *_) as tokens:
+            return _mesh_leaf(model, tokens[1:], value, pointer)
+        case ("actions", _, *_) as tokens:
+            _action_leaf(model, tokens[1:], value, pointer)
+        case ("bones", _, *_) as tokens:
+            return _bone_leaf(model, tokens[1:], value, pointer)
+        case _:
+            raise _not_found(pointer)
+    return None
 
 
 def _leaf(pointer: str, kind: str, size: int, offset: int = 0, note: str = "") -> FieldInfo:

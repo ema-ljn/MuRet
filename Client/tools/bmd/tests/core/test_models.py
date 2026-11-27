@@ -1,27 +1,30 @@
 from collections import Counter
 from pathlib import Path
 
-from mubmd.core.documents.model import MODEL_MAGIC, NORMAL_SIZE, TRIANGLE_SIZE
-from mubmd.core.formats.model_format import ModelFormat
+import pytest
+
+from mubmd.core.checks.model_checks import check_model
+from mubmd.core.documents.model import MODEL_MAGIC, NORMAL_SIZE, TRIANGLE_SIZE, Model
+from mubmd.core.formats.model_textures import texture_text, texture_use
 from mubmd.core.formats.model_view import model_from_view, model_view
-from mubmd.core.ports import CatalogFile
+from tests.models import CODEC, model_file
+
+type RealModel = tuple[Path, bytes, Model]
 
 
-def model_paths(reference_data: Path) -> list[Path]:
-    paths = (path for path in reference_data.rglob("*") if path.suffix.lower() == ".bmd" and path.is_file())
-    return sorted(path for path in paths if path.read_bytes()[: len(MODEL_MAGIC)] == MODEL_MAGIC)
+@pytest.fixture(scope="module")
+def models(reference_data: Path) -> list[RealModel]:
+    paths = sorted(path for path in reference_data.rglob("*") if path.suffix.lower() == ".bmd" and path.is_file())
+    files = ((path, path.read_bytes()) for path in paths)
+    return [
+        (path, data, CODEC.decode(data, model_file(path.name))) for path, data in files if data.startswith(MODEL_MAGIC)
+    ]
 
 
-def test_every_model_round_trips(reference_data: Path) -> None:
-    codec = ModelFormat()
+def test_every_model_round_trips(models: list[RealModel]) -> None:
     versions: Counter[int] = Counter()
     totals: Counter[str] = Counter()
-    differing = []
-    for path in model_paths(reference_data):
-        data = path.read_bytes()
-        model = codec.decode(data, CatalogFile(path.name, None, read_by_client=False))
-        if codec.encode(model) != data:
-            differing.append(path.name)
+    for _, _, model in models:
         versions[model.version] += 1
         totals["meshes"] += len(model.meshes)
         totals["triangles"] += sum(len(mesh.triangles) // TRIANGLE_SIZE for mesh in model.meshes)
@@ -30,7 +33,7 @@ def test_every_model_round_trips(reference_data: Path) -> None:
         totals["locked actions"] += sum(1 for action in model.actions if action.lock)
         totals["real bones"] += sum(1 for bone in model.bones if not bone.dummy)
         totals["dummy bones"] += sum(1 for bone in model.bones if bone.dummy)
-    assert differing == []
+    assert [path.name for path, data, model in models if CODEC.encode(model) != data] == []
     assert versions == {12: 816, 10: 1142, 0: 4}
     assert totals == {
         "meshes": 3421,
@@ -43,11 +46,26 @@ def test_every_model_round_trips(reference_data: Path) -> None:
     }
 
 
-def test_every_model_view_builds_the_same_model(reference_data: Path) -> None:
-    codec = ModelFormat()
-    differing = []
-    for path in model_paths(reference_data):
-        model = codec.decode(path.read_bytes(), CatalogFile(path.name, None, read_by_client=False))
-        if model_from_view(model_view(model)) != model:
-            differing.append(path.name)
-    assert differing == []
+def test_every_model_view_builds_the_same_model(models: list[RealModel]) -> None:
+    assert [path.name for path, _, model in models if model_from_view(model_view(model)) != model] == []
+
+
+def test_the_real_models_have_only_their_known_findings(models: list[RealModel], reference_data: Path) -> None:
+    found = [
+        (path.relative_to(reference_data).as_posix(), finding.code, finding.pointer)
+        for path, _, model in models
+        for finding in check_model(model, None)
+    ]
+    assert found == [
+        ("NPC/BloodCastle01.bmd", "PARENT_AFTER_CHILD", "/bones/43/parent"),
+        ("NPC/BloodCastle01.bmd", "PARENT_AFTER_CHILD", "/bones/44/parent"),
+        ("object35/Object36.bmd", "OUT_OF_RANGE", "/meshes/1/vertices/0/bone"),
+        ("object35/Object36.bmd", "OUT_OF_RANGE", "/meshes/1/normals/0/bone"),
+    ]
+
+
+def test_the_real_models_have_the_scripts_the_client_counts(models: list[RealModel]) -> None:
+    names = (texture_text(mesh.texture_name, model.encoding) for _, _, model in models for mesh in model.meshes)
+    scripts = Counter(texture_use(name).script for name in names if name is not None)
+    del scripts[""]
+    assert scripts == {"R": 135, "H": 6, "S": 1}

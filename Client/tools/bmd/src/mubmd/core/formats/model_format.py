@@ -1,6 +1,7 @@
 from struct import Struct
 from typing import Final
 
+from mubmd.core.checks.model_checks import check_model, check_model_value
 from mubmd.core.ciphers.k16 import decrypt_k16, encrypt_k16
 from mubmd.core.documents.model import (
     ENCRYPTED_VERSION,
@@ -18,9 +19,10 @@ from mubmd.core.documents.model import (
     Model,
 )
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.formats.model_view import MODEL_FIELDS, MODEL_FORMAT_NAME, model_from_view, model_view
-from mubmd.core.json_types import JsonObject
-from mubmd.core.ports import CatalogFile, FieldInfo, Summary
+from mubmd.core.findings import Finding
+from mubmd.core.formats.model_view import MODEL_FIELDS, MODEL_FORMAT_NAME, leaf_limit, model_from_view, model_view
+from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.ports import CatalogFile, FieldInfo, Summary, ValueCheck
 
 MODEL_ENCODING: Final = "cp949"
 HEADER_SIZE: Final = len(MODEL_MAGIC) + 1
@@ -187,6 +189,13 @@ class ModelFormat:
 
     def from_view(self, view: JsonObject) -> Model:
         return model_from_view(view)
+
+    def check(self, document: Model, original: Model | None) -> tuple[Finding, ...]:
+        return check_model(document, original)
+
+    def check_value(self, pointer: str, value: JsonValue, original: Model) -> ValueCheck:
+        limit = leaf_limit(original, pointer, value)
+        return ValueCheck(limit, check_model_value(original, pointer, value))
 
     def describe_fields(self) -> tuple[FieldInfo, ...]:
         return MODEL_FIELDS

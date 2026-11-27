@@ -107,8 +107,9 @@ Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint1
     if (resources.states == nullptr)
         return Core::Unexpected(std::string("0x61a560: no hay estado del terreno para la carga"));
     Terrain::TerrainState& terrain = resources.states->terrain;
-    const auto loaded = LoadMap(map, {resources.dataRoot, resources.world, terrain, SceneId::Game, playerKey,
-                                      resources.cloth.random, resources.requestCastleSiegeState});
+    const auto loaded =
+        LoadMap(map, {resources.dataRoot, resources.world, terrain, SceneId::Game, playerKey, resources.cloth.random,
+                      resources.requestCastleSiegeState, &resources.states->assets.fauna});
     if (!loaded.HasValue())
         return loaded;
     resources.selection.BorrowTerrain(resources.world.Runtime().map, &terrain.current);

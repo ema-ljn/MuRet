@@ -8,6 +8,7 @@
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
+#include "Assets/FaunaModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -43,14 +44,14 @@ protected:
 
     Client::Core::Expected<void, std::string> EmitEarly()
     {
-        return Client::Scenes::EmitEarlyMonsterRibbonTrails(m_actor, &m_skeleton,
-                                                            {.world = *m_world, .random = m_random});
+        return Client::Scenes::EmitEarlyMonsterRibbonTrails(
+            m_actor, &m_skeleton, {.world = *m_world, .random = m_random, .faunaModels = &m_faunaModels});
     }
 
     Client::Core::Expected<void, std::string> EmitLate()
     {
-        return Client::Scenes::EmitLateMonsterRibbonTrails(m_actor, &m_skeleton,
-                                                           {.world = *m_world, .random = m_random});
+        return Client::Scenes::EmitLateMonsterRibbonTrails(
+            m_actor, &m_skeleton, {.world = *m_world, .random = m_random, .faunaModels = &m_faunaModels});
     }
 
     void SetBonePosition(std::size_t boneIndex, std::uint8_t action, const glm::vec3& position)
@@ -63,6 +64,7 @@ protected:
     Client::Kernel::ActorState m_actor;
     Client::Models::Skeleton m_skeleton;
     Client::Crt::CrtRandom m_random{0x12345678u};
+    Client::Assets::FaunaModels m_faunaModels;
 };
 
 TEST_F(MonsterRibbonTrailsTest, Type1a7EmitsTwoTenSampleRibbonsWithLiteralBoneGeometry)

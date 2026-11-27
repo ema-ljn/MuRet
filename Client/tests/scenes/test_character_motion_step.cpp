@@ -12,6 +12,7 @@
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
+#include "Assets/FaunaModels.h"
 #include "support/PlayerActors.h"
 #include "support/GoldenDir.h"
 
@@ -57,13 +58,15 @@ protected:
                                                .random = m_random,
                                                .playerSkeleton = &m_skeleton,
                                                .terrain = &m_terrain,
-                                               .trapezoid = &m_trapezoid});
+                                               .trapezoid = &m_trapezoid,
+                                               .faunaModels = &m_faunaModels});
     }
     Client::Kernel::WorldState m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Crt::CrtRandom m_random{1};
     Client::Models::Skeleton m_skeleton;
+    Client::Assets::FaunaModels m_faunaModels;
 };
 
 TEST_F(CharacterMotionStepTest, MovingOtherUsesTheSharedWalkingSpeedInItsSameBodyStep)
@@ -174,7 +177,8 @@ TEST_F(CharacterMotionStepTest, WalkingHeroRequestsItsSoundWithoutStoppingTheWor
                                         .playerSkeleton = &m_skeleton,
                                         .terrain = &m_terrain,
                                         .soundRequest = [&](std::int32_t sound) { sounds.push_back(sound); },
-                                        .trapezoid = &m_trapezoid});
+                                        .trapezoid = &m_trapezoid,
+                                        .faunaModels = &m_faunaModels});
     ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
     EXPECT_EQ(sounds, (std::vector<std::int32_t>{9}));
     EXPECT_EQ(actor.firstFootstepSound, 1);

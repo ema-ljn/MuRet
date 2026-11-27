@@ -248,6 +248,9 @@ mutools validate <file|folder>              findings
 mutools diff <a> <b>                        field by field, between two files or a file and a JSON
 mutools dump <file> --output <out.json>     the whole document as JSON, to a file
 mutools build <in.json> --output <file>     the reverse: a table to its own name, a model to any .bmd name
+mutools action export <model> <n>           one action of a model, to --output <action.json>
+mutools action import <model> <action.json> into a model with the same skeleton, at the end or --at <n>
+mutools action remove <model> <n>           take an action out; any but the last needs --yes
 mutools roundtrip <folder>                  decode and encode every .bmd; reports any byte that differs
 mutools tui [<folder|file>]                 the console UI
 ```
@@ -315,6 +318,8 @@ mutools tui [<folder|file>]                 the console UI
 - Writes go only to files the catalog knows (a table by its name, a model to any `.bmd` name), after write-verify,
   with the original kept as `.orig`.
 - `workspace init` into a folder that is not empty needs `--yes`.
+- `action remove` of an action that is not the last needs `--yes`: every later action moves down one number, and the
+  client and the server name a character's actions by their number.
 
 **Self-description.**
 
@@ -513,6 +518,10 @@ leaves its own checks green, and the workflow lands with the first code PR.
 6. **The studio:** the web viewer's new look and what makes it light; see "The studio" above. The stages after it
    (editing in the browser, the Blender bridge, animation, new models, the character room) are listed in its plan and
    each waits for Emanuel's yes.
+7. **Actions as files:** `mutools action export`, `import` and `remove`, and the action file they read and write;
+   stage A of the action editor Emanuel asked for on 2026-11-27 (new movements, for emotes among other things). Its
+   plan, with the later stages B to D (the studio edits actions, the Blender bridge, new emotes in our client), is
+   [`2026-11-27-mutools-actions.md`](../plans/2026-11-27-mutools-actions.md).
 
 Each stage ends with the round trip over its files passing.
 

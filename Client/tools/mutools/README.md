@@ -84,6 +84,12 @@ and edit them.
 | An action | `/actions/0` | an animation: its number of `keys` and its `lock` |
 | A bone | `/bones/3` | `name`, `parent` (a bone's number, -1 for a root) and a position and a rotation per key of every action |
 
+An action moves between models as a file of its own, the action file: `mutools action export` writes one, with the
+action's `keys` and `lock` and, for each bone, its name, its parent and its position and rotation in each key;
+`mutools action import` puts it into any model with the same skeleton (as many bones, the same names and parents),
+after its last action or over another one. That is how a new movement is made: export one, change its poses with a
+script, and import it as a new action. A new action of `player/Player.bmd` is number 205.
+
 A texture's name decides three things in the client: the file it opens (`sword02.jpg` opens `sword02.OZJ`, and a name
 whose extension starts with `t` an `.OZT`), the mesh's slot on a character (a name that starts with `ski`, `level`,
 `hid` or `hair`) and its effect (capitals after the first `_`, as in `hair_R.jpg`). A write that changes any of them,
@@ -109,11 +115,14 @@ is `PARENT_AFTER_CHILD`. The skill has the rules in full.
 | `mutools diff <a> <b>` | Differences between two files, or a file and a JSON view (`--limit`, `--offset`) |
 | `mutools dump <file> --output <json>` | The whole file as JSON |
 | `mutools build <json> --output <file>` | The reverse: a table to its own file name, a model to any `.bmd` name |
+| `mutools action export <model> <N> --output <json>` | One action of a model, as an action file |
+| `mutools action import <model> <json> [--at N]` | An action file into a model with the same skeleton, after its last action or over action N |
+| `mutools action remove <model> <N> [--yes]` | Take an action out; any but the last needs `--yes` |
 | `mutools roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mutools tui [<folder or file>]` | The console UI |
 | `mutools web [<folder or model>] [--port N] [--no-browser]` | The studio of models, in the browser |
 
-`set`, `apply`, `build`, `dump` and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
+`set`, `apply`, `build`, `dump`, the three `action` commands and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
 Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
 
 Output is one JSON object on stdout, `{"ok": true, "schema": 1, "command", "data", "warnings"}`. An error is one JSON
@@ -319,7 +328,7 @@ pytest -m browser
 
 ## Stages
 
-Stages 1 to 6 are done.
+Stages 1 to 6 are done, and stage 7 is this version.
 
 1. Design and skills.
 2. Texts end to end.
@@ -329,3 +338,4 @@ Stages 1 to 6 are done.
 5. The web viewer of models.
 6. The studio: the library with pictures, the vitrine, the actions at the client's speed, and a page that draws
    only when something changes.
+7. Actions as files: `mutools action export`, `import` and `remove`, the base of the action editor.

@@ -106,9 +106,9 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     const auto initialized = selection.InitializeSelection(m_dataRoot, cameraInput);
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     selection.DrawSelection(cameraInput);
-    states.camera.trapezoid = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect,
-                                                                       54, Client::Camera::SelectionCullingPoint,
-                                                                       Client::Camera::SelectionCamera().angles.z);
+    states.camera.trapezoid = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, 54,
+                                                                Client::Camera::SelectionCullingPoint,
+                                                                Client::Camera::SelectionCamera().angles.z);
     ASSERT_NE(online.session.ChosenCharacter(), nullptr);
     world.PrepareSelectedActor(*online.session.ChosenCharacter(), cloth.random);
     const auto polygon = states.camera.trapezoid;

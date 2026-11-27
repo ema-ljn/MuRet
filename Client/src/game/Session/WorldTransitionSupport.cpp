@@ -54,7 +54,7 @@ Kernel::ActorState& PublishedHero(const WorldEntryResources& resources)
 Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(const Kernel::ActorState& actor,
                                                                             const WorldEntryResources& resources)
 {
-    const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
     const bool isPlayer = actor.type == Tables::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
         return Core::Unexpected(std::string("0x4f2250: falta Player.bmd en la transición"));

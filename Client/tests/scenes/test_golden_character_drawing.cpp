@@ -12,6 +12,7 @@
 #include "Render/ModelVertex.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Camera/SceneCameras.h"
@@ -126,19 +127,19 @@ public:
         return true;
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        const auto found = m_models.find(model);
+        const auto found = m_models.find(model.Value());
         return found == m_models.end() ? nullptr : &found->second;
     }
 
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        const auto found = m_skeletons.find(model);
+        const auto found = m_skeletons.find(model.Value());
         return found == m_skeletons.end() ? nullptr : &found->second;
     }
 
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }
@@ -232,8 +233,8 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
     const GlTrace trace = std::move(read).Value();
     TracedModels models;
     ASSERT_TRUE(models.Load(m_dataRoot));
-    const int bodyKeys = models.SkeletonOf(0x20a)->actions[3].keyCount;
-    const int petKeys = models.SkeletonOf(Helper02)->actions[0].keyCount;
+    const int bodyKeys = models.SkeletonOf(Client::Models::ModelId{0x20a})->actions[3].keyCount;
+    const int petKeys = models.SkeletonOf(Client::Models::ModelId{Helper02})->actions[0].keyCount;
     ASSERT_EQ(trace.frames.size(), BodyFrames.size());
     // What the trace sends per frame: four blocks per visible mesh of the Male17 and of the sword (the base and the
     // three passes of level 13) and one per mesh of the pants and of the pet. And the shadow (0x20b), one block, before
@@ -243,7 +244,7 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
          {std::pair{HelmMale17, 4}, std::pair{ArmorMale17, 4}, std::pair{PantMale02, 1}, std::pair{GloveMale17, 4},
           std::pair{BootMale17, 4}, std::pair{Sword17, 4}, std::pair{Helper02, 1}})
     {
-        for (const auto& mesh : models.Find(model)->meshes)
+        for (const auto& mesh : models.Find(Client::Models::ModelId{model})->meshes)
         {
             const bool hidden = Client::Data::Models::SkinSlotOf(mesh.textureName) ==
                                 std::optional<std::uint16_t>{Client::Data::Models::HiddenTextureSlot};

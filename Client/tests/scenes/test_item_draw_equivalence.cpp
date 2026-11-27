@@ -13,6 +13,7 @@
 #include "Models/IModelLibrary.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -90,21 +91,21 @@ public:
         return LoadOne(dataRoot, Client::Tables::PlayerSkeletonModel) && LoadOne(dataRoot, model);
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        const auto found = m_models.find(model);
+        const auto found = m_models.find(model.Value());
         return found == m_models.end() ? nullptr : &found->second;
     }
 
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        const auto found = m_skeletons.find(model);
+        const auto found = m_skeletons.find(model.Value());
         return found == m_skeletons.end() ? nullptr : &found->second;
     }
 
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        const auto found = m_slots.find(model);
+        const auto found = m_slots.find(model.Value());
         return found == m_slots.end() ? std::span<const TextureSlot>{} : std::span<const TextureSlot>(found->second);
     }
 

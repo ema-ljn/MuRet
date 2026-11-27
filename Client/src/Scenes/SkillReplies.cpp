@@ -83,7 +83,7 @@ bool IsPlayer(const Kernel::ActorState& actor)
 Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t action,
                                       const WorldEntryResources& resources)
 {
-    const Models::Skeleton* skeleton = resources.models.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = resources.models.SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x4ea030: MuRet no tiene el modelo {:#x} del personaje", actor.type));
     Models::SetAction(actor.animation, *skeleton, action);

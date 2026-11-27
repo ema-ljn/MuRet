@@ -82,7 +82,8 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     Log log(sink, LogLevel::Debug);
     GameModels game;
     ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
-    ASSERT_NE(game.Find(0xc2), nullptr) << "615d4c: Skill/Fire01.bmd abastece fire01.jpg antes del login";
+    ASSERT_NE(game.Find(Client::Models::ModelId{0xc2}), nullptr)
+        << "615d4c: Skill/Fire01.bmd abastece fire01.jpg antes del login";
     using Client::Data::Textures::Wrap;
     struct Call
     {
@@ -98,7 +99,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
         // 0x61613a and 0x61619f query the models before their BMDs load.
         if (!call.bmdAvailable)
             return;
-        if (const auto* model = game.Find(call.model); model != nullptr)
+        if (const auto* model = game.Find(Client::Models::ModelId{call.model}); model != nullptr)
             bindings[call.model] =
                 native.Assign(*model, call.folder, {Client::Data::Textures::Filter::Nearest, call.wrap});
     };
@@ -185,7 +186,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     }
     for (const auto& [model, expectedSlots] : bindings)
     {
-        const auto actualSlots = game.MeshTextures(model);
+        const auto actualSlots = game.MeshTextures(Client::Models::ModelId{model});
         ASSERT_EQ(actualSlots.size(), expectedSlots.size()) << model;
         EXPECT_TRUE(std::equal(actualSlots.begin(), actualSlots.end(), expectedSlots.begin())) << model;
     }
@@ -251,10 +252,10 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
     for (const auto type : projectiles)
     {
         SCOPED_TRACE(type);
-        const auto* model = models.Find(type);
+        const auto* model = models.Find(Client::Models::ModelId{type});
         ASSERT_NE(model, nullptr);
         EXPECT_FALSE(model->meshes.empty());
-        EXPECT_EQ(models.MeshTextures(type).size(), model->meshes.size());
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{type}).size(), model->meshes.size());
     }
 }
 
@@ -272,23 +273,24 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
     EXPECT_EQ(SkillModelFiles().size(), 106u);
     EXPECT_EQ(models.Count(),
               PlayerModelFiles().size() + ItemModelFiles().size() + SkillModelFiles().size() - MissingInTheLab);
-    ASSERT_NE(models.SkeletonOf(0x20a), nullptr);
-    EXPECT_EQ(models.SkeletonOf(0x20a)->headBone, 20);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x20a}), nullptr);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x20a})->headBone, 20);
     for (const auto& file : PlayerModelFiles())
     {
-        const auto* model = models.Find(file.model);
+        const auto* model = models.Find(Client::Models::ModelId{file.model});
         ASSERT_NE(model, nullptr) << file.name << " " << file.number;
-        EXPECT_EQ(models.MeshTextures(file.model).size(), model->meshes.size()) << file.name << " " << file.number;
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{file.model}).size(), model->meshes.size())
+            << file.name << " " << file.number;
     }
-    EXPECT_EQ(models.Find(0x129), nullptr);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0x129}), nullptr);
     for (const auto& file : SkillModelFiles())
     {
         SCOPED_TRACE(file.model);
         if (file.model == 0x129)
             continue;
-        const auto* model = models.Find(file.model);
+        const auto* model = models.Find(Client::Models::ModelId{file.model});
         ASSERT_NE(model, nullptr) << file.name << " " << file.number;
-        const auto slots = models.MeshTextures(file.model);
+        const auto slots = models.MeshTextures(Client::Models::ModelId{file.model});
         ASSERT_EQ(slots.size(), model->meshes.size());
         for (const TextureSlot slot : slots)
         {
@@ -305,12 +307,12 @@ TEST_F(GoldenGameModels, StartupActionsKeepTheOverridesWrittenAfterTheBmdLoad)
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    const auto* gate = models.SkeletonOf(0xc5);
+    const auto* gate = models.SkeletonOf(Client::Models::ModelId{0xc5});
     ASSERT_NE(gate, nullptr);
     ASSERT_FALSE(gate->actions.empty());
     EXPECT_FALSE(gate->actions.front().lockPositions); // 0x61606f.
     EXPECT_EQ(gate->actions.front().speed, 0.15f);     // 0x61607f.
-    const auto* projectile = models.SkeletonOf(0xf1);
+    const auto* projectile = models.SkeletonOf(Client::Models::ModelId{0xf1});
     ASSERT_NE(projectile, nullptr);
     ASSERT_FALSE(projectile->actions.empty());
     EXPECT_EQ(projectile->actions.front().speed, 0.5f); // 0x616276.
@@ -330,10 +332,10 @@ TEST_F(GoldenGameModels, EachMeshKeepsItsScriptAndTheFiveMarkedMeshesDoNotShine)
     for (const auto table : {PlayerModelFiles(), ItemModelFiles(), SkillModelFiles()})
         for (const auto& file : table)
         {
-            const auto* model = models.Find(file.model);
+            const auto* model = models.Find(Client::Models::ModelId{file.model});
             if (model == nullptr)
                 continue;
-            const auto traits = models.MeshTraitsOf(file.model);
+            const auto traits = models.MeshTraitsOf(Client::Models::ModelId{file.model});
             ASSERT_EQ(traits.size(), model->meshes.size()) << file.name;
             for (std::size_t mesh = 0; mesh < traits.size(); ++mesh)
             {
@@ -351,7 +353,7 @@ TEST_F(GoldenGameModels, EachMeshKeepsItsScriptAndTheFiveMarkedMeshesDoNotShine)
     EXPECT_GT(scripted, 0u);
     for (const Client::Tables::ModelMesh& marked : MeshesWithoutShine)
     {
-        const auto traits = models.MeshTraitsOf(marked.model);
+        const auto traits = models.MeshTraitsOf(Client::Models::ModelId{marked.model});
         ASSERT_GT(traits.size(), marked.mesh) << marked.model;
         EXPECT_FALSE(traits[marked.mesh].shines) << marked.model;
     }
@@ -366,8 +368,8 @@ TEST_F(GoldenGameModels, OnlyTheSkeletonKeepsTheAnimationKeys)
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    const auto* player = models.Find(0x20a);
-    const auto* skeleton = models.SkeletonOf(0x20a);
+    const auto* player = models.Find(Client::Models::ModelId{0x20a});
+    const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{0x20a});
     ASSERT_NE(player, nullptr);
     ASSERT_NE(skeleton, nullptr);
     ASSERT_EQ(player->bones.size(), skeleton->bones.size());
@@ -413,14 +415,14 @@ TEST_F(GoldenGameModels, ReloadKeepsTheSameModelTextureOrder)
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
     const auto expectedRequests = models.TextureSlots().ToLoad().size();
     const auto expectedNext = models.TextureSlots().Next();
-    ASSERT_FALSE(models.MeshTextures(0xdb).empty());
-    const auto expectedArrow = models.MeshTextures(0xdb).front();
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0xdb}).empty());
+    const auto expectedArrow = models.MeshTextures(Client::Models::ModelId{0xdb}).front();
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
     EXPECT_EQ(models.TextureSlots().ToLoad().size(), expectedRequests);
     EXPECT_EQ(models.TextureSlots().Next(), expectedNext);
-    ASSERT_FALSE(models.MeshTextures(0xdb).empty());
-    EXPECT_EQ(models.MeshTextures(0xdb).front(), expectedArrow);
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0xdb}).empty());
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0xdb}).front(), expectedArrow);
     for (const auto& entry : models.TextureSlots().ToLoad())
         EXPECT_FALSE(entry.path.starts_with("Item\\Bow\\")) << entry.path;
 }
@@ -554,15 +556,15 @@ TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialText
     for (const std::uint16_t gate : {std::uint16_t{0x10c}, std::uint16_t{0x10d}})
     {
         SCOPED_TRACE(gate);
-        ASSERT_NE(models.Find(gate), nullptr);
-        EXPECT_EQ(models.Find(gate)->meshes.size(), 1u);
-        ASSERT_NE(models.SkeletonOf(gate), nullptr);
-        EXPECT_EQ(models.SkeletonOf(gate)->bones.size(), 1u);
+        ASSERT_NE(models.Find(Client::Models::ModelId{gate}), nullptr);
+        EXPECT_EQ(models.Find(Client::Models::ModelId{gate})->meshes.size(), 1u);
+        ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{gate}), nullptr);
+        EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{gate})->bones.size(), 1u);
     }
-    ASSERT_EQ(models.MeshTextures(0x10c).size(), 1u);
-    EXPECT_EQ(models.MeshTextures(0x10c).front(), TextureSlot{0x69});
-    ASSERT_EQ(models.MeshTextures(0x10d).size(), 1u);
-    EXPECT_EQ(models.MeshTextures(0x10d).front(), TextureSlot{0x69});
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0x10c}).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0x10c}).front(), TextureSlot{0x69});
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0x10d}).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0x10d}).front(), TextureSlot{0x69});
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");
     const auto texture = textures.Find(TextureSlot{0x69});
     ASSERT_TRUE(texture.has_value());
@@ -631,11 +633,11 @@ TEST_F(GoldenGameModels, TheGameMasterSignIsLoadedWithItsOwnTextures)
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    const auto* sign = models.Find(0x12a);
+    const auto* sign = models.Find(Client::Models::ModelId{0x12a});
     ASSERT_NE(sign, nullptr);
-    ASSERT_NE(models.SkeletonOf(0x12a), nullptr);
-    EXPECT_FALSE(models.SkeletonOf(0x12a)->actions.empty());
-    const auto slots = models.MeshTextures(0x12a);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x12a}), nullptr);
+    EXPECT_FALSE(models.SkeletonOf(Client::Models::ModelId{0x12a})->actions.empty());
+    const auto slots = models.MeshTextures(Client::Models::ModelId{0x12a});
     ASSERT_EQ(slots.size(), sign->meshes.size());
     for (const TextureSlot slot : slots)
     {
@@ -659,14 +661,14 @@ TEST_F(GoldenGameModels, TheGroundStonesAreLoadedWithTheirSkillTextures)
     for (const std::uint16_t stone : {std::uint16_t{0x118}, std::uint16_t{0x119}})
     {
         SCOPED_TRACE(stone);
-        const auto* model = models.Find(stone);
+        const auto* model = models.Find(Client::Models::ModelId{stone});
         ASSERT_NE(model, nullptr);
         EXPECT_FALSE(model->meshes.empty());
-        const auto* skeleton = models.SkeletonOf(stone);
+        const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{stone});
         ASSERT_NE(skeleton, nullptr);
         ASSERT_FALSE(skeleton->actions.empty());
         EXPECT_TRUE(skeleton->actions.front().repeats);
-        const auto slots = models.MeshTextures(stone);
+        const auto slots = models.MeshTextures(Client::Models::ModelId{stone});
         ASSERT_EQ(slots.size(), model->meshes.size());
         for (const TextureSlot slot : slots)
         {
@@ -689,10 +691,10 @@ TEST_F(GoldenGameModels, TheEarthquakeCracksAreLoadedWithTheirOwnTextures)
     for (std::uint16_t crack = 0xfb; crack <= 0x102; ++crack)
     {
         SCOPED_TRACE(crack);
-        const auto* model = models.Find(crack);
+        const auto* model = models.Find(Client::Models::ModelId{crack});
         ASSERT_NE(model, nullptr);
         ASSERT_FALSE(model->meshes.empty());
-        const auto slots = models.MeshTextures(crack);
+        const auto slots = models.MeshTextures(Client::Models::ModelId{crack});
         ASSERT_EQ(slots.size(), model->meshes.size());
         for (const TextureSlot slot : slots)
             EXPECT_TRUE(textures.Find(slot).has_value()) << slot.value;
@@ -777,12 +779,12 @@ TEST_F(GoldenGameModels, TheDarkHorseGetsItsTexturesAfterTheThreeBeforeIt)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    const auto* horse = models.Find(0xbf);
+    const auto* horse = models.Find(Client::Models::ModelId{0xbf});
     ASSERT_NE(horse, nullptr);
     EXPECT_EQ(horse->meshes.size(), 13u);
-    ASSERT_NE(models.SkeletonOf(0xbf), nullptr);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0xbf}), nullptr);
     std::vector<std::uint16_t> slots;
-    for (const TextureSlot slot : models.MeshTextures(0xbf))
+    for (const TextureSlot slot : models.MeshTextures(Client::Models::ModelId{0xbf}))
     {
         slots.push_back(slot.value);
     }
@@ -802,8 +804,8 @@ TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
     const std::set<std::uint16_t> loaded(textures.loaded.begin(), textures.loaded.end());
-    ASSERT_FALSE(models.MeshTextures(0x1c13).empty());
-    for (const TextureSlot slot : models.MeshTextures(0x1c13))
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0x1c13}).empty());
+    for (const TextureSlot slot : models.MeshTextures(Client::Models::ModelId{0x1c13}))
     {
         EXPECT_TRUE(loaded.contains(slot.value)) << std::hex << slot.value;
     }
@@ -824,7 +826,7 @@ TEST_F(GoldenGameModels, ThePetMountsLoadWithTheirTextures)
     const auto slotsOf = [&models](std::uint16_t model)
     {
         std::vector<std::uint16_t> slots;
-        for (const TextureSlot slot : models.MeshTextures(model))
+        for (const TextureSlot slot : models.MeshTextures(Client::Models::ModelId{model}))
         {
             slots.push_back(slot.value);
         }
@@ -842,17 +844,17 @@ TEST_F(GoldenGameModels, ThePetMountsLoadWithTheirTextures)
     const std::set<std::uint16_t> loaded(textures.loaded.begin(), textures.loaded.end());
     for (const std::uint16_t model : std::array<std::uint16_t, 5>{0xc6, 0x110, 0x14a, 0x14b, 0x14c})
     {
-        const auto* skeleton = models.SkeletonOf(model);
+        const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{model});
         ASSERT_NE(skeleton, nullptr) << std::hex << model;
         EXPECT_FALSE(skeleton->actions.empty()) << std::hex << model;
-        for (const TextureSlot slot : models.MeshTextures(model))
+        for (const TextureSlot slot : models.MeshTextures(Client::Models::ModelId{model}))
         {
             EXPECT_TRUE(loaded.contains(slot.value)) << std::hex << model << " " << slot.value;
         }
     }
-    EXPECT_EQ(models.SkeletonOf(0xc6)->actions.size(), 4u);
-    EXPECT_EQ(models.SkeletonOf(0x110)->actions.size(), 8u);
-    EXPECT_EQ(models.SkeletonOf(0x14a)->actions.size(), 6u);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0xc6})->actions.size(), 4u);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x110})->actions.size(), 8u);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x14a})->actions.size(), 6u);
 }
 
 // 0x61ca30 reads Logo05 and the five NewFace of Data\Logo (in the repo's Data) and sets actions 0 and 1 of the
@@ -866,24 +868,25 @@ TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
 
     ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, nullptr).HasValue());
 
-    EXPECT_NE(selection.Find(Client::Scenes::SelectionLogoModel), nullptr);
+    EXPECT_NE(selection.Find(Client::Models::ModelId{Client::Scenes::SelectionLogoModel}), nullptr);
     for (std::uint16_t model = 0xa8; model <= 0xac; ++model)
     {
-        const auto* skeleton = selection.SkeletonOf(model);
+        const auto* skeleton = selection.SkeletonOf(Client::Models::ModelId{model});
         ASSERT_NE(skeleton, nullptr) << std::hex << model;
         ASSERT_GE(skeleton->actions.size(), 2u) << std::hex << model;
         EXPECT_FLOAT_EQ(skeleton->actions[0].speed, 0.3f) << std::hex << model;
         EXPECT_FLOAT_EQ(skeleton->actions[1].speed, 0.3f) << std::hex << model;
-        EXPECT_FALSE(selection.MeshTextures(model).empty()) << std::hex << model;
+        EXPECT_FALSE(selection.MeshTextures(Client::Models::ModelId{model}).empty()) << std::hex << model;
     }
     ASSERT_NE(selection.TextureSlots(), nullptr);
-    EXPECT_EQ(selection.MeshTextures(Client::Scenes::SelectionLogoModel).front(), TextureSlot{0x6f8});
+    EXPECT_EQ(selection.MeshTextures(Client::Models::ModelId{Client::Scenes::SelectionLogoModel}).front(),
+              TextureSlot{0x6f8});
     // Those of 0xa4 with GL_LINEAR (0x2601) and those of the NewFace with GL_NEAREST (0x2600), repeating.
     const auto logo = textures.Find(TextureSlot{0x6f8});
     ASSERT_TRUE(logo.has_value());
     EXPECT_EQ(logo->sampling.filter, Client::Data::Textures::Filter::Linear);
     EXPECT_EQ(logo->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
-    const auto face = textures.Find(selection.MeshTextures(0xa8).front());
+    const auto face = textures.Find(selection.MeshTextures(Client::Models::ModelId{0xa8}).front());
     ASSERT_TRUE(face.has_value());
     if (face->texture.format == Client::Data::Textures::PixelFormat::Rgb)
     {
@@ -985,8 +988,8 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    ASSERT_FALSE(models.MeshTextures(0x110).empty());
-    EXPECT_EQ(models.MeshTextures(0x110).back(), TextureSlot{0x3ce});
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0x110}).empty());
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0x110}).back(), TextureSlot{0x3ce});
     EXPECT_EQ(models.TextureSlots().Next(), TextureSlot{0x41b});
     for (std::uint16_t slot = 0x12e; slot < WorldObjectStart; ++slot)
     {
@@ -1006,13 +1009,13 @@ TEST_F(ModelTextureSlotsGoldenTest, TheRavenFindsItsBodyInTheBillsSlot)
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    const auto meshes = models.MeshTextures(0xc0);
+    const auto meshes = models.MeshTextures(Client::Models::ModelId{0xc0});
     ASSERT_EQ(meshes.size(), 5u);
     EXPECT_EQ(meshes[2], TextureSlot{0x3c9});
     EXPECT_EQ(meshes[3], TextureSlot{0x26f});
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x26f}), "dksbody.tga");
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x3c9}), "dkonebody.jpg");
-    const auto* skeleton = models.SkeletonOf(0xc0);
+    const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{0xc0});
     ASSERT_NE(skeleton, nullptr);
     EXPECT_EQ(skeleton->bones.size(), 77u);
     EXPECT_EQ(skeleton->actions.size(), 4u);
@@ -1127,14 +1130,14 @@ TEST_F(GoldenGameModels, EveryReachedSiegeAndCrywolfEffectHasItsRealModelSkeleto
     {
         const auto original = Client::Data::Models::LoadModelFile(m_dataRoot, file);
         ASSERT_TRUE(original.HasValue()) << file.name;
-        const auto* model = models->Find(file.model);
+        const auto* model = models->Find(Client::Models::ModelId{file.model});
         EXPECT_NE(model, nullptr) << std::hex << file.model << " " << file.name;
         if (model == nullptr)
             continue;
         EXPECT_EQ(model->meshes.size(), original.Value().meshes.size()) << file.name;
         EXPECT_EQ(model->bones.size(), original.Value().bones.size()) << file.name;
-        EXPECT_NE(models->SkeletonOf(file.model), nullptr) << file.name;
-        const auto slots = models->MeshTextures(file.model);
+        EXPECT_NE(models->SkeletonOf(Client::Models::ModelId{file.model}), nullptr) << file.name;
+        const auto slots = models->MeshTextures(Client::Models::ModelId{file.model});
         ASSERT_EQ(slots.size(), model->meshes.size()) << file.name;
         for (std::size_t mesh = 0; mesh < slots.size(); ++mesh)
         {

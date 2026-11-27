@@ -16,6 +16,7 @@
 #include "Math/RoundedMath.h"
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -101,19 +102,19 @@ class TwoPets final : public IModelLibrary
 public:
     TwoPets() : m_body(FlatSkeleton(48)), m_pet(FlatSkeleton(1)), m_model(OneTriangle()) {}
 
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        return model == 0x1c12 || model == 0x1c13 ? &m_model : nullptr;
+        return model.Value() == 0x1c12 || model.Value() == 0x1c13 ? &m_model : nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == 0x20a)
+        if (model.Value() == 0x20a)
         {
             return &m_body;
         }
-        return model == 0x1c12 || model == 0x1c13 ? &m_pet : nullptr;
+        return model.Value() == 0x1c12 || model.Value() == 0x1c13 ? &m_pet : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }
@@ -143,31 +144,31 @@ public:
         m_slots.assign(meshes, slot);
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        return Has(model) ? &m_model : nullptr;
+        return Has(model.Value()) ? &m_model : nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == 0x20a)
+        if (model.Value() == 0x20a)
         {
             return &m_body;
         }
-        return Has(model) ? &m_item : nullptr;
+        return Has(model.Value()) ? &m_item : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        if (model == m_drawn)
+        if (model.Value() == m_drawn)
         {
             return m_slots;
         }
-        const auto other = std::ranges::find(m_others, model, &Other::model);
+        const auto other = std::ranges::find(m_others, model.Value(), &Other::model);
         return other != m_others.end() ? std::span<const TextureSlot>(other->slots) : std::span<const TextureSlot>{};
     }
     // Read from the meshes as they are now, as a load would: a test may change a texture name after building.
-    [[nodiscard]] std::span<const Client::Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override
+    [[nodiscard]] std::span<const Client::Models::MeshTraits> MeshTraitsOf(Client::Models::ModelId model) const override
     {
-        if (!Has(model))
+        if (!Has(model.Value()))
             return {};
         m_traits = Client::Models::ReadMeshTraits(m_model);
         for (const std::size_t mesh : m_withoutShine)
@@ -513,15 +514,15 @@ TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)
         explicit ShadowAndPart(std::uint16_t drawn) : m_body(FlatSkeleton(48)), m_model(OneTriangle()), m_drawn(drawn)
         {
         }
-        [[nodiscard]] const Model* Find(std::uint16_t model) const override
+        [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
         {
-            return model == m_drawn || model == Client::Tables::PlayerShadowModel ? &m_model : nullptr;
+            return model.Value() == m_drawn || model.Value() == Client::Tables::PlayerShadowModel ? &m_model : nullptr;
         }
-        [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+        [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
         {
-            return model == 0x20a ? &m_body : nullptr;
+            return model.Value() == 0x20a ? &m_body : nullptr;
         }
-        [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+        [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId /*model*/) const override
         {
             return {};
         }

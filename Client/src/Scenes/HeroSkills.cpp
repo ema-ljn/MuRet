@@ -23,6 +23,7 @@
 #include "Kernel/ItemState.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -41,7 +42,7 @@ namespace
 constexpr std::uint32_t FrozenHeroFlag = 0x1000;
 constexpr std::uint32_t HiddenHeroFlag = 0x4000;
 constexpr std::uint32_t PartySkillFlag = 0x200;
-constexpr std::uint16_t PlayerType = 0x20a;
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr float TeleportFade = 0.1f;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});        // [0x6b86c0], 0,01
 constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0,001

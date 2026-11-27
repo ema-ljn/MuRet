@@ -33,7 +33,7 @@ void ModelTextureTable::Seed(const Models::ModelTextureSlots& slots, const Model
         if (const auto metadata = models->TextureMetadataOf(selector))
             m_entries.emplace(selector, Entry{0, *metadata});
     for (std::uint32_t model = 0; model <= std::numeric_limits<std::uint16_t>::max(); ++model)
-        for (const auto slot : models->MeshTextures(static_cast<std::uint16_t>(model)))
+        for (const auto slot : models->MeshTextures(Models::ModelId{static_cast<std::uint16_t>(model)}))
             Acquire(slot);
     for (auto& [selector, entry] : m_entries)
         if (entry.references == 0)

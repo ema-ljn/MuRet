@@ -77,7 +77,7 @@ Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch, const 
         return {};
     const auto level = static_cast<std::uint8_t>(part.level & 15);
     const std::uint16_t model = LeveledModelOf(part.model, level);
-    if (models.Find(model) == nullptr)
+    if (models.Find(Models::ModelId{model}) == nullptr)
     {
         if (onPartBox)
             onPartBox(owner.transform.position);

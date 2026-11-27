@@ -24,6 +24,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/GroundEffectDrawing.h"
@@ -53,16 +54,16 @@ namespace
 class LookupCounter final : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         ++lookups;
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }
@@ -85,15 +86,15 @@ public:
         skeleton.bones = {bone};
         skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t id) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId id) const override
     {
-        return missingModel == id ? nullptr : &model;
+        return missingModel == id.Value() ? nullptr : &model;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return textures;
     }
@@ -124,15 +125,15 @@ public:
         skeleton.bones = {bone};
         skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return &model;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return textures;
     }
@@ -149,17 +150,17 @@ public:
         producer.skeleton.bones[0].actions[0][0].position = {7, 8, 9};
         consumer.skeleton.bones[0].dummy = true;
     }
-    const Client::Data::Models::Model* Find(std::uint16_t type) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId type) const override
     {
-        return Selected(type).Find(type);
+        return Selected(type.Value()).Find(type);
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId type) const override
     {
-        return Selected(type).SkeletonOf(type);
+        return Selected(type.Value()).SkeletonOf(type);
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t type) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId type) const override
     {
-        return Selected(type).MeshTextures(type);
+        return Selected(type.Value()).MeshTextures(type);
     }
 
 private:

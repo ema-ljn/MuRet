@@ -310,7 +310,7 @@ protected:
             const auto loaded = m_faunaModels.LoadMonster(number, 0, *context);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         }
-        ASSERT_NE(m_faunaModels.SkeletonOf(0x153), nullptr);
+        ASSERT_NE(m_faunaModels.SkeletonOf(Client::Models::ModelId{0x153}), nullptr);
         m_actor.alive = true;
         m_actor.type = 0x153;
         m_actor.byte88 = 2;
@@ -332,7 +332,7 @@ protected:
 
     const Skeleton& Model() const
     {
-        return *m_faunaModels.SkeletonOf(0x153);
+        return *m_faunaModels.SkeletonOf(Client::Models::ModelId{0x153});
     }
 
     Client::Tests::TemporaryFolder m_folder{"model-body"};
@@ -484,7 +484,7 @@ TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
     ASSERT_TRUE(context.has_value());
     const auto loaded = m_faunaModels.LoadMonster(15, 2, *context);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    const Skeleton* ice = m_faunaModels.SkeletonOf(0x161);
+    const Skeleton* ice = m_faunaModels.SkeletonOf(Client::Models::ModelId{0x161});
     ASSERT_NE(ice, nullptr);
     EXPECT_EQ(ice->headBone, 0x13);
     m_actor.type = 0x161;
@@ -571,15 +571,15 @@ public:
     {
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == m_model ? &m_skeleton : nullptr;
+        return model.Value() == m_model ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

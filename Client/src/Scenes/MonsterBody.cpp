@@ -252,7 +252,7 @@ Core::Expected<bool, std::string> MarksTheSilhouette(const MonsterBodyFrame& fra
     const auto blend = static_cast<std::int16_t>(actor.dword64);
     if (hidden == -2 || blend == -2 || hidden == 1 || blend == 1)
         return false;
-    const Data::Models::Model* found = frame.model.models.Find(actor.type);
+    const Data::Models::Model* found = frame.model.models.Find(Models::ModelId{actor.type});
     if (found == nullptr || found->meshes.size() < 2)
         return Core::Unexpected(
             std::format("0x457e97: el tipo {:#x} sin la malla 1 lee fuera de sus mallas", actor.type));
@@ -455,7 +455,7 @@ Result DrawTheTail(MonsterBodyFrame& frame)
         const auto light = PulseOf(frame.worldClock, ThreeTenths, 0.5f, "0x6023c4");
         if (!light.HasValue())
             return Core::Unexpected(light.Error());
-        const auto textures = model.models.MeshTextures(actor.type);
+        const auto textures = model.models.MeshTextures(Models::ModelId{actor.type});
         if (textures.size() <= 6)
             return Core::Unexpected(
                 std::format("0x6023b0: el modelo {:#x} no tiene la textura de la malla 6", actor.type));

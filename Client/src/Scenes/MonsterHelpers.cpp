@@ -1384,7 +1384,7 @@ struct Swing
 Core::Expected<Swing, std::string> SwingOf(const Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
                                            std::uint8_t speedAction)
 {
-    const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr || skeleton->actions.size() <= speedAction)
     {
         return Core::Unexpected(std::format("0x432bd0: el modelo {:#x} no tiene la acción {} cuya velocidad lee la "

@@ -106,7 +106,7 @@ Result EmitWhenFading(MonsterBodyFrame& frame, std::uint32_t address)
     if (actor.animation.action != DeathAction || actor.alpha >= Half || !frame.originalFrame)
         return {};
     const MonsterBodyModel& model = frame.model;
-    const auto* found = model.models.Find(model.object.model);
+    const auto* found = model.models.Find(Models::ModelId{model.object.model});
     if (found == nullptr)
         return {};
     if (auto emitted = Actors::Drawing::EmitVertexEffectsOf(
@@ -172,7 +172,7 @@ Result StrikeTheGlow(MonsterBodyFrame& frame)
                                                 "{:#x}",
                                                 actor.type));
         MonsterBodyModel& model = frame.model;
-        const auto* found = model.models.Find(model.object.model);
+        const auto* found = model.models.Find(Models::ModelId{model.object.model});
         if (found != nullptr)
         {
             const Actors::Drawing::VertexEffectCall call{
@@ -691,7 +691,7 @@ Result DrawCastleStoneAt(MonsterBodyFrame& frame, std::size_t bone)
         return Core::Unexpected(std::format("0x42e4cf: falta el hueso {} de la catapulta", bone));
     MonsterBodyModel& model = frame.model;
     constexpr std::uint16_t StoneModel = 0x12b; // 5769ad8+105a0 = modelo12b, stridee0.
-    const auto* skeleton = model.models.SkeletonOf(StoneModel);
+    const auto* skeleton = model.models.SkeletonOf(Models::ModelId{StoneModel});
     if (skeleton == nullptr)
         return Core::Unexpected(std::string("0x42e4fc: falta el esqueleto del proyectil 0x12b"));
     Actors::Drawing::DrawnObject stone = model.object;
@@ -1131,7 +1131,7 @@ Chained DrawThe425d90Case(MonsterBodyFrame& frame)
 Chained DrawEveryMeshTwice(MonsterBodyFrame& frame, std::uint32_t flags, std::int32_t texture)
 {
     MonsterBodyModel& model = frame.model;
-    const auto* found = model.models.Find(frame.actor.type);
+    const auto* found = model.models.Find(Models::ModelId{frame.actor.type});
     const std::size_t count = found != nullptr ? found->meshes.size() : 0;
     const BodyPassArgs args = ActorPassArgs(frame.actor);
     BodyPassArgs second = args;
@@ -1164,7 +1164,7 @@ Result DrawThe1af(MonsterBodyFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
-    const auto* found = model.models.Find(actor.type);
+    const auto* found = model.models.Find(Models::ModelId{actor.type});
     const std::size_t count = found != nullptr ? found->meshes.size() : 0;
     for (std::size_t mesh = 0; mesh < count; ++mesh)
     {

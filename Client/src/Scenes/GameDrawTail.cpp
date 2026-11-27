@@ -415,7 +415,8 @@ Core::Expected<void, std::string> PublishEffectItem(const Models::IModelLibrary&
                                                     const Actors::Drawing::DrawnObject& object,
                                                     const ModelEffectDrawResources* resources)
 {
-    if (models.Find(object.model) == nullptr || models.SkeletonOf(object.model) == nullptr)
+    if (models.Find(Models::ModelId{object.model}) == nullptr ||
+        models.SkeletonOf(Models::ModelId{object.model}) == nullptr)
         return Core::Unexpected(std::string("0x4eb860: faltan modelo o esqueleto del efecto con ítem"));
     if (resources == nullptr || !resources->onUntranslatedPose)
         return Core::Unexpected(std::string("0x4eb860: falta la pose compartida sin trasladar del efecto con ítem"));
@@ -430,7 +431,7 @@ EffectItemMeshes(const Models::IModelLibrary& models, const Actors::Drawing::Dra
     if (resources == nullptr || !resources->posedMeshes)
         return Core::Unexpected(std::string("0x4ebc80: falta el scratch retenido del efecto con ítem"));
     const auto meshes = resources->posedMeshes();
-    const auto* model = models.Find(object.model);
+    const auto* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr || meshes.size() < model->meshes.size())
         return Core::Unexpected(std::string("0x4ebc80: el scratch no cubre las mallas del efecto con ítem"));
     return meshes;
@@ -701,8 +702,8 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         }
         return DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
     };
-    if (resources != nullptr && resources->onPose && models.Find(model) != nullptr &&
-        models.SkeletonOf(model) != nullptr)
+    if (resources != nullptr && resources->onPose && models.Find(Models::ModelId{model}) != nullptr &&
+        models.SkeletonOf(Models::ModelId{model}) != nullptr)
     {
         if (auto published = resources->onPose(object); !published.HasValue())
             return published;
@@ -767,7 +768,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
             const auto modelId = static_cast<std::uint16_t>(effect.type);
             if (modelId >= Tables::ModelTableSize)
                 return Core::Unexpected(std::format("0x52d68c: modelo {:#x} fuera de la tabla", modelId));
-            const auto* model = models.Find(modelId);
+            const auto* model = models.Find(Models::ModelId{modelId});
             // 0x60dbe0 inicializa la tabla a cero. Un BMD ausente deja en cero su cuenta de mallas.
             const auto meshCount = model != nullptr ? static_cast<std::int64_t>(model->meshes.size()) : 0;
             if (meshCount < blendMesh)

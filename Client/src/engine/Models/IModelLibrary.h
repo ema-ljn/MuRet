@@ -2,6 +2,7 @@
 
 #include "Data/Models/Model.h"
 #include "Models/MeshTraits.h"
+#include "Models/ModelId.h"
 #include "Render/ITextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -21,13 +22,13 @@ class IModelLibrary : public Render::ITextureSlots
 {
 public:
     virtual ~IModelLibrary() = default;
-    [[nodiscard]] virtual const Data::Models::Model* Find(std::uint16_t model) const = 0;
+    [[nodiscard]] virtual const Data::Models::Model* Find(ModelId model) const = 0;
     // Player.bmd's for 0x20a, with its speeds and its head (MakePlayerSkeleton).
-    [[nodiscard]] virtual const Skeleton* SkeletonOf(std::uint16_t model) const = 0;
+    [[nodiscard]] virtual const Skeleton* SkeletonOf(ModelId model) const = 0;
     // One per mesh, in order; empty if its textures were not loaded.
-    [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const = 0;
+    [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(ModelId model) const = 0;
     // One per mesh, in order, as the load read them. A library that keeps none draws every mesh plainly.
-    [[nodiscard]] virtual std::span<const MeshTraits> MeshTraitsOf(std::uint16_t model) const
+    [[nodiscard]] virtual std::span<const MeshTraits> MeshTraitsOf(ModelId model) const
     {
         (void)model;
         return {};

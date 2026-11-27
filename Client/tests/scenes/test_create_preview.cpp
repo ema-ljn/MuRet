@@ -6,6 +6,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
@@ -51,15 +52,16 @@ public:
         m_skeleton.actions = {ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 4, .lockPositions = false},
                               ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 4, .lockPositions = false}};
     }
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model >= FirstNewFaceModel && model < FirstNewFaceModel + 5 ? &m_skeleton : nullptr;
+        return model.Value() >= FirstNewFaceModel && model.Value() < FirstNewFaceModel + 5 ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }

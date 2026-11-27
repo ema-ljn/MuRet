@@ -199,7 +199,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     }
     else if (const auto action = StateAction(state, actor.characterClass))
     {
-        const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+        const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
         if (skeleton == nullptr)
             return Core::Unexpected(std::string("0x4ea030: falta Player.bmd para la acción del 0x12"));
         Models::SetAction(actor.animation, *skeleton, *action);

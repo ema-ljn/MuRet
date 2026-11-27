@@ -18,6 +18,7 @@
 #include "Scenes/GameProjection.h"
 #include "UI/Widget.h"
 #include "Math/Ftol.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -222,7 +223,7 @@ std::optional<AnchorFactors> AnchorFactorsOf(std::int32_t type, std::uint32_t le
 // ---------------------------------------------------------------------------------------------------------------
 // 0x5e0720: los ángulos, los corrimientos y la escala.
 
-constexpr std::uint16_t PlayerModel = 0x20a;
+constexpr std::uint16_t PlayerModel = Tables::PlayerSkeletonModel;
 constexpr std::int32_t FirstArmor = 0x1012;
 constexpr std::int32_t EndArmor = 0x1a12;
 constexpr std::int32_t Zen = 0x1e1e;
@@ -696,8 +697,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
                                                   const UiItemPlacement& placement, std::uint8_t excellent,
                                                   std::uint8_t set)
 {
-    if (resources.models.Find(placement.model) == nullptr ||
-        resources.models.SkeletonOf(placement.poseModel) == nullptr)
+    if (resources.models.Find(Models::ModelId{placement.model}) == nullptr ||
+        resources.models.SkeletonOf(Models::ModelId{placement.poseModel}) == nullptr)
         return Core::Unexpected(std::format("0x5e13d9: falta el modelo {:#x} o el esqueleto de {:#x} del ítem de la UI",
                                             placement.model, placement.poseModel));
     if (!resources.open)

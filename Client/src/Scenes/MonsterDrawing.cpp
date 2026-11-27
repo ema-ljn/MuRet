@@ -308,7 +308,7 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> mesh
         cloth.DrawCurrent(meshes, body);
         return {};
     }
-    const Data::Models::Model* model = frame.fauna.Find(actor.type);
+    const Data::Models::Model* model = frame.fauna.Find(Models::ModelId{actor.type});
     if (model == nullptr)
         return Core::Unexpected(std::format("0x455ea0: falta el modelo {:#x} de la tela sobre la malla", actor.type));
     return cloth.Frame(*model, actor.type, meshes, body, *frame.pass.clothWorld, static_cast<std::uint8_t>(frame.map));
@@ -517,7 +517,7 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
             frame.pass.sprites->Create(Flare, point(bone, glm::vec3(0.0f)), FlareScale, flareLight, 0.0f, 0));
     const glm::vec3 sparkLight{F32(D(v) * D(std::bit_cast<float>(0x3f19999au))),
                                F32(D(v) * D(std::bit_cast<float>(0x3f333333u))), red};
-    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(Models::ModelId{actor.type});
     const auto bones = static_cast<std::int16_t>(skeleton != nullptr ? skeleton->bones.size() : 0);
     for (int spark = 0; spark < Sparks; ++spark)
     {
@@ -775,7 +775,7 @@ Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
     constexpr std::size_t FirstBone = 23;
     constexpr std::size_t SecondBone = 14;
     Kernel::ActorState& actor = frame.actor;
-    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50c248: falta el modelo {:#x} del +0x376 0x4d", actor.type));
     if (auto drawn = DrawTheBody(frame, *skeleton, 0, frame.outline); !drawn.HasValue())
@@ -826,7 +826,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
     }
     actor.dword64 = 0;
     actor.blendMeshLight = F32((1.0 - D(s) + 1.0) * D(Floor));
-    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50c20b: falta el modelo {:#x} del +0x376 0x4d", actor.type));
     for (const PoseMode mode : {PoseMode::Wider, PoseMode::Widest})
@@ -1241,7 +1241,7 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
     if (type == 0x16e)
     {
         // 0x5108b6 (KalimaSiegeHelpers.h), con los huesos del modelo.
-        const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(type);
+        const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(Models::ModelId{type});
         if (skeleton == nullptr)
             return Core::Unexpected(std::format("0x5108b6: falta el modelo {:#x}", type));
         if (auto sparks = DrawTheBoneSparks(HelperPassOf(frame), *skeleton); !sparks.HasValue())
@@ -1483,7 +1483,7 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     if (pass.faunaModels == nullptr)
         return Core::Unexpected(std::format("0x50ba82: no fauna models (0x5769ad8) for model {:#x}", stored.type));
     const Models::IModelLibrary& fauna = *pass.faunaModels;
-    const Models::Skeleton* skeleton = fauna.SkeletonOf(stored.type);
+    const Models::Skeleton* skeleton = fauna.SkeletonOf(Models::ModelId{stored.type});
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));
     // Entre frames del original, sobre una copia del personaje y del rand(): no guarda nada.

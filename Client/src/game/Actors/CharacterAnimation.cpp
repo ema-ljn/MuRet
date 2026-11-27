@@ -30,7 +30,7 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const Kernel::Charact
                             const Models::IModelLibrary& models, Models::AnimationScene scene)
 {
     bool finished = false;
-    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (skeleton != nullptr && animation.body.action < skeleton->actions.size())
     {
         const Models::ActionInfo& action = skeleton->actions[animation.body.action];
@@ -45,7 +45,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::Chara
 {
     if (appearance.pet)
     {
-        const Models::Skeleton* pet = models.SkeletonOf(*appearance.pet);
+        const Models::Skeleton* pet = models.SkeletonOf(Models::ModelId{*appearance.pet});
         if (pet != nullptr && !pet->actions.empty())
         {
             Models::AdvanceByTime(animation.pet, pet->actions[0], Models::PetKeysPerOriginalFrame, App::LogicStep);
@@ -53,7 +53,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::Chara
     }
     if (appearance.wings)
     {
-        const Models::Skeleton* wings = models.SkeletonOf(*appearance.wings);
+        const Models::Skeleton* wings = models.SkeletonOf(Models::ModelId{*appearance.wings});
         if (wings != nullptr && !wings->actions.empty())
         {
             Models::AdvanceByTime(animation.wings, wings->actions[0], WingKeysPerOriginalFrame(animation.body.action),
@@ -65,7 +65,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::Chara
 Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const Models::IModelLibrary& models,
                                         float alpha, const PlayerActionSpeeds* speeds)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (skeleton == nullptr || animation.body.action >= skeleton->actions.size())
     {
         return animation.body;

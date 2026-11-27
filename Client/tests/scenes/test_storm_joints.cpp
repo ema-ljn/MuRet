@@ -8,6 +8,7 @@
 #include "Tables/PlayerModels.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/ActorPickingBox.h"
 #include "Kernel/ActorState.h"
@@ -541,15 +542,15 @@ public:
         skeleton.bones = {bone};
         skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t type) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId type) const override
     {
-        return type == Client::Tables::PlayerShadowModel ? &model : nullptr;
+        return type.Value() == Client::Tables::PlayerShadowModel ? &model : nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId type) const override
     {
-        return type == Client::Tables::PlayerShadowModel ? &skeleton : nullptr;
+        return type.Value() == Client::Tables::PlayerShadowModel ? &skeleton : nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }
@@ -561,15 +562,15 @@ public:
 class NoModels final : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

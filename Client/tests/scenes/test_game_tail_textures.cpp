@@ -273,12 +273,12 @@ TEST_F(GameTailTextureTest, RidingSpearModelAndMeshTexturesComeFromTheNativeSkil
     // 0x6161b5: 0x60da30(0x10f, "Data\\Skill\\", "RidingSpear", 1); 0x61619f, folder Skill.
     const auto expected = Client::Data::Models::LoadModelFile(m_dataRoot, {0x10f, "Skill\\", "RidingSpear", 1});
     ASSERT_TRUE(expected.HasValue());
-    const auto* model = m_models.Find(0x10f);
+    const auto* model = m_models.Find(Client::Models::ModelId{0x10f});
     ASSERT_NE(model, nullptr);
     EXPECT_EQ(model->name, expected.Value().name);
     EXPECT_EQ(model->meshes.size(), expected.Value().meshes.size());
-    ASSERT_NE(m_models.SkeletonOf(0x10f), nullptr);
-    const auto textures = m_models.MeshTextures(0x10f);
+    ASSERT_NE(m_models.SkeletonOf(Client::Models::ModelId{0x10f}), nullptr);
+    const auto textures = m_models.MeshTextures(Client::Models::ModelId{0x10f});
     ASSERT_EQ(textures.size(), model->meshes.size());
     ASSERT_FALSE(textures.empty());
     for (const auto slot : textures)

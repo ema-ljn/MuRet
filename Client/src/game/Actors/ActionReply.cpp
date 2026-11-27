@@ -111,7 +111,7 @@ std::uint8_t AnimationOf(const Kernel::ActorState& actor, std::uint8_t action)
 Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources,
                                                const ActionSender& sendAction)
 {
-    const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (player == nullptr && actor.type == Tables::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4cb813: falta Player.bmd para 0x4f2250"));
     static const Models::Skeleton EmptySkeleton;
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
     // Without Player.bmd, the player is a contract guard.
     if (actor.type == Tables::PlayerSkeletonModel)
     {
-        const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+        const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
         if (player == nullptr)
             return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
         Models::SetAction(actor.animation, *player, AnimationOf(actor, action));

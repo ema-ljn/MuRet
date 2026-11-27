@@ -20,6 +20,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -197,16 +198,16 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
             skeleton.bones = {bone};
             skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
         }
-        const Client::Data::Models::Model* Find(std::uint16_t id) const override
+        const Client::Data::Models::Model* Find(Client::Models::ModelId id) const override
         {
-            found.push_back(id);
+            found.push_back(id.Value());
             return &model;
         }
-        const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+        const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
         {
             return &skeleton;
         }
-        std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+        std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
         {
             return textures;
         }

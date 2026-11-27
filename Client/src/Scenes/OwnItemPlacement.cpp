@@ -296,7 +296,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
         return Core::Unexpected(initialized.Error());
     }
     Kernel::ActorState& hero = world.Hero();
-    const Models::Skeleton* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const Models::Skeleton* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
     const bool isPlayer = hero.type == Tables::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
     {

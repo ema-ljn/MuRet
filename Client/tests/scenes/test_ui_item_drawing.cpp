@@ -9,6 +9,7 @@
 #include "Render/ModelBatch.h"
 #include "Math/RoundedTransforms.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
@@ -395,15 +396,15 @@ public:
         skeleton.bones = {bone};
         skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t id) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId id) const override
     {
-        return missing.contains(id) ? nullptr : &model;
+        return missing.contains(id.Value()) ? nullptr : &model;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t id) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId id) const override
     {
-        return missing.contains(id) ? nullptr : &skeleton;
+        return missing.contains(id.Value()) ? nullptr : &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return textures;
     }

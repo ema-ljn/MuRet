@@ -554,9 +554,9 @@ private:
 
 const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model)
 {
-    if (const auto* skeleton = Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SkeletonOf(model))
+    if (const auto* skeleton = Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SkeletonOf(Models::ModelId{model}))
         return skeleton;
-    return resources.models.SkeletonOf(model);
+    return resources.models.SkeletonOf(Models::ModelId{model});
 }
 
 Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,

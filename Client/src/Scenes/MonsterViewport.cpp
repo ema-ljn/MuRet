@@ -464,7 +464,7 @@ Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const W
         actor.alpha = 0.0f;
         return {};
     }
-    const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (skeleton == nullptr)
         return Core::Unexpected(std::string("0x4c9ad9: falta Player.bmd para la acción 0xc1 del recién llegado"));
     Models::SetAction(actor.animation, *skeleton, ArrivalAction);

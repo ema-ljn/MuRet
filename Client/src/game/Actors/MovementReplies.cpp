@@ -66,7 +66,7 @@ void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt:
 Core::Expected<ActorStopContext, std::string> StopContext(const Kernel::ActorState& actor,
                                                           const Scenes::WorldEntryResources& resources)
 {
-    const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (skeleton == nullptr && actor.type == Tables::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4c6790: falta Player.bmd para la acción del personaje"));
     static const Models::Skeleton EmptySkeleton;

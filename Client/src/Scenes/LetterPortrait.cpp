@@ -116,7 +116,7 @@ Kernel::ActorState& HeroOf(const WorldEntryResources& resources)
 
 const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
 {
-    return resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    return resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
 }
 
 Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
@@ -398,7 +398,7 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .playerSkeleton = PlayerSkeleton(resources),
         .items = resources.items,
         .terrain = &TerrainOf(resources),
-        .darkSpiritSkeleton = resources.models.SkeletonOf(DarkSpiritModel),
+        .darkSpiritSkeleton = resources.models.SkeletonOf(Models::ModelId{DarkSpiritModel}),
         .particles = &world.Particles(),
         .worldClock = worldClock,
         .counter = resources.cloth.logicSteps,
@@ -612,7 +612,7 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     else if (chosen >= FirstGesture && chosen <= LastGesture)
     {
         // 0x495b56..0x495da7: 0x4ea030 con la animación de la tabla de los gestos.
-        const auto* skeleton = resources.models.SkeletonOf(actor.type);
+        const auto* skeleton = resources.models.SkeletonOf(Models::ModelId{actor.type});
         if (skeleton == nullptr)
             return Core::Unexpected(
                 std::format("0x495da7: la acción {:#x} sin las acciones del modelo {:#x}", chosen, actor.type));

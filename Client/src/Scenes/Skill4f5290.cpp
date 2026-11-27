@@ -36,7 +36,7 @@ Core::Expected<void, std::string> SetTheActorAction(Kernel::ActorState& actor, s
     if (actor.type == Tables::PlayerSkeletonModel)
         skeleton = context.playerSkeleton;
     else if (context.models != nullptr)
-        skeleton = context.models->SkeletonOf(actor.type);
+        skeleton = context.models->SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x4ea030: falta el esqueleto del modelo {:#x}", actor.type));
     Models::SetAction(actor.animation, *skeleton, action);

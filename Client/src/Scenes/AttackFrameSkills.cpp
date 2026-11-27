@@ -121,7 +121,7 @@ const Models::Skeleton* SkeletonOf(const Kernel::ActorState& actor, const Actors
     if (IsPlayer(actor) && context.playerSkeleton != nullptr)
         return context.playerSkeleton;
     if (context.models != nullptr)
-        return context.models->SkeletonOf(actor.type);
+        return context.models->SkeletonOf(Models::ModelId{actor.type});
     return nullptr;
 }
 

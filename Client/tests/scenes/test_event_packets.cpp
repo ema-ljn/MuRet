@@ -20,6 +20,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
@@ -167,19 +168,20 @@ public:
         transformed.actions.resize(2);
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId /*model*/) const override
     {
         return nullptr;
     }
 
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == Client::Tables::PlayerSkeletonModel)
+        if (model.Value() == Client::Tables::PlayerSkeletonModel)
             return &m_player;
-        return model == TransformedModel ? &transformed : nullptr;
+        return model.Value() == TransformedModel ? &transformed : nullptr;
     }
 
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }

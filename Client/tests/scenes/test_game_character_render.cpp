@@ -13,6 +13,7 @@
 #include "Models/Cloth.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
@@ -186,19 +187,19 @@ public:
         m_skeletonBody.meshes = {mesh, mesh, mesh};
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        if (model == AngelModel)
+        if (model.Value() == AngelModel)
             return &m_angel;
-        if (model == SkeletonBodyModel)
+        if (model.Value() == SkeletonBodyModel)
             return &m_skeletonBody;
-        return model == BootsModel || model == 0x20b || HasHand(model) ? &m_model : nullptr;
+        return model.Value() == BootsModel || model.Value() == 0x20b || HasHand(model.Value()) ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == 0x20a || (handSkeletons && HasHand(model)) ? &m_skeleton : nullptr;
+        return model.Value() == 0x20a || (handSkeletons && HasHand(model.Value())) ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_texture;
     }

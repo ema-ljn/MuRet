@@ -10,6 +10,7 @@
 #include "Models/Cloth.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
@@ -62,19 +63,19 @@ public:
         small.actions.resize(10);
         transformed.actions.resize(7);
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == Client::Tables::PlayerSkeletonModel)
+        if (model.Value() == Client::Tables::PlayerSkeletonModel)
             return &player;
-        if (model == SmallModel)
+        if (model.Value() == SmallModel)
             return &small;
-        return model == TransformedModel ? &transformed : nullptr;
+        return model.Value() == TransformedModel ? &transformed : nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

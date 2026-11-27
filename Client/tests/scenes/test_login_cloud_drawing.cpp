@@ -29,6 +29,7 @@
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
 #include "Data/Textures/Texture.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -59,15 +60,15 @@ constexpr std::int32_t CloudSubtype = 10;
 class CloudTextures final : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Data/Models/ModelFiles.h"
+#include "Models/ModelId.h"
 
 #include <array>
 #include <cstddef>
@@ -14,6 +15,8 @@ namespace Client::Tables
 {
 // The skeleton (0x60e90d).
 inline constexpr std::uint16_t PlayerSkeletonModel = 0x20a;
+// The same slot, as a model library is asked for it.
+inline constexpr Models::ModelId PlayerSkeletonModelId{PlayerSkeletonModel};
 // Shadow01.bmd, the shadow 0x50ba30 draws under each character (0x60f2f4).
 inline constexpr std::uint16_t PlayerShadowModel = 0x20b;
 // 0x489d models of 0xe0 bytes (0x60dc23).

@@ -1087,8 +1087,8 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
     hero.type = 0x15b;
     hero.animation.action = 1;
     hero.angles.z = 100.0f;
-    ASSERT_EQ(models.SkeletonOf(hero.type), nullptr);
-    ASSERT_NE(faunaModels.SkeletonOf(hero.type), nullptr);
+    ASSERT_EQ(models.SkeletonOf(Client::Models::ModelId{hero.type}), nullptr);
+    ASSERT_NE(faunaModels.SkeletonOf(Client::Models::ModelId{hero.type}), nullptr);
     const auto before = random.State();
     const auto said = Type("\rhola ^^\r");
     ASSERT_TRUE(said.HasValue()) << said.Error();

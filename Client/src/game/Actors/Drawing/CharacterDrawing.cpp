@@ -561,8 +561,8 @@ std::vector<MeshDraw> MeshDrawsOf(const Models::IModelLibrary& models, std::uint
                                   const ObjectState& state, Core::Duration clock,
                                   std::vector<Models::SkinnedMesh>& skinned)
 {
-    const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
-    const std::span<const Models::MeshTraits> traits = models.MeshTraitsOf(modelId);
+    const std::span<const Render::TextureSlot> slots = models.MeshTextures(Models::ModelId{modelId});
+    const std::span<const Models::MeshTraits> traits = models.MeshTraitsOf(Models::ModelId{modelId});
     skinned.assign(model.meshes.size(), Models::SkinnedMesh{});
     std::vector<MeshDraw> draws;
     draws.reserve(model.meshes.size());
@@ -597,7 +597,7 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
         if (!use.hanging && character.alpha > PartBoxAlphaThreshold && character.onPartBox)
             character.onPartBox(character.object.position);
     };
-    const Data::Models::Model* model = frame.models.Find(modelId);
+    const Data::Models::Model* model = frame.models.Find(Models::ModelId{modelId});
     if (model == nullptr)
     {
         publishBox();
@@ -675,7 +675,7 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
     {
         return;
     }
-    const Data::Models::Model* model = frame.models.Find(Tables::PlayerShadowModel);
+    const Data::Models::Model* model = frame.models.Find(Models::ModelId{Tables::PlayerShadowModel});
     if (model == nullptr)
     {
         return;
@@ -809,7 +809,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     // 0x5093bb initializes the object before trying the item's pose.
     const std::optional<Models::ObjectRandoms> originalRandoms =
         frame.character.originalRandom != nullptr ? std::optional{RandomsOf(frame, modelId)} : std::nullopt;
-    const Models::Skeleton* skeleton = frame.models.SkeletonOf(modelId);
+    const Models::Skeleton* skeleton = frame.models.SkeletonOf(Models::ModelId{modelId});
     if (skeleton == nullptr)
     {
         return;
@@ -1014,7 +1014,7 @@ std::size_t HangingRandomCount(std::uint16_t model)
 
 std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models, const DrawnCharacter& character)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (skeleton == nullptr)
     {
         return {};
@@ -1081,7 +1081,7 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
         return {};
     if (character.onPose)
         character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
-    const Data::Models::Model* model = angelModels.Find(ChaosCastleBodyModel);
+    const Data::Models::Model* model = angelModels.Find(Models::ModelId{ChaosCastleBodyModel});
     if (model == nullptr)
     {
         if (character.alpha > PartBoxAlphaThreshold && character.onPartBox)
@@ -1163,11 +1163,11 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& model
                                               bool forceVisible = false, bool rawMesh = false,
                                               bool originalClock = false)
 {
-    const auto* model = models.Find(object.model);
+    const auto* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr || (!forceVisible && object.alpha < 0.01f))
         return {};
-    const auto slots = models.MeshTextures(object.model);
-    const auto traits = models.MeshTraitsOf(object.model);
+    const auto slots = models.MeshTextures(Models::ModelId{object.model});
+    const auto traits = models.MeshTraitsOf(Models::ModelId{object.model});
     std::vector<MeshDraw> draws;
     for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
     {
@@ -1186,8 +1186,8 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& model
 
 std::vector<Models::SkinnedMesh> WorldScratchOf(const Models::IModelLibrary& models, const DrawnObject& object)
 {
-    const Data::Models::Model* model = models.Find(object.model);
-    const Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{object.model});
     if (model == nullptr || skeleton == nullptr)
         return {};
     std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
@@ -1291,7 +1291,7 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary
 std::vector<Models::SkinnedMesh> SkinObjectMeshes(const Models::IModelLibrary& models, const DrawnObject& object,
                                                   std::span<const BoneTransform> bones, float boneScale)
 {
-    const Data::Models::Model* model = models.Find(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr)
         return {};
     std::vector<Models::SkinnedMesh> skinned(model->meshes.size());
@@ -1308,7 +1308,7 @@ void DrawObjectOutline(Render::ModelBatch& batch, const Models::IModelLibrary& m
                        Core::Duration frameClock, std::span<const BoneTransform> bones,
                        std::span<const ObjectOutlinePass> passes)
 {
-    const Data::Models::Model* model = models.Find(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr)
         return;
     std::vector<Models::SkinnedMesh> skinned;
@@ -1330,16 +1330,16 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Models::IM
                                      const DrawnObject& object, Core::Duration frameClock,
                                      std::span<const BoneTransform> bones, std::span<const ObjectOutlinePass> passes)
 {
-    const Data::Models::Model* model = models.Find(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr || model->meshes.empty())
         return;
     // 0x60ce4e: 0x4ecc30(0, …) without 0x4ef0c0, which is the one that looks at the mesh's script (hidden or its own
     // blendMesh).
     const Data::Models::Mesh& mesh = model->meshes.front();
-    Models::MeshTraits role = TraitsOf(models.MeshTraitsOf(object.model), 0);
+    Models::MeshTraits role = TraitsOf(models.MeshTraitsOf(Models::ModelId{object.model}), 0);
     role.hidden = false;
     role.blendScript = false;
-    const MeshTexture texture = TextureOf(mesh, models.MeshTextures(object.model), 0, object.skin);
+    const MeshTexture texture = TextureOf(mesh, models.MeshTextures(Models::ModelId{object.model}), 0, object.skin);
     Models::SkinnedMesh skinned;
     if (!texture.drawn || !IndicesInRange(mesh) || !Models::SkinMesh(mesh, bones, object.transform, skinned))
         return;
@@ -1364,7 +1364,7 @@ void DrawObjectShadow(Render::ModelBatch& batch, const Models::IModelLibrary& mo
 {
     const bool kalima =
         (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
-    const Data::Models::Model* model = models.Find(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr || map == DarkHorseNoShadowMap || kalima)
         return;
     const bool faint = map == DarkHorseFaintShadowMap;
@@ -1556,7 +1556,7 @@ Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, co
                                                    std::uint32_t flags, std::optional<Render::TextureSlot> texture,
                                                    glm::vec3* storedColor, std::optional<float> worldClock)
 {
-    const auto* model = models.Find(object.model);
+    const auto* model = models.Find(Models::ModelId{object.model});
     if (!model)
         return Core::Unexpected(std::string("4ecc30: falta el modelo del pase de ítem"));
     if (mesh >= 0 && static_cast<std::size_t>(mesh) >= model->meshes.size())
@@ -1569,8 +1569,8 @@ Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, co
     const bool waving = (flags & 0x20) == 0 && (flags & Wave) != 0;
     if (waving && !worldClock)
         return Core::Unexpected(std::string("4ed79d: la onda de 0x4ecc30 sin el reloj del mundo (0x5767b88)"));
-    const auto slots = models.MeshTextures(object.model);
-    const auto traits = models.MeshTraitsOf(object.model);
+    const auto slots = models.MeshTextures(Models::ModelId{object.model});
+    const auto traits = models.MeshTraitsOf(Models::ModelId{object.model});
     const auto shine = ItemShine(flags);
     auto currentColor = object.color;
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
@@ -1777,7 +1777,7 @@ Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, co
         return {};
     if (character.onPose)
         character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
-    const Data::Models::Model* found = models.Find(model);
+    const Data::Models::Model* found = models.Find(Models::ModelId{model});
     if (found == nullptr)
     {
         // The zeroed record of 0x60dbe0: no meshes to draw; 0x4ebc80 publishes the picking box anyway.
@@ -1959,7 +1959,7 @@ Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch, co
     const bool glowing = type == GlowingType;
     if (!glowing && type != 0x41 && type != 0x42)
         return {};
-    if (models.Find(object.model) == nullptr)
+    if (models.Find(Models::ModelId{object.model}) == nullptr)
         return {};
     constexpr int Period = 100000;
     constexpr std::uint32_t GlowFlags = 0x42, BaseFlags = 0x2;
@@ -2159,7 +2159,7 @@ Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch, con
     constexpr std::uint32_t ShellFlags = 0x4040;
     constexpr float ShellAlpha = 0.5f;
     constexpr double ShellUScale = 8.0;
-    const Data::Models::Model* model = models.Find(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr)
         return {};
     // 0x60039d..0x6003a8: the model's color at 1. The pass's alpha is the 0.5, not the object's +0x174, and 0x4000 does
@@ -2191,7 +2191,7 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
 {
     constexpr std::uint32_t BaseFlags = 0x2, ChargeFlags = 0x46;
     constexpr Render::TextureSlot ChargeTexture{0x68f}; // Effect\eff_lighting.jpg.
-    const Data::Models::Model* model = models.Find(fenrir.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{fenrir.model});
     if (model == nullptr)
         return {};
     // 0x60279a..0x6027a3: the model's color at 1 and +0x88 at 0, without the per-vertex light.
@@ -2246,7 +2246,7 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
     const bool stone = effect.type == 0x12b;
     const bool projectile = stone || effect.type == 0x12c;
     const bool impact = projectile && effect.objectState.hiddenMesh == 99 && effect.seen;
-    const auto* model = models.Find(input.model);
+    const auto* model = models.Find(Models::ModelId{input.model});
     if (model == nullptr || model->meshes.empty())
     {
         if (impact)
@@ -2342,7 +2342,7 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
         // 0x42cfd6: 0x42e3d0 only has cases for monster types (0x19b, 0x19c, 0x1a8, 0x1f8 and 0x1ff).
         return false;
     }
-    const Data::Models::Model* model = models.Find(object.model);
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr)
         return true;
     constexpr std::uint32_t BaseFlags = 0x2, AdditiveFlags = 0x42, ChromeFlags = 0x44, ShinyFlags = 0x48;
@@ -2472,7 +2472,7 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
 
 std::vector<Math::OriginalMatrix> PosedWorldBones(const Models::IModelLibrary& models, const DrawnObject& object)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{object.model});
     if (skeleton == nullptr)
     {
         return {};
@@ -2506,7 +2506,7 @@ std::vector<Math::OriginalMatrix> PosedWorldBones(const Models::IModelLibrary& m
 std::optional<glm::vec3> PosedBonePoint(const Models::IModelLibrary& models, const DrawnObject& object,
                                         std::size_t bone, const glm::vec3& offset)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{object.model});
     // 0x4eb973: the pose skips the dummies without writing them; the global buffer keeps the earlier one.
     if (skeleton == nullptr || bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
     {

@@ -71,7 +71,7 @@ TEST(FaunaModelsTest, AReaderWithoutTheModelsSeesNoModelAndTheZeroPose)
 {
     const Client::Assets::FaunaModels& empty = Client::Assets::FaunaModelsOrEmpty(nullptr);
 
-    EXPECT_EQ(empty.SkeletonOf(0x153), nullptr);
+    EXPECT_EQ(empty.SkeletonOf(Client::Models::ModelId{0x153}), nullptr);
     EXPECT_EQ(empty.PoseKey(0x153), 0);
     EXPECT_EQ(empty.PoseFrame(0x153), 0.0f);
 }
@@ -125,8 +125,8 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x1f, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    ASSERT_NE(models.Find(0x171), nullptr);
-    const auto* skeleton = models.SkeletonOf(0x171);
+    ASSERT_NE(models.Find(Client::Models::ModelId{0x171}), nullptr);
+    const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{0x171});
     ASSERT_NE(skeleton, nullptr);
     ASSERT_EQ(skeleton->actions.size(), 8U);
     EXPECT_FLOAT_EQ(skeleton->actions[0].speed, .25f);
@@ -139,7 +139,7 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     EXPECT_FLOAT_EQ(skeleton->actions[7].speed, .8f);
     EXPECT_FALSE(skeleton->actions[1].repeats);
     EXPECT_FALSE(skeleton->actions[6].repeats);
-    EXPECT_EQ(models.MeshTextures(0x171).front(), Client::Render::TextureSlot{0x500});
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0x171}).front(), Client::Render::TextureSlot{0x500});
     EXPECT_EQ(store.loadCalls, 1);
     EXPECT_TRUE(models.Prepare(0x1f, context).HasValue());
     EXPECT_EQ(store.loadCalls, 1);
@@ -180,7 +180,7 @@ TEST(FaunaModelsTest, PrepareLoadsMonster34AndKeepsTheGenericActionSettings)
     Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x21, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    const auto* skeleton = models.SkeletonOf(0x173);
+    const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{0x173});
     ASSERT_NE(skeleton, nullptr);
     EXPECT_FLOAT_EQ(skeleton->actions[1].speed, .2f);
     EXPECT_FLOAT_EQ(skeleton->actions[3].speed, .33f);
@@ -199,7 +199,7 @@ TEST(FaunaModelsTest, MissingRequiredMonsterStopsBeforeTexturesOrFalsePreparatio
     Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x1f, context);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(models.Find(0x171), nullptr);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0x171}), nullptr);
     EXPECT_EQ(store.loadCalls, 0);
     EXPECT_EQ(slots.Next().value, 0x500);
 }
@@ -228,7 +228,7 @@ TEST(FaunaModelsTest, AFailedTextureReplacementLeavesTheResidentWithItsOwner)
 
     store.failNextLoad = true;
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
-    const auto bindings = fauna.MeshTextures(0x171);
+    const auto bindings = fauna.MeshTextures(Client::Models::ModelId{0x171});
     ASSERT_FALSE(bindings.empty());
     EXPECT_EQ(bindings.front(), Client::Render::UnboundModelTextureSlot);
     EXPECT_EQ(table.Slots().NameOf(slot), "resident.tga.extra");
@@ -241,7 +241,7 @@ TEST(FaunaModelsTest, AFailedTextureReplacementLeavesTheResidentWithItsOwner)
     EXPECT_EQ(table.References(slot), 1);
     table.Slots().SetNext(slot);
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
-    EXPECT_EQ(fauna.MeshTextures(0x171).front(), slot);
+    EXPECT_EQ(fauna.MeshTextures(Client::Models::ModelId{0x171}).front(), slot);
     EXPECT_EQ(table.Slots().NameOf(slot), "fauna.tga");
     EXPECT_EQ(table.References(slot), 1);
     ASSERT_TRUE(store.Find(slot));
@@ -263,7 +263,7 @@ TEST(FaunaModelsTest, AFailedEmptySlotDoesNotOwnALaterUpload)
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
     EXPECT_TRUE(table.Slots().NameOf(slot).empty());
     EXPECT_EQ(table.Slots().Next().value, slot.value + 1);
-    EXPECT_EQ(fauna.MeshTextures(0x171).front(), Client::Render::UnboundModelTextureSlot);
+    EXPECT_EQ(fauna.MeshTextures(Client::Models::ModelId{0x171}).front(), Client::Render::UnboundModelTextureSlot);
 
     const Client::Data::Textures::TextureSetEntry entry{"Monster/fauna.tga", slot.value, {}};
     const auto loaded = Client::Data::Textures::LoadTextureSet(folder.Path(), std::span(&entry, 1));
@@ -297,14 +297,14 @@ TEST(FaunaModelsTest, AMapTransitionSharesMonsterReferencesAndACachedMonsterSees
     fauna.Bind(&world);
     Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, *world.TextureSlots(), &table};
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
-    const auto slot = fauna.MeshTextures(0x171).front();
+    const auto slot = fauna.MeshTextures(Client::Models::ModelId{0x171}).front();
     EXPECT_EQ(slot.value, 0x41c);
     EXPECT_EQ(table.References(slot), 2);
     world.Release();
     EXPECT_EQ(table.References(slot), 1);
     EXPECT_TRUE(store.Find(slot));
     ASSERT_TRUE(world.Load(folder.Path(), 1, store, log, &initial, nullptr, &table).HasValue());
-    EXPECT_EQ(world.MeshTextures(40).front(), slot);
+    EXPECT_EQ(world.MeshTextures(Client::Models::ModelId{40}).front(), slot);
     // 0x60d550 searches [0, next): the name at next = 0x41c falls outside and is uploaded again. 0x63bfcf drops that
     // old reference before overwriting, even with the BMD cached.
     EXPECT_EQ(table.References(slot), 1);
@@ -333,11 +333,12 @@ TEST_F(GoldenFaunaModels, BothRealMonsterResourcesPrepareTheirMeshesTexturesAndA
     ASSERT_TRUE(fauna.Prepare(0x21, context).HasValue());
     for (const std::uint16_t model : {std::uint16_t{0x171}, std::uint16_t{0x173}})
     {
-        ASSERT_NE(fauna.Find(model), nullptr);
-        EXPECT_FALSE(fauna.Find(model)->meshes.empty());
-        ASSERT_NE(fauna.SkeletonOf(model), nullptr);
-        EXPECT_GE(fauna.SkeletonOf(model)->actions.size(), 7U);
-        EXPECT_EQ(fauna.MeshTextures(model).size(), fauna.Find(model)->meshes.size());
+        ASSERT_NE(fauna.Find(Client::Models::ModelId{model}), nullptr);
+        EXPECT_FALSE(fauna.Find(Client::Models::ModelId{model})->meshes.empty());
+        ASSERT_NE(fauna.SkeletonOf(Client::Models::ModelId{model}), nullptr);
+        EXPECT_GE(fauna.SkeletonOf(Client::Models::ModelId{model})->actions.size(), 7U);
+        EXPECT_EQ(fauna.MeshTextures(Client::Models::ModelId{model}).size(),
+                  fauna.Find(Client::Models::ModelId{model})->meshes.size());
     }
     EXPECT_GT(store.Size(), 0U);
 }
@@ -393,28 +394,29 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
         }
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         const auto model = static_cast<std::uint16_t>(Client::Assets::FirstMonsterModel + number);
-        ASSERT_NE(models.Find(model), nullptr);
-        ASSERT_NE(models.SkeletonOf(model), nullptr);
-        if (models.Find(model)->meshes.empty())
+        ASSERT_NE(models.Find(Client::Models::ModelId{model}), nullptr);
+        ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{model}), nullptr);
+        if (models.Find(Client::Models::ModelId{model})->meshes.empty())
             continue;
-        EXPECT_EQ(models.MeshTextures(model).size(), models.Find(model)->meshes.size());
-        EXPECT_FALSE(models.SkeletonOf(model)->actions[6].repeats);
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{model}).size(),
+                  models.Find(Client::Models::ModelId{model})->meshes.size());
+        EXPECT_FALSE(models.SkeletonOf(Client::Models::ModelId{model})->actions[6].repeats);
     }
     // 0x613137: Monster01 with the bull's five .wav files, its sounds and the head bone at 0x14.
-    EXPECT_EQ(models.SkeletonOf(0x152)->headBone, 0x14);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x152})->headBone, 0x14);
     EXPECT_EQ(models.SoundActions(0x152)[4], 4);
     // 0x612ea3: 3 multiplies actions 0 to 5 by 1.2 (0.25 · 1.2).
-    EXPECT_EQ(models.SkeletonOf(0x155)->actions[0].speed, 0.25f * 1.2f);
-    EXPECT_EQ(models.SkeletonOf(0x155)->actions[6].speed, 0.55f);
-    EXPECT_EQ(models.SkeletonOf(0x155)->headBone, 0x10);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x155})->actions[0].speed, 0.25f * 1.2f);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x155})->actions[6].speed, 0.55f);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{0x155})->headBone, 0x10);
     // 0x613f97: 0x1b leaves +0x88 at 1.
     EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{std::uint8_t{1}});
     // 0x50c21c..0x50c281: +0x376 0x4d copies bone 24 of Monster56 (0x189) and bones 23 and 14 of Monster57 (0x18a).
-    EXPECT_GT(models.SkeletonOf(0x189)->bones.size(), 24u);
-    EXPECT_GT(models.SkeletonOf(0x18a)->bones.size(), 23u);
+    EXPECT_GT(models.SkeletonOf(Client::Models::ModelId{0x189})->bones.size(), 24u);
+    EXPECT_GT(models.SkeletonOf(Client::Models::ModelId{0x18a})->bones.size(), 23u);
     // 0x50c762 and 0x50c83b: 0x2a (Monster32, 0x171) hangs from bone 0x3d and the statues (Monster61, 0x18e) from 1.
-    EXPECT_GT(models.SkeletonOf(0x171)->bones.size(), 0x3du);
-    EXPECT_GT(models.SkeletonOf(0x18e)->bones.size(), 1u);
+    EXPECT_GT(models.SkeletonOf(Client::Models::ModelId{0x171})->bones.size(), 0x3du);
+    EXPECT_GT(models.SkeletonOf(Client::Models::ModelId{0x18e})->bones.size(), 1u);
 }
 
 TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
@@ -435,7 +437,7 @@ TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         if (Client::Assets::NpcModelCaseOf(model).ops.empty())
             continue;
-        const auto* skeleton = models.SkeletonOf(model);
+        const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{model});
         ASSERT_NE(skeleton, nullptr);
         for (const auto& action : skeleton->actions)
             EXPECT_EQ(action.speed, Client::Assets::NpcActionSpeed);
@@ -444,8 +446,9 @@ TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
     for (const int part : {0x1da, 0x1db, 0x1dc, 0x1dd, 0x1de, 0x1df, 0x1e2, 0x1e3})
     {
         const auto model = static_cast<std::uint16_t>(part);
-        ASSERT_NE(models.Find(model), nullptr) << part;
-        EXPECT_EQ(models.MeshTextures(model).size(), models.Find(model)->meshes.size());
+        ASSERT_NE(models.Find(Client::Models::ModelId{model}), nullptr) << part;
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{model}).size(),
+                  models.Find(Client::Models::ModelId{model})->meshes.size());
     }
     // 0x612590: the blacksmith asks for nBlackSmith.wav with one buffer and no flags.
     const auto sounds = models.SoundFiles();
@@ -465,11 +468,11 @@ TEST_F(GoldenMonsterModels, TheNpcTailAddsASecondReferenceToTheTexturesOfItsCase
     ASSERT_TRUE(context.has_value());
     ASSERT_TRUE(models.LoadNpc(0x1f6, *context).HasValue());
     ASSERT_TRUE(models.LoadNpc(0x1ce, *context).HasValue());
-    ASSERT_FALSE(models.MeshTextures(0x1f6).empty());
-    for (const auto slot : models.MeshTextures(0x1f6))
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0x1f6}).empty());
+    for (const auto slot : models.MeshTextures(Client::Models::ModelId{0x1f6}))
         EXPECT_EQ(models.TextureTable().References(slot), 2) << slot.value;
-    ASSERT_FALSE(models.MeshTextures(0x1ce).empty());
-    for (const auto slot : models.MeshTextures(0x1ce))
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0x1ce}).empty());
+    for (const auto slot : models.MeshTextures(Client::Models::ModelId{0x1ce}))
         EXPECT_EQ(models.TextureTable().References(slot), 1) << slot.value;
 }
 } // namespace

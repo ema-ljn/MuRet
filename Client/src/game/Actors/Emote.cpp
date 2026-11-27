@@ -43,7 +43,7 @@ Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::Em
     if (!IsStanding(actor.animation.action))
         return false;
     // 0x576abf: 0x4ea030 with the model of the character's type (+2), not always Player.bmd's.
-    const auto* skeleton = context.models.SkeletonOf(actor.type);
+    const auto* skeleton = context.models.SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr)
         return Core::Unexpected(
             std::format("0x576abf: el emote sin las acciones del modelo {:#x} del personaje (0x4ea030)", actor.type));

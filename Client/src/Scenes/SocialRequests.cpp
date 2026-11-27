@@ -22,6 +22,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
+#include "Tables/PlayerModels.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -41,7 +42,7 @@ namespace
 {
 // 0x56c6ab: +0x88 en 1, un jugador; 0x56c6c6: el tipo de los jugadores.
 constexpr std::uint8_t PlayerKind = 1;
-constexpr std::uint16_t PlayerType = 0x20a;
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 // 0x56cfbe (0x69780 = 400 × 0x438) y 0x570617 (0x190): los que recorre el de enfrente.
 constexpr std::size_t SearchedActors = 400;
 // 0x56c730 y 0x56c78a: a lo sumo una celda.

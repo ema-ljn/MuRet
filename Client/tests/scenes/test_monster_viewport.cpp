@@ -254,15 +254,15 @@ protected:
         ASSERT_EQ(runtime.selectedTargets[3], -1);
         std::vector<std::int16_t> talkKeys;
         runtime.movement.mouseUpdateTime = 6;
-        const auto clicked =
-            Client::Scenes::StepHeroMovement({.world = game->world,
-                                              .random = game->cloth.random,
-                                              .playerSkeleton = game->models.SkeletonOf(PlayerSkeletonModel),
-                                              .items = &game->items,
-                                              .skills = &skills,
-                                              .input = {.leftPressed = true, .leftDown = true},
-                                              .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); },
-                                              .terrain = &game->states.terrain.current});
+        const auto clicked = Client::Scenes::StepHeroMovement(
+            {.world = game->world,
+             .random = game->cloth.random,
+             .playerSkeleton = game->models.SkeletonOf(Client::Models::ModelId{PlayerSkeletonModel}),
+             .items = &game->items,
+             .skills = &skills,
+             .input = {.leftPressed = true, .leftDown = true},
+             .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); },
+             .terrain = &game->states.terrain.current});
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
         ASSERT_EQ(talkKeys, (std::vector<std::int16_t>{key}));
     }
@@ -862,10 +862,10 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         const auto applied = Monsters(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         auto& models = game->states.assets.fauna;
-        const auto* model = models.Find(tested.model);
+        const auto* model = models.Find(Client::Models::ModelId{tested.model});
         ASSERT_NE(model, nullptr);
         ASSERT_FALSE(model->meshes.empty());
-        EXPECT_EQ(models.MeshTextures(tested.model).size(), model->meshes.size());
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{tested.model}).size(), model->meshes.size());
         const auto requests = models.TextureTable().Slots().ToLoad();
         ASSERT_FALSE(requests.empty());
         EXPECT_TRUE(requests.front().path.starts_with(tested.folder)) << requests.front().path;
@@ -874,7 +874,7 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         if (tested.model == 0x198)
         {
             // El 0x46 va por 0x613053: las acciones 3 y 4 en 0,5 y la 2 en 0,3; el hueso de la cabeza, 0x14.
-            const auto* skeleton = models.SkeletonOf(0x198);
+            const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{0x198});
             ASSERT_NE(skeleton, nullptr);
             EXPECT_EQ(skeleton->actions[3].speed, 0.5f);
             EXPECT_EQ(skeleton->actions[2].speed, Real(0x3e99999a));
@@ -888,8 +888,8 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         {{.key = 0x0124, .typeLow = 19, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
     ASSERT_TRUE(Monsters(records).HasValue());
     const auto& devias = game->states.assets.fauna;
-    EXPECT_EQ(devias.SkeletonOf(0x15e)->actions[2].speed, Real(0x3e99999a));
-    EXPECT_EQ(devias.SkeletonOf(0x15e)->headBone, 0x14);
+    EXPECT_EQ(devias.SkeletonOf(Client::Models::ModelId{0x15e})->actions[2].speed, Real(0x3e99999a));
+    EXPECT_EQ(devias.SkeletonOf(Client::Models::ModelId{0x15e})->headBone, 0x14);
     EXPECT_EQ(devias.SoundActions(0x15e)[0], 0x44);
     const int loads = game->store.loadCalls;
     records[0].key = 0x0125;
@@ -902,11 +902,11 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
     records[0] = {
         .key = 0x0126, .typeLow = 3, .x = lorencia.x, .y = lorencia.y, .targetX = lorencia.x, .targetY = lorencia.y};
     ASSERT_TRUE(Monsters(records).HasValue());
-    EXPECT_EQ(game->states.assets.fauna.SkeletonOf(0x15b)->actions[2].speed, Real(0x3f99999a));
+    EXPECT_EQ(game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{0x15b})->actions[2].speed, Real(0x3f99999a));
     records[0] = {
         .key = 0x0127, .typeLow = 251, .x = lorencia.x, .y = lorencia.y, .targetX = lorencia.x, .targetY = lorencia.y};
     ASSERT_TRUE(Monsters(records).HasValue());
-    for (const auto& action : game->states.assets.fauna.SkeletonOf(0x1ce)->actions)
+    for (const auto& action : game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{0x1ce})->actions)
         EXPECT_EQ(action.speed, 0.25f);
 }
 
@@ -945,7 +945,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     applied = Monsters(records);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(2).type, 0x160);
-    ASSERT_NE(game->states.assets.fauna.SkeletonOf(0x160), nullptr);
+    ASSERT_NE(game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{0x160}), nullptr);
     EXPECT_EQ(Actor(2).animation.action, 1);
     EXPECT_EQ(Actor(2).animation.previousAction, 1);
     EXPECT_EQ(Actor(2).alpha, 1.0f);

@@ -1113,7 +1113,8 @@ Core::Expected<void, std::string> EndTheShout(Kernel::DarkSpirit& spirit, std::s
         if (!drawn)
             return Core::Unexpected(std::string("0x418a8c: sin el cuervo dibujado en este frame, 0x4ee770 lee el "
                                                 "scratch (0x5786f9c) del último modelo posado"));
-        if (const Data::Models::Model* model = pass.models.Find(Scenes::DarkSpiritModel); model != nullptr)
+        if (const Data::Models::Model* model = pass.models.Find(Models::ModelId{Scenes::DarkSpiritModel});
+            model != nullptr)
         {
             const VertexEffectCall call{.mesh = ShoutMesh,
                                         .type = ShoutEffects,
@@ -1158,7 +1159,7 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
         const bool shell = (owner.flags78 & RiderFlag) != 0;
         if (!shell && (!pass.terrain.heights || !pass.terrain.attributes))
             return Core::Unexpected<std::string>("0x600a0b: faltan las alturas del terreno para la sombra del cuervo");
-        const Models::Skeleton* skeleton = pass.models.SkeletonOf(Scenes::DarkSpiritModel);
+        const Models::Skeleton* skeleton = pass.models.SkeletonOf(Models::ModelId{Scenes::DarkSpiritModel});
         const glm::vec3 light = Terrain::LightAt(*pass.lighting, spirit.position.x, spirit.position.y);
         // The game's characters are drawn as the step left them: the raven too (`stepAlpha` at 0).
         DrawnObject drawn = Scenes::DrawnDarkSpirit(spirit, skeleton, light, 0.0f);
@@ -1204,8 +1205,8 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
                 scratch = pass.carry->meshes;
             return EndTheShout(spirit, scratch, ravenPosed, pass);
         }
-        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(Scenes::DarkSpiritModel), *pass.random,
-                                  pass.particles, pass.worldClock, pass.world);
+        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(Models::ModelId{Scenes::DarkSpiritModel}),
+                                  *pass.random, pass.particles, pass.worldClock, pass.world);
     }
     return {};
 }

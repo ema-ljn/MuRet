@@ -8,6 +8,7 @@
 #include "Render/ITextureStore.h"
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
+#include "Models/ModelId.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -36,10 +37,10 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
                                                          Render::ITextureStore& textures, Core::Log& log);
 
-    [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
-    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
-    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
+    [[nodiscard]] const Data::Models::Model* Find(Models::ModelId model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(Models::ModelId model) const override;
+    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(Models::ModelId model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(Models::ModelId model) const override;
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     // The slot of each texture that was uploaded, only if it was published: each goes to its entry's, which is its
     // selector. It is what 0x620780 binds for the particles.

@@ -90,7 +90,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Client::Assets::GameModels models;
     const auto loadedModels = models.Load(m_dataRoot, textures, online.log);
     ASSERT_TRUE(loadedModels.HasValue()) << loadedModels.Error();
-    const auto* player = models.SkeletonOf(Client::Tables::PlayerSkeletonModel);
+    const auto* player = models.SkeletonOf(Client::Tables::PlayerSkeletonModelId);
     ASSERT_NE(player, nullptr);
 
     // El constructor de la lista lee el terreno del login anterior; InitializeSelection carga

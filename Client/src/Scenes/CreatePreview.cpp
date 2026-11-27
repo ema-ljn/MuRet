@@ -22,6 +22,7 @@
 #include "Camera/SceneCameras.h"
 #include "Assets/SceneTextures.h"
 #include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
 #include "Assets/TextureSets.h"
 #include "UI/Widget.h"
 
@@ -160,24 +161,24 @@ void SelectionModels::Release()
     }
 }
 
-const Data::Models::Model* SelectionModels::Find(std::uint16_t model) const
+const Data::Models::Model* SelectionModels::Find(Models::ModelId model) const
 {
-    return m_models.ModelOf(model);
+    return m_models.ModelOf(model.Value());
 }
 
-const Models::Skeleton* SelectionModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* SelectionModels::SkeletonOf(Models::ModelId model) const
 {
-    return m_models.SkeletonOf(model);
+    return m_models.SkeletonOf(model.Value());
 }
 
-std::span<const Render::TextureSlot> SelectionModels::MeshTextures(std::uint16_t model) const
+std::span<const Render::TextureSlot> SelectionModels::MeshTextures(Models::ModelId model) const
 {
-    return m_models.MeshTextures(model);
+    return m_models.MeshTextures(model.Value());
 }
 
-std::span<const Models::MeshTraits> SelectionModels::MeshTraitsOf(std::uint16_t model) const
+std::span<const Models::MeshTraits> SelectionModels::MeshTraitsOf(Models::ModelId model) const
 {
-    return m_models.MeshTraitsOf(model);
+    return m_models.MeshTraitsOf(model.Value());
 }
 
 std::optional<Models::TextureMetadata> SelectionModels::TextureMetadataOf(std::uint32_t selector) const
@@ -213,7 +214,7 @@ void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, con
     preview.alive = true;
     preview.position = PreviewPosition;
     preview.animation = {};
-    if (const Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(characterClass)))
+    if (const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{NewFaceOf(characterClass)}))
     {
         Models::SetAction(preview.animation, *skeleton, GreetingAction);
     }
@@ -231,7 +232,7 @@ Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::ui
         return built;
     }
     preview.byte88 = 0;
-    if (const auto* skeleton = models.SkeletonOf(preview.type))
+    if (const auto* skeleton = models.SkeletonOf(Models::ModelId{preview.type}))
     {
         Models::SetAction(preview.animation, *skeleton, GreetingAction);
     }
@@ -240,7 +241,7 @@ Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::ui
 
 void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(preview.characterClass));
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{NewFaceOf(preview.characterClass)});
     if (skeleton == nullptr || preview.animation.action >= skeleton->actions.size())
     {
         return;
@@ -267,7 +268,7 @@ Actors::Drawing::DrawnObject DrawnPreview(CreatePreview& preview, const Models::
     Actors::Drawing::DrawnObject drawn;
     drawn.model = NewFaceOf(preview.characterClass);
     drawn.animation = preview.animation;
-    if (const Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
+    if (const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{drawn.model});
         skeleton != nullptr && preview.animation.action < skeleton->actions.size())
     {
         const Models::ActionInfo& action = skeleton->actions[preview.animation.action];

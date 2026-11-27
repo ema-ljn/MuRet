@@ -17,6 +17,7 @@
 #include "Models/Cloth.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -157,19 +158,21 @@ public:
         m_triangle.meshes.push_back(mesh);
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        const bool drawn = model == Client::Scenes::DarkHorseModel || model == Client::Tables::PlayerShadowModel ||
-                           model == ClassPartModel(BodyPart::Armor, DarkKnight);
+        const bool drawn = model.Value() == Client::Scenes::DarkHorseModel ||
+                           model.Value() == Client::Tables::PlayerShadowModel ||
+                           model.Value() == ClassPartModel(BodyPart::Armor, DarkKnight);
         return drawn ? &m_triangle : nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == PlayerSkeletonModel)
+        if (model.Value() == PlayerSkeletonModel)
             return &m_player;
-        return model == Client::Scenes::DarkHorseModel ? &m_horse : nullptr;
+        return model.Value() == Client::Scenes::DarkHorseModel ? &m_horse : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return m_textures;
     }

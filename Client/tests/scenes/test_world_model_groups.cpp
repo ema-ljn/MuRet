@@ -139,12 +139,12 @@ void ExpectOptionalGateBindings(const Client::Assets::WorldModels& models, const
                                 const Client::Tests::FakeTextureStore& store, std::uint16_t available)
 {
     EXPECT_EQ(models.Count(), 2u);
-    ASSERT_NE(models.Find(0xbc), nullptr);
-    ASSERT_NE(models.Find(0), nullptr);
-    ASSERT_EQ(models.MeshTextures(0xbc).size(), 1u);
-    ASSERT_EQ(models.MeshTextures(0).size(), 1u);
-    EXPECT_EQ(models.MeshTextures(0xbc).front(), TextureSlot{0x69});
-    EXPECT_EQ(models.MeshTextures(0).front(), TextureSlot{0x41c});
+    ASSERT_NE(models.Find(Client::Models::ModelId{0xbc}), nullptr);
+    ASSERT_NE(models.Find(Client::Models::ModelId{0}), nullptr);
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0xbc}).size(), 1u);
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0}).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0xbc}).front(), TextureSlot{0x69});
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), TextureSlot{0x41c});
     std::vector<std::uint16_t> expectedUploads{0x69};
     if (available != 0)
         expectedUploads.push_back(0x6a);
@@ -154,8 +154,8 @@ void ExpectOptionalGateBindings(const Client::Assets::WorldModels& models, const
     EXPECT_EQ(models.TextureSlots()->ToLoad().size(), expectedUploads.size());
     for (const std::uint16_t gate : {std::uint16_t{0x10c}, std::uint16_t{0x10d}})
     {
-        EXPECT_EQ(models.Find(gate), globals.Find(gate));
-        const auto slots = models.MeshTextures(gate);
+        EXPECT_EQ(models.Find(Client::Models::ModelId{gate}), globals.Find(Client::Models::ModelId{gate}));
+        const auto slots = models.MeshTextures(Client::Models::ModelId{gate});
         EXPECT_EQ(slots.size(), gate == available ? 1u : 0u);
         if (gate == available)
         {
@@ -199,15 +199,15 @@ TEST_F(WorldModelGroupsTest, EveryRemainingNominalMapLoadsItsSpecialFilesAndText
         for (const Special& special : probe.specials)
         {
             SCOPED_TRACE(special.model);
-            ASSERT_NE(models.Find(special.model), nullptr);
-            ASSERT_NE(models.SkeletonOf(special.model), nullptr);
-            const auto slots = models.MeshTextures(special.model);
+            ASSERT_NE(models.Find(Client::Models::ModelId{special.model}), nullptr);
+            ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{special.model}), nullptr);
+            const auto slots = models.MeshTextures(Client::Models::ModelId{special.model});
             ASSERT_EQ(slots.size(), 1u);
             EXPECT_EQ(slots.front(), TextureSlot{special.slot});
             EXPECT_TRUE(m_store.Find(slots.front()).has_value());
         }
-        ASSERT_EQ(models.MeshTextures(0).size(), 1u);
-        EXPECT_EQ(models.MeshTextures(0).front(), TextureSlot{0x41c});
+        ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0}).size(), 1u);
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), TextureSlot{0x41c});
         models.Release();
     }
 }
@@ -225,9 +225,9 @@ TEST_F(WorldModelGroupsTest, EveryRemainingFamilyFindsItsSpecialModelsInTheRealD
         for (const Special& special : probe.specials)
         {
             SCOPED_TRACE(special.model);
-            ASSERT_NE(models.Find(special.model), nullptr);
-            EXPECT_NE(models.SkeletonOf(special.model), nullptr);
-            EXPECT_FALSE(models.MeshTextures(special.model).empty());
+            ASSERT_NE(models.Find(Client::Models::ModelId{special.model}), nullptr);
+            EXPECT_NE(models.SkeletonOf(Client::Models::ModelId{special.model}), nullptr);
+            EXPECT_FALSE(models.MeshTextures(Client::Models::ModelId{special.model}).empty());
         }
         models.Release();
     }
@@ -243,13 +243,14 @@ TEST_F(WorldModelGroupsTest, BloodCastleBorrowsTheModelsAndOverlaysTheirTextureB
 
     for (const std::uint16_t gate : {std::uint16_t{0x10c}, std::uint16_t{0x10d}})
     {
-        EXPECT_EQ(models.Find(gate), m_globals.Find(gate));
-        EXPECT_EQ(models.SkeletonOf(gate), m_globals.SkeletonOf(gate));
-        ASSERT_EQ(models.MeshTextures(gate).size(), 1u);
-        EXPECT_EQ(models.MeshTextures(gate).front(), TextureSlot{0x6a});
+        EXPECT_EQ(models.Find(Client::Models::ModelId{gate}), m_globals.Find(Client::Models::ModelId{gate}));
+        EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{gate}),
+                  m_globals.SkeletonOf(Client::Models::ModelId{gate}));
+        ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{gate}).size(), 1u);
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{gate}).front(), TextureSlot{0x6a});
         // 0x616370 and the sweep of 0x616e46 leave both global models on doorc01.jpg.
-        ASSERT_EQ(m_globals.MeshTextures(gate).size(), 1u);
-        EXPECT_EQ(m_globals.MeshTextures(gate).front(), TextureSlot{0x69});
+        ASSERT_EQ(m_globals.MeshTextures(Client::Models::ModelId{gate}).size(), 1u);
+        EXPECT_EQ(m_globals.MeshTextures(Client::Models::ModelId{gate}).front(), TextureSlot{0x69});
     }
     EXPECT_EQ(models.Count(), 2u) << "solo Crow y Object01 son propios del mapa";
     EXPECT_EQ(models.TextureSlotOf(0x69), TextureSlot{0x69});
@@ -263,7 +264,7 @@ TEST_F(WorldModelGroupsTest, BloodCastleBorrowsTheModelsAndOverlaysTheirTextureB
     ASSERT_TRUE(initialGate.has_value());
     EXPECT_EQ(initialGate->components, 3);
     models.Release();
-    EXPECT_EQ(models.Find(0x10c), nullptr);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0x10c}), nullptr);
     EXPECT_FALSE(models.TextureSlotOf(0x69).has_value());
 }
 
@@ -332,19 +333,19 @@ TEST_F(WorldModelGroupsTest, KalimaAppliesOnlyTheFourConcreteFirstActionStores)
 
     for (const std::uint16_t model : {std::uint16_t{0x122}, std::uint16_t{0x123}})
     {
-        const auto* skeleton = models.SkeletonOf(model);
+        const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{model});
         ASSERT_NE(skeleton, nullptr);
         ASSERT_GE(skeleton->actions.size(), 2u);
         EXPECT_FLOAT_EQ(skeleton->actions[0].speed, 0.13f);
         EXPECT_TRUE(skeleton->actions[0].repeats);
         EXPECT_FLOAT_EQ(skeleton->actions[1].speed, 0.0f);
     }
-    ASSERT_NE(models.SkeletonOf(0x126), nullptr);
-    EXPECT_FALSE(models.SkeletonOf(0x126)->actions[0].repeats);
-    ASSERT_NE(models.SkeletonOf(0x127), nullptr);
-    EXPECT_TRUE(models.SkeletonOf(0x127)->actions[0].repeats);
-    ASSERT_NE(models.SkeletonOf(0x11d), nullptr);
-    EXPECT_FLOAT_EQ(models.SkeletonOf(0x11d)->actions[0].speed, 0.0f);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x126}), nullptr);
+    EXPECT_FALSE(models.SkeletonOf(Client::Models::ModelId{0x126})->actions[0].repeats);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x127}), nullptr);
+    EXPECT_TRUE(models.SkeletonOf(Client::Models::ModelId{0x127})->actions[0].repeats);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x11d}), nullptr);
+    EXPECT_FLOAT_EQ(models.SkeletonOf(Client::Models::ModelId{0x11d})->actions[0].speed, 0.0f);
     models.Release();
 }
 
@@ -358,7 +359,7 @@ TEST_F(WorldModelGroupsTest, DungeonWritesTheSecondActionSpeedOnlyOnMapOne)
     {
         SCOPED_TRACE(static_cast<int>(map));
         ASSERT_TRUE(models.Load(folder.Path(), map, m_store, m_log, nullptr).HasValue());
-        const auto* skeleton = models.SkeletonOf(40);
+        const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{40});
         ASSERT_NE(skeleton, nullptr);
         ASSERT_EQ(skeleton->actions.size(), 2u);
         EXPECT_FLOAT_EQ(skeleton->actions[0].speed, 0.0f);
@@ -379,10 +380,10 @@ TEST_F(WorldModelGroupsTest, AKalimaActionMissingFromTheBmdStopsAfterTheEarlierS
 
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_NE(loaded.Error().find("0x618ca3"), std::string::npos) << loaded.Error();
-    ASSERT_NE(models.SkeletonOf(0x122), nullptr);
-    EXPECT_FLOAT_EQ(models.SkeletonOf(0x122)->actions[0].speed, 0.13f);
-    ASSERT_NE(models.SkeletonOf(0x126), nullptr);
-    EXPECT_FALSE(models.SkeletonOf(0x126)->actions[0].repeats);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x122}), nullptr);
+    EXPECT_FLOAT_EQ(models.SkeletonOf(Client::Models::ModelId{0x122})->actions[0].speed, 0.13f);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{0x126}), nullptr);
+    EXPECT_FALSE(models.SkeletonOf(Client::Models::ModelId{0x126})->actions[0].repeats);
     EXPECT_EQ(m_store.loadCalls, before);
     models.Release();
 }
@@ -402,7 +403,7 @@ TEST_F(WorldModelGroupsTest, MissingExileSpecialsAreOptionalButTheirInvalidWrapI
 
     ASSERT_FALSE(present.HasValue());
     EXPECT_NE(present.Error().find("0x617699"), std::string::npos) << present.Error();
-    EXPECT_NE(models.Find(0xe7), nullptr);
+    EXPECT_NE(models.Find(Client::Models::ModelId{0xe7}), nullptr);
     EXPECT_EQ(m_store.loadCalls, before);
     models.Release();
 }
@@ -438,8 +439,8 @@ TEST(WorldModelOwnershipTest, FailedActionsKeepResidentReferencesAcrossReleaseAn
 
         ASSERT_FALSE(failed.HasValue());
         EXPECT_NE(failed.Error().find(map == 1 ? "0x61a13c" : "0x612e5a"), std::string::npos);
-        ASSERT_EQ(models.MeshTextures(0).size(), 1u);
-        EXPECT_EQ(models.MeshTextures(0).front(), SharedSlot);
+        ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0}).size(), 1u);
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), SharedSlot);
         EXPECT_EQ(store.loadCalls, 1);
         EXPECT_EQ(table.Slots().Next(), TextureSlot{0x700});
         EXPECT_TRUE(table.Slots().ToLoad().empty());
@@ -487,7 +488,7 @@ TEST(WorldModelOwnershipTest, AFailedEmptySlotDoesNotOwnALaterUpload)
     ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
     EXPECT_TRUE(table.Slots().NameOf(slot).empty());
     EXPECT_EQ(table.Slots().Next(), TextureSlot{0x41d});
-    EXPECT_EQ(models.MeshTextures(0).front(), Client::Render::UnboundModelTextureSlot);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), Client::Render::UnboundModelTextureSlot);
 
     const Client::Data::Textures::TextureSetEntry entry{"Object3/later.tga", slot.value, {}};
     const auto loaded = Client::Data::Textures::LoadTextureSet(folder.Path(), std::span(&entry, 1));
@@ -580,7 +581,7 @@ TEST(WorldModelOwnershipTest, FailedReplacementPreservesTheResidentAndDoesNotDra
 
         Client::Tests::WriteSceneFile(folder.Path(), "Object3/new.OZT", Client::Tests::PlainOzt(32, 32));
         ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
-        EXPECT_EQ(models.MeshTextures(0).front(), resident);
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), resident);
         EXPECT_EQ(table.Slots().NameOf(resident), "new.tga");
         ASSERT_TRUE(store.Find(resident).has_value());
         EXPECT_EQ(store.Find(resident)->texture.textureWidth, 32);

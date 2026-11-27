@@ -664,8 +664,8 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
     // (its rand() belongs to the set, which 0x509340 passes at 0). The light of 0x509a92 and the model's case run the
     // same. So the hand of a type that is not an item (0xff0 gives 0x1202) draws nothing. Not ported: the per-level
     // effects of 0x60b3d0 (0x530860, 0x5491e0) on such a model.
-    const Models::Skeleton* skeleton = pass.models.SkeletonOf(type);
-    if (pass.models.Find(type) == nullptr || skeleton == nullptr)
+    const Models::Skeleton* skeleton = pass.models.SkeletonOf(Models::ModelId{type});
+    if (pass.models.Find(Models::ModelId{type}) == nullptr || skeleton == nullptr)
         return ItemSprites(frame, model, origin);
     // 0x5093a3 and 0x50997e: the model's action is the part's, except 0x1a18 in the safe zone (with the part's model,
     // not the one that draws).
@@ -757,7 +757,7 @@ BackItem BackItemOf(const Kernel::ActorState& actor, bool back)
 
 float PlayerActionSpeed(const GameHangingPass& pass, std::size_t action)
 {
-    const Models::Skeleton* player = pass.models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const Models::Skeleton* player = pass.models.SkeletonOf(Tables::PlayerSkeletonModelId);
     return player != nullptr && action < player->actions.size() ? player->actions[action].speed : 0.0f;
 }
 
@@ -1195,8 +1195,8 @@ Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
     if (MuSignBone >= pass.body.size())
         return Core::Unexpected(
             std::format("0x4144d6: el hueso {:#x} del cuerpo no existe", static_cast<int>(MuSignBone)));
-    const Models::Skeleton* skeleton = pass.models.SkeletonOf(MuSign);
-    if (pass.models.Find(MuSign) == nullptr || skeleton == nullptr)
+    const Models::Skeleton* skeleton = pass.models.SkeletonOf(Models::ModelId{MuSign});
+    if (pass.models.Find(Models::ModelId{MuSign}) == nullptr || skeleton == nullptr)
         return Core::Unexpected(std::string("0x414470: falta Skill\\MuSign.bmd (0x12a) de la capa de los GM"));
     DrawnObject object;
     object.model = MuSign;

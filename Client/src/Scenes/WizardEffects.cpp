@@ -151,9 +151,10 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
                     continue;
                 // 0x4ea030 lee las acciones de 0x5769ad8 + tipo · 0xe0: primero los modelos del mapa (FaunaModels) y
                 // después los del juego, como MonsterSkeletonOf. Un modelo que no está es el registro sin acciones.
-                const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(actor.type);
+                const Models::Skeleton* skeleton =
+                    Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(Models::ModelId{actor.type});
                 if (skeleton == nullptr && models != nullptr)
-                    skeleton = models->SkeletonOf(actor.type);
+                    skeleton = models->SkeletonOf(Models::ModelId{actor.type});
                 if (actor.type != Tables::PlayerSkeletonModel)
                 {
                     // 0x524b0a: 0x4ea030(personaje, 5).

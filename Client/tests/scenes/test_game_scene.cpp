@@ -31,6 +31,7 @@
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -623,19 +624,20 @@ public:
             Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == Client::Tables::PlayerSkeletonModel)
+        if (model.Value() == Client::Tables::PlayerSkeletonModel)
         {
             return &m_player;
         }
-        return model == Client::Scenes::DarkHorseModel ? &m_skeleton : nullptr;
+        return model.Value() == Client::Scenes::DarkHorseModel ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }

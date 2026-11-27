@@ -252,7 +252,7 @@ TEST_F(RouteTest, ACombatHandlerGetsTheCombatContextOfTheWorld)
     ASSERT_TRUE(combatParts.has_value());
     EXPECT_EQ(combatParts->world, &world->world);
     EXPECT_EQ(combatParts->random, &world->cloth.random);
-    EXPECT_EQ(combatParts->playerSkeleton, world->models.SkeletonOf(Client::Tables::PlayerSkeletonModel));
+    EXPECT_EQ(combatParts->playerSkeleton, world->models.SkeletonOf(Client::Tables::PlayerSkeletonModelId));
     EXPECT_EQ(combatParts->models, &world->models);
 }
 

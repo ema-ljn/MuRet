@@ -21,6 +21,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -103,8 +104,8 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
     }
     // 0x5ffdf0 sale antes de posar con alpha<0,01; los dummy tampoco escriben el buffer global.
     constexpr float VisibleAlpha = 0.01f;
-    const Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
-    if (drawn.alpha < VisibleAlpha || models.Find(drawn.model) == nullptr || skeleton == nullptr ||
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{drawn.model});
+    if (drawn.alpha < VisibleAlpha || models.Find(Models::ModelId{drawn.model}) == nullptr || skeleton == nullptr ||
         bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
     {
         return Core::Unexpected(std::format("el hueso {} quedó de una pose anterior que MuRet no conserva", bone));
@@ -295,7 +296,7 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World
     if (particle.type == World::SwellLifeParticle && particle.subtype == World::SwellLifeParticleSubtype)
     {
         // 0x544a9d..0x544b09: dirección retenida, sin leer alive ni flags. No usa la escala del modelo ni 53fdb0.
-        constexpr std::uint16_t PlayerType = 0x20a;
+        constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
         if (owner.type != PlayerType || owner.byte88 != 1)
             return std::nullopt;
         const auto bone = Math::OriginalFtolLow(static_cast<double>(particle.rotation));

@@ -146,7 +146,7 @@ Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::
     }
     else
     {
-        const auto* skeleton = resources.models.SkeletonOf(actor.type);
+        const auto* skeleton = resources.models.SkeletonOf(Models::ModelId{actor.type});
         if (skeleton == nullptr)
             return Core::Unexpected(std::string("0x4f53a0: falta Player.bmd para el personaje golpeado"));
         const bool fenrir = actor.pet.model == Fenrir;

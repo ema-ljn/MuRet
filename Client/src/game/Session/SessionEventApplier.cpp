@@ -61,7 +61,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
                                                                       const App::ServerSession&)
 {
     return m_resources.selection.Apply(std::span(&event, 1), m_resources.camera, m_resources.cameraInput,
-                                       &m_resources.cloth, m_resources.models.SkeletonOf(Tables::PlayerSkeletonModel));
+                                       &m_resources.cloth,
+                                       m_resources.models.SkeletonOf(Tables::PlayerSkeletonModelId));
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,

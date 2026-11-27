@@ -44,8 +44,8 @@ Core::Expected<void, std::string> ShedTheSkinShells(Kernel::ActorState& owner, s
                                                     World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     constexpr std::uint16_t Shadow = Tables::PlayerShadowModel;
-    const Data::Models::Model* model = models.Find(Shadow);
-    const Models::Skeleton* skeleton = models.SkeletonOf(Shadow);
+    const Data::Models::Model* model = models.Find(Models::ModelId{Shadow});
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{Shadow});
     if (model == nullptr || skeleton == nullptr)
         return Core::Unexpected(std::string("0x53c1eb: falta el modelo 0x20b (Player\\Shadow01) del joint 0x632"));
     // 0x53c1c6..0x53c1eb: el cuadro, el anterior y la acción anterior en 0; la acción, la escala y el origen, los del

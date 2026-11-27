@@ -177,7 +177,7 @@ Actors::Drawing::DrawnObject DrawTheObject(Render::ModelBatch& batch, const Mode
                                            const World::ObjectModelStepState* modelState = nullptr,
                                            const FaunaDrawCarry* retainedPose = nullptr)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)});
     Actors::Drawing::DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
     if (modelState != nullptr)
     {
@@ -353,7 +353,8 @@ Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObj
     const AfterObjectStep seenStep = [&](World::WorldObject& object) -> Core::Expected<void, std::string>
     {
         if (auto stepped = World::StepWorldObjectChecked(
-                object, map, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), random, globals);
+                object, map, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}), random,
+                globals);
             !stepped.HasValue())
         {
             return stepped;
@@ -376,7 +377,8 @@ void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, c
         {
             continue;
         }
-        World::StepWorldObject(object, map, models.SkeletonOf(static_cast<std::uint16_t>(object.type)));
+        World::StepWorldObject(object, map,
+                               models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}));
     }
 }
 
@@ -414,7 +416,7 @@ void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& mo
         if (effects.onPose && (effects.frames > 0 || effects.publishProjectedPose) && draw.posed)
         {
             const auto poseObject =
-                Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), alpha);
+                Drawn(object, draw, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}), alpha);
             if (poseObject.alpha >= .01f)
                 if (auto published = effects.onPose(poseObject); !published.HasValue())
                     return;
@@ -524,7 +526,7 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const Models::IModelLibrary&
         return;
     constexpr glm::vec3 ChromeLight{1.0f, std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3dcccccdu)};
     Actors::Drawing::DrawnObject chromed =
-        Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(type)), 0.0f);
+        Drawn(object, draw, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(type)}), 0.0f);
     if (retained != nullptr)
         chromed.retainedMeshes = retained->meshes;
     chromed.color = ChromeLight;
@@ -583,7 +585,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
     if (map == DeviasMap)
     {
         return StepDeviasObjectFrame(object, commonRandom, pass,
-                                     models.SkeletonOf(static_cast<std::uint16_t>(object.type)), posed);
+                                     models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}),
+                                     posed);
     }
     return {};
 }
@@ -635,11 +638,12 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             object.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.hero->byte1a1, object.alpha);
         // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
         World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
-        const auto poseObject = Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), 0);
+        const auto poseObject =
+            Drawn(object, draw, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}), 0);
         // Los marcadores ocultos también pisan la pose global antes de omitir la geometría.
         if ((pass.originalFrame || pass.publishProjectedPose) && pass.onPose && draw.posed &&
-            poseObject.alpha >= 0.01f && models.Find(poseObject.model) != nullptr &&
-            models.SkeletonOf(poseObject.model) != nullptr)
+            poseObject.alpha >= 0.01f && models.Find(Models::ModelId{poseObject.model}) != nullptr &&
+            models.SkeletonOf(Models::ModelId{poseObject.model}) != nullptr)
         {
             if (auto published = pass.onPose(poseObject); !published.HasValue())
                 return published;
@@ -653,7 +657,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             constexpr std::int16_t EndKalimaBody = 160;
             if (object.type < FirstKalimaBody || object.type >= EndKalimaBody)
                 return Core::Unexpected(std::string("0x438fe0: tipo Kalima fuera del cuerpo público0..159"));
-            if (models.Find(poseObject.model) == nullptr || models.SkeletonOf(poseObject.model) == nullptr)
+            if (models.Find(Models::ModelId{poseObject.model}) == nullptr ||
+                models.SkeletonOf(Models::ModelId{poseObject.model}) == nullptr)
                 return Core::Unexpected(std::string("0x5ffdf0: falta el modelo o el esqueleto de Kalima"));
         }
         if (pass.map == LostTowerMap && draw.kind != World::ObjectDrawKind::Hidden)
@@ -799,7 +804,7 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const Models::IMode
     {
         if (effect.alive)
         {
-            World::StepModelEffect(effect, models.SkeletonOf(static_cast<std::uint16_t>(effect.type)));
+            World::StepModelEffect(effect, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)}));
         }
     }
 }
@@ -864,8 +869,8 @@ Core::Expected<void, std::string> DrawModelEffects(Render::ModelBatch& batch, co
         }
         drawn.alpha = effect.alpha;
         drawn.vertexLight = effect.vertexLight;
-        if (onPose && !(drawn.alpha < 0.01f) && models.Find(drawn.model) != nullptr &&
-            models.SkeletonOf(drawn.model) != nullptr)
+        if (onPose && !(drawn.alpha < 0.01f) && models.Find(Models::ModelId{drawn.model}) != nullptr &&
+            models.SkeletonOf(Models::ModelId{drawn.model}) != nullptr)
         {
             if (auto published = onPose(drawn); !published.HasValue())
                 return published;

@@ -336,7 +336,7 @@ CharacterSelectScene::MakeCharacter(const Protocol::FrontEnd::CharacterEntry& en
     // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
     character.appearance = entry.withoutEquipment ? Kernel::ClassAppearance(characterClass, 0)
                                                   : Kernel::AppearanceOf(characterClass, 0, entry.equipment);
-    if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel))
+    if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId))
     {
         Models::SetAction(character.animation.body, *skeleton, StandingAction);
     }
@@ -515,14 +515,14 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
     return {.world = *m_context.world,
             .random = m_context.cloth->random,
             .scene = SceneId::CharacterSelect,
-            .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel),
+            .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId),
             .items = m_items,
             .terrain = StepTerrain(),
-            .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
+            .darkSpiritSkeleton = m_models.SkeletonOf(Models::ModelId{DarkSpiritModel}),
             .particles = &m_context.world->Particles(),
             .worldClock = clock,
             .counter = m_context.cloth->logicSteps,
-            .newFaceSkeleton = m_selectionModels.SkeletonOf(Preview().type),
+            .newFaceSkeleton = m_selectionModels.SkeletonOf(Models::ModelId{Preview().type}),
             .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); },
             .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
             { m_context.world->Runtime().RequestSound(sound, origin); },
@@ -1723,7 +1723,7 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
 
 bool CharacterSelectScene::HasTheSkeleton() const
 {
-    const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId);
     return skeleton != nullptr && !skeleton->actions.empty();
 }
 
@@ -1780,7 +1780,7 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kerne
 Actors::FullSetScan CharacterSelectScene::ScanTheCharacter(const Kernel::CharacterAppearance& appearance, int frames)
 {
     if (m_context.world == nullptr || m_context.cloth == nullptr ||
-        m_models.SkeletonOf(Tables::PlayerSkeletonModel) == nullptr)
+        m_models.SkeletonOf(Tables::PlayerSkeletonModelId) == nullptr)
     {
         return {};
     }

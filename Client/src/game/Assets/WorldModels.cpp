@@ -202,7 +202,7 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
         for (std::uint16_t gate = 0x10c; gate <= 0x10d; ++gate)
         {
             // 0x60d617..0x60d61b: a Gate without meshes requests no texture and does not advance the cursor.
-            if (const Data::Models::Model* model = m_globalModels->Find(gate); model != nullptr)
+            if (const Data::Models::Model* model = m_globalModels->Find(Models::ModelId{gate}); model != nullptr)
                 m_globalBindings[gate] =
                     TextureSlots()->Assign(*model, "Monster\\", WorldModelSampling, &textureRequests.requests,
                                            &textureRequests.bindings[gate]);
@@ -390,32 +390,32 @@ void WorldModels::Release()
     m_globalModels = nullptr;
 }
 
-const Data::Models::Model* WorldModels::Find(std::uint16_t model) const
+const Data::Models::Model* WorldModels::Find(Models::ModelId model) const
 {
-    if (const Data::Models::Model* own = m_models.ModelOf(model))
+    if (const Data::Models::Model* own = m_models.ModelOf(model.Value()))
         return own;
     return m_globalModels != nullptr ? m_globalModels->Find(model) : nullptr;
 }
 
-const Models::Skeleton* WorldModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* WorldModels::SkeletonOf(Models::ModelId model) const
 {
-    if (const Models::Skeleton* own = m_models.SkeletonOf(model))
+    if (const Models::Skeleton* own = m_models.SkeletonOf(model.Value()))
         return own;
     return m_globalModels != nullptr ? m_globalModels->SkeletonOf(model) : nullptr;
 }
 
-std::span<const Render::TextureSlot> WorldModels::MeshTextures(std::uint16_t model) const
+std::span<const Render::TextureSlot> WorldModels::MeshTextures(Models::ModelId model) const
 {
-    if (const LoadedModel* own = m_models.Find(model))
+    if (const LoadedModel* own = m_models.Find(model.Value()))
         return own->meshTextures;
-    if (const auto bound = m_globalBindings.find(model); bound != m_globalBindings.end())
+    if (const auto bound = m_globalBindings.find(model.Value()); bound != m_globalBindings.end())
         return bound->second;
     return m_globalModels != nullptr ? m_globalModels->MeshTextures(model) : std::span<const Render::TextureSlot>{};
 }
 
-std::span<const Models::MeshTraits> WorldModels::MeshTraitsOf(std::uint16_t model) const
+std::span<const Models::MeshTraits> WorldModels::MeshTraitsOf(Models::ModelId model) const
 {
-    if (const LoadedModel* own = m_models.Find(model))
+    if (const LoadedModel* own = m_models.Find(model.Value()))
         return own->meshes;
     return m_globalModels != nullptr ? m_globalModels->MeshTraitsOf(model) : std::span<const Models::MeshTraits>{};
 }

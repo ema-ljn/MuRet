@@ -12,6 +12,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/ModelVertex.h"
 #include "Math/OriginalRotation.h"
 #include "Render/TextureSlot.h"
@@ -183,15 +184,15 @@ public:
         m_model.meshes.push_back(mesh);
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        return model == Boots || model == Client::Tables::PlayerShadowModel ? &m_model : nullptr;
+        return model.Value() == Boots || model.Value() == Client::Tables::PlayerShadowModel ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == Client::Tables::PlayerSkeletonModel ? &m_skeleton : nullptr;
+        return model.Value() == Client::Tables::PlayerSkeletonModel ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }
@@ -567,7 +568,7 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     EXPECT_EQ(m_cloth.random.State(), 0x3d6c1037u); // six rand calls: (body + two hands) times two frames
     EXPECT_EQ(Actor().byte38eAccesses, 0);
     // 0x509340 leaves the body's pose in the own bones (+0x120) for the next step (0x506d25).
-    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModel)->bones.size());
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModelId)->bones.size());
 }
 
 // Q-C412: 0x6001b0 copies the character's scale and position to Player.bmd's shared model before posing, with the alpha
@@ -977,7 +978,7 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithou
     ASSERT_TRUE(tail.HasValue()) << tail.Error();
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
     EXPECT_EQ(Actor().byte38eAccesses, 0);
-    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModel)->bones.size());
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModelId)->bones.size());
 }
 
 // Between original frames, on copies: neither the rand(), nor the own bones, nor the shared model.

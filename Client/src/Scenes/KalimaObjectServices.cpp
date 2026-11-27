@@ -178,7 +178,8 @@ Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch
     }
     current.alpha = drawn.alpha;
     // 4395bf: el tipo34 tiene una malla extra, sólo si el contador signed16 supera1.
-    if (object.type == 34 && models.Find(drawn.model) != nullptr && models.Find(drawn.model)->meshes.size() > 1)
+    if (object.type == 34 && models.Find(Models::ModelId{drawn.model}) != nullptr &&
+        models.Find(Models::ModelId{drawn.model})->meshes.size() > 1)
     {
         if (!models.TextureSlotOf(Actors::Drawing::ChromeTextureSlot.value))
             return Core::Unexpected(std::string("0x4395fc: falta la textura Chrome del objeto34 de Kalima"));

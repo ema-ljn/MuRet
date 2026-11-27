@@ -1147,7 +1147,7 @@ TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNati
         EXPECT_EQ(hero.hands[0].model, 0x1211);
         EXPECT_EQ(hero.hands[1].model, 0x1211);
         EXPECT_EQ(hero.hands[0].level, upgraded ? 13 : 0);
-        ASSERT_EQ(tested.models.Find(0x1211), nullptr);
+        ASSERT_EQ(tested.models.Find(Client::Models::ModelId{0x1211}), nullptr);
         Client::Render::ModelBatch batch;
         Client::Scenes::FaunaDrawCarry carry;
         auto sprites = std::make_unique<Client::World::FrameSprites>();

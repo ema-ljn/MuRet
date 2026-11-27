@@ -14,6 +14,9 @@ COMMANDS = {
     "diff",
     "dump",
     "build",
+    "action export",
+    "action import",
+    "action remove",
     "roundtrip",
 }
 
@@ -54,6 +57,11 @@ def test_help_of_one_command(cli: Cli) -> None:
 def test_help_of_a_subcommand(cli: Cli) -> None:
     (command,) = cli("workspace", "init", "--help").json["data"]["commands"]
     assert command["name"] == "workspace init"
+
+
+def test_help_of_a_group_describes_its_commands(cli: Cli) -> None:
+    commands = cli("action", "--help").json["data"]["commands"]
+    assert [command["name"] for command in commands] == ["action export", "action import", "action remove"]
 
 
 def test_human_help_is_text(cli: Cli) -> None:

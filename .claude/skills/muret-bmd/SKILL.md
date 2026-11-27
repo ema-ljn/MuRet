@@ -1,6 +1,6 @@
 ---
 name: muret-bmd
-description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file - a table (Text.bmd, item.bmd, skill.bmd, Gate.bmd, Dialog.bmd, quest.bmd, movereq.bmd and the other tables under `Data` and `Data/Local`) or a 3D model (its meshes, texture names, bones and actions, in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC` and the `Object` folders) - when a task names `mutools`, a game text, item, skill, gate, dialog or quest by its number or name, or a model's texture, bone or version (K16), or when `mutools` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED, INVALID_VALUE or STALE_FILE or a finding such as TEXTURE_NOT_FOUND or OUT_OF_RANGE.
+description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file - a table (Text.bmd, item.bmd, skill.bmd, Gate.bmd, Dialog.bmd, quest.bmd, movereq.bmd and the other tables under `Data` and `Data/Local`) or a 3D model (its meshes, texture names, bones and actions, in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC` and the `Object` folders) - when a task names `mutools`, a game text, item, skill, gate, dialog or quest by its number or name, or a model's texture, bone, action (an animation, to copy, add or remove) or version (K16), or when `mutools` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED, INVALID_VALUE or STALE_FILE or a finding such as TEXTURE_NOT_FOUND or OUT_OF_RANGE.
 ---
 
 # Editing .bmd files with mutools
@@ -127,6 +127,14 @@ list cut to one item:
   `replace` the whole list, or edit a `dump`. Lists that must agree are checked on every write (`INVALID_VALUE` at the
   list, nothing written): an action with `lock` 0 has no `positions`, and every bone has one entry per action, each
   with that action's `keys` positions and rotations.
+- **An action moves as a file of its own.** `action export FILE N --output A.json` writes action N to an action file:
+  its `keys`, its `lock` (and `positions` when the lock is not 0), and per bone its name, its parent and one
+  `positions` and one `rotations` entry, `[x, y, z]`, per key (rotations in radians). `action import FILE A.json` puts
+  it after the last action of a model with the same skeleton (as many bones, the same names and parents), or over
+  action N with `--at N`; `data.action` is its number. `action remove FILE N` takes out the last action with no flag,
+  and any other needs `--yes`, because every later action moves down one number and the client and the server name
+  a character's actions by their number. A new action of `player/Player.bmd` is 205; numbers up to 255 reach the
+  other players, because the action travels in one byte.
 - **`raw_0x...` are bytes the client does not use.** They show only when they are not zero. Leave them as they are.
 - **The version is the cipher, and only `build` changes it.** 12 is K16 (encrypted) and any other is plain: write 10,
   as 1,142 of the game's 1,146 plain models do. An edited model keeps its version. `set` and `apply` refuse
@@ -180,6 +188,9 @@ reports none of those, and `TEXTURE_ELSEWHERE` is only for a name you write.
 | Every bone with its parent | `get FILE /bones --limit 200` | `value`: item `i` is bone `i`, and `{"dummy": 1}` is a dummy one; `total` |
 | Change a texture name or a bone | `apply FILE '[{"op": "test", ...}, {"op": "replace", ...}]'` | `changes`, and `warnings`: the texture's findings |
 | Decrypt or encrypt a model | `dump`, change `version` in the JSON, `build` | `changes: [{pointer: "/version", ...}]` |
+| Copy an action to a file | `action export FILE N --output A.json` | `output`, `keys` |
+| Add an action from a file | `action import FILE A.json --limit 1` | `action`: the new action's number; `actions` |
+| Take out the last action | `action remove FILE N --limit 1` | `actions`: how many are left |
 | Check a file or a folder | `validate PATH` | `files: [{path, findings}]`, `checked`, `skipped` |
 | What changed since the reference | `diff REFERENCE_FILE FILE` | `changes: [{pointer, old, new}]`, `total` |
 
@@ -407,6 +418,17 @@ json.dump(view, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False)' $
 mutools build $TMP/m_waves.json --output $WORK/skill/m_waves.bmd
 ```
 
+Add an action to a model, and take it out again. The action file is JSON: change its poses with a script when the
+task asks for a new movement, never by printing it (31 KB for a player's action of 7 keys). `--limit 1` keeps the answer
+short, and its `action` is the new action's number.
+
+<!-- recipe: add-and-remove-an-action -->
+```bash
+mutools action export $WORK/NPC/BloodCastle01.bmd 0 --output $TMP/stand.json
+mutools action import $WORK/NPC/BloodCastle01.bmd $TMP/stand.json --limit 1
+mutools action remove $WORK/NPC/BloodCastle01.bmd 1 --limit 1
+```
+
 Make a working copy from somewhere that is not the repo, and check that a change to the tool keeps every file
 byte-exact.
 
@@ -451,8 +473,8 @@ is not `null`, is the next command to run or the flag to use.
 
 | Code | Exit | The way out |
 | --- | ---: | --- |
-| `USAGE` | 2 | `mutools <command> --help` |
-| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a number field a number inside its size, a hex field exactly its bytes, a patch is a list, `--field` a name `schema` lists; in a model, two lists that must agree do not, or the pointer is `/version` (only `build` changes it) |
+| `USAGE` | 2 | `mutools <command> --help`; on `action remove`, an action that is not the last needs `--yes` |
+| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a number field a number inside its size, a hex field exactly its bytes, a patch is a list, `--field` a name `schema` lists; in a model, two lists that must agree do not, or the pointer is `/version` (only `build` changes it); on `action import`, the action file is for another skeleton (`error.pointer` is its first bone that differs) |
 | `TEXT_TOO_LONG` | 2 | Shorten the text; the message gives its size and the field's in bytes |
 | `NOT_ENCODABLE` | 2 | Replace the character the file's encoding does not have |
 | `FILE_NOT_FOUND` | 20 | Check the path; names keep the case they have on disk, and the gates are in `Data`, not `Data/Local` |

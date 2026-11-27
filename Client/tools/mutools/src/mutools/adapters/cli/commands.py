@@ -12,6 +12,7 @@ from mutools import __version__
 from mutools.adapters.cli.envelope import to_json_value
 from mutools.adapters.cli.exit_codes import EXIT_FINDINGS, EXIT_OK
 from mutools.adapters.storage import LocalFileStore
+from mutools.app.actions import ActionEdit, ActionExport, export_action, import_action, remove_action
 from mutools.app.documents import EditResult, parse_json
 from mutools.app.edits import apply_operations, build, set_value
 from mutools.app.folders import (
@@ -65,6 +66,18 @@ class EditData:
 
 
 @dataclass(frozen=True, slots=True)
+class ActionData:
+    path: Path
+    action: int
+    actions: int
+    changed: bool
+    dry_run: bool
+    changes: tuple[Change, ...]
+    total: int
+    next_offset: int | None
+
+
+@dataclass(frozen=True, slots=True)
 class VersionData:
     version: str
 
@@ -110,6 +123,9 @@ OUTPUT_TYPES: Final[dict[str, Any]] = {
     "diff": DiffResult,
     "dump": DumpResult,
     "build": EditData,
+    "action export": ActionExport,
+    "action import": ActionData,
+    "action remove": ActionData,
     "roundtrip": RoundtripResult,
     "tui": TuiData,
     "web": WebData,
@@ -129,6 +145,9 @@ EXAMPLES: Final = {
     "diff": "mutools diff Client/assets/Data/Local/Text.bmd ~/mu/Data/Local/Text.bmd",
     "dump": "mutools dump ~/mu/Data/Local/Text.bmd --output text.json",
     "build": "mutools build text.json --output ~/mu/Data/Local/Text.bmd --dry-run",
+    "action export": "mutools action export ~/mu/Data/player/Player.bmd 194 --output action.json",
+    "action import": "mutools action import ~/mu/Data/player/Player.bmd action.json --dry-run",
+    "action remove": "mutools action remove ~/mu/Data/player/Player.bmd 205",
     "roundtrip": "mutools roundtrip ~/mu/Data",
     "tui": "mutools tui ~/mu/Data",
     "web": "mutools web ~/mu/Data",
@@ -155,10 +174,14 @@ FieldsOption = Annotated[
 ]
 NdjsonOption = Annotated[bool, typer.Option("--ndjson", help="One JSON line per finding, then the envelope")]
 OutputOption = Annotated[Path, typer.Option("--output", help="The file to write", show_default=False)]
+ModelArgument = Annotated[Path, typer.Argument(help="A model .bmd file", show_default=False)]
+ActionArgument = Annotated[int, typer.Argument(min=0, help="An action's number, from 0, as in /actions/N")]
 
 app = typer.Typer(add_completion=False, context_settings={"help_option_names": []})
 workspace_app = typer.Typer(context_settings={"help_option_names": []})
 app.add_typer(workspace_app, name="workspace", help="Working copies of a reference Data folder")
+action_app = typer.Typer(context_settings={"help_option_names": []})
+app.add_typer(action_app, name="action", help="A model's actions (its animations) as files of their own")
 
 
 @contextmanager
@@ -415,6 +438,76 @@ def build_command(
 ) -> Outcome:
     result = build(STORE, expanded(source), expanded(output), dry_run=dry_run)
     return edit_outcome("build", result, limit=limit, offset=offset)
+
+
+@action_app.command(
+    "export",
+    help="Write one action of a model to --output as an action file: its keys, its lock and every bone's position "
+    "and rotation in each key, with the bones' names and parents; returns only its path and size",
+)
+def action_export_command(
+    file: ModelArgument, action: ActionArgument, output: OutputOption, dry_run: DryRunOption = False
+) -> Outcome:
+    with about(file):
+        result = export_action(STORE, expanded(file), action, expanded(output), dry_run=dry_run)
+    return Outcome("action export", result, ActionExport)
+
+
+def action_outcome(command: str, edit: ActionEdit, limit: int, offset: int) -> Outcome:
+    result = edit.result
+    shown = page(list(result.changes), limit, offset)
+    changes = tuple(map(outlined, shown.items))
+    data = ActionData(
+        result.path, edit.action, edit.actions, result.changed, result.dry_run, changes, shown.total, shown.next_offset
+    )
+    return Outcome(command, data, ActionData, warnings=result.warnings)
+
+
+@action_app.command(
+    "import",
+    help="Put the action of an action file into a model with the same skeleton (the same bones, names and parents): "
+    "after its last action, or over action --at. action is its number and actions how many the model has now; "
+    "total counts the changes and changes holds --limit of them",
+)
+def action_import_command(
+    file: ModelArgument,
+    source: Annotated[
+        Path,
+        typer.Argument(
+            metavar="ACTION_FILE", help="An action file written by mutools action export", show_default=False
+        ),
+    ],
+    at: Annotated[
+        int | None,
+        typer.Option("--at", min=0, help="Put it over this action instead of after the last one", show_default=False),
+    ] = None,
+    dry_run: DryRunOption = False,
+    limit: LimitOption = DEFAULT_LIMIT,
+    offset: OffsetOption = 0,
+) -> Outcome:
+    with about(file):
+        edit = import_action(STORE, expanded(file), expanded(source), at=at, dry_run=dry_run)
+    return action_outcome("action import", edit, limit, offset)
+
+
+@action_app.command(
+    "remove",
+    help="Take an action out of a model and out of every bone. Any action but the last needs --yes, because every "
+    "later one moves down one number. total counts the changes and changes holds --limit of them",
+)
+def action_remove_command(
+    file: ModelArgument,
+    action: ActionArgument,
+    yes: Annotated[
+        bool, typer.Option("--yes", help="Remove an action that is not the last; every later one moves down one number")
+    ] = False,
+    dry_run: DryRunOption = False,
+    limit: LimitOption = DEFAULT_LIMIT,
+    offset: OffsetOption = 0,
+) -> Outcome:
+    with about(file):
+        edit = remove_action(STORE, expanded(file), action, yes=yes, dry_run=dry_run)
+    return action_outcome("action remove", edit, limit, offset)
 
 
 @app.command("roundtrip", help="Decode and encode every .bmd of a folder and report any file that changes")

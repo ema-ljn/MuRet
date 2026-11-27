@@ -1,4 +1,5 @@
 #include "Scenes/InventoryMoves.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -16,7 +17,6 @@
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Actors/ActorCharacterSet.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/NpcWindowState.h"
@@ -2328,7 +2328,7 @@ Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::Eq
 {
     // 0x5139f0 con el índice de 0x5110d0 (el 400 sin ninguno, que en el arreglo de 401 existe) mira el tipo (+2) y,
     // si no es un jugador, vuelve sin tocar nada (0x513a12).
-    const std::size_t index = ActorWithKey(resources.world, change.key);
+    const std::size_t index = Kernel::ActorWithKey(resources.world, change.key);
     if (resources.world.Actors()[index].type != Tables::PlayerSkeletonModel)
         return {};
     return Actors::ApplyCharacterSet(index, change.equipment, resources);

@@ -62,7 +62,6 @@ item-model	Scenes/SkillReplies.cpp	DarkHorseModel	0x1c16
 item-model	Scenes/SkillReplies.cpp	DinorantModel	0x1c15
 item-model	Scenes/SkillReplies.cpp	FenrirModel	0x1c37
 item-model	Scenes/SkillReplies.cpp	UniriaModel	0x1c14
-item-model	game/Actors/ViewportPlayers.cpp	FirstItemModel	0x212
 item-model	game/Kernel/CharacterAppearance.cpp	FirstItemModel	0x212
 map	GameLogic/CharacterPosition.cpp	FirstHighMap	0x8
 map	GameLogic/CharacterPosition.cpp	SecondHighMap	0xa

@@ -9,7 +9,6 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Assets/ModelTextureTable.h"
-#include "Actors/ViewportPlayers.h"
 #include "Protocol/Actors/Viewport.h"
 #include "UI/PanelDialog.h"
 #include "Protocol/CastleSiege/CastleBattle.h"
@@ -24,6 +23,7 @@
 #include "support/RecordingSink.h"
 #include "support/FakeTextureStore.h"
 #include "support/SceneDataFiles.h"
+#include "support/ViewportHandlers.h"
 #include "Assets/FaunaModels.h"
 
 #include <gtest/gtest.h>
@@ -320,11 +320,11 @@ TEST_P(CastleBattleReceiveTest, AViewportLeaveClearsTheReceivedHolderUsingTheFul
 {
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0002, 0x60));
-    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x813d}}, *m_world);
+    Client::Tests::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x813d}}, *m_world);
     auto& holders = *m_world->Runtime().castleSiege.castleSiegeInfo;
     EXPECT_EQ(holders[6], 0x16);
     EXPECT_EQ(holders[0x1b + 6], 0);
-    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x013d}}, *m_world);
+    Client::Tests::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x013d}}, *m_world);
     EXPECT_EQ(holders[6], 0);
     ExpectNoRandom();
 }

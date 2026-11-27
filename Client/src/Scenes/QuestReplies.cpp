@@ -1,4 +1,5 @@
 #include "Scenes/QuestReplies.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -7,7 +8,6 @@
 #include "Models/LogicalAccess.h"
 #include "Actors/ActorActions.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Actors/ClassParts.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -177,7 +177,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::Quest
     Kernel::WorldRuntime& runtime = world.Runtime();
     // Con una clave que no está, 0x5110d0 da el 400, como en el 1A (Q-C1125): la clase, los joints, el calco, 0x513100
     // y la acción van a él, como en el original.
-    const std::size_t slot = ActorWithKey(world, result.key);
+    const std::size_t slot = Kernel::ActorWithKey(world, result.key);
     runtime.RequestSound(PrizeSound);
     Kernel::ActorState& actor = world.Actors()[slot];
     const bool isHero = slot == runtime.hero;

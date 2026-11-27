@@ -1,11 +1,11 @@
 #include "Scenes/PersonalShopLists.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/InventoryMoves.h"
@@ -277,7 +277,7 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
             return placed;
     }
     // 0x4dba76..0x4dbab6: la copia del registro del dueño (0x438 bytes) si 0x5110d0 lo encuentra.
-    const std::size_t owner = ActorWithKey(world, list.key);
+    const std::size_t owner = Kernel::ActorWithKey(world, list.key);
     if (owner >= KeysSearched)
         return {};
     const Kernel::ActorState& actor = world.Actors()[owner];

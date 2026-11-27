@@ -13,15 +13,15 @@
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
 #include "Actors/ActorEffectFlags.h"
+#include "Kernel/ActorSearch.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ArrivalSparks.h"
 #include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CastleBattleActors.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/MonsterCreation.h"
-#include "Actors/ViewportPlayers.h"
+#include "Actors/ViewportRecord.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -384,7 +384,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
     Actors::WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
     // 0x4e0e16..0x4e0e1f: 0x5139f0 con el lugar de 0x5110d0 y el equipo de +7.
-    if (auto set = Actors::ApplyCharacterSet(ActorWithKey(world, record.key), record.equipment, resources);
+    if (auto set = Actors::ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources);
         !set.HasValue())
         return set;
     // 0x4e0e24..0x4e0e52: "   " (0x6c8648) y +0x1e3 en 0.

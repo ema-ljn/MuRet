@@ -1,4 +1,5 @@
 #include "Scenes/CastleWeaponEffects.h"
+#include "Kernel/ActorSearch.h"
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Network/PacketWriter.h"
@@ -9,7 +10,6 @@
 #include "Actors/ActionSend.h"
 #include "Actors/ActorShock.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/MonsterCreation.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -96,7 +96,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std
                                                           std::uint8_t x, std::uint8_t y,
                                                           const WorldEntryResources& resources)
 {
-    const auto slot = ActorWithKey(resources.world, key);
+    const auto slot = Kernel::ActorWithKey(resources.world, key);
     // WorldState retiene el lugar400sentinela que5110d0 devuelve; no se fabricaactor0.
     auto& actor = resources.world.Actors()[slot];
     if (auto set = SetMonsterAction(actor, 1, 0x44eec6, resources); !set.HasValue())

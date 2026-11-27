@@ -1,4 +1,5 @@
 #include "Scenes/MagicAttackCount.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -8,7 +9,6 @@
 #include "Models/LogicalAccess.h"
 #include "Actors/ActorShock.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/HandShine.h"
 #include "Scenes/MonsterCreation.h"
@@ -63,7 +63,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
     Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
     // 0x4cedec..0x4cedf7.
-    const std::size_t casterSlot = ActorWithKey(world, attack.key);
+    const std::size_t casterSlot = Kernel::ActorWithKey(world, attack.key);
     runtime.lastAttacker = static_cast<std::int32_t>(casterSlot);
     Kernel::ActorState& caster = world.Actors()[casterSlot];
     // 0x4cee0f.
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
     // 0x4cefeb..0x4cf196: cada blanco, con su clave entera (ESI).
     for (const std::uint16_t key : attack.targets)
     {
-        Kernel::ActorState& target = world.Actors()[ActorWithKey(world, key)];
+        Kernel::ActorState& target = world.Actors()[Kernel::ActorWithKey(world, key)];
         if (random.Next() % ShockOneIn == 0)
         {
             if (auto shocked = Actors::SetActorShock(target, target.damage, resources); !shocked.HasValue())

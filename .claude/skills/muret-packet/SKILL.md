@@ -41,9 +41,12 @@ return Network::ReadPacket(packet, ManaRefillLayout, [](Network::LayoutReader& r
 
 ## 2. The handler
 
-Until each module's AR4 design gives it an `In/` folder, the handler is today's applier, next to its neighbors
-(`Client/src/Scenes/InventoryMoves.h` for the 27). Its first parameter is the read value; each other parameter is a
-part of the world that `Client/src/game/Session/Route.h` hands it by type. It returns `void` or
+The handler goes in `<Module>/In/`, one file per packet, in its folder's namespace (`Client/src/game/Actors/In/` and
+`Client::Actors::In` for the 12, the 14, the 25, the 45 and the DF). A module whose AR4 design has not made that folder
+yet keeps today's applier, next to its neighbors (`Client/src/Scenes/InventoryMoves.h` for the 27). Its first parameter
+is the read value; each other parameter is a part of the world that `Client/src/game/Session/Route.h` hands it by
+type. What the handler asks of another module is a slot of its module's port, in the original's order, which the
+session fills (`Actors/ViewportHooks.h`, `Session/ViewportHooks.h`), not an include of that module. It returns `void` or
 `Core::Expected<void, std::string>`; an error fails the session. A value wider than the field it lands in narrows once,
 in the handler, with the operation the original does there (CODING_RULES §6).
 
@@ -53,6 +56,7 @@ in the handler, with the operation the original does there (CODING_RULES §6).
 | `World::LeafWeather&`, `Kernel::PlayerKey` | the weather; the player's key from the F1 00 |
 | `const Scenes::ChatReceiveContext&`, `const Scenes::GuildReceiveContext&`, `const Scenes::CastleReceiveContext&`, `const Scenes::ActorCombatContext&` | a module's context, built from the world and the session |
 | `const Scenes::ActionSender&`, `const Scenes::GamePacketSender&` | sending through the session's GameServer |
+| `const Actors::IViewportHooks&`, `const Actors::IViewportLeaveHooks&` | the viewport's slots, filled by the session |
 | `const Scenes::WorldEntryResources&` | the whole bag, only for an applier that already takes it |
 | `App::ServerSession&` | only the session's own handlers (`Session/SessionHandlers.h`) |
 

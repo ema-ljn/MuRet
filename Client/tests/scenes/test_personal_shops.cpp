@@ -17,7 +17,6 @@
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SocialState.h"
-#include "Actors/ViewportPlayers.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -29,6 +28,7 @@
 #include "support/MinimumSize.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
+#include "support/ViewportHandlers.h"
 
 #include <gtest/gtest.h>
 
@@ -312,7 +312,7 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
     m_world->Actors()[Buyer].byte88 = 1;
     Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{BuyerKey, "Joyas"}}}, *m_world);
     ASSERT_TRUE(Client::Scenes::HasShopTitle(Shops(), Buyer));
-    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{{BuyerKey}}, *m_world);
+    Client::Tests::ApplyViewportLeave(Client::Protocol::Actors::Leave{{BuyerKey}}, *m_world);
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
 }
 

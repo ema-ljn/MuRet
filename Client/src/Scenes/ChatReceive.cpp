@@ -1,5 +1,6 @@
 #include "Scenes/ChatReceive.h"
 
+#include "Kernel/ActorSearch.h"
 #include "Core/Expected.h"
 #include "Protocol/Chat/Messages.h"
 #include "Protocol/Player/OptionData.h"
@@ -54,8 +55,6 @@ constexpr Audio::SoundId WhisperSound = Sound::WhisperSound;
 constexpr std::uint8_t GuildMasterStatus = 0x80;
 constexpr std::array<std::uint8_t, 12> GuildMasterName{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8,
                                                        0xb6, 0xbd, 0xba, 0xc5, 0xcd, 0x00};
-// 0x5110d0: los 400 que recorre y el que devuelve sin ninguno.
-constexpr std::size_t KeySearched = 400;
 // 0x4c65b0: los tipos del 0D.
 constexpr std::uint8_t CenterNotice = 0;
 constexpr std::uint8_t SystemNotice = 1;
@@ -167,20 +166,6 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
 }
 } // namespace
 
-// 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
-// 0x8000 no la tiene nadie); sin ninguno, el 400.
-std::size_t ActorWithKey(const Kernel::WorldState& world, std::uint16_t key)
-{
-    const auto actors = world.Actors();
-    for (std::size_t index = 0; index < KeySearched; ++index)
-    {
-        const Kernel::ActorState& actor = actors[index];
-        if (actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key)
-            return index;
-    }
-    return KeySearched;
-}
-
 Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, const ChatReceiveContext& context)
 {
     if (context.scene == SceneId::Login)
@@ -218,7 +203,7 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, co
 Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& chat, const ChatReceiveContext& context)
 {
     Kernel::WorldState& world = context.world;
-    const std::size_t index = ActorWithKey(world, chat.key);
+    const std::size_t index = Kernel::ActorWithKey(world, chat.key);
     const auto actors = world.Actors();
     const Kernel::ActorState& speaker = actors[index];
     if (world.Hero().guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))

@@ -1,11 +1,11 @@
 #include "Actors/PkLevelReply.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Protocol/Player/PkLevel.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldState.h"
@@ -70,7 +70,7 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
 {
     Kernel::WorldState& world = resources.world;
     // 0x4d3b6c..0x4d3ba7: 0x5110d0(key) without looking at the result.
-    Kernel::ActorState& actor = world.Actors()[Scenes::ActorWithKey(world, packet.key)];
+    Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, packet.key)];
     actor.pk = packet.level;
     actor.level = packet.level < MurdererLevel ? 0 : 1;
     // 0x4d3ba7..0x4d3bb6: the table 0x4d3ca8 from 1 to 6; 0 and from 7 on, nothing else.
@@ -113,7 +113,7 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::string("0x4d3bf6: 0x555190 sin el medidor de los textos"));
     // 0x4d3bd7..0x4d3bf6: 0x5110d0(key) again, and 0x555190(+0x1d9 of that character, text, type).
-    const std::string name = Scenes::ChatNameOf(world.Actors()[Scenes::ActorWithKey(world, packet.key)]);
+    const std::string name = Scenes::ChatNameOf(world.Actors()[Kernel::ActorWithKey(world, packet.key)]);
     const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     return Scenes::AddGameMessage(world.Runtime(), *resources.textMeasure, screen, name, text, type);
 }

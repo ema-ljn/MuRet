@@ -1,4 +1,5 @@
 #include "Scenes/GuildReceive.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Protocol/Guild/Guild.h"
@@ -7,7 +8,6 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Actors/Emote.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GameMessages.h"
@@ -315,7 +315,7 @@ Core::Expected<void, std::string> ApplyJoinRequest(const JoinRequest& request, c
     }
     // 0x4d74f8: sin el personaje, 0x5110d0 da 400 y el original abre el diálogo con el nombre que lee después de los
     // 400 registros (Q-C1297). MuRet descarta el 50 entero, sin guardar la clave, como el 18 (Q-C778).
-    const std::size_t index = ActorWithKey(context.world, request.key);
+    const std::size_t index = Kernel::ActorWithKey(context.world, request.key);
     if (index >= ActorCount)
         return {};
     guild.requester = request.key;
@@ -447,7 +447,7 @@ Core::Expected<void, std::string> ApplyViewportGuildDelete(const ViewportGuildDe
 {
     // 0x4e4306: sin el personaje, 0x5110d0 da 400 y el original escribe después de los 400 registros (Q-C1298). MuRet
     // descarta el 5D entero: tampoco toca la cuenta de los miembros ni cierra el gremio.
-    const std::size_t index = ActorWithKey(context.world, deleted.key);
+    const std::size_t index = Kernel::ActorWithKey(context.world, deleted.key);
     if (index >= ActorCount)
         return {};
     context.world.Runtime().guild.memberCount = -1;
@@ -619,7 +619,7 @@ Core::Expected<void, std::string> ApplyViewportGuild(const ViewportGuild& viewpo
     {
         // 0x4d92b2: sin el personaje, 0x5110d0 da 400 y el original escribe después de los 400 registros (Q-C1299).
         // MuRet descarta la entrada entera (sin el 66 ni 0x447b50) y sigue con la próxima.
-        const std::size_t index = ActorWithKey(world, entry.key);
+        const std::size_t index = Kernel::ActorWithKey(world, entry.key);
         if (index >= ActorCount)
             continue;
         Kernel::ActorState& actor = world.Actors()[index];
@@ -673,7 +673,7 @@ Core::Expected<void, std::string> ApplyViewportUnion(const ViewportUnion& viewpo
         // 0x4e44f5: sin el personaje, 0x5110d0 da 400 y el original escribe la relación después de los 400 registros
         // (Q-C1300). MuRet descarta la entrada entera, también el nombre de la alianza que el original escribe antes, y
         // sigue con la próxima.
-        const std::size_t index = ActorWithKey(world, entry.key);
+        const std::size_t index = Kernel::ActorWithKey(world, entry.key);
         if (index >= ActorCount)
             continue;
         // 0x4e44c6..0x4e44e5: el nombre de la alianza en +4..+0xc de la entrada de 0x447b00, aunque sea −1: entonces
@@ -737,7 +737,7 @@ Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipReq
                     WriteRelationshipAnswer(request.relation, request.request, 0, request.keyHigh, request.keyLow),
                     "0x656616");
     const auto key = static_cast<std::uint16_t>((request.keyHigh << 8) | request.keyLow);
-    const std::size_t index = ActorWithKey(context.world, key);
+    const std::size_t index = Kernel::ActorWithKey(context.world, key);
     // 0x656d44..0x656db1: con el personaje y una relación que no es 1 ni 2, 0x6600d0 abre el diálogo con los buffers de
     // la pila sin inicializar (Q-C1302). MuRet descarta el E5 entero, sin guardar los cuatro bytes.
     const bool related = request.relation == UnionRelation || request.relation == RivalRelation;

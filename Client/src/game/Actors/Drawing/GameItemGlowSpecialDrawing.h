@@ -21,7 +21,7 @@ namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 struct ItemDrawContext;
-// true corresponde al RET temprano nativo; false continúa el cuerpo común de60b3d0.
+// true is the native early RET; false goes on with the common body of 0x60b3d0.
 [[nodiscard]] Core::Expected<bool, std::string>
 DrawEarlyItemGlow(Render::ModelBatch& batch, const Models::IModelLibrary& models, DrawnObject& object,
                   Core::Duration clock, std::span<const Models::SkinnedMesh> meshes, int level,

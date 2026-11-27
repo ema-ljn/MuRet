@@ -31,8 +31,8 @@ constexpr std::chrono::nanoseconds Start{0};
 constexpr std::chrono::nanoseconds Seconds{1'234'567'891};
 constexpr std::chrono::nanoseconds Days{987'654'321'000};
 
-// Las UV de 4ecc30 que daba ItemShineTexCoords cuando sacaba el reloj, y el seno y el coseno PC53 de
-// Chrome4, en cada esquina (#306), en el build Debug y en el Release.
+// The UVs of 0x4ecc30 that ItemShineTexCoords gave when it computed the clock, and the PC53 sine and cosine of Chrome4,
+// at each corner, in the Debug build and in the Release one.
 constexpr std::array<ShineCase, 30> Cases{{
     {ShinePass::Shiny, Up, Start, {0x1.333334p-1f, 0x1p-2f}},
     {ShinePass::Shiny, Up, Seconds, {0x1.333334p-1f, 0x1p-2f}},
@@ -66,8 +66,8 @@ constexpr std::array<ShineCase, 30> Cases{{
     {ShinePass::Chrome4, Side, Days, {0x1.0e6a7cp+1f, -0x1.683e48p+0f}},
 }};
 
-// El reloj se saca una vez por pase y cada esquina lo usa: las UV dan los mismos bits que cuando cada
-// esquina lo sacaba de nuevo.
+// The clock is computed once per pass and each corner uses it: the UVs give the same bits as when each corner computed
+// it again.
 TEST(GameItemGlowEffectsTest, TheShineClockOfAPassGivesTheSameUvAsEachCorner)
 {
     for (std::size_t index = 0; index < Cases.size(); ++index)
@@ -79,9 +79,9 @@ TEST(GameItemGlowEffectsTest, TheShineClockOfAPassGivesTheSameUvAsEachCorner)
     }
 }
 
-// 0x4ed25e..0x4ed2b2, el 0x4000: la suma c·nx + s·ny + nz se guarda en la u; la v es 1 menos la suma, menos nz · 2,5f
-// y t; y la u suma después s · 5f y ny · 3f al float guardado. Los bits salen de esas cuentas en double (la x87 en
-// PC53) con c, s y t en float, como los guarda 0x4ed109..0x4ed11a.
+// 0x4ed25e..0x4ed2b2, the 0x4000: the sum c·nx + s·ny + nz is stored in u; v is 1 minus the sum, minus nz · 2.5f and t;
+// and u then adds s · 5f and ny · 3f to the stored float. The bits come from those computations in double (the x87 in
+// PC53) with c, s and t in float, as 0x4ed109..0x4ed11a stores them.
 TEST(GameItemGlowEffectsTest, TheChrome5PassWeighsTheSineByFiveAndTheNormalByTwoAndAHalf)
 {
     struct Case
@@ -101,8 +101,8 @@ TEST(GameItemGlowEffectsTest, TheChrome5PassWeighsTheSineByFiveAndTheNormalByTwo
     }
 }
 
-// Un reloj sirve para todas las esquinas del pase: con otra normal y el mismo reloj, la UV de Chrome4 es
-// la que daba esa esquina sola.
+// One clock serves every corner of the pass: with another normal and the same clock, the UV of Chrome4 is the one that
+// corner gave alone.
 TEST(GameItemGlowEffectsTest, OneChrome4ClockServesEveryCornerOfThePass)
 {
     const auto clock = ItemShineClockOf(ShinePass::Chrome4, Seconds);

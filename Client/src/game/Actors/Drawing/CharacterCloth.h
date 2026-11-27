@@ -14,139 +14,138 @@
 #include <span>
 #include <vector>
 
-// Las telas de un personaje: el bloque 0x50d58b..0x50db57 de 0x50ba30, que las arma, las simula y las
-// dibuja en cada frame dibujado, después de las partes del cuerpo y antes de lo que cuelga (06 § La
-// tela de la clase 4). Las del Dark Lord son tres, la capa y sus dos telas de adelante, y una cuarta
-// con su armadura de la clase; la de la clase 3, una.
+// A character's cloths: the block 0x50d58b..0x50db57 of 0x50ba30, which builds, simulates and draws them in each drawn
+// frame, after the body parts and before what hangs (06 § La tela de la clase 4). The Dark Lord has three, the cape and
+// its two front cloths, and a fourth with its class armor; class 3, one.
 namespace Client::Actors::Drawing
 {
-// Lo que el bloque lee del personaje.
+// What the block reads from the character.
 struct ClothWearer
 {
-    // +0x1d4: la clase en los bits 0 a 2.
+    // +0x1d4: the class in bits 0 to 2.
     std::uint8_t characterClass = 0;
-    // +0x238: la armadura. Con ArmorClass05 (0x221e), el Dark Lord lleva la cuarta tela.
+    // +0x238: the armor. With ArmorClass05 (0x221e), the Dark Lord wears the fourth cloth.
     std::uint16_t armor = 0;
-    // +0x2f8: las alas. Sin la capa 0x1c30, la tercera tela del Dark Lord no va.
+    // +0x2f8: the wings. Without the 0x1c30 cape, the Dark Lord's third cloth does not go.
     std::optional<std::uint16_t> wings;
-    // +0x376: el número de monstruo (−1 en un jugador); el 0x37 tiene su tela.
+    // +0x376: the monster number (−1 for a player); 0x37 has its cloth.
     std::optional<std::uint16_t> monster;
-    // objeto + 0x78: con 0x4000 no se simula ni se dibuja; con 0x1000, el dt es 0.
+    // object + 0x78: with 0x4000 it is neither simulated nor drawn; with 0x1000, the dt is 0.
     std::uint32_t objectFlags = 0;
 };
 
-// bVar23 para un jugador (0x50c929..) sin mirar +0x3e3: la clase 3 o 4, salvo en los mapas 0x12 a 0x17. El juego
-// la arma entera, con +0x3e3 y el duelo (GameCharacters, DrawnCharacter::wearsCloth); las guerras de gremios son del
-// hito 8 (08 P-C207 b).
+// bVar23 for a player (0x50c929..) without looking at +0x3e3: class 3 or 4, except on maps 0x12 to 0x17. The game
+// builds all of it, with +0x3e3, the guild wars, Battle Soccer and the duel (GameCharacters,
+// DrawnCharacter::wearsCloth).
 [[nodiscard]] bool WearsACloth(std::uint8_t characterClass, std::uint8_t map);
 
-// La otra mitad de bVar23 (0x50c951..0x50c96e), con cualquier tipo: el +0x376 0x37, salvo en los mapas 0x12 a 0x17.
-// Arma la tela de ClothMonster, o las del Dark Lord si +0x1d4 dice la clase 4 (0x50d5a7 no mira el tipo).
+// The other half of bVar23 (0x50c951..0x50c96e), with any type: +0x376 at 0x37, except on maps 0x12 to 0x17. It builds
+// the cloth of ClothMonster, or the Dark Lord's if +0x1d4 says class 4 (0x50d5a7 does not look at the type).
 [[nodiscard]] bool WearsTheMonsterCloth(std::uint16_t monster, std::uint8_t map);
 
-// 0x50c177 y 0x50c59f: los +0x376 que arman en objeto + 0x190 una tela de la grilla propia (0x6a0210 con 0x4548b0, la
-// vtable 0x6b8cd8, y su +4, 0x454a50), con cualquier tipo y en cualquier mapa: el 0x4d (0x50c2ca: el hueso 10, (0, −10,
-// 0), 5 · 12, 15 · 240, la textura 0x629 y 0x1100, con 0x455cd0 en (0, 0, 40) de radio 30 en el hueso 10) y el 0x47
-// (la textura 0x253), el 0x4a y el 0x12d (la 0x255) (0x50c5fa: el hueso 0x13, (0, 10, 0), 5 · 15, 30 · 300 y 0x1100,
-// sin esferas).
+// 0x50c177 and 0x50c59f: the +0x376 values that build at object + 0x190 a cloth of their own grid (0x6a0210 with
+// 0x4548b0, vtable 0x6b8cd8, and its +4, 0x454a50), with any type and on any map: 0x4d (0x50c2ca: bone 10, (0, −10, 0),
+// 5 · 12, 15 · 240, texture 0x629 and 0x1100, with 0x455cd0 at (0, 0, 40) of radius 30 on bone 10) and 0x47 (texture
+// 0x253), 0x4a and 0x12d (0x255) (0x50c5fa: bone 0x13, (0, 10, 0), 5 · 15, 30 · 300 and 0x1100, without spheres).
 [[nodiscard]] bool WearsAGridClothOfItsOwn(std::uint16_t monster);
 
-// El color de 0x50ba30 sin duelo ni guerra: blanco.
+// The color of 0x50ba30 without a duel or a war: white.
 inline constexpr glm::vec3 PlainClothColor{1.0f, 1.0f, 1.0f};
 
-// Lo más que corre Advance de una vez: 3 s del original.
+// The most Advance runs at once: 3 s of the original.
 inline constexpr int MaxClothFramesPerAdvance = Models::MaxOriginalFramesPerDraw;
 
 class CharacterCloth
 {
 public:
-    // Un frame del bloque: si no hay telas (objeto + 0x190 en 0) las arma desde la pose de ahora; con
-    // el arreglo armado, la cuarta del Dark Lord se arma encima o se suelta según la armadura; y cada
-    // tela da sus cinco pasos de 0,005 y se dibuja en `batch` antes de pasar a la siguiente. Si un paso
-    // la rompe, las suelta todas (0x4fb1a0) y el frame siguiente las vuelve a armar. `wears` es
-    // bVar23 y `color` el de 0x50ba30.
+    // One frame of the block: if there are no cloths (object + 0x190 at 0) it builds them from the current pose; with
+    // the array built, the Dark Lord's fourth is built on top or released by the armor; and each cloth takes its five
+    // steps of 0.005 and is drawn in `batch` before the next one. If a step breaks it, it releases them all (0x4fb1a0)
+    // and the next frame builds them again. `wears` is bVar23 and `color` that of 0x50ba30.
     void Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
                Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
                const glm::vec3& color = PlainClothColor);
 
-    // Lo que corre en un frame de MuRet (DrawCharacter). Q-C124 corregido como Q-C20: el bloque corre una
-    // vez por cada frame del original (Models::OriginalFrameTime, 46,875 ms) que pasó desde el
-    // frame anterior, el último con su dibujo, y sin ninguno se dibuja el estado de ahora; el primero
-    // corre uno. Así la tela flamea como en el original a cualquier FPS. En el modo fiel (`pace`
-    // OncePerDraw), uno por dibujo, como el original (Models::OriginalFrameCarry). Un salto de más
-    // de MaxClothFramesPerAdvance frames corre esos y descarta el resto. `clock` es también el WorldTime
-    // del brillo. Sin ninguno, el dibujo es el de DrawCurrent con `body`.
+    // What runs in a MuRet frame (DrawCharacter). Q-C124 fixed as Q-C20: the block runs once per original frame
+    // (Models::OriginalFrameTime, 46.875 ms) that passed since the previous frame, the last one with its draw, and with
+    // none the current state is drawn; the first runs one. So the cloth flaps as in the original at any FPS. In the
+    // faithful mode (`pace` OncePerDraw), one per draw, like the original (Models::OriginalFrameCarry). A jump of more
+    // than MaxClothFramesPerAdvance frames runs those and drops the rest. `clock` is also the glow's WorldTime. With
+    // none, the draw is DrawCurrent's with `body`.
     void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
                  Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
                  const glm::vec3& color = PlainClothColor,
                  Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock);
 
-    // Un dibujo entre frames del original: solo las telas que ya existen y sus destellos, sin
-    // armarlas, simularlas ni avanzar su reloj. También vale antes del primer Advance. Cada tela va
-    // llevada con su hueso del cuerpo de su última simulación a `body`, el de ahora (ClothCarry, #307):
-    // con el personaje que camina, la capa va con él en vez de quedarse atrás hasta el frame siguiente.
-    // Con el cuerpo quieto, se dibuja como quedó.
+    // A draw between original frames: only the cloths that already exist and their flares, without building or
+    // simulating them or advancing their clock. Also valid before the first Advance. Each cloth is carried with its
+    // bone from the body of its last simulation to `body`, the current one (ClothCarry): with the character walking,
+    // the cape goes with it instead of staying behind until the next frame. With the body still, it is drawn as it was
+    // left.
     void DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
                      Core::Duration clock, bool wears, const glm::vec3& color = PlainClothColor);
 
-    // Un frame de la tela del +0x376 `monster` (WearsAGridClothOfItsOwn, 0x50c283..0x50c35c y 0x50c59f..0x50c669): con
-    // +0x190 en 0 la arma sobre `body` (una, +0x18c en 1); después la primera da 0x455190(0,005f, 5), sin mirar +0x78;
-    // si se rompe, 0x4fb1a0 las suelta y el frame siguiente la vuelve a armar; si no, su +0x18 (0x455930) la dibuja en
-    // `batch` con el color nulo, (1, 1, 1). Un arreglo ya armado sigue con la forma que tenga, como el original.
+    // One frame of the cloth of +0x376 `monster` (WearsAGridClothOfItsOwn, 0x50c283..0x50c35c and 0x50c59f..0x50c669):
+    // with +0x190 at 0 it builds it on `body` (one, +0x18c at 1); then the first runs 0x455190(0.005f, 5), without
+    // looking at +0x78; if it breaks, 0x4fb1a0 releases them and the next frame builds it again; otherwise its +0x18
+    // (0x455930) draws it in `batch` with the null color, (1, 1, 1). An array already built keeps whatever shape it
+    // has, like the original.
     void FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16_t monster, const Models::ClothBody& body,
                               Models::ClothWorld& world, std::uint8_t map, float worldTime);
-    // Entre frames del original: la primera tela como quedó, sin simularla, llevada a `body` (#307). Sin tela, nada.
+    // Between original frames: the first cloth as it was left, not simulated, carried to `body`. Without a cloth,
+    // nothing.
     void DrawTheMonsterCloth(Render::ModelBatch& batch, const Models::ClothBody& body, float worldTime);
 
-    // 0x4fb1a0: suelta los recursos de las telas del personaje, sin reiniciar el reloj del bloque ni su blend anterior.
+    // 0x4fb1a0: releases the resources of the character's cloths, without restarting the block's clock or its earlier
+    // blend.
     void ReleaseResources();
 
-    // Advance vuelve a contar desde cero, como en el primer frame: el próximo corre un frame del bloque y no
-    // pone al día el tiempo que pasó sin dibujo. Las telas quedan como estaban. Es para un frame retenido
-    // (Q-C85): el original no dibuja mientras conecta, y en el frame siguiente corre uno.
+    // Advance counts from zero again, as in the first frame: the next one runs one frame of the block and does not
+    // catch up the time that passed without a draw. The cloths stay as they were. It is for a held frame (Q-C85): the
+    // original does not draw while it connects, and in the next frame it runs one.
     void RestartTheClock()
     {
         m_frames = {};
     }
 
-    // objeto + 0x190: las telas armadas (cuatro con la clase 4, una con las demás), o ninguna.
+    // object + 0x190: the built cloths (four with class 4, one with the others), or none.
     [[nodiscard]] std::span<const Models::Cloth> Cloths() const
     {
         return m_cloths;
     }
-    // objeto + 0x18c: cuántas recorre el lazo.
+    // object + 0x18c: how many the loop walks.
     [[nodiscard]] std::uint8_t Count() const
     {
         return m_count;
     }
-    // objeto + 0x190 de un monstruo con la tela sobre la malla (la vtable 0x6b8d04, 0x50bae7): la que arma y
-    // simula DrawGameMonster. Con el mismo +0x376 no lleva la de arriba.
+    // object + 0x190 of a monster with the cloth on the mesh (vtable 0x6b8d04, 0x50bae7): the one DrawGameMonster
+    // builds and simulates. With the same +0x376 it does not wear the one above.
     [[nodiscard]] Scenes::MonsterMeshCloth& OnTheMesh()
     {
         return m_onTheMesh;
     }
 
-    // Los sprites del brillo del último frame (Effect\flare01.jpg, 0x5491e0). DrawCharacter los pide en
-    // la tabla del frame (DrawnCharacter::sprites), que dibuja 0x549440 → 0x549290.
+    // The glow sprites of the last frame (Effect\flare01.jpg, 0x5491e0). DrawCharacter asks for them in the frame's
+    // table (DrawnCharacter::sprites), which 0x549440 → 0x549290 draws.
     [[nodiscard]] std::span<const Models::ClothFlare> Flares() const
     {
         return m_flares;
     }
 
 private:
-    // El bloque, con su dibujo en `batch`, o sin dibujar con nullptr.
+    // The block, with its draw in `batch`, or undrawn with nullptr.
     void RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer, const Models::ClothBody& body,
                      Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears, const glm::vec3& color);
-    // Las telas como quedaron, con las reglas del lazo, sin simularlas, llevadas a `body`.
+    // The cloths as they were left, with the loop's rules, not simulated, carried to `body`.
     void DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
                        float worldTime, bool wears, const glm::vec3& color);
     void Build(const ClothWearer& wearer, const Models::ClothBody& body);
-    // Una tela y sus destellos, con sus partículas llevadas por `carry` si hay uno.
+    // A cloth and its flares, with its particles carried by `carry` if there is one.
     void Draw(Render::ModelBatch& batch, const Models::Cloth& cloth, const glm::vec3& color, float worldTime,
               const std::optional<ClothCarry>& carry = std::nullopt);
 
     std::vector<Models::Cloth> m_cloths;
-    // El cuerpo de la última simulación, del que DrawTheCloths lleva cada tela.
+    // The body of the last simulation, from which DrawTheCloths carries each cloth.
     std::optional<SimulatedClothBody> m_simulatedBody;
     std::uint8_t m_count = 0;
     std::vector<Models::ClothFlare> m_flares;

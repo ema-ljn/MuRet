@@ -68,15 +68,15 @@ namespace Client::Actors::Drawing
 {
 namespace
 {
-// 0x510e57..0x510e6d: 0x447a0000 en +0x13c y 0x3f800000 en los otros tres.
+// 0x510e57..0x510e6d: 0x447a0000 in +0x13c and 0x3f800000 in the other three.
 constexpr float UndrawnHeroMark = 1000.0f;
 constexpr std::size_t DrawnActorCount = Kernel::ActorPoolSize - 1;
 constexpr std::uint32_t HiddenCharacterFlag = 0x10000000;
 using Maps::IsChaosCastle;
 constexpr float ShadowAlphaThreshold = 0.5f;
-// +0x88 de un jugador (0x511290 y el F3 03) y las banderas de 0x609640 con que va su Angel en Chaos Castle.
+// +0x88 of a player (0x511290 and the F3 03) and the flags of 0x609640 its Angel goes with in Chaos Castle.
 constexpr std::uint8_t PlayerKind = 1;
-// +0x88 en 4: un NPC (0x50d2b6).
+// +0x88 at 4: an NPC (0x50d2b6).
 constexpr std::uint8_t NpcKind = 4;
 constexpr std::uint32_t ChaosCastleBodyFlags = 2;
 constexpr std::uint32_t ChaosCastleHeroFlags = 6;
@@ -104,7 +104,7 @@ bool SuppressTheHero(Kernel::ActorState& actor, bool hero, std::span<ActorPickin
     return true;
 }
 
-// 0x50cf86..0x50d01d: los stores float entre cada bit importan cuando se combinan.
+// 0x50cf86..0x50d01d: the float stores between each bit matter when they combine.
 glm::vec3 HeroColor(std::uint8_t bits)
 {
     glm::vec3 color = (bits & 1u) != 0 ? glm::vec3{0.9f, 0.5f, 0.5f} : glm::vec3{1.0f};
@@ -121,7 +121,7 @@ glm::vec3 HeroBodyColor(Kernel::WorldState& world, Crt::CrtRandom& random, bool 
 {
     if (!originalFrame)
         return HeroColor(world.OwnCharacter().speedAdjustBits);
-    // 0x50ccb5..0x50d219: un acceso, aun con todos los bits apagados.
+    // 0x50ccb5..0x50d219: one access, even with all the bits off.
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return HeroColor(world.OwnCharacter().speedAdjustBits);
 }
@@ -129,8 +129,8 @@ glm::vec3 HeroBodyColor(Kernel::WorldState& world, Crt::CrtRandom& random, bool 
 FullSetScan ScanTheActor(Kernel::WorldState& world, const Kernel::ActorState& actor, Crt::CrtRandom& random,
                          bool originalFrame)
 {
-    // 0x50c913: con +0x3e4 (el retrato de las cartas), sin 0x505820 ni conjunto: los globales quedan los del último y
-    // la cola no los lee sin el conjunto.
+    // 0x50c913: with +0x3e4 (the cards' portrait), without 0x505820 or a set: the globals stay the last one's and the
+    // tail does not read them without the set.
     if (actor.byte3e4 != 0)
         return FullSetScan{};
     if (originalFrame)
@@ -140,7 +140,7 @@ FullSetScan ScanTheActor(Kernel::WorldState& world, const Kernel::ActorState& ac
         world.Runtime().fullSetScan = scan.globals;
         return scan;
     }
-    // Un dibujo entre frames no vuelve a consumir ni a publicar el scan del original.
+    // A draw between frames does not consume or publish the original's scan again.
     std::uint8_t depth = 1;
     Crt::CrtRandom copy = random;
     return ScanFullSet(ScannedCharacterOf(actor), world.OwnCharacter(), depth, copy);
@@ -178,8 +178,8 @@ DrawnCharacter CharacterToDraw(Kernel::ActorState& actor, std::size_t slot, Char
         else
             PublishPickingBox(actor, position, actor.boundsMin, max);
     };
-    // 0x511290 le da al personaje su buffer de huesos (+0x11c en 1 en 0x511bf7, +0x120): 0x5ffdf0 posa ahí el
-    // cuerpo, que arranca de lo que dejó el dibujo anterior (actor.bodyPose, Q-C318), y no del global.
+    // 0x511290 gives the character its bone buffer (+0x11c at 1 at 0x511bf7, +0x120): 0x5ffdf0 poses the body there,
+    // starting from what the previous draw left (actor.bodyPose, Q-C318), not from the global one.
     if (pass.poseBones)
         character.poseBones = [&actor, global = pass.poseBones](std::uint16_t model) {
             return model == Tables::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
@@ -188,11 +188,11 @@ DrawnCharacter CharacterToDraw(Kernel::ActorState& actor, std::size_t slot, Char
     return character;
 }
 
-// 0x50c929..0x50cc29, bVar23 y el color de la tela de un jugador 0x20a: la clase 3 o 4 con +0x3e3 en 0, o el +0x376
-// 0x37 (0x50c951, el monstruo 55, que es un 0x20a), salvo en los mapas 0x12 a 0x17. Después, en cualquier clase y mapa,
-// la guerra de gremios (0x50c972..0x50caaa, CL9 hito 8) y el duelo (0x50cb5c..0x50cc29), que gana: con el duelo en
-// curso (0x78abad8), el rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9 con 0x78abae0) la lleva en
-// (1; 0,2; 0) y el héroe publicado (el WORD de +0x1f4 y strcmp de los nombres), en (0; 0,2; 1).
+// 0x50c929..0x50cc29, bVar23 and the cloth color of a 0x20a player: class 3 or 4 with +0x3e3 at 0, or +0x376 at 0x37
+// (0x50c951, monster 55, which is a 0x20a), except in maps 0x12 to 0x17. Then, in any class and map, the guild war
+// (0x50c972..0x50caaa) and the duel (0x50cb5c..0x50cc29), which wins: with the duel on (0x78abad8), the rival (MOVSX of
+// +0x1f4 equal to 0x78abadc and strcmp of +0x1d9 with 0x78abae0) wears it in (1, 0.2, 0) and the published hero (the
+// WORD of +0x1f4 and strcmp of the names), in (0, 0.2, 1).
 struct ClothLook
 {
     bool wears = false;
@@ -201,9 +201,10 @@ struct ClothLook
 
 constexpr glm::vec3 RedCloth{1.0f, 0.2f, 0.0f};
 constexpr glm::vec3 BlueCloth{0.0f, 0.2f, 1.0f};
-// 0x50c972..0x50caaa: con +0x1f2 distinto de −1 y la guerra prendida (0x576796d, el 61 y el 62 del tipo 1), el gremio
-// del personaje (strcmp de +0xd de su entrada) igual al del héroe publicado (su +0x1f2, sin mirar el −1) prende la tela
-// del color del equipo (0x576796e en 0, (1; 0,2; 0); si no, (0; 0,2; 1)), y el del rival (0x5767804), la del otro.
+// 0x50c972..0x50caaa: with +0x1f2 other than −1 and the war on (0x576796d, the 61 and the 62 of type 1), the
+// character's guild (strcmp of +0xd of its entry) equal to the published hero's (its +0x1f2, without looking at −1)
+// turns on the cloth of the team's color (0x576796e at 0, (1, 0.2, 0); otherwise (0, 0.2, 1)), and the rival's
+// (0x5767804), the other one's.
 Core::Expected<void, std::string> DressForTheWar(const Kernel::WorldState& world, const Kernel::ActorState& actor,
                                                  ClothLook& look)
 {
@@ -226,7 +227,7 @@ Core::Expected<void, std::string> DressForTheWar(const Kernel::WorldState& world
     return {};
 }
 
-// 0x50caaa..0x50cb5c: Soccer vuelve a leer el nombre actual; las dos comparaciones son independientes.
+// 0x50caaa..0x50cb5c: Soccer reads the current name again; the two comparisons are independent.
 Core::Expected<void, std::string> DressForSoccer(const Kernel::WorldState& world, const Kernel::ActorState& actor,
                                                  ClothLook& look)
 {
@@ -276,10 +277,10 @@ Core::Expected<ClothLook, std::string> LookOfTheCloth(const Kernel::WorldState& 
     return look;
 }
 
-// 0x50ba9e..0x50bae0: un 0x20a con un +0x376 de la tabla de 0x510adc va con la tela sobre la malla (0x50bae7), por
-// 0x5ffdf0 y 0x6002e0 y con [ebp+0xf] en 0: la sombra del jugador (0x50bc33) y después la de los monstruos. Ninguna
-// alta lo crea (los de esa tabla son el 0x190): corta. Con otro, por 0x6001b0 como un jugador (0x50bbe4), con sus
-// casos por +0x376 más adelante.
+// 0x50ba9e..0x50bae0: a 0x20a with a +0x376 from the table of 0x510adc goes with the cloth on the mesh (0x50bae7),
+// through 0x5ffdf0 and 0x6002e0 and with [ebp+0xf] at 0: the player's shadow (0x50bc33) and then the monsters'. No
+// addition creates it (those of that table are the 0x190): it stops. With another, through 0x6001b0 like a player
+// (0x50bbe4), with its cases by +0x376 further on.
 Core::Expected<void, std::string> CheckTheEarlyBranches(const Kernel::ActorState& actor)
 {
     if (Scenes::WearsClothOnTheMesh(actor.word376))
@@ -290,10 +291,10 @@ Core::Expected<void, std::string> CheckTheEarlyBranches(const Kernel::ActorState
     return {};
 }
 
-// 0x50d2cb..0x50d2da y 0x50d31e..0x50d32d: los subtipos con el cuerpo entero de un esqueleto (Skill\Skeleton01..03).
+// 0x50d2cb..0x50d2da and 0x50d31e..0x50d32d: the subtypes with a skeleton's whole body (Skill\Skeleton01..03).
 constexpr std::int32_t FirstSkeletonBody = 0xd1;
 constexpr std::int32_t LastSkeletonBody = 0xd3;
-// 0x50d2b9..0x50d2bd: la rama con el nivel, +0x88 en 4 (un NPC) y el mapa [0x6c9dd0] en 0.
+// 0x50d2b9..0x50d2bd: the branch with the level, +0x88 at 4 (an NPC) and the map [0x6c9dd0] at 0.
 constexpr std::int32_t SkeletonNpcMap = 0;
 
 bool WearsTheSkeletonBody(const Kernel::ActorState& actor)
@@ -301,10 +302,10 @@ bool WearsTheSkeletonBody(const Kernel::ActorState& actor)
     return actor.subtype >= FirstSkeletonBody && actor.subtype <= LastSkeletonBody;
 }
 
-// 0x50d2aa..0x50d35e, antes de mirar +0x3e3: 0x60cf70 con el subtipo de modelo (DrawSkeletonBody) y salta a la tela
-// (0x50d58b), sin las partes ni la marca del gremio. Con +0x88 en 4 y el mapa 0, el nivel es el word +0x1d6 · 8, que
-// 0x60b3d0 lee con >> 3 y & 0xf (0x60b3de); si no, 0. El objeto es el propio personaje: +0x64, +0x68, +0x6c, +0x70 y
-// la malla oculta +0x58 del contorno.
+// 0x50d2aa..0x50d35e, before looking at +0x3e3: 0x60cf70 with the model subtype (DrawSkeletonBody) and it jumps to the
+// cloth (0x50d58b), without the parts or the guild mark. With +0x88 at 4 and map 0, the level is the word +0x1d6 · 8,
+// which 0x60b3d0 reads with >> 3 and & 0xf (0x60b3de); otherwise 0. The object is the character itself: +0x64, +0x68,
+// +0x6c, +0x70 and the outline's hidden mesh +0x58.
 Core::Expected<void, std::string> DrawTheSkeletonBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       const Kernel::ActorState& actor, const DrawnCharacter& character,
                                                       const GameCharacterPass& pass)
@@ -320,8 +321,8 @@ Core::Expected<void, std::string> DrawTheSkeletonBody(Render::ModelBatch& batch,
                             state, actor.byteE8 != 0, context);
 }
 
-// 0x5091e0: el hueso 26 (+0x4e0 de los huesos propios, +0x120), el giro del personaje (+0x1c) más (80, 45, 135) y la
-// traslación (20, −5, −10), con z en −18 si la armadura (+0x238) es la 0x1226.
+// 0x5091e0: bone 26 (+0x4e0 of the own bones, +0x120), the character's turn (+0x1c) plus (80, 45, 135) and the
+// translation (20, −5, −10), with z at −18 if the armor (+0x238) is 0x1226.
 constexpr std::size_t GuildMarkBone = 0x4e0 / 0x30;
 constexpr float MarkTurnX = 80.0f;
 constexpr float MarkTurnY = 45.0f;
@@ -331,10 +332,10 @@ constexpr float MarkOffsetY = -5.0f;
 constexpr float MarkOffsetZ = -10.0f;
 constexpr float LowMarkOffsetZ = -18.0f;
 constexpr std::uint16_t LowMarkArmor = 0x1226;
-// 0x5092a7..0x5092b6: 0x621320(5, 7, matriz).
+// 0x5092a7..0x5092b6: 0x621320(5, 7, matrix).
 constexpr float MarkHalfWidth = 5.0f;
 constexpr float MarkHalfHeight = 7.0f;
-// 0x50d55d: la bandera de +0x78 que esconde la marca.
+// 0x50d55d: the +0x78 flag that hides the mark.
 constexpr std::uint32_t NoGuildMarkFlag = 0x4000;
 
 float AddX87(float value, float offset)
@@ -342,10 +343,10 @@ float AddX87(float value, float offset)
     return static_cast<float>(static_cast<double>(value) + static_cast<double>(offset));
 }
 
-// 0x5091e0(personaje, +0x238), después de 0x5f16a0, en el lote del cuerpo: 0x620a00(1), el culling (0x6208d0),
-// glColor3f(1, 1, 1), el slot de la marca, y el quad de 0x621320 en el mundo: la posición (+0x10, glTranslatef) más
-// R_ConcatTransforms(hueso 26, AngleMatrix(giro) con la traslación) por cada esquina; el culling se apaga (0x6208f0).
-// Los huesos son los del cuerpo de este dibujo, que 0x5ffdf0 ya dejó en +0x120. Sin la escala del cuerpo.
+// 0x5091e0(character, +0x238), after 0x5f16a0, in the body's batch: 0x620a00(1), the culling (0x6208d0), glColor3f(1,
+// 1, 1), the mark's slot, and the quad of 0x621320 in the world: the position (+0x10, glTranslatef) plus
+// R_ConcatTransforms(bone 26, AngleMatrix(turn) with the translation) for each corner; the culling goes off (0x6208f0).
+// The bones are this draw's body's, which 0x5ffdf0 already left in +0x120. Without the body's scale.
 Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                   const Kernel::ActorState& actor, const DrawnCharacter& character,
                                                   Render::TextureSlot slot)
@@ -387,9 +388,9 @@ Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch, con
     return {};
 }
 
-// 0x50d4fb..0x50d588: fuera de Chaos Castle, con un gremio (+0x1f2 desde 0, que escriben el 65 y el 5D), el 0x20a,
-// el alpha distinto de 0 y, salvo el 0x7cf (el gremio que se crea), la clave de su entrada en la tabla (0x447b30), sin
-// la bandera 0x4000 de +0x78: la marca de 0x5f16a0(+0x1f2, 1) en el quad de 0x5091e0.
+// 0x50d4fb..0x50d588: outside Chaos Castle, with a guild (+0x1f2 from 0, which the 65 and the 5D write), the 0x20a, the
+// alpha other than 0 and, except 0x7cf (the guild being created), the key of its entry in the table (0x447b30), without
+// the 0x4000 flag of +0x78: the mark of 0x5f16a0(+0x1f2, 1) in the quad of 0x5091e0.
 Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                    const Kernel::ActorState& actor, const DrawnCharacter& character,
                                                    const GameCharacterPass& pass, const Scenes::GuildState& guild)
@@ -438,11 +439,11 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const M
         if (auto drawn = DrawTheSkeletonBody(batch, models, actor, character, pass); !drawn.HasValue())
             return drawn;
     }
-    // 0x50d363: con +0x3e3, ni las partes ni la marca del gremio; sigue la tela (0x50d58b).
+    // 0x50d363: with +0x3e3, neither the parts nor the guild mark; the cloth follows (0x50d58b).
     else if (actor.byte3e3 == 0)
     {
-        // 0x50d374: en Chaos Castle, un jugador va con el Angel, con el cromo si es el héroe (0x743a170), y salta
-        // a 0x50d4fb, que en esos mapas no dibuja la marca del gremio.
+        // 0x50d374: in Chaos Castle, a player goes with the Angel, with the chrome if it is the hero (0x743a170), and
+        // jumps to 0x50d4fb, which in those maps does not draw the guild mark.
         if (actor.byte88 == PlayerKind && IsChaosCastle(character.map))
         {
             if (pass.worldModels == nullptr)
@@ -460,8 +461,8 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const M
         if (auto marked = DrawTheGuildMark(batch, models, actor, character, pass, guild); !marked.HasValue())
             return marked;
     }
-    // 0x50c929..0x50c96e: bVar23, la clase 3 o 4 o el +0x376 0x37 (el monstruo 55, que es un 0x20a), fuera de
-    // Chaos Castle; con el duelo, LookOfTheCloth (DrawnCharacter::wearsCloth).
+    // 0x50c929..0x50c96e: bVar23, class 3 or 4 or +0x376 at 0x37 (monster 55, which is a 0x20a), outside Chaos Castle;
+    // with the duel, LookOfTheCloth (DrawnCharacter::wearsCloth).
     const bool wears = character.wearsCloth.value_or(WearsACloth(actor.characterClass, character.map) ||
                                                      WearsTheMonsterCloth(actor.word376, character.map));
     if (wears && character.cloth == nullptr)
@@ -470,11 +471,11 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const M
     return {};
 }
 
-// 0x50db57..0x510ac2 sobre el cuerpo ya posado: lo que cuelga, los efectos, en el juego (`gameScene`) 0x510ef0, y el
-// cuervo. Entre frames del original, sobre una copia del personaje y del rand(): lo que cuelga y los contadores quedan
-// como los dejó el último frame. `modelOrigin` es la posición que 0x6001b0 copió al registro del 0x20a (0x600247..
-// 0x600256, en 0x50bbf7), antes de las guardas y del suelo de la sombra (0x50bcaf): nada la vuelve a escribir dentro de
-// 0x50ba30 y la cola la lee con 0x4ec110 sobre [ebp−0x14] (0x50ba7f).
+// 0x50db57..0x510ac2 on the body already posed: what hangs, the effects, in the game (`gameScene`) 0x510ef0, and the
+// raven. Between original frames, on a copy of the character and of the rand(): what hangs and the counters stay as the
+// last frame left them. `modelOrigin` is the position 0x6001b0 copied to the 0x20a's record (0x600247..0x600256, at
+// 0x50bbf7), before the guards and the shadow's floor (0x50bcaf): nothing writes it again inside 0x50ba30 and the tail
+// reads it with 0x4ec110 on [ebp−0x14] (0x50ba7f).
 Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                               Kernel::WorldState& world, Kernel::ActorState& actor, std::size_t slot,
                                               const DrawnCharacter& character, const GameCharacterPass& pass,
@@ -482,9 +483,9 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                               bool gameScene)
 {
     const std::vector<Math::BoneTransform> body = PoseCharacterBody(models, character);
-    // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
-    // 0x6001b0 copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01;
-    // las lee el cuervo en la zona segura (Q-C412).
+    // 0x509340 poses in the own bones (+0x120), which the next step reads (0x506d25, the Atlans bubble). Before that,
+    // 0x6001b0 copies the scale and the position to Player.bmd's shared model, with the alpha from 0.01; the raven
+    // reads them in the safe zone (Q-C412).
     if (originalFrame)
     {
         actor.bodyPose = body;
@@ -537,8 +538,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                                .modelOrigin = modelOrigin};
     if (auto effects = DrawGameCharacterEffects(drawn, effectsPass); !effects.HasValue())
         return effects;
-    // 0x510abd: 0x420df0, el cuervo, en todas las escenas. Fuera del juego, sin el trapecio, lo dibuja el caller
-    // (el login).
+    // 0x510abd: 0x420df0, the raven, in every scene. Outside the game, without the trapezoid, the caller draws it (the
+    // login).
     if (!drawn.darkSpirit || (!gameScene && pass.polygon == nullptr))
         return {};
     if (pass.polygon == nullptr)
@@ -560,9 +561,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                               .world = &world});
 }
 
-// Entre frames del original, la z del suelo de la sombra (0x50bc77..0x50bcbd) es la del dibujo, pero no queda en el
-// personaje: el paso siguiente lee la que dejó el último frame del original (ADR 0005). La devuelve al salir del
-// dibujo.
+// Between original frames, the z of the shadow's floor (0x50bc77..0x50bcbd) is the draw's, but it does not stay on the
+// character: the next step reads the one the last original frame left (ADR 0005). It gives it back on leaving the draw.
 class GroundBetweenFrames
 {
 public:
@@ -584,15 +584,15 @@ private:
     float m_stepped;
 };
 
-// `slot` es su lugar en el pool, o ActorPoolSize fuera de él; `cloth`, su tela.
+// `slot` is its place in the pool, or ActorPoolSize outside it; `cloth`, its cloth.
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                           Kernel::WorldState& world, Kernel::ActorState& actor, std::size_t slot,
                                           CharacterCloth* cloth, const GameCharacterPass& pass, bool originalFrame)
 {
     if ((actor.flags7c & HiddenCharacterFlag) != 0)
         return {};
-    // 0x50ba65..0x50ba87: sin acciones en el modelo del tipo (+0x26), nada. Player.bmd para el 0x20a; el de los
-    // monstruos y los NPC, el que cargó el alta (WorldState::FaunaResources, con la biblioteca del mapa detrás).
+    // 0x50ba65..0x50ba87: with no actions in the type's model (+0x26), nothing. Player.bmd for the 0x20a; for monsters
+    // and NPCs, the one the addition loaded (WorldState::FaunaResources, with the map's library behind it).
     const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton =
         player ? models.SkeletonOf(actor.type) : world.FaunaResources().SkeletonOf(actor.type);
@@ -610,7 +610,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
         return Core::Unexpected(look.Error());
     character.wearsCloth = look.Value().wears;
     character.clothColor = look.Value().color;
-    // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
+    // Only what hangs goes to the global buffer (0x68b181c) (0x509340); the body stays in its own (DrawTheTail).
     if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
         character.onPose = [global = pass.onPose](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                                                   const Models::ObjectTransform& transform, bool translated)
@@ -618,13 +618,13 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
             if (model != Tables::PlayerSkeletonModel && model != ChaosCastleBodyModel)
                 global(model, bones, transform, translated);
         };
-    // 0x50bbf7: 0x6001b0 copia la posición al registro del 0x20a (0x600247..0x600256) antes de las guardas de la sombra
-    // y de su suelo; la cola la lee de ahí (DrawTheTail). Entre frames del original, la del paso, antes del préstamo de
-    // GroundBetweenFrames.
+    // 0x50bbf7: 0x6001b0 copies the position to the 0x20a's record (0x600247..0x600256) before the shadow's guards and
+    // its floor; the tail reads it from there (DrawTheTail). Between original frames, the step's, before
+    // GroundBetweenFrames borrows it.
     const glm::vec3 modelOrigin = actor.position;
-    // 0x50bc77..0x50bcbd: con la sombra, en Blood Castle el que muere empujado baja a la altura del terreno antes de
-    // 0x60cf70; la sombra, el cuerpo y lo que cuelga van ahí, y los puntos de los huesos de la cola, desde la de antes.
-    // La escritura queda (0x50bcaf) sólo en un frame del original.
+    // 0x50bc77..0x50bcbd: with the shadow, in Blood Castle the one that dies pushed drops to the terrain height before
+    // 0x60cf70; the shadow, the body and what hangs go there, and the points of the tail's bones, from the earlier one.
+    // The write stays (0x50bcaf) only in an original frame.
     std::optional<GroundBetweenFrames> projectedGround;
     if (DrawsTheShadow(character))
     {
@@ -638,8 +638,8 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
             projectedGround.emplace(actor, ground.Value());
     }
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
-    // 0x50bcec: 0x60cf70 con el 0x20b le copia la escala y la posición del personaje, ya en el suelo (lo lee el 0x632/0
-    // y /1 en el suelo, 0x53c1eb). Sólo en un frame del original.
+    // 0x50bcec: 0x60cf70 with the 0x20b copies the character's scale and position to it, already on the floor (the
+    // 0x632/0 and /1 read it on the floor, 0x53c1eb). Only in an original frame.
     if (originalFrame && DrawsTheShadow(character))
         world.PlaceShadowModel(actor);
     if (auto decorated = Scenes::CheckMonsterDecorations(actor.word376); !decorated.HasValue())
@@ -655,7 +655,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
             DrawTheBody(batch, models, actor, character, pass, slot == world.Runtime().hero, world.Runtime().guild);
         !supported.HasValue())
         return supported;
-    // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno, el rojo de los PK o la de Blood Castle.
+    // 0x50db94: the light of what hangs (+0x3b4), the terrain's, the PKs' red or Blood Castle's.
     actor.drawnLight = Scenes::HangingLightOf(actor, terrainLight.Value(), map);
     return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, modelOrigin, originalFrame, true);
 }
@@ -673,8 +673,8 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const M
         CharacterCloth* cloth = slot < pass.cloths.size() ? &pass.cloths[slot] : nullptr;
         if (auto drawn = DrawOne(batch, models, world, actor, slot, cloth, pass, originalFrame); !drawn.HasValue())
             return Core::Unexpected(std::format("{}, en el personaje {}", drawn.Error(), slot));
-        // 0x510ea9..0x510eb3: con el 0x20a, 0x42afe0, que solo en el 30, con el asedio y con +0x16c llama a
-        // 0x42ddb0(personaje, 380); sin el asedio no hace nada.
+        // 0x510ea9..0x510eb3: with the 0x20a, 0x42afe0, which only in map 30, with the siege and with +0x16c calls
+        // 0x42ddb0(character, 380); without the siege it does nothing.
         if (world.Runtime().map == 30 && actor.type == Tables::PlayerSkeletonModel &&
             world.Runtime().castleSiege.siegeActive && actor.seen && originalFrame)
         {
@@ -701,14 +701,14 @@ bool CastsShadow(const Kernel::ActorState& actor, std::int32_t map)
     using Maps::FirstKalimaMap;
     using Maps::LastKalimaMap;
     using Maps::SeventhKalimaMap;
-    // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
+    // 0x50bc16: with +0x3e4 (the cards' portrait), no shadow.
     return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
            !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;
 }
 
 void FinishTheCastleFrame(Kernel::WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls)
 {
-    // 0x42da60..0x42da79: 0x42da40 abre las puertas (0x42a110(0, 0, 0, 1)) solo con 0x7239d9 en 0.
+    // 0x42da60..0x42da79: 0x42da40 opens the gates (0x42a110(0, 0, 0, 1)) only with 0x7239d9 at 0.
     if (runtime == nullptr)
     {
         Pathfinding::OpenTheGates(walls);
@@ -741,8 +741,8 @@ Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, 
         GameCharacterPass current = pass;
         if (!lastFrame && discardedSprites.has_value())
         {
-            // Cada frame parte del prefijo del mundo. Solo un frame completado puede descartar
-            // su salida transitoria: el corte conserva sombra/partes/tela anteriores a la rama.
+            // Each frame starts from the world's prefix. Only a completed frame can discard its transient output: the
+            // stop keeps the shadow, parts and cloth from before the branch.
             *discardedSprites = *pass.sprites;
             current.sprites = &*discardedSprites;
         }
@@ -779,8 +779,8 @@ Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, c
 {
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand de lo que cuelga");
-    // El login y la selección no están en Blood Castle: el suelo de la sombra no mueve la z y el registro tiene la
-    // posición del personaje.
+    // The login and the selection are not in Blood Castle: the shadow's floor does not move z and the record has the
+    // character's position.
     return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, actor.position, originalFrame, false);
 }
 
@@ -792,12 +792,12 @@ Core::Expected<void, std::string> DrawGameCharacters(std::span<Kernel::ActorStat
     for (std::size_t slot = 0; slot < std::min(actors.size(), DrawnActorCount); ++slot)
     {
         Kernel::ActorState& actor = actors[slot];
-        // 0x510e40: el héroe con +0x1d8 & 4 en la escena 5.
+        // 0x510e40: the hero with +0x1d8 & 4 in scene 5.
         if (SuppressTheHero(actor, slot == hero, pickingBoxes, slot))
         {
             continue;
         }
-        // 0x510e75 y 0x510e7a.
+        // 0x510e75 and 0x510e7a.
         if (!actor.alive || !actor.seen)
         {
             continue;

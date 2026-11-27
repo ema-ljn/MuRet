@@ -31,7 +31,7 @@ namespace Client::Actors::Drawing
 namespace
 {
 using Result = Core::Expected<void, std::string>;
-// 4fd482..4fd5bb: diez muestras; cada incremento se publica como float.
+// 0x4fd482..0x4fd5bb: ten samples; each increment is published as a float.
 constexpr int TrailSamples = 10;
 constexpr float SampleStep = 0.1f;
 constexpr std::uint8_t AlwaysTrailed = 0x8d;
@@ -84,7 +84,7 @@ Trail MonsterTrail(const Kernel::ActorState& actor, Trail trail)
         trail.type = 6;
     else if (actor.type == 0x194)
     {
-        // 4fd13f salta a los helpers: la acción 4 no recae en el arma genérica.
+        // 0x4fd13f jumps to the helpers: action 4 does not fall back to the generic weapon.
         if (actor.animation.action != 3)
         {
             trail.mode = 0;
@@ -125,7 +125,7 @@ Trail TrailOf(const Kernel::ActorState& actor)
     return actor.type == Tables::PlayerSkeletonModel ? PlayerTrail(actor, trail) : MonsterTrail(actor, trail);
 }
 
-// 4fd2e4..4fd3a4: el arma roja prevalece sobre nivel99 y sobre el tipo de cinta.
+// 0x4fd2e4..0x4fd3a4: the red weapon prevails over level 99 and over the ribbon type.
 glm::vec3 LightOf(const Trail& trail)
 {
     if (trail.model == 0x21f || trail.model == 0x618 || trail.model == 0x81b)
@@ -160,7 +160,7 @@ std::array<glm::vec3, 2> OffsetsOf(int mode)
 
 Math::BoneTransform BoneOf(std::span<const Math::BoneTransform> bones, std::size_t index)
 {
-    // Matrices globales/propias nunca posadas: los ceros de .bss (Q-C318), no identidad.
+    // Global or own matrices never posed: the .bss zeros (Q-C318), not the identity.
     return index < bones.size() ? bones[index] : Math::BoneTransform(0.0f);
 }
 

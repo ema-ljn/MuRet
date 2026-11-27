@@ -59,18 +59,17 @@ class IGuildMarks;
 struct FaunaDrawCarry;
 } // namespace Client::Scenes
 
-// Los personajes en el dibujo del juego (0x6374dd, 0x510d00), hasta donde MuRet los tiene. Contrato: 06
-// § El dibujo del juego.
+// The characters in the game's draw (0x6374dd, 0x510d00), as far as MuRet has them. Contract: 06 § El dibujo del juego.
 namespace Client::Actors::Drawing
 {
 class CharacterCloth;
 struct DrawnCharacter;
 struct ItemDrawContext;
 
-// Los recursos del pase 0x510d00 en el juego. La luz es el buffer dinámico, no su base sombreada.
-// Los dos lugares de picking arrancan en -1 en la .data (0x6c8e30 y 0x6c8e2c); el juego pasa los que dejó
-// 0x59ec80 en el dibujo anterior (PickInTheFrame). Las telas pertenecen a cada lugar entre frames. Lo que cuelga
-// (GameHanging.h) se posa en el buffer global de la pose y se dibuja con los globales de 0x60b3d0.
+// The resources of the 0x510d00 pass in the game. The light is the dynamic buffer, not its shaded base. The two picking
+// slots start at −1 in the .data (0x6c8e30 and 0x6c8e2c); the game passes the ones 0x59ec80 left in the previous draw
+// (PickInTheFrame). The cloths belong to each slot between frames. What hangs (GameHanging.h) is posed in the global
+// pose buffer and drawn with the globals of 0x60b3d0.
 struct GameCharacterPass
 {
     const Terrain::TerrainLighting* dynamicLighting = nullptr;
@@ -81,10 +80,10 @@ struct GameCharacterPass
     std::int32_t targeted = -1;
     std::span<CharacterCloth> cloths{};
     World::FrameSprites* sprites = nullptr;
-    // El buffer global de la pose (0x68b181c) y los globales de 0x60b3d0 que presta el dueño del frame.
+    // The global pose buffer (0x68b181c) and the globals of 0x60b3d0 the frame's owner lends.
     Scenes::FaunaDrawCarry* poseCarry = nullptr;
-    // Los joints (0x530860) y las partículas (0x53fe70) del frame, para lo que cuelga y el conjunto completo, y los
-    // efectos con modelo (0x518cf0), para el 5ac/3 del contador de +0x35c.
+    // The frame's joints (0x530860) and particles (0x53fe70), for what hangs and the full set, and the model effects
+    // (0x518cf0), for the 0x5ac/3 of the +0x35c counter.
     std::span<Scenes::JointState> joints{};
     World::Particles* particles = nullptr;
     World::ModelEffects* effects = nullptr;
@@ -92,89 +91,86 @@ struct GameCharacterPass
     Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock;
     std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Models::ObjectTransform&, bool)>
         onPose{};
-    // Publica las matrices del dibujo intermedio al buffer que presta el caller, sin avanzar el estado.
+    // Publishes the intermediate draw's matrices to the buffer the caller lends, without advancing the state.
     bool publishProjectedPose = false;
     std::span<ActorPickingBox> pickingBoxes{};
     std::function<std::span<const Math::BoneTransform>(std::uint16_t)> poseBones{};
-    // Los modelos del mundo, donde 0x618970 carga el Angel (0x1f7) de Chaos Castle: en el original, el mismo
-    // arreglo global. Sin ellos, un jugador en los mapas 18 a 23 corta.
+    // The world's models, where 0x618970 loads Chaos Castle's Angel (0x1f7): in the original, the same global array.
+    // Without them, a player in maps 18 to 23 stops.
     const Models::IModelLibrary* worldModels = nullptr;
-    // El trapecio de este dibujo (0x5fba90), que mira el cuervo (0x4182f0), y la altura fija de la cámara
-    // (0x6c9d5c) de la altura del terreno bajo su sombra (0x5f93c0).
+    // This draw's trapezoid (0x5fba90), which the raven looks at (0x4182f0), and the camera's fixed height (0x6c9d5c)
+    // for the terrain height under its shadow (0x5f93c0).
     const Terrain::TerrainPolygon* polygon = nullptr;
     float fixedHeight = 1200.0f;
-    // El terreno de esa altura; sin él, el del mapa del mundo (WorldState::Map). La selección tiene el suyo.
+    // The terrain of that height; without it, the world's map's (WorldState::Map). The selection has its own.
     const Terrain::WorldTerrain* terrain = nullptr;
-    // Las marcas de los gremios (0x5f16a0) que dibuja 0x50d533 sobre los jugadores con gremio; sin ellas, uno con la
-    // marca corta.
+    // The guild marks (0x5f16a0) 0x50d533 draws on the players with a guild; without them, one with the mark stops.
     Scenes::IGuildMarks* guildMarks = nullptr;
-    // Lo que tocan los helpers de los monstruos (0x43c150, KalimaSiegeHelpers.h): el mundo de Kalima de este frame
-    // (0x723c48, que 0x437860 perturba; sin él, no hace nada) y el temblor de la cámara (0x7d325c8). En un dibujo
-    // intermedio, los de la proyección.
+    // What the monsters' helpers touch (0x43c150, Scenes/KalimaSiegeHelpers.h): this frame's Kalima world (0x723c48,
+    // which 0x437860 perturbs; without it, nothing happens) and the camera shake (0x7d325c8). In an intermediate draw,
+    // the projection's.
     World::KalimaWorld* kalima = nullptr;
     float* cameraShake = nullptr;
 };
 
-// El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
-// DrawCharacter, después lo que cuelga con DrawGameHanging (0x50db57..0x50e9fa): el arma a la espalda,
-// las alas, Helper02 y las manos; los efectos del jugador con DrawGameCharacterEffects (0x50ea20..0x510ab6)
-// y el cuervo con DrawGameRaven (0x420df0). Los monstruos y los NPC (otro tipo que el 0x20a) van por
-// DrawGameMonster (MonsterDrawing.h), con su modelo de WorldState::FaunaResources. Lo aún no portado corta con su
-// dirección: los casos por +0x376 y por tipo, los de 0x509340 con joints o partículas y lo que crean los
-// efectos. Entre frames del original, lo que cuelga y
-// los efectos se dibujan sobre una copia del personaje y del rand(): no avanza ni gasta nada.
+// The ordinary player's body, its terrain light and the hero's override, reusing DrawCharacter, then what hangs with
+// DrawGameHanging (0x50db57..0x50e9fa): the weapon on the back, the wings, Helper02 and the hands; the player's effects
+// with DrawGameCharacterEffects (0x50ea20..0x510ab6) and the raven with DrawGameRaven (0x420df0). Monsters and NPCs (a
+// type other than the 0x20a) go through DrawGameMonster (Scenes/MonsterDrawing.h), with their model from
+// WorldState::FaunaResources. What is not ported yet stops with its address: the cases by +0x376 and by type, those of
+// 0x509340 with joints or particles and what the effects create. Between original frames, what hangs and the effects
+// are drawn on a copy of the character and of the rand(): nothing advances or is spent.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const Models::IModelLibrary& models,
                                                                    Kernel::WorldState& world,
                                                                    const GameCharacterPass& pass);
 
-// 0x50ba30(personaje, personaje, 0) con un personaje fuera del pool, el del retrato de las cartas (0x4959d5): lo mismo
-// que DrawGameCharacters con un lugar, sin contorno, con `cloth` de tela, sin ser el héroe y con ActorPoolSize de dueño
-// de lo que crea. Con su +0x3e4, sin la sombra ni 0x505820. `originalFrame` como en DrawGameCharacters.
+// 0x50ba30(character, character, 0) with a character outside the pool, the cards' portrait one (0x4959d5): the same as
+// DrawGameCharacters with a slot, without an outline, with `cloth` as the cloth, without being the hero and with
+// ActorPoolSize as the owner of what it creates. With its +0x3e4, without the shadow or 0x505820. `originalFrame` as in
+// DrawGameCharacters.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawCharacterOutsideThePool(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
                             Kernel::ActorState& actor, CharacterCloth& cloth, const GameCharacterPass& pass,
                             bool originalFrame);
 
-// 0x50db57..0x510a7a sobre un 0x20a con el cuerpo, las partes y la tela ya dibujados (DrawCharacter con
-// CharacterDrawPass::Body), en el login (la escena 2) y en la selección (la 4), que corren el mismo 0x50ba30 que el
-// juego: el cuerpo en sus huesos propios y, con el alpha desde 0,01, la escala y la posición en el modelo
-// compartido (0x6001b0, Q-C412), lo que cuelga (DrawGameHanging) y los efectos del jugador
-// (DrawGameCharacterEffects), sin 0x510ef0, que sólo corre en la escena 5, y el cuervo (0x510abd → 0x420df0) con el
-// trapecio de `pass` (sin él, lo dibuja el caller, como el login). `actor.drawnLight` ya tiene la luz de lo que
-// cuelga (+0x3b4, 0x50db94); `scan` es lo que devolvió 0x505820 en este dibujo. Lee de `pass` el flujo global
-// (clothWorld), el buffer global de la pose, los sprites, los joints, las partículas, los efectos, los ítems y, para
-// el cuervo, la luz dinámica, el terreno y su altura fija. Entre frames del original, sobre una copia del personaje y
-// del rand().
+// 0x50db57..0x510a7a on a 0x20a with the body, the parts and the cloth already drawn (DrawCharacter with
+// CharacterDrawPass::Body), in the login (scene 2) and in the selection (scene 4), which run the same 0x50ba30 as the
+// game: the body in its own bones and, with the alpha from 0.01, the scale and the position in the shared model
+// (0x6001b0, Q-C412), what hangs (DrawGameHanging) and the player's effects (DrawGameCharacterEffects), without
+// 0x510ef0, which only runs in scene 5, and the raven (0x510abd → 0x420df0) with the trapezoid of `pass` (without it,
+// the caller draws it, like the login). `actor.drawnLight` already has the light of what hangs (+0x3b4, 0x50db94);
+// `scan` is what 0x505820 returned in this draw. It reads from `pass` the global flow (clothWorld), the global pose
+// buffer, the sprites, the joints, the particles, the effects, the items and, for the raven, the dynamic light, the
+// terrain and its fixed height. Between original frames, on a copy of the character and of the rand().
 [[nodiscard]] Core::Expected<void, std::string>
 DrawCharacterTail(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
                   Kernel::ActorState& actor, std::size_t slot, const DrawnCharacter& character,
                   const GameCharacterPass& pass, const FullSetScan& scan, bool originalFrame);
 
-// Las guardas de la sombra de 0x50ba30 que miran al objeto y al mapa (0x50bbff..0x50bc71, DrawnCharacter::castsShadow):
-// el alpha (+0x174) desde 0,5 (con NaN, no), sin +0x3e4 (el retrato de las cartas) y fuera del mapa 10, de Kalima (24 a
-// 29) y del 36. Las piden el juego (CharacterToDraw), el login (LoginScene::TheCharacterToDraw, 0x635206 → 0x510d00) y
-// la selección (0x634851 → 0x510d00), con el actor del pool; la de las mascotas que se montan es DrawsTheShadow. Sin el
-// fundido de Chaos Castle de 0x6001bc..0x6001e1 (P-C535).
+// The shadow guards of 0x50ba30 that look at the object and the map (0x50bbff..0x50bc71, DrawnCharacter::castsShadow):
+// the alpha (+0x174) from 0.5 (not with NaN), without +0x3e4 (the cards' portrait) and outside map 10, Kalima (24 to
+// 29) and 36. The game (CharacterToDraw), the login (LoginScene::TheCharacterToDraw, 0x635206 → 0x510d00) and the
+// selection (0x634851 → 0x510d00) ask for them, with the pool's actor; the one for the pets that are ridden is
+// DrawsTheShadow. Without Chaos Castle's fade of 0x6001bc..0x6001e1 (P-C535).
 [[nodiscard]] bool CastsShadow(const Kernel::ActorState& actor, std::int32_t map);
 
-// 0x510d00: el bit del CtlCode (+0x1d8) con el que el héroe no se dibuja en la escena 5.
+// 0x510d00: the CtlCode bit (+0x1d8) with which the hero is not drawn in scene 5.
 inline constexpr std::uint8_t UndrawnHeroControlBit = 0x04;
 
-// Variante sin recursos de dibujo: recorre el pool sin rand y conserva el corte con un vivo y visto.
-// Con otro que el héroe, la rama del asedio (0x4294b0 lee 0x7239ec, que MuRet deja en 0, P-C41 c) no corre. El héroe
-// (`hero`) con +0x1d8 & 4 no se dibuja: 0x510e57 le pone +0x13c en 1.000 y +0x148, +0x158 y +0x168 en 1.
-// Los demás, vivos y vistos (+0x16c), necesitan los recursos del overload anterior: corta ahí
-// (0x510ea1), con los de antes ya mirados. Al final,
-// 0x42da60 (FinishTheCastleFrame): 0x7239dc y 0x7239e0 en 0 y, con 0x7239d9 en 0 (solo el 277 del mapa 30 lo pone en
-// 1, 0x42db10), Pathfinding::OpenTheGates sobre `walls` (Q-C276); después 0x7239d9 en 0. Sin `runtime`, como con los
-// tres en 0.
+// Variant without drawing resources: walks the pool without rand and keeps the stop with one alive and seen. With one
+// other than the hero, the siege branch (0x4294b0 reads 0x7239ec, which MuRet leaves at 0, P-C41 c) does not run. The
+// hero (`hero`) with +0x1d8 & 4 is not drawn: 0x510e57 sets its +0x13c to 1,000 and +0x148, +0x158 and +0x168 to 1. The
+// others, alive and seen (+0x16c), need the resources of the previous overload: it stops there (0x510ea1), with the
+// earlier ones already looked at. At the end, 0x42da60 (FinishTheCastleFrame): 0x7239dc and 0x7239e0 at 0 and, with
+// 0x7239d9 at 0 (only the 277 of map 30 sets it to 1, 0x42db10), Pathfinding::OpenTheGates on `walls` (Q-C276); then
+// 0x7239d9 at 0. Without `runtime`, as with the three at 0.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(std::span<Kernel::ActorState> actors,
                                                                    std::size_t hero,
                                                                    Data::Terrain::TerrainLayer<std::uint16_t>& walls,
                                                                    Kernel::WorldRuntime* runtime = nullptr,
                                                                    std::span<ActorPickingBox> pickingBoxes = {});
 
-// 0x42da60, al final de 0x510d00.
+// 0x42da60, at the end of 0x510d00.
 void FinishTheCastleFrame(Kernel::WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls);
 } // namespace Client::Actors::Drawing

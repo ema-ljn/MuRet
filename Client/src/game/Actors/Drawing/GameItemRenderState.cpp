@@ -10,7 +10,7 @@ void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& r
 {
     if (state.initialized)
         return;
-    // 4badc6..4badd9: cien llamadas, una por entrada, antes de construir los actores.
+    // 0x4badc6..0x4badd9: a hundred calls, one per entry, before the actors are built.
     constexpr int FullTurn = Math::FullTurn;
     for (auto& angle : state.floorAngles)
         angle = random.Next() % FullTurn;
@@ -19,7 +19,7 @@ void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& r
 
 void UpdateGameItemGlowPulse(GameItemRenderState& state, float worldClock)
 {
-    // Literales float de6b89e8/6b8ae8/6b8a20;63948e/639499 guardan sin sacar ST0.
+    // Float literals of 0x6b89e8, 0x6b8ae8 and 0x6b8a20; 0x63948e and 0x639499 store without popping ST0.
     constexpr float Frequency = 0.004f;
     constexpr float Amplitude = 0.15f;
     constexpr float Base = 0.6f;

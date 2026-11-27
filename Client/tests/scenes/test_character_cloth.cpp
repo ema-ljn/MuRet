@@ -25,9 +25,9 @@
 #include <string>
 #include <vector>
 
-// Client::Actors::Drawing::CharacterCloth: el bloque 0x50d58b..0x50db57 de 0x50ba30, frame por frame, contra el
-// código real del main.exe emulado (tests/vectors/cloth): qué telas arma, la cuarta, la rotura y el
-// rearmado, el estado de cada una al final de sus cinco pasos y cada triángulo que dibuja.
+// Client::Actors::Drawing::CharacterCloth: the block 0x50d58b..0x50db57 of 0x50ba30, frame by frame, against the real
+// code of the emulated main.exe (tests/vectors/cloth): which cloths it builds, the fourth, the break and the rebuild,
+// the state of each one at the end of its five steps and each triangle it draws.
 namespace
 {
 using Client::Actors::Drawing::CharacterCloth;
@@ -69,7 +69,7 @@ std::string NameOf(ModelBlend blend)
     }
 }
 
-// Un vértice del lote, con el estado de su tramo.
+// A vertex of the batch, with the state of its stretch.
 struct DrawnVertex
 {
     std::uint16_t texture = 0;
@@ -135,7 +135,7 @@ void ExpectTheBlockCase(const std::string& name)
         cloth.Frame(batch, wearer, body, world, frame.map, frame.worldTime, frame.wears,
                     frame.color.value_or(Client::Actors::Drawing::PlainClothColor));
 
-        // Lo que dejó el binario: el último paso de cada tela, sus caras, los sprites y si se rompió.
+        // What the binary left: the last step of each cloth, its faces, the sprites and whether it broke.
         std::map<std::int32_t, ClothVectorStep> lastStep;
         std::vector<DrawnVertex> expected;
         std::vector<Client::Tests::ClothVectorFlare> flares;
@@ -243,41 +243,40 @@ void ExpectTheBlockCase(const std::string& name)
     }
 }
 
-// El Dark Lord del login (0x517270(2, 4, …)): las tres telas en el mapa 0x37, tres frames.
+// The login's Dark Lord (0x517270(2, 4, …)): the three cloths in map 0x37, three frames.
 TEST(CharacterClothTest, TheLoginDarkLordMatchesTheBinary)
 {
     ExpectTheBlockCase("a_login_dark_lord.txt");
 }
 
-// La cuarta tela con ArmorClass05: armada sin usar, vuelta a armar encima (con la esfera dos veces),
-// suelta y vuelta a armar; la tercera sin la capa; y el color de un duelo, que la deja ir.
+// The fourth cloth with ArmorClass05: built unused, built again on top (with the sphere twice), released and built
+// again; the third without the cape; and the color of a duel, which lets it go.
 TEST(CharacterClothTest, TheFourthClothAndTheCapeMatchTheBinary)
 {
     ExpectTheBlockCase("b_fourth_cloth_and_wings.txt");
 }
 
-// La clase 3: una tela con Robe01 y Robe02, fuera del 0x37 (el viento base paseado) y con otro acceso
-// al contador abierto.
+// Class 3: a cloth with Robe01 and Robe02, outside 0x37 (the base wind walked) and with another access to the open
+// counter.
 TEST(CharacterClothTest, TheClassThreeRobeMatchesTheBinary)
 {
     ExpectTheBlockCase("c_class3_robe.txt");
 }
 
-// El monstruo 0x37: su tela de Robe03, y el objeto con 0x1000 (el dt en 0) y con 0x4000 (ni paso ni
-// dibujo).
+// Monster 0x37: its Robe03 cloth, and the object with 0x1000 (dt at 0) and with 0x4000 (neither step nor draw).
 TEST(CharacterClothTest, TheMonsterClothMatchesTheBinary)
 {
     ExpectTheBlockCase("d_monster_0x37.txt");
 }
 
-// La rotura: los huesos saltan, un resorte pasa de 20 veces su largo, se sueltan todas y el frame
-// siguiente se arman de nuevo desde la pose de ese momento.
+// The break: the bones jump, a spring goes past 20 times its length, all of them are released and the next frame they
+// are built again from that moment's pose.
 TEST(CharacterClothTest, ABrokenClothIsBuiltAgainTheNextFrame)
 {
     ExpectTheBlockCase("e_broken.txt");
 }
 
-// bVar23 para un jugador: la clase 3 o 4, salvo en los mapas 0x12 a 0x17.
+// bVar23 for a player: class 3 or 4, except in maps 0x12 to 0x17.
 TEST(CharacterClothTest, OnlyClassesThreeAndFourWearACloth)
 {
     EXPECT_TRUE(Client::Actors::Drawing::WearsACloth(4, 0x37));
@@ -293,7 +292,7 @@ TEST(CharacterClothTest, OnlyClassesThreeAndFourWearACloth)
 
 namespace
 {
-// El Dark Lord del primer frame del login (el caso A), para los tests del ritmo.
+// The Dark Lord of the login's first frame (case A), for the pace tests.
 struct LoginLord
 {
     ClothVectors vectors;
@@ -353,9 +352,9 @@ void ExpectTheSameCloths(const CharacterCloth& ours, const CharacterCloth& refer
     }
 }
 
-// Q-C124 corregido como Q-C20: la tela corre un frame del original (5 pasos) cada 46,875 ms de reloj, a
-// cualquier FPS. Un segundo a 60 o a 144 FPS es lo mismo que 1 + ⌊t / 46,875 ms⌋ frames del original,
-// con t el reloj del último: el primero arma la tela.
+// Q-C124 fixed as Q-C20: the cloth runs one original frame (5 steps) every 46.875 ms of clock, at any FPS. A second at
+// 60 or at 144 FPS is the same as 1 + ⌊t / 46.875 ms⌋ original frames, with t the last one's clock: the first builds
+// the cloth.
 TEST(CharacterClothTest, TheClothRunsAtTheFrameRateOfTheOriginal)
 {
     for (const int fps : {60, 144})
@@ -388,7 +387,7 @@ TEST(CharacterClothTest, TheClothRunsAtTheFrameRateOfTheOriginal)
     }
 }
 
-// En el modo fiel cada frame dura lo de uno del original: un frame del bloque por frame dibujado.
+// In the faithful mode each frame lasts as long as one of the original: one frame of the block per drawn frame.
 TEST(CharacterClothTest, AtTheOriginalFrameRateEachFrameRunsTheBlockOnce)
 {
     const LoginLord lord = ReadTheLoginLord();
@@ -409,8 +408,8 @@ TEST(CharacterClothTest, AtTheOriginalFrameRateEachFrameRunsTheBlockOnce)
     ExpectTheSameCloths(cloth, reference);
 }
 
-// Y aunque el frame fiel no dure justo 46,875 ms: con OncePerDraw, el primero tarde y los demás antes, cada
-// dibujo corre el bloque una vez (por el reloj correría 0 y después 2).
+// And even if the faithful frame does not last exactly 46.875 ms: with OncePerDraw, the first late and the others
+// early, each draw runs the block once (by the clock it would run 0 and then 2).
 TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClock)
 {
     using namespace std::chrono_literals;
@@ -435,9 +434,9 @@ TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClo
     ExpectTheSameCloths(cloth, reference);
 }
 
-// Después de un frame retenido (Q-C85, P-C27 f), RestartTheClock: el próximo Advance corre el bloque una vez,
-// como el original en el primer frame que dibuja después del connect, aunque pasaron 5 s (por el reloj serían
-// 64). Las telas siguen desde donde estaban.
+// After a held frame (Q-C85, P-C27 f), RestartTheClock: the next Advance runs the block once, like the original in the
+// first frame it draws after the connect, although 5 s passed (by the clock it would be 64). The cloths go on from
+// where they were.
 TEST(CharacterClothTest, AfterARestartTheNextAdvanceRunsTheBlockOnce)
 {
     using namespace std::chrono_literals;
@@ -470,8 +469,8 @@ TEST(CharacterClothTest, AfterARestartTheNextAdvanceRunsTheBlockOnce)
     ExpectTheSameCloths(cloth, reference);
 }
 
-// Un personaje que pasa de la clase 3 a la 4 con la misma tela: el arreglo de una no alcanza para las
-// cuatro del Dark Lord, y la tela se vuelve a armar en vez de leer fuera de él.
+// A character that goes from class 3 to 4 with the same cloth: the array of one is not enough for the Dark Lord's four,
+// and the cloth is built again instead of reading outside it.
 TEST(CharacterClothTest, AClassChangeBuildsTheClothsAgain)
 {
     const LoginLord lord = ReadTheLoginLord();
@@ -491,11 +490,11 @@ TEST(CharacterClothTest, AClassChangeBuildsTheClothsAgain)
     EXPECT_EQ(cloth.Count(), 3u);
 }
 
-// #307: entre dos frames del original, la tela se dibuja llevada con el hueso del que cuelga. Un dibujo
-// intermedio cae a los 20 ms, antes del segundo frame del original.
+// Between two original frames, the cloth is drawn carried with the bone it hangs from. An intermediate draw falls at 20
+// ms, before the original's second frame.
 constexpr Client::Core::Duration BetweenFrames = std::chrono::milliseconds{20};
-// Lo que se aleja un punto llevado del que daría la cuenta exacta: la tela está a unas 10.000 unidades
-// del origen del mundo, donde un float tiene un ulp de 0,001.
+// How far a carried point strays from the one the exact computation would give: the cloth is some 10,000 units from the
+// world's origin, where a float has an ulp of 0.001.
 constexpr float CarryTolerance = 0.01f;
 
 TEST(CharacterClothTest, ReleasingResourcesPreservesTheOriginalFrameClock)
@@ -529,7 +528,7 @@ std::vector<glm::vec3> PositionsOf(const ModelBatch& batch)
     return positions;
 }
 
-// El primer frame del original, que arma la tela y la dibuja con el cuerpo de `lord`.
+// The original's first frame, which builds the cloth and draws it with the body of `lord`.
 std::vector<glm::vec3> TheFirstFrame(CharacterCloth& cloth, const LoginLord& lord)
 {
     ClothWorld world{.random = CrtRandom(11)};
@@ -539,8 +538,8 @@ std::vector<glm::vec3> TheFirstFrame(CharacterCloth& cloth, const LoginLord& lor
     return PositionsOf(batch);
 }
 
-// Un dibujo entre frames del original con el cuerpo `body`, por DrawCurrent (el juego) o por Advance sin
-// frames del original que correr (el login y la selección).
+// A draw between original frames with the body `body`, through DrawCurrent (the game) or through Advance with no
+// original frames to run (the login and the selection).
 std::vector<glm::vec3> ADrawBetweenFrames(CharacterCloth& cloth, const LoginLord& lord, const ClothBody& body,
                                           bool byAdvance)
 {
@@ -567,8 +566,8 @@ void ExpectNear(const glm::vec3& ours, const glm::vec3& expected, std::size_t ve
     }
 }
 
-// Con el cuerpo quieto (los mismos huesos), el dibujo intermedio es el del último frame del original, bit a
-// bit. Los frames del original, y todos los del modo fiel, simulan y no pasan por acá.
+// With the body still (the same bones), the intermediate draw is the last original frame's, bit for bit. The original
+// frames, and all those of the faithful mode, simulate and do not come through here.
 TEST(CharacterClothTest, BetweenOriginalFramesAStillBodyDrawsTheClothAsItWas)
 {
     for (const bool byAdvance : {false, true})
@@ -587,8 +586,8 @@ TEST(CharacterClothTest, BetweenOriginalFramesAStillBodyDrawsTheClothAsItWas)
     }
 }
 
-// El personaje que dio un paso entre dos frames del original: la tela va con él, corrida lo mismo que el
-// cuerpo, y no se queda donde estaba hasta el frame siguiente (el rebote de #307).
+// The character that took a step between two original frames: the cloth goes with it, shifted the same as the body, and
+// does not stay where it was until the next frame.
 TEST(CharacterClothTest, BetweenOriginalFramesTheClothWalksWithTheBody)
 {
     for (const bool byAdvance : {false, true})
@@ -610,8 +609,8 @@ TEST(CharacterClothTest, BetweenOriginalFramesTheClothWalksWithTheBody)
     }
 }
 
-// La tela que se arma con el personaje oculto (0x4000: se arma y no se simula, 0x50da67) queda sobre ese cuerpo.
-// Si el dibujo siguiente ya lo ve y el personaje caminó, la lleva desde el cuerpo en que se armó.
+// The cloth built with the character hidden (0x4000: it is built and not simulated, 0x50da67) stays on that body. If
+// the next draw already sees it and the character walked, it carries it from the body it was built on.
 TEST(CharacterClothTest, AClothBuiltWhileHiddenWalksFromTheBodyItWasBuiltOn)
 {
     const LoginLord lord = ReadTheLoginLord();
@@ -638,8 +637,8 @@ TEST(CharacterClothTest, AClothBuiltWhileHiddenWalksFromTheBodyItWasBuiltOn)
     }
 }
 
-// El personaje que giró 90° entre dos frames del original: los huesos traen el giro, y la tela gira con
-// ellos alrededor de la posición del personaje.
+// The character that turned 90° between two original frames: the bones bring the turn, and the cloth turns with them
+// around the character's position.
 TEST(CharacterClothTest, BetweenOriginalFramesTheClothTurnsWithTheBody)
 {
     const LoginLord lord = ReadTheLoginLord();

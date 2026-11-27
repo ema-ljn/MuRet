@@ -16,12 +16,12 @@ namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 struct ItemDrawContext;
-// 69fd3c: FTOL64 truncado, con la palabra baja firmada que conservan los callers.
+// 0x69fd3c: truncated FTOL64, with the signed low word the callers keep.
 [[nodiscard]] std::int32_t ItemClockWord(float time);
 
-// Lo que 4ecc30 saca del reloj para las UV de un pase de brillo: la palabra baja firmada para los
-// períodos, su fase `t` y, solo en Chrome4 y Chrome5, el coseno y el seno PC53 (0x4ed0fb..0x4ed11a). No depende de la
-// normal, así que es el mismo en todas las esquinas: se saca una vez por pase y no por esquina (#306).
+// What 0x4ecc30 takes from the clock for the UVs of a glow pass: the signed low word for the periods, its phase `t`
+// and, only in Chrome4 and Chrome5, the PC53 cosine and sine (0x4ed0fb..0x4ed11a). It does not depend on the normal, so
+// it is the same at every corner: it is computed once per pass, not per corner.
 struct ItemShineClock
 {
     std::int32_t word = 0;
@@ -30,14 +30,14 @@ struct ItemShineClock
     float chrome4Sine = 0.0f;
 };
 
-// 4ecc30: el reloj del pase `pass`, con el float completo para las fases.
+// 0x4ecc30: the clock of pass `pass`, with the full float for the phases.
 [[nodiscard]] ItemShineClock ItemShineClockOf(Models::ShinePass pass, Core::Duration clock);
 
-// 4ecc30: las UV de una esquina con la normal en el mundo y el reloj de su pase.
+// 0x4ecc30: the UVs of a corner with the normal in the world and its pass's clock.
 [[nodiscard]] glm::vec2 ItemShineTexCoords(Models::ShinePass pass, const glm::vec3& normal,
                                            const ItemShineClock& clock);
 
-// 60be05..60c5c3: stores y emisores de los ítems, sobre la pose retenida del caller.
+// 0x60be05..0x60c5c3: the items' stores and emitters, on the caller's retained pose.
 [[nodiscard]] Core::Expected<void, std::string> PrepareItemGlowEffects(DrawnObject& object, Core::Duration clock,
                                                                        std::uint8_t level,
                                                                        const ItemDrawContext& context,

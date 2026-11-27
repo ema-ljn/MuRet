@@ -51,3 +51,27 @@ jobs:
 
       - name: Tests
         run: pytest -v
+
+  browser:
+    name: mubmd web (Chromium)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Client/tools/bmd
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: Client/tools/bmd/pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: pytest -m browser -v

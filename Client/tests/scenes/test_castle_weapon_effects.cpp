@@ -59,11 +59,11 @@ public:
 class CastleWeaponEffectsTest : public testing::Test
 {
 protected:
-    std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState selection{*world};
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{}};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     WeaponModels models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};

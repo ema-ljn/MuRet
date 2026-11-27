@@ -20,7 +20,7 @@ namespace
 TEST(CastleFlagUploadTest, IdenticalMarksBothReplaceTheRgbImageAndPreserveCpuMetadata)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::ModelTextureTable table;
+    Client::Assets::ModelTextureTable table;
     table.Bind(store);
     const Client::Data::Textures::LoadedTexture original{
         .slot = 0x69c,

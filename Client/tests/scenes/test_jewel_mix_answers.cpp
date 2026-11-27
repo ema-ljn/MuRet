@@ -106,7 +106,7 @@ struct Stage
         return world.Runtime().npcWindows;
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random{Seed};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{868, "zen"},
                                                                     {1800, "no se deshizo"},

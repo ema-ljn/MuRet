@@ -33,12 +33,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
 
@@ -111,8 +111,8 @@ protected:
 
     GameHudContext Context(bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -138,7 +138,7 @@ protected:
         return m_world->Runtime().panels.overlayMode;
     }
 
-    [[nodiscard]] Client::Scenes::HudState& Hud()
+    [[nodiscard]] Client::Kernel::HudState& Hud()
     {
         return m_world->Runtime().hud;
     }

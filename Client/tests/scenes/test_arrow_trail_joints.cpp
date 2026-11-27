@@ -72,7 +72,7 @@ struct Trail
     Client::Models::ClothWorld cloth{.random = CrtRandom{1}};
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     Client::World::FrameSprites sprites;
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
 // 0x531fa3..0x53200e: la /0xc nace con la luz (0,6f; 0,2f; 0,8f) y la mezcla 4 y la /0xe con la luz 1 y la mezcla 1;

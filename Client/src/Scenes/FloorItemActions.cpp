@@ -56,7 +56,7 @@ constexpr std::uint8_t PickUpMovement = 1;
 // 0x5667d7..0x566b40 y 0x566e90..: el pedido y el C1 05 22, si no hay otro.
 Core::Expected<void, std::string> RequestThePickUp(const InventoryMoveContext& context)
 {
-    FloorItemGlobals& floor = context.world.Runtime().floor;
+    Kernel::FloorItemGlobals& floor = context.world.Runtime().floor;
     if (floor.pendingPickUp != -1)
         return {};
     floor.pendingPickUp = floor.chosen;
@@ -67,7 +67,7 @@ Core::Expected<void, std::string> RequestThePickUp(const InventoryMoveContext& c
 }
 } // namespace
 
-std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const World::TerrainPickingSegment& ray)
+std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const Terrain::TerrainPickingSegment& ray)
 {
     // 0x59e2f0..0x59e31f.
     for (FloorItemState& item : items)
@@ -90,13 +90,13 @@ std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const World::Terr
     return -1;
 }
 
-Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items, std::span<const World::ItemState> cells,
+Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items, std::span<const Kernel::ItemState> cells,
                                              std::int16_t type)
 {
     const auto footprint = ItemFootprintOf(items, static_cast<std::uint16_t>(type), "0x5c9d20");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     const auto rows = static_cast<std::int32_t>(cells.size()) / Columns;
     const std::int32_t width = footprint.Value().width;
     const std::int32_t height = footprint.Value().height;
@@ -108,7 +108,7 @@ Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items, std
             for (std::int32_t y = row; y < row + height && empty; ++y)
             {
                 for (std::int32_t x = column; x < column + width && empty; ++x)
-                    empty = cells[static_cast<std::size_t>(y * Columns + x)].id == EmptyOwnItemId;
+                    empty = cells[static_cast<std::size_t>(y * Columns + x)].id == Kernel::EmptyOwnItemId;
             }
             if (empty)
                 return true;
@@ -120,9 +120,9 @@ Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items, std
 Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext& context, const glm::vec3& actor,
                                                      float fixedHeight)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
-    FloorItemGlobals& floor = runtime.floor;
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    Kernel::FloorItemGlobals& floor = runtime.floor;
     if (floor.fromSpace == 0)
     {
         // 0x56675e..0x5667ac: en la x87, con el destino como entero con signo (FILD); con NaN sigue.
@@ -155,11 +155,11 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
     if (auto said = context.services.chatLine(Crt::Sprintf(*format), UI::SystemMessage); !said.HasValue())
         return Core::Unexpected(std::format("0x566e42, 0x555190: {}", said.Error()));
     // 0x566e47..0x566e76.
-    const World::WorldTerrain& terrain = world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x566e64: 0x5f93c0 sin el terreno del mapa"));
     const double ground =
-        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, item.position.x, item.position.y, fixedHeight);
+        Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, item.position.x, item.position.y, fixedHeight);
     item.position.z = static_cast<float>(ground + NoRoomHeight);
     item.dropSpeed = NoRoomDropSpeed;
     return {};
@@ -167,8 +167,8 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
 
 Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveContext& context, float fixedHeight)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& items = world.DrawTail().floorItems;
     for (std::size_t index = 0; index < items.size(); ++index)
     {

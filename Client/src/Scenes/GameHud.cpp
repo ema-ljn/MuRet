@@ -171,9 +171,9 @@ using Math::Truncate;
 struct Frame
 {
     GameHudContext& context;
-    WorldRuntime& runtime;
-    OwnCharacterRecord& own;
-    ActorState& hero;
+    Kernel::WorldRuntime& runtime;
+    Kernel::OwnCharacterRecord& own;
+    Kernel::ActorState& hero;
     UI::PanelRegistry& panels;
 };
 
@@ -561,7 +561,7 @@ void DrawAmmoText(Frame& frame, float x, std::string_view text)
 // deja su tamaño en 0x77f31b8 y 0x77f31bc.
 void DrawTheMacroTime(Frame& frame)
 {
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     const std::int32_t time = hud.macroTime;
     if (time <= 0)
         return;
@@ -595,7 +595,7 @@ void DrawTheChatEdit(Frame& frame, UI::OldEdit& edit, bool focused)
 void DrawTheChatInput(Frame& frame)
 {
     GameHudContext& context = frame.context;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     const UI::ChatInputState& input = frame.runtime.chat.input;
     context.sprites.SetColor(White);
     hud.dcFont = Render::Text::FontKind::Normal;
@@ -642,7 +642,7 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
         ResolutionOffsets[static_cast<std::size_t>(ResolutionIndex(frame.context.sprites.Screen()))];
     bool shown = false;
     const auto own = OwnAccess(frame);
-    const std::span<const World::ItemState, InventoryCellCount> cells(frame.context.world.Inventory().cells);
+    const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(frame.context.world.Inventory().cells);
     struct Ammo
     {
         std::size_t slot = 0;
@@ -655,7 +655,7 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
     constexpr std::array<Ammo, 2> Kinds{{{0, ArrowsType, ArrowsText, true}, {1, BoltsType, BoltsText, false}}};
     for (const Ammo& ammo : Kinds)
     {
-        const World::ItemState& item = frame.own.equipment[ammo.slot];
+        const Kernel::ItemState& item = frame.own.equipment[ammo.slot];
         if (item.id != ammo.type)
             continue;
         const std::int32_t worldWidth = frame.panels.WorldWidth();
@@ -764,7 +764,7 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
 {
     if (frame.panels.IsOpen(UI::TradePanel))
         return {};
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     Render::SpriteBatch& sprites = frame.context.sprites;
     const float partyOffset = PartyOffset(frame);
     sprites.SetColor(White);
@@ -773,12 +773,12 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
     const float x = F32(static_cast<double>(worldWidth) - static_cast<double>(partyOffset));
     const auto y = static_cast<float>(top);
     float offset = 0.0f;
-    for (std::size_t slot = 0; slot < OwnEquipmentSlotCount; ++slot)
+    for (std::size_t slot = 0; slot < Kernel::OwnEquipmentSlotCount; ++slot)
     {
         hud.textColors.background = 0x80000000u;
         const auto own = OwnAccess(frame);
-        World::ItemState& item = frame.own.equipment[slot];
-        if (item.id == EmptyOwnItemId)
+        Kernel::ItemState& item = frame.own.equipment[slot];
+        if (item.id == Kernel::EmptyOwnItemId)
             continue;
         const auto type = static_cast<std::int16_t>(item.id);
         std::optional<std::uint8_t> warning;
@@ -989,7 +989,7 @@ Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
     const auto own = OwnAccess(frame);
-    const OwnCharacterRecord& record = frame.own;
+    const Kernel::OwnCharacterRecord& record = frame.own;
     if (record.level != 0)
     {
         // 0x5abe3b..0x5abe74: la experiencia del nivel, en 32 bits.
@@ -1104,7 +1104,7 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     }
     // 0x5ac209..0x5ac267: las tres ranuras rápidas, cada una con 0x5e1480((float)(208 + 31i), 454, 20, 20, tipo, +4, 0,
     // 0, 0).
-    const std::span<const World::ItemState, InventoryCellCount> cells(frame.context.world.Inventory().cells);
+    const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
         auto found = FindQuickSlotItem(frame.context.hud.quickSlots, cells, slot,
@@ -1113,7 +1113,7 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
             return Core::Unexpected(found.Error());
         if (!found.Value())
             continue;
-        const World::ItemState& item = cells[*found.Value()];
+        const Kernel::ItemState& item = cells[*found.Value()];
         const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
         const UiItemBox box{.x = static_cast<float>(208 + 31 * slot), .y = 454.0f, .width = 20.0f, .height = 20.0f};
         if (auto drawn = DrawUiItem(frame.context, box, type, item.scalar1Low, 0, 0, false); !drawn.HasValue())
@@ -1364,7 +1364,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
         sprites.SetBlend(BlendMode::Alpha);
         // 0x5a630b..0x5a6325: leer la tecla antes del cierre propio; el número va después (0x5a6374..0x5a63b6).
         const std::size_t place = frame.context.chosenSlot.value_or(0);
-        if (place < frame.own.skillKeys.size() && index < OwnSkillKeyBytes)
+        if (place < frame.own.skillKeys.size() && index < Kernel::OwnSkillKeyBytes)
             key = frame.own.skillKeys[place][index];
     }
     if (key != 0xff)
@@ -1582,7 +1582,7 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         UI::DrawNumber(sprites, 100.0f, 467.0f, frame.own.life, 9.0f, 10.0f);
         UI::DrawNumber(sprites, 540.0f, 467.0f, frame.own.mana, 9.0f, 10.0f);
     }
-    const std::span<const World::ItemState, InventoryCellCount> cells(frame.context.world.Inventory().cells);
+    const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
         auto count = CountQuickSlotItems(frame.context.hud.quickSlots, cells, slot);
@@ -1690,15 +1690,15 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
 
 Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GamePanels panels(world, context.random);
     Frame frame{.context = context,
                 .runtime = runtime,
                 .own = world.OwnCharacter(),
                 .hero = world.Hero(),
                 .panels = panels.Registry()};
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
@@ -1713,7 +1713,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return holders;
     // 5. 0x42a4d0: las barras de vida de la cola de 0x7239a8 (Scenes/HealthBars). Un dibujo intermedio vacía una copia.
     {
-        std::deque<QueuedHealthBar> scratch;
+        std::deque<Kernel::QueuedHealthBar> scratch;
         if (context.projecting)
             scratch = runtime.healthBars;
         if (auto bars = DrawTheHealthBars(context.projecting ? scratch : runtime.healthBars, context.projection,
@@ -1835,7 +1835,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
 
 Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const std::int32_t& mode = world.Runtime().panels.overlayMode;
     // 0x5b0559..0x5b06ac: la primera ayuda de F1, y el modo otra vez.
     if (mode == UI::FirstHelpMode)
@@ -1857,8 +1857,8 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
 Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     sprites.SetBlend(BlendMode::Alpha);
     sprites.SetColor(White);
     // 0x5ac2ee..0x5ac33a: el cuadro del de hablar, ftol(T · 0,01) % 6, en cuartos de la textura.
@@ -1888,7 +1888,7 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
         return Core::Unexpected(
             std::string("0x5ac3d8: el cursor de los objetos lee su tabla (0x7d34820), de la CL9.1"));
     GamePanels panels(world, context.random);
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     if (hero.safeZone == 0 && targets[2] != -1)
     {
         // 0x5ac53c..0x5ac60b (CL9 hito 3): atacable (0x558bb0) y el mouse fuera de la UI (0x775857c), el de atacar (4,

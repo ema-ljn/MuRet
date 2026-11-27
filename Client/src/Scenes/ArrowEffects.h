@@ -25,21 +25,33 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class Particles;
 struct ModelEffect;
 struct ModelEffectArguments;
-struct TerrainLighting;
-struct WorldTerrain;
 } // namespace Client::World
+
+namespace Client::Actors
+{
+struct CharacterStepContext;
+} // namespace Client::Actors
+
+namespace Client::Kernel
+{
+struct ActorState;
+class WorldState;
+} // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-struct ActorState;
-struct CharacterStepContext;
-class WorldState;
 
 // Los tipos de flecha que crea 0x53d9a0: 0xdb..0xe3, 0xf7..0xf9, 0x10e, 0x111 y 0x11c.
 [[nodiscard]] bool IsArrowEffect(std::int16_t type);
@@ -50,7 +62,7 @@ class WorldState;
 // y Crywolf (0x42fd32 y 0x43252d); su 610/13 conserva al efecto de dueño. Con el subtipo 2 (la skill 0x34), antes el
 // 0x105 con la flecha de dueño y cuatro intentos de joint 0x610 (0x51a08a). Con la tabla llena, nada y sin rand().
 [[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
-                                                                     WorldState& world, Crt::CrtRandom& random,
+                                                                     Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                      glm::vec3* callerAngles = nullptr);
 
 // 0x53e2b0(c, o, blanco, lugar, bandera, skill), como lo llama el paso del ataque (0x50377d, 0x5037d0, 0x504060 y
@@ -64,21 +76,22 @@ class WorldState;
 // una con su alta; con la 0x2e, solo el efecto 0x13a, con su joint 0x632/4 (0x51e01a). Después de la bandera en 1 o
 // de un tiro, con 0xa25 en +0x2b8, el brillo de la mano (0x53e642). Lo que hizo antes de un corte queda, con sus
 // rand().
-[[nodiscard]] Core::Expected<void, std::string> FireTheArrow(ActorState& actor, ActorState* target, std::size_t slot,
-                                                             std::int32_t skillIndex, std::uint8_t flag,
-                                                             std::uint8_t skill, const CharacterStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string> FireTheArrow(Kernel::ActorState& actor, Kernel::ActorState* target,
+                                                             std::size_t slot, std::int32_t skillIndex,
+                                                             std::uint8_t flag, std::uint8_t skill,
+                                                             const Actors::CharacterStepContext& context);
 
 // 0x518cf0 de la flecha 0xe2, con los campos nativos de 0x4f7f67.
-[[nodiscard]] Core::Expected<void, std::string> CreateAquagoldArrow(ActorState& owner, const glm::vec3& angles,
-                                                                    const CharacterStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string> CreateAquagoldArrow(Kernel::ActorState& owner, const glm::vec3& angles,
+                                                                    const Actors::CharacterStepContext& context);
 
 // 0x51fff0 con el estallido de combate 0x51fe10 y el sonido 0x40 de 0x542a7c.
 [[nodiscard]] Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
-                                                                    const CharacterStepContext& context);
+                                                                    const Actors::CharacterStepContext& context);
 
 // 0x51fff0(posición,0): ocho grupos con 0x51fe10 y un selector por intento de piedra c8/c9, primero /1 y después /0.
 [[nodiscard]] Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position,
-                                                                     const CharacterStepContext& context);
+                                                                     const Actors::CharacterStepContext& context);
 
 // Lo que el paso de una flecha lee y escribe afuera de su lugar: el pool de personajes, el registro propio y el
 // héroe (0x520170), las partículas (0x53fe70), los sprites del frame (0x5491e0), la luz dinámica (0x5f9780) y el
@@ -88,14 +101,14 @@ class WorldState;
 // (sus rand() sí).
 struct ArrowStepContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     World::Particles* particles = nullptr;
     World::FrameSprites* sprites = nullptr;
-    World::TerrainLighting* lighting = nullptr;
+    Terrain::TerrainLighting* lighting = nullptr;
     float worldClock = 0.0f;
     // La carga del mapa (0x7d0d348); vacío, el mapa del juego.
-    const World::WorldTerrain* terrain = nullptr;
+    const Terrain::WorldTerrain* terrain = nullptr;
     std::function<double(float, float)> terrainHeight{};
     std::function<void(std::int32_t)> soundRequest{};
     std::function<void(Protocol::Outgoing)> send{};

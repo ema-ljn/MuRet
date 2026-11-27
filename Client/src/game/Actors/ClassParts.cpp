@@ -12,7 +12,7 @@
 #include <string>
 
 // 0x513100, cotejado con el PE c32bbd5f (89 instrucciones, 353 bytes).
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -25,7 +25,7 @@ constexpr std::uint8_t LastEmoteAction = 0xcc;
 // 0x513146..0x51324d: la parte que se compara con el modelo base de la de cada vuelta. La del casco es la suya
 // (+0x218); las otras, la siguiente: +0x258 con la armadura, +0x278 con los pantalones, +0x298 con los guantes y la
 // mano derecha (+0x2b8) con las botas (Q-C1024).
-const ActorItemPart& ComparedPart(const ActorState& actor, std::size_t part)
+const Kernel::ActorItemPart& ComparedPart(const Kernel::ActorState& actor, std::size_t part)
 {
     if (part == 0)
         return actor.body[0];
@@ -35,7 +35,7 @@ const ActorItemPart& ComparedPart(const ActorState& actor, std::size_t part)
 }
 } // namespace
 
-Core::Expected<ActorStopResult, std::string> ApplyTheClassParts(ActorState& actor, const ActorStopContext& stop)
+Core::Expected<ActorStopResult, std::string> ApplyTheClassParts(Kernel::ActorState& actor, const ActorStopContext& stop)
 {
     // 0x513107: CMP word [esi+2], 0x20a.
     if (actor.type != Tables::PlayerSkeletonModel)
@@ -59,18 +59,18 @@ Core::Expected<ActorStopResult, std::string> ApplyTheClassParts(ActorState& acto
     const auto baseClass = static_cast<std::uint8_t>(characterClass & 7u);
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
-        const auto bodyPart = static_cast<GameLogic::BodyPart>(part);
+        const auto bodyPart = static_cast<Kernel::BodyPart>(part);
         const auto compared = static_cast<std::int16_t>(ComparedPart(actor, part).model);
-        if (compared != static_cast<std::int32_t>(GameLogic::ClassPartModel(bodyPart, baseClass)))
+        if (compared != static_cast<std::int32_t>(Kernel::ClassPartModel(bodyPart, baseClass)))
             continue;
-        ActorItemPart& worn = actor.body[part];
+        Kernel::ActorItemPart& worn = actor.body[part];
         worn.level = 0;
         worn.flags1b = 0;
         worn.flags1c = 0;
-        worn.model = GameLogic::ClassPartModel(bodyPart, characterClass);
+        worn.model = Kernel::ClassPartModel(bodyPart, characterClass);
     }
     // 0x513255.
     ApplyHeadAndScale(actor);
     return result;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

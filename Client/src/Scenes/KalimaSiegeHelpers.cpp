@@ -105,7 +105,7 @@ class Helper
 public:
     explicit Helper(const KalimaSiegeHelperPass& pass) : m_pass(pass) {}
 
-    [[nodiscard]] ActorState& Actor() const
+    [[nodiscard]] Kernel::ActorState& Actor() const
     {
         return m_pass.actor;
     }
@@ -124,7 +124,7 @@ public:
     // posición del registro del modelo (KalimaSiegeHelperPass::modelOrigin: la de la sombra o la de 0x5ffdf0).
     [[nodiscard]] glm::vec3 Point(std::size_t bone, const glm::vec3& offset) const
     {
-        const ActorState& actor = m_pass.actor;
+        const Kernel::ActorState& actor = m_pass.actor;
         const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
         return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale,
                                                m_pass.modelOrigin.value_or(actor.position));
@@ -170,7 +170,7 @@ public:
     {
         if (m_pass.effects == nullptr)
             return Core::Unexpected(std::format("{}: faltan los efectos del frame (0x518cf0)", address));
-        const ActorState& actor = m_pass.actor;
+        const Kernel::ActorState& actor = m_pass.actor;
         const auto made = CreateTheKundunCall(*m_pass.effects, {.type = KundunCallEffect,
                                                                 .position = position,
                                                                 .angles = actor.angles,
@@ -215,7 +215,7 @@ public:
     // Kalima (0x723c48 en 0) no hace nada.
     [[nodiscard]] Result Disturb() const
     {
-        const LogicalCell cell = ReadLogicalCell(m_pass.actor, m_pass.random);
+        const Actors::LogicalCell cell = Actors::ReadLogicalCell(m_pass.actor, m_pass.random);
         if (m_pass.kalima == nullptr)
             return {};
         constexpr std::int32_t Radius = 2;
@@ -235,7 +235,7 @@ private:
 // 0x43c17f..0x43c22a, el 0xc5.
 Result DrawTheGate(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action != 1)
         return {};
     // 0x43c18c..0x43c1a6: la posición 20 más arriba va al local [ebp−0x38], que 0x4ec110 pisa con el punto del hueso 8
@@ -277,7 +277,7 @@ void DrawTheSpineStars(const Helper& helper)
 // 0x43c233..0x43c646, el 0x191.
 Result DrawTheFirstKalimaHelper(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action != DeadAction)
     {
         // 0x43c26e..0x43c3dc: cinco vueltas, con la luz que sube 0,25 por vuelta y la escala que baja 0,2.
@@ -326,7 +326,7 @@ Result DrawTheFirstKalimaHelper(const Helper& helper)
 }
 
 // 0x43c7a8..0x43c8e3: el pulso de la acción 5 en +0x8a (un short) y +0x89, y la escala del 0x62d.
-float KundunPulse(ActorState& actor)
+float KundunPulse(Kernel::ActorState& actor)
 {
     const float frame = actor.animation.frame;
     constexpr std::int16_t Rest = 10;
@@ -360,7 +360,7 @@ float KundunPulse(ActorState& actor)
 // 0x43ce8b..0x43cfb6: el temblor y, en Kalima, los dos efectos 9 que caen.
 Result ShakeForKundun(const Helper& helper)
 {
-    const ActorState& actor = helper.Actor();
+    const Kernel::ActorState& actor = helper.Actor();
     const float frame = actor.animation.frame;
     if (frame > 3.0f)
     {
@@ -395,7 +395,7 @@ Result ShakeForKundun(const Helper& helper)
 // 0x43cfb8..0x43dc81: las acciones 3 y 4 de Kundun.
 Result StepKundunAttacks(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     const std::uint8_t action = actor.animation.action;
     const float frame = actor.animation.frame;
     constexpr std::int32_t Armed = 100;
@@ -471,7 +471,7 @@ Result StepKundunAttacks(const Helper& helper)
 // 0x43c647..0x43dc89, el 0x192 (Kundun).
 Result DrawKundun(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
     {
         // 0x43c650..0x43c65f: la mano izquierda sin ítem.
@@ -563,7 +563,7 @@ void DrawTheThirdKalimaHelper(const Helper& helper)
 // 0x43e080..0x43e3f2, el 0x194.
 Result DrawTheFourthKalimaHelper(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
         return {};
     const float lum = F32(Wave(helper.Clock(), 0.005f, 0.15f) + D(0.85f));
@@ -609,7 +609,7 @@ Result DrawTheFourthKalimaHelper(const Helper& helper)
 }
 
 // 0x43ebf0..0x43ec0c: las dos manos sin ítem.
-void DropTheHands(ActorState& actor)
+void DropTheHands(Kernel::ActorState& actor)
 {
     actor.hands[0].model = NoModel;
     actor.hands[1].model = NoModel;
@@ -618,7 +618,7 @@ void DropTheHands(ActorState& actor)
 // 0x43e3f3..0x43e605, el 0x195.
 Result DrawTheFifthKalimaHelper(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
     {
         DropTheHands(actor);
@@ -650,7 +650,7 @@ Result DrawTheFifthKalimaHelper(const Helper& helper)
 // 0x43e606..0x43e923, el 0x196.
 Result DrawTheSixthKalimaHelper(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
         return {};
     glm::vec3 turned = actor.angles;
@@ -698,7 +698,7 @@ Result DrawTheSixthKalimaHelper(const Helper& helper)
 // 0x43e924..0x43ebef, el 0x197.
 Result DrawTheSeventhKalimaHelper(const Helper& helper)
 {
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
     {
         DropTheHands(actor);
@@ -784,7 +784,7 @@ Core::Expected<bool, std::string> DrawTheCastleHelpers(const Helper& helper)
     const KalimaSiegeHelperPass& pass = helper.Pass();
     if (pass.map != CastleMap)
         return false;
-    ActorState& actor = helper.Actor();
+    Kernel::ActorState& actor = helper.Actor();
     const glm::vec3 position = actor.position;
     constexpr std::int32_t Additive = 0x40;
     constexpr std::int32_t Subtractive = 0x80;
@@ -880,16 +880,16 @@ Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pa
     }
     constexpr std::int32_t Slot = Ring;
     constexpr float Lift = 5.0f;
-    World::TerrainDecal decal{.slot = Slot,
-                              .x = x,
-                              .y = y,
-                              .width = side,
-                              .height = side,
-                              .color = light,
-                              .angle = F32(D(pass.worldClock) * D(0.01f)),
-                              .alpha = 1.0f,
-                              .lift = Lift};
-    if (auto drawn = World::DrawTerrainDecal(pass.batch, *pass.heights, decal); !drawn.HasValue())
+    Terrain::TerrainDecal decal{.slot = Slot,
+                                .x = x,
+                                .y = y,
+                                .width = side,
+                                .height = side,
+                                .color = light,
+                                .angle = F32(D(pass.worldClock) * D(0.01f)),
+                                .alpha = 1.0f,
+                                .lift = Lift};
+    if (auto drawn = Terrain::DrawTerrainDecal(pass.batch, *pass.heights, decal); !drawn.HasValue())
         return drawn;
     if (mode == Subtractive)
     {
@@ -899,7 +899,7 @@ Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pa
     }
     decal.color = light;
     decal.angle = F32(D(pass.worldClock) * D(-0.01f));
-    return World::DrawTerrainDecal(pass.batch, *pass.heights, decal);
+    return Terrain::DrawTerrainDecal(pass.batch, *pass.heights, decal);
 }
 
 Core::Expected<bool, std::string> DrawKalimaSiegeHelpers(const KalimaSiegeHelperPass& pass)
@@ -923,7 +923,7 @@ Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass&
     if (pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x5108b6: falta la tabla de sprites del frame (0x5491e0)");
     const Helper helper(pass);
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     // 0x5108ce..0x510904: blanca con +0x1d6 en 0 y verde con otro.
     const bool plain = actor.level == 0;
     const glm::vec3 light = plain ? glm::vec3{1.0f, 1.0f, 1.0f} : glm::vec3{Fifth, 0.7f, Tenth};

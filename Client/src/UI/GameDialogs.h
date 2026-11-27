@@ -124,7 +124,7 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 [[nodiscard]] Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
                                                                const Tables::TextTable* texts, std::int32_t lineCount,
                                                                std::int32_t firstText, std::int32_t id,
-                                                               const World::ItemState* dialogItem = nullptr,
+                                                               const Kernel::ItemState* dialogItem = nullptr,
                                                                const DialogTextArguments* arguments = nullptr);
 
 // 0x633300(renglones, primerTexto, 0x99) (CL9 hito 7): el primer renglón es el sprintf del texto `firstText` con

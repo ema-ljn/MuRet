@@ -38,7 +38,7 @@ namespace Client::Models
 {
 class ModelTextureSlots;
 }
-namespace Client::Scenes
+namespace Client::Assets
 {
 struct FaunaModelLoadContext
 {
@@ -170,4 +170,4 @@ private:
     };
     std::map<std::uint16_t, AnimationMetadata> m_animationMetadata;
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

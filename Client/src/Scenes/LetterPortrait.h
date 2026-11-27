@@ -28,6 +28,11 @@ class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Models
 
+namespace Client::Actors::Drawing
+{
+struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
 // El personaje del retrato de las cartas (vtable 0x6ba008, 0x495e50): el objeto que la ventana de leer (+0xb0) y la de
 // escribir (+0xb4) llevan, con su personaje propio (+0x7c), su ayudante propio (+0x4b4) y lo que lo arma, lo viste, lo
 // copia del héroe y le cambia la acción. Lo de la ventana (el lugar, el mouse, el ángulo, el zoom y la acción de
@@ -35,14 +40,13 @@ struct SkinnedMesh;
 // cartas". Todo *estático*, del ASM.
 namespace Client::Scenes
 {
-struct DrawnObject;
 struct GameHudContext;
 struct WorldEntryResources;
 
 struct LetterPortrait
 {
     // +0x7c: un registro de 0x438 bytes como los del pool, fuera de él. Nunca es el héroe publicado.
-    ActorState actor{};
+    Kernel::ActorState actor{};
     // +0x4b4: un lugar de 0x1d4 bytes como los de la tabla de los ayudantes (0x7d335d0), fuera de ella. El jinete
     // (+0x108) es el personaje de arriba: en MuRet, `rider` en ActorPoolSize.
     HelperState helper{};
@@ -56,7 +60,7 @@ struct LetterPortrait
     // +0x6a8: el frame entero que guarda el dibujo (0x497c10); 0x497910 lo pone en 0.
     std::int32_t frameMark = 0;
     // Las telas del personaje (objeto + 0x18c/+0x190), que suelta 0x4fb1a0 y arma el dibujo (0x50ba30).
-    CharacterCloth cloth{};
+    Actors::Drawing::CharacterCloth cloth{};
 };
 
 // 0x4961d0 (la vtable + 0x30): el ayudante en cero; las entradas de la celda del personaje (+0x41c y +0x420) abiertas
@@ -74,8 +78,8 @@ SetThePortraitClass(LetterPortrait& portrait, std::uint8_t characterClass, const
 // 0x497810 (la vtable + 0x38), armado: 0x5139f0(0, equipo, personaje, ayudante) (ApplyCharacterSetTo), +0x688 con la
 // escala del ayudante por 0,7f (0x6b8a5c) entre la del héroe publicado ([0x743a170] + 0xc), y la zona segura (+0x3e2)
 // en 1 con alas y la acción `action` (+0x6a4) pasada de 0x82, en 0 si no.
-[[nodiscard]] Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait,
-                                                                 GameLogic::Equipment equipment, std::int32_t action,
+[[nodiscard]] Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, Kernel::Equipment equipment,
+                                                                 std::int32_t action,
                                                                  const WorldEntryResources& resources);
 
 // 0x496530 (la vtable + 0x3c), armado: la clase del héroe publicado (con 0x513100 si cambia) y, por grupos (la cabeza
@@ -102,7 +106,7 @@ void TurnThePortrait(LetterPortrait& portrait);
 // de 0x620db0); y glRotatef(−90) en X, glRotatef(−90) en Z, glTranslatef(−10000, 0, −75) y glTranslatef(−X, −Y,
 // −Z), con 50 menos en Z con el caballo oscuro (0x1c16) en +0x318.
 [[nodiscard]] Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& base,
-                                          const ActorState& actor);
+                                          const Kernel::ActorState& actor);
 
 // 0x4957a4..0x4959bf, lo de 0x495760 después del paso: el pase de PortraitPass, los ángulos en (0, 0, +0x6b0), la
 // escala por el zoom (+0x6bc · 0,7 y la del ayudante +0x688 · +0x6bc, que pisa 0x445260: Q-C1010), las luces en 1,
@@ -132,11 +136,11 @@ struct LetterPortraitDraw
     std::function<void()> flushSprites{};
     std::function<void()> flushModels{};
     // Lo que lee 0x50ba30 (DrawCharacterOutsideThePool), con el rand() del frame en `clothWorld`.
-    GameCharacterPass characters{};
+    Actors::Drawing::GameCharacterPass characters{};
     // Los modelos de los ayudantes (los del mundo, como DrawHelpers) y lo que lee 0x445260: la pose al buffer global
     // (0x68b181c), sus mallas posadas, timeGetTime() y el buffer global de la pose.
     const Models::IModelLibrary* helperModels = nullptr;
-    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onHelperPose{};
+    std::function<Core::Expected<void, std::string>(const Actors::Drawing::DrawnObject&)> onHelperPose{};
     std::function<std::span<const Models::SkinnedMesh>()> posedMeshes{};
     std::function<std::uint32_t()> systemTime{};
     std::function<std::span<const Math::BoneTransform>()> globalPose{};

@@ -55,14 +55,15 @@ glm::vec3 BonePoint(std::span<const Math::BoneTransform> bones, std::size_t bone
 // Las mallas posadas de `object`: las que publicó la pose del caller o, sin ellas, las que posa acá como 0x5ffdf0 con
 // el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …): WorldScratchOf, la normal girada por R · s); ninguna
 // con el alpha por debajo de 0,01 o sin orden (0x5ffe2a..0x5ffe3d), o sin el modelo, su esqueleto o la pose.
-std::span<const Models::SkinnedMesh> MeshesOf(const Models::IModelLibrary& models, const DrawnObject& object,
+std::span<const Models::SkinnedMesh> MeshesOf(const Models::IModelLibrary& models,
+                                              const Actors::Drawing::DrawnObject& object,
                                               std::vector<Models::SkinnedMesh>& posed)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
     if (!(object.alpha >= VisibleAlpha))
         return {};
-    posed = WorldScratchOf(models, object);
+    posed = Actors::Drawing::WorldScratchOf(models, object);
     return posed;
 }
 
@@ -76,12 +77,12 @@ Core::Expected<std::span<const Math::BoneTransform>, std::string> BonesOf(const 
 
 // 0x601e68..0x601faf: el 0x11b.
 Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                              World::ModelEffect& effect, DrawnObject& object,
+                                              World::ModelEffect& effect, Actors::Drawing::DrawnObject& object,
                                               Core::Duration frameClock, const HighEffectDrawServices& services)
 {
     // 0x601e72..0x601e7c: (edi = 1, 0x3f19999a, 0x3e99999a).
     object.color = {1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e99999au)};
-    DrawObject(batch, models, object, frameClock); // 0x601ea4
+    Actors::Drawing::DrawObject(batch, models, object, frameClock); // 0x601ea4
     const auto bones = BonesOf(services, "0x601ecf");
     if (!bones.HasValue())
         return Core::Unexpected(bones.Error());
@@ -109,12 +110,12 @@ Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const M
 
 // 0x43909e..0x439214 (0x438fe0): el 0x125.
 Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                      DrawnObject& object, Core::Duration frameClock,
+                                                      Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
                                                       const HighEffectDrawServices& services)
 {
     // 0x4390ab..0x4390b8: el color en 0,3 (0x3e99999a).
     object.color = glm::vec3(std::bit_cast<float>(0x3e99999au));
-    DrawObject(batch, models, object, frameClock); // 0x4390da
+    Actors::Drawing::DrawObject(batch, models, object, frameClock); // 0x4390da
     if (!services.worldClock)
         return Core::Unexpected(std::string("0x4390df: falta el reloj del mundo (0x5767b88) del 0x125"));
     // 0x4390df..0x43911d: FSIN(T · 0,003f) · 0,2f + 0,8f en la x87, guardado en float.
@@ -147,7 +148,7 @@ Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch,
 
 // 0x602005..0x602044: el 0x140.
 Core::Expected<bool, std::string> DrawTheGuildMark(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                   DrawnObject& object, Core::Duration frameClock)
+                                                   Actors::Drawing::DrawnObject& object, Core::Duration frameClock)
 {
     // 0x60200b..0x602019: (0x3ecccccd, 0x3f19999a, edi = 1).
     object.color = {std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3f19999au), 1.0f};
@@ -158,8 +159,8 @@ Core::Expected<bool, std::string> DrawTheGuildMark(Render::ModelBatch& batch, co
     // 0x60203d y 0x602360: dos RenderBody(0x44) con la textura en −1, el cromado de 0x4ecc30 (Chrome01); el segundo,
     // con el color que dejó el primero.
     for (int pass = 0; pass < 2; ++pass)
-        if (auto drawn = DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, ChromeFlags, std::nullopt,
-                                          &object.color);
+        if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, ChromeFlags,
+                                                           std::nullopt, &object.color);
             !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
     return true;
@@ -174,8 +175,8 @@ bool HasHighEffectBody(const World::ModelEffect& effect)
 }
 
 Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                        World::ModelEffect& effect, DrawnObject& object,
-                                                        Core::Duration frameClock,
+                                                        World::ModelEffect& effect,
+                                                        Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
                                                         const HighEffectDrawServices& services)
 {
     if (!HasHighEffectBody(effect))
@@ -194,7 +195,7 @@ Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batc
     // 0x601fc2..0x601ffe y 0x60221c: el 0x114/3, /4 y /5, RenderBody(2, …, −1, 0x6ef) con el color que dejó 0x5ffdf0.
     constexpr Render::TextureSlot PinkWave{0x6ef}; // Skill\pinkWave.jpg (0x61dd71)
     object.state.hiddenMesh = NoHiddenMesh;
-    DrawObjectWithTexture(batch, models, object, frameClock, PinkWave);
+    Actors::Drawing::DrawObjectWithTexture(batch, models, object, frameClock, PinkWave);
     return true;
 }
 } // namespace Client::Scenes

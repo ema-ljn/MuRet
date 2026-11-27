@@ -51,6 +51,6 @@ public:
 
 private:
     std::optional<Models::Cloth> m_cloth;
-    std::optional<SimulatedClothBody> m_simulatedBody;
+    std::optional<Actors::Drawing::SimulatedClothBody> m_simulatedBody;
 };
 } // namespace Client::Scenes

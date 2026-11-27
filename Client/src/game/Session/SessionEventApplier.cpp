@@ -99,7 +99,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
 
 void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
 {
-    StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
+    Actors::StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
 }
 
 void SessionEventApplier::ClearLogoutRequest()

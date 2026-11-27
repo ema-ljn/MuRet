@@ -23,13 +23,17 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 struct SocialRequestContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     // Text.bmd: el 475 y el 476 (sprintf con el nombre), el 493 (la tienda personal) y el 257 (no es el líder).
     const Tables::TextTable& texts;
@@ -62,14 +66,14 @@ NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::ui
 
 // 0x56f13f..0x56f1b0 y 0x4072df..0x407324: con party (0x78aba48 sobre 0), el primer lugar de 0x77f3cd0 no es el héroe
 // (strcmp con +0x1d9).
-[[nodiscard]] bool AnotherLeadsTheParty(const WorldState& world);
+[[nodiscard]] bool AnotherLeadsTheParty(const Kernel::WorldState& world);
 
 // 0x4061ef..0x40625f: el personaje está en la party (strcmp de su +0x1d9 con el nombre de cada uno de los 0x78aba48
 // lugares de 0x77f3cd0, de 0x24 bytes).
-[[nodiscard]] bool IsInTheParty(const WorldState& world, std::size_t index);
+[[nodiscard]] bool IsInTheParty(const Kernel::WorldState& world, std::size_t index);
 
 // 0x408101..0x40813b: strcmp del +0x1d9 del personaje con el nombre del rival del duelo (0x78abae0).
-[[nodiscard]] bool IsTheDuelRival(const WorldState& world, std::size_t index);
+[[nodiscard]] bool IsTheDuelRival(const Kernel::WorldState& world, std::size_t index);
 
 // 0x4060c1..0x406169: la distancia en celdas del personaje al héroe publicado, leyendo las cuatro (x del otro, x del
 // héroe, y del otro, y del héroe) cada una en su acceso, con los rand() de su cierre, siempre las cuatro.
@@ -78,20 +82,20 @@ struct CellDistance
     std::int32_t x = 0;
     std::int32_t y = 0;
 };
-[[nodiscard]] CellDistance CellDistanceToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index);
+[[nodiscard]] CellDistance CellDistanceToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index);
 
 // El otro al que se le puede pedir algo (0x56c6ab..0x56c6d6 y sus copias): un jugador (+0x88 en 1) que no es el héroe
 // publicado (0x743a170), del tipo 0x20a o con +0x3e3 distinto de 0. El elegido no mira si está vivo; el de enfrente,
 // sí (el byte de +0).
-[[nodiscard]] bool CanBeAsked(const WorldState& world, std::size_t index);
+[[nodiscard]] bool CanBeAsked(const Kernel::WorldState& world, std::size_t index);
 
 // 0x56c6dc..0x56c78a: la celda lógica del otro y la del héroe, cada x y cada y en su acceso (+0x41c del otro, la del
 // héroe, +0x420 del otro y la del héroe): a lo sumo 1 de distancia en las dos. Con la x lejos no lee las y.
-[[nodiscard]] bool NextToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index);
+[[nodiscard]] bool NextToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index);
 
 // 0x56cf2f..0x56cfac: las direcciones de +0x24 (el _ftol de (ángulo + 22,5) / 45 + 1, & 0xff y por 8) del otro y del
 // héroe, a 4 de distancia: se miran. Fuera del _ftol, el error.
-[[nodiscard]] Core::Expected<bool, std::string> FacesTheHero(const WorldState& world, std::size_t index);
+[[nodiscard]] Core::Expected<bool, std::string> FacesTheHero(const Kernel::WorldState& world, std::size_t index);
 
 // 0x56c68b..0x56d623 (/trade con el nivel). El elegido, si está y se le puede pedir (si no, 1), o el primero de los
 // 400 vivo, al lado y enfrente (sin ninguno, 1). Al lado de una tienda personal (0x451810), el aviso 493 con el 2 y 1.

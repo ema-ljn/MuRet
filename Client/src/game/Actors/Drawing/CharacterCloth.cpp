@@ -22,7 +22,7 @@
 
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4" (§ Las telas en
 // 0x50ba30); cada frame, contra el código real del main.exe emulado (tests/vectors/cloth).
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -476,4 +476,4 @@ void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const g
         }
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

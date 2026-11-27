@@ -69,12 +69,12 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
     for (const auto& probe : cases)
     {
         SCOPED_TRACE(probe.type);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         RibbonModels models;
         world->FaunaResources().Bind(&models);
         world->Runtime().map = 0;
         world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        Client::Scenes::ActorState actor;
+        Client::Kernel::ActorState actor;
         actor.alive = true;
         actor.type = probe.type;
         actor.byte88 = 2;
@@ -86,7 +86,7 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         actor.hands[0].model = actor.hands[1].model = 0xffff;
         Client::Crt::CrtRandom random{123};
 
-        const auto stepped = Client::Scenes::StepCharacter(actor, {.world = *world, .random = random});
+        const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world, .random = random});
 
         // 1b1 alcanza después el sprite de un helper CL11; la estela ya tiene ambas tandas.
         if (probe.type == 0x1b1)
@@ -117,12 +117,12 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
     for (const bool full : {true, false})
     {
         SCOPED_TRACE(full);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         RibbonModels models;
         world->FaunaResources().Bind(&models);
         world->Runtime().map = 0;
         world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        Client::Scenes::ActorState actor;
+        Client::Kernel::ActorState actor;
         actor.alive = true;
         actor.type = 0x194;
         actor.byte88 = 2;
@@ -138,7 +138,7 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
                 particle.alive = true;
 
         const auto stepped =
-            Client::Scenes::StepCharacter(actor, {.world = *world, .random = random, .particles = &world->Particles()});
+            Client::Actors::StepCharacter(actor, {.world = *world, .random = random, .particles = &world->Particles()});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const auto& ribbon = world->DrawTail().ribbons[0];
@@ -167,14 +167,14 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
 // 4fcbe3 vuelve a 4f9580 sin volver a publicar+a0 después de cambiar la acción del actor.
 TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     RibbonModels models;
     models.skeleton.actions[0].speed = 0.25f;
     models.skeleton.actions[3].speed = 2.0f;
     world->FaunaResources().Bind(&models);
     world->Runtime().map = 30;
     world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.type = 0x153;
     actor.byte88 = 2;
@@ -186,7 +186,7 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     actor.hands[0].model = actor.hands[1].model = 0xffff;
     Client::Crt::CrtRandom random{123};
 
-    const auto stepped = Client::Scenes::StepCharacter(actor, {.world = *world, .random = random});
+    const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world, .random = random});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.animation.action, 0);

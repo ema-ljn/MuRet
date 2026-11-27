@@ -23,7 +23,7 @@ namespace Client::Tests
 // partículas y los sprites del mundo: en los tests, buffers de 32×32 RGB en su propio slot.
 [[nodiscard]] inline bool IsEffectTexture(std::uint32_t selector)
 {
-    return std::ranges::any_of(Scenes::EffectTextureSet, [selector](const Data::Textures::TextureSetEntry& entry)
+    return std::ranges::any_of(Assets::EffectTextureSet, [selector](const Data::Textures::TextureSetEntry& entry)
                                { return entry.slot == selector; });
 }
 

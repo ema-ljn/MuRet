@@ -76,10 +76,10 @@ struct Applier
         models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
@@ -151,9 +151,9 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(tested.world.Inventory().cells[5].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(tested.world.Inventory().secondCells[2].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Inventory().cells[5].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Inventory().secondCells[2].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
@@ -174,8 +174,8 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(tested.world.Inventory().cells[5].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Inventory().cells[5].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
@@ -296,7 +296,7 @@ TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
     auto tested = std::make_unique<Applier>();
     Client::Tests::LoggedInSession online(&tested->applier);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    Client::Scenes::ActorState& other = tested->world.Actors()[12];
+    Client::Kernel::ActorState& other = tested->world.Actors()[12];
     other = Client::Tests::UnarmedPlayer();
     other.alive = true;
     other.key = 0x1234;
@@ -402,7 +402,7 @@ TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
     const auto teleport = Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 0, 30, 31, 0});
     online->socket.reads = {teleport};
     ASSERT_TRUE(online->session.Poll().HasValue());
-    const Client::Scenes::ViewportPacketRing& ring = tested->world.Runtime().viewportPackets;
+    const Client::Actors::ViewportPacketRing& ring = tested->world.Runtime().viewportPackets;
     ASSERT_EQ(ring.count, 1);
     EXPECT_EQ(ring.sizes[0], 8);
     EXPECT_TRUE(Client::Tests::SameBytes(std::span(ring.slots[0]).first(teleport.size()), teleport));

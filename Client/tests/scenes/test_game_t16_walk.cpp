@@ -61,8 +61,8 @@ protected:
         const float px = static_cast<float>(x) * 100 + 50;
         const float py = static_cast<float>(y) * 100 + 50;
         const float pz = static_cast<float>(
-            Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, px, py, m_camera.fixedHeight));
-        const auto camera = Client::World::GameCameraOf(m_camera, m_cameraInput);
+            Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, px, py, m_camera.fixedHeight));
+        const auto camera = Client::Camera::GameCameraOf(m_camera, m_cameraInput);
         const auto pass = Client::Render::MakePass3D({640, 480}, Client::Scenes::GameWorldViewport, camera);
         const auto pixel = pass.Project(glm::vec3{px, py, pz});
         ASSERT_TRUE(pixel.has_value());
@@ -271,7 +271,7 @@ protected:
             const auto& terrain = m_world->Map().terrain;
             if (Hero().movement != 0)
             {
-                EXPECT_FLOAT_EQ(Hero().position.z, static_cast<float>(Client::World::TerrainHeightAt(
+                EXPECT_FLOAT_EQ(Hero().position.z, static_cast<float>(Client::Terrain::TerrainHeightAt(
                                                        *terrain.heights, *terrain.attributes, Hero().position.x,
                                                        Hero().position.y, m_camera.fixedHeight)));
             }
@@ -467,7 +467,7 @@ TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
     EXPECT_EQ(m_camera.yaw, -40.0f);
     EXPECT_EQ(m_camera.farPlane, 5000.0f);
     EXPECT_EQ(m_camera.distance, 3200.0f);
-    Client::World::TerrainPolygonInput input;
+    Client::Terrain::TerrainPolygonInput input;
     input.scene = 5;
     input.map = 6;
     input.translation = {6400.0f, 15400.0f, Hero().position.z};
@@ -475,7 +475,8 @@ TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
     input.cameraYaw = -40.0f;
     input.webzenProfile = true;
     input.webzenYaw = true;
-    const auto expected = Client::World::TerrainPolygonOf(input, m_world->Runtime().terrainPolygonState.effectiveLevel);
+    const auto expected =
+        Client::Terrain::TerrainPolygonOf(input, m_world->Runtime().terrainPolygonState.effectiveLevel);
     ASSERT_TRUE(expected.HasValue());
     EXPECT_EQ(m_world->Runtime().terrainPolygon.x, expected.Value().x);
     EXPECT_EQ(m_world->Runtime().terrainPolygon.y, expected.Value().y);

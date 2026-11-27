@@ -30,6 +30,11 @@ namespace Client::UI
 struct GameUiState;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // La ventana del gremio, [0x7d536f0] (0x64f3e0, vtable 0x6baa58; CL9 hito 8, fases 4 y 5; 06 § El gremio): la abre el
 // registro con el panel 0x10, la pasa con 0x45aa80(0) (la vtable + 0x18, que llama a la + 0x20, 0x651840) y la dibuja
 // con la + 0x14 (0x651c20). Tiene tres pestañas (+0x80: 0, 1 y 2, desde 1), cada una con su paso (0x64fc00, 0x650350
@@ -37,12 +42,11 @@ struct GameUiState;
 // los miembros (+0x94), el aviso (+0x1c8) y la alianza (+0x2f8).
 namespace Client::Scenes
 {
-class WorldState;
 struct GameHudContext;
 
 struct GuildWindowStepContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
@@ -65,7 +69,7 @@ struct GuildWindowStepContext
 // si el que entra es el héroe (+0x1d9). Lo pone adelante (el elemento de 0x575de08: +0 en 0 y el nombre con strncpy de
 // 0xb), con más de 0x96 saca del final (0x47b7e0), y elige y corre: 0, uno más de corrimiento con más que los
 // renglones, lo acota, 1 si es el único, y al final el último (la cuenta) con el corrimiento hasta el final (−10.000).
-void AddTheGuildMember(WorldState& world, const GuildMemberSlot& slot);
+void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot);
 
 // 0x6517d0 → 0x47a410, la vtable + 0x2c: la vacía, pone +0 en 0 a todos (0x47ab40, ya ninguno), elige 0 y vuelve el
 // corrimiento a 0.
@@ -127,8 +131,9 @@ void ClearTheUnions(GuildWindowState& window);
 // 0xaa × 0x14 en (x + 0x14, y + 0x13) y (x + 0x14, y + 0x29) eligen 0x40 o 0x20. El botón 0x7d535b8 manda C1 0F E1
 // (1 si el elegido no tenía cargo, 2 si tenía; el cargo y su nombre) y C1 03 52, y cancela el diálogo (0x6603c0, con
 // `answer`); después, 0x7d53640 lo cancela. Sin `send`, el E1 corta.
-[[nodiscard]] Core::Expected<void, std::string> StepTheGuildPositions(WorldState& world, const GuildSender& send,
-                                                                      std::int32_t mouseX, std::int32_t mouseY,
+[[nodiscard]] Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& world,
+                                                                      const GuildSender& send, std::int32_t mouseX,
+                                                                      std::int32_t mouseY,
                                                                       const UI::PanelDialogAnswer& answer);
 
 // 0x657977: el paso de arriba en el registro. `context` se copia; el mundo tiene que vivir más que el contexto del

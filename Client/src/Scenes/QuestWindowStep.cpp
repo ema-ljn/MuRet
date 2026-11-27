@@ -104,8 +104,8 @@ Core::Expected<void, std::string> CloseTheQuestWindow(const GameUiContext& conte
     return {};
 }
 
-Core::Expected<const Tables::DialogRecord*, std::string> DialogRecordOf(const WorldRuntime& runtime, std::int32_t index,
-                                                                        std::int32_t answer, std::string_view where)
+Core::Expected<const Tables::DialogRecord*, std::string>
+DialogRecordOf(const Kernel::WorldRuntime& runtime, std::int32_t index, std::int32_t answer, std::string_view where)
 {
     const Tables::DialogTable& table = runtime.dialogTable;
     if (index < 0 || static_cast<std::size_t>(index) >= table.size() ||
@@ -120,7 +120,7 @@ Core::Expected<const Tables::DialogRecord*, std::string> DialogRecordOf(const Wo
 // 0x419bd0.
 Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
     UI::DialogBoxState& box = runtime.dialogBox;
     GameMovementState& movement = runtime.movement;
@@ -206,7 +206,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
 // 0x41a9e0.
 Core::Expected<void, std::string> StepTheQuestDialog(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
     GameMovementState& movement = runtime.movement;
     if (MouseIn(context, quest.x, quest.y, quest.x + WindowWidth, quest.y + WindowHeight))
@@ -244,7 +244,7 @@ Core::Expected<void, std::string> StepTheQuestDialog(const GameUiContext& contex
 // 0x41b170.
 Core::Expected<void, std::string> StepTheQuestList(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
     GameMovementState& movement = runtime.movement;
     if (MouseIn(context, quest.x, quest.y, quest.x + WindowWidth, quest.y + WindowHeight))
@@ -281,7 +281,7 @@ Core::Expected<void, std::string> StepTheQuestList(const GameUiContext& context,
 
 Core::Expected<void, std::string> StepTheQuestWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
     if (panels.IsOpen(UI::CharacterPanel))
     {

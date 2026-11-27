@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -30,7 +30,7 @@ void Lower(std::uint32_t& flags, std::uint32_t bit)
         flags -= bit;
 }
 
-void KillTheFlames(ActorState& actor, WorldState& world)
+void KillTheFlames(Kernel::ActorState& actor, Kernel::WorldState& world)
 {
     KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 4);
     KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 9);
@@ -54,9 +54,9 @@ bool KillModelEffectsOf(World::ModelEffects& effects, std::int16_t type, const v
     return killed;
 }
 
-void KillJointsOf(std::span<JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype)
+void KillJointsOf(std::span<Scenes::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype)
 {
-    for (JointState& joint : joints)
+    for (Scenes::JointState& joint : joints)
     {
         if (!joint.alive || joint.type != type || joint.ownerContext != owner)
             continue;
@@ -66,7 +66,7 @@ void KillJointsOf(std::span<JointState> joints, std::int32_t type, const void* o
     }
 }
 
-void RemoveActorFlag(std::uint32_t mask, ActorState& actor, WorldState& world)
+void RemoveActorFlag(std::uint32_t mask, Kernel::ActorState& actor, Kernel::WorldState& world)
 {
     World::ModelEffects& effects = world.Map().effects;
     switch (mask)
@@ -155,7 +155,7 @@ void RemoveActorFlag(std::uint32_t mask, ActorState& actor, WorldState& world)
     }
 }
 
-void SettleMonsterFlags(ActorState& actor)
+void SettleMonsterFlags(Kernel::ActorState& actor)
 {
     constexpr std::uint32_t Stunned = 0x100;
     constexpr std::uint32_t Frozen = 0x8;
@@ -172,4 +172,4 @@ void SettleMonsterFlags(ActorState& actor)
         actor.byte110 = 0x22;
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

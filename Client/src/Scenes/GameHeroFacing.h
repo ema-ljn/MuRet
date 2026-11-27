@@ -6,14 +6,18 @@
 #include <functional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct GameMovementState;
 
 struct HeroFacingContext
 {
-    ActorState& hero;
+    Kernel::ActorState& hero;
     GameMovementState& movement;
     // 0x59b357: IsOpen(0x40000), el gremio 2. Abierto, el modo 0x78abb18 en 1 no frena el giro.
     bool secondGuildOpen = false;

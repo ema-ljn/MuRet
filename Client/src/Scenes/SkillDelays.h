@@ -11,16 +11,20 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // La espera de las skills (+0x76c del registro propio, por el lugar de la barra), CL9 hito 4. Contrato: 06, "La
 // espera de las skills". Cada acceso al registro propio gasta sus 3.848 rand() al cerrarlo en 0, y cada uno a una
 // entrada de Skill.bmd, 60 (0x40f600), en el orden del original.
 namespace Client::Scenes
 {
-class WorldState;
 
 struct SkillDelayContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: lo que lo lee corta.
     const Tables::SkillTable* skills = nullptr;

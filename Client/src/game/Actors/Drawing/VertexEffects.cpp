@@ -26,7 +26,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -239,7 +239,7 @@ Result PullTheRavenJoints(const glm::vec3& position, std::int32_t triangle, glm:
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = NoTarget};
-    const auto made = CreateFaunaJoint(tables.joints, request, random, JointOwnerKind::Actor);
+    const auto made = Scenes::CreateFaunaJoint(tables.joints, request, random, Scenes::JointOwnerKind::Actor);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x4eefc5: {}", made.Error()));
     return {};
@@ -387,4 +387,4 @@ Core::Expected<void, std::string> EmitVertexEffects(const Models::IModelLibrary&
     return EmitVertexEffectsOf(*model, object.transform.scale, meshes, {.mesh = mesh, .type = type, .subtype = subtype},
                                {.effects = &effects}, random);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

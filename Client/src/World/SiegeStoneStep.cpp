@@ -289,8 +289,8 @@ Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Mode
             return stepped;
         if (services.lighting == nullptr)
             return Core::Unexpected(std::string("0x528768: falta la luz dinámica del impacto"));
-        AddTerrainLight(*services.lighting, effect.transform.position.x, effect.transform.position.y,
-                        {-.5f, -.5f, -.5f}, 4);
+        Terrain::AddTerrainLight(*services.lighting, effect.transform.position.x, effect.transform.position.y,
+                                 {-.5f, -.5f, -.5f}, 4);
     }
     Epilogue(effect, skeleton);
     effect.previousPosition = before;

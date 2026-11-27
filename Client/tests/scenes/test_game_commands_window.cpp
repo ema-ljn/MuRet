@@ -43,6 +43,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
@@ -50,7 +51,6 @@ using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eedd00du;
@@ -142,7 +142,7 @@ protected:
         m_world->Runtime().map = GetParam();
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -164,8 +164,8 @@ protected:
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -541,7 +541,7 @@ TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
     constexpr std::int32_t MouseX = 200;
     constexpr std::int32_t MouseY = 150;
     constexpr Color NotReady{1.0f, 0.2f, 0.2f, 1.0f};
-    Client::Scenes::ActorState& player = m_world->Actors()[Chosen];
+    Client::Kernel::ActorState& player = m_world->Actors()[Chosen];
     player.byte88 = 1;
     player.type = 0x20a;
     constexpr std::string_view Name = "Brezal";
@@ -607,7 +607,7 @@ TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
         player.type = type;
         player.byte3e3 = 0;
         player.byte88 = kind;
-        Client::Scenes::ActorState& actor = m_world->Actors()[chosen];
+        Client::Kernel::ActorState& actor = m_world->Actors()[chosen];
         actor.type = type;
         actor.byte88 = kind;
         Runtime().selectedTargets[2] = static_cast<std::int32_t>(chosen);
@@ -627,7 +627,7 @@ TEST_P(GameCommandsWindowTest, AStrayChosenOrCommandCuts)
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x40aa8d"), std::string::npos) << outside.Error();
 
-    Client::Scenes::ActorState& player = m_world->Actors()[5];
+    Client::Kernel::ActorState& player = m_world->Actors()[5];
     player.byte88 = 1;
     player.type = 0x20a;
     Runtime().selectedTargets[2] = 5;

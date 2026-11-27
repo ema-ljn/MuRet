@@ -81,7 +81,7 @@ protected:
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
         // Mismos inicializadores de WinMain y del avance 1, sin inventar el offset BMD.
-        Scenes::InitializeGameItemRenderState(m_world->Runtime().itemRender, m_cloth->random);
+        Actors::Drawing::InitializeGameItemRenderState(m_world->Runtime().itemRender, m_cloth->random);
         Scenes::LoadingScene loading(Context(), m_models.get());
         const auto entered = loading.Enter();
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
@@ -280,7 +280,7 @@ protected:
         }
     }
 
-    Scenes::ActorState& Hero()
+    Kernel::ActorState& Hero()
     {
         return m_world->Hero();
     }
@@ -299,11 +299,11 @@ protected:
     FakeTextureStore m_textures;
     FakeClock m_clock;
     std::unique_ptr<Models::ClothWorld> m_cloth = std::make_unique<Models::ClothWorld>();
-    std::unique_ptr<Scenes::WorldState> m_world = std::make_unique<Scenes::WorldState>();
+    std::unique_ptr<Kernel::WorldState> m_world = std::make_unique<Kernel::WorldState>();
     std::unique_ptr<Scenes::SelectionState> m_selection = std::make_unique<Scenes::SelectionState>(*m_world);
-    std::unique_ptr<Scenes::GameModels> m_models = std::make_unique<Scenes::GameModels>();
-    World::GameCamera m_camera;
-    World::GameCameraInput m_cameraInput;
+    std::unique_ptr<Assets::GameModels> m_models = std::make_unique<Assets::GameModels>();
+    Camera::GameCamera m_camera;
+    Camera::GameCameraInput m_cameraInput;
     Input::InputState m_input;
     std::optional<Tables::GameData> m_data;
     LetterMeasure m_letters;

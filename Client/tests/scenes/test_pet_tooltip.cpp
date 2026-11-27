@@ -47,12 +47,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
@@ -133,7 +133,7 @@ ItemState TheHorse()
     item.optionCount = 2;
     item.optionBytes[0] = HorseSkill;
     item.optionBytes[1] = 0x96;
-    item.optionBytes[Client::World::ItemOptionValueOffset + 1] = 99;
+    item.optionBytes[Client::Kernel::ItemOptionValueOffset + 1] = 99;
     return item;
 }
 
@@ -145,7 +145,7 @@ ItemState TheRaven()
     item.scalar1Low = 0x81;
     item.optionCount = 1;
     item.optionBytes[0] = 0x50;
-    item.optionBytes[Client::World::ItemOptionValueOffset] = 4;
+    item.optionBytes[Client::Kernel::ItemOptionValueOffset] = 4;
     return item;
 }
 
@@ -155,28 +155,28 @@ protected:
     PetTooltipTest() : m_world(std::make_unique<WorldState>()), m_text(m_sprites)
     {
         m_sprites.Begin(Screen640);
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.map = GetParam();
         runtime.ui.field78abb28 = 0;
         runtime.ui.field78abb2c = HoveredSlot;
         for (std::int32_t& bold : Lines().bold)
             bold = StaleBold;
-        Client::Scenes::OwnCharacterRecord& own = m_world->OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
         own.level = 200;
         own.agility = 40;
         own.leadership = 300;
         own.word36 = 10;
-        Client::Scenes::PetStats& horse = runtime.pets[Client::Scenes::DarkHorsePetStats];
+        Client::Kernel::PetStats& horse = runtime.pets[Client::Kernel::DarkHorsePetStats];
         horse.level = 3;
         horse.experience = 1234;
         horse.durability = 200;
-        Client::Scenes::PetStats& raven = runtime.pets[Client::Scenes::RavenPetStats];
+        Client::Kernel::PetStats& raven = runtime.pets[Client::Kernel::RavenPetStats];
         raven.level = 2;
         raven.experience = 500;
         raven.durability = 150;
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -188,8 +188,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -282,7 +282,7 @@ TEST_P(PetTooltipTest, TheFirstHoverAsksForThePetAndDrawsNothing)
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_TRUE(Client::Tests::SameBytes(SentBytes(0), Client::Tests::Bytes({0xc1, 0x06, 0xa9, 0x01, 0x00, 20})));
-    const Client::Scenes::PetTooltipQuery& query = Runtime().petTooltipQuery;
+    const Client::Kernel::PetTooltipQuery& query = Runtime().petTooltipQuery;
     EXPECT_EQ(query.key, (static_cast<std::uint32_t>(BoxY) << 16) | static_cast<std::uint32_t>(BoxX));
     EXPECT_EQ(query.type, DarkHorse);
     EXPECT_EQ(query.scalar, 0x80u);
@@ -290,8 +290,8 @@ TEST_P(PetTooltipTest, TheFirstHoverAsksForThePetAndDrawsNothing)
     EXPECT_TRUE(m_text.texts.empty());
     EXPECT_EQ(m_random.State(), expected.State());
     // Sin el 0x4221d0 ni el 0x4225d0 de la pasada que dibuja.
-    EXPECT_EQ(Runtime().pets[Client::Scenes::DarkHorsePetStats].nextExperience, 0u);
-    EXPECT_EQ(horse.optionBytes[Client::World::ItemOptionValueOffset + 1], 99);
+    EXPECT_EQ(Runtime().pets[Client::Kernel::DarkHorsePetStats].nextExperience, 0u);
+    EXPECT_EQ(horse.optionBytes[Client::Kernel::ItemOptionValueOffset + 1], 99);
 }
 
 // Cualquier cambio del lugar, del tipo o de D+4 vuelve a pedir; el cuervo pide la mascota 0.
@@ -339,8 +339,8 @@ TEST_P(PetTooltipTest, TheSecondHoverDrawsTheHorse)
                  {"Defensa total 16", 1, StaleBold},
                  {"Habilidad 2", 1, 0}});
     EXPECT_EQ(horse.optionCount, 2);
-    EXPECT_EQ(horse.optionBytes[Client::World::ItemOptionValueOffset + 1], 13);
-    EXPECT_EQ(Runtime().pets[Client::Scenes::DarkHorsePetStats].nextExperience, 89600u);
+    EXPECT_EQ(horse.optionBytes[Client::Kernel::ItemOptionValueOffset + 1], 13);
+    EXPECT_EQ(Runtime().pets[Client::Kernel::DarkHorsePetStats].nextExperience, 89600u);
     EXPECT_EQ(m_random.State(), expected.State());
     EXPECT_EQ(Runtime().ownRecordDepth, 0);
     EXPECT_EQ(Runtime().movement.skillDepths[HorseSkill], 0);
@@ -399,7 +399,7 @@ TEST_P(PetTooltipTest, AHorseWithItsDefenseFirstGrowsItsOptionsUntilItCuts)
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x423b07"), std::string::npos) << drawn.Error();
-    EXPECT_EQ(horse.optionCount, Client::World::MaxItemOptions);
+    EXPECT_EQ(horse.optionCount, Client::Kernel::MaxItemOptions);
     EXPECT_EQ(Lines().text[17], "Defensa 13");
 }
 
@@ -436,7 +436,7 @@ TEST_P(PetTooltipTest, TheSecondHoverDrawsTheRaven)
 // 0x423839..0x423887: el liderazgo del héroe se suma en 16 bits: 65.500 + 100 es 64, y le faltan 151.
 TEST_P(PetTooltipTest, TheRavenLeadershipAddsInSixteenBits)
 {
-    Client::Scenes::OwnCharacterRecord& own = m_world->OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
     own.leadership = 65500;
     own.word36 = 100;
     ItemState raven = TheRaven();
@@ -527,11 +527,11 @@ TEST_P(PetTooltipTest, AProjectedDrawNeitherAsksNorWrites)
     ASSERT_TRUE(projected.HasValue()) << projected.Error();
     EXPECT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(Lines().text[0], "Corcel");
-    EXPECT_EQ(Runtime().pets[Client::Scenes::DarkHorsePetStats].nextExperience, 0u);
-    EXPECT_EQ(cell.optionBytes[Client::World::ItemOptionValueOffset + 1], 99);
+    EXPECT_EQ(Runtime().pets[Client::Kernel::DarkHorsePetStats].nextExperience, 0u);
+    EXPECT_EQ(cell.optionBytes[Client::Kernel::ItemOptionValueOffset + 1], 99);
     ASSERT_TRUE(draw(false).HasValue());
-    EXPECT_EQ(Runtime().pets[Client::Scenes::DarkHorsePetStats].nextExperience, 89600u);
-    EXPECT_EQ(cell.optionBytes[Client::World::ItemOptionValueOffset + 1], 13);
+    EXPECT_EQ(Runtime().pets[Client::Kernel::DarkHorsePetStats].nextExperience, 89600u);
+    EXPECT_EQ(cell.optionBytes[Client::Kernel::ItemOptionValueOffset + 1], 13);
 }
 
 // Con otro tipo, 0x422990 devuelve 0 sin tocar nada (0x4229c3).

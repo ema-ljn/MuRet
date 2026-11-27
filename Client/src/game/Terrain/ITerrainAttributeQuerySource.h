@@ -5,7 +5,7 @@ namespace Client::Data::Terrain
 struct TerrainAttributes;
 }
 
-namespace Client::World
+namespace Client::Terrain
 {
 // Proveedor obligatorio del factor vigente y la tabla canónica del mundo actual.
 // El dueño mantiene vivos los datos durante la consulta y serializa sus mutaciones.
@@ -17,4 +17,4 @@ public:
     virtual float ReadScale() = 0;
     virtual const Data::Terrain::TerrainAttributes& Attributes() = 0;
 };
-} // namespace Client::World
+} // namespace Client::Terrain

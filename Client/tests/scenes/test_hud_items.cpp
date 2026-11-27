@@ -18,14 +18,14 @@
 // inventario (0x557d80), la durabilidad máxima (0x5b1ba0) y el nombre de Item.bmd.
 namespace
 {
+using Client::Kernel::InventoryCellCount;
+using Client::Kernel::ItemState;
 using Client::Scenes::CountQuickSlotItems;
 using Client::Scenes::CountTheAmmo;
 using Client::Scenes::FindQuickSlotItem;
-using Client::Scenes::InventoryCellCount;
 using Client::Scenes::ItemRecordName;
 using Client::Scenes::MaxDurability;
 using Client::Scenes::QuickSlots;
-using Client::World::ItemState;
 
 using Cells = std::array<ItemState, InventoryCellCount>;
 using Record = std::array<std::byte, Client::Tables::ItemRecordSize>;

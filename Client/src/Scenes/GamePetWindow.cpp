@@ -318,7 +318,7 @@ void DrawTheMissingPet(GameHudContext& context, std::int32_t left, std::string_v
 // pero lo devuelve igual.
 Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!panels.IsOpen(UI::CharacterPanel))
     {
         if (!context.projecting)
@@ -399,10 +399,10 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& 
 // 0x4149b0(tipo, x, y, datos, órdenes): los datos de una mascota, el caballo (tipo 1, sin órdenes, desde 0x424e40) o
 // el cuervo (el +0x444 del objeto, que solo escribe 0x4167b0 en 0, con las órdenes, desde 0x416670).
 Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int32_t type, std::int32_t x,
-                                               std::int32_t y, const PetStats& stats, bool commands)
+                                               std::int32_t y, const Kernel::PetStats& stats, bool commands)
 {
-    WorldState& world = context.world;
-    const OwnCharacterRecord& own = world.OwnCharacter();
+    Kernel::WorldState& world = context.world;
+    const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t lineBox = WindowDrawing::BoxWidth(context, LineBox);
     const std::int32_t lineLeft = x + LineLeft;
@@ -457,8 +457,8 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     if (type == 1)
     {
         const auto access = OwnAccess(context);
-        const World::ItemState& weapon = own.equipment[0];
-        if (weapon.id != EmptyOwnItemId)
+        const Kernel::ItemState& weapon = own.equipment[0];
+        if (weapon.id != Kernel::EmptyOwnItemId)
         {
             auto scepterText = format(ScepterText, "0x414cc4");
             if (!scepterText.HasValue())
@@ -479,13 +479,14 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     }
     else if (type == 1)
     {
-        ItemSetOptionList projected = world.ItemSets().list;
-        ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
-        OwnSkillDamage damage{};
+        Player::ItemSetOptionList projected = world.ItemSets().list;
+        Player::ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
+        Player::OwnSkillDamage damage{};
         {
             const auto access = OwnAccess(context);
-            auto skill = SkillDamageOf(HorseSkill, context.skills, world.Runtime().movement.skillDepths[HorseSkill],
-                                       context.random, setOptions);
+            auto skill =
+                Player::SkillDamageOf(HorseSkill, context.skills, world.Runtime().movement.skillDepths[HorseSkill],
+                                      context.random, setOptions);
             if (!skill.HasValue())
                 return Core::Unexpected(std::format("0x414fd6: {}", skill.Error()));
             damage = skill.Value();
@@ -570,9 +571,9 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
 
 // 0x424e40(héroe): la pestaña del caballo.
 Core::Expected<void, std::string> DrawTheHorseTab(GameHudContext& context, UI::PanelRegistry& panels,
-                                                  const ActorState& hero)
+                                                  const Kernel::ActorState& hero)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.petTab != HorseTab)
         return {};
     const std::int32_t left = WindowLeftOf(panels);
@@ -595,7 +596,7 @@ Core::Expected<void, std::string> DrawTheHorseTab(GameHudContext& context, UI::P
     WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, NameColors);
     WindowDrawing::DrawCenteredText(context, left + HorseNameLeft, PetNameTop, horse.Value());
-    return DrawTheStats(context, 1, left, 0, runtime.pets[DarkHorsePetStats], false);
+    return DrawTheStats(context, 1, left, 0, runtime.pets[Kernel::DarkHorsePetStats], false);
 }
 
 // 0x416670, thiscall sobre el cuervo: la pestaña del cuervo.
@@ -617,23 +618,23 @@ Core::Expected<void, std::string> DrawTheRavenTab(GameHudContext& context, UI::P
     SetColors(context, NameColors);
     WindowDrawing::DrawTitle(context, left + TitleLeft, PetNameTop, name.Value());
     // 0x41677d..0x41679b: los 0x14 bytes de +0x448 y el tipo de +0x444 (0, Q-C1041).
-    const PetStats stats{.experience = raven.experience,
-                         .nextExperience = raven.nextExperience,
-                         .level = raven.level,
-                         .durability = raven.durability,
-                         .word0c = raven.word454,
-                         .word0e = raven.word456,
-                         .word10 = raven.word458,
-                         .word12 = raven.word45a};
+    const Kernel::PetStats stats{.experience = raven.experience,
+                                 .nextExperience = raven.nextExperience,
+                                 .level = raven.level,
+                                 .durability = raven.durability,
+                                 .word0c = raven.word454,
+                                 .word0e = raven.word456,
+                                 .word10 = raven.word458,
+                                 .word12 = raven.word45a};
     return DrawTheStats(context, 0, left, 0, stats, true);
 }
 
 // La vtable + 0xc del cuervo (0x4182e0 → 0x418460): su cartel arriba a la derecha, con o sin la ventana.
 Core::Expected<void, std::string> DrawTheRavenHud(GameHudContext& context, UI::PanelRegistry& panels,
-                                                  const ActorState& hero, const DarkSpirit& raven)
+                                                  const Kernel::ActorState& hero, const DarkSpirit& raven)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, RavenHudColors);
     float offset = context.hud.partyCount > 0 ? PartyOffset : 0.0f;
@@ -686,9 +687,9 @@ Core::Expected<void, std::string> DrawTheRavenHud(GameHudContext& context, UI::P
 
 Core::Expected<void, std::string> DrawThePetWindow(GameHudContext& context, UI::PanelRegistry& panels)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
-    const ActorState& hero = world.Hero();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    const Kernel::ActorState& hero = world.Hero();
     auto pet = DrawTheButtonAndFrame(context, panels);
     if (!pet.HasValue())
         return Core::Unexpected(std::move(pet).Error());

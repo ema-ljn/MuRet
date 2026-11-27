@@ -55,13 +55,13 @@ protected:
 
     Client::Core::Expected<void, std::string> Emit()
     {
-        return Client::Scenes::EmitWeaponTrail(
+        return Client::Actors::Drawing::EmitWeaponTrail(
             m_actor, &m_skeleton,
             {.world = *m_world, .random = m_random, .playerSkeleton = &m_skeleton, .particles = &m_world->Particles()});
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::ActorState m_actor;
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::ActorState m_actor;
     Client::Models::Skeleton m_skeleton;
     Client::Crt::CrtRandom m_random{0x12345678u};
 };

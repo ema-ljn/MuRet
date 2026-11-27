@@ -133,7 +133,7 @@ float DinorantHeight(std::int32_t map, float riderZ)
 }
 
 // 0x4449bf..0x444aad: el polvo del galope del Uniria y del Dinorant.
-Core::Expected<void, std::string> RaiseTheRidingDust(const HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> RaiseTheRidingDust(const HelperState& helper, const Kernel::ActorState& rider,
                                                      const HelperStepContext& context)
 {
     if (context.random.Next() % RidingDustOneIn != 0)
@@ -221,7 +221,7 @@ Core::Expected<void, std::string> RaiseTheIcarusFenrirDust(const HelperState& he
 }
 
 // 0x444c55..0x444f25: el polvo del Fenrir. Fuera del 10, el que no tiene ventanas.
-Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, const Kernel::ActorState& rider,
                                                      const HelperStepContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
@@ -242,7 +242,7 @@ Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, 
 }
 } // namespace
 
-Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Kernel::ActorState& rider,
                                                    const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x4447e7");
@@ -278,7 +278,7 @@ Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Ac
     return {};
 }
 
-Core::Expected<void, std::string> StepFenrir(HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> StepFenrir(HelperState& helper, const Kernel::ActorState& rider,
                                              const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x444b13");
@@ -303,7 +303,7 @@ Core::Expected<void, std::string> StepFenrir(HelperState& helper, const ActorSta
     return RaiseTheFenrirDust(helper, rider, context);
 }
 
-Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& helper, const Kernel::ActorState& rider,
                                                           const HelperStepContext& context)
 {
     if ((rider.flags78 & RiderWithoutDust) != 0)
@@ -329,7 +329,8 @@ Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& hel
     return {};
 }
 
-void FlyTheGuardianAngel(HelperState& helper, const ActorState& rider, glm::vec2 riderStart, Crt::CrtRandom& random)
+void FlyTheGuardianAngel(HelperState& helper, const Kernel::ActorState& rider, glm::vec2 riderStart,
+                         Crt::CrtRandom& random)
 {
     const float reach = F32(static_cast<double>(GuardianReach) * static_cast<double>(GuardianReach));
     // 0x445057..0x445078: la distancia al cuadrado en la x87; el float se guarda para el cambio de rumbo.

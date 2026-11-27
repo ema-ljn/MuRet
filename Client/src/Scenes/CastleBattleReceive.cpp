@@ -29,13 +29,13 @@ namespace
 namespace Battle = Protocol::CastleSiege;
 
 // B9 01, 0x4e0750: también en el registro 400 cuando la clave no está.
-void ApplyNpcLevel(const Battle::NpcLevel& level, WorldState& world)
+void ApplyNpcLevel(const Battle::NpcLevel& level, Kernel::WorldState& world)
 {
     world.Actors()[ActorWithKey(world, level.key)].byte93 = level.level;
 }
 
 // B9 02, 0x4e0790: el byte i / 2, el par en el nibble de arriba (SHR 4) y el impar en el de abajo (AND 0xf).
-Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, WorldState& world)
+Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, Kernel::WorldState& world)
 {
     auto& battle = world.Runtime().castleSiege.battle;
     for (std::size_t i = 0; i < UI::OwnerMarkColors; ++i)
@@ -49,7 +49,7 @@ Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, 
 }
 
 // BA, 0x4cf1b0: 0x5110d0 siempre; +0x1bc solo con cuál en 0x28, también en el registro 400.
-void ApplyActorField(const Battle::ActorField& field, WorldState& world)
+void ApplyActorField(const Battle::ActorField& field, Kernel::WorldState& world)
 {
     const std::size_t index = ActorWithKey(world, field.key);
     if (field.kind == Battle::ActorField1bcKind)
@@ -74,7 +74,7 @@ Core::Expected<void, std::string> ApplyMinimapMembers(const Battle::MinimapMembe
 }
 
 // B2 20, 0x4e04e0.
-void ApplySwitchHolder(const Battle::SwitchHolder& holder, WorldRuntime& runtime)
+void ApplySwitchHolder(const Battle::SwitchHolder& holder, Kernel::WorldRuntime& runtime)
 {
     const bool first = holder.key == UI::FirstHalfKey;
     const std::size_t half = first ? 0 : UI::SwitchHolderHalf;
@@ -94,7 +94,7 @@ void ApplySwitchHolder(const Battle::SwitchHolder& holder, WorldRuntime& runtime
 }
 } // namespace
 
-void ForgetTheSwitchHolder(WorldRuntime& runtime, std::uint16_t key)
+void ForgetTheSwitchHolder(Kernel::WorldRuntime& runtime, std::uint16_t key)
 {
     if (!runtime.castleSiege.castleSiegeInfo)
     {

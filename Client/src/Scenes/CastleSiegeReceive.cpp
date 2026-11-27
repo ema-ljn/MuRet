@@ -431,7 +431,7 @@ Core::Expected<void, std::string> ApplyMoneyOut(const Castle::MoneyOutResult& ou
 }
 
 // B2 1A, 0x4e54f6.
-void ApplySiegeFlags(const Castle::SiegeFlags& flags, WorldRuntime& runtime)
+void ApplySiegeFlags(const Castle::SiegeFlags& flags, Kernel::WorldRuntime& runtime)
 {
     if (flags.which == 1)
     {
@@ -568,9 +568,9 @@ Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints
 }
 
 // B8 01, 0x4e0700 sobre el héroe ([0x743a170]).
-void ApplyKillCount(const Castle::KillCount& count, WorldState& world)
+void ApplyKillCount(const Castle::KillCount& count, Kernel::WorldState& world)
 {
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     if (count.value != 0)
     {
         hero.byte372 = count.value;
@@ -598,7 +598,7 @@ void StrNCopy(const std::array<std::byte, Size>& from, std::array<std::uint8_t, 
 }
 } // namespace
 
-void StoreTheCastleState(const Protocol::CastleSiege::CastleState& state, WorldRuntime& runtime)
+void StoreTheCastleState(const Protocol::CastleSiege::CastleState& state, Kernel::WorldRuntime& runtime)
 {
     UI::SiegeRegistrationWindow& window = runtime.castleSiege.registration;
     runtime.panels.delegated.castleSiege = 1;

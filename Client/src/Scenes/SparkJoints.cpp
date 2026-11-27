@@ -180,12 +180,12 @@ Core::Expected<void, std::string> StepSpinningSparkle(JointState& joint, const J
 {
     constexpr double Spin = 15.0; // 0x6b87bc
     joint.angles.z = F32(D(joint.angles.z) + Spin);
-    const ActorState* owner = JointKernels::ActorOwner(joint);
+    const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x53a048: el dueño del joint 0x60f/0x2a no es un personaje"));
     if (!owner->alive)
     {
-        KillJointsOf(services.joints, DropJoint, owner, SpinningSparkleSubtype);
+        Actors::KillJointsOf(services.joints, DropJoint, owner, SpinningSparkleSubtype);
         return {};
     }
     if (services.random == nullptr)

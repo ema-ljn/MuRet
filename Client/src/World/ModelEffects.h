@@ -34,7 +34,7 @@ namespace Client::World
 class FrameSprites;
 
 inline constexpr std::size_t ModelEffectCount = 200;
-// El dragón que vuela en el login, con su modelo (Scenes::DragonModel) y la escala que le pasa 0x606660.
+// El dragón que vuela en el login, con su modelo (Assets::DragonModel) y la escala que le pasa 0x606660.
 inline constexpr std::int16_t DragonEffect = 0xb4;
 inline constexpr float DragonScale = 1.6f;
 // El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
@@ -133,7 +133,7 @@ struct ModelEffect;
 // +0x108, el dueño, con lo que leen de él en vivo los pasos del terremoto y sus grietas: el WORD +0x2 (su tipo) y +0x1c
 // (sus ángulos). El original guarda un puntero a un objeto de cualquier tabla; MuRet, punteros a esos campos, que
 // tienen que vivir más que el efecto (los lugares de las tablas no se mueven, y un lugar que se vuelve a usar se lee
-// como el original lo lee). Un ayudante (Scenes::HelperState) da `type` y `angles`; otro efecto, `effect` (su
+// como el original lo lee). Un ayudante (Actors::HelperState) da `type` y `angles`; otro efecto, `effect` (su
 // ModelEffect::type) y sus ángulos. Sin ninguno de los tres, no hay dueño.
 struct ModelEffectOwner
 {

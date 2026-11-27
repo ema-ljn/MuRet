@@ -51,16 +51,16 @@
 // Los paquetes del gremio, de la alianza y de la guerra que llegan (CL9 hito 8; 06 § El gremio): 0x4e2b10 con el 50,
 // 51, 52, 53, 54, 56, 5D, 60..64, 66, E1, E5, E6, E9 y EB, las dos ventanas al cerrarse (0x6522f0, 0x6570b0) y las
 // respuestas del diálogo de los paneles (0x4d6b60, 0x653c00). El gesto de la guerra es el emote del hito 1
-// (Scenes::PlayTheEmote). Los nombres de gremio, de personaje y los textos son inventados.
+// (Actors::PlayTheEmote). Los nombres de gremio, de personaje y los textos son inventados.
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ActorState;
 using Client::Scenes::GuildReceiveContext;
-using Client::Scenes::WorldState;
 namespace Guild = Client::Protocol::Guild;
 
 class LetterMeasure final : public ITextMeasure
@@ -228,7 +228,7 @@ protected:
         return Client::Scenes::ApplyGuildPacket(packet, Context(withModels));
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -296,8 +296,8 @@ TEST_F(GuildReceiveTest, TheMasterQuestionBorrowsBothCastleAndTrainerClosersFrom
         Reset(0);
         Client::Scenes::SelectionState selection(*m_world);
         Client::Models::ClothWorld cloth;
-        Client::World::GameCamera camera;
-        Client::World::GameCameraInput cameraInput;
+        Client::Camera::GameCamera camera;
+        Client::Camera::GameCameraInput cameraInput;
         Client::Tests::RecordingSink sink;
         Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
         Client::Scenes::WorldEntryResources resources{.world = *m_world,

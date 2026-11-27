@@ -110,14 +110,14 @@ namespace
 {
 using Client::App::SessionState;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WaitDrawThreshold;
+using Client::Kernel::WorldLoadingWait;
+using Client::Kernel::WorldRuntime;
+using Client::Kernel::WorldState;
 using Client::Models::ClothWorld;
 using Client::Scenes::GameScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::WaitDrawThreshold;
-using Client::Scenes::WorldLoadingWait;
-using Client::Scenes::WorldRuntime;
-using Client::Scenes::WorldState;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::LoggedInSession;
 
@@ -182,7 +182,7 @@ std::uint32_t StateAfterAStep(int draws)
 // 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
 // alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
 // se consulta además la espera: estos fixtures conservan el contador positivo.
-int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Scenes::ActorState& hero)
+int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Kernel::ActorState& hero)
 {
     int draws = 0;
     for (std::size_t slot = 0; slot < gates.Count(); ++slot)
@@ -210,8 +210,8 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // Oráculo de composición: ejecuta los kernels ya contrastados de 637082/6370ea/6370ef en
 // dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
-Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Scenes::WorldState& world,
-                                                                   const Client::Scenes::ActorState& hero,
+Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world,
+                                                                   const Client::Kernel::ActorState& hero,
                                                                    Client::World::LeafWeather weather,
                                                                    std::int32_t heroCellLayer,
                                                                    Client::Models::ClothWorld& reference)
@@ -482,7 +482,7 @@ TEST(GameSceneTest, AFrameThatReachesTheCharactersForgetsTheLastScan)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Harness tested(log);
-    tested.Runtime().fullSetScan = Client::Scenes::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
+    tested.Runtime().fullSetScan = Client::Actors::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
     ASSERT_TRUE(tested.scene.Enter().HasValue());
 
     tested.scene.PrepareFrame();
@@ -663,7 +663,7 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
         world.Runtime().drawingEnabled = true;
         world.Runtime().warpCounter = WorldLoadingWait;
         world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        Client::Scenes::ActorState& rider = world.Actors()[RiderSlot];
+        Client::Kernel::ActorState& rider = world.Actors()[RiderSlot];
         rider = Client::Tests::UnarmedPlayer(1);
         rider.alive = true;
         rider.byte88 = 1;
@@ -765,7 +765,7 @@ TEST(GameSceneTest, AStepWithTheWorldLeavesAFifthOfTheShake)
     ClothWorld cloth{.random = CrtRandom(Seed)};
     WorldState world;
     GiveInertTerrain(world);
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCameraInput cameraInput;
     GameScene scene(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
                                  .textures = store,
                                  .log = log,
@@ -835,7 +835,7 @@ protected:
                                                                                         .playerKey = 5,
                                                                                         .random = cloth.random});
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+        Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
         hero.alive = true;
         hero.cellX = x;
         hero.cellY = y;
@@ -844,8 +844,8 @@ protected:
         world.Runtime().hero = HeroSlot;
         world.Runtime().drawingEnabled = true;
         world.Runtime().warpCounter = WaitDrawThreshold;
-        camera = Client::World::GameCamera{};
-        cameraInput = Client::World::GameCameraInput{};
+        camera = Client::Camera::GameCamera{};
+        cameraInput = Client::Camera::GameCameraInput{};
         cloth.random = CrtRandom(Seed);
     }
 
@@ -855,15 +855,15 @@ protected:
     void MakeTheHeroAPlayer(std::uint8_t x, std::uint8_t y)
     {
         world.OwnCharacter().ClearEquipmentForEntry();
-        Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+        Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
         const glm::vec3 position = hero.position;
         hero = Client::Tests::UnarmedPlayer(1);
         hero.word376 = 0xffff;
         hero.alive = true;
         hero.alpha = hero.alphaTarget = 1.0f;
-        hero.head = Client::Scenes::NoItemModel;
+        hero.head = Client::Kernel::NoItemModel;
         for (auto& part : hero.body)
-            part.model = Client::Scenes::NoItemModel;
+            part.model = Client::Kernel::NoItemModel;
         hero.byte88 = 1;
         hero.pk = 3;
         hero.animation.action = 1;
@@ -882,11 +882,11 @@ protected:
     }
 
     // El trapecio que deja el dibujo de la selección (0x63475c): el de su punto fijo, con su cámara.
-    [[nodiscard]] static Client::World::TerrainPolygon SelectionPolygon()
+    [[nodiscard]] static Client::Terrain::TerrainPolygon SelectionPolygon()
     {
-        return Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, 54,
-                                               Client::Scenes::SelectionCullingPoint,
-                                               Client::Scenes::SelectionCamera().angles.z);
+        return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, 54,
+                                                 Client::Camera::SelectionCullingPoint,
+                                                 Client::Camera::SelectionCamera().angles.z);
     }
 
     // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta); con el ritmo fiel, cada dibujo es un frame del
@@ -912,9 +912,9 @@ protected:
     FakeTextureStore store;
     ClothWorld cloth{.random = CrtRandom(Seed)};
     WorldState world;
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
-    Client::Scenes::GameModels playerModels;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
+    Client::Assets::GameModels playerModels;
     Client::Tables::GameData data;
 };
 
@@ -933,7 +933,7 @@ public:
     {
         if (id != 0x1bd && id != 0x1be)
             return;
-        EXPECT_FALSE(Client::Sound::WrittenSounds(m_runtime.modelSounds, Client::Scenes::SpearmanModel));
+        EXPECT_FALSE(Client::Sound::WrittenSounds(m_runtime.modelSounds, Client::Assets::SpearmanModel));
         registrations.emplace_back(id, path);
     }
     std::vector<std::pair<std::int32_t, std::string>> registrations;
@@ -958,7 +958,7 @@ TEST_F(GameSceneDrawTest, TheCastleSpearmanReservesItsSoundsBeforePublishingTheA
         {0x1bd, "Sound\\BattleCastle\\m_SpearMercAttack.wav"}, {0x1be, "Sound\\BattleCastle\\m_SpearMercDeath.wav"}};
     EXPECT_EQ(audio.registrations, expected);
     const Client::Sound::ModelSounds sounds{-1, -1, 0xeb, 0xeb, 0xec, -1, -1, -1, -1, -1};
-    EXPECT_EQ(Client::Sound::WrittenSounds(world.Runtime().modelSounds, Client::Scenes::SpearmanModel), sounds);
+    EXPECT_EQ(Client::Sound::WrittenSounds(world.Runtime().modelSounds, Client::Assets::SpearmanModel), sounds);
     scene.PrepareFrame();
     scene.Render(target.BeginFrame(std::chrono::milliseconds{1040}), 0.0f);
     target.Present();
@@ -1039,7 +1039,7 @@ constexpr std::array<std::size_t, 54> DeviasSeen{
 // Si `slot` es una textura del terreno del juego: los tiles de 0x23 a 0x30 y el 0x122.
 bool IsTerrainTile(std::uint16_t slot)
 {
-    return (slot >= Client::World::FirstTileSlot && slot < Client::World::FirstTileSlot + 14) || slot == 0x122;
+    return (slot >= Client::Terrain::FirstTileSlot && slot < Client::Terrain::FirstTileSlot + 14) || slot == 0x122;
 }
 
 // 0x63723a y la cola del dibujo en Lorencia (el 0) y Devias (el 2), los mapas de referencia: la cámara con los dos
@@ -1138,9 +1138,9 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAn
                 EXPECT_EQ(Cell(static_cast<std::uint8_t>(gate + dx), row) & 0x04, 0) << dx << ", " << int{row};
             }
         }
-        EXPECT_NE(std::ranges::find(store.loaded, Client::World::FirstTileSlot), store.loaded.end());
+        EXPECT_NE(std::ranges::find(store.loaded, Client::Terrain::FirstTileSlot), store.loaded.end());
         EXPECT_NE(std::ranges::find(store.loaded, std::uint16_t{0x122}), store.loaded.end());
-        EXPECT_NE(std::ranges::find(store.loaded, Client::Scenes::WorldModelsFirstSlot.value), store.loaded.end());
+        EXPECT_NE(std::ranges::find(store.loaded, Client::Assets::WorldModelsFirstSlot.value), store.loaded.end());
         for (std::uint16_t slot = 0x32; slot <= 0x34; ++slot)
         {
             EXPECT_EQ(store.Find(Client::Render::TextureSlot{slot}).has_value(), slot == probe.grass) << slot;
@@ -1159,7 +1159,7 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAn
         EXPECT_TRUE(target.frames.back().presented);
         scene.Leave();
         EXPECT_FALSE(store.Find(Client::Render::TextureSlot{probe.grass}).has_value());
-        EXPECT_FALSE(store.Find(Client::Render::TextureSlot{Client::World::FirstTileSlot}).has_value());
+        EXPECT_FALSE(store.Find(Client::Render::TextureSlot{Client::Terrain::FirstTileSlot}).has_value());
     }
 }
 
@@ -1183,7 +1183,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
     struct Drawn
     {
         Client::Render::Pass3D pass;
-        Client::World::TerrainPolygon polygon;
+        Client::Terrain::TerrainPolygon polygon;
         std::vector<std::size_t> seen;
         std::uint32_t random = 0;
     };
@@ -1221,7 +1221,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
 
         // El gemelo sin recorrido: el héroe dibujado en el punto del recorrido a 300 y en la misma celda lógica.
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
-        world.Actors()[HeroSlot].position = {tourPoint.x, tourPoint.y, Client::World::CameraTourHeroHeight};
+        world.Actors()[HeroSlot].position = {tourPoint.x, tourPoint.y, Client::Camera::CameraTourHeroHeight};
         Drawn twin;
         {
             GameScene scene = Scene();
@@ -1234,7 +1234,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         // Y el del héroe en su lugar, ya a 300, como lo deja el recorrido.
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
         const glm::vec2 heroPlace{world.Actors()[HeroSlot].position};
-        world.Actors()[HeroSlot].position.z = Client::World::CameraTourHeroHeight;
+        world.Actors()[HeroSlot].position.z = Client::Camera::CameraTourHeroHeight;
         Drawn standing;
         {
             GameScene scene = Scene();
@@ -1274,7 +1274,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
             ASSERT_TRUE(cameraInput.tour.has_value());
             EXPECT_EQ(cameraInput.tour->position, tourPoint);
             EXPECT_EQ(world.Actors()[HeroSlot].position,
-                      glm::vec3(heroPlace.x, heroPlace.y, Client::World::CameraTourHeroHeight));
+                      glm::vec3(heroPlace.x, heroPlace.y, Client::Camera::CameraTourHeroHeight));
             EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
             EXPECT_EQ(first.pass.view, twin.pass.view);
             EXPECT_EQ(first.pass.projection, twin.pass.projection);
@@ -1293,7 +1293,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
             EXPECT_EQ(back.polygon.x, standing.polygon.x);
             EXPECT_EQ(back.polygon.y, standing.polygon.y);
             EXPECT_EQ(back.seen, standing.seen);
-            EXPECT_EQ(world.Actors()[HeroSlot].position.z, Client::World::CameraTourHeroHeight)
+            EXPECT_EQ(world.Actors()[HeroSlot].position.z, Client::Camera::CameraTourHeroHeight)
                 << "0x635ec0 no vuelve: el héroe parado se queda a 300";
             scene.Leave();
         }
@@ -1430,7 +1430,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold - 1);
         EXPECT_EQ(cloth.random.State(), reference.random.State());
         scene.Leave();
-        EXPECT_FALSE(store.Find(Client::Render::TextureSlot{Client::World::FirstTileSlot}).has_value());
+        EXPECT_FALSE(store.Find(Client::Render::TextureSlot{Client::Terrain::FirstTileSlot}).has_value());
         world.Runtime().heroCellLayer = 0;
     }
 }
@@ -1575,13 +1575,13 @@ TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
         world.Runtime().groundMarks = {};
-        world.Runtime().groundMarks[17] = Client::World::GroundMark{.live = true,
-                                                                    .type = 0x5e3,
-                                                                    .size = 0.65f,
-                                                                    .position = world.Actors()[HeroSlot].position,
-                                                                    .color = glm::vec3(0.1f, 0.0f, 0.0f),
-                                                                    .alpha = 1.0f,
-                                                                    .life = 60};
+        world.Runtime().groundMarks[17] = Client::Terrain::GroundMark{.live = true,
+                                                                      .type = 0x5e3,
+                                                                      .size = 0.65f,
+                                                                      .position = world.Actors()[HeroSlot].position,
+                                                                      .color = glm::vec3(0.1f, 0.0f, 0.0f),
+                                                                      .alpha = 1.0f,
+                                                                      .life = 60};
         GameScene scene = Scene();
         ASSERT_TRUE(scene.Enter().HasValue());
         Client::Tests::RecordingFrameTarget target;
@@ -1615,16 +1615,16 @@ TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
 TEST_F(GameSceneDrawTest, ChaosCastleDrawsRandomForEachShownCellAndNoGrass)
 {
     constexpr std::uint8_t ChaosCastle = 18;
-    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, ChaosCastle);
+    auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, ChaosCastle);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     world.Map().terrain = std::move(terrain).Value();
     for (std::uint16_t& cell : world.Map().terrain.attributes->cells)
-        cell = static_cast<std::uint16_t>(cell | Client::World::HiddenCellBit);
+        cell = static_cast<std::uint16_t>(cell | Client::Terrain::HiddenCellBit);
     const auto heroCell = Client::Data::Terrain::CellIndex(128, 128);
     world.Map().terrain.attributes->cells[heroCell] =
-        static_cast<std::uint16_t>(world.Map().terrain.attributes->cells[heroCell] & ~Client::World::HiddenCellBit);
+        static_cast<std::uint16_t>(world.Map().terrain.attributes->cells[heroCell] & ~Client::Terrain::HiddenCellBit);
     world.Runtime().map = ChaosCastle;
-    Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+    Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
     hero.alive = true;
     hero.cellX = 128;
     hero.cellY = 128;
@@ -1681,12 +1681,12 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
         MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
-        const Client::World::TerrainPolygon selection = SelectionPolygon();
+        const Client::Terrain::TerrainPolygon selection = SelectionPolygon();
         world.Runtime().terrainPolygon = selection;
         GameScene scene = Scene();
         ASSERT_TRUE(scene.Enter().HasValue());
         const std::uint16_t before = Cell(221, 11);
-        const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+        const Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
         ASSERT_EQ(Cell(probe.drawnX, probe.drawnY) & 1, 1);
         ASSERT_EQ(Cell(probe.logicalX, probe.logicalY) & 1, 0);
 
@@ -1763,10 +1763,10 @@ TEST_F(GameSceneDrawTest, AnIntermediateDrawKeepsTheScanOfTheLastFrame)
     ASSERT_EQ(scene.Failure(), std::nullopt);
     target.Present();
     ASSERT_TRUE(world.Runtime().fullSetScan.has_value()) << "el frame del original publica el scan del héroe";
-    const Client::Scenes::Scan505820 heroScan = *world.Runtime().fullSetScan;
+    const Client::Actors::Scan505820 heroScan = *world.Runtime().fullSetScan;
 
     // Lo que dejó otro jugador dibujado después del héroe en ese frame.
-    const Client::Scenes::Scan505820 other{.dword743a178 = 123, .byte743a17c = 42};
+    const Client::Actors::Scan505820 other{.dword743a178 = 123, .byte743a17c = 42};
     world.Runtime().fullSetScan = other;
     scene.PrepareFrame();
     ASSERT_FALSE(scene.HoldsTheLastFrame());
@@ -1812,7 +1812,7 @@ TEST_F(GameSceneDrawTest, EachFrameStartCountsTheSkillDelaysDown)
                                  .world = &world},
                     nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
                     &*data.skills);
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     own.byte6a = 1;
     own.skillDelays[0] = 500;
     own.skillDelays[1] = 30;
@@ -1877,15 +1877,15 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
         MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
         world.Runtime().terrainPolygon = SelectionPolygon();
-        Client::World::GroundMarkTable& marks = world.Runtime().groundMarks;
+        Client::Terrain::GroundMarkTable& marks = world.Runtime().groundMarks;
         marks = {};
-        const Client::World::GroundMark blood{.live = true,
-                                              .type = 0x5e3,
-                                              .size = 0.65f,
-                                              .position = glm::vec3(1000.0f, 2000.0f, 0.0f),
-                                              .color = glm::vec3(1.0f, 1.0f, 1.0f),
-                                              .alpha = 1.0f,
-                                              .life = 60};
+        const Client::Terrain::GroundMark blood{.live = true,
+                                                .type = 0x5e3,
+                                                .size = 0.65f,
+                                                .position = glm::vec3(1000.0f, 2000.0f, 0.0f),
+                                                .color = glm::vec3(1.0f, 1.0f, 1.0f),
+                                                .alpha = 1.0f,
+                                                .life = 60};
         marks[17] = blood;
         marks[18] = blood;
         marks[18].live = false;
@@ -1910,7 +1910,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         EXPECT_EQ(marks[17].size, static_cast<float>(static_cast<double>(0.65f) + static_cast<double>(0.004f)));
         EXPECT_EQ(marks[17].color, glm::vec3(0.1f, 0.0f, 0.0f));
         EXPECT_EQ(marks[17].alpha, 1.0f);
-        Client::World::GroundMark off = blood;
+        Client::Terrain::GroundMark off = blood;
         off.live = false;
         EXPECT_EQ(marks[18], off);
         EXPECT_EQ(cloth.random.State(), reference.random.State());
@@ -1944,7 +1944,7 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
         Advanced(reference.random, 8 + 8 + HeroBodyDraws + 8 + 1 + HeroActionPrefixRandoms + ParticleWindDraws +
                                        GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
     Client::Models::StepTheClothWorld(reference);
-    const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+    const Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
     EXPECT_TRUE(hero.seen);
     EXPECT_EQ(hero.safeZone, 0);
     EXPECT_EQ(cloth.random.State(), reference.random.State());
@@ -1994,13 +1994,13 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
 TEST_F(GameSceneDrawTest, AStepAfterACutDrawDoesNothing)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 143, 120));
-    world.Runtime().groundMarks[0] = Client::World::GroundMark{.live = true,
-                                                               .type = 0x606,
-                                                               .size = 1.0f,
-                                                               .position = world.Actors()[HeroSlot].position,
-                                                               .color = glm::vec3(1.0f),
-                                                               .alpha = 1.0f,
-                                                               .life = 60};
+    world.Runtime().groundMarks[0] = Client::Terrain::GroundMark{.live = true,
+                                                                 .type = 0x606,
+                                                                 .size = 1.0f,
+                                                                 .position = world.Actors()[HeroSlot].position,
+                                                                 .color = glm::vec3(1.0f),
+                                                                 .alpha = 1.0f,
+                                                                 .life = 60};
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     Client::Tests::RecordingFrameTarget target;

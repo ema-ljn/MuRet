@@ -231,7 +231,7 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 // de los diálogos: el de [0x5763504] (la entrada del número de serie, hito 11, y el alta del gremio, CL9 hito 8) y el
 // del número del 0x7d (CL9 hito 8); los del gremio se quedan con el foco al cerrar (Q-C1291 y Q-C1295). El del diálogo
 // de los paneles es de la CL9.5 (P-C285), y su ventana es la del juego.
-bool TextInputBusy(const WorldRuntime& runtime)
+bool TextInputBusy(const Kernel::WorldRuntime& runtime)
 {
     const UI::ChatFocus focus = runtime.chat.input.focus;
     const auto& panelDialog = runtime.panels.delegated.panelDialog;
@@ -243,10 +243,10 @@ bool TextInputBusy(const WorldRuntime& runtime)
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
 Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    ChatRuntime& chat = runtime.chat;
-    const ActorState& hero = context.world.Hero();
+    Kernel::ChatRuntime& chat = runtime.chat;
+    const Kernel::ActorState& hero = context.world.Hero();
     const UI::ChatLogGlobals globals{.leftClick = runtime.movement.pendingClick,
                                      .rightDown = ui.rightDown,
                                      .wheel = ui.wheel,
@@ -279,7 +279,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 // (0x636e8c..0x636ea5: 0x77f3b69 el de los paneles, 0x77f3b68 el del alta del gremio y 0x77f3b6a el modo del zen del
 // 0x73 y del precio del 0x91), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas y el foco del teclado
 // a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo tiene).
-void StepTheUnownedClick(WorldRuntime& runtime)
+void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
 {
     UI::GameUiState& ui = runtime.ui;
     if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != UI::ChatLogId))
@@ -307,12 +307,12 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
     constexpr std::int32_t ButtonTop = 0x12c;
     constexpr std::int32_t ButtonBottom = 0x14a;
     constexpr std::int32_t ButtonPushed = 5;
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.map != CrywolfMap)
         return {};
     const std::int32_t mouseX = context.mouseX;
     const std::int32_t mouseY = context.mouseY;
-    CrywolfInterface& crywolf = runtime.crywolf.ui;
+    Kernel::CrywolfInterface& crywolf = runtime.crywolf.ui;
     GameMovementState& movement = runtime.movement;
     if (crywolf.byte723bf9 == 1 && movement.leftHeld)
     {
@@ -333,7 +333,7 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
 // 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
 // alto y la x en 0 debajo de una ventana de la izquierda, o 0xba. Las consultas van en el orden del original, que se
 // corta en la primera abierta: las del comercio y de la tienda de NPC sacan un rand().
-void PlaceTheChatLog(WorldRuntime& runtime, UI::PanelRegistry& panels)
+void PlaceTheChatLog(Kernel::WorldRuntime& runtime, UI::PanelRegistry& panels)
 {
     UI::ChatLogFrame& frame = runtime.hud.chatFrame;
     if (runtime.ui.chatModes.placement != 1)
@@ -470,7 +470,7 @@ private:
 // viejas (0x490490). Esc llega a 0x490490 ya leído por 0x623e70, salvo con la de amigos abierta (Q-C446).
 Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context, const OldWindowSight& sight)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::OldWindowStepView view = sight.View();
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
     if (auto list = UI::StepTheWindowList(runtime.oldWindows, globals, view); !list.HasValue())
@@ -566,7 +566,7 @@ bool MouseInEquipmentRect(const GameUiContext& context, std::int32_t left, std::
 Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& context, float x, float y, float width,
                                                       float height, std::size_t slot)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0)
         return {};
     // _ftol de las constantes, que son enteras.
@@ -580,7 +580,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
             return {};
         return DropOnTheEquipment(MovesOf(context), slot);
     }
-    if (context.world.OwnCharacter().equipment[slot].id == EmptyOwnItemId || !inside)
+    if (context.world.OwnCharacter().equipment[slot].id == Kernel::EmptyOwnItemId || !inside)
         return {};
     // 0x5c2c56..0x5c2c5f.
     runtime.ui.field78abaac = 1;
@@ -607,7 +607,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
 // 0x5bec50 queda adentro y no saca nada al cerrar) y los otros nueve.
 Core::Expected<void, std::string> StepTheEquipment(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (auto slot = StepAnEquipmentSlot(context, 15.0f, 46.0f, 40.0f, 40.0f, 8); !slot.HasValue())
         return slot;
     if (auto slot = StepAnEquipmentSlot(context, 115.0f, 46.0f, 60.0f, 40.0f, 7); !slot.HasValue())
@@ -662,11 +662,11 @@ enum class GridHover : std::uint8_t
 // NPC, que compra; 0 las demás) y la grilla de donde sale lo que se levanta.
 struct HoverGrid
 {
-    std::span<World::ItemState> cells;
+    std::span<Kernel::ItemState> cells;
     UI::HoveredItem::Place place = UI::HoveredItem::Place::InventoryCell;
     std::int32_t rows = 0;
     std::uint8_t kind = 0;
-    CursorGrid grid = CursorGrid::None;
+    Kernel::CursorGrid grid = Kernel::CursorGrid::None;
 };
 
 // 0x5c4110 con el tipo 1 (0x5e57af, la tienda): comprar.
@@ -676,7 +676,7 @@ constexpr std::int32_t WarehouseHelpPlace = 1;
 constexpr std::int32_t ChaosBoxHelpPlace = 4;
 // 0x5c4b6e: con la tienda, 0x78abb28 en 6.
 constexpr std::int32_t ShopHelpPlace = 6;
-static_assert(NpcGridColumns == static_cast<std::int32_t>(InventoryColumns));
+static_assert(NpcGridColumns == static_cast<std::int32_t>(Kernel::InventoryColumns));
 
 // 0x5c4b64..0x5c510f: el ítem bajo el mouse en la grilla de la tienda. 0x78abb28 en 6 y 0x78abb2c en la casilla; con
 // el clic, sin el modo de reparar y sin otra compra esperando (0x5767950), el clic gastado, el precio de 0x54d0f0 en
@@ -684,8 +684,8 @@ static_assert(NpcGridColumns == static_cast<std::int32_t>(InventoryColumns));
 Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& context, const HoverGrid& grid,
                                                       std::size_t index)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const World::ItemState& hovered = grid.cells[index];
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ItemState& hovered = grid.cells[index];
     runtime.ui.field78abb28 = ShopHelpPlace;
     runtime.ui.field78abb2c = static_cast<std::int32_t>(index);
     NpcWindowState& npc = runtime.npcWindows;
@@ -702,8 +702,8 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
     const Tables::ItemTable* items = ServicesOf(context).items;
     if (items == nullptr)
         return Core::Unexpected(std::string("0x5c4bc4: el precio de 0x54d0f0 sin Item.bmd"));
-    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
-                              .horse = runtime.pets[DarkHorsePetStats].level};
+    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto price = ItemPrice(grid.cells[static_cast<std::size_t>(topLeft)], *items, ShopGridPrice, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
@@ -728,10 +728,10 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
 Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
                                                  const HoverGrid& grid, std::size_t index)
 {
-    const World::ItemState& hovered = grid.cells[index];
-    WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ItemState& hovered = grid.cells[index];
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.ui.rightClick = false;
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
     const std::int32_t type = std::bit_cast<std::int16_t>(hovered.id);
     const std::uint32_t levelBits = hovered.scalar1Low & UsedLevelBits;
@@ -750,9 +750,10 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)
         return use();
-    const CursorGrid used = grid.place == UI::HoveredItem::Place::OwnTradeCell    ? CursorGrid::OwnTrade
-                            : grid.place == UI::HoveredItem::Place::InventoryCell ? CursorGrid::Inventory
-                                                                                  : grid.grid;
+    const Kernel::CursorGrid used = grid.place == UI::HoveredItem::Place::OwnTradeCell ? Kernel::CursorGrid::OwnTrade
+                                    : grid.place == UI::HoveredItem::Place::InventoryCell
+                                        ? Kernel::CursorGrid::Inventory
+                                        : grid.grid;
     return UseTheLaterGridItem(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = used}, index);
 }
 
@@ -761,7 +762,7 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
 Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, UI::PanelRegistry& panels,
                                                  const HoverGrid& grid)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     if (panels.IsOpen(UI::TradePanel) && trade.ownOk != 0 && grid.place == UI::HoveredItem::Place::OwnTradeCell)
     {
@@ -777,20 +778,20 @@ Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, U
 }
 
 // La grilla de `place` como la guarda 0x78ab9b8.
-CursorGrid CursorGridOf(UI::HoveredItem::Place place)
+Kernel::CursorGrid CursorGridOf(UI::HoveredItem::Place place)
 {
     switch (place)
     {
     case UI::HoveredItem::Place::InventoryCell:
-        return CursorGrid::Inventory;
+        return Kernel::CursorGrid::Inventory;
     case UI::HoveredItem::Place::OwnTradeCell:
-        return CursorGrid::OwnTrade;
+        return Kernel::CursorGrid::OwnTrade;
     case UI::HoveredItem::Place::OtherTradeCell:
-        return CursorGrid::OtherTrade;
+        return Kernel::CursorGrid::OtherTrade;
     case UI::HoveredItem::Place::ShopCell:
-        return CursorGrid::PersonalShop;
+        return Kernel::CursorGrid::PersonalShop;
     default:
-        return CursorGrid::None;
+        return Kernel::CursorGrid::None;
     }
 }
 
@@ -801,18 +802,18 @@ CursorGrid CursorGridOf(UI::HoveredItem::Place place)
 // propia (1), se levanta el de su grilla (+ 0x4c) o el del inventario (+ 12). Al final, 0x78abaa8 en 0; ni sonido ni el
 // comercio de 0x5c5361.
 Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& context, const HoverGrid& grid,
-                                                       const World::ItemState& hovered)
+                                                       const Kernel::ItemState& hovered)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.movement.pendingClick = false;
-    const CursorGrid from = CursorGridOf(grid.place);
+    const Kernel::CursorGrid from = CursorGridOf(grid.place);
     runtime.cursorGrid = from;
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
     runtime.slot78a6758 = NoCursorSlot;
     const std::int32_t mode = runtime.social.personalShop.mode;
-    const bool shopGrid = from == CursorGrid::PersonalShop;
-    const bool inventoryGrid = from == CursorGrid::Inventory;
+    const bool shopGrid = from == Kernel::CursorGrid::PersonalShop;
+    const bool inventoryGrid = from == Kernel::CursorGrid::Inventory;
     if (mode == OtherShopView && shopGrid)
     {
         runtime.slot78a6758 = cell + FirstPersonalShopSlot;
@@ -843,19 +844,19 @@ Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& cont
 // derecho consumido, la grilla en 0x78ab9b8, el ítem de arriba a la izquierda en 0x78a59c8 y su casilla + 0x4c en
 // 0x78a6758 (con cualquier grilla). Con la propia y su grilla, el diálogo del precio (0x5eba70(2)). 0x78abaa8 queda.
 Core::Expected<void, std::string> RightClickWithTheShopOpen(const GameUiContext& context, const HoverGrid& grid,
-                                                            const World::ItemState& hovered)
+                                                            const Kernel::ItemState& hovered)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.ui.rightClick = false;
-    const CursorGrid from = CursorGridOf(grid.place);
+    const Kernel::CursorGrid from = CursorGridOf(grid.place);
     runtime.cursorGrid = from;
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
     if (static_cast<std::size_t>(cell) >= grid.cells.size())
         return Core::Unexpected(std::format("0x5c526d: la casilla {} está fuera de la grilla", cell));
     runtime.dialogItem = grid.cells[static_cast<std::size_t>(cell)];
     runtime.slot78a6758 = cell + FirstPersonalShopSlot;
-    if (runtime.social.personalShop.mode == OwnShopView && from == CursorGrid::PersonalShop)
+    if (runtime.social.personalShop.mode == OwnShopView && from == Kernel::CursorGrid::PersonalShop)
         OpenTheShopDialog(runtime, ShopPriceMode);
     return {};
 }
@@ -868,10 +869,10 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
                                                         const HoverGrid& grid, std::size_t index, std::int32_t left,
                                                         std::int32_t top)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    const std::span<World::ItemState> cells = grid.cells;
-    const World::ItemState& hovered = cells[index];
+    const std::span<Kernel::ItemState> cells = grid.cells;
+    const Kernel::ItemState& hovered = cells[index];
     const bool ownTrade = grid.place == UI::HoveredItem::Place::OwnTradeCell;
     const bool otherTrade = grid.place == UI::HoveredItem::Place::OtherTradeCell;
     // 0x5c41f4..0x5c4284: el ancho y el alto de Item.bmd, y la marca desde la columna y la fila del ítem, sin mirar los
@@ -881,7 +882,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
         return Core::Unexpected(footprint.Error());
     const std::int32_t column = hovered.gridColumn;
     const std::int32_t row = hovered.gridRow;
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     static_assert(Columns == TradeGridColumns && Columns == NpcGridColumns);
     for (std::int32_t y = row; y < row + footprint.Value().height; ++y)
     {
@@ -892,7 +893,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
                 return Core::Unexpected(std::format("0x5c425e: la marca de la casilla {} cae fuera de la grilla "
                                                     "(Q-C200)",
                                                     marked));
-            World::ItemState& marking = cells[static_cast<std::size_t>(marked)];
+            Kernel::ItemState& marking = cells[static_cast<std::size_t>(marked)];
             // 0x5c4243..0x5c4256: en la grilla del otro, el 99 de la copia (0x5bc470) queda.
             if (otherTrade && marking.warning == ChangedFromTheCopy)
                 continue;
@@ -986,12 +987,12 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
             ui.field78abb2c = cell + FirstPersonalShopSlot;
         }
     }
-    else if (grid.grid == CursorGrid::ChaosBox || grid.grid == CursorGrid::TrainerBox)
+    else if (grid.grid == Kernel::CursorGrid::ChaosBox || grid.grid == Kernel::CursorGrid::TrainerBox)
     {
         ui.field78abb28 = ChaosBoxHelpPlace;
         ui.field78abb2c = cell;
     }
-    else if (grid.grid == CursorGrid::NpcGrid)
+    else if (grid.grid == Kernel::CursorGrid::NpcGrid)
     {
         if (panels.IsOpen(UI::WarehousePanel))
         {
@@ -1024,7 +1025,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
 Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::PanelRegistry& panels,
                                               const HoverGrid& grid, std::int32_t left, std::int32_t top)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
         return {};
     runtime.ui.shopGridHovered = 0;
@@ -1036,7 +1037,7 @@ Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::
             const std::int32_t cellLeft = left + column * CellSize;
             const auto index = static_cast<std::size_t>(row * NpcGridColumns + column);
             if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
-                context.mouseY >= cellTop + CellSize || grid.cells[index].id == EmptyOwnItemId)
+                context.mouseY >= cellTop + CellSize || grid.cells[index].id == Kernel::EmptyOwnItemId)
                 continue;
             const auto hovered = HoverTheGridItem(context, panels, grid, index, left, top);
             if (!hovered.HasValue())
@@ -1052,22 +1053,23 @@ Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::
 // un ítem en el cursor; si no, recorre las casillas por filas y, con el mouse sobre una con un tipo, lo de ese ítem.
 Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
         return {};
     // 0x5c4163.
     runtime.ui.shopGridHovered = 0;
     const std::int32_t left = runtime.hud.inventoryX + 15;
     const std::int32_t top = runtime.hud.inventoryY + 200;
-    for (std::size_t row = 0; row < InventoryColumns; ++row)
+    for (std::size_t row = 0; row < Kernel::InventoryColumns; ++row)
     {
         const std::int32_t cellTop = top + static_cast<std::int32_t>(row) * CellSize;
-        for (std::size_t column = 0; column < InventoryColumns; ++column)
+        for (std::size_t column = 0; column < Kernel::InventoryColumns; ++column)
         {
             const std::int32_t cellLeft = left + static_cast<std::int32_t>(column) * CellSize;
-            const std::size_t index = row * InventoryColumns + column;
+            const std::size_t index = row * Kernel::InventoryColumns + column;
             if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
-                context.mouseY >= cellTop + CellSize || context.world.Inventory().cells[index].id == EmptyOwnItemId)
+                context.mouseY >= cellTop + CellSize ||
+                context.world.Inventory().cells[index].id == Kernel::EmptyOwnItemId)
                 continue;
             const auto hovered = HoverTheGridItem(
                 context, panels,
@@ -1088,7 +1090,7 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
 Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& context, UI::PanelRegistry& panels,
                                                      std::uint16_t level)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::PanelState& state = runtime.panels;
     GameMovementState& movement = runtime.movement;
     const std::int32_t x = runtime.hud.inventoryX;
@@ -1168,13 +1170,13 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
 {
     if (!panels.IsOpen(UI::CharacterPanel))
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     const std::int32_t x = runtime.hud.characterX;
     const std::int32_t y = runtime.hud.characterY;
     if (InRect(context, x, y, x + CharacterWindowWidth, y + CharacterWindowHeight))
         runtime.ui.mouseOnUi = 1;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     const std::int32_t buttons = Kernel::BaseClassOf(hero.characterClass) == Kernel::CharacterClass::DarkLord ? 5 : 4;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -1211,7 +1213,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
 // incluidos salvo los de la UI y los del botón. Sin rand().
 Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     const std::int32_t left = panels.IsOpen(UI::CharacterPanel) ? PetWindowBesideTheCharacter : PetWindowLeft;
     const auto mouseX = static_cast<float>(context.mouseX);
@@ -1253,7 +1255,7 @@ Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context,
 // el paso de la ventana de la mascota. 0x416660, desde 0x424130 con 2, no hace nada.
 Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::uint8_t& pet = runtime.panels.delegated.pet;
     if (!panels.IsOpen(UI::CharacterPanel))
     {
@@ -1288,7 +1290,7 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
 // (HoverTheGridItem). Levantar o el clic derecho terminan la de la grilla propia; la del otro sigue.
 Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     const auto scan = [&](const HoverGrid& grid, std::int32_t top) -> Core::Expected<void, std::string>
     {
@@ -1304,7 +1306,7 @@ Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context
                 const std::int32_t cellTop = top + row * CellSize;
                 const auto index = static_cast<std::size_t>(row * TradeGridColumns + column);
                 if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
-                    context.mouseY >= cellTop + CellSize || grid.cells[index].id == EmptyOwnItemId)
+                    context.mouseY >= cellTop + CellSize || grid.cells[index].id == Kernel::EmptyOwnItemId)
                     continue;
                 const auto hovered = HoverTheGridItem(context, panels, grid, index, left, top);
                 if (!hovered.HasValue())
@@ -1328,14 +1330,14 @@ Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context
 // 0x5f3030). Sale como las otras y recorre las casillas por filas; levantar o el clic derecho la terminan.
 Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
         return {};
     runtime.ui.shopGridHovered = 0;
     const PersonalShopState& shops = runtime.social.personalShop;
     const std::int32_t left = shops.windowX + ShopGridLeft;
     const std::int32_t top = shops.windowY + ShopGridTop;
-    const std::span<World::ItemState> cells(context.world.Inventory().secondCells);
+    const std::span<Kernel::ItemState> cells(context.world.Inventory().secondCells);
     for (std::int32_t row = 0; row < ShopGridRows; ++row)
     {
         for (std::int32_t column = 0; column < ShopGridColumns; ++column)
@@ -1344,7 +1346,7 @@ Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, 
             const std::int32_t cellTop = top + row * CellSize;
             const auto index = static_cast<std::size_t>(row * ShopGridColumns + column);
             if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
-                context.mouseY >= cellTop + CellSize || cells[index].id == EmptyOwnItemId)
+                context.mouseY >= cellTop + CellSize || cells[index].id == Kernel::EmptyOwnItemId)
                 continue;
             const auto hovered =
                 HoverTheGridItem(context, panels, HoverGrid{.cells = cells, .place = UI::HoveredItem::Place::ShopCell},
@@ -1362,7 +1364,7 @@ Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, 
 // (0x40e6c0).
 Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::PanelState& state = runtime.panels;
     if (panels.IsOpen(UI::TradePanel))
     {
@@ -1378,7 +1380,7 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
                             .place = UI::HoveredItem::Place::NpcGridCell,
                             .rows = static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns,
                             .kind = 0,
-                            .grid = CursorGrid::NpcGrid};
+                            .grid = Kernel::CursorGrid::NpcGrid};
     if (panels.IsOpen(UI::NpcShopPanel))
     {
         HoverGrid shop = npcGrid;
@@ -1401,7 +1403,7 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
                               .place = UI::HoveredItem::Place::ChaosBoxCell,
                               .rows = ChaosBoxRows,
                               .kind = 0,
-                              .grid = CursorGrid::ChaosBox};
+                              .grid = Kernel::CursorGrid::ChaosBox};
         if (auto hovered = StepTheGrid(context, panels, chaos, npcLeft, runtime.ui.npcWindowY + 0x6e);
             !hovered.HasValue())
             return hovered;
@@ -1418,7 +1420,7 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
                                 .place = UI::HoveredItem::Place::TrainerBoxCell,
                                 .rows = ChaosBoxRows,
                                 .kind = 0,
-                                .grid = CursorGrid::TrainerBox};
+                                .grid = Kernel::CursorGrid::TrainerBox};
         if (auto hovered = StepTheGrid(context, panels, trainer, TrainerBoxLeft, TrainerBoxTop); !hovered.HasValue())
             return hovered;
     }
@@ -1439,8 +1441,8 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
 // 0x5e4ce0, el inventario. Las otras ventanas con grilla cortan donde se consultan por primera vez.
 Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const UI::PanelState& state = runtime.panels;
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
@@ -1478,25 +1480,25 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
         InRect(context, shops.windowX, shops.windowY, shops.windowX + 0xbe, shops.windowY + 0x1b1))
         runtime.ui.mouseOnUi = 1;
     // 0x5e4f31..0x5e5128: los doce lugares del equipo, cada uno con su acceso, y +0x44 en 1 con un tipo.
-    for (World::ItemState& item : world.OwnCharacter().equipment)
+    for (Kernel::ItemState& item : world.OwnCharacter().equipment)
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        item.warning = item.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+        item.warning = item.id == Kernel::EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
     }
     // 0x5e512f..0x5e5207: lo mismo en las grillas: el inventario (0x78a9bb0), la del otro en el comercio (0x78a5a20,
     // 0x5e515d..0x5e5185, que conserva el 99 de 0x5bc470), la propia (0x78a92a8), la de la tienda y del almacén
     // (0x78a70b4..), la caja del caos (0x7d2d3c4..) y la de las tiendas personales (0x78ab0b8, CL9 hito 7); 0x449c60
     // (0x5e5207) hace lo mismo con la caja del entrenador (0x723c80).
-    const auto warn = [](std::span<World::ItemState> cells)
+    const auto warn = [](std::span<Kernel::ItemState> cells)
     {
-        for (World::ItemState& cell : cells)
-            cell.warning = cell.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+        for (Kernel::ItemState& cell : cells)
+            cell.warning = cell.id == Kernel::EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
     };
     warn(world.Inventory().cells);
     TradeState& trade = runtime.social.trade;
-    for (World::ItemState& cell : trade.otherGrid)
+    for (Kernel::ItemState& cell : trade.otherGrid)
     {
-        if (cell.id == EmptyOwnItemId)
+        if (cell.id == Kernel::EmptyOwnItemId)
             cell.warning = 0;
         else if (cell.warning != ChangedFromTheCopy)
             cell.warning = 1;
@@ -1556,7 +1558,7 @@ Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& 
 // al piso.
 Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::PanelState& state = runtime.panels;
     // 0x5d8d72..0x5d8ddf.
     if (panels.IsOpen(UI::ChaosBoxPanel) ||
@@ -1612,7 +1614,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                                   .mouseY = context.mouseY,
                                                                   .left = npcLeft,
                                                                   .top = runtime.ui.npcWindowY + 0x32,
-                                                                  .grid = CursorGrid::NpcGrid});
+                                                                  .grid = Kernel::CursorGrid::NpcGrid});
         if (!dropped.HasValue())
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
@@ -1626,7 +1628,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                                   .mouseY = context.mouseY,
                                                                   .left = npcLeft,
                                                                   .top = runtime.ui.npcWindowY + 0x6e,
-                                                                  .grid = CursorGrid::ChaosBox});
+                                                                  .grid = Kernel::CursorGrid::ChaosBox});
         if (!dropped.HasValue())
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
@@ -1652,7 +1654,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                                   .mouseY = context.mouseY,
                                                                   .left = TrainerBoxLeft,
                                                                   .top = TrainerBoxTop,
-                                                                  .grid = CursorGrid::TrainerBox});
+                                                                  .grid = Kernel::CursorGrid::TrainerBox});
         if (!dropped.HasValue())
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
@@ -1678,7 +1680,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
 
 Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     if (runtime.dialogs.current == UI::EscapeMenuDialog)
         return {};
@@ -1741,7 +1743,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
 // sonido 0x19 y el reloj del mouse.
 void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int32_t tooltipX, std::int32_t tooltipY)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     ui.skillTooltipX = tooltipX;
     ui.skillTooltip = index;
@@ -1761,7 +1763,7 @@ void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int3
 // con y de 0x14a a 0x16e.
 void StepThePetOrderButtons(const GameUiContext& context)
 {
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     if (!hero.darkSpirit)
         return;
     constexpr std::uint8_t FirstOrder = 0x78;
@@ -1783,8 +1785,8 @@ void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
     const Input::InputState& input = context.input;
     if (!input.IsDown(Key::Ctrl))
         return;
-    WorldRuntime& runtime = context.world.Runtime();
-    OwnCharacterRecord& own = context.world.OwnCharacter();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
     constexpr std::size_t KeyedSlots = 0x40;
     constexpr std::uint8_t NoKey = 0xff;
@@ -1810,8 +1812,8 @@ void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
 // (PointAtTheSkill) y las teclas (StepTheSkillKeys). Después, los botones de las órdenes del cuervo (0x420e90).
 Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     constexpr std::int32_t RowSize = 0x14;
     const std::int32_t width =
         std::min(static_cast<std::int32_t>(own.byte6a) - static_cast<std::int32_t>(own.byte6b), RowSize);
@@ -1821,7 +1823,7 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
     constexpr std::uint8_t ListedSlots = 0x40;
     for (std::uint8_t index = 0; index < ListedSlots; ++index)
     {
-        const std::uint8_t skill = OwnSkillByte(own, index);
+        const std::uint8_t skill = Kernel::OwnSkillByte(own, index);
         if (skill == 0 || (skill >= 0x43 && skill <= 0x48))
             continue;
         if (context.skills == nullptr)
@@ -1860,7 +1862,7 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
 // abajo. Dice si eligió.
 bool StepThePetOrderKeys(const GameUiContext& context)
 {
-    ActorState& hero = context.world.Hero();
+    Kernel::ActorState& hero = context.world.Hero();
     if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::DarkLord ||
         !context.input.IsDown(Key::Shift))
         return false;
@@ -1881,9 +1883,9 @@ bool StepThePetOrderKeys(const GameUiContext& context)
 // en 6 o 0xf, los elegidos 0x6c8e30 y 0x6c8e38 vuelven a −1. Dice si eligió.
 bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const OwnCharacterRecord& own = context.world.OwnCharacter();
-    ActorState& hero = context.world.Hero();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
+    Kernel::ActorState& hero = context.world.Hero();
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
     if (place >= own.skillKeys.size())
@@ -1892,7 +1894,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
     constexpr std::uint8_t KeyedSlots = 0x40;
     for (std::uint8_t slot = 0; slot < KeyedSlots; ++slot)
     {
-        const std::uint8_t skill = OwnSkillByte(own, slot);
+        const std::uint8_t skill = Kernel::OwnSkillByte(own, slot);
         if (skill != 0 && keys[slot] == number && (skill < 0x43 || skill > 0x48))
         {
             hero.skillIndex = slot;
@@ -1901,7 +1903,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
         const std::int32_t map = runtime.map;
         if (runtime.ui.autoAttack && map != 6 && !(map >= 0x12 && map <= 0x17))
         {
-            const std::uint8_t chosen = OwnSkillByte(own, hero.skillIndex);
+            const std::uint8_t chosen = Kernel::OwnSkillByte(own, hero.skillIndex);
             if (chosen == 6 || chosen == 0xf)
             {
                 runtime.selectedTargets[2] = -1;
@@ -1923,7 +1925,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
 // 0x5a05e5..0x5a10e2: la barra de skills. Abre el registro propio aunque no haya skills y lo cierra al final.
 Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (context.world.OwnCharacter().byte6a == 0)
@@ -1956,9 +1958,9 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 // buffer del susurro, sin el EDIT (Q-C530), y el 0x19. El ancho del renglón es el que dejó su dibujo, en píxeles.
 void StepTheOldAreaRows(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     const UI::MessageAreaState& area = runtime.chat.area;
     for (std::int32_t y = 0, shown = 0; y < OldAreaBottom; y += OldAreaRowHeight, ++shown)
     {
@@ -1987,7 +1989,7 @@ void StepTheOldAreaRows(const GameUiContext& context)
 // (la vtable + 0xc de 0x57634f8); si no, el nombre del susurro del lugar de antes o del que sigue (0x6c8ea8).
 void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t direction)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     if (!KeyEdge(runtime.ui, context.input, key))
         return;
@@ -2006,7 +2008,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
 // (P-C86). Devuelve lo de 0x468d50: el mouse en el rectángulo grande.
 bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     if (InRect(context, edit.x, edit.y, edit.x + edit.width, edit.y + edit.height))
     {
@@ -2037,7 +2039,7 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
 // botón de F3 (0x6c8dd0).
 void StepTheChatButtons(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     for (const ChatEditPlace& edit : ChatEdits)
     {
         if (StepTheChatEdit(context, edit))
@@ -2057,7 +2059,7 @@ void StepTheChatButtons(const GameUiContext& context)
 // los números apretados (GetAsyncKeyState, no el flanco).
 Core::Expected<void, std::string> StepTheMacros(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hud.macroTime != 0 || (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap) ||
         !context.input.IsDown(Key::Alt))
         return {};
@@ -2078,11 +2080,11 @@ Core::Expected<void, std::string> StepTheMacros(const GameUiContext& context)
 // 0x59ff10: las teclas y los botones del HUD.
 Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     GameMovementState& movement = runtime.movement;
     const Input::InputState& input = context.input;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     // 0x59ff32..0x59ff3f: con el recorrido de la cámara (0x4033d0), nada.
     if (CameraTourRunning(runtime.events.cameraTour))
         return {};
@@ -2142,7 +2144,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         return macros;
     // 0x5a2b47..0x5a32dd: el clic derecho en las tres ranuras rápidas, si el héroe no se está muriendo. Una ranura
     // sin su ítem en el inventario (0x558110 da −1) sigue con la que viene.
-    const std::span<const World::ItemState, InventoryCellCount> cells(context.world.Inventory().cells);
+    const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(context.world.Inventory().cells);
     if (hero.dying == 0 && ui.rightClick)
     {
         for (std::int32_t slot = 0; slot < 3; ++slot)
@@ -2281,7 +2283,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
 
 } // namespace
 
-bool GameTextInputBusy(const WorldRuntime& runtime)
+bool GameTextInputBusy(const Kernel::WorldRuntime& runtime)
 {
     return TextInputBusy(runtime);
 }
@@ -2333,8 +2335,8 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
 
 void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     view.keyDown = ArrowKeysDown(context.input);
     // CL9 hito 10: el filtro de las malas palabras de las cartas y del chat con un amigo (0x622b40 con 0).
     if (const GameChatContext* chatContext = context.chat; chatContext != nullptr)
@@ -2377,7 +2379,7 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
         view.portrait = LetterPortraitHook(*context.worldEntry);
 }
 
-UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
+UI::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
 {
     UI::GameUiState& ui = runtime.ui;
     GameMovementState& movement = runtime.movement;
@@ -2401,7 +2403,7 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
@@ -2451,7 +2453,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
 
 Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     // 0x636df2..0x636e04.
     ui.hoveredItem = {};
@@ -2539,7 +2541,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
 
 Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     const Input::InputState& input = context.input;
     // 0x5ac8d9..0x5ac9ce: sin ítem en el cursor (0x7879fbc), la barra con el chat cerrado y el mouse fuera de la UI
@@ -2609,7 +2611,7 @@ constexpr std::int32_t NoTarget = -1;
 // suelta solo 0x6c8e30.
 void KeepTheChosen(const FramePickingContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
     constexpr std::int32_t LastRecord = 400;
     constexpr std::int32_t SpectatorMap = 6;
@@ -2622,7 +2624,7 @@ void KeepTheChosen(const FramePickingContext& context)
         return;
     }
     const auto actors = context.world.Actors();
-    const ActorState& chosen = actors[static_cast<std::size_t>(targets[2])];
+    const Kernel::ActorState& chosen = actors[static_cast<std::size_t>(targets[2])];
     constexpr std::uint8_t MonsterKind = 2;
     if (chosen.dying != 0 || chosen.byte88 != MonsterKind)
     {
@@ -2642,14 +2644,14 @@ std::array<std::uint8_t, 2> CharacterSearchOrder(const FramePickingContext& cont
 {
     constexpr std::uint8_t Monsters = 0x22;
     constexpr std::uint8_t Players = 1;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero.characterClass);
     if (heroClass != Kernel::CharacterClass::DarkWizard && heroClass != Kernel::CharacterClass::Elf)
         return {Monsters, Players};
     std::uint8_t skill = 0;
     {
         const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        skill = OwnSkillByte(context.world.OwnCharacter(), hero.skillIndex);
+        skill = Kernel::OwnSkillByte(context.world.OwnCharacter(), hero.skillIndex);
     }
     constexpr std::uint8_t FirstPlayersFirst = 0x1a;
     constexpr std::uint8_t LastPlayersFirst = 0x1c;
@@ -2668,10 +2670,11 @@ void ForgetTheOther(std::array<std::int32_t, 5>& targets)
 
 Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    const auto pick = [&context](std::uint8_t mask)
-    { return PickTheCharacter(context.world, mask, context.cameraPosition, context.ray, context.pickingBoxes); };
+    const auto pick = [&context](std::uint8_t mask) {
+        return Actors::PickTheCharacter(context.world, mask, context.cameraPosition, context.ray, context.pickingBoxes);
+    };
     // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
     KeepTheChosen(context);
     // 0x59ef16..0x59ef29.

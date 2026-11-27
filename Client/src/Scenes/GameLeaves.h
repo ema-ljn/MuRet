@@ -24,10 +24,14 @@ class ILeafWaveEvaluator;
 struct LeafWeather;
 } // namespace Client::World
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // 637082 → 530490: tablas y globales prestados del mundo durable, antes de aves y peces.
 namespace Client::Scenes
 {
-struct ActorState;
 struct GameLeafContext
 {
     World::Leaves& leaves;
@@ -40,14 +44,14 @@ struct GameLeafContext
     const std::int32_t& heroCellLayer;
     Crt::CrtRandom& random;
     const float& worldClock;
-    float fixedHeight = World::FixedTerrainHeight;
+    float fixedHeight = Terrain::FixedTerrainHeight;
     World::Particles* particles = nullptr;
     // Con nullptr usa el perfil retenido de ADR0014, no std::sin.
     World::ILeafWaveEvaluator* waveEvaluator = nullptr;
     // 0x5763358, el clima de Crywolf (WorldRuntime::crywolf.weather), que sortea 0x430510.
     const std::int32_t* crywolfState = nullptr;
     // Sólo los creadores de nubes 443990/435600: Movement/ángulos y el estado real de 508940.
-    ActorState* cloudHero = nullptr;
+    Kernel::ActorState* cloudHero = nullptr;
     GameLogic::MovementSpeedSharedState* movementSpeed = nullptr;
 };
 

@@ -34,15 +34,15 @@ constexpr int SelectorGate = 10;
 constexpr int ParticleGate = 5;
 constexpr int ParticleSpread = 800;
 
-void PlayKalimaSound(WorldState& world, std::int32_t sound)
+void PlayKalimaSound(Kernel::WorldState& world, std::int32_t sound)
 {
     world.Fauna().Sound(sound, nullptr);
     world.Runtime().RequestSound(sound);
 }
 
-void RegionSoundOf(WorldState& world, Models::ClothWorld& cloth)
+void RegionSoundOf(Kernel::WorldState& world, Models::ClothWorld& cloth)
 {
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     const auto x = [&]
     {
         const Models::LogicalAccess access(hero.cellXAccesses, cloth.random, Models::SmallLogicalCloseRandoms,
@@ -60,7 +60,7 @@ void RegionSoundOf(WorldState& world, Models::ClothWorld& cloth)
         PlayKalimaSound(world, RegionSound + cloth.random.Next() % SoundAlternatives);
 }
 
-void OwnRecordSound(WorldState& world, Models::ClothWorld& cloth)
+void OwnRecordSound(Kernel::WorldState& world, Models::ClothWorld& cloth)
 {
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, cloth.random, Models::OwnRecordCloseRandoms);
     constexpr std::uint8_t LastLevel = 7;
@@ -86,7 +86,7 @@ std::uint8_t KalimaLevelOf(std::uint8_t characterClass, std::uint16_t level)
     return Half;
 }
 
-Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& world, Models::ClothWorld& cloth)
+Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldState& world, Models::ClothWorld& cloth)
 {
     PlayKalimaSound(world, AmbientSound);
     if (cloth.logicSteps % AmbientPeriod == 0)
@@ -98,7 +98,7 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& wo
     if (cloth.random.Next() % ParticleGate != 0)
         return std::int32_t{0};
     // 438947..4389ca: ambos sorteos preceden al creador, aun con pool lleno.
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     constexpr double SpreadCenter = 400, ParticleHeight = 50, EffectHeight = 800;
     constexpr int EffectGate = 15;
     const glm::vec3 light{0.3f, 0.8f, 1};

@@ -56,12 +56,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -172,7 +172,7 @@ protected:
         sent.clear();
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return world->Runtime();
     }
@@ -180,8 +180,8 @@ protected:
     Client::Core::Expected<void, std::string> Draw(Client::UI::Point mouse, bool projecting = false,
                                                    bool withNames = true)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = world->Hero();
         GameHudContext context{.world = *world,
                                .random = random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -239,7 +239,7 @@ protected:
 
     void PutItem(std::size_t cell, std::uint16_t type, std::uint32_t level)
     {
-        Client::World::ItemState& item = world->Inventory().cells[cell];
+        Client::Kernel::ItemState& item = world->Inventory().cells[cell];
         item.id = type;
         item.scalar1Low = level << 3;
         item.occupied = 1;
@@ -386,7 +386,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
 // el EDIT (que solo pondría un SetText que el juego no hace) pisarían la pila del paso: corta.
 TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
 {
-    for (Client::World::ItemState& item : world->Inventory().cells)
+    for (Client::Kernel::ItemState& item : world->Inventory().cells)
     {
         item.id = 0x0001;
         item.occupied = 1;

@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::GameLogic
+namespace Client::Kernel
 {
 namespace
 {
@@ -247,4 +247,4 @@ CharacterAppearance AppearanceOf(std::uint8_t characterClass, std::uint8_t skin,
     FinishAppearance(appearance);
     return appearance;
 }
-} // namespace Client::GameLogic
+} // namespace Client::Kernel

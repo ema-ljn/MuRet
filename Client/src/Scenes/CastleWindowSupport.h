@@ -25,11 +25,15 @@ namespace Client::UI
 {
 struct CastleData;
 }
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
-struct GameUiContext;
 struct WorldRuntime;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
+struct GameUiContext;
 } // namespace Client::Scenes
 
 namespace Client::Scenes::CastleUi
@@ -56,17 +60,17 @@ inline constexpr std::uint32_t TextBase = 0x76bd1dc;
                                                                  std::initializer_list<std::uint32_t> addresses,
                                                                  UI::PanelDialogOwner owner, std::uint32_t flags,
                                                                  std::int32_t placed = 0);
-[[nodiscard]] Core::Expected<void, std::string> CancelPopup(WorldState& world, const CastleSender& send);
+[[nodiscard]] Core::Expected<void, std::string> CancelPopup(Kernel::WorldState& world, const CastleSender& send);
 [[nodiscard]] Core::Expected<void, std::string> FailurePopup(const CastleReceiveContext& context,
                                                              std::uint32_t address);
 [[nodiscard]] CastleSender SenderOf(const GameUiContext& context);
-void ConsumeClick(WorldRuntime& runtime);
-[[nodiscard]] std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
-[[nodiscard]] std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
-[[nodiscard]] bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random);
+void ConsumeClick(Kernel::WorldRuntime& runtime);
+[[nodiscard]] std::uint32_t CountMarks(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
+[[nodiscard]] std::int32_t FirstMark(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
+[[nodiscard]] bool HeroCanRegister(Kernel::WorldState& world, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<std::pair<std::string_view, std::string_view>, std::string>
-GuildNames(const WorldState& world);
-[[nodiscard]] Core::Expected<bool, std::string> HeroCanEditTaxes(const WorldState& world);
+GuildNames(const Kernel::WorldState& world);
+[[nodiscard]] Core::Expected<bool, std::string> HeroCanEditTaxes(const Kernel::WorldState& world);
 [[nodiscard]] std::int32_t DefenseLevel(const UI::CastleData& data, std::uint32_t at);
 [[nodiscard]] std::int32_t RecoveryLevel(const UI::CastleData& data, std::uint32_t at);
 [[nodiscard]] std::int32_t NpcCost(const UI::CastleData& data, std::uint32_t at);

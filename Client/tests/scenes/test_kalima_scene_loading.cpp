@@ -36,9 +36,9 @@
 
 namespace
 {
+using Client::Assets::ModelTextureTable;
+using Client::Assets::TerrainTiles;
 using Client::Render::TextureSlot;
-using Client::Scenes::ModelTextureTable;
-using Client::Scenes::TerrainTiles;
 class SlotFailureStore final : public Client::Render::ITextureStore
 {
 public:
@@ -59,7 +59,7 @@ public:
 class KalimaSceneLoadingTest : public testing::Test
 {
 protected:
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom m_random{1};
     std::filesystem::path m_root = Client::Tests::RepoDataDir();
     Client::Core::Expected<void, std::string> Load(std::uint8_t map, const std::filesystem::path& root)
@@ -211,7 +211,7 @@ TEST(KalimaSceneTextureTest, MissingRequiredWaterFailsBeforeAnyPhysicalUpload)
     Client::Tests::TemporaryFolder missing("kalima-missing-water");
     Client::Tests::WriteTextureSet(missing.Path(), Client::World::KalimaTextureSet(), std::uint16_t{0x24});
     // 616ec0 pide drop01 con sexto 1 antes de llegar a water2: el fixture debe alcanzar esa segunda frontera.
-    const auto drop = Client::World::DropTexture();
+    const auto drop = Client::Terrain::DropTexture();
     const std::array<Client::Data::Textures::TextureSetEntry, 1> prefix{{{drop.path, drop.slot, drop.sampling}}};
     Client::Tests::WriteTextureSet(missing.Path(), prefix);
     SlotFailureStore store;
@@ -229,17 +229,17 @@ TEST(KalimaSceneTextureTest, TheNativeOptionalAlphaWaterMayBeSkippedWhileTheRequ
 {
     Client::Tests::TemporaryFolder folder("kalima-optional-alpha");
     Client::Tests::WriteTextureSet(folder.Path(), Client::World::KalimaTextureSet(), std::uint16_t{0x23});
-    const auto box = Client::World::AcceptBoxTexture();
-    const auto drop = Client::World::DropTexture();
+    const auto box = Client::Terrain::AcceptBoxTexture();
+    const auto drop = Client::Terrain::DropTexture();
     const std::array<Client::Data::Textures::TextureSetEntry, 2> entries{
         {{box.path, box.slot, box.sampling}, {drop.path, drop.slot, drop.sampling}}};
     Client::Tests::WriteTextureSet(folder.Path(), entries);
     // Preparación del epílogo618dd1..618e40: este test sólo deja ausente water1, no 33 archivos ajenos.
     std::vector<Client::Data::Textures::TextureSetEntry> epilogue;
-    const auto waters = Client::World::CausticTextures(24);
+    const auto waters = Client::Terrain::CausticTextures(24);
     for (const auto& water : waters)
         epilogue.push_back({water.path, water.slot, water.sampling});
-    const auto light = Client::World::ObjectLightTexture();
+    const auto light = Client::Terrain::ObjectLightTexture();
     epilogue.push_back({light.path, light.slot, light.sampling});
     Client::Tests::WriteTextureSet(folder.Path(), epilogue);
     SlotFailureStore store;

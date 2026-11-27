@@ -12,12 +12,12 @@
 // modelos de cada parte, como 0x517270, 0x5139f0 y 0x512930 (06 § Los personajes de la lista).
 namespace
 {
-using Client::GameLogic::AppearanceOf;
-using Client::GameLogic::BodyPart;
-using Client::GameLogic::CharacterAppearance;
-using Client::GameLogic::ClassAppearance;
-using Client::GameLogic::ClassPartModel;
-using Client::GameLogic::ItemLevelOf;
+using Client::Kernel::AppearanceOf;
+using Client::Kernel::BodyPart;
+using Client::Kernel::CharacterAppearance;
+using Client::Kernel::ClassAppearance;
+using Client::Kernel::ClassPartModel;
+using Client::Kernel::ItemLevelOf;
 using Client::Protocol::FrontEnd::EquipmentSize;
 
 using EquipmentBytes = std::array<std::byte, EquipmentSize>;

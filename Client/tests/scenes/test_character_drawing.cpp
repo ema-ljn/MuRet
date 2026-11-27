@@ -47,6 +47,13 @@
 // GoldenCharacterDrawing.
 namespace
 {
+using Client::Actors::Drawing::DrawCharacter;
+using Client::Actors::Drawing::DrawDarkHorse;
+using Client::Actors::Drawing::DrawnCharacter;
+using Client::Actors::Drawing::DrawnObject;
+using Client::Actors::Drawing::DrawObject;
+using Client::Actors::Drawing::MeshSlotOf;
+using Client::Actors::Drawing::SkinIndexOf;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Math::RoundedCos;
@@ -60,13 +67,6 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::Scenes::DrawCharacter;
-using Client::Scenes::DrawDarkHorse;
-using Client::Scenes::DrawnCharacter;
-using Client::Scenes::DrawnObject;
-using Client::Scenes::DrawObject;
-using Client::Scenes::MeshSlotOf;
-using Client::Scenes::SkinIndexOf;
 
 // Un esqueleto de `bones` huesos sin padre, todos en el origen, con una acción de una key.
 Skeleton FlatSkeleton(std::size_t bones)
@@ -228,7 +228,7 @@ void ExpectColor(const Client::Render::ModelVertex& vertex, float red, float gre
 TEST(CharacterDrawingTest, AnOutlinedPartGoesTwiceAroundItsBoneFirst)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.outlined = true;
     const OneModel models(character.appearance.bodyParts[1].model);
 
@@ -251,12 +251,12 @@ TEST(CharacterDrawingTest, AnOutlinedPartGoesTwiceAroundItsBoneFirst)
 TEST(CharacterDrawingTest, PublishesPartBoxAtTheBodyPartDrawBoundary)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     for (auto& part : character.appearance.bodyParts)
         part.model = 0x1234;
     int published = 0;
     character.onPartBox = [&published](const glm::vec3&) { ++published; };
-    const auto draw = [&character](const OneModel& models, Client::Scenes::CharacterDrawPass pass)
+    const auto draw = [&character](const OneModel& models, Client::Actors::Drawing::CharacterDrawPass pass)
     {
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
@@ -265,37 +265,37 @@ TEST(CharacterDrawingTest, PublishesPartBoxAtTheBodyPartDrawBoundary)
     };
 
     const OneModel missing(0x5678);
-    EXPECT_EQ(draw(missing, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(draw(missing, Client::Actors::Drawing::CharacterDrawPass::Parts), 0u);
     EXPECT_EQ(published, character.appearance.bodyParts.size());
 
     published = 0;
     const OneModel zeroMeshes(0x1234, "part.jpg", 0);
-    EXPECT_EQ(draw(zeroMeshes, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(draw(zeroMeshes, Client::Actors::Drawing::CharacterDrawPass::Parts), 0u);
     EXPECT_EQ(published, character.appearance.bodyParts.size());
 
     published = 0;
     const OneModel hiddenMesh(0x1234, "part.jpg", 1, TextureSlot{0x12d});
-    EXPECT_EQ(draw(hiddenMesh, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(draw(hiddenMesh, Client::Actors::Drawing::CharacterDrawPass::Parts), 0u);
     EXPECT_EQ(published, character.appearance.bodyParts.size());
 
     published = 0;
     character.alpha = 0.01f;
     const OneModel models(0x1234);
-    EXPECT_EQ(draw(models, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(draw(models, Client::Actors::Drawing::CharacterDrawPass::Parts), 0u);
     EXPECT_EQ(published, 0);
 
     character.alpha = std::nextafter(0.01f, 1.0f);
-    EXPECT_GT(draw(models, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_GT(draw(models, Client::Actors::Drawing::CharacterDrawPass::Parts), 0u);
     EXPECT_EQ(published, character.appearance.bodyParts.size());
 
     published = 0;
     character.alpha = std::numeric_limits<float>::quiet_NaN();
-    EXPECT_EQ(draw(models, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(draw(models, Client::Actors::Drawing::CharacterDrawPass::Parts), 0u);
     EXPECT_EQ(published, 0);
 
     published = 0;
     character.alpha = 1.0f;
-    EXPECT_EQ(draw(models, Client::Scenes::CharacterDrawPass::Shadow), 0u);
+    EXPECT_EQ(draw(models, Client::Actors::Drawing::CharacterDrawPass::Shadow), 0u);
     EXPECT_EQ(published, 0);
 
     DrawnCharacter hanging;
@@ -304,7 +304,7 @@ TEST(CharacterDrawingTest, PublishesPartBoxAtTheBodyPartDrawBoundary)
     const TwoPets attachedModels;
     ModelBatch hangingBatch;
     hangingBatch.Begin(Client::Render::Pass3D{});
-    DrawCharacter(hangingBatch, attachedModels, hanging, {}, Client::Scenes::CharacterDrawPass::Hanging);
+    DrawCharacter(hangingBatch, attachedModels, hanging, {}, Client::Actors::Drawing::CharacterDrawPass::Hanging);
     EXPECT_EQ(published, 0);
 }
 
@@ -312,7 +312,7 @@ TEST(CharacterDrawingTest, PublishesPartBoxAtTheBodyPartDrawBoundary)
 TEST(CharacterDrawingTest, TheOutlineGoesBeforeEveryMeshOfThePart)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.outlined = true;
     const OneModel models(character.appearance.bodyParts[1].model, "part.jpg", 2);
 
@@ -329,7 +329,7 @@ TEST(CharacterDrawingTest, TheOutlineGoesBeforeEveryMeshOfThePart)
 TEST(CharacterDrawingTest, TheHiddenMeshHasNoOutline)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.outlined = true;
     const OneModel models(character.appearance.bodyParts[1].model, "hide.jpg", 1, TextureSlot{0x12d});
 
@@ -342,7 +342,7 @@ TEST(CharacterDrawingTest, TheHiddenMeshHasNoOutline)
 TEST(CharacterDrawingTest, TheOutlineSkipsAFourComponentMesh)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.outlined = true;
     const OneModel models(character.appearance.bodyParts[1].model, "part.tga");
 
@@ -357,8 +357,8 @@ TEST(CharacterDrawingTest, TheOutlineSkipsAFourComponentMesh)
 TEST(CharacterDrawingTest, WhatHangsIsNotOutlined)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x212};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x212};
     character.outlined = true;
     const OneModel models(0x212);
 
@@ -377,9 +377,9 @@ TEST(CharacterDrawingTest, ArrowsBoltsAndTheRavenAreNotInTheHand)
                                       std::pair{std::uint16_t{0x1c17}, std::uint16_t{0x1c17}}})
     {
         DrawnCharacter character;
-        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-        character.appearance.rightHand = Client::GameLogic::WornItem{.model = right};
-        character.appearance.leftHand = Client::GameLogic::WornItem{.model = left};
+        character.appearance = Client::Kernel::ClassAppearance(0, 0);
+        character.appearance.rightHand = Client::Kernel::WornItem{.model = right};
+        character.appearance.leftHand = Client::Kernel::WornItem{.model = left};
         OneModel rightModels(right);
         OneModel leftModels(left);
 
@@ -393,7 +393,7 @@ TEST(CharacterDrawingTest, ArrowsBoltsAndTheRavenAreNotInTheHand)
 TEST(CharacterDrawingTest, AThirteenPartGlowsWithItsLightAndItsColor)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.bodyParts[1].level = 13;
     const std::uint16_t part = character.appearance.bodyParts[1].model;
     const OneModel models(part);
@@ -413,7 +413,7 @@ TEST(CharacterDrawingTest, AThirteenPartGlowsWithItsLightAndItsColor)
 TEST(CharacterDrawingTest, TheExcellentPassPulses)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.bodyParts[1].excellent = true;
     const OneModel models(character.appearance.bodyParts[1].model);
 
@@ -431,8 +431,8 @@ TEST(CharacterDrawingTest, TheExcellentPassPulses)
 TEST(CharacterDrawingTest, WhatHangsHasNoSetPass)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x212, .ancient = true};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x212, .ancient = true};
     const OneModel models(0x212);
 
     const ModelBatch batch = Drawn(models, character);
@@ -447,7 +447,7 @@ TEST(CharacterDrawingTest, WhatHangsHasNoSetPass)
 TEST(CharacterDrawingTest, TheShadowGoesFirstBlackAndFlat)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.object.position = {100.0f, 200.0f, 163.0f};
     const OneModel models(Client::Tables::PlayerShadowModel, "hide_m.jpg", 1, TextureSlot{0x12d});
 
@@ -467,7 +467,7 @@ TEST(CharacterDrawingTest, TheShadowGoesFirstBlackAndFlat)
 TEST(CharacterDrawingTest, ThePlayerShadowWidensOnlyInCastleSiege)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.object.position = {100.0f, 200.0f, 163.0f};
     OneModel models(Client::Tables::PlayerShadowModel);
     models.FirstMesh().vertices[0].position = {100.0f, 0.0f, 50.0f};
@@ -489,7 +489,7 @@ TEST(CharacterDrawingTest, ThePlayerShadowWidensOnlyInCastleSiege)
 TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     const std::uint16_t part = character.appearance.bodyParts[1].model;
     // Una biblioteca con la sombra y una parte, el mismo triángulo.
     class ShadowAndPart final : public IModelLibrary
@@ -533,7 +533,7 @@ TEST(CharacterDrawingTest, ARiddenPetHasNoShadow)
     for (const std::uint16_t pet : {std::uint16_t{0x1c14}, std::uint16_t{0x1c15}})
     {
         DrawnCharacter character;
-        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+        character.appearance = Client::Kernel::ClassAppearance(0, 0);
         character.appearance.pet = pet;
         const OneModel models(Client::Tables::PlayerShadowModel);
 
@@ -547,7 +547,7 @@ TEST(CharacterDrawingTest, ARiddenPetHasNoShadow)
 TEST(CharacterDrawingTest, WithoutTheMouseThereIsNoOutline)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     const OneModel models(character.appearance.bodyParts[1].model);
 
     const ModelBatch batch = Drawn(models, character);
@@ -561,7 +561,7 @@ TEST(CharacterDrawingTest, WithoutTheMouseThereIsNoOutline)
 TEST(CharacterDrawingTest, AMeshThatNamesWhatItLacksIsNotDrawn)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.outlined = true;
     for (const int broken : {0, 1, 2})
     {
@@ -593,7 +593,7 @@ TEST(CharacterDrawingTest, OnlyHelper02IsDrawnAsThePet)
     for (const auto& [pet, vertices] : {std::pair{std::uint16_t{0x1c13}, 3u}, std::pair{std::uint16_t{0x1c12}, 0u}})
     {
         DrawnCharacter character;
-        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+        character.appearance = Client::Kernel::ClassAppearance(0, 0);
         character.appearance.pet = pet;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
@@ -629,7 +629,7 @@ TEST(CharacterDrawingTest, TheSkinAndHairSlotsFollowTheClass)
 ModelBatch DrawnPart(const std::string& texture, bool outlined = false, std::uint8_t level = 13)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.bodyParts[1].level = level;
     character.outlined = outlined;
     const OneModel models(character.appearance.bodyParts[1].model, texture);
@@ -670,7 +670,7 @@ TEST(CharacterDrawingTest, AnRMeshIsTheAdditiveBlendMesh)
 TEST(CharacterDrawingTest, AnRMeshWithTheTextureOfAnotherIsNotTheBlendMesh)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     OneModel models(character.appearance.bodyParts[1].model, "part_R.jpg", 2);
     models.MeshAt(1).texture = 0;
 
@@ -714,7 +714,7 @@ TEST(CharacterDrawingTest, AnNMeshDoesNotShine)
     EXPECT_EQ(DrawnPart("part_N.jpg").Commands().size(), 1u);
 
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.bodyParts[1].excellent = true;
     const OneModel models(character.appearance.bodyParts[1].model, "part_N.jpg");
     EXPECT_EQ(Drawn(models, character).Commands().size(), 2u);
@@ -743,8 +743,8 @@ TEST(CharacterDrawingTest, AnSMeshDrawsAsOneWithoutScript)
 TEST(CharacterDrawingTest, TheMeshesThat0x60ff50MarksDoNotShine)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x812, .level = 13};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x812, .level = 13};
     const OneModel models(0x812, "spear.jpg", 2);
 
     const ModelBatch batch = Drawn(models, character);
@@ -757,7 +757,7 @@ TEST(CharacterDrawingTest, TheMeshesThat0x60ff50MarksDoNotShine)
 std::size_t HelmVertices(std::uint8_t characterClass, std::uint16_t helm, std::uint16_t drawn)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(characterClass, 0);
+    character.appearance = Client::Kernel::ClassAppearance(characterClass, 0);
     character.appearance.bodyParts[0].model = helm;
     const OneModel models(drawn);
     return Drawn(models, character).Vertices().size();
@@ -790,7 +790,7 @@ TEST(CharacterDrawingTest, OnlyClassFourAndFiveHelmsWearTheMask)
 TEST(CharacterDrawingTest, TheMaskIsOnlyForTheHelmPart)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(4, 0);
+    character.appearance = Client::Kernel::ClassAppearance(4, 0);
     character.appearance.bodyParts[1].model = 0x1012;
     const OneModel models(0x1012);
 
@@ -801,7 +801,7 @@ TEST(CharacterDrawingTest, TheMaskIsOnlyForTheHelmPart)
 ModelBatch DrawnBlendMesh(std::uint8_t characterClass, bool excellent = false)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(characterClass, 0);
+    character.appearance = Client::Kernel::ClassAppearance(characterClass, 0);
     character.appearance.bodyParts[1].excellent = excellent;
     const OneModel models(character.appearance.bodyParts[1].model, "part_R.jpg");
     ModelBatch batch;
@@ -837,7 +837,7 @@ TEST(CharacterDrawingTest, TheOutlineOfTheBlendMeshTakesItsLight)
 {
     const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(4, 0);
+    character.appearance = Client::Kernel::ClassAppearance(4, 0);
     character.outlined = true;
     const OneModel models(character.appearance.bodyParts[1].model, "part_R.jpg");
     ModelBatch batch;
@@ -854,7 +854,7 @@ TEST(CharacterDrawingTest, TheOutlineOfTheBlendMeshTakesItsLight)
 ModelBatch DrawnThirteenBlendMesh(std::uint8_t characterClass)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(characterClass, 0);
+    character.appearance = Client::Kernel::ClassAppearance(characterClass, 0);
     character.appearance.bodyParts[1].level = 13;
     const OneModel models(character.appearance.bodyParts[1].model, "part_R.jpg");
     ModelBatch batch;
@@ -884,7 +884,7 @@ TEST(CharacterDrawingTest, TheMetalPassesOfTheBlendMeshDoNotTakeItsLight)
 ModelBatch DrawnLights(std::uint8_t characterClass, std::uint16_t pants, std::uint16_t helm = 0)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(characterClass, 0);
+    character.appearance = Client::Kernel::ClassAppearance(characterClass, 0);
     character.appearance.bodyParts[2].model = pants;
     if (helm != 0)
     {
@@ -965,7 +965,7 @@ TEST(CharacterDrawingTest, TheOutlineGoesWithTheLightFromBeforeThePart)
     const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
     const float pulse = RoundedSin(1.0f) * 0.1f + 0.7f;
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(4, 0);
+    character.appearance = Client::Kernel::ClassAppearance(4, 0);
     character.appearance.bodyParts[2].model = 0x142a;
     character.outlined = true;
     const OneModel models(0x142a, "part_R.jpg");
@@ -985,8 +985,8 @@ ModelBatch DrawnInTheHand(std::uint16_t item, std::size_t meshes, std::uint8_t l
                           const std::string& texture = "item.jpg", std::uint8_t characterClass = 0)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(characterClass, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = item, .level = level};
+    character.appearance = Client::Kernel::ClassAppearance(characterClass, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = item, .level = level};
     const OneModel models(item, texture, meshes);
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
@@ -1043,7 +1043,7 @@ TEST(CharacterDrawingTest, TheBaseSkipsTheHiddenMeshOfTheObject)
 TEST(CharacterDrawingTest, TheLightOfWing05Pulses)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.wings = std::uint16_t{0x1a16};
     const OneModel models(0x1a16, "wing_R.jpg");
     ModelBatch batch;
@@ -1061,7 +1061,7 @@ TEST(CharacterDrawingTest, TheLightOfWing05Pulses)
 TEST(CharacterDrawingTest, TheLordsCapeDoesNotHangAsAModel)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(4, 0);
+    character.appearance = Client::Kernel::ClassAppearance(4, 0);
     character.appearance.wings = std::uint16_t{0x1c30};
     const OneModel models(0x1c30, "DarkLordRobe.jpg");
     ModelBatch batch;
@@ -1076,8 +1076,8 @@ TEST(CharacterDrawingTest, TheLordsCapeDoesNotHangAsAModel)
 std::size_t HandVertices(std::uint16_t item, std::size_t meshes)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = item, .level = 13};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = item, .level = 13};
     const OneModel models(item, "item.jpg", meshes);
     return Drawn(models, character).Vertices().size();
 }
@@ -1107,8 +1107,8 @@ TEST(CharacterDrawingTest, SomeItemsHideTheMeshOfTheirObjectInTheirPasses)
 TEST(CharacterDrawingTest, Spear10DrawsItsChromeFirst)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x81b};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x81b};
     const OneModel models(0x81b);
 
     const ModelBatch batch = Drawn(models, character);
@@ -1124,7 +1124,7 @@ TEST(CharacterDrawingTest, Spear10DrawsItsChromeFirst)
 TEST(CharacterDrawingTest, OnlyTheHanging0x81bDrawsTheChrome)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.bodyParts[1].model = 0x81b;
     const OneModel models(0x81b);
 
@@ -1197,7 +1197,7 @@ TEST(CharacterDrawingTest, TheBlendMeshOfStaff06ScrollsWithItsRandomUV)
 ModelBatch DrawnSet(std::size_t meshes, const std::string& second = "part.jpg")
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.bodyParts[1].ancient = true;
     OneModel models(character.appearance.bodyParts[1].model, "part.jpg", meshes);
     models.MeshAt(1).textureName = second;
@@ -1215,7 +1215,7 @@ TEST(CharacterDrawingTest, TheSetPassFadesMeshByMesh)
     const ModelBatch batch = DrawnSet(2);
     const float alpha = RoundedSin(0.25f) * 0.5f + 0.4f;
     const Client::Render::Color set =
-        Client::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
+        Client::Models::SetColorOf(Client::Kernel::ClassAppearance(0, 0).bodyParts[1].model);
 
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 4u * 3u);
@@ -1231,7 +1231,7 @@ TEST(CharacterDrawingTest, AMeshWithoutShineDoesNotFadeTheSetPass)
     const ModelBatch batch = DrawnSet(3, "part_N.jpg");
     const float alpha = RoundedSin(0.25f) * 0.5f + 0.4f;
     const Client::Render::Color set =
-        Client::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
+        Client::Models::SetColorOf(Client::Kernel::ClassAppearance(0, 0).bodyParts[1].model);
 
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 5u * 3u);
@@ -1250,8 +1250,8 @@ void ExpectAt(const Client::Render::ModelVertex& vertex, float x, float y, float
 ModelBatch DrawnQuiver(std::uint16_t quiver, bool left, std::uint8_t level = 0, bool excellent = false)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    const Client::GameLogic::WornItem item{.model = quiver, .level = level, .excellent = excellent, .ancient = true};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    const Client::Kernel::WornItem item{.model = quiver, .level = level, .excellent = excellent, .ancient = true};
     (left ? character.appearance.leftHand : character.appearance.rightHand) = item;
     const OneModel models(quiver);
     return Drawn(models, character);
@@ -1279,9 +1279,9 @@ TEST(CharacterDrawingTest, TheBoltsAndTheArrowsGoOnTheBack)
 TEST(CharacterDrawingTest, TheBoltsComeBeforeTheArrows)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.leftHand = Client::GameLogic::WornItem{.model = 0xa19};
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0xa21};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.leftHand = Client::Kernel::WornItem{.model = 0xa19};
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = 0xa21};
     const OneModel models(0xa21);
 
     EXPECT_TRUE(Drawn(models, character).Vertices().empty());
@@ -1300,9 +1300,9 @@ TEST(CharacterDrawingTest, TheQuiverGlowsAtTwiceItsLevelPlusOne)
 TEST(CharacterDrawingTest, ThePartsGoFromTheBootsToTheHeadAndTheHandsLast)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x212};
-    character.appearance.leftHand = Client::GameLogic::WornItem{.model = 0xa19};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x212};
+    character.appearance.leftHand = Client::Kernel::WornItem{.model = 0xa19};
     character.appearance.wings = std::uint16_t{0x1a12};
     character.appearance.pet = std::uint16_t{0x1c13};
     OneModel models(0x212, "part.jpg", 1, TextureSlot{0x310});
@@ -1346,7 +1346,7 @@ TEST(CharacterDrawingTest, AModelGoesPassByPass)
 TEST(CharacterDrawingTest, TheLightOfACharacterGoesByChannel)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.light = glm::vec3{0.2f, 0.4f, 0.6f};
     const OneModel models(character.appearance.bodyParts[1].model);
 
@@ -1628,8 +1628,8 @@ TEST(CharacterDrawingTest, TheChromeOfATranslatedScratchIgnoresTheObjectScale)
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
 
-    const auto drawn = Client::Scenes::DrawItemMeshPass(batch, models, object, std::chrono::milliseconds{0}, meshes, -1,
-                                                        0x4, TextureSlot{0x5c0});
+    const auto drawn = Client::Actors::Drawing::DrawItemMeshPass(batch, models, object, std::chrono::milliseconds{0},
+                                                                 meshes, -1, 0x4, TextureSlot{0x5c0});
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(batch.Vertices().size(), 3u);
@@ -1705,8 +1705,8 @@ TEST(CharacterDrawingTest, TheFenrirGoesWhiteChargesItsSecondMeshAndShadowsEvery
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
 
-        const auto drawn = Client::Scenes::DrawFenrirBody(batch, models, fenrir, probe.map, probe.charging,
-                                                          std::chrono::milliseconds{0});
+        const auto drawn = Client::Actors::Drawing::DrawFenrirBody(batch, models, fenrir, probe.map, probe.charging,
+                                                                   std::chrono::milliseconds{0});
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const std::size_t base = 1, chrome = probe.charging ? 1 : 0, shadow = probe.shadowAlpha ? 1 : 0;
@@ -1752,7 +1752,7 @@ TEST(CharacterDrawingTest, TheChromeShellGoesMeshByMeshWithChrome02AndHalvesTheC
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
 
-    const auto drawn = Client::Scenes::DrawChromeShell(batch, models, horse, std::chrono::milliseconds{0});
+    const auto drawn = Client::Actors::Drawing::DrawChromeShell(batch, models, horse, std::chrono::milliseconds{0});
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(batch.Commands().size(), 1u);
@@ -1778,7 +1778,8 @@ TEST(CharacterDrawingTest, TheChromeShellTakesTheScaledNormal)
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
 
-    ASSERT_TRUE(Client::Scenes::DrawChromeShell(batch, models, horse, std::chrono::milliseconds{0}).HasValue());
+    ASSERT_TRUE(
+        Client::Actors::Drawing::DrawChromeShell(batch, models, horse, std::chrono::milliseconds{0}).HasValue());
 
     ASSERT_EQ(batch.Commands().size(), 1u);
     const float scaled = static_cast<float>(1.0 * static_cast<double>(1.6f));
@@ -1788,7 +1789,7 @@ TEST(CharacterDrawingTest, TheChromeShellTakesTheScaledNormal)
     other.model = 0xc0;
     ModelBatch none;
     none.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawChromeShell(none, models, other, std::chrono::milliseconds{0}).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawChromeShell(none, models, other, std::chrono::milliseconds{0}).HasValue());
     EXPECT_TRUE(none.Commands().empty());
 }
 
@@ -1873,8 +1874,8 @@ TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
 TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
     character.object.position = {1000.0f, 2000.0f, 300.0f};
     character.object.angles = {0.0f, 0.0f, 90.0f};
     character.object.scale = 1.5f;
@@ -1911,13 +1912,13 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     EXPECT_EQ(world.random.State(), random.State()) << "seis rand() de la tela";
 }
 
-// Con el sorteo del cetro (World::ScepterGlowCarry), dos frames de MuRet en el mismo frame del original
+// Con el sorteo del cetro (Actors::Drawing::ScepterGlowCarry), dos frames de MuRet en el mismo frame del original
 // piden los mismos cinco sprites y sacan los seis rand() una sola vez.
 TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
 {
     DrawnCharacter character;
-    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
     Client::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
     Client::World::ScepterGlowCarry carry;
     character.clothWorld = &world;
@@ -1948,8 +1949,8 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
     const OneModel mace(Client::World::HdkMaceModel);
     {
         DrawnCharacter character;
-        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-        character.appearance.leftHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+        character.appearance = Client::Kernel::ClassAppearance(0, 0);
+        character.appearance.leftHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
         Client::Models::ClothWorld world;
         Client::World::FrameSprites sprites;
         character.clothWorld = &world;
@@ -1959,8 +1960,8 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
     }
     {
         DrawnCharacter character;
-        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-        character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+        character.appearance = Client::Kernel::ClassAppearance(0, 0);
+        character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
         Client::Models::ClothWorld world;
         character.clothWorld = &world;
         (void)Drawn(mace, character);
@@ -1974,8 +1975,8 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
     {
         const OneModel sword(0x212);
         DrawnCharacter character;
-        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
-        character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x212};
+        character.appearance = Client::Kernel::ClassAppearance(0, 0);
+        character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x212};
         Client::Models::ClothWorld world;
         Client::World::FrameSprites sprites;
         character.clothWorld = &world;
@@ -1995,15 +1996,15 @@ TEST(CharacterDrawingTest, ThePointOfABoneGoesToTheWorldLikeTheVertices)
     object.model = 0xa3;
     object.transform.position = {100.0f, 200.0f, 300.0f};
     object.transform.scale = 2.0f;
-    const auto point = Client::Scenes::PosedBonePoint(models, object, 0, {50.0f, -4.0f, 0.0f});
+    const auto point = Client::Actors::Drawing::PosedBonePoint(models, object, 0, {50.0f, -4.0f, 0.0f});
     ASSERT_TRUE(point.has_value());
     EXPECT_EQ(*point, glm::vec3(200.0f, 192.0f, 300.0f));
-    EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 1, glm::vec3(0.0f)).has_value());
+    EXPECT_FALSE(Client::Actors::Drawing::PosedBonePoint(models, object, 1, glm::vec3(0.0f)).has_value());
     object.model = 0xa4;
-    EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value());
+    EXPECT_FALSE(Client::Actors::Drawing::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value());
     object.model = 0xa3;
     models.ItemSkeleton().bones[0].dummy = true;
-    EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value()) << "dummy";
+    EXPECT_FALSE(Client::Actors::Drawing::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value()) << "dummy";
 }
 
 // Con un hueso que se traslada y gira, y el objeto girado, a escala y en su lugar, el punto de
@@ -2030,7 +2031,7 @@ TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
     Client::Models::SkinnedMesh skinned;
     ASSERT_TRUE(Client::Models::SkinMesh(mesh, bones, object.transform, skinned));
 
-    const auto point = Client::Scenes::PosedBonePoint(models, object, 0, offset);
+    const auto point = Client::Actors::Drawing::PosedBonePoint(models, object, 0, offset);
     ASSERT_TRUE(point.has_value());
     EXPECT_EQ(*point, skinned.positions.front());
 }
@@ -2047,17 +2048,17 @@ TEST(CharacterDrawingTest, TheLastPosedWithTheBoneWins)
     DrawnObject b;
     b.model = 0xa4;
     b.transform.position = {200.0f, 0.0f, 0.0f};
-    const std::array<Client::Scenes::PosedInTheBuffer, 2> posed{{{&first, a}, {&second, b}}};
-    const auto point = Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f));
+    const std::array<Client::Actors::Drawing::PosedInTheBuffer, 2> posed{{{&first, a}, {&second, b}}};
+    const auto point = Client::Actors::Drawing::LastPosedBonePoint(posed, 0, glm::vec3(0.0f));
     ASSERT_TRUE(point.has_value());
     EXPECT_EQ(point->x, 200.0f);
     second.ItemSkeleton().bones[0].dummy = true;
-    const auto underneath = Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f));
+    const auto underneath = Client::Actors::Drawing::LastPosedBonePoint(posed, 0, glm::vec3(0.0f));
     ASSERT_TRUE(underneath.has_value());
     EXPECT_EQ(underneath->x, 100.0f);
     first.ItemSkeleton().bones[0].dummy = true;
-    EXPECT_FALSE(Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f)).has_value());
-    EXPECT_FALSE(Client::Scenes::LastPosedBonePoint({}, 0, glm::vec3(0.0f)).has_value());
+    EXPECT_FALSE(Client::Actors::Drawing::LastPosedBonePoint(posed, 0, glm::vec3(0.0f)).has_value());
+    EXPECT_FALSE(Client::Actors::Drawing::LastPosedBonePoint({}, 0, glm::vec3(0.0f)).has_value());
 }
 } // namespace
 

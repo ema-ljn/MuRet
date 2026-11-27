@@ -55,9 +55,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::HeroMovementContext;
-using Client::Scenes::WorldState;
 
 constexpr std::size_t NpcSlot = 7;
 constexpr std::uint16_t TalkingWord = 0xf0;
@@ -96,7 +96,7 @@ class TalkingHero
 public:
     explicit TalkingHero(std::uint8_t map = 0)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = map;
         // Las misiones ya tienen la clase: sin el A0.
         runtime.quest.characterClass = 0;
@@ -110,7 +110,7 @@ public:
         hero.cellX = hero.targetX = 182;
         hero.cellY = hero.targetY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
-        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Scenes::NoItemModel;
+        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Kernel::NoItemModel;
         hero.alpha = 1.0f;
         hero.byte88 = 1;
         hero.baseMovementSpeed = 10;
@@ -202,14 +202,14 @@ CrtRandom AfterTheStop(const CrtRandom& start)
 {
     const auto twin = std::make_unique<TalkingHero>();
     twin->random = start;
-    const Client::Scenes::ActorStopContext stop{twin->world.Runtime(),
+    const Client::Actors::ActorStopContext stop{twin->world.Runtime(),
                                                 Client::Scenes::SceneId::Game,
                                                 twin->skeleton,
                                                 nullptr,
                                                 twin->random,
                                                 &twin->world.Map().terrain.attributes->cells,
                                                 {}};
-    EXPECT_TRUE(Client::Scenes::SetActorStop(twin->Hero(), stop).HasValue());
+    EXPECT_TRUE(Client::Actors::SetActorStop(twin->Hero(), stop).HasValue());
     return twin->random;
 }
 
@@ -692,7 +692,7 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
     {
         SCOPED_TRACE(probe.map);
         const auto tested = std::make_unique<TalkingHero>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(probe.map));
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(probe.map));
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         tested->world.Map().terrain = std::move(loaded).Value();
         auto& runtime = tested->world.Runtime();

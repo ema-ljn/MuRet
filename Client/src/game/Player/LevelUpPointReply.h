@@ -15,6 +15,10 @@ struct LevelUpPointResult;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Player
+{
 
 // 0x4d3200: con el nibble alto de pkt[4] (0x4d320c), con el registro propio abierto (en línea, como 0x40b240, o el alta
 // de 0x40ad90 sin la entrada): los puntos para repartir (+0x68, un word) menos 1, antes del switch (0x4d32d8); la
@@ -23,5 +27,6 @@ struct WorldEntryResources;
 // BP máximo (+0x3a) de pkt[8..9] (0x4d3356). Lo cierra (como 0x40b4d0: 3.848 rand() si queda sin accesos). Después,
 // siempre (0x4d341a..0x4d34ed), lo abre, corre 0x550d10 (RecalculateOwnStats) y lo cierra.
 [[nodiscard]] Core::Expected<void, std::string>
-ApplyLevelUpPointResult(const Protocol::Player::LevelUpPointResult& reply, const WorldEntryResources& resources);
-} // namespace Client::Scenes
+ApplyLevelUpPointResult(const Protocol::Player::LevelUpPointResult& reply,
+                        const Scenes::WorldEntryResources& resources);
+} // namespace Client::Player

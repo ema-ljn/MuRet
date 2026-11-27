@@ -30,8 +30,8 @@ TEST(CrywolfHelpersTest, TheThreeAttackWindowsContinueWhenTheRealPoolsAreFull)
     for (const Attack hit : {Attack{0x1ab, 4, 7.5f}, Attack{0x1b0, 3, 6.5f}, Attack{0x1b4, 4, 5.5f}})
     {
         SCOPED_TRACE(hit.type);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
-        auto actor = std::make_unique<Client::Scenes::ActorState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
+        auto actor = std::make_unique<Client::Kernel::ActorState>();
         actor->alive = true;
         actor->type = hit.type;
         actor->scale = 1;
@@ -77,8 +77,8 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
         {
             SCOPED_TRACE(hit.type);
             SCOPED_TRACE(edge);
-            auto world = std::make_unique<Client::Scenes::WorldState>();
-            auto actor = std::make_unique<Client::Scenes::ActorState>();
+            auto world = std::make_unique<Client::Kernel::WorldState>();
+            auto actor = std::make_unique<Client::Kernel::ActorState>();
             actor->alive = true;
             actor->type = hit.type;
             actor->scale = 1;
@@ -119,8 +119,8 @@ TEST(CrywolfHelpersTest, TheNamedSpritesReadTheRegisteredActorBonesAndKeepBothRo
 {
     for (const int map : {34, 35})
     {
-        auto world = std::make_unique<Client::Scenes::WorldState>();
-        auto actor = std::make_unique<Client::Scenes::ActorState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
+        auto actor = std::make_unique<Client::Kernel::ActorState>();
         actor->alive = true;
         actor->type = 0x1b2;
         actor->scale = 1;
@@ -165,8 +165,8 @@ TEST(CrywolfHelpersTest, ThePiercingKeepsBothInclusiveFrameEdgesAndBothHelpersIn
     for (const int map : {34, 35})
         for (const float frame : {3.99f, 4.0f, 6.0f, 6.01f})
         {
-            auto world = std::make_unique<Client::Scenes::WorldState>();
-            auto actor = std::make_unique<Client::Scenes::ActorState>();
+            auto world = std::make_unique<Client::Kernel::WorldState>();
+            auto actor = std::make_unique<Client::Kernel::ActorState>();
             actor->alive = true;
             actor->type = 0x1b3;
             actor->animation.action = 4;
@@ -189,8 +189,8 @@ TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThre
 {
     for (const float scale : {1.25f, 1.2501f})
     {
-        auto world = std::make_unique<Client::Scenes::WorldState>();
-        auto actor = std::make_unique<Client::Scenes::ActorState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
+        auto actor = std::make_unique<Client::Kernel::ActorState>();
         actor->alive = true;
         actor->type = 0x1b1;
         actor->scale = scale;
@@ -239,8 +239,8 @@ TEST(CrywolfHelpersTest, TheBalgassAppliesBothRandomGateOutcomesBeforeItsFrameGa
                     static_cast<void>(candidate.Next());
                     return (candidate.Next() % 100 == 0) == called;
                 });
-            auto world = std::make_unique<Client::Scenes::WorldState>();
-            auto actor = std::make_unique<Client::Scenes::ActorState>();
+            auto world = std::make_unique<Client::Kernel::WorldState>();
+            auto actor = std::make_unique<Client::Kernel::ActorState>();
             actor->alive = true;
             actor->type = 0x1b5;
             actor->animation.action = initialAction;

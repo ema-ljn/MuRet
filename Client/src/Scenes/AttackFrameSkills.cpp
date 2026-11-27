@@ -49,7 +49,7 @@ namespace
 {
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso, con la dirección del llamador delante del error.
 Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments,
-                                                   const CharacterStepContext& context, std::uint32_t address)
+                                                   const Actors::CharacterStepContext& context, std::uint32_t address)
 {
     if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
@@ -75,23 +75,23 @@ constexpr double Degree = Math::DegreesToRadiansAsDouble;        // 0x6b8cf8, π
 constexpr float HandReach = 300.0f;
 
 // La acción (+0x111) y el frame (+0x114) del objeto.
-std::uint8_t ActionOf(const ActorState& actor)
+std::uint8_t ActionOf(const Kernel::ActorState& actor)
 {
     return actor.animation.action;
 }
 
-float FrameOf(const ActorState& actor)
+float FrameOf(const Kernel::ActorState& actor)
 {
     return actor.animation.frame;
 }
 
-bool IsPlayer(const ActorState& actor)
+bool IsPlayer(const Kernel::ActorState& actor)
 {
     return actor.type == PlayerType;
 }
 
 // 0x4f9780(o): la mano que miran los casos, 1 (la izquierda, +0x2d8) con el 0x20a en la 0x25 o la 0x26; si no, 0.
-std::size_t HandOf(const ActorState& actor)
+std::size_t HandOf(const Kernel::ActorState& actor)
 {
     constexpr std::uint8_t FirstLeftAction = 0x25;
     constexpr std::uint8_t SecondLeftAction = 0x26;
@@ -100,7 +100,7 @@ std::size_t HandOf(const ActorState& actor)
 }
 
 // 0x41ed10(sonido, ...): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
-void RequestTheSound(const CharacterStepContext& context, std::int32_t sound)
+void RequestTheSound(const Actors::CharacterStepContext& context, std::int32_t sound)
 {
     if (context.soundRequest)
         context.soundRequest(sound);
@@ -108,7 +108,7 @@ void RequestTheSound(const CharacterStepContext& context, std::int32_t sound)
 
 // Un efecto, joint o partícula sin portar en un caso de 0x4f97b0, con lo que hizo antes y sus rand().
 Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what, std::uint8_t skill,
-                                    const ActorState& actor, std::size_t slot)
+                                    const Kernel::ActorState& actor, std::size_t slot)
 {
     return Core::Unexpected(std::format("{:#x}: {} de la habilidad {:#x} del lugar {} (tipo {:#x}, +0x381 en {}), sin "
                                         "portar",
@@ -116,7 +116,7 @@ Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what
 }
 
 // El modelo del tipo de o (0x5769ad8 + MOVSX +2 · 0xe0): Player.bmd con el 0x20a, si no la biblioteca de modelos.
-const Models::Skeleton* SkeletonOf(const ActorState& actor, const CharacterStepContext& context)
+const Models::Skeleton* SkeletonOf(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     if (IsPlayer(actor) && context.playerSkeleton != nullptr)
         return context.playerSkeleton;
@@ -128,7 +128,8 @@ const Models::Skeleton* SkeletonOf(const ActorState& actor, const CharacterStepC
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x4fd69b copió del
 // personaje al modelo antes del paso. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318), como
 // OwnBonePoint de CharacterStep.cpp.
-glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
+glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
+                    const Kernel::WorldState& world)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     const auto placement = world.ModelPlacement(actor.type);
@@ -136,8 +137,8 @@ glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& 
 }
 
 // 0x4f98a0..0x4f9bcd: la 0x2b.
-Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill2b(Kernel::ActorState& actor, std::uint8_t skill, std::size_t slot,
+                                                 const Actors::CharacterStepContext& context)
 {
     // 0x4f98a0..0x4f98f8: el hueso de la mano (+0x2bd de la de 0x4f9780) en el modelo del tipo; con el byte +0x22 de
     // su registro de 0x8c (un hueso que la pose no escribe) o fuera de la cuenta de huesos (+0x22 del modelo, JGE con
@@ -272,8 +273,8 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
 // y cuatro veces un rand() % 60 + 150 en la x de los ángulos (la z, la de o), 0x530860(0x617, punto, punto, ángulos, 0,
 // sin dueño, 10,0f, −1, 0, 0, −1) y 0x53fe70(0x5d9, punto, ángulos, o+0xf4, 2, 1,5f, 0). Cada suma, en la x87 y
 // guardada en float.
-Core::Expected<void, std::string> StepTheSkill2c(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill2c(Kernel::ActorState& actor, std::uint8_t skill, std::size_t slot,
+                                                 const Actors::CharacterStepContext& context)
 {
     if (FrameOf(actor) > FifthFrame)
         actor.byte381 = AttackDone;
@@ -326,8 +327,8 @@ Core::Expected<void, std::string> StepTheSkill2c(ActorState& actor, std::uint8_t
 }
 
 // 0x4f9bce..0x4f9e60: la 0x2f.
-Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t skill, std::size_t,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill2f(Kernel::ActorState& actor, std::uint8_t skill, std::size_t,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t SoundStep = 10;
     constexpr std::uint8_t HandStep = 4;
@@ -344,7 +345,7 @@ Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t
         // 0x4f9c0e..0x4f9c8d: 0x4ec110 con el hueso de la mano y 0x518cf0(0x813, punto, o+0x1c, (1; 1; 0,5), el modelo
         // de la mano (MOVSX), o, −1, 0, 0, 0, 0).
         constexpr std::int16_t BoltEmitter = 0x813;
-        const ActorItemPart& hand = actor.hands[HandOf(actor)];
+        const Kernel::ActorItemPart& hand = actor.hands[HandOf(actor)];
         const glm::vec3 point = BonePoint(actor, hand.bone, glm::vec3(0.0f), context.world);
         return CreateHighEffect({.type = BoltEmitter,
                                  .position = point,
@@ -432,8 +433,8 @@ Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t
 // 0x4f9e61..0x4f9ef2: la 0x34. El 0x20a de la 0x22 a la 0x97, desde el frame 5, vuelve al 5 (+0x114) con la key
 // anterior en 4 (+0x118, que MuRet guarda truncada); en 3, el efecto 0x621/0 y el sonido 0x81; [0x6c88ac] en 5, que
 // adelanta la habilidad (0x4fdbda) a cuando +0x381 llega a 5.
-Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t, std::size_t,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill34(Kernel::ActorState& actor, std::uint8_t, std::size_t,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t FirstAction = 0x22;
     constexpr std::uint8_t LastAction = 0x97;
@@ -464,10 +465,10 @@ Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t
 }
 
 // 0x4f9ef3..0x4fa490: la 0x37, solo el 0x20a en la 0x3d.
-Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill37(Kernel::ActorState& actor, std::uint8_t skill, std::size_t slot,
+                                                 const Actors::CharacterStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     constexpr std::uint8_t ThrowAction = 0x3d;
     if (!IsPlayer(actor) || ActionOf(actor) != ThrowAction)
     {
@@ -536,8 +537,8 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
 }
 
 // 0x4fa4a8..0x4fa5d3: la 0x38, solo el 0x20a en la 0x8d.
-Core::Expected<void, std::string> StepTheSkill38(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill38(Kernel::ActorState& actor, std::uint8_t skill, std::size_t slot,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t SpinAction = 0x8d;
     if (IsPlayer(actor) && ActionOf(actor) == SpinAction)
@@ -574,7 +575,8 @@ Core::Expected<void, std::string> StepTheSkill38(ActorState& actor, std::uint8_t
     return {};
 }
 
-Core::Expected<void, std::string> CreateSkill39Bolts(ActorState& actor, const CharacterStepContext& context,
+Core::Expected<void, std::string> CreateSkill39Bolts(Kernel::ActorState& actor,
+                                                     const Actors::CharacterStepContext& context,
                                                      std::initializer_list<std::int32_t> keys, std::uint32_t address)
 {
     constexpr std::int32_t BoltJoint = 0x60f, BoltSubtype = 0x17;
@@ -591,7 +593,7 @@ Core::Expected<void, std::string> CreateSkill39Bolts(ActorState& actor, const Ch
 }
 
 // 0x4fa994..0x4faaca: la 0x39, de cualquier tipo.
-Core::Expected<void, std::string> StepTheSkill39(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheSkill39(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t BoltSound = 0x270;
     const float frame = FrameOf(actor);
@@ -617,7 +619,7 @@ Core::Expected<void, std::string> StepTheSkill39(ActorState& actor, const Charac
 }
 
 // Los casos sin efectos: +0x381 en 15 cuando el que pega llega a su acción y su frame; la 0x41, en 10 si no.
-void StepTheQuietSkill(ActorState& actor, std::uint8_t skill)
+void StepTheQuietSkill(Kernel::ActorState& actor, std::uint8_t skill)
 {
     const std::uint8_t action = ActionOf(actor);
     const float frame = FrameOf(actor);
@@ -706,8 +708,8 @@ Core::Expected<bool, std::string> Handled(Core::Expected<void, std::string> resu
 }
 } // namespace
 
-Core::Expected<bool, std::string> StepTheFrameSkill(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                    const CharacterStepContext& context)
+Core::Expected<bool, std::string> StepTheFrameSkill(Kernel::ActorState& actor, std::uint8_t skill, std::size_t slot,
+                                                    const Actors::CharacterStepContext& context)
 {
     // 0x4f988d..0x4f9899: la habilidad − 0x28 hasta 0x22 por la tabla de 0x4fb10c; los que van a 0x4fab5d, sin caso.
     switch (skill)

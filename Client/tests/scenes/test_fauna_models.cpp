@@ -75,10 +75,10 @@ TEST(FaunaModelsTest, CachedMonsterSoundsAreRegisteredAgainAfterWorldSoundReleas
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
-    Client::Scenes::FaunaModels models;
+    Client::Assets::FaunaModels models;
     Client::Sound::ModelSoundTable sounds;
     SoundRegistrationPlayback audio;
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds, &audio};
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds, &audio};
 
     ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
     const auto firstRegistration = audio.registrations;
@@ -101,8 +101,8 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
-    Client::Scenes::FaunaModels models;
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots};
+    Client::Assets::FaunaModels models;
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x1f, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_NE(models.Find(0x171), nullptr);
@@ -135,9 +135,9 @@ TEST(FaunaModelsTest, PrepareWritesTheSoundTableOfTheLoadedMonster)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
-    Client::Scenes::FaunaModels models;
+    Client::Assets::FaunaModels models;
     Client::Sound::ModelSoundTable sounds;
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds};
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds};
     ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
     Client::Sound::ModelSoundTable expected;
     Client::Sound::WriteMonsterSounds(0x1f, expected);
@@ -156,8 +156,8 @@ TEST(FaunaModelsTest, PrepareLoadsMonster34AndKeepsTheGenericActionSettings)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
-    Client::Scenes::FaunaModels models;
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots};
+    Client::Assets::FaunaModels models;
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x21, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto* skeleton = models.SkeletonOf(0x173);
@@ -175,8 +175,8 @@ TEST(FaunaModelsTest, MissingRequiredMonsterStopsBeforeTexturesOrFalsePreparatio
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
-    Client::Scenes::FaunaModels models;
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots};
+    Client::Assets::FaunaModels models;
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x1f, context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(models.Find(0x171), nullptr);
@@ -195,7 +195,7 @@ TEST(FaunaModelsTest, AFailedTextureReplacementLeavesTheResidentWithItsOwner)
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Scenes::FaunaModels fauna;
+    Client::Assets::FaunaModels fauna;
     auto& table = fauna.TextureTable();
     table.Bind(store);
     const auto slot = table.Slots().Next();
@@ -204,7 +204,7 @@ TEST(FaunaModelsTest, AFailedTextureReplacementLeavesTheResidentWithItsOwner)
     ASSERT_TRUE(loaded.HasValue());
     ASSERT_TRUE(table.Upload(loaded.Value().front()).HasValue());
     table.Slots().SetName(slot, "resident.tga.extra");
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, table.Slots(), &table};
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, table.Slots(), &table};
 
     store.failNextLoad = true;
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
@@ -235,10 +235,10 @@ TEST(FaunaModelsTest, AFailedEmptySlotDoesNotOwnALaterUpload)
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Scenes::FaunaModels fauna;
+    Client::Assets::FaunaModels fauna;
     auto& table = fauna.TextureTable();
     const auto slot = table.Slots().Next();
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, table.Slots(), &table};
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, table.Slots(), &table};
     store.failNextLoad = true;
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
     EXPECT_TRUE(table.Slots().NameOf(slot).empty());
@@ -270,12 +270,12 @@ TEST(FaunaModelsTest, AMapTransitionSharesMonsterReferencesAndACachedMonsterSees
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots initial{{0x69}};
-    Client::Scenes::FaunaModels fauna;
+    Client::Assets::FaunaModels fauna;
     auto& table = fauna.TextureTable();
-    Client::Scenes::WorldModels world;
+    Client::Assets::WorldModels world;
     ASSERT_TRUE(world.Load(folder.Path(), 1, store, log, &initial, nullptr, &table).HasValue());
     fauna.Bind(&world);
-    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, *world.TextureSlots(), &table};
+    Client::Assets::FaunaModelLoadContext context{folder.Path(), store, log, *world.TextureSlots(), &table};
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
     const auto slot = fauna.MeshTextures(0x171).front();
     EXPECT_EQ(slot.value, 0x41c);
@@ -307,8 +307,8 @@ TEST_F(GoldenFaunaModels, BothRealMonsterResourcesPrepareTheirMeshesTexturesAndA
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{{0x41c}};
-    Client::Scenes::FaunaModels fauna;
-    Client::Scenes::FaunaModelLoadContext context{m_dataRoot, store, log, slots};
+    Client::Assets::FaunaModels fauna;
+    Client::Assets::FaunaModelLoadContext context{m_dataRoot, store, log, slots};
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
     ASSERT_TRUE(fauna.Prepare(0x21, context).HasValue());
     for (const std::uint16_t model : {std::uint16_t{0x171}, std::uint16_t{0x173}})
@@ -341,8 +341,8 @@ struct GoldenLoad
 TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
 {
     auto load = std::make_unique<GoldenLoad>();
-    Client::Scenes::FaunaModels models;
-    Client::Scenes::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
+    Client::Assets::FaunaModels models;
+    Client::Assets::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
     std::set<std::int32_t> numbers;
     const auto collect = [&numbers](const Client::Scenes::MonsterKind& kind)
     {
@@ -372,7 +372,7 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
             continue;
         }
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        const auto model = static_cast<std::uint16_t>(Client::Scenes::FirstMonsterModel + number);
+        const auto model = static_cast<std::uint16_t>(Client::Assets::FirstMonsterModel + number);
         ASSERT_NE(models.Find(model), nullptr);
         ASSERT_NE(models.SkeletonOf(model), nullptr);
         if (models.Find(model)->meshes.empty())
@@ -400,8 +400,8 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
 TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
 {
     auto load = std::make_unique<GoldenLoad>();
-    Client::Scenes::FaunaModels models;
-    Client::Scenes::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
+    Client::Assets::FaunaModels models;
+    Client::Assets::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
     for (std::uint16_t model = 0x1cb; model <= 0x208; model = static_cast<std::uint16_t>(model + 1))
     {
         SCOPED_TRACE(model);
@@ -413,12 +413,12 @@ TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
             continue;
         }
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        if (Client::Scenes::NpcModelCaseOf(model).ops.empty())
+        if (Client::Assets::NpcModelCaseOf(model).ops.empty())
             continue;
         const auto* skeleton = models.SkeletonOf(model);
         ASSERT_NE(skeleton, nullptr);
         for (const auto& action : skeleton->actions)
-            EXPECT_EQ(action.speed, Client::Scenes::NpcActionSpeed);
+            EXPECT_EQ(action.speed, Client::Assets::NpcActionSpeed);
     }
     // 0x6122c4: Female01 y sus partes de 0x1da a 0x1e3, cada una con sus texturas.
     for (const int part : {0x1da, 0x1db, 0x1dc, 0x1dd, 0x1de, 0x1df, 0x1e2, 0x1e3})
@@ -430,7 +430,7 @@ TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
     // 0x612590: el herrero pide nBlackSmith.wav con un búfer y sin banderas.
     const auto sounds = models.SoundFiles();
     EXPECT_TRUE(
-        std::any_of(sounds.begin(), sounds.end(), [](const Client::Scenes::FaunaResourceSound& sound)
+        std::any_of(sounds.begin(), sounds.end(), [](const Client::Assets::FaunaResourceSound& sound)
                     { return sound.id == 0xa0 && sound.path == "Sound\\nBlackSmith.wav" && sound.buffers == 1; }));
 }
 
@@ -439,7 +439,7 @@ TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
 TEST_F(GoldenMonsterModels, TheNpcTailAddsASecondReferenceToTheTexturesOfItsCase)
 {
     auto load = std::make_unique<GoldenLoad>();
-    Client::Scenes::FaunaModels models;
+    Client::Assets::FaunaModels models;
     models.TextureTable().Bind(load->store);
     auto context = models.LoadContextOf(m_dataRoot, load->log);
     ASSERT_TRUE(context.has_value());

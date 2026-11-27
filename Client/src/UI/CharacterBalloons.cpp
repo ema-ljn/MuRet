@@ -139,7 +139,7 @@ void CharacterBalloons::Build()
 {
     // 0x63ce70 arma el arreglo la primera vez (operator new de 0x4b4 y 0x6a0210 con 0x63c940) y, siempre, 0x63c9a0 con
     // cada registro: 0x647050 saca las UV del buffer del slot en ese momento.
-    const Scenes::TextureBufferSize buffer = m_sizes ? m_sizes(BalloonSlot) : Scenes::TextureBufferSize{};
+    const Assets::TextureBufferSize buffer = m_sizes ? m_sizes(BalloonSlot) : Assets::TextureBufferSize{};
     for (CharacterBalloon& balloon : m_balloons)
     {
         balloon = CharacterBalloon{};

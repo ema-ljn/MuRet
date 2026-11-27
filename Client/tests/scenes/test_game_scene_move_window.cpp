@@ -67,7 +67,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     ASSERT_NE(online.session.ChosenCharacter(), nullptr);
 
     Client::Tests::FakeTextureStore store;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Models::ClothWorld cloth;
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
     const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
@@ -95,7 +95,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
 
     // La ventana abierta con un destino que pasa (nivel 10 y 100 de zen contra 20 y 500) en el primer renglón: x en
     // [3, 188) e y en [40, 54) con 640 de ancho (test_game_move_window).
-    Client::Scenes::WorldRuntime& runtime = world->Runtime();
+    Client::Kernel::WorldRuntime& runtime = world->Runtime();
     runtime.drawingEnabled = true;
     runtime.panels.overlayMode = Client::UI::MoveOverlayMode;
     runtime.moves = {Client::Tables::MoveRequirement{

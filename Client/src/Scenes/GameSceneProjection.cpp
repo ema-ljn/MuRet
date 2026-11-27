@@ -38,8 +38,8 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->objects = world.Map().objects;
     m_projection->actorPickingBoxes.clear();
     m_projection->actorPickingBoxes.reserve(world.Actors().size());
-    for (const ActorState& actor : world.Actors())
-        m_projection->actorPickingBoxes.push_back(PickingBoxOf(actor));
+    for (const Kernel::ActorState& actor : world.Actors())
+        m_projection->actorPickingBoxes.push_back(Actors::PickingBoxOf(actor));
     m_projection->kalima = world.Map().kalima ? world.Map().kalima->CloneForFrame() : nullptr;
     const auto& hero = world.Hero();
     m_projection->heroXDepth = hero.cellXAccesses;
@@ -58,7 +58,7 @@ GameDrawTailState& GameScene::FrameTail()
 {
     return m_projectingFrame ? m_projection->tail : m_context.world->DrawTail();
 }
-World::TerrainLighting& GameScene::FrameLighting()
+Terrain::TerrainLighting& GameScene::FrameLighting()
 {
     return m_projectingFrame ? m_projection->lighting : m_context.world->DynamicLighting().Lighting();
 }
@@ -70,7 +70,7 @@ World::ObjectModelStepState& GameScene::FrameModelState()
 {
     return m_projectingFrame ? m_projection->modelState : m_context.world->Runtime().objectModelState;
 }
-GameItemRenderState& GameScene::FrameItemRender()
+Actors::Drawing::GameItemRenderState& GameScene::FrameItemRender()
 {
     return m_projectingFrame ? m_projection->items : m_context.world->Runtime().itemRender;
 }

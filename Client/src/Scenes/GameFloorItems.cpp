@@ -152,8 +152,8 @@ Core::Expected<void, std::string> StepFloorItems(std::span<FloorItemState> items
         item.position.z = static_cast<float>(static_cast<double>(item.dropSpeed) + item.position.z);
         item.dropSpeed = static_cast<float>(static_cast<double>(item.dropSpeed) - 6.0);
         constexpr float GroundHeight = 30.0f; // 6088c5:6b8858=00 00 f0 41.
-        double ground = World::TerrainHeightAt(context.heights, context.attributes, item.position.x, item.position.y,
-                                               context.fixedHeight) +
+        double ground = Terrain::TerrainHeightAt(context.heights, context.attributes, item.position.x, item.position.y,
+                                                 context.fixedHeight) +
                         GroundHeight;
         if (Between(item.type, 0x212, 0xe12))
             ground += 40.0;

@@ -22,9 +22,9 @@ namespace
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
 } // namespace
 
-Core::Expected<bool, std::string> AimTheHeroSkill(ActorState& hero, const HeroSkillContext& context)
+Core::Expected<bool, std::string> AimTheHeroSkill(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     glm::vec3 point{};
     const std::int32_t chosen = runtime.selectedTargets[2];
     if (chosen != -1)

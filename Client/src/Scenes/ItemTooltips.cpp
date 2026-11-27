@@ -94,7 +94,7 @@ bool IsOneOf(std::uint16_t id, std::span<const std::uint16_t> ids)
 }
 
 // [EBP−0x1c]: el color del nombre.
-std::int32_t NameColorOf(const World::ItemState& item, std::int32_t level)
+std::int32_t NameColorOf(const Kernel::ItemState& item, std::int32_t level)
 {
     const std::uint16_t id = item.id;
     const bool options = item.optionCount > 0;
@@ -133,7 +133,7 @@ std::string PriceWithTax(std::uint32_t price, std::int32_t tax)
 // el color del nombre, sin negrita, y un "\n" (0x6c99c8) detrás. Con la tienda personal propia (0x800) o la ajena
 // (0x20000), sin rand(), el de la grilla de la tienda personal (WriteThePersonalShopPrice, CL9 hito 7).
 Core::Expected<void, std::string> WriteTheShopPrice(GameHudContext& context, TooltipWriter& lines,
-                                                    const World::ItemState& item, std::int32_t level,
+                                                    const Kernel::ItemState& item, std::int32_t level,
                                                     std::int32_t nameColor, std::uint8_t grid)
 {
     const std::uint16_t id = item.id;
@@ -185,7 +185,7 @@ bool IsRepairable(std::int32_t type)
 
 // 0x5b8265..0x5b8315: el color del nombre de 0x5b8150, sin el de los conjuntos y con la vuelta de 0x1803..0x1806 y
 // de todo desde 0x1a1e.
-std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
+std::int32_t RepairNameColorOf(const Kernel::ItemState& item, std::int32_t level)
 {
     const std::uint16_t id = item.id;
     const bool options = item.optionCount > 0;
@@ -210,14 +210,14 @@ std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
 // 0x5b8373..0x5b839b: un ítem gastado pone el modo de reparar en 2 y lleva el precio de 0x54d0f0 en el modo 2 con el
 // formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas (0x422930, con los
 // niveles del A9), salen al principio de 0x5b8150.
-Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const World::ItemState& item,
+Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const Kernel::ItemState& item,
                                                            std::uint16_t maximum)
 {
-    WorldRuntime& runtime = hud.world.Runtime();
+    Kernel::WorldRuntime& runtime = hud.world.Runtime();
     if (!hud.projecting)
         runtime.panels.repairMode = 2;
-    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
-                              .horse = runtime.pets[DarkHorsePetStats].level};
+    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto price = ItemPrice(item, *hud.items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
@@ -268,7 +268,7 @@ Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& conte
 Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& context)
 {
     GameHudContext& hud = context.hud;
-    const World::ItemState& item = context.item;
+    const Kernel::ItemState& item = context.item;
     if (item.id == NoItem)
         return {};
     TooltipLines& tooltip = hud.hud.tooltip;
@@ -311,7 +311,7 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
 Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext& context)
 {
     GameHudContext& hud = context.hud;
-    const World::ItemState& item = context.item;
+    const Kernel::ItemState& item = context.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     if (!IsRepairable(type))
         return {};

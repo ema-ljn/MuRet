@@ -15,7 +15,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -206,4 +206,4 @@ Core::Expected<void, std::string> DrawGroundMarks(Render::ModelBatch& batch, con
     }
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Terrain

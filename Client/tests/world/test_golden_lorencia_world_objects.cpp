@@ -39,7 +39,7 @@ std::uint32_t ExpectedTreeSpeed(float scale)
 
 TEST_F(GoldenLorenciaWorldObjects, AllFileRecordsKeepTheirOrderAndReceiveTheClosedConstructorRules)
 {
-    const auto records = Client::World::LoadWorldObjects(m_dataRoot, 0);
+    const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, 0);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), 2870u);
     Client::World::WorldObjectRegistrations registry;

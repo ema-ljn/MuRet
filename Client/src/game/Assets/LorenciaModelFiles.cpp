@@ -8,7 +8,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 namespace
 {
@@ -57,4 +57,4 @@ std::span<const Data::Models::ModelFile> LorenciaModelFiles()
 {
     return Files;
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

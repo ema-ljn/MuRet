@@ -26,6 +26,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -66,6 +67,9 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Kernel::ActorPoolSize;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
 using Client::Models::ActionInfo;
@@ -75,8 +79,6 @@ using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::Scenes::ActorPoolSize;
-using Client::Scenes::ActorState;
 using Client::Scenes::ConstructHelper;
 using Client::Scenes::CreateHelper;
 using Client::Scenes::DarkHorseModel;
@@ -94,8 +96,7 @@ using Client::Scenes::StepHelpers;
 using Client::Scenes::StepTheHelperOutsideTheTable;
 using Client::Scenes::TurnOffHelpersOf;
 using Client::Scenes::UniriaModel;
-using Client::Scenes::WorldState;
-using Client::World::TerrainPolygon;
+using Client::Terrain::TerrainPolygon;
 
 // Las semillas del rand() de la CRT, por su primer rand(): con QuietSeed, % 3 da 2 y % 2 da 1 (ni aliento
 // ni polvo); con BreathSeed, % 3 da 0; con DustSeed, % 2 da 0.
@@ -384,13 +385,13 @@ public:
     float clock = 12345.0f;
     HorseModels models;
     // La luz del terreno (0x5ffce0), (0,25; 0,5; 0,75) en cada celda, y los sprites del frame (0x5491e0).
-    std::unique_ptr<Client::World::TerrainLighting> lighting = UniformLighting();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = UniformLighting();
     Client::World::FrameSprites sprites;
 
 private:
-    static std::unique_ptr<Client::World::TerrainLighting> UniformLighting()
+    static std::unique_ptr<Client::Terrain::TerrainLighting> UniformLighting()
     {
-        auto uniform = std::make_unique<Client::World::TerrainLighting>();
+        auto uniform = std::make_unique<Client::Terrain::TerrainLighting>();
         uniform->cells.fill({0.25f, 0.5f, 0.75f});
         return uniform;
     }
@@ -706,7 +707,7 @@ TEST_F(GoldenHelperTable, TheHorseLooksAtTheDrawnCellAndNotAtTheLogicalOne)
             SCOPED_TRACE(::testing::Message() << "mapa " << static_cast<int>(border.map)
                                               << (drawnInside ? ", dibujado adentro" : ", dibujado afuera"));
             HelperWorld tested(border.map);
-            auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, border.map);
+            auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, border.map);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
             tested.world.Map().terrain = std::move(loaded).Value();
             ASSERT_EQ(tested.Cell(border.insideX, border.insideY) & 1, 1);
@@ -818,7 +819,7 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     HelperDrawContext context{.batch = batch, .models = models, .world = tested.world, .random = tested.random};
-    context.onPose = [&](const Client::Scenes::DrawnObject& object)
+    context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(tested.world.PoseCarry(), models, object, true); };
     ASSERT_TRUE(DrawHelpers(context).HasValue());
     ASSERT_EQ(tested.world.PoseCarry().bones.size(), 28u);
@@ -1531,7 +1532,8 @@ TEST(HelperTableTest, OnlyTheOriginalHorseDrawPublishesItsPoseToTheNextFrame)
     ModelBatch batch;
     int publications = 0;
     HelperDrawContext context{.batch = batch, .models = tested.models, .world = tested.world, .random = tested.random};
-    context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+    context.onPose =
+        [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
     {
         ++publications;
         EXPECT_EQ(object.model, DarkHorseModel);
@@ -1554,7 +1556,7 @@ TEST(HelperTableTest, AnUnseenHorseOrOneWithoutAPlayerSpendsNothing)
     unseen.Horse().seen = true;
     ModelBatch far;
     const TerrainPolygon elsewhere =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, CellCentre(200, 200), -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, CellCentre(200, 200), -45.0f);
     ASSERT_TRUE(unseen.Draw(far, elsewhere).HasValue());
     EXPECT_FALSE(unseen.Horse().seen);
     EXPECT_TRUE(far.Commands().empty());
@@ -1632,8 +1634,8 @@ TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
 
 // 0x445310: con +0x78 & 0x4000 del jinete, 0x602e90(lugar, 0, 0, 10). 0x5ffdf0 lo posa igual (publica la pose) y
 // 0x6002e0 no va por el caso de su tipo sino por 0x60033c: el color del modelo en 1 y 0x4ecc30(malla, 0x4040, 0,5, …,
-// 0x620) en cada malla, aditivo con Chrome02 y en 0,5 (Scenes::DrawChromeShell), sin el blanco ni el cromo ni la
-// sombra del caballo, sin el RenderBody(2) de las mascotas y sin los sprites, los rayos, la chispa ni los rand() del
+// 0x620) en cada malla, aditivo con Chrome02 y en 0,5 (Actors::Drawing::DrawChromeShell), sin el blanco ni el cromo ni
+// la sombra del caballo, sin el RenderBody(2) de las mascotas y sin los sprites, los rayos, la chispa ni los rand() del
 // Fenrir; ninguno lee la luz del terreno, que el blanco pisa. Después, el rand() % 30 + 70 de 0x445336 y, con el
 // 0x1c12, su brillo, como siempre.
 TEST(HelperTableTest, TheRidersFlag4000DrawsEveryHelperAsAChromeShell)
@@ -1665,7 +1667,8 @@ TEST(HelperTableTest, TheRidersFlag4000DrawsEveryHelperAsAChromeShell)
         context.systemTime = {};
         context.globalPose = {};
         int publications = 0;
-        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        context.onPose =
+            [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
         {
             ++publications;
             EXPECT_EQ(object.model, type);
@@ -1724,7 +1727,7 @@ TEST(HelperTableTest, InTheSiegeTheFlag4000HidesTheHelperOfAnotherRiderUnlessIts
         batch.Begin(Client::Render::Pass3D{});
         HelperDrawContext context = tested.DrawContext(batch);
         int publications = 0;
-        context.onPose = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+        context.onPose = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
         {
             ++publications;
             return {};
@@ -2011,7 +2014,7 @@ TEST(HelperTableTest, TheLetterPortraitHelperIsAlwaysSeenAndDrawnAtItsOwnScale)
             ASSERT_TRUE(built.HasValue()) << built.Error();
             helper.horse.alpha = 1.0f;
             tested.world.Runtime().terrainPolygon =
-                Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, CellCentre(200, 200), -45.0f);
+                Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, CellCentre(200, 200), -45.0f);
             ModelBatch batch;
             batch.Begin(Client::Render::Pass3D{});
 
@@ -2359,9 +2362,10 @@ TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
         tested.world.Runtime().terrainPolygon = Everything;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        std::vector<Client::Scenes::DrawnObject> posed;
+        std::vector<Client::Actors::Drawing::DrawnObject> posed;
         HelperDrawContext context = tested.DrawContext(batch);
-        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        context.onPose =
+            [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
         {
             posed.push_back(object);
             return {};
@@ -2371,13 +2375,13 @@ TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
 
         EXPECT_FLOAT_EQ(tested.Horse().scale, 1.0f);
         ASSERT_EQ(posed.size(), 1u);
-        const Client::Scenes::DrawnObject& object = posed.front();
+        const Client::Actors::Drawing::DrawnObject& object = posed.front();
         EXPECT_EQ(object.model, type);
         EXPECT_EQ(object.transform.position, tested.Horse().position);
         EXPECT_EQ(object.transform.angles, tested.Rider().angles);
         EXPECT_FLOAT_EQ(object.transform.scale, 1.0f);
         const glm::vec3 terrain =
-            Client::World::LightAt(*tested.lighting, tested.Horse().position.x, tested.Horse().position.y);
+            Client::Terrain::LightAt(*tested.lighting, tested.Horse().position.x, tested.Horse().position.y);
         EXPECT_EQ(terrain, glm::vec3(0.25f, 0.5f, 0.75f));
         EXPECT_EQ(object.color, glm::vec3(3.25f, 3.5f, 3.75f));
         EXPECT_TRUE(object.vertexLight);
@@ -2442,9 +2446,10 @@ TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
         tested.world.Runtime().terrainPolygon = Everything;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        std::vector<Client::Scenes::DrawnObject> posed;
+        std::vector<Client::Actors::Drawing::DrawnObject> posed;
         HelperDrawContext context = tested.DrawContext(batch);
-        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        context.onPose =
+            [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
         {
             posed.push_back(object);
             return {};

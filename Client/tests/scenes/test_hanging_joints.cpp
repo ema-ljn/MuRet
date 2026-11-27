@@ -148,7 +148,7 @@ TEST(HangingJointsTest, TheSwordBeamStepsLikeTheFlareBeam)
 // y la luz (0,8; 0,2; 1), sin rand(). No escribe +0x6c: queda el del uso anterior del lugar, y 0x534cb6 lo baja a 50.
 TEST(HangingJointsTest, TheStaffBeamStartsOnTheCharactersPointWithTheRetainedPoints)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.effectOrigin = {420.0f, 610.5f, 88.25f};
     for (const std::int32_t retained : {0, 20, 64})
@@ -183,7 +183,7 @@ TEST(HangingJointsTest, TheStaffBeamStartsOnTheCharactersPointWithTheRetainedPoi
 // el personaje muerto se apaga sin cola ni vida.
 TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.effectOrigin = {420.0f, 610.5f, 88.25f};
     std::array<JointState, 1> joints{};
@@ -219,7 +219,7 @@ TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
 // segundo punto. Sin rand(). El cuadro del ancho retenido (0x530afa) sale de la cola.
 TEST(HangingJointsTest, TheSwordTrailLaysTenStepsTowardItsSecondPoint)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     std::array<JointState, 1> joints{};
     joints[0].width = 7.0f;
@@ -275,7 +275,7 @@ TEST(HangingJointsTest, TheSwordTrailWalksFromTheTrailOriginToTheCharacterAndDie
     for (const Case probe : {Case{0, 9}, Case{0, 7}, Case{1, 9}})
     {
         SCOPED_TRACE(::testing::Message() << "skill " << probe.skill << ", cola " << probe.count);
-        Client::Scenes::ActorState actor;
+        Client::Kernel::ActorState actor;
         actor.alive = true;
         actor.position = {420.0f, 610.5f, 88.25f};
         actor.trailOrigin = {400.25f, 650.0f, 80.0f};
@@ -332,7 +332,7 @@ TEST(HangingJointsTest, TheSwordTrailWalksFromTheTrailOriginToTheCharacterAndDie
 // común la agrega y la vida la apaga. Sin dueño, la creación anda y el paso corta (el original lee +0x54 sin mirar).
 TEST(HangingJointsTest, TheSwordTrailOfADeadCharacterRisesFromItsTargetAndAnOwnerlessOneStops)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     const glm::vec3 second{1003.5f, 1887.25f, 142.3f};
     std::array<JointState, 1> joints{};

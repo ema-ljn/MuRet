@@ -68,9 +68,9 @@ struct TradeState
     // la mezcla de joyas (0x62846f), y las lee 0x5d8d50 (0x5d8dee..).
     std::int32_t warningKind = 0;
     std::uint8_t warningByte = 0xff;
-    std::array<World::ItemState, TradeGridCells> otherGrid{};
-    std::array<World::ItemState, TradeGridCells> ownGrid{};
-    std::array<World::ItemState, TradeGridCells> backup{};
+    std::array<Kernel::ItemState, TradeGridCells> otherGrid{};
+    std::array<Kernel::ItemState, TradeGridCells> ownGrid{};
+    std::array<Kernel::ItemState, TradeGridCells> backup{};
     // 0x5767968 y 0x57635bc: el 3D que llegó con la traba 0x78abb39, para 0x4d1400.
     std::uint8_t resultDeferred = 0;
     std::array<std::uint8_t, 4> deferredHead{};
@@ -181,7 +181,7 @@ struct PersonalShopState
     // que llegan antes ponen los ítems sin los precios).
     bool pricesBuilt = false;
     // 0x78a6768, la copia que hace el 3F 05 si 0x20000 no estaba abierta y que 0x5eb020 devuelve.
-    std::array<World::ItemState, ShopGridCells> ownGridBackup{};
+    std::array<Kernel::ItemState, ShopGridCells> ownGridBackup{};
     // 0x78a6320: la copia del registro del dueño de la tienda que se mira (0x438 bytes, 0x4dbaab), en ceros sin ella.
     // Solo se leen su clave (+0x1f4, 0x78a6514) y su nombre (+0x1d9, 0x78a64f9), en 0x5eb020.
     std::uint16_t ownerKey = 0;

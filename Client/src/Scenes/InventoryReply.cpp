@@ -20,7 +20,7 @@ namespace Client::Scenes
 {
 void ClearForInventoryReply(const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     {
         // 0x4c55c4..0x4c563c lo abre y 0x4c5661..0x4c56a3 lo cierra (0x40b4d0).
         const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,

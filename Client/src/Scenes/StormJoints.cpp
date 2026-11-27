@@ -84,7 +84,7 @@ Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const Join
                         return Core::Unexpected(std::format("0x53c1c6: el joint 0x632/{} en el suelo pide los modelos, "
                                                             "los modelos compartidos y la tabla de efectos",
                                                             joint.subtype));
-                    auto& owner = *static_cast<ActorState*>(joint.ownerContext);
+                    auto& owner = *static_cast<Kernel::ActorState*>(joint.ownerContext);
                     if (auto shed = ShedTheSkinShells(owner, joint.subtype, *services.models, *services.world,
                                                       *services.effects, *services.random);
                         !shed.HasValue())

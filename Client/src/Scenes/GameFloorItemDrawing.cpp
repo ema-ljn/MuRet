@@ -60,9 +60,9 @@ float RootHeight(std::int16_t type)
         return -70;
     return 0;
 }
-DrawnObject Object(const FloorItemState& item, const FloorItemDrawContext& context)
+Actors::Drawing::DrawnObject Object(const FloorItemState& item, const FloorItemDrawContext& context)
 {
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     object.model = Model(item);
     object.animation = item.animation;
     object.transform = {.position = item.position, .angles = item.angles, .scale = item.scale};
@@ -70,13 +70,13 @@ DrawnObject Object(const FloorItemState& item, const FloorItemDrawContext& conte
     object.alpha = item.alpha;
     object.vertexLight = item.vertexLight;
     const auto terrain =
-        context.lighting ? World::LightAt(*context.lighting, item.position.x, item.position.y) : glm::vec3{};
+        context.lighting ? Terrain::LightAt(*context.lighting, item.position.x, item.position.y) : glm::vec3{};
     for (int component = 0; component < 3; ++component)
         object.color[component] = F32(static_cast<double>(terrain[component]) + item.light[component]);
     return object;
 }
 Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemState& item,
-                                       const FloorItemDrawContext& context, DrawnObject object)
+                                       const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (item.type >= FirstArmor && item.type < EndArmor)
         object.model = Player;
@@ -90,11 +90,11 @@ Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemSta
     return PublishFaunaFloorPose(local, context.models, object);
 }
 Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemState& item,
-                                             const FloorItemDrawContext& context, DrawnObject object,
+                                             const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object,
                                              std::span<const Models::SkinnedMesh> meshes)
 {
-    auto resources = context.itemContext ? *context.itemContext : ItemDrawContext{};
-    auto special = resources.special ? *resources.special : ItemSpecialDrawContext{};
+    auto resources = context.itemContext ? *context.itemContext : Actors::Drawing::ItemDrawContext{};
+    auto special = resources.special ? *resources.special : Actors::Drawing::ItemSpecialDrawContext{};
     special.worldClock = context.worldClock;
     special.objectFlags = std::bit_cast<std::uint32_t>(item.effectCounter);
     special.objectLight = &item.light;
@@ -104,15 +104,15 @@ Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemSta
     resources.ownerContext = &item;
     if (!context.onPose)
         resources.poseBones = [&local]() -> std::span<const Math::BoneTransform> { return local.bones; };
-    const auto result =
-        DrawItemFromMeshes(context.batch, context.models, object, context.frameClock, meshes,
-                           item.type == Money ? 0 : Level(item), item.excellent, item.ancient, resources);
+    const auto result = Actors::Drawing::DrawItemFromMeshes(context.batch, context.models, object, context.frameClock,
+                                                            meshes, item.type == Money ? 0 : Level(item),
+                                                            item.excellent, item.ancient, resources);
     item.objectState = object.state;
     item.alpha = object.alpha;
     return result;
 }
 Core::Expected<void, std::string> Body(FaunaDrawCarry& local, FloorItemState& item, const FloorItemDrawContext& context,
-                                       DrawnObject object)
+                                       Actors::Drawing::DrawnObject object)
 {
     if (!(item.alpha > VisibleAlpha))
         return {};
@@ -157,7 +157,7 @@ Core::Expected<void, std::string> Project(FloorItemState& item, const FloorItemD
     return {};
 }
 Core::Expected<void, std::string> Coins(FaunaDrawCarry& local, FloorItemState& item,
-                                        const FloorItemDrawContext& context, const DrawnObject& object,
+                                        const FloorItemDrawContext& context, const Actors::Drawing::DrawnObject& object,
                                         std::size_t slot)
 {
     if (item.type != Money)
@@ -188,7 +188,8 @@ Core::Expected<void, std::string> Coins(FaunaDrawCarry& local, FloorItemState& i
     item.position = position;
     return {};
 }
-Core::Expected<void, std::string> Water(DrawnObject& object, const FloorItemDrawContext& context, std::size_t slot)
+Core::Expected<void, std::string> Water(Actors::Drawing::DrawnObject& object, const FloorItemDrawContext& context,
+                                        std::size_t slot)
 {
     if (context.map == 10)
     {
@@ -224,7 +225,7 @@ Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<FloorItemState>
         auto& item = items[slot];
         if (!item.alive)
             continue;
-        item.seen = World::SphereVisible(context.frustum, item.position, Radius);
+        item.seen = Terrain::SphereVisible(context.frustum, item.position, Radius);
         if (!item.seen)
             continue;
         auto object = Object(item, context);

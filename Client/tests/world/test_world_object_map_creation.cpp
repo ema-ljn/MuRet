@@ -252,7 +252,7 @@ TEST_F(GoldenWorldObjectMapCreationTest, RealSpecialMapObjectsReceiveTheDirectRu
     for (const std::uint8_t map : std::array<std::uint8_t, 5>{1, 2, 3, 7, 8})
     {
         SCOPED_TRACE(map);
-        const auto records = Client::World::LoadWorldObjects(m_dataRoot, map);
+        const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, map);
         ASSERT_TRUE(records.HasValue()) << records.Error();
         ASSERT_FALSE(records.Value().empty());
         Client::World::WorldObjectRegistrations registrations;

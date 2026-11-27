@@ -27,9 +27,13 @@ namespace Client::World
 struct ModelEffect;
 } // namespace Client::World
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
+namespace Client::Scenes
+{
 struct HighEffectStepContext;
 
 inline constexpr std::int16_t MeteorEffect = 0x13d;
@@ -69,5 +73,6 @@ StepTheMeteor(World::ModelEffect& effect, const Models::Skeleton* skeleton, cons
 // Devuelve true si es uno de los dos; false con otro tipo (sigue el pase común).
 [[nodiscard]] Core::Expected<bool, std::string>
 DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
-                  const DrawnObject& object, Core::Duration frameClock, std::optional<float> worldClock);
+                  const Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
+                  std::optional<float> worldClock);
 } // namespace Client::Scenes

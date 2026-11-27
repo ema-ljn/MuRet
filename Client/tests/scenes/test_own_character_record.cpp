@@ -15,7 +15,7 @@
 
 namespace
 {
-using Client::Scenes::OwnCharacterRecord;
+using Client::Kernel::OwnCharacterRecord;
 
 // Un tipo distinto por lugar, como el equipo viejo que deja una entrada anterior.
 std::uint16_t OldTypeOf(std::size_t slot)
@@ -39,7 +39,7 @@ TEST(OwnCharacterRecordTest, TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveS
 {
     OwnCharacterRecord own;
     // WinMain llena de ceros el registro (04, 0x4bafbc..0x4bafc2): el tipo arranca en 0, no en −1.
-    for (const Client::World::ItemState& item : own.equipment)
+    for (const Client::Kernel::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0);
     }
@@ -50,7 +50,7 @@ TEST(OwnCharacterRecordTest, TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveS
     // 06, fila 7 de 0x4c3940 (0x4c47c8..0x4c47da): el tipo en −1, el dword de +4 y el byte de +0x1b
     // en 0. El loop no toca nada más del lugar.
     ASSERT_EQ(own.equipment.size(), 12u);
-    for (const Client::World::ItemState& item : own.equipment)
+    for (const Client::Kernel::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0xffff);
         EXPECT_EQ(item.scalar1Low, 0u);
@@ -64,7 +64,7 @@ TEST(OwnCharacterRecordTest, TheInventoryClearEmptiesTypeOccupiedAndFlags1bOfThe
 {
     OwnCharacterRecord own;
     DressWithOldTypes(own);
-    for (Client::World::ItemState& item : own.equipment)
+    for (Client::Kernel::ItemState& item : own.equipment)
     {
         item.occupied = 1;
     }
@@ -73,7 +73,7 @@ TEST(OwnCharacterRecordTest, TheInventoryClearEmptiesTypeOccupiedAndFlags1bOfThe
 
     // 06, "El F3 10, el inventario" (0x4c564d..0x4c565f): el tipo en −1, el dword de +0x3c y el byte de
     // +0x1b en 0. A diferencia del de la entrada, deja el dword de +4; la durabilidad queda (Q-C203).
-    for (const Client::World::ItemState& item : own.equipment)
+    for (const Client::Kernel::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0xffff);
         EXPECT_EQ(item.occupied, 0u);

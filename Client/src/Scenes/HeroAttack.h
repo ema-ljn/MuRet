@@ -12,12 +12,16 @@
 #include <span>
 #include <string>
 
+namespace Client::Kernel
+{
+class WorldState;
+struct ActorState;
+} // namespace Client::Kernel
+
 // CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
 // (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.
 namespace Client::Scenes
 {
-class WorldState;
-struct ActorState;
 struct InventoryServices;
 
 // 0x558bb0: si el personaje elegido (0x6c8e30, selectedTargets[2]) se puede atacar. Falso con un ítem en el cursor
@@ -27,11 +31,11 @@ struct InventoryServices;
 // y que no sea el héroe. En la guerra (GuildState::warOn y warType, 0x576796c y 0x576796d), un jugador con el PK de 6
 // o más y gremio no se ataca si su gremio se llama como el del héroe (strcmp en 0x558da4 sobre 0x787aa55); con un
 // índice fuera de la tabla, corta.
-[[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown);
+[[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const Kernel::WorldState& world, bool controlDown);
 // 0x5588d0(blanco): lo mismo con `target` en vez del elegido (sin mirar 0x6c8e30), como la llama el lazo de los blancos
 // de la skill 0x4c del paso del ataque (0x5024c3, CL9 hito 4). Compara los nombres de gremio en 0x558aa9.
-[[nodiscard]] Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target,
-                                                                  bool controlDown);
+[[nodiscard]] Core::Expected<bool, std::string> IsAttackableActor(const Kernel::WorldState& world,
+                                                                  const Kernel::ActorState& target, bool controlDown);
 
 // 0x558eb0(c, [0x6c8e30]), la hermana de 0x558bb0 que el paso de la habilidad deja en o+0x8a (0x4fdc10): la clave
 // (+0x1f4, MOVSX) del elegido si el héroe lo puede atacar, y −1 si no. −1 con un ítem en el cursor, sin elegido o si
@@ -40,12 +44,12 @@ struct InventoryServices;
 // gremios, el PK de 6 o más o Ctrl abajo (0x558fd6) con otro que el héroe; en ella, +0x374 en 2 con otro; en el duelo,
 // la clave del rival, sin comparar el nombre. Los nombres de gremio (0x558f29), como en 0x558bb0: iguales, −1. No saca
 // rand().
-[[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
-                                                                    bool controlDown);
+[[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& world,
+                                                                    std::size_t attacker, bool controlDown);
 // 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3) y las
 // ramas del caballero (CL9 hito 4, fase 2c-C).
-[[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
-                                                                    std::int32_t chosen, bool controlDown);
+[[nodiscard]] Core::Expected<std::int32_t, std::string>
+ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker, std::int32_t chosen, bool controlDown);
 
 // El freno de 300 ms (0x57f2d1..0x57f2f9, y el mismo en 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0): salvo con la skill
 // 0x28, si |GetTickCount() − [0x576791c]| (resta de 32 bits con signo, CDQ/XOR/SUB) es 300 o menos, no pasa; si
@@ -83,5 +87,6 @@ struct HeroArrivalContext
 // Fuera de alcance o en la zona segura, el camino (0x4eac00) hasta el alcance (· 1,2 en el segundo grupo) y, con él,
 // +0x378 en 1; +0x379 sigue en 5. Las demás skills, nada. Los casos 1, 2 y 4 son de otros hitos y cortan con su
 // dirección.
-[[nodiscard]] Core::Expected<void, std::string> InteractOnArrival(ActorState& hero, const HeroArrivalContext& context);
+[[nodiscard]] Core::Expected<void, std::string> InteractOnArrival(Kernel::ActorState& hero,
+                                                                  const HeroArrivalContext& context);
 } // namespace Client::Scenes

@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 LoadedWorld::LoadedWorld(Render::ITextureStore& store) : m_tiles(store) {}
 
@@ -27,7 +27,7 @@ Core::Expected<void, std::string> LoadedWorld::Load(const std::filesystem::path&
     Release();
     // Proyección local byte estable; las lecturas globales y los modelos de 0x61a560 no van acá.
     const auto effectiveMap = static_cast<std::uint8_t>(Maps::MapAtWorldLoadStart(map, map));
-    auto terrain = World::LoadWorldTerrain(dataRoot, effectiveMap);
+    auto terrain = Terrain::LoadWorldTerrain(dataRoot, effectiveMap);
     if (!terrain.HasValue())
     {
         return Core::Unexpected(terrain.Error());
@@ -37,7 +37,7 @@ Core::Expected<void, std::string> LoadedWorld::Load(const std::filesystem::path&
         return tiles;
     }
     m_terrain = std::move(terrain).Value();
-    World::TerrainView view;
+    Terrain::TerrainView view;
     view.tiles = m_tiles.Sizes();
     view.mapping = m_terrain->mapping.get();
     view.heights = m_terrain->heights.get();
@@ -45,7 +45,7 @@ Core::Expected<void, std::string> LoadedWorld::Load(const std::filesystem::path&
     view.lighting = m_terrain->lighting.get();
     view.map = effectiveMap;
     m_view = view;
-    m_water = World::TerrainWater{};
+    m_water = Terrain::TerrainWater{};
     return {};
 }
 
@@ -53,8 +53,8 @@ void LoadedWorld::Release()
 {
     m_tiles.Release();
     m_terrain.reset();
-    m_view = World::TerrainView{};
-    m_water = World::TerrainWater{};
+    m_view = Terrain::TerrainView{};
+    m_water = Terrain::TerrainWater{};
 }
 
 std::optional<std::uint8_t> LoadedWorld::LoadedMap() const
@@ -67,51 +67,51 @@ bool LoadedWorld::IsLoaded() const
     return m_terrain.has_value();
 }
 
-const World::TerrainLighting* LoadedWorld::Lighting() const
+const Terrain::TerrainLighting* LoadedWorld::Lighting() const
 {
     return m_terrain ? m_terrain->lighting.get() : nullptr;
 }
 
-const World::WorldTerrain* LoadedWorld::Terrain() const
+const Terrain::WorldTerrain* LoadedWorld::Terrain() const
 {
     return m_terrain ? &*m_terrain : nullptr;
 }
 
-World::WorldTerrain* LoadedWorld::Terrain()
+Terrain::WorldTerrain* LoadedWorld::Terrain()
 {
     return m_terrain ? &*m_terrain : nullptr;
 }
 
-std::optional<World::WorldTerrain> LoadedWorld::TakeTerrain()
+std::optional<Terrain::WorldTerrain> LoadedWorld::TakeTerrain()
 {
-    m_view = World::TerrainView{};
-    m_water = World::TerrainWater{};
+    m_view = Terrain::TerrainView{};
+    m_water = Terrain::TerrainWater{};
     return std::exchange(m_terrain, std::nullopt);
 }
 
-void LoadedWorld::Step(Core::Duration clock, const World::TerrainRange& range)
+void LoadedWorld::Step(Core::Duration clock, const Terrain::TerrainRange& range)
 {
     if (m_terrain)
     {
-        World::UpdateWaves(m_water, clock, range, m_view.map);
+        Terrain::UpdateWaves(m_water, clock, range, m_view.map);
     }
 }
 
-void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                              const World::TerrainPolygon& polygon, float fixedHeight,
-                              const World::TerrainLighting* dynamicLighting)
+void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const Terrain::TerrainRange& range,
+                              const Terrain::TerrainPolygon& polygon, float fixedHeight,
+                              const Terrain::TerrainLighting* dynamicLighting)
 {
     if (!m_terrain)
     {
         return;
     }
-    World::TerrainView view = m_view;
+    Terrain::TerrainView view = m_view;
     view.fixedHeight = fixedHeight;
     if (dynamicLighting != nullptr)
     {
         view.lighting = dynamicLighting;
     }
-    m_water.offset = World::WaterOffsetAt(frameClock, m_view.map);
-    World::DrawTerrain(batch, view, range, polygon, m_water);
+    m_water.offset = Terrain::WaterOffsetAt(frameClock, m_view.map);
+    Terrain::DrawTerrain(batch, view, range, polygon, m_water);
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

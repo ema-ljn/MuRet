@@ -2,7 +2,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-namespace Client::World
+namespace Client::Terrain
 {
 // Estado persistente de 0x5fc260/0x5fac90/0x622440. Los defaults son del DTO de MuRet: estos
 // cuerpos no demuestran el estado nativo anterior al primer picking.
@@ -15,4 +15,4 @@ struct TerrainPickingState
     float maxT = 0.0f;
     glm::vec3 hit{};
 };
-} // namespace Client::World
+} // namespace Client::Terrain

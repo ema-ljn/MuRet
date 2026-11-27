@@ -76,8 +76,8 @@ void Born(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random, bool embe
 // no, queda en el suelo y se apaga de a 0,05; con el rojo en 0 o menos, muere.
 void Fall(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random)
 {
-    const double ground =
-        TerrainHeightAt(*world.heights, *world.attributes, leaf.position.x, leaf.position.y, world.fixedHeight);
+    const double ground = Terrain::TerrainHeightAt(*world.heights, *world.attributes, leaf.position.x, leaf.position.y,
+                                                   world.fixedHeight);
     const auto z = static_cast<double>(leaf.position.z);
     if (ground < z || std::isnan(ground) || std::isnan(z))
     {

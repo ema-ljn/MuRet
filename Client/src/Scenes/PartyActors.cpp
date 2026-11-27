@@ -56,23 +56,23 @@ std::string_view NameView(std::span<const std::byte> name)
 }
 
 // 0x78aba48. Más de cinco no llega: el 42 que los trae se descarta (0x4d67e0, Q-C960); negativa, los lazos no corren.
-std::size_t Members(const WorldRuntime& runtime)
+std::size_t Members(const Kernel::WorldRuntime& runtime)
 {
     return static_cast<std::size_t>(std::clamp<std::int32_t>(runtime.hud.partyCount, 0, PartySlots));
 }
 } // namespace
 
-std::span<const PartySlot> PartyMembers(const WorldRuntime& runtime)
+std::span<const PartySlot> PartyMembers(const Kernel::WorldRuntime& runtime)
 {
     return std::span<const PartySlot>(runtime.social.party.slots).first(Members(runtime));
 }
 
-bool IsInTheParty(const WorldState& world, const ActorState& actor)
+bool IsInTheParty(const Kernel::WorldState& world, const Kernel::ActorState& actor)
 {
     return IsInTheParty(PartyMembers(world.Runtime()), actor);
 }
 
-bool IsInTheParty(std::span<const PartySlot> members, const ActorState& actor)
+bool IsInTheParty(std::span<const PartySlot> members, const Kernel::ActorState& actor)
 {
     const std::string_view name = NameView(actor.name);
     return std::ranges::any_of(members,
@@ -83,10 +83,10 @@ bool IsInTheParty(std::span<const PartySlot> members, const ActorState& actor)
                                });
 }
 
-void MatchThePartyMembers(WorldState& world, std::size_t index)
+void MatchThePartyMembers(Kernel::WorldState& world, std::size_t index)
 {
-    WorldRuntime& runtime = world.Runtime();
-    const ActorState& actor = world.Actors()[index];
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    const Kernel::ActorState& actor = world.Actors()[index];
     const std::string_view name = NameView(actor.name);
     for (std::size_t at = 0; at < Members(runtime); ++at)
     {
@@ -102,9 +102,9 @@ void MatchThePartyMembers(WorldState& world, std::size_t index)
     }
 }
 
-void MarkTheMissingMembers(WorldState& world)
+void MarkTheMissingMembers(Kernel::WorldState& world)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const std::string_view hero = NameView(world.Hero().name);
     for (std::size_t at = 0; at < Members(runtime); ++at)
     {
@@ -116,12 +116,12 @@ void MarkTheMissingMembers(WorldState& world)
     }
 }
 
-void FindThePartyInTheViewport(WorldState& world)
+void FindThePartyInTheViewport(Kernel::WorldState& world)
 {
     const auto actors = world.Actors();
     for (std::size_t index = 0; index < SearchedActors; ++index)
     {
-        const ActorState& actor = actors[index];
+        const Kernel::ActorState& actor = actors[index];
         if (actor.type != PlayerType || actor.byte88 != PlayerKind || !actor.alive || !actor.seen ||
             !(actor.alpha > 0.0f) || actor.dying != 0)
             continue;
@@ -135,10 +135,10 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
 {
     if (panels.IsOpen(UI::PartyPanel))
         return false;
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const std::int32_t width = panels.WorldWidth();
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero.characterClass);
     const float left = F32(static_cast<double>(width) - ListFromTheRight);
     const auto mouseX = static_cast<double>(context.mouse.x);
@@ -162,7 +162,7 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
             {
                 // 0x5e41d7..0x5e4448: el registro propio abierto para leer el byte de la skill del lugar de +0x425.
                 const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-                skill = OwnSkillByte(world.OwnCharacter(), hero.skillIndex);
+                skill = Kernel::OwnSkillByte(world.OwnCharacter(), hero.skillIndex);
             }
             const auto x = static_cast<double>(left);
             const auto y = static_cast<double>(top);

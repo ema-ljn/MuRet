@@ -12,10 +12,15 @@ namespace Client::UI
 class PanelRegistry;
 }
 
-namespace Client::World
+namespace Client::Kernel
 {
 struct ItemState;
 }
+
+namespace Client::Kernel
+{
+enum class CursorGrid : std::uint8_t;
+} // namespace Client::Kernel
 
 // El clic derecho sobre un ítem de la grilla del inventario desde 0x5c7bc6 (CL9 hito 5, fase 2; 06 § Los ítems del
 // piso, "Usar desde la grilla"): lo que 0x5c4110 hace después de las pociones, el pergamino del portal, la caja de la
@@ -23,15 +28,14 @@ struct ItemState;
 namespace Client::Scenes
 {
 struct InventoryMoveContext;
-enum class CursorGrid : std::uint8_t;
 
 // La grilla del ítem del clic derecho de 0x5c4110 ([EBP + 0x10]): la del inventario (0x78a9bb0) o la propia del
 // comercio (0x78a92a8, CL9 hito 7, 08 P-C235), las dos de 8 columnas. Con la del comercio la rama es la misma: el ítem
 // sale de la casilla (EBX) y su casilla de arriba a la izquierda con el ancho de esta grilla, sin el 12.
 struct UsedGrid
 {
-    std::span<World::ItemState> cells;
-    CursorGrid grid;
+    std::span<Kernel::ItemState> cells;
+    Kernel::CursorGrid grid;
 };
 
 // 0x5c7bc6..0x5c9b0b con el ítem de la casilla `index` de `grid` (la que está bajo el mouse; la de arriba a la

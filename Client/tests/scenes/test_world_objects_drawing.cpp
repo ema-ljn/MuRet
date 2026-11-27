@@ -180,7 +180,7 @@ WorldObject ObjectAt(std::int16_t type, float x, float y, std::uint8_t map = Log
     return objects.front();
 }
 
-const Client::World::TerrainPolygon Everything{.everything = true};
+const Client::Terrain::TerrainPolygon Everything{.everything = true};
 
 std::size_t VerticesWith(const ModelBatch& batch, ModelBlend blend)
 {
@@ -196,7 +196,7 @@ std::size_t VerticesWith(const ModelBatch& batch, ModelBlend blend)
 }
 
 void Draw(ModelBatch& batch, const TwoMeshModels& models, std::span<WorldObject> objects,
-          const Client::World::TerrainPolygon& polygon = Everything, std::uint8_t map = Login)
+          const Client::Terrain::TerrainPolygon& polygon = Everything, std::uint8_t map = Login)
 {
     batch.Begin(Client::Render::Pass3D{});
     DrawWorldObjects(batch, models, objects, polygon, nullptr, map, {}, 0.0f);
@@ -244,7 +244,7 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
     std::vector<WorldObject> objects{ObjectAt(Rock, 14400.0f, 12100.0f), ObjectAt(Rock, 100.0f, 100.0f),
                                      ObjectAt(Rock, 15900.0f, 11300.0f)};
     const auto polygon =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     ModelBatch batch;
     Draw(batch, models, objects, polygon);
     EXPECT_TRUE(objects[0].seen);
@@ -260,7 +260,7 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
 TEST(WorldObjectsDrawingTest, TheLorenciaBridgeExtendsItsOwnCullingMargin)
 {
     const TwoMeshModels models;
-    const Client::World::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
+    const Client::Terrain::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
     for (const auto scene : {Client::World::ObjectScene::Other, Client::World::ObjectScene::Login,
                              Client::World::ObjectScene::CharacterSelect})
     {
@@ -282,7 +282,7 @@ TEST(WorldObjectsDrawingTest, TheLorenciaBridgeExtendsItsOwnCullingMargin)
 TEST(WorldObjectsDrawingTest, TheBridgeIsCulledExactlyAtItsMargin)
 {
     const TwoMeshModels models;
-    const Client::World::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
+    const Client::Terrain::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
     std::array objects{ObjectAt(Bridge, 1400.0f, 500.0f, Lorencia)};
     ModelBatch batch;
     Draw(batch, models, objects, polygon, Lorencia);
@@ -300,7 +300,7 @@ TEST(WorldObjectsDrawingTest, TheBridgeIsCulledExactlyAtItsMargin)
 TEST(WorldObjectsDrawingTest, CullingUsesTheStoredMarginAfterCopyingAnObject)
 {
     const TwoMeshModels models;
-    const Client::World::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
+    const Client::Terrain::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
     WorldObject extended = ObjectAt(Rock, 1400.0f, 500.0f);
     extended.cullingMargin = -50.0f;
     std::array objects{extended, ObjectAt(Rock, 1400.0f, 500.0f)};
@@ -322,7 +322,7 @@ TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
     objects[2].alpha = 0.0f;
     objects[3].state.hiddenMesh = Client::World::HiddenObject;
     const auto polygon =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
@@ -702,7 +702,7 @@ TEST(WorldObjectsDrawingTest, GroundEffectsUseOnlyTheRetainedVisibilityOfLiveSlo
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Crt::CrtRandom random(1234);
     Client::Crt::CrtRandom expected(1234);
-    const Client::World::GroundEffectResources resources{.heights = *heights, .random = random};
+    const Client::Terrain::GroundEffectResources resources{.heights = *heights, .random = random};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto initial = batch.State();
@@ -1049,7 +1049,7 @@ TEST(WorldObjectsDrawingTest, ProjectedPosePublicationDoesNotRunOriginalFramePro
     pass.map = Lorencia;
     pass.originalFrame = false;
     pass.random = &random;
-    pass.onPose = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    pass.onPose = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
         ++publications;
         return {};
@@ -1085,7 +1085,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         pass.random = &random;
         pass.retainedPose = &target;
         int publications = 0;
-        pass.onPose = [&](const Client::Scenes::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
+        pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
         {
             EXPECT_EQ(pose.state.hiddenMesh, Client::World::HiddenObject);
             ++publications;
@@ -1127,13 +1127,14 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
         effects.publishProjectedPose = !original;
         effects.retainedPose = &target;
         int publications = 0;
-        effects.onPose = [&](const Client::Scenes::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
+        effects.onPose =
+            [&](const Client::Actors::Drawing::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
         {
             ++publications;
             return Client::Scenes::PublishFaunaPose(target, models, pose, true);
         };
-        DrawWorldObjects(batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, Login, {},
-                         0.0f, effects);
+        DrawWorldObjects(batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, Login,
+                         {}, 0.0f, effects);
         EXPECT_EQ(publications, 1);
         EXPECT_TRUE(batch.Vertices().empty());
         EXPECT_TRUE(batch.Commands().empty());
@@ -1155,7 +1156,7 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
     objects.front().alpha = 0.005f;
     objects.front().state.hiddenMesh = Client::World::HiddenObject;
     int publications = 0;
-    const auto observe = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    const auto observe = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
         ++publications;
         return {};
@@ -1171,7 +1172,7 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
     effects.frames = 0;
     effects.publishProjectedPose = true;
     effects.onPose = observe;
-    DrawWorldObjects(batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, Login, {},
+    DrawWorldObjects(batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, Login, {},
                      0.0f, effects);
     EXPECT_EQ(publications, 0);
     EXPECT_TRUE(batch.Vertices().empty());
@@ -1294,11 +1295,11 @@ struct LanternGlow
 LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::World::ObjectScene scene, std::uint32_t seed)
 {
     const TenBoneModels models;
-    Client::Scenes::DrawnObject horse;
+    Client::Actors::Drawing::DrawnObject horse;
     horse.model = 1;
     horse.transform.position = {1000.0f, 2000.0f, 300.0f};
     horse.transform.scale = 1.5f;
-    const std::array<Client::Scenes::PosedInTheBuffer, 1> before{{{&models, horse}}};
+    const std::array<Client::Actors::Drawing::PosedInTheBuffer, 1> before{{{&models, horse}}};
     Client::Crt::CrtRandom random(seed);
     Client::World::FrameSprites sprites;
     ModelBatch batch;
@@ -1314,12 +1315,12 @@ LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::World::ObjectScene
             glow.sprites.push_back(sprite);
         }
     }
-    glow.horse8 = Client::Scenes::PosedBonePoint(models, horse, 8, {});
-    glow.horse9 = Client::Scenes::PosedBonePoint(models, horse, 9, {});
-    Client::Scenes::DrawnObject rock;
+    glow.horse8 = Client::Actors::Drawing::PosedBonePoint(models, horse, 8, {});
+    glow.horse9 = Client::Actors::Drawing::PosedBonePoint(models, horse, 9, {});
+    Client::Actors::Drawing::DrawnObject rock;
     rock.model = TenBoneModels::SecondRock;
     rock.transform = objects.front().transform;
-    glow.rock9 = Client::Scenes::PosedBonePoint(models, rock, 9, {});
+    glow.rock9 = Client::Actors::Drawing::PosedBonePoint(models, rock, 9, {});
     return glow;
 }
 
@@ -1330,10 +1331,10 @@ TEST(WorldObjectsDrawingTest, AZeroFrameDrawReplaysTheLanternWithoutConsumingRan
     Client::World::FrameSprites sprites;
     Client::Crt::CrtRandom random(4);
     std::array<std::optional<int>, 1> lastRandoms;
-    Client::Scenes::DrawnObject horse;
+    Client::Actors::Drawing::DrawnObject horse;
     horse.model = 1;
     horse.transform.position = {1000.0f, 2000.0f, 300.0f};
-    std::array<Client::Scenes::PosedInTheBuffer, 1> before{{{&models, horse}}};
+    std::array<Client::Actors::Drawing::PosedInTheBuffer, 1> before{{{&models, horse}}};
     ModelBatch batch;
     const auto draw = [&](int frames)
     {
@@ -1373,9 +1374,9 @@ TEST(WorldObjectsDrawingTest, ANotSeenLanternLosesItsSampleOnlyAfterAnOriginalFr
     Client::Crt::CrtRandom random(4);
     std::array<std::optional<int>, 1> lastRandoms;
     const auto outside =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     ModelBatch batch;
-    const auto draw = [&](int frames, const Client::World::TerrainPolygon& polygon)
+    const auto draw = [&](int frames, const Client::Terrain::TerrainPolygon& polygon)
     {
         sprites.Clear();
         batch.Begin(Client::Render::Pass3D{});
@@ -1512,7 +1513,7 @@ TEST(WorldObjectsDrawingTest, AnObjectThatLeavesTheViewStopsStepping)
     Draw(batch, models, objects);
     ASSERT_TRUE(objects[0].seen);
     const auto away =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     Draw(batch, models, objects, away);
     EXPECT_FALSE(objects[0].seen);
     StepWorldObjects(objects, Login, models);
@@ -1575,12 +1576,13 @@ Client::World::ModelEffect LiveEffect()
 TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
 {
     const TwoMeshModels models;
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     lighting->cells.fill({0.25f, 0.5f, 0.75f});
     std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, Client::World::SphereFrustum{}, lighting.get(), {}, 0.0f);
+    Client::Scenes::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, lighting.get(), {},
+                                     0.0f);
     ASSERT_EQ(batch.Vertices().size(), 6u);
     const float light = Client::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
     const auto& color = batch.Vertices()[0].color;
@@ -1594,7 +1596,7 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
 {
     const TwoMeshModels models;
     std::array<Client::World::ModelEffect, 3> effects{LiveEffect(), LiveEffect(), LiveEffect()};
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     frustum.normals[0] = {1.0f, 0.0f, 0.0f};
     effects[0].seen = true;
     effects[0].transform.position.x = -401.0f;
@@ -1639,7 +1641,7 @@ TEST(ModelEffectsDrawingTest, VisibilityIsPublishedBeforeLookingForTheModel)
 {
     const MissingEffectModels models;
     std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     frustum.normals[0] = {1.0f, 0.0f, 0.0f};
     effects[0].seen = true;
     effects[0].transform.position.x = -401.0f;
@@ -1676,7 +1678,7 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
     std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, Client::World::SphereFrustum{}, nullptr, {}, 0.5f);
+    Client::Scenes::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.5f);
     ASSERT_FALSE(batch.Vertices().empty());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.y, 1000.0f - 35.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);

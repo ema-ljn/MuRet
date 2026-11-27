@@ -83,9 +83,9 @@ struct Replies
         Hero().alive = true;
         Hero().key = PlayerKey;
         Hero().type = Client::Tables::PlayerSkeletonModel;
-        Hero().pet.model = Client::Scenes::NoItemModel;
+        Hero().pet.model = Client::Kernel::NoItemModel;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
@@ -101,10 +101,10 @@ struct Replies
                 .log = log};
     }
     static constexpr std::uint16_t PlayerKey = 33;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
@@ -120,7 +120,7 @@ TEST(MovementRepliesTest, AnIdleHeroEchoWritesOnlyTheLogicalCellsAndDirection)
     hero.targetX = 24;
     hero.targetY = 25;
     hero.position = {2050.0f, 2150.0f, 33.0f};
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
+    ASSERT_TRUE(Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
                                                Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(hero.cellX, 30);
@@ -137,13 +137,13 @@ TEST(MovementRepliesTest, MovingAndDyingHeroEchoesHaveDistinctPrefixes)
     auto& hero = tested.Hero();
     hero.movement = 1;
     hero.cellX = 20;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
+    ASSERT_TRUE(Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
                                                Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(hero.cellX, 20);
     EXPECT_EQ(hero.direction, 15);
     hero.dying = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 4},
+    ASSERT_TRUE(Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 4},
                                                Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(hero.direction, 15);
@@ -154,7 +154,7 @@ TEST(MovementRepliesTest, UnknownIdsLeaveTheSentinelUntouched)
     Replies tested;
     auto& sentinel = tested.world.Actors()[400];
     sentinel.direction = 7;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{666, {30, 31}, 15},
+    ASSERT_TRUE(Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{666, {30, 31}, 15},
                                                Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(sentinel.direction, 7);
@@ -169,7 +169,7 @@ TEST(MovementRepliesTest, ShockStopsTheHeroBeforeLifeClosesTheOwnRecord)
     hero.animation.action = 13;
     tested.world.OwnCharacter().life = 40;
     ASSERT_TRUE(
-        Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 50, 0, false},
+        Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 50, 0, false},
                                          Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
             .HasValue());
     EXPECT_EQ(hero.movement, 0);
@@ -191,7 +191,7 @@ TEST(MovementRepliesTest, OtherActorUsesTheLiveWallsAndKeepsLogicalPositionUntil
     other.position = {2050.0f, 2150.0f, 33.0f};
     tested.world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(21, 21)] = 4;
     const auto applied =
-        Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {23, 21}, 15},
+        Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {23, 21}, 15},
                                        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(other.targetX, 23);
@@ -229,7 +229,7 @@ TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
         auto& goal = tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(24, 21)];
         goal = 0x02;
         const auto applied =
-            Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {24, 21}, 15},
+            Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {24, 21}, 15},
                                            Client::Kernel::PlayerKey{Replies::PlayerKey}, tested->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(other.movement, 1);
@@ -250,7 +250,7 @@ TEST(MovementRepliesTest, CooldownPreservesAnExistingPathButStillUpdatesTheTarge
     other.movementCooldown = 1;
     other.path.count = 4;
     other.movement = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+    ASSERT_TRUE(Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                                Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(other.path.count, 4);
@@ -264,7 +264,7 @@ TEST(MovementRepliesTest, NestedLogicalCellsDoNotCloseTheOuterEntries)
     Replies tested;
     tested.Hero().cellXAccesses = 1;
     tested.Hero().cellYAccesses = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
+    ASSERT_TRUE(Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{Replies::PlayerKey, {30, 31}, 15},
                                                Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(tested.Hero().cellXAccesses, 1);
@@ -278,7 +278,7 @@ TEST(MovementRepliesTest, OrdinaryHeroDamageNeverShocksAndItsNumberDoesNotReques
     tested.Hero().animation.action = 13;
     tested.world.OwnCharacter().life = 40;
     ASSERT_TRUE(
-        Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false},
+        Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false},
                                          Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
             .HasValue());
     EXPECT_EQ(tested.Hero().movement, 1);
@@ -302,13 +302,13 @@ TEST(MovementRepliesTest, OtherDamageConsumesTheCoinEvenWhenShockIsBlockedByTheM
     other.key = 44;
     other.movement = 1;
     other.pet.model = 0x1c15;
-    ASSERT_TRUE(Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{44, false, 30, 0, false},
+    ASSERT_TRUE(Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{44, false, 30, 0, false},
                                                  Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(other.movement, 1);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
     other.word376 = 0x113;
-    ASSERT_TRUE(Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{44, false, 30, 0, false},
+    ASSERT_TRUE(Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{44, false, 30, 0, false},
                                                  Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
@@ -317,7 +317,7 @@ TEST(MovementRepliesTest, DamageFlagsCreateCopiesInPhysicalSlotsWithoutAdditiona
 {
     Replies tested;
     tested.world.Runtime().ownRecordDepth = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyDamageReply(
+    ASSERT_TRUE(Client::Actors::ApplyDamageReply(
                     Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 2, true, true},
                     Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
@@ -350,7 +350,7 @@ TEST(MovementRepliesTest, ShockSoundClassesPreserveTheirDistinctRandomCounts)
         const auto seed = Client::Tests::FirstSeedWhere([](auto& random) { return random.Next() % 5 == 0; });
         tested.cloth.random = Client::Crt::CrtRandom(seed);
         ASSERT_TRUE(
-            Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 10, 0, false},
+            Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 10, 0, false},
                                              Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                 .HasValue());
         EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, characterClass == 4 ? 2 : 1).State());
@@ -382,7 +382,7 @@ struct ShieldReplies
     }
     Client::Core::Expected<void, std::string> Hit()
     {
-        return Client::Scenes::ApplyDamageReply(
+        return Client::Actors::ApplyDamageReply(
             Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false},
             Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     }
@@ -492,7 +492,7 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
     const Client::Scenes::WorldEntryResources resources{tested.world,  tested.selection, {},     tested.cloth,
                                                         tested.camera, tested.input,     models, nullptr,
                                                         nullptr,       tested.log};
-    const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+    const auto result = Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                                        Client::Kernel::PlayerKey{Replies::PlayerKey}, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(other.cellX, 30);
@@ -529,7 +529,7 @@ TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
             });
         tested->cloth.random = Client::Crt::CrtRandom(seed);
         const auto result =
-            Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+            Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                            Client::Kernel::PlayerKey{Replies::PlayerKey}, tested->Resources());
         tested->world.FaunaResources().Bind(nullptr);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -553,7 +553,7 @@ TEST(MovementRepliesTest, AFailedOtherPathRunsStopAfterClosingItsLogicalCoordina
     other.movement = 1;
     other.animation.action = 13;
     const auto result =
-        Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+        Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(other.movement, 0);
@@ -578,7 +578,7 @@ TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
     other.animation.action = 2;
 
     const auto result =
-        Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+        Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     tested.world.FaunaResources().Bind(nullptr);
 
@@ -592,7 +592,7 @@ TEST(MovementRepliesTest, BitSixProducesTwoDimCopiesBeforeTheNormalNumberAtTheOr
 {
     Replies tested;
     tested.world.Runtime().ownRecordDepth = 1;
-    const auto result = Client::Scenes::ApplyDamageReply(
+    const auto result = Client::Actors::ApplyDamageReply(
         Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false, true},
         Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -613,7 +613,7 @@ TEST(MovementRepliesTest, BitSevenFallsThroughFromItsThirdNumberToTheFourthNorma
 {
     Replies tested;
     tested.world.Runtime().ownRecordDepth = 1;
-    const auto result = Client::Scenes::ApplyDamageReply(
+    const auto result = Client::Actors::ApplyDamageReply(
         Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 5, true, false},
         Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -635,7 +635,7 @@ TEST(MovementRepliesTest, ShockTreatsAnUnorderedExistingFrameAsEqualForTheHitSou
     tested.Hero().animation.action = 0xc2;
     tested.Hero().animation.frame = std::numeric_limits<float>::quiet_NaN();
     const auto result =
-        Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 30, 0, false},
+        Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 30, 0, false},
                                          Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested.world.Runtime().lastSoundId.has_value());

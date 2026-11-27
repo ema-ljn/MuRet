@@ -169,7 +169,7 @@ Core::Expected<void, std::string> AddHighlightedNotice(const GuildReceiveContext
     auto measure = MeasureOf(context, "0x554610");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, text, 1);
     return {};
 }
@@ -202,13 +202,13 @@ template <std::size_t Size> void CopyName(std::array<char, Size>& target, const 
     target[GuildNameSize] = '\0';
 }
 
-ActorState& HeroOf(const GuildReceiveContext& context)
+Kernel::ActorState& HeroOf(const GuildReceiveContext& context)
 {
     return context.world.Hero();
 }
 
 // +0x1f2 como lo lee MOVSX.
-std::int16_t GuildIndexOf(const ActorState& actor)
+std::int16_t GuildIndexOf(const Kernel::ActorState& actor)
 {
     return static_cast<std::int16_t>(actor.word1f2);
 }
@@ -252,12 +252,12 @@ Core::Expected<void, std::string> Send(const GuildReceiveContext& context, Proto
 
 // 0x4d8150, 0x4d8260 y 0x4d8870: +0x374 de cada personaje vivo: 1 los del gremio del héroe (con gremio), 2 los del
 // rival (solo el 62, con `rival`), 0 los demás.
-void MarkTheGuilds(WorldState& world, std::optional<std::int32_t> rival)
+void MarkTheGuilds(Kernel::WorldState& world, std::optional<std::int32_t> rival)
 {
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     for (std::size_t index = 0; index < ActorCount; ++index)
     {
-        ActorState& actor = world.Actors()[index];
+        Kernel::ActorState& actor = world.Actors()[index];
         if (!actor.alive)
             continue;
         // El héroe es uno de los 400: su gremio se lee de nuevo en cada vuelta.
@@ -270,7 +270,7 @@ void MarkTheGuilds(WorldState& world, std::optional<std::int32_t> rival)
     }
 }
 
-// 0x576a60(héroe, héroe, animación, acción) (Scenes::PlayTheEmote: parado, la animación y un C1 18) y después, haya
+// 0x576a60(héroe, héroe, animación, acción) (Actors::PlayTheEmote: parado, la animación y un C1 18) y después, haya
 // actuado o no, el C1 05 18 propio con la acción y el sector de +0x24 del héroe (0x4d84f5..0x4d851f, la cuenta de
 // 0x59b456). Con el héroe parado salen dos C1 18 iguales, como en un emote (Q-C776).
 Core::Expected<void, std::string> Gesture(const GuildReceiveContext& context, std::uint8_t animation,
@@ -278,17 +278,17 @@ Core::Expected<void, std::string> Gesture(const GuildReceiveContext& context, st
 {
     if (context.models == nullptr)
         return Core::Unexpected(std::string(where) + ": 0x576a60, el gesto, sin los modelos (0x4ea030)");
-    ActionSender send;
+    Actors::ActionSender send;
     if (context.send)
     {
         send = [&context](std::uint8_t direction, std::uint8_t sent)
         { context.send(Protocol::Movement::WriteAction(direction, sent)); };
     }
-    ActorState& hero = HeroOf(context);
-    const EmoteContext emote{.hero = hero, .models = *context.models, .send = send};
-    if (auto played = PlayTheEmote(hero, UI::EmoteCase{animation, action}, emote); !played.HasValue())
+    Kernel::ActorState& hero = HeroOf(context);
+    const Actors::EmoteContext emote{.hero = hero, .models = *context.models, .send = send};
+    if (auto played = Actors::PlayTheEmote(hero, UI::EmoteCase{animation, action}, emote); !played.HasValue())
         return Core::Unexpected(played.Error());
-    return SendTheAction(hero.angles.z, action, send, where);
+    return Actors::SendTheAction(hero.angles.z, action, send, where);
 }
 
 // 0x6600d0 con los renglones (ocupado, el aviso de 0x6d69a8 y 0: el 50 y el E5 miran 0x660340 antes y no llegan).
@@ -389,11 +389,11 @@ Core::Expected<void, std::string> ApplyLeaveResult(const LeaveResult& result, co
         if (auto added = AddTextMessage(context, ListAgainText, UI::ErrorMessage); !added.HasValue())
             return added;
     }
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     if (result.result == LeftGuild || result.result == GuildRemoved)
     {
-        ActorState& hero = HeroOf(context);
+        Kernel::ActorState& hero = HeroOf(context);
         if (result.result == GuildRemoved && GuildIndexOf(hero) != NoGuildIndex)
         {
             auto entry = EntryOf(guild, GuildIndexOf(hero), "0x4d7cdb");
@@ -429,7 +429,7 @@ Core::Expected<void, std::string> ApplyCreateResult(const CreateResult& result, 
     // 0x4d808f..0x4d80cf: los diez primeros bytes del buffer del mensaje (0x7798bf8..0x7798c01: dos DWORD y un WORD) y
     // su largo (0x7758590) en 0, 0x6c8e78 en 10 (el tope de la entrada sin EDIT, que MuRet no guarda), la ventana 2
     // cerrada (0x65cae0) y los botones (0x77f3b10 y 0x6c8dcc).
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     constexpr std::size_t ClearedBytes = 10;
     std::fill_n(runtime.chat.input.messageBuffer.begin(), ClearedBytes, '\0');
     static_cast<void>(NoEditFieldLimit);
@@ -451,7 +451,7 @@ Core::Expected<void, std::string> ApplyViewportGuildDelete(const ViewportGuildDe
     if (index >= ActorCount)
         return {};
     context.world.Runtime().guild.memberCount = -1;
-    ActorState& actor = context.world.Actors()[index];
+    Kernel::ActorState& actor = context.world.Actors()[index];
     actor.word1f2 = static_cast<std::uint16_t>(NoGuildIndex);
     actor.guildStatus = 0xff;
     actor.byte369 = 0;
@@ -480,7 +480,7 @@ Core::Expected<void, std::string> ApplyWarRequestResult(const WarRequestResult& 
 
 Core::Expected<void, std::string> ApplyWarRequest(const WarRequest& request, const GuildReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     CopyName(guild.rival, request.name);
     UI::PushDialog(runtime.dialogs, UI::IgnoredOverChaosCastle);
@@ -537,7 +537,7 @@ Core::Expected<void, std::string> ApplyWarEnd(const WarEnd& end, const GuildRece
         gesture = LostGesture;
     else if (end.result == 6)
         gesture = NoGesture;
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     // 0x4d8958: MOV word ptr [0x5767816],BX con BX en 0, el tiempo del F3 22 que el AB del duelo también pone en 0
     // (0x4e4d60, EventGlobals::timeValue).
@@ -613,7 +613,7 @@ std::optional<std::int32_t> RivalForTheViewport(GuildState& guild)
 
 Core::Expected<void, std::string> ApplyViewportGuild(const ViewportGuild& viewport, const GuildReceiveContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     GuildState& guild = world.Runtime().guild;
     for (const ViewportGuildEntry& entry : viewport.entries)
     {
@@ -622,7 +622,7 @@ Core::Expected<void, std::string> ApplyViewportGuild(const ViewportGuild& viewpo
         const std::size_t index = ActorWithKey(world, entry.key);
         if (index >= ActorCount)
             continue;
-        ActorState& actor = world.Actors()[index];
+        Kernel::ActorState& actor = world.Actors()[index];
         actor.guildStatus = entry.status;
         actor.byte369 = entry.byte369;
         actor.byte370 = entry.relation;
@@ -666,7 +666,7 @@ Core::Expected<void, std::string> ApplyViewportGuild(const ViewportGuild& viewpo
 
 Core::Expected<void, std::string> ApplyViewportUnion(const ViewportUnion& viewport, const GuildReceiveContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     GuildState& guild = world.Runtime().guild;
     for (const ViewportUnionEntry& entry : viewport.entries)
     {
@@ -729,7 +729,7 @@ Core::Expected<void, std::string> ApplyAssignResult(const AssignResult& result, 
 Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipRequest& request,
                                                            const GuildReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     // 0x656603: con el diálogo ocupado, no (C1 08 E6 con 0).
     if (UI::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
@@ -892,7 +892,7 @@ Core::Expected<void, std::string> ApplyUnionListRefresh(const UnionListRefresh& 
 }
 } // namespace
 
-void ClearTheWar(WorldState& world)
+void ClearTheWar(Kernel::WorldState& world)
 {
     GuildState& guild = world.Runtime().guild;
     guild.warOn = 0;

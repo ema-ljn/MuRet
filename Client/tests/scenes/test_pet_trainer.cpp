@@ -47,13 +47,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::World::ItemState;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
@@ -116,8 +116,8 @@ public:
         runtime.panels.delegated.trainer = mode;
         runtime.panels.delegated.field724584 = 7;
         runtime.field78abb10 = 1;
-        runtime.pets[Client::Scenes::DarkHorsePetStats].level = 3;
-        runtime.pets[Client::Scenes::RavenPetStats].level = 2;
+        runtime.pets[Client::Kernel::DarkHorsePetStats].level = 3;
+        runtime.pets[Client::Kernel::RavenPetStats].level = 2;
         world->OwnCharacter().ClearEquipmentForEntry();
         world->OwnCharacter().zen = PlentyOfZen;
         services.items = &items;
@@ -203,9 +203,9 @@ public:
         const std::uint16_t maximum = Client::Scenes::MaxDurability(pet, *items.Record(pet.id), 0);
         if (pet.durability >= maximum)
             return 0;
-        const Client::Scenes::PetPriceLevels levels{.raven = world->Runtime().pets[Client::Scenes::RavenPetStats].level,
+        const Client::Scenes::PetPriceLevels levels{.raven = world->Runtime().pets[Client::Kernel::RavenPetStats].level,
                                                     .horse =
-                                                        world->Runtime().pets[Client::Scenes::DarkHorsePetStats].level};
+                                                        world->Runtime().pets[Client::Kernel::DarkHorsePetStats].level};
         const auto price = Client::Scenes::ItemPrice(pet, items, Client::Scenes::RepairPriceMode, levels);
         const auto gold =
             static_cast<std::uint32_t>(Client::Scenes::RepairPriceOf(price.Value(), pet.durability, maximum, 0).gold);
@@ -217,7 +217,7 @@ public:
         return Xor32Decode(sent[index].packet);
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return world->Runtime();
     }

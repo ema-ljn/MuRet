@@ -244,10 +244,10 @@ void WriteSetTitle(TooltipLines& lines, std::size_t& next, std::string_view name
 // opciones, y +0x9304 de vuelta en 0.
 Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std::int32_t x, std::int32_t y)
 {
-    ItemSetState& sets = context.world.ItemSets();
+    Player::ItemSetState& sets = context.world.ItemSets();
     if (sets.byte9304 == 0)
         return {};
-    const ItemSetOptionList& list = sets.list;
+    const Player::ItemSetOptionList& list = sets.list;
     if (list.count9348 == 0 && list.count9349 == 0)
         return {};
     const auto title = TextOf(context, SetTitleText, "0x40e995");
@@ -266,7 +266,7 @@ Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std:
     for (std::int32_t i = 0; i < first + second; ++i)
     {
         const auto entry = static_cast<std::size_t>(i);
-        if (entry >= ItemSetOptionCapacity)
+        if (entry >= Player::ItemSetOptionCapacity)
             return Core::Unexpected(std::format("0x40eb01: la ventana del set lee la entrada {} de 16 (las marcas de "
                                                 "+0x937c como opciones)",
                                                 entry));
@@ -313,7 +313,7 @@ Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std:
 
 // El ítem de 0x78abaa8: la casilla de la grilla (la del inventario, las del comercio o la de las tiendas personales)
 // o el lugar del equipo.
-World::ItemState* HoveredItemOf(WorldState& world)
+Kernel::ItemState* HoveredItemOf(Kernel::WorldState& world)
 {
     const UI::HoveredItem& hovered = world.Runtime().ui.hoveredItem;
     switch (hovered.place)
@@ -478,8 +478,8 @@ Core::Expected<void, std::string> WriteTheSetOption(const Tables::TextTable* tex
 
 Core::Expected<void, std::string> DrawTheTooltips(GameHudContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const UI::GameUiState& ui = runtime.ui;
     context.sprites.SetBlend(BlendMode::Opaque);
     context.hud.durabilityWarning = 0;
@@ -490,14 +490,14 @@ Core::Expected<void, std::string> DrawTheTooltips(GameHudContext& context)
         if (!context.projecting)
             runtime.panels.repairMode = 1;
     }
-    if (World::ItemState* hovered = HoveredItemOf(world); hovered != nullptr)
+    if (Kernel::ItemState* hovered = HoveredItemOf(world); hovered != nullptr)
     {
         const bool overTheInventory = context.mouse.x >= context.hud.inventoryX && context.mouse.x < 0x280 &&
                                       context.mouse.y >= context.hud.inventoryY && context.mouse.y < 0x1e0;
         const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         // El tooltip del caballo le escribe su opción (0x4225d0): un dibujo intermedio lo hace sobre una copia.
-        World::ItemState projected = *hovered;
-        World::ItemState& item = context.projecting ? projected : *hovered;
+        Kernel::ItemState projected = *hovered;
+        Kernel::ItemState& item = context.projecting ? projected : *hovered;
         const ItemTooltipContext body{
             .hud = context, .x = ui.skillTooltipX, .y = ui.skillTooltipY, .item = item, .grid = ui.field78aba27};
         auto drawn = overTheInventory && repairMode != 0 ? DrawTheRepairTooltip(body) : DrawTheItemTooltip(body);
@@ -520,7 +520,7 @@ Core::Expected<void, std::string> DrawTheTooltips(GameHudContext& context)
 
 Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context)
 {
-    ItemSetState& sets = context.world.ItemSets();
+    Player::ItemSetState& sets = context.world.ItemSets();
     if (sets.byte9305 == 0)
         return {};
     TooltipLines& lines = context.hud.tooltip;

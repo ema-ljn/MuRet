@@ -13,7 +13,7 @@
 // propios". Es una proyección tipada de +0x9348..+0x940b, no el objeto. La llenan 0x40e1b0 y 0x40d010
 // (Scenes/OwnItemSets.h), y vive en Scenes::ItemSetState con el resto de [0x6eed3c]; los helpers la
 // reciben como puntero, nullptr mientras 0x550d10 no se los pase.
-namespace Client::Scenes
+namespace Client::Player
 {
 // Las 16 entradas de 3 bytes de +0x934c terminan en +0x937c, donde empiezan sus 16 marcas.
 inline constexpr std::size_t ItemSetOptionCapacity = 16;
@@ -61,4 +61,4 @@ struct ItemSetOptionList
 // `value` si no es 0. Con más de 16 entradas, error sin tocar nada, como 0x40d690.
 [[nodiscard]] Core::Expected<void, std::string> AddSkillSetOptionValues(ItemSetOptionList& list, std::int32_t& value,
                                                                         std::uint32_t selector);
-} // namespace Client::Scenes
+} // namespace Client::Player

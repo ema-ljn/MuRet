@@ -80,8 +80,8 @@ constexpr std::array<TurnedChoice, 5> TurnedChoices{{{80, 904, 2, RestingAction,
                                                      {100, 905, 3, 0xa5, 0x4fcaef}}};
 
 // 0x557170(+0x1d9, Text[index], c, 0, −1).
-Core::Expected<void, std::string> Say(const ActorState& actor, std::size_t slot, std::size_t index,
-                                      const CharacterStepContext& context, std::uintptr_t address)
+Core::Expected<void, std::string> Say(const Kernel::ActorState& actor, std::size_t slot, std::size_t index,
+                                      const Actors::CharacterStepContext& context, std::uintptr_t address)
 {
     const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
     if (!text)
@@ -94,7 +94,7 @@ Core::Expected<void, std::string> Say(const ActorState& actor, std::size_t slot,
 }
 } // namespace
 
-bool HasTheMessageName(const ActorState& actor)
+bool HasTheMessageName(const Kernel::ActorState& actor)
 {
     for (std::size_t i = 0; i < actor.name.size(); ++i)
     {
@@ -106,7 +106,7 @@ bool HasTheMessageName(const ActorState& actor)
     return actor.byte1e3 == MessageName[actor.name.size()] && actor.nameSpill[0] == std::byte{0};
 }
 
-bool TurnTheNpc(ActorState& actor, std::int32_t map)
+bool TurnTheNpc(Kernel::ActorState& actor, std::int32_t map)
 {
     if (actor.byte88 != NpcKind || (map != LorenciaMap && map != DeviasMap) ||
         actor.type != Tables::PlayerSkeletonModel || actor.subtype < FirstTurnedSubtype ||
@@ -116,8 +116,8 @@ bool TurnTheNpc(ActorState& actor, std::int32_t map)
     return true;
 }
 
-Core::Expected<void, std::string> SayTheNpcLine(const ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context)
+Core::Expected<void, std::string> SayTheNpcLine(const Kernel::ActorState& actor, std::size_t slot,
+                                                const Actors::CharacterStepContext& context)
 {
     if (actor.byte88 != NpcKind)
         return {};
@@ -138,8 +138,8 @@ Core::Expected<void, std::string> SayTheNpcLine(const ActorState& actor, std::si
     return {};
 }
 
-Core::Expected<void, std::string> SayTheNamedLine(const ActorState& actor, std::size_t slot,
-                                                  const CharacterStepContext& context)
+Core::Expected<void, std::string> SayTheNamedLine(const Kernel::ActorState& actor, std::size_t slot,
+                                                  const Actors::CharacterStepContext& context)
 {
     if (!context.systemTime)
     {
@@ -149,7 +149,7 @@ Core::Expected<void, std::string> SayTheNamedLine(const ActorState& actor, std::
                                                 slot));
         return {};
     }
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.namedLineTime)
         runtime.namedLineTime = context.systemTime() - NamedLineHead;
     const std::uint32_t now = context.systemTime();
@@ -163,8 +163,8 @@ Core::Expected<void, std::string> SayTheNamedLine(const ActorState& actor, std::
     return {};
 }
 
-Core::Expected<void, std::string> FinishTheTurnedNpc(ActorState& actor, std::size_t slot,
-                                                     const CharacterStepContext& context)
+Core::Expected<void, std::string> FinishTheTurnedNpc(Kernel::ActorState& actor, std::size_t slot,
+                                                     const Actors::CharacterStepContext& context)
 {
     if (context.playerSkeleton == nullptr)
         return Core::Unexpected(

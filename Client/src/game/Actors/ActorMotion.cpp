@@ -20,7 +20,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -34,7 +34,7 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& ra
     return cell;
 }
 
-void RetryPath(ActorState& actor, Crt::CrtRandom& random, Data::Terrain::TerrainLayer<std::uint16_t>& walls,
+void RetryPath(Kernel::ActorState& actor, Crt::CrtRandom& random, Data::Terrain::TerrainLayer<std::uint16_t>& walls,
                bool altarGoal)
 {
     if (actor.movementCooldown != 0 || actor.type == PathlessType)
@@ -58,7 +58,7 @@ void RetryPath(ActorState& actor, Crt::CrtRandom& random, Data::Terrain::Terrain
 }
 } // namespace
 
-bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& random)
+bool MoveActorPath(Kernel::ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& random)
 {
     std::uint32_t x = actor.cellX;
     std::uint32_t y = actor.cellY;
@@ -83,7 +83,7 @@ bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& rando
     return GameLogic::MovePath({actor.path, actor.position, actor.angles.z, x, y}, rotate, effects);
 }
 
-Core::Expected<void, std::string> UpdateActorPosition(ActorState& actor, const ActorMotionContext& context)
+Core::Expected<void, std::string> UpdateActorPosition(Kernel::ActorState& actor, const ActorMotionContext& context)
 {
     const auto speed = [&]()
     {
@@ -109,7 +109,7 @@ Core::Expected<void, std::string> UpdateActorPosition(ActorState& actor, const A
     return {};
 }
 
-Core::Expected<void, std::string> StepOtherActorMotion(ActorState& actor, const ActorWalkContext& walk,
+Core::Expected<void, std::string> StepOtherActorMotion(Kernel::ActorState& actor, const ActorWalkContext& walk,
                                                        const ActorMotionContext& motion,
                                                        Data::Terrain::TerrainLayer<std::uint16_t>& walls)
 {
@@ -152,7 +152,7 @@ Core::Expected<void, std::string> StepOtherActorMotion(ActorState& actor, const 
     }
     return UpdateActorPosition(actor, motion);
 }
-Core::Expected<void, std::string> StepActorCooldown(ActorState& actor, Crt::CrtRandom& random,
+Core::Expected<void, std::string> StepActorCooldown(Kernel::ActorState& actor, Crt::CrtRandom& random,
                                                     const ActorCooldownServices& services)
 {
     if (actor.movementCooldown == 0)
@@ -197,4 +197,4 @@ Core::Expected<void, std::string> StepActorCooldown(ActorState& actor, Crt::CrtR
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

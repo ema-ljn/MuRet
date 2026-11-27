@@ -26,11 +26,11 @@
 namespace
 {
 using GoldenTerrainPicking = Client::Tests::GoldenDataTest;
-using Client::World::PickTerrain;
-using Client::World::PickTerrainTarget;
-using Client::World::TerrainPickingSegment;
-using Client::World::TerrainPickingState;
-using Client::World::TerrainPickingTarget;
+using Client::Terrain::PickTerrain;
+using Client::Terrain::PickTerrainTarget;
+using Client::Terrain::TerrainPickingSegment;
+using Client::Terrain::TerrainPickingState;
+using Client::Terrain::TerrainPickingTarget;
 
 TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights)
 {
@@ -40,17 +40,17 @@ TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights
     for (const std::uint8_t map : Maps)
     {
         SCOPED_TRACE(static_cast<int>(map));
-        const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        const auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-        const Client::World::TerrainView view{.heights = terrain.Value().heights.get(),
-                                              .attributes = terrain.Value().attributes.get(),
-                                              .fixedHeight = 1200.0f};
+        const Client::Terrain::TerrainView view{.heights = terrain.Value().heights.get(),
+                                                .attributes = terrain.Value().attributes.get(),
+                                                .fixedHeight = 1200.0f};
         const Client::Render::Camera3D camera{.position = {1375.0f, 1325.0f, 1600.0f}, .farPlane = 2000.0f};
         const auto pass = Client::Render::MakePass3D({640, 480}, {0, 0, 640, 432}, camera);
         const auto [origin, end] = pass.RayThrough(320.0f, 216.0f);
-        const auto range = Client::World::TerrainRangeOf(pass.view, camera);
+        const auto range = Client::Terrain::TerrainRangeOf(pass.view, camera);
         const auto polygon =
-            Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, map, {1375.0f, 1325.0f, 0.0f}, 0.0f);
+            Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, map, {1375.0f, 1325.0f, 0.0f}, 0.0f);
         TerrainPickingState state;
         TerrainPickingTarget target;
         const auto result = PickTerrainTarget(state, target, view, range, polygon, {origin, end});
@@ -66,7 +66,7 @@ TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights
         std::array<double, 3> heights{};
         for (std::size_t i = 0; i < Indices.size(); ++i)
         {
-            heights[i] = (view.attributes->cells[Indices[i]] & Client::World::FixedHeightBit) != 0
+            heights[i] = (view.attributes->cells[Indices[i]] & Client::Terrain::FixedHeightBit) != 0
                              ? view.fixedHeight
                              : view.heights->cells[Indices[i]];
         }
@@ -79,19 +79,19 @@ TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights
 
 TEST_F(GoldenTerrainPicking, LorenciaCameraFeedsTheConsumerAndRetainedSelection)
 {
-    const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, 0);
+    const auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, 0);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-    Client::World::GameCamera cameraState;
-    const Client::World::GameCameraInput input{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
-    const auto camera = Client::World::StepGameCamera(cameraState, input);
+    Client::Camera::GameCamera cameraState;
+    const Client::Camera::GameCameraInput input{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
+    const auto camera = Client::Camera::StepGameCamera(cameraState, input);
     const auto pass = Client::Render::MakePass3D({640, 480}, {0, 0, 640, 432}, camera);
     const auto [origin, end] = pass.RayThrough(323.0f, 217.0f);
-    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
+    const auto range = Client::Terrain::TerrainRangeOf(pass.view, camera);
     const auto polygon =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, input.hero, camera.angles.z);
-    const Client::World::TerrainView view{.heights = terrain.Value().heights.get(),
-                                          .attributes = terrain.Value().attributes.get(),
-                                          .fixedHeight = cameraState.fixedHeight};
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, input.hero, camera.angles.z);
+    const Client::Terrain::TerrainView view{.heights = terrain.Value().heights.get(),
+                                            .attributes = terrain.Value().attributes.get(),
+                                            .fixedHeight = cameraState.fixedHeight};
     TerrainPickingState state;
     TerrainPickingTarget target;
     const TerrainPickingSegment segment{origin, end};

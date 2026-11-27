@@ -6,12 +6,16 @@
 #include <cstdint>
 #include <string>
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // CL9 hito 4, fase 2c: la rama de 0x57cfc0 de las clases 1, 3 y 4 (Dark Knight, Magic Gladiator y Dark Lord: +0x1d4 & 7
 // del héroe, 0x58187c..0x58188e), 0x581894..0x5897a7. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las
 // skills del caballero".
 namespace Client::Scenes
 {
-struct ActorState;
 struct HeroSkillContext;
 
 // Con el registro propio abierto de punta a punta (sus 3.848 rand() al cerrarlo, 0x5854be..0x5897a2): el maná y la
@@ -24,6 +28,7 @@ struct HeroSkillContext;
 // dos como C3 (dos rand() antes de mirar el socket) y sin "webzen" en el nombre del héroe publicado; las celdas lógicas
 // del héroe cuestan cuatro rand() cada una. Las demás, nada. No dibuja: los efectos los ponen las respuestas. El Magic
 // Gladiator sigue después en la rama del Wizard (0x5897b7), que corta quien llama.
-[[nodiscard]] Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, Kernel::CharacterClass heroClass,
-                                                                  std::uint8_t skill, const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<void, std::string> UseTheKnightSkill(Kernel::ActorState& hero,
+                                                                  Kernel::CharacterClass heroClass, std::uint8_t skill,
+                                                                  const HeroSkillContext& context);
 } // namespace Client::Scenes

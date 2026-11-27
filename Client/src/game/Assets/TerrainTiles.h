@@ -18,10 +18,10 @@
 // pasto0x32..0x34, meteorología0x64..0x68 y el slot0x122 (World/WorldTerrain.h), con sus tamaños,
 // que el terreno lee para las UV. Lo de la CPU (el .map, el .att, las alturas y la luz) es de quien
 // tenga el terreno: una escena (LoadedWorld) o el mapa cargado del juego (WorldMap).
-namespace Client::Scenes
+namespace Client::Assets
 {
 class ModelTextureTable;
-// Si Load sube también el pasto (0x32..0x34, World::WorldGrassTextures): 0x61a560 lo sube en todas las
+// Si Load sube también el pasto (0x32..0x34, Terrain::WorldGrassTextures): 0x61a560 lo sube en todas las
 // escenas, y en MuRet solo lo dibuja el juego.
 enum class GrassTextures : std::uint8_t
 {
@@ -60,11 +60,11 @@ public:
     [[nodiscard]] std::optional<std::uint8_t> LoadedMap() const;
 
     // El tamaño del buffer de cada tile (TerrainView::tiles); en 1 × 1 los que no se subieron.
-    [[nodiscard]] const std::array<World::TileSize, 256>& Sizes() const;
+    [[nodiscard]] const std::array<Terrain::TileSize, 256>& Sizes() const;
 
-    // El alto del buffer de cada pasto subido, de 0x32 a 0x34 (World::TerrainGrass::heights); sin
+    // El alto del buffer de cada pasto subido, de 0x32 a 0x34 (Terrain::TerrainGrass::heights); sin
     // valor los que no se subieron.
-    [[nodiscard]] const std::array<std::optional<float>, World::GrassTextureCount>& GrassHeights() const;
+    [[nodiscard]] const std::array<std::optional<float>, Terrain::GrassTextureCount>& GrassHeights() const;
 
 private:
     [[nodiscard]] Core::Expected<void, std::string>
@@ -74,8 +74,8 @@ private:
     Render::ITextureStore& m_store;
     ModelTextureTable* m_sharedTextures = nullptr;
     std::optional<std::uint8_t> m_map;
-    std::array<World::TileSize, 256> m_sizes{};
-    std::array<std::optional<float>, World::GrassTextureCount> m_grass{};
+    std::array<Terrain::TileSize, 256> m_sizes{};
+    std::array<std::optional<float>, Terrain::GrassTextureCount> m_grass{};
     std::vector<Render::TextureSlot> m_uploaded;
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

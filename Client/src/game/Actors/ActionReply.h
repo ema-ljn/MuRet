@@ -11,12 +11,16 @@ namespace Client::Protocol::Movement
 struct Action;
 }
 
-// La acción de un personaje que llega del GameServer (CL9 hito 1; 04 § La acción, 18; 06 § El chat, "El emote"). El
-// GameServer la reenvía a los del viewport, no a quien la hizo (CGActionRecv, 0x425cd0 del GS): el emote propio se ve
-// por 0x576a60 y el de los demás por acá. *Estático*.
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// La acción de un personaje que llega del GameServer (CL9 hito 1; 04 § La acción, 18; 06 § El chat, "El emote"). El
+// GameServer la reenvía a los del viewport, no a quien la hizo (CGActionRecv, 0x425cd0 del GS): el emote propio se ve
+// por 0x576a60 y el de los demás por acá. *Estático*.
+namespace Client::Actors
+{
 
 // 0x4cb750: el personaje de la clave (0x5110d0, el primero de los 400 vivo; sin ninguno, el registro fantasma 400:
 // Q-C778). Con el caballo oscuro (+0x318 en 0x1c16) no hace nada. Si no, +0x378 (Movement) en 0, el ángulo de la
@@ -30,11 +34,11 @@ struct WorldEntryResources;
 // llamadas a _rand (0x69fd70) que toque la rama (con un jugador, 0x4f4db9 y 0x4f4e07/0x4f4e1c por las armas y
 // 0x4f5192 por el sonido).
 [[nodiscard]] Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
-                                                                 const WorldEntryResources& resources,
+                                                                 const Scenes::WorldEntryResources& resources,
                                                                  const ActionSender& sendAction);
 
 // La tabla de 0x4cb871..0x4cbcc8: de 0x80 a 0x9b, la animación de cada acción, otra para el elfo (+0x1d4 & 7 en 2) de
 // 0x80 a 0x91. Fuera de la tabla, la acción misma. El retrato de las cartas (0x495b56..0x495da1) tiene la misma de 0x80
 // a 0x94.
 [[nodiscard]] std::uint8_t TableAnimationOf(std::uint8_t characterClass, std::uint8_t action);
-} // namespace Client::Scenes
+} // namespace Client::Actors

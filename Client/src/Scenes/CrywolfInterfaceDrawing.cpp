@@ -311,11 +311,11 @@ std::optional<std::size_t> ClassTextOf(std::uint8_t classByte)
 }
 
 // 0x4366dc..0x436b93: los resultados, con 0x723bf9 en 1.
-Result DrawTheResults(GameHudContext& context, CrywolfInterface& ui)
+Result DrawTheResults(GameHudContext& context, Kernel::CrywolfInterface& ui)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.Quad(QuadOf(RankingBoard, 200.0f, 110.0f, 252.0f, 240.0f, 0.984375f, 0.630859375f));
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.dcFont = FontKind::Normal;
     hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};
     for (const Header& header : Headers)
@@ -394,7 +394,7 @@ Result DrawTheResults(GameHudContext& context, CrywolfInterface& ui)
 }
 
 // 0x436dba..0x43707e: la letra del rango, el rótulo y las nueve cifras de 0x723bf0.
-void DrawTheRank(Render::SpriteBatch& sprites, const CrywolfInterface& ui)
+void DrawTheRank(Render::SpriteBatch& sprites, const Kernel::CrywolfInterface& ui)
 {
     sprites.Quad(QuadOf(static_cast<std::uint16_t>(RankLetterSlot + ui.byte723bed), 370.0f, 188.0f, 29.0f, 28.0f,
                         0.90625f, 0.84375f));
@@ -426,7 +426,7 @@ void DrawTheRank(Render::SpriteBatch& sprites, const CrywolfInterface& ui)
 }
 
 // 0x436b97..0x43708c: el cartel del aviso y el rango.
-void DrawTheNotice(Render::SpriteBatch& sprites, CrywolfInterface& ui)
+void DrawTheNotice(Render::SpriteBatch& sprites, Kernel::CrywolfInterface& ui)
 {
     if (ui.message == 1)
     {
@@ -476,7 +476,7 @@ void DrawTheNotice(Render::SpriteBatch& sprites, CrywolfInterface& ui)
 
 // 0x63b0e3(10000): el reloj de timeGetTime de 0x7d3a0e4 y 0x7d3a0e8; vence con inicio + período <= ahora (con signo)
 // y entonces vuelve a empezar en la llamada siguiente.
-bool TipTimerFires(CrywolfInterface& ui, std::uint32_t now)
+bool TipTimerFires(Kernel::CrywolfInterface& ui, std::uint32_t now)
 {
     if (ui.tipTimerRestart != 0)
     {
@@ -493,11 +493,11 @@ bool TipTimerFires(CrywolfInterface& ui, std::uint32_t now)
 }
 
 // 0x430180: los consejos de la etapa 3.
-Result DrawTheTips(GameHudContext& context, CrywolfInterface& ui, std::uint8_t stage)
+Result DrawTheTips(GameHudContext& context, Kernel::CrywolfInterface& ui, std::uint8_t stage)
 {
     if (stage != Protocol::Events::CrywolfReadyStage)
         return {};
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.dcFont = FontKind::Bold;
     context.sprites.SetColor(White);
     hud.textColors.background = TipBackground;
@@ -523,7 +523,7 @@ Result DrawTheTips(GameHudContext& context, CrywolfInterface& ui, std::uint8_t s
 }
 
 // 0x437113..0x4371f5: los cinco altares.
-void DrawTheAltars(Render::SpriteBatch& sprites, const CrywolfInterface& ui)
+void DrawTheAltars(Render::SpriteBatch& sprites, const Kernel::CrywolfInterface& ui)
 {
     for (std::size_t index = 0; index < Altars.size(); ++index)
     {
@@ -542,7 +542,7 @@ void DrawTheAltars(Render::SpriteBatch& sprites, const CrywolfInterface& ui)
 }
 
 // 0x4373f6..0x437490: los minutos que quedan y los segundos que van, con el GetTickCount del frame en las dos lecturas.
-Core::Expected<std::int32_t, std::string> StepTheClock(CrywolfInterface& ui, std::uint32_t now)
+Core::Expected<std::int32_t, std::string> StepTheClock(Kernel::CrywolfInterface& ui, std::uint32_t now)
 {
     std::int32_t minutes = 0;
     const std::int32_t total = ui.dwords723bdc[3];
@@ -576,7 +576,7 @@ Core::Expected<std::int32_t, std::string> StepTheClock(CrywolfInterface& ui, std
 }
 
 // 0x4370a8..0x437564: el estado de la defensa.
-Result DrawTheState(GameHudContext& context, CrywolfInterface& ui, std::uint8_t stage)
+Result DrawTheState(GameHudContext& context, Kernel::CrywolfInterface& ui, std::uint8_t stage)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.Quad(QuadOf(StateFrameSlot, 0.0f, 1.0f, 122.0f, 98.0f, 0.953125f, 0.765625f));
@@ -586,7 +586,7 @@ Result DrawTheState(GameHudContext& context, CrywolfInterface& ui, std::uint8_t 
     sprites.Quad(QuadOf(ui.dword723bd8 == 0 ? NoCountSlot : CountSlot, 4.0f, 81.0f, 15.0f, 15.0f, 0.9375f, 0.9375f));
     sprites.Quad(QuadOf(BottomBarSlot, 240.0f, 396.0f, 156.0f, 36.0f, 0.6015625f, 0.546875f));
     sprites.SetColor(StateColor);
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.dcFont = FontKind::Normal;
     hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};
     auto countFormat = TextOf(context, CountText, "0x4372ba");
@@ -642,8 +642,8 @@ Result DrawTheState(GameHudContext& context, CrywolfInterface& ui, std::uint8_t 
 
 Result DrawTheCrywolfInterface(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    Kernel::CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     if (ui.byte723bf9 == 1)
     {
@@ -658,12 +658,12 @@ Result DrawTheCrywolfInterface(GameHudContext& context)
 
 Core::Expected<void, std::string> DrawTheCrywolfContract(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!InTheCrywolfDefense(runtime))
         return {};
     // 0x436264..0x43626e: antes de mirar la ventana.
     context.hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};
-    CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
+    Kernel::CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
     if (ui.byte723a44 != QuestionWindow && ui.byte723a44 != NoticeWindow)
         return {};
     Render::SpriteBatch& sprites = context.sprites;

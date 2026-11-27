@@ -36,11 +36,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};
@@ -212,9 +212,9 @@ protected:
     SkillTooltipTest()
     {
         sprites.Begin(Screen640);
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         // El ataque (0x5b8b80): las manos vacías y los dos pares iguales.
-        for (Client::World::ItemState& item : own.equipment)
+        for (Client::Kernel::ItemState& item : own.equipment)
             item.id = 0xffff;
         own.word50 = 6;
         own.word54 = 6;
@@ -238,8 +238,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = Hero();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::ActorState& hero = Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -254,7 +254,7 @@ protected:
                               .skills = withSkills ? &skills : nullptr};
     }
 
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
@@ -524,7 +524,7 @@ TEST_F(SkillTooltipTest, TheStatDamageAddsTheStatsOfEachClass)
 // La 0x3c con la opción 0x42 en el lugar 0 y algo en la mano derecha del héroe se llama como el texto 1200.
 TEST_F(SkillTooltipTest, TheForceSkillTakesTheWaveNameWithItsOption)
 {
-    Client::World::ItemState& right = world.OwnCharacter().equipment[0];
+    Client::Kernel::ItemState& right = world.OwnCharacter().equipment[0];
     right.optionCount = 2;
     right.optionBytes[0] = 0x10;
     right.optionBytes[1] = 0x42;

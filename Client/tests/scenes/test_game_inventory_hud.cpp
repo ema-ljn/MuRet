@@ -58,13 +58,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -171,7 +171,7 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
         // Como lo deja la entrada al mundo y un F3 10 sin ítems.
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.ClearEquipmentForEntry();
         own.life = 100;
         own.maxLife = 100;
@@ -184,8 +184,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = world.Hero();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::ActorState& hero = world.Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -240,7 +240,7 @@ protected:
         {
             for (std::size_t x = 0; x < width; ++x)
             {
-                ItemState& item = world.Inventory().cells[origin + y * Client::Scenes::InventoryColumns + x];
+                ItemState& item = world.Inventory().cells[origin + y * Client::Kernel::InventoryColumns + x];
                 item.id = type;
                 item.durability = durability;
                 item.scalar1Low = level;
@@ -317,8 +317,8 @@ protected:
     UiModels uiModels;
     Client::Render::ModelBatch models;
     Client::Scenes::FaunaDrawCarry poseCarry;
-    Client::Scenes::ItemSpecialDrawContext special;
-    Client::Scenes::ItemDrawContext itemContext;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemDrawContext itemContext;
     std::vector<std::string> events;
 };
 
@@ -839,7 +839,7 @@ TEST(DialogItemTest, TheDialogAndItsWarningChooseTheItem)
 // nada.
 TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
 {
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.cursorItem.id = 0x0c0e;
     runtime.cursorItemCount = 0;
     runtime.dialogs.current = 0x98;
@@ -874,7 +874,7 @@ TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
 // 40 × 60. El 2D de antes queda debajo y el pase de los ítems de la UI vuelve a su far de 2.000.
 TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
 {
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.cursorItem.id = 0x000e;
     runtime.dialogs.current = 0x98;
     runtime.social.trade.warningKind = 1;
@@ -908,7 +908,7 @@ TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
 // 0x633110 en el diálogo. Con el HUD entero, los rand() del 0x0c0e no salen.
 TEST_F(GameInventoryHudTest, TheCursorItemWaitsWhileItsDialogIsOpen)
 {
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.cursorItem.id = 0x0c0e;
     runtime.cursorItemCount = 1;
     struct Case

@@ -41,7 +41,7 @@ constexpr std::int32_t NoKey = -1;
 constexpr std::int32_t NoMap = -1;
 
 // 0x61eef0: objetos, pools, ítems del piso y personajes; conserva terreno y héroe publicado.
-void ReleaseTheGame(WorldState& world)
+void ReleaseTheGame(Kernel::WorldState& world)
 {
     ReleaseTheMapObjects(world.Map());
     if (world.Runtime().audio != nullptr)
@@ -56,7 +56,7 @@ void ReleaseTheGame(WorldState& world)
 }
 
 // 0x42fdc0. Con 2 precede a 0x61eef0; con 1 va después.
-void ResetTheInterface(WorldRuntime& runtime)
+void ResetTheInterface(Kernel::WorldRuntime& runtime)
 {
     // Los globales de la interfaz de Crywolf a su valor inicial, el estado (0x42fe32), la etapa (0x723c05) y
     // 0x723c08 en 0 y el NPC elegido de la llegada (0x6c8e54, 0x42fdf8) en −1 (CL9 hito 11).
@@ -66,8 +66,8 @@ void ResetTheInterface(WorldRuntime& runtime)
 // 0x4c2480: los callbacks de red observan el estado en sus dos sitios nativos.
 Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     ResetSiegeClock(runtime);             // 0x4c2480..0x4c249c: conserva hora, minuto y tick.
     runtime.events.soccer.active = false; // 0x4c24e1.
     runtime.ui.field5767954 = 0;
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& re
         // 0x4c2575..0x4c264b: cierre independiente de 3.848 rand() cuando no quedan accesos.
         const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
                                            Models::OwnRecordCloseRandoms);
-        OwnCharacterRecord& own = world.OwnCharacter();
+        Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.speedAdjustBits = 0;
         own.word3e = 0;
         own.word40 = 0;
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> RestoreTheCursor(const WorldEntryResources& re
     return ReturnTheCursorItem({.world = resources.world, .random = resources.cloth.random, .services = services});
 }
 
-void StopAudioForSceneReturn(WorldRuntime& runtime)
+void StopAudioForSceneReturn(Kernel::WorldRuntime& runtime)
 {
     if (runtime.audio == nullptr)
         return;

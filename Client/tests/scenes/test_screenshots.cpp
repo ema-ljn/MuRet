@@ -77,7 +77,7 @@ public:
 class FakeScreenReader final : public IScreenReader
 {
 public:
-    FakeScreenReader(const Client::Scenes::WorldState& world, const RecordingFrameTarget* target)
+    FakeScreenReader(const Client::Kernel::WorldState& world, const RecordingFrameTarget* target)
         : m_world(world), m_target(target)
     {
     }
@@ -101,7 +101,7 @@ public:
     std::vector<Read> reads;
 
 private:
-    const Client::Scenes::WorldState& m_world;
+    const Client::Kernel::WorldState& m_world;
     const RecordingFrameTarget* m_target;
 };
 
@@ -111,12 +111,12 @@ struct Shooting
 {
 private:
     // El caso con dos capturas no debe reservar dos WorldState en la pila de Windows.
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
 
 public:
     Shooting() : texts(Client::Tests::MakeTextTable({{ScreenshotText, "Guardada %s"}, {FirstGroupText, "Grupo Uno"}}))
     {
-        Client::Scenes::ActorState& hero = world.Hero();
+        Client::Kernel::ActorState& hero = world.Hero();
         const std::string_view name = "Rolo";
         std::ranges::transform(name, hero.name.begin(), [](char c) { return static_cast<std::byte>(c); });
     }
@@ -156,7 +156,7 @@ public:
         return lines;
     }
 
-    Client::Scenes::WorldState& world = *m_world;
+    Client::Kernel::WorldState& world = *m_world;
     LetterMeasure measure;
     Client::Tables::TextTable texts;
     TemporaryFolder folder{"screenshots"};

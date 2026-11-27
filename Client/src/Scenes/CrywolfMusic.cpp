@@ -64,7 +64,7 @@ void StepTheStageTrack(Audio::Music& music, Audio::IPlayback* playback, std::uin
 }
 } // namespace
 
-void StepTheCrywolfMusic(WorldRuntime& runtime)
+void StepTheCrywolfMusic(Kernel::WorldRuntime& runtime)
 {
     if (runtime.map == CrywolfMap)
     {

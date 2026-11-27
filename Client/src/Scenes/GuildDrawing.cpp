@@ -221,7 +221,7 @@ namespace
 Core::Expected<void, std::string> DrawTheGuildWarScore(GameHudContext& context, UI::PanelRegistry& panels)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const GuildState& guild = world.Runtime().guild;
     const auto heroGuild = static_cast<std::int16_t>(world.Hero().word1f2);
     if (guild.warOn == 0 || heroGuild == NoGuildIndex)

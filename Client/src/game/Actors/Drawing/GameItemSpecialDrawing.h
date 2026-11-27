@@ -32,7 +32,7 @@ class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Models
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 
@@ -58,4 +58,4 @@ struct ItemSpecialDrawContext
 DrawSpecialItemMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
                       const ItemSpecialDrawContext& context = {});
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

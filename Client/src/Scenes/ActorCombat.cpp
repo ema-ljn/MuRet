@@ -67,16 +67,16 @@ bool IsMelee(int model)
 {
     return model >= 0x212 && model < 0x812;
 }
-bool HasModelSoundSubtype(const ActorState& actor)
+bool HasModelSoundSubtype(const Kernel::ActorState& actor)
 {
     return actor.subtype >= 0xd1 && actor.subtype <= 0xd3;
 }
 // 0x4f50b8 y 0x4f5a09 miran C3 después de FCOMP con 0: igual a 0 o unordered.
-bool FrameIsZero(const ActorState& actor)
+bool FrameIsZero(const Kernel::ActorState& actor)
 {
     return !(actor.animation.frame < 0.0f || actor.animation.frame > 0.0f);
 }
-bool IsHero(const ActorState& actor, const WorldState& world)
+bool IsHero(const Kernel::ActorState& actor, const Kernel::WorldState& world)
 {
     return &actor == &world.Hero();
 }
@@ -92,7 +92,7 @@ Core::Expected<bool, std::string> IsMarked(int model, const ActorCombatContext& 
 }
 
 // 0x4ea030, con el esqueleto del modelo del personaje.
-Core::Expected<void, std::string> SetTheAction(ActorState& actor, const ActorCombatContext& context,
+Core::Expected<void, std::string> SetTheAction(Kernel::ActorState& actor, const ActorCombatContext& context,
                                                std::uint8_t action)
 {
     const Models::Skeleton* skeleton = nullptr;
@@ -143,7 +143,7 @@ Core::Expected<std::uint8_t, std::string> RideAttack(int right, int left, const 
 }
 
 // 0x4f4c63..0x4f4f2f: a pie, por las armas. Las dos que sortean sacan rand() & 1.
-Core::Expected<std::uint8_t, std::string> GroundAttack(const ActorState& actor, int right, int left,
+Core::Expected<std::uint8_t, std::string> GroundAttack(const Kernel::ActorState& actor, int right, int left,
                                                        const ActorCombatContext& context)
 {
     const std::uint8_t count = actor.attackCount;
@@ -180,7 +180,7 @@ Core::Expected<std::uint8_t, std::string> GroundAttack(const ActorState& actor, 
         return std::uint8_t{0x2a};
     if (right >= 0x812 && right < 0xa12)
         return static_cast<std::uint8_t>(count % 3 + 0x2b);
-    const bool noWings = actor.wings.model == NoItemModel;
+    const bool noWings = actor.wings.model == Kernel::NoItemModel;
     if (IsLeftGroup4(left))
         return noWings ? std::uint8_t{0x2e} : std::uint8_t{0x30};
     if (IsRightGroup4(right))
@@ -188,7 +188,7 @@ Core::Expected<std::uint8_t, std::string> GroundAttack(const ActorState& actor, 
     return std::uint8_t{0x22};
 }
 
-Core::Expected<void, std::string> PlayerAttack(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> PlayerAttack(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     // 0x4f4a2a: 0x4f3f80, las velocidades de Player.bmd desde el registro propio (3848 rand() al cerrarlo).
     RefreshCombatActionSpeeds(context.world, context.random);
@@ -246,7 +246,7 @@ constexpr std::uint8_t SecondAttack = 4;
 // 0x43a2f0: los monstruos de Kalima, en cualquier mapa. Lee +0x38e (y cierra su entrada) antes de elegir la acción;
 // los del último grupo sacan rand() & 1 (0x43a5d4 y 0x43a5fb, con el AND con signo de un rand() que no es negativo).
 // Devuelve si atendió (AL en 1): todos los de la tabla, aunque no pongan acción (0x43a5ce).
-Core::Expected<bool, std::string> AttackOfKalima(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<bool, std::string> AttackOfKalima(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     const std::uint16_t kind = actor.word376;
     std::optional<std::uint8_t> action;
@@ -289,7 +289,7 @@ Core::Expected<bool, std::string> AttackOfKalima(ActorState& actor, const ActorC
 
 // 0x443750: el 0x123 del mapa 0x1f (0x43ff10). Con +0x38e abierto, '2' (0x32) la 3 y otro la 4 (0x44382a..0x443897);
 // después cierra la entrada (0x443946..0x443974). Atiende siempre.
-Core::Expected<bool, std::string> AttackOfTheTrials(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<bool, std::string> AttackOfTheTrials(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     constexpr std::int32_t TrialsMap = Maps::LandOfTrialsMap;
     constexpr std::uint16_t TrialsKind = 0x123;
@@ -306,7 +306,7 @@ Core::Expected<bool, std::string> AttackOfTheTrials(ActorState& actor, const Act
 // 0x4f92f0: con +0x42e abierto, busca su valor (sin signo) entre las cinco skills de +0x376 en MonsterSkill.bmd
 // (0x7437670 + +0x376 · 0x18); en el lugar 0 a 4, las acciones 3, 4, 8, 9 y 0xb (la tabla de 0x4f9564). Después deja
 // +0x42e en 0xff (0x4f9476) y cierra la entrada. Devuelve si la encontró.
-Core::Expected<bool, std::string> AttackFromTheSkillTable(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<bool, std::string> AttackFromTheSkillTable(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     constexpr std::array<std::uint8_t, Tables::MonsterSkillCount> SkillActions{3, 4, 8, 9, 0xb};
     constexpr std::uint8_t UsedSkill = 0xff;
@@ -326,7 +326,7 @@ Core::Expected<bool, std::string> AttackFromTheSkillTable(ActorState& actor, con
 
 // 0x429270 (0x425070: los mapas 0x21 y 0x36) con 0x130, 0x131 y 0x135, y 0x437580 (0x4303c0: el 0x22, Crywolf) con
 // 0x154, 0x155, 0x158, 0x159 y 0x15d (la tabla de 0x4375cc): los dos llaman a 0x4f92f0 y devuelven lo suyo.
-Core::Expected<bool, std::string> AttackOfTheSkillMaps(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<bool, std::string> AttackOfTheSkillMaps(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     constexpr std::array<std::uint16_t, 3> DoppelgangerKinds{0x130, 0x131, 0x135};
     constexpr std::array<std::uint16_t, 5> CrywolfKinds{0x154, 0x155, 0x158, 0x159, 0x15d};
@@ -340,7 +340,7 @@ Core::Expected<bool, std::string> AttackOfTheSkillMaps(ActorState& actor, const 
 
 // 0x4f5034..0x4f50b2: los cinco ayudantes, en su orden y todos (0x43a2f0, 0x42dcb0, 0x443750, 0x429270 y 0x437580), y
 // la 3 o la 4 por +0x38f si ninguno atendió (BL en 1). 0x437580 en 1 salta directo a 0x4f50b8.
-Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> MonsterAttack(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     auto kalima = AttackOfKalima(actor, context);
     if (!kalima.HasValue())
@@ -369,7 +369,7 @@ Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCo
 }
 
 // 0x4f50cf..0x4f51bb: el sonido del jugador por el arma.
-void PlayerAttackSound(const ActorState& actor, const ActorCombatContext& context)
+void PlayerAttackSound(const Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     const auto requestSound = [&actor, &context](std::int32_t id)
     { context.world.Runtime().RequestSound(id, actor.position); };
@@ -388,21 +388,21 @@ void PlayerAttackSound(const ActorState& actor, const ActorCombatContext& contex
 }
 
 // 0x4f5acb..0x4f5ad8: con el subtipo 9, 5 más (los otros sonidos de la tabla, en DrawModelSound).
-std::int32_t SubtypeOffset(const ActorState& actor)
+std::int32_t SubtypeOffset(const Kernel::ActorState& actor)
 {
     constexpr std::int32_t NinthSubtype = 9;
     return actor.subtype == NinthSubtype ? 5 : 0;
 }
 
 // La tabla del modelo: la del contexto o, sin ella, la que escribió 0x612c80 (WorldRuntime::modelSounds).
-std::optional<Sound::ModelSounds> SoundsOf(const ActorState& actor, const ActorCombatContext& context)
+std::optional<Sound::ModelSounds> SoundsOf(const Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     if (context.modelSounds)
         return context.modelSounds(actor.type);
     return Sound::WrittenSounds(context.world.Runtime().modelSounds, actor.type);
 }
 
-void AttackSound(const ActorState& actor, const ActorCombatContext& context)
+void AttackSound(const Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     if (!FrameIsZero(actor))
         return;
@@ -424,7 +424,7 @@ void AttackSound(const ActorState& actor, const ActorCombatContext& context)
 }
 
 // 0x4f5a09..0x4f5ae8: el sonido de morir con el frame en 0.
-void DeathSound(const ActorState& actor, const ActorCombatContext& context)
+void DeathSound(const Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     // 0x4f5a8b y 0x4f5ae8 reciben el actor como origen.
     const auto requestSound = [&](std::int32_t id) { context.world.Runtime().RequestSound(id, actor.position); };
@@ -457,7 +457,7 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
 // Los servicios de World::WizardModelEffects para 0x4f4a10 y 0x4f5660: las partículas y el terreno del mundo.
 World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     return WizardEffectServicesOf(world, context.random,
                                   WizardSceneParts{.particles = &world.Particles(), .terrain = &world.Map().terrain});
 }
@@ -465,7 +465,7 @@ World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
 // 0x4f589d..0x4f58f6 (el jugador) y 0x4f5938..0x4f5991 (el 0x170): 0x518cf0(0xd5, +0x10, +0x1c, +0xf4, 0, 0, −1, …)
 // una vez y el 0xd6 diez, sin dueño: los huesos que saltan, cada uno con sus cinco rand() (0x51b72b). Con la tabla
 // llena, nada y sin rand().
-Core::Expected<void, std::string> ScatterTheBones(ActorState& actor, const ActorCombatContext& context,
+Core::Expected<void, std::string> ScatterTheBones(Kernel::ActorState& actor, const ActorCombatContext& context,
                                                   std::uint32_t firstCall, std::uint32_t boneCall)
 {
     constexpr int Bones = 10; // [ebp-0x8]
@@ -493,7 +493,7 @@ ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
                               .items = resources.items};
 }
 
-Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     switch (actor.type)
     {
@@ -551,7 +551,7 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
     return {};
 }
 
-Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> SetActorDie(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     // 0x4f5682..0x4f587b: el héroe abre el registro propio, pone la vida (+0x22) en 0 y lo cierra.
     if (IsHero(actor, context.world))

@@ -264,7 +264,7 @@ bool InBox(const GameUiContext& context, std::int32_t left, std::int32_t top, st
 }
 
 // Lo que dejan los botones: MouseUpdateTime (0x77f3b10) en 0, su máximo en 6 y el sonido.
-void PressTheButton(WorldRuntime& runtime, bool sound = true)
+void PressTheButton(Kernel::WorldRuntime& runtime, bool sound = true)
 {
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
@@ -273,7 +273,7 @@ void PressTheButton(WorldRuntime& runtime, bool sound = true)
 }
 
 // 0x62da70 y 0x628280: el que espera pasa a abierto.
-void CloseTheDialog(WorldRuntime& runtime, bool sound = true)
+void CloseTheDialog(Kernel::WorldRuntime& runtime, bool sound = true)
 {
     runtime.dialogs.current = runtime.dialogs.pending;
     runtime.dialogs.pending = 0;
@@ -338,7 +338,7 @@ Core::Expected<void, std::string> RequestTheLogout(const GameUiContext& context,
 
 Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& context, std::int32_t button)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::DialogState& dialogs = runtime.dialogs;
     switch (button)
     {
@@ -397,7 +397,7 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
 // 0x623f90..0x62410b: el menú de Esc (el diálogo 0x6e) en la escena 5, con cinco botones.
 Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::DialogState& dialogs = runtime.dialogs;
     if (runtime.cursorItemCount > 0)
         return {};
@@ -436,7 +436,7 @@ std::int32_t DirectSoundVolume(std::int32_t volume)
 // 0x62568a..0x625804: la fila del volumen.
 void StepTheVolume(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     bool& click = runtime.movement.pendingClick;
     if (!InBox(context, OptionsLeft, VolumeRowY, OptionsWidth, OptionsRowHeight))
@@ -494,7 +494,7 @@ void StepTheVolume(const GameUiContext& context)
 // 0x625563..0x62590f: las opciones (el diálogo 0x93).
 Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
     bool& click = runtime.movement.pendingClick;
@@ -546,7 +546,7 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
 // Dialog.bmd de 0 o más, 0x632f70 lo muestra.
 Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::DialogBoxState& box = runtime.dialogBox;
     const std::int32_t answersTop =
         UI::DialogTextTop(box, UI::AnswersDialog) + box.lineCount * UI::DialogLineStep; // 0x62d943..0x62d94a
@@ -587,7 +587,7 @@ Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
 // 0x62d756..0x62da57: las cajas con botones; Enter o un botón las cierran, salvo el 0x8d, que sigue en sus respuestas.
 Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::DialogBoxState& box = runtime.dialogBox;
     const UI::Point mouse{context.mouseX, context.mouseY};
     const std::int32_t selected =
@@ -616,7 +616,7 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
 // dibujo pone los botones 10 píxeles más abajo (Q-C945).
 Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.movement.pendingClick)
         return {};
     for (std::int32_t mode = 0; mode < MixModes; ++mode)
@@ -640,7 +640,7 @@ Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& conte
 // zen va a 0x57678ac y en el C1 08 3A con el XOR32, sin C3 (0x626b2a..0x626eaf); y el 0x73 se cierra.
 Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     const auto typed = static_cast<std::uint32_t>(runtime.social.typedMoney);
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -674,7 +674,7 @@ Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& contex
 // el botón.
 Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     SocialState& social = runtime.social;
     if (social.typedMoney > MaxTypedMoney)
     {
@@ -704,7 +704,7 @@ Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
 // 0x6263df..0x62645a y 0x62825c..0x6282c8: el OK genérico.
 Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t id = runtime.dialogs.current;
     const bool enter = runtime.ui.enterPressed;
     runtime.ui.enterPressed = false;
@@ -750,7 +750,7 @@ bool OverTheWarningButton(const GameUiContext& context, const UI::DialogButton& 
 // 0x62841e). Devuelve lo elegido en cada uno: 0 el sí, 1 el no, 2 el tercero del 0xa8 y −1 nada.
 std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, bool escape)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::DialogBoxState& box = runtime.dialogBox;
     const std::int32_t id = runtime.dialogs.current;
     const std::int32_t top = id == UI::ServerTimeDialog ? ServerTimeButtonsY : WarningButtonsY;
@@ -806,7 +806,7 @@ Core::Expected<void, std::string> SendTheAnswer(const GameUiContext& context, Pr
 // 0x628521..0x628ac7: el 0x9a. El no cierra; el sí, con el ítem de los diálogos, manda el AF 01 y cierra.
 Core::Expected<void, std::string> AnswerTheChaosCastle(const GameUiContext& context, std::int32_t entry)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (entry == 1)
     {
         CloseTheDialog(runtime);
@@ -829,7 +829,7 @@ Core::Expected<void, std::string> AnswerTheChaosCastle(const GameUiContext& cont
 // el ítem.
 Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, std::int32_t entry)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (entry == ThirdChoice)
     {
         runtime.dialogs.current = runtime.dialogs.pending;
@@ -846,7 +846,7 @@ Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, st
 // 0x62a42b..0x62a771: el 0xaa. El no cierra; el sí manda el D0 00 y cierra.
 Core::Expected<void, std::string> AnswerTheNotice(const GameUiContext& context, std::int32_t entry)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (entry == 0)
     {
         if (auto sent = SendTheAnswer(context, Protocol::Npc::WriteNoticeYes(), "0x62a65a: el C1 04 D0 00");
@@ -862,7 +862,7 @@ Core::Expected<void, std::string> AnswerTheNotice(const GameUiContext& context, 
 // y el sonido; con los dos, los dos en ese orden.
 Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, bool escape)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t id = runtime.dialogs.current;
     const std::array<std::int32_t, 2> chosen = StepTheWarningButtons(context, escape);
     for (const std::int32_t entry : chosen)
@@ -950,7 +950,7 @@ Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int3
     auto requests = RequestsOf(context, where);
     if (!requests.HasValue())
         return Core::Unexpected(std::move(requests).Error());
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (id == PartyRequestDialog)
     {
         context.random.Discard(C3Randoms);
@@ -978,7 +978,7 @@ Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
     auto requests = RequestsOf(context, "0x62a878");
     if (!requests.HasValue())
         return Core::Unexpected(std::move(requests).Error());
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     UI::ReadTheNumberField(input, input.messageBuffer);
     UI::ClearTheNumberField(input);
@@ -1049,7 +1049,7 @@ Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::i
 // también entra con Esc. Con otro caso de la tabla del no, su tramo corta; sin caso, solo el cierre.
 Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
     std::int32_t id = runtime.dialogs.current;
     const auto inButton = [&context](std::int32_t left, std::int32_t width)
@@ -1093,7 +1093,7 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
 // 0x62601e..0x6260d0: bordes inclusivos, sin sonido, MouseUpdateTime ni consumo del clic.
 void StepTheWarOutcome(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     constexpr std::int32_t Left = 0x11d;
     constexpr std::int32_t Right = 0x163;
     constexpr std::int32_t Top = 0x106;
@@ -1163,17 +1163,17 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
     return Core::Unexpected(std::format("{}: el diálogo {:#x} es de la {}", route.address, id, route.wave));
 }
 
-Core::Expected<Protocol::Player::OptionBody, std::string> OptionBodyOf(WorldState& world, Crt::CrtRandom& random,
-                                                                       std::optional<std::uint8_t> chosenSlot)
+Core::Expected<Protocol::Player::OptionBody, std::string>
+OptionBodyOf(Kernel::WorldState& world, Crt::CrtRandom& random, std::optional<std::uint8_t> chosenSlot)
 {
-    WorldRuntime& runtime = world.Runtime();
-    if (!chosenSlot || *chosenSlot >= OwnSkillKeyPlaces)
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    if (!chosenSlot || *chosenSlot >= Kernel::OwnSkillKeyPlaces)
         return Core::Unexpected(std::string("0x61c2c6: sin elegido (0x6d5edc), el F3 30 lee fuera de las teclas de "
                                             "las skills (+0x16c del registro propio)"));
     Protocol::Player::OptionBody body{};
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        const OwnCharacterRecord& record = world.OwnCharacter();
+        const Kernel::OwnCharacterRecord& record = world.OwnCharacter();
         const auto& keys = record.skillKeys[*chosenSlot];
         for (std::size_t at = 0; at < OptionKeyPlaces; ++at)
         {
@@ -1184,7 +1184,7 @@ Core::Expected<Protocol::Player::OptionBody, std::string> OptionBodyOf(WorldStat
                 return Core::Unexpected(std::format("0x61c2e8: la tecla {:#x} del lugar {:#x} escribe fuera de los "
                                                     "24 bytes de la pila de 0x61c210",
                                                     key, at));
-            body[key] = OwnSkillByte(record, at);
+            body[key] = Kernel::OwnSkillByte(record, at);
         }
     }
     const UI::GameUiState& ui = runtime.ui;

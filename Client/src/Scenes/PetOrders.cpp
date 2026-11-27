@@ -27,9 +27,9 @@ void SetRavenState(DarkSpirit& spirit, std::uint8_t state)
 }
 } // namespace
 
-void ApplyPetOrder(const Protocol::Pets::PetOrder& order, WorldState& world)
+void ApplyPetOrder(const Protocol::Pets::PetOrder& order, Kernel::WorldState& world)
 {
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     if (!hero.darkSpirit)
         return;
     DarkSpirit& spirit = *hero.darkSpirit;
@@ -45,8 +45,8 @@ void ApplyPetOrder(const Protocol::Pets::PetOrder& order, WorldState& world)
 
 void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& owner = world.Actors()[ActorWithKey(world, attack.owner)];
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& owner = world.Actors()[ActorWithKey(world, attack.owner)];
     if (!owner.darkSpirit)
         return;
     DarkSpirit& spirit = *owner.darkSpirit;

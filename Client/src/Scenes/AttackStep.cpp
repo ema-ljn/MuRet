@@ -65,16 +65,16 @@ template <typename T, std::size_t N> bool IsOneOf(const std::array<T, N>& values
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).
-std::int32_t TypeOf(const World::ItemState& item)
+std::int32_t TypeOf(const Kernel::ItemState& item)
 {
     return std::bit_cast<std::int16_t>(item.id);
 }
 
 // 0x4f97b0(c, o). 0x4f9780(o) (0x4f97bd: el 0x20a con la 0x25 o la 0x26) no saca rand() y solo lo leen los casos.
-Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::size_t slot,
-                                                      const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheAttackFrames(Kernel::ActorState& actor, std::size_t slot,
+                                                      const Actors::CharacterStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x4f97cf..0x4f987a: +0x38e, abierto y cerrado en línea.
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
     // 0x4f987d.
@@ -136,8 +136,8 @@ Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::si
 }
 
 // 0x4f5b70: lo del ataque que corre mientras sube +0x381.
-Core::Expected<void, std::string> StepTheAttackHelpers(ActorState& actor, std::size_t slot,
-                                                       const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheAttackHelpers(Kernel::ActorState& actor, std::size_t slot,
+                                                       const Actors::CharacterStepContext& context)
 {
     // 0x4f5b97: un rand() sin condición, que no lee nadie.
     static_cast<void>(context.random.Next());
@@ -146,8 +146,8 @@ Core::Expected<void, std::string> StepTheAttackHelpers(ActorState& actor, std::s
 }
 
 // 0x502b12..0x5037d5: sin blanco (+0x3a4 en −1).
-Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context)
+Core::Expected<void, std::string> StrikeNothing(Kernel::ActorState& actor, std::size_t slot,
+                                                const Actors::CharacterStepContext& context)
 {
     // 0x502b12..0x502ef9: +0x38e; con 0x18, la bandera (el quinto argumento de 0x53e2b0) en 1.
     constexpr std::uint8_t FlaggedSkill = 0x18;
@@ -171,17 +171,17 @@ Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t s
 
 // 0x505224..0x50534a: el sonido de pegar, por las manos del registro propio (sea quien sea el que pega) o el ítem del
 // cursor en la suya.
-void PlayTheStrikeSound(const ActorState& actor, const CharacterStepContext& context)
+void PlayTheStrikeSound(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x50522f y 0x50534a: 0x4e79a0 y 0x40f370, los 3.848 rand() si el cierre lo deja en 0.
     const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const auto& equipment = context.world.OwnCharacter().equipment;
-    const World::ItemState* right = &equipment[0];
-    const World::ItemState* left = &equipment[1];
+    const Kernel::ItemState* right = &equipment[0];
+    const Kernel::ItemState* left = &equipment[1];
     // 0x505258..0x5052ab: [0x7879fbc] > 0 (JLE) y [0x78ab9b8] == 0x78a9bb0; el lugar [0x78a6758], 0 la derecha y 1
     // la izquierda.
-    if (runtime.cursorItemCount > 0 && runtime.cursorGrid == CursorGrid::Inventory)
+    if (runtime.cursorItemCount > 0 && runtime.cursorGrid == Kernel::CursorGrid::Inventory)
     {
         if (runtime.slot78a6758 == 0)
             right = &runtime.cursorItem;
@@ -202,8 +202,8 @@ void PlayTheStrikeSound(const ActorState& actor, const CharacterStepContext& con
 // 0x5040df..0x5041a4: diez veces, tres rand() & 63 (la x y la y del blanco − 32 y su z + 0x5a, cada suma del fild en la
 // x87) y 0x53fe70(0x5e4, punto, o+0x1c, [EBP − 0x30], 0, 1,0f, 0). La luz del local la pisa la creación de la 5e4
 // (0x542be9); con el pool lleno, la 5e4 no saca sus cuatro rand() y las tres del punto salen igual.
-Core::Expected<void, std::string> BleedOnTheTarget(const ActorState& actor, const ActorState& victim,
-                                                   std::int16_t target, const CharacterStepContext& context)
+Core::Expected<void, std::string> BleedOnTheTarget(const Kernel::ActorState& actor, const Kernel::ActorState& victim,
+                                                   std::int16_t target, const Actors::CharacterStepContext& context)
 {
     constexpr int Drops = 10;
     constexpr int Spread = 63;
@@ -232,10 +232,10 @@ Core::Expected<void, std::string> BleedOnTheTarget(const ActorState& actor, cons
 }
 
 // 0x5037dd..0x50534a: con blanco.
-Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t slot, std::int16_t target,
-                                                  const CharacterStepContext& context, const glm::vec3& light)
+Core::Expected<void, std::string> StrikeTheTarget(Kernel::ActorState& actor, std::size_t slot, std::int16_t target,
+                                                  const Actors::CharacterStepContext& context, const glm::vec3& light)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     auto actors = context.world.Actors();
     // 0x5037e0..0x5037f2: el lugar del pool, sin mirar el rango.
     if (target < 0 || static_cast<std::size_t>(target) >= actors.size())
@@ -243,7 +243,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         return Core::Unexpected(
             std::format("0x5037e0: el blanco {} de +0x3a4 del lugar {} está fuera del pool", target, slot));
     }
-    ActorState& victim = actors[static_cast<std::size_t>(target)];
+    Kernel::ActorState& victim = actors[static_cast<std::size_t>(target)];
     if (actor.type == PlayerType && IsOneOf(RangedActions, actor.animation.action))
     {
         // 0x5038a1..0x504043: dos lecturas de +0x38e; la primera es la skill de 0x53e2b0 (0x503ac7) y la segunda va a
@@ -368,10 +368,10 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context, const glm::vec3& light)
+Core::Expected<void, std::string> StepTheAttack(Kernel::ActorState& actor, std::size_t slot,
+                                                const Actors::CharacterStepContext& context, const glm::vec3& light)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x4fdb9a..0x4fdbd4.
     if (actor.byte381 != 0)
     {

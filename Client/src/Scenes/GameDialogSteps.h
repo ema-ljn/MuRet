@@ -18,9 +18,13 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct GameUiContext;
 
 enum class DialogStep : std::uint8_t
@@ -84,5 +88,5 @@ struct DialogRoute
 // en [14] los renglones del registro / 3 (0 con su lugar en 0) en el nibble alto y, en el bajo, la transparencia · 10
 // truncada (0x69fd3c). Sin elegido, o con una tecla de 24 o más (pisaría la pila), corta con error.
 [[nodiscard]] Core::Expected<Protocol::Player::OptionBody, std::string>
-OptionBodyOf(WorldState& world, Crt::CrtRandom& random, std::optional<std::uint8_t> chosenSlot);
+OptionBodyOf(Kernel::WorldState& world, Crt::CrtRandom& random, std::optional<std::uint8_t> chosenSlot);
 } // namespace Client::Scenes

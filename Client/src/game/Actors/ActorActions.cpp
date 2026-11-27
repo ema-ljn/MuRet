@@ -26,7 +26,7 @@
 #include <string>
 
 // 0x4f2250, cotejado con el PE c32bbd5f (1.607 instrucciones, 5.481 bytes): 06, "Caminar".
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -138,7 +138,7 @@ bool IsFlyingMap(std::int32_t map)
     return map == AtlansMap || (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
 }
 
-std::uint8_t UnarmedFor(const ActorState& actor)
+std::uint8_t UnarmedFor(const Kernel::ActorState& actor)
 {
     return Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf ? UnarmedElfStand : UnarmedStand;
 }
@@ -170,12 +170,12 @@ Core::Expected<std::uint8_t, std::string> ByMark(int right, const Tables::ItemTa
 }
 
 // 0x4f2bf6..0x4f2d82: con los pies en el piso, por las armas.
-Core::Expected<std::uint8_t, std::string> GroundStand(const ActorState& actor, std::int32_t map,
+Core::Expected<std::uint8_t, std::string> GroundStand(const Kernel::ActorState& actor, std::int32_t map,
                                                       const Tables::ItemTable* items)
 {
     const int right = Signed(actor.hands[0].model);
     const int left = Signed(actor.hands[1].model);
-    const bool unarmed = actor.hands[0].model == NoItemModel && actor.hands[1].model == NoItemModel;
+    const bool unarmed = actor.hands[0].model == Kernel::NoItemModel && actor.hands[1].model == Kernel::NoItemModel;
     const bool unarmedSafeMap = map < FirstArmedSafeMap || map > LastArmedSafeMap;
     if (unarmed || (actor.safeZone != 0 && unarmedSafeMap))
     {
@@ -201,10 +201,10 @@ Core::Expected<std::uint8_t, std::string> GroundStand(const ActorState& actor, s
 }
 
 // 0x4f228c..0x4f22f6: Fenrir fuera de la zona segura, por las dos manos.
-std::uint8_t FenrirStand(const ActorState& actor)
+std::uint8_t FenrirStand(const Kernel::ActorState& actor)
 {
-    const bool right = actor.hands[0].model != NoItemModel;
-    const bool left = actor.hands[1].model != NoItemModel;
+    const bool right = actor.hands[0].model != Kernel::NoItemModel;
+    const bool left = actor.hands[1].model != Kernel::NoItemModel;
     if (right)
     {
         return left ? FenrirBothHandsStand : FenrirRightHandStand;
@@ -214,10 +214,10 @@ std::uint8_t FenrirStand(const ActorState& actor)
 
 // 0x4f2365..0x4f23dd: vuela con alas fuera de la zona segura o con +0x376 en 0x101. En los mapas de
 // vuelo de la escena 5 decide además la celda del TerrainWall, que MuRet no tiene en el juego.
-Core::Expected<bool, std::string> IsFlying(const ActorState& actor, const ActorStopContext& context)
+Core::Expected<bool, std::string> IsFlying(const Kernel::ActorState& actor, const ActorStopContext& context)
 {
     bool flyingCell = false;
-    if (context.scene == SceneId::Game && IsFlyingMap(context.runtime.map))
+    if (context.scene == Scenes::SceneId::Game && IsFlyingMap(context.runtime.map))
     {
         if (context.terrainWalls == nullptr)
         {
@@ -234,12 +234,13 @@ Core::Expected<bool, std::string> IsFlying(const ActorState& actor, const ActorS
         const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(*x), static_cast<std::uint8_t>(*y));
         flyingCell = ((*context.terrainWalls)[cell] & Pathfinding::SafeZoneWallBit) == 0;
     }
-    const bool withWings = actor.safeZone == 0 && actor.wings.model != NoItemModel;
+    const bool withWings = actor.safeZone == 0 && actor.wings.model != Kernel::NoItemModel;
     return withWings || actor.word376 == FlyingWord376 || flyingCell;
 }
 
 // La acción de parado, o std::nullopt cuando ya está sentado y no hay que poner ninguna.
-Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState& actor, const ActorStopContext& context)
+Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(Kernel::ActorState& actor,
+                                                                     const ActorStopContext& context)
 {
     const bool safe = actor.safeZone != 0;
     const std::uint16_t pet = actor.pet.model;
@@ -258,7 +259,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
     }
     if (std::ranges::find(RidingPets, pet) != RidingPets.end() && !safe)
     {
-        const bool unarmed = actor.hands[0].model == NoItemModel && actor.hands[1].model == NoItemModel;
+        const bool unarmed = actor.hands[0].model == Kernel::NoItemModel && actor.hands[1].model == Kernel::NoItemModel;
         return std::optional{unarmed ? RidingUnarmedStand : RidingArmedStand};
     }
     const auto flying = IsFlying(actor, context);
@@ -295,7 +296,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
 }
 
 // 0x4f36be..0x4f37a5: el sufijo, con la acción ya puesta.
-Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, const ActorStopContext& context)
+Core::Expected<ActorStopResult, std::string> Suffix(const Kernel::ActorState& actor, const ActorStopContext& context)
 {
     Crt::CrtRandom& random = context.random;
     if (random.Next() % SuffixChance != 0)
@@ -335,7 +336,7 @@ Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, con
 }
 } // namespace
 
-Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, const ActorStopContext& context)
+Core::Expected<ActorStopResult, std::string> SetActorStop(Kernel::ActorState& actor, const ActorStopContext& context)
 {
     actor.run = 0;
     if (actor.type == Tables::PlayerSkeletonModel)
@@ -383,4 +384,4 @@ Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, con
     }
     return Suffix(actor, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

@@ -21,7 +21,7 @@
 #include <string>
 #include <tuple>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -51,7 +51,7 @@ bool IsSwimmingMap(std::int32_t map)
     return map == Atlans || (map >= FirstKalima && map <= LastKalima) || map == SeventhKalima;
 }
 
-void UpdateRun(ActorState& actor, WorldRuntime& runtime)
+void UpdateRun(Kernel::ActorState& actor, Kernel::WorldRuntime& runtime)
 {
     if (actor.safeZone != 0)
     {
@@ -63,9 +63,9 @@ void UpdateRun(ActorState& actor, WorldRuntime& runtime)
         return;
     }
     const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(actor.characterClass);
-    const ActorItemPart& part = actor.body[IsSwimmingMap(runtime.map) ? Gloves : Boots];
+    const Kernel::ActorItemPart& part = actor.body[IsSwimmingMap(runtime.map) ? Gloves : Boots];
     const bool canRun = characterClass == FirstRunningClass || characterClass == SecondRunningClass ||
-                        (part.model != NoItemModel && part.level >= RunningPartLevel);
+                        (part.model != Kernel::NoItemModel && part.level >= RunningPartLevel);
     if (actor.pet.model == Fenrir)
     {
         ++runtime.movementSpeed.itemCounterBits;
@@ -116,7 +116,7 @@ Core::Expected<std::uint8_t, std::string> MarkedAction(int right, const Tables::
     return mark.Value() ? marked : static_cast<std::uint8_t>(running ? 0x17 : 0xf);
 }
 
-Core::Expected<std::uint8_t, std::string> GroundAction(const ActorState& actor, const ActorWalkContext& context)
+Core::Expected<std::uint8_t, std::string> GroundAction(const Kernel::ActorState& actor, const ActorWalkContext& context)
 {
     const int right = Signed(actor.hands[0].model);
     const int left = Signed(actor.hands[1].model);
@@ -160,22 +160,22 @@ Core::Expected<std::uint8_t, std::string> GroundAction(const ActorState& actor, 
 }
 
 // Los helpers 0x4e9f50/0x4e9da0 conservan los sentinelas de arco/ballesta antes de mirar clase.
-std::uint8_t FenrirAction(const ActorState& actor, bool fast)
+std::uint8_t FenrirAction(const Kernel::ActorState& actor, bool fast)
 {
     const std::uint16_t right = actor.hands[0].model;
     const std::uint16_t left = actor.hands[1].model;
     unsigned bucket = 0;
     bool forcedElf = false;
-    if (right != NoItemModel && left != NoItemModel && right != CrossbowSentinel && left != BowSentinel)
+    if (right != Kernel::NoItemModel && left != Kernel::NoItemModel && right != CrossbowSentinel && left != BowSentinel)
     {
         bucket = 1;
     }
-    else if (right != NoItemModel && (left == NoItemModel || left == BowSentinel))
+    else if (right != Kernel::NoItemModel && (left == Kernel::NoItemModel || left == BowSentinel))
     {
         bucket = 2;
         forcedElf = left == BowSentinel;
     }
-    else if (left != NoItemModel)
+    else if (left != Kernel::NoItemModel)
     {
         bucket = 3;
         forcedElf = right == CrossbowSentinel;
@@ -191,7 +191,7 @@ std::uint8_t FenrirAction(const ActorState& actor, bool fast)
     return static_cast<std::uint8_t>(base + bucket);
 }
 
-Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const ActorState& actor,
+Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Kernel::ActorState& actor,
                                                                       const ActorWalkContext& context)
 {
     const bool safe = actor.safeZone != 0;
@@ -221,9 +221,10 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Acto
         {
             return std::optional<std::uint8_t>{}; // 0x4f3a14: conserva la acción, pero corre el sufijo.
         }
-        return chosen(actor.hands[0].model == NoItemModel && actor.hands[1].model == NoItemModel ? 0x20 : 0x21);
+        return chosen(
+            actor.hands[0].model == Kernel::NoItemModel && actor.hands[1].model == Kernel::NoItemModel ? 0x20 : 0x21);
     }
-    if (actor.wings.model != NoItemModel && !safe)
+    if (actor.wings.model != Kernel::NoItemModel && !safe)
     {
         return chosen(RightBow(Signed(actor.hands[0].model)) ? 0x1f : 0x1e);
     }
@@ -239,7 +240,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Acto
     return chosen(ground.Value());
 }
 
-std::optional<std::int32_t> FootstepSound(const ActorState& actor, std::int32_t map, std::int32_t layer)
+std::optional<std::int32_t> FootstepSound(const Kernel::ActorState& actor, std::int32_t map, std::int32_t layer)
 {
     constexpr std::uint8_t FirstFlyingAction = 0x1e;
     constexpr std::uint8_t SecondFlyingAction = 0x1f;
@@ -258,7 +259,7 @@ std::optional<std::int32_t> FootstepSound(const ActorState& actor, std::int32_t 
     return IsSwimmingMap(map) && actor.safeZone == 0 ? 11 : 8;
 }
 
-Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, const ActorWalkContext& context)
+Core::Expected<ActorWalkResult, std::string> StepSound(const Kernel::ActorState& actor, const ActorWalkContext& context)
 {
     auto& random = context.stop.random;
     const auto requestSound = [&context, &actor](std::int32_t sound)
@@ -322,7 +323,7 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
 }
 } // namespace
 
-Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, const ActorWalkContext& context)
+Core::Expected<ActorWalkResult, std::string> SetActorWalk(Kernel::ActorState& actor, const ActorWalkContext& context)
 {
     UpdateRun(actor, context.stop.runtime);
     if (actor.type == Tables::PlayerSkeletonModel)
@@ -347,7 +348,7 @@ Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, con
     }
     return StepSound(actor, context);
 }
-std::array<std::optional<std::int32_t>, 2> TakeActorFootstepSounds(ActorState& actor, std::int32_t map,
+std::array<std::optional<std::int32_t>, 2> TakeActorFootstepSounds(Kernel::ActorState& actor, std::int32_t map,
                                                                    std::int32_t heroCellLayer)
 {
     constexpr std::uint8_t FirstWalkAction = 0xd;
@@ -375,4 +376,4 @@ std::array<std::optional<std::int32_t>, 2> TakeActorFootstepSounds(ActorState& a
     }
     return sounds;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

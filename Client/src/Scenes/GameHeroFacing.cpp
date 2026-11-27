@@ -15,7 +15,7 @@ namespace Client::Scenes
 {
 Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& context)
 {
-    ActorState& hero = context.hero;
+    Kernel::ActorState& hero = context.hero;
     GameMovementState& state = context.movement;
     if (hero.movement != 0 || state.inputBlocked)
         return {};
@@ -38,8 +38,8 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
     const auto shifted = std::bit_cast<std::int32_t>(405u - std::bit_cast<std::uint32_t>(*angle));
     state.arrivalYaw = shifted % 360;
     // 0x59b456: la misma cuenta que el C1 18 del emote y de sentarse.
-    const auto oldSector = ActionDirection(hero.angles.z);
-    const auto newSector = ActionDirection(static_cast<float>(state.arrivalYaw));
+    const auto oldSector = Actors::ActionDirection(hero.angles.z);
+    const auto newSector = Actors::ActionDirection(static_cast<float>(state.arrivalYaw));
     if (!oldSector || !newSector)
         return Core::Unexpected(std::string("0x59b456: sector quieto fuera del perfil ftol"));
     if (*oldSector == *newSector)

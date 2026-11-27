@@ -71,11 +71,11 @@ struct Replies
         world.Runtime().dialogTable.assign(Client::Tables::DialogCount, {});
         std::ranges::copy(std::string_view("Una misión inventada"), world.Runtime().dialogTable[41].text.begin());
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
-    Client::Scenes::ActorState& Other()
+    Client::Kernel::ActorState& Other()
     {
         return world.Actors()[12];
     }
@@ -94,10 +94,10 @@ struct Replies
     }
     static constexpr std::uint16_t HeroKey = 0x21;
     static constexpr std::uint16_t OtherKey = 0x1234;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
@@ -227,7 +227,7 @@ TEST(QuestRepliesTest, AnA1PastTheTwoHundredWritesTheObject)
 // Los joints del premio que deja una respuesta, en orden desde el lugar `first`: quince 60f/0 en la posición del
 // personaje con él de dueño, el ancho 40 y la key 2 y, con `falling`, cada uno seguido del 60f/0xa desde 200 más
 // arriba.
-void ExpectThePrizeSparkles(const Replies& tested, const Client::Scenes::ActorState& owner, bool falling,
+void ExpectThePrizeSparkles(const Replies& tested, const Client::Kernel::ActorState& owner, bool falling,
                             std::size_t first = 0)
 {
     const auto& joints = tested.world.DrawTail().joints;
@@ -253,7 +253,7 @@ void ExpectThePrizeSparkles(const Replies& tested, const Client::Scenes::ActorSt
 }
 
 // El calco 0x61e/0 de 0x518cf0 en el lugar `slot`, con el personaje de dueño.
-void ExpectTheDecal(const Replies& tested, const Client::Scenes::ActorState& owner, std::size_t slot = 0)
+void ExpectTheDecal(const Replies& tested, const Client::Kernel::ActorState& owner, std::size_t slot = 0)
 {
     const auto& decal = tested.world.Map().effects.Effects()[slot];
     EXPECT_TRUE(decal.alive);

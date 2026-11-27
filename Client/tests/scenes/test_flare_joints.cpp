@@ -253,13 +253,13 @@ TEST(FlareJointsTest, TheComboReleasesSixtyFlares)
     for (const bool full : {false, true})
     {
         SCOPED_TRACE(full);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         auto& joints = world->DrawTail().joints;
         if (full)
             for (JointState& joint : joints)
                 joint.alive = true;
         CrtRandom random{Seed};
-        const Client::Scenes::CharacterStepContext context{.world = *world, .random = random, .joints = joints};
+        const Client::Actors::CharacterStepContext context{.world = *world, .random = random, .joints = joints};
         const Client::World::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
 
         const auto made = Client::Scenes::CreateBlastEffect(arguments, nullptr, context);

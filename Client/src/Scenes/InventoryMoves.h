@@ -37,16 +37,20 @@ namespace Client::UI
 class PanelRegistry;
 }
 
-namespace Client::World
+namespace Client::Kernel
 {
 struct ItemState;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
-struct WorldEntryResources;
 enum class CursorGrid : std::uint8_t;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
+struct WorldEntryResources;
 
 // Lo que los pasos de la UI y MoveHero piden afuera para mover ítems. Vacío o nullptr: lo que lo necesita corta.
 struct InventoryServices
@@ -104,7 +108,7 @@ struct GridCell
                                          ItemFootprint footprint);
 
 // 0x5c9e10: columnas de derecha a izquierda, filas de abajo hacia arriba, sin apilar.
-[[nodiscard]] std::optional<GridCell> FindFreeGridCell(std::span<const World::ItemState> cells, std::int32_t columns,
+[[nodiscard]] std::optional<GridCell> FindFreeGridCell(std::span<const Kernel::ItemState> cells, std::int32_t columns,
                                                        std::int32_t rows, ItemFootprint footprint);
 
 // 0x5c9b40 con la grilla del inventario: si el ítem del cursor entra en la casilla `cell`. Cuenta las casillas
@@ -112,12 +116,12 @@ struct GridCell
 // arriba a la izquierda (fila · columnas + columna, sin mirar si la columna se pasa), los que se apilan:
 // 0x1c00..0x1c08, 0x807 y 0x80f con el mismo +4, 0x1c1d y 0x1a20..0x1a22. Fuera del arreglo el original lee igual
 // (Q-C474): MuRet no apila (*inferido*, 08 P-C72).
-[[nodiscard]] bool ItemFitsInTheGrid(const World::ItemState& cursor, std::span<const World::ItemState> cells,
+[[nodiscard]] bool ItemFitsInTheGrid(const Kernel::ItemState& cursor, std::span<const Kernel::ItemState> cells,
                                      std::int32_t columns, std::int32_t rows, GridCell cell, ItemFootprint footprint);
 
 struct InventoryMoveContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     const InventoryServices& services;
 };
@@ -137,7 +141,7 @@ struct InventoryMoveContext
 
 // 0x5bc740(grilla, columnas, filas, lugar, datos, 0) con otra grilla (0x5bd307.. y la misma cola): el `24` con 2 (el
 // almacén, 0x78a7070) y con 3 (la caja del caos, 0x7d2d380).
-[[nodiscard]] Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<World::ItemState> cells,
+[[nodiscard]] Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<Kernel::ItemState> cells,
                                                                           std::int32_t columns, std::uint8_t slot,
                                                                           const Protocol::Items::ItemData& item,
                                                                           const WorldEntryResources& resources,
@@ -185,7 +189,7 @@ void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, Warehous
 // 0x7d2d380, o la del entrenador, 0x723c80): lo mismo con el lugar sin el 12 (fila · 8 + columna) y 0x5bd750(lugar,
 // grilla, 8), que vacía la huella desde la columna y la fila de esa casilla.
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext& context,
-                                                                    CursorGrid grid, std::size_t cell);
+                                                                    Kernel::CursorGrid grid, std::size_t cell);
 
 // Lo mismo desde la grilla propia del comercio (0x78a92a8, 8 × 4; CL9 hito 7, 08 P-C205 a): el lugar es la casilla de
 // arriba a la izquierda, sin el 12 (0x5c531b..0x5c5345), y 0x5bd750 vacía su huella en esa grilla (0x5be08c..).
@@ -197,7 +201,7 @@ void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, Warehous
 // la del inventario), la copia al cursor, la grilla de origen `grid`, el lugar y 0x5bd750. A diferencia de levantar
 // (0x5c52b1), no borra la copia del ítem bajo el mouse (0x787a518) ni 0x78abb28 y no pide sonido.
 [[nodiscard]] Core::Expected<void, std::string> PickUpForTheShop(const InventoryMoveContext& context, std::int32_t slot,
-                                                                 CursorGrid grid);
+                                                                 Kernel::CursorGrid grid);
 
 // 0x5c2c65..0x5c2dd0, desde 0x5bec50 sin ítem en el cursor y con el clic: con 0x576794c, nada; con 0x78abb0c,
 // reparar (corta); si no, consume el clic y, salvo lo que el mapa 10 o Chaos Castle no dejan sacar, pasa el ítem del
@@ -270,7 +274,7 @@ struct OtherGridDrop
     std::int32_t left = 0;
     std::int32_t top = 0;
     // CursorGrid::NpcGrid, CursorGrid::ChaosBox o CursorGrid::TrainerBox.
-    CursorGrid grid{};
+    Kernel::CursorGrid grid{};
 };
 
 [[nodiscard]] Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& context,
@@ -361,12 +365,12 @@ struct InventoryUse
 // durabilidad (+0x1a) de la casilla lugar − 12 de la grilla baja 1 si no es 0 y, en 0, la casilla queda vacía (tipo
 // 0xffff y +0x3c en 0). Fuera de la grilla el original escribe igual: MuRet corta (0x4d35f6).
 [[nodiscard]] Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Items::LifeRefill& refill,
-                                                                WorldState& world, Crt::CrtRandom& random);
+                                                                Kernel::WorldState& world, Crt::CrtRandom& random);
 // 0x4d3820, el 27, con el registro propio abierto: 0xfe, el maná máximo (+0x28) y el BP máximo (+0x3a); 0xff, el
 // maná (+0x24) y el BP (+0x38); otro, el maná y la poción del lugar, como el 26 (0x4d3917). El 0xfd no es el fin de
 // la espera: es un lugar más.
 [[nodiscard]] Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Items::ManaRefill& refill,
-                                                                WorldState& world, Crt::CrtRandom& random);
+                                                                Kernel::WorldState& world, Crt::CrtRandom& random);
 // 0x4e31a3, el F3 14: la cuenta del cursor en 0, 0x5bc740 con el último argumento en 0 y el sonido 0x45.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Items::ItemPut& put,
                                                              const WorldEntryResources& resources);
@@ -378,7 +382,7 @@ struct InventoryUse
                                                                 const WorldEntryResources& resources);
 // Un 23 corto (07 Q-C1240): de 0x4d10d0, el lugar tirado (0x6c82ec) en −1, que escribe en todos los caminos, y con
 // pkt[3] distinto de 0 el cursor vacío (0x7879fbc en 0, 0x4d13c7), también en todos los que leen pkt[4].
-void ApplyShortDropResult(const Protocol::Items::ShortDropResult& result, WorldState& world);
+void ApplyShortDropResult(const Protocol::Items::ShortDropResult& result, Kernel::WorldState& world);
 // 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
 // Si no lo es, o sin ninguno, nada.
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::EquipmentChange& change,

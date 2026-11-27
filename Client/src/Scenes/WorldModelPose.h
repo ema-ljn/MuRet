@@ -11,13 +11,18 @@ namespace Client::Models
 struct Skeleton;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // 4eb860 con flags (0, 1): conserva los huesos dummy y publica la pose global y la key del modelo.
-[[nodiscard]] Core::Expected<void, std::string> PoseWorldModel(WorldState& world, const ActorState& actor,
+[[nodiscard]] Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world,
+                                                               const Kernel::ActorState& actor,
                                                                const Models::Skeleton& skeleton, float frame,
                                                                const glm::vec3& angles);
 } // namespace Client::Scenes

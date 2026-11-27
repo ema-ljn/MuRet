@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -63,4 +63,4 @@ TerrainAttributeQueryAt(const Data::Terrain::TerrainAttributes& attributes, floa
     FixedQuery source(attributes);
     return TerrainAttributeQueryAt(source, x, y);
 }
-} // namespace Client::World
+} // namespace Client::Terrain

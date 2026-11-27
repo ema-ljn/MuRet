@@ -16,18 +16,18 @@
 #include <cstdint>
 #include <string>
 
-// Client::Scenes::ApplyTheClassParts: 0x513100, la ropa de la clase nueva del premio de una misión. Los valores salen
+// Client::Actors::ApplyTheClassParts: 0x513100, la ropa de la clase nueva del premio de una misión. Los valores salen
 // del ASM cotejado con el PE c32bbd5f; ninguno de una corrida del original.
 namespace
 {
+using Client::Actors::ActorStopContext;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorItemPart;
-using Client::Scenes::ActorState;
-using Client::Scenes::ActorStopContext;
-using Client::Scenes::NoItemModel;
+using Client::Kernel::ActorItemPart;
+using Client::Kernel::ActorState;
+using Client::Kernel::NoItemModel;
 using Client::Tests::UnarmedPlayer;
 
-// Los modelos de la ropa de la clase (GameLogic::ClassPartModel): el casco, la armadura, los pantalones, los guantes y
+// Los modelos de la ropa de la clase (Kernel::ClassPartModel): el casco, la armadura, los pantalones, los guantes y
 // las botas, más (clase >> 3) · 5 + (clase & 7).
 constexpr std::uint16_t HelmClass = 0x2212, ArmorClass = 0x221a, PantsClass = 0x2222, GlovesClass = 0x222a,
                         BootsClass = 0x2232;
@@ -51,13 +51,13 @@ ActorItemPart Worn(std::uint16_t model)
 class ClassPartsTest : public ::testing::Test
 {
 protected:
-    Client::Core::Expected<Client::Scenes::ActorStopResult, std::string> Apply(ActorState& actor)
+    Client::Core::Expected<Client::Actors::ActorStopResult, std::string> Apply(ActorState& actor)
     {
         const ActorStopContext context{.runtime = m_runtime,
                                        .scene = Client::Scenes::SceneId::Game,
                                        .playerSkeleton = m_skeleton,
                                        .random = m_random};
-        return Client::Scenes::ApplyTheClassParts(actor, context);
+        return Client::Actors::ApplyTheClassParts(actor, context);
     }
 
     // La clase entera con toda la ropa de su clase base, sin nada en las manos.
@@ -70,7 +70,7 @@ protected:
         return actor;
     }
 
-    Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
+    Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     CrtRandom m_random{1};
 };

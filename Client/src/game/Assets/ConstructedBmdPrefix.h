@@ -8,7 +8,7 @@
 #include <string>
 
 // 60dc20..60dc7a: evidencia funcional del BMD construido antes de la base lógica.
-namespace Client::Scenes
+namespace Client::Assets
 {
 class ConstructedBmdPrefix final
 {
@@ -23,4 +23,4 @@ private:
     std::optional<std::uint16_t> m_offset;
     Models::Skeleton m_actionGuard;
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

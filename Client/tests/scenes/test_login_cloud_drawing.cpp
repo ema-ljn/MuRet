@@ -105,7 +105,7 @@ Client::World::WorldObject Marker(std::int16_t type = CloudMarker)
         .front();
 }
 void Emit(Client::World::WorldObject& object, Client::World::Particles& particles, Client::Crt::CrtRandom& random,
-          std::uint8_t map = LoginMap, const Client::World::TerrainPolygon& polygon = {.everything = true})
+          std::uint8_t map = LoginMap, const Client::Terrain::TerrainPolygon& polygon = {.everything = true})
 {
     const CloudTextures models;
     Client::Render::ModelBatch batch;
@@ -296,7 +296,7 @@ TEST(LoginCloudDrawingTest, AnUnseenMarkerDoesNotReachTheEmitter)
     Client::World::Particles particles;
     Client::Crt::CrtRandom random(4);
     const auto polygon =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     Emit(object, particles, random, LoginMap, polygon);
     EXPECT_FALSE(object.seen);
     EXPECT_FALSE(particles.Any());
@@ -427,8 +427,8 @@ std::size_t CloudsIn(const Client::Tests::RecordedFrame& frame)
 TEST(LoginCloudDrawingTest, TheSceneEmitsInTheEyePassAndClearsThePoolOnEnteringAgain)
 {
     Client::Tests::TemporaryFolder folder("login-cloud");
-    Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::LoginTextureSet);
-    Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WindowTextureSet);
+    Client::Tests::WriteTextureSet(folder.Path(), Client::Assets::LoginTextureSet);
+    Client::Tests::WriteTextureSet(folder.Path(), Client::Assets::WindowTextureSet);
     const auto writeObjects = [&](bool withMarker)
     {
         Client::Data::Terrain::TerrainObject marker;

@@ -64,7 +64,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
     {
         SCOPED_TRACE(map);
-        const auto loaded = Client::World::LoadWorldObjects(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}, map);
+        const auto loaded = Client::Terrain::LoadWorldObjects(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         auto created = Client::World::CreateWorldObjects(loaded.Value(), map, Client::World::ObjectScene::Other);
         ASSERT_FALSE(created.failure.has_value());
@@ -73,7 +73,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
         {
             object.seen = true;
         }
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         auto particles = std::make_unique<Client::World::Particles>();
         const glm::vec3 hero{13500.0f, 12500.0f, 0.0f};
         std::vector<std::int32_t> sounds;
@@ -100,10 +100,10 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     Client::Tests::FakeTextureStore textures;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
     const auto modelLoad = models.Load(root, 3, textures, log, nullptr);
     ASSERT_TRUE(modelLoad.HasValue()) << modelLoad.Error();
-    const auto records = Client::World::LoadWorldObjects(root, 3);
+    const auto records = Client::Terrain::LoadWorldObjects(root, 3);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), 9399u);
     auto created = Client::World::CreateWorldObjects(records.Value(), 3, Client::World::ObjectScene::Other);
@@ -136,7 +136,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     pass.sprites = &sprites;
     pass.retainedPose = &pose;
     pass.modelState = &state;
-    pass.onPose = [&](const Client::Scenes::DrawnObject& drawn)
+    pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     { return Client::Scenes::PublishFaunaPose(pose, models, drawn, true); };
     int jointCalls = 0;
     pass.createJoint = [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
@@ -149,13 +149,13 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     };
     Client::Render::ModelBatch batch;
     const auto drawn = Client::Scenes::DrawGameWorldObjects(
-        batch, models, representatives, Client::World::TerrainPolygon{.everything = true}, nullptr, {}, pass);
+        batch, models, representatives, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {}, pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(batch.Vertices().empty());
     EXPECT_TRUE(sprites.Any());
     const auto fairy = std::ranges::find_if(representatives, [](const auto& object) { return object.type == 0x27; });
     ASSERT_NE(fairy, representatives.end());
-    Client::Scenes::DrawnObject fairyPose;
+    Client::Actors::Drawing::DrawnObject fairyPose;
     fairyPose.model = 0x27;
     fairyPose.transform = fairy->transform;
     fairyPose.animation = fairy->animation;
@@ -167,12 +167,12 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     EXPECT_TRUE(std::ranges::any_of(joints, [](const auto& joint) { return joint.alive && joint.type == 0x617; }));
     EXPECT_TRUE(std::ranges::any_of(particles->All(),
                                     [](const auto& particle) { return particle.alive && particle.type == 0x5c5; }));
-    const auto terrain = Client::World::LoadWorldTerrain(root, 3);
+    const auto terrain = Client::Terrain::LoadWorldTerrain(root, 3);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     const std::int32_t map = 3;
     const auto particleStep = Client::Scenes::StepGameParticles(
         *particles, random, map, [&](float x, float y)
-        { return Client::World::TerrainHeightAt(*terrain.Value().heights, *terrain.Value().attributes, x, y); });
+        { return Client::Terrain::TerrainHeightAt(*terrain.Value().heights, *terrain.Value().attributes, x, y); });
     ASSERT_TRUE(particleStep.HasValue()) << particleStep.Error();
     ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
 }

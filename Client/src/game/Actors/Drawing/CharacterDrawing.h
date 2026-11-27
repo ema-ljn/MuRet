@@ -48,11 +48,11 @@ struct FishEffectRequest;
 // de personaje"; el plan de la CL6 (CL6.3). Sin la luz por vértice (en la selección el personaje va
 // con un color por malla), sin el color de 0x609640 (P-C14) y con las armas siempre en la mano: la
 // zona segura que las manda a la espalda es de la CL7.
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnCharacter
 {
-    GameLogic::CharacterAppearance appearance;
+    Kernel::CharacterAppearance appearance;
     Models::AnimationState body;
     Models::ObjectTransform object;
     glm::vec2 headAngles{};
@@ -98,7 +98,7 @@ struct DrawnCharacter
     // dibujarla, y los cinco del cetro (0x509340, caso 0x620, World/ScepterGlow.h) con el rand() de
     // `clothWorld`, en ese orden. Sin ella, no se piden.
     World::FrameSprites* sprites = nullptr;
-    // El sorteo de los cinco del cetro entre frames de MuRet (World::ScepterGlowCarry): con él, una vez por
+    // El sorteo de los cinco del cetro entre frames de MuRet (Actors::Drawing::ScepterGlowCarry): con él, una vez por
     // frame del original; sin él, en cada DrawCharacter.
     World::ScepterGlowCarry* scepter = nullptr;
     // Cómo cuentan los frames del original la tela y el cetro (Models::OriginalFrameCarry): por el
@@ -491,4 +491,4 @@ DrawCastleSiegeBody(Render::ModelBatch& batch, const Models::IModelLibrary& mode
 // octavo argumento en 1 en un buffer propio. Sin el modelo, vacío.
 [[nodiscard]] std::vector<Math::OriginalMatrix> PosedWorldBones(const Models::IModelLibrary& models,
                                                                 const DrawnObject& object);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

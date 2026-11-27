@@ -19,9 +19,9 @@ namespace
 {
 using Client::Data::Terrain::CellIndex;
 using Client::Data::Terrain::TerrainLightColor;
-using Client::Scenes::DynamicWorldLight;
-using Client::World::AddTerrainLight;
-using Client::World::TerrainLighting;
+using Client::Terrain::AddTerrainLight;
+using Client::Terrain::DynamicWorldLight;
+using Client::Terrain::TerrainLighting;
 
 constexpr TerrainLightColor Base{1.0f, 2.0f, 3.0f};
 constexpr TerrainLightColor Retained{9.0f, 8.0f, 7.0f};

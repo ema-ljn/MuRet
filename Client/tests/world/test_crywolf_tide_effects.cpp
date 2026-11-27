@@ -48,7 +48,7 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
             if (full)
                 for (auto& p : particles->All())
                     p.alive = true;
-            auto lighting = std::make_unique<Client::World::TerrainLighting>();
+            auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
             Client::World::ModelEffect effect;
             effect.alive = true;
             effect.type = 0x145;
@@ -86,9 +86,9 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
                 }
                 EXPECT_FALSE(particles->All()[6].alive);
             }
-            auto expected = std::make_unique<Client::World::TerrainLighting>();
-            Client::World::AddTerrainLight(*expected, 1000, 1500, {0.24000000953674316f, 0.48000001907348633f, 0.8f},
-                                           3);
+            auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
+            Client::Terrain::AddTerrainLight(*expected, 1000, 1500, {0.24000000953674316f, 0.48000001907348633f, 0.8f},
+                                             3);
             EXPECT_EQ(lighting->cells, expected->cells);
         }
 }

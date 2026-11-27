@@ -23,13 +23,17 @@ struct ClothWorld;
 class IModelLibrary;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class ModelEffects;
 class Particles;
 struct ModelEffect;
-struct TerrainLighting;
 } // namespace Client::World
 
 namespace Client::Data::Terrain
@@ -37,11 +41,15 @@ namespace Client::Data::Terrain
 struct TerrainAttributes;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
-struct SkillHitsRequest;
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
+struct SkillHitsRequest;
 } // namespace Client::Scenes
 
 // Lo que comparten el alta de los joints (0x530860), su paso (0x535840) y las familias que viven en sus propios
@@ -66,7 +74,8 @@ AppendCrossedJointTail(JointState& joint, const Math::OriginalMatrix& matrix, bo
 // 0x4ec110(el modelo del jugador, los huesos propios del dueño + hueso · 0x30, offset, punto, 1): lo que el alta de
 // algunos joints lee de un personaje dueño (el 614/2, 0x5313fe). La escala y el origen son los que el último dibujo
 // dejó en el modelo del jugador (0x20a). Sin el servicio, esas altas cortan.
-using PlayerBonePoint = std::function<glm::vec3(const ActorState& owner, std::size_t bone, const glm::vec3& offset)>;
+using PlayerBonePoint =
+    std::function<glm::vec3(const Kernel::ActorState& owner, std::size_t bone, const glm::vec3& offset)>;
 struct CreationServices
 {
     PlayerBonePoint playerBonePoint{};
@@ -77,7 +86,7 @@ struct CreationServices
     std::uint8_t* ownRecordDepth = nullptr;
     const std::uint8_t* ownVolley = nullptr;
     // Los 400 personajes (0x743a16c): el 614/0xf elige entre ellos los que encadena (0x531922). Sin ellos, corta.
-    std::span<const ActorState> actors{};
+    std::span<const Kernel::ActorState> actors{};
 };
 
 // 0x520170(efecto): el choque de la flecha que el 0x60f/0xb y el /0x19 con skill 1 piden desde su paso (0x53ae6d), con
@@ -104,7 +113,7 @@ struct StepServices
     Models::ClothWorld* cloth = nullptr;
     World::Particles* particles = nullptr;
     World::FrameSprites* sprites = nullptr;
-    World::TerrainLighting* lighting = nullptr;
+    Terrain::TerrainLighting* lighting = nullptr;
     float worldClock = 0;
     const std::function<void(std::int32_t)>* soundRequest = nullptr;
     // 0x53584f..0x53586c: [ebp−0x30] y [ebp+8], la posición menos el destino en x y en y, en float, antes del
@@ -114,7 +123,7 @@ struct StepServices
     // 0x5f93c0(x, y): la altura del terreno, como la deja en la x87. La pide el 0x613/0 y el /5 (0x539c19).
     const std::function<double(float, float)>* terrainHeight = nullptr;
     // Los 400 personajes (0x743a16c): el 0x10f/4 y el /9 miran el de su +0xa0c (0x535d63). Sin ellos, cortan.
-    std::span<const ActorState> actors{};
+    std::span<const Kernel::ActorState> actors{};
     // El choque de la flecha dueña (0x520170). Sin él, el 0x60f/0xb y el /0x19 con skill 1 cortan.
     const EffectHit* effectHit = nullptr;
     // El paso de la familia sale de 0x535840 (ret) sin la cola ni la vida de 0x53c393 (el 0x618 con el dueño muerto,
@@ -123,11 +132,11 @@ struct StepServices
     // La tabla de efectos con modelo (0x7491fd8): el 0x613/0x13 suelta ahí el 0x11b/0 (0x539b08). Sin ella, corta.
     World::ModelEffects* effects = nullptr;
     // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
-    const ActorState* hero = nullptr;
+    const Kernel::ActorState* hero = nullptr;
     // Los modelos compartidos (0x5769ad8 + tipo · 0xe0, su escala y su posición): el 0x614/0xc se pone en el modelo del
     // dueño (0x536b1d), el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42) y el 0x632/0 y /1 con dueño
     // leen el del 0x20b (0x53c1eb). Sin ellos, cortan.
-    WorldState* world = nullptr;
+    Kernel::WorldState* world = nullptr;
     // El 0x613/0, /5 y /0x13 de ancho 80 (0x539a50) y el 0x61c/0 del héroe (0x53b569). Sin ellos, cortan ahí.
     const VolleyServices* volley = nullptr;
     // Los modelos (0x5769ad8): el 0x632/0 y /1 con dueño posan el 0x20b (Player\Shadow01) al llegar al suelo
@@ -137,5 +146,5 @@ struct StepServices
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,
 // con el byte vivo en +0, la posición en +0x10, los ángulos en +0x1c y la luz en +0xf4.
-[[nodiscard]] const ActorState* ActorOwner(const JointState& joint);
+[[nodiscard]] const Kernel::ActorState* ActorOwner(const JointState& joint);
 } // namespace Client::Scenes::JointKernels

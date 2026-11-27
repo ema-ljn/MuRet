@@ -16,19 +16,23 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+struct OwnInventory;
+struct WorldRuntime;
+} // namespace Client::Kernel
+
 // Las funciones del objeto de las misiones [0x710148] (QuestState) que no dibujan: el estado que llega en el A0, el
 // A1 y el A2, las condiciones de quest.bmd, los ítems pedidos y la apertura de la ventana. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Las misiones", y Q-C840 a Q-C845 en 07.
 namespace Client::Scenes
 {
-class WorldState;
-struct OwnInventory;
-struct WorldRuntime;
 
 // Lo que leen las funciones que abren el registro propio o muestran un diálogo.
 struct QuestContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() de la CRT: los cierres del registro propio (3.848 cada uno que lo deja en 0).
     Crt::CrtRandom& random;
     // Text.bmd: el 609 de las respuestas vacías de 0x419710. nullptr: un diálogo sin respuestas corta.
@@ -48,15 +52,15 @@ struct QuestContext
 // misiones 0 a 3 se leen donde las escribe el GS (Q-C841). Del 200 al 255 lee los campos que siguen a los 50 bytes
 // (+0x2137e a +0x2138b, con la ventana de +0x21383 en `runtime.panels`): la 255 de la vuelta de Q-C842 lee el byte alto
 // del zen de +0x21388, 0 con el quest.bmd real. Un índice negativo o desde 256 da 0 en MuRet.
-[[nodiscard]] std::uint8_t QuestStateOf(const WorldRuntime& runtime, std::int32_t index);
+[[nodiscard]] std::uint8_t QuestStateOf(const Kernel::WorldRuntime& runtime, std::int32_t index);
 
 // 0x419560(−1): el estado de la misión en curso (+0x2137e, sin signo) en +0x21386.
-void ReadTheCurrentQuestState(WorldRuntime& runtime);
+void ReadTheCurrentQuestState(Kernel::WorldRuntime& runtime);
 
 // 0x558410(tipo, cuenta, nivel): las 64 casillas del inventario con ese tipo (el short de +0, con signo), ocupadas
 // (+0x3c > 0) y, si el nivel no es −1, con ((+4 >> 3) & 0xf) igual. 0 si llega a la cuenta; si no, cuántos faltan.
-[[nodiscard]] std::int32_t MissingQuestItems(const OwnInventory& inventory, std::int32_t type, std::int32_t count,
-                                             std::int32_t level);
+[[nodiscard]] std::int32_t MissingQuestItems(const Kernel::OwnInventory& inventory, std::int32_t type,
+                                             std::int32_t count, std::int32_t level);
 
 // 0x4ddad0 → 0x418e20(pkt + 4, pkt[3], clase del héroe): la clase (& 7 y >> 3) en +4 y +5, +0x2138d en 1 y 0x6eeda8 en
 // 0 (la clase llega como un byte sin signo: nunca es −1); los 50 bytes de estado en 0 y `count` bytes del paquete
@@ -65,12 +69,13 @@ void ReadTheCurrentQuestState(WorldRuntime& runtime);
 // paquete sea más corto (el GS 0.97 manda la cuenta sin los bytes, Q-C840); lo que falta va en 0 (P-C171). Una cuenta
 // de más de 50 sigue por los campos del objeto (+0x2137e.., también el +0x2138d de recién y la esquina) hasta su final,
 // +0x21398, como el original; lo que pasaría de él no se escribe (Q-C1126). Devuelve cuántos bytes quedaron afuera.
-[[nodiscard]] std::size_t ApplyTheQuestList(WorldState& world, std::uint8_t count, std::span<const std::uint8_t> bytes);
+[[nodiscard]] std::size_t ApplyTheQuestList(Kernel::WorldState& world, std::uint8_t count,
+                                            std::span<const std::uint8_t> bytes);
 
 // 0x418ee0(índice, estado), del A1 y del A2: +0x2137e = índice, +0x2137f = el mayor, el byte índice >> 2 entero con
 // `state` (el GS manda el byte con las cuatro misiones, Q-C843) y +0x390 del héroe según la misión 3. Desde la misión
 // 200 el byte es uno de los campos que siguen a los 50 (también +0x2137e y +0x2137f de recién, Q-C1126).
-void SetTheQuestState(WorldState& world, std::uint8_t index, std::uint8_t state);
+void SetTheQuestState(Kernel::WorldState& world, std::uint8_t index, std::uint8_t state);
 
 // Si `error` es el de un registro fuera de los 200 de +0xc (Q-C842): el original sigue leyendo después del objeto,
 // memoria que MuRet no modela. Los paquetes que llegan ahí (el A1 y el A2) lo descartan con un aviso.
@@ -100,7 +105,7 @@ void SetTheQuestState(WorldState& world, std::uint8_t index, std::uint8_t state)
 
 // 0x419b10: con +0x21386 en 1, verdadero si hay algún pedido de ítems de la clase y a ninguno le faltan. Corta con la
 // misión en curso fuera de los 200 registros (Q-C842) o más de 16 pedidos.
-[[nodiscard]] Core::Expected<bool, std::string> CanCompleteTheQuest(const WorldState& world);
+[[nodiscard]] Core::Expected<bool, std::string> CanCompleteTheQuest(const Kernel::WorldState& world);
 
 // 0x4198b0(misión): la misión (−1: la que está), 0x78abb00 en 0, la ventana en 1 (el diálogo con el NPC),
 // 0x419600(0xff) y 0x419710 con +0x21384.

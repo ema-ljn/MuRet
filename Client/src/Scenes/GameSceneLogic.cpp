@@ -98,7 +98,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
 {
     auto& runtime = m_context.world->Runtime();
     const Models::Skeleton* player = m_models != nullptr ? m_models->SkeletonOf(Tables::PlayerSkeletonModel) : nullptr;
-    if (auto stepped = StepCharacters(CharacterStepContext{
+    if (auto stepped = Actors::StepCharacters(Actors::CharacterStepContext{
             .world = *m_context.world,
             .random = m_context.cloth->random,
             .scene = SceneId::Game,
@@ -234,7 +234,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {
-            if (auto stepped = StepFullSetFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+            if (auto stepped = Actors::Drawing::StepFullSetFlare(effect, m_context.world->DrawTail().joints,
+                                                                 m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;
@@ -254,17 +255,19 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                     break;
                 }
             }
-            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random,
-                                              &m_context.world->Particles(), particleOwner);
+            if (auto stepped =
+                    Actors::Drawing::StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random,
+                                                    &m_context.world->Particles(), particleOwner);
                 !stepped.HasValue())
                 return stepped;
             continue;
         }
         // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, y el /3 de la 0x1c y de
         // las invocaciones, los 619/3 de la CL11, fuera de World.
-        if (StepsAsPetSummon(effect))
+        if (Actors::Drawing::StepsAsPetSummon(effect))
         {
-            if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+            if (auto stepped =
+                    Actors::Drawing::StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;
@@ -370,7 +373,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     std::function<double(float, float)> terrainHeight;
     if (terrain.heights && terrain.attributes)
         terrainHeight = [&](float x, float y)
-        { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, CameraState().fixedHeight); };
+        { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, CameraState().fixedHeight); };
     StepDamage(m_context.world->DrawTail().damage);
     if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
@@ -379,7 +382,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     { return HitTheArrow(arrow, ArrowContext(worldClock, terrainHeight)); };
     // 0x53b548: el 0x61c/0 compara su dueño con el héroe ([0x743a170]).
     const auto actors = m_context.world->Actors();
-    const ActorState* hero = runtime.hero < actors.size() ? &actors[runtime.hero] : nullptr;
+    const Kernel::ActorState* hero = runtime.hero < actors.size() ? &actors[runtime.hero] : nullptr;
     // 0x539a50..0x539add y 0x53b569..0x53b5b1: el 0x613 de ancho 80 y el 0x61c/0 del héroe leen el asedio, el atributo
     // de 0x5f82c0 y mandan los blancos del héroe.
     const JointKernels::VolleyServices volley{
@@ -416,7 +419,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     {
         return particles;
     }
-    World::StepGroundMarks(runtime.groundMarks);
+    Terrain::StepGroundMarks(runtime.groundMarks);
     // 0x637132: 0x403590, el recorrido de la cámara, con timeGetTime (0x404c90): el reloj de la escena en ms.
     const auto now = m_context.clock != nullptr
                          ? static_cast<std::uint32_t>(
@@ -427,7 +430,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     const InventoryServices inventory = InventoryContext();
     const auto releaseTheUi = [&]() -> Core::Expected<void, std::string>
     {
-        WorldState& world = *m_context.world;
+        Kernel::WorldState& world = *m_context.world;
         if (auto returned = ReturnTheCursorItem(
                 InventoryMoveContext{.world = world, .random = m_context.cloth->random, .services = inventory});
             !returned.HasValue())

@@ -15,8 +15,8 @@ constexpr double DamageHeight = 140.0;
 constexpr float DamageSpeed = 10.0f;
 } // namespace
 
-void CreateDamageNumber(WorldState& world, const glm::vec3& position, std::int32_t amount, const glm::vec3& light,
-                        float scale, bool rise)
+void CreateDamageNumber(Kernel::WorldState& world, const glm::vec3& position, std::int32_t amount,
+                        const glm::vec3& light, float scale, bool rise)
 {
     for (DamageNumberState& number : world.DrawTail().damage)
     {

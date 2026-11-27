@@ -46,7 +46,7 @@
 // inventadas; lo esperado sale del ASM (0x4cedd0, 0x53d810, 0x53fdb0, 0x548e40).
 namespace
 {
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::World::HandShineParticle;
 
 constexpr std::uint16_t CasterKey = 0x1234;
@@ -220,10 +220,10 @@ protected:
 
     // Antes del mundo: su FaunaResources la presta y se destruye después.
     MonsterModels m_fauna;
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_input;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
     PlayerModels m_models;
     Client::Tests::RecordingSink m_sink;

@@ -10,6 +10,7 @@
 #include "Scenes/HelperTable.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Session/WorldTransitionSupport.h"
 
@@ -17,14 +18,14 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
 constexpr std::uint16_t Raven = 0x1c17;
 constexpr std::uint16_t HeightOffsetPet = 0x1c15;
 
-std::uint8_t ByteOf(GameLogic::Equipment equipment, std::size_t index)
+std::uint8_t ByteOf(Kernel::Equipment equipment, std::size_t index)
 {
     return std::to_integer<std::uint8_t>(equipment[index]);
 }
@@ -36,12 +37,12 @@ std::uint8_t BitOf(std::uint8_t value, int bit)
 
 struct PetAndHelper
 {
-    std::uint16_t pet = NoItemModel;
-    std::uint16_t helper = NoItemModel;
+    std::uint16_t pet = Kernel::NoItemModel;
+    std::uint16_t helper = Kernel::NoItemModel;
 };
 
 // 0x513b3c..0x513bd6: la mascota de b[4] & 3 y su ayudante.
-PetAndHelper BasePet(GameLogic::Equipment equipment)
+PetAndHelper BasePet(Kernel::Equipment equipment)
 {
     constexpr std::uint16_t Guardian = 0x1c12;
     constexpr std::uint16_t Imp = 0x1c13;
@@ -53,7 +54,7 @@ PetAndHelper BasePet(GameLogic::Equipment equipment)
     case 0:
         return {Guardian, Guardian};
     case 1:
-        return {Imp, NoItemModel}; // 0x513bc0..0x513bc6 no tiene caso 1.
+        return {Imp, Kernel::NoItemModel}; // 0x513bc0..0x513bc6 no tiene caso 1.
     case 2:
         return {Unilia, UniliaHelper};
     default:
@@ -65,49 +66,50 @@ PetAndHelper BasePet(GameLogic::Equipment equipment)
 // no, a ese ayudante propio con 0x443d70 (el objeto de 0x5139f0, 0x513b7b..0x513ce5).
 struct PetTarget
 {
-    WorldState& world;
-    ActorState& actor;
+    Kernel::WorldState& world;
+    Kernel::ActorState& actor;
     std::size_t slot = 0;
-    HelperState* own = nullptr;
+    Scenes::HelperState* own = nullptr;
 };
 
 Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelper pet, Crt::CrtRandom& random)
 {
-    ActorState& actor = target.actor;
+    Kernel::ActorState& actor = target.actor;
     actor.pet.model = pet.pet;
     actor.previousHad1c15 = pet.pet == HeightOffsetPet;
-    if (pet.pet == NoItemModel)
+    if (pet.pet == Kernel::NoItemModel)
     {
         actor.pet.flags1b = 0;
         actor.pet.flags1c = 0;
     }
-    if (pet.helper == NoItemModel)
+    if (pet.helper == Kernel::NoItemModel)
     {
         return {};
     }
     if (target.own != nullptr)
     {
-        auto built = ConstructHelper(*target.own, pet.helper, actor.position, actor, ActorPoolSize,
-                                     target.world.Runtime().map, &random);
+        auto built = Scenes::ConstructHelper(*target.own, pet.helper, actor.position, actor, Kernel::ActorPoolSize,
+                                             target.world.Runtime().map, &random);
         return built.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(built.Error());
     }
-    auto created = CreateHelper(target.world, pet.helper, actor.position, target.slot, &random);
+    auto created = Scenes::CreateHelper(target.world, pet.helper, actor.position, target.slot, &random);
     return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
 }
 
 // 0x513a12..0x513b27: las manos y las alas.
-Core::Expected<void, std::string> PutHandsAndWings(ActorState& actor, const GameLogic::CharacterAppearance& appearance,
-                                                   const WorldEntryResources& resources)
+Core::Expected<void, std::string> PutHandsAndWings(Kernel::ActorState& actor,
+                                                   const Kernel::CharacterAppearance& appearance,
+                                                   const Scenes::WorldEntryResources& resources)
 {
-    actor.hands[0].model = appearance.rightHand ? appearance.rightHand->model : NoItemModel;
-    actor.hands[1].model = appearance.leftHand ? appearance.leftHand->model : NoItemModel;
+    actor.hands[0].model = appearance.rightHand ? appearance.rightHand->model : Kernel::NoItemModel;
+    actor.hands[1].model = appearance.leftHand ? appearance.leftHand->model : Kernel::NoItemModel;
     // 0x513aab..0x513ab4: el cuervo de la clase 4 con 0xa05 y 0x420cf0.
     if (actor.hands[1].model == Raven)
     {
-        if (auto raven = ReplaceTheRaven(actor, resources); !raven.HasValue())
+        if (auto raven = Scenes::ReplaceTheRaven(actor, resources); !raven.HasValue())
             return raven;
     }
-    actor.wings.model = appearance.wings.value_or(NoItemModel);
+    actor.wings.model = appearance.wings.value_or(Kernel::NoItemModel);
     if (!appearance.wings)
     {
         actor.wings.flags1b = 0;
@@ -117,7 +119,7 @@ Core::Expected<void, std::string> PutHandsAndWings(ActorState& actor, const Game
 }
 
 // 0x513cf3..0x513d27: +0x360 con el bit 1 de b[11]. Entre 1 y 3 (el arma del evento de Blood Castle) queda.
-void PutTheEventWeapon(ActorState& actor, GameLogic::Equipment equipment)
+void PutTheEventWeapon(Kernel::ActorState& actor, Kernel::Equipment equipment)
 {
     constexpr std::uint8_t LastEventWeapon = 3;
     constexpr std::uint8_t Byte11Weapon = 4;
@@ -128,12 +130,12 @@ void PutTheEventWeapon(ActorState& actor, GameLogic::Equipment equipment)
 }
 
 // 0x513d84..0x51409b: con +0x3e3 en 0, la ropa y los bits de las partes y de las manos.
-void PutTheBody(ActorState& actor, const GameLogic::CharacterAppearance& appearance, GameLogic::Equipment equipment)
+void PutTheBody(Kernel::ActorState& actor, const Kernel::CharacterAppearance& appearance, Kernel::Equipment equipment)
 {
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
-        const GameLogic::WornItem& worn = appearance.bodyParts[part];
-        ActorItemPart& body = actor.body[part];
+        const Kernel::WornItem& worn = appearance.bodyParts[part];
+        Kernel::ActorItemPart& body = actor.body[part];
         body.model = worn.model;
         body.level = worn.level;
         body.flags1b = static_cast<std::uint8_t>(worn.excellent);
@@ -148,7 +150,7 @@ void PutTheBody(ActorState& actor, const GameLogic::CharacterAppearance& appeara
     actor.byte358 = BitOf(ancient, 0);
 }
 
-Core::Expected<void, std::string> CreatePets(const PetTarget& target, GameLogic::Equipment equipment,
+Core::Expected<void, std::string> CreatePets(const PetTarget& target, Kernel::Equipment equipment,
                                              Crt::CrtRandom& random)
 {
     if (auto base = CreatePet(target, BasePet(equipment), random); !base.HasValue())
@@ -159,7 +161,7 @@ Core::Expected<void, std::string> CreatePets(const PetTarget& target, GameLogic:
     constexpr std::uint16_t DarkHorse = 0x1c16;
     if ((flags & 1) != 0)
     {
-        if (auto horse = CreatePet(target, {DarkHorse, DarkHorseModel}, random); !horse.HasValue())
+        if (auto horse = CreatePet(target, {DarkHorse, Scenes::DarkHorseModel}, random); !horse.HasValue())
         {
             return horse;
         }
@@ -179,35 +181,34 @@ Core::Expected<void, std::string> CreatePets(const PetTarget& target, GameLogic:
 }
 
 // 0x5139f0 desde 0x513a12, sobre el personaje de `target`.
-Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, GameLogic::Equipment equipment,
-                                              const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, Kernel::Equipment equipment,
+                                              const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& actor = target.actor;
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& actor = target.actor;
     // 0x513a12: solo los jugadores.
     if (actor.type != Tables::PlayerSkeletonModel)
         return {};
-    const GameLogic::CharacterAppearance appearance =
-        GameLogic::AppearanceOf(actor.characterClass, actor.skin, equipment);
+    const Kernel::CharacterAppearance appearance = Kernel::AppearanceOf(actor.characterClass, actor.skin, equipment);
     if (auto carried = PutHandsAndWings(actor, appearance, resources); !carried.HasValue())
         return carried;
     // 0x513b27..0x513b39: con el cuarto argumento en 0, 0x443d40; con un ayudante, su byte vivo en 0.
     if (target.own != nullptr)
         target.own->alive = false;
     else
-        TurnOffHelpersOf(world.Helpers(), target.slot);
+        Scenes::TurnOffHelpersOf(world.Helpers(), target.slot);
     if (auto pets = CreatePets(target, equipment, resources.cloth.random); !pets.HasValue())
         return pets;
     // 0x513cee.
-    ReleaseTheLayer(actor);
+    Kernel::ReleaseTheLayer(actor);
     PutTheEventWeapon(actor, equipment);
     // 0x513d27..0x513d77: L = b[5] << 16 | b[6] << 8 | b[7]; las manos con los bits 0..2 y 3..5, y las alas y la
     // mascota con el nivel en 0.
     constexpr int LeftLevelShift = 3;
     const std::uint32_t levels = (static_cast<std::uint32_t>(ByteOf(equipment, 5)) << 16) |
                                  (static_cast<std::uint32_t>(ByteOf(equipment, 6)) << 8) | ByteOf(equipment, 7);
-    actor.hands[0].level = GameLogic::ItemLevelOf(static_cast<std::uint8_t>(levels & 7));
-    actor.hands[1].level = GameLogic::ItemLevelOf(static_cast<std::uint8_t>((levels >> LeftLevelShift) & 7));
+    actor.hands[0].level = Kernel::ItemLevelOf(static_cast<std::uint8_t>(levels & 7));
+    actor.hands[1].level = Kernel::ItemLevelOf(static_cast<std::uint8_t>((levels >> LeftLevelShift) & 7));
     actor.wings.level = 0;
     actor.pet.level = 0;
     // 0x513d7e.
@@ -221,24 +222,24 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, GameLogic
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std::size_t slot,
-                                                         GameLogic::Equipment equipment, Crt::CrtRandom& random)
+Core::Expected<void, std::string> CreateCharacterSetPets(Kernel::WorldState& world, std::size_t slot,
+                                                         Kernel::Equipment equipment, Crt::CrtRandom& random)
 {
     return CreatePets({.world = world, .actor = world.Actors()[slot], .slot = slot}, equipment, random);
 }
 
-Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic::Equipment equipment,
-                                                    const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, Kernel::Equipment equipment,
+                                                    const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     return ApplyTheSet({.world = world, .actor = world.Actors()[index], .slot = index}, equipment, resources);
 }
 
-Core::Expected<void, std::string> ApplyCharacterSetTo(ActorState& actor, HelperState& helper,
-                                                      GameLogic::Equipment equipment,
-                                                      const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyCharacterSetTo(Kernel::ActorState& actor, Scenes::HelperState& helper,
+                                                      Kernel::Equipment equipment,
+                                                      const Scenes::WorldEntryResources& resources)
 {
-    return ApplyTheSet({.world = resources.world, .actor = actor, .slot = ActorPoolSize, .own = &helper}, equipment,
-                       resources);
+    return ApplyTheSet({.world = resources.world, .actor = actor, .slot = Kernel::ActorPoolSize, .own = &helper},
+                       equipment, resources);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

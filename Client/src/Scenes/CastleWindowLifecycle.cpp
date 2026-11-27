@@ -38,7 +38,7 @@ constexpr std::uint8_t GuildMaster = 0x80;
 constexpr std::int32_t WindowCloseSound = 0x1c;
 constexpr std::size_t BusySeniorText = (0x77354e8 - 0x76bd1dc) / 300;
 
-Core::Expected<void, std::string> Warn(WorldRuntime& runtime, CastleWindowServices services, std::size_t id)
+Core::Expected<void, std::string> Warn(Kernel::WorldRuntime& runtime, CastleWindowServices services, std::size_t id)
 {
     const auto text = UI::TextAt(services.texts, id);
     if (!text || services.measure == nullptr)
@@ -46,7 +46,8 @@ Core::Expected<void, std::string> Warn(WorldRuntime& runtime, CastleWindowServic
     return AddGameMessage(runtime, *services.measure, services.screen, {}, *text, 2);
 }
 
-Core::Expected<void, std::string> CancelOwnedDialog(WorldState& world, const CastleSender& send, std::uint32_t& owned)
+Core::Expected<void, std::string> CancelOwnedDialog(Kernel::WorldState& world, const CastleSender& send,
+                                                    std::uint32_t& owned)
 {
     auto& dialog = world.Runtime().panels.delegated.panelDialog;
     if (UI::PanelDialogHandle(dialog) != owned)
@@ -59,8 +60,8 @@ Core::Expected<void, std::string> CancelOwnedDialog(WorldState& world, const Cas
     return {};
 }
 
-Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, WorldState& world, const CastleSender& send,
-                                              CastleWindowServices services)
+Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, Kernel::WorldState& world,
+                                              const CastleSender& send, CastleWindowServices services)
 {
     auto& runtime = world.Runtime();
     auto& delegated = runtime.panels.delegated;
@@ -90,7 +91,7 @@ Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, WorldSta
     return true;
 }
 
-Core::Expected<bool, std::string> CloseHunt(WorldState& world, const CastleSender& send)
+Core::Expected<bool, std::string> CloseHunt(Kernel::WorldState& world, const CastleSender& send)
 {
     auto& runtime = world.Runtime();
     if (runtime.panels.delegated.secondCastleSiege == 0)
@@ -105,20 +106,20 @@ Core::Expected<bool, std::string> CloseHunt(WorldState& world, const CastleSende
 }
 } // namespace
 
-bool CastleSeniorBusy(const WorldState& world)
+bool CastleSeniorBusy(const Kernel::WorldState& world)
 {
     // 0x661b90: exactamente los 32 lugares de 0x7d2d380..0x7d2dc80, por type WORD, no por occupied.
     return world.Runtime().cursorItemCount > 0 ||
            std::ranges::any_of(world.Runtime().npcWindows.chaosBox, [](const auto& item) { return item.id != 0xffff; });
 }
 
-bool HeroCanCraftAtTheCastle(const WorldState& world)
+bool HeroCanCraftAtTheCastle(const Kernel::WorldState& world)
 {
     const auto& hero = world.Hero();
     return static_cast<std::int16_t>(hero.word1f2) >= 0 && hero.guildStatus == GuildMaster;
 }
 
-void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Crt::CrtRandom& /*random*/,
+void LendTheCastleLifecycleTo(UI::PanelContext& panels, Kernel::WorldState& world, Crt::CrtRandom& /*random*/,
                               const CastleSender& send, CastleWindowServices services)
 {
     panels.castleWindowOpened = [&world, send](UI::PanelId id) -> Core::Expected<void, std::string>
@@ -146,8 +147,9 @@ void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Crt::
     panels.castleSeniorBlocked = [&world, services]() { return Warn(world.Runtime(), services, BusySeniorText); };
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Crt::CrtRandom& random, const CastleSender& send,
-                                const WorldEntryResources* entryResources, CastleWindowServices services)
+void LendTheCastlePanelServices(GamePanels& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
+                                const CastleSender& send, const WorldEntryResources* entryResources,
+                                CastleWindowServices services)
 {
     panels.LendTheSession(world, random, send, {});
     if (send)

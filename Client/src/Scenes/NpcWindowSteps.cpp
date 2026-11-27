@@ -169,7 +169,7 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-std::int32_t LevelOf(const World::ItemState& item)
+std::int32_t LevelOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
 }
@@ -217,10 +217,10 @@ bool IsLeftOutOfTheRepair(std::uint16_t id)
 }
 
 // 0x5b17bf..0x5b1884: lo que suma un ítem gastado al precio de reparar todo. 0x5b1ba0 corre antes de mirar el tipo.
-Core::Expected<void, std::string> AddTheRepairOf(WorldState& world, const World::ItemState& item,
+Core::Expected<void, std::string> AddTheRepairOf(Kernel::WorldState& world, const Kernel::ItemState& item,
                                                  const Tables::ItemTable& items)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const auto record = items.Record(item.id);
     if (!record)
         return Core::Unexpected(
@@ -228,8 +228,8 @@ Core::Expected<void, std::string> AddTheRepairOf(WorldState& world, const World:
     const std::uint16_t maximum = MaxDurability(item, *record, LevelOf(item));
     if (IsLeftOutOfTheRepair(item.id) || item.durability >= maximum)
         return {};
-    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
-                              .horse = runtime.pets[DarkHorsePetStats].level};
+    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto price = ItemPrice(item, items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
@@ -242,7 +242,7 @@ Core::Expected<void, std::string> AddTheRepairOf(WorldState& world, const World:
 }
 
 // 0x5df417 y 0x5ded14..0x5dee3d: lo que vender pide confirmar.
-bool IsValuable(const World::ItemState& item)
+bool IsValuable(const Kernel::ItemState& item)
 {
     const std::int32_t type = Signed(item.id);
     const std::int32_t level = LevelOf(item);
@@ -257,7 +257,7 @@ bool IsValuable(const World::ItemState& item)
 }
 
 // 0x5dee43..0x5dee79: lo que la tienda no compra.
-bool IsUnsellable(const World::ItemState& item)
+bool IsUnsellable(const Kernel::ItemState& item)
 {
     const std::int32_t type = Signed(item.id);
     const std::int32_t level = LevelOf(item);
@@ -298,7 +298,7 @@ Core::Expected<void, std::string> TextMessage(const GameUiContext& context, std:
 // gasta y suena 0x19, salvo con el zen que no alcanza, que no suena.
 Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     std::uint32_t zen = 0;
     {
@@ -375,7 +375,7 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
 
 } // namespace
 
-void OpenTheKeypad(WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t mode)
+void OpenTheKeypad(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t mode)
 {
     NpcWindowState& npc = runtime.npcWindows;
     ShuffleTheKeypad(random, npc.keypad);
@@ -385,7 +385,7 @@ void OpenTheKeypad(WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t m
 
 Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     UI::PanelState& state = runtime.panels;
     if (!panels.IsOpen(UI::NpcShopPanel))
@@ -433,10 +433,10 @@ Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, U
     return {};
 }
 
-Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, Crt::CrtRandom& random,
+Core::Expected<void, std::string> PriceTheRepairOfEverything(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                              const Tables::ItemTable* items)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.npcWindows.repairAllPrice = 0;
     const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     const auto table = [items]() -> Core::Expected<const Tables::ItemTable*, std::string>
@@ -446,9 +446,9 @@ Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, 
         return items;
     };
     // 0x5b1793..0x5b1893: los doce lugares del equipo con tipo y +0x3c.
-    for (const World::ItemState& worn : world.OwnCharacter().equipment)
+    for (const Kernel::ItemState& worn : world.OwnCharacter().equipment)
     {
-        if (worn.id == EmptyOwnItemId || worn.occupied == 0)
+        if (worn.id == Kernel::EmptyOwnItemId || worn.occupied == 0)
             continue;
         auto read = table();
         if (!read.HasValue())
@@ -457,7 +457,7 @@ Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, 
             return added;
     }
     // 0x5b1899..0x5b198a: las 64 casillas con +0x3c, sin mirar el tipo.
-    for (const World::ItemState& cell : world.Inventory().cells)
+    for (const Kernel::ItemState& cell : world.Inventory().cells)
     {
         if (cell.occupied == 0)
             continue;
@@ -472,7 +472,7 @@ Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, 
 
 Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     if (!panels.IsOpen(UI::WarehousePanel))
         return {};
@@ -524,7 +524,7 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
 
 Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     if (!panels.IsOpen(UI::ChaosBoxPanel))
         return {};
@@ -550,7 +550,7 @@ Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, 
 
 Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& context, std::int32_t kind)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     TradeState& trade = runtime.social.trade;
     const bool yes = trade.warningByte == YesAnswer;
@@ -595,8 +595,8 @@ Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& conte
 
 Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const World::ItemState& cursor = runtime.cursorItem;
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ItemState& cursor = runtime.cursorItem;
     // 0x5deca7..0x5ded0e: el nivel se lee antes del IsOpen, que saca su rand().
     if (!panels.IsOpen(UI::NpcShopPanel))
         return false;
@@ -629,14 +629,14 @@ Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context
 
 Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     UI::DialogState& dialogs = runtime.dialogs;
     const std::int32_t money = runtime.social.typedMoney;
     // 0x6270ed..0x62820a: con el registro propio abierto, que se cierra al final (3.848 rand()).
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    const OwnCharacterRecord& record = world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& record = world.OwnCharacter();
     const auto amount = static_cast<std::uint32_t>(money);
     if (runtime.social.trade.field78abacc == 0)
     {
@@ -674,7 +674,7 @@ namespace
 {
 Core::Expected<void, std::string> LeaveThePanel2000(const GameUiContext& context, UI::PanelRegistry& panels, bool cross)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.movement.pendingClick = false;
     if (cross)
         runtime.panels.field78abb00 = 0;
@@ -693,7 +693,7 @@ Core::Expected<void, std::string> StepThePanel2000(const GameUiContext& context,
 {
     if (!panels.IsOpen(UI::Panel2000))
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const auto x = runtime.hud.inventoryX;
     const auto y = runtime.hud.inventoryY;
     if (InRect(context, Panel2000Left, 0, Panel2000Right, Panel2000Bottom))

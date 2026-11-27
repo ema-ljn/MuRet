@@ -8,7 +8,7 @@
 #include <string_view>
 
 // La búsqueda de los emotes en lo dicho (CL9 hito 1; 06 § El chat, "El emote"): 0x576eb0 hasta el salto a su caso.
-// Lo que hace cada caso es Scenes::DoTheEmote. *Estático*.
+// Lo que hace cada caso es Actors::DoTheEmote. *Estático*.
 namespace Client::UI
 {
 // 0x576eb0: los textos de Text.bmd que busca, del 270 al 348 y el 783.

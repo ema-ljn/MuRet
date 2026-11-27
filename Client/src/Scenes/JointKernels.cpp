@@ -84,10 +84,10 @@ Core::Expected<void, std::string> AppendCrossedJointTail(JointState& joint, cons
     return {};
 }
 
-const ActorState* ActorOwner(const JointState& joint)
+const Kernel::ActorState* ActorOwner(const JointState& joint)
 {
     if (joint.ownerKind != JointOwnerKind::ByType && joint.ownerKind != JointOwnerKind::Actor)
         return nullptr;
-    return static_cast<const ActorState*>(joint.ownerContext);
+    return static_cast<const Kernel::ActorState*>(joint.ownerContext);
 }
 } // namespace Client::Scenes::JointKernels

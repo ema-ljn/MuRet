@@ -45,7 +45,7 @@ constexpr int MosaicHeight = 600;
 } // namespace
 
 WorldLoadingScene::WorldLoadingScene(const SceneContext& context)
-    : m_context(context), m_textures(context.textures, WorldLoadingTextureSet)
+    : m_context(context), m_textures(context.textures, Assets::WorldLoadingTextureSet)
 {
 }
 
@@ -57,7 +57,7 @@ Core::Expected<void, std::string> WorldLoadingScene::Enter()
             std::string("la carga del mundo no entra sin el WorldState y el rand() de la CRT: el contador de la "
                         "espera vive ahí y su cierre gasta rand()"));
     }
-    WorldRuntime& runtime = m_context.world->Runtime();
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     // 0x63571d: con la bandera levantada saltea el contador, la bandera y las texturas, y dibuja con el
     // objeto del mosaico de la UI, que fuera de esta llamada es nulo (0x65ed2e, 0x635a87): 0x647650 lo
     // leería en [8 + 0xa0]. La selección la baja siempre antes de pasar a la escena 3 y nadie más la
@@ -72,7 +72,7 @@ Core::Expected<void, std::string> WorldLoadingScene::Enter()
         // 0x635723..0x635963: abre el contador, escribe 0x98967f y lo cierra (0x412890).
         const Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
                                            Models::SmallLogicalCloseRandoms);
-        runtime.warpCounter = WorldLoadingWait;
+        runtime.warpCounter = Kernel::WorldLoadingWait;
     }
     // 0x635980, antes de las texturas.
     runtime.loadingOnceFlag = 1;
@@ -89,7 +89,7 @@ void WorldLoadingScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha
     canvas.sprites.SetBlend(Render::BlendMode::Alpha);
     for (const Tile& tile : Tiles)
     {
-        const TextureBufferSize buffer = m_textures.BufferSize(Render::TextureSlot{tile.slot});
+        const Assets::TextureBufferSize buffer = m_textures.BufferSize(Render::TextureSlot{tile.slot});
         canvas.sprites.Image(Render::UiImage{.slot = Render::TextureSlot{tile.slot},
                                              .x = tile.x,
                                              .y = tile.y,

@@ -26,7 +26,7 @@ class LoadingScene final : public IScene
 {
 public:
     // `models` tiene que vivir más; con nullptr, la carga no lee modelos (los tests de la CL5).
-    explicit LoadingScene(const SceneContext& context, GameModels* models = nullptr);
+    explicit LoadingScene(const SceneContext& context, Assets::GameModels* models = nullptr);
 
     // Sube su juego (LoadingTextureSet).
     Core::Expected<void, std::string> Enter() override;
@@ -50,8 +50,8 @@ public:
 private:
     [[nodiscard]] Core::Expected<void, std::string> LoadModels();
     SceneContext m_context;
-    GameModels* m_models;
-    SceneTextures m_textures;
+    Assets::GameModels* m_models;
+    Assets::SceneTextures m_textures;
     bool m_failed = false;
     int m_progress = 0;
     bool m_done = false;

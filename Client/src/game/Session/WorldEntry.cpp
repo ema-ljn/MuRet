@@ -44,7 +44,7 @@ constexpr int HeroSlots = 400;
 constexpr double DirectionOffset = 1.0;
 constexpr double DegreesPerDirection = 45.0;
 // 0x4c48eb: el contador de la espera en 30.
-constexpr std::int32_t EntryWait = WaitDrawThreshold;
+constexpr std::int32_t EntryWait = Kernel::WaitDrawThreshold;
 // 0x4c49d6..0x4c4a11: los sonidos fuera de Blood Castle (11 a 17) y de Chaos Castle (18 a 23).
 using Maps::FirstBloodCastleMap;
 using Maps::FirstChaosCastleMap;
@@ -54,28 +54,28 @@ constexpr std::int32_t OutsideBloodCastleSound = 0x8b;
 constexpr std::int32_t FirstOutsideChaosCastleSound = 0x99;
 constexpr std::int32_t SecondOutsideChaosCastleSound = 0x9e;
 
-ActorState& HeroOf(const WorldEntryResources& resources)
+Kernel::ActorState& HeroOf(const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     return world.Actors()[static_cast<std::size_t>(world.Runtime().heroSlot)];
 }
 
-ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
+Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
 {
-    return ActorStopContext{.runtime = resources.world.Runtime(),
-                            .scene = SceneId::Game,
-                            .playerSkeleton = player,
-                            .items = resources.items,
-                            .random = resources.cloth.random,
-                            .terrainWalls = resources.world.Map().terrain.attributes
-                                                ? &resources.world.Map().terrain.attributes->cells
-                                                : nullptr};
+    return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
+                                    .scene = SceneId::Game,
+                                    .playerSkeleton = player,
+                                    .items = resources.items,
+                                    .random = resources.cloth.random,
+                                    .terrainWalls = resources.world.Map().terrain.attributes
+                                                        ? &resources.world.Map().terrain.attributes->cells
+                                                        : nullptr};
 }
 
 // 0x4c40cb..0x4c41c4: abre el registro propio, copia los stats y lo cierra (el primer cierre en línea).
 void ApplyTheStats(const Protocol::FrontEnd::CharacterSelectResult& reply, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
                                        Models::OwnRecordCloseRandoms);
     world.OwnCharacter().ApplyStats(reply, resources.log);
@@ -86,7 +86,7 @@ void ApplyTheStats(const Protocol::FrontEnd::CharacterSelectResult& reply, const
 Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t playerKey,
                                                const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     world.Runtime().map = map;
     const auto loaded = LoadMap(map, MapLoadContext{.dataRoot = resources.dataRoot,
                                                     .world = world,
@@ -110,17 +110,17 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
 Core::Expected<void, std::string> BuildTheHero(const Protocol::FrontEnd::CharacterSelectResult& reply,
                                                std::uint16_t playerKey, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     world.Runtime().heroSlot = resources.cloth.random.Next() % HeroSlots;
     const auto angle =
         static_cast<float>((static_cast<double>(reply.direction) - DirectionOffset) * DegreesPerDirection);
-    ActorState& hero = HeroOf(resources);
-    const ActorConstructionContext construction{.terrain = world.Map().terrain,
-                                                .map = world.Runtime().map,
-                                                .scene = World::CullingScene::Game,
-                                                .fixedHeight = resources.camera.fixedHeight};
-    const auto built =
-        ConstructActor(hero, Tables::PlayerSkeletonModel, {reply.x, reply.y, angle}, construction, resources.cloth);
+    Kernel::ActorState& hero = HeroOf(resources);
+    const Actors::ActorConstructionContext construction{.terrain = world.Map().terrain,
+                                                        .map = world.Runtime().map,
+                                                        .scene = Terrain::CullingScene::Game,
+                                                        .fixedHeight = resources.camera.fixedHeight};
+    const auto built = Actors::ConstructActor(hero, Tables::PlayerSkeletonModel, {reply.x, reply.y, angle},
+                                              construction, resources.cloth);
     if (!built.HasValue())
     {
         return built;
@@ -133,8 +133,8 @@ Core::Expected<void, std::string> BuildTheHero(const Protocol::FrontEnd::Charact
 // después el PK, el CtlCode y +0x88.
 void CopyTheIdentity(const Protocol::FrontEnd::CharacterSelectResult& reply, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& hero = HeroOf(resources);
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& hero = HeroOf(resources);
     {
         const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
                                            Models::OwnRecordCloseRandoms);
@@ -154,16 +154,16 @@ void CopyTheIdentity(const Protocol::FrontEnd::CharacterSelectResult& reply, con
 Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resources, const Models::Skeleton& player,
                                                WorldEntryResult& result)
 {
-    WorldState& world = resources.world;
-    const ActorEquipmentContext equipment{.own = world.OwnCharacter(),
-                                          .ownRecordAccesses = world.Runtime().ownRecordDepth,
-                                          .publishedHero = world.Hero(),
-                                          .fullSetScan = world.Runtime().fullSetScan,
-                                          .stop = StopContextOf(resources, player),
-                                          .itemSetTables = resources.itemSetTables,
-                                          .itemSets = &world.ItemSets(),
-                                          .held = HeldItemOf(world.Runtime())};
-    const auto dressed = ApplyActorEquipment(HeroOf(resources), equipment);
+    Kernel::WorldState& world = resources.world;
+    const Actors::ActorEquipmentContext equipment{.own = world.OwnCharacter(),
+                                                  .ownRecordAccesses = world.Runtime().ownRecordDepth,
+                                                  .publishedHero = world.Hero(),
+                                                  .fullSetScan = world.Runtime().fullSetScan,
+                                                  .stop = StopContextOf(resources, player),
+                                                  .itemSetTables = resources.itemSetTables,
+                                                  .itemSets = &world.ItemSets(),
+                                                  .held = Player::HeldItemOf(world.Runtime())};
+    const auto dressed = Actors::ApplyActorEquipment(HeroOf(resources), equipment);
     if (!dressed.HasValue())
     {
         return Core::Unexpected(dressed.Error());
@@ -179,9 +179,9 @@ Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resour
 // el tercer cierre en línea.
 void PublishTheHero(const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     world.Runtime().hero = static_cast<std::size_t>(world.Runtime().heroSlot);
-    ActorState& hero = HeroOf(resources);
+    Kernel::ActorState& hero = HeroOf(resources);
     resources.cameraInput.hero = hero.position;
     if (const auto& attributes = world.Map().terrain.attributes)
     {
@@ -190,7 +190,7 @@ void PublishTheHero(const WorldEntryResources& resources)
     }
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
                                        Models::OwnRecordCloseRandoms);
-    OwnCharacterRecord& own = world.OwnCharacter();
+    Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     std::copy_n(own.name.begin(), hero.name.size(), hero.name.begin());
     own.ClearEquipmentForEntry();
 }
@@ -199,7 +199,7 @@ void PublishTheHero(const WorldEntryResources& resources)
 // Con la tabla llena no crea nada, como el original.
 void CreateTheArrival(const WorldEntryResources& resources)
 {
-    ActorState& hero = HeroOf(resources);
+    Kernel::ActorState& hero = HeroOf(resources);
     static_cast<void>(resources.world.Map().effects.Create({.type = World::ArrivalEffect,
                                                             .position = hero.position,
                                                             .angles = hero.angles,
@@ -211,7 +211,7 @@ void CreateTheArrival(const WorldEntryResources& resources)
 // 0x4c486d..0x4c4935: abre el contador, lo pone en 30 y lo cierra (0x412890).
 void StartTheWait(const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const Models::LogicalAccess access(runtime.warpDepth, resources.cloth.random, Models::SmallLogicalCloseRandoms);
     runtime.warpCounter = EntryWait;
 }
@@ -226,7 +226,7 @@ Core::Expected<void, std::string> CloseTheWindows(const WorldEntryResources& res
 }
 
 // 0x4c49e7..0x4c4a16: detener con rewind las pistas fuera de los mapas de evento.
-void AskForTheSounds(std::int32_t map, WorldRuntime& runtime, WorldEntryResult& result)
+void AskForTheSounds(std::int32_t map, Kernel::WorldRuntime& runtime, WorldEntryResult& result)
 {
     if (map < FirstBloodCastleMap || map > LastBloodCastleMap)
     {
@@ -246,17 +246,17 @@ void AskForTheSounds(std::int32_t map, WorldRuntime& runtime, WorldEntryResult& 
 Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resources, const Models::Skeleton& player,
                                               WorldEntryResult& result)
 {
-    ActorState& hero = HeroOf(resources);
+    Kernel::ActorState& hero = HeroOf(resources);
     hero.alpha = 0.0f;
     if (auto closed = CloseTheWindows(resources); !closed.HasValue())
         return closed;
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     runtime.byte6c8e4d = 0xff;
     runtime.selectedTargets.fill(-1);
     runtime.panels.repairMode = 0;
     runtime.field78abb10 = 0;
     hero.movement = 0;
-    const auto stopped = SetActorStop(hero, StopContextOf(resources, player));
+    const auto stopped = Actors::SetActorStop(hero, StopContextOf(resources, player));
     if (!stopped.HasValue())
     {
         return Core::Unexpected(stopped.Error());

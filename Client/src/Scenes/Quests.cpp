@@ -37,20 +37,20 @@ constexpr std::size_t DialogSlots = Tables::QuestDialogCount;
 // 0x558445: el nivel que no se mira.
 constexpr std::int32_t AnyLevel = -1;
 
-QuestState& QuestOf(WorldState& world)
+QuestState& QuestOf(Kernel::WorldState& world)
 {
     return world.Runtime().quest;
 }
 
-ActorState& HeroOf(WorldState& world)
+Kernel::ActorState& HeroOf(Kernel::WorldState& world)
 {
     return world.Hero();
 }
 
 // +0x390 del héroe: 0 y, con la misión 3 terminada, 1 (0x418e76..0x418e8d y 0x418f0e..0x418f25).
-void MarkTheHero(WorldState& world)
+void MarkTheHero(Kernel::WorldState& world)
 {
-    ActorState& hero = HeroOf(world);
+    Kernel::ActorState& hero = HeroOf(world);
     hero.byte390 = 0;
     if (QuestStateOf(world.Runtime(), HeroFlagQuest) == QuestDone)
         hero.byte390 = 1;
@@ -144,7 +144,7 @@ std::uint8_t ConditionByteOf(const Tables::QuestCondition& condition, std::size_
 constexpr std::size_t QuestObjectBytes = 64;
 constexpr std::size_t QuestObjectEnd = 76;
 
-std::uint8_t QuestObjectByteOf(const WorldRuntime& runtime, std::size_t index)
+std::uint8_t QuestObjectByteOf(const Kernel::WorldRuntime& runtime, std::size_t index)
 {
     const QuestState& quest = runtime.quest;
     if (index < quest.states.size())
@@ -189,7 +189,7 @@ std::uint32_t WithByte(std::uint32_t value, std::size_t index, std::uint8_t byte
 
 // La escritura de QuestObjectByteOf, hasta el final del objeto (Q-C1126): 0x418ee0 escribe el byte índice >> 2 y
 // 0x418e20 copia la cuenta del A0 desde +0x2134c. El relleno de +0x2138e y +0x2138f no lo lee nadie y no se guarda.
-void SetQuestObjectByte(WorldRuntime& runtime, std::size_t index, std::uint8_t value)
+void SetQuestObjectByte(Kernel::WorldRuntime& runtime, std::size_t index, std::uint8_t value)
 {
     QuestState& quest = runtime.quest;
     if (index < quest.states.size())
@@ -268,7 +268,7 @@ Core::Expected<std::size_t, std::string> EntryCountOf(const Tables::QuestRecord&
 
 Core::Expected<void, std::string> ShowTheDialog(const QuestContext& context, std::int32_t dialog)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     return UI::ShowTheQuestDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, context.texts, dialog);
 }
 } // namespace
@@ -292,7 +292,7 @@ std::uint8_t QuestClassFlagOf(const Tables::QuestRecord& quest, std::size_t entr
     return ConditionByteOf(quest.conditions[inConditions / PartSize], inConditions % PartSize);
 }
 
-std::uint8_t QuestStateOf(const WorldRuntime& runtime, std::int32_t index)
+std::uint8_t QuestStateOf(const Kernel::WorldRuntime& runtime, std::int32_t index)
 {
     // 0x41957e..0x419588: CDQ, AND 3 y SAR 2, la división con signo.
     const std::int32_t byteIndex = index / 4;
@@ -305,16 +305,17 @@ std::uint8_t QuestStateOf(const WorldRuntime& runtime, std::int32_t index)
     return static_cast<std::uint8_t>(shifted & 3u);
 }
 
-void ReadTheCurrentQuestState(WorldRuntime& runtime)
+void ReadTheCurrentQuestState(Kernel::WorldRuntime& runtime)
 {
     // 0x41956f..0x41957c: el índice sin signo y SHR 2.
     runtime.quest.currentState = QuestStateOf(runtime, runtime.quest.current);
 }
 
-std::int32_t MissingQuestItems(const OwnInventory& inventory, std::int32_t type, std::int32_t count, std::int32_t level)
+std::int32_t MissingQuestItems(const Kernel::OwnInventory& inventory, std::int32_t type, std::int32_t count,
+                               std::int32_t level)
 {
     std::int32_t found = 0;
-    for (const World::ItemState& item : inventory.cells)
+    for (const Kernel::ItemState& item : inventory.cells)
     {
         if (static_cast<std::int32_t>(static_cast<std::int16_t>(item.id)) != type ||
             static_cast<std::int32_t>(item.occupied) <= 0)
@@ -328,9 +329,9 @@ std::int32_t MissingQuestItems(const OwnInventory& inventory, std::int32_t type,
     return count - found;
 }
 
-std::size_t ApplyTheQuestList(WorldState& world, std::uint8_t count, std::span<const std::uint8_t> bytes)
+std::size_t ApplyTheQuestList(Kernel::WorldState& world, std::uint8_t count, std::span<const std::uint8_t> bytes)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     QuestState& quest = runtime.quest;
     // 0x418e2e..0x418e47: la clase del héroe, sin signo.
     const std::uint8_t heroClass = HeroOf(world).characterClass;
@@ -353,9 +354,9 @@ std::size_t ApplyTheQuestList(WorldState& world, std::uint8_t count, std::span<c
     return count > QuestObjectEnd ? count - QuestObjectEnd : 0;
 }
 
-void SetTheQuestState(WorldState& world, std::uint8_t index, std::uint8_t state)
+void SetTheQuestState(Kernel::WorldState& world, std::uint8_t index, std::uint8_t state)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     QuestState& quest = runtime.quest;
     // 0x418ef1..0x418f04: el mayor con signo entre el índice y +0x2137f.
     quest.current = index;
@@ -422,7 +423,7 @@ Core::Expected<bool, std::string> HasTheQuestItems(const QuestContext& context, 
 Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& context, std::size_t record,
                                                           bool checkZen)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
     const auto read = RecordOf(quest, record, "0x418fb0");
     if (!read.HasValue())
@@ -562,7 +563,7 @@ Core::Expected<std::uint8_t, std::string> RefreshTheQuest(const QuestContext& co
     return quest.currentState;
 }
 
-Core::Expected<bool, std::string> CanCompleteTheQuest(const WorldState& world)
+Core::Expected<bool, std::string> CanCompleteTheQuest(const Kernel::WorldState& world)
 {
     const QuestState& quest = world.Runtime().quest;
     if (quest.currentState != QuestInProgress)
@@ -591,7 +592,7 @@ Core::Expected<bool, std::string> CanCompleteTheQuest(const WorldState& world)
 
 Core::Expected<void, std::string> OpenTheQuestDialog(const QuestContext& context, std::int32_t quest)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (quest != -1)
         runtime.quest.current = static_cast<std::uint8_t>(quest);
     runtime.panels.field78abb00 = 0;
@@ -603,7 +604,7 @@ Core::Expected<void, std::string> OpenTheQuestDialog(const QuestContext& context
 
 Core::Expected<void, std::string> OpenTheQuestList(const QuestContext& context, std::int32_t quest)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& state = runtime.quest;
     if (quest != -1)
         state.current = static_cast<std::uint8_t>(quest);

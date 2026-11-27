@@ -8,9 +8,9 @@
 #include <glm/common.hpp>
 #include <glm/ext/vector_float3.hpp>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
-ActorPickingBox PickingBoxOf(const ActorState& actor)
+ActorPickingBox PickingBoxOf(const Kernel::ActorState& actor)
 {
     return {.origin = {actor.field13c, actor.field140, actor.field144},
             .axisX = {actor.field148, actor.field14c, actor.field150},
@@ -26,7 +26,7 @@ ActorPickingBox PickingBoxFor(const glm::vec3& position, const glm::vec3& min, c
             .axisZ = {0.0f, 0.0f, max.z - min.z}};
 }
 
-void PublishPickingBox(ActorState& actor, const glm::vec3& position, const glm::vec3& min, const glm::vec3& max)
+void PublishPickingBox(Kernel::ActorState& actor, const glm::vec3& position, const glm::vec3& min, const glm::vec3& max)
 {
     const ActorPickingBox box = PickingBoxFor(position, min, max);
     actor.field13c = box.origin.x;
@@ -54,4 +54,4 @@ Models::Box AxisAlignedBoxOf(const ActorPickingBox& box)
     }
     return {.min = min, .max = max};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

@@ -30,13 +30,13 @@
 #include <optional>
 #include <string>
 
-// Scenes::SetActorShock (0x4f53a0) con un monstruo: la acción 5 con las acciones del modelo que cargó su alta y el
+// Actors::SetActorShock (0x4f53a0) con un monstruo: la acción 5 con las acciones del modelo que cargó su alta y el
 // sonido del golpe de su tabla (0x4f553d..0x4f55a7). Monster01 (0x152) y Monster02 (0x153) son sintéticos, con las
 // tablas de 0x612d90: los sonidos {0, 1, 2, 3, 4} y {5, 6, 7, 8, 9}. Los mapas: Lorencia y Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 
 constexpr std::uint32_t Seed = 0x2468;
 
@@ -73,7 +73,7 @@ protected:
         m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         Monster().alive = true;
         Monster().type = 0x152;
-        Monster().pet.model = Client::Scenes::NoItemModel;
+        Monster().pet.model = Client::Kernel::NoItemModel;
     }
 
     ActorState& Monster()
@@ -84,7 +84,7 @@ protected:
     Client::Core::Expected<void, std::string> Shock(CrtRandom& random)
     {
         m_cloth.random = random;
-        const auto shocked = Client::Scenes::SetActorShock(Monster(), 30, Resources());
+        const auto shocked = Client::Actors::SetActorShock(Monster(), 30, Resources());
         random = m_cloth.random;
         return shocked;
     }
@@ -105,10 +105,10 @@ protected:
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_input;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
     Client::Scenes::SingleModelLibrary m_models;
 };

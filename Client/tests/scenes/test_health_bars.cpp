@@ -23,11 +23,11 @@
 // inventadas; la proyección deja el ojo en (x, y, 1), así que un punto va a (320 − x, 240 + y).
 namespace
 {
+using Client::Kernel::ActorState;
+using Client::Kernel::QueuedHealthBar;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::ActorState;
 using Client::Scenes::GameProjection;
-using Client::Scenes::QueuedHealthBar;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint16_t LifeStoneType = 0x1a8;

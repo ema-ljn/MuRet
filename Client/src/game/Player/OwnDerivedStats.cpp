@@ -23,7 +23,7 @@
 
 // 0x550d10, cotejado con el PE c32bbd5f (1.698 bytes), con 0x54ef00 (31) y 0x40dc50 (66): 06, "Los
 // stats del registro propio". 0x40e1b0 y 0x40da20 están en Scenes/OwnItemSets.cpp.
-namespace Client::Scenes
+namespace Client::Player
 {
 namespace
 {
@@ -65,7 +65,7 @@ std::uint16_t Low16(int value)
 }
 
 // El WORD que suma el tipo `kind` (0x550d7f..0x550da9), o nullptr si ese tipo no suma.
-std::uint16_t* BonusWord(OwnCharacterRecord& own, std::uint8_t kind)
+std::uint16_t* BonusWord(Kernel::OwnCharacterRecord& own, std::uint8_t kind)
 {
     switch (kind)
     {
@@ -94,7 +94,8 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
 
 // 0x551287..0x5512ba, los ocho helpers en su orden (thiscall sobre el registro, sin argumentos), y la
 // cola 0x5512bf..0x5513b1.
-Core::Expected<void, std::string> RunOwnStatHelpersAndTail(OwnCharacterRecord& own, const OwnStatsContext& context)
+Core::Expected<void, std::string> RunOwnStatHelpersAndTail(Kernel::OwnCharacterRecord& own,
+                                                           const OwnStatsContext& context)
 {
     ItemSetOptionList& setOptions = context.itemSets->list;
     if (auto done = UpdateOwnWords50To56(own, context.held, context.items, &setOptions); !done.HasValue())
@@ -135,7 +136,7 @@ Core::Expected<void, std::string> RunOwnStatHelpersAndTail(OwnCharacterRecord& o
 }
 } // namespace
 
-Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own, const OwnStatsContext& context)
+Core::Expected<void, std::string> RecalculateOwnStats(Kernel::OwnCharacterRecord& own, const OwnStatsContext& context)
 {
     const auto sets = RecalculateOwnItemSets(own, context);
     if (!sets.HasValue())
@@ -162,7 +163,7 @@ Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own, c
     return RunOwnStatHelpersAndTail(own, context);
 }
 
-Core::Expected<void, std::string> AddOwnItemSetOptionValues(OwnCharacterRecord& own, ItemSetOptionList& list)
+Core::Expected<void, std::string> AddOwnItemSetOptionValues(Kernel::OwnCharacterRecord& own, ItemSetOptionList& list)
 {
     struct WordAndSelector
     {
@@ -185,7 +186,7 @@ Core::Expected<void, std::string> AddOwnItemSetOptionValues(OwnCharacterRecord& 
     return {};
 }
 
-void ClearOwnItemStatWords(OwnCharacterRecord& own)
+void ClearOwnItemStatWords(Kernel::OwnCharacterRecord& own)
 {
     own.word2a = 0;
     own.word2c = 0;
@@ -196,12 +197,13 @@ void ClearOwnItemStatWords(OwnCharacterRecord& own)
     own.word34 = 0;
 }
 
-std::uint16_t ItemStatBonusValueOf(const World::ItemState& item)
+std::uint16_t ItemStatBonusValueOf(const Kernel::ItemState& item)
 {
     return static_cast<std::uint16_t>((item.flags1c >> ItemStatValueShift) & ItemStatValueMask);
 }
 
-Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemState& item, const Tables::ItemTable& items)
+Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const Kernel::ItemState& item,
+                                                           const Tables::ItemTable& items)
 {
     // El valor se escribe antes de leer la tabla (0x40dc6e); el tipo, con signo (movsx, 0x40dc77).
     const std::uint16_t value = ItemStatBonusValueOf(item);
@@ -215,14 +217,14 @@ Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemStat
     return ItemStatBonus{.kind = std::to_integer<std::uint8_t>((*record)[ItemStatKindOffset]), .value = value};
 }
 
-Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own, const Tables::ItemTable* items)
+Core::Expected<void, std::string> AddOwnItemStatBonuses(Kernel::OwnCharacterRecord& own, const Tables::ItemTable* items)
 {
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
-        const World::ItemState& item = own.equipment[slot];
+        const Kernel::ItemState& item = own.equipment[slot];
         // 0x550d72..0x550da9: para valor 0, los 256 selectores producen los mismos WORD.
         // No se inventa el byte anterior a Item.bmd ni se borran los datos residuales del lugar.
-        if (item.durability == 0 || (item.id == EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
+        if (item.durability == 0 || (item.id == Kernel::EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
         {
             continue;
         }
@@ -244,29 +246,29 @@ Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own,
     return {};
 }
 
-Core::Expected<void, std::string> AddCapeOfLordOptions(OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses,
+Core::Expected<void, std::string> AddCapeOfLordOptions(Kernel::OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses,
                                                        Crt::CrtRandom& random)
 {
-    const World::ItemState& wings = own.equipment[WingsSlot];
+    const Kernel::ItemState& wings = own.equipment[WingsSlot];
     if (wings.id != CapeOfLordId)
     {
         return {};
     }
     const Models::LogicalAccess access(ownRecordAccesses, random, Models::OwnRecordCloseRandoms);
-    if (static_cast<std::size_t>(wings.optionCount) > World::MaxItemOptions)
+    if (static_cast<std::size_t>(wings.optionCount) > Kernel::MaxItemOptions)
     {
         return Core::Unexpected(std::format("0x54e540 (0x551051): Cape of Lord con {} opciones lee más allá de sus "
                                             "nueve, en el lugar de la mascota, que MuRet no proyecta así",
                                             wings.optionCount));
     }
     std::array<std::byte, 2> word36 = LittleEndianWord(own.word36);
-    AddOwnItemOptionValues(word36, Word36OptionSelector,
-                           {wings.id, wings.durability, wings.optionCount, wings.optionBytes});
+    Scenes::AddOwnItemOptionValues(word36, Word36OptionSelector,
+                                   {wings.id, wings.durability, wings.optionCount, wings.optionBytes});
     own.word36 = FromLittleEndian(word36);
     return {};
 }
 
-Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(OwnCharacterRecord& own, Crt::CrtRandom& random)
+Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(Kernel::OwnCharacterRecord& own, Crt::CrtRandom& random)
 {
     own.wordef8 = Low16(own.wordef0 - own.wordee6);
     own.wordefa = Low16(own.wordef2 - own.wordee6);
@@ -297,4 +299,4 @@ Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(OwnCharacterRecord& 
     own.bytef03 = static_cast<std::uint8_t>(random.Next() % TailPercent < own.wordf00);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Player

@@ -19,14 +19,18 @@ struct ClothWorld;
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Models
-namespace Client::World
+namespace Client::Terrain
 {
 struct WorldTerrain;
 struct TerrainLighting;
-} // namespace Client::World
-namespace Client::Scenes
+} // namespace Client::Terrain
+namespace Client::Kernel
 {
 struct WorldRuntime;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 // Los servicios opcionales fallan al alcanzarse: no simulan efectos con un éxito vacío.
 struct FaunaStepEffects
 {
@@ -42,8 +46,8 @@ struct FaunaStepContext
     const glm::vec3& heroPosition;
     const std::uint8_t& heroAction;
     const std::uint8_t& heroFlag;
-    const World::WorldTerrain& terrain;
-    World::TerrainLighting& lighting;
+    const Terrain::WorldTerrain& terrain;
+    Terrain::TerrainLighting& lighting;
     const Models::IModelLibrary& models;
     Models::ClothWorld& cloth;
     float worldTime;
@@ -52,7 +56,7 @@ struct FaunaStepContext
     // La ausencia mantiene la frontera de memoria; el binding no fabrica esa precondición.
     const Models::Skeleton* prefixModel = nullptr;
     float fixedHeight = 1200;
-    WorldRuntime* runtime = nullptr;
+    Kernel::WorldRuntime* runtime = nullptr;
 };
 // 6370ea/6370ef. Una sola CRT; las vistas apuntan a los slots físicos del dueño.
 [[nodiscard]] Core::Expected<void, std::string> StepGameBirds(FaunaStepContext& context);

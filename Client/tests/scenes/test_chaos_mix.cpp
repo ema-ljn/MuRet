@@ -31,9 +31,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Scenes::NpcWindowState;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::uint32_t Seed = 0x13572468u;
@@ -117,7 +117,7 @@ ItemState WithOptions(ItemState item, std::initializer_list<Option> options)
     for (const Option& option : options)
     {
         item.optionBytes[item.optionCount] = option.tag;
-        item.optionBytes[Client::World::ItemOptionValueOffset + item.optionCount] = option.value;
+        item.optionBytes[Client::Kernel::ItemOptionValueOffset + item.optionCount] = option.value;
         ++item.optionCount;
     }
     return item;
@@ -479,7 +479,7 @@ TEST(MixRoomTest, TheRoomAndTheButton)
     EXPECT_EQ(MixRoomFor(*npc, 3).width, 2);
     EXPECT_EQ(MixRoomFor(*npc, 3).height, 3);
 
-    std::array<ItemState, Client::Scenes::InventoryCellCount> cells{};
+    std::array<ItemState, Client::Kernel::InventoryCellCount> cells{};
     for (ItemState& cell : cells)
         cell.id = 0x0002;
     EXPECT_FALSE(Client::Scenes::HasRoomFor(cells, 8, 8, 1, 1));

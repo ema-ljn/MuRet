@@ -26,15 +26,15 @@
 #include <string>
 #include <vector>
 
-// Client::Scenes::ApplyActorEquipment: 0x512a30, con 0x505820 y 0x550d10 (06, "El equipo propio en el
+// Client::Actors::ApplyActorEquipment: 0x512a30, con 0x505820 y 0x550d10 (06, "El equipo propio en el
 // personaje", "El conjunto completo de 0x505820" y "Los stats del registro propio"; 04, "El F3 10"). Los valores salen
 // del ASM cotejado con el PE c32bbd5f; ninguno de una corrida.
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorItemPart;
-using Client::Scenes::ActorState;
-using Client::Scenes::NoItemModel;
+using Client::Kernel::ActorItemPart;
+using Client::Kernel::ActorState;
+using Client::Kernel::NoItemModel;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 
@@ -86,7 +86,7 @@ protected:
         // Un tipo, un B1 y dos bytes distintos por lugar. Los lugares 9 a 11 también: 0x512a30 no los lee.
         for (std::size_t slot = 0; slot < m_own.equipment.size(); ++slot)
         {
-            Client::World::ItemState& item = m_own.equipment[slot];
+            Client::Kernel::ItemState& item = m_own.equipment[slot];
             item.id = static_cast<std::uint16_t>(0x10 * (slot + 1));
             item.scalar1Low = static_cast<std::uint32_t>((slot + 1) << 3) | 0x87u;
             item.flags1b = static_cast<std::uint8_t>(0xb0 + slot);
@@ -94,9 +94,9 @@ protected:
         }
     }
 
-    Client::Core::Expected<Client::Scenes::ActorStopResult, std::string> Apply(ActorState& actor)
+    Client::Core::Expected<Client::Actors::ActorStopResult, std::string> Apply(ActorState& actor)
     {
-        const Client::Scenes::ActorEquipmentContext context{.own = m_own,
+        const Client::Actors::ActorEquipmentContext context{.own = m_own,
                                                             .ownRecordAccesses = m_accesses,
                                                             .publishedHero = m_hero,
                                                             .fullSetScan = m_runtime.fullSetScan,
@@ -107,7 +107,7 @@ protected:
                                                                      .random = m_random},
                                                             .itemSetTables = &m_sets,
                                                             .itemSets = &m_itemSets};
-        return Client::Scenes::ApplyActorEquipment(actor, context);
+        return Client::Actors::ApplyActorEquipment(actor, context);
     }
 
     // Lo que hay en [0x743a178] y [0x743a17c].
@@ -118,17 +118,17 @@ protected:
         EXPECT_EQ(m_runtime.fullSetScan->byte743a17c, keepsTheBonus);
     }
 
-    Client::Scenes::OwnCharacterRecord m_own;
+    Client::Kernel::OwnCharacterRecord m_own;
     std::uint8_t m_accesses = 0;
     ActorState m_hero;
-    Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
+    Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
     // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
     Client::Tables::ItemSetTables m_sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
-    Client::Scenes::ItemSetState m_itemSets;
+    Client::Player::ItemSetState m_itemSets;
     CrtRandom m_random{QuietSeed()};
 };
 
@@ -178,7 +178,7 @@ TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
 // 0x2212, 0x221a, 0x2222, 0x222a y 0x2232 más (clase >> 3) · 5 + (clase & 7). El nivel se copia igual.
 TEST_F(ActorEquipmentTest, EmptySlotsLeaveNoItemOrTheClassPart)
 {
-    for (Client::World::ItemState& item : m_own.equipment)
+    for (Client::Kernel::ItemState& item : m_own.equipment)
     {
         item.id = 0xffff;
         item.scalar1Low = 0x78;
@@ -363,7 +363,7 @@ TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
     {
         for (std::size_t part = 0; part < levels.size(); ++part)
         {
-            Client::World::ItemState& item = m_own.equipment[2 + part];
+            Client::Kernel::ItemState& item = m_own.equipment[2 + part];
             item.id = static_cast<std::uint16_t>(((7 + part) << 9) + index);
             item.scalar1Low = static_cast<std::uint32_t>(levels[part]) << 3;
             item.flags1c = 0;
@@ -405,13 +405,13 @@ TEST_F(ActorEquipmentTest, AnotherCharacterReadsWhatTheLastScanLeft)
 {
     m_own.agility = 400;
     m_own.characterClass = 3;
-    for (Client::World::ItemState& item : m_own.equipment)
+    for (Client::Kernel::ItemState& item : m_own.equipment)
     {
         item.flags1c = 0;
     }
     ActorState someone = DressedInUntouched(3);
 
-    m_runtime.fullSetScan = Client::Scenes::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
+    m_runtime.fullSetScan = Client::Actors::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
     ASSERT_TRUE(Apply(someone).HasValue());
     ExpectScan(12, 1);
     EXPECT_EQ(m_own.word62, 80 + 12); // _ftol(80 · 0.15f)

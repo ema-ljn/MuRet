@@ -64,7 +64,7 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-bool IsPlayer(const ActorState& actor)
+bool IsPlayer(const Kernel::ActorState& actor)
 {
     return actor.type == Tables::PlayerSkeletonModel;
 }
@@ -72,7 +72,7 @@ bool IsPlayer(const ActorState& actor)
 // 0x57e162..0x57e1b1 y 0x57f9d1..0x57fa1c: el arma de tiro del héroe publicado (los CMP de WORD con signo): la derecha
 // (+0x2b8) de 0xa1a a 0xa20, la izquierda (+0x2d8) de 0xa12 a 0xa18, 0xa23, 0xa26 o 0xa27, o la derecha de 0xa22 a
 // 0xc11.
-bool HoldsTheElfWeapon(const ActorState& published)
+bool HoldsTheElfWeapon(const Kernel::ActorState& published)
 {
     const auto right = static_cast<std::int16_t>(published.hands[0].model);
     const auto left = static_cast<std::int16_t>(published.hands[1].model);
@@ -86,7 +86,7 @@ bool HoldsTheElfWeapon(const ActorState& published)
 // 0x57e1c4..0x57e21e (el límite en la x87), 0x57f044..0x57f092 y 0x5809a2..0x5809e7 (el límite guardado en un float,
 // [ebp−0x34]): la distancia del héroe al centro de la celda 0x77e1ba8/0x77e1bac contra el alcance · 100. Menor, igual
 // o desordenado (C0 o C3) está en alcance.
-bool InReach(const ActorState& hero, const GameMovementState& state, bool storedLimit)
+bool InReach(const Kernel::ActorState& hero, const GameMovementState& state, bool storedLimit)
 {
     const auto targetX = std::bit_cast<std::int32_t>(state.targetX);
     const auto targetY = std::bit_cast<std::int32_t>(state.targetY);
@@ -116,7 +116,7 @@ struct SkillCell
 };
 
 // La celda lógica del héroe: la Y (+0x420) antes que la X (+0x41c), 4 + 4 rand().
-SkillCell ReadTheHeroCell(ActorState& hero, const HeroSkillContext& context)
+SkillCell ReadTheHeroCell(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
     const std::uint8_t y = ReadTheSkillCell(hero.cellYAccesses, hero.cellY, context.random);
     const std::uint8_t x = ReadTheSkillCell(hero.cellXAccesses, hero.cellX, context.random);
@@ -126,7 +126,7 @@ SkillCell ReadTheHeroCell(ActorState& hero, const HeroSkillContext& context)
 class ElfBranch
 {
 public:
-    ElfBranch(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+    ElfBranch(Kernel::ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
         : m_hero(hero), m_skill(skill), m_context(context), m_world(context.world), m_runtime(context.world.Runtime()),
           m_state(context.world.Runtime().movement)
     {
@@ -140,11 +140,11 @@ private:
     {
         return IsAttackable(m_world, m_context.controlDown);
     }
-    ActorState& Published() const
+    Kernel::ActorState& Published() const
     {
         return m_world.Hero();
     }
-    Core::Expected<ActorState*, std::string> ActorAt(std::int32_t index, std::string_view where) const;
+    Core::Expected<Kernel::ActorState*, std::string> ActorAt(std::int32_t index, std::string_view where) const;
     Core::Expected<void, std::string> SendTheMagicAttack(std::string_view brake);
     Core::Expected<void, std::string> Summon();
     Core::Expected<void, std::string> Shoot();
@@ -155,15 +155,15 @@ private:
     Core::Expected<void, std::string> CastThe35();
     Core::Expected<void, std::string> CastTheSkill4c();
 
-    ActorState& m_hero;
+    Kernel::ActorState& m_hero;
     std::uint8_t m_skill;
     const HeroSkillContext& m_context;
-    WorldState& m_world;
-    WorldRuntime& m_runtime;
+    Kernel::WorldState& m_world;
+    Kernel::WorldRuntime& m_runtime;
     GameMovementState& m_state;
 };
 
-Core::Expected<ActorState*, std::string> ElfBranch::ActorAt(std::int32_t index, std::string_view where) const
+Core::Expected<Kernel::ActorState*, std::string> ElfBranch::ActorAt(std::int32_t index, std::string_view where) const
 {
     if (index < 0 || static_cast<std::size_t>(index) >= m_world.Actors().size())
         return Core::Unexpected(std::format("{}: el personaje {} está fuera del pool", where, index));
@@ -191,7 +191,7 @@ Core::Expected<bool, std::string> ElfBranch::PassesTheHead()
     const auto cost = SkillCostOf(m_skill, m_context, "0x57d803");
     if (!cost.HasValue())
         return Core::Unexpected(cost.Error());
-    const OwnCharacterRecord& record = m_world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& record = m_world.OwnCharacter();
     // 0x57d808..0x57d854: JLE con signo contra +0x24; sin el maná, la poción y nada.
     if (static_cast<std::int32_t>(cost.Value().mana) > static_cast<std::int32_t>(record.mana))
     {
@@ -302,7 +302,7 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
     constexpr std::int32_t LastCell = 0xff;
     if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
         return {};
-    const World::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
@@ -361,7 +361,7 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
     // 0x57f18a..0x57f1ef: la línea de vista desde la celda del héroe (la Y y la X). La que sale de TerrainWall
     // (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
     const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
-    const World::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
     const bool seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, cell.x, cell.y,
@@ -517,7 +517,8 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheElfSkill(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseTheElfSkill(Kernel::ActorState& hero, std::uint8_t skill,
+                                                 const HeroSkillContext& context)
 {
     return ElfBranch(hero, skill, context).Use();
 }

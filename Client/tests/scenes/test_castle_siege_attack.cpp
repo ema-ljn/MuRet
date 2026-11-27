@@ -15,7 +15,7 @@ namespace
 {
 TEST(CastleSiegeAttackTest, TheClosedGateEmitsItsWaveBeforeFiveRandomizedFragments)
 {
-    Client::Scenes::ActorState target;
+    Client::Kernel::ActorState target;
     target.type = 0x19b;
     target.position = {100, 200, 300};
     Client::Crt::CrtRandom random(1);
@@ -48,7 +48,7 @@ TEST(CastleSiegeAttackTest, TheClosedGateEmitsItsWaveBeforeFiveRandomizedFragmen
 }
 TEST(CastleSiegeAttackTest, HeroFlagsSuppressOnlyTheWaveAndAnOpenGateSuppressesEverything)
 {
-    Client::Scenes::ActorState target;
+    Client::Kernel::ActorState target;
     target.type = 0x19b;
     Client::Crt::CrtRandom random(1);
     int calls = 0;
@@ -68,7 +68,7 @@ TEST(CastleSiegeAttackTest, HeroFlagsSuppressOnlyTheWaveAndAnOpenGateSuppressesE
 }
 TEST(CastleSiegeAttackTest, EachStatueAttemptUsesItsGateBeforeTheHeightAndNestedConstructor)
 {
-    Client::Scenes::ActorState target;
+    Client::Kernel::ActorState target;
     target.type = 0x19c;
     target.position.z = 300;
     Client::Crt::CrtRandom random(1), expected(1);
@@ -98,7 +98,7 @@ TEST(CastleSiegeAttackTest, EachStatueAttemptUsesItsGateBeforeTheHeightAndNested
 
 TEST(CastleSiegeAttackTest, RealConstructorsKeepTheirRandomDrawsBetweenTheFiveCallerGroups)
 {
-    Client::Scenes::ActorState target;
+    Client::Kernel::ActorState target;
     target.type = 0x19b;
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(1);

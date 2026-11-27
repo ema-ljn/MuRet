@@ -47,6 +47,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Crt::Sprintf;
+using Client::Kernel::WorldState;
 using Client::Math::RoundedSin;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
@@ -54,7 +55,6 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
@@ -151,7 +151,7 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
         // Como lo deja la entrada al mundo con un F3 03 inventado y un F3 10 sin ítems.
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.ClearEquipmentForEntry();
         std::memcpy(own.name.data(), Name.data(), Name.size());
         own.level = 50;
@@ -175,7 +175,7 @@ protected:
         sprites.Begin(Screen640);
     }
 
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
@@ -189,8 +189,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = Hero();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::ActorState& hero = Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -355,7 +355,7 @@ TEST_F(GameCharacterHudTest, TheKnightWindowDrawsItsQuadsTextsAndRandomsInLorenc
 TEST_F(GameCharacterHudTest, TheDarkLordAddsTheCommandAndItsButtonsInLorenciaAndDevias)
 {
     SetClass(DarkLordClass);
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     own.leadership = 25;
     own.word36 = 5;
     own.energy = 85;
@@ -428,13 +428,13 @@ TEST_F(GameCharacterHudTest, TheWizardShowsTheMagicOfItsSkill)
     const MagicTables tables = MagicTablesWith(Skill, 20, Staff, 40);
     items = &tables.items;
     skills = &tables.skills;
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     own.words6c[0] = 0x0000'0900u; // el byte +0x6d: la skill 9.
     Hero().skillIndex = 1;
     own.word5a = 12;
     own.word5c = 30;
     own.speedAdjustBits = 0x02;
-    Client::World::ItemState& staff = own.equipment[0];
+    Client::Kernel::ItemState& staff = own.equipment[0];
     staff.id = Staff;
     staff.byte16 = 50;
     staff.durability = 40;
@@ -467,7 +467,7 @@ TEST_F(GameCharacterHudTest, TheGladiatorSetComparesTheArmorTypes)
     const MagicTables tables = MagicTablesWith(Skill, 20, 0xa05, 40);
     items = &tables.items;
     skills = &tables.skills;
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     own.words6c[0] = Skill;
     own.word62 = 123;
     const std::array<std::uint16_t, 4> pieces{0x100f, 0x120f, 0x140f, 0x160f};
@@ -513,7 +513,7 @@ TEST_F(GameCharacterHudTest, TheGladiatorSetComparesTheArmorTypes)
 // defensa suma nivel / 5 + 50 y lleva la tasa (texto 206).
 TEST_F(GameCharacterHudTest, TheKnightSetComparesWithTheHelm)
 {
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     for (std::size_t slot = 2; slot <= 6; ++slot)
     {
         own.equipment[slot].id = static_cast<std::uint16_t>(0x0e01 + 0x200 * (slot - 2));
@@ -536,7 +536,7 @@ TEST_F(GameCharacterHudTest, TheKnightSetComparesWithTheHelm)
 // (más +0x2c) se suma a +0x4e y sale el texto 203 con la tasa.
 TEST_F(GameCharacterHudTest, TheDamageLineTakesItsRateAndItsColor)
 {
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     own.equipment[0].id = 0x0001;
     own.equipment[1].id = 0x0002;
     own.word50 = 40;
@@ -558,7 +558,7 @@ TEST_F(GameCharacterHudTest, TheDamageLineTakesItsRateAndItsColor)
 // Las letras: +0x44 · 100 / +0x46 da 70, 60, 50 o 40; +0x48 pasado 10 da 40 (la división por 1, Q-C670).
 TEST_F(GameCharacterHudTest, ThePointsLineAndTheLettersFollowTheAddedPoints)
 {
-    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     own.level = 9;
     own.addedPoints = 30;
     own.maxAddedPoints = 100;

@@ -89,7 +89,7 @@ Core::Expected<void, std::string> BeginTheJavelin(World::ModelEffect& effect, co
     constexpr float Scale = std::bit_cast<float>(0x3f99999au); // 0x51dae6, 1,2f
     constexpr float Push = -5.0f;                              // 0x51daf3, +0xd0
     constexpr int SpreadSpan = 80, SpreadBase = 10;
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x51db1b: el 0x139 lee la posición de su dueño (+0x108) y no tiene"));
     effect.life = Life;
@@ -116,7 +116,7 @@ Core::Expected<void, std::string> StepTheJavelin(World::ModelEffect& effect, con
     constexpr std::int32_t RisingSubtype = 1, SinkingSubtype = 2;
     constexpr glm::vec3 Glow{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e99999au)};
     constexpr std::int32_t GlowRadius = 2;
-    if (const auto* owner = static_cast<const ActorState*>(effect.ownerContext); owner != nullptr)
+    if (const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext); owner != nullptr)
         effect.start = {owner->position.x, owner->position.y, F32(D(owner->position.z) + Lift)};
     effect.transform.scale = F32(D(effect.transform.scale) + Growth);
     if (effect.life >= RiseLife)

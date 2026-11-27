@@ -269,7 +269,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
         return Core::Unexpected(std::move(title).Error());
     DrawLine(context, RankingTitleLeft, 0x46, title.Value());
     // 0x40be3a..0x40be6e: wsprintfA con el nombre del héroe (+0x1d9 de [0x743a170]).
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     const std::string heroName = ChatNameOf(hero);
     const std::array<Crt::FormatArgument, 1> nameArguments{Crt::StringArgument{.text = heroName}};
     auto honor = FormattedText(context, Wsprintf, RankingHonorText, nameArguments, CastleTextBuffer, "0x40be5c");
@@ -442,7 +442,7 @@ Result DrawTheEventTime(GameHudContext& context)
     if (minutes > MaxEventTimeMinutes)
         return {};
     // 0x5a7f1c..0x5a7fa0: la fuente 0x576355c, los colores y el sprintf.
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.dcFont = FontKind::BigBold;
     hud.textColors = Render::Text::TextColors{.text = EventTimeColor, .background = 0};
     constexpr auto Sprintf = Crt::FormatFunction::Sprintf;
@@ -482,7 +482,7 @@ Result DrawTheCastleTimeAndPoints(GameHudContext& context, EventMapObject& event
         return {};
     if (event.field10 == 0)
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t map = runtime.map;
     if (bloodCastle ? map < FirstBloodCastleMap || map > LastBloodCastleMap
                     : map < FirstChaosCastleMap || map > LastChaosCastleMap)
@@ -491,7 +491,7 @@ Result DrawTheCastleTimeAndPoints(GameHudContext& context, EventMapObject& event
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     context.sprites.SetColor(White);
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.textColors = Render::Text::TextColors{.text = CastlePointsColor, .background = 0};
     float y = CastleFirstRow;
     const std::uint8_t state = event.field10;

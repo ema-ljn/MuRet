@@ -268,9 +268,10 @@ bool MarkHasColor(const GuildState& guild)
 
 // 0x6535c0(x, y): el ángulo del héroe; la grilla de la marca (el izquierdo abajo pinta con el color elegido, el
 // derecho borra: los dos, borra); la paleta, con el flanco del clic, elige el color (fila · 8 + columna) y suena.
-void StepTheMarkEditor(WorldState& world, std::int32_t x, std::int32_t y, std::int32_t mouseX, std::int32_t mouseY)
+void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y, std::int32_t mouseX,
+                       std::int32_t mouseY)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GuildState& guild = runtime.guild;
     world.Hero().angles.z = EditorHeroAngle;
     auto& mark = guild.table[CreatingIndex].mark;
@@ -307,7 +308,7 @@ void StepTheMarkEditor(WorldState& world, std::int32_t x, std::int32_t y, std::i
 }
 
 // 0x6236f0 con el aviso.
-void Notice(WorldRuntime& runtime, std::int32_t dialog)
+void Notice(Kernel::WorldRuntime& runtime, std::int32_t dialog)
 {
     UI::PushDialog(runtime.dialogs, dialog);
 }
@@ -327,7 +328,7 @@ void HideTheNameField(UI::ChatInputState& input)
 Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& context,
                                                   const UI::OldWindowGlobals& globals)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     SecondGuildWindowState& window = guild.secondWindow;
     if (UI::ClickTheButton(ButtonOf(guild, SecondGuildCreateButton), globals, context.mouseX, context.mouseY))
@@ -379,7 +380,7 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
 Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& context,
                                               const UI::OldWindowGlobals& globals)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     UI::ChatInputState& input = runtime.chat.input;
     const UI::OldWindowBase& base = guild.secondWindow.base;
@@ -425,7 +426,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
     }
     if (!UI::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
         return {};
-    ActorState& hero = context.world.Hero();
+    Kernel::ActorState& hero = context.world.Hero();
     hero.word1f2 = NoGuildWord;
     HideTheNameField(input);
     std::fill_n(input.messageBuffer.begin(), ClearedMessageBytes, '\0');
@@ -438,7 +439,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
 // la de antes.
 void StepTheMark(const SecondGuildStepContext& context, const UI::OldWindowGlobals& globals)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     const UI::OldWindowBase& base = guild.secondWindow.base;
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
@@ -459,7 +460,7 @@ void StepTheMark(const SecondGuildStepContext& context, const UI::OldWindowGloba
 Core::Expected<void, std::string> StepTheConfirmation(const SecondGuildStepContext& context,
                                                       const UI::OldWindowGlobals& globals)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     if (UI::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
     {
@@ -589,7 +590,7 @@ void DrawInTheBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::
 // El gremio del héroe (+0x1f2) en la tabla, para "%s ( Score:%d )" (0x6d67cc).
 Core::Expected<std::string, std::string> HeroGuildLine(GameHudContext& context, std::string_view where)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
     if (index < 0 || static_cast<std::size_t>(index) >= GuildTableSize)
         return Core::Unexpected(std::format("{}: el gremio {} del héroe cae fuera de la tabla", where, index));
@@ -763,7 +764,7 @@ Core::Expected<void, std::string> DrawTheConfirmation(GameHudContext& context, G
 
 Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     const UI::OldWindowBase& base = guild.secondWindow.base;
     if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
@@ -794,7 +795,7 @@ void LendTheSecondGuildStepTo(UI::PanelContext& panels, const SecondGuildStepCon
 
 Core::Expected<void, std::string> DrawTheSecondGuildWindow(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     SecondGuildWindowState& window = guild.secondWindow;
     for (std::size_t button = 0; button < window.buttons.size(); ++button)

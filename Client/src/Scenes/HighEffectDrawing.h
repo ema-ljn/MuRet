@@ -28,13 +28,17 @@ class FrameSprites;
 struct ModelEffect;
 } // namespace Client::World
 
+namespace Client::Actors::Drawing
+{
+struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
 // CL11, tipos altos: los casos propios de 0x6002e0 (y de 0x438fe0, que 0x6002e0 llama en 0x600ef6) para los efectos
 // con modelo de los tipos altos que 0x52d620 manda por 0x52da92 → 0x602e90, después de posarlos (0x5ffdf0) y de mirar
 // la malla oculta −2 (0x600328). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los efectos con modelo
 // de los tipos altos".
 namespace Client::Scenes
 {
-struct DrawnObject;
 
 // Lo que esos casos leen además del objeto: los sprites del frame (0x5491e0), el CRT (0x69fd70), los huesos del buffer
 // global de la pose (0x68b181c, que 0x5ffdf0 deja en el mundo) y el reloj del mundo (0x5767b88).
@@ -69,5 +73,6 @@ struct HighEffectDrawServices
 // dibujó; false si el efecto no tiene caso acá. Sin los sprites, el CRT, los huesos o el reloj que pide, corta.
 [[nodiscard]] Core::Expected<bool, std::string>
 DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
-                      DrawnObject& object, Core::Duration frameClock, const HighEffectDrawServices& services);
+                      Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
+                      const HighEffectDrawServices& services);
 } // namespace Client::Scenes

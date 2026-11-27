@@ -36,6 +36,11 @@ namespace Client::Platform
 class IClipboard;
 } // namespace Client::Platform
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // La entrada del chat en el juego (CL8 hito 3; 06 § El chat): lo que el WndProc (0x4af4e0) hace con los WM_CHAR que
 // le llegan o que le pasa la subclase de los EDIT (0x467b10: Tab y Enter), lo que los EDIT hacen con los demás, y las
 // macros de 0x59ff10 (Alt y un número). Lo que se manda (el C1 00, el C1 02 y los C1 18 del emote, CL9 hito 1) va por
@@ -43,14 +48,13 @@ class IClipboard;
 // *Estático*.
 namespace Client::Scenes
 {
-class WorldState;
 
 // Quien manda los paquetes del chat (App::ServerSession::SendChat). Vacío, no se manda nada.
 using ChatSender = std::function<void(Protocol::Outgoing)>;
 
 struct GameChatContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() de la tela: el registro propio de 0x554a40 lo gasta al cerrarse.
     Crt::CrtRandom& random;
     // Text.bmd: los comandos, los avisos y el "..." del filtro. Sin él, el primero que se lee es el error.

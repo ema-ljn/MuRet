@@ -21,8 +21,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Protocol::FrontEnd::CharacterEntry;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
 
@@ -52,7 +52,7 @@ TEST(WorldStateTest, StartsWith401ZeroedRecords)
     for (std::size_t index = 0; index < world.Actors().size(); ++index)
     {
         SCOPED_TRACE(index);
-        const Client::Scenes::ActorState& actor = world.Actors()[index];
+        const Client::Kernel::ActorState& actor = world.Actors()[index];
         EXPECT_EQ(actor.position.x, 0.0f);
         EXPECT_EQ(actor.position.y, 0.0f);
         EXPECT_EQ(actor.position.z, 0.0f);
@@ -66,14 +66,14 @@ TEST(WorldStateTest, StartsWith401ZeroedRecords)
 TEST(WorldStateTest, TheOwnRecordStartsZeroed)
 {
     const WorldState world;
-    const Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    const Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     EXPECT_EQ(own.name, (std::array<std::byte, 11>{}));
     EXPECT_EQ(own.characterClass, 0);
     EXPECT_EQ(own.skin, 0);
     EXPECT_EQ(own.level, 0);
     EXPECT_EQ(own.zen, 0u);
     ASSERT_EQ(own.equipment.size(), 12u);
-    for (const Client::World::ItemState& item : own.equipment)
+    for (const Client::Kernel::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0);
         EXPECT_EQ(item.byte0a, 0);
@@ -90,7 +90,7 @@ TEST(WorldStateTest, TheItemSetStateStartsZeroedAndStays)
     EXPECT_EQ(shown.ItemSets().byte9307, 0);
     EXPECT_EQ(shown.ItemSets().list.count9348, 0);
     EXPECT_EQ(shown.ItemSets().names[0][0], '\0');
-    EXPECT_EQ(shown.ItemSets().list.used, (std::array<std::uint8_t, Client::Scenes::ItemSetOptionCapacity>{}));
+    EXPECT_EQ(shown.ItemSets().list.used, (std::array<std::uint8_t, Client::Player::ItemSetOptionCapacity>{}));
 
     world.ItemSets().list.count9348 = 2;
     world.ItemSets().list.used[3] = 1;
@@ -114,7 +114,7 @@ TEST(WorldStateTest, PreparingTheChosenCopiesItIntoTheOwnRecord)
     {
         SCOPED_TRACE(static_cast<int>(probe.depth));
         WorldState world;
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.name.fill(std::byte{0x7a});
         own.skin = 5;
         own.characterClass = 9;

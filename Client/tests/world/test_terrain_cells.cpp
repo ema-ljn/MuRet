@@ -27,7 +27,7 @@
 #include <set>
 #include <vector>
 
-// Client::World::DrawTerrainCell con un terreno armado a mano: los vértices de 0x5fac90, las capas
+// Client::Terrain::DrawTerrainCell con un terreno armado a mano: los vértices de 0x5fac90, las capas
 // que elige 0x5fa830 por el alfa de las cuatro esquinas, las UV de 0x5fa5c0 y la luz y el alfa de
 // cada esquina que mandan 0x5fa260 y 0x5fa350 (06 § Terreno).
 namespace
@@ -40,14 +40,14 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawCommand;
 using Client::Render::TextureSlot;
-using Client::World::DrawTerrain;
-using Client::World::DrawTerrainCell;
-using Client::World::TerrainLighting;
-using Client::World::TerrainRange;
-using Client::World::TerrainView;
-using Client::World::TerrainWater;
-using Client::World::UpdateWaves;
-using Client::World::WaterOffsetAt;
+using Client::Terrain::DrawTerrain;
+using Client::Terrain::DrawTerrainCell;
+using Client::Terrain::TerrainLighting;
+using Client::Terrain::TerrainRange;
+using Client::Terrain::TerrainView;
+using Client::Terrain::TerrainWater;
+using Client::Terrain::UpdateWaves;
+using Client::Terrain::WaterOffsetAt;
 using namespace std::chrono_literals;
 using Client::Math::RoundedSin;
 
@@ -412,7 +412,7 @@ TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     DrawTerrain(batch, terrain.view, TerrainRange{.firstX = 4, .lastX = 8, .firstY = 12, .lastY = 16},
-                Client::World::TerrainPolygon{.everything = true}, TerrainWater{});
+                Client::Terrain::TerrainPolygon{.everything = true}, TerrainWater{});
     // Cuatro bloques (12 y 16 en y, 4 y 8 en x), de 16 celdas. El alfa de la esquina (10, 13) lo
     // comparten las cuatro celdas de alrededor, que llevan pase de alfa. Cada pase son seis vértices, y
     // el lote junta en un tramo los seguidos con el mismo estado.
@@ -452,7 +452,7 @@ TEST(TerrainCellsTest, TheGamePolygonCutsByBlockWithItsMarginAndThenByCell)
 {
     Terrain terrain;
     const auto polygon =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     const TerrainRange range{.firstX = 120, .lastX = 164, .firstY = 100, .lastY = 140};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
@@ -472,13 +472,13 @@ TEST(TerrainCellsTest, TheGamePolygonCutsByBlockWithItsMarginAndThenByCell)
     {
         for (int bx = range.firstX; bx <= range.lastX; bx += 4)
         {
-            const bool block = Client::World::PolygonContains(polygon, bx + 2.0, by + 2.0, -40.0);
-            const bool blockWithoutMargin = Client::World::PolygonContains(polygon, bx + 2.0, by + 2.0, 0.0);
+            const bool block = Client::Terrain::PolygonContains(polygon, bx + 2.0, by + 2.0, -40.0);
+            const bool blockWithoutMargin = Client::Terrain::PolygonContains(polygon, bx + 2.0, by + 2.0, 0.0);
             for (int y = by; y < by + 4; ++y)
             {
                 for (int x = bx; x < bx + 4; ++x)
                 {
-                    const bool cell = Client::World::PolygonContains(polygon, x + 0.5, y + 0.5, 0.0);
+                    const bool cell = Client::Terrain::PolygonContains(polygon, x + 0.5, y + 0.5, 0.0);
                     if (block && cell)
                     {
                         expected.emplace(x, y);

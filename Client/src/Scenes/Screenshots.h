@@ -38,9 +38,13 @@ namespace Client::Render::Frame
 {
 struct SceneCanvas;
 } // namespace Client::Render::Frame
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // Los globales de la captura, en la .bss: los leen y escriben solo 0x637700 y 0x6202e0.
 struct ScreenshotState
@@ -57,7 +61,7 @@ struct ScreenshotState
 struct ScreenshotFrameContext
 {
     // El chat del mensaje (0x555190) y el nombre del héroe (+0x1d9 de 0x743a170).
-    WorldState& world;
+    Kernel::WorldState& world;
     // El DC de los textos y la pantalla en píxeles, para medir el mensaje (06 § El chat).
     const Render::Text::ITextMeasure& measure;
     Core::PixelSize screen;

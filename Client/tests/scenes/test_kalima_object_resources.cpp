@@ -17,8 +17,8 @@
 TEST(KalimaObjectResourcesTest, AllThirtyTwoNativeCausticsAreLoadedFromRealDataIntoTheirSharedSlots)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::ModelTextureTable table;
-    Client::Scenes::TerrainTiles tiles(store);
+    Client::Assets::ModelTextureTable table;
+    Client::Assets::TerrainTiles tiles(store);
     tiles.BindTextureTable(table);
     std::vector<std::string> skipped;
     const auto result = tiles.Load(Client::Tests::RepoDataDir(), 24, skipped);

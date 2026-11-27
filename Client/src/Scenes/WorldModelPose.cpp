@@ -20,13 +20,13 @@
 
 namespace Client::Scenes
 {
-Core::Expected<void, std::string> PoseWorldModel(WorldState& world, const ActorState& actor,
+Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, const Kernel::ActorState& actor,
                                                  const Models::Skeleton& skeleton, float frame, const glm::vec3& angles)
 {
     // 4eb86d: sin acciones no publica ni metadatos ni scratch, aunque el modelo tenga huesos.
     if (skeleton.actions.empty())
         return {};
-    SharedModelPlacement placement = world.ModelPlacement(actor.type);
+    Kernel::SharedModelPlacement placement = world.ModelPlacement(actor.type);
     const std::uint8_t action = placement.action < skeleton.actions.size() ? placement.action : 0;
     if (placement.action != action)
     {

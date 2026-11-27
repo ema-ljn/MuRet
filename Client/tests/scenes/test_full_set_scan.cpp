@@ -17,15 +17,15 @@
 #include <cstdint>
 #include <optional>
 
-// Client::Scenes::ScanFullSet: 0x505820, cotejado con el PE c32bbd5f (06, "El conjunto completo de
+// Client::Actors::ScanFullSet: 0x505820, cotejado con el PE c32bbd5f (06, "El conjunto completo de
 // 0x505820"). Los valores salen del ASM; ninguno de una corrida.
 namespace
 {
+using Client::Actors::FullSetScan;
+using Client::Actors::ScannedCharacter;
 using Client::Crt::CrtRandom;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Models::OwnRecordCloseRandoms;
-using Client::Scenes::FullSetScan;
-using Client::Scenes::OwnCharacterRecord;
-using Client::Scenes::ScannedCharacter;
 using Client::Tables::ItemModel;
 using Client::Tests::AfterDraws;
 
@@ -58,7 +58,7 @@ class FullSetScanTest : public ::testing::Test
 protected:
     FullSetScan Scan(const ScannedCharacter& character)
     {
-        return Client::Scenes::ScanFullSet(character, m_own, m_accesses, m_random);
+        return Client::Actors::ScanFullSet(character, m_own, m_accesses, m_random);
     }
 
     OwnCharacterRecord m_own;
@@ -219,8 +219,8 @@ TEST_F(FullSetScanTest, TheRecordOpensOnlyForAFullSetOfClassThree)
 // Lo que lee de un personaje: la clase y el modelo y el nivel de +0x218 a +0x298, de a 0x20.
 TEST(FullSetScanCharacterTest, ItReadsTheClassAndTheFiveBodyParts)
 {
-    Client::Scenes::ActorState actor = Client::Tests::UnarmedPlayer(0x23);
-    Client::GameLogic::CharacterAppearance appearance;
+    Client::Kernel::ActorState actor = Client::Tests::UnarmedPlayer(0x23);
+    Client::Kernel::CharacterAppearance appearance;
     appearance.characterClass = 0x23;
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
@@ -230,8 +230,8 @@ TEST(FullSetScanCharacterTest, ItReadsTheClassAndTheFiveBodyParts)
         appearance.bodyParts[part].level = static_cast<std::uint8_t>(0x20 + part);
     }
 
-    const ScannedCharacter fromActor = Client::Scenes::ScannedCharacterOf(actor);
-    const ScannedCharacter fromAppearance = Client::Scenes::ScannedCharacterOf(appearance);
+    const ScannedCharacter fromActor = Client::Actors::ScannedCharacterOf(actor);
+    const ScannedCharacter fromAppearance = Client::Actors::ScannedCharacterOf(appearance);
 
     EXPECT_EQ(fromActor.characterClass, 0x23);
     EXPECT_EQ(fromAppearance.characterClass, 0x23);
@@ -250,12 +250,12 @@ TEST(FullSetScanCharacterTest, ItReadsTheClassAndTheFiveBodyParts)
 // uno, y devuelve lo del último. Sin frames, devuelve lo mismo sin gastar ni publicar nada.
 TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     world.Runtime().fullSetScan = std::nullopt;
     world.OwnCharacter().equipment[OwnArmorSlot].id = 0x1005;
     CrtRandom random(Seed);
 
-    const auto projected = Client::Scenes::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 0);
+    const auto projected = Client::Actors::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 0);
     EXPECT_FALSE(world.Runtime().fullSetScan.has_value());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
@@ -263,7 +263,7 @@ TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
     EXPECT_EQ(projected.globals.dword743a178, 13);
     EXPECT_EQ(projected.globals.byte743a17c, 0);
 
-    const auto scanned = Client::Scenes::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 2);
+    const auto scanned = Client::Actors::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 2);
     EXPECT_TRUE(scanned.complete);
     EXPECT_EQ(scanned.globals.dword743a178, 13);
     ASSERT_TRUE(world.Runtime().fullSetScan.has_value());
@@ -273,7 +273,7 @@ TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
     EXPECT_EQ(random.State(), AfterDraws(Seed, 2 * OwnRecordCloseRandoms).State());
 
     // El que viene después pisa los dos.
-    EXPECT_FALSE(Client::Scenes::ScanTheDrawnCharacter(world, Wearing(0, 9, {13, 13, 8, 13, 13}), random, 1).complete);
+    EXPECT_FALSE(Client::Actors::ScanTheDrawnCharacter(world, Wearing(0, 9, {13, 13, 8, 13, 13}), random, 1).complete);
     EXPECT_EQ(world.Runtime().fullSetScan->dword743a178, 0);
     EXPECT_EQ(world.Runtime().fullSetScan->byte743a17c, 1);
 }

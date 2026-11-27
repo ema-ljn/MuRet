@@ -26,9 +26,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Math::Detail::CosineProductPC53;
 using Client::Math::Detail::SineProductPC53;
-using Client::Scenes::ActorState;
 using Client::Scenes::JointState;
 using Client::World::FishEffectRequest;
 

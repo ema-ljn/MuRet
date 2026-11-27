@@ -5,14 +5,14 @@
 
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 namespace
 {
 // El mismo trío que en el equipo del registro (0x4c56ad..0x4c56b7 y 0x4c56ca..0x4c56d4).
-void Clear(std::span<World::ItemState> cells)
+void Clear(std::span<Kernel::ItemState> cells)
 {
-    for (World::ItemState& item : cells)
+    for (Kernel::ItemState& item : cells)
     {
         item.id = EmptyOwnItemId;
         item.occupied = 0;
@@ -26,4 +26,4 @@ void OwnInventory::ClearForInventoryReply()
     Clear(cells);
     Clear(secondCells);
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

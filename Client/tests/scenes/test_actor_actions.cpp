@@ -27,14 +27,14 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-// Client::Scenes::SetActorStop: 0x4f2250, la acción de parado (06, "Caminar"; P-C14 c). Los valores
+// Client::Actors::SetActorStop: 0x4f2250, la acción de parado (06, "Caminar"; P-C14 c). Los valores
 // salen del ASM cotejado con el PE c32bbd5f; ninguno de una corrida del original.
 namespace
 {
+using Client::Actors::ActorStopContext;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::ActorStopContext;
-using Client::Scenes::NoItemModel;
+using Client::Kernel::ActorState;
+using Client::Kernel::NoItemModel;
 using Client::Scenes::SceneId;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
@@ -83,9 +83,9 @@ class ActorStopTest : public ::testing::Test
 {
 protected:
     // 0x4f2250 sobre `actor`, en el mapa y la escena de la prueba, con la semilla de m_random.
-    Client::Core::Expected<Client::Scenes::ActorStopResult, std::string> Stop(ActorState& actor)
+    Client::Core::Expected<Client::Actors::ActorStopResult, std::string> Stop(ActorState& actor)
     {
-        Client::Scenes::ActionSender send{};
+        Client::Actors::ActionSender send{};
         if (m_withSender)
             send = Client::Tests::RecordingActions(m_sent);
         const ActorStopContext context{.runtime = m_runtime,
@@ -97,7 +97,7 @@ protected:
                                        .sendAction = send,
                                        .actorSkeleton = m_actorSkeleton,
                                        .modelSounds = m_modelSounds};
-        return Client::Scenes::SetActorStop(actor, context);
+        return Client::Actors::SetActorStop(actor, context);
     }
 
     // La acción que queda después de un 0x4f2250 que no corta.
@@ -108,7 +108,7 @@ protected:
         return actor.animation.action;
     }
 
-    Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
+    Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     SceneId m_scene = SceneId::Game;
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Models::Skeleton m_actorModelSkeleton = Client::Tests::PlayerActionsSkeleton();

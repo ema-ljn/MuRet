@@ -41,9 +41,9 @@ std::int32_t Decremented(std::int32_t value)
 }
 
 // 0x42db4b..0x42dc28: las puertas 286 y 287.
-Core::Expected<void, std::string> StepTheGate(ActorState& actor, const CastleObjectStep& step)
+Core::Expected<void, std::string> StepTheGate(Kernel::ActorState& actor, const CastleObjectStep& step)
 {
-    WorldRuntime& runtime = step.runtime;
+    Kernel::WorldRuntime& runtime = step.runtime;
     constexpr float Reach = 500.0f; // 0x43fa0000
     constexpr std::uint8_t Front = 1;
     constexpr std::int32_t OpenTime = 300; // 0x12c
@@ -91,7 +91,7 @@ Core::Expected<void, std::string> StepTheGate(ActorState& actor, const CastleObj
 }
 } // namespace
 
-Core::Expected<void, std::string> QueueTheGateName(const ActorState& actor, const Tables::TextTable* texts,
+Core::Expected<void, std::string> QueueTheGateName(const Kernel::ActorState& actor, const Tables::TextTable* texts,
                                                    WorldTextQueue& queue)
 {
     constexpr std::size_t LevelText = 1176; // 0x77133fc
@@ -116,7 +116,7 @@ Core::Expected<void, std::string> QueueTheGateName(const ActorState& actor, cons
     return {};
 }
 
-void StepTheFallingBall(ActorState& actor, const std::function<double(float, float)>& height)
+void StepTheFallingBall(Kernel::ActorState& actor, const std::function<double(float, float)>& height)
 {
     actor.position.z = F32(D(actor.position.z) + D(actor.floatE4));
     constexpr double Gravity = 6.0; // 0x6b87f4
@@ -139,13 +139,14 @@ void StepTheFallingBall(ActorState& actor, const std::function<double(float, flo
     actor.floatD4 = F32(D(actor.floatD4) * D(Damping));
 }
 
-bool PlayerNear(const ActorState& object, std::span<const ActorState> pool, std::uint8_t mode, float range)
+bool PlayerNear(const Kernel::ActorState& object, std::span<const Kernel::ActorState> pool, std::uint8_t mode,
+                float range)
 {
     constexpr std::uint8_t PlayerKind = 1;
     constexpr std::size_t Pool = 400; // 0x190
     for (std::size_t slot = 0; slot < std::min(pool.size(), Pool); ++slot)
     {
-        const ActorState& player = pool[slot];
+        const Kernel::ActorState& player = pool[slot];
         if (player.byte88 != PlayerKind || player.type != Tables::PlayerSkeletonModel || !player.seen)
             continue;
         const double dx = D(object.position.x) - D(player.position.x);
@@ -173,9 +174,9 @@ bool PlayerNear(const ActorState& object, std::span<const ActorState> pool, std:
     return false;
 }
 
-Core::Expected<void, std::string> StepTheCastleObject(ActorState& actor, const CastleObjectStep& step)
+Core::Expected<void, std::string> StepTheCastleObject(Kernel::ActorState& actor, const CastleObjectStep& step)
 {
-    WorldRuntime& runtime = step.runtime;
+    Kernel::WorldRuntime& runtime = step.runtime;
     if (runtime.map != CastleMap)
         return {};
     switch (actor.word376)

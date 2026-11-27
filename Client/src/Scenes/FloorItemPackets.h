@@ -30,9 +30,13 @@ namespace Client::World
 class ModelEffects;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct FloorItemState;
 struct WorldEntryResources;
 
@@ -46,7 +50,7 @@ inline constexpr std::int16_t ZenItem = 0x1c0f;
 struct FloorItemCreation
 {
     Crt::CrtRandom& random;
-    // 0x5f93c0, la altura del terreno en (x, y): la de World::TerrainHeightAt con la del mapa.
+    // 0x5f93c0, la altura del terreno en (x, y): la de Terrain::TerrainHeightAt con la del mapa.
     std::function<Core::Expected<double, std::string>(float x, float y)> height{};
     // El reloj del mundo (0x5767b88) de la luz que late de algunos modelos en 0x607b60.
     Core::Duration clock{};
@@ -73,7 +77,7 @@ struct FloorItemCreation
                                                                       const WorldEntryResources& resources);
 
 // 0x4e3849: apaga (+0x4c en 0) la entrada de cada clave, con las de 1000 o más en la 0.
-void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, WorldState& world);
+void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Kernel::WorldState& world);
 
 // 0x4d0cc0: con 0xfe, el zen en el registro propio (3.848 rand() al cerrarlo sin accesos) y, con el elegido
 // (0x77f27b0) vivo, el aviso "%d %s %s" con su valor y los textos 224 y 918; con un lugar, 0x5bc740 (salvo 0xfd) y el
@@ -90,16 +94,16 @@ void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Wor
 
 // Un 22 corto (07 Q-C1240): de 0x4d0cc0, solo el pedido (0x6c82e8) en −1, que 0x4d10b9 escribe en todos los caminos.
 // Sin él, RequestThePickUp (0x5667d7, 0x566e90) no vuelve a pedir nada.
-void ApplyShortPickUpResult(WorldState& world);
+void ApplyShortPickUpResult(Kernel::WorldState& world);
 
 // 0x4de500, el 2C: con 0 y un stat de 0 a 4, el stat del registro propio y +0x44 suben los puntos; con 3, el stat baja
 // y +0x68 y +0x48 suben; cada uno con su aviso (0x632e30) armado con los textos 379, el del stat y 1412 o 1903. Los
 // resultados 1, 2, 4, 5, 0x10, 0x21, 0x25 y 0x26 abren su aviso. Siempre, 0x5767954 en 0.
 [[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFruit& fruit,
-                                                               WorldState& world, Crt::CrtRandom& random,
+                                                               Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                const Tables::TextTable* texts);
 
 // Un 2C corto (07 Q-C1240): de 0x4de500, solo la espera del uso (0x5767954) en 0, que escribe en todos los caminos.
 // Sin ella, el JG de 0x5c5920 y 0x5a2bea no deja usar otro ítem.
-void ApplyShortStatFruit(WorldState& world);
+void ApplyShortStatFruit(Kernel::WorldState& world);
 } // namespace Client::Scenes

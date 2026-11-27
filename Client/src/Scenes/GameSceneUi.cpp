@@ -45,6 +45,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
@@ -76,7 +77,7 @@ namespace
 class ProjectionTintRestore
 {
 public:
-    ProjectionTintRestore(std::span<ActorState> actors, bool active) : m_actors(actors), m_active(active)
+    ProjectionTintRestore(std::span<Kernel::ActorState> actors, bool active) : m_actors(actors), m_active(active)
     {
         if (!m_active)
             return;
@@ -105,9 +106,9 @@ public:
     }
 
 private:
-    std::span<ActorState> m_actors;
-    std::array<std::uint8_t, ActorPoolSize> m_byteE8{};
-    std::array<glm::vec3, ActorPoolSize> m_light{};
+    std::span<Kernel::ActorState> m_actors;
+    std::array<std::uint8_t, Kernel::ActorPoolSize> m_byteE8{};
+    std::array<glm::vec3, Kernel::ActorPoolSize> m_light{};
     bool m_active = false;
 };
 
@@ -255,7 +256,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     // Enter no deja entrar sin los dos.
     if (m_context.world == nullptr || m_context.cloth == nullptr)
         return {};
-    WorldRuntime& runtime = m_context.world->Runtime();
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const Input::MouseMessageState& mouseMessages = input.MouseMessages();
@@ -382,24 +383,25 @@ InventoryServices GameScene::InventoryContext()
 Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::SceneCanvas& canvas,
                                                               const GameProjection* projection)
 {
-    WorldRuntime& runtime = m_context.world->Runtime();
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;
     const Input::InputState& input = m_context.input != nullptr ? *m_context.input : noInput;
     // 0x637641: 0x59ec80, el picking del frame. Un dibujo intermedio de MuRet lo corre sobre las copias: el rand(), la
     // profundidad del registro propio y los elegidos.
     std::array<std::int32_t, 5> projectedTargets = runtime.selectedTargets;
     ProjectionTintRestore tintRestore(m_context.world->Actors(), m_projectingFrame);
-    auto picked = PickInTheFrame(FramePickingContext{
-        .world = *m_context.world,
-        .random = FrameCloth().random,
-        .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
-        .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-        .altDown = input.IsDown(Input::Key::Alt),
-        .ray = m_mouseRay,
-        .mouse = UI::MouseIn640x480(input, canvas.screen),
-        .cameraPosition = m_drawnCamera.position,
-        .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{},
-        .floorItems = FrameTail().floorItems});
+    auto picked = PickInTheFrame(
+        FramePickingContext{.world = *m_context.world,
+                            .random = FrameCloth().random,
+                            .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
+                            .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+                            .altDown = input.IsDown(Input::Key::Alt),
+                            .ray = m_mouseRay,
+                            .mouse = UI::MouseIn640x480(input, canvas.screen),
+                            .cameraPosition = m_drawnCamera.position,
+                            .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
+                                                              : std::span<Actors::ActorPickingBox>{},
+                            .floorItems = FrameTail().floorItems});
     tintRestore.Restore();
     if (!picked.HasValue())
         return picked;
@@ -410,7 +412,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         return uploaded;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
     // con las copias: el rand(), las cuentas de accesos, los globales del HUD, el humo de Crywolf y el sonido.
-    ActorState& hero = m_context.world->Hero();
+    Kernel::ActorState& hero = m_context.world->Hero();
     GameHudContext hud{
         .world = *m_context.world,
         .random = FrameCloth().random,
@@ -449,8 +451,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     }
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
-    ItemSpecialDrawContext itemSpecial;
-    ItemDrawContext itemContext;
+    Actors::Drawing::ItemSpecialDrawContext itemSpecial;
+    Actors::Drawing::ItemDrawContext itemContext;
     std::optional<UiItemResources> uiItems;
     if (m_models != nullptr)
     {
@@ -532,34 +534,36 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
             .batch = canvas.models,
             .flushSprites = canvas.flushSprites,
             .flushModels = canvas.flushModels,
-            .characters = GameCharacterPass{.dynamicLighting = &FrameLighting(),
-                                            .clothWorld = &FrameCloth(),
-                                            .frameClock = canvas.frameClock,
-                                            .originalFrames = originalFrame ? 1 : 0,
-                                            .sprites = &FrameSpritesForDraw(),
-                                            .poseCarry = &FramePoseCarry(),
-                                            .joints = FrameTail().joints,
-                                            .particles = &FrameParticles(),
-                                            .effects = &FrameEffects(),
-                                            .itemContext = &itemContext,
-                                            .pace = originalFrame ? Models::OriginalFramePace::OncePerDraw
-                                                                  : OriginalFramePaceOf(m_context.pacing),
-                                            .onPose =
-                                                [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
-                                                    const Models::ObjectTransform& transform, bool translated)
-                                            {
-                                                const auto published = PublishFaunaPoseRaw(
-                                                    FramePoseCarry(), *m_models, model, bones, transform, translated);
-                                                if (!published.HasValue() && !portraitPoseFailure)
-                                                    portraitPoseFailure = published.Error();
-                                            },
-                                            .publishProjectedPose = true,
-                                            .poseBones = [&](std::uint16_t)
-                                            { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
-                                            .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
-                                            .fixedHeight = CameraState().fixedHeight},
+            .characters =
+                Actors::Drawing::GameCharacterPass{
+                    .dynamicLighting = &FrameLighting(),
+                    .clothWorld = &FrameCloth(),
+                    .frameClock = canvas.frameClock,
+                    .originalFrames = originalFrame ? 1 : 0,
+                    .sprites = &FrameSpritesForDraw(),
+                    .poseCarry = &FramePoseCarry(),
+                    .joints = FrameTail().joints,
+                    .particles = &FrameParticles(),
+                    .effects = &FrameEffects(),
+                    .itemContext = &itemContext,
+                    .pace =
+                        originalFrame ? Models::OriginalFramePace::OncePerDraw : OriginalFramePaceOf(m_context.pacing),
+                    .onPose =
+                        [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
+                            const Models::ObjectTransform& transform, bool translated)
+                    {
+                        const auto published =
+                            PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
+                        if (!published.HasValue() && !portraitPoseFailure)
+                            portraitPoseFailure = published.Error();
+                    },
+                    .publishProjectedPose = true,
+                    .poseBones = [&](std::uint16_t)
+                    { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
+                    .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
+                    .fixedHeight = CameraState().fixedHeight},
             .helperModels = &m_worldModels,
-            .onHelperPose = [&](const DrawnObject& object)
+            .onHelperPose = [&](const Actors::Drawing::DrawnObject& object)
             { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
             .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); },
             // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.

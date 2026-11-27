@@ -142,7 +142,7 @@ void HideTheDialogEdit(UI::ChatInputState& input)
 
 // 0x4b8886..0x4b88e2: con 0x77f3b6b en 0, los 0x100 bytes del campo en uso y su largo en 0, y el chat cerrado; con la
 // entrada del número de serie (0x77f3b6b), nada (0x4b888f).
-void ForgetWhatWasTyped(const WorldRuntime& runtime, UI::ChatInputState& input, UI::GameUiState& ui)
+void ForgetWhatWasTyped(const Kernel::WorldRuntime& runtime, UI::ChatInputState& input, UI::GameUiState& ui)
 {
     if (runtime.events.serialEntry)
         return;
@@ -216,7 +216,7 @@ bool StartsWithTheCommand(std::string_view said, std::string_view command)
 // salen por `send`, como el chat.
 Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, std::string_view said)
 {
-    ActorState& hero = context.world.Hero();
+    Kernel::ActorState& hero = context.world.Hero();
     if (hero.pet.model >= FirstMountModel && hero.pet.model <= LastMountModel && hero.safeZone == 0)
         return {};
     if (context.texts == nullptr)
@@ -231,12 +231,12 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
                                               : context.models;
     if (models == nullptr)
         return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
-    const ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)
+    const Actors::ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)
     {
         if (context.send)
             context.send(Protocol::Movement::WriteAction(direction, action));
     };
-    return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *models, .send = send});
+    return Actors::DoTheEmote(*emote, Actors::EmoteContext{.hero = hero, .models = *models, .send = send});
 }
 
 // Los pedidos a otro de 0x56c440 (RunTheCommand ya miró Text.bmd).
@@ -252,7 +252,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
 {
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x56c440: los comandos sin Text.bmd"));
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GamePanels panels(context.world, context.random);
     const UI::ChatCommandContext commands{
         .texts = *context.texts,
@@ -269,7 +269,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
         .signsShown = &runtime.social.personalShop.signsShown,
         .ownLevel = [&context]() -> std::uint16_t
         {
-            WorldRuntime& own = context.world.Runtime();
+            Kernel::WorldRuntime& own = context.world.Runtime();
             const Models::LogicalAccess access(own.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             return context.world.OwnCharacter().level;
         },
@@ -352,9 +352,9 @@ std::int32_t AtoiLikeTheCrt(std::string_view text)
 
 Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     if (input.brake > BrakeLimit)
         return {};
     if (input.brake > 0 && input.lastSaid == said)
@@ -405,7 +405,7 @@ namespace
 // de 0x77997f8 (strcmp, que sigue en el lugar de al lado si el nombre llena el suyo); si no, el aviso 479.
 Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::ChatInputState& input = runtime.chat.input;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -433,9 +433,9 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
         return Core::Unexpected(allowed.Error());
     if (!allowed.Value())
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     if (!UI::ContainsLikeTheOriginal(HeroNameOf(hero), WebzenWord))
     {
         std::array<std::byte, Protocol::Chat::ChatNameSize> target{};
@@ -482,7 +482,7 @@ Core::Expected<bool, std::string> SayWhatWasTyped(const GameChatContext& context
 
 Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& context, std::string_view typed)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     constexpr std::string_view Keys{"\t\r\b", 3};
     std::string_view rest = typed;
@@ -565,7 +565,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
 Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& context,
                                                    std::span<const Input::TextInputEvent> events)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     for (const Input::TextInputEvent& event : events)
     {
@@ -621,10 +621,10 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
 
 Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     UI::ChatInputState& input = runtime.chat.input;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     // 0x4b50c0..0x4b5106: en Chaos Castle fuera de la zona segura, nada; si no, 0x5763588 en 1, el Enter que leen los
     // diálogos (0x6263df y 0x62da58). La escena es la 5; con 0x77f3b68, el campo del alta del gremio (CL9 hito 8),
     // nada más (0x4b5115).
@@ -741,7 +741,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
 Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
                                                const std::array<bool, UI::MacroCount>& pressed)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     for (std::size_t macro = 0; macro < UI::MacroCount; ++macro)
     {
         if (!pressed[macro])

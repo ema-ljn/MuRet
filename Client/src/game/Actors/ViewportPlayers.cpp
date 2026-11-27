@@ -53,7 +53,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -120,7 +120,7 @@ struct Kept
     std::uint8_t byte372 = 0;
 };
 
-Kept KeepFrom(const ActorState& actor)
+Kept KeepFrom(const Kernel::ActorState& actor)
 {
     return {.byte1f2 = static_cast<std::uint8_t>(actor.word1f2),
             .guildStatus = actor.guildStatus,
@@ -132,7 +132,7 @@ Kept KeepFrom(const ActorState& actor)
 }
 
 // 0x4c89b4..0x4c89ed: el MOVZX deja +0x1f2 con el byte de abajo y el de arriba en 0.
-void GiveBack(ActorState& actor, const Kept& kept)
+void GiveBack(Kernel::ActorState& actor, const Kept& kept)
 {
     actor.word1f2 = kept.byte1f2;
     actor.guildStatus = kept.guildStatus;
@@ -156,10 +156,10 @@ std::uint8_t ClassOf(std::uint8_t classAndState)
 
 Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::PlayerRecord& record,
                                                     std::span<const std::byte> packet,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
     constexpr std::uint8_t StateMask = 0xf;
     constexpr std::uint8_t TeleportState = 1;
@@ -168,19 +168,19 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     std::optional<Kept> kept;
     if (state == TeleportState)
     {
-        const std::size_t previous = ActorWithKey(world, record.key);
+        const std::size_t previous = Scenes::ActorWithKey(world, record.key);
         if (previous != CreatedActorSearch)
             kept = KeepFrom(world.Actors()[previous]);
     }
     // 0x4c8968..0x4c8992.
-    const ActorConstructionContext construction{world.Map().terrain, runtime.map, World::CullingScene::Game,
+    const ActorConstructionContext construction{world.Map().terrain, runtime.map, Terrain::CullingScene::Game,
                                                 resources.camera.fixedHeight};
     const auto created = CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
                                      construction, resources.cloth);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
-    ActorState& actor = world.Actors()[index];
+    Kernel::ActorState& actor = world.Actors()[index];
     if (kept)
         GiveBack(actor, *kept);
     // 0x4c89f3..0x4c8a2a.
@@ -191,7 +191,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     // 0x4c8a26..0x4c8c11.
     if (state == TeleportState)
     {
-        if (auto teleported = StartTheTeleportAction(actor, resources); !teleported.HasValue())
+        if (auto teleported = Scenes::StartTheTeleportAction(actor, resources); !teleported.HasValue())
             return teleported;
         // 0x4c8a43..0x4c8ad4: el paquete entero otra vez a la cola (Q-C801).
         StoreViewportPacket(runtime.viewportPackets, packet);
@@ -231,15 +231,16 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     {
         constexpr std::int32_t KalimaBeamJoint = 0x610, KalimaBeamSubtype = 8, NoKey = -1, NoTarget = -1;
         constexpr float KalimaBeamWidth = 20.0f;
-        const auto beam = CreateFaunaJoint(world.DrawTail().joints,
-                                           {KalimaBeamJoint, actor.position, actor.position, actor.angles,
-                                            KalimaBeamSubtype, &actor, KalimaBeamWidth, NoKey, 0, 0, NoTarget},
-                                           random, JointOwnerKind::Actor);
+        const auto beam = Scenes::CreateFaunaJoint(world.DrawTail().joints,
+                                                   {KalimaBeamJoint, actor.position, actor.position, actor.angles,
+                                                    KalimaBeamSubtype, &actor, KalimaBeamWidth, NoKey, 0, 0, NoTarget},
+                                                   random, Scenes::JointOwnerKind::Actor);
         if (!beam.HasValue())
             return Core::Unexpected(std::format("0x4c91dc: {}", beam.Error()));
     }
     // 0x4c91e4..0x4c91fa.
-    if (auto set = ApplyCharacterSet(ActorWithKey(world, record.key), record.equipment, resources); !set.HasValue())
+    if (auto set = ApplyCharacterSet(Scenes::ActorWithKey(world, record.key), record.equipment, resources);
+        !set.HasValue())
         return set;
     // 0x4c920b..0x4c9246.
     actor.byte1e3 = 0;
@@ -251,14 +252,14 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     }
     // 0x4c9249..0x4c9256.
     ApplyCastleSiegeFlags(actor, record.effects, runtime.map);
-    return RefreshTheSiegePanel(runtime);
+    return Scenes::RefreshTheSiegePanel(runtime);
 }
 
 // 0x513340 con el nibble entero: de 8 a 15 sale por el JA con 0 (0x51334e).
 std::uint8_t ShownLevelOf(std::uint8_t bits)
 {
     constexpr std::uint8_t LastLevelBits = 7;
-    return bits > LastLevelBits ? std::uint8_t{0} : GameLogic::ItemLevelOf(bits);
+    return bits > LastLevelBits ? std::uint8_t{0} : Kernel::ItemLevelOf(bits);
 }
 
 constexpr std::uint16_t FirstItemModel = 0x212;
@@ -278,33 +279,33 @@ struct ShownItem
 
 // 0x4c83ec..0x4c8486: las manos. La derecha vacía no toca el nivel; la izquierda vacía suelta el cuervo del héroe
 // publicado ([0x743a170], 0x4c8438).
-Core::Expected<void, std::string> ShowInTheHand(ActorState& actor, std::size_t hand, const ShownItem& item,
-                                                const WorldEntryResources& resources)
+Core::Expected<void, std::string> ShowInTheHand(Kernel::ActorState& actor, std::size_t hand, const ShownItem& item,
+                                                const Scenes::WorldEntryResources& resources)
 {
-    ActorItemPart& part = actor.hands[hand];
-    if (item.type == NoInventoryItem)
+    Kernel::ActorItemPart& part = actor.hands[hand];
+    if (item.type == Scenes::NoInventoryItem)
     {
-        part.model = NoItemModel;
+        part.model = Kernel::NoItemModel;
         part.flags1b = 0;
         if (hand == 1)
-            PublishedHero(resources).darkSpirit.reset();
+            Scenes::PublishedHero(resources).darkSpirit.reset();
         return {};
     }
     part.model = ModelOf(item.type);
     part.level = item.level;
     part.flags1b = item.excellent;
     if (hand == 1)
-        return RecreateTransitionRaven(actor, resources);
+        return Scenes::RecreateTransitionRaven(actor, resources);
     return {};
 }
 
 // 0x4c848b..0x4c8667: las cinco del cuerpo; vacías, la de la clase con los tres bytes en 0.
-void ShowOnTheBody(ActorState& actor, std::size_t index, const ShownItem& item)
+void ShowOnTheBody(Kernel::ActorState& actor, std::size_t index, const ShownItem& item)
 {
-    ActorItemPart& part = actor.body[index];
-    if (item.type == NoInventoryItem)
+    Kernel::ActorItemPart& part = actor.body[index];
+    if (item.type == Scenes::NoInventoryItem)
     {
-        part.model = GameLogic::ClassPartModel(static_cast<GameLogic::BodyPart>(index), actor.characterClass);
+        part.model = Kernel::ClassPartModel(static_cast<Kernel::BodyPart>(index), actor.characterClass);
         part.level = 0;
         part.flags1b = 0;
         part.flags1c = 0;
@@ -318,16 +319,16 @@ void ShowOnTheBody(ActorState& actor, std::size_t index, const ShownItem& item)
 
 // 0x4c8711..0x4c87d4: la mascota y su ayudante (la tabla de 0x4c882c sobre el tipo − 0x1a00).
 Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem& item,
-                                             const WorldEntryResources& resources)
+                                             const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& actor = world.Actors()[index];
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& actor = world.Actors()[index];
     constexpr std::uint16_t Dinorant = 0x1c15;
-    if (item.type == NoInventoryItem)
+    if (item.type == Scenes::NoInventoryItem)
     {
-        actor.pet.model = NoItemModel;
+        actor.pet.model = Kernel::NoItemModel;
         actor.previousHad1c15 = false;
-        TurnOffHelpersOf(world.Helpers(), index);
+        Scenes::TurnOffHelpersOf(world.Helpers(), index);
         return {};
     }
     actor.pet.model = ModelOf(item.type);
@@ -347,7 +348,7 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
         helper = 0x110;
         break;
     case 4:
-        helper = DarkHorseModel;
+        helper = Scenes::DarkHorseModel;
         break;
     case 0x25:
     {
@@ -362,7 +363,7 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
     default:
         return {};
     }
-    auto created = CreateHelper(world, helper, actor.position, index, &resources.cloth.random);
+    auto created = Scenes::CreateHelper(world, helper, actor.position, index, &resources.cloth.random);
     return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
 }
 } // namespace
@@ -382,7 +383,7 @@ std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRan
 }
 
 // 0x4c8b0c..0x4c8f1b y 0x4c939e..0x4c9523: la celda protegida y el blanco con los mismos valores.
-void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random)
+void WriteTheCells(Kernel::ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random)
 {
     WriteCell(x, actor.cellX, actor.cellXAccesses, random);
     WriteCell(y, actor.cellY, actor.cellYAccesses, random);
@@ -398,7 +399,7 @@ float AngleOf(std::uint8_t directionAndPk)
 }
 
 // 0x4c8f4b..0x4c905c: la X y después la Y, leídas de la tabla, al centro de la celda.
-void PutInTheCellCenter(ActorState& actor, Crt::CrtRandom& random)
+void PutInTheCellCenter(Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
     const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
     actor.position.x = (static_cast<float>(x) + CellCenter) * CellSize;
@@ -408,8 +409,8 @@ void PutInTheCellCenter(ActorState& actor, Crt::CrtRandom& random)
 
 // 0x4c907c..0x4c91a3 y 0x4c9684..0x4c972c: la Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay
 // camino (sin él queda como estaba).
-Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY,
-                                                  const WorldEntryResources& resources)
+Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std::uint8_t targetX, std::uint8_t targetY,
+                                                  const Scenes::WorldEntryResources& resources)
 {
     auto& random = resources.cloth.random;
     const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
@@ -419,7 +420,7 @@ Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
     Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el camino de otro.
-    const auto path = finder.Find({x, y}, {targetX, targetY}, CrywolfAltarGoal(resources.world));
+    const auto path = finder.Find({x, y}, {targetX, targetY}, Scenes::CrywolfAltarGoal(resources.world));
     if (!path)
         return {};
     actor.path = *path;
@@ -428,7 +429,7 @@ Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_
 }
 
 Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::Players& players,
-                                                       const WorldEntryResources& resources)
+                                                       const Scenes::WorldEntryResources& resources)
 {
     // La copia del dispatcher (0x4e372e..0x4e37b8) ya la hizo la sesión, antes del lector (CopyToPacketRing).
     for (const Protocol::Actors::PlayerRecord& record : players.records)
@@ -442,23 +443,23 @@ Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::P
     return {};
 }
 
-void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world)
+void ApplyViewportLeave(const Protocol::Actors::Leave& leave, Kernel::WorldState& world)
 {
     for (const std::uint16_t word : leave.keys)
     {
-        ForgetTheSwitchHolder(world.Runtime(), word);
+        Scenes::ForgetTheSwitchHolder(world.Runtime(), word);
         // 0x4ca7e1..0x4ca7e8.
         const auto key = static_cast<std::int32_t>(word & Protocol::Actors::KeyMask);
         RemoveActor(world, key);
         // 0x4ca7f0..0x4ca809: el cartel de la tienda con la clave, si hay (CL9 hito 7, fase 3).
-        PersonalShopState& shops = world.Runtime().social.personalShop;
-        if (const std::optional<std::size_t> owner = ShopTitleWithKey(shops, key))
-            RemoveShopTitle(shops, *owner);
+        Scenes::PersonalShopState& shops = world.Runtime().social.personalShop;
+        if (const std::optional<std::size_t> owner = Scenes::ShopTitleWithKey(shops, key))
+            Scenes::RemoveShopTitle(shops, *owner);
     }
 }
 
 Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Transformed& transformed,
-                                                   const WorldEntryResources& resources)
+                                                   const Scenes::WorldEntryResources& resources)
 {
     for (const Protocol::Actors::TransformedRecord& record : transformed.records)
     {
@@ -467,8 +468,8 @@ Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Trans
             continue;
         // 0x4c9317..0x4c934c: la clase del héroe publicado antes del alta y 0x5141e0(tipo, X, Y, clave), sin mirar si
         // devuelve 0.
-        const std::uint8_t heroClass = PublishedHero(resources).characterClass;
-        const auto created = CreateMonster(record.type, record.x, record.y, record.key, resources);
+        const std::uint8_t heroClass = Scenes::PublishedHero(resources).characterClass;
+        const auto created = Scenes::CreateMonster(record.type, record.x, record.y, record.key, resources);
         if (!created.HasValue())
             return Core::Unexpected(created.Error());
         if (auto finished = FinishTheTransformed(created.Value(), record, heroClass, resources); !finished.HasValue())
@@ -479,12 +480,13 @@ Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Trans
 
 Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
                                                        const Protocol::Actors::TransformedRecord& record,
-                                                       std::uint8_t heroClass, const WorldEntryResources& resources)
+                                                       std::uint8_t heroClass,
+                                                       const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
-    ActorState& actor = world.Actors()[index];
+    Kernel::ActorState& actor = world.Actors()[index];
     // 0x4c9356..0x4c9385.
     constexpr std::uint16_t SmallerWord376 = 7;
     if (actor.word376 == SmallerWord376)
@@ -508,13 +510,13 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
         // (World/BlastModelEffects), y 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje), el rayo que lo
         // sigue en su paso; ninguno saca rand(). Con la tabla llena, nada.
         constexpr std::int16_t MagicCircle = 0xec;
-        if (auto circle = CreateBlastEffectOutsideTheStep({.type = MagicCircle,
-                                                           .position = actor.position,
-                                                           .angles = actor.angles,
-                                                           .light = actor.light,
-                                                           .subtype = 0,
-                                                           .key = 0xffff},
-                                                          &actor, world, random);
+        if (auto circle = Scenes::CreateBlastEffectOutsideTheStep({.type = MagicCircle,
+                                                                   .position = actor.position,
+                                                                   .angles = actor.angles,
+                                                                   .light = actor.light,
+                                                                   .subtype = 0,
+                                                                   .key = 0xffff},
+                                                                  &actor, world, random);
             !circle.HasValue())
             return Core::Unexpected(std::format("0x4c965c: {}", circle.Error()));
         const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, index};
@@ -530,22 +532,22 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
     // 0x4c9733..0x4c975d.
     actor.byte1e3 = 0;
     actor.name = record.name;
-    return DressTransitionHero(PublishedHero(resources), resources);
+    return Scenes::DressTransitionHero(Scenes::PublishedHero(resources), resources);
 }
 
 Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::EquipmentShown& shown,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    const std::size_t index = ActorWithKey(world, shown.key);
-    ActorState& actor = world.Actors()[index];
+    Kernel::WorldState& world = resources.world;
+    const std::size_t index = Scenes::ActorWithKey(world, shown.key);
+    Kernel::ActorState& actor = world.Actors()[index];
     const std::span<const std::byte> bytes = shown.item;
     // 0x4c83b4..0x4c83dc: pkt[6] (el byte 1), pkt[8] (el 3) y pkt[9] (el 4).
     constexpr std::uint8_t LevelMask = 0xf;
     constexpr int SlotShift = 4;
     constexpr std::uint8_t ExcellentMask = 0x3f;
     const std::uint8_t placeAndLevel = ByteOf(bytes, 1);
-    const ShownItem item{.type = InventoryItemType(shown.item),
+    const ShownItem item{.type = Scenes::InventoryItemType(shown.item),
                          .level = ShownLevelOf(placeAndLevel & LevelMask),
                          .excellent = static_cast<std::uint8_t>(ByteOf(bytes, 3) & ExcellentMask),
                          .ancient = ByteOf(bytes, 4)};
@@ -566,9 +568,9 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::Eq
     else if (place == WingsPlace)
     {
         // 0x4c86e4..0x4c870c.
-        if (item.type == NoInventoryItem)
+        if (item.type == Scenes::NoInventoryItem)
         {
-            actor.wings.model = NoItemModel;
+            actor.wings.model = Kernel::NoItemModel;
         }
         else
         {
@@ -588,10 +590,10 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::Eq
 }
 
 Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::Position& position,
-                                                        const WorldEntryResources& resources)
+                                                        const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& actor = world.Actors()[ActorWithKey(world, position.key)];
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& actor = world.Actors()[Scenes::ActorWithKey(world, position.key)];
     auto& random = resources.cloth.random;
     constexpr std::uint16_t PushedType = 0xf1;
     if (actor.type == PushedType)
@@ -620,4 +622,4 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::
     actor.byte399 = 1;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

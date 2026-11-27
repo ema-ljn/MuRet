@@ -60,14 +60,14 @@ bool IsOneOf(std::span<const std::uint8_t> values, std::uint8_t value)
 }
 
 // 0x4ea030 con el modelo del personaje.
-void SetModelAction(ActorState& actor, const Models::Skeleton& skeleton, std::uint8_t action)
+void SetModelAction(Kernel::ActorState& actor, const Models::Skeleton& skeleton, std::uint8_t action)
 {
     Models::SetAction(actor.animation, skeleton, action);
 }
 
 // Lo que 0x42d890 deja de la acción: la anterior (+0x112), la key (+0x118), la acción (+0x111) y el frame (+0x114), sin
 // 0x4ea030.
-void PutTheAction(ActorState& actor, std::uint8_t action)
+void PutTheAction(Kernel::ActorState& actor, std::uint8_t action)
 {
     actor.animation.previousAction = action;
     actor.animation.previousKey = 0;
@@ -76,7 +76,7 @@ void PutTheAction(ActorState& actor, std::uint8_t action)
 }
 
 // 0x42d890(c, c): fuera del mapa 30, 0. En el 30, por +0x376.
-bool FinishTheCastleObject(ActorState& actor, const Models::Skeleton& skeleton, WorldRuntime& runtime)
+bool FinishTheCastleObject(Kernel::ActorState& actor, const Models::Skeleton& skeleton, Kernel::WorldRuntime& runtime)
 {
     if (runtime.map != CastleMap)
         return false;
@@ -136,7 +136,7 @@ bool FinishTheCastleObject(ActorState& actor, const Models::Skeleton& skeleton, 
 
 float ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float speed)
 {
-    if (IsNewFace(type))
+    if (Actors::IsNewFace(type))
         return speed + speed;
     if (type == BlinkingModel && action == DyingAction && frame > LateFrame)
         return speed * FasterLateFactor;
@@ -145,8 +145,9 @@ float ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float s
     return speed;
 }
 
-Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor, const Models::Skeleton& skeleton,
-                                                                 WorldRuntime& runtime, Crt::CrtRandom& random)
+Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(Kernel::ActorState& actor,
+                                                                 const Models::Skeleton& skeleton,
+                                                                 Kernel::WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     const std::uint16_t type = actor.type;
     if (type == NamedModel)
@@ -186,13 +187,13 @@ Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& act
         SetModelAction(actor, skeleton, static_cast<std::uint8_t>(1 + random.Next() % 2));
         return ModelActionEnd::Done;
     }
-    if (IsNewFace(type))
+    if (Actors::IsNewFace(type))
         return ModelActionEnd::Done;
     SetModelAction(actor, skeleton, static_cast<std::uint8_t>(random.Next() % 2));
     return ModelActionEnd::Done;
 }
 
-void LookAtTheTarget(ActorState& actor, const ActorState& target)
+void LookAtTheTarget(Kernel::ActorState& actor, const Kernel::ActorState& target)
 {
     const auto heading =
         static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, target.position.x, target.position.y));
@@ -215,8 +216,8 @@ void LookAtTheTarget(ActorState& actor, const ActorState& target)
             actor.headTurn.target[axis] += FullTurn;
 }
 
-Core::Expected<void, std::string> SetTheModelHeadTarget(ActorState& actor, std::span<const ActorState> pool,
-                                                        Crt::CrtRandom& random)
+Core::Expected<void, std::string>
+SetTheModelHeadTarget(Kernel::ActorState& actor, std::span<const Kernel::ActorState> pool, Crt::CrtRandom& random)
 {
     const std::uint8_t action = actor.animation.action;
     if (action == DyingAction)

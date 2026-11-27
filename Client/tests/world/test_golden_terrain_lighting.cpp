@@ -27,8 +27,8 @@ namespace
 {
 using Client::Data::Terrain::CellIndex;
 using Client::Data::Terrain::TerrainLightColor;
-using Client::World::LightAt;
-using Client::World::LoadTerrainLighting;
+using Client::Terrain::LightAt;
+using Client::Terrain::LoadTerrainLighting;
 using GoldenTerrainLighting = Client::Tests::GoldenDataTest;
 
 using ChannelBits = std::array<std::uint32_t, 3>;

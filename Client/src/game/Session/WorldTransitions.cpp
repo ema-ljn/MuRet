@@ -39,7 +39,8 @@ constexpr float CellSize = 100.0f;
 constexpr float CellCenter = 50.0f;
 constexpr float DirectionDegrees = 45.0f;
 using Maps::IsChaosCastle;
-void WriteHeroCells(ActorState& hero, const Protocol::Movement::Teleport& reply, const WorldEntryResources& resources)
+void WriteHeroCells(Kernel::ActorState& hero, const Protocol::Movement::Teleport& reply,
+                    const WorldEntryResources& resources)
 {
     {
         const Models::LogicalAccess x(hero.cellXAccesses, resources.cloth.random, Models::SmallLogicalCloseRandoms);
@@ -75,7 +76,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
     {
         // 4c7af1..4c7b2f: el mismo prefijo corre al entrar y al salir, antes de 512a30: el sonido, las ventanas viejas
         // escondidas sin anotarlas (0x4906a0 con 1 y 0, Q-C572) y la de amigos suelta (0x4914e0).
-        WorldRuntime& runtime = resources.world.Runtime();
+        Kernel::WorldRuntime& runtime = resources.world.Runtime();
         runtime.RequestSound(0x9e, std::nullopt, true);
         if (auto hidden = UI::HideTheOldWindows(runtime.oldWindows, 1, 0, OldWindowGlobalsOf(runtime));
             !hidden.HasValue())
@@ -91,7 +92,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
     }
     if (!IsChaosCastle(loadedMap))
     {
-        WorldRuntime& runtime = resources.world.Runtime();
+        Kernel::WorldRuntime& runtime = resources.world.Runtime();
         runtime.StopSound(0x99, true);
         runtime.StopSound(0x9e, true);
         runtime.lastSoundId = 0x9e;
@@ -113,7 +114,7 @@ Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& reso
     runtime.movement.warpPending = false;
     {
         const Models::LogicalAccess wait(runtime.warpDepth, resources.cloth.random, Models::SmallLogicalCloseRandoms);
-        runtime.warpCounter = WaitDrawThreshold;
+        runtime.warpCounter = Kernel::WaitDrawThreshold;
     }
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = 6;
@@ -155,12 +156,12 @@ Core::Expected<void, std::string> RebuildRegenHero(const Protocol::Movement::Reg
     const auto guildStatus = hero.guildStatus;
     const auto byte369 = hero.byte369;
     const auto byte370 = hero.byte370;
-    const ActorConstructionContext construction{world.Map().terrain, world.Runtime().map, World::CullingScene::Game,
-                                                resources.camera.fixedHeight};
+    const Actors::ActorConstructionContext construction{world.Map().terrain, world.Runtime().map,
+                                                        Terrain::CullingScene::Game, resources.camera.fixedHeight};
     const auto built =
-        ConstructActor(hero, Tables::PlayerSkeletonModel,
-                       {reply.x, reply.y, (static_cast<float>(reply.direction) - 1.0f) * DirectionDegrees},
-                       construction, resources.cloth);
+        Actors::ConstructActor(hero, Tables::PlayerSkeletonModel,
+                               {reply.x, reply.y, (static_cast<float>(reply.direction) - 1.0f) * DirectionDegrees},
+                               construction, resources.cloth);
     if (!built.HasValue())
         return built;
     hero.guildStatus = guildStatus;
@@ -185,7 +186,7 @@ Core::Expected<void, std::string> RebuildRegenHero(const Protocol::Movement::Reg
     return {};
 }
 Core::Expected<void, std::string> ChangeRegenMap(const Protocol::Movement::Regen& reply, std::uint16_t playerKey,
-                                                 ActorState& hero, const WorldEntryResources& resources)
+                                                 Kernel::ActorState& hero, const WorldEntryResources& resources)
 {
     const auto oldMap = resources.world.Runtime().map;
     if (oldMap == reply.map)
@@ -199,7 +200,7 @@ Core::Expected<void, std::string> ChangeRegenMap(const Protocol::Movement::Regen
     }
     if (!IsChaosCastle(resources.world.Runtime().map))
     {
-        WorldRuntime& runtime = resources.world.Runtime();
+        Kernel::WorldRuntime& runtime = resources.world.Runtime();
         runtime.StopSound(0x99, true);
         runtime.StopSound(0x9e, true);
         runtime.lastSoundId = 0x9e;
@@ -254,9 +255,10 @@ Core::Expected<void, std::string> ApplyRegen(const Protocol::Movement::Regen& re
     if (auto raven = RecreateTransitionRaven(hero, resources); !raven.HasValue())
         return raven;
     if (hero.alive)
-        hero.byte374 =
-            (PublishedHero(resources).word1f2 != NoItemModel && hero.word1f2 == PublishedHero(resources).word1f2) ? 1
-                                                                                                                  : 0;
+        hero.byte374 = (PublishedHero(resources).word1f2 != Kernel::NoItemModel &&
+                        hero.word1f2 == PublishedHero(resources).word1f2)
+                           ? 1
+                           : 0;
     // 0x4c5048..0x4c504e: 0x65dc30, el cartel con el nombre del mapa, antes de cerrar las ventanas (0x657a90).
     ShowTheMapBanner(world.Runtime().hud.mapBanner, world.Runtime().map);
     if (auto closed = CloseTransitionWindows(resources); !closed.HasValue())

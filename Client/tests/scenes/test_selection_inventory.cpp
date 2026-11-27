@@ -15,9 +15,9 @@
 
 TEST(SelectionInventoryTest, TheNpcGridsClearOnlyTheirTypeAndOccupation)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     auto& npc = world->Runtime().npcWindows;
-    const auto prepare = [](std::span<Client::World::ItemState> cells)
+    const auto prepare = [](std::span<Client::Kernel::ItemState> cells)
     {
         for (auto& cell : cells)
         {
@@ -38,11 +38,11 @@ TEST(SelectionInventoryTest, TheNpcGridsClearOnlyTheirTypeAndOccupation)
     auto expected = random;
     expected.Discard(Client::Models::OwnRecordCloseRandoms);
     Client::Scenes::ClearSelectionInventory(*world, random);
-    const auto check = [](std::span<const Client::World::ItemState> cells)
+    const auto check = [](std::span<const Client::Kernel::ItemState> cells)
     {
         for (const auto& cell : cells)
         {
-            EXPECT_EQ(cell.id, Client::Scenes::EmptyOwnItemId);
+            EXPECT_EQ(cell.id, Client::Kernel::EmptyOwnItemId);
             EXPECT_EQ(cell.occupied, 0);
             EXPECT_EQ(cell.scalar1Low, 0x1234u);
         }

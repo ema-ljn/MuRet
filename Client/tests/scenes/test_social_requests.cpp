@@ -75,7 +75,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
 
@@ -130,10 +130,10 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -152,7 +152,7 @@ protected:
         GoldenDataTest::SetUp();
         game = std::make_unique<Game>();
         const std::uint8_t map = GetParam();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -199,7 +199,7 @@ protected:
                                                             .targetY = y}}};
         auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
         ASSERT_TRUE(read.HasValue());
-        const auto applied = Client::Scenes::ApplyViewportPlayers(read.Value(), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(read.Value(), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ASSERT_EQ(Near().key, NearKey);
         ASSERT_EQ(Far().key, FarKey);
@@ -525,7 +525,7 @@ protected:
     // El paso de la ventana con el mouse lejos de ella, el comando y el elegido, y el clic derecho.
     Client::Core::Expected<void, std::string> RightClick(std::int32_t command, std::int32_t chosen)
     {
-        Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
         runtime.panels.delegated.commandsWindow.chosen = command;
         Choose(chosen);
         runtime.ui.rightClick = true;
@@ -615,7 +615,7 @@ TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
     EXPECT_EQ(Window().chosen, 3);
     EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 1);
 
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     runtime.hud.partyCount = 2;
     Name(runtime.social.party.slots[0].name, "Tejon");
     Name(runtime.social.party.slots[1].name, "Brezal");
@@ -697,7 +697,7 @@ protected:
 
     Client::Core::Expected<void, std::string> RightClickWithModels(std::int32_t command, std::int32_t chosen)
     {
-        Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
         runtime.panels.delegated.commandsWindow.chosen = command;
         Choose(chosen);
         runtime.ui.rightClick = true;
@@ -795,7 +795,7 @@ TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
     ASSERT_TRUE(ended.HasValue()) << ended.Error();
     EXPECT_EQ(Hero().animation.action, 0xb7);
     ASSERT_EQ(m_sent.size(), 3U);
-    const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
+    const auto direction = Client::Actors::ActionDirection(Hero().angles.z);
     ASSERT_TRUE(direction.has_value());
     EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(m_sent[1].packet).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
@@ -888,7 +888,7 @@ TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
     EXPECT_EQ(asked.Value().notices[0].formatted, "fin con Brezal");
     EXPECT_EQ(Hero().animation.action, 0xb7);
     ASSERT_EQ(m_sent.size(), 4U);
-    const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
+    const auto direction = Client::Actors::ActionDirection(Hero().angles.z);
     ASSERT_TRUE(direction.has_value());
     EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(m_sent[2].packet).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));

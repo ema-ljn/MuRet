@@ -27,11 +27,11 @@ TEST(LoadingModelPrefixTest, PublishesTheCrtChoiceBeforeARequiredFileFailsAndKee
     Client::Tests::FakeTextureStore textures;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(1)};
     const Client::Scenes::SceneContext context{
         .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = world.get()};
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     Client::Scenes::LoadingScene first(context, &models);
     first.Step(Client::Input::InputState{});
     EXPECT_TRUE(first.WantsToQuit());
@@ -52,11 +52,11 @@ TEST(LoadingModelPrefixTest, KeepsTheZeroChoiceWithoutInventingAPrecedingConstru
     Client::Tests::FakeTextureStore textures;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(302)};
     const Client::Scenes::SceneContext context{
         .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = world.get()};
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     Client::Scenes::LoadingScene scene(context, &models);
     scene.Step(Client::Input::InputState{});
     ASSERT_TRUE(scene.WantsToQuit());

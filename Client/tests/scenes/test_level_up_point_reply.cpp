@@ -39,8 +39,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Protocol::Player::LevelUpPointResult;
-using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::WorldEntryResources;
 
 constexpr std::uint32_t Seed = 0x2468;
@@ -83,10 +83,10 @@ struct Stage
                                    .log = log};
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf({});
@@ -119,7 +119,7 @@ TEST(LevelUpPointReplyTest, EachStatTakesTheDistributedPoint)
         own.life = 60;
         own.mana = 40;
         const std::uint16_t before = own.*tested.field;
-        const auto applied = Client::Scenes::ApplyLevelUpPointResult(
+        const auto applied = Client::Player::ApplyLevelUpPointResult(
             LevelUpPointResult{
                 .result = static_cast<std::uint8_t>(0x10 | tested.stat), .maxLifeOrMana = 777, .maxBp = 88},
             stage->Resources());
@@ -143,7 +143,7 @@ TEST(LevelUpPointReplyTest, ANibbleAboveFourOnlyTakesThePointAndTheBp)
     OwnCharacterRecord& own = stage->world.OwnCharacter();
     own.levelUpPoints = 0;
     ASSERT_TRUE(
-        Client::Scenes::ApplyLevelUpPointResult({.result = 0x1f, .maxLifeOrMana = 777, .maxBp = 88}, stage->Resources())
+        Client::Player::ApplyLevelUpPointResult({.result = 0x1f, .maxLifeOrMana = 777, .maxBp = 88}, stage->Resources())
             .HasValue());
     EXPECT_EQ(own.levelUpPoints, 0xffff);
     EXPECT_EQ(own.strength, 20);
@@ -160,16 +160,16 @@ TEST(LevelUpPointReplyTest, ANibbleAboveFourOnlyTakesThePointAndTheBp)
 // propios rand() (las otras tablas protegidas que lee), así que la referencia es correrla, no contarlos.
 void OpenRecalculateAndClose(Stage& stage)
 {
-    Client::Scenes::WorldRuntime& runtime = stage.world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = stage.world.Runtime();
     const Client::Models::LogicalAccess access(runtime.ownRecordDepth, stage.cloth.random, Own);
-    const auto recalculated = Client::Scenes::RecalculateOwnStats(
-        stage.world.OwnCharacter(), Client::Scenes::OwnStatsContext{.itemSetTables = &stage.sets,
+    const auto recalculated = Client::Player::RecalculateOwnStats(
+        stage.world.OwnCharacter(), Client::Player::OwnStatsContext{.itemSetTables = &stage.sets,
                                                                     .itemSets = &stage.world.ItemSets(),
                                                                     .items = &stage.items,
                                                                     .publishedHero = stage.world.Hero(),
                                                                     .ownRecordAccesses = runtime.ownRecordDepth,
                                                                     .random = stage.cloth.random,
-                                                                    .held = Client::Scenes::HeldItemOf(runtime),
+                                                                    .held = Client::Player::HeldItemOf(runtime),
                                                                     .scan505820 = runtime.fullSetScan});
     ASSERT_TRUE(recalculated.HasValue()) << recalculated.Error();
 }
@@ -183,7 +183,7 @@ TEST(LevelUpPointReplyTest, TheStatsAreRecalculatedEvenWithoutThePoint)
     auto reference = std::make_unique<Stage>();
     OwnCharacterRecord& own = stage->world.OwnCharacter();
     ASSERT_TRUE(
-        Client::Scenes::ApplyLevelUpPointResult({.result = 0x00, .maxLifeOrMana = 777, .maxBp = 88}, stage->Resources())
+        Client::Player::ApplyLevelUpPointResult({.result = 0x00, .maxLifeOrMana = 777, .maxBp = 88}, stage->Resources())
             .HasValue());
     ASSERT_NO_FATAL_FAILURE(OpenRecalculateAndClose(*reference));
     EXPECT_EQ(stage->cloth.random.State(), reference->cloth.random.State());
@@ -192,7 +192,7 @@ TEST(LevelUpPointReplyTest, TheStatsAreRecalculatedEvenWithoutThePoint)
     EXPECT_EQ(own.maxBp, 30);
     EXPECT_EQ(stage->world.Runtime().ownRecordDepth, 0);
 
-    ASSERT_TRUE(Client::Scenes::ApplyLevelUpPointResult({.result = 0x10, .maxBp = 31}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyLevelUpPointResult({.result = 0x10, .maxBp = 31}, stage->Resources()).HasValue());
     reference->cloth.random.Discard(static_cast<std::uint32_t>(Own));
     ASSERT_NO_FATAL_FAILURE(OpenRecalculateAndClose(*reference));
     EXPECT_EQ(stage->cloth.random.State(), reference->cloth.random.State());

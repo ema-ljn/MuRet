@@ -36,7 +36,7 @@ protected:
         return DigestOf(RecordedFrame{}, {}, 0, *m_world);
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
 };
 
 TEST_F(FrameDigestTest, DrawFollowsTheRecordedVertices)

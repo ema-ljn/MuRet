@@ -20,10 +20,14 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 inline constexpr std::size_t ChatBubbleCount = 100;
 // 0x557170: con 20 bytes o más, el texto va en dos renglones (0x5549a0).
@@ -70,7 +74,7 @@ using ChatBubbleTable = std::array<ChatBubble, ChatBubbleCount>;
 
 // +0x1d9 como lo leen strcmp y strcpy: con los diez bytes llenos sigue +0x1e3. Lo que sigue a +0x1e3 MuRet no lo tiene
 // y lo toma en 0.
-[[nodiscard]] std::string ChatNameOf(const ActorState& actor);
+[[nodiscard]] std::string ChatNameOf(const Kernel::ActorState& actor);
 
 // El modo de 0x557170: 0 el chat (el globo dura según el largo) y 1 también al registro del chat (1.000 pasos).
 // Ningún llamador de MuRet pasa otro: el original toma de duración un puntero (el texto o el personaje).
@@ -96,14 +100,14 @@ struct ChatBubbleMeasure
 // arriba y la cola abajo, con el mismo tiempo. El modo 1 lo agrega también al registro (0x45bb20 con el tipo 3) y el
 // sonido que pida queda en WorldRuntime::lastSoundId. El gremio sale de WorldRuntime::guild (CL9 hito 8); con cartel
 // de tienda, el globo lleva su título corto (0x4518b0).
-[[nodiscard]] Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBubbleMeasure& measure,
-                                                              std::string_view name, std::string_view text,
-                                                              std::size_t owner, ChatBubbleMode mode,
-                                                              std::optional<std::uint8_t> color = std::nullopt);
+[[nodiscard]] Core::Expected<void, std::string>
+AddChatBubble(Kernel::WorldState& world, const ChatBubbleMeasure& measure, std::string_view name, std::string_view text,
+              std::size_t owner, ChatBubbleMode mode, std::optional<std::uint8_t> color = std::nullopt);
 
 // 0x557560(nombre, texto, modo): el primer personaje vivo con +0x88 en 1 y ese nombre (strcmp de +0x1d9) y, si no
 // hay, el primero con +0x88 en 2; con uno, 0x557170 sin color. Sin ninguno, nada.
-[[nodiscard]] Core::Expected<void, std::string> AddChatBubbleByName(WorldState& world, const ChatBubbleMeasure& measure,
+[[nodiscard]] Core::Expected<void, std::string> AddChatBubbleByName(Kernel::WorldState& world,
+                                                                    const ChatBubbleMeasure& measure,
                                                                     std::string_view name, std::string_view text,
                                                                     ChatBubbleMode mode);
 
@@ -120,5 +124,6 @@ struct ChatBubbleStepInput
 // baja los tres relojes de cada entrada y los pone en 0 si su personaje murió o no se ve; las tiendas (0x451720,
 // 0x4516d0) no tienen ninguna. El clic derecho sobre un globo ajeno con el campo del chat abierto en la zona segura
 // pone su nombre en el EDIT y en el buffer del susurro (0x7798cf8) y suena el 0x19.
-[[nodiscard]] Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const ChatBubbleStepInput& input);
+[[nodiscard]] Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world,
+                                                                   const ChatBubbleStepInput& input);
 } // namespace Client::Scenes

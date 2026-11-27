@@ -25,12 +25,12 @@
 #include <string>
 #include <vector>
 
-// Scenes::PlayTheEmote (0x576a60) y DoTheEmote (un caso de 0x576eb0): la compuerta, el +1 del elfo y los C1 05 18.
+// Actors::PlayTheEmote (0x576a60) y DoTheEmote (un caso de 0x576eb0): la compuerta, el +1 del elfo y los C1 05 18.
 // Los valores salen del ASM (0x576a84..0x576e97 y los casos), no de una corrida.
 namespace
 {
-using Client::Scenes::ActorState;
-using Client::Scenes::EmoteContext;
+using Client::Actors::EmoteContext;
+using Client::Kernel::ActorState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 using Client::UI::EmoteCase;
@@ -103,7 +103,7 @@ TEST_F(EmoteTest, AStandingHeroAnimatesAndSendsTwoEqualActions)
         m_sent.clear();
         m_hero->animation.action = action;
         m_hero->angles.z = 100.0f;
-        ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
+        ASSERT_TRUE(Client::Actors::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
         EXPECT_EQ(m_hero->animation.action, 0x99);
         ExpectSent(2, 3, 0x83);
     }
@@ -121,7 +121,7 @@ TEST_F(EmoteTest, AHeroThatIsNotStandingSendsOnlyTheCase)
         m_sent.clear();
         m_hero->animation.action = action;
         m_hero->angles.z = -30.0f;
-        ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0xa9, 0x8b}, Context()).HasValue());
+        ASSERT_TRUE(Client::Actors::DoTheEmote(EmoteCase{0xa9, 0x8b}, Context()).HasValue());
         EXPECT_EQ(m_hero->animation.action, action);
         ExpectSent(1, 0, 0x8b);
     }
@@ -150,7 +150,7 @@ TEST_F(EmoteTest, TheElfTakesTheNextAnimationOutsideTheSharedOnes)
         m_sent.clear();
         m_hero->characterClass = tested.characterClass;
         m_hero->animation.action = 1;
-        const auto played = Client::Scenes::PlayTheEmote(*m_hero, EmoteCase{tested.animation, 0x8d}, Context());
+        const auto played = Client::Actors::PlayTheEmote(*m_hero, EmoteCase{tested.animation, 0x8d}, Context());
         ASSERT_TRUE(played.HasValue());
         EXPECT_TRUE(played.Value());
         EXPECT_EQ(m_hero->animation.action, tested.played);
@@ -163,7 +163,7 @@ TEST_F(EmoteTest, AnAnimationTheModelDoesNotHaveStillSends)
 {
     m_models.player.actions.resize(0x99);
     m_hero->animation.action = 2;
-    ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
+    ASSERT_TRUE(Client::Actors::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
     EXPECT_EQ(m_hero->animation.action, 2);
     ExpectSent(2, 1, 0x83);
 }
@@ -177,7 +177,7 @@ TEST_F(EmoteTest, AnotherActorTakesTheDirectionFromTheHero)
     other->angles.z = 200.0f;
     m_hero->angles.z = 0.0f;
     m_hero->animation.action = 0x20;
-    const auto played = Client::Scenes::PlayTheEmote(*other, EmoteCase{0xc0, 0x94}, Context());
+    const auto played = Client::Actors::PlayTheEmote(*other, EmoteCase{0xc0, 0x94}, Context());
     ASSERT_TRUE(played.HasValue());
     EXPECT_TRUE(played.Value());
     EXPECT_EQ(other->animation.action, 0xc0);
@@ -186,7 +186,7 @@ TEST_F(EmoteTest, AnotherActorTakesTheDirectionFromTheHero)
 
     m_sent.clear();
     other->animation.action = 0x0d;
-    const auto walking = Client::Scenes::PlayTheEmote(*other, EmoteCase{0xad, 0x8d}, Context());
+    const auto walking = Client::Actors::PlayTheEmote(*other, EmoteCase{0xad, 0x8d}, Context());
     ASSERT_TRUE(walking.HasValue());
     EXPECT_FALSE(walking.Value());
     EXPECT_EQ(other->animation.action, 0x0d);
@@ -197,7 +197,7 @@ TEST_F(EmoteTest, AnotherActorTakesTheDirectionFromTheHero)
 TEST_F(EmoteTest, WithoutASenderTheEmoteIsAnError)
 {
     m_hero->animation.action = 1;
-    const auto done = Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83},
+    const auto done = Client::Actors::DoTheEmote(EmoteCase{0x99, 0x83},
                                                  EmoteContext{.hero = *m_hero, .models = m_models, .send = {}});
     ASSERT_FALSE(done.HasValue());
     EXPECT_NE(done.Error().find("0x576b3e"), std::string::npos);
@@ -211,20 +211,20 @@ TEST_F(EmoteTest, TheAnimationUsesTheModelOfTheActorType)
     m_hero->type = TransformedModel;
     m_hero->animation.action = 1;
     m_models.transformed.actions.resize(0x99);
-    ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
+    ASSERT_TRUE(Client::Actors::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
     EXPECT_EQ(m_hero->animation.action, 1);
     ExpectSent(2, 1, 0x83);
 
     m_sent.clear();
     m_models.transformed.actions.resize(0x9a);
-    ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
+    ASSERT_TRUE(Client::Actors::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
     EXPECT_EQ(m_hero->animation.action, 0x99);
     ExpectSent(2, 1, 0x83);
 
     m_sent.clear();
     m_hero->type = 0x31;
     m_hero->animation.action = 1;
-    const auto missing = Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context());
+    const auto missing = Client::Actors::DoTheEmote(EmoteCase{0x99, 0x83}, Context());
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x4ea030"), std::string::npos);
     EXPECT_TRUE(m_sent.empty());

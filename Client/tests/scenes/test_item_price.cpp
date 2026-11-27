@@ -24,10 +24,10 @@
 // fracciones exactas), con registros de Item.bmd inventados y, al final, con el Item.bmd real del repo.
 namespace
 {
+using Client::Kernel::ItemState;
 using Client::Scenes::ItemPrice;
 using Client::Scenes::PetPriceLevels;
 using Client::Scenes::RepairPriceOf;
-using Client::World::ItemState;
 
 constexpr std::int32_t ShopGrid = Client::Scenes::ShopGridPrice;
 constexpr std::int32_t Inventory = Client::Scenes::InventoryPrice;
@@ -134,7 +134,7 @@ ItemState Item(std::uint16_t type, std::uint32_t level = 0, std::uint8_t durabil
     for (const Option& option : options)
     {
         item.optionBytes[index] = option.tag;
-        item.optionBytes[Client::World::ItemOptionValueOffset + index] = option.value;
+        item.optionBytes[Client::Kernel::ItemOptionValueOffset + index] = option.value;
         ++index;
     }
     item.optionCount = static_cast<std::uint8_t>(index);

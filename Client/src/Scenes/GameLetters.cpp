@@ -129,7 +129,7 @@ public:
         : m_texts(OldWindowTextsOf(context.texts)), m_measure(OldWindowMeasureOf(context)),
           m_globals(OldWindowGlobalsOf(context.world.Runtime()))
     {
-        WorldRuntime& runtime = context.world.Runtime();
+        Kernel::WorldRuntime& runtime = context.world.Runtime();
         m_view.texts = &m_texts;
         m_view.measure = m_measure ? &*m_measure : nullptr;
         m_view.heroName = std::string(HeroNameOf(context.world.Hero()));
@@ -283,7 +283,7 @@ Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Messenge
 Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Messenger::LetterRow& row,
                                                  const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     if (row.type < 2)
     {
@@ -511,7 +511,7 @@ Core::Expected<void, std::string> ApplyInviteResult(const Protocol::Messenger::I
 Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Network::Packet& packet,
                                                   const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     namespace Chat = Protocol::Messenger;
     const std::optional<Network::Opcode> opcode = packet.Opcode();

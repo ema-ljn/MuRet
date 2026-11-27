@@ -34,7 +34,7 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, const GameGateCon
 }
 
 // 0x599f41..0x599ffd: no convertir en una lectura de X/Y por paso; cada comparación cierra la suya.
-bool ContainsWithAccesses(const Tables::GateRecord& gate, ActorState& hero, const GameGateContext& context)
+bool ContainsWithAccesses(const Tables::GateRecord& gate, Kernel::ActorState& hero, const GameGateContext& context)
 {
     return ReadCell(hero.cellX, hero.cellXAccesses, context) >= gate.x1 &&
            ReadCell(hero.cellY, hero.cellYAccesses, context) >= gate.y1 &&
@@ -44,23 +44,23 @@ bool ContainsWithAccesses(const Tables::GateRecord& gate, ActorState& hero, cons
 
 std::int32_t ReadWait(const GameGateContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Models::LogicalAccess access(runtime.warpDepth, context.random, Models::SmallLogicalCloseRandoms);
     return runtime.warpCounter;
 }
 
 void WriteWait(std::int32_t value, const GameGateContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Models::LogicalAccess access(runtime.warpDepth, context.random, Models::SmallLogicalCloseRandoms);
     runtime.warpCounter = value;
 }
 
 GameLogic::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
-    const ActorState& hero = context.world.Hero();
-    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ActorState& hero = context.world.Hero();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     const GameLogic::GateCheckState state{.x = hero.cellX,
                                           .y = hero.cellY,
                                           .map = runtime.map,
@@ -96,7 +96,7 @@ bool PassesSilentLevelCheck(std::size_t index, const Tables::GateRecord& gate, c
 Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::GateRecord& gate,
                                            const GameGateContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (index == 0)
     {
         runtime.movement.gateRequestBlocked = 1; // 0x59a477, antes de SendPacket.
@@ -106,7 +106,7 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::Gat
         return Core::Unexpected(std::string("0x599ef0: falta el servicio de envío del pedido de gate"));
     }
     context.requestGate(index);
-    WriteWait(WorldLoadingWait, context); // 0x59ac6c, después de enviar y antes de las macros.
+    WriteWait(Kernel::WorldLoadingWait, context); // 0x59ac6c, después de enviar y antes de las macros.
     const auto destination = Tables::ReadGateRecord(context.gates, gate.target);
     if (!destination)
     {
@@ -129,7 +129,7 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::Gat
 Core::Expected<GameLogic::GateDecision, std::string>
 ApplyEligibleGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x59a172..0x59adc7: sigue abierto durante el envío, contador y resets, y cierra al final.
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     GameLogic::GateDecision decision = DecideGate(index, gate, context);
@@ -176,12 +176,12 @@ void AppendDecision(GameLogic::GateDecision& result, const GameLogic::GateDecisi
 
 Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGateContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hero >= context.world.Actors().size())
     {
         return Core::Unexpected(std::string("0x599ef0: el héroe publicado no está en el pool"));
     }
-    ActorState& hero = context.world.Hero();
+    Kernel::ActorState& hero = context.world.Hero();
     GameLogic::GateDecision result;
     for (std::size_t index = 0; index < Tables::GateCount && index < context.gates.Count(); ++index)
     {

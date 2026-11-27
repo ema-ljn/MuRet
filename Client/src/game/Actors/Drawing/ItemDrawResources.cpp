@@ -20,7 +20,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, const ItemDrawResources& resources)
 {
@@ -28,7 +28,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     special.random = &resources.random;
     special.pulse = &resources.itemRender.specialPulse;
     special.sprites = &resources.sprites;
-    FaunaDrawCarry* carry = &resources.poseCarry;
+    Scenes::FaunaDrawCarry* carry = &resources.poseCarry;
     special.bonePoint = [carry](std::size_t bone) -> Core::Expected<glm::vec3, std::string>
     {
         const auto& bones = carry->bones;
@@ -52,7 +52,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
         // interpretarlo como FaunaObject.
         if (!((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14)))
             return Core::Unexpected(std::string("0x530860: creador del joint de ítem fuera del contrato de dueño"));
-        const auto created = CreateFaunaJoint(joints, request, *random);
+        const auto created = Scenes::CreateFaunaJoint(joints, request, *random);
         return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
     };
     item.createEffect = [effects = &resources.effects](std::uint16_t type, std::int32_t subtype,
@@ -60,7 +60,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     {
         if (type == 0xc2 && subtype == 3)
         {
-            static_cast<void>(CreateFaunaLightning(*effects, object.transform.position));
+            static_cast<void>(Scenes::CreateFaunaLightning(*effects, object.transform.position));
             return {};
         }
         if (subtype != 0 ||
@@ -71,4 +71,4 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
         return {};
     };
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

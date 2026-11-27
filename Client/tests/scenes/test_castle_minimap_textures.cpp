@@ -17,7 +17,7 @@ class CastleMinimapTexturesTest : public Client::Tests::GoldenDataTest
 TEST_F(CastleMinimapTexturesTest, TheMapLoaderUploadsBothOriginalMapImagesAndReleasesThem)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::TerrainTiles tiles(store);
+    Client::Assets::TerrainTiles tiles(store);
     std::vector<std::string> skipped;
     const auto loaded = tiles.Load(m_dataRoot, 30, skipped);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
@@ -32,7 +32,7 @@ TEST_F(CastleMinimapTexturesTest, TheMapLoaderUploadsBothOriginalMapImagesAndRel
     tiles.Release();
     EXPECT_FALSE(store.Find(Client::Render::TextureSlot{0x69d}).has_value());
     EXPECT_FALSE(store.Find(Client::Render::TextureSlot{0x69e}).has_value());
-    EXPECT_TRUE(Client::World::CastleSiegeTextures(29).empty());
-    EXPECT_TRUE(Client::World::CastleSiegeTextures(31).empty());
+    EXPECT_TRUE(Client::Terrain::CastleSiegeTextures(29).empty());
+    EXPECT_TRUE(Client::Terrain::CastleSiegeTextures(31).empty());
 }
 } // namespace

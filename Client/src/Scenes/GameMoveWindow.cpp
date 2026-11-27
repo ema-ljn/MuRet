@@ -111,7 +111,7 @@ struct MoveCheck
 
 // 0x448657..0x448787 y 0x4491df..0x449559: con el registro propio abierto, su zen (+0xecc), su nivel (+0xe) y su
 // clase (+0xb); después de cerrarlo, las comparaciones (el nivel con signo, el zen sin signo).
-MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random,
+MoveCheck CheckTheMove(Kernel::WorldState& world, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random,
                        const Tables::MoveRequirement& move)
 {
     std::uint32_t money = 0;
@@ -119,7 +119,7 @@ MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::Crt
     MoveCheck check{.level = move.level, .levelOk = false, .zenOk = false, .allowed = false};
     {
         const Models::LogicalAccess own(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        const OwnCharacterRecord& record = world.OwnCharacter();
+        const Kernel::OwnCharacterRecord& record = world.OwnCharacter();
         money = record.zen;
         level = record.level;
         const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(record.characterClass);
@@ -127,7 +127,7 @@ MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::Crt
         if (characterClass == FirstScaledClass || characterClass == SecondScaledClass)
             check.level = static_cast<std::int32_t>(static_cast<double>(move.level) * static_cast<double>(LevelFactor));
     }
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     check.levelOk = level >= check.level;
     check.zenOk = money >= move.zen;
     check.allowed = check.levelOk && check.zenOk && hero.pk < OutlawPk;
@@ -141,7 +141,7 @@ std::string DecimalOf(std::int32_t value)
 }
 
 // 0x448ef8..0x448f0e y 0x448f70..0x448f81: la ventana cerrada, el botón y el flanco apagados.
-void CloseTheWindow(WorldRuntime& runtime)
+void CloseTheWindow(Kernel::WorldRuntime& runtime)
 {
     runtime.panels.overlayMode = 0;
     runtime.movement.leftHeld = false;
@@ -160,8 +160,8 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
 
 Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const MoveColumns columns = ColumnsOf(context.screen.width);
     const std::int32_t row = RowOf(context.screen);
     const std::int32_t rowHeight = row + 2;
@@ -205,9 +205,9 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
 Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::HudState& hud = context.hud;
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const Core::PixelSize screen = sprites.Screen();
     auto title = TextOf(context.texts, TitleText, "0x449142");
     if (!title.HasValue())

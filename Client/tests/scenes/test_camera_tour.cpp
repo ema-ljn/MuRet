@@ -51,7 +51,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::CameraTour;
 using Client::Scenes::CameraTourContext;
 
@@ -136,11 +136,11 @@ struct Tour
 
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
@@ -360,7 +360,7 @@ TEST(CameraTourTest, TheScriptActorsTurnThenWalkToTheirCell)
         tour.turning[2] = true;
         ActorState walked = facing;
         walked.baseMovementSpeed = 0xc;
-        ASSERT_TRUE(Client::Scenes::UpdateActorPosition(
+        ASSERT_TRUE(Client::Actors::UpdateActorPosition(
                         walked, {tested->world.Runtime(), tested->cloth.random, [](float, float) { return 0.0; }})
                         .HasValue());
         const auto before = tested->cloth.random.State();
@@ -427,7 +427,7 @@ protected:
     [[nodiscard]] std::unique_ptr<Tour> Load(std::int32_t map) const
     {
         auto tour = std::make_unique<Tour>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(map));
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(map));
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())
             tour->world.Map().terrain = std::move(loaded).Value();

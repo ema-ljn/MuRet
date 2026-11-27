@@ -16,6 +16,11 @@
 // original. Se comparan tamaños, nunca píxeles.
 namespace
 {
+using Client::Assets::LoadingTextureSet;
+using Client::Assets::LoginTextureSet;
+using Client::Assets::SelectionTextureSet;
+using Client::Assets::WindowTextureSet;
+using Client::Assets::WorldLoadingTextureSet;
 using Client::Data::Textures::LoadedTexture;
 using Client::Data::Textures::LoadTextureSet;
 using Client::Data::Textures::PixelFormat;
@@ -23,11 +28,6 @@ using Client::Data::Textures::TextureLoader;
 using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::TextureSide;
-using Client::Scenes::LoadingTextureSet;
-using Client::Scenes::LoginTextureSet;
-using Client::Scenes::SelectionTextureSet;
-using Client::Scenes::WindowTextureSet;
-using Client::Scenes::WorldLoadingTextureSet;
 
 using GoldenTextureSet = Client::Tests::GoldenDataTest;
 

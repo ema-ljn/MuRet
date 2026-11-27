@@ -82,7 +82,7 @@ TEST(FaunaEffectsTest, ARealLightningStepPublishesItsLightParticleSpriteAndShare
     ASSERT_TRUE(Client::Scenes::CreateFaunaLightning(effects, {1000, 1000, 300}));
     Client::World::Particles particles;
     Client::World::FrameSprites sprites;
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::Models::ClothWorld cloth;
     const auto result =
         Client::Scenes::StepFaunaLightning(effects.Effects()[0], 0, nullptr, particles, sprites, *lighting, cloth);
@@ -114,7 +114,7 @@ TEST(FaunaEffectsTest, AFullParticlePoolAndAnOpenCounterKeepTheirNativeRandomSki
     for (auto& particle : particles.All())
         particle.alive = true;
     Client::World::FrameSprites sprites;
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::Models::ClothWorld cloth;
     cloth.openCounterAccesses = 1;
     ASSERT_TRUE(

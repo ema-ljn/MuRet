@@ -20,7 +20,7 @@
 // Lo que 0x61a560 lee de un mundo para el terreno (CL7.1): el mapeo, los atributos y las alturas de
 // World<N>\ (EncTerrain<N>.map y .att, TerrainHeight.OZB), la luz sombreada (TerrainLighting) y la
 // tabla de sus tiles. Contrato: 06 § Terreno y § El terreno del login.
-namespace Client::World
+namespace Client::Terrain
 {
 struct WorldTerrain
 {
@@ -130,4 +130,4 @@ struct WorldTileTexture
 // El slot 0x122 que pide una capa 2 de 255 (Q-C19): Interface\accept_box01.jpg, que el original sube
 // en la carga (0x61ae60) y queda para siempre; MuRet lo sube con el mundo.
 [[nodiscard]] WorldTileTexture AcceptBoxTexture();
-} // namespace Client::World
+} // namespace Client::Terrain

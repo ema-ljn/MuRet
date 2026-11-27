@@ -290,7 +290,7 @@ struct FallingStar
     }
 
     Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
-                                                   Client::Scenes::WorldState* world = nullptr)
+                                                   Client::Kernel::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
@@ -501,7 +501,7 @@ struct Falling
     }
 
     Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
-                                                   Client::Scenes::WorldState* world = nullptr)
+                                                   Client::Kernel::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
@@ -519,7 +519,7 @@ struct Falling
     CrtRandom random{Seed};
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Scenes::ActorState target{};
+    Client::Kernel::ActorState target{};
     glm::vec3 start{1500.0f, 1600.0f, 1220.0f};
     glm::vec3 angles{0.0f, 0.0f, 135.0f};
     double ground = 20.0;
@@ -734,7 +734,7 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
     for (const std::int32_t subtype : {0, 1})
     {
         SCOPED_TRACE(subtype);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         world->PlaceModel(Client::Tables::PlayerShadowModel, {.scale = 2.0f, .origin = origin, .action = 0});
         Falling owned;
         owned.ground = 5000.0;
@@ -779,7 +779,7 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
             EXPECT_EQ(shell.light, replica.light);
         }
         EXPECT_FALSE(owned.effects->Effects()[shells].alive);
-        const Client::Scenes::ActorPickingBox box = Client::Scenes::PickingBoxOf(owned.target);
+        const Client::Actors::ActorPickingBox box = Client::Actors::PickingBoxOf(owned.target);
         EXPECT_EQ(box.origin, (glm::vec3{40.0f, 150.0f, 300.0f}));
         EXPECT_EQ(box.axisX, (glm::vec3{120.0f, 0.0f, 0.0f}));
         EXPECT_EQ(box.axisY, (glm::vec3{0.0f, 120.0f, 0.0f}));
@@ -827,7 +827,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(::testing::Message() << probe.angles.x << ", " << probe.angles.y << ", " << probe.angles.z);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         world->PlaceModel(Client::Tables::PlayerShadowModel,
                           {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}, .action = 0});
         Falling owned;

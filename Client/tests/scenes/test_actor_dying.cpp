@@ -16,14 +16,14 @@
 
 #include <gtest/gtest.h>
 
-// Client::Scenes::StepActorDying: 0x4fb9e0, el paso del que se muere (+0x389), con 0x4fb2b0 y 0x51fd20. 06 § Morirse.
+// Client::Actors::StepActorDying: 0x4fb9e0, el paso del que se muere (+0x389), con 0x4fb2b0 y 0x51fd20. 06 § Morirse.
 namespace
 {
+using Client::Actors::ActorDyingContext;
+using Client::Actors::StepActorDying;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorDyingContext;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::SceneId;
-using Client::Scenes::StepActorDying;
 
 constexpr std::uint32_t Seed = 0x13579bdu;
 constexpr std::size_t Slot = 3;

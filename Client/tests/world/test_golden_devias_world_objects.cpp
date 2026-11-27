@@ -163,7 +163,7 @@ TEST_F(GoldenDeviasWorldObjects, EveryListEqualsTheOriginalsMemory)
     ASSERT_TRUE(captured.has_value());
     EXPECT_EQ(captured->foreign, (std::vector<ForeignNode>{{176, 0, 0x201}, {177, 0, 0x202}}));
 
-    const auto records = Client::World::LoadWorldObjects(m_dataRoot, Devias);
+    const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, Devias);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), DeviasRecords);
     Client::World::WorldObjectRegistrations registrations;

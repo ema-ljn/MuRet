@@ -30,10 +30,10 @@
 // aparte.
 namespace
 {
-using Client::Scenes::OwnCharacterRecord;
+using Client::Kernel::ItemState;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Tables::FirstItemModel;
 using Client::Tables::ItemModel;
-using Client::World::ItemState;
 
 constexpr std::string_view ItemFile = "Local\\Item.bmd";
 constexpr std::string_view ItemSetTypeFile = "Local\\ItemSetType.bmd";
@@ -118,7 +118,7 @@ TEST_F(GoldenOwnDerivedStats, TheKindIsByte44OfTheRealItemBmd)
          {Case{0, 0, 1}, Case{4, 0, 2}, Case{5, 0, 3}, Case{6, 0, 4}, Case{12, 0, 0}, Case{13, 30, 0}})
     {
         SCOPED_TRACE(TypeOf(item.group, item.index));
-        const auto bonus = Client::Scenes::ItemStatBonusOf(Worn(TypeOf(item.group, item.index), 2), items->table);
+        const auto bonus = Client::Player::ItemStatBonusOf(Worn(TypeOf(item.group, item.index), 2), items->table);
         ASSERT_TRUE(bonus.HasValue());
         EXPECT_EQ(bonus.Value().kind, item.kind);
         EXPECT_EQ(bonus.Value().value, 2);
@@ -143,7 +143,7 @@ TEST_F(GoldenOwnDerivedStats, TheBonusesOfARealEquipment)
     own.equipment[7] = Worn(TypeOf(12, 0), 3);
     own.equipment[9] = Worn(TypeOf(13, 12), 1);
 
-    ASSERT_TRUE(Client::Scenes::AddOwnItemStatBonuses(own, &items->table).HasValue());
+    ASSERT_TRUE(Client::Player::AddOwnItemStatBonuses(own, &items->table).HasValue());
 
     EXPECT_EQ(own.word2a, 0);
     EXPECT_EQ(own.word2c, 10);
@@ -178,13 +178,13 @@ TEST_F(GoldenOwnDerivedStats, TheRealHyperionSetUntil0x550990)
         {
             own.equipment[slot].flags1c = static_cast<std::uint8_t>(own.equipment[slot].flags1c | 1u);
         }
-        Client::Scenes::ItemSetState itemSets;
-        Client::Scenes::ActorState hero;
+        Client::Player::ItemSetState itemSets;
+        Client::Kernel::ActorState hero;
         hero.characterClass = heroClass;
         std::uint8_t accesses = 1;
         Client::Crt::CrtRandom random(9);
 
-        const auto recalculated = Client::Scenes::RecalculateOwnStats(own, {.itemSetTables = &*sets,
+        const auto recalculated = Client::Player::RecalculateOwnStats(own, {.itemSetTables = &*sets,
                                                                             .itemSets = &itemSets,
                                                                             .items = &items->table,
                                                                             .publishedHero = hero,

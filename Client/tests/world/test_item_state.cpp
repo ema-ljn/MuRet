@@ -17,8 +17,8 @@
 
 namespace
 {
-using Client::World::InitializeItemState;
-using Client::World::ItemState;
+using Client::Kernel::InitializeItemState;
+using Client::Kernel::ItemState;
 using Metadata = std::array<std::byte, Client::Tables::ItemRecordSize>;
 
 void Initialize(ItemState& item, const Metadata& metadata, std::uint32_t b1 = 0, std::uint32_t b3 = 0,
@@ -699,7 +699,7 @@ TEST(ItemStateTest, ReadsTheContextWordLateIncludingWhenItAliasesTheDestinationW
 // que 0x5bc740 tiene que saber antes de llamar a 0x54bf40 con el registro propio cerrado (Q-C202).
 TEST(ItemStateTest, OnlyTheLateWeaponFamilyWithBit10ReadsTheContextWord)
 {
-    using Client::World::ReadsTheContextWord;
+    using Client::Kernel::ReadsTheContextWord;
     for (const std::uint16_t id : std::initializer_list<std::uint16_t>{0x000, 0xbff, 0x1a0c, 0x1a0d, 0x1a19, 0x1a1c})
     {
         SCOPED_TRACE(id);

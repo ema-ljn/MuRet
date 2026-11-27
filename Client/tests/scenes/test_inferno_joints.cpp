@@ -67,7 +67,7 @@ struct Pool
     glm::vec3 angles{0.0f, 0.0f, 135.0f};
     float worldClock = 1234.5f;
     std::unique_ptr<Client::World::ModelEffects> effects;
-    const Client::Scenes::ActorState* hero = nullptr;
+    const Client::Kernel::ActorState* hero = nullptr;
 };
 
 std::vector<Client::World::Sprite> LiveSprites(Client::World::FrameSprites& sprites)
@@ -236,7 +236,7 @@ TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
 // héroe, nace igual: el /6 no lo mira (0x519a5c, solo por debajo de 2).
 TEST(InfernoJointsTest, TheInfernoDropsItsBurstEveryFiveSteps)
 {
-    const Client::Scenes::ActorState hero{};
+    const Client::Kernel::ActorState hero{};
     for (const std::int32_t life : {15, 14, 10})
     {
         SCOPED_TRACE(life);

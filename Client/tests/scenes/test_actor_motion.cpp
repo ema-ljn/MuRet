@@ -27,23 +27,23 @@ namespace
 class ActorMotionTest : public ::testing::Test
 {
 protected:
-    void Step(Client::Scenes::ActorState& actor)
+    void Step(Client::Kernel::ActorState& actor)
     {
-        const Client::Scenes::ActorWalkContext walk{
+        const Client::Actors::ActorWalkContext walk{
             {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
-        auto result = Client::Scenes::StepOtherActorMotion(
+        auto result = Client::Actors::StepOtherActorMotion(
             actor, walk, {m_runtime, m_random, [](float, float) { return 7.0; }}, m_walls->cells);
         ASSERT_TRUE(result.HasValue()) << (result.HasValue() ? "" : result.Error());
     }
-    Client::Scenes::WorldRuntime m_runtime = []
+    Client::Kernel::WorldRuntime m_runtime = []
     {
-        Client::Scenes::WorldRuntime value{};
+        Client::Kernel::WorldRuntime value{};
         value.map = 0;
         return value;
     }();
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Crt::CrtRandom m_random{1};
-    Client::Scenes::PlayerActionSpeeds m_speeds;
+    Client::Actors::PlayerActionSpeeds m_speeds;
     std::unique_ptr<Client::Pathfinding::TerrainWalls> m_walls = std::make_unique<Client::Pathfinding::TerrainWalls>();
 };
 
@@ -59,7 +59,7 @@ TEST_F(ActorMotionTest, BeginningStoresCellAheadAndLeavesTheAuthoritativeTarget)
     actor.path.cells[0] = {10, 20};
     actor.path.cells[1] = {11, 20};
     actor.path.cells[2] = {12, 20};
-    EXPECT_FALSE(Client::Scenes::MoveActorPath(actor, 1, m_random));
+    EXPECT_FALSE(Client::Actors::MoveActorPath(actor, 1, m_random));
     EXPECT_EQ(actor.cellX, 11);
     EXPECT_EQ(actor.cellY, 20);
     EXPECT_EQ(actor.targetX, 12);
@@ -67,7 +67,7 @@ TEST_F(ActorMotionTest, BeginningStoresCellAheadAndLeavesTheAuthoritativeTarget)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(1, 8).State());
     actor.cellXAccesses = 1;
     actor.cellYAccesses = 1;
-    EXPECT_FALSE(Client::Scenes::MoveActorPath(actor, 1, m_random));
+    EXPECT_FALSE(Client::Actors::MoveActorPath(actor, 1, m_random));
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(1, 8).State());
 }
 
@@ -79,7 +79,7 @@ TEST_F(ActorMotionTest, PositionUsesSharedSpeedAndTheFloatingHeight)
     actor.angles.z = 90.0f;
     actor.pet.model = 0x1c15;
     m_runtime.map = 8;
-    auto moved = Client::Scenes::UpdateActorPosition(actor, {m_runtime, m_random, [](float, float) { return 7.0; }});
+    auto moved = Client::Actors::UpdateActorPosition(actor, {m_runtime, m_random, [](float, float) { return 7.0; }});
     ASSERT_TRUE(moved.HasValue());
     EXPECT_FLOAT_EQ(actor.position.x, 1065.0f);
     EXPECT_FLOAT_EQ(actor.position.z, 97.0f);
@@ -165,7 +165,7 @@ TEST_F(ActorMotionTest, MissingHeightRetainsTheSpeedAndPositionPrefix)
     actor.pet.model = 0x1c16;
     actor.position = {100.0f, 200.0f, 3.0f};
     actor.angles.z = 90.0f;
-    const auto moved = Client::Scenes::UpdateActorPosition(actor, {m_runtime, m_random, {}});
+    const auto moved = Client::Actors::UpdateActorPosition(actor, {m_runtime, m_random, {}});
     EXPECT_FALSE(moved.HasValue());
     EXPECT_FLOAT_EQ(actor.position.x, 117.0f);
     EXPECT_FLOAT_EQ(actor.position.y, 200.0f);
@@ -185,19 +185,19 @@ TEST_F(ActorMotionTest, SixStraightCellsUseTwelveUnitsUntilTheFinalSnap)
     {
         actor.path.cells[cell] = {static_cast<std::uint8_t>(10 + cell), 20};
     }
-    const Client::Scenes::ActorWalkContext walk{
+    const Client::Actors::ActorWalkContext walk{
         {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true};
     bool arrived = false;
     int steps = 0;
     while (!arrived && steps < 100)
     {
         ++steps;
-        ASSERT_TRUE(Client::Scenes::SetActorWalk(actor, walk).HasValue());
-        arrived = Client::Scenes::MoveActorPath(actor, 1, m_random);
+        ASSERT_TRUE(Client::Actors::SetActorWalk(actor, walk).HasValue());
+        arrived = Client::Actors::MoveActorPath(actor, 1, m_random);
         if (!arrived)
         {
             ASSERT_TRUE(
-                Client::Scenes::UpdateActorPosition(actor, {m_runtime, m_random, [](float, float) { return 7.0; }})
+                Client::Actors::UpdateActorPosition(actor, {m_runtime, m_random, [](float, float) { return 7.0; }})
                     .HasValue());
         }
     }
@@ -232,17 +232,17 @@ TEST_F(ActorMotionTest, ATransformedActorStopsWithItsOwnSkeletonAtArrival)
     for (auto& action : transformed.actions)
         action.keyCount = 10;
     const std::array<std::int16_t, 10> sounds{};
-    const Client::Scenes::ActorWalkContext walk{
+    const Client::Actors::ActorWalkContext walk{
         {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random},
         m_speeds,
         false,
         &transformed,
         sounds};
-    Client::Scenes::ActorMotionContext motion{m_runtime, m_random, [](float, float) { return 0.0; }};
+    Client::Actors::ActorMotionContext motion{m_runtime, m_random, [](float, float) { return 0.0; }};
 
     for (int frame = 0; frame < 60 && actor.movement != 0; ++frame)
     {
-        const auto stepped = Client::Scenes::StepOtherActorMotion(actor, walk, motion, m_walls->cells);
+        const auto stepped = Client::Actors::StepOtherActorMotion(actor, walk, motion, m_walls->cells);
         ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
     }
 
@@ -257,13 +257,13 @@ TEST_F(ActorMotionTest, AnIdleTransformedActorReadsYAndXAndPreservesTheTwoCloseR
     actor.movement = 0;
     actor.cellX = actor.targetX = 10;
     actor.cellY = actor.targetY = 20;
-    const Client::Scenes::ActorWalkContext walk{
+    const Client::Actors::ActorWalkContext walk{
         {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
     Client::Crt::CrtRandom expected = m_random;
     for (int access = 0; access < 2 * Client::Models::SmallLogicalCloseRandoms; ++access)
         static_cast<void>(expected.Next());
 
-    const auto stepped = Client::Scenes::StepOtherActorMotion(actor, walk, {m_runtime, m_random, {}}, m_walls->cells);
+    const auto stepped = Client::Actors::StepOtherActorMotion(actor, walk, {m_runtime, m_random, {}}, m_walls->cells);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.movement, 0);

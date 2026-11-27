@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace Client::World
+namespace Client::Terrain
 {
 struct TerrainPickingSegment;
 struct TerrainPickingState;
@@ -33,4 +33,4 @@ struct TerrainView;
 PickTerrainTarget(TerrainPickingState& state, TerrainPickingTarget& target, const TerrainView& view,
                   const TerrainRange& range, const TerrainPolygon& polygon, const TerrainPickingSegment& segment,
                   bool forceVisible = false);
-} // namespace Client::World
+} // namespace Client::Terrain

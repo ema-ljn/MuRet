@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-// Client::World::ShadeTerrainLight y LightAt, con alturas y luces armadas a mano: la sombra de una
+// Client::Terrain::ShadeTerrainLight y LightAt, con alturas y luces armadas a mano: la sombra de una
 // celda sale de las alturas de sus vecinas (0x5f8b10 y 0x5f8d90), y la luz en un punto, de las cuatro
 // celdas de alrededor (0x5f99e0).
 namespace
@@ -29,13 +29,13 @@ using Client::Data::Terrain::TerrainHeights;
 using Client::Data::Terrain::TerrainLight;
 using Client::Data::Terrain::TerrainLightColor;
 using Client::Data::Terrain::TerrainSide;
-using Client::World::AddTerrainLight;
-using Client::World::BrightShadingMap;
-using Client::World::CopyTerrainLightWindow;
-using Client::World::LightAt;
-using Client::World::LoadTerrainLighting;
-using Client::World::ShadeTerrainLight;
-using Client::World::TerrainLighting;
+using Client::Terrain::AddTerrainLight;
+using Client::Terrain::BrightShadingMap;
+using Client::Terrain::CopyTerrainLightWindow;
+using Client::Terrain::LightAt;
+using Client::Terrain::LoadTerrainLighting;
+using Client::Terrain::ShadeTerrainLight;
+using Client::Terrain::TerrainLighting;
 
 constexpr std::uint8_t Lorencia = 0;
 constexpr TerrainLightColor Base{0.8f, 0.6f, 0.4f};

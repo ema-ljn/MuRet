@@ -46,11 +46,16 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-namespace Client::World
+namespace Client::Camera
 {
 struct GameCamera;
 struct GameCameraInput;
-} // namespace Client::World
+} // namespace Client::Camera
+
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
 
 // La respuesta del F3 03, 0x4c3940 con el paquete cifrado: la carga del mapa, el héroe y lo que
 // sigue. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo" (la tabla
@@ -59,22 +64,21 @@ namespace Client::Scenes
 {
 class IWorldEntryPublisher;
 class SelectionState;
-class WorldState;
 
 // Lo que la entrada usa y dura toda la sesión. main lo arma una vez; los tests, con lo suyo.
 struct WorldEntryResources
 {
     // El pool, el registro propio, los globales y el mapa cargado.
-    WorldState& world;
+    Kernel::WorldState& world;
     // Quien presta el terreno vigente a la cámara: después de la carga, el del mapa nuevo.
     SelectionState& selection;
     std::filesystem::path dataRoot;
     // El rand() de la CRT y el contador de pasos (0x7d3a0f0) con su cuenta de accesos.
     Models::ClothWorld& cloth;
     // La altura fija (0x6c9d5c) para 0x5f93c0; la selección también la mueve.
-    World::GameCamera& camera;
+    Camera::GameCamera& camera;
     // El mundo en curso, el héroe publicado y el atributo de su celda, como los lee la cámara.
-    World::GameCameraInput& cameraInput;
+    Camera::GameCameraInput& cameraInput;
     // Player.bmd (SkeletonOf(0x20a)), que 0x4f2250 necesita para elegir la acción.
     const Models::IModelLibrary& models;
     // Item.bmd, para la matriz de armas de 0x4f2250 y para 0x550d10; nullptr si no se cargó.

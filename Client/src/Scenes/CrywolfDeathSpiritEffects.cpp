@@ -52,7 +52,7 @@ CreateCrywolfDeathSpirit(const World::ModelEffectArguments& args, World::ModelEf
     }
     else if (args.subtype == 1)
     {
-        const auto* owner = static_cast<const ActorState*>(args.owner);
+        const auto* owner = static_cast<const Kernel::ActorState*>(args.owner);
         if (owner == nullptr)
             return Core::Unexpected(std::string("0x51c9af: falta el dueño del eco147/1"));
         e.life = owner->dword60;
@@ -85,7 +85,7 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
     }
     if (e.subtype != 0 || e.ownerContext == nullptr)
         return {};
-    const auto* owner = static_cast<const ActorState*>(e.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(e.ownerContext);
     glm::vec3 target;
     for (int axis = 0; axis < 3; ++axis)
         target[axis] = F32(static_cast<double>(owner->position[axis]) + e.start[axis]);

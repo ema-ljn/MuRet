@@ -32,15 +32,15 @@ constexpr std::uint16_t Raven = 0x1c17;
 constexpr std::uint16_t HeightOffsetPet = 0x1c15;
 constexpr float CharacterOwnLight = 0.3f;
 
-void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appearance)
+void PutAppearance(Kernel::ActorState& actor, const Kernel::CharacterAppearance& appearance)
 {
     actor.characterClass = appearance.characterClass;
     actor.skin = appearance.skin;
     actor.scale = appearance.scale;
-    actor.head = appearance.head.value_or(NoItemModel);
+    actor.head = appearance.head.value_or(Kernel::NoItemModel);
     // 0x512a30 escribe el modelo, el nivel y los bytes +3 y +4: el hueso y la animación de lo que cuelga
     // quedan como estaban.
-    const auto put = [](ActorItemPart& part, const GameLogic::WornItem& item)
+    const auto put = [](Kernel::ActorItemPart& part, const Kernel::WornItem& item)
     {
         part.model = item.model;
         part.level = item.level;
@@ -57,7 +57,7 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
     }
     else
     {
-        actor.hands[0].model = NoItemModel;
+        actor.hands[0].model = Kernel::NoItemModel;
     }
     if (appearance.leftHand)
     {
@@ -65,41 +65,41 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
     }
     else
     {
-        actor.hands[1].model = NoItemModel;
+        actor.hands[1].model = Kernel::NoItemModel;
     }
-    actor.wings.model = appearance.wings.value_or(NoItemModel);
-    actor.pet.model = appearance.pet.value_or(NoItemModel);
+    actor.wings.model = appearance.wings.value_or(Kernel::NoItemModel);
+    actor.pet.model = appearance.pet.value_or(Kernel::NoItemModel);
     actor.previousHad1c15 = actor.pet.model == HeightOffsetPet;
 }
 
-Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorState& actor,
+Core::Expected<void, std::string> EquipSelectionActor(Kernel::WorldState& world, Kernel::ActorState& actor,
                                                       const Protocol::FrontEnd::CharacterEntry& entry,
                                                       Models::ClothWorld& cloth,
-                                                      const ActorConstructionContext& construction)
+                                                      const Actors::ActorConstructionContext& construction)
 {
-    const auto appearance = GameLogic::AppearanceOf(actor.characterClass, 0, entry.equipment);
-    actor.hands[0].model = appearance.rightHand ? appearance.rightHand->model : NoItemModel;
-    actor.hands[1].model = appearance.leftHand ? appearance.leftHand->model : NoItemModel;
+    const auto appearance = Kernel::AppearanceOf(actor.characterClass, 0, entry.equipment);
+    actor.hands[0].model = appearance.rightHand ? appearance.rightHand->model : Kernel::NoItemModel;
+    actor.hands[1].model = appearance.leftHand ? appearance.leftHand->model : Kernel::NoItemModel;
     if (actor.hands[1].model == Raven && (construction.map < 18 || construction.map > 23))
     {
         constexpr float CellCentre = 50.0f;
         const double height =
-            HeightSkippedIn(construction.scene)
+            Actors::HeightSkippedIn(construction.scene)
                 ? 0.0
-                : World::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes, CellCentre,
-                                         CellCentre, construction.fixedHeight);
+                : Terrain::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes, CellCentre,
+                                           CellCentre, construction.fixedHeight);
         actor.darkSpirit = CreateDarkSpirit(
             actor.cellX, actor.cellY, height, cloth.random,
             {.cellX = actor.cellXAccesses, .cellY = actor.cellYAccesses, .counter = cloth.openCounterAccesses});
     }
-    actor.wings.model = appearance.wings.value_or(NoItemModel);
+    actor.wings.model = appearance.wings.value_or(Kernel::NoItemModel);
     if (!appearance.wings)
     {
         actor.wings.flags1b = 0;
         actor.wings.flags1c = 0;
     }
     TurnOffHelpersOf(world.Helpers(), entry.slot);
-    if (auto pets = CreateCharacterSetPets(world, entry.slot, entry.equipment, cloth.random); !pets.HasValue())
+    if (auto pets = Actors::CreateCharacterSetPets(world, entry.slot, entry.equipment, cloth.random); !pets.HasValue())
     {
         return pets;
     }
@@ -109,18 +109,19 @@ Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorSt
 }
 } // namespace
 
-Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
+Core::Expected<void, std::string> ConstructSelectionActor(Kernel::WorldState& world,
                                                           const Protocol::FrontEnd::CharacterEntry& entry,
-                                                          const ActorConstructionContext& construction,
+                                                          const Actors::ActorConstructionContext& construction,
                                                           Models::ClothWorld& cloth, const Models::Skeleton& skeleton)
 {
-    if (entry.slot >= SelectionActorCount)
+    if (entry.slot >= Kernel::SelectionActorCount)
     {
         return Core::Unexpected(std::string("slot de selección fuera del pool"));
     }
-    ActorState& actor = world.Actors()[entry.slot];
+    Kernel::ActorState& actor = world.Actors()[entry.slot];
     const CharacterSlot& place = CharacterSlots[entry.slot];
-    const auto built = ConstructActor(actor, Tables::PlayerSkeletonModel, {.angle = place.angle}, construction, cloth);
+    const auto built =
+        Actors::ConstructActor(actor, Tables::PlayerSkeletonModel, {.angle = place.angle}, construction, cloth);
     if (!built.HasValue())
     {
         return built;
@@ -132,19 +133,19 @@ Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
     actor.flags78 = 0;
     actor.flags7c = 0;
     const auto characterClass = Protocol::FrontEnd::CharacterClassOf(entry.classByte);
-    PutAppearance(actor, GameLogic::ClassAppearance(characterClass, 0));
+    PutAppearance(actor, Kernel::ClassAppearance(characterClass, 0));
     // 0x51736f, antes de 0x5139f0: las partes de la clase base, aun para una segunda clase.
     constexpr std::uint8_t ClassMask = 7;
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
-        actor.body[part].model = GameLogic::ClassPartModel(static_cast<GameLogic::BodyPart>(part),
-                                                           static_cast<std::uint8_t>(characterClass & ClassMask));
+        actor.body[part].model = Kernel::ClassPartModel(static_cast<Kernel::BodyPart>(part),
+                                                        static_cast<std::uint8_t>(characterClass & ClassMask));
     }
-    actor.head = GameLogic::HeadUnder(actor.body[0].model, characterClass).value_or(NoItemModel);
-    auto stopped = SetActorStop(actor, {.runtime = world.Runtime(),
-                                        .scene = SceneId::CharacterSelect,
-                                        .playerSkeleton = skeleton,
-                                        .random = cloth.random});
+    actor.head = Kernel::HeadUnder(actor.body[0].model, characterClass).value_or(Kernel::NoItemModel);
+    auto stopped = Actors::SetActorStop(actor, {.runtime = world.Runtime(),
+                                                .scene = SceneId::CharacterSelect,
+                                                .playerSkeleton = skeleton,
+                                                .random = cloth.random});
     if (!stopped.HasValue())
     {
         return Core::Unexpected(stopped.Error());

@@ -63,8 +63,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::EmptyOwnItemId;
-using Client::World::ItemState;
+using Client::Kernel::EmptyOwnItemId;
+using Client::Kernel::ItemState;
 
 constexpr std::uint32_t Seed = 0x5a0e;
 // Un bastón de 1 × 3, una poción de 1 × 1 y uno que no se comercia (0x1c17), de 1 × 1.
@@ -206,7 +206,7 @@ public:
 // El mundo del juego, en el heap.
 struct ShopWorld
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0xff}, {UntradableType, 1, 1, 0xff}});
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable(ShopTexts());
@@ -218,9 +218,9 @@ protected:
     void SetUp() override
     {
         shop = std::make_unique<ShopWorld>();
-        Client::Scenes::WorldState& world = shop->world;
+        Client::Kernel::WorldState& world = shop->world;
         Client::Scenes::ClearSelectionInventory(world, random);
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = GetParam();
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
@@ -249,7 +249,7 @@ protected:
         services.sendGamePacket = [this](Client::Protocol::Outgoing packet) { sent.push_back(PlainOf(packet)); };
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return shop->world.Runtime();
     }
@@ -259,12 +259,12 @@ protected:
         return Runtime().social.personalShop;
     }
 
-    std::array<ItemState, Client::Scenes::SecondGridCellCount>& ShopCells()
+    std::array<ItemState, Client::Kernel::SecondGridCellCount>& ShopCells()
     {
         return shop->world.Inventory().secondCells;
     }
 
-    std::array<ItemState, Client::Scenes::InventoryCellCount>& InventoryCells()
+    std::array<ItemState, Client::Kernel::InventoryCellCount>& InventoryCells()
     {
         return shop->world.Inventory().cells;
     }
@@ -685,7 +685,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     EXPECT_EQ(Runtime().ui.shopGridHovered, 0);
     EXPECT_EQ(Runtime().cursorItemCount, 1);
     EXPECT_EQ(Runtime().cursorItem.id, StaffType);
-    EXPECT_EQ(Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::Inventory);
     EXPECT_EQ(Runtime().slot78a6758, 12 + static_cast<std::int32_t>(StaffCell));
     for (const std::size_t cell : {StaffCell, StaffCell + 8, StaffCell + 16})
         EXPECT_EQ(InventoryCells()[cell].id, EmptyOwnItemId);
@@ -700,7 +700,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     stepped = Step(potionX, potionY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().cursorItem.id, PotionType);
-    EXPECT_EQ(Runtime().cursorGrid, Client::Scenes::CursorGrid::PersonalShop);
+    EXPECT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::PersonalShop);
     EXPECT_EQ(Runtime().slot78a6758, 0x4c + static_cast<std::int32_t>(PotionCell));
     EXPECT_EQ(ShopCells()[PotionCell].id, EmptyOwnItemId);
     EXPECT_TRUE(sent.empty());
@@ -791,7 +791,7 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
     EXPECT_EQ(Runtime().social.moneyField, 1);
     EXPECT_EQ(Runtime().dialogItem.id, PotionType);
     EXPECT_EQ(Runtime().slot78a6758, 0x4c + static_cast<std::int32_t>(PotionCell));
-    EXPECT_EQ(Runtime().cursorGrid, Client::Scenes::CursorGrid::PersonalShop);
+    EXPECT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::PersonalShop);
     EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::ShopCell);
     EXPECT_EQ(ShopCells()[PotionCell].id, PotionType);
 
@@ -803,7 +803,7 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().dialogItem.id, StaffType);
     EXPECT_EQ(Runtime().slot78a6758, 0x4c + static_cast<std::int32_t>(StaffCell));
-    EXPECT_EQ(Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::Inventory);
     EXPECT_EQ(InventoryCells()[StaffCell].id, StaffType);
     EXPECT_TRUE(sent.empty());
 }
@@ -939,7 +939,7 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
     const std::int32_t potionY = CenterOf(ShopGridTop, 0);
     auto stepped = Step(potionX, potionY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    ASSERT_EQ(Runtime().cursorGrid, Client::Scenes::CursorGrid::PersonalShop);
+    ASSERT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::PersonalShop);
 
     // Al mismo lugar.
     stepped = Step(potionX, potionY, true);
@@ -1099,8 +1099,8 @@ TEST(ConfirmBoxTest, TheTextIsCutIntoRows)
 // diálogo que esperaba; con otro id, 0x623750 no hace nada y la caja queda.
 TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::WorldRuntime& runtime = world->Runtime();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::WorldRuntime& runtime = world->Runtime();
     CrtRandom random{Seed};
     Client::Input::InputState input;
     std::vector<Sent> sent;

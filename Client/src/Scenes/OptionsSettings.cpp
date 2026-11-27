@@ -5,7 +5,7 @@
 
 namespace Client::Scenes
 {
-UI::OptionsSettings OptionsSettingsOf(const WorldRuntime& runtime)
+UI::OptionsSettings OptionsSettingsOf(const Kernel::WorldRuntime& runtime)
 {
     return UI::OptionsSettings{.autoAttack = runtime.ui.autoAttack,
                                .noticeSound = runtime.chat.noticeSound,
@@ -14,7 +14,7 @@ UI::OptionsSettings OptionsSettingsOf(const WorldRuntime& runtime)
                                .glowDetail = runtime.ui.glowDetail};
 }
 
-void ApplyOption(WorldRuntime& runtime, const UI::OptionsEvent& event)
+void ApplyOption(Kernel::WorldRuntime& runtime, const UI::OptionsEvent& event)
 {
     UI::OptionsSettings settings = OptionsSettingsOf(runtime);
     UI::ApplyOption(settings, event);

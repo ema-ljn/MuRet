@@ -48,7 +48,7 @@ constexpr float TerrainLightShare = 0.1f;
 constexpr std::uint8_t LoginClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkLord);
 constexpr std::uint8_t PartLevel = 7;
 constexpr std::uint8_t WeaponLevel = 13;
-constexpr std::array<std::uint16_t, GameLogic::BodyPartCount> SetParts{0x102e, 0x122e, 0x142e, 0x162e, 0x182e};
+constexpr std::array<std::uint16_t, Kernel::BodyPartCount> SetParts{0x102e, 0x122e, 0x142e, 0x162e, 0x182e};
 constexpr std::uint16_t Mace = 0x620;
 constexpr std::uint16_t Cape = 0x1c30;
 constexpr std::uint16_t DarkHorse = 0x1c16;
@@ -134,16 +134,16 @@ glm::vec3 UnlitObjectColor(const glm::vec3& terrainLight, const glm::vec3& objec
     return (terrainLight * TerrainLightShare) + objectLight;
 }
 
-GameLogic::CharacterAppearance LoginCharacter()
+Kernel::CharacterAppearance LoginCharacter()
 {
-    GameLogic::CharacterAppearance character;
+    Kernel::CharacterAppearance character;
     character.characterClass = LoginClass;
-    for (std::size_t part = 0; part < GameLogic::BodyPartCount; ++part)
+    for (std::size_t part = 0; part < Kernel::BodyPartCount; ++part)
     {
-        character.bodyParts[part] = GameLogic::WornItem{.model = SetParts[part], .level = PartLevel};
+        character.bodyParts[part] = Kernel::WornItem{.model = SetParts[part], .level = PartLevel};
     }
-    character.rightHand = GameLogic::WornItem{.model = Mace, .level = WeaponLevel};
-    character.leftHand = GameLogic::WornItem{.model = LoginRavenItem};
+    character.rightHand = Kernel::WornItem{.model = Mace, .level = WeaponLevel};
+    character.leftHand = Kernel::WornItem{.model = LoginRavenItem};
     character.wings = Cape;
     character.pet = DarkHorse;
     return character;

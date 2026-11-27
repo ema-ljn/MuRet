@@ -10,17 +10,21 @@ namespace Client::Render::Frame
 {
 class ITextDrawer;
 } // namespace Client::Render::Frame
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct HudState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // 0x554180(x, y, texto, 0, 0, …): el texto en (x, y) de 640 × 480 si no está vacío (0x465950 con el modo 1), y su
 // tamaño, aun vacío, pasado a 640 × 480 (Render::Text::DesignX y DesignY) en hud.arrowsTextWidth y arrowsTextHeight.
-void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y,
+void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                  std::string_view line);
 
 // 0x623690(x, y, texto): GetTextExtentPointA con la fuente del DC y 0x554180 en x − (cx · 640 / W) / 2
 // (Render::Text::CenteredAt).
-void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y,
+void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                      std::string_view line);
 } // namespace Client::Scenes

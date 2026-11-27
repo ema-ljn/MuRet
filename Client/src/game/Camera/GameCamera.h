@@ -10,7 +10,7 @@
 
 // 06 § La cámara del juego: 0x635ae0 por frame dibujado, con el héroe del último paso. Con el recorrido CCameraMove
 // de 0x6e57a8 andando (el BD 00, Scenes::CameraTour), la cámara mira su posición (0x635ead) y toma su +0x150 de nivel.
-namespace Client::World
+namespace Client::Camera
 {
 // 0x635ec0: con el recorrido andando, la z del héroe ([0x743a170] + 0x18) en 300 antes de la altura de la cámara. La
 // escribe la escena, dueña del héroe, y la cámara la usa para la altura.
@@ -42,7 +42,7 @@ struct GameCameraInput
     // Byte bajo del atributo de la celda del servidor del héroe (+0x41c/+0x420), Q-C173.
     std::uint8_t cellAttribute = 0;
     std::uint8_t map = 0;
-    CullingScene scene = CullingScene::Game;
+    Terrain::CullingScene scene = Terrain::CullingScene::Game;
     float shake = 0.0f;     // 0x7d325c8, ya reducido por los pasos lógicos.
     float worldTime = 0.0f; // 0x5767b88, en milisegundos, para el balanceo del mapa 5.
     bool webzen = false;    // El nombre contiene "webzen" (0x576960).
@@ -70,4 +70,4 @@ struct GameCameraInput
 // Usa el héroe del último paso lógico con la D, el zoom y el far del último frame original,
 // sin avanzar el estado. Antes del primer frame usa la D y el far iniciales.
 [[nodiscard]] Render::Camera3D GameCameraOf(const GameCamera& state, const GameCameraInput& input);
-} // namespace Client::World
+} // namespace Client::Camera

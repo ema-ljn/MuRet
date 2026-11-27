@@ -17,25 +17,29 @@ namespace Client::World
 class Particles;
 }
 
-// CL9 hito 3, fase 2a: el paso del que se muere (+0x389 distinto de 0), 0x4fb9e0(c, o, b), que el cuerpo de los
-// personajes (0x4fd5f0) llama en 0x4fd722. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Morirse".
-// *Estático*.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
 class WorldState;
+} // namespace Client::Kernel
+
+// CL9 hito 3, fase 2a: el paso del que se muere (+0x389 distinto de 0), 0x4fb9e0(c, o, b), que el cuerpo de los
+// personajes (0x4fd5f0) llama en 0x4fd722. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Morirse".
+// *Estático*.
+namespace Client::Actors
+{
 
 struct ActorDyingContext
 {
     std::int32_t map = 0;
     // DAT_006d5dc8: las burbujas del mapa 7 son solo de la escena 5.
-    SceneId scene = SceneId::Game;
+    Scenes::SceneId scene = Scenes::SceneId::Game;
     // c == [0x743a170]: el héroe se hunde pero no se borra.
     bool hero = false;
     Crt::CrtRandom& random;
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
-    WorldState* world = nullptr;
+    Kernel::WorldState* world = nullptr;
     std::function<void(std::int32_t)> soundRequest{};
 };
 
@@ -47,14 +51,14 @@ struct ActorDyingContext
 // del paso 15, 0x51fd20. Las burbujas 0x607 del mapa 7 en la escena 5 (cuatro, con tres rand() cada una). En Chaos
 // Castle completa 0x51fe10; la skill 0x28, hasta el paso 30, suelta diez 0x5ac/5 (dos rand() cada una: hueso y
 // escala).
-[[nodiscard]] Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t slot,
+[[nodiscard]] Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std::size_t slot,
                                                                const ActorDyingContext& context);
 
 // 0x4fb2b0(c, o): el vuelo del que muere en un castillo: (0, +0xd0, 0) girado por +0x1a4 (0x5fc8f0 y 0x5fcbd0) desde
 // +0x1b0, +0xd0 más +0xcc, +0xe4 más +0xd8, +0xd8 menos +0xd4, el ángulo X menos 5 y la Z en +0x1b8 + +0xe4.
-void FlyFromTheCastle(ActorState& actor);
+void FlyFromTheCastle(Kernel::ActorState& actor);
 
 // 0x51fd20(o, o + 0x28): la posición más (+0xcc, +0xd0, +0xd4) girado por los ángulos de +0x28 (los de la cabeza y
 // +0x30).
-void FlyFromThePush(ActorState& actor);
-} // namespace Client::Scenes
+void FlyFromThePush(Kernel::ActorState& actor);
+} // namespace Client::Actors

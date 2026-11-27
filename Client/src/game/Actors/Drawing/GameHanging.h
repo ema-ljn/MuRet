@@ -33,17 +33,25 @@ namespace Client::Models
 class IModelLibrary;
 }
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
+struct FaunaDrawCarry;
+struct GuildState;
+} // namespace Client::Scenes
+
 // Lo que cuelga de un jugador en el dibujo del juego (0x50ba30, de 0x50db57 a 0x50e9fa): el arma a la
 // espalda, la capa de los GM, las alas, Helper02 y el lazo de las manos, cada cosa salvo la capa con 0x509340 (posada
 // sobre el buffer global de la pose, dibujada con 0x60b3d0 y con los sprites de su modelo). Lo que pide un efecto o un
 // joint que MuRet no tiene corta con su dirección. Contrato: 06 § El dibujo del juego, "Lo que cuelga en
 // el juego".
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
-struct ActorState;
-struct FaunaDrawCarry;
 struct ItemDrawContext;
-struct GuildState;
 
 struct GameHangingPass
 {
@@ -55,12 +63,12 @@ struct GameHangingPass
     Crt::CrtRandom& random;
     // El buffer global de la pose (0x68b181c) y la tabla de sprites del frame (0x5491e0). Hacen falta
     // solo si algo cuelga.
-    FaunaDrawCarry* carry = nullptr;
+    Scenes::FaunaDrawCarry* carry = nullptr;
     World::FrameSprites* sprites = nullptr;
     // Los joints de 0x530860 y las partículas de 0x53fe70 del frame. Hacen falta solo si algo los crea: el
     // 0x617 de la acción 0x8c (0x50a110), el 0x618/0x11 de 0xc1e, el 0x610/4 de 0x223 y el 0x614/10 de 0x224.
     // Los 0x610/4 y 0x618/0x11 guardan el personaje que cuelga como dueño (+0x54): un ActorState.
-    std::span<JointState> joints{};
+    std::span<Scenes::JointState> joints{};
     World::Particles* particles = nullptr;
     // Los globales de 0x60b3d0 que presta el dueño del frame (sin él, los de un ItemDrawContext vacío).
     const ItemDrawContext* itemContext = nullptr;
@@ -76,7 +84,7 @@ struct GameHangingPass
     // En un frame del original avanza la animación de lo que cuelga; entre frames, la dibuja como quedó.
     bool originalFrame = true;
     // 414820 lee los nombres de gremio/alianza sólo para un maestro de rol6/7/8/12.
-    const GuildState* guild = nullptr;
+    const Scenes::GuildState* guild = nullptr;
     // +0x6c..+0x74 del modelo del tipo ([ebp−0x14] de 0x50ba30, 0x50ba7f): la posición que 0x6001b0 le copió al
     // jugador antes del suelo de la sombra de Blood Castle (0x50bcaf), y en un monstruo la del último 0x5ffdf0 o la del
     // 0x60cf70 de su sombra (0x50beb6, ya en el suelo de 0x50be4d; sin él, el 0x18e, el 0x18f y del 0xa8 al 0xac quedan
@@ -94,7 +102,7 @@ struct GameHangingPass
 // tiene que tener la luz de lo que cuelga (0x50db94). Con un monstruo o un NPC (0x50dcc2 salta a 0x50e060), solo el
 // rand(), la espalda (que corta lo que sigue) y las manos, sin el efecto de +0x78 & 0x800, que es del 0x20a; `body`
 // son sus huesos propios.
-[[nodiscard]] Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> DrawGameHanging(Kernel::ActorState& actor, const GameHangingPass& pass);
 
 // 0x509340 desde lo que 0x50ba30 agrega por el +0x376 de un monstruo (0x50c79a, 0x50c803 y 0x50c8b8): el modelo del
 // lugar de las alas (+0x2f8), que quien llama ya armó (el modelo, el hueso, las dos acciones y la velocidad), sin
@@ -104,7 +112,8 @@ struct GameHangingPass
 // cuelga. Con el 0xef, su origen y su giro (0x5096ac). Saca los rand() de 0x509340 (los de 0x607b60, el cierre de
 // +0x38e y los de los sprites del modelo), no el de 0x50db57; `pass.body` son los huesos propios del personaje. Entre
 // frames del original no avanza la animación de lo que cuelga.
-[[nodiscard]] Core::Expected<void, std::string> HangFromTheWingsSlot(ActorState& actor, const GameHangingPass& pass,
+[[nodiscard]] Core::Expected<void, std::string> HangFromTheWingsSlot(Kernel::ActorState& actor,
+                                                                     const GameHangingPass& pass,
                                                                      const glm::vec3& offset, bool placed,
                                                                      float bodyScale);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

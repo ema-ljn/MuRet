@@ -39,7 +39,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using World::ItemState;
+using Kernel::ItemState;
 
 // 0x54b3a0: d[0] + 2 · (((d[5] & 0xf0) << 4) + (d[3] & 0x80)).
 constexpr std::uint32_t TypeHighBitMask = 0x80;
@@ -136,7 +136,7 @@ void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources
 // el valor; sin ella, la agrega al final. El valor, con el registro propio abierto (0x40b240/0x40ad90 y 0x40b440,
 // y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
 // signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
-void AddTheDarkHorseOption(ItemState& item, const WorldState& world, std::uint8_t& ownRecordDepth,
+void AddTheDarkHorseOption(ItemState& item, const Kernel::WorldState& world, std::uint8_t& ownRecordDepth,
                            Crt::CrtRandom& random)
 {
     const std::uint8_t index = DarkHorseOptionPlace(item);
@@ -146,8 +146,8 @@ void AddTheDarkHorseOption(ItemState& item, const WorldState& world, std::uint8_
         // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
         static_cast<void>(item.OptionTag(index));
         const std::uint32_t agility = world.OwnCharacter().agility;
-        const auto level = static_cast<std::uint8_t>(world.Runtime().pets[DarkHorsePetStats].level);
-        item.optionBytes[World::ItemOptionValueOffset + index] =
+        const auto level = static_cast<std::uint8_t>(world.Runtime().pets[Kernel::DarkHorsePetStats].level);
+        item.optionBytes[Kernel::ItemOptionValueOffset + index] =
             static_cast<std::uint8_t>((agility / AgilityDivisor) + (HorseLevelFactor * level) + DarkHorseOptionBase);
     }
     item.optionBytes[index] = DarkHorseOption;
@@ -162,7 +162,7 @@ namespace
 // 0x54bf40(item, B1, B3, B4) desde 0x5bc740. contextWord es [0x7681eb0] + 0xe, el nivel del registro
 // propio, que solo vale con el registro abierto: cerrado, el último cierre dejó rand() & 0xff en cada byte
 // (Q-C125), y MuRet no lo tiene (Q-C202).
-Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, World::ItemInitializationScalars scalars,
+Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, Kernel::ItemInitializationScalars scalars,
                                                           const WorldEntryResources& resources, std::string_view where)
 {
     const auto record = ItemRecordOf(item.id, resources, std::format("{}, 0x54bf40", where));
@@ -170,15 +170,15 @@ Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, World
     {
         return Core::Unexpected(record.Error());
     }
-    const WorldRuntime& runtime = resources.world.Runtime();
-    if (World::ReadsTheContextWord(item.id, scalars.b3) && runtime.ownRecordDepth == 0)
+    const Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    if (Kernel::ReadsTheContextWord(item.id, scalars.b3) && runtime.ownRecordDepth == 0)
     {
         return Core::Unexpected(std::format("{}: 0x54bf40 lee el nivel de [0x7681eb0] + 0xe (0x54cd97) con el registro "
                                             "propio cerrado, lo que dejó su último cierre (Q-C202): no corre 0x54bf40",
                                             where));
     }
-    World::InitializeItemState(item, record.Value(), scalars, resources.world.OwnCharacter().level,
-                               [&resources](ItemState& horse) { AddTheDarkHorseOption(horse, resources); });
+    Kernel::InitializeItemState(item, record.Value(), scalars, resources.world.OwnCharacter().level,
+                                [&resources](ItemState& horse) { AddTheDarkHorseOption(horse, resources); });
     return {};
 }
 
@@ -221,9 +221,9 @@ std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
 Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item,
                                                    const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    const WorldRuntime& runtime = world.Runtime();
-    ActorState& hero = world.Hero();
+    Kernel::WorldState& world = resources.world;
+    const Kernel::WorldRuntime& runtime = world.Runtime();
+    Kernel::ActorState& hero = world.Hero();
     const std::int32_t map = runtime.map;
     const std::uint16_t type = item.id;
     if (slot == PetSlot && !IsChaosCastle(map))
@@ -269,7 +269,7 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
                       (slot == FirstRingSlot && (hero.byte360 < FirstRingLayer || hero.byte360 > LastRingLayer));
     if (ring && type == WizardsRing && (item.scalar1Low & LevelBitsMask) == LevelThreeBits)
     {
-        ReleaseTheLayer(hero);
+        Kernel::ReleaseTheLayer(hero);
         hero.byte360 = WizardsRingLayer;
     }
     return {};
@@ -277,24 +277,24 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
 
 // 0x5bc77f..0x5bcc0c: un lugar del equipo, con el registro abierto en línea durante todo el camino y el
 // cierre en línea de 0x5bcaae (el lazo de 0x40b4d0, con su rand() en 0x5bcbd5).
-Core::Expected<ActorStopResult, std::string>
+Core::Expected<Actors::ActorStopResult, std::string>
 PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     ItemState& item = world.OwnCharacter().equipment[slot];
     WriteEquipmentFields(item, type, bytes);
     // 0x5bc866..0x5bc86b: B1 y B4 con los 24 bits de arriba de [0x7681eb4], que 0x54bf40 no lee, y B3 con
     // los de lugar · 9, que con el lugar de 0 a 11 son 0.
-    const World::ItemInitializationScalars scalars{
+    const Kernel::ItemInitializationScalars scalars{
         .b1 = Byte(bytes, 1), .b3 = ((slot * 9u) & UpperBits) | Byte(bytes, 3), .b4 = Byte(bytes, 4)};
     if (auto initialized = InitializeInventoryItem(item, scalars, resources, "0x5bc740 (0x5bc87a)");
         !initialized.HasValue())
     {
         return Core::Unexpected(initialized.Error());
     }
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     const Models::Skeleton* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
     const bool isPlayer = hero.type == Tables::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
@@ -304,22 +304,22 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, hero.type);
-    const ActorEquipmentContext equipment{
+    const Actors::ActorEquipmentContext equipment{
         .own = world.OwnCharacter(),
         .ownRecordAccesses = runtime.ownRecordDepth,
         .publishedHero = hero,
         .fullSetScan = runtime.fullSetScan,
-        .stop = ActorStopContext{.runtime = runtime,
-                                 .scene = SceneId::Game,
-                                 .playerSkeleton = *playerSkeleton,
-                                 .items = resources.items,
-                                 .random = resources.cloth.random,
-                                 .actorSkeleton = actorSkeleton,
-                                 .modelSounds = world.FaunaResources().SoundActions(hero.type)},
+        .stop = Actors::ActorStopContext{.runtime = runtime,
+                                         .scene = SceneId::Game,
+                                         .playerSkeleton = *playerSkeleton,
+                                         .items = resources.items,
+                                         .random = resources.cloth.random,
+                                         .actorSkeleton = actorSkeleton,
+                                         .modelSounds = world.FaunaResources().SoundActions(hero.type)},
         .itemSetTables = resources.itemSetTables,
         .itemSets = &world.ItemSets(),
-        .held = HeldItemOf(runtime)};
-    const auto dressed = ApplyActorEquipment(hero, equipment);
+        .held = Player::HeldItemOf(runtime)};
+    const auto dressed = Actors::ApplyActorEquipment(hero, equipment);
     if (!dressed.HasValue())
     {
         return Core::Unexpected(dressed.Error());
@@ -343,8 +343,8 @@ enum class GridScalars : std::uint8_t
     Generic,
 };
 
-World::ItemInitializationScalars ScalarsOf(GridScalars kind, std::int32_t rowBase, std::int32_t cell,
-                                           std::uint16_t type, InventoryItemBytes bytes)
+Kernel::ItemInitializationScalars ScalarsOf(GridScalars kind, std::int32_t rowBase, std::int32_t cell,
+                                            std::uint16_t type, InventoryItemBytes bytes)
 {
     const std::uint32_t typeUpper = type & UpperBits;
     switch (kind)
@@ -378,7 +378,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
     }
     const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
     const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
-    constexpr auto FixedColumns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto FixedColumns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     const auto column = static_cast<std::uint8_t>(origin % FixedColumns);
     const auto row = static_cast<std::uint8_t>(origin / FixedColumns);
     for (std::int32_t y = 0; y < height; ++y)
@@ -402,7 +402,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
             item.id = type;
             item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
             item.occupied = y == 0 && x == 0 ? 1u : 0u;
-            const World::ItemInitializationScalars scalars = ScalarsOf(kind, rowBase, cell, type, bytes);
+            const Kernel::ItemInitializationScalars scalars = ScalarsOf(kind, rowBase, cell, type, bytes);
             if (auto initialized = InitializeInventoryItem(item, scalars, resources, where); !initialized.HasValue())
             {
                 return initialized;
@@ -417,21 +417,21 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
 // con 0x40b4d0 (0x5bcf8f). 0x54fe10 lee el ítem del cursor con sus globales (HeldItemOf).
 Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (runtime.slot78a6758 >= static_cast<std::int32_t>(FirstInventoryGridSlot))
     {
         return {};
     }
     const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
-    OwnCharacterRecord& own = resources.world.OwnCharacter();
+    Kernel::OwnCharacterRecord& own = resources.world.OwnCharacter();
     for (const std::uint16_t* word : {&own.word3e, &own.word42})
     {
         if (*word == 0)
         {
             continue;
         }
-        if (auto updated =
-                UpdateOwnAttackAndMagicSpeeds(own, HeldItemOf(runtime), runtime.ownRecordDepth, resources.cloth.random);
+        if (auto updated = Player::UpdateOwnAttackAndMagicSpeeds(own, Player::HeldItemOf(runtime),
+                                                                 runtime.ownRecordDepth, resources.cloth.random);
             !updated.HasValue())
         {
             return updated;
@@ -479,7 +479,7 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
             // 0x5bd376..0x5bd3c5: B1 y B3 con los 24 bits de arriba de casilla · 9 (lo que queda en EAX del índice,
             // 0x5bd378), y B4 con los del tipo (0x5bd384).
             const auto upper = static_cast<std::uint32_t>(cell * 9) & UpperBits;
-            const World::ItemInitializationScalars scalars{
+            const Kernel::ItemInitializationScalars scalars{
                 .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};
             if (auto initialized = InitializeInventoryItem(item, scalars, resources, where); !initialized.HasValue())
                 return initialized;
@@ -517,12 +517,12 @@ InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const
 {
     if (slot < FirstInventoryGridSlot)
         return std::optional<std::string>{};
-    const OwnInventory& inventory = resources.world.Inventory();
+    const Kernel::OwnInventory& inventory = resources.world.Inventory();
     const bool first = slot < FirstSecondGridSlot;
     const std::size_t cells = first ? inventory.cells.size() : inventory.secondCells.size();
     const std::int32_t origin = first ? slot - FirstInventoryGridSlot : slot - FirstSecondGridSlot;
     const std::string_view grid = first ? "0x78a9bb0" : "0x78ab0b8";
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     auto past =
         FirstCellPastTheGrid(cells, Columns, origin, bytes, resources, std::format("0x5bc740, la grilla de {}", grid));
     if (!past.HasValue())
@@ -541,21 +541,21 @@ std::uint16_t InventoryItemType(InventoryItemBytes bytes)
     return static_cast<std::uint16_t>(Byte(bytes, 0) | highBit | highNibble);
 }
 
-Core::Expected<ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes,
-                                                                const WorldEntryResources& resources)
+Core::Expected<Actors::ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes,
+                                                                        const WorldEntryResources& resources)
 {
     const std::uint16_t type = InventoryItemType(bytes);
     if (type == NoInventoryItem)
     {
-        return ActorStopResult{};
+        return Actors::ActorStopResult{};
     }
     if (slot < FirstInventoryGridSlot)
     {
         return PlaceInEquipment(slot, type, bytes, resources);
     }
-    OwnInventory& inventory = resources.world.Inventory();
+    Kernel::OwnInventory& inventory = resources.world.Inventory();
     const bool first = slot < FirstSecondGridSlot;
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
     const auto placed =
         first ? PlaceInGrid(inventory.cells, Columns, slot - FirstInventoryGridSlot, type, bytes,
                             GridScalars::Inventory, resources, "0x5bc740, la grilla de 0x78a9bb0 (0x5bcc11)")
@@ -569,17 +569,17 @@ Core::Expected<ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slo
     {
         return Core::Unexpected(speeds.Error());
     }
-    return ActorStopResult{};
+    return Actors::ActorStopResult{};
 }
 
-Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<World::ItemState> cells, std::uint8_t slot,
+Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<Kernel::ItemState> cells, std::uint8_t slot,
                                                     InventoryItemBytes bytes, const WorldEntryResources& resources)
 {
     const std::uint16_t type = InventoryItemType(bytes);
     if (type == NoInventoryItem)
         return {};
-    return PlaceInGrid(cells, static_cast<std::int32_t>(InventoryColumns), slot, type, bytes, GridScalars::NpcGrid,
-                       resources, "0x5bc150, la grilla de 0x78a7070");
+    return PlaceInGrid(cells, static_cast<std::int32_t>(Kernel::InventoryColumns), slot, type, bytes,
+                       GridScalars::NpcGrid, resources, "0x5bc150, la grilla de 0x78a7070");
 }
 bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
                          const WorldEntryResources& resources, std::string_view where)

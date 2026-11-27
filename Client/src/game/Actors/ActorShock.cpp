@@ -19,7 +19,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -29,16 +29,16 @@ constexpr std::uint16_t DarkHorse = 0x1c16;
 constexpr std::uint16_t Fenrir = 0x1c37;
 constexpr std::uint8_t PlayerShockAction = 0xc2;
 constexpr std::uint8_t MonsterShockAction = 5;
-bool IgnoresShock(const ActorState& actor, std::uint16_t damage)
+bool IgnoresShock(const Kernel::ActorState& actor, std::uint16_t damage)
 {
     const auto action = actor.animation.action;
     return damage == 0 || actor.dying != 0 || actor.pet.model == Uniria || actor.pet.model == Dinorant ||
            actor.pet.model == DarkHorse || action == 0x3e || action == 0x3f || action == 0x44;
 }
-std::uint8_t FenrirAction(const ActorState& actor)
+std::uint8_t FenrirAction(const Kernel::ActorState& actor)
 {
-    const bool right = actor.hands[0].model != NoItemModel;
-    const bool left = actor.hands[1].model != NoItemModel;
+    const bool right = actor.hands[0].model != Kernel::NoItemModel;
+    const bool left = actor.hands[1].model != Kernel::NoItemModel;
     if (right && left)
         return 0x67;
     if (right)
@@ -47,7 +47,7 @@ std::uint8_t FenrirAction(const ActorState& actor)
         return 0x69;
     return 0x66;
 }
-void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resources)
+void PlayerHitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     auto& random = resources.cloth.random;
     const auto requestSound = [&actor, &resources](std::int32_t id)
@@ -65,7 +65,7 @@ void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resource
     }
     requestSound(0x69 + random.Next() % 3);
 }
-void HitSound(const ActorState& actor, const WorldEntryResources& resources)
+void HitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     // 0x4f5496 mira C3: unordered también entra en el sonido.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
@@ -95,7 +95,8 @@ void HitSound(const ActorState& actor, const WorldEntryResources& resources)
         requestSound(*drawn);
 }
 // 0x4f55bb..0x4f5649: cinco intentos, aun con el pool lleno, y el sonido después de todos ellos.
-Core::Expected<void, std::string> CreateShockDust(const ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> CreateShockDust(const Kernel::ActorState& actor,
+                                                  const Scenes::WorldEntryResources& resources)
 {
     constexpr int Attempts = 5;
     constexpr int GateSpan = 2;
@@ -123,13 +124,13 @@ Core::Expected<void, std::string> CreateShockDust(const ActorState& actor, const
     return {};
 }
 } // namespace
-std::uint8_t FenrirHitActionOf(const ActorState& actor)
+std::uint8_t FenrirHitActionOf(const Kernel::ActorState& actor)
 {
     return FenrirAction(actor);
 }
 
-Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t damage,
-                                                const WorldEntryResources& resources)
+Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::uint16_t damage,
+                                                const Scenes::WorldEntryResources& resources)
 {
     if (IgnoresShock(actor, damage))
         return {};
@@ -139,7 +140,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
         // Player.bmd); un modelo que no está es el registro sin acciones y no pone nada.
         if (actor.animation.action < 3 || actor.animation.action > 4)
         {
-            if (auto set = SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
+            if (auto set = Scenes::SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
                 return set;
         }
     }
@@ -160,4 +161,4 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
         return CreateShockDust(actor, resources);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

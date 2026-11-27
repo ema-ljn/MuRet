@@ -16,7 +16,7 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 using TailPoseObserver = std::function<Core::Expected<void, std::string>(const DrawnObject&)>;
@@ -26,4 +26,4 @@ using TailMeshProvider = std::function<std::span<const Models::SkinnedMesh>()>;
 [[nodiscard]] Core::Expected<void, std::string>
 DrawPublishedObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                     Core::Duration frameClock, const TailMeshProvider& posedMeshes);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

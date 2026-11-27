@@ -51,11 +51,11 @@
 // 480, con textos inventados y el mundo en Lorencia (0) y en Devias (2).
 namespace
 {
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t Lorencia = 0;
@@ -120,7 +120,7 @@ public:
 
     Client::Core::Expected<void, std::string> Draw(bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         GameHudContext context{.world = world,
                                .random = random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -261,7 +261,7 @@ TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
     for (const std::int32_t map : {Lorencia, Devias})
     {
         DrawingDialogs tested(map);
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         runtime.dialogs.current = Client::UI::OptionsDialog;
         runtime.ui.autoAttack = true;
         runtime.chat.noticeSound = false;
@@ -302,7 +302,7 @@ TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
 TEST(GameDialogDrawingTest, AnIntermediateDrawDoesNotMoveTheVolumeBar)
 {
     DrawingDialogs tested(Devias);
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     runtime.dialogs.current = Client::UI::OptionsDialog;
     ASSERT_TRUE(tested.Draw(true).HasValue());
     EXPECT_EQ(runtime.ui.volumeBarX, 0);
@@ -316,7 +316,7 @@ TEST(GameDialogDrawingTest, TheMessageBoxDrawsItsFrameButtonAndRows)
     for (const std::int32_t map : {Lorencia, Devias})
     {
         DrawingDialogs tested(map);
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         Client::UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs,
                                    "una caja con un texto bastante largo para dos renglones");
         runtime.dialogBox.buttons[0].state = 2;
@@ -345,7 +345,7 @@ TEST(GameDialogDrawingTest, TheMessageBoxDrawsItsFrameButtonAndRows)
 TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
 {
     DrawingDialogs tested(Lorencia);
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     runtime.dialogs.current = Client::UI::PagedDialog;
     runtime.dialogBox.page = 0;
     runtime.dialogBox.lastPage = 2;
@@ -379,7 +379,7 @@ TEST(GameDialogDrawingTest, TheEventBoxesDrawTheTextOfTheEventObject)
     {
         SCOPED_TRACE(map);
         DrawingDialogs tested(map);
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         runtime.dialogs.current = 0x97;
         ASSERT_TRUE(tested.Draw().HasValue());
         EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
@@ -400,7 +400,7 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
     for (const std::int32_t map : {Lorencia, Devias})
     {
         DrawingDialogs tested(map);
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         runtime.dialogs.current = Client::UI::DisconnectDialog;
         tested.mouse = {0x11c, 0x76};
 
@@ -509,7 +509,7 @@ TEST(GameDialogDrawingTest, TheGuildCreationNoticesDrawLikeTheGenericOk)
     {
         SCOPED_TRACE(map);
         DrawingDialogs tested(map);
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         for (const auto& [id, rows] :
              std::to_array<std::pair<std::int32_t, std::vector<std::string>>>({{0x72, {"nombre", "no permitido"}},
                                                                                {0x79, {"nombre corto"}},
@@ -549,12 +549,12 @@ TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x77;
-        Client::Scenes::ActorState& dead = tested->world.Actors()[3];
+        Client::Kernel::ActorState& dead = tested->world.Actors()[3];
         dead.key = 0x8456;
         Name(dead.name, "Zorzal");
-        Client::Scenes::ActorState& inviter = tested->world.Actors()[7];
+        Client::Kernel::ActorState& inviter = tested->world.Actors()[7];
         inviter.alive = true;
         inviter.key = 0x8456;
         Name(inviter.name, "Brezal");
@@ -601,7 +601,7 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x78;
         Name(runtime.social.trade.otherName, "Brezal");
         tested->mouse = {0x193, 0x62};
@@ -632,7 +632,7 @@ TEST(GameDialogDrawingTest, TheWarRequestNamesTheRivalAndAsksByWarType)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x7f;
         runtime.guild.rival = {'T', 'e', 'r', 'o', 's', '\0', 'x', 'x', '\0'};
         tested->mouse = {0xea, 0x62};
@@ -680,7 +680,7 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x7d;
         runtime.ui.focusedList = -3;
         Client::UI::ChatInputState& input = runtime.chat.input;
@@ -761,7 +761,7 @@ TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
     {
         SCOPED_TRACE(dialog);
         auto tested = std::make_unique<DrawingDialogs>(Lorencia);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = dialog;
         Client::UI::ChatInputState& input = runtime.chat.input;
         Client::UI::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
@@ -796,7 +796,7 @@ TEST(GameDialogDrawingTest, TheConfirmBoxDrawsItsTwoButtonsAndItsRows)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x9c;
         runtime.social.confirmBox = {.id = 1000, .type = 2, .lines = {"abrir la tienda con", "estos precios"}};
         constexpr int Height = 2 * (12 + 2);
@@ -840,7 +840,7 @@ TEST(GameDialogDrawingTest, TheConfirmBoxLightsTheButtonUnderTheMouse)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x9c;
         runtime.social.confirmBox = {.id = 1000, .type = 2, .lines = {"una"}};
         constexpr int Height = 12 + 2;
@@ -868,7 +868,7 @@ TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x9c;
         runtime.social.confirmBox = {.id = 7, .type = 1, .lines = {"una"}};
         constexpr int Height = 12 + 2;
@@ -921,7 +921,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
         {
             SCOPED_TRACE(mark);
             auto tested = std::make_unique<DrawingDialogs>(map);
-            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x73;
             runtime.social.trade.field78abacc = mark;
             Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
@@ -972,7 +972,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
 TEST(GameDialogDrawingTest, TheProjectingPassLeavesTheDialogEdit)
 {
     auto tested = std::make_unique<DrawingDialogs>(Lorencia);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = 0x73;
     Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
     edit.base.state = Client::UI::HiddenWindow;
@@ -998,7 +998,7 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
         {
             SCOPED_TRACE(mode);
             auto tested = std::make_unique<DrawingDialogs>(map);
-            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x91;
             runtime.social.personalShop.dialogMode = mode;
             Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
@@ -1072,7 +1072,7 @@ TEST(GameDialogDrawingTest, TheShopDialogLightsTheButtonUnderTheMouse)
               std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0xff, 0xa0}, 0xf2, 0xf3}})
         {
             auto tested = std::make_unique<DrawingDialogs>(map);
-            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x91;
             runtime.chat.input.dialogEdit.base.state = Client::UI::ShownWindow;
             tested->mouse = mouse;
@@ -1110,7 +1110,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
     constexpr Color Yellow{1.0f, 1.0f, 0.0f, 1.0f};
     constexpr Color Red{1.0f, 0.0f, 0.0f, 1.0f};
     const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     Client::Tables::DialogTable table(Client::Tables::DialogCount);
     std::ranges::copy(std::string_view("hola viajero"), table[3].text.begin());
     table[3].answerCount = 2;
@@ -1149,7 +1149,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
 TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
 {
     const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = Client::UI::AnswersDialog;
     runtime.dialogBox.lineCount = 7;
     runtime.dialogBox.answerCount = 3;
@@ -1219,7 +1219,7 @@ void SetRows(Client::UI::DialogBoxState& box, std::initializer_list<std::string_
 }
 
 // Un diálogo de sí y no como lo deja 0x633300 y su paso (0x6282dc): el sí con el mouse encima (2) y el no afuera (3).
-void OpenYesNo(Client::Scenes::WorldRuntime& runtime, std::int32_t id)
+void OpenYesNo(Client::Kernel::WorldRuntime& runtime, std::int32_t id)
 {
     runtime.dialogs.current = id;
     runtime.dialogBox.buttons[0] = {.state = 2, .x = 0x15, .y = 0x5a, .width = 0x46, .height = 0x15};
@@ -1285,7 +1285,7 @@ TEST(GameDialogDrawingTest, TheYesNoDialogsDrawTheirFrameAndButtons)
 TEST(GameDialogDrawingTest, TheYesNoButtonsGoFromOneToFour)
 {
     const auto tested = std::make_unique<DrawingDialogs>(Noria);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     OpenYesNo(runtime, 0x98);
     runtime.dialogBox.buttons[0].state = 5;
     runtime.dialogBox.buttons[1].state = 4;
@@ -1309,7 +1309,7 @@ TEST(GameDialogDrawingTest, TheYesNoRowsAreBoldAndOrange)
     {
         SCOPED_TRACE(map);
         const auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         OpenYesNo(runtime, 0x94);
         SetRows(runtime.dialogBox, {"una pregunta", "larga"});
 
@@ -1389,7 +1389,7 @@ TEST(GameDialogDrawingTest, TheCursorChoiceMovesAndPaintsTheYesNoRows)
             SCOPED_TRACE(testing::Message()
                          << "mapa " << map << ", diálogo " << expected.id << ", elección " << expected.choice);
             const auto tested = std::make_unique<DrawingDialogs>(map);
-            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             OpenYesNo(runtime, expected.id);
             runtime.social.trade.warningKind = expected.choice;
             SetRows(runtime.dialogBox, {"uno", "dos", "tres", "cuatro"});
@@ -1458,7 +1458,7 @@ TEST(GameDialogDrawingTest, TheMixTitleGoesBeforeTheRows)
                                                               {1923, "capa"},
                                                               {1924, "lord"},
                                                               {1925, "otra"}});
-                Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+                Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
                 OpenYesNo(runtime, id);
                 runtime.social.trade.warningKind = 2;
                 runtime.npcWindows.mixKind = expected.kind;
@@ -1497,7 +1497,7 @@ TEST(GameDialogDrawingTest, TheMixTitleCutsWhatTheOriginalCannotWrite)
     {
         const auto tested = std::make_unique<DrawingDialogs>(Devias);
         tested->texts = Client::Tests::MakeTextTable({{613, std::string(100, 'a')}});
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         OpenYesNo(runtime, 0x98);
         runtime.social.trade.warningKind = 2;
         runtime.npcWindows.mixKind = kind;
@@ -1520,7 +1520,7 @@ TEST(GameDialogDrawingTest, TheJewelMixQuestionGoesLower)
     {
         SCOPED_TRACE(map);
         const auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         OpenYesNo(runtime, 0xa3);
         SetRows(runtime.dialogBox, {"juntar", "diez"});
 
@@ -1556,7 +1556,7 @@ TEST(GameDialogDrawingTest, TheChaosCastleQuestionShowsTheMissingItem)
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", ítem " << item);
             const auto tested = std::make_unique<DrawingDialogs>(map);
-            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             OpenYesNo(runtime, 0x9a);
             runtime.dialogItem.scalar1Low = item;
             runtime.social.trade.warningKind = 3;
@@ -1587,7 +1587,7 @@ TEST(GameDialogDrawingTest, TheLuckQuestionDrawsItsThreeButtons)
         SCOPED_TRACE(map);
         const auto tested = std::make_unique<DrawingDialogs>(map);
         tested->texts = Client::Tests::MakeTextTable({{229, "cerrar"}, {1412, "suerte"}, {1903, "sin"}});
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0xa8;
         runtime.dialogBox.buttons[0] = {.state = 2, .x = 0x16, .y = 0x5c, .width = 0x31, .height = 0x10};
         runtime.dialogBox.buttons[1] = {.state = 3, .x = 0x52, .y = 0x5c, .width = 0x31, .height = 0x10};
@@ -1637,7 +1637,7 @@ TEST(GameDialogDrawingTest, TheNoticeQuestionUsesTheBoxRows)
     {
         SCOPED_TRACE(map);
         const auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         OpenYesNo(runtime, 0xaa);
         SetRows(runtime.dialogBox, {"una pregunta", "del servidor"});
 
@@ -1660,7 +1660,7 @@ TEST(GameDialogDrawingTest, TheBlessRowsAreYellow)
     {
         SCOPED_TRACE(map);
         const auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         OpenYesNo(runtime, 0xa9);
         runtime.social.trade.warningKind = 6;
         SetRows(runtime.dialogBox, {"bendecir", "este item"});
@@ -2100,7 +2100,7 @@ TEST(GameDialogDrawingTest, TheTradeWarningDrawsItsBoxAndItsRows)
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
-        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x94;
         runtime.social.trade.warningKind = 3;
         Client::UI::DialogBoxState& box = runtime.dialogBox;
@@ -2156,7 +2156,7 @@ TEST(GameDialogDrawingTest, TheTradeWarningDrawsItsBoxAndItsRows)
 TEST(GameDialogDrawingTest, TheBuyWarningCentersItsRowFurtherRight)
 {
     auto tested = std::make_unique<DrawingDialogs>(Lorencia);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = 0x94;
     runtime.social.trade.warningKind = 5;
     Client::UI::DialogBoxState& box = runtime.dialogBox;
@@ -2176,7 +2176,7 @@ TEST(GameDialogDrawingTest, TheBuyWarningCentersItsRowFurtherRight)
 TEST(GameDialogDrawingTest, TheLowPriceWarningDrawsLikeTheWarning)
 {
     auto tested = std::make_unique<DrawingDialogs>(Devias);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = Client::UI::MoneyTextDialog;
     runtime.social.trade.warningKind = 6;
     Client::UI::DialogBoxState& box = runtime.dialogBox;

@@ -8,7 +8,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Camera
 {
 namespace
 {
@@ -42,16 +42,16 @@ Render::Camera3D LoginCamera()
     camera.farPlane = LoginFar;
     return camera;
 }
-Render::Camera3D CameraForFrame(World::GameCamera& state, const World::GameCameraInput& input,
+Render::Camera3D CameraForFrame(Camera::GameCamera& state, const Camera::GameCameraInput& input,
                                 Models::OriginalFrameCarry& frames, Core::Duration clock,
                                 Models::OriginalFramePace pace)
 {
     const int count = frames.FramesAt(clock, pace);
     if (count == 0)
-        return World::GameCameraOf(state, input);
+        return Camera::GameCameraOf(state, input);
     Render::Camera3D camera;
     for (int frame = 0; frame < count; ++frame)
-        camera = World::StepGameCamera(state, input);
+        camera = Camera::StepGameCamera(state, input);
     return camera;
 }
-} // namespace Client::Scenes
+} // namespace Client::Camera

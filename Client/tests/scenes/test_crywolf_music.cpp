@@ -19,8 +19,8 @@
 // compares them.
 namespace
 {
+using Client::Kernel::WorldRuntime;
 using Client::Scenes::StepTheCrywolfMusic;
-using Client::Scenes::WorldRuntime;
 
 constexpr std::int32_t CrywolfMap = 34;
 constexpr std::int32_t AidaMap = 33;

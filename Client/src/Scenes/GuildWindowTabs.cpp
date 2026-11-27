@@ -151,7 +151,7 @@ UI::OldWindowDrawContext OldContextOf(GameHudContext& context)
 
 UI::OldWindowDrawView OldViewOf(const GameHudContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     return UI::OldWindowDrawView{.mouseX = context.mouse.x,
                                  .mouseY = context.mouse.y,
                                  .leftClick = runtime.movement.pendingClick,
@@ -406,7 +406,7 @@ Core::Expected<void, std::string> DrawTheList(GameHudContext& context, UI::OldLi
 std::int32_t MostMembersOf(GameHudContext& context)
 {
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    const OwnCharacterRecord& record = context.world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& record = context.world.OwnCharacter();
     const std::int32_t levels = static_cast<std::int32_t>(record.level) / LevelsPerMember;
     if (Kernel::BaseClassOf(record.characterClass) != LeadingClass)
         return levels;
@@ -417,13 +417,13 @@ std::int32_t MostMembersOf(GameHudContext& context)
 // 0x64fdf0.
 Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t x = window.base.x;
     const std::int32_t y = window.base.y;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
                                 MarkBoxSide, false);
     if (context.guildMarks == nullptr)
@@ -510,7 +510,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
 // 0x6507d0.
 Core::Expected<void, std::string> DrawTheMembersTab(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     if (guild.memberCount > 0)
@@ -536,12 +536,12 @@ Core::Expected<void, std::string> DrawTheMembersTab(GameHudContext& context)
 // 0x651400.
 Core::Expected<void, std::string> DrawTheUnionTab(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     const std::int32_t x = window.base.x + 0xf;
     const std::int32_t y = window.base.y + 0x62;
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     const auto index = static_cast<std::int16_t>(hero.word1f2);
     const auto name = GuildNameAt(guild, index);
     const auto alliance = UnionNameAt(guild, index);

@@ -55,13 +55,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GuildMarkTextures;
 using Client::Scenes::GuildState;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 11;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -179,12 +179,12 @@ protected:
         Hero().word1f2 = 0xffff;
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
 
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return m_world->Hero();
     }
@@ -231,8 +231,8 @@ protected:
 
     Client::Core::Expected<void, std::string> Draw(bool withMarks = true)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

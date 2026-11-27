@@ -40,7 +40,7 @@ using Math::D;
 using Math::F32;
 
 // 0x517bc3..0x517bda: con la skill 8 o 9, el blanco con +0x394 en 0 queda con +0x398 en 10.
-void MarkTheStunned(ActorState& actor, std::uint8_t skill)
+void MarkTheStunned(Kernel::ActorState& actor, std::uint8_t skill)
 {
     constexpr std::uint8_t FirstMarkingSkill = 8;
     constexpr std::uint8_t SecondMarkingSkill = 9;
@@ -50,13 +50,13 @@ void MarkTheStunned(ActorState& actor, std::uint8_t skill)
 }
 
 // 0x517b44..0x517c0b: hasta cinco claves, de los 400 en orden.
-Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, WorldState& world,
+Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, Kernel::WorldState& world,
                                                   std::uint8_t skill, bool siegePlayers)
 {
     Protocol::Skills::SkillHitsSend hits{};
     const auto actors = world.Actors();
-    const ActorState* hero = &world.Hero();
-    for (ActorState& actor : actors.first<NativeActorSlots>())
+    const Kernel::ActorState* hero = &world.Hero();
+    for (Kernel::ActorState& actor : actors.first<NativeActorSlots>())
     {
         // 0x517b54..0x517b73: la distancia se calcula antes de mirar nada.
         const double dx = D(request.point.x) - D(actor.position.x);
@@ -79,16 +79,16 @@ Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& reques
 }
 } // namespace
 
-Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& request, WorldState& world,
+Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& request, Kernel::WorldState& world,
                                                       Crt::CrtRandom& random,
                                                       const std::function<void(Protocol::Outgoing)>& send)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     // 0x517a44..0x517af3.
     std::uint8_t skill = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        skill = OwnSkillByte(world.OwnCharacter(), request.skillIndex);
+        skill = Kernel::OwnSkillByte(world.OwnCharacter(), request.skillIndex);
     }
     // 0x517af8..0x517b3f: en el 30 con el asedio (0x4294b0), el bit 0x100 de la celda del punto (0x5f82c0) sale con 0;
     // sin él, un jugador entra aunque no tenga la clave.
@@ -98,7 +98,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
         const auto& attributes = world.Map().terrain.attributes;
         if (!attributes)
             return Core::Unexpected(std::string("0x517b1e: faltan los atributos del punto de la skill"));
-        const auto query = World::TerrainAttributeQueryAt(*attributes, request.point.x, request.point.y);
+        const auto query = Terrain::TerrainAttributeQueryAt(*attributes, request.point.x, request.point.y);
         if (!query.HasValue())
             return Core::Unexpected(std::string("0x517b1e: dirección de atributo fuera de la tabla del mundo"));
         if ((query.Value() & 0x100) != 0)
@@ -109,7 +109,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     if (hits.hits == 0)
         return false;
     // 0x517c11..0x517c72.
-    if (ActorNameContains(world.Hero(), GameMasterName))
+    if (Actors::ActorNameContains(world.Hero(), GameMasterName))
         return true;
     // 0x517c74..0x5184c7: el C1 10, con la celda del punto (0x517deb y 0x517eed).
     const auto x = Math::OriginalFtolLow(D(request.point.x) * CellsPerUnit);

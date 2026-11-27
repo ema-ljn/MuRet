@@ -19,7 +19,7 @@ using WeatherTextureHandlesTest = Client::Tests::GlTest;
 TEST_F(WeatherTextureHandlesTest, ReferenceWeatherImagesHaveActualGlHandlesAndAreReleased)
 {
     Client::Render::Gl::TextureTable store(Gl());
-    Client::Scenes::TerrainTiles tiles(store);
+    Client::Assets::TerrainTiles tiles(store);
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{3}})
     {
         std::vector<std::string> skipped;

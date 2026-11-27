@@ -18,7 +18,7 @@
 #include <optional>
 #include <string>
 
-// Client::World::AddGroundMark, StepGroundMarks y DrawGroundMarks: la tabla de 0x760cab0 que llenan 0x548fe0,
+// Client::Terrain::AddGroundMark, StepGroundMarks y DrawGroundMarks: la tabla de 0x760cab0 que llenan 0x548fe0,
 // envejece 0x549090 y dibuja 0x549130 (06 § Las marcas del suelo).
 namespace
 {
@@ -27,14 +27,14 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::World::AddGroundMark;
-using Client::World::DrawGroundMarks;
-using Client::World::GroundMark;
-using Client::World::GroundMarkRequest;
-using Client::World::GroundMarkTable;
-using Client::World::SlotComponents;
-using Client::World::StepGroundMarks;
-using Client::World::TerrainDecal;
+using Client::Terrain::AddGroundMark;
+using Client::Terrain::DrawGroundMarks;
+using Client::Terrain::GroundMark;
+using Client::Terrain::GroundMarkRequest;
+using Client::Terrain::GroundMarkTable;
+using Client::Terrain::SlotComponents;
+using Client::Terrain::StepGroundMarks;
+using Client::Terrain::TerrainDecal;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr std::int32_t BloodType = 0x5e3;
@@ -92,7 +92,7 @@ ModelBatch BatchBeforeTheMarks()
 // En la .bss: las 100 apagadas al arrancar, y así llegan a WorldRuntime.
 TEST(GroundMarksTest, TheTableStartsWithEveryMarkOff)
 {
-    const Client::Scenes::WorldRuntime runtime{};
+    const Client::Kernel::WorldRuntime runtime{};
 
     ASSERT_EQ(runtime.groundMarks.size(), 100u);
     for (const GroundMark& mark : runtime.groundMarks)
@@ -326,7 +326,7 @@ TEST(GroundMarksTest, EachLiveMarkIsADecalWithTheBlendOfItsTexture)
                                      .angle = -mark.angle,
                                      .alpha = mark.alpha,
                                      .lift = 5.0f};
-            ASSERT_TRUE(Client::World::DrawTerrainDecal(expected, *heights, decal).HasValue());
+            ASSERT_TRUE(Client::Terrain::DrawTerrainDecal(expected, *heights, decal).HasValue());
         }
         ASSERT_EQ(batch.Commands().size(), 2u);
         EXPECT_EQ(batch.Commands()[0].state,

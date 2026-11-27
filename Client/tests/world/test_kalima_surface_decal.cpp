@@ -17,9 +17,9 @@
 namespace
 {
 using Client::Render::ModelBatch;
+using Client::Terrain::TerrainDecal;
 using Client::World::DrawKalimaSurfaceDecal;
 using Client::World::KalimaWorld;
-using Client::World::TerrainDecal;
 
 TerrainDecal Decal()
 {

@@ -70,7 +70,8 @@ constexpr std::uint32_t QuietFlag = 0x4000;
 constexpr std::int32_t FlameJoint = 0x10f;
 
 // 0x41ed10(sonido, …): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
-void RequestTheSound(const CharacterStepContext& context, std::int32_t sound, const ActorState* actor = nullptr)
+void RequestTheSound(const Actors::CharacterStepContext& context, std::int32_t sound,
+                     const Kernel::ActorState* actor = nullptr)
 {
     if (actor != nullptr && context.soundAt)
         context.soundAt(sound, actor->position);
@@ -80,7 +81,7 @@ void RequestTheSound(const CharacterStepContext& context, std::int32_t sound, co
 
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
 Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments, std::uint8_t skill,
-                                                   std::size_t slot, const CharacterStepContext& context)
+                                                   std::size_t slot, const Actors::CharacterStepContext& context)
 {
     if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
         return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
@@ -89,7 +90,7 @@ Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArgum
 
 // 0x4fd81e y 0x4fdaeb..0x4fdb4d: la luz local del paso, (1; 1; 1) o, con la acción 0x4d, 0x4f o 0x5a pasado el frame
 // 5,5, la de la partícula 0x5ac/0 (0,3; 0,5; 1).
-glm::vec3 CaseLight(const ActorState& actor)
+glm::vec3 CaseLight(const Kernel::ActorState& actor)
 {
     constexpr std::array<std::uint8_t, 3> FlaredActions{0x4d, 0x4f, 0x5a};
     constexpr float FlareFrame = 5.5f; // 0x6b8a40
@@ -113,8 +114,8 @@ struct SpiritJointRequest
     std::int32_t serial = 0;
 };
 
-Core::Expected<void, std::string> CreateTheSpirit(ActorState& actor, const CharacterStepContext& context,
-                                                  SpiritJointRequest spirit)
+Core::Expected<void, std::string>
+CreateTheSpirit(Kernel::ActorState& actor, const Actors::CharacterStepContext& context, SpiritJointRequest spirit)
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", spirit.address));
@@ -142,9 +143,9 @@ Core::Expected<void, std::string> CreateTheSpirit(ActorState& actor, const Chara
 
 // 0x530860(0x10f, desde, desde, ángulos, subtipo, dueño, ancho, −1, 0, 0, blanco): un joint 0x10f (AuraJoints.cpp).
 // Con el pool lleno, nada.
-Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, ActorState& owner, glm::vec3& from,
+Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, Kernel::ActorState& owner, glm::vec3& from,
                                                 glm::vec3& angles, std::int32_t subtype, float width,
-                                                std::int32_t target, const CharacterStepContext& context)
+                                                std::int32_t target, const Actors::CharacterStepContext& context)
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
@@ -166,8 +167,9 @@ Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, ActorStat
 }
 
 // Cinco 0x10f de ancho 20 alrededor del blanco, desde su +0x10 y con sus ángulos.
-Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, ActorState& victim, std::int32_t subtype,
-                                                  std::int32_t target, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, Kernel::ActorState& victim,
+                                                  std::int32_t subtype, std::int32_t target,
+                                                  const Actors::CharacterStepContext& context)
 {
     constexpr float Width = 20;
     for (int ring = 0; ring < 5; ++ring)
@@ -180,7 +182,7 @@ Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, ActorSt
 
 // 0x4fe147..0x4fe18b (la 0x43): 0x530860(0x632, o+0x10, o+0x10, o+0x1c, 7, nulo, 10, −1, 0, 0, −1), que suelta tres
 // 0x632/6 (StormJoints.cpp), y el sonido 0x266 aunque el pool esté lleno.
-Core::Expected<void, std::string> CallTheStorm(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> CallTheStorm(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t StormSound = 0x266;
     if (context.joints.empty())
@@ -204,7 +206,8 @@ Core::Expected<void, std::string> CallTheStorm(ActorState& actor, const Characte
 
 // 0x504ac7..0x504b49: la 0x49 crea un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho
 // 40 (InfernoJoints.cpp, sin rand()), y pide el sonido 0x26f aunque el pool esté lleno.
-Core::Expected<void, std::string> RaiseTheInferno(const ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& actor,
+                                                  const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t InfernoSubtype = 4;
     constexpr float InfernoWidth = 40;  // 0x42200000
@@ -233,7 +236,7 @@ Core::Expected<void, std::string> RaiseTheInferno(const ActorState& actor, const
 
 // 0x4f5b10(o, x, y, z, punto): (x, y, z) girado por los ángulos de o (0x5fc8f0 y 0x5fcbd0) y sumado a su posición,
 // sin rand().
-glm::vec3 TurnedPoint(const ActorState& actor, const glm::vec3& offset)
+glm::vec3 TurnedPoint(const Kernel::ActorState& actor, const glm::vec3& offset)
 {
     const auto turned = Math::OriginalVectorRotate(offset, Math::OriginalAngleMatrix(actor.angles));
     return {F32(D(actor.position.x) + D(turned.x)), F32(D(actor.position.y) + D(turned.y)),
@@ -244,7 +247,7 @@ glm::vec3 TurnedPoint(const ActorState& actor, const glm::vec3& offset)
 // desde (sen 4,5 · 80; cos 4,5 · 80; 300) más la posición de o, y 225 y 450 desde (cos 22,5 · 80; sen 22,5 · 80; 300)
 // (0x6a1a90 es el seno de la CRT y 0x6a19e0 el coseno, FSIN y FCOS con el producto por 80 en la x87). Su alta los pone
 // en la posición del dueño (FaunaJointCreation.cpp, CreateSetEnergy). Al final, el sonido 0x7f; sin rand().
-Core::Expected<void, std::string> SpinTheEnergy(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> SpinTheEnergy(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t EnergyJoint = 0x619, EnergySubtype = 0xa, EnergySound = 0x7f;
     constexpr float Radius = 80.0f, Width = 15.0f;
@@ -301,7 +304,8 @@ Core::Expected<void, std::string> SpinTheEnergy(ActorState& actor, const Charact
 // y 0x518cf0(0x62c, punto, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0). Su caso (0x51f25e) deja la vida en 0 y, con dueño,
 // suelta los cinco 0x62c (SpiralJoints.cpp): /1, /0 de ancho 250, /2, /3 y /4, los demás de ancho 100, desde el punto
 // y con los ángulos de o. Después, el sonido 0x1cd aunque la tabla esté llena.
-Core::Expected<void, std::string> RaiseTheSpirals(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
+                                                  const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t SpiralEffect = 0x62c;
     constexpr std::int32_t SpiralSound = 0x1cd;
@@ -362,7 +366,7 @@ Core::Expected<void, std::string> RaiseTheSpirals(ActorState& actor, const Chara
 
 // 0x4fe505..0x4fe790 (la 0x48): +0x78 de o en 0 y seis 0x10f/5..7 de ancho 170 desde o + 100 en z, girados 45, 135 y
 // 225 y después 90, 180 y 270; la copia baja 10 después de cada uno salvo los /7. Al final, el sonido 0x26b.
-Core::Expected<void, std::string> RaiseTheAuras(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> RaiseTheAuras(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr float Width = std::bit_cast<float>(0x432a0000u);
     constexpr std::int32_t RiseSound = 0x26b;
@@ -399,8 +403,8 @@ struct SpiritRing
     std::int32_t sound = 0;
 };
 
-Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                 const CharacterStepContext& context, const SpiritRing& ring)
+Core::Expected<void, std::string> RingTheSpirits(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                 const Actors::CharacterStepContext& context, const SpiritRing& ring)
 {
     constexpr int Spirits = 36, DecalEvery = 20;
     constexpr float Width = 60.0f;  // 0x42700000
@@ -436,7 +440,7 @@ Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t 
 }
 
 // 500141/501147/501867/50202e: sólo el héroe publica la tanda; el cierre conserva sus 3848 rand().
-void CountHeroVolley(const ActorState& actor, const CharacterStepContext& context)
+void CountHeroVolley(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     if (&actor != &context.world.Hero())
         return;
@@ -449,7 +453,7 @@ void CountHeroVolley(const ActorState& actor, const CharacterStepContext& contex
 // efecto pide y MuRet no tiene corta con la dirección de la llamada.
 Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
                                                std::uint8_t skill, std::size_t slot,
-                                               const CharacterStepContext& context)
+                                               const Actors::CharacterStepContext& context)
 {
     const auto created = CreateWizardEffect(context, arguments);
     if (!created.HasValue())
@@ -461,7 +465,7 @@ Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Worl
 }
 
 // 0x5042d3..0x504324: los ángulos de o con la z en el rumbo de 0x4e93f0 de o al blanco (fstp, sin rand()).
-glm::vec3 TowardsTheTarget(const ActorState& actor, const ActorState& victim)
+glm::vec3 TowardsTheTarget(const Kernel::ActorState& actor, const Kernel::ActorState& victim)
 {
     return glm::vec3(actor.angles.x, actor.angles.y,
                      static_cast<float>(
@@ -469,14 +473,14 @@ glm::vec3 TowardsTheTarget(const ActorState& actor, const ActorState& victim)
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).
-std::int32_t HandOf(const ActorState& actor, std::size_t hand)
+std::int32_t HandOf(const Kernel::ActorState& actor, std::size_t hand)
 {
     return std::bit_cast<std::int16_t>(actor.hands[hand].model);
 }
 
 // 0x4fdf2b..0x4fdf57 (y 0x4fdfb3, 0x4fdfe4, 0x4fec30): o+0x8c = el arma de la derecha (+0x2b8, MOVSX) − 0x212 y o+0x8e
 // = su nivel (+0x2ba), que leen por su dueño los efectos 0xf4 y 0xfa (Scenes/GameDrawTail.cpp).
-void KeepTheWeapon(ActorState& actor)
+void KeepTheWeapon(Kernel::ActorState& actor)
 {
     constexpr std::int32_t FirstWeaponModel = 0x212;
     actor.word8c = static_cast<std::int16_t>(HandOf(actor, 0) - FirstWeaponModel);
@@ -485,8 +489,9 @@ void KeepTheWeapon(ActorState& actor)
 
 // El blanco de +0x3a4 (MOVSX) de los casos 0x44, 0x46 y 0x47: el lugar del pool sin mirar el rango (0x4fe1ad y sus
 // copias). Fuera del pool, MuRet corta: el original leería otra memoria.
-Core::Expected<ActorState*, std::string> TargetOf(ActorState& actor, std::size_t slot,
-                                                  const CharacterStepContext& context, std::uint32_t address)
+Core::Expected<Kernel::ActorState*, std::string> TargetOf(Kernel::ActorState& actor, std::size_t slot,
+                                                          const Actors::CharacterStepContext& context,
+                                                          std::uint32_t address)
 {
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     if (target == NoTarget)
@@ -504,7 +509,7 @@ Core::Expected<ActorState*, std::string> TargetOf(ActorState& actor, std::size_t
 // 0, 0), el terremoto con el estado 0 (que su dibujo hace con el arma de o, 0x52d43a); después el sonido 0x95. El
 // prefijo de 0x518cf0 deja +0x8a y +0x89 antes del caso (0x51a66d), que no los lee: MuRet los escribe después del alta.
 // Con la tabla llena, nada (y el sonido igual).
-Core::Expected<void, std::string> ShakeTheGround(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t QuakeSkill = 0x2a;
     constexpr std::int32_t QuakeSound = 0x95;
@@ -536,22 +541,22 @@ Core::Expected<void, std::string> ShakeTheGround(ActorState& actor, const Charac
 // ([0x743a170]), el registro propio abierto, su cuenta +0xf04 uno más y cerrado (0x500539..0x500bfa, con sus 3.848
 // rand() si queda en 0); después, con cualquiera, el sonido 0x79 (0x500c03). Con la tabla llena no hay chorro (ni el
 // registro de su alta) y lo demás sigue igual. Sin las alturas del terreno, MuRet corta antes de 0x59fb80.
-Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t FlameSkill = 5;
     constexpr std::int32_t FlameSound = 0x79;
     constexpr double CellCentre = 0.5; // 0x6b882c
     constexpr double CellSize = 100.0; // 0x6b86b4
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x5004ea: falta la altura del terreno (0x5f93c0) del chorro de la Flame"));
     glm::vec3 point{};
     point.x = static_cast<float>((static_cast<double>(actor.skillCellX) + CellCentre) * CellSize);
     point.y = static_cast<float>((static_cast<double>(actor.skillCellY) + CellCentre) * CellSize);
     point.z = static_cast<float>(
-        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
+        Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
     const std::int32_t index = OwnSkillIndex(context, FlameSkill);
     const World::ModelEffectArguments arguments{.type = World::FlameJetEffect,
                                                 .position = point,
@@ -575,8 +580,8 @@ Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const Characte
 // 0x518cf0(tipo, punto, o+0x1c, o+0xf4, 0, o, o+0x8a, `index`, 0, 0, 0): un efecto del lote switch de la CL11
 // (Scenes/BlastEffectCalls) con o de dueño, como lo piden la 0x29 (0x4fec9a), la 0xd (0x500d7b y 0x500dba) y la 0xe
 // (0x5014da). Con la tabla llena, nada.
-Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm::vec3& point, ActorState& actor,
-                                                   std::int32_t index, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm::vec3& point, Kernel::ActorState& actor,
+                                                   std::int32_t index, const Actors::CharacterStepContext& context)
 {
     const World::ModelEffectArguments arguments{.type = type,
                                                 .position = point,
@@ -595,12 +600,12 @@ Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm:
 // La celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en la x87, cada eje guardado en float) con la altura del
 // terreno ahí (0x5f93c0, guardada en float), como la leen 0x4ffcbe y 0x500cd4. Sin las alturas, MuRet corta en
 // `address`.
-Core::Expected<glm::vec3, std::string> SkillCellPoint(const ActorState& actor, const CharacterStepContext& context,
-                                                      std::uint32_t address)
+Core::Expected<glm::vec3, std::string>
+SkillCellPoint(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context, std::uint32_t address)
 {
     constexpr double CellCentre = 0.5; // 0x6b882c
     constexpr double CellSize = 100.0; // 0x6b86b4
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(
             std::format("{:#x}: falta la altura del terreno (0x5f93c0) de la celda de la skill", address));
@@ -608,7 +613,7 @@ Core::Expected<glm::vec3, std::string> SkillCellPoint(const ActorState& actor, c
     point.x = static_cast<float>((static_cast<double>(actor.skillCellX) + CellCentre) * CellSize);
     point.y = static_cast<float>((static_cast<double>(actor.skillCellY) + CellCentre) * CellSize);
     point.z = static_cast<float>(
-        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
+        Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
     return point;
 }
 
@@ -617,7 +622,8 @@ Core::Expected<glm::vec3, std::string> SkillCellPoint(const ActorState& actor, c
 // 0), aunque la tabla esté llena (el rand() sale antes del alta). La luz local es (1, 1, 1) de 0x4fd81e, o (0,3; 0,5;
 // 1) de 0x4fdb3f con las acciones 0x4d, 0x4f y 0x5a pasado el frame 5,5; da igual: el alta del 0x108/0 la pone en 0
 // (0x51bd37).
-Core::Expected<void, std::string> DropTheIceStorm(const ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> DropTheIceStorm(const Kernel::ActorState& actor,
+                                                  const Actors::CharacterStepContext& context)
 {
     constexpr int Rounds = 10;
     constexpr int Rise = 50;
@@ -649,8 +655,8 @@ Core::Expected<void, std::string> DropTheIceStorm(const ActorState& actor, const
 // 0x530860(0x632, p, p, los ángulos del blanco, subtipo, blanco, 120, −1, 0, 0, −1) con p la posición del blanco con
 // la z + 1200 (0x6ba198, en la x87 y guardada en float), que cae sobre él (StormJoints.cpp), y el sonido 0x267, se haya
 // creado o no.
-Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context, std::uint32_t read,
+Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::size_t slot,
+                                                const Actors::CharacterStepContext& context, std::uint32_t read,
                                                 std::uint32_t joint, std::int32_t subtype)
 {
     const auto target = TargetOf(actor, slot, context, read);
@@ -660,7 +666,7 @@ Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t s
         return {};
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", joint));
-    ActorState& bound = *target.Value();
+    Kernel::ActorState& bound = *target.Value();
     constexpr double Height = 1200.0; // 0x6ba198
     constexpr float Width = 120.0f;   // 0x42f00000
     glm::vec3 from{bound.position.x, bound.position.y, F32(D(bound.position.z) + Height)};
@@ -685,8 +691,8 @@ Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t s
 
 // 0x4fe383..0x4fe43d, la 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9), el calco 0x61e/6 sobre él (0x518cf0)
 // y el sonido 0x269.
-Core::Expected<void, std::string> FreeTheTarget(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                const CharacterStepContext& context)
+Core::Expected<void, std::string> FreeTheTarget(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                const Actors::CharacterStepContext& context)
 {
     const auto target = TargetOf(actor, slot, context, 0x4fe399);
     if (!target.HasValue())
@@ -695,15 +701,15 @@ Core::Expected<void, std::string> FreeTheTarget(ActorState& actor, std::size_t s
         return {};
     if (context.joints.empty())
         return Core::Unexpected(std::format("0x4fe3ce: faltan los joints del juego (0x534f90) del lugar {}", slot));
-    KillJointsOf(context.joints, FlameJoint, target.Value(), 4);
-    KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
+    Actors::KillJointsOf(context.joints, FlameJoint, target.Value(), 4);
+    Actors::KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
     constexpr std::int32_t FreeSound = 0x269;
-    const ActorState& freed = *target.Value();
+    const Kernel::ActorState& freed = *target.Value();
     if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
                                       .position = freed.position,
                                       .angles = freed.angles,
                                       .light = freed.light,
-                                      .subtype = World::BindingDecalSubtype,
+                                      .subtype = Terrain::BindingDecalSubtype,
                                       .owner = target.Value()},
                                      skill, slot, context);
         !made.HasValue())
@@ -716,8 +722,8 @@ Core::Expected<void, std::string> FreeTheTarget(ActorState& actor, std::size_t s
 // hueso (+0x2bd, 0x4ec110 con el offset en 0); con otra cosa que 0xa19 o 0xe12..0x1011 en la izquierda, el 0x117/1 en
 // el suyo (+0x2dd); los dos con los ángulos de o y la luz (1; 0,6; 0,3) de la 0x40 o (1; 1; 1) de la 0x4b. Después, la
 // 0x40 suena (0x1cf, con o de origen) y la 0x4b crea el 0x138 sobre o (0x502ae6) y suena (0x272).
-Core::Expected<void, std::string> SwingTheHands(const ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                const CharacterStepContext& context, std::uint32_t right,
+Core::Expected<void, std::string> SwingTheHands(const Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                const Actors::CharacterStepContext& context, std::uint32_t right,
                                                 std::uint32_t left)
 {
     constexpr std::int32_t PlainRight = 0xa21;
@@ -771,7 +777,7 @@ Core::Expected<void, std::string> SwingTheHands(const ActorState& actor, std::si
 
 // 0x5023e4..0x502433 (y 0x5024d9..0x502528): la distancia en celdas de o a otro, con dx guardado en float, dy en la
 // pila (53 bits) por su copia en float, la raíz (0x6a1920) sobre 100 (0x6b86b4) y el cociente guardado en float.
-float CellsBetween(const ActorState& from, const ActorState& to)
+float CellsBetween(const Kernel::ActorState& from, const Kernel::ActorState& to)
 {
     constexpr double CellSize = 100.0;
     const auto dx = static_cast<float>(static_cast<double>(from.position.x) - static_cast<double>(to.position.x));
@@ -783,7 +789,7 @@ float CellsBetween(const ActorState& from, const ActorState& to)
 
 // 0x4f2230(o): el subtipo de los joints de la 0x4c según el byte +0x31b (el +0x1b de la mascota, el excelente de Fenrir
 // que copian 0x4c879d, 0x513c60 y 0x5bc9db): con 1, 0; con 2, 2; con cualquier otro, 1.
-std::int32_t FenrirShade(const ActorState& actor)
+std::int32_t FenrirShade(const Kernel::ActorState& actor)
 {
     constexpr std::uint8_t RedFenrir = 1, BlueFenrir = 2;
     if (actor.pet.flags1b == RedFenrir)
@@ -801,8 +807,8 @@ std::int32_t FenrirShade(const ActorState& actor)
 // 0x4f2230(o) y 80 con ese más 3. Al final (0x502853..0x502944), seis 0x62c sin dueño de ancho 60 con el subtipo de
 // 0x4f2230(o) más 0xb, desde el punto de 0x4f5b10(o, 0, rand() % 40 − 20 + 10, 130) hacia él mismo, con los ángulos
 // (rand() % 360, 0, rand() % 360). Con el pool lleno, 0x530860 no crea nada ni saca rand().
-Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                               const CharacterStepContext& context)
+Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                               const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t AroundSound = 0x27d;
     constexpr std::size_t MostTargets = 10;
@@ -814,8 +820,8 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
     const HeroSkillContext ranges{.world = context.world, .random = context.random, .skills = context.skills};
     std::size_t gathered = 0;
     // [ebp−0x214]: los juntados, en su orden (0x50245e, 0x502553).
-    std::array<ActorState*, MostTargets> found{};
-    for (ActorState& other : context.world.Actors().first<PoolSlots>())
+    std::array<Kernel::ActorState*, MostTargets> found{};
+    for (Kernel::ActorState& other : context.world.Actors().first<PoolSlots>())
     {
         bool candidate = other.alive && other.byte88 == MonsterObject && other.animation.action != MonsterFallAction;
         if (!candidate && other.alive && other.byte88 == PlayerObject && other.animation.action != PlayerFallAction)
@@ -849,7 +855,7 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
     if (context.joints.empty())
         return Core::Unexpected(std::string("0x5026a4: faltan los joints del frame (0x530860)"));
     const std::int32_t shade = FenrirShade(actor);
-    const auto strike = [&](ActorState& struck, std::uint32_t first,
+    const auto strike = [&](Kernel::ActorState& struck, std::uint32_t first,
                             std::uint32_t second) -> Core::Expected<void, std::string>
     {
         constexpr int Rounds = 2, Turn = 360;
@@ -919,8 +925,8 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
 
 // 0x4feabb..0x4feb36, la 0x3f: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 2, o, −1, …) y (0xcc, …, 3, sin dueño, −1, …), y
 // el sonido 0x1cb desde o.
-Core::Expected<void, std::string> RaiseTheRings(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                const CharacterStepContext& context)
+Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t RingSound = 0x1cb;
     if (auto inner = CreateWizard(
@@ -940,8 +946,8 @@ Core::Expected<void, std::string> RaiseTheRings(ActorState& actor, std::size_t s
 // 0x4fecb5..0x4fed2a, la 0x0a (el Hellfire): 0x59fb80(0xa) y 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a,
 // lugar, 0, 0, 0), cuyo alta con el héroe de dueño cuenta en el registro propio y manda los blancos de 300
 // (0x51aa97); después 0x518cf0(0xcc, …, 0, sin dueño, −1, …). Lo de Kalima y el sonido 0x77 siguen en el caso.
-Core::Expected<void, std::string> LightTheHellfire(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                   const CharacterStepContext& context)
+Core::Expected<void, std::string> LightTheHellfire(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                   const Actors::CharacterStepContext& context)
 {
     const std::int32_t index = OwnSkillIndex(context, skill);
     World::ModelEffectArguments inner =
@@ -959,8 +965,8 @@ Core::Expected<void, std::string> LightTheHellfire(ActorState& actor, std::size_
 // la x87, cada eje guardado en float) con la altura de 0x5f93c0, la luz local en (0,8f; 0,5; 0,1f) y dos
 // 0x518cf0(0xc2, punto, o+0x1c, luz, 6, sin dueño, 0, …); después el sonido 0x8e y la tanda del héroe (0x4ff5f5).
 // Sin las alturas del terreno, MuRet corta antes del primero.
-Core::Expected<void, std::string> RainTheMeteors(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> RainTheMeteors(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr double CellCentre = 0.5; // 0x6b882c
     constexpr double CellSize = 100.0; // 0x6b86b4
@@ -968,14 +974,14 @@ Core::Expected<void, std::string> RainTheMeteors(ActorState& actor, std::size_t 
     constexpr std::int32_t MeteorSubtype = 6;
     constexpr std::uint16_t MeteorKey = 0;
     constexpr std::int32_t MeteorSound = 0x8e;
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x4ff570: falta la altura del terreno (0x5f93c0) del Meteorito"));
     glm::vec3 point{};
     point.x = static_cast<float>((static_cast<double>(actor.skillCellX) + CellCentre) * CellSize);
     point.y = static_cast<float>((static_cast<double>(actor.skillCellY) + CellCentre) * CellSize);
     point.z = static_cast<float>(
-        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
+        Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
     for (const std::uint32_t address : {0x4ff5b2u, 0x4ff5dcu})
     {
         if (auto created = CreateWizard(
@@ -991,8 +997,8 @@ Core::Expected<void, std::string> RainTheMeteors(ActorState& actor, std::size_t 
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                   const CharacterStepContext& context, const glm::vec3& light)
+Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                   const Actors::CharacterStepContext& context, const glm::vec3& light)
 {
     switch (skill)
     {
@@ -1019,7 +1025,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 2,
                                .jointAddress = 0x4fe0e4,
-                               .decalSubtype = World::PulsingDecalSubtype,
+                               .decalSubtype = Terrain::PulsingDecalSubtype,
                                .light = actor.light,
                                .sound = 0x7f});
     case 0x43:
@@ -1030,7 +1036,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 0x15,
                                .jointAddress = 0x4fe322,
-                               .decalSubtype = World::CoolPulsingDecalSubtype,
+                               .decalSubtype = Terrain::CoolPulsingDecalSubtype,
                                .light = CaseLight(actor),
                                .sound = 0x268});
     case 0x46:
@@ -1082,7 +1088,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         // 4fed2d..4ff4a8: Y, X y 437860(x,y,2,-1500); puntero 723c48 nulo es no-op, no una frontera.
         if (Maps::IsKalimaMap(context.world.Runtime().map))
         {
-            const LogicalCell cell = ReadLogicalCell(actor, context.random);
+            const Actors::LogicalCell cell = Actors::ReadLogicalCell(actor, context.random);
             constexpr std::int32_t WaveRadius = 2, WaveAmplitude = -1500;
             if (auto* kalima = context.world.Map().kalima.get(); kalima != nullptr)
             {
@@ -1243,8 +1249,9 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
 // dueño y los ángulos (0, 0, z de o + 90), (0, 0, z) y (0, 0, z − 90); la "luz" (0, 0, techo del blanco (+0x138) / 1)
 // del primero y (0, 0, eso − techo / 2) de los otros dos, que el alta guarda como la partida (el punto del blanco al
 // que van). Después, el 0x117/0 y el 0x117/1 ahí con los ángulos de o y la luz (1; 0,6; 0,3). Sin rand() ni sonido.
-Core::Expected<void, std::string> LaunchThePierParts(const ActorState& actor, ActorState& victim, std::size_t slot,
-                                                     std::uint8_t skill, const CharacterStepContext& context)
+Core::Expected<void, std::string> LaunchThePierParts(const Kernel::ActorState& actor, Kernel::ActorState& victim,
+                                                     std::size_t slot, std::uint8_t skill,
+                                                     const Actors::CharacterStepContext& context)
 {
     constexpr glm::vec3 LaunchOffset{80.0f, 0.0f, 20.0f}; // 0x42a00000 y 0x41a00000
     constexpr std::size_t LaunchBone = 0;
@@ -1284,8 +1291,9 @@ Core::Expected<void, std::string> LaunchThePierParts(const ActorState& actor, Ac
     return {};
 }
 
-Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorState& victim, std::size_t slot,
-                                                     std::uint8_t skill, const CharacterStepContext& context,
+Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, Kernel::ActorState& victim,
+                                                     std::size_t slot, std::uint8_t skill,
+                                                     const Actors::CharacterStepContext& context,
                                                      const glm::vec3& light)
 {
     switch (skill)
@@ -1409,7 +1417,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         RequestTheSound(context, ShieldSound);
         if (context.joints.empty())
             return Core::Unexpected(std::format("0x504876: faltan los joints del juego (0x534f90) del lugar {}", slot));
-        KillJointsOf(context.joints, FlameJoint, &victim, 0);
+        Actors::KillJointsOf(context.joints, FlameJoint, &victim, 0);
         return CreateFiveAuras(0x5048db, victim, 0, -1, context);
     }
     case 0x01:
@@ -1606,8 +1614,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     }
 }
 
-Core::Expected<void, std::string> SparkTheTarget(const ActorState& actor, const ActorState& victim, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> SparkTheTarget(const Kernel::ActorState& actor, const Kernel::ActorState& victim,
+                                                 std::size_t slot, const Actors::CharacterStepContext& context)
 {
     // 0x52e740..0x52e804: 0x53fe70(0x5c6, o + 0x10 del blanco, sus ángulos, (1, 1, 1), 0, 1,0f, 0), la chispa del golpe
     // (0x54058e..0x540592: la /0 sale a 0x54304c con sólo el prefijo); el (0, 50, 0) girado por los ángulos del que

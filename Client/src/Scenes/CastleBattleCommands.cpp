@@ -198,13 +198,13 @@ Core::Expected<void, std::string> WeaponFailure(const CastleReceiveContext& cont
                           firing ? FireFailed : OpenFailed, UI::SystemMessage);
 }
 
-void SiegeSide(const Battle::SiegeSide& side, WorldRuntime& runtime, ActorState& hero)
+void SiegeSide(const Battle::SiegeSide& side, Kernel::WorldRuntime& runtime, Kernel::ActorState& hero)
 {
     constexpr std::array<std::uint32_t, 5> Flags{0, 0x40000, 0x80000, 0x400000, 0x800000};
     if (side.side >= Flags.size())
         return;
     const auto flag = Flags[side.side];
-    ApplyCastleSiegeFlags(hero, flag, runtime.map);
+    Actors::ApplyCastleSiegeFlags(hero, flag, runtime.map);
     if (side.side == 0)
         return;
     if (side.side == 1)

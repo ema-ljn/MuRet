@@ -42,15 +42,16 @@ inline constexpr int ManaPotionSlot = 3;
 inline constexpr int LifePotionSlot = 4;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot,
-                  bool requestBlocked);
+FindQuickSlotItem(const QuickSlots& slots, std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
+                  int slot, bool requestBlocked);
 
 // 0x558490(i) con i de 0 a 2: cuántos hay para la ranura `slot`, con los mismos rangos y el mismo recorrido que
 // FindQuickSlotItem, salvo que la ranura 2 con un tipo fuera de los rangos cae en el 0x1c08 y que no mira
 // 0x576794c. Los 0x1c09, 0x1c0a y 0x1c14 cuentan casillas; los demás suman la durabilidad (D+0x1a), que en las
 // pociones es la cantidad. El 0x1c14 con nivel es el mismo error (0x5584ec, 0x55858b y 0x5585fa).
 [[nodiscard]] Core::Expected<std::int32_t, std::string>
-CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot);
+CountQuickSlotItems(const QuickSlots& slots, std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
+                    int slot);
 
 // 0x557d80 después de leer el registro propio: con la clase (+0xb & 7) distinta de 2 (el elfo), 0. Si no, el tipo
 // de las flechas o de los virotes que pide el arma: un arco a la izquierda (0x800 a 0x806, 0x811, 0x814 o 0x815),
@@ -58,13 +59,13 @@ CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, I
 // no, ninguno. Cuenta las casillas del inventario con ese tipo y +0x3c mayor que 0.
 [[nodiscard]] std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandType,
                                         std::uint16_t leftHandType,
-                                        std::span<const World::ItemState, InventoryCellCount> cells);
+                                        std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells);
 
 // 0x5b1ba0(ítem, registro de Item.bmd, nivel): la durabilidad de Item.bmd (+0x2d, o +0x2e de 0xa00 a 0xbff) más
 // lo de cada nivel (1 hasta el 4, 2 hasta el 9 y 3, 4, 5 y 6 en el 9, el 10, el 11 y del 12 en adelante), más 20
 // con D+0x1c & 3 en 1 o 2, o 15 con alguna opción excelente (D+0x1b & 0x3f) fuera de 0x1803..0x1806, 0x13, 0x812,
 // 0xa0a, 0x1a1e y 0x40d. En 16 bits, como el ax que devuelve.
-[[nodiscard]] std::uint16_t MaxDurability(const World::ItemState& item,
+[[nodiscard]] std::uint16_t MaxDurability(const Kernel::ItemState& item,
                                           std::span<const std::byte, Tables::ItemRecordSize> record, int level);
 
 // El nombre de un registro de Item.bmd: sus bytes desde el +0 hasta el primer '\0' (o los 0x54), como lo lee el

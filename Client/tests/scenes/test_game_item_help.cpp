@@ -42,13 +42,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::ItemHelpLevels;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
@@ -222,11 +222,11 @@ protected:
     GameItemHelpTest() : m_world(std::make_unique<WorldState>()), m_text(m_sprites)
     {
         m_sprites.Begin(Screen640);
-        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
+        Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
         runtime.map = GetParam();
         runtime.panels.overlayMode = Client::UI::ItemHelpMode;
         m_world->Hero().characterClass = 0;
-        Client::Scenes::OwnCharacterRecord& own = m_world->OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
         own.level = 10;
         own.strength = 50;
         own.word2a = 5;
@@ -236,8 +236,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -263,7 +263,7 @@ protected:
         return Client::Scenes::DrawTheOverlays(context);
     }
 
-    [[nodiscard]] Client::Scenes::HudState& Hud()
+    [[nodiscard]] Client::Kernel::HudState& Hud()
     {
         return m_world->Runtime().hud;
     }

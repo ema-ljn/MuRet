@@ -25,8 +25,8 @@
 
 namespace
 {
+using Client::Assets::WorldModels;
 using Client::Render::TextureSlot;
-using Client::Scenes::WorldModels;
 
 struct Request
 {

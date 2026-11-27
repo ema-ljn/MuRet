@@ -122,20 +122,21 @@ Core::Expected<void, std::string> Send(const NpcWindowSender& send, Protocol::Ou
 }
 
 // 0x657ab0 vacía las grillas así: el tipo en 0xffff y +0x3c en 0, nada más (0x658545..0x658557, 0x658914..0x658926).
-void EmptyTheGrid(std::span<World::ItemState> cells)
+void EmptyTheGrid(std::span<Kernel::ItemState> cells)
 {
-    for (World::ItemState& cell : cells)
+    for (Kernel::ItemState& cell : cells)
     {
-        cell.id = EmptyOwnItemId;
+        cell.id = Kernel::EmptyOwnItemId;
         cell.occupied = 0;
     }
 }
 
 // 0x5e3c20(grilla, columnas, filas): 1 si ninguna casilla tiene un tipo y +0x3c mayor que 0.
-bool GridIsEmpty(std::span<const World::ItemState> cells)
+bool GridIsEmpty(std::span<const Kernel::ItemState> cells)
 {
-    return std::ranges::none_of(cells, [](const World::ItemState& cell)
-                                { return cell.id != EmptyOwnItemId && static_cast<std::int32_t>(cell.occupied) > 0; });
+    return std::ranges::none_of(
+        cells, [](const Kernel::ItemState& cell)
+        { return cell.id != Kernel::EmptyOwnItemId && static_cast<std::int32_t>(cell.occupied) > 0; });
 }
 
 Core::Expected<void, std::string> Message(const InventoryServices& services, std::size_t text, std::int32_t type,
@@ -151,7 +152,7 @@ Core::Expected<void, std::string> OpenTheBox(const WorldEntryResources& resource
     const std::optional<std::string_view> found = UI::TextAt(resources.texts, text);
     if (!found)
         return Core::Unexpected(std::format("0x632e30: sin el texto {} de Text.bmd", text));
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *found);
     return {};
 }
@@ -194,7 +195,7 @@ Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& contex
 
 Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, UI::PanelId id)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     switch (id)
     {
@@ -270,7 +271,7 @@ CursorWarp NpcTalkCursorWarp(std::int32_t mouseX, std::int32_t mouseY, std::int3
 
 Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     GamePanels panels(resources.world, resources.cloth.random,
                       GamePanelTables{.items = resources.items, .itemSetTables = resources.itemSetTables});
     std::optional<std::string> sendError;
@@ -360,7 +361,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
 
 Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     if (list.grid == ChaosBoxGrid)
     {
@@ -410,7 +411,7 @@ Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, c
     if (result.slot != Npc::BuyRejected &&
         DiscardInventoryOverflow(result.slot, InventoryItemBytes(result.item), resources))
         return {};
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (result.slot != Npc::BuyRejected)
     {
         const Protocol::Items::ItemData& item = result.item;
@@ -427,7 +428,7 @@ Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, c
 
 Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result, const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (result.result == 0)
     {
         const InventoryServices services = InventoryServicesOf(resources);
@@ -448,19 +449,20 @@ Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& res
 {
     if (result.money == 0)
         return {};
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
-        OwnCharacterRecord& record = world.OwnCharacter();
+        Kernel::OwnCharacterRecord& record = world.OwnCharacter();
         record.zen = result.money;
-        auto recalculated = RecalculateOwnStats(record, OwnStatsContext{.itemSetTables = resources.itemSetTables,
+        auto recalculated =
+            Player::RecalculateOwnStats(record, Player::OwnStatsContext{.itemSetTables = resources.itemSetTables,
                                                                         .itemSets = &world.ItemSets(),
                                                                         .items = resources.items,
                                                                         .publishedHero = world.Hero(),
                                                                         .ownRecordAccesses = runtime.ownRecordDepth,
                                                                         .random = resources.cloth.random,
-                                                                        .held = HeldItemOf(runtime),
+                                                                        .held = Player::HeldItemOf(runtime),
                                                                         .scan505820 = runtime.fullSetScan});
         if (!recalculated.HasValue())
             return recalculated;
@@ -474,9 +476,9 @@ Core::Expected<void, std::string> ApplyWarehouseMoney(const Npc::WarehouseMoney&
 {
     if (money.result == 0)
         return {};
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
-    OwnCharacterRecord& record = resources.world.OwnCharacter();
+    Kernel::OwnCharacterRecord& record = resources.world.OwnCharacter();
     record.warehouseZen = money.warehouseMoney;
     record.zen = money.inventoryMoney;
     return {};
@@ -485,7 +487,7 @@ Core::Expected<void, std::string> ApplyWarehouseMoney(const Npc::WarehouseMoney&
 Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClosed&,
                                                        const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     runtime.cursorItemCount = 0;
     runtime.cursorItem.occupied = 0;
     if (runtime.dialogs.current != ClosedByTheServerDialog)
@@ -503,7 +505,7 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
 Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState& state,
                                                       const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     switch (state.state)
     {
@@ -565,7 +567,7 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
         DiscardGridOverflow(resources.world.Runtime().npcWindows.chaosBox.size(), NpcGridColumns, 0,
                             InventoryItemBytes(result.item), resources, "86"))
         return {};
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     const InventoryServices services = InventoryServicesOf(resources);
     switch (result.result)

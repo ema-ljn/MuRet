@@ -64,25 +64,25 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::StepCharacters: 0x508f00. El TerrainWall, si cada personaje se ve, el 0x508ba0 de los que no
+// Client::Actors::StepCharacters: 0x508f00. El TerrainWall, si cada personaje se ve, el 0x508ba0 de los que no
 // son el héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 entero, con la cabeza que sortea en
 // los que no son el héroe. 06 § El paso de los personajes, § El paso de los personajes en la selección y el login,
 // § El cuerpo de los personajes (0x4fd5f0), § Los efectos de los personajes (0x505de0) y § Caminar.
 namespace
 {
+using Client::Actors::CharacterSeen;
+using Client::Actors::CharacterStepContext;
+using Client::Actors::StepCharacter;
+using Client::Actors::StepCharacters;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::CharacterHead;
+using Client::Kernel::StepCharacterHead;
+using Client::Kernel::WorldState;
 using Client::Models::ActionInfo;
 using Client::Models::Skeleton;
-using Client::Scenes::ActorState;
-using Client::Scenes::CharacterHead;
-using Client::Scenes::CharacterSeen;
-using Client::Scenes::CharacterStepContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::StepCharacter;
-using Client::Scenes::StepCharacterHead;
-using Client::Scenes::StepCharacters;
-using Client::Scenes::WorldState;
-using Client::World::TerrainPolygon;
+using Client::Terrain::TerrainPolygon;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 // Los dos accesos de 0x508f00 a la celda lógica (4 rand() por cierre).
@@ -136,8 +136,8 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     preview.byte88 = 0;
     preview.animation.action = 1;
     preview.animation.previousAction = 1;
-    preview.hands[0].model = Client::Scenes::NoItemModel;
-    preview.hands[1].model = Client::Scenes::NoItemModel;
+    preview.hands[0].model = Client::Kernel::NoItemModel;
+    preview.hands[1].model = Client::Kernel::NoItemModel;
     Skeleton face;
     face.actions.assign(2, ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 12});
     CrtRandom random(Seed);
@@ -189,8 +189,8 @@ TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesMod
     actor.alive = true;
     actor.type = 0xa8;
     actor.animation.frame = 4.0f;
-    actor.hands[0].model = Client::Scenes::NoItemModel;
-    actor.hands[1].model = Client::Scenes::NoItemModel;
+    actor.hands[0].model = Client::Kernel::NoItemModel;
+    actor.hands[1].model = Client::Kernel::NoItemModel;
     Skeleton face;
     face.actions.assign(1, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 100});
     constexpr std::uint32_t HeadSeed = 35;
@@ -252,7 +252,7 @@ glm::vec3 CellCentre(std::uint8_t x, std::uint8_t y)
 // El trapecio del juego alrededor de `centre`, como el que deja 0x5fb570 con la cámara de arranque.
 TerrainPolygon GamePolygon(std::uint8_t map, const glm::vec3& centre)
 {
-    return Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, map, centre, -45.0f);
+    return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, map, centre, -45.0f);
 }
 
 bool HasError(const Client::Core::Expected<void, std::string>& stepped, std::string_view address)
@@ -574,7 +574,7 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
     ActorState& actor = tested.Other(2);
     tested.world.Runtime().terrainPolygon = Everything;
     tested.world.Map().terrain.attributes.reset();
-    Client::World::WorldTerrain sceneTerrain;
+    Client::Terrain::WorldTerrain sceneTerrain;
     sceneTerrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     const auto cell = Client::Data::Terrain::CellIndex(3, 4);
     sceneTerrain.attributes->cells[cell] = 1;
@@ -847,7 +847,7 @@ TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
             SCOPED_TRACE(::testing::Message()
                          << "mapa " << static_cast<int>(border.map) << (walk.leaving ? ", sale" : ", entra"));
             GameWorld tested(border.map);
-            auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, border.map);
+            auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, border.map);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
             tested.world.Map().terrain = std::move(loaded).Value();
             ASSERT_EQ(tested.Cell(border.insideX, border.insideY) & 1, 1);
@@ -897,7 +897,7 @@ TEST_F(GoldenCharacterStep, TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias)
         SCOPED_TRACE(::testing::Message() << "mapa " << static_cast<int>(place.map));
         GameWorld tested(place.map);
         tested.player = &*player;
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, place.map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, place.map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         tested.world.Map().terrain = std::move(loaded).Value();
         ASSERT_EQ(tested.Cell(place.x, place.y) & 1, 1);
@@ -1129,7 +1129,7 @@ TEST(CharacterStepTest, TheOwnRecordTimersRunWithTheHero)
     {
         SCOPED_TRACE(::testing::Message() << "con la cuenta en " << static_cast<int>(depth));
         GameWorld tested;
-        Client::Scenes::OwnCharacterRecord& own = tested.world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = tested.world.OwnCharacter();
         own.word3e = 2;
         own.word40 = 1;
         own.word42 = 0;
@@ -1423,7 +1423,7 @@ TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
 
 TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 {
-    constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
+    constexpr std::uint16_t NoItem = Client::Kernel::NoItemModel;
     struct Case
     {
         std::uint8_t action;
@@ -2062,7 +2062,7 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
         std::string_view cut;
         bool drawsTheRandom;
     };
-    constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
+    constexpr std::uint16_t NoItem = Client::Kernel::NoItemModel;
     for (const Case& probe :
          {Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x518aa8", true},
           Case{"la 0x45", 0, 0x45, NoItem, "0x518aa8", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f84", true}})
@@ -2198,7 +2198,7 @@ struct SceneCharacters
 {
     SceneCharacters(const std::filesystem::path& dataRoot, std::uint8_t map, std::size_t hero)
     {
-        auto loaded = Client::World::LoadWorldTerrain(dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(dataRoot, map);
         if (!loaded.HasValue())
         {
             ADD_FAILURE() << loaded.Error();
@@ -2245,9 +2245,9 @@ struct SceneCharacters
 // El trapecio que deja el dibujo de la selección (0x63475c), el de su punto fijo.
 TerrainPolygon SelectionPolygon()
 {
-    return Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, SelectionMap,
-                                           Client::Scenes::SelectionCullingPoint,
-                                           Client::Scenes::SelectionCamera().angles.z);
+    return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, SelectionMap,
+                                             Client::Camera::SelectionCullingPoint,
+                                             Client::Camera::SelectionCamera().angles.z);
 }
 
 // La selección con los cinco lugares y el héroe en el 0, con el trapecio de su dibujo, paso a paso: los cinco se
@@ -2725,7 +2725,7 @@ TEST(CharacterStepTest, AnExpiringActorOutsideThePoolStillRunsItsDirectCleanup)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(actor.alive);
-    EXPECT_EQ(actor.dword428, Client::Scenes::ActorRemovalCountdownSentinel);
+    EXPECT_EQ(actor.dword428, Client::Kernel::ActorRemovalCountdownSentinel);
     EXPECT_FALSE(actor.darkSpirit.has_value());
 }
 
@@ -2743,7 +2743,7 @@ TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
         actor.dying = 1;
         actor.dyingTime = 0.98f;
         auto& cloth = tested.world.ActorCloths()[slot];
-        Client::Scenes::ClothWearer wearer;
+        Client::Actors::Drawing::ClothWearer wearer;
         wearer.characterClass = 4;
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});

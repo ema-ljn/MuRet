@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -63,4 +63,4 @@ double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights, const Data:
     const double fractionX = static_cast<double>(cellX) - static_cast<double>(column);
     return ((right - left) * fractionX) + left;
 }
-} // namespace Client::World
+} // namespace Client::Terrain

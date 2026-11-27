@@ -76,7 +76,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
             joint.tailEnabled = true;
             joint.drawEnabled = 3;
             joint.light = {.7f, .7f, .3f};
-            auto lighting = std::make_unique<Client::World::TerrainLighting>();
+            auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
             Client::Crt::CrtRandom random(7), expected(7);
             expected.Discard(1);
             const auto result =

@@ -40,7 +40,7 @@ struct UiItemBox;
 // 0x5e3660(x, y, grilla, columnas, filas): una casilla de 20 × 20 por lugar, con el color del aviso de lo que haya
 // (también de las vacías): Item_box (0x115) vacía, InventoryBox2 (0x116) con un tipo. La usan el inventario y las
 // ventanas de los NPC (Scenes/NpcWindowDrawing.h y Scenes/ChaosBoxDrawing.h).
-void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<const World::ItemState> cells,
+void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<const Kernel::ItemState> cells,
                       std::size_t columns, std::size_t rows);
 // Item.bmd +0x24 y +0x25 del tipo: las casillas de ancho y de alto, cada una por 20 (0x6b86d0) en la x87 con el fstp,
 // en el ancho y el alto de la caja (la x y la y en 0). Sin Item.bmd o sin el tipo, el error con `where`.

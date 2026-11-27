@@ -12,12 +12,12 @@
 // en la escena 4 y en la 2 (06 § Cámara). Los números son los del 06.
 namespace
 {
+using Client::Camera::LoginCamera;
+using Client::Camera::SelectionCamera;
+using Client::Camera::WorldViewport;
 using Client::Core::PixelSize;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
-using Client::Scenes::LoginCamera;
-using Client::Scenes::SelectionCamera;
-using Client::Scenes::WorldViewport;
 
 TEST(SceneCamerasTest, TheWorldViewportIsThatOf0x620db0)
 {

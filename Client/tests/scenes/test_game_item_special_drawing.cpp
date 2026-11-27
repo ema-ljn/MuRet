@@ -72,13 +72,13 @@ TEST(GameItemSpecialDrawingTest, DefaultUsesGeometryAndRejectsMissingModel)
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x212;
-    auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes);
+    auto result = Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(batch.Vertices().size(), 21u);
     models.available = false;
-    result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes);
+    result = Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes);
     EXPECT_FALSE(result.HasValue());
 }
 TEST(GameItemSpecialDrawingTest, SwordAndCrossbowUseOrderedChromePasses)
@@ -88,14 +88,15 @@ TEST(GameItemSpecialDrawingTest, SwordAndCrossbowUseOrderedChromePasses)
         SCOPED_TRACE(type);
         SpecialModels models;
         Client::Render::ModelBatch batch;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = static_cast<std::uint16_t>(type);
-        Client::Scenes::ItemSpecialDrawContext context;
+        Client::Actors::Drawing::ItemSpecialDrawContext context;
         context.worldClock = 1000.0f;
-        const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+        const auto result =
+            Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(batch.Vertices().size(), type == 0x61f ? 6u : 9u);
-        EXPECT_EQ(batch.Commands()[1].state.texture, Client::Scenes::ChromeTextureSlot);
+        EXPECT_EQ(batch.Commands()[1].state.texture, Client::Actors::Drawing::ChromeTextureSlot);
         EXPECT_EQ(batch.Commands()[1].state.blend, Client::Render::ModelBlend::Additive);
         EXPECT_FLOAT_EQ(batch.Vertices()[3].uv.y, type == 0x225 ? 0.1f : -0.1f);
         if (type != 0x61f)
@@ -108,12 +109,12 @@ TEST(GameItemSpecialDrawingTest, StaffStoresAndRandomErrorKeepTheirPrefix)
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x61c;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.worldClock = 1000.0f;
     context.publishedObject = &object;
-    auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    auto result = Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(object.state.hiddenMesh, 2);
     EXPECT_EQ(object.state.blendMesh, 2);
@@ -123,7 +124,7 @@ TEST(GameItemSpecialDrawingTest, StaffStoresAndRandomErrorKeepTheirPrefix)
     batch = Client::Render::ModelBatch{};
     object = {};
     object.model = 0xe22;
-    result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes);
+    result = Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes);
     EXPECT_FALSE(result.HasValue());
     EXPECT_EQ(batch.Vertices().size(), 12u);
 }
@@ -147,14 +148,15 @@ TEST(GameItemSpecialDrawingTest, PublicFamiliesHaveTheirIndependentPassCounts)
         SCOPED_TRACE(test.type);
         SpecialModels models;
         Client::Render::ModelBatch batch;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = test.type;
         Client::Crt::CrtRandom random;
         glm::vec2 pulse{0.5f, 0.01f};
-        Client::Scenes::ItemSpecialDrawContext context;
+        Client::Actors::Drawing::ItemSpecialDrawContext context;
         context.random = &random;
         context.pulse = &pulse;
-        const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+        const auto result =
+            Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(batch.Vertices().size(), 3 * test.triangles);
     }
@@ -180,13 +182,14 @@ TEST(GameItemSpecialDrawingTest, FlagsHiddenSelectionAndSpecialArmorTakeTheirNat
         SCOPED_TRACE(test.type);
         SpecialModels models;
         Client::Render::ModelBatch batch;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = test.type;
         object.state.hiddenMesh = test.hidden;
-        Client::Scenes::ItemSpecialDrawContext context;
+        Client::Actors::Drawing::ItemSpecialDrawContext context;
         context.flags = test.flags;
         context.objectFlags = test.objectFlags;
-        const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+        const auto result =
+            Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(batch.Vertices().size(), test.vertices);
     }
@@ -195,14 +198,14 @@ TEST(GameItemSpecialDrawingTest, HelmetUsesPrivateMatrixAndPublishesLightEvenWhe
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x121b;
     object.color = {0.2f, 0.3f, 0.4f};
     glm::vec3 light{};
     Client::World::FrameSprites sprites;
     for (std::size_t index = 0; index < Client::World::SpriteCount; ++index)
         ASSERT_TRUE(sprites.Create(1, {}, 1, {}, 0, 0));
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.objectFlags = 0x102;
     context.objectLight = &light;
     context.sprites = &sprites;
@@ -213,7 +216,8 @@ TEST(GameItemSpecialDrawingTest, HelmetUsesPrivateMatrixAndPublishesLightEvenWhe
         ++bones;
         return glm::vec3{1, 2, 3};
     };
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(bones, 1);
     EXPECT_EQ(batch.Vertices().size(), 9u);
@@ -226,15 +230,16 @@ TEST(GameItemSpecialDrawingTest, WingConsumesExactlyTwoSharedCrtDrawsInPushOrder
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0xe22;
     Client::Crt::CrtRandom random(7);
     auto expected = random;
     const float v = static_cast<float>(expected.Next() % 10) * 0.1f;
     const float u = static_cast<float>(expected.Next() % 10) * 0.1f;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.random = &random;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(random.State(), expected.State());
     ASSERT_EQ(batch.Vertices().size(), 15u);
@@ -245,17 +250,17 @@ TEST(GameItemSpecialDrawingTest, OrbPulseUpdatesAfterItsPassAndMissingPulsePrese
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x1e2f;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.publishedObject = &object;
-    auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    auto result = Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     EXPECT_FALSE(result.HasValue());
     EXPECT_EQ(batch.Vertices().size(), 3u);
     EXPECT_EQ(object.color, (glm::vec3{1, 0.5f, 0}));
     glm::vec2 pulse{1.2f, 0.01f};
     context.pulse = &pulse;
-    result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    result = Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FLOAT_EQ(pulse.x, 0.99f);
     EXPECT_FLOAT_EQ(pulse.y, -0.01f);
@@ -275,7 +280,7 @@ TEST_F(GoldenGameItemSpecialDrawing, ActualItemResourcesProvideGeometryForSpecia
     Client::Tests::FakeTextureStore textures;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     const auto loaded = models.Load(m_dataRoot, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     for (const auto type : {0x225,  0xc1c,  0xa24, 0x61f, 0xa25, 0x231, 0x81c,  0x619,  0x1c16, 0x1c17, 0x61a,
@@ -283,7 +288,7 @@ TEST_F(GoldenGameItemSpecialDrawing, ActualItemResourcesProvideGeometryForSpecia
                             0x1e2e, 0x1e2f, 0xc1d, 0x61e, 0xe21, 0xe22, 0x1221, 0x1426, 0x1629})
     {
         SCOPED_TRACE(type);
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = static_cast<std::uint16_t>(type);
         Client::Scenes::FaunaDrawCarry carry;
         const auto posed = Client::Scenes::PublishFaunaFloorPose(carry, models, object);
@@ -291,11 +296,12 @@ TEST_F(GoldenGameItemSpecialDrawing, ActualItemResourcesProvideGeometryForSpecia
         Client::Render::ModelBatch batch;
         Client::Crt::CrtRandom random;
         glm::vec2 pulse{0.5f, 0.01f};
-        Client::Scenes::ItemSpecialDrawContext context;
+        Client::Actors::Drawing::ItemSpecialDrawContext context;
         context.random = &random;
         context.pulse = &pulse;
         context.worldClock = 1234.5f;
-        const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, carry.meshes, context);
+        const auto result =
+            Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, carry.meshes, context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_FALSE(batch.Vertices().empty());
     }
@@ -315,15 +321,16 @@ TEST(GameItemSpecialDrawingTest, PulsingModelColorRoundsOnlyAtTheAsmStore)
         SCOPED_TRACE(test.model);
         SpecialModels models;
         Client::Render::ModelBatch batch;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = test.model;
         object.color = {0.4f, 0.6f, 0.8f};
         Client::Crt::CrtRandom random;
-        Client::Scenes::ItemSpecialDrawContext context;
+        Client::Actors::Drawing::ItemSpecialDrawContext context;
         context.worldClock = 0.5f;
         context.random = &random;
         context.publishedObject = &object;
-        const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+        const auto result =
+            Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(std::bit_cast<std::uint32_t>(object.color.r), test.bits);
         EXPECT_EQ(object.color.r, object.color.g);
@@ -335,12 +342,13 @@ TEST(GameItemSpecialDrawingTest, UnorderedOrbPulseUsesTheNativeLowerClamp)
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x1e2f;
     glm::vec2 pulse{std::numeric_limits<float>::quiet_NaN(), -1};
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.pulse = &pulse;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FLOAT_EQ(pulse.x, 0.02f);
     EXPECT_FLOAT_EQ(pulse.y, 0.01f);
@@ -350,16 +358,17 @@ TEST(GameItemSpecialDrawingTest, HelmetRejectsGlobalPoseWhenThePrivateMatrixIsMi
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x121b;
     glm::vec3 light{};
     Client::World::FrameSprites sprites;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.objectFlags = 0x102;
     context.objectLight = &light;
     context.sprites = &sprites;
     context.bonePoint = [](std::size_t) -> Client::Core::Expected<glm::vec3, std::string> { return glm::vec3{}; };
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     EXPECT_FALSE(result.HasValue());
     EXPECT_TRUE(batch.Vertices().empty());
     EXPECT_FALSE(sprites.Any());
@@ -369,11 +378,12 @@ TEST(GameItemSpecialDrawingTest, EveryMeshPassUsesTheExplicitNativeWorldClock)
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0xa25;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.worldClock = 1000.5f;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_GE(batch.Vertices().size(), 6u);
     // 4ecc30 trunca el reloj para t=(T%10000)*F32(.0001), con normal(0,0,1).
@@ -385,11 +395,11 @@ TEST(GameItemSpecialDrawingTest, MissingSpritesKeepThePrivateOriginAndFirstLight
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x121b;
     glm::vec3 light{};
     int origins = 0;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.objectFlags = 0x102;
     context.objectLight = &light;
     context.privateBoneOrigin = [&]() -> Client::Core::Expected<glm::vec3, std::string>
@@ -397,7 +407,8 @@ TEST(GameItemSpecialDrawingTest, MissingSpritesKeepThePrivateOriginAndFirstLight
         ++origins;
         return glm::vec3{};
     };
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     EXPECT_FALSE(result.HasValue());
     EXPECT_EQ(origins, 1);
     EXPECT_EQ(light, (glm::vec3{0.4f, 0.6f, 0.8f}));
@@ -410,13 +421,14 @@ TEST(GameItemSpecialDrawingTest, LoadedZeroMeshEffectTakesTheDefaultWithoutColor
     models.model.meshes.clear();
     models.meshes.clear();
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x1f7;
     object.color = {0.2f, 0.3f, 0.4f};
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.flags = 6;
     context.publishedObject = &object;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     EXPECT_TRUE(result.HasValue());
     EXPECT_TRUE(batch.Vertices().empty());
     EXPECT_EQ(object.color, (glm::vec3{0.2f, 0.3f, 0.4f}));
@@ -438,12 +450,12 @@ TEST(GameItemSpecialDrawingTest, LongRunningClockUsesTheNativeLowWordInSpecialMo
             SCOPED_TRACE(type);
             SpecialModels models;
             Client::Render::ModelBatch batch;
-            Client::Scenes::DrawnObject object;
+            Client::Actors::Drawing::DrawnObject object;
             object.model = static_cast<std::uint16_t>(type);
-            Client::Scenes::ItemSpecialDrawContext context;
+            Client::Actors::Drawing::ItemSpecialDrawContext context;
             context.worldClock = clock.time;
             const auto result =
-                Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+                Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
             ASSERT_TRUE(result.HasValue()) << result.Error();
             ASSERT_EQ(batch.Vertices().size(), 6u);
             const auto remainder = clock.lowWord % (type == 0xc1e ? 2000 : 4000);
@@ -457,11 +469,12 @@ TEST(GameItemSpecialDrawingTest, LongRunningBowChromeUsesTheNativeSignedWordPeri
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0xa25;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.worldClock = 0x1p32f;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_GE(batch.Vertices().size(), 6u);
     EXPECT_FLOAT_EQ(batch.Vertices()[3].uv.x, 0.5f);
@@ -471,11 +484,12 @@ TEST(GameItemSpecialDrawingTest, ChromeFourKeepsTheFractionalNativeClockForItsSi
 {
     SpecialModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0xc1d;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.worldClock = 1234.5f;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(batch.Vertices().size(), 30u);
     // F32(1 + 3*F32(sin(1234.5*F32(.002)))), con normal(0,0,1).
@@ -488,15 +502,16 @@ TEST(GameItemSpecialDrawingTest, ShieldRetainsAdditiveRgbAcrossLayersWithoutStor
     models.model.meshes.resize(2);
     models.meshes.resize(2);
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0xc1d;
     object.alpha = 0.5f;
     object.state.light = 0.75f;
     object.state.uv = {0.125f, 0.25f};
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.worldClock = 100.0f;
     context.publishedObject = &object;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(batch.Vertices().size(), 15u);
     EXPECT_FLOAT_EQ(batch.Vertices()[6].color.red, 0.5f);
@@ -516,14 +531,15 @@ TEST(GameItemSpecialDrawingTest, ShieldPublishesAttenuatedRgbBeforeALaterLayerFa
     models.meshes.resize(2);
     models.meshes[0].positions.clear();
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0xc1d;
     object.alpha = 0.5f;
     object.state.hiddenMesh = 0;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.worldClock = 100.0f;
     context.publishedObject = &object;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("vértices/normales"), std::string::npos);
     ASSERT_EQ(batch.Vertices().size(), 6u);
@@ -544,13 +560,14 @@ TEST(GameItemSpecialDrawingTest, MissingSecondMeshResourceKeepsFirstGeometryAndR
         else
             models.meshes.resize(1);
         Client::Render::ModelBatch batch;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = 0x212;
         object.alpha = 0.5f;
-        Client::Scenes::ItemSpecialDrawContext context;
+        Client::Actors::Drawing::ItemSpecialDrawContext context;
         context.flags = 0x44;
         context.publishedObject = &object;
-        const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+        const auto result =
+            Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find(missingTexture ? "textura" : "vértices/normales"), std::string::npos);
         EXPECT_EQ(batch.Vertices().size(), 3u);
@@ -568,12 +585,13 @@ TEST(GameItemSpecialDrawingTest, StaffStoresPrecedeIncompleteScratchAndKeepFirst
     SpecialModels models;
     models.meshes.resize(1);
     Client::Render::ModelBatch batch;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x61c;
     object.state.light = 0.25f;
-    Client::Scenes::ItemSpecialDrawContext context;
+    Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.publishedObject = &object;
-    const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
+    const auto result =
+        Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("vértices/normales"), std::string::npos);
     EXPECT_FLOAT_EQ(object.state.light, 1);

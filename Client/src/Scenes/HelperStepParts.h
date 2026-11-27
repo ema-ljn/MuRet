@@ -11,15 +11,19 @@
 #include <string>
 #include <string_view>
 
+namespace Client::Kernel
+{
+struct ActorState;
+class WorldState;
+} // namespace Client::Kernel
+
 // Lo que comparten los cuerpos de 0x444010 (Scenes/HelperTable.cpp y Scenes/PetHelperSteps.cpp): la celda segura
 // del jinete, el buffer global de la pose, el alta de las partículas y el polvo. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro" y "Las mascotas".
 namespace Client::Scenes
 {
-struct ActorState;
 struct HelperState;
 struct HelperStepContext;
-class WorldState;
 
 // 0x444174..0x444182, 0x444a04..0x444a12 y 0x444c5a..0x444c6b: la luz del polvo.
 inline constexpr glm::vec3 HelperDustLight{1.0f, 1.0f, 1.0f};
@@ -27,14 +31,14 @@ inline constexpr glm::vec3 HelperDustLight{1.0f, 1.0f, 1.0f};
 // 0x4440b8..0x4440e9 (también 0x4447c4..0x4447f4 y 0x444af0..0x444b20): la celda de la posición del jinete, por
 // 0,01f y truncada, con el byte bajo de cada una (0x5f82a0), y el bit 0 de su atributo (0x7d0d348), en la carga
 // de la escena 4 o en el mapa del juego. `address` es el de la lectura del atributo.
-[[nodiscard]] Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& context,
-                                                                    const ActorState& rider, std::string_view address);
+[[nodiscard]] Core::Expected<bool, std::string>
+InTheRidersSafeCell(const HelperStepContext& context, const Kernel::ActorState& rider, std::string_view address);
 
 // 0x4ec110(hueso, desplazamiento, salida, 0) sobre el buffer global de la pose (0x68b181c + hueso · 0x30): sin la
 // escala ni el origen del modelo, el punto que deja el último modelo posado del dibujo anterior, que MuRet lleva en
 // WorldState::PoseCarry (Q-C401). Un hueso que ningún dibujo escribió todavía es la matriz en cero (el buffer es de
 // 200 huesos en la .bss) y da el origen; más allá de los 200 corta.
-[[nodiscard]] Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, std::size_t bone,
+[[nodiscard]] Core::Expected<glm::vec3, std::string> GlobalPosePoint(const Kernel::WorldState& world, std::size_t bone,
                                                                      const glm::vec3& offset, std::string_view address);
 // Lo mismo sobre `bones`, el buffer global que lleva un dibujo (el de WorldState o su copia proyectada).
 [[nodiscard]] Core::Expected<glm::vec3, std::string> GlobalPosePoint(std::span<const Math::BoneTransform> bones,
@@ -63,5 +67,5 @@ ScatterTheDust(const HelperState& helper, const HelperStepContext& context, std:
 
 // 0x44480b..0x44484a y 0x444b3b..0x444b7a: con +0x80 del jinete en 1 o en 2 el alpha baja 0,1f, con la resta en
 // la x87 guardada en float y comparada sin redondear: por debajo de 0, 0. Con otro, 1.
-void FadeWithTheRider(HelperState& helper, const ActorState& rider);
+void FadeWithTheRider(HelperState& helper, const Kernel::ActorState& rider);
 } // namespace Client::Scenes

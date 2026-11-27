@@ -25,19 +25,19 @@
 #include <string>
 #include <vector>
 
-// Client::Scenes::CharacterCloth: el bloque 0x50d58b..0x50db57 de 0x50ba30, frame por frame, contra el
+// Client::Actors::Drawing::CharacterCloth: el bloque 0x50d58b..0x50db57 de 0x50ba30, frame por frame, contra el
 // código real del main.exe emulado (tests/vectors/cloth): qué telas arma, la cuarta, la rotura y el
 // rearmado, el estado de cada una al final de sus cinco pasos y cada triángulo que dibuja.
 namespace
 {
+using Client::Actors::Drawing::CharacterCloth;
+using Client::Actors::Drawing::ClothWearer;
 using Client::Crt::CrtRandom;
 using Client::Models::Cloth;
 using Client::Models::ClothBody;
 using Client::Models::ClothWorld;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
-using Client::Scenes::CharacterCloth;
-using Client::Scenes::ClothWearer;
 using Client::Tests::ClothVectorEvent;
 using Client::Tests::ClothVectorFrame;
 using Client::Tests::ClothVectors;
@@ -133,7 +133,7 @@ void ExpectTheBlockCase(const std::string& name)
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         cloth.Frame(batch, wearer, body, world, frame.map, frame.worldTime, frame.wears,
-                    frame.color.value_or(Client::Scenes::PlainClothColor));
+                    frame.color.value_or(Client::Actors::Drawing::PlainClothColor));
 
         // Lo que dejó el binario: el último paso de cada tela, sus caras, los sprites y si se rompió.
         std::map<std::int32_t, ClothVectorStep> lastStep;
@@ -280,14 +280,14 @@ TEST(CharacterClothTest, ABrokenClothIsBuiltAgainTheNextFrame)
 // bVar23 para un jugador: la clase 3 o 4, salvo en los mapas 0x12 a 0x17.
 TEST(CharacterClothTest, OnlyClassesThreeAndFourWearACloth)
 {
-    EXPECT_TRUE(Client::Scenes::WearsACloth(4, 0x37));
-    EXPECT_TRUE(Client::Scenes::WearsACloth(3, 0x36));
-    EXPECT_TRUE(Client::Scenes::WearsACloth(4 | 8, 0x37));
-    EXPECT_FALSE(Client::Scenes::WearsACloth(0, 0x37));
-    EXPECT_FALSE(Client::Scenes::WearsACloth(2, 0x37));
-    EXPECT_FALSE(Client::Scenes::WearsACloth(4, 0x12));
-    EXPECT_FALSE(Client::Scenes::WearsACloth(4, 0x17));
-    EXPECT_TRUE(Client::Scenes::WearsACloth(4, 0x18));
+    EXPECT_TRUE(Client::Actors::Drawing::WearsACloth(4, 0x37));
+    EXPECT_TRUE(Client::Actors::Drawing::WearsACloth(3, 0x36));
+    EXPECT_TRUE(Client::Actors::Drawing::WearsACloth(4 | 8, 0x37));
+    EXPECT_FALSE(Client::Actors::Drawing::WearsACloth(0, 0x37));
+    EXPECT_FALSE(Client::Actors::Drawing::WearsACloth(2, 0x37));
+    EXPECT_FALSE(Client::Actors::Drawing::WearsACloth(4, 0x12));
+    EXPECT_FALSE(Client::Actors::Drawing::WearsACloth(4, 0x17));
+    EXPECT_TRUE(Client::Actors::Drawing::WearsACloth(4, 0x18));
 }
 } // namespace
 
@@ -425,7 +425,7 @@ TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClo
         ModelBatch ours;
         ours.Begin(Client::Render::Pass3D{});
         cloth.Advance(ours, lord.wearer, lord.body, world, lord.map, Client::Models::OriginalFrameTime * frame + late,
-                      true, Client::Scenes::PlainClothColor, Client::Models::OriginalFramePace::OncePerDraw);
+                      true, Client::Actors::Drawing::PlainClothColor, Client::Models::OriginalFramePace::OncePerDraw);
         ModelBatch theirs;
         theirs.Begin(Client::Render::Pass3D{});
         reference.Frame(theirs, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);

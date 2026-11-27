@@ -48,7 +48,7 @@
 // Nombres, títulos y textos inventados; cada caso en Lorencia y en Devias.
 namespace
 {
-using Client::Scenes::WorldState;
+using Client::Kernel::WorldState;
 namespace Shop = Client::Protocol::PersonalShop;
 
 constexpr std::int32_t Lorencia = 0;
@@ -113,7 +113,7 @@ protected:
 
     void Place(std::size_t index, std::uint16_t key, std::string_view name, std::uint8_t kind)
     {
-        Client::Scenes::ActorState& actor = m_world->Actors()[index];
+        Client::Kernel::ActorState& actor = m_world->Actors()[index];
         actor.alive = true;
         actor.seen = true;
         actor.word1f2 = 0xffff;
@@ -145,8 +145,8 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_input;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tests::RecordingSink m_sink;
@@ -312,7 +312,7 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
     m_world->Actors()[Buyer].byte88 = 1;
     Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{BuyerKey, "Joyas"}}}, *m_world);
     ASSERT_TRUE(Client::Scenes::HasShopTitle(Shops(), Buyer));
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{{BuyerKey}}, *m_world);
+    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{{BuyerKey}}, *m_world);
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
 }
 

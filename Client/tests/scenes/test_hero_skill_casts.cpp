@@ -54,7 +54,7 @@ Client::Tables::SkillTable ACostlySkill()
 
 struct Casting
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     Client::Tables::SkillTable skills = ACostlySkill();
 

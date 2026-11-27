@@ -32,7 +32,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -46,11 +46,11 @@ constexpr float DuplicateHeight = 10.0f;
 constexpr float DuplicateScale = 5.0f;
 constexpr float FirstDuplicateLight = 0.4f;
 constexpr float SecondDuplicateLight = 0.2f;
-ActorState* FindActor(WorldState& world, std::uint16_t key)
+Kernel::ActorState* FindActor(Kernel::WorldState& world, std::uint16_t key)
 {
     for (std::size_t slot = 0; slot < SearchActorCount; ++slot)
     {
-        ActorState& actor = world.Actors()[slot];
+        Kernel::ActorState& actor = world.Actors()[slot];
         if (actor.alive && actor.key == key)
             return &actor;
     }
@@ -61,7 +61,8 @@ void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt:
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     cell = value;
 }
-Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<ActorStopContext, std::string> StopContext(const Kernel::ActorState& actor,
+                                                          const Scenes::WorldEntryResources& resources)
 {
     const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (skeleton == nullptr && actor.type == Tables::PlayerSkeletonModel)
@@ -69,9 +70,9 @@ Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& acto
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
     return ActorStopContext{.runtime = resources.world.Runtime(),
-                            .scene = SceneId::Game,
+                            .scene = Scenes::SceneId::Game,
                             .playerSkeleton = *playerSkeleton,
                             .items = resources.items,
                             .random = resources.cloth.random,
@@ -81,7 +82,8 @@ Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& acto
                             .actorSkeleton = actorSkeleton,
                             .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
 }
-Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyOtherWalk(Kernel::ActorState& actor,
+                                                 const Scenes::WorldEntryResources& resources)
 {
     if (actor.movementCooldown != 0)
         return {};
@@ -97,8 +99,8 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el D3 recibido"));
     Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el D3 de otro.
-    const auto path =
-        finder.Find({actor.cellX, actor.cellY}, {actor.targetX, actor.targetY}, CrywolfAltarGoal(resources.world));
+    const auto path = finder.Find({actor.cellX, actor.cellY}, {actor.targetX, actor.targetY},
+                                  Scenes::CrywolfAltarGoal(resources.world));
     actor.movement = path.has_value() ? 1 : 0;
     if (path)
     {
@@ -113,7 +115,8 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
         return Core::Unexpected(stopped.Error());
     return {};
 }
-Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyJumpingWalk(Kernel::ActorState& actor,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     auto& random = resources.cloth.random;
     {
@@ -137,12 +140,12 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
     actor.byte399 = 1;
     return {};
 }
-void CreateRisingDamage(WorldState& world, const glm::vec3& position, std::int32_t amount, const glm::vec3& light,
-                        float scale)
+void CreateRisingDamage(Kernel::WorldState& world, const glm::vec3& position, std::int32_t amount,
+                        const glm::vec3& light, float scale)
 {
-    CreateDamageNumber(world, position, amount, light, scale, true);
+    Scenes::CreateDamageNumber(world, position, amount, light, scale, true);
 }
-void SubtractHeroLife(std::uint16_t amount, const WorldEntryResources& resources)
+void SubtractHeroLife(std::uint16_t amount, const Scenes::WorldEntryResources& resources)
 {
     const Models::LogicalAccess access(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
                                        Models::OwnRecordCloseRandoms);
@@ -176,18 +179,18 @@ glm::vec3 DamageLight(std::uint8_t type, bool hero)
 // (0x6b8d30, un double; también sin orden, con NaN), 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0,
 // héroe, −1, 0, 0, 0, 0): el escudo, que mira al que pega. El original no mira si ese lugar está vivo: lee el que haya.
 // Sin rand(); con la tabla llena, nada.
-Core::Expected<void, std::string> RaiseTheShield(ActorState& hero, const WorldEntryResources& resources)
+Core::Expected<void, std::string> RaiseTheShield(Kernel::ActorState& hero, const Scenes::WorldEntryResources& resources)
 {
     constexpr std::int16_t ShieldEffect = 0x109;
     constexpr double FacingSpan = 10.0; // 0x6b8d30
     constexpr double Behind = 180.0;    // 0x6b86bc
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     const std::int32_t source = world.Runtime().lastAttacker;
     const auto actors = world.Actors();
     if (source < 0 || static_cast<std::size_t>(source) >= actors.size())
         return Core::Unexpected(
             std::format("0x4cb347: el lugar {} de [0x5767964] cae fuera de la tabla de personajes", source));
-    const ActorState& striker = actors[static_cast<std::size_t>(source)];
+    const Kernel::ActorState& striker = actors[static_cast<std::size_t>(source)];
     const double heading = Math::CreateAngle(striker.position.x, striker.position.y, hero.position.x, hero.position.y);
     // 0x4cb361..0x4cb376: fabs y fcomp con test ah,1: C0 también sin orden.
     if (std::fabs(heading - static_cast<double>(striker.angles.z)) >= FacingSpan)
@@ -198,12 +201,13 @@ Core::Expected<void, std::string> RaiseTheShield(ActorState& hero, const WorldEn
                                              .light = hero.light,
                                              .subtype = 0,
                                              .key = 0xffff};
-    if (auto made = CreateBlastEffectOutsideTheStep(shield, &hero, world, resources.cloth.random); !made.HasValue())
+    if (auto made = Scenes::CreateBlastEffectOutsideTheStep(shield, &hero, world, resources.cloth.random);
+        !made.HasValue())
         return Core::Unexpected(std::format("0x4cb3b0: {}", made.Error()));
     return {};
 }
-void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& actor, bool hero,
-                          const WorldEntryResources& resources)
+void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, Kernel::ActorState& actor, bool hero,
+                          const Scenes::WorldEntryResources& resources)
 {
     if (reply.amount == 0)
     {
@@ -228,9 +232,9 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& a
 }
 } // namespace
 Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply, Kernel::PlayerKey player,
-                                                 const WorldEntryResources& resources)
+                                                 const Scenes::WorldEntryResources& resources)
 {
-    ActorState* actor = FindActor(resources.world, reply.characterId);
+    Kernel::ActorState* actor = FindActor(resources.world, reply.characterId);
     if (actor == nullptr || actor->dying != 0)
         return {};
     actor->direction = reply.direction;
@@ -247,9 +251,9 @@ Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk&
     return actor->type == JumpingActor ? ApplyJumpingWalk(*actor, resources) : ApplyOtherWalk(*actor, resources);
 }
 Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Damage& reply, Kernel::PlayerKey player,
-                                                   const WorldEntryResources& resources)
+                                                   const Scenes::WorldEntryResources& resources)
 {
-    ActorState* actor = FindActor(resources.world, reply.characterId);
+    Kernel::ActorState* actor = FindActor(resources.world, reply.characterId);
     if (actor == nullptr)
         return {};
     const bool hero = reply.characterId == player.Value();
@@ -281,4 +285,4 @@ Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Dam
     actor->damage = reply.amount;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

@@ -63,6 +63,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::BlendMode;
@@ -70,8 +72,6 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -459,7 +459,7 @@ protected:
         data = std::move(loaded).Value();
         // Como lo deja la entrada al mundo.
         world.OwnCharacter().ClearEquipmentForEntry();
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.life = 100;
         own.maxLife = 100;
         own.mana = 100;
@@ -472,8 +472,8 @@ protected:
 
     GameHudContext Context(bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = Hero();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::ActorState& hero = Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -508,7 +508,7 @@ protected:
         return Client::Scenes::DrawTheGameCursor(context);
     }
 
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
@@ -525,7 +525,7 @@ protected:
     // El héroe del frame 1 de Lorencia.
     void TheLorenciaHero()
     {
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.level = 1;
         own.experience = 0;
         own.nextExperience = 100;
@@ -539,7 +539,7 @@ protected:
         own.words6c[0] = 0x2c;
         own.equipment[8].id = 0x1a00;
         own.equipment[8].durability = 245;
-        Client::Scenes::ActorState& hero = Hero();
+        Client::Kernel::ActorState& hero = Hero();
         hero.cellX = 143;
         hero.cellY = 120;
         hero.skillIndex = 0;
@@ -611,7 +611,7 @@ TEST_F(GameHudTest, TheBaseStateSpendsTheRandomsOfItsAccessesAndLeavesTheTextCol
     EXPECT_TRUE(text.texts.empty());
     EXPECT_FALSE(sound.has_value());
     // La barra de abajo deja el blanco sobre negro (0x5a92a6) y apaga el aviso de durabilidad.
-    const Client::Scenes::HudState& hud = world.Runtime().hud;
+    const Client::Kernel::HudState& hud = world.Runtime().hud;
     EXPECT_EQ(hud.textColors.text, 0xffffffffu);
     EXPECT_EQ(hud.textColors.background, 0xff000000u);
     EXPECT_EQ(hud.durabilityWarning, 0);
@@ -919,7 +919,7 @@ TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().panels.party = 1;
         sprites.Begin(Screen640);
@@ -933,7 +933,7 @@ TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
         EXPECT_EQ(std::next(partyWindow, 2)->slot, std::uint16_t{0x118});
         EXPECT_EQ(world.Runtime().hud.partyX, 0x1c2);
 
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().panels.delegated.commands = 1;
         sprites.Begin(Screen640);
@@ -961,7 +961,7 @@ TEST_F(GameHudTest, TheNpcWindowsAndTheKeypadAreDrawn)
     for (const std::int32_t map : {0, 2, 3})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().panels.npcShop = 1;
         sprites.Begin(Screen640);
@@ -972,7 +972,7 @@ TEST_F(GameHudTest, TheNpcWindowsAndTheKeypadAreDrawn)
         EXPECT_TRUE(has(quads, 0x11b, 285.0f));
         EXPECT_EQ(world.Runtime().ui.npcWindowX, 0x104);
 
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().panels.warehouse = 1;
         world.Runtime().ui.field78abb20 = 1;
@@ -993,7 +993,7 @@ TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
     for (const std::int32_t map : {0, 2, 3})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().panels.panel2000 = 1;
         sprites.Begin(Screen640);
@@ -1051,7 +1051,7 @@ TEST_F(GameHudTest, TheNineteenthChildDrawsTheMapBannerWhileItFades)
 
 TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
 {
-    Client::Scenes::ActorState& owner = world.Actors()[4];
+    Client::Kernel::ActorState& owner = world.Actors()[4];
     owner.alive = true;
     owner.seen = true;
     owner.boundsTop = 120.0f;
@@ -1104,9 +1104,9 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
-        Client::Scenes::ActorState& owner = world.Actors()[4];
+        Client::Kernel::ActorState& owner = world.Actors()[4];
         owner.alive = true;
         owner.seen = true;
         owner.boundsTop = 120.0f;
@@ -1142,9 +1142,9 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
 // frame dibuja la mitad redondeada para arriba y deja el resto; un dibujo intermedio vacía una copia.
 TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
 {
-    std::deque<Client::Scenes::QueuedHealthBar>& bars = world.Runtime().healthBars;
+    std::deque<Client::Kernel::QueuedHealthBar>& bars = world.Runtime().healthBars;
     for (std::uint8_t stage = 0; stage < 3; ++stage)
-        bars.push_back(Client::Scenes::QueuedHealthBar{.position = {0.0f, 0.0f, 0.0f}, .fill = stage});
+        bars.push_back(Client::Kernel::QueuedHealthBar{.position = {0.0f, 0.0f, 0.0f}, .fill = stage});
 
     const auto cut = Hud();
     ASSERT_FALSE(cut.HasValue());
@@ -1213,7 +1213,7 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
         for (const bool projecting : {true, false})
         {
             SCOPED_TRACE(projecting);
-            world.Runtime() = Client::Scenes::WorldRuntime{};
+            world.Runtime() = Client::Kernel::WorldRuntime{};
             world.Runtime().map = probe.map;
             world.Runtime().eventObject = Client::Scenes::EventMapObject{
                 .kind = probe.kind, .field10 = probe.state, .field14 = {900, 1000, 70, 42}};
@@ -1256,7 +1256,7 @@ TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
     for (const std::int32_t map : {0, 2, 9, 11, 18})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 12, .field0c = 1000};
         tickCount = 1000 + 12345;
@@ -1284,7 +1284,7 @@ TEST_F(GameHudTest, TheCrywolfNoticeIsDrawnOnAnyMap)
     for (const std::int32_t map : {0, 2, 34})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         const auto countOf = [this](std::uint16_t slot)
         {
@@ -1324,7 +1324,7 @@ TEST_F(GameHudTest, TheCursorPicksItsSlot)
         EXPECT_FLOAT_EQ(quads[0].first.y, 480.0f - 198.0f);
         return quads[0].slot;
     };
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     EXPECT_EQ(slotOf(), 2);
     leftDown = true;
     EXPECT_EQ(slotOf(), 3);
@@ -1399,7 +1399,7 @@ TEST_F(GameHudTest, TheCursorsOfOtherWavesStop)
 // dibuja el de atacar (4, o 0x68d en el 30); el que no se puede atacar, el normal (2).
 TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
 {
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     Hero().safeZone = 0;
     auto& chosen = world.Actors()[7];
     runtime.selectedTargets[2] = 7;
@@ -1515,7 +1515,7 @@ TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         Client::UI::OldWindowManager& windows = world.Runtime().oldWindows;
         windows.windowList.list.waiting.push_back(7);
@@ -1599,7 +1599,7 @@ TEST_F(GameHudTest, TheSwitchHoldersDrawOneLinePerShownHalfInsideTheZone)
     for (const std::int32_t map : {0, 2, 30})
     {
         SCOPED_TRACE(map);
-        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
         world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
         Hero().cellX = 150;

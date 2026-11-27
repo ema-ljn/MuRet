@@ -40,7 +40,7 @@ namespace Client::Scenes
 {
 Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState& input)
 {
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const auto ticks =
         m_context.clock ? std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count() : 0;
@@ -110,7 +110,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         if (!m_mouseRay)
             return std::optional<glm::vec3>{};
         const auto& terrain = world.Map().terrain;
-        World::TerrainView view;
+        Terrain::TerrainView view;
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
         view.attributes = terrain.attributes.get();
@@ -118,12 +118,12 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         view.map = static_cast<std::uint8_t>(world.Runtime().map);
         view.fixedHeight = CameraState().fixedHeight;
         if (auto swept =
-                World::PickTerrain(m_picking, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+                Terrain::PickTerrain(m_picking, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
             !swept.HasValue())
             return Core::Unexpected(std::move(swept).Error());
-        World::TerrainPickingTarget target;
-        const auto picked = World::PickTerrainTarget(m_picking, target, view, m_terrainRange,
-                                                     world.Runtime().terrainPolygon, *m_mouseRay);
+        Terrain::TerrainPickingTarget target;
+        const auto picked = Terrain::PickTerrainTarget(m_picking, target, view, m_terrainRange,
+                                                       world.Runtime().terrainPolygon, *m_mouseRay);
         if (!picked.HasValue())
             return Core::Unexpected(picked.Error());
         if (!picked.Value())
@@ -147,18 +147,18 @@ Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::Gro
 {
     if (!m_mouseRay)
         return std::optional<Pathfinding::PathCell>{};
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     const auto& terrain = world.Map().terrain;
-    World::TerrainView view;
+    Terrain::TerrainView view;
     view.mapping = terrain.mapping.get();
     view.heights = terrain.heights.get();
     view.attributes = terrain.attributes.get();
     view.lighting = &world.DynamicLighting().Lighting();
     view.map = static_cast<std::uint8_t>(world.Runtime().map);
     view.fixedHeight = CameraState().fixedHeight;
-    World::TerrainPickingTarget target;
-    const auto picked =
-        World::PickTerrainTarget(m_picking, target, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+    Terrain::TerrainPickingTarget target;
+    const auto picked = Terrain::PickTerrainTarget(m_picking, target, view, m_terrainRange,
+                                                   world.Runtime().terrainPolygon, *m_mouseRay);
     if (!picked.HasValue())
         return Core::Unexpected(picked.Error());
     if (!picked.Value())
@@ -169,7 +169,7 @@ Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::Gro
 
 Core::Expected<void, std::string> GameScene::StepTheFauna()
 {
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     if (auto loaded = LoadTheObjectModels(world.Runtime().map); !loaded.HasValue())
         return loaded;
     auto& hero = world.Hero();
@@ -193,19 +193,19 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     auto* slots = m_worldModels.TextureSlots();
     if (!slots)
         return Core::Unexpected(std::string("612d90: falta la tabla de texturas del mundo"));
-    const FaunaModelLoadContext resources{m_context.dataRoot,
-                                          m_context.textures,
-                                          m_context.log,
-                                          *slots,
-                                          &world.FaunaResources().TextureTable(),
-                                          &world.Runtime().modelSounds,
-                                          world.Runtime().audio};
+    const Assets::FaunaModelLoadContext resources{m_context.dataRoot,
+                                                  m_context.textures,
+                                                  m_context.log,
+                                                  *slots,
+                                                  &world.FaunaResources().TextureTable(),
+                                                  &world.Runtime().modelSounds,
+                                                  world.Runtime().audio};
     context.effects = BindFaunaStepEffects(world.FaunaResources(), resources, world.DrawTail().joints,
                                            world.Map().effects, m_context.cloth->random);
     return StepGameFauna(context);
 }
 
-const World::WorldTerrain& GameScene::StepTerrain() const
+const Terrain::WorldTerrain& GameScene::StepTerrain() const
 {
     if (m_context.world->Runtime().map == 54 && m_context.selection && m_context.selection->Terrain())
         return *m_context.selection->Terrain();
@@ -214,7 +214,7 @@ const World::WorldTerrain& GameScene::StepTerrain() const
 
 Core::Expected<void, std::string> GameScene::StepTheLeaves()
 {
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     const auto& terrain = StepTerrain();
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x530490: falta terreno para el paso de hojas"));

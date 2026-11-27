@@ -51,6 +51,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Render::Color;
@@ -59,7 +60,6 @@ using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::KeypadKeyAt;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -150,7 +150,7 @@ protected:
         Runtime().npcWindows.keypad = {7, 3, 9, 0, 5, 1, 8, 2, 6, 4};
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -159,8 +159,8 @@ protected:
     {
         m_text.texts.clear();
         m_sprites.Begin(Screen640);
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

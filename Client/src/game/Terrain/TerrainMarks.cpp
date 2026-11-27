@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Terrain
 {
 Core::Expected<void, std::string> MarkTheTerrainCell(Data::Terrain::TerrainAttributes* attributes, std::int32_t x,
                                                      std::int32_t y, std::uint8_t attribute, bool add,
@@ -46,4 +46,4 @@ Core::Expected<void, std::string> MarkTheTerrainArea(Data::Terrain::TerrainAttri
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Terrain

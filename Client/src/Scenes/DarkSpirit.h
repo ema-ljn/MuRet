@@ -19,10 +19,14 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainPolygon;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class Particles;
-struct TerrainPolygon;
 } // namespace Client::World
 
 // El cuervo (CL7.6 C): el pájaro del ítem 0x1c17 en la mano del Dark Lord, el modelo 0xc0
@@ -114,13 +118,13 @@ struct DarkSpiritBirthAccesses
 
 // 0x4182f0: si el cuervo pasa el trapecio de 0x5fba90 en su (x, y) por 0,01f, con −20. Si no, el dibujo
 // le pone la velocidad en 3 y, salvo en el estado 4 (0x418375), el estado en 0 (MissTheView).
-[[nodiscard]] bool DarkSpiritSeen(const DarkSpirit& spirit, const World::TerrainPolygon& polygon);
+[[nodiscard]] bool DarkSpiritSeen(const DarkSpirit& spirit, const Terrain::TerrainPolygon& polygon);
 void MissTheView(DarkSpirit& spirit);
 
 // Lo que se dibuja del cuervo (DrawDarkSpirit) entre dos pasos (`stepAlpha` de un paso más, D-C4): el
 // 0xc0 con su escala, sus ángulos y la posición más lo que se movió en el último paso por `stepAlpha`,
 // la animación interpolada, la luz del terreno en su lugar (`terrainLight`) más la suya, la luz por
 // vértice y su alpha. Con `stepAlpha` en 0, el estado del paso: el que posa el original.
-[[nodiscard]] DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton,
-                                          const glm::vec3& terrainLight, float stepAlpha);
+[[nodiscard]] Actors::Drawing::DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton,
+                                                           const glm::vec3& terrainLight, float stepAlpha);
 } // namespace Client::Scenes

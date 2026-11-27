@@ -25,11 +25,11 @@
 // D+0x10 y D+0x12 son los +0x28 y +0x29 del mismo registro (3 y 1, 9, 10), como los copia 0x54bf40.
 namespace
 {
-using Client::Scenes::ItemSetOptionList;
-using Client::Scenes::OwnCharacterRecord;
+using Client::Kernel::ItemState;
+using Client::Kernel::OwnCharacterRecord;
+using Client::Player::ItemSetOptionList;
 using Client::Tables::FirstItemModel;
 using Client::Tables::ItemModel;
-using Client::World::ItemState;
 
 constexpr std::string_view ItemFile = "Local\\Item.bmd";
 constexpr std::uint16_t EmptyType = 0xffff;
@@ -91,11 +91,11 @@ TEST_F(GoldenOwnStatHelpers, Word60WithTheRealSmallShield)
     own.equipment[1] = Worn(TypeOf(6, 0), 2);
     own.equipment[1].byte10 = 3;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWord60(own, &items->table).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWord60(own, &items->table).HasValue());
     EXPECT_EQ(own.word60, 102);
 
     own.equipment[1].durability = 22;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWord60(own, &items->table).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWord60(own, &items->table).HasValue());
     EXPECT_EQ(own.word60, 103);
 }
 
@@ -114,7 +114,7 @@ TEST_F(GoldenOwnStatHelpers, Word62WithARealEquipment)
     own.equipment[7].word12 = 10;
     ItemSetOptionList setOptions;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWord62(own, &items->table, {}, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWord62(own, &items->table, {}, &setOptions).HasValue());
 
     EXPECT_EQ(own.word62, 75 + 1 + 5 + 5);
 }
@@ -129,10 +129,10 @@ TEST_F(GoldenOwnStatHelpers, Words5aAnd5cWithTheRealSkullStaff)
     own.equipment[0] = Worn(TypeOf(5, 0), 5);
     own.equipment[0].optionCount = 1;
     own.equipment[0].optionBytes[0] = 0x51;
-    own.equipment[0].optionBytes[Client::World::ItemOptionValueOffset] = 9;
+    own.equipment[0].optionBytes[Client::Kernel::ItemOptionValueOffset] = 9;
     ItemSetOptionList setOptions;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, &items->table, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, &items->table, &setOptions).HasValue());
 
     EXPECT_EQ(own.word5a, 9);
     EXPECT_EQ(own.word5c, 9);

@@ -29,6 +29,7 @@
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorDying.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/ActorSpirit.h"
 #include "Scenes/AttackSkillCases.h"
 #include "Scenes/AttackStep.h"
 #include "Kernel/CharacterHead.h"
@@ -53,6 +54,7 @@
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Actors/Drawing/WeaponTrail.h"
 #include "Math/Ftol.h"
@@ -79,7 +81,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -195,7 +197,7 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 // El registro de un monstruo o un NPC existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc u
 // Object35, que 0x60da30 saltea, o un tipo sin caso de carga) está en 0, sin acciones (+0x26), y 0x4ea030, 0x4f9580 y
 // 0x505de0 lo toman como un modelo vacío.
-const Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
+const Models::Skeleton* ModelSkeletonOf(const Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     static const Models::Skeleton ZeroRecord;
     if (actor.type == Tables::PlayerSkeletonModel)
@@ -210,15 +212,15 @@ const Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const Character
 // TerrainWall.
 std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& context)
 {
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return {};
     return [&terrain, fixedHeight = context.fixedHeight](float x, float y)
-    { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight); };
+    { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight); };
 }
 
 // 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
-Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, std::size_t slot,
                                                      const CharacterStepContext& context)
 {
     const bool player = actor.type == Tables::PlayerSkeletonModel;
@@ -227,7 +229,7 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
     {
         return Core::Unexpected(std::format("0x4f37c0: falta el esqueleto del personaje del lugar {}", slot));
     }
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (!terrain.attributes)
     {
         return Core::Unexpected(std::string("0x508ba0: falta el TerrainWall para reintentar el camino"));
@@ -242,11 +244,11 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
         false,
         player ? nullptr : own,
         modelSounds};
-    ActorMotionContext motion{context.world.Runtime(), context.random, {}, CrywolfAltarGoal(context.world)};
+    ActorMotionContext motion{context.world.Runtime(), context.random, {}, Scenes::CrywolfAltarGoal(context.world)};
     if (terrain.heights)
     {
         motion.height = [&](float x, float y)
-        { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, context.fixedHeight); };
+        { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, context.fixedHeight); };
     }
     return StepOtherActorMotion(actor, walk, motion, terrain.attributes->cells);
 }
@@ -255,12 +257,12 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
 // de [0x7681eb0], con el registro propio abierto (Q-C246).
 Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
-    OwnCharacterRecord& own = world.OwnCharacter();
-    ItemSetOptionList& setOptions = world.ItemSets().list;
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    Kernel::OwnCharacterRecord& own = world.OwnCharacter();
+    Player::ItemSetOptionList& setOptions = world.ItemSets().list;
     // El ítem del cursor, con lo que haya en sus globales (HeldItemOf).
-    const OwnEquipmentOverride held = HeldItemOf(runtime);
+    const Player::OwnEquipmentOverride held = Player::HeldItemOf(runtime);
     // 0x4fc46a..0x4fc556: abre el registro propio en línea; 0x4fc617..0x4fc767 lo cierra en línea, con los
     // 3.848 rand() de 0x40b4d0 si la cuenta queda en 0.
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -272,7 +274,7 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     if (own.word3e == 0)
     {
         ClearBit(own.speedAdjustBits, Word3eBit);
-        if (auto updated = UpdateOwnAttackAndMagicSpeeds(own, held, runtime.ownRecordDepth, context.random);
+        if (auto updated = Player::UpdateOwnAttackAndMagicSpeeds(own, held, runtime.ownRecordDepth, context.random);
             !updated.HasValue())
         {
             return updated;
@@ -288,11 +290,11 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     {
         ClearBit(own.speedAdjustBits, Word40Bit);
         setOptions.used = {};
-        if (auto updated = UpdateOwnWords50To56(own, held, context.items, &setOptions); !updated.HasValue())
+        if (auto updated = Player::UpdateOwnWords50To56(own, held, context.items, &setOptions); !updated.HasValue())
         {
             return updated;
         }
-        if (auto updated = UpdateOwnWords5aAnd5c(own, held, context.items, &setOptions); !updated.HasValue())
+        if (auto updated = Player::UpdateOwnWords5aAnd5c(own, held, context.items, &setOptions); !updated.HasValue())
         {
             return updated;
         }
@@ -305,7 +307,7 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     if (own.word42 == 0)
     {
         ClearBit(own.speedAdjustBits, Word42Bit);
-        if (auto updated = UpdateOwnAttackAndMagicSpeeds(own, held, runtime.ownRecordDepth, context.random);
+        if (auto updated = Player::UpdateOwnAttackAndMagicSpeeds(own, held, runtime.ownRecordDepth, context.random);
             !updated.HasValue())
         {
             return updated;
@@ -316,7 +318,7 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
 
 // 0x4f9580(c, c): la velocidad de la acción, sus factores y 0x4ec200. Devuelve si terminó, lo que 0x4f9580
 // devuelve en 0.
-Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t slot,
+Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
     // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
@@ -372,14 +374,14 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
              frame > ClassFourFirstFrame && frame < ClassFourLastFrame)
     {
         // 0x4f969d..0x4f96ba: 0x59e680 con el personaje.
-        speed *= IsInTheParty(context.world, actor) ? PartyClassFourFactor : HalfFactor;
+        speed *= Scenes::IsInTheParty(context.world, actor) ? PartyClassFourFactor : HalfFactor;
     }
     if (action == HalvedAction)
     {
         speed *= HalfFactor;
     }
     // 0x4f96d4..0x4f9737: los otros tipos (el NewFace, el 0x192 y el 0x1a9).
-    speed = ModelSpeedOf(actor.type, action, frame, speed);
+    speed = Scenes::ModelSpeedOf(actor.type, action, frame, speed);
     // 0x4f973a: con +0x78 & 0x1000 devuelve 0 sin avanzar.
     if (frozen)
     {
@@ -387,7 +389,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     }
     // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21). El NewFace es el
     // objeto suelto de la selección; 4ec200 consulta la escena vigente, no el tipo.
-    const Models::AnimationScene scene = context.scene == SceneId::CharacterSelect
+    const Models::AnimationScene scene = context.scene == Scenes::SceneId::CharacterSelect
                                              ? Models::AnimationScene::CharacterSelect
                                              : Models::AnimationScene::Other;
     // 4ec21b usa el BYTE +a0 publicado antes de animar, aunque el actor haya cambiado de acción.
@@ -409,9 +411,9 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
 
 // 0x52e810(c) desde 0x4fcb9c y 0x4fcc3c: los restos, con el modelo del tipo de c y la escala y la posición que le dejó
 // el último 0x505ec6 de ese tipo (Q-C1178).
-Core::Expected<void, std::string> LeaveTheRemainsOf(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> LeaveTheRemainsOf(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
-    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
     return LeaveTheRemains(actor, ActorRemainsContext{.skeleton = ModelSkeletonOf(actor, context),
                                                       .modelScale = placement.scale,
                                                       .modelOrigin = placement.origin,
@@ -421,7 +423,7 @@ Core::Expected<void, std::string> LeaveTheRemainsOf(ActorState& actor, const Cha
 }
 
 // 0x4fcb10(c, c) desde 0x4fce57, con la acción que terminó.
-Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcba6: con +0x38a en 0, lo pone en 1 y corre 0x52e810 una vez; con o sin él,
@@ -473,18 +475,18 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const Characte
 }
 
 // 0x4fcd00(c, c, b) desde 0x4fd770.
-Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, std::size_t slot,
                                                    const CharacterStepContext& context)
 {
     // 0x4fcd0c..0x4fcd55: con +0x88 en 4, en los mapas 0 y 2, el 0x20a de subtipo 0xd1 a 0xd3 (el tipo 236) gira.
-    const bool turned = TurnTheNpc(actor, context.world.Runtime().map);
+    const bool turned = Scenes::TurnTheNpc(actor, context.world.Runtime().map);
     // 0x4fcd60: 0x4fc790, el mensaje del NPC.
-    if (auto said = SayTheNpcLine(actor, slot, context); !said.HasValue())
+    if (auto said = Scenes::SayTheNpcLine(actor, slot, context); !said.HasValue())
     {
         return said;
     }
     // 0x4fcd65..0x4fce15: el mensaje del nombre de 0x6c88b0, con su reloj.
-    if (auto named = SayTheNamedLine(actor, slot, context); !named.HasValue())
+    if (auto named = Scenes::SayTheNamedLine(actor, slot, context); !named.HasValue())
     {
         return named;
     }
@@ -503,17 +505,17 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
         // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
         if (actor.type == Tables::PlayerSkeletonModel)
         {
-            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
+            return turned ? Scenes::FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
         // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
         const Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
-        const auto end = FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
+        const auto end = Scenes::FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
             return Core::Unexpected(end.Error());
         }
         // 0x4fcc35..0x4fcc3c: el monstruo que terminó de morir deja sus restos.
-        if (end.Value() == ModelActionEnd::LeaveRemains)
+        if (end.Value() == Scenes::ModelActionEnd::LeaveRemains)
         {
             if (auto left = LeaveTheRemainsOf(actor, context); !left.HasValue())
             {
@@ -521,7 +523,7 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
             }
         }
         // 0x4fcbe3: con 0x42d890 en 1, 0x4f9580 otra vez; lo que devuelve no se mira.
-        if (end.Value() == ModelActionEnd::AdvanceAgain)
+        if (end.Value() == Scenes::ModelActionEnd::AdvanceAgain)
         {
             if (auto again = AdvanceTheBody(actor, slot, context); !again.HasValue())
             {
@@ -559,7 +561,7 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
 
 // 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a. Las partículas y el reloj son los del paso (0x432bd0 crea la 0x5d9
 // del 0x1b0).
-Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, std::size_t slot,
                                                      const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
@@ -569,18 +571,19 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
         actor.trailOrigin = actor.position;
         return {};
     }
-    if (auto emitted = EmitWeaponTrail(actor, ModelSkeletonOf(actor, context), context); !emitted.HasValue())
+    if (auto emitted = Actors::Drawing::EmitWeaponTrail(actor, ModelSkeletonOf(actor, context), context);
+        !emitted.HasValue())
         return emitted;
     const auto* skeleton = ModelSkeletonOf(actor, context);
-    if (auto emitted = EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
+    if (auto emitted = Scenes::EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
         return emitted;
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
     // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
-    if (auto swung =
-            StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.random, context.particles, context.worldClock);
+    if (auto swung = Scenes::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.random, context.particles,
+                                                     context.worldClock);
         !swung.HasValue())
         return swung;
-    return EmitLateMonsterRibbonTrails(actor, skeleton, context);
+    return Scenes::EmitLateMonsterRibbonTrails(actor, skeleton, context);
 }
 
 // Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
@@ -598,8 +601,8 @@ std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRando
 // Cada comparación abre y cierra su entrada.
 Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Hero();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    Kernel::ActorState& hero = context.world.Hero();
     Crt::CrtRandom& random = context.random;
     if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
         ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
@@ -611,7 +614,7 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
             (static_cast<double>(context.worldClock) - static_cast<double>(runtime.reportedCellTime)) * Thousandth;
         if (!(waited >= ReportDelay))
             return {};
-        const World::WorldTerrain& terrain =
+        const Terrain::WorldTerrain& terrain =
             context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
         if (terrain.attributes == nullptr)
             return Core::Unexpected(std::string("0x4fbed9: falta el .att del mapa (0x7d0d348)"));
@@ -646,29 +649,29 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
 
 // 0x4fd787..0x4fd7e1: +0x389 más uno, en un byte; con 15 o más, 0x4f5660 (SetActorDie); en Blood Castle (11 a 17)
 // con +0x1a1, 0x4f5660 otra vez, también antes del 15.
-Core::Expected<void, std::string> DieAgain(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
-    const ActorCombatContext combat{.world = context.world,
-                                    .random = context.random,
-                                    .playerSkeleton = context.playerSkeleton,
-                                    .models = context.models,
-                                    .items = context.items};
+    const Scenes::ActorCombatContext combat{.world = context.world,
+                                            .random = context.random,
+                                            .playerSkeleton = context.playerSkeleton,
+                                            .models = context.models,
+                                            .items = context.items};
     constexpr std::uint8_t DyingAgain = 15;
     actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
     if (actor.dying >= DyingAgain)
     {
-        if (auto died = SetActorDie(actor, combat); !died.HasValue())
+        if (auto died = Scenes::SetActorDie(actor, combat); !died.HasValue())
             return died;
     }
     const std::int32_t map = context.world.Runtime().map;
     using Maps::FirstBloodCastleMap;
     using Maps::LastBloodCastleMap;
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)
-        return SetActorDie(actor, combat);
+        return Scenes::SetActorDie(actor, combat);
     return {};
 }
 
-Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::size_t slot,
                                                const CharacterStepContext& context);
 
 // 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
@@ -679,13 +682,13 @@ constexpr std::int32_t RavenShoutSound = 0x1d1;
 // Lo que el paso del cuervo lee del pool (DarkSpiritTargets): el personaje de +8 y el de +0x3b0, con signo. Entre 0 y
 // 399 mira sus banderas (0x416a8b..0x416ab9); el 6 lee su posición con cualquier valor distinto de 0xffff (0x417858):
 // los lugares que escriben el A8 (0 a 400) están en el pool de MuRet, y otro valor corta.
-Core::Expected<DarkSpiritTargets, std::string> RavenTargetsOf(const DarkSpirit& spirit, WorldState& world,
-                                                              std::size_t slot)
+Core::Expected<Scenes::DarkSpiritTargets, std::string> RavenTargetsOf(const Kernel::DarkSpirit& spirit,
+                                                                      Kernel::WorldState& world, std::size_t slot)
 {
     constexpr std::int16_t PoolActors = 400;
     constexpr std::uint16_t NoAttackTarget = 0xffff;
     const auto actors = world.Actors();
-    DarkSpiritTargets targets;
+    Scenes::DarkSpiritTargets targets;
     if (spirit.target < actors.size())
     {
         targets.target = actors[spirit.target].position;
@@ -708,17 +711,18 @@ Core::Expected<DarkSpiritTargets, std::string> RavenTargetsOf(const DarkSpirit& 
     return targets;
 }
 
-glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset);
+glm::vec3 OwnBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset);
 
 // El cuerpo publicó el modelo ANTES de mover al moribundo. No sustituir este placement por actor.position actual.
-glm::vec3 SharedBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
+glm::vec3 SharedBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
+                          const Kernel::WorldState& world)
 {
     const auto placement = world.ModelPlacement(actor.type);
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
-const Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
+const Models::Skeleton* BoneEmitterSkeleton(const Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     if (actor.type != Tables::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
     {
@@ -729,7 +733,7 @@ const Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const Chara
 }
 
 // 4fd835..4fdada: el contador sólo baja después de recorrer los huesos; J lleno conserva seis selectores por hueso.
-Core::Expected<void, std::string> StepTheBoneEmitter(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheBoneEmitter(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     if (context.world.Runtime().map == CastleMap || actor.byte1a0 == 0)
         return {};
@@ -765,7 +769,7 @@ Core::Expected<void, std::string> StepTheBoneEmitter(ActorState& actor, const Ch
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = -1};
-        if (auto joint = CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
+        if (auto joint = Scenes::CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
             return Core::Unexpected(std::format("0x4fdabf: {}", joint.Error()));
     }
     --actor.byte1a0;
@@ -776,7 +780,7 @@ Core::Expected<void, std::string> StepTheBoneEmitter(ActorState& actor, const Ch
 // habilidad (Scenes::BodyLight).
 constexpr glm::vec3 ActionFlareLight{0.3f, 0.5f, 1.0f};
 
-Core::Expected<void, std::string> CreateTheActionFlare(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateTheActionFlare(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     constexpr std::size_t FlareBone = 42;
     constexpr std::int32_t FlareType = 0x5ac;
@@ -792,14 +796,14 @@ Core::Expected<void, std::string> CreateTheActionFlare(ActorState& actor, const 
     return {};
 }
 
-Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
+Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x4fd603..0x4fd698: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0 (MonsterStepCases.h).
     if (actor.type == NamedType)
     {
-        if (auto queued = QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
+        if (auto queued = Scenes::QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
             return queued;
     }
     // 0x4fd69b..0x4fd6ef: publica la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0).
@@ -835,7 +839,7 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
             return Core::Unexpected(
                 std::format("0x4fb942: falta la altura del terreno (0x5f93c0) para el 0xf1 del lugar {}", slot));
         }
-        StepTheFallingBall(actor, height);
+        Scenes::StepTheFallingBall(actor, height);
     }
     // 0x4fd722: 0x4fb9e0, muriéndose (+0x389). Lo que sigue corre aunque lo haya borrado.
     if (auto died = StepActorDying(actor, slot,
@@ -872,7 +876,7 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         return emitted;
     // 0x4fdae0..0x4fdb92: las 0x4d, 0x4f y 0x5a pasado el frame 5,5 sacan la partícula 0x5ac del hueso 42.
     // La luz local de 0x4fd5f0: (1, 1, 1) en 0x4fd81e y la de la partícula en 0x4fdb3f.
-    glm::vec3 bodyLight = BodyLight;
+    glm::vec3 bodyLight = Scenes::BodyLight;
     const std::uint8_t action = actor.animation.action;
     if (IsOneOf(ParticleActions, action) && actor.animation.frame > ParticleFrame)
     {
@@ -883,20 +887,20 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
     // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
     // 0x79 (0x4cb830, ActionReply).
-    if (auto attacked = StepTheAttack(actor, slot, context, bodyLight); !attacked.HasValue())
+    if (auto attacked = Scenes::StepTheAttack(actor, slot, context, bodyLight); !attacked.HasValue())
     {
         return attacked;
     }
     // 0x5053a2..0x5053f0: cuenta el +0x428 y, al vencer, corre 0x511070(c, o) sin cortar el cuerpo.
     if (actor.dword428 > 0)
         --actor.dword428;
-    if (actor.dword428 <= 0 && actor.dword428 != ActorRemovalCountdownSentinel)
+    if (actor.dword428 <= 0 && actor.dword428 != Kernel::ActorRemovalCountdownSentinel)
     {
-        actor.dword428 = ActorRemovalCountdownSentinel;
+        actor.dword428 = Kernel::ActorRemovalCountdownSentinel;
         RemoveActorAtSlot(context.world, actor, slot);
     }
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
-    QueueTheHealthBar(actor, context.world.Runtime().healthBars);
+    Scenes::QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
     if (auto trailed = StepTheWeaponTrail(actor, slot, context); !trailed.HasValue())
     {
@@ -934,9 +938,10 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
 }
 
 // 0x420dd0: el cuervo de +0x430, que el que llama da por existente y sin +0x78 & 0x1000.
-Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::size_t slot,
+                                               const CharacterStepContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {
         return Core::Unexpected(
@@ -947,19 +952,19 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
     {
         return Core::Unexpected(targets.Error());
     }
-    const SharedModelPlacement& player = context.world.PlayerModel();
-    const DarkSpiritStepped stepped =
-        StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                       {.position = actor.position,
-                        .flags = actor.flags78,
-                        .angles = actor.angles,
-                        .pet = actor.pet.model,
-                        .safeZone = actor.safeZone,
-                        .pose = actor.bodyPose,
-                        .modelScale = player.scale,
-                        .modelOrigin = player.origin},
-                       static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock, context.random,
-                       context.counter, targets.Value());
+    const Kernel::SharedModelPlacement& player = context.world.PlayerModel();
+    const Scenes::DarkSpiritStepped stepped =
+        Scenes::StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
+                               {.position = actor.position,
+                                .flags = actor.flags78,
+                                .angles = actor.angles,
+                                .pet = actor.pet.model,
+                                .safeZone = actor.safeZone,
+                                .pose = actor.bodyPose,
+                                .modelScale = player.scale,
+                                .modelOrigin = player.origin},
+                               static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
+                               context.random, context.counter, targets.Value());
     // 0x416fc8 y 0x4175de: el A7 que corta el ataque, por send(); sin la sesión, no sale.
     if (stepped.stopsTheAttack && context.send)
     {
@@ -977,14 +982,15 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
 
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x505ec6
 // copió del personaje al modelo. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
-glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+glm::vec3 OwnBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, actor.position);
 }
 
-Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm::vec3& point, ActorState& actor,
-                                                    const glm::vec3& light, std::int32_t subtype, float scale,
+Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm::vec3& point,
+                                                    Kernel::ActorState& actor, const glm::vec3& light,
+                                                    std::int32_t subtype, float scale,
                                                     const CharacterStepContext& context, std::string_view address)
 {
     if (context.particles == nullptr)
@@ -1001,7 +1007,7 @@ Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm
 // −1)). Cada uno con los ángulos (rand() % 90, 0, rand() % 360), que salen también con la tabla de joints llena, y el
 // primer punto en la posición menos (0, −500, 0) girado por ellos, 120 más arriba. El alta saca su rand() de la luz
 // (FaunaJointCreation, 0x5324ea) sólo con un lugar libre.
-Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitChargedSkillJoints(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     constexpr int Count = 3, PitchSpan = 90, YawSpan = 360;
     constexpr glm::vec3 Offset{0.0f, -500.0f, 0.0f};
@@ -1030,14 +1036,14 @@ Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, cons
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = -1};
-        if (auto joint = CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
+        if (auto joint = Scenes::CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
             return Core::Unexpected(std::format("0x518aa8: {}", joint.Error()));
     }
     return {};
 }
 
 // 506e57..506f5a: la pose sin publicar usa la matriz0 de Q-C318, no equivale a puntero120NULL.
-Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, const Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitChargedSkillFlares(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
                                                          const CharacterStepContext& context)
 {
     constexpr std::size_t PastBone = 40, BoneStep = 2;
@@ -1061,7 +1067,7 @@ Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, cons
 }
 
 // 506f62..506fc1: diez selecciones de hueso y partículas5d9/0 ya portadas; count0 conserva rand antes del IDIV.
-Core::Expected<void, std::string> EmitRandomBoneFires(ActorState& actor, const Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitRandomBoneFires(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
                                                       const CharacterStepContext& context)
 {
     constexpr int Count = 10;
@@ -1084,7 +1090,7 @@ Core::Expected<void, std::string> EmitRandomBoneFires(ActorState& actor, const M
 // de los huesos propios (+0x120), (0, 20, −10), la escala (+0x68) y la posición (+0x6c) que 0x505ec6 copió
 // del personaje, y 0x53fe70(0x607, punto, +0x1c, (1, 1, 1) de 0x506c82, 0, 1, 0). Antes del primer dibujo
 // los huesos son los del operator new de 0x511290, sin iniciar: MuRet usa una matriz en cero (Q-C318).
-Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> BlowTheAtlansBubble(const Kernel::ActorState& actor, std::size_t slot,
                                                       const CharacterStepContext& context)
 {
     constexpr std::int32_t ClockPeriod = 10000;
@@ -1118,7 +1124,7 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, s
 // 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() % 4 (rand() & 3): con 0, una gota 0x68/0 de
 // 0x4ec110 con el hueso 26 (0x4e0) y después con el 35 (0x690) de los huesos propios, (−15, 0, 0), y
 // 0x53fe70(0x68, punto, +0x1c, (1, 1, 1), 0, 1, 0). El segundo rand() sale aunque el primero no dé 0.
-Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> DropTheDevilSquareRain(const Kernel::ActorState& actor, std::size_t slot,
                                                          const CharacterStepContext& context)
 {
     constexpr std::int32_t RainParticle = 0x68;
@@ -1150,14 +1156,14 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor
 // 0x505e15..0x505ebb: la caja de +0x13c..+0x168 con la de +0x124..+0x138: el rincón más la posición y los tres ejes
 // (el largo de cada lado en la diagonal, el resto en 0). Cada resta y cada suma en la x87 se guarda en float: lo mismo
 // que en float.
-void BoxTheModelWithoutActions(ActorState& actor)
+void BoxTheModelWithoutActions(Kernel::ActorState& actor)
 {
     PublishPickingBox(actor, actor.position, actor.boundsMin, {actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop});
 }
 
 // 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los
 // monstruos y los NPC"). `hero` es c == [0x743a170].
-Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
+Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
@@ -1204,12 +1210,13 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         // 0x5068da..0x5068e8: con otro modelo, antes 0x4ea190.
         if (!player)
         {
-            if (auto target = SetTheModelHeadTarget(actor, context.world.Actors(), context.random); !target.HasValue())
+            if (auto target = Scenes::SetTheModelHeadTarget(actor, context.world.Actors(), context.random);
+                !target.HasValue())
             {
                 return Core::Unexpected(std::format("{} (lugar {})", target.Error(), slot));
             }
         }
-        StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
+        Kernel::StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
     }
     if (auto cooldown = StepActorCooldown(actor, context.random, CharacterCooldownServices(context));
         !cooldown.HasValue())
@@ -1221,7 +1228,7 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // 0x7b4ccc4, el de WorldState, que 0x5fbf60 repone en cada paso. Sin rand().
     if (actor.pk < FirstPkWithoutLights)
     {
-        for (const ActorItemPart& hand : actor.hands)
+        for (const Kernel::ActorItemPart& hand : actor.hands)
         {
             const auto light =
                 std::ranges::find(HandLights, hand.model, [](const HandLight& candidate) { return candidate.model; });
@@ -1247,19 +1254,19 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
     {
-        ModelEffectsPass pass{.actor = actor,
-                              .slot = slot,
-                              .world = context.world,
-                              .random = context.random,
-                              .skeleton = *skeleton,
-                              .particles = context.particles,
-                              .sprites = context.sprites,
-                              .worldClock = context.worldClock,
-                              .map = map};
-        return StepTheModelEffects(pass);
+        Scenes::ModelEffectsPass pass{.actor = actor,
+                                      .slot = slot,
+                                      .world = context.world,
+                                      .random = context.random,
+                                      .skeleton = *skeleton,
+                                      .particles = context.particles,
+                                      .sprites = context.sprites,
+                                      .worldClock = context.worldClock,
+                                      .map = map};
+        return Scenes::StepTheModelEffects(pass);
     }
     static_cast<void>(context.random.Next());
-    if (context.scene == SceneId::Game && map == ClockEffectMap)
+    if (context.scene == Scenes::SceneId::Game && map == ClockEffectMap)
     {
         if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())
         {
@@ -1326,7 +1333,7 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     return {};
 }
 
-Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t slot, bool hero,
+Core::Expected<void, std::string> StepACharacter(Kernel::ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context)
 {
     if (!actor.alive)
@@ -1345,7 +1352,7 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
     {
         return body;
     }
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (auto effects =
             StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
         !effects.HasValue())
@@ -1354,11 +1361,11 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
     }
     // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a); en el 30 mueve, por +0x376, los objetos del
     // asedio (MonsterStepCases.h).
-    const CastleObjectStep castle{.runtime = context.world.Runtime(),
-                                  .pool = context.world.Actors(),
-                                  .height = TerrainHeightOf(context),
-                                  .skeleton = ModelSkeletonOf(actor, context)};
-    if (auto stepped = StepTheCastleObject(actor, castle); !stepped.HasValue())
+    const Scenes::CastleObjectStep castle{.runtime = context.world.Runtime(),
+                                          .pool = context.world.Actors(),
+                                          .height = TerrainHeightOf(context),
+                                          .skeleton = ModelSkeletonOf(actor, context)};
+    if (auto stepped = Scenes::StepTheCastleObject(actor, castle); !stepped.HasValue())
     {
         return Core::Unexpected(std::format("{} (lugar {})", stepped.Error(), slot));
     }
@@ -1366,16 +1373,16 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
 }
 } // namespace
 
-bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& position)
+bool CharacterSeen(const Terrain::TerrainPolygon& polygon, const glm::vec3& position)
 {
     constexpr double CellsPerUnit = static_cast<double>(0.01f);
     constexpr double ViewMargin = -20.0;
     const auto cells = [](float coordinate)
     { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
-    return World::PolygonContains(polygon, cells(position.x), cells(position.y), ViewMargin);
+    return Terrain::PolygonContains(polygon, cells(position.x), cells(position.y), ViewMargin);
 }
 
-LogicalCell ReadLogicalCell(ActorState& actor, Crt::CrtRandom& random)
+LogicalCell ReadLogicalCell(Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
     LogicalCell cell;
     {
@@ -1391,14 +1398,14 @@ LogicalCell ReadLogicalCell(ActorState& actor, Crt::CrtRandom& random)
 
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     // 0x508f06..0x508f0c: 0x412140 con el héroe, antes del lazo.
-    if (auto panel = RefreshTheSiegePanel(world.Runtime()); !panel.HasValue())
+    if (auto panel = Scenes::RefreshTheSiegePanel(world.Runtime()); !panel.HasValue())
     {
         return panel;
     }
-    const WorldRuntime& runtime = world.Runtime();
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
+    const Kernel::WorldRuntime& runtime = world.Runtime();
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
     if (!terrain.attributes)
     {
         return Core::Unexpected("0x508f14: el TerrainWall (0x7d0d348) del " + MapText(runtime.map) +
@@ -1407,11 +1414,11 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     Data::Terrain::TerrainLayer<std::uint16_t>& walls = terrain.attributes->cells;
     Pathfinding::ClearCharacterWalls(walls);
     // 0x5fba90 lee los globales de 0x78ecbf0 y 0x78ecc00: el trapecio del último dibujo de cualquier escena.
-    const World::TerrainPolygon& polygon = runtime.terrainPolygon;
+    const Terrain::TerrainPolygon& polygon = runtime.terrainPolygon;
     const auto actors = world.Actors();
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {
-        ActorState& actor = actors[slot];
+        Kernel::ActorState& actor = actors[slot];
         // 0x508f49..0x509165: vivo, sin morirse y sin el 8 de +0x88, ocupa su celda lógica.
         if (actor.alive && actor.dying == 0 && actor.byte88 != Pathfinding::NonBlockingKind)
         {
@@ -1423,7 +1430,7 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     }
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {
-        ActorState& actor = actors[slot];
+        Kernel::ActorState& actor = actors[slot];
         const bool hero = slot == runtime.hero;
         if (auto stepped = StepACharacter(actor, slot, hero, context); !stepped.HasValue())
         {
@@ -1431,7 +1438,7 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         }
     }
     // 0x5091d0: una vez después del último 0x508ea0, también en el login y antes del preview de selección.
-    return StepRibbons(world.DrawTail().ribbons);
+    return Actors::Drawing::StepRibbons(world.DrawTail().ribbons);
 }
 
 // 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 con el contexto del paso. La 5f3/1 va al pool de partículas
@@ -1442,7 +1449,8 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
 ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& context)
 {
     return {
-        .particle = [&context](const glm::vec3& position, const ActorState& actor) -> Core::Expected<void, std::string>
+        .particle = [&context](const glm::vec3& position,
+                               const Kernel::ActorState& actor) -> Core::Expected<void, std::string>
         {
             constexpr std::int32_t BrakeDustSubtype = 1;
             if (context.particles == nullptr)
@@ -1455,7 +1463,7 @@ ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& cont
                                                     static_cast<unsigned>(created.Error())));
             return {};
         },
-        .effect = [&context](std::int32_t type, const ActorState& actor) -> Core::Expected<void, std::string>
+        .effect = [&context](std::int32_t type, const Kernel::ActorState& actor) -> Core::Expected<void, std::string>
         {
             static_cast<void>(context.world.Map().effects.CreateStoneChip(
                 static_cast<std::int16_t>(type), actor.position, actor.angles, actor.light, context.random));
@@ -1463,19 +1471,19 @@ ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& cont
         }};
 }
 
-Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> StepCharacter(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
-    return StepACharacter(actor, ActorPoolSize, false, context);
+    return StepACharacter(actor, Kernel::ActorPoolSize, false, context);
 }
 
-Core::Expected<void, std::string> StepTheBodyAndEffects(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheBodyAndEffects(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
-    if (auto body = StepTheBody(actor, ActorPoolSize, false, context); !body.HasValue())
+    if (auto body = StepTheBody(actor, Kernel::ActorPoolSize, false, context); !body.HasValue())
     {
         return body;
     }
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
-    return StepTheEffects(actor, ActorPoolSize, false, context,
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    return StepTheEffects(actor, Kernel::ActorPoolSize, false, context,
                           terrain.attributes ? &terrain.attributes->cells : nullptr);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

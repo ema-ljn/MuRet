@@ -31,7 +31,7 @@ class GameT16TerrainContract : public Client::Tests::GoldenDataTest, public ::te
 TEST_P(GameT16TerrainContract, ArchivedCornersFeedPickingAndHeightWithoutClaimingACompleteScene)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, map);
+    const auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
     if (map == 5 || map == 35)
     {
         ASSERT_FALSE(terrain.HasValue());
@@ -47,13 +47,13 @@ TEST_P(GameT16TerrainContract, ArchivedCornersFeedPickingAndHeightWithoutClaimin
     constexpr std::uint8_t Y = 13;
     constexpr float HitX = 1375;
     constexpr float HitY = 1325;
-    const Client::World::TerrainView view{.heights = &heights, .attributes = &attributes, .map = map};
-    Client::World::TerrainPickingState state;
-    Client::World::TerrainPickingTarget target;
-    const Client::World::TerrainPickingSegment ray{{HitX, HitY, 1600}, {HitX, HitY, -400}};
-    const Client::World::TerrainRange range{12, 12, 12, 12};
-    const Client::World::TerrainPolygon polygon{.everything = true};
-    const auto picked = Client::World::PickTerrainTarget(state, target, view, range, polygon, ray);
+    const Client::Terrain::TerrainView view{.heights = &heights, .attributes = &attributes, .map = map};
+    Client::Terrain::TerrainPickingState state;
+    Client::Terrain::TerrainPickingTarget target;
+    const Client::Terrain::TerrainPickingSegment ray{{HitX, HitY, 1600}, {HitX, HitY, -400}};
+    const Client::Terrain::TerrainRange range{12, 12, 12, 12};
+    const Client::Terrain::TerrainPolygon polygon{.everything = true};
+    const auto picked = Client::Terrain::PickTerrainTarget(state, target, view, range, polygon, ray);
     ASSERT_TRUE(picked.HasValue()) << picked.Error();
     ASSERT_TRUE(picked.Value());
     EXPECT_EQ(target.x, X);
@@ -65,32 +65,32 @@ TEST_P(GameT16TerrainContract, ArchivedCornersFeedPickingAndHeightWithoutClaimin
                                               Client::Data::Terrain::CellIndex(X + 1, Y + 1)};
     std::array<double, 3> z{};
     for (std::size_t i = 0; i < triangle.size(); ++i)
-        z[i] = (attributes.cells[triangle[i]] & Client::World::FixedHeightBit) != 0 ? view.fixedHeight
-                                                                                    : heights.cells[triangle[i]];
+        z[i] = (attributes.cells[triangle[i]] & Client::Terrain::FixedHeightBit) != 0 ? view.fixedHeight
+                                                                                      : heights.cells[triangle[i]];
     EXPECT_NEAR(state.hit.z, (z[0] + 2 * z[1] + z[2]) / 4, 0.0002);
     // En un vértice, la altura bilineal tiene un oráculo exacto aun si difiere de la triangulación.
     constexpr float InsideVertexBias = 0.01f;
     const float vertexX = static_cast<float>(X) * 100 + InsideVertexBias;
     const float vertexY = static_cast<float>(Y) * 100 + InsideVertexBias;
-    EXPECT_NEAR(Client::World::TerrainHeightAt(heights, attributes, vertexX, vertexY), z[0], 0.01);
+    EXPECT_NEAR(Client::Terrain::TerrainHeightAt(heights, attributes, vertexX, vertexY), z[0], 0.01);
     RecordProperty("scope", "archived terrain kernel; scene coverage in GameT16SceneMatrix");
 }
 
 using GameT16CastleHeight = Client::Tests::GoldenDataTest;
 TEST_F(GameT16CastleHeight, TheArchivedCastleBit40UsesTheSharedFixedHeight)
 {
-    const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, 30);
+    const auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, 30);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     const auto& attributes = *terrain.Value().attributes;
     const auto& heights = *terrain.Value().heights;
     bool checked = false;
     for (std::size_t cell = 0; cell < attributes.cells.size(); ++cell)
     {
-        if ((attributes.cells[cell] & Client::World::FixedHeightBit) == 0)
+        if ((attributes.cells[cell] & Client::Terrain::FixedHeightBit) == 0)
             continue;
         const float x = static_cast<float>(cell % 256) * 100 + 50;
         const float y = static_cast<float>(cell / 256) * 100 + 50;
-        EXPECT_DOUBLE_EQ(Client::World::TerrainHeightAt(heights, attributes, x, y, 1201), 1201);
+        EXPECT_DOUBLE_EQ(Client::Terrain::TerrainHeightAt(heights, attributes, x, y, 1201), 1201);
         checked = true;
     }
     EXPECT_TRUE(checked);

@@ -32,16 +32,16 @@
 // mosaico de LSBg01 a 04 y el juego después de un frame (06 § La carga del mundo).
 namespace
 {
+using Client::Assets::WorldLoadingTextureSet;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldLoadingWait;
+using Client::Kernel::WorldRuntime;
+using Client::Kernel::WorldState;
 using Client::Models::ClothWorld;
 using Client::Render::TextureSlot;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::WorldLoadingScene;
-using Client::Scenes::WorldLoadingTextureSet;
-using Client::Scenes::WorldLoadingWait;
-using Client::Scenes::WorldRuntime;
-using Client::Scenes::WorldState;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::FrameEvent;
 using Client::Tests::RecordingFrameTarget;

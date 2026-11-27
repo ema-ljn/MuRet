@@ -15,6 +15,7 @@
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/ShopSigns.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -156,13 +157,13 @@ std::string_view CString(std::string_view text)
 // 0x55627a..0x556cd2, el camino de TextOut distinto de 1 (06 § Texto): el globo en (x, y) de 640 × 480.
 Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, const ChatBubble& bubble, int fontStep)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const std::span<const ActorState, ActorPoolSize> actors = context.world.Actors();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const std::span<const Kernel::ActorState, Kernel::ActorPoolSize> actors = context.world.Actors();
     if (!bubble.owner)
         return Core::Unexpected(std::string("0x555b0f: un globo sin dueño"));
     const std::size_t ownerSlot = *bubble.owner;
-    const ActorState& owner = actors[ownerSlot];
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& owner = actors[ownerSlot];
+    const Kernel::ActorState& hero = context.world.Hero();
     if ((owner.flags7c & HiddenBubbleFlag) == HiddenBubbleFlag)
         return {};
     // 0x555b2a..0x555bda: 0x4294b0 lee el byte del asedio (0x7239ec).
@@ -320,8 +321,8 @@ Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble, const
 
 Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const std::span<const ActorState, ActorPoolSize> actors = context.world.Actors();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const std::span<const Kernel::ActorState, Kernel::ActorPoolSize> actors = context.world.Actors();
     const Core::PixelSize screen = context.sprites.Screen();
     const int fontStep = Render::Text::FontStepFor(screen.width);
     // Un dibujo intermedio escribe en una copia.
@@ -345,7 +346,7 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
         // 0x5a90e2: el IDIV por W, que con 0 sería una excepción.
         if (screen.width <= 0 || screen.height <= 0)
             return Core::Unexpected(std::string("0x5a90e2: la pantalla no tiene tamaño"));
-        const ActorState& owner = actors[*bubble.owner];
+        const Kernel::ActorState& owner = actors[*bubble.owner];
         // 0x5a9096..0x5a90ad: FLD, FADD y FADD en la x87, y FSTP en float.
         const glm::vec3 above{owner.position.x, owner.position.y,
                               static_cast<float>(static_cast<double>(owner.boundsTop) +

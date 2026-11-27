@@ -43,10 +43,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -168,7 +168,7 @@ public:
         return quiet.random;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime() const
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime() const
     {
         return world->Runtime();
     }

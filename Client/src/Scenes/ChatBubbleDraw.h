@@ -27,9 +27,13 @@ namespace Client::Render::Frame
 {
 class ITextDrawer;
 } // namespace Client::Render::Frame
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct ChatBubble;
 struct GameProjection;
 
@@ -45,7 +49,7 @@ struct GameProjection;
 // Lo que el dibujo lee y deja.
 struct ChatBubbleDrawContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, un globo vivo corta.
     const GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;

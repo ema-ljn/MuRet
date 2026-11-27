@@ -24,7 +24,7 @@
 
 // Los modelos del personaje (0x60dbe0), ítems (0x60ff50) y efectos (0x615700), con sus esqueletos
 // y enlaces de mallas a texturas para las escenas. Contrato en 06 § El modelo en el binario.
-namespace Client::Scenes
+namespace Client::Assets
 {
 class GameModels final : public Models::IModelLibrary
 {
@@ -66,4 +66,4 @@ private:
     // Desde 0x138 (0x60f7d0); Load le corre el próximo a cada cargador.
     Models::ModelTextureSlots m_slots{Render::TextureSlot{0x138}};
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

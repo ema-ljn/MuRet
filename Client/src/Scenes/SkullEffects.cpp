@@ -73,7 +73,7 @@ constexpr std::int32_t HeldLife = 10;
 // /3) y el radio FSIN(i · 15,37f + T · 0,0031f) · 20 + 50, guardado en float; el punto es el del dueño corrido en x por
 // FSIN(ángulo) · radio y en y por FCOS(ángulo) · radio, a 200 (250 el /3) por su escala sobre su z. Ahí, la partícula
 // 0x5de/5 con los ángulos del efecto y escala 0,4f, y el sprite 0x628 de escala 1 con la luz local (1, 1, 1).
-Core::Expected<void, std::string> Orbit(World::ModelEffect& effect, const ActorState& owner,
+Core::Expected<void, std::string> Orbit(World::ModelEffect& effect, const Kernel::ActorState& owner,
                                         const HighEffectStepContext& context)
 {
     const bool reversed = effect.subtype == ReverseOrbitSubtype;
@@ -111,7 +111,7 @@ Core::Expected<void, std::string> Orbit(World::ModelEffect& effect, const ActorS
 
 // 0x52b78d..0x52b853, el /5: tres partículas 0x5ac/5 con los ángulos del efecto, la luz (0,6f; 0,6f; 1) y escala 0,7f,
 // en SkullStackPoint.
-Core::Expected<void, std::string> Stack(World::ModelEffect& effect, const ActorState& owner,
+Core::Expected<void, std::string> Stack(World::ModelEffect& effect, const Kernel::ActorState& owner,
                                         const HighEffectStepContext& context)
 {
     const glm::vec3 light{Pale, Pale, 1.0f};
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> Stack(World::ModelEffect& effect, const ActorS
 } // namespace
 
 Core::Expected<glm::vec3, std::string> SkullStackPoint(int turn, std::int32_t life, float worldClock,
-                                                       const ActorState& owner)
+                                                       const Kernel::ActorState& owner)
 {
     const double angle =
         static_cast<double>(turn) * TurnStep + static_cast<double>(life) * LifeTurn + D(worldClock) * StackClock;
@@ -181,7 +181,7 @@ Core::Expected<void, std::string> StepTheSkull(World::ModelEffect& effect, const
         return CreateHighSprite(context, SkullSprite, effect.transform.position, FallingSpriteScale, effect.light, 0.0f,
                                 0x52b5dc);
     }
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
         return Core::Unexpected(std::format("0x52b5ef: el 0x628/{} lee el byte vivo de un dueño nulo", effect.subtype));
     if (!owner->alive)
@@ -222,10 +222,10 @@ Core::Expected<void, std::string> StepTheSkull(World::ModelEffect& effect, const
     }
 }
 
-Core::Expected<void, std::string> PutTheSkullOn(ActorState& actor, WorldState& world, Crt::CrtRandom& random,
-                                                std::uint32_t address)
+Core::Expected<void, std::string> PutTheSkullOn(Kernel::ActorState& actor, Kernel::WorldState& world,
+                                                Crt::CrtRandom& random, std::uint32_t address)
 {
-    static_cast<void>(KillModelEffectsOf(world.Map().effects, SkullEffect, &actor, PlainSubtype));
+    static_cast<void>(Actors::KillModelEffectsOf(world.Map().effects, SkullEffect, &actor, PlainSubtype));
     const auto made = CreateHighModelEffect({.type = SkullEffect,
                                              .position = actor.position,
                                              .angles = actor.angles,

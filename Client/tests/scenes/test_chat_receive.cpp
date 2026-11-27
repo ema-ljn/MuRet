@@ -54,6 +54,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Protocol::Chat::Chat;
 using Client::Protocol::Chat::KeyChat;
 using Client::Protocol::Chat::Notice;
@@ -63,10 +65,8 @@ using Client::Protocol::Player::OptionData;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ActorState;
 using Client::Scenes::ChatReceiveContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::WorldState;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -125,7 +125,7 @@ protected:
         return actor;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -409,8 +409,8 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     m_world->Hero().guildStatus = 0x80;
     Client::Scenes::SelectionState selection(*m_world);
     Client::Models::ClothWorld cloth;
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
@@ -551,7 +551,7 @@ TEST_F(ChatReceiveTest, TheSlideNoticeQueuesOnlyInTheGame)
 // 0x4dd570: 3.848 rand() al cerrar el registro, las teclas del elegido y lo demás después.
 TEST_F(ChatReceiveTest, TheOptionDataFillsTheKeysAndTheOptions)
 {
-    Client::Scenes::OwnCharacterRecord& own = m_world->OwnCharacter();
+    Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
     own.words6c[0] = 0x00110a00u; // las skills 0x00, 0x0a, 0x11 y 0x00 en +0x6c..+0x6f
     OptionData data;
     data.skillKeys.fill(0xff);

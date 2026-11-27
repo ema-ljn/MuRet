@@ -24,10 +24,10 @@
 // model+0x88 de la carga (06 § Los objetos de Tarkan).
 namespace
 {
+using Client::Terrain::TerrainLighting;
 using Client::World::ObjectModelStepState;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepTarkanObject;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 constexpr float Clock = 12345.0f;

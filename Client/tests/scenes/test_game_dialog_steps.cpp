@@ -61,8 +61,8 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Input::InputState;
+using Client::Kernel::WorldState;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 class DialogPlayback final : public Client::Audio::IPlayback
 {
@@ -200,7 +200,7 @@ class SteppingDialogs
 public:
     explicit SteppingDialogs(std::int32_t map)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = map;
         runtime.dialogs.current = Client::UI::EscapeMenuDialog;
         // Las teclas del elegido: el lugar 0 con la tecla 3 y el 2 con la 0; los demás sin tecla.
@@ -736,7 +736,7 @@ protected:
 
     WarRequestTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.dialogs.current = 0x7f;
         Client::Scenes::GuildState& guild = runtime.guild;
         guild.warOn = 0;
@@ -744,7 +744,7 @@ protected:
         guild.rival = {'T', 'e', 'r', 'o', 's', '\0', '\0', '\0', '\0'};
         const auto mark = [this](std::size_t index, std::uint16_t guildIndex, std::uint8_t byte374)
         {
-            Client::Scenes::ActorState& actor = m_tested->world.Actors()[index];
+            Client::Kernel::ActorState& actor = m_tested->world.Actors()[index];
             actor.alive = true;
             actor.word1f2 = guildIndex;
             actor.byte374 = byte374;
@@ -755,7 +755,7 @@ protected:
         mark(7, 0xffff, 0);
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_tested->world.Runtime();
     }
@@ -864,7 +864,7 @@ protected:
     MoneyOkTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
     {
         m_tested->random = CrtRandom(Seed);
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.dialogs.current = 0x73;
         runtime.panels.trade = 1;
         runtime.social.dialogFieldLimit = 8;
@@ -873,7 +873,7 @@ protected:
         m_tested->world.OwnCharacter().zen = 1000;
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_tested->world.Runtime();
     }
@@ -888,7 +888,7 @@ protected:
     // 0x628215..0x6282c3: lo que deja el OK en todos los casos.
     void ExpectTheDialogFieldsReset()
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         EXPECT_FALSE(runtime.ui.enterPressed);
         EXPECT_EQ(runtime.social.dialogFieldLimit, 0x2a);
         EXPECT_EQ(runtime.chat.input.fieldCount, 2);
@@ -1007,7 +1007,7 @@ protected:
 
     LeaveNumberTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.dialogs.current = LeaveDialog;
         auto& slot = runtime.guild.members[KickedSlot];
         std::ranges::copy(std::string_view("Tala"), slot.name.begin());
@@ -1022,7 +1022,7 @@ protected:
         Client::UI::TypeInTheChat(input, "1234567");
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_tested->world.Runtime();
     }
@@ -1239,7 +1239,7 @@ TEST(GameDialogStepsTest, AnAnswerWithoutItsDialogIsCut)
 // Los tramos de otras olas cortan con su dirección; un id que no está en la tabla va al OK genérico.
 // 0x94 abierto por 0x633300(4, 0x173, 0x94), con los botones (1, 0x15, 0x5a, 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15)
 // y el aviso 3 de 0x78abb14 (el comercio).
-void OpenTheWarning(Client::Scenes::WorldRuntime& runtime, std::int32_t id = 0x94)
+void OpenTheWarning(Client::Kernel::WorldRuntime& runtime, std::int32_t id = 0x94)
 {
     runtime.dialogs.current = id;
     runtime.dialogs.pending = 0;

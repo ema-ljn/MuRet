@@ -78,14 +78,14 @@ std::optional<std::uint8_t> LowByteOf(double value)
 // cerrada, y el D3 de girar con su ángulo.
 Core::Expected<void, std::string> TurnThePublishedHero(const HeroSkillContext& context, std::string_view where)
 {
-    ActorState& published = context.world.Hero();
+    Kernel::ActorState& published = context.world.Hero();
     const std::uint8_t x = ReadTheSkillCell(published.cellXAccesses, published.cellX, context.random);
     const std::uint8_t y = ReadTheSkillCell(published.cellYAccesses, published.cellY, context.random);
     return SendTheTurn(x, y, published.angles.z, context, where);
 }
 
 // 0x55cd47..0x55d499 y 0x55d9da..0x55e133: sin "webzen" y con el freno (que con la 0x28 no frena), el C1 06 19.
-Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const ActorState& target,
+Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Kernel::ActorState& target,
                                                   const HeroSkillContext& context, std::string_view where)
 {
     if (HasTheSilentName(context.world))
@@ -99,17 +99,17 @@ Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Acto
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, ActorState& turned,
+Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& user, Kernel::ActorState& turned,
                                                          const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const WeaponSkillRequest& request = runtime.movement.weaponSkill;
     // 0x55cbe4..0x55cc9a: la skill del lugar, con el registro propio abierto y cerrado.
     std::uint8_t skill = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        skill = OwnSkillByte(world.OwnCharacter(), request.slot);
+        skill = Kernel::OwnSkillByte(world.OwnCharacter(), request.slot);
     }
     if (skill == 0x2b || skill == 0x2f)
         return {};
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
     if (request.target < 0 || static_cast<std::size_t>(request.target) >= world.Actors().size())
         return Core::Unexpected(
             std::format("0x55ccd2: el blanco {} de la skill del arma está fuera del pool", request.target));
-    ActorState& target = world.Actors()[static_cast<std::size_t>(request.target)];
+    Kernel::ActorState& target = world.Actors()[static_cast<std::size_t>(request.target)];
     user.attackPosition = target.position;
     turned.angles.z = static_cast<float>(
         Math::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));

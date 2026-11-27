@@ -23,9 +23,13 @@ class Particles;
 struct ModelEffect;
 } // namespace Client::World
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct HighEffectStepContext;
 
 inline constexpr std::int16_t GuildMarkEffect = 0x140;
@@ -38,18 +42,17 @@ inline constexpr std::size_t GuildMarkBone = 20;
 // 3,2f, la luz en 1 y la partida en la posición. Después, diez veces: el giro rand() % 360 y dos radios rand() % 20 +
 // 15 (cada uno sacado justo antes de usarlo), y la chispa 0x5c6/4 (escala 0,6f, con el efecto de dueño, hacia su
 // posición) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z). Treinta rand(); los de la chispa, ninguno.
-[[nodiscard]] Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot,
-                                                                  const ActorState& owner, const glm::vec3& bonePoint,
-                                                                  World::Particles& particles, Crt::CrtRandom& random,
-                                                                  float worldClock);
+[[nodiscard]] Core::Expected<void, std::string>
+BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot, const Kernel::ActorState& owner,
+                  const glm::vec3& bonePoint, World::Particles& particles, Crt::CrtRandom& random, float worldClock);
 
 // 0x510ef0 hasta 0x518cf0: +0x369 en 1 y +0x36c (un float) en 0 o un NaN, o el reloj del mundo más de 5000 después.
-[[nodiscard]] bool GuildMarkIsDue(const ActorState& actor, float worldClock);
+[[nodiscard]] bool GuildMarkIsDue(const Kernel::ActorState& actor, float worldClock);
 
 // 0x510ef0 con +0x369 en 1: si +0x36c (un float) es 0 o un NaN, o si el reloj del mundo le lleva más de 5000, el 0x140
 // (0x518cf0(0x140, posición, ángulos, luz, 0, el personaje, −1, 0, 0, 0, 0), con la tabla llena nada), y +0x36c pasa
 // a ser el reloj. `bonePoint` es el punto del hueso 20 del personaje con el modelo como lo dejó su dibujo.
-[[nodiscard]] Core::Expected<void, std::string> RaiseTheGuildMark(ActorState& actor, const glm::vec3& bonePoint,
+[[nodiscard]] Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint,
                                                                   World::ModelEffects& effects,
                                                                   World::Particles& particles, Crt::CrtRandom& random,
                                                                   float worldClock);

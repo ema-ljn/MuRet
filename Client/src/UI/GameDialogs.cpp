@@ -157,7 +157,7 @@ Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, cons
 // avanza en el lazo de 0x633729, Q-C922; los dos que llaman pasan 1). lineCount + 1 renglones.
 Core::Expected<void, std::string> WriteTheItemName(DialogBoxState& box, const Tables::TextTable* texts,
                                                    std::int32_t lineCount, std::int32_t firstText, std::int32_t id,
-                                                   const World::ItemState& item)
+                                                   const Kernel::ItemState& item)
 {
     std::string name;
     if (const std::uint32_t level = (item.scalar1Low >> LevelShift) & LevelMask;
@@ -356,7 +356,7 @@ void ShowTheTextDialog(DialogBoxState& box, DialogState& dialogs, std::int32_t i
 Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
                                                  const Tables::TextTable* texts, std::int32_t lineCount,
                                                  std::int32_t firstText, std::int32_t id,
-                                                 const World::ItemState* dialogItem,
+                                                 const Kernel::ItemState* dialogItem,
                                                  const DialogTextArguments* arguments)
 {
     if (id == ItemNameDialog || id == ItemNameWithLuckDialog)

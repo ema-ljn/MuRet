@@ -213,7 +213,7 @@ std::int32_t TenthsOf(const PartySlot& slot)
 // 0x5f130a..0x5f168a.
 Core::Expected<void, std::string> DrawThePartyList(GameHudContext& context, std::int32_t width)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     auto counted = Members(hud.partyCount, "0x5f130a");
     if (!counted.HasValue())
         return Core::Unexpected(std::move(counted).Error());
@@ -277,12 +277,12 @@ Core::Expected<void, std::string> DrawThePartyList(GameHudContext& context, std:
 // 0x5f0df0..0x5f11ad: los miembros en la ventana abierta en (x, y).
 Core::Expected<void, std::string> DrawTheMembers(GameHudContext& context, std::int32_t x, std::int32_t y)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     auto counted = Members(hud.partyCount, "0x5f0df0");
     if (!counted.HasValue())
         return Core::Unexpected(std::move(counted).Error());
     Render::SpriteBatch& sprites = context.sprites;
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const PartyState& party = world.Runtime().social.party;
     const std::string_view hero = NameView(world.Hero().name);
     const bool leader = NameView(party.slots[0].name) == hero;
@@ -341,8 +341,8 @@ Core::Expected<void, std::string> DrawTheMembers(GameHudContext& context, std::i
 
 Core::Expected<void, std::string> StepTheKickButtons(const GameUiContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const std::int32_t count = runtime.hud.partyCount;
     if (count <= 0)
         return {};
@@ -376,7 +376,7 @@ Core::Expected<void, std::string> StepThePartyWindow(const GameUiContext& contex
 {
     if (!panels.IsOpen(UI::PartyPanel))
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t x = runtime.hud.partyX;
     const std::int32_t y = runtime.hud.partyY;
     const std::int32_t mouseX = context.mouseX;
@@ -403,7 +403,7 @@ Core::Expected<void, std::string> StepThePartyWindow(const GameUiContext& contex
 Core::Expected<void, std::string> DrawThePartyWindow(GameHudContext& context, UI::PanelRegistry& panels, std::int32_t x,
                                                      std::int32_t y)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     if (!panels.IsOpen(UI::PartyPanel))
     {
         // 0x5f12d0..0x5f1304: el ancho del mundo (la x de la lista, menos 50) y los colores, antes de mirar la cuenta.
@@ -453,14 +453,14 @@ Core::Expected<void, std::string> DrawThePartyWindow(GameHudContext& context, UI
 
 Core::Expected<void, std::string> DrawThePartyLife(GameHudContext& context)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     if (hud.partyCount <= 0)
         return {};
     auto counted = Members(hud.partyCount, "0x5a89e5");
     if (!counted.HasValue())
         return Core::Unexpected(std::move(counted).Error());
     Render::SpriteBatch& sprites = context.sprites;
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const auto actors = world.Actors();
     const PartyState& party = world.Runtime().social.party;
     for (std::size_t at = 0; at < counted.Value(); ++at)
@@ -474,7 +474,7 @@ Core::Expected<void, std::string> DrawThePartyLife(GameHudContext& context)
         if (context.projection == nullptr)
             return Core::Unexpected(std::string("0x5a8a2e: la barra de la party no tiene la proyección del pase del "
                                                 "mundo"));
-        const ActorState& actor = actors[index];
+        const Kernel::ActorState& actor = actors[index];
         // 0x5a8a00..0x5a8a2b: FLD +0x138, FADD +0x18 y FADD 100 en la x87, y FSTP en float.
         const glm::vec3 above{
             actor.position.x, actor.position.y,

@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -56,4 +56,4 @@ std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then, const Mod
                       .from = OriginOf(before, then.scale, then.position),
                       .to = OriginOf(after, now.scale, now.position)};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

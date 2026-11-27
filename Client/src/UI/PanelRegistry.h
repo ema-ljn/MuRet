@@ -72,7 +72,7 @@ inline constexpr std::size_t CommandCount = 12;
 inline constexpr std::uint8_t CommandReady = 1;
 
 // [0x6e592c] (0x40acd0 lo arma en la .data con +8 y +0x20 en −1): lo que la ventana de los comandos guarda además del
-// +4 (DelegatedPanels::commands). La esquina (+0xc y +0x10) va en Scenes::HudState, como las de las otras ventanas.
+// +4 (DelegatedPanels::commands). La esquina (+0xc y +0x10) va en Kernel::HudState, como las de las otras ventanas.
 struct CommandsWindowState
 {
     // +8: a quién va el comando: 0x406050 lo pone en −1 y, con un jugador a dos celdas o menos, en el elegido

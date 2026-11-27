@@ -11,7 +11,7 @@
 #include <optional>
 #include <span>
 #include <string>
-namespace Client::Scenes
+namespace Client::Assets
 {
 void ModelTextureTable::Bind(Render::ITextureStore& store)
 {
@@ -92,4 +92,4 @@ std::optional<Models::TextureMetadata> ModelTextureTable::Metadata(std::uint32_t
     const auto found = m_entries.find(selector);
     return found == m_entries.end() ? std::nullopt : std::optional(found->second.metadata);
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

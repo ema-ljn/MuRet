@@ -70,12 +70,12 @@ namespace
 {
 namespace Events = Client::Protocol::Events;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldRuntime;
+using Client::Kernel::WorldState;
 using Client::Scenes::EventMapKind;
 using Client::Scenes::EventMapObject;
 using Client::Scenes::EventPacketContext;
 using Client::Scenes::EventPacketResult;
-using Client::Scenes::WorldRuntime;
-using Client::Scenes::WorldState;
 
 constexpr std::size_t BloodCastleNameText = 1146;
 constexpr std::size_t ChaosCastleNameText = 1147;
@@ -231,7 +231,7 @@ protected:
         return world.Runtime();
     }
 
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Actors()[0];
     }
@@ -316,9 +316,9 @@ protected:
     {
         world.Map().terrain = {};
         std::optional<std::string> fatal;
-        const auto layout = Client::World::LoadWorldTerrainLayout(dataRoot, map, world.Map().terrain, fatal);
+        const auto layout = Client::Terrain::LoadWorldTerrainLayout(dataRoot, map, world.Map().terrain, fatal);
         ASSERT_TRUE(layout.HasValue()) << layout.Error();
-        const auto surface = Client::World::LoadWorldTerrainSurface(dataRoot, map, world.Map().terrain, fatal);
+        const auto surface = Client::Terrain::LoadWorldTerrainSurface(dataRoot, map, world.Map().terrain, fatal);
         ASSERT_TRUE(surface.HasValue()) << surface.Error();
     }
 
@@ -332,13 +332,13 @@ protected:
     }
 
     // La luz de `relative` sombreada con las alturas cargadas del 34.
-    std::unique_ptr<Client::World::TerrainLighting> Shaded(const std::string& relative) const
+    std::unique_ptr<Client::Terrain::TerrainLighting> Shaded(const std::string& relative) const
     {
         const auto bytes = Client::Tests::ReadFileBytes(dataRoot / relative);
         EXPECT_TRUE(bytes.has_value()) << relative;
         const auto light = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*bytes)));
         EXPECT_TRUE(light.HasValue()) << relative;
-        return Client::World::ShadeTerrainLight(*light.Value(), *world.Map().terrain.heights, 34);
+        return Client::Terrain::ShadeTerrainLight(*light.Value(), *world.Map().terrain.heights, 34);
     }
 
     // En el heap: el WorldState pasa de 340 KB (el stack de Windows es de 1 MB).
@@ -478,7 +478,7 @@ TEST_F(EventPacketsTest, TheItemAcquiredNoticeNamesTheItemAndItsOwner)
 {
     // Letras de un punto: el aviso entra entero en el primer renglón de 180 de 0x45bb20.
     letters.letterWidth = 1;
-    Client::Scenes::ActorState& other = world.Actors()[5];
+    Client::Kernel::ActorState& other = world.Actors()[5];
     other.alive = true;
     other.key = 0x0456;
     const std::string_view name = "Brezal";
@@ -1052,12 +1052,12 @@ TEST_F(EventPacketsTest, TheBloodCastlePlayStateTurnsThePlayersAndGivesTheWeapon
         SCOPED_TRACE(map);
         Runtime().map = map;
         Runtime().eventObject = EventMapObject{.kind = EventMapKind::BloodCastle};
-        Client::Scenes::ActorState& other = world.Actors()[7];
+        Client::Kernel::ActorState& other = world.Actors()[7];
         other.alive = true;
         other.type = Client::Tables::PlayerSkeletonModel;
         other.key = 0x0456;
         other.byte360 = 3;
-        Client::Scenes::ActorState& monster = world.Actors()[8];
+        Client::Kernel::ActorState& monster = world.Actors()[8];
         monster.alive = true;
         monster.type = 0x20;
         Hero().angles = {};
@@ -1281,7 +1281,7 @@ TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndReturnToTheChoice)
 TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
 {
     Runtime().map = 34;
-    Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+    Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
     Applied(Events::CrywolfState{.state = 0, .stage = 0});
     EXPECT_EQ(Runtime().events.cameraTour.stage, 0);
 
@@ -1319,7 +1319,7 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     LoadTheTerrain(34);
     const auto plain = AttributesOf("world35/EncTerrain35.att");
     ASSERT_EQ(world.Map().terrain.attributes->cells, plain->cells);
-    Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+    Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
     ui.message = -1;
     const auto first = Shaded("world35/TerrainLight1.OZJ");
     Applied(Events::CrywolfState{.state = 1, .stage = 1});
@@ -1362,7 +1362,7 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
         Runtime().fatalDataMessage.reset();
         LoadTheTerrain(static_cast<std::uint8_t>(map));
         // Las copias, en el heap: la luz ocupa 768 KB y el stack de Windows es de 1 MB.
-        const auto lighting = std::make_unique<Client::World::TerrainLighting>(*world.Map().terrain.lighting);
+        const auto lighting = std::make_unique<Client::Terrain::TerrainLighting>(*world.Map().terrain.lighting);
         const auto attributes =
             std::make_unique<Client::Data::Terrain::TerrainAttributes>(*world.Map().terrain.attributes);
         Applied(Events::CrywolfState{.state = 1, .stage = 0});
@@ -1386,7 +1386,7 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
 // 0x42fdc0 (también la vuelta a la selección): los globales de la interfaz a su valor inicial.
 TEST_F(EventPacketsTest, TheCrywolfInterfaceResetMatchesTheData)
 {
-    Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+    Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
     ui.dwords6c73e0 = {1, 2, 3, 4, 5, 6};
     ui.dword6c73d4 = 0;
     ui.light = 3;
@@ -1412,7 +1412,7 @@ TEST_F(EventPacketsTest, TheCrywolfInterfacePacketsWriteOnAnyMap)
         SCOPED_TRACE(map);
         Runtime().map = map;
         Runtime().crywolf = {};
-        Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+        Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
         EXPECT_EQ(ui.altars, (std::array<std::uint8_t, 5>{2, 2, 2, 2, 2}));
         Applied(Events::CrywolfAltars{.light = 0x60, .altars = {0x11, 0x12, 1, 0x13, 0}});
         EXPECT_EQ(ui.light, 0x60);
@@ -1456,7 +1456,7 @@ TEST_F(EventPacketsTest, TheCrywolfTimerAndBossNeedTheDefenseInCrywolf)
             Runtime().map = map;
             Runtime().crywolf = {};
             Runtime().crywolf.stage = stage;
-            Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+            Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
             tickCount = 0x12345;
             Applied(Events::CrywolfTimer{.value4 = 1, .minutes = 15});
             const bool timer = map == 34 && stage == 4;

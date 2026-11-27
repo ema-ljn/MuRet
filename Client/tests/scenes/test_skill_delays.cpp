@@ -78,12 +78,12 @@ struct Delays
     {
         return SkillDelayContext{.world = world, .random = random, .skills = &skills};
     }
-    Client::Scenes::OwnCharacterRecord& Own()
+    Client::Kernel::OwnCharacterRecord& Own()
     {
         return world.OwnCharacter();
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     Client::Tables::SkillTable skills = SkillsWith({{0x11, 3000, 15}, {0x12, 0, 0}, {0x4c, 2000, 0}, {0x13, 1500, 16}});
 };

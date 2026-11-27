@@ -147,7 +147,7 @@ Core::Expected<void, std::string> GuildMarkTextures::Load(Render::TextureSlot sl
     constexpr auto Side = static_cast<int>(GuildMarkSide);
     const Data::Textures::LoadedTexture texture{
         .slot = slot.value,
-        .sampling = TextureSetsDetail::NearestClamp,
+        .sampling = Assets::TextureSetsDetail::NearestClamp,
         .texture = Data::Textures::Texture{.width = Side,
                                            .height = Side,
                                            .textureWidth = Side,

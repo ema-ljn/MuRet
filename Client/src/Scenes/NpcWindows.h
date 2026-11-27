@@ -20,10 +20,14 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 class GamePanels;
-class WorldState;
 struct WorldEntryResources;
 
 // El envío de un paquete de las ventanas por la sesión (WorldEntryResources::sendNpcWindowPacket). Los rand() del C3
@@ -34,7 +38,7 @@ using NpcWindowSender = std::function<Core::Expected<void, std::string>(Protocol
 // inventario.
 struct NpcWindowContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     const InventoryServices& services;
     const NpcWindowSender& send;

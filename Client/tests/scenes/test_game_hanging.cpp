@@ -41,8 +41,8 @@
 // esperados salen del ASM de c32bbd5f, sin ejecutar el original.
 namespace
 {
-using Client::Scenes::ActorState;
-using Client::Scenes::GameHangingPass;
+using Client::Actors::Drawing::GameHangingPass;
+using Client::Kernel::ActorState;
 
 constexpr std::uint16_t Player = 0x20a;
 constexpr std::uint16_t Sword = 0x212;
@@ -274,7 +274,7 @@ TEST_F(GameHangingTest, WithNothingHangingOnlyTheLightAndTheTwoHandBytesSpendRan
     pass.carry = nullptr;
     pass.sprites = nullptr;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
@@ -294,7 +294,7 @@ TEST_F(GameHangingTest, TheBackWeaponLeavesTheWingsWithTheirFrameButItsPreviousK
     m_actor.animation.frame = 6.0f;
     m_actor.wings.animation = {.action = 0, .frame = 7.5f, .previousAction = 9, .previousKey = 5};
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_actor.wings.bone, 0x2f);
@@ -315,7 +315,7 @@ TEST_F(GameHangingTest, BoltsInTheLeftHandHangOnTheBackOutsideTheSafeZone)
     const HangingModels models({Bolts});
     m_actor.hands[1].model = Bolts;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 3u);
@@ -334,7 +334,7 @@ TEST_F(GameHangingTest, AHandWhoseModelNobodyLoadsDrawsNothing)
     const HangingModels models({});
     m_actor.hands[0].model = UnloadedHand;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
@@ -350,7 +350,7 @@ TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
     m_actor.hands[0].model = BladeSword;
     m_actor.hands[0].level = 7;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     // Con el nivel 7, 0x60b3d0 dibuja la malla y su pasada del brillo.
@@ -372,7 +372,7 @@ TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
         m_sprites.Clear();
         m_actor.pk = static_cast<std::uint8_t>(red ? 6 : 0);
         m_actor.level = static_cast<std::uint16_t>(red ? 0 : 4);
-        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, Pass(models)).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models)).HasValue());
         EXPECT_TRUE(LiveSprites().empty());
     }
 }
@@ -388,12 +388,12 @@ TEST_F(GameHangingTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfWhatHangs)
     {
         SCOPED_TRACE(static_cast<int>(detail));
         m_batch.Begin(Client::Render::Pass3D{});
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.glowDetail = detail;
         GameHangingPass pass = Pass(models);
         pass.itemContext = &items;
 
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_batch.Vertices().size(), detail == 4 ? 12u : 6u);
@@ -408,7 +408,7 @@ TEST_F(GameHangingTest, TheStaffSpritesComeFromItsPoseInTheGlobalBuffer)
     const HangingModels models({Staff08});
     m_actor.hands[0].model = Staff08;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites();
@@ -433,7 +433,7 @@ TEST_F(GameHangingTest, Sword21PutsBothFlaresOnEachOfItsTwoBones)
     const HangingModels models({Sword21});
     m_actor.hands[0].model = Sword21;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites();
@@ -462,7 +462,7 @@ TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
     const HangingModels models({Mace10});
     m_actor.hands[0].model = Mace10;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites();
@@ -509,7 +509,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     m_actor.angles = {0.0f, 0.0f, 135.0f};
     m_random = Client::Crt::CrtRandom{seed};
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     Client::Crt::CrtRandom draws = Skipped(seed, Before + 1);
@@ -545,7 +545,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     m_random = Client::Crt::CrtRandom{seed};
     GameHangingPass pass = Pass(models);
     pass.map = 10;
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     EXPECT_EQ(m_random.State(), Skipped(seed, Before + 1).State());
 }
 
@@ -572,7 +572,7 @@ TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
         m_particles = Client::World::Particles{};
         m_sprites.Clear();
 
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+        const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         Client::Crt::CrtRandom draws = Skipped(seed, Before + 1);
@@ -603,7 +603,7 @@ TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
     m_actor.hands[0].model = Staff;
     m_actor.angles = {0.0f, 0.0f, 30.0f};
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const float lum = FirstLum();
@@ -662,7 +662,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     GameHangingPass pass = Pass(models);
     pass.worldClock = 0.0f;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     // Con el reloj en 0: v = 0,3f y el ancho 0,3f · 20 + 20.
@@ -705,7 +705,7 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
     GameHangingPass pass = Pass(models);
     pass.worldClock = 0.0f;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     // (0; −20; −40) a (0; −160; −10) y (0; −10; 28) a (0; −145; 18) del hueso 0x21: (150 + x; 150 + y; 43 + z).
@@ -748,7 +748,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     m_actor.hands[0].model = Staff;
     m_actor.angles = {0.0f, 0.0f, 45.0f};
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     Client::Crt::CrtRandom draws = Skipped(1, 4);
@@ -812,7 +812,7 @@ TEST_F(GameHangingTest, Helper02HangsFromBone34WithItsRedFlare)
     const HangingModels models({Helper02});
     m_actor.pet.model = Helper02;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_actor.pet.bone, 0x22);
@@ -836,7 +836,7 @@ TEST_F(GameHangingTest, TheEventMapsSkipTheWingsAndThePet)
     GameHangingPass pass = Pass(models);
     pass.map = 20;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
@@ -852,7 +852,7 @@ TEST_F(GameHangingTest, AGameMasterCarriesTheSignOnBone20)
     const HangingModels models({MuSign});
     m_actor.controlCode = 0x20;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_actor.byte360, 5);
@@ -887,22 +887,22 @@ TEST_F(GameHangingTest, TheSignStaysInTheRecordAndAdvancesOnlyOnOriginalFrames)
 {
     const HangingModels models({MuSign});
     m_actor.byte360 = 5;
-    m_actor.layer = Client::Scenes::GameMasterLayer{.animation = {.action = 1}};
+    m_actor.layer = Client::Kernel::GameMasterLayer{.animation = {.action = 1}};
     GameHangingPass pass = Pass(models);
     pass.originalFrame = false;
 
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     ASSERT_TRUE(m_actor.layer.has_value());
     EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
 
     pass.originalFrame = true;
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     ASSERT_TRUE(m_actor.layer.has_value());
     EXPECT_EQ(m_actor.layer->animation.action, 1);
     EXPECT_EQ(m_actor.layer->animation.frame, 0.5f);
 
     m_actor.layer.reset();
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     ASSERT_TRUE(m_actor.layer.has_value());
     EXPECT_EQ(m_actor.layer->animation.action, 0);
     EXPECT_EQ(m_actor.byte360, 5);
@@ -914,9 +914,9 @@ TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
     const HangingModels models({MuSign});
     m_actor.controlCode = 8;
     m_actor.byte360 = 2;
-    m_actor.layer = Client::Scenes::GameMasterLayer{.animation = {.action = 1, .frame = 0.75f}};
+    m_actor.layer = Client::Kernel::GameMasterLayer{.animation = {.action = 1, .frame = 0.75f}};
 
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, Pass(models)).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models)).HasValue());
 
     EXPECT_EQ(m_actor.byte360, 5);
     ASSERT_TRUE(m_actor.layer.has_value());
@@ -935,13 +935,13 @@ TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
         SCOPED_TRACE(static_cast<int>(kind));
         m_sprites.Clear();
         m_actor.byte360 = kind;
-        m_actor.layer = Client::Scenes::GameMasterLayer{};
+        m_actor.layer = Client::Kernel::GameMasterLayer{};
         GameHangingPass pass = Pass(models);
-        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
         EXPECT_TRUE(m_batch.Vertices().empty());
 
         pass.siegeActive = true;
-        const auto drawn = Client::Scenes::DrawGameHanging(m_actor, pass);
+        const auto drawn = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(LiveSprites().size(), 1u);
         EXPECT_TRUE(m_batch.Vertices().empty());
@@ -955,18 +955,18 @@ TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
 {
     const HangingModels models({MuSign});
     m_actor.byte360 = 5;
-    m_actor.layer = Client::Scenes::GameMasterLayer{};
+    m_actor.layer = Client::Kernel::GameMasterLayer{};
     GameHangingPass pass = Pass(models);
     pass.map = 20;
 
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     ASSERT_TRUE(m_actor.layer.has_value());
     EXPECT_EQ(m_actor.layer->alpha, 1.0f);
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
 
     pass.heroByte1a1 = 1;
     pass.originalFrame = false;
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     EXPECT_EQ(m_actor.layer->alpha, 1.0f);
     pass.originalFrame = true;
     float expected = 1.0f;
@@ -974,19 +974,19 @@ TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
     {
         SCOPED_TRACE(frame);
         const std::size_t before = m_batch.Vertices().size();
-        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
         expected = static_cast<float>(static_cast<double>(expected) - static_cast<double>(0.15f));
         EXPECT_EQ(m_actor.layer->alpha, expected);
         EXPECT_GT(m_batch.Vertices().size(), before);
     }
     const std::size_t drawn = m_batch.Vertices().size();
     m_carry.models.clear();
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     EXPECT_LT(m_actor.layer->alpha, 0.01f);
     EXPECT_EQ(m_batch.Vertices().size(), drawn);
     EXPECT_FALSE(m_carry.models.contains(MuSign));
     const float faded = m_actor.layer->alpha;
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     EXPECT_EQ(m_actor.layer->alpha, faded);
 }
 
@@ -1012,7 +1012,7 @@ TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCas
             GameHangingPass pass = Pass(models);
             pass.map = map;
 
-            const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+            const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
             ASSERT_TRUE(result.HasValue()) << result.Error();
             if (map < 11)
@@ -1047,7 +1047,7 @@ TEST_F(GameHangingTest, AGameMasterInBloodCastleHangsTheWeaponLeftInTheBackSlot)
         GameHangingPass pass = Pass(models);
         pass.map = 11;
 
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_actor.wings.bone, 0x2f);
@@ -1060,7 +1060,7 @@ TEST_F(GameHangingTest, AGameMasterInBloodCastleHangsTheWeaponLeftInTheBackSlot)
         GameHangingPass pass = Pass(models);
         pass.map = 17;
 
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("0x50def8"), std::string::npos) << result.Error();
@@ -1081,7 +1081,7 @@ TEST_F(GameHangingTest, EverySiegeRoleCreatesItsAtlasLayerAndDrawsItsFrame)
         GameHangingPass pass = Pass(models);
         pass.map = 30;
         pass.siegeActive = true;
-        const auto drawn = Client::Scenes::DrawGameHanging(m_actor, pass);
+        const auto drawn = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         ASSERT_TRUE(m_actor.layer.has_value());
         const auto sprites = LiveSprites();
@@ -1114,7 +1114,7 @@ TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
             GameHangingPass pass = Pass(models);
             pass.siegeActive = true;
             pass.guild = guild.get();
-            ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+            ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
             const auto sprites = LiveSprites();
             ASSERT_EQ(sprites.size(), 1u);
             EXPECT_EQ(sprites.front().blend, role - 6 + (role == 12 ? 1 : 3));
@@ -1127,7 +1127,7 @@ TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
     GameHangingPass pass = Pass(models);
     pass.siegeActive = true;
     pass.guild = guild.get();
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     ASSERT_EQ(LiveSprites().size(), 1u);
     EXPECT_EQ(LiveSprites().front().blend, 0);
 }
@@ -1141,7 +1141,7 @@ TEST_F(GameHangingTest, AMissingGameMasterModelStopsWithItsAddress)
         constexpr std::string_view Name = "xwebzenx";
         for (std::size_t index = 0; index < Name.size(); ++index)
             m_actor.name[index] = static_cast<std::byte>(Name[index]);
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+        const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("0x414470"), std::string::npos) << result.Error();
         EXPECT_EQ(m_actor.byte360, 5);
@@ -1151,7 +1151,7 @@ TEST_F(GameHangingTest, AMissingGameMasterModelStopsWithItsAddress)
         const HangingModels models({MuSign});
         m_actor.layer.reset();
         m_actor.byte360 = 6;
-        const auto other = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+        const auto other = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
         ASSERT_TRUE(other.HasValue()) << other.Error();
         EXPECT_TRUE(m_actor.layer.has_value());
         m_actor.byte360 = 0;
@@ -1170,7 +1170,7 @@ TEST_F(GameHangingTest, AMonsterSkipsTheBackTheLayerAndTheEventWeapon)
     GameHangingPass pass = Pass(models);
     pass.map = 11;
 
-    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FALSE(m_actor.layer.has_value());
@@ -1188,11 +1188,11 @@ TEST_F(GameHangingTest, BetweenOriginalFramesTheHangingAnimationDoesNotAdvance)
     GameHangingPass pass = Pass(models);
     pass.originalFrame = false;
 
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     EXPECT_EQ(m_actor.pet.animation.frame, 0.25f);
 
     pass.originalFrame = true;
-    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameHanging(m_actor, pass).HasValue());
     EXPECT_EQ(m_actor.pet.animation.frame, 0.75f);
 }
 } // namespace

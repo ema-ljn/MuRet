@@ -34,7 +34,7 @@ TEST(GameContextTest, ThePoolHoldsTheOriginalsFourHundredAndOneActors)
 
 TEST(GameContextTest, TheWorldStateForwardsTheSharedCoreToItsContext)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     GameContext& context = world.Context();
     EXPECT_EQ(world.Actors().data(), context.Actors().data());
     EXPECT_EQ(&world.OwnCharacter(), &context.OwnCharacter());
@@ -45,7 +45,7 @@ TEST(GameContextTest, TheWorldStateForwardsTheSharedCoreToItsContext)
 
 TEST(GameContextTest, TheWorldStatesHeroIsItsContextsHero)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     world.Context().SetHero(3);
     EXPECT_EQ(&world.Hero(), &world.Context().Hero());
     EXPECT_EQ(&std::as_const(world).Hero(), &world.Actors()[3]);

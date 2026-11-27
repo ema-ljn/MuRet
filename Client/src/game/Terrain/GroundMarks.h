@@ -21,7 +21,7 @@ class CrtRandom;
 // Las marcas del suelo: la tabla de 100 lugares de 0x78 bytes en 0x760cab0..0x760f990, en la .bss, que llena
 // 0x548fe0, envejece 0x549090 en cada paso del juego y dibuja 0x549130 con el terreno (0x5fc365). La carga del
 // mapa no la vacía (Q-C228). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las marcas del suelo".
-namespace Client::World
+namespace Client::Terrain
 {
 // Un lugar de la tabla. De sus 0x78 bytes, estas funciones tocan solo estos campos.
 struct GroundMark
@@ -82,4 +82,4 @@ using SlotComponents = std::function<std::optional<std::uint8_t>(std::int32_t sl
 [[nodiscard]] Core::Expected<void, std::string> DrawGroundMarks(Render::ModelBatch& batch, const GroundMarkTable& marks,
                                                                 const Data::Terrain::TerrainHeights& heights,
                                                                 const SlotComponents& components);
-} // namespace Client::World
+} // namespace Client::Terrain

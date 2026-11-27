@@ -43,13 +43,13 @@
 // 0x4fb10c), y 0x4f8f5b de la cola de 0x4f5b70. 06, "Las habilidades de los frames del ataque".
 namespace
 {
+using Client::Actors::CharacterStepContext;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::CharacterStepContext;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::JointState;
 using Client::Scenes::StepTheAttack;
 using Client::Scenes::StepTheFrameSkill;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;

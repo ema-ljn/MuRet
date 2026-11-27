@@ -143,7 +143,7 @@ struct TailHero
         hero.cellX = 182;
         hero.cellY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
-        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Scenes::NoItemModel;
+        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Kernel::NoItemModel;
         hero.alpha = 1.0f;
         hero.animation.action = 1;
         hero.movement = 1;
@@ -162,11 +162,11 @@ struct TailHero
         runtime.movement.weaponSkill.target = static_cast<std::int32_t>(ChosenSlot);
         runtime.movement.selectedSkillRange = 4.0f;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Actors()[0];
     }
-    Client::Scenes::ActorState& Chosen()
+    Client::Kernel::ActorState& Chosen()
     {
         return world.Actors()[ChosenSlot];
     }
@@ -201,7 +201,7 @@ struct TailHero
     }
 
     std::uint8_t skill;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();

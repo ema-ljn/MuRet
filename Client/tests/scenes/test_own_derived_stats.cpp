@@ -26,21 +26,21 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::RecalculateOwnStats y los pasos de 0x550d10 que MuRet tiene (06, "Los stats del
+// Client::Player::RecalculateOwnStats y los pasos de 0x550d10 que MuRet tiene (06, "Los stats del
 // registro propio"; 07, Q-C184, Q-C185 y Q-C187). Los valores salen del ASM cotejado con el PE c32bbd5f, y los
 // rand() del modelo de la CRT; ninguno de una corrida del original.
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::ItemState;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Models::OwnRecordCloseRandoms;
-using Client::Scenes::ActorState;
-using Client::Scenes::ItemSetOptionList;
-using Client::Scenes::ItemSetState;
-using Client::Scenes::OwnCharacterRecord;
+using Client::Player::ItemSetOptionList;
+using Client::Player::ItemSetState;
 using Client::Tables::ItemSetTables;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
-using Client::World::ItemState;
 
 constexpr std::size_t KindOffset = 0x44;
 constexpr std::size_t WingsSlot = 7;
@@ -83,7 +83,7 @@ ItemState Worn(std::uint16_t type, std::uint8_t value, std::uint8_t durability =
 class OwnStatsFixture : public ::testing::Test
 {
 protected:
-    Client::Scenes::OwnStatsContext Context(const ItemSetTables* tables, const Client::Tables::ItemTable* items)
+    Client::Player::OwnStatsContext Context(const ItemSetTables* tables, const Client::Tables::ItemTable* items)
     {
         return {.itemSetTables = tables,
                 .itemSets = &m_itemSets,
@@ -113,7 +113,7 @@ TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAn
     m_itemSets.list.used[0] = 1;
     m_hero.byte358 = 4;
 
-    const auto recalculated = Client::Scenes::RecalculateOwnStats(own, Context(nullptr, nullptr));
+    const auto recalculated = Client::Player::RecalculateOwnStats(own, Context(nullptr, nullptr));
 
     ASSERT_FALSE(recalculated.HasValue());
     EXPECT_NE(recalculated.Error().find("0x40e1b0"), std::string::npos);
@@ -164,7 +164,7 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
     own.bytef03 = 6;
     m_hero.byte358 = 4;
 
-    const auto recalculated = Client::Scenes::RecalculateOwnStats(own, Context(&tables, &items));
+    const auto recalculated = Client::Player::RecalculateOwnStats(own, Context(&tables, &items));
 
     ASSERT_FALSE(recalculated.HasValue());
     EXPECT_NE(recalculated.Error().find("0x550990"), std::string::npos);
@@ -196,10 +196,10 @@ TEST_F(OwnStatsFixture, WithTheScanOf0x505820TheRecalculationRunsTheHelpersAndTh
     own.equipment.fill(Worn(EmptyType, 0, 0));
     own.wordef8 = 0x3456;
     own.wordefa = 0x4567;
-    Client::Scenes::OwnStatsContext context = Context(&tables, &items);
-    context.scan505820 = Client::Scenes::Scan505820{};
+    Client::Player::OwnStatsContext context = Context(&tables, &items);
+    context.scan505820 = Client::Actors::Scan505820{};
 
-    const auto recalculated = Client::Scenes::RecalculateOwnStats(own, context);
+    const auto recalculated = Client::Player::RecalculateOwnStats(own, context);
 
     ASSERT_TRUE(recalculated.HasValue()) << recalculated.Error();
     EXPECT_EQ(own.wordef8, 0);
@@ -226,7 +226,7 @@ TEST(OwnDerivedStatsTest, EachWordTakesTheSetOptionsOfItsSelector)
     own.word32 = 0x200;
     own.word34 = 0x300;
 
-    ASSERT_TRUE(Client::Scenes::AddOwnItemSetOptionValues(own, list).HasValue());
+    ASSERT_TRUE(Client::Player::AddOwnItemSetOptionValues(own, list).HasValue());
 
     EXPECT_EQ(own.word2a, 0x101);
     EXPECT_EQ(own.word2c, 2);
@@ -240,7 +240,7 @@ TEST(OwnDerivedStatsTest, EachWordTakesTheSetOptionsOfItsSelector)
 
     list.count9348 = 16;
     list.count9349 = 1;
-    const auto outside = Client::Scenes::AddOwnItemSetOptionValues(own, list);
+    const auto outside = Client::Player::AddOwnItemSetOptionValues(own, list);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x40da20 con 0x8c"), std::string::npos);
     EXPECT_EQ(own.word2a, 0x101);
@@ -260,7 +260,7 @@ TEST(OwnDerivedStatsTest, TheClearZeroesTheSevenItemStatWordsOnly)
     own.word36 = 7;
     own.bp = 0x38;
 
-    Client::Scenes::ClearOwnItemStatWords(own);
+    Client::Player::ClearOwnItemStatWords(own);
 
     EXPECT_EQ(own.word2a, 0);
     EXPECT_EQ(own.word2c, 0);
@@ -281,20 +281,20 @@ TEST(OwnDerivedStatsTest, TheItemBonusIsBits2And3OfByte1cAndTheKindAt44)
     ItemState item;
     item.id = 0x10;
     item.flags1c = 0xf3; // 1111 0011: los bits 2 y 3 en 0
-    auto bonus = Client::Scenes::ItemStatBonusOf(item, items);
+    auto bonus = Client::Player::ItemStatBonusOf(item, items);
     ASSERT_TRUE(bonus.HasValue());
     EXPECT_EQ(bonus.Value().kind, 3);
     EXPECT_EQ(bonus.Value().value, 0);
 
     item.flags1c = 0x0c;
-    bonus = Client::Scenes::ItemStatBonusOf(item, items);
+    bonus = Client::Player::ItemStatBonusOf(item, items);
     ASSERT_TRUE(bonus.HasValue());
     EXPECT_EQ(bonus.Value().value, 3);
 
     // El último tipo de la tabla, 8191, todavía está adentro.
     item.id = 0x1fff;
     item.flags1c = 0x18;
-    bonus = Client::Scenes::ItemStatBonusOf(item, items);
+    bonus = Client::Player::ItemStatBonusOf(item, items);
     ASSERT_TRUE(bonus.HasValue());
     EXPECT_EQ(bonus.Value().kind, 0xa7);
     EXPECT_EQ(bonus.Value().value, 2);
@@ -314,7 +314,7 @@ TEST(OwnDerivedStatsTest, ATypeOutsideItemBmdIsAnExplicitError)
          {Outside{EmptyType, "el tipo -1 "}, Outside{0x8000, "el tipo -32768 "}, Outside{0x2000, "el tipo 8192 "}})
     {
         SCOPED_TRACE(outside.shown);
-        const auto bonus = Client::Scenes::ItemStatBonusOf(Worn(outside.type, 1), items);
+        const auto bonus = Client::Player::ItemStatBonusOf(Worn(outside.type, 1), items);
         ASSERT_FALSE(bonus.HasValue());
         EXPECT_NE(bonus.Error().find("Q-C184"), std::string::npos);
         EXPECT_NE(bonus.Error().find(outside.shown), std::string::npos);
@@ -337,7 +337,7 @@ TEST(OwnDerivedStatsTest, AnEmptySlotWithZeroBonusPreservesItsResidualDataAndAll
         own.equipment[0] = Worn(EmptyType, 0, 25);
         own.equipment[0].flags1c = flags;
 
-        const auto added = Client::Scenes::AddOwnItemStatBonuses(own, &items);
+        const auto added = Client::Player::AddOwnItemStatBonuses(own, &items);
 
         ASSERT_TRUE(added.HasValue()) << added.Error();
         EXPECT_EQ(own.word2a, 11);
@@ -372,7 +372,7 @@ TEST(OwnDerivedStatsTest, BonusesAddFiveTimesTheValueToTheirWordInAllTwelveSlots
     own.word2a = 0xfff6;
     own.word32 = 0x32;
 
-    ASSERT_TRUE(Client::Scenes::AddOwnItemStatBonuses(own, &items).HasValue());
+    ASSERT_TRUE(Client::Player::AddOwnItemStatBonuses(own, &items).HasValue());
 
     EXPECT_EQ(own.word2a, 20); // 0xfff6 + 15 envuelve a 5, y el lugar 11 suma otros 15
     EXPECT_EQ(own.word2c, 10);
@@ -394,7 +394,7 @@ TEST(OwnDerivedStatsTest, ABonusErrorKeepsWhatTheEarlierSlotsAdded)
     own.equipment[1] = Worn(EmptyType, 1);
     own.equipment[2] = Worn(2, 1);
 
-    const auto added = Client::Scenes::AddOwnItemStatBonuses(own, &items);
+    const auto added = Client::Player::AddOwnItemStatBonuses(own, &items);
 
     ASSERT_FALSE(added.HasValue());
     EXPECT_NE(added.Error().find("lugar 1"), std::string::npos);
@@ -404,9 +404,9 @@ TEST(OwnDerivedStatsTest, ABonusErrorKeepsWhatTheEarlierSlotsAdded)
 
     OwnCharacterRecord bare;
     bare.equipment.fill(Worn(1, 3, 0));
-    EXPECT_TRUE(Client::Scenes::AddOwnItemStatBonuses(bare, nullptr).HasValue());
+    EXPECT_TRUE(Client::Player::AddOwnItemStatBonuses(bare, nullptr).HasValue());
     bare.equipment[4].durability = 1;
-    const auto unloaded = Client::Scenes::AddOwnItemStatBonuses(bare, nullptr);
+    const auto unloaded = Client::Player::AddOwnItemStatBonuses(bare, nullptr);
     ASSERT_FALSE(unloaded.HasValue());
     EXPECT_NE(unloaded.Error().find("Item.bmd"), std::string::npos);
     EXPECT_NE(unloaded.Error().find("lugar 4"), std::string::npos);
@@ -428,14 +428,14 @@ TEST(OwnDerivedStatsTest, TheCapeOfLordAddsItsOption90ToWord36AndClosesTheRecord
     std::uint8_t accesses = 0;
     CrtRandom random(Seed);
 
-    ASSERT_TRUE(Client::Scenes::AddCapeOfLordOptions(own, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::AddCapeOfLordOptions(own, accesses, random).HasValue());
     EXPECT_EQ(own.word36, 24); // 0xfff0 + 10 + 30
     EXPECT_EQ(accesses, 0);
     EXPECT_EQ(random.State(), AfterDraws(Seed, OwnRecordCloseRandoms).State());
 
     accesses = 1;
     random = CrtRandom(Seed);
-    ASSERT_TRUE(Client::Scenes::AddCapeOfLordOptions(own, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::AddCapeOfLordOptions(own, accesses, random).HasValue());
     EXPECT_EQ(own.word36, 64);
     EXPECT_EQ(accesses, 1);
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
@@ -444,7 +444,7 @@ TEST(OwnDerivedStatsTest, TheCapeOfLordAddsItsOption90ToWord36AndClosesTheRecord
     wings.durability = 0;
     random = CrtRandom(Seed);
     accesses = 0;
-    ASSERT_TRUE(Client::Scenes::AddCapeOfLordOptions(own, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::AddCapeOfLordOptions(own, accesses, random).HasValue());
     EXPECT_EQ(own.word36, 64);
     EXPECT_EQ(random.State(), AfterDraws(Seed, OwnRecordCloseRandoms).State());
 }
@@ -464,7 +464,7 @@ TEST(OwnDerivedStatsTest, OtherWingsDoNotOpenTheRecord)
         wings.id = type;
         std::uint8_t accesses = 0;
         CrtRandom random(3);
-        ASSERT_TRUE(Client::Scenes::AddCapeOfLordOptions(own, accesses, random).HasValue());
+        ASSERT_TRUE(Client::Player::AddCapeOfLordOptions(own, accesses, random).HasValue());
         EXPECT_EQ(own.word36, 0);
         EXPECT_EQ(accesses, 0);
         EXPECT_EQ(random.State(), CrtRandom(3).State());
@@ -483,7 +483,7 @@ TEST(OwnDerivedStatsTest, ACapeWithMoreThanNineOptionsIsAnExplicitErrorWithTheRe
     std::uint8_t accesses = 0;
     CrtRandom random(5);
 
-    const auto added = Client::Scenes::AddCapeOfLordOptions(own, accesses, random);
+    const auto added = Client::Player::AddCapeOfLordOptions(own, accesses, random);
 
     ASSERT_FALSE(added.HasValue());
     EXPECT_NE(added.Error().find("10 opciones"), std::string::npos);
@@ -511,7 +511,7 @@ TEST(OwnDerivedStatsTest, TheTailSubtractsWithWrapAndDrawsThreeRandoms)
     own.bytef03 = 9;
     CrtRandom random(Seed);
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnDerivedStatsTail(own, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
 
     EXPECT_EQ(own.wordef8, 0xfffe);
     EXPECT_EQ(own.wordefa, 9);
@@ -539,7 +539,7 @@ TEST(OwnDerivedStatsTest, TheTailCapsAboveOneHundredAndComparesStrictly)
     own.word60 = 60;
     own.wordeea = 10;
     CrtRandom random(seed);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnDerivedStatsTail(own, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefe, 50);
     EXPECT_EQ(own.wordf00, 50);
     EXPECT_EQ(own.bytef02, 1);
@@ -549,7 +549,7 @@ TEST(OwnDerivedStatsTest, TheTailCapsAboveOneHundredAndComparesStrictly)
     own.wordeec = 0;
     own.word60 = 101;
     own.wordeea = 0;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnDerivedStatsTail(own, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefe, 100);
     EXPECT_EQ(own.wordf00, 100);
 }
@@ -565,7 +565,7 @@ TEST(OwnDerivedStatsTest, TheTailRangeIsASignedDivision)
     own.wordee4 = 19;
     own.word62 = 4;
     CrtRandom random(Seed);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnDerivedStatsTail(own, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(first % 10 + 10 - 4));
 
     // 0 − 65.535 + 1 = −65.534: el resto es el rand() entero, y + 65.535 en 16 bits es − 1.
@@ -573,14 +573,14 @@ TEST(OwnDerivedStatsTest, TheTailRangeIsASignedDivision)
     own.wordee4 = 0;
     own.word62 = 0;
     random = CrtRandom(Seed);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnDerivedStatsTail(own, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(first - 1));
 
     // 0xffff − 0 + 1 = 65.536: tampoco limita el rand().
     own.wordee2 = 0;
     own.wordee4 = 0xffff;
     random = CrtRandom(Seed);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnDerivedStatsTail(own, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(first));
 }
 
@@ -598,7 +598,7 @@ TEST(OwnDerivedStatsTest, TheTailDividesByZeroAsAnExplicitError)
     own.bytef02 = 3;
     CrtRandom random(2);
 
-    const auto tail = Client::Scenes::UpdateOwnDerivedStatsTail(own, random);
+    const auto tail = Client::Player::UpdateOwnDerivedStatsTail(own, random);
 
     ASSERT_FALSE(tail.HasValue());
     EXPECT_NE(tail.Error().find("Q-C185"), std::string::npos);

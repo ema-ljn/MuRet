@@ -140,7 +140,7 @@ struct WizardHero
         hero.cellX = 182;
         hero.cellY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
-        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Scenes::NoItemModel;
+        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Kernel::NoItemModel;
         hero.alpha = 1.0f;
         hero.animation.action = 1;
         hero.skillIndex = 0;
@@ -156,11 +156,11 @@ struct WizardHero
         runtime.selectedTargets[2] = static_cast<std::int32_t>(ChosenSlot);
         runtime.movement.selectedSkillRange = 4.0f;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Actors()[0];
     }
-    Client::Scenes::ActorState& Chosen()
+    Client::Kernel::ActorState& Chosen()
     {
         return world.Actors()[ChosenSlot];
     }
@@ -175,7 +175,7 @@ struct WizardHero
         chosen.type = Client::Tables::PlayerSkeletonModel;
         chosen.byte88 = 1;
         chosen.byte370 = 0;
-        chosen.hands[0].model = chosen.hands[1].model = Client::Scenes::NoItemModel;
+        chosen.hands[0].model = chosen.hands[1].model = Client::Kernel::NoItemModel;
     }
     // El aliado se llama `name` y la party (0x77f3cd0, con 0x78aba48) tiene estos nombres.
     void JoinTheParty(std::string_view name, std::initializer_list<std::string_view> members)
@@ -227,7 +227,7 @@ struct WizardHero
     }
 
     std::uint8_t skill;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     bool withTicks = true;
@@ -817,12 +817,12 @@ TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
                 }
                 auto& user = tested->world.Actors()[UserSlot];
                 auto& turned = tested->world.Actors()[TurnedSlot];
-                for (Client::Scenes::ActorState* actor : {&user, &turned})
+                for (Client::Kernel::ActorState* actor : {&user, &turned})
                 {
                     actor->alive = true;
                     actor->type = Client::Tables::PlayerSkeletonModel;
                     actor->hands[0].model = actor->hands[1].model = actor->wings.model = actor->pet.model =
-                        Client::Scenes::NoItemModel;
+                        Client::Kernel::NoItemModel;
                     actor->animation.action = 1;
                 }
                 user.position = {18250.0f, 11550.0f, 0.0f};

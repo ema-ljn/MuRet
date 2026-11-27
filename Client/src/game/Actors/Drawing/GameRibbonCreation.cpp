@@ -10,7 +10,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -18,9 +18,9 @@ std::int32_t Decrement(std::int32_t value)
 {
     return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(value) - 1u);
 }
-bool Shift(RibbonState& ribbon)
+bool Shift(Scenes::RibbonState& ribbon)
 {
-    if (ribbon.count >= static_cast<std::int32_t>(RibbonPointCount))
+    if (ribbon.count >= static_cast<std::int32_t>(Scenes::RibbonPointCount))
         return false;
     for (std::int32_t index = ribbon.count; index > 0; --index)
     {
@@ -30,8 +30,8 @@ bool Shift(RibbonState& ribbon)
     }
     return true;
 }
-Core::Expected<std::optional<std::size_t>, std::string> Append(std::span<RibbonState> ribbons, std::size_t index,
-                                                               const RibbonCreateRequest& request)
+Core::Expected<std::optional<std::size_t>, std::string> Append(std::span<Scenes::RibbonState> ribbons,
+                                                               std::size_t index, const RibbonCreateRequest& request)
 {
     auto& ribbon = ribbons[index];
     ribbon.type = request.type;
@@ -40,12 +40,12 @@ Core::Expected<std::optional<std::size_t>, std::string> Append(std::span<RibbonS
         return Core::Unexpected(std::string("0x52e3d5: la historia de la cinta excede sus30 puntos"));
     ribbon.first[0] = request.first;
     ribbon.second[0] = request.second;
-    constexpr std::int32_t LastCount = static_cast<std::int32_t>(RibbonPointCount) - 1;
+    constexpr std::int32_t LastCount = static_cast<std::int32_t>(Scenes::RibbonPointCount) - 1;
     ribbon.count = ribbon.count < LastCount ? ribbon.count + 1 : LastCount;
     return std::optional<std::size_t>(index);
 }
 } // namespace
-Core::Expected<std::optional<std::size_t>, std::string> CreateRibbon(std::span<RibbonState> ribbons,
+Core::Expected<std::optional<std::size_t>, std::string> CreateRibbon(std::span<Scenes::RibbonState> ribbons,
                                                                      const RibbonCreateRequest& request)
 {
     for (std::size_t index = 0; index < ribbons.size(); ++index)
@@ -70,7 +70,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateRibbon(std::span<R
     }
     return std::optional<std::size_t>{};
 }
-Core::Expected<void, std::string> StepRibbons(std::span<RibbonState> ribbons)
+Core::Expected<void, std::string> StepRibbons(std::span<Scenes::RibbonState> ribbons)
 {
     for (auto& ribbon : ribbons)
     {
@@ -88,4 +88,4 @@ Core::Expected<void, std::string> StepRibbons(std::span<RibbonState> ribbons)
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

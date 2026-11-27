@@ -40,7 +40,7 @@ TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndNat
     bool returned = false;
     for (std::uint32_t seed = 1; seed < 20; ++seed)
     {
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         auto& hero = world->Actors()[0];
         hero.cellX = 40;
         hero.cellY = 64;
@@ -106,7 +106,7 @@ TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndNat
 
 TEST(KalimaObjectStepTest, ASelectedRetainedCountReturnsBeforeTheSpawnGuardAndDoesNotResetItsOwner)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     world->OwnCharacter().level = 40;
     world->Runtime().ownRecordDepth = 1;
     world->Runtime().objectSelectionCount = 3;
@@ -155,7 +155,7 @@ TEST(KalimaObjectStepTest, RegionCellClosesStoreTheNativeRandomBytesOnlyAtDepthZ
             if (expected.Next() % 10 != 0)
                 continue;
             const int selector = expected.Next() % 3;
-            auto world = std::make_unique<Client::Scenes::WorldState>();
+            auto world = std::make_unique<Client::Kernel::WorldState>();
             auto& hero = world->Actors()[0];
             hero.cellX = 40;
             hero.cellY = 64;

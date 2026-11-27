@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -266,4 +266,4 @@ glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)
     }
     return {light[0], light[1], light[2]};
 }
-} // namespace Client::World
+} // namespace Client::Terrain

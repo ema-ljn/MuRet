@@ -17,14 +17,14 @@
 #include <sstream>
 #include <string>
 
-// Client::Scenes::StepCharacterHead contra el código real del main.exe emulado: el tramo de 0x505de0 que
+// Client::Kernel::StepCharacterHead contra el código real del main.exe emulado: el tramo de 0x505de0 que
 // mueve la cabeza (0x5068eb..0x5069ab), con 0x4e96f0 y 0x4e9560, bit a bit (tests/vectors/world55/head.txt,
 // de docs/research/scripts/login/make_head_vectors.py).
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::CharacterHead;
-using Client::Scenes::StepCharacterHead;
+using Client::Kernel::CharacterHead;
+using Client::Kernel::StepCharacterHead;
 
 std::uint32_t Hex(const std::string& text)
 {

@@ -31,7 +31,7 @@ namespace Client::Session
 {
 namespace
 {
-template <void (*Release)(Scenes::WorldState&)> void Released(App::ServerSession& session)
+template <void (*Release)(Kernel::WorldState&)> void Released(App::ServerSession& session)
 {
     const Scenes::WorldEntryResources* const world = session.RoutedWorld();
     if (world == nullptr)

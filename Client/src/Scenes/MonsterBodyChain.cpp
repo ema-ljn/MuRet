@@ -102,23 +102,23 @@ Chained Drawn(const Core::Expected<void, std::string>& drawn)
 Result EmitWhenFading(MonsterBodyFrame& frame, std::uint32_t address)
 {
     constexpr std::int32_t FadingParticles = 0x607;
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     if (actor.animation.action != DeathAction || actor.alpha >= Half || !frame.originalFrame)
         return {};
     const MonsterBodyModel& model = frame.model;
     const auto* found = model.models.Find(model.object.model);
     if (found == nullptr)
         return {};
-    if (auto emitted =
-            EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes, {.type = FadingParticles},
-                                {.particles = frame.particles, .worldClock = frame.worldClock}, frame.random);
+    if (auto emitted = Actors::Drawing::EmitVertexEffectsOf(
+            *found, model.object.transform.scale, model.meshes, {.type = FadingParticles},
+            {.particles = frame.particles, .worldClock = frame.worldClock}, frame.random);
         !emitted.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, emitted.Error()));
     return {};
 }
 
 // Los de 0x4ecc30 en 0x43ed20: los del personaje con la textura en +0x58.
-BodyPassArgs MeshArgsOf(const ActorState& actor)
+BodyPassArgs MeshArgsOf(const Kernel::ActorState& actor)
 {
     return WithTexture(ActorPassArgs(actor), actor.dword58);
 }
@@ -162,7 +162,7 @@ Result StrikeTheGlow(MonsterBodyFrame& frame)
     constexpr std::uint8_t BlueStrike = 0x21, GreenStrike = 0x22;
     constexpr std::int32_t StruckMesh = 6, Stones = 0x10a, BlueStones = 1, GreenStones = 2;
     constexpr std::int32_t StruckSound = 0x88;
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     if (actor.byte110 != BlueStrike && actor.byte110 != GreenStrike)
         return {};
     if (frame.originalFrame)
@@ -175,10 +175,10 @@ Result StrikeTheGlow(MonsterBodyFrame& frame)
         const auto* found = model.models.Find(model.object.model);
         if (found != nullptr)
         {
-            const VertexEffectCall call{
+            const Actors::Drawing::VertexEffectCall call{
                 .mesh = StruckMesh, .type = Stones, .subtype = actor.byte110 == BlueStrike ? BlueStones : GreenStones};
-            if (auto emitted = EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes, call,
-                                                   {.effects = frame.effects}, frame.random);
+            if (auto emitted = Actors::Drawing::EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes,
+                                                                    call, {.effects = frame.effects}, frame.random);
                 !emitted.HasValue())
                 return Core::Unexpected(std::format("0x439dc5: {}", emitted.Error()));
         }
@@ -219,7 +219,7 @@ constexpr std::array<FallingPiece, 8> FallingPieces{{
 // los de `model.object.transform` (MonsterDrawing.cpp los publica con PlaceModel en el frame del original).
 Result ScatterKundun(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     if (frame.effects == nullptr)
         return Core::Unexpected(std::string("0x43eeb9: la caída de Kundun pide la tabla de efectos (0x518cf0)"));
     constexpr std::size_t FallBone = 4; // [esi+0x120] + 0xc0
@@ -259,7 +259,7 @@ Result ScatterKundun(MonsterBodyFrame& frame)
 // 0x43edc1..0x43f493: el 0x192 (Kundun; +0x60 en 100 desde su alta, 0x43a155).
 Result DrawKundun(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     const float frameNumber = actor.animation.frame;
     const bool dying = actor.animation.action == DeathAction;
@@ -357,7 +357,7 @@ Result DrawKundun(MonsterBodyFrame& frame)
 // 0x43f8f9..0x43fb99: el 0x197, entre 0x4ecc10 y 0x4ecc20.
 Result DrawThe197(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     const bool dark = actor.subtype == 9;
     // 0x43f945..0x43f9d0: las mallas 0, 1, 3 y 5 con 2, sin el blendMesh.
@@ -433,7 +433,7 @@ Result DrawThe197(MonsterBodyFrame& frame)
 // 0x43ed20 con los tipos de 0x191 a 0x197, hasta 0x43fc04.
 Result DrawTheLateChainBody(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     switch (actor.type)
     {
@@ -539,7 +539,7 @@ Result DrawTheWiderShell(MonsterBodyFrame& frame, std::uint32_t flags, float sca
         return {};
     MonsterBodyModel& model = frame.model;
     model.object.vertexLight = false;
-    model.rescaled = SkinObjectMeshes(model.models, model.object, frame.bones, scale);
+    model.rescaled = Actors::Drawing::SkinObjectMeshes(model.models, model.object, frame.bones, scale);
     model.meshes = model.rescaled;
     return DrawBodyPass(model, flags, ActorPassArgs(frame.actor));
 }
@@ -572,7 +572,7 @@ Chained DrawTheLateChainCase(MonsterBodyFrame& frame)
 Chained DrawTheKalimaCase(MonsterBodyFrame& frame)
 {
     MonsterBodyModel& model = frame.model;
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const std::uint16_t type = actor.type;
     if (type == 0x173 && IsKalimaMap(frame.map))
     {
@@ -621,15 +621,15 @@ Result EmitCastleVertices(MonsterBodyFrame& frame, std::int32_t type)
 {
     if (frame.effects == nullptr)
         return Core::Unexpected(std::string("0x4ee770: falta el pool de efectos del monstruo del asedio"));
-    return EmitVertexEffects(frame.model.models, frame.model.object, frame.model.meshes, 0, type, 0, *frame.effects,
-                             frame.random);
+    return Actors::Drawing::EmitVertexEffects(frame.model.models, frame.model.object, frame.model.meshes, 0, type, 0,
+                                              *frame.effects, frame.random);
 }
 
 Chained DrawCastleGuard(MonsterBodyFrame& frame)
 {
     if (!frame.siegeActive)
         return true;
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     if (actor.animation.action == DeathAction)
     {
         actor.alive = false;
@@ -652,7 +652,7 @@ Chained DrawCastleGuard(MonsterBodyFrame& frame)
 
 Chained DrawCastleLife(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     actor.blendMeshLight = F32(static_cast<double>(actor.byte93) * D(Tenth));
     model.object.color = glm::vec3(actor.blendMeshLight);
@@ -694,7 +694,7 @@ Result DrawCastleStoneAt(MonsterBodyFrame& frame, std::size_t bone)
     const auto* skeleton = model.models.SkeletonOf(StoneModel);
     if (skeleton == nullptr)
         return Core::Unexpected(std::string("0x42e4fc: falta el esqueleto del proyectil 0x12b"));
-    DrawnObject stone = model.object;
+    Actors::Drawing::DrawnObject stone = model.object;
     stone.model = StoneModel;
     stone.color = model.preludeColor;
     stone.unlitMesh.reset();
@@ -706,7 +706,7 @@ Result DrawCastleStoneAt(MonsterBodyFrame& frame, std::size_t bone)
     std::vector<Math::BoneTransform> posed(skeleton->bones.size(), Math::BoneTransform(1.0f));
     if (!Models::PoseSkeleton(*skeleton, stone.animation, stone.transform, {}, posed))
         return Core::Unexpected(std::string("0x42e4fc: no se pudo posar el proyectil 0x12b"));
-    model.rescaled = SkinObjectMeshes(model.models, stone, posed, model.boneScale);
+    model.rescaled = Actors::Drawing::SkinObjectMeshes(model.models, stone, posed, model.boneScale);
     model.meshes = model.rescaled;
     MonsterBodyModel projectile{.batch = model.batch,
                                 .models = model.models,
@@ -735,7 +735,7 @@ Chained DrawCastleCatapult(MonsterBodyFrame& frame)
 
 Chained DrawCastleMonster(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     switch (actor.type)
     {
     case 0x19b:
@@ -780,8 +780,8 @@ Chained DrawTheCastleCase(MonsterBodyFrame& frame)
     if (frame.map != CastleMap)
         return false;
     MonsterBodyModel& model = frame.model;
-    const ActorState& actor = frame.actor;
-    DrawnObject object = model.object;
+    const Kernel::ActorState& actor = frame.actor;
+    Actors::Drawing::DrawnObject object = model.object;
     const BodyPassArgs args = ActorPassArgs(actor);
     object.alpha = args.alpha;
     object.state.blendMesh = static_cast<std::int16_t>(args.blendMesh);
@@ -789,12 +789,13 @@ Chained DrawTheCastleCase(MonsterBodyFrame& frame)
     object.state.uv = args.uv;
     object.state.hiddenMesh = static_cast<std::int16_t>(args.hiddenMesh);
     object.retainedMeshes = model.meshes;
-    const auto siege = DrawCastleSiegeBody(model.batch, model.models, object,
-                                           CastleSiegeBodyPass{.type = static_cast<std::int16_t>(actor.type),
-                                                               .field04 = actor.subtype,
-                                                               .siegeActive = frame.siegeActive,
-                                                               .worldClock = frame.worldClock},
-                                           model.frameClock);
+    const auto siege = Actors::Drawing::DrawCastleSiegeBody(
+        model.batch, model.models, object,
+        Actors::Drawing::CastleSiegeBodyPass{.type = static_cast<std::int16_t>(actor.type),
+                                             .field04 = actor.subtype,
+                                             .siegeActive = frame.siegeActive,
+                                             .worldClock = frame.worldClock},
+        model.frameClock);
     if (!siege.HasValue())
         return Core::Unexpected(siege.Error());
     if (siege.Value())
@@ -852,7 +853,7 @@ Result DrawThe1a4(MonsterBodyFrame& frame)
 // 0x4430a9..0x4432a2: el 0x1a6; con el cuarto argumento, el color en 1 y los pases cromados con Chrome01.
 Result DrawThe1a6(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     const bool special = frame.special != 0;
     const BodyPassArgs args = ActorPassArgs(actor);
@@ -944,7 +945,7 @@ Result DrawThe1a7(MonsterBodyFrame& frame)
 // 0x4433de..0x443571: el 0x1a9.
 Result DrawThe1a9(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     // RenderBody(2) sin la malla 5; el alpha guardado en 1 y la malla 5 con 2 y la textura 0x63b y con la suya, sin el
     // blendMesh.
@@ -987,7 +988,7 @@ Result DrawThe1a9(MonsterBodyFrame& frame)
 Chained DrawThe4403b0Case(MonsterBodyFrame& frame)
 {
     MonsterBodyModel& model = frame.model;
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     switch (actor.type)
     {
     case 0x1a3:
@@ -1161,7 +1162,7 @@ Chained DrawWithoutMesh5(MonsterBodyFrame& frame)
 // final, el alpha guardado en 1.
 Result DrawThe1af(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     const auto* found = model.models.Find(actor.type);
     const std::size_t count = found != nullptr ? found->meshes.size() : 0;

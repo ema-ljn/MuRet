@@ -10,7 +10,7 @@
 // Client/docs/research/06-render-escenas-y-ui.md, "El F3 10, el inventario". Qué muestra cada una en
 // la interfaz no está leído (CL9): la segunda, la de los lugares desde el 76, podría ser la tienda
 // personal (*inferido* del tamaño).
-namespace Client::Scenes
+namespace Client::Kernel
 {
 // 0x5bc740 pone una fila cada 8 casillas: el 8 que le pasa 0x4c55a0 (0x4c5e83) para la fila y el
 // `% 8` y `/ 8` fijos de 0x5bcc68..0x5bcc81 para la columna y la fila de +0x42 y +0x43.
@@ -26,7 +26,7 @@ struct OwnInventory
     // en las 96 casillas, el tipo en −1 y +0x3c (occupied) y +0x1b (flags1b) en 0, como en el equipo.
     void ClearForInventoryReply();
 
-    std::array<World::ItemState, InventoryCellCount> cells{};
-    std::array<World::ItemState, SecondGridCellCount> secondCells{};
+    std::array<Kernel::ItemState, InventoryCellCount> cells{};
+    std::array<Kernel::ItemState, SecondGridCellCount> secondCells{};
 };
-} // namespace Client::Scenes
+} // namespace Client::Kernel

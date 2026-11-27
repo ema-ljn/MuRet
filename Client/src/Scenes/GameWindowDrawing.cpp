@@ -55,7 +55,7 @@ using Math::Truncate;
 // recortado a `limit` si es positivo y menor, y los dos pasados a 640 × 480 (fdiv por rx y ry y _ftol).
 void KeepTheMeasure(GameHudContext& context, std::string_view text, std::int32_t limit)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     const Render::Text::TextExtent extent = context.text.Measure(hud.dcFont, text);
     std::int32_t width = extent.width;
     if (limit > 0 && width > limit)
@@ -156,7 +156,7 @@ void SelectFont(GameHudContext& context, Render::Text::FontKind font)
 
 void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     if (!text.empty())
         context.text.Draw(x, y, text, Render::Text::TextStyle{.font = hud.dcFont, .colors = hud.textColors});
     KeepTheMeasure(context, text, 0);
@@ -170,7 +170,7 @@ std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth)
 
 void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
     // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
     if (!text.empty() || box != 0)
@@ -190,7 +190,7 @@ void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::str
 
 void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width)
 {
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     const Render::Text::TextStyle style{.font = hud.dcFont, .colors = hud.textColors};
     if (width <= 0)
     {

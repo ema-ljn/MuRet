@@ -66,7 +66,7 @@ std::optional<BeamOwner> OwnerOf(const JointState& joint)
     }
     if (joint.ownerKind != JointOwnerKind::ByType && joint.ownerKind != JointOwnerKind::Actor)
         return std::nullopt;
-    const auto& actor = *static_cast<const ActorState*>(joint.ownerContext);
+    const auto& actor = *static_cast<const Kernel::ActorState*>(joint.ownerContext);
     return BeamOwner{actor.alive, actor.position, actor.effectOrigin, actor.bonePoint4c};
 }
 

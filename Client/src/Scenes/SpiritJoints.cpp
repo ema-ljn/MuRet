@@ -376,7 +376,7 @@ Core::Expected<void, std::string> StepTheBolt(JointState& joint, const JointKern
     {
         if (joint.ownerContext != nullptr)
         {
-            const ActorState* owner = JointKernels::ActorOwner(joint);
+            const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
             if (owner == nullptr)
                 return Core::Unexpected(std::string("0x5397dd: el dueño del joint 0x613/0xd no es un personaje"));
             if ((random.Next() & 1) == 0)
@@ -745,7 +745,7 @@ Core::Expected<void, std::string> StepTheSwing(JointState& joint, const JointKer
 // luz dinámica de radio 4 resta ((rand() & 3) + 4) · 0,01f.
 Core::Expected<void, std::string> StepTheVolley(JointState& joint, const JointKernels::StepServices& services)
 {
-    const ActorState* owner = JointKernels::ActorOwner(joint);
+    const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(
             std::format("0x539b13: el joint {:#x}/{} no tiene un personaje de dueño", joint.type, joint.subtype));
@@ -837,7 +837,7 @@ Core::Expected<bool, std::string> VolleyFromTheSky(JointState& joint, const Join
         if (services.volley->attributes == nullptr)
             return Core::Unexpected(std::string("0x539a60: faltan los atributos de las celdas (0x7d0d348)"));
         const auto cell =
-            World::TerrainAttributeQueryAt(*services.volley->attributes, joint.position.x, joint.position.y);
+            Terrain::TerrainAttributeQueryAt(*services.volley->attributes, joint.position.x, joint.position.y);
         if (!cell.HasValue())
             return Core::Unexpected(std::string("0x539a60: 0x5f82c0 lee fuera de la tabla de atributos"));
         if ((cell.Value() & SiegeCell) == SiegeCell)

@@ -275,7 +275,7 @@ std::int32_t WordAt(Record record, std::size_t offset)
 }
 
 // D+0x2b + offset: las opciones desde +0x2b y sus valores desde +0x33. MuRet tiene los bytes del ítem hasta +0x3b.
-Core::Expected<std::uint8_t, std::string> OptionByte(const World::ItemState& item, std::size_t offset,
+Core::Expected<std::uint8_t, std::string> OptionByte(const Kernel::ItemState& item, std::size_t offset,
                                                      std::string_view address)
 {
     if (offset >= item.optionBytes.size())
@@ -285,10 +285,10 @@ Core::Expected<std::uint8_t, std::string> OptionByte(const World::ItemState& ite
     return item.optionBytes[offset];
 }
 
-Core::Expected<std::uint8_t, std::string> OptionValue(const World::ItemState& item, std::size_t index,
+Core::Expected<std::uint8_t, std::string> OptionValue(const Kernel::ItemState& item, std::size_t index,
                                                       std::string_view address)
 {
-    return OptionByte(item, World::ItemOptionValueOffset + index, address);
+    return OptionByte(item, Kernel::ItemOptionValueOffset + index, address);
 }
 
 // 0x54dc17..0x54dc5c (y 0x54d14e..0x54d1b1): el dword bajo, redondeado con las cuentas de 64 bits.
@@ -319,13 +319,13 @@ std::int64_t Ftol64(double value)
     return static_cast<std::int64_t>(value);
 }
 
-std::int32_t LevelOf(const World::ItemState& item)
+std::int32_t LevelOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
 }
 
 // 0x54d1d6..0x54d20b.
-Core::Expected<std::int32_t, std::string> BaseOf(const World::ItemState& item, Record record, std::int32_t level)
+Core::Expected<std::int32_t, std::string> BaseOf(const Kernel::ItemState& item, Record record, std::int32_t level)
 {
     bool excellent = false;
     for (std::size_t i = 0; i < std::size_t{item.optionCount}; ++i)
@@ -342,7 +342,7 @@ Core::Expected<std::int32_t, std::string> BaseOf(const World::ItemState& item, R
 
 // 0x54d21b..0x54d28a: la durabilidad por el precio del nivel, sobre la de Item.bmd. Desde el nivel 3, EBX queda con
 // la dirección del ítem (0x54d23b y 0x54d267) y el precio sale de ella (Q-C735).
-Core::Expected<TypePrice, std::string> AmmoPrice(const World::ItemState& item, Record record, std::int32_t level)
+Core::Expected<TypePrice, std::string> AmmoPrice(const Kernel::ItemState& item, Record record, std::int32_t level)
 {
     const std::uint8_t full = ByteAt(record, DurabilityAt);
     if (full == 0)
@@ -357,14 +357,14 @@ Core::Expected<TypePrice, std::string> AmmoPrice(const World::ItemState& item, R
 }
 
 // 0x402d60 (con 0x402b30 en 2 o 3).
-TypePrice BundlePrice(const World::ItemState& item, std::int32_t level)
+TypePrice BundlePrice(const Kernel::ItemState& item, std::int32_t level)
 {
     if (item.id == BlessBundle)
         return Capped(std::int64_t{(BlessBundleLevels * level + BlessBundleLevels) * BlessBundleStep});
     return Capped(std::int64_t{(level + 1) * SoulBundleStep});
 }
 
-Core::Expected<TypePrice, std::string> DinorantPriceOf(const World::ItemState& item)
+Core::Expected<TypePrice, std::string> DinorantPriceOf(const Kernel::ItemState& item)
 {
     if (item.optionCount == 0)
         return Plain(DinorantPrice);
@@ -406,7 +406,7 @@ std::optional<TypePrice> LevelTablePrice(std::uint16_t type, std::int32_t level)
     return std::nullopt;
 }
 
-std::optional<TypePrice> DurabilityPrice(const World::ItemState& item, std::int32_t level)
+std::optional<TypePrice> DurabilityPrice(const Kernel::ItemState& item, std::int32_t level)
 {
     const std::int64_t units = item.durability;
     if (item.id == Kundun)
@@ -423,7 +423,7 @@ std::optional<TypePrice> DurabilityPrice(const World::ItemState& item, std::int3
 }
 
 // 0x54d2b1..0x54d63a: los tipos con precio propio, antes de mirar +0x3c.
-std::optional<TypePrice> NamedTypePrice(const World::ItemState& item, std::int32_t level)
+std::optional<TypePrice> NamedTypePrice(const Kernel::ItemState& item, std::int32_t level)
 {
     for (const ConstantPrice& entry : ConstantPrices)
     {
@@ -438,7 +438,7 @@ std::optional<TypePrice> NamedTypePrice(const World::ItemState& item, std::int32
 }
 
 // 0x54d64d..0x54d6ee: el valor de +0x3c; de 0x1c00 a 0x1c08, por 2^nivel y por la durabilidad, y vuelve.
-TypePrice PotionPrice(const World::ItemState& item, Record record, std::int32_t mode, std::int32_t level)
+TypePrice PotionPrice(const Kernel::ItemState& item, Record record, std::int32_t mode, std::int32_t level)
 {
     const std::int32_t value = ByteAt(record, PotionValueAt);
     const std::int64_t base = value * value * PotionScale / PotionDivisor;
@@ -454,7 +454,7 @@ TypePrice PotionPrice(const World::ItemState& item, Record record, std::int32_t 
 }
 
 // 0x54d963..0x54d9c2: b³ + 100, por el valor + 1 de cada opción 0x55.
-Core::Expected<TypePrice, std::string> HelperPrice(const World::ItemState& item, std::int32_t base)
+Core::Expected<TypePrice, std::string> HelperPrice(const Kernel::ItemState& item, std::int32_t base)
 {
     const auto side = static_cast<std::uint32_t>(base);
     std::int64_t price = static_cast<std::int32_t>(side * side * side + HelperBase);
@@ -508,8 +508,8 @@ std::optional<std::size_t> StepOf(std::uint32_t value, std::uint32_t unit)
 }
 
 // 0x54d87d..0x54d8f3: el escalón. En las alas hasta 0x1806, el valor de la 0x55 va por 4 (0x54d898).
-Core::Expected<std::optional<std::size_t>, std::string> StepOfTheOption(const World::ItemState& item, std::size_t index,
-                                                                        std::uint8_t tag, bool earlyWing)
+Core::Expected<std::optional<std::size_t>, std::string>
+StepOfTheOption(const Kernel::ItemState& item, std::size_t index, std::uint8_t tag, bool earlyWing)
 {
     if (tag == StepByFiveOption)
     {
@@ -526,7 +526,7 @@ Core::Expected<std::optional<std::size_t>, std::string> StepOfTheOption(const Wo
     return StepOf(shifted, StepOfFour);
 }
 
-Core::Expected<std::int64_t, std::string> AddTheOption(const World::ItemState& item, std::size_t index,
+Core::Expected<std::int64_t, std::string> AddTheOption(const Kernel::ItemState& item, std::size_t index,
                                                        std::int64_t price, bool earlyWing)
 {
     auto tag = OptionByte(item, index, "0x54d83b");
@@ -569,7 +569,7 @@ Core::Expected<std::int64_t, std::string> AddTheOption(const World::ItemState& i
 }
 
 // 0x54d762..0x54d95e: las armas, las armaduras, las alas hasta 0x1806 y lo demás sin caso.
-Core::Expected<TypePrice, std::string> GearPrice(const World::ItemState& item, Record record, std::int32_t group,
+Core::Expected<TypePrice, std::string> GearPrice(const Kernel::ItemState& item, Record record, std::int32_t group,
                                                  std::int32_t level, std::int32_t base)
 {
     if (level >= FirstStepLevel && static_cast<std::size_t>(level - FirstStepLevel) < LevelSteps.size())
@@ -594,7 +594,7 @@ Core::Expected<TypePrice, std::string> GearPrice(const World::ItemState& item, R
     return Capped(price);
 }
 
-std::optional<TypePrice> LatePrice(const World::ItemState& item, std::int32_t level)
+std::optional<TypePrice> LatePrice(const Kernel::ItemState& item, std::int32_t level)
 {
     for (const FirstLevelsPrice& entry : {WizardRingPrices, SpiritPrices})
     {
@@ -605,7 +605,7 @@ std::optional<TypePrice> LatePrice(const World::ItemState& item, std::int32_t le
 }
 
 // 0x54d1b2..0x54da1a: el precio de cada tipo, antes del tope y del modo.
-Core::Expected<TypePrice, std::string> PriceByType(const World::ItemState& item, Record record, std::int32_t mode,
+Core::Expected<TypePrice, std::string> PriceByType(const Kernel::ItemState& item, Record record, std::int32_t mode,
                                                    std::int32_t level)
 {
     auto base = BaseOf(item, record, level);
@@ -630,7 +630,7 @@ Core::Expected<TypePrice, std::string> PriceByType(const World::ItemState& item,
 }
 
 // 0x54da69..0x54db12.
-std::int64_t Overridden(const World::ItemState& item, std::int64_t price)
+std::int64_t Overridden(const Kernel::ItemState& item, std::int64_t price)
 {
     if (item.id < FirstOverridden || item.id > LastOverridden)
         return price;
@@ -641,7 +641,7 @@ std::int64_t Overridden(const World::ItemState& item, std::int64_t price)
 }
 
 // 0x54db15..0x54db3a: 0x422930(1) con el caballo y 0x422930(0) con el cuervo.
-Core::Expected<std::int64_t, std::string> PetPrice(const World::ItemState& item,
+Core::Expected<std::int64_t, std::string> PetPrice(const Kernel::ItemState& item,
                                                    const std::optional<PetPriceLevels>& pets, std::int64_t price)
 {
     if (item.id != FirstPet && item.id != SecondPet)
@@ -665,7 +665,7 @@ bool DiscountsTheDurability(std::uint16_t type, std::int32_t mode)
 }
 
 // 0x54dbc2..0x54dc14: P − el dword bajo de _ftol((1 − durabilidad / máxima) · P · 0,6f), salvo en el 0x1a1f.
-Core::Expected<std::int64_t, std::string> DiscountTheDurability(const World::ItemState& item, Record record,
+Core::Expected<std::int64_t, std::string> DiscountTheDurability(const Kernel::ItemState& item, Record record,
                                                                 std::int32_t level, std::int64_t price)
 {
     const std::uint16_t maximum = MaxDurability(item, record, level);
@@ -730,7 +730,7 @@ std::uint32_t PetBasePrice(std::uint16_t type, const PetPriceLevels& pets)
     return type == FirstPet ? pets.horse * HorsePricePerLevel : pets.raven * RavenPricePerLevel;
 }
 
-Core::Expected<std::uint32_t, std::string> ItemPrice(const World::ItemState& item, const Tables::ItemTable& items,
+Core::Expected<std::uint32_t, std::string> ItemPrice(const Kernel::ItemState& item, const Tables::ItemTable& items,
                                                      std::int32_t mode, const std::optional<PetPriceLevels>& pets)
 {
     if (item.id == NoItem)

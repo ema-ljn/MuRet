@@ -8,7 +8,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
-namespace Client::World
+namespace Client::Terrain
 {
 Core::Expected<void, std::string> DeformTerrainHeights(Data::Terrain::TerrainHeights& heights, float x, float y,
                                                        float change, std::int32_t radius)
@@ -47,4 +47,4 @@ Core::Expected<void, std::string> DeformTheSiegeTerrain(WorldTerrain& terrain, f
     ReshadeTerrainLightWindow(*terrain.lighting, *terrain.rawLight, *terrain.heights, tileX, tileY);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Terrain

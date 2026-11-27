@@ -28,13 +28,13 @@
 // inventados.
 namespace
 {
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ActorState;
 using Client::Scenes::ChatBubbleMeasure;
 using Client::Scenes::ChatBubbleMode;
-using Client::Scenes::WorldState;
 
 class LetterMeasure final : public ITextMeasure
 {

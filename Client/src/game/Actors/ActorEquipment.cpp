@@ -20,7 +20,7 @@
 
 // 0x512a30, cotejado con el PE c32bbd5f (493 instrucciones, 1.733 bytes), con 0x4053f0 (44, 139),
 // 0x4053a0 (77 bytes) y 0x512930 (56, 205): 06, "El equipo propio en el personaje".
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -60,41 +60,41 @@ bool InNoStopMaps(std::int32_t map)
     return map >= FirstNoStopMap && map <= LastNoStopMap;
 }
 
-std::uint16_t ModelOf(const World::ItemState& item, std::uint16_t empty)
+std::uint16_t ModelOf(const Kernel::ItemState& item, std::uint16_t empty)
 {
-    if (item.id == NoItemModel)
+    if (item.id == Kernel::NoItemModel)
     {
         return empty;
     }
     return static_cast<std::uint16_t>(item.id + Tables::FirstItemModel);
 }
 
-std::uint8_t LevelOf(const World::ItemState& item)
+std::uint8_t LevelOf(const Kernel::ItemState& item)
 {
     return static_cast<std::uint8_t>((item.scalar1Low >> LevelShift) & LevelMask);
 }
 
 // 0x512abf..0x512b9b: las manos con su byte +0x1b; las alas y la mascota, sin bytes.
-void ProjectCarried(ActorState& actor, const OwnCharacterRecord& own)
+void ProjectCarried(Kernel::ActorState& actor, const Kernel::OwnCharacterRecord& own)
 {
     static_assert(LeftHandSlot == RightHandSlot + 1);
     for (std::size_t side = 0; side < actor.hands.size(); ++side)
     {
-        const World::ItemState& item = own.equipment[RightHandSlot + side];
-        ActorItemPart& hand = actor.hands[side];
-        hand.model = ModelOf(item, NoItemModel);
+        const Kernel::ItemState& item = own.equipment[RightHandSlot + side];
+        Kernel::ActorItemPart& hand = actor.hands[side];
+        hand.model = ModelOf(item, Kernel::NoItemModel);
         hand.level = LevelOf(item);
         hand.flags1b = item.flags1b;
     }
-    actor.wings.model = ModelOf(own.equipment[WingsSlot], NoItemModel);
+    actor.wings.model = ModelOf(own.equipment[WingsSlot], Kernel::NoItemModel);
     actor.wings.level = LevelOf(own.equipment[WingsSlot]);
-    actor.pet.model = ModelOf(own.equipment[PetSlot], NoItemModel);
+    actor.pet.model = ModelOf(own.equipment[PetSlot], Kernel::NoItemModel);
     actor.pet.level = LevelOf(own.equipment[PetSlot]);
     actor.previousHad1c15 = actor.pet.model == HeightOffsetPet;
 }
 
 // 0x512bb3..0x512bcd.
-bool CallsStop(const ActorState& actor, std::int32_t map)
+bool CallsStop(const Kernel::ActorState& actor, std::int32_t map)
 {
     const std::uint8_t action = actor.animation.action;
     const bool skipped = action >= FirstNoStopAction && action <= LastNoStopAction;
@@ -103,13 +103,13 @@ bool CallsStop(const ActorState& actor, std::int32_t map)
 }
 
 // 0x512cc7..0x512ec9: las cinco partes; un lugar vacío deja la de la clase.
-void ProjectBody(ActorState& actor, const OwnCharacterRecord& own)
+void ProjectBody(Kernel::ActorState& actor, const Kernel::OwnCharacterRecord& own)
 {
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
-        const World::ItemState& item = own.equipment[FirstBodySlot + part];
-        const auto ofClass = GameLogic::ClassPartModel(static_cast<GameLogic::BodyPart>(part), actor.characterClass);
-        ActorItemPart& worn = actor.body[part];
+        const Kernel::ItemState& item = own.equipment[FirstBodySlot + part];
+        const auto ofClass = Kernel::ClassPartModel(static_cast<Kernel::BodyPart>(part), actor.characterClass);
+        Kernel::ActorItemPart& worn = actor.body[part];
         worn.model = ModelOf(item, ofClass);
         worn.level = LevelOf(item);
         worn.flags1b = item.flags1b;
@@ -119,23 +119,23 @@ void ProjectBody(ActorState& actor, const OwnCharacterRecord& own)
 
 // 0x4053a0: las manos, las alas y la mascota sin ítem y con el nivel en 0, y el byte +0x1b de las manos
 // en 0. Los de las alas y la mascota quedan.
-void ClearCarried(ActorState& actor)
+void ClearCarried(Kernel::ActorState& actor)
 {
-    for (ActorItemPart& hand : actor.hands)
+    for (Kernel::ActorItemPart& hand : actor.hands)
     {
-        hand.model = NoItemModel;
+        hand.model = Kernel::NoItemModel;
         hand.level = 0;
         hand.flags1b = 0;
     }
-    actor.wings.model = NoItemModel;
+    actor.wings.model = Kernel::NoItemModel;
     actor.wings.level = 0;
-    actor.pet.model = NoItemModel;
+    actor.pet.model = Kernel::NoItemModel;
     actor.pet.level = 0;
     actor.previousHad1c15 = false;
 }
 
 // 0x512cc7..0x512ef5: la ropa y lo que sigue.
-Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentContext& context)
+Core::Expected<void, std::string> Dress(Kernel::ActorState& actor, const ActorEquipmentContext& context)
 {
     ProjectBody(actor, context.own);
     ArmForTheEventMaps(actor, context.stop.runtime.map);
@@ -147,25 +147,25 @@ Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentC
         context.fullSetScan =
             ScanFullSet(ScannedCharacterOf(actor), context.own, context.ownRecordAccesses, context.stop.random).globals;
     }
-    return RecalculateOwnStats(context.own, {.itemSetTables = context.itemSetTables,
-                                             .itemSets = context.itemSets,
-                                             .items = context.stop.items,
-                                             .publishedHero = context.publishedHero,
-                                             .ownRecordAccesses = context.ownRecordAccesses,
-                                             .random = context.stop.random,
-                                             .held = context.held,
-                                             .scan505820 = context.fullSetScan});
+    return Player::RecalculateOwnStats(context.own, {.itemSetTables = context.itemSetTables,
+                                                     .itemSets = context.itemSets,
+                                                     .items = context.stop.items,
+                                                     .publishedHero = context.publishedHero,
+                                                     .ownRecordAccesses = context.ownRecordAccesses,
+                                                     .random = context.stop.random,
+                                                     .held = context.held,
+                                                     .scan505820 = context.fullSetScan});
 }
 } // namespace
 
-void ArmForTheEventMaps(ActorState& actor, std::int32_t map)
+void ArmForTheEventMaps(Kernel::ActorState& actor, std::int32_t map)
 {
     if (!InNoStopMaps(map))
     {
         return;
     }
     ClearCarried(actor);
-    ActorItemPart& right = actor.hands[0];
+    Kernel::ActorItemPart& right = actor.hands[0];
     switch (Kernel::BaseClassOf(actor.characterClass))
     {
     case Kernel::CharacterClass::DarkWizard:
@@ -185,21 +185,21 @@ void ArmForTheEventMaps(ActorState& actor, std::int32_t map)
     }
 }
 
-void ApplyHeadAndScale(ActorState& actor)
+void ApplyHeadAndScale(Kernel::ActorState& actor)
 {
     if (actor.byte3e3 != 0)
     {
         return;
     }
-    const auto helm = actor.body[static_cast<std::size_t>(GameLogic::BodyPart::Helm)].model;
-    actor.head = GameLogic::HeadUnder(helm, actor.characterClass).value_or(NoItemModel);
-    if (const std::optional<float> scale = GameLogic::ClassScale(actor.characterClass, actor.skin))
+    const auto helm = actor.body[static_cast<std::size_t>(Kernel::BodyPart::Helm)].model;
+    actor.head = Kernel::HeadUnder(helm, actor.characterClass).value_or(Kernel::NoItemModel);
+    if (const std::optional<float> scale = Kernel::ClassScale(actor.characterClass, actor.skin))
     {
         actor.scale = *scale;
     }
 }
 
-Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& actor,
+Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(Kernel::ActorState& actor,
                                                                  const ActorEquipmentContext& context)
 {
     if (actor.type != Tables::PlayerSkeletonModel)
@@ -232,4 +232,4 @@ Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& act
     }
     return stop;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

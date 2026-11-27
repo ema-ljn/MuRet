@@ -116,7 +116,7 @@ void StepDamage(std::span<DamageNumberState> damage)
     }
 }
 
-Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items, const World::SphereFrustum& frustum)
+Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items, const Terrain::SphereFrustum& frustum)
 {
     constexpr float Radius = 400;
     for (std::size_t i = 0; i < items.size(); ++i)
@@ -124,7 +124,7 @@ Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items
         auto& item = items[i];
         if (!item.alive)
             continue;
-        item.seen = World::SphereVisible(frustum, item.position, Radius);
+        item.seen = Terrain::SphereVisible(frustum, item.position, Radius);
         if (!item.seen)
             continue;
         return Core::Unexpected(
@@ -329,16 +329,16 @@ Core::Expected<void, std::string> DrawModelDecal(Render::ModelBatch& batch, cons
     if (resources == nullptr)
         return Core::Unexpected(std::format("{}: faltan las alturas del calco del efecto {:#x}",
                                             rotating ? "0x52d749" : "0x52d90d", effect.type));
-    const World::TerrainDecal decal{.slot = rotating ? 0x6ad : 0x690 + effect.textureFrame % 5,
-                                    .x = effect.transform.position.x,
-                                    .y = effect.transform.position.y,
-                                    .width = rotating ? 2.0f : 0.6f,
-                                    .height = rotating ? 2.0f : 0.6f,
-                                    .color = rotating ? glm::vec3(0.3f) : effect.light,
-                                    .angle = rotating ? resources->worldClock : 0.0f,
-                                    .alpha = 1,
-                                    .lift = 5};
-    if (auto drawn = World::DrawTerrainDecal(batch, resources->heights, decal); !drawn.HasValue())
+    const Terrain::TerrainDecal decal{.slot = rotating ? 0x6ad : 0x690 + effect.textureFrame % 5,
+                                      .x = effect.transform.position.x,
+                                      .y = effect.transform.position.y,
+                                      .width = rotating ? 2.0f : 0.6f,
+                                      .height = rotating ? 2.0f : 0.6f,
+                                      .color = rotating ? glm::vec3(0.3f) : effect.light,
+                                      .angle = rotating ? resources->worldClock : 0.0f,
+                                      .alpha = 1,
+                                      .lift = 5};
+    if (auto drawn = Terrain::DrawTerrainDecal(batch, resources->heights, decal); !drawn.HasValue())
         return drawn;
     if (!rotating)
         Opaque(batch); // 52d915 llama620980 sólo después del calco completo.
@@ -363,16 +363,16 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
                                                          effect.transform.angles.z, 0));
             Blend(batch, Render::ModelBlend::Additive);
             effect.light = {0.2f, 0, 0};
-            const World::TerrainDecal decal{.slot = 0x5f2,
-                                            .x = point.x,
-                                            .y = point.y,
-                                            .width = 4,
-                                            .height = 4,
-                                            .color = effect.light,
-                                            .angle = -effect.transform.angles.z,
-                                            .alpha = 1,
-                                            .lift = 5};
-            if (auto drawn = World::DrawTerrainDecal(batch, resources->heights, decal); !drawn.HasValue())
+            const Terrain::TerrainDecal decal{.slot = 0x5f2,
+                                              .x = point.x,
+                                              .y = point.y,
+                                              .width = 4,
+                                              .height = 4,
+                                              .color = effect.light,
+                                              .angle = -effect.transform.angles.z,
+                                              .alpha = 1,
+                                              .lift = 5};
+            if (auto drawn = Terrain::DrawTerrainDecal(batch, resources->heights, decal); !drawn.HasValue())
                 return Core::Unexpected(drawn.Error());
             Opaque(batch);
         }
@@ -389,7 +389,7 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
         {
             if (resources->attributes == nullptr)
                 return Core::Unexpected(std::string("0x52da46: falta la consulta de atributos de asedio"));
-            const auto attribute = World::TerrainAttributeQueryAt(*resources->attributes, point.x, point.y);
+            const auto attribute = Terrain::TerrainAttributeQueryAt(*resources->attributes, point.x, point.y);
             if (!attribute.HasValue())
                 return Core::Unexpected(std::string("0x52da46: el atributo de asedio queda fuera de la tabla"));
             constexpr std::uint32_t SiegeBarrier = 0x100;
@@ -398,8 +398,8 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
         }
         if (resources->dynamicLighting == nullptr)
             return Core::Unexpected(std::string("0x52da6a: falta la luz dinámica del efecto5e8..5ea"));
-        World::AddTerrainLight(*resources->dynamicLighting, point.x, point.y,
-                               Data::Terrain::TerrainLightColor{effect.light.x, effect.light.y, effect.light.z}, 2);
+        Terrain::AddTerrainLight(*resources->dynamicLighting, point.x, point.y,
+                                 Data::Terrain::TerrainLightColor{effect.light.x, effect.light.y, effect.light.z}, 2);
     }
     return false;
 }
@@ -411,7 +411,8 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
 // float, y más el origen, en float (0x4ebdf8..0x4ebf02), como SkinMesh. Los sprites de 0x60b3d0 leen esos huesos
 // con 0x4ec110: con Translate en 0, más la posición del objeto (0x60be6e, 0x60c0e9); con 1, por la escala y más
 // el origen (0x60c44b).
-Core::Expected<void, std::string> PublishEffectItem(const Models::IModelLibrary& models, const DrawnObject& object,
+Core::Expected<void, std::string> PublishEffectItem(const Models::IModelLibrary& models,
+                                                    const Actors::Drawing::DrawnObject& object,
                                                     const ModelEffectDrawResources* resources)
 {
     if (models.Find(object.model) == nullptr || models.SkeletonOf(object.model) == nullptr)
@@ -423,7 +424,7 @@ Core::Expected<void, std::string> PublishEffectItem(const Models::IModelLibrary&
     return resources->onUntranslatedPose(posed);
 }
 Core::Expected<std::span<const Models::SkinnedMesh>, std::string>
-EffectItemMeshes(const Models::IModelLibrary& models, const DrawnObject& object,
+EffectItemMeshes(const Models::IModelLibrary& models, const Actors::Drawing::DrawnObject& object,
                  const ModelEffectDrawResources* resources)
 {
     if (resources == nullptr || !resources->posedMeshes)
@@ -439,7 +440,7 @@ Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch&
                                                              World::ModelEffect& effect, Core::Duration frameClock,
                                                              const ModelEffectDrawResources* resources)
 {
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     object.model = 0x10f;
     object.animation = effect.animation;
     object.transform = effect.transform;
@@ -454,7 +455,7 @@ Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch&
     const auto meshes = EffectItemMeshes(models, object, resources);
     if (!meshes.HasValue())
         return Core::Unexpected(meshes.Error());
-    return DrawItemMeshPass(batch, models, object, frameClock, meshes.Value(), -1, 0x42);
+    return Actors::Drawing::DrawItemMeshPass(batch, models, object, frameClock, meshes.Value(), -1, 0x42);
 }
 float EffectItemScale(std::int16_t type)
 {
@@ -502,7 +503,7 @@ Core::Expected<void, std::string> InitializeEffectItem(World::ModelEffect& effec
 }
 Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       World::ModelEffect& effect,
-                                                      const World::TerrainLighting* lighting, Core::Duration clock,
+                                                      const Terrain::TerrainLighting* lighting, Core::Duration clock,
                                                       const ModelEffectDrawResources* resources)
 {
     const bool spinning = effect.type == 0xf4;
@@ -530,7 +531,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
         return initialized;
     if (!spinning)
         effect.turnDirection = originalTurnDirection; // 52d4b9 después de volver de607b60.
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     object.model = model;
     object.animation = effect.animation;
     object.transform = effect.transform;
@@ -540,7 +541,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
     const auto setColor = [&]
     {
         const auto terrain =
-            lighting != nullptr ? World::LightAt(*lighting, originalPosition.x, originalPosition.y) : glm::vec3(0);
+            lighting != nullptr ? Terrain::LightAt(*lighting, originalPosition.x, originalPosition.y) : glm::vec3(0);
         for (int axis = 0; axis < 3; ++axis)
             object.color[axis] = F32(static_cast<double>(terrain[axis]) + effect.light[axis]);
     };
@@ -558,16 +559,17 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
         return Core::Unexpected(meshes.Error());
     if (originalAlpha > 0.01f)
     {
-        auto itemContext =
-            resources != nullptr && resources->itemContext != nullptr ? *resources->itemContext : ItemDrawContext{};
-        auto special = itemContext.special ? *itemContext.special : ItemSpecialDrawContext{};
+        auto itemContext = resources != nullptr && resources->itemContext != nullptr
+                               ? *resources->itemContext
+                               : Actors::Drawing::ItemDrawContext{};
+        auto special = itemContext.special ? *itemContext.special : Actors::Drawing::ItemSpecialDrawContext{};
         special.objectLight = &effect.light;
         special.publishedObject = &object;
         itemContext.special = &special;
         itemContext.ownerContext = &effect; // Dueño opaco real; no reinterpretar como FaunaObject.
         itemContext.storedAlpha = &effect.alpha;
-        const auto drawn =
-            DrawItemFromMeshes(batch, models, object, clock, meshes.Value(), *effect.itemLevel, 0, 0, itemContext);
+        const auto drawn = Actors::Drawing::DrawItemFromMeshes(batch, models, object, clock, meshes.Value(),
+                                                               *effect.itemLevel, 0, 0, itemContext);
         effect.objectState = object.state;
         if (!drawn.HasValue())
             return drawn;
@@ -583,7 +585,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
 
 Core::Expected<void, std::string>
 DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, const Models::IModelLibrary& models,
-                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                     const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
     // 0x602e90 llama primero a 0x5ffdf0 (0x602ea6). 0x5ffdff..0x5ffe24: en los mapas 18 a 23, con +0x1a1 del héroe, el
@@ -597,14 +599,14 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     if (!(effect.alpha >= VisibleAlpha))
         return {};
     const auto model = static_cast<std::uint16_t>(effect.type);
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     object.model = model;
     object.animation = effect.animation;
     object.transform = effect.transform;
     object.transform.position += (effect.transform.position - effect.previousPosition) * alpha;
     object.state = effect.objectState;
     const auto terrain = lighting != nullptr
-                             ? World::LightAt(*lighting, effect.transform.position.x, effect.transform.position.y)
+                             ? Terrain::LightAt(*lighting, effect.transform.position.x, effect.transform.position.y)
                              : glm::vec3(0);
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
@@ -622,14 +624,15 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
         }
-        const auto body = DrawCastleWeaponBody(
+        const auto body = Actors::Drawing::DrawCastleWeaponBody(
             batch, models, effect, object, frameClock,
-            [&](std::int32_t type, const DrawnObject& owner,
+            [&](std::int32_t type, const Actors::Drawing::DrawnObject& owner,
                 std::span<const Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
             {
                 if (resources == nullptr || resources->effects == nullptr || resources->random == nullptr)
                     return Core::Unexpected(std::string("0x601c90: falta pool o CRT del impacto por vértices"));
-                return EmitVertexEffects(models, owner, meshes, 0, type, 0, *resources->effects, *resources->random);
+                return Actors::Drawing::EmitVertexEffects(models, owner, meshes, 0, type, 0, *resources->effects,
+                                                          *resources->random);
             });
         if (!body.HasValue())
             return body;
@@ -654,20 +657,21 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
         }
-        const auto drawn = DrawCastleSiegeBody(
+        const auto drawn = Actors::Drawing::DrawCastleSiegeBody(
             batch, models, object,
-            CastleSiegeBodyPass{
+            Actors::Drawing::CastleSiegeBodyPass{
                 .type = effect.type,
                 .field04 = effect.subtype,
                 .siegeActive = resources->siegeActive,
                 .worldClock = resources->worldClock,
-                .emitGateVertices = [&](const DrawnObject& gate, std::span<const Models::SkinnedMesh> meshes)
-                    -> Core::Expected<void, std::string>
+                .emitGateVertices =
+                    [&](const Actors::Drawing::DrawnObject& gate,
+                        std::span<const Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
                 {
                     if (resources->effects == nullptr || resources->random == nullptr)
                         return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT del fragmento de puerta"));
-                    return EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *resources->effects,
-                                             *resources->random);
+                    return Actors::Drawing::EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *resources->effects,
+                                                              *resources->random);
                 }},
             frameClock);
         if (!drawn.HasValue())
@@ -712,7 +716,8 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
                 return Core::Unexpected(special.Error());
             if (!special.Value())
             {
-                if (auto drawn = DrawPublishedObject(batch, models, object, frameClock, resources->posedMeshes);
+                if (auto drawn =
+                        Actors::Drawing::DrawPublishedObject(batch, models, object, frameClock, resources->posedMeshes);
                     !drawn.HasValue())
                     return drawn;
             }
@@ -724,7 +729,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         if (!special.HasValue())
             return Core::Unexpected(special.Error());
         if (!special.Value())
-            DrawObject(batch, models, object, frameClock);
+            Actors::Drawing::DrawObject(batch, models, object, frameClock);
     }
     constexpr std::int16_t KalimaType = 9;
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&
@@ -739,8 +744,8 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
 
 Core::Expected<void, std::string>
 DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                            std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
-                            const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                            std::span<World::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
+                            const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                             const ModelEffectDrawResources* resources, std::uint8_t mode)
 {
     for (std::size_t i = 0; i < effects.size(); ++i)
@@ -748,7 +753,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
         auto& effect = effects[i];
         if (!effect.alive)
             continue;
-        effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
+        effect.seen = Terrain::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
         // 0x103 (flashing.bmd) y 0x105/0 (Piercing.bmd) no tienen caso propio: 0x52d6c3 y 0x52d78f los mandan a
@@ -829,8 +834,8 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
 
 Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                        std::span<World::ModelEffect> effects,
-                                                       const World::SphereFrustum& frustum,
-                                                       const World::TerrainLighting* lighting,
+                                                       const Terrain::SphereFrustum& frustum,
+                                                       const Terrain::TerrainLighting* lighting,
                                                        Core::Duration frameClock, float alpha, std::uint8_t mode)
 {
     return DrawGameModelEffectsChecked(batch, models, effects, frustum, lighting, frameClock, alpha, nullptr, mode);
@@ -838,8 +843,8 @@ Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch
 
 Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                        std::span<World::ModelEffect> effects,
-                                                       const World::SphereFrustum& frustum,
-                                                       const World::TerrainLighting* lighting,
+                                                       const Terrain::SphereFrustum& frustum,
+                                                       const Terrain::TerrainLighting* lighting,
                                                        Core::Duration frameClock, float alpha,
                                                        const ModelEffectDrawResources& resources, std::uint8_t mode)
 {

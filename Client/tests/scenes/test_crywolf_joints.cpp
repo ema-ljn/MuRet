@@ -137,7 +137,7 @@ TEST(CrywolfJointsTest, RisingBeamBuildsItsFirstQuadWithTheRetainedWidthAndCompl
 
 TEST(CrywolfJointsTest, TheBarrierBeamsFollowBothRetainedBonePointsAndStopWithTheirActor)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.effectOrigin = {100, 200, 300};
     actor.bonePoint4c = {400, 500, 600};

@@ -25,6 +25,11 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 // CL11, lote magos: los efectos con modelo de las magias (Data\Skill\Ice, Fire, Poison, Circle, Magic, Storm, Laser,
 // Saw, Bone y Snow, 0x615700) en 0x518cf0 (el alta), 0x5208a0 (el paso) y su cola común (0x52cb98). Los llaman los
 // casos de habilidad de 0x4fd5f0 (Scenes/AttackSkillCases), los ataques de los monstruos (0x4f5b70, 0x439bd0,
@@ -38,7 +43,6 @@ struct ModelEffectArguments;
 class ModelEffects;
 class Particles;
 class FrameSprites;
-struct TerrainLighting;
 
 // Los tipos (0x615700 carga sus modelos; el 0xbd y el 0xc7 no tienen y 0x52d620 no dibuja el 0xbd).
 inline constexpr std::int16_t ShadowRainEffect = 0xbd;     // 0x51bc43: diez joints 0x60f/0x10 que bajan.
@@ -84,7 +88,7 @@ struct WizardEffectServices
     // 0x5491e0.
     FrameSprites* sprites = nullptr;
     // 0x5f9780 sobre 0x7b4ccc4.
-    TerrainLighting* lighting = nullptr;
+    Terrain::TerrainLighting* lighting = nullptr;
     // 0x518cf0 para los hijos que crean los pasos (las piedritas 0xc8/0xc9 y 0xd8/0xd9).
     ModelEffects* effects = nullptr;
     // 0x5f93c0.

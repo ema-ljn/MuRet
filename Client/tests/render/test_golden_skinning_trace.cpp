@@ -428,15 +428,15 @@ TEST_F(GoldenSkinningTrace, MatchesTheGuardOfLorencia)
 struct HangingModel
 {
     ModelFile file;
-    Client::Models::AttachmentSlot slot;
+    Client::Actors::AttachmentSlot slot;
     std::array<float, 5> frames;
 };
 
 TEST_F(GoldenSkinningTrace, TheSwordAndThePetHangFromTheirBones)
 {
-    using Client::Models::AttachmentOf;
-    using Client::Models::AttachmentRoot;
-    using Client::Models::AttachmentSlot;
+    using Client::Actors::AttachmentOf;
+    using Client::Actors::AttachmentRoot;
+    using Client::Actors::AttachmentSlot;
     using Client::Models::PoseAttached;
     const Scene scene = SelectionPlayer();
     const std::optional<GlTrace> trace = LoadTrace(SelectionTrace);

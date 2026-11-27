@@ -5,7 +5,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-namespace Client::Models
+namespace Client::Actors
 {
 Attachment AttachmentOf(AttachmentSlot slot)
 {
@@ -40,4 +40,4 @@ Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent, const HangingP
     local[11] = placement.translation.z;
     return Math::BoneTransformOf(Math::OriginalConcatTransforms(Math::OriginalMatrixOf(parent), local));
 }
-} // namespace Client::Models
+} // namespace Client::Actors

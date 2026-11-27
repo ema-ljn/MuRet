@@ -20,10 +20,14 @@ namespace Client::World
 struct ModelEffect;
 } // namespace Client::World
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct HighEffectStepContext;
 
 inline constexpr std::int16_t SkullEffect = 0x628;
@@ -45,11 +49,11 @@ void BeginTheSkull(World::ModelEffect& effect);
 // 0x5767b88): el ángulo turn · 2π/3 + vida · 0,17f + T · 0,003f, a 50 del dueño en x (FSIN) y en y (FCOS), con el
 // perfil PC53, y a (turn + 1) · su escala · 50 sobre su z. Ahí nace su 0x5ac/5.
 [[nodiscard]] Core::Expected<glm::vec3, std::string> SkullStackPoint(int turn, std::int32_t life, float worldClock,
-                                                                     const ActorState& owner);
+                                                                     const Kernel::ActorState& owner);
 
 // 0x518ac0(0x628, personaje, 0) y 0x518cf0(0x628, +0x10, +0x1c, (1, 1, 1), 0, personaje, −1, 0, 0, 0, 0): apaga el
 // 0x628/0 del personaje y crea otro con él de dueño (con la tabla llena, ninguno). Sin rand(). `address` es la del
 // 0x518cf0 del llamador, para el error.
-[[nodiscard]] Core::Expected<void, std::string> PutTheSkullOn(ActorState& actor, WorldState& world,
+[[nodiscard]] Core::Expected<void, std::string> PutTheSkullOn(Kernel::ActorState& actor, Kernel::WorldState& world,
                                                               Crt::CrtRandom& random, std::uint32_t address);
 } // namespace Client::Scenes

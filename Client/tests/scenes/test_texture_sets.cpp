@@ -22,18 +22,18 @@
 // lee del disco lo prueba test_golden_texture_sets.cpp.
 namespace
 {
+using Client::Assets::EffectTextureSet;
+using Client::Assets::GlowTextureSet;
+using Client::Assets::LoadingTextureSet;
+using Client::Assets::LoginTextureSet;
+using Client::Assets::SelectionTextureSet;
+using Client::Assets::WindowTextureSet;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::Sampling;
 using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Render::OriginalTextureSlotCount;
-using Client::Scenes::EffectTextureSet;
-using Client::Scenes::GlowTextureSet;
-using Client::Scenes::LoadingTextureSet;
-using Client::Scenes::LoginTextureSet;
-using Client::Scenes::SelectionTextureSet;
-using Client::Scenes::WindowTextureSet;
 
 // Que cada entrada tenga cargador y un slot de la tabla, sin repetir.
 void ExpectAValidSet(std::span<const TextureSetEntry> set)
@@ -164,7 +164,7 @@ TEST(TextureSetsTest, TheEffectSetLoadsTheEarthquakeExplosionWithLinearClamp)
 TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const std::filesystem::path dataRoot{MU_CLIENT_REPO_DATA_DIR};
     const auto loaded = textures.Load(dataRoot);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
@@ -190,7 +190,7 @@ TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)
 TEST(TextureSetsTest, TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     for (const std::uint16_t slot : {std::uint16_t{0x6ec}, std::uint16_t{0x698}})
@@ -216,7 +216,7 @@ TEST(TextureSetsTest, TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots
 TEST(TextureSetsTest, TheGallopTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     struct Case
@@ -251,7 +251,7 @@ TEST(TextureSetsTest, TheGallopTexturesUploadAtTheirOriginalSlots)
 TEST(TextureSetsTest, TheObjectFireTextureUploadsAtItsOriginalSlot)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     const auto texture = store.Find(Client::Render::TextureSlot{0x5d9});
@@ -265,7 +265,7 @@ TEST(TextureSetsTest, TheObjectFireTextureUploadsAtItsOriginalSlot)
 TEST(TextureSetsTest, TheNoriaSparkAndLightningTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     for (const std::uint16_t slot : {std::uint16_t{0x5c5}, std::uint16_t{0x5d5}})
@@ -292,7 +292,7 @@ TEST(TextureSetsTest, TheLoadingSetIsTheOneOf0x622e40)
 TEST(TextureSetsTest, TheCrywolfArrivalSmokeUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     ASSERT_TRUE(textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}).HasValue());
     const auto texture = store.Find(Client::Render::TextureSlot{0x5f6});
     ASSERT_TRUE(texture.has_value());
@@ -306,7 +306,7 @@ TEST(TextureSetsTest, TheCrywolfArrivalSmokeUploadsItsRealImage)
 TEST(TextureSetsTest, TheCrywolfEffectMaterialsUploadTheirRealImages)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     ASSERT_TRUE(textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}).HasValue());
     for (const std::uint16_t slot : std::array<std::uint16_t, 3>{0x636, 0x637, 0x638})
     {
@@ -329,7 +329,7 @@ TEST(TextureSetsTest, TheCrywolfEffectMaterialsUploadTheirRealImages)
 TEST(TextureSetsTest, TheHudUploadsTheCastleMapGateAndGuardianButtons)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, Client::Scenes::HudTextureSet);
+    Client::Assets::SceneTextures textures(store, Client::Assets::HudTextureSet);
     ASSERT_TRUE(textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}).HasValue());
     for (const std::uint16_t slot :
          std::array<std::uint16_t, 20>{0x667, 0x668, 0x660, 0x661, 0x662, 0x663, 0x664, 0x665, 0x666, 0x65f,
@@ -349,7 +349,7 @@ TEST(TextureSetsTest, TheHudUploadsTheCastleMapGateAndGuardianButtons)
 TEST(TextureSetsTest, TheHudUploadsTheLevelAndBothMixButtons)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, Client::Scenes::HudTextureSet);
+    Client::Assets::SceneTextures textures(store, Client::Assets::HudTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     for (const std::uint16_t slot : std::array<std::uint16_t, 3>{0x121, 0x124, 0x125})
@@ -368,7 +368,7 @@ TEST(TextureSetsTest, TheHudUploadsTheLevelAndBothMixButtons)
 TEST(TextureSetsTest, HelperThunderUploadsItsRealImageWithLinearRepeat)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     const auto texture = store.Find(Client::Render::TextureSlot{0x5ca});
@@ -382,7 +382,7 @@ TEST(TextureSetsTest, HelperThunderUploadsItsRealImageWithLinearRepeat)
 TEST(TextureSetsTest, TheFireworkTrailUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     ASSERT_TRUE(textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}).HasValue());
     const auto trail = store.Find(Client::Render::TextureSlot{0x60d});
     ASSERT_TRUE(trail.has_value());
@@ -396,7 +396,7 @@ TEST(TextureSetsTest, TheFireworkTrailUploadsItsRealImage)
 TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     const auto texture = store.Find(Client::Render::TextureSlot{0x6b1});
@@ -411,7 +411,7 @@ TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
 TEST(TextureSetsTest, TheCrywolfFireUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    Client::Assets::SceneTextures textures(store, EffectTextureSet);
     const auto loaded = textures.Load(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     const auto texture = store.Find(Client::Render::TextureSlot{0x5db});

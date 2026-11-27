@@ -213,7 +213,7 @@ Core::Expected<std::string, std::string> QuestItemNameOf(const GameHudContext& c
 // cerrada, si el estado no es `state` o si falta alguno.
 Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std::uint8_t state, bool withNames)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
     if (runtime.panels.delegated.quest == 0 || quest.currentState != state)
         return false;
@@ -274,7 +274,7 @@ Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std
 // la del mouse a no más de 0x6a de x + 0x6a (Q-C871).
 void DrawTheQuestText(GameHudContext& context, bool withAnswers)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
     const UI::DialogBoxState& box = runtime.dialogBox;
     Render::SpriteBatch& sprites = context.sprites;
@@ -314,9 +314,9 @@ void DrawTheQuestText(GameHudContext& context, bool withAnswers)
 // 0x41ba20.
 Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t x = quest.x;
     const std::int32_t y = quest.y;
@@ -414,9 +414,9 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
 // 0x41c2a0, la pestaña 0.
 Core::Expected<void, std::string> DrawTheFirstTab(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.textColors = TabTitleColors;
     WindowDrawing::SelectFont(context, FontKind::Bold);
     WindowDrawing::DrawTitle(context, quest.x + TitleLeft, quest.y + TitleTop, QuestTitle);
@@ -471,7 +471,7 @@ Core::Expected<void, std::string> DrawTheTabTitle(GameHudContext& context, std::
 Core::Expected<void, std::string> DrawTheThirdTab(GameHudContext& context)
 {
     const QuestState& quest = context.world.Runtime().quest;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     if (auto title = DrawTheTabTitle(context, ThirdTabTitleText, "0x41c502"); !title.HasValue())
         return title;
     hud.textColors = TextColors{.text = AnswerText, .background = 0};
@@ -507,7 +507,7 @@ Core::Expected<void, std::string> DrawTheThirdTab(GameHudContext& context)
 Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
 {
     const QuestState& quest = context.world.Runtime().quest;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t x = quest.x;
     const std::int32_t y = quest.y;
@@ -584,7 +584,7 @@ Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
 
 Core::Expected<void, std::string> DrawTheQuestWindow(GameHudContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
     const std::uint8_t window = runtime.panels.delegated.quest;
     if (window == QuestDialogWindow)
@@ -616,7 +616,7 @@ Core::Expected<void, std::string> DrawTheQuestWindow(GameHudContext& context, UI
 
 Core::Expected<void, std::string> DrawTheQuestItems(GameHudContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
     const std::uint8_t window = runtime.panels.delegated.quest;
     Core::Expected<bool, std::string> drawn = false;

@@ -11,7 +11,7 @@
 
 // 0x40d690 (151 bytes, igual a 0x40da20), 0x40d730 (185) y 0x40d7f0 (197), cotejados con el PE c32bbd5f:
 // 06, "Los ocho helpers de los stats propios".
-namespace Client::Scenes
+namespace Client::Player
 {
 namespace
 {
@@ -152,4 +152,4 @@ Core::Expected<void, std::string> AddSkillSetOptionValues(ItemSetOptionList& lis
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Player

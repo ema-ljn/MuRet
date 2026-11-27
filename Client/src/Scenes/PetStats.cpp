@@ -60,15 +60,15 @@ std::uint32_t NextExperience(std::uint32_t level)
 }
 
 // +0x36 + +0x20 del registro propio, con el registro abierto y cerrado.
-std::uint32_t Allowance(WorldState& world, Crt::CrtRandom& random)
+std::uint32_t Allowance(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-    const OwnCharacterRecord& own = world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     return static_cast<std::uint32_t>(own.word36) + own.leadership;
 }
 
 // El byte de la durabilidad del lugar `slot` del equipo propio, con el registro abierto y cerrado.
-std::uint8_t OwnDurability(WorldState& world, Crt::CrtRandom& random, std::size_t slot)
+std::uint8_t OwnDurability(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t slot)
 {
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return world.OwnCharacter().equipment[slot].durability;
@@ -77,7 +77,7 @@ std::uint8_t OwnDurability(WorldState& world, Crt::CrtRandom& random, std::size_
 // Si 0x421db0 escribe la entrada de la mascota en la tabla de 0x723960: con la ventana abierta, siempre (0x421e00); con
 // la ventana cerrada, con un ítem en el cartel y sin el entrenador abierto con la casilla debajo de 12
 // (0x421eee..0x421f16).
-bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, WorldState& world, Crt::CrtRandom& random,
+bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, Kernel::WorldState& world, Crt::CrtRandom& random,
                     bool windowOpen)
 {
     if (windowOpen)
@@ -93,32 +93,33 @@ bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, WorldState& world
 // 0x4e4cbd..0x4e4ce7: con el registro propio abierto (0x4e79a0 y 0x40f370), 0x550d10.
 Core::Expected<void, std::string> RecalculateTheStats(const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
     const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-    return RecalculateOwnStats(world.OwnCharacter(), OwnStatsContext{.itemSetTables = resources.itemSetTables,
-                                                                     .itemSets = &world.ItemSets(),
-                                                                     .items = resources.items,
-                                                                     .publishedHero = world.Hero(),
-                                                                     .ownRecordAccesses = runtime.ownRecordDepth,
-                                                                     .random = random,
-                                                                     .held = HeldItemOf(runtime),
-                                                                     .scan505820 = runtime.fullSetScan});
+    return Player::RecalculateOwnStats(world.OwnCharacter(),
+                                       Player::OwnStatsContext{.itemSetTables = resources.itemSetTables,
+                                                               .itemSets = &world.ItemSets(),
+                                                               .items = resources.items,
+                                                               .publishedHero = world.Hero(),
+                                                               .ownRecordAccesses = runtime.ownRecordDepth,
+                                                               .random = random,
+                                                               .held = Player::HeldItemOf(runtime),
+                                                               .scan505820 = runtime.fullSetScan});
 }
 
 // 0x421db0 con la ventana de la mascota abierta (0x421dc7..0x421ead).
 Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInfoReply& reply,
                                                     const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
-    ActorState& hero = world.Hero();
-    if (hero.darkSpirit && reply.pet == RavenPetStats)
+    Kernel::ActorState& hero = world.Hero();
+    if (hero.darkSpirit && reply.pet == Kernel::RavenPetStats)
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
     // ApplyPetInfo ya descartó la mascota de fuera de la tabla.
-    PetStats& entry = runtime.pets[reply.pet];
+    Kernel::PetStats& entry = runtime.pets[reply.pet];
     entry.level = reply.level;
     entry.durability = OwnDurability(world, random, HorseEquipmentSlot);
     entry.experience = reply.experience;
@@ -129,18 +130,18 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInf
 // 0x421fb6..0x422196: el caballo del héroe, en la casilla 8.
 void TheHorse(const Protocol::Pets::PetInfoReply& reply, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
-    PetStats& horse = runtime.pets[DarkHorsePetStats];
+    Kernel::PetStats& horse = runtime.pets[Kernel::DarkHorsePetStats];
     horse.level = reply.level;
     horse.durability = OwnDurability(world, random, HorseEquipmentSlot);
     horse.experience = reply.experience;
     if (reply.kind == LevelUpKind || reply.kind == LastKind)
         world.Hero().byte8 = static_cast<std::uint8_t>(reply.kind + KindToRiderByte);
-    UpdatePetStats(DarkHorsePetStats, world, random);
+    UpdatePetStats(Kernel::DarkHorsePetStats, world, random);
     const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-    World::ItemState& item = world.OwnCharacter().equipment[HorseEquipmentSlot];
+    Kernel::ItemState& item = world.OwnCharacter().equipment[HorseEquipmentSlot];
     if (item.id == DarkHorseItem)
         AddTheDarkHorseOption(item, resources);
 }
@@ -174,13 +175,13 @@ Core::Expected<void, std::string> SparkTheRaven(DarkSpirit& raven, int joints, b
 Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetInfoReply& reply,
                                                       const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
     // 0x421f18..0x421f40. ApplyPetInfo ya descartó la mascota de fuera de la tabla.
     if (WritesTheTable(reply, world, random, false))
     {
-        PetStats& entry = runtime.pets[reply.pet];
+        Kernel::PetStats& entry = runtime.pets[reply.pet];
         entry.level = reply.level;
         entry.durability = runtime.hoveredItemCopy.durability;
         entry.experience = reply.experience;
@@ -188,9 +189,9 @@ Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetI
     UpdatePetStats(reply.pet, world, random);
     if (reply.kind != PlainKind && reply.kind != LevelUpKind && reply.kind != LastKind)
         return {};
-    if (reply.pet == RavenPetStats)
+    if (reply.pet == Kernel::RavenPetStats)
     {
-        ActorState& hero = world.Hero();
+        Kernel::ActorState& hero = world.Hero();
         if (reply.slot != RavenSlot || !hero.darkSpirit)
             return {};
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
@@ -202,44 +203,45 @@ Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetI
             return SparkTheRaven(*hero.darkSpirit, LastJoints, true, resources);
         return {};
     }
-    if (reply.pet == DarkHorsePetStats && reply.slot == HorseSlot)
+    if (reply.pet == Kernel::DarkHorsePetStats && reply.slot == HorseSlot)
         TheHorse(reply, resources);
     return {};
 }
 } // namespace
 
-void ResetThePets(WorldRuntime& runtime)
+void ResetThePets(Kernel::WorldRuntime& runtime)
 {
     runtime.petTab = 0;
     runtime.panels.delegated.pet = 0;
     runtime.pets = {};
 }
 
-void UpdatePetStats(std::uint8_t pet, WorldState& world, Crt::CrtRandom& random)
+void UpdatePetStats(std::uint8_t pet, Kernel::WorldState& world, Crt::CrtRandom& random)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     UpdatePetStats(pet, world, runtime.pets, runtime.ownRecordDepth, random);
 }
 
-void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetStats, PetStatsCount>& pets,
-                    std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
+void UpdatePetStats(std::uint8_t pet, const Kernel::WorldState& world,
+                    std::array<Kernel::PetStats, Kernel::PetStatsCount>& pets, std::uint8_t& ownRecordDepth,
+                    Crt::CrtRandom& random)
 {
     std::uint32_t allowance = 0;
     std::uint32_t strength = 0;
     std::uint32_t word2a = 0;
     {
         const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        const OwnCharacterRecord& own = world.OwnCharacter();
+        const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         strength = own.strength;
         allowance = static_cast<std::uint32_t>(own.word36) + own.leadership;
         word2a = own.word2a;
     }
-    if (pet != RavenPetStats && pet != DarkHorsePetStats)
+    if (pet != Kernel::RavenPetStats && pet != Kernel::DarkHorsePetStats)
         return;
-    PetStats& stats = pets[pet];
+    Kernel::PetStats& stats = pets[pet];
     const std::uint32_t level = stats.level;
     stats.nextExperience = NextExperience(level);
-    if (pet == RavenPetStats)
+    if (pet == Kernel::RavenPetStats)
     {
         // 0x42226a..0x4222c3: los del cuervo, como los de 0x417f30.
         stats.word0c = static_cast<std::uint16_t>((level + 12) * 15 + (allowance >> 3));
@@ -256,7 +258,7 @@ void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetSta
     stats.word12 = static_cast<std::uint16_t>(level * 16 + 1000);
 }
 
-void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, WorldState& world,
+void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, Kernel::WorldState& world,
                     Crt::CrtRandom& random)
 {
     const std::uint32_t allowance = Allowance(world, random);
@@ -275,7 +277,7 @@ void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experie
 Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoReply& reply,
                                                const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const bool windowOpen = runtime.panels.delegated.pet == PetWindowOpen;
     // 0x421dfd y 0x421f2c: una mascota de 3 o más escribe fuera de las tres entradas de 0x723960 (0x14 bytes cada una)
     // y sigue. MuRet descarta el A9 entero, antes de cualquier rand() (07, Q-C1208).

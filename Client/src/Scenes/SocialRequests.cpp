@@ -15,6 +15,7 @@
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/ChatCommands.h"
 #include "UI/GameText.h"
@@ -65,7 +66,7 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& r
 }
 
 // 0x451d10 y 0x451810: el personaje tiene un cartel de tienda personal en el mapa de 0x7245c8.
-bool HasAPersonalShop(const WorldState& world, std::size_t index)
+bool HasAPersonalShop(const Kernel::WorldState& world, std::size_t index)
 {
     return HasShopTitle(world.Runtime().social.personalShop, index);
 }
@@ -78,7 +79,7 @@ bool NoShopOpen(const SocialRequestContext& context)
 }
 
 // 0x5110d0 con el MOVSX de una clave: el primero de los 400 vivo con la misma (los dos con MOVSX), o el 400.
-std::size_t ActorWithTheSameKey(const WorldState& world, std::uint16_t key)
+std::size_t ActorWithTheSameKey(const Kernel::WorldState& world, std::uint16_t key)
 {
     const auto actors = world.Actors();
     for (std::size_t index = 0; index < SearchedActors; ++index)
@@ -90,12 +91,13 @@ std::size_t ActorWithTheSameKey(const WorldState& world, std::uint16_t key)
 }
 
 // El elegido, si hay uno: 0x6c8e30 sin −1. El original lo usa de índice sin mirar más.
-Core::Expected<std::optional<std::size_t>, std::string> TheChosen(const WorldState& world, std::string_view where)
+Core::Expected<std::optional<std::size_t>, std::string> TheChosen(const Kernel::WorldState& world,
+                                                                  std::string_view where)
 {
     const std::int32_t chosen = world.Runtime().selectedTargets[ChosenTarget];
     if (chosen == -1)
         return std::optional<std::size_t>{};
-    if (chosen < 0 || static_cast<std::size_t>(chosen) >= ActorPoolSize)
+    if (chosen < 0 || static_cast<std::size_t>(chosen) >= Kernel::ActorPoolSize)
         return Core::Unexpected(std::format("{}: el elegido {} lee fuera de los personajes", where, chosen));
     return std::optional<std::size_t>{static_cast<std::size_t>(chosen)};
 }
@@ -128,7 +130,7 @@ UI::ChatCommandOutcome Handled(std::vector<UI::ChatCommandNotice> notices = {})
 Core::Expected<void, std::string> SendTheShopRequest(const SocialRequestContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const ActorState& actor = context.world.Actors()[index];
+    const Kernel::ActorState& actor = context.world.Actors()[index];
     return SendInC3(context, Protocol::PersonalShop::WriteShopItemsRequest(actor.key, actor.name), where);
 }
 
@@ -167,7 +169,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendATradeRequest(const Soci
 Core::Expected<UI::ChatCommandOutcome, std::string> SendAPartyRequest(const SocialRequestContext& context,
                                                                       std::size_t index, std::string_view where)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.drawingEnabled)
         return Handled();
     const std::uint16_t key = context.world.Actors()[index].key;
@@ -186,15 +188,15 @@ NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::ui
     return NamedNotice(context, text, key, where);
 }
 
-bool AnotherLeadsTheParty(const WorldState& world)
+bool AnotherLeadsTheParty(const Kernel::WorldState& world)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     return runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(world.Hero());
 }
 
-bool IsInTheParty(const WorldState& world, std::size_t index)
+bool IsInTheParty(const Kernel::WorldState& world, std::size_t index)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     const std::string name = ChatNameOf(world.Actors()[index]);
     for (std::int32_t member = 0; member < runtime.hud.partyCount; ++member)
     {
@@ -207,16 +209,16 @@ bool IsInTheParty(const WorldState& world, std::size_t index)
     return false;
 }
 
-bool IsTheDuelRival(const WorldState& world, std::size_t index)
+bool IsTheDuelRival(const Kernel::WorldState& world, std::size_t index)
 {
     return ChatNameOf(world.Actors()[index]) == NameUntilZero(world.Runtime().social.duel.rivalName);
 }
 
-CellDistance CellDistanceToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index)
+CellDistance CellDistanceToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index)
 {
     const auto actors = world.Actors();
-    ActorState& other = actors[index];
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& other = actors[index];
+    Kernel::ActorState& hero = world.Hero();
     const std::int32_t otherX = ReadCell(other.cellX, other.cellXAccesses, random);
     const std::int32_t heroX = ReadCell(hero.cellX, hero.cellXAccesses, random);
     const std::int32_t otherY = ReadCell(other.cellY, other.cellYAccesses, random);
@@ -224,18 +226,18 @@ CellDistance CellDistanceToTheHero(WorldState& world, Crt::CrtRandom& random, st
     return CellDistance{.x = std::abs(otherX - heroX), .y = std::abs(otherY - heroY)};
 }
 
-bool CanBeAsked(const WorldState& world, std::size_t index)
+bool CanBeAsked(const Kernel::WorldState& world, std::size_t index)
 {
-    const ActorState& actor = world.Actors()[index];
+    const Kernel::ActorState& actor = world.Actors()[index];
     return actor.byte88 == PlayerKind && index != world.Runtime().hero &&
            (actor.type == PlayerType || actor.byte3e3 != 0);
 }
 
-bool NextToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index)
+bool NextToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index)
 {
     const auto actors = world.Actors();
-    ActorState& other = actors[index];
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& other = actors[index];
+    Kernel::ActorState& hero = world.Hero();
     const std::int32_t otherX = ReadCell(other.cellX, other.cellXAccesses, random);
     const std::int32_t heroX = ReadCell(hero.cellX, hero.cellXAccesses, random);
     if (std::abs(otherX - heroX) > NextCell)
@@ -245,13 +247,13 @@ bool NextToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index)
     return std::abs(otherY - heroY) <= NextCell;
 }
 
-Core::Expected<bool, std::string> FacesTheHero(const WorldState& world, std::size_t index)
+Core::Expected<bool, std::string> FacesTheHero(const Kernel::WorldState& world, std::size_t index)
 {
     const auto actors = world.Actors();
-    const auto other = ActionDirection(actors[index].angles.z);
+    const auto other = Actors::ActionDirection(actors[index].angles.z);
     if (!other)
         return Core::Unexpected(std::string("0x56cf44: el ángulo del otro está fuera del _ftol (0x69fd3c)"));
-    const auto hero = ActionDirection(world.Hero().angles.z);
+    const auto hero = Actors::ActionDirection(world.Hero().angles.z);
     if (!hero)
         return Core::Unexpected(std::string("0x56cf78: el ángulo del héroe está fuera del _ftol (0x69fd3c)"));
     return std::abs(static_cast<std::int32_t>(*other) - static_cast<std::int32_t>(*hero)) == Opposite;
@@ -321,14 +323,14 @@ Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& conte
     if (!other)
         return {};
     // 0x56d9b8..0x56e06b y 0x56e2df..0x56e9ec: el AA con la clave y los diez bytes de +0x1d9.
-    const ActorState& actor = context.world.Actors()[*other];
+    const Kernel::ActorState& actor = context.world.Actors()[*other];
     return SendInC3(context, Protocol::Social::WriteDuelStart(actor.key, actor.name), "0x56d9b8");
 }
 
 Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const ActorState& hero = context.world.Hero();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ActorState& hero = context.world.Hero();
     // 0x56f13f..0x56f1b0.
     // strcmp: el nombre del héroe sigue en +0x1e3 si llena los diez bytes.
     if (runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(hero))

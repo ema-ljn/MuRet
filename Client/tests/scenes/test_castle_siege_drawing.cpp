@@ -48,6 +48,9 @@
 // Chrome01, las puertas y la sombra con el spread 2500.
 namespace
 {
+using Client::Actors::Drawing::CastleSiegeBodyPass;
+using Client::Actors::Drawing::DrawCastleSiegeBody;
+using Client::Actors::Drawing::DrawnObject;
 using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
@@ -58,9 +61,6 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::Scenes::CastleSiegeBodyPass;
-using Client::Scenes::DrawCastleSiegeBody;
-using Client::Scenes::DrawnObject;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::StepCastleSiegeObjectFrame;
 using Client::World::Particle;
@@ -445,7 +445,7 @@ TEST(CastleSiegeDrawingTest, OnlyTheCastleSiegeSpreadsTheShadowFurther)
     {
         SCOPED_TRACE(map);
         batch.Begin(Client::Render::Pass3D{});
-        Client::Scenes::DrawObjectShadow(batch, models, object, meshes, map);
+        Client::Actors::Drawing::DrawObjectShadow(batch, models, object, meshes, map);
 
         ASSERT_EQ(batch.Vertices().size(), 3u);
         const float x = map == 30 ? 0x1.345abcp+6f : 0x1.4dabcp+6f;
@@ -454,7 +454,7 @@ TEST(CastleSiegeDrawingTest, OnlyTheCastleSiegeSpreadsTheShadowFurther)
 
     // 0x4ed73e: the item mesh pass uses 2000 even in Castle Siege.
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::Scenes::DrawItemMeshPass(batch, models, object, {}, meshes, 0, 0x21);
+    const auto drawn = Client::Actors::Drawing::DrawItemMeshPass(batch, models, object, {}, meshes, 0, 0x21);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(batch.Vertices().size(), 3u);
     EXPECT_EQ(batch.Vertices()[0].position, glm::vec3(0x1.4dabcp+6f, 77.0f, 35.0f));
@@ -544,7 +544,7 @@ TEST(CastleSiegeDrawingTest, TheGlowingStoneUsesTheWholeBodyInPeaceAndOnlyMeshTh
     const auto& commands = drawn.batch.Commands();
     ASSERT_GE(commands.size(), 2u);
     EXPECT_EQ(commands.front().state.texture, TextureSlot{0x300});
-    EXPECT_EQ(commands.back().state.texture, Client::Scenes::ChromeTextureSlot);
+    EXPECT_EQ(commands.back().state.texture, Client::Actors::Drawing::ChromeTextureSlot);
 
     const SiegeModels warModels(4);
     const Drawn siege = DrawBody(warModels, SiegeObject(), {.type = 0x13, .siegeActive = true});
@@ -552,7 +552,7 @@ TEST(CastleSiegeDrawingTest, TheGlowingStoneUsesTheWholeBodyInPeaceAndOnlyMeshTh
     ASSERT_EQ(siege.batch.Vertices().size(), 9u);
     ASSERT_GE(siege.batch.Commands().size(), 2u);
     EXPECT_EQ(siege.batch.Commands().front().state.texture, TextureSlot{0x303});
-    EXPECT_EQ(siege.batch.Commands().back().state.texture, Client::Scenes::ChromeTextureSlot);
+    EXPECT_EQ(siege.batch.Commands().back().state.texture, Client::Actors::Drawing::ChromeTextureSlot);
 }
 
 TEST(CastleSiegeDrawingTest, AFragmentEmitsFromItsPosedVerticesInsteadOfDrawingTheGateAgain)
@@ -591,11 +591,11 @@ TEST(CastleSiegeDrawingTest, TheStoneHasItsWhiteBaseAndRedDefaultChrome)
     object.color = {.2f, .4f, .6f};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
     ASSERT_GE(batch.Commands().size(), 2u);
     EXPECT_EQ(batch.Commands().front().state.texture, TextureSlot{0x300});
-    EXPECT_EQ(batch.Commands().back().state.texture, Client::Scenes::ChromeTextureSlot);
+    EXPECT_EQ(batch.Commands().back().state.texture, Client::Actors::Drawing::ChromeTextureSlot);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1);
     EXPECT_FLOAT_EQ(batch.Vertices()[3].color.green, .2f);
 }
@@ -614,7 +614,7 @@ TEST(CastleSiegeDrawingTest, TheImpactHidesBeforeEmittingItsNativeVertexFamilyAn
         batch.Begin(Client::Render::Pass3D{});
         int calls = 0;
         ASSERT_TRUE(
-            Client::Scenes::DrawCastleWeaponBody(
+            Client::Actors::Drawing::DrawCastleWeaponBody(
                 batch, models, effect, object, {},
                 [&](std::int32_t family, const DrawnObject& owner,
                     std::span<const Client::Models::SkinnedMesh> meshes) -> Client::Core::Expected<void, std::string>
@@ -645,7 +645,7 @@ TEST(CastleSiegeDrawingTest, InvisibleAndUnorderedAlphaDoNotConsumeTheImpact)
         object.state = effect.objectState;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
         EXPECT_EQ(effect.objectState.hiddenMesh, 99);
         EXPECT_TRUE(batch.Vertices().empty());
     }
@@ -676,7 +676,7 @@ TEST(CastleSiegeDrawingTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRes
         object.color = {.2f, .4f, .6f};
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
         ASSERT_EQ(batch.Vertices().size(), item.vertices);
         EXPECT_FLOAT_EQ(batch.Vertices().back().color.red, item.last.r);
         EXPECT_FLOAT_EQ(batch.Vertices().back().color.green, item.last.g);
@@ -717,7 +717,7 @@ TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEve
         }};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto result = Client::Scenes::DrawGameModelEffects(batch, models, effects, Client::World::SphereFrustum{},
+    const auto result = Client::Scenes::DrawGameModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{},
                                                              nullptr, {}, 0, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(batch.Vertices().empty());

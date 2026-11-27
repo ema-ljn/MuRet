@@ -74,8 +74,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Protocol::Actors::Players;
-using Client::Scenes::ActorState;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 using Client::Tests::ViewportPlayerRecord;
@@ -117,12 +117,12 @@ struct Game
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     // El Data\ del laboratorio, para los Monster*.bmd que mira el alta de 0x5141e0; vacío fuera de los tests con datos.
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     // Item.bmd sin nada marcado, para 0x54efe0 desde 0x512a30.
@@ -159,7 +159,7 @@ protected:
     void Load(std::uint8_t map)
     {
         game = std::make_unique<Game>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -212,7 +212,7 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
                                                             .targetY = cell.y,
                                                             .directionAndPk = 0x53}}};
         const Players players = Read(records);
-        const auto applied = Client::Scenes::ApplyViewportPlayers(players, game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(players, game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
         const ActorState& actor = Actor(1);
@@ -264,7 +264,7 @@ TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
                                                             .targetX = Byte(cell.x + 3),
                                                             .targetY = cell.y,
                                                             .directionAndPk = 0x30}}};
-        const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
         const ActorState& actor = Actor(1);
@@ -316,7 +316,7 @@ TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
                                                                 .name = "Chingolo",
                                                                 .targetX = cell.x,
                                                                 .targetY = cell.y}}};
-            const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+            const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
             const ActorState& actor = Actor(1);
@@ -356,7 +356,7 @@ TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFo
         }
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0459, .x = cell.x, .y = cell.y, .effects = 0x410u | 0x1000000u, .name = "Chingolo"}}};
-        const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Actor(1).flags78, 0x410u | 0x1000000u);
         for (const auto& effect : effects.Effects())
@@ -376,9 +376,9 @@ TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
         {.key = 0x0011, .isNew = true, .x = cell.x, .y = cell.y, .name = "Tero"},
         {.key = 0x0012, .isNew = true, .x = cell.x, .y = cell.y, .name = "WEBZEN"},
     }};
-    const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0010), Client::Scenes::CreatedActorSearch);
+    EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0010), Client::Actors::CreatedActorSearch);
     EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0011), 1u);
     EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0012), 2u);
     EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
@@ -411,7 +411,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
                                                         .effects = 1,
                                                         .name = "Benteveo",
                                                         .directionAndPk = 0x10}}};
-    const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
     const ActorState& actor = Actor(3);
@@ -469,7 +469,7 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
              .classAndState = Byte(0x40 | tested.state),
              .name = "Arquera"},
         }};
-        const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Actor(1).characterClass, 0);
         EXPECT_EQ(Actor(1).animation.action, tested.others);
@@ -492,7 +492,7 @@ TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero", .directionAndPk = 0x30}}};
-        const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
         const ActorState& actor = Actor(1);
@@ -534,7 +534,7 @@ TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
     const Cell cell = FreeRow();
     const std::array<ViewportPlayerRecord, 1> records{
         {{.key = 0x0041, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-    ASSERT_TRUE(Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Actors::ApplyViewportPlayers(Read(records), game->Resources()).HasValue());
     auto& joints = game->world.DrawTail().joints;
     ActorState& actor = Actor(1);
     actor.position = {1234.0f, 5678.0f, 90.0f};
@@ -561,7 +561,7 @@ TEST_F(ViewportPlayersTest, InKalimaWithTheJointsFullThePlayerStillEnters)
     const Cell cell = FreeRow();
     const std::array<ViewportPlayerRecord, 1> records{
         {{.key = 0x0042, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-    const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
     EXPECT_EQ(std::to_integer<char>(Actor(1).name[0]), 'H');
@@ -574,16 +574,16 @@ TEST_F(ViewportPlayersTest, AFullPoolWritesTheNoneRecord)
 {
     Load(0);
     const Cell cell = FreeRow();
-    for (std::size_t slot = 0; slot < Client::Scenes::CreatedActorSearch; ++slot)
+    for (std::size_t slot = 0; slot < Client::Actors::CreatedActorSearch; ++slot)
     {
         Actor(slot).alive = true;
         Actor(slot).key = static_cast<std::uint16_t>(0x1000 + slot);
     }
     const std::array<ViewportPlayerRecord, 1> records{
         {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-    const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    const ActorState& none = Actor(Client::Scenes::CreatedActorSearch);
+    const ActorState& none = Actor(Client::Actors::CreatedActorSearch);
     EXPECT_FALSE(none.alive);
     EXPECT_EQ(none.cellX, cell.x);
     EXPECT_EQ(none.byte88, 1);
@@ -594,12 +594,12 @@ TEST_F(ViewportPlayersTest, AFullPoolWritesTheNoneRecord)
 // 0x4e3736..0x4e377e: con diez guardados, el undécimo corre las ranuras 1..9 a 0..8 y entra en la 9.
 TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
 {
-    Client::Scenes::ViewportPacketRing ring;
+    Client::Actors::ViewportPacketRing ring;
     for (int packet = 0; packet < 11; ++packet)
     {
         std::array<std::byte, 6> bytes{};
         bytes[5] = std::byte{Byte(packet)};
-        Client::Scenes::StoreViewportPacket(ring, bytes);
+        Client::Actors::StoreViewportPacket(ring, bytes);
     }
     EXPECT_EQ(ring.count, 10);
     EXPECT_EQ(std::to_integer<int>(ring.slots[0][5]), 1);
@@ -607,14 +607,14 @@ TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
     EXPECT_EQ(std::to_integer<int>(ring.slots[9][5]), 10);
     // Uno de más de 0x100 no entra, pero corre las ranuras igual.
     const std::array<std::byte, 0x101> large{};
-    Client::Scenes::StoreViewportPacket(ring, large);
+    Client::Actors::StoreViewportPacket(ring, large);
     EXPECT_EQ(ring.count, 9);
     EXPECT_EQ(std::to_integer<int>(ring.slots[0][5]), 2);
     EXPECT_EQ(std::to_integer<int>(ring.slots[8][5]), 10);
     // El de 0x100 justo entra (JG): la cola vuelve a diez.
     std::array<std::byte, 0x100> full{};
     full.back() = std::byte{0xbb};
-    Client::Scenes::StoreViewportPacket(ring, full);
+    Client::Actors::StoreViewportPacket(ring, full);
     EXPECT_EQ(ring.count, 10);
     EXPECT_EQ(ring.sizes[9], 0x100);
     EXPECT_EQ(ring.slots[9].back(), std::byte{0xbb});
@@ -623,11 +623,11 @@ TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
 // 0x4e3778..0x4e377e: con lugar, uno de más de 0x100 no corre nada ni toca lo guardado.
 TEST(ViewportPacketRingTest, AnOversizedPacketDoesNotEraseAShorterRing)
 {
-    Client::Scenes::ViewportPacketRing ring;
+    Client::Actors::ViewportPacketRing ring;
     const std::array<std::byte, 3> teleport{std::byte{0xc1}, std::byte{3}, std::byte{0x1c}};
-    Client::Scenes::StoreViewportPacket(ring, teleport);
+    Client::Actors::StoreViewportPacket(ring, teleport);
     const std::array<std::byte, 0x101> large{};
-    Client::Scenes::StoreViewportPacket(ring, large);
+    Client::Actors::StoreViewportPacket(ring, large);
     EXPECT_EQ(ring.count, 1);
     EXPECT_EQ(ring.sizes[0], 3);
     EXPECT_EQ(ring.slots[0][2], std::byte{0x1c});
@@ -651,7 +651,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     info.emplace();
     info->fill(0xff);
 
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x8123, 0x013d}}, world);
+    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x8123, 0x013d}}, world);
     EXPECT_FALSE(leaving.alive);
     EXPECT_FALSE(leaving.darkSpirit.has_value());
     EXPECT_FALSE(world.Helpers()[*helper.Value()].alive);
@@ -668,7 +668,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     info.reset();
     world.Actors()[5].alive = true;
     world.Actors()[5].key = 0x0007;
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x0007}}, world);
+    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x0007}}, world);
     EXPECT_FALSE(world.Actors()[5].alive);
 }
 
@@ -681,7 +681,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
     const std::array<Client::Tests::TransformedRecordBytes, 1> hidden{{{.key = 0x0456, .name = "webzen"}}};
     auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(hidden));
     ASSERT_TRUE(read.HasValue());
-    EXPECT_TRUE(Client::Scenes::ApplyTransformed(read.Value(), game->Resources()).HasValue());
+    EXPECT_TRUE(Client::Actors::ApplyTransformed(read.Value(), game->Resources()).HasValue());
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
     const Cell cell = FreeRow();
     Actor(0).characterClass = 3;
@@ -695,7 +695,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
                                                                        .directionAndPk = 0x31}}};
     read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
-    const auto applied = Client::Scenes::ApplyTransformed(read.Value(), game->Resources());
+    const auto applied = Client::Actors::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     const ActorState& actor = Actor(1);
     EXPECT_EQ(actor.type, 0x15b);
@@ -716,7 +716,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
     const std::array<Client::Tests::TransformedRecordBytes, 1> shown{{{.key = 0x0456, .x = 130, .y = 130, .type = 68}}};
     const auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
-    const auto applied = Client::Scenes::ApplyTransformed(read.Value(), game->Resources());
+    const auto applied = Client::Actors::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("Monster50.bmd"), std::string::npos) << applied.Error();
     EXPECT_FALSE(Actor(1).alive);
@@ -730,9 +730,9 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
 {
     Load(0);
     const Cell cell = FreeRow();
-    const Client::Scenes::ActorConstructionContext construction{
-        game->world.Map().terrain, 0, Client::World::CullingScene::Game, game->camera.fixedHeight};
-    auto created = Client::Scenes::CreateActor(game->world, 0x0456, PlayerSkeletonModel, {cell.x, cell.y, 0.0f},
+    const Client::Actors::ActorConstructionContext construction{
+        game->world.Map().terrain, 0, Client::Terrain::CullingScene::Game, game->camera.fixedHeight};
+    auto created = Client::Actors::CreateActor(game->world, 0x0456, PlayerSkeletonModel, {cell.x, cell.y, 0.0f},
                                                construction, game->cloth);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 1u);
@@ -745,7 +745,7 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
                                                        .targetY = cell.y,
                                                        .directionAndPk = 0x31};
     record.name[0] = std::byte{'T'};
-    const auto walked = Client::Scenes::FinishTheTransformed(1, record, 2, game->Resources());
+    const auto walked = Client::Actors::FinishTheTransformed(1, record, 2, game->Resources());
     ASSERT_TRUE(walked.HasValue()) << walked.Error();
     const ActorState& actor = Actor(1);
     EXPECT_EQ(actor.scale, 0.8f);
@@ -760,7 +760,7 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     record.isNew = true;
     record.name[0] = std::byte{'U'};
     const CrtRandom before = game->cloth.random;
-    const auto arrived = Client::Scenes::FinishTheTransformed(1, record, 2, game->Resources());
+    const auto arrived = Client::Actors::FinishTheTransformed(1, record, 2, game->Resources());
     ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
     EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'U');
     const auto effects = std::as_const(game->world.Map().effects).Effects();
@@ -808,7 +808,7 @@ TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
     for (std::size_t count = 1; count <= 2; ++count)
     {
-        const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, resources);
+        const auto applied = Client::Actors::FinishTheTransformed(0, record, 0, resources);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const auto& entries = game->world.Runtime().chat.log.entries;
         ASSERT_EQ(entries.size(), count);
@@ -828,7 +828,7 @@ TEST_F(ViewportPlayersTest, TheBlessingFlagOnAnotherActorNeedsNoMessageResources
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Actors::TransformedRecord record{
         .key = 0x456, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
-    const auto applied = Client::Scenes::FinishTheTransformed(1, record, 0, game->Resources());
+    const auto applied = Client::Actors::FinishTheTransformed(1, record, 0, game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(1).flags78 & BlessingFlag, BlessingFlag);
     EXPECT_TRUE(game->world.Runtime().chat.log.entries.empty());
@@ -841,7 +841,7 @@ TEST_F(ViewportPlayersTest, AMissingBlessingTextKeepsThePrefixAndLeavesTheFinalF
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag | 1u, .targetX = cell.x, .targetY = cell.y};
-    const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, game->Resources());
+    const auto applied = Client::Actors::FinishTheTransformed(0, record, 0, game->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("Text.bmd"), std::string::npos) << applied.Error();
     EXPECT_EQ(Actor(0).flags78 & 1u, 1u);
@@ -865,7 +865,7 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = 0x2000000, .targetX = cell.x, .targetY = cell.y};
 
-    const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, resources);
+    const auto applied = Client::Actors::FinishTheTransformed(0, record, 0, resources);
 
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     ASSERT_EQ(chat.log.entries.size(), 1u);
@@ -899,7 +899,7 @@ protected:
     {
         auto read = Client::Protocol::Actors::ReadEquipmentShown(Client::Tests::EquipmentShownPacket(key, item));
         EXPECT_TRUE(read.HasValue());
-        return Client::Scenes::ApplyEquipmentShown(read.Value(), game->Resources());
+        return Client::Actors::ApplyEquipmentShown(read.Value(), game->Resources());
     }
     static constexpr std::uint16_t OtherKey = 0x0042;
     static constexpr std::size_t OtherSlot = 4;
@@ -912,14 +912,14 @@ TEST_F(ShownEquipmentTest, TheRightHandTakesTheModelLevelAndExcellent)
     // El tipo 0x103: el byte 0 y el bit 0x80 del byte 3; el lugar 0 y el nivel 3 en el byte 1.
     ASSERT_TRUE(Show(OtherKey, {0x03, 0x03, 0, 0x85, 0x07, 0, 0}).HasValue());
     EXPECT_EQ(Other().hands[0].model, 0x103 + 0x212);
-    EXPECT_EQ(Other().hands[0].level, Client::GameLogic::ItemLevelOf(3));
+    EXPECT_EQ(Other().hands[0].level, Client::Kernel::ItemLevelOf(3));
     EXPECT_EQ(Other().hands[0].flags1b, 5);
     ASSERT_TRUE(Show(OtherKey, {0x03, 0x09, 0, 0, 0, 0, 0}).HasValue());
     EXPECT_EQ(Other().hands[0].level, 0);
     // Vacía (0x1fff): el modelo en 0xffff y el excelente en 0; el nivel queda.
     Other().hands[0].level = 4;
     ASSERT_TRUE(Show(OtherKey, {0xff, 0x00, 0, 0x80, 0, 0xf0, 0}).HasValue());
-    EXPECT_EQ(Other().hands[0].model, Client::Scenes::NoItemModel);
+    EXPECT_EQ(Other().hands[0].model, Client::Kernel::NoItemModel);
     EXPECT_EQ(Other().hands[0].flags1b, 0);
     EXPECT_EQ(Other().hands[0].level, 4);
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
@@ -931,7 +931,7 @@ TEST_F(ShownEquipmentTest, EmptyingTheLeftHandReleasesThePublishedHerosRaven)
     Hero().darkSpirit.emplace();
     Other().darkSpirit.emplace();
     ASSERT_TRUE(Show(OtherKey, {0xff, 0x10, 0, 0x80, 0, 0xf0, 0}).HasValue());
-    EXPECT_EQ(Other().hands[1].model, Client::Scenes::NoItemModel);
+    EXPECT_EQ(Other().hands[1].model, Client::Kernel::NoItemModel);
     EXPECT_FALSE(Hero().darkSpirit.has_value());
     EXPECT_TRUE(Other().darkSpirit.has_value());
 }
@@ -942,12 +942,12 @@ TEST_F(ShownEquipmentTest, TheBodyTakesTheSetOrTheClassPart)
     // La armadura (lugar 3) del tipo 0x1005: el byte 5 con 8 arriba.
     ASSERT_TRUE(Show(OtherKey, {0x05, 0x31, 0, 0x02, 0x05, 0x80, 0}).HasValue());
     EXPECT_EQ(Other().body[1].model, 0x1005 + 0x212);
-    EXPECT_EQ(Other().body[1].level, Client::GameLogic::ItemLevelOf(1));
+    EXPECT_EQ(Other().body[1].level, Client::Kernel::ItemLevelOf(1));
     EXPECT_EQ(Other().body[1].flags1b, 2);
     EXPECT_EQ(Other().body[1].flags1c, 5);
     ASSERT_TRUE(Show(OtherKey, {0xff, 0x30, 0, 0x80, 0, 0xf0, 0}).HasValue());
     EXPECT_EQ(Other().body[1].model,
-              Client::GameLogic::ClassPartModel(Client::GameLogic::BodyPart{1}, Other().characterClass));
+              Client::Kernel::ClassPartModel(Client::Kernel::BodyPart{1}, Other().characterClass));
     EXPECT_EQ(Other().body[1].level, 0);
     EXPECT_EQ(Other().body[1].flags1c, 0);
     // Las alas (7) con el nivel en 0, sin mirar el nibble.
@@ -968,7 +968,7 @@ TEST_F(ShownEquipmentTest, ThePetCreatesItsHelper)
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 3).State());
     // Vacía: 0x443d40 apaga sus ayudantes.
     ASSERT_TRUE(Show(OtherKey, {0xff, 0x80, 0, 0x80, 0, 0xf0, 0}).HasValue());
-    EXPECT_EQ(Other().pet.model, Client::Scenes::NoItemModel);
+    EXPECT_EQ(Other().pet.model, Client::Kernel::NoItemModel);
     EXPECT_FALSE(helpers[0].alive);
     // Fenrir (0x1a25) con el excelente 2: el ayudante 0x14c.
     ASSERT_TRUE(Show(OtherKey, {0x25, 0x80, 0, 0x02, 0, 0xd0, 0}).HasValue());
@@ -982,7 +982,7 @@ TEST_F(ShownEquipmentTest, TheWholeKeyWithTheNewBitFindsNobody)
 {
     ASSERT_TRUE(Show(0x8000 | OtherKey, {0x03, 0x00, 0, 0, 0, 0, 0}).HasValue());
     EXPECT_NE(Other().hands[0].model, 0x3 + 0x212);
-    EXPECT_EQ(game->world.Actors()[Client::Scenes::CreatedActorSearch].hands[0].model, 0x3 + 0x212);
+    EXPECT_EQ(game->world.Actors()[Client::Actors::CreatedActorSearch].hands[0].model, 0x3 + 0x212);
 }
 
 // 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399.
@@ -990,7 +990,7 @@ TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
 {
     const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Actors::ApplyViewportPosition(read.Value(), game->Resources()).HasValue());
     EXPECT_EQ(Other().cellX, 140);
     EXPECT_EQ(Other().cellY, 141);
     EXPECT_EQ(Other().targetX, 140);
@@ -1008,7 +1008,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
     Other().cellX = 138;
     Other().cellY = 143;
     Other().position = {12, 34, 56};
-    const auto pushed = Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources());
+    const auto pushed = Client::Actors::ApplyViewportPosition(read.Value(), game->Resources());
     ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
     EXPECT_EQ(Other().floatE4, 20.0f);
     EXPECT_EQ(Other().floatD0, 800.0f);
@@ -1052,7 +1052,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
             particles[index].position = {2, 4, 8};
         }
         game->cloth.random = CrtRandom(Seed);
-        const auto pushed = Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources());
+        const auto pushed = Client::Actors::ApplyViewportPosition(read.Value(), game->Resources());
         ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
         const int draws = CellDraws + 40 + static_cast<int>(free) * 5;
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, draws).State());
@@ -1084,19 +1084,19 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-        auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ActorState& actor = Actor(1);
 
         applied =
-            Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{0x0456, {Byte(cell.x + 3), cell.y}, 2},
+            Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{0x0456, {Byte(cell.x + 3), cell.y}, 2},
                                            Client::Kernel::PlayerKey{HeroKey}, game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(actor.targetX, cell.x + 3);
         EXPECT_EQ(actor.direction, 2);
         EXPECT_EQ(actor.movement, 1);
 
-        applied = Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{0x0456, true, 25, 0, false},
+        applied = Client::Actors::ApplyDamageReply(Client::Protocol::Movement::Damage{0x0456, true, 25, 0, false},
                                                    Client::Kernel::PlayerKey{HeroKey}, game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(actor.damage, 25);
@@ -1122,12 +1122,12 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-        auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ActorState& actor = Actor(1);
         const std::uint32_t created = game->cloth.random.State();
 
-        applied = Client::Scenes::ApplyActionReply(
+        applied = Client::Actors::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = 0x0456, .direction = 5, .action = 0x78}, game->Resources(), {});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(actor.animation.action, 0x22);
@@ -1145,11 +1145,11 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         EXPECT_EQ(game->cloth.random.State(), encoded.State());
 
         // 4f5181/4f5186: únicamente ambos WORD enFFFF omiten el rand() y el sonido.
-        actor.hands[0].model = Client::Scenes::NoItemModel;
-        actor.hands[1].model = Client::Scenes::NoItemModel;
+        actor.hands[0].model = Client::Kernel::NoItemModel;
+        actor.hands[1].model = Client::Kernel::NoItemModel;
         game->world.Runtime().lastSoundId.reset();
         const auto unarmed = AfterDraws(encoded.State(), OwnRecordDraws);
-        applied = Client::Scenes::ApplyActionReply(
+        applied = Client::Actors::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = 0x0456, .direction = 5, .action = 0x78}, game->Resources(), {});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(actor.animation.action, 0x22);
@@ -1160,7 +1160,7 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         actor.animation.action = 0;
         auto expected = AfterDraws(game->cloth.random.State(), OwnRecordDraws);
         const std::int32_t sound = (expected.Next() & 1) + 0x3c;
-        applied = Client::Scenes::ApplyActionReply(
+        applied = Client::Actors::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = 0x0456, .direction = 1, .action = 0x79}, game->Resources(), {});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         // +0x38f en 2 después de los dos ataques: (2 & 1) + 0x23.

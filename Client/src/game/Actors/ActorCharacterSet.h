@@ -11,23 +11,32 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+struct ActorState;
+class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
+struct HelperState;
+struct WorldEntryResources;
+} // namespace Client::Scenes
+
 // El equipo de otro personaje desde los 17 bytes de la lista (0x5139f0), en el juego: el 0x12 (0x4c91fa) y el F3 13
 // (0x4e316e, InventoryMoves.h). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el
 // viewport". Todo *estático*, del ASM (0x5139f0..0x5140b3).
-namespace Client::Scenes
+namespace Client::Actors
 {
-struct ActorState;
-struct HelperState;
-class WorldState;
-struct WorldEntryResources;
 
 // 0x513b3c..0x513ced con el cuarto argumento en 0: la mascota de b[4] & 3 (0x1c12 + el valor con su ayudante: 0x1c12
 // con el 0, ninguno con el 1, 0xc6 con el 2; con el 3, 0x1c15 y el 0x110 si b[9] & 1, o sin mascota con +0x31b y
 // +0x31c en 0), después el caballo oscuro de b[11] & 1 (0x1c16 y el 0xbf) y Fenrir de b[11] & 4 (0x1c37, +0x31b en
 // b[15] & 3 y el ayudante 0x14a con 1, 0x14c con 2 y 0x14b con los demás), cada uno con 0x443fa0 en ese orden. La
 // selección (SelectionActor) y el juego lo comparten.
-[[nodiscard]] Core::Expected<void, std::string>
-CreateCharacterSetPets(WorldState& world, std::size_t slot, GameLogic::Equipment equipment, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> CreateCharacterSetPets(Kernel::WorldState& world, std::size_t slot,
+                                                                       Kernel::Equipment equipment,
+                                                                       Crt::CrtRandom& random);
 
 // 0x5139f0(index, equipo, 0, 0) en el juego. `index` es lo que dio 0x5110d0: el 400 (el registro 401 del pool, que
 // existe) si no hay ninguno. Sin el tipo 0x20a en +2, nada. Si no, en este orden: las manos (el tipo de 12 bits,
@@ -38,15 +47,16 @@ CreateCharacterSetPets(WorldState& world, std::size_t slot, GameLogic::Equipment
 // +0x2fa y +0x31a en 0. Con +0x3e3 en 0, además: las cinco partes del cuerpo (el índice 0x1ff es la de la clase) con
 // sus niveles, los bits de excelente (b[9]) y de set (b[10]) de cada parte y de las manos, +0x358 con b[10] & 1,
 // 0x4053f0 y 0x512930. Lo que MuRet no tiene corta con error después de lo de antes.
-[[nodiscard]] Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic::Equipment equipment,
-                                                                  const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, Kernel::Equipment equipment,
+                                                                  const Scenes::WorldEntryResources& resources);
 
 // 0x5139f0(0, equipo, objeto, ayudante), como lo llama el retrato de las cartas (0x497810): lo mismo sobre un personaje
 // fuera del pool con su ayudante propio. En vez de 0x443d40 apaga ese ayudante (0x513b39), y cada mascota va derecho a
 // 0x443d70 sobre él (0x513b7b..0x513ce5), sin las condiciones de 0x443fa0 (en los mapas 18 a 23 0x443d70 no arma
 // nada): la primera que lo arma lo deja vivo y las de después no lo tocan (Q-C1026). El cuervo (0x420cf0) va al
 // personaje como en el pool.
-[[nodiscard]] Core::Expected<void, std::string> ApplyCharacterSetTo(ActorState& actor, HelperState& helper,
-                                                                    GameLogic::Equipment equipment,
-                                                                    const WorldEntryResources& resources);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> ApplyCharacterSetTo(Kernel::ActorState& actor,
+                                                                    Scenes::HelperState& helper,
+                                                                    Kernel::Equipment equipment,
+                                                                    const Scenes::WorldEntryResources& resources);
+} // namespace Client::Actors

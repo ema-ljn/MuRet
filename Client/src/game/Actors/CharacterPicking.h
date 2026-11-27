@@ -7,17 +7,21 @@
 #include "Actors/ActorPickingBox.h"
 #include <glm/ext/vector_float3.hpp>
 
-namespace Client::World
+namespace Client::Terrain
 {
 struct TerrainPickingSegment;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // El picking de los personajes del juego (CL9 hito 1): 0x59e700, que 0x59ec80 llama con las máscaras 0x22, 1 y 4.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El picking de los personajes del juego". La caja leída
 // es la última que publicó el dibujo en +0x13c..+0x168; el parámetro `pickingBoxes` presta su copia proyectada.
-namespace Client::Scenes
+namespace Client::Actors
 {
-class WorldState;
 
 // 0x59e700(máscara) en el juego (la escena 5: el héroe publicado no se elige, 0x59e70d..0x59e717 y 0x59e952). Los
 // 400 primeros con +0x88 dentro de la máscara (+0x88 & máscara == +0x88), vivos, a la vista (+0x16c) y con el alpha
@@ -33,7 +37,8 @@ class WorldState;
 // antes su lugar en la party (MatchThePartyMembers) y, al final, los lugares sin personaje quedan en −1 o −3
 // (MarkTheMissingMembers, CL9 hito 7). Sin segmento (antes del primer dibujo), tiñe y busca la party, sin elegir. Sin
 // rand().
-[[nodiscard]] std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::vec3& distanceOrigin,
-                                            const std::optional<World::TerrainPickingSegment>& ray,
+[[nodiscard]] std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask,
+                                            const glm::vec3& distanceOrigin,
+                                            const std::optional<Terrain::TerrainPickingSegment>& ray,
                                             std::span<const ActorPickingBox> pickingBoxes = {});
-} // namespace Client::Scenes
+} // namespace Client::Actors

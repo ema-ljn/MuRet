@@ -78,7 +78,7 @@ TEST(CreatePreviewTest, TheCameraIsRelativeToTheModel)
     EXPECT_EQ(camera.angles, (glm::vec3{-90.0f, 0.0f, 0.0f}));
     EXPECT_FLOAT_EQ(camera.fieldOfView, 10.0f);
     EXPECT_FLOAT_EQ(camera.nearPlane, 20.0f);
-    EXPECT_FLOAT_EQ(camera.farPlane, Client::Scenes::SelectionCamera().farPlane);
+    EXPECT_FLOAT_EQ(camera.farPlane, Client::Camera::SelectionCamera().farPlane);
 }
 
 // 0x620db0(ftol(cx / rx), ftol(cy / ry), ftol(410 / rx), ftol(335 / ry)) con la esquina de la caja de
@@ -120,7 +120,7 @@ TEST(CreatePreviewTest, EachClassHasItsAngleAndScale)
     {
         CreatePreview preview;
         ChoosePreviewClass(preview, characterClass, models);
-        const Client::Scenes::DrawnObject drawn = DrawnPreview(preview, models, 0.0f);
+        const Client::Actors::Drawing::DrawnObject drawn = DrawnPreview(preview, models, 0.0f);
         const Expected& expected = table[characterClass];
         EXPECT_EQ(drawn.model, FirstNewFaceModel + characterClass);
         EXPECT_FLOAT_EQ(drawn.transform.position.x, expected.position.x) << static_cast<int>(characterClass);

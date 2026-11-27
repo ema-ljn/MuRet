@@ -18,19 +18,19 @@
 // 33 and the pet on 34 are verified against the trace (GoldenSkinningTrace).
 namespace
 {
+using Client::Actors::Attachment;
+using Client::Actors::AttachmentOf;
+using Client::Actors::AttachmentRoot;
+using Client::Actors::AttachmentSlot;
+using Client::Actors::DrawsThePet;
+using Client::Actors::PlacedRoot;
+using Client::Actors::QuiverPlacement;
 using Client::Math::AngleMatrix;
 using Client::Math::BoneTransform;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
-using Client::Models::Attachment;
-using Client::Models::AttachmentOf;
-using Client::Models::AttachmentRoot;
-using Client::Models::AttachmentSlot;
 using Client::Models::BoneKey;
-using Client::Models::DrawsThePet;
-using Client::Models::PlacedRoot;
 using Client::Models::PoseAttached;
-using Client::Models::QuiverPlacement;
 using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
 

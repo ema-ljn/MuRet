@@ -74,7 +74,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Sound::ModelSounds;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::MonsterRecordBytes;
@@ -157,17 +157,17 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
-    Client::Scenes::CharacterStepContext Step()
+    Client::Actors::CharacterStepContext Step()
     {
         return {.world = world, .random = cloth.random, .playerSkeleton = &models.skeleton, .models = &models};
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     MonsterModels models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -184,7 +184,7 @@ protected:
     void Load(std::uint8_t map)
     {
         game = std::make_unique<Game>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -253,7 +253,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     const std::uint32_t created = game->cloth.random.State();
 
     const Client::Protocol::Movement::Action attack{.key = MonsterKey, .direction = 0, .action = 0x78};
-    const auto attacked = Client::Scenes::ApplyActionReply(attack, game->Resources(), {});
+    const auto attacked = Client::Actors::ApplyActionReply(attack, game->Resources(), {});
     ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
     EXPECT_EQ(monster.animation.action, 3);
     EXPECT_EQ(monster.attackCount, 2);
@@ -266,7 +266,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     monster.attackTarget = 0;
     const std::uint32_t before = game->cloth.random.State();
     std::vector<std::int32_t> sounds;
-    Client::Scenes::CharacterStepContext context = game->Step();
+    Client::Actors::CharacterStepContext context = game->Step();
     context.soundRequest = [&sounds](std::int32_t sound) { sounds.push_back(sound); };
     for (int step = 1; step < 4; ++step)
     {
@@ -297,7 +297,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     const Client::Protocol::Movement::Damage hurt{
         .characterId = MonsterKey, .shock = false, .amount = 12, .type = 0, .flag = false};
     const std::uint32_t created = game->cloth.random.State();
-    const auto damaged = Client::Scenes::ApplyDamageReply(hurt, Client::Kernel::PlayerKey{HeroKey}, game->Resources());
+    const auto damaged = Client::Actors::ApplyDamageReply(hurt, Client::Kernel::PlayerKey{HeroKey}, game->Resources());
     ASSERT_TRUE(damaged.HasValue()) << damaged.Error();
     // 0x4f53a0: la acción 5 y, con el frame en 0, el golpe de la WORD 2 o la 3 de su tabla (0x4f553d..0x4f55ac).
     EXPECT_EQ(monster.animation.action, 5);
@@ -320,7 +320,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     int steps = 0;
     while (monster.alive && steps < 200)
     {
-        const auto stepped = Client::Scenes::StepActorDying(
+        const auto stepped = Client::Actors::StepActorDying(
             monster, slot, {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ++steps;
@@ -344,7 +344,7 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
         Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 8, 0xd7, 0x01, 0x23, 0x00, 0x0c, 0x00})));
     ASSERT_TRUE(hit.HasValue());
     const auto appliedHit =
-        Client::Scenes::ApplyDamageReply(hit.Value(), Client::Kernel::PlayerKey{HeroKey}, game->Resources());
+        Client::Actors::ApplyDamageReply(hit.Value(), Client::Kernel::PlayerKey{HeroKey}, game->Resources());
     ASSERT_TRUE(appliedHit.HasValue()) << appliedHit.Error();
 
     const auto death =
@@ -395,7 +395,7 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
     int steps = 0;
     while (monster.alive && steps < 200)
     {
-        const auto stepped = Client::Scenes::StepActorDying(
+        const auto stepped = Client::Actors::StepActorDying(
             monster, slot,
             {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random, .world = &game->world});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -466,7 +466,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
             expectedSparkCount += created.Value().has_value() ? 1u : 0u;
         }
 
-        const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+        const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
         EXPECT_TRUE(shocked.HasValue()) << (shocked.HasValue() ? "" : shocked.Error());
         EXPECT_EQ(monster.animation.action, 3);
         EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0x86));
@@ -510,7 +510,7 @@ TEST_F(MonsterCombatTest, AMonsterHitUsesTheCanonicalRuntimeSoundRecord)
     game->cloth.random = CrtRandom(HitSeed);
     CrtRandom expected(HitSeed);
     const std::size_t word = 2 + static_cast<std::size_t>(expected.Next() & 1);
-    const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+    const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
     ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
     EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sounds[word] + 0xd2));
     EXPECT_EQ(game->cloth.random.State(), expected.State());
@@ -546,7 +546,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsFinalSoundWhenEverySparkGateMisse
         for (int attempt = 0; attempt < 5; ++attempt)
             EXPECT_NE(expected.Next() & 1, 0);
 
-        const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+        const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
         ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
         EXPECT_EQ(monster.animation.action, 3);
         if (std::isnan(probe.frame))
@@ -583,7 +583,7 @@ TEST_F(MonsterCombatTest, TheTwoDeviasModelsUseTheirOwnCanonicalHitSoundPairs)
         CrtRandom expected(HitSeed);
         const std::size_t word = 2 + static_cast<std::size_t>(expected.Next() & 1);
 
-        const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+        const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
         ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
         EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sounds[word] + 0xd2));
         EXPECT_EQ(game->cloth.random.State(), expected.State());

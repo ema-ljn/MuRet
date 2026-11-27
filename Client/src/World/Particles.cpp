@@ -259,7 +259,7 @@ void CreateTheExplosion(Particle& particle, float scale)
 // (+0x48) es (20 − vida) / 2 con el cociente de idiv (cdq, sub y sar: hacia 0), y la luz dinámica de radio 4 es
 // (f · 0,5f; f · 0,3f; f · 0,1f) con f = vida · 0,05f (0x6b8ad0) retenido en la x87 entre los tres productos.
 Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particles& particles, Crt::CrtRandom& random,
-                                                     const float* worldClock, TerrainLighting* lighting,
+                                                     const float* worldClock, Terrain::TerrainLighting* lighting,
                                                      const std::function<void(std::int32_t)>& sound)
 {
     particle.field48 = std::bit_cast<float>((ExplosionLife - particle.life) / 2);
@@ -786,7 +786,8 @@ void CreateTheLightning(Particle& particle, const glm::vec3& light)
 // el rojo, del producto sin redondear; el azul, del verde ya guardado. La /2 (0x54548f) además crece 0,1f, toma esa
 // misma luz y sigue a su dueño (+0x40 → +0x10), 80 más arriba. Sin rand().
 Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const float* worldClock,
-                                                     TerrainLighting* lighting, const ParticleOwnerStates& ownerStates)
+                                                     Terrain::TerrainLighting* lighting,
+                                                     const ParticleOwnerStates& ownerStates)
 {
     constexpr std::int32_t ClockSpan = 1000;
     constexpr std::int32_t LightningLightRadius = 3;
@@ -2638,8 +2639,8 @@ namespace
 Core::Expected<void, ParticleError> StepParticlesImpl(
     Particles& particles, Crt::CrtRandom& random, const float* worldClock, const std::int32_t* map,
     IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
-    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
-    const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
+    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
+    Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
@@ -3023,7 +3024,7 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const std::int32_t* map, IParticleTrigonometry& trigonometry,
                      const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                      const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
-                     TerrainLighting* lighting, const ParticleActorHands& actorHands,
+                     Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands,
                      const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
@@ -3035,7 +3036,7 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const std::int32_t* map, IParticleTrigonometry& trigonometry,
                      const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                      const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
-                     TerrainLighting* lighting, const ParticleActorHands& actorHands,
+                     Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands,
                      const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
                      const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {

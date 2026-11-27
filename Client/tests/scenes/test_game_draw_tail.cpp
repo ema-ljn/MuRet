@@ -183,7 +183,7 @@ TEST(GameDrawTailTest, GroundOnlyEffectsPublishVisibilityWithoutLookingForModels
         effects[i].alive = true;
         effects[i].type = static_cast<std::int16_t>(0x61d + i);
     }
-    Client::Scenes::DrawModelEffects(batch, models, effects, Client::World::SphereFrustum{}, nullptr, {}, 0.0f);
+    Client::Scenes::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.0f);
     EXPECT_EQ(models.lookups, 0);
     for (const auto& effect : effects)
         EXPECT_TRUE(effect.seen);
@@ -374,7 +374,7 @@ TEST(GameDrawTailTest, PlainFloorSwordsRenderBeforePublishingTheirProjectedShort
 {
     Client::Render::ModelBatch batch;
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
@@ -827,7 +827,7 @@ TEST(GameDrawTailTest, GroundModelEffectsRenderBeforeRestoringOpaqueStateWithout
 {
     Client::Render::ModelBatch batch;
     LookupCounter models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     heights->cells.fill(7);
     const Client::Scenes::ModelEffectDrawResources resources{*heights, 30};
@@ -878,7 +878,7 @@ TEST(GameDrawTailTest, TheSiegeEffectsDrawOnlyTheAuraThroughItsModel)
         effect.type = type;
         effect.transform.position = {1000, 2000, 300};
         const auto drawn = Client::Scenes::DrawGameModelEffects(
-            batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, resources);
+            batch, models, std::span(&effect, 1), Client::Terrain::SphereFrustum{}, nullptr, {}, 0, resources);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(effect.seen);
         EXPECT_EQ(models.lookups > 0, type == 0x134);
@@ -897,7 +897,7 @@ TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
 
     Client::Crt::CrtRandom random(11);
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    const Client::World::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
+    const Client::Terrain::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
     Client::Render::ModelBatch batch;
     const auto drawn = Client::Scenes::DrawGroundEffects(batch, effects->Effects(), resources);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -933,7 +933,7 @@ TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
             effect.transform.position = {1000, 2000, 300};
             Client::Render::ModelBatch batch;
             const auto result = Client::Scenes::DrawGameModelEffects(
-                batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, mode);
+                batch, models, std::span(&effect, 1), Client::Terrain::SphereFrustum{}, nullptr, {}, 0, mode);
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_TRUE(effect.seen);
             EXPECT_TRUE(batch.Vertices().empty());
@@ -971,7 +971,7 @@ TEST(GameDrawTailTest, TheHighEffectsDrawThroughTheirModelsOrNotAtAll)
         effect.transform.position = {1000, 2000, 300};
         Client::Render::ModelBatch batch;
         const auto result = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1),
-                                                                 Client::World::SphereFrustum{}, nullptr, {}, 0, 0);
+                                                                 Client::Terrain::SphereFrustum{}, nullptr, {}, 0, 0);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(effect.seen);
         EXPECT_TRUE(batch.Vertices().empty());
@@ -1110,7 +1110,7 @@ TEST(GameDrawTailTest, FloorPublishesItsPoseEvenWhenAlphaSuppressesTheBody)
 {
     Client::Render::ModelBatch batch;
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
@@ -1118,7 +1118,8 @@ TEST(GameDrawTailTest, FloorPublishesItsPoseEvenWhenAlphaSuppressesTheBody)
     item.position = {10, 20, 30};
     int poses = 0;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
-    context.onPose = [&poses](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+    context.onPose =
+        [&poses](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
     {
         ++poses;
         EXPECT_FLOAT_EQ(object.transform.position.z, 30);
@@ -1134,7 +1135,7 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
 {
     Client::Render::ModelBatch batch;
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
     Client::World::ModelEffect effect;
@@ -1142,7 +1143,8 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     effect.type = 0xc2;
     effect.transform.scale = 1;
     int poses = 0;
-    resources.onPose = [&poses](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    resources.onPose =
+        [&poses](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
         ++poses;
         return Client::Core::Unexpected(std::string("pose fixture"));
@@ -1153,7 +1155,8 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     EXPECT_EQ(result.Error(), "pose fixture");
     EXPECT_EQ(poses, 1);
     EXPECT_TRUE(batch.Vertices().empty());
-    resources.onPose = [&poses](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    resources.onPose =
+        [&poses](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
         ++poses;
         return {};
@@ -1176,7 +1179,7 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
 TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
 {
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::ModelEffect burst;
     burst.alive = true;
     burst.type = Client::World::EarthquakeBurstEffect;
@@ -1214,7 +1217,7 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
 // 0x6002e0 las dibuja por 0x4ef0c0 con 0x82 (0x6004aa), con la mezcla que oscurece.
 TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
 {
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     for (const std::int32_t life : {20, 11, 5})
     {
         SCOPED_TRACE(life);
@@ -1292,7 +1295,7 @@ TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
         Case{Client::World::InnerCircleEffect, 3, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
         Case{Client::World::InnerCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
     };
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     TriangleModels models;
     for (const Case& tested : cases)
     {
@@ -1342,7 +1345,7 @@ TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommo
         std::optional<TextureSlot> texture;
         std::size_t vertices;
     };
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     TwoMeshModels models;
     std::array<std::vector<Draw>, 2> draws;
     for (const std::int32_t subtype : {0, 1})
@@ -1388,7 +1391,7 @@ TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommo
 // el blendMesh 0 y la U en FSIN(T · 0,00008f) · 2,5f, y deja +0x6c en 1; sin el reloj del mundo, corta.
 TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
 {
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     TriangleModels models;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     const Client::Scenes::ModelEffectDrawResources resources{*heights, 30};
@@ -1449,7 +1452,7 @@ TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
 TEST(GameDrawTailTest, TheDarkBodyDarkensItsBlendMeshToo)
 {
     TwoMeshModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     using Client::Render::ModelBlend;
     struct Case
     {
@@ -1491,12 +1494,12 @@ TEST(GameDrawTailTest, TheDarkBodyDarkensItsBlendMeshToo)
 TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
 {
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Scenes::FaunaDrawCarry carry;
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
     int poses = 0;
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         ++poses;
         return Client::Scenes::PublishFaunaPose(carry, models, object, true);
@@ -1528,7 +1531,7 @@ TEST(GameDrawTailTest, ModelEffectNonzeroModeFiltersBlendMeshBeforeDispatchingIt
 {
     Client::Render::ModelBatch batch;
     LookupCounter missing;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x14e;
@@ -1561,7 +1564,7 @@ TEST(GameDrawTailTest, AnUnloadedModelDoesNotAbortTheRestOfTheSecondPass)
     Client::Render::ModelBatch batch;
     TriangleModels models;
     models.missingModel = std::uint16_t{0x14e};
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     std::array<Client::World::ModelEffect, 2> effects{};
     effects[0].alive = true;
     effects[0].type = 0x14e;
@@ -1581,7 +1584,7 @@ TEST(GameDrawTailTest, MirroredModelEffectDrawsTwiceAndRetainsItsSecondHeight)
 {
     Client::Render::ModelBatch batch;
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x135;
@@ -1601,7 +1604,7 @@ TEST(GameDrawTailTest, FloorBodyUsesThePrecedingTransparentPoseAndRetainsItsDumm
 {
     Client::Render::ModelBatch batch;
     RetainedDummyModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FaunaDrawCarry carry;
     carry.meshes.resize(1);
     carry.meshes[0].positions.assign(3, glm::vec3(42));
@@ -1615,7 +1618,7 @@ TEST(GameDrawTailTest, FloorBodyUsesThePrecedingTransparentPoseAndRetainsItsDumm
     items[1].alpha = 1;
     items[1].position = {1000, 1000, 300};
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
-    context.onPose = [&](const Client::Scenes::DrawnObject& object)
+    context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         auto published = Client::Scenes::PublishFaunaFloorPose(carry, models, object);
         if (object.model == 0x212)
@@ -1635,7 +1638,7 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
 {
     Client::Render::ModelBatch batch;
     RetainedDummyModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FaunaDrawCarry carry;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::array<Client::World::ModelEffect, 2> effects{};
@@ -1647,7 +1650,7 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     }
     effects[1].transform.position = {1000, 1000, 300};
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
     resources.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     ASSERT_TRUE(
@@ -1662,7 +1665,7 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
 {
     Client::Render::ModelBatch batch;
     RetainedDummyModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FaunaDrawCarry carry;
     std::array<Client::World::ModelEffect, 2> effects{};
     for (std::size_t i = 0; i < effects.size(); ++i)
@@ -1672,9 +1675,9 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
         effects[i].transform.scale = 1;
     }
     effects[1].transform.position = {1000, 1000, 300};
-    const Client::Scenes::TailPoseObserver onPose = [&](const Client::Scenes::DrawnObject& object)
+    const Client::Actors::Drawing::TailPoseObserver onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
-    const Client::Scenes::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh>
+    const Client::Actors::Drawing::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh>
     { return carry.meshes; };
     ASSERT_TRUE(Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
                     .HasValue());
@@ -1686,7 +1689,7 @@ TEST(GameDrawTailTest, PublishedFloorBodyReportsMissingAndIncompleteScratchBefor
 {
     Client::Render::ModelBatch batch;
     TriangleModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
@@ -1695,7 +1698,7 @@ TEST(GameDrawTailTest, PublishedFloorBodyReportsMissingAndIncompleteScratchBefor
     int poses = 0;
     bool projected = false;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
-    context.onPose = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    context.onPose = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
         ++poses;
         return {};

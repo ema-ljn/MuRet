@@ -202,7 +202,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 0.35f);
     }
     // Con un personaje de dueño (AuraJoints.cpp, 0x4e644f), la misma altura sale de su +0x18.
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.position.z = 10;
     auto joint = Joint(0x10f, 9);

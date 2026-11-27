@@ -190,7 +190,7 @@ constexpr std::uint8_t ChaosCastleTrapArmed = 1;
 // El atributo 8 de los derrumbes de Chaos Castle, en los rectángulos de 0x5f8750.
 constexpr std::uint8_t ChaosCastleCollapseAttribute = 8;
 // 0x404f41..0x404f83, 0x404fae..0x404fee y 0x405014..0x405054.
-constexpr std::array<std::array<TerrainArea, 4>, 3> ChaosCastleCollapses{{
+constexpr std::array<std::array<Terrain::TerrainArea, 4>, 3> ChaosCastleCollapses{{
     {{{0x17, 0x4b, 0x16, 2}, {0x2b, 0x4d, 2, 0x20}, {0x17, 0x6b, 0x14, 2}, {0x17, 0x4d, 2, 0x1e}}},
     {{{0x19, 0x4d, 0x12, 2}, {0x29, 0x4f, 2, 0x1c}, {0x19, 0x69, 0x10, 2}, {0x19, 0x4f, 2, 0x1a}}},
     {{{0x1b, 0x4f, 0xe, 2}, {0x27, 0x51, 2, 0x18}, {0x1b, 0x67, 0xc, 2}, {0x1b, 0x51, 2, 0x16}}},
@@ -447,13 +447,13 @@ private:
     // 0x5f8710 (OR) y 0x5f8730 (AND con el complemento) sobre el WORD (y << 8) + x de 0x7d0d348.
     Applied MarkTheCell(std::int32_t x, std::int32_t y, std::uint8_t attribute, bool add, std::string_view where)
     {
-        return MarkTheTerrainCell(m_world.Map().terrain.attributes.get(), x, y, attribute, add, where);
+        return Terrain::MarkTheTerrainCell(m_world.Map().terrain.attributes.get(), x, y, attribute, add, where);
     }
 
     // 0x5f8750(x, y, ancho, alto, atributo, agregar).
-    Applied MarkTheArea(const TerrainArea& area, std::uint8_t attribute, bool add, std::string_view where)
+    Applied MarkTheArea(const Terrain::TerrainArea& area, std::uint8_t attribute, bool add, std::string_view where)
     {
-        return MarkTheTerrainArea(m_world.Map().terrain.attributes.get(), area, attribute, add, where);
+        return Terrain::MarkTheTerrainArea(m_world.Map().terrain.attributes.get(), area, attribute, add, where);
     }
 
     // 0x5111a0(acción): cada uno de los 400 primeros vivo que es un jugador (0x20a) con los ángulos en (0, 0, 180) y
@@ -467,7 +467,7 @@ private:
         const auto actors = m_world.Actors();
         for (std::size_t index = 0; index < ActorsSearched; ++index)
         {
-            ActorState& actor = actors[index];
+            Kernel::ActorState& actor = actors[index];
             if (!actor.alive || actor.type != Tables::PlayerSkeletonModel)
                 continue;
             actor.angles = {0.0f, 0.0f, GateAngle};
@@ -484,7 +484,7 @@ private:
         std::size_t found = ActorsSearched;
         for (std::size_t index = 0; index < ActorsSearched; ++index)
         {
-            ActorState& actor = actors[index];
+            Kernel::ActorState& actor = actors[index];
             if (actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key)
                 found = index;
             actor.byte360 = 0;
@@ -589,7 +589,7 @@ private:
         const bool add = static_cast<std::uint8_t>(1 - packet.mode) != 0;
         for (const Events::AttributeArea& area : packet.areas)
         {
-            const TerrainArea rectangle{
+            const Terrain::TerrainArea rectangle{
                 .x = area.x1, .y = area.y1, .width = area.x2 - area.x1 + 1, .height = area.y2 - area.y1 + 1};
             if (auto marked = MarkTheArea(rectangle, packet.attribute, add, "0x4dac53"); !marked.HasValue())
                 return marked;
@@ -1031,7 +1031,7 @@ private:
             return {};
         m_runtime.chaosCastleArea = static_cast<std::uint8_t>(ChaosCastleCollapseAreas[step] + 1);
         RequestTheCollapse(m_runtime.map, ChaosCastleCollapseType, ChaosCastleCollapseCounter, CollapseDelay);
-        for (const TerrainArea& area : ChaosCastleCollapses[step])
+        for (const Terrain::TerrainArea& area : ChaosCastleCollapses[step])
         {
             if (auto marked = MarkTheArea(area, ChaosCastleCollapseAttribute, true, "0x405056"); !marked.HasValue())
                 return marked;
@@ -1205,8 +1205,8 @@ private:
     // 0x42fe80(estado, etapa).
     Applied ChangeTheCrywolfState(std::uint8_t state, std::uint8_t stage)
     {
-        CrywolfGlobals& crywolf = m_runtime.crywolf;
-        CrywolfInterface& ui = crywolf.ui;
+        Kernel::CrywolfGlobals& crywolf = m_runtime.crywolf;
+        Kernel::CrywolfInterface& ui = crywolf.ui;
         if (crywolf.state == state && crywolf.stage == stage)
             return {};
         crywolf.stage = stage;
@@ -1254,21 +1254,21 @@ private:
         static constexpr std::array<std::string_view, 3> LightNames{"TerrainLight", "TerrainLight1", "TerrainLight2"};
         const std::int32_t map = m_runtime.map;
         const std::string folder = std::format("World{}", map + 1);
-        World::WorldTerrain& terrain = m_world.Map().terrain;
+        Terrain::WorldTerrain& terrain = m_world.Map().terrain;
         std::optional<std::string>& fatal = m_runtime.fatalDataMessage;
-        if (auto light = World::ReloadWorldTerrainLight(m_context.dataRoot, folder, LightNames[state],
-                                                        static_cast<std::uint8_t>(map), terrain, fatal);
+        if (auto light = Terrain::ReloadWorldTerrainLight(m_context.dataRoot, folder, LightNames[state],
+                                                          static_cast<std::uint8_t>(map), terrain, fatal);
             !light.HasValue())
             return light;
         const std::int32_t number = state == Events::CrywolfPeaceState ? map + 1 : map * 10 + 0xa + state;
-        return World::ReloadWorldTerrainAttributes(m_context.dataRoot, folder, number, terrain, fatal);
+        return Terrain::ReloadWorldTerrainAttributes(m_context.dataRoot, folder, number, terrain, fatal);
     }
 
     // ----- BD 02 (0x4e5990 → 0x4e0fe0 → 0x430000): la luz y los cinco altares, en cualquier mapa y etapa.
 
     Applied On(const Events::CrywolfAltars& packet)
     {
-        CrywolfInterface& ui = m_runtime.crywolf.ui;
+        Kernel::CrywolfInterface& ui = m_runtime.crywolf.ui;
         ui.light = packet.light;
         ui.altars = packet.altars;
         return {};
@@ -1280,7 +1280,7 @@ private:
     Applied On(const Events::CrywolfContract& packet)
     {
         constexpr std::uint32_t SittingFlag = 0x200000;
-        ActorState& hero = m_world.Hero();
+        Kernel::ActorState& hero = m_world.Hero();
         if (packet.result == ContractFailed)
         {
             // 0x4e1050..0x4e106e: el héroe se para.
@@ -1366,7 +1366,7 @@ private:
 
     Applied On(const Events::CrywolfTimer& packet)
     {
-        CrywolfGlobals& crywolf = m_runtime.crywolf;
+        Kernel::CrywolfGlobals& crywolf = m_runtime.crywolf;
         if (crywolf.stage != Events::CrywolfStartStage || m_runtime.map != CrywolfMap)
             return {};
         crywolf.ui.dwords723bdc[2] = packet.value4;
@@ -1381,10 +1381,10 @@ private:
 
     Applied On(const Events::CrywolfBoss& packet)
     {
-        CrywolfGlobals& crywolf = m_runtime.crywolf;
+        Kernel::CrywolfGlobals& crywolf = m_runtime.crywolf;
         if (!InTheCrywolfDefense(m_runtime))
             return {};
-        CrywolfInterface& ui = crywolf.ui;
+        Kernel::CrywolfInterface& ui = crywolf.ui;
         ui.dword723bd8 = packet.count;
         if (packet.life > 0)
         {
@@ -1401,7 +1401,7 @@ private:
 
     Applied On(const Events::CrywolfRank& packet)
     {
-        CrywolfInterface& ui = m_runtime.crywolf.ui;
+        Kernel::CrywolfInterface& ui = m_runtime.crywolf.ui;
         ui.byte723bed = packet.rank;
         ui.dword723bf0 = packet.experience;
         return {};
@@ -1413,7 +1413,7 @@ private:
 
     Applied On(const Events::CrywolfRanking& packet)
     {
-        CrywolfInterface& ui = m_runtime.crywolf.ui;
+        Kernel::CrywolfInterface& ui = m_runtime.crywolf.ui;
         for (const Events::CrywolfRankingEntry& entry : packet.entries)
         {
             if (entry.place >= CrywolfRankingPlaces)
@@ -1455,7 +1455,7 @@ private:
         glm::vec3 position{static_cast<float>((static_cast<double>(cellX) + 0.5) * 100.0),
                            static_cast<float>((static_cast<double>(cellY) + 0.5) * 100.0), 0};
         position.z =
-            static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y));
+            static_cast<float>(Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y));
         static_cast<void>(m_world.Map().effects.CreateFireworkEmitter(
             World::ModelEffectArguments{.type = 0x60e, .position = position, .angles = {}, .light = glm::vec3(1)}));
         return {};
@@ -1476,7 +1476,7 @@ private:
         soccer.active = packet.firstScore != NoSoccerScore;
         m_runtime.guild.ourScore = packet.firstScore;
         m_runtime.guild.theirScore = packet.secondScore;
-        const ActorState& hero = m_world.Hero();
+        const Kernel::ActorState& hero = m_world.Hero();
         // 0x4d9f78/94: FILD directo, sin abrir las dos entradas protegidas.
         return FireworkAt(std::bit_cast<std::int32_t>(hero.cellXLeft), std::bit_cast<std::int32_t>(hero.cellYLeft));
     }
@@ -1537,8 +1537,8 @@ private:
     }
 
     const EventPacketContext& m_context;
-    WorldState& m_world;
-    WorldRuntime& m_runtime;
+    Kernel::WorldState& m_world;
+    Kernel::WorldRuntime& m_runtime;
     EventPacketResult m_result{};
 };
 } // namespace
@@ -1606,9 +1606,9 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables:
     return std::optional<std::string>{std::move(text).Value()};
 }
 
-void ResetTheCrywolfInterface(WorldRuntime& runtime)
+void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime)
 {
-    CrywolfInterface& ui = runtime.crywolf.ui;
+    Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
     ui.float723a40 = 0.0f;
     ui.byte723ca0 = 0;
     ui.dwords723bdc = {};

@@ -91,7 +91,7 @@ struct ServerListFrame
 
 // El alto de la caja de la descripción (+0x3064, 0x6451d0): 10 líneas del alto del buffer de la
 // textura del slot 0x19 (server_ex02), más 6 arriba y 6 abajo.
-[[nodiscard]] int DescriptionHeight(Scenes::TextureBufferSize lineTexture);
+[[nodiscard]] int DescriptionHeight(Assets::TextureBufferSize lineTexture);
 
 // 0x6451d0, 0x645520 y 0x6456c0 con la ventana donde la pone 0x65f300: ((W − 465) / 2,
 // (H − alto) / 2) con la división de C, y el alto, 16 · 26 + 26 + la caja + 10. Las filas de los

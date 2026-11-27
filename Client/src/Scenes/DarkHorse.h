@@ -71,6 +71,7 @@ void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint
 // Lo que se dibuja del caballo entre dos pasos (`stepAlpha` de un paso más), en `place` (el lugar y los
 // ángulos del jinete en el login, los suyos en el juego) y con la escala que le pone 0x445260: blanco, con
 // la luz por vértice y su alpha (DrawDarkHorse).
-[[nodiscard]] DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Models::Skeleton* skeleton,
-                                         const Models::ObjectTransform& place, float scale, float stepAlpha);
+[[nodiscard]] Actors::Drawing::DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Models::Skeleton* skeleton,
+                                                          const Models::ObjectTransform& place, float scale,
+                                                          float stepAlpha);
 } // namespace Client::Scenes

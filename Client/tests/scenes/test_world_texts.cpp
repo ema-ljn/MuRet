@@ -23,10 +23,10 @@
 namespace
 {
 using Client::Core::PixelSize;
+using Client::Kernel::HudState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameProjection;
-using Client::Scenes::HudState;
 using Client::Scenes::WorldText;
 using Client::Scenes::WorldTextDrawContext;
 using Client::Scenes::WorldTextQueue;

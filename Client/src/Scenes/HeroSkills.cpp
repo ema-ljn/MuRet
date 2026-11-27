@@ -65,7 +65,7 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 }
 
 // 0x57d1bc..0x57d1d7 y 0x57d3ab..0x57d3c9: el ataque automático (0x6c8e3c), fuera del mapa 6 y de Chaos Castle.
-bool AutoAttacksHere(const WorldRuntime& runtime)
+bool AutoAttacksHere(const Kernel::WorldRuntime& runtime)
 {
     return runtime.ui.autoAttack && runtime.map != SpectatorMap && !IsChaosCastle(runtime.map);
 }
@@ -131,7 +131,7 @@ enum class ActionGate : std::uint8_t
     StopsAndForgetsTheHold,
 };
 
-ActionGate GateOfTheAction(const ActorState& hero)
+ActionGate GateOfTheAction(const Kernel::ActorState& hero)
 {
     const std::uint8_t action = hero.animation.action;
     if (hero.type != PlayerType)
@@ -142,7 +142,7 @@ ActionGate GateOfTheAction(const ActorState& hero)
     return ActionGate::StopsAndForgetsTheHold;
 }
 
-bool Mounted(const ActorState& hero)
+bool Mounted(const Kernel::ActorState& hero)
 {
     const std::uint16_t model = hero.pet.model;
     return model == 0x1c14 || model == 0x1c15 || model == 0x1c16 || model == 0x1c37;
@@ -176,7 +176,7 @@ Core::Expected<std::uint8_t, std::string> PartyByteOf(std::uint8_t skill, const 
 }
 
 // 0x5a5540(skill): las del asedio (0x2c, 0x2d, 0x2e, 0x39, 0x49 y 0x4a) solo en el mapa 30 con el asedio (0x4294b0).
-bool UsableOnThisMap(std::uint8_t skill, const WorldRuntime& runtime)
+bool UsableOnThisMap(std::uint8_t skill, const Kernel::WorldRuntime& runtime)
 {
     const bool siegeSkill =
         skill == 0x2c || skill == 0x2d || skill == 0x2e || skill == 0x39 || skill == 0x49 || skill == 0x4a;
@@ -189,7 +189,7 @@ bool UsableOnThisMap(std::uint8_t skill, const WorldRuntime& runtime)
 // clave 0xffff (0x421599..0x4219cd). La mascota es el +0x444 del cuervo, siempre 0 (Protocol::Pets::RavenPet). Por
 // send() en línea; sin el socket (+0xc de 0x6c82a0 en −1), no sale. Después, con el A7 o sin él, el soltado, el clic,
 // el botón y los frames del derecho en 0 y 1 (0x421aff..0x421b20). Sin rand().
-Core::Expected<bool, std::string> UseTheRavenOrder(const ActorState& hero, std::uint8_t slot,
+Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& hero, std::uint8_t slot,
                                                    const HeroSkillContext& context)
 {
     constexpr std::uint8_t FirstOrderSlot = 0x78;
@@ -197,7 +197,7 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const ActorState& hero, std::
     constexpr std::uint8_t AttackCommand = 3;
     constexpr std::uint8_t PlayerObject = 1;
     constexpr std::uint8_t MonsterObject = 2;
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     if (!hero.darkSpirit || (!ui.rightClick && !ui.rightDown) || !InRange(slot, FirstOrderSlot, AttackOrderSlot))
         return false;
@@ -210,7 +210,8 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const ActorState& hero, std::
         // 0x558bb0 ya miró el −1 y el lugar del elegido.
         if (attackable.Value())
         {
-            const ActorState& chosen = context.world.Actors()[static_cast<std::size_t>(runtime.selectedTargets[2])];
+            const Kernel::ActorState& chosen =
+                context.world.Actors()[static_cast<std::size_t>(runtime.selectedTargets[2])];
             if (chosen.byte88 == MonsterObject || chosen.byte88 == PlayerObject)
                 command = Protocol::Pets::PetCommand{
                     .pet = Protocol::Pets::RavenPet, .command = AttackCommand, .key = chosen.key};
@@ -234,9 +235,9 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const ActorState& hero, std::
 // 0x57ce80(héroe): con un elegido (0x6c8e30), su celda (ftol de la posición · 0,01) en 0x77e1ba8/0x77e1bac y su
 // posición en +0x3a8..+0x3b0; sin él, el punto del terreno bajo el mouse y su celda, si lo hay. El resultado no lo
 // mira nadie (0x57d4c7).
-Core::Expected<void, std::string> AimTheSkill(ActorState& hero, const HeroSkillContext& context)
+Core::Expected<void, std::string> AimTheSkill(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     glm::vec3 point{};
     const std::int32_t chosen = runtime.selectedTargets[2];
@@ -269,7 +270,7 @@ Core::Expected<void, std::string> AimTheSkill(ActorState& hero, const HeroSkillC
 
 // 0x559890(héroe, ítem): la skill del arma de las clases 1, 3 y 4. Con lo que la frena, 0; las de la lista van a
 // 0x559afc (UseTheListedWeaponSkill) y las demás a las opciones del arma (UseTheWeaponOptions, HeroSkillCasts).
-Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const World::ItemState& item,
+Core::Expected<bool, std::string> UseTheWeaponSkill(Kernel::ActorState& hero, const Kernel::ItemState& item,
                                                     const HeroSkillContext& context)
 {
     const std::uint8_t action = hero.animation.action;
@@ -282,14 +283,14 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const Worl
     {
         return false;
     }
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::uint8_t skill = 0;
     {
         const auto own = OwnAccess(context);
-        skill = OwnSkillByte(context.world.OwnCharacter(), runtime.movement.weaponSkill.slot);
+        skill = Kernel::OwnSkillByte(context.world.OwnCharacter(), runtime.movement.weaponSkill.slot);
     }
     // 0x5599db..0x559afa: las skills de la lista y los tipos del arma derecha del héroe publicado (+0x2b8, MOVSX).
-    const ActorState& published = context.world.Hero();
+    const Kernel::ActorState& published = context.world.Hero();
     const auto right = static_cast<std::int32_t>(static_cast<std::int16_t>(published.hands[0].model));
     bool special = false;
     switch (skill)
@@ -330,12 +331,12 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const Worl
 // 0x57d532..0x57d758: por cada mano (+0xb6c y +0xbb4), la skill de su arma. La tabla 0x599d70 (por la skill − 0x2b)
 // deja montado solo las 0x2b, 0x2f, 0x31, 0x3c a 0x3e, 0x41, 0x4a y 0x4c. True: la usó (0x57df46, el registro cerrado
 // y nada más).
-Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, CharacterClass heroClass, std::uint8_t skill,
-                                                     const HeroSkillContext& context)
+Core::Expected<bool, std::string> UseTheWeaponSkills(Kernel::ActorState& hero, CharacterClass heroClass,
+                                                     std::uint8_t skill, const HeroSkillContext& context)
 {
     static constexpr std::array<std::uint8_t, 0x22> MountedSkills{0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                                                   0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     for (std::size_t hand = 0; hand < WeaponHands; ++hand)
     {
         if (heroClass == CharacterClass::DarkKnight || heroClass == CharacterClass::MagicGladiator ||
@@ -372,8 +373,8 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, Character
 
 // 0x57d787..0x58188e y 0x5897aa..0x5897b1: la rama de la clase. Las 0x43 a 0x48 (0x5808da, HeroSkillsTail) son de
 // todas.
-Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, CharacterClass heroClass, std::uint8_t skill,
-                                                   const HeroSkillContext& context)
+Core::Expected<void, std::string> UseTheClassSkill(Kernel::ActorState& hero, CharacterClass heroClass,
+                                                   std::uint8_t skill, const HeroSkillContext& context)
 {
     if (heroClass == CharacterClass::Elf)
         return UseTheElfSkill(hero, skill, context);
@@ -401,7 +402,7 @@ enum class RightButton : std::uint8_t
     Leaves,
 };
 
-RightButton StepTheRightButton(ActorState& hero, std::uint8_t& skill, WorldState& world)
+RightButton StepTheRightButton(Kernel::ActorState& hero, std::uint8_t& skill, Kernel::WorldState& world)
 {
     UI::GameUiState& ui = world.Runtime().ui;
     if (ui.rightHoldFrames != 0)
@@ -432,10 +433,10 @@ RightButton StepTheRightButton(ActorState& hero, std::uint8_t& skill, WorldState
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GameMovementState& state = runtime.movement;
     UI::GameUiState& ui = runtime.ui;
     // 0x57cfe2..0x57d00f.
@@ -454,7 +455,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     std::uint8_t skill = 0;
     {
         const auto own = OwnAccess(context);
-        skill = OwnSkillByte(world.OwnCharacter(), world.Hero().skillIndex);
+        skill = Kernel::OwnSkillByte(world.OwnCharacter(), world.Hero().skillIndex);
     }
     // 0x57d112: el alcance queda en un local que leen las ramas de las clases.
     const auto range = SkillRangeOf(skill, hero, context);
@@ -499,7 +500,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     }
     // 0x57d28f..0x57d2c3.
     state.followTarget = -1;
-    const ActorState& published = world.Hero();
+    const Kernel::ActorState& published = world.Hero();
     if ((published.flags78 & HiddenHeroFlag) != HiddenHeroFlag)
     {
         const auto ordered = UseTheRavenOrder(hero, published.skillIndex, context);
@@ -545,7 +546,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
             return aimed;
         const auto y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
         const auto x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-        const World::WorldTerrain& terrain = world.Map().terrain;
+        const Terrain::WorldTerrain& terrain = world.Map().terrain;
         if (!terrain.attributes)
             return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
         const bool seen =

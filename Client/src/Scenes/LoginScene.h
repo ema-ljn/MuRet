@@ -142,15 +142,15 @@ public:
     // relojes.
     void OnFrameHeld() override;
     // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
-    [[nodiscard]] const CharacterHead& Head() const;
+    [[nodiscard]] const Kernel::CharacterHead& Head() const;
     [[nodiscard]] std::optional<std::string> Failure() const override;
     // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
     // del paso, la luz del terreno en su lugar más la suya, y su tela y la tabla de los sprites de la escena, con
     // el ritmo del contexto. Lo que cuelga (el cetro con su brillo) va aparte, con DrawCharacterTail.
-    [[nodiscard]] DrawnCharacter TheCharacterToDraw(float alpha);
+    [[nodiscard]] Actors::Drawing::DrawnCharacter TheCharacterToDraw(float alpha);
     // 0x505820 con el personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState: lo que
     // devuelve el último, que lee el conjunto completo de la cola de efectos.
-    FullSetScan ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
+    Actors::FullSetScan ScanTheCharacter(const Kernel::CharacterAppearance& appearance, int frames);
 
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
@@ -195,8 +195,9 @@ private:
     void DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
     // 0x50db57..0x510a7a con el personaje, después de su cuerpo, `frames` veces (con cero, una entre frames); un
     // error queda en m_failure.
-    void DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character,
-                     FaunaDrawCarry& carry, const FullSetScan& scan, int frames);
+    void DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor,
+                     const Actors::Drawing::DrawnCharacter& character, FaunaDrawCarry& carry,
+                     const Actors::FullSetScan& scan, int frames);
     // El corte del pase de partículas, en el log: una vez por entrada.
     void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
@@ -237,23 +238,23 @@ private:
     // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
     void ShowFailure();
     [[nodiscard]] std::string LoginTitle() const;
-    [[nodiscard]] Scenes::TextureBufferSize BufferSize(Render::TextureSlot slot) const;
+    [[nodiscard]] Assets::TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
-    [[nodiscard]] World::GameCamera& CameraState();
-    [[nodiscard]] World::GameCameraInput& CameraInputState();
+    [[nodiscard]] Camera::GameCamera& CameraState();
+    [[nodiscard]] Camera::GameCameraInput& CameraInputState();
     // El trapecio global del último 0x5fb570 (WorldRuntime::terrainPolygon), el de cualquier escena.
-    [[nodiscard]] World::TerrainPolygon& SharedTerrainPolygon();
-    [[nodiscard]] WorldState& CharacterWorld() const;
+    [[nodiscard]] Terrain::TerrainPolygon& SharedTerrainPolygon();
+    [[nodiscard]] Kernel::WorldState& CharacterWorld() const;
     [[nodiscard]] Models::ClothWorld& CharacterRandomWorld();
 
     SceneContext m_context;
     // Los tests de vista sin los globales de main usan el mismo pool y paso, con un dueño local en el heap.
-    std::unique_ptr<WorldState> m_localWorld;
+    std::unique_ptr<Kernel::WorldState> m_localWorld;
     Models::ClothWorld m_localCloth;
     std::optional<std::string> m_failure;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
-    World::GameCamera m_localCamera;
-    World::GameCameraInput m_localCameraInput;
+    Camera::GameCamera m_localCamera;
+    Camera::GameCameraInput m_localCameraInput;
     Models::OriginalFrameCarry m_cameraFrames;
     // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
     Models::OriginalFrameCarry m_objectEffectFrames;
@@ -265,20 +266,20 @@ private:
     const Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     const Tables::TextTable* m_texts;
-    SceneTextures m_textures;
-    SceneTextures m_windowTextures;
+    Assets::SceneTextures m_textures;
+    Assets::SceneTextures m_windowTextures;
     // El de SceneWorlds.h: el 55.
     std::optional<Render::Frame::SceneWorld> m_world;
-    LoadedWorld m_terrain;
+    Kernel::LoadedWorld m_terrain;
     // El rango de bloques del terreno con la cámara del login (0x5fbb00): la carga lo inicializa; cada dibujo
     // lo actualiza para el paso siguiente. El trapecio (0x5fb570) es el global de WorldRuntime.
-    World::TerrainRange m_terrainRange;
+    Terrain::TerrainRange m_terrainRange;
     Render::Camera3D m_drawnCamera;
-    // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
-    std::unique_ptr<World::TerrainLighting> m_lighting;
+    // La luz sola, si el terreno no se pudo leer y su luz sí (Terrain::LoadTerrainLighting).
+    std::unique_ptr<Terrain::TerrainLighting> m_lighting;
     const Models::ModelTextureSlots* m_gameSlots;
     // Los modelos de Object56\ y los registros de EncTerrain56.obj, de cada entrada.
-    WorldModels m_worldModels;
+    Assets::WorldModels m_worldModels;
     std::vector<Data::Terrain::TerrainObject> m_objectRecords;
     // Los objetos del mundo como los crea 0x606660, y el logo al final (0x61c7c0 lo crea después de la
     // carga del mundo).
@@ -303,12 +304,12 @@ private:
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Models::ModelTextureSlots> m_logoSlots;
-    std::optional<SceneTextures> m_logoTextures;
+    std::optional<Assets::SceneTextures> m_logoTextures;
     LoginRoutes m_routes;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
     DarkHorse m_horse;
     // La tela del Dark Lord (0x50ba30), entre frames.
-    CharacterCloth m_characterCloth;
+    Actors::Drawing::CharacterCloth m_characterCloth;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
     std::optional<std::string_view> m_left;
     std::optional<std::string_view> m_right;
@@ -324,7 +325,7 @@ private:
     UI::OptionsWindow m_options;
     UI::CreditsWindow m_credits;
     // El par de ilustraciones de los créditos (0x6f8 y 0x6f9) que subió el último 0x63fc50.
-    std::optional<SceneTextures> m_illustrations;
+    std::optional<Assets::SceneTextures> m_illustrations;
     // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
     UI::NewUi m_ui;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.

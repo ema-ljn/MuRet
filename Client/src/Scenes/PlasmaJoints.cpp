@@ -131,7 +131,7 @@ Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint, const Joint
         // 0x535b4c..0x535b68: con dueño, el destino es su posición (+0x10) 80 más arriba.
         if (joint.ownerContext != nullptr)
         {
-            const ActorState* owner = JointKernels::ActorOwner(joint);
+            const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
             if (owner == nullptr)
                 return Core::Unexpected(std::string("0x535b53: el dueño del joint 0x14f no es un personaje"));
             constexpr double Above = 80.0; // 0x6b9ffc

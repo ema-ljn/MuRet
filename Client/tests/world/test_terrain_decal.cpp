@@ -23,7 +23,7 @@
 #include <string>
 #include <string_view>
 
-// Client::World::DrawTerrainDecal con un terreno armado a mano: el calco de 0x5fb2f0 sobre las celdas de
+// Client::Terrain::DrawTerrainDecal con un terreno armado a mano: el calco de 0x5fb2f0 sobre las celdas de
 // 0x5faec0 (06 § Las marcas del suelo).
 namespace
 {
@@ -35,8 +35,8 @@ using Client::Render::ModelDrawCommand;
 using Client::Render::ModelDrawState;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
-using Client::World::DrawTerrainDecal;
-using Client::World::TerrainDecal;
+using Client::Terrain::DrawTerrainDecal;
+using Client::Terrain::TerrainDecal;
 
 constexpr std::int32_t BloodSlot = 0x5e3;
 // 0x549175: lo que sube el calco de una marca.

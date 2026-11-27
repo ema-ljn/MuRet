@@ -34,6 +34,7 @@
 #include "Scenes/TooltipLines.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDrawParts.h"
@@ -108,7 +109,7 @@ constexpr std::uint16_t DarkHorseHelper = 0xbf;
 constexpr std::uint16_t FirstFenrirHelper = 0x14a;
 constexpr std::uint16_t LastFenrirHelper = 0x14c;
 
-ActorState& HeroOf(const WorldEntryResources& resources)
+Kernel::ActorState& HeroOf(const WorldEntryResources& resources)
 {
     return resources.world.Hero();
 }
@@ -118,22 +119,22 @@ const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
     return resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
 }
 
-ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
+Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
 {
     const auto& terrain = resources.world.Map().terrain;
-    return ActorStopContext{.runtime = resources.world.Runtime(),
-                            .scene = SceneId::Game,
-                            .playerSkeleton = player,
-                            .items = resources.items,
-                            .random = resources.cloth.random,
-                            .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr};
+    return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
+                                    .scene = SceneId::Game,
+                                    .playerSkeleton = player,
+                                    .items = resources.items,
+                                    .random = resources.cloth.random,
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr};
 }
 
 // [0x6c9dd0] en 0 mientras vive: 0x495a20 lo baja alrededor de 0x4f2250, 0x4f4a10 y 0x4f37c0 y lo vuelve a poner.
 class MapAtZero
 {
 public:
-    explicit MapAtZero(WorldRuntime& runtime) : m_runtime(runtime), m_map(runtime.map)
+    explicit MapAtZero(Kernel::WorldRuntime& runtime) : m_runtime(runtime), m_map(runtime.map)
     {
         m_runtime.map = 0;
     }
@@ -145,24 +146,24 @@ public:
     }
 
 private:
-    WorldRuntime& m_runtime;
+    Kernel::WorldRuntime& m_runtime;
     std::int32_t m_map;
 };
 
-Core::Expected<void, std::string> StopThePortrait(ActorState& actor, const WorldEntryResources& resources,
+Core::Expected<void, std::string> StopThePortrait(Kernel::ActorState& actor, const WorldEntryResources& resources,
                                                   std::string_view where)
 {
     const auto* player = PlayerSkeleton(resources);
     if (player == nullptr)
         return Core::Unexpected(std::format("{}: falta Player.bmd para 0x4f2250", where));
-    auto stopped = SetActorStop(actor, StopContextOf(resources, *player));
+    auto stopped = Actors::SetActorStop(actor, StopContextOf(resources, *player));
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     return {};
 }
 
 // 0x513100 sobre el personaje del retrato (0x4977d0 y 0x496575).
-Core::Expected<void, std::string> ApplyTheClassParts(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyTheClassParts(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     if (actor.type != Tables::PlayerSkeletonModel)
         return {};
@@ -180,56 +181,56 @@ Core::Expected<void, std::string> ApplyTheClassParts(ActorState& actor, const Wo
     const std::uint8_t characterClass = actor.characterClass;
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
-        const auto bodyPart = static_cast<GameLogic::BodyPart>(part);
+        const auto bodyPart = static_cast<Kernel::BodyPart>(part);
         const std::uint16_t compared = part == 0                      ? actor.body[0].model
                                        : part + 1 < actor.body.size() ? actor.body[part + 1].model
                                                                       : actor.hands[0].model;
-        const auto base = static_cast<std::int32_t>(GameLogic::ClassPartModel(bodyPart, characterClass & 7));
+        const auto base = static_cast<std::int32_t>(Kernel::ClassPartModel(bodyPart, characterClass & 7));
         if (static_cast<std::int16_t>(compared) != base)
             continue;
-        ActorItemPart& worn = actor.body[part];
+        Kernel::ActorItemPart& worn = actor.body[part];
         worn.level = 0;
         worn.flags1b = 0;
         worn.flags1c = 0;
-        worn.model = GameLogic::ClassPartModel(bodyPart, characterClass);
+        worn.model = Kernel::ClassPartModel(bodyPart, characterClass);
     }
     // 0x513255.
-    ApplyHeadAndScale(actor);
+    Actors::ApplyHeadAndScale(actor);
     return {};
 }
 
 // 0x496430: el word del modelo, el nivel (+2) y el byte +3.
-bool SamePart(const ActorItemPart& part, const ActorItemPart& other)
+bool SamePart(const Kernel::ActorItemPart& part, const Kernel::ActorItemPart& other)
 {
     return part.model == other.model && part.level == other.level && part.flags1b == other.flags1b;
 }
 
-std::uint8_t LevelOf(const World::ItemState& item)
+std::uint8_t LevelOf(const Kernel::ItemState& item)
 {
     return static_cast<std::uint8_t>((item.scalar1Low >> LevelShift) & LevelMask);
 }
 
 // 0x496470(parte, ítem, el de la clase): sin ítem (0xffff), el modelo con signo igual a `empty`; si no, al índice con
 // signo + 0x212. Después el nivel ((D+4 >> 3) & 0xf) y el byte +3 con el D+0x1b.
-bool SameAsItem(const ActorItemPart& part, const World::ItemState& item, std::int32_t empty)
+bool SameAsItem(const Kernel::ActorItemPart& part, const Kernel::ItemState& item, std::int32_t empty)
 {
     const std::int32_t model = static_cast<std::int16_t>(part.model);
     const std::int32_t expected =
-        item.id == NoItemModel ? empty : static_cast<std::int16_t>(item.id) + Tables::FirstItemModel;
+        item.id == Kernel::NoItemModel ? empty : static_cast<std::int16_t>(item.id) + Tables::FirstItemModel;
     return model == expected && part.level == LevelOf(item) && part.flags1b == item.flags1b;
 }
 
 // 0x4964f0(parte, ítem, el de la clase): el modelo (el word de `empty` sin ítem), el nivel y el byte +3; el +4 queda.
-void FillFromItem(ActorItemPart& part, const World::ItemState& item, std::uint16_t empty)
+void FillFromItem(Kernel::ActorItemPart& part, const Kernel::ItemState& item, std::uint16_t empty)
 {
-    part.model = item.id == NoItemModel ? empty : static_cast<std::uint16_t>(item.id + Tables::FirstItemModel);
+    part.model = item.id == Kernel::NoItemModel ? empty : static_cast<std::uint16_t>(item.id + Tables::FirstItemModel);
     part.level = LevelOf(item);
     part.flags1b = item.flags1b;
 }
 
 std::uint16_t ClassPart(std::size_t part, std::uint8_t characterClass)
 {
-    return GameLogic::ClassPartModel(static_cast<GameLogic::BodyPart>(part), characterClass);
+    return Kernel::ClassPartModel(static_cast<Kernel::BodyPart>(part), characterClass);
 }
 
 struct Differences
@@ -241,7 +242,7 @@ struct Differences
 };
 
 // 0x496595..0x496658: con +0x3e3 del héroe en 0, contra el héroe.
-Differences CompareWithTheHero(const ActorState& actor, const ActorState& hero)
+Differences CompareWithTheHero(const Kernel::ActorState& actor, const Kernel::ActorState& hero)
 {
     Differences differ;
     // 0x49659b..0x4965c5: la cabeza (+0x1f8) y las cinco partes, cortando en la primera distinta. De la cabeza MuRet
@@ -257,9 +258,10 @@ Differences CompareWithTheHero(const ActorState& actor, const ActorState& hero)
 }
 
 // 0x49665d..0x496975: con +0x3e3 del héroe distinto de 0, contra el registro propio, con su acceso abierto.
-Differences CompareWithTheRecord(const ActorState& actor, std::uint8_t heroClass, const WorldEntryResources& resources)
+Differences CompareWithTheRecord(const Kernel::ActorState& actor, std::uint8_t heroClass,
+                                 const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     const Models::LogicalAccess own(world.Runtime().ownRecordDepth, resources.cloth.random,
                                     Models::OwnRecordCloseRandoms);
     const auto& equipment = world.OwnCharacter().equipment;
@@ -275,13 +277,13 @@ Differences CompareWithTheRecord(const ActorState& actor, std::uint8_t heroClass
 }
 
 // 0x4969b2..0x496a5e: del héroe tal cual, de a partes de 0x20 bytes.
-void CopyFromTheHero(LetterPortrait& portrait, const ActorState& hero, const Differences& differ)
+void CopyFromTheHero(LetterPortrait& portrait, const Kernel::ActorState& hero, const Differences& differ)
 {
-    ActorState& actor = portrait.actor;
+    Kernel::ActorState& actor = portrait.actor;
     if (differ.body)
     {
         // 0x4969bd: 0x4fb1a0(personaje, 0, 0), las telas.
-        portrait.cloth = CharacterCloth{};
+        portrait.cloth = Actors::Drawing::CharacterCloth{};
         actor.head = hero.head;
         actor.body = hero.body;
         // 0x4969e3..0x4969f7: el byte +0x14 y los dwords +0x18 y +0x1c de las seis partes en 0; MuRet no los tiene.
@@ -301,18 +303,18 @@ void CopyFromTheHero(LetterPortrait& portrait, const ActorState& hero, const Dif
 void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const Differences& differ,
                        const WorldEntryResources& resources)
 {
-    ActorState& actor = portrait.actor;
-    WorldState& world = resources.world;
+    Kernel::ActorState& actor = portrait.actor;
+    Kernel::WorldState& world = resources.world;
     std::uint8_t& depth = world.Runtime().ownRecordDepth;
     Crt::CrtRandom& random = resources.cloth.random;
     const auto& equipment = world.OwnCharacter().equipment;
     if (differ.body)
     {
         // 0x496a79: 0x4fb1a0 antes de abrir el registro.
-        portrait.cloth = CharacterCloth{};
+        portrait.cloth = Actors::Drawing::CharacterCloth{};
         {
             const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
-            actor.head = GameLogic::ClassPartModel(GameLogic::BodyPart::Helm, heroClass);
+            actor.head = Kernel::ClassPartModel(Kernel::BodyPart::Helm, heroClass);
             for (std::size_t part = 0; part < actor.body.size(); ++part)
                 FillFromItem(actor.body[part], equipment[FirstBodySlot + part], ClassPart(part, heroClass));
         }
@@ -322,17 +324,17 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
     {
         const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
         for (std::size_t side = 0; side < actor.hands.size(); ++side)
-            FillFromItem(actor.hands[side], equipment[side], NoItemModel);
+            FillFromItem(actor.hands[side], equipment[side], Kernel::NoItemModel);
     }
     if (differ.wings)
     {
         const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
-        FillFromItem(actor.wings, equipment[WingsSlot], NoItemModel);
+        FillFromItem(actor.wings, equipment[WingsSlot], Kernel::NoItemModel);
     }
     if (differ.pet)
     {
         const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
-        FillFromItem(actor.pet, equipment[PetSlot], NoItemModel);
+        FillFromItem(actor.pet, equipment[PetSlot], Kernel::NoItemModel);
         actor.previousHad1c15 = actor.pet.model == HeightOffsetPet;
     }
 }
@@ -341,7 +343,7 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
 // +0x688 con la escala del personaje del retrato.
 Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, const WorldEntryResources& resources)
 {
-    ActorState& actor = portrait.actor;
+    Kernel::ActorState& actor = portrait.actor;
     HelperState& helper = portrait.helper;
     helper.alive = false;
     std::optional<std::uint16_t> type;
@@ -370,8 +372,8 @@ Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, con
     }
     if (type)
     {
-        auto built = ConstructHelper(helper, *type, actor.position, actor, ActorPoolSize, resources.world.Runtime().map,
-                                     &resources.cloth.random);
+        auto built = ConstructHelper(helper, *type, actor.position, actor, Kernel::ActorPoolSize,
+                                     resources.world.Runtime().map, &resources.cloth.random);
         if (!built.HasValue())
             return Core::Unexpected(built.Error());
     }
@@ -381,28 +383,28 @@ Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, con
     return {};
 }
 
-CharacterStepContext StepContextOf(const WorldEntryResources& resources)
+Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const float worldClock =
         resources.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(resources.clock->Now()).count())
             : 0.0f;
-    return CharacterStepContext{.world = world,
-                                .random = resources.cloth.random,
-                                .scene = SceneId::Game,
-                                .playerSkeleton = PlayerSkeleton(resources),
-                                .items = resources.items,
-                                .darkSpiritSkeleton = resources.models.SkeletonOf(DarkSpiritModel),
-                                .particles = &world.Particles(),
-                                .worldClock = worldClock,
-                                .counter = resources.cloth.logicSteps,
-                                .actionSpeeds = &world.ActionSpeeds(),
-                                .fixedHeight = resources.camera.fixedHeight,
-                                .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); },
-                                .soundAt = [&runtime](std::int32_t sound, const glm::vec3& origin)
-                                { runtime.RequestSound(sound, origin); }};
+    return Actors::CharacterStepContext{.world = world,
+                                        .random = resources.cloth.random,
+                                        .scene = SceneId::Game,
+                                        .playerSkeleton = PlayerSkeleton(resources),
+                                        .items = resources.items,
+                                        .darkSpiritSkeleton = resources.models.SkeletonOf(DarkSpiritModel),
+                                        .particles = &world.Particles(),
+                                        .worldClock = worldClock,
+                                        .counter = resources.cloth.logicSteps,
+                                        .actionSpeeds = &world.ActionSpeeds(),
+                                        .fixedHeight = resources.camera.fixedHeight,
+                                        .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); },
+                                        .soundAt = [&runtime](std::int32_t sound, const glm::vec3& origin)
+                                        { runtime.RequestSound(sound, origin); }};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.
@@ -455,7 +457,7 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
     Crt::CrtRandom& random = resources.cloth.random;
     // 0x4961d9..0x4961ec: el ayudante en cero (0x75 dwords).
     portrait.helper = HelperState{};
-    ActorState& actor = portrait.actor;
+    Kernel::ActorState& actor = portrait.actor;
     {
         // 0x4961ee..0x4962b7: abre +0x41c y +0x420; 0x4962bc..0x4962c7 borra los 0x438 bytes (las entradas de la tabla
         // quedan); 0x4962c9..0x496354 cierra la X y después la Y.
@@ -466,22 +468,22 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
         const std::uint8_t xDepth = actor.cellXAccesses;
         const std::uint8_t yDepth = actor.cellYAccesses;
         const std::uint8_t byte38eDepth = actor.byte38eAccesses;
-        actor = ActorState{};
+        actor = Kernel::ActorState{};
         actor.cellXAccesses = xDepth;
         actor.cellYAccesses = yDepth;
         actor.byte38eAccesses = byte38eDepth;
         // Las telas (+0x18c y +0x190) también quedan en cero, sin soltarlas.
-        portrait.cloth = CharacterCloth{};
+        portrait.cloth = Actors::Drawing::CharacterCloth{};
         cellX.reset();
         cellY.reset();
     }
     // 0x496354..0x4963e0: la celda lógica del héroe publicado, la Y y después la X.
-    const LogicalCell cell = ReadLogicalCell(HeroOf(resources), random);
-    WorldState& world = resources.world;
-    const ActorConstructionContext construction{world.Map().terrain, world.Runtime().map, World::CullingScene::Game,
-                                                resources.camera.fixedHeight};
-    if (auto built =
-            ConstructActor(actor, Tables::PlayerSkeletonModel, {cell.x, cell.y, 0.0f}, construction, resources.cloth);
+    const Actors::LogicalCell cell = Actors::ReadLogicalCell(HeroOf(resources), random);
+    Kernel::WorldState& world = resources.world;
+    const Actors::ActorConstructionContext construction{world.Map().terrain, world.Runtime().map,
+                                                        Terrain::CullingScene::Game, resources.camera.fixedHeight};
+    if (auto built = Actors::ConstructActor(actor, Tables::PlayerSkeletonModel, {cell.x, cell.y, 0.0f}, construction,
+                                            resources.cloth);
         !built.HasValue())
         return built;
     actor.position = {HiddenCoordinate, HiddenCoordinate, HiddenCoordinate};
@@ -496,26 +498,26 @@ Core::Expected<void, std::string> SetThePortraitClass(LetterPortrait& portrait, 
     return ApplyTheClassParts(portrait.actor, resources);
 }
 
-Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, GameLogic::Equipment equipment,
+Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, Kernel::Equipment equipment,
                                                    std::int32_t action, const WorldEntryResources& resources)
 {
-    ActorState& actor = portrait.actor;
-    if (auto dressed = ApplyCharacterSetTo(actor, portrait.helper, equipment, resources); !dressed.HasValue())
+    Kernel::ActorState& actor = portrait.actor;
+    if (auto dressed = Actors::ApplyCharacterSetTo(actor, portrait.helper, equipment, resources); !dressed.HasValue())
         return dressed;
     // 0x497836..0x497855: la x87 con la escala del héroe publicado, guardada en float.
     portrait.helperScale =
         static_cast<float>(static_cast<double>(portrait.helper.scale) * static_cast<double>(HelperScaleFactor) /
                            static_cast<double>(HeroOf(resources).scale));
     // 0x49784a..0x497875.
-    actor.safeZone = actor.wings.model != NoItemModel && action > LastGroundAction ? 1 : 0;
+    actor.safeZone = actor.wings.model != Kernel::NoItemModel && action > LastGroundAction ? 1 : 0;
     return {};
 }
 
 Core::Expected<bool, std::string> CopyTheHeroToThePortrait(LetterPortrait& portrait, std::int32_t& action,
                                                            const WorldEntryResources& resources)
 {
-    ActorState& actor = portrait.actor;
-    const ActorState& hero = HeroOf(resources);
+    Kernel::ActorState& actor = portrait.actor;
+    const Kernel::ActorState& hero = HeroOf(resources);
     // 0x49654e..0x496572.
     if (actor.characterClass != hero.characterClass)
     {
@@ -565,8 +567,8 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     if (!next.HasValue())
         return next;
     const std::int32_t chosen = next.Value();
-    ActorState& actor = portrait.actor;
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::ActorState& actor = portrait.actor;
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     // 0x495adb: la tabla 0x495dd4, de 0x78 a 0x94.
     if (chosen == StopAction)
     {
@@ -593,10 +595,11 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
         if (player == nullptr)
             return Core::Unexpected(std::string("0x495b43: falta Player.bmd para 0x4f37c0"));
         const MapAtZero map(runtime);
-        auto walked = SetActorWalk(actor, ActorWalkContext{.stop = StopContextOf(resources, *player),
-                                                           .actionSpeeds = resources.world.ActionSpeeds(),
-                                                           .hero = false,
-                                                           .actorSkeleton = player});
+        auto walked =
+            Actors::SetActorWalk(actor, Actors::ActorWalkContext{.stop = StopContextOf(resources, *player),
+                                                                 .actionSpeeds = resources.world.ActionSpeeds(),
+                                                                 .hero = false,
+                                                                 .actorSkeleton = player});
         if (!walked.HasValue())
             return Core::Unexpected(walked.Error());
         // StepSound (0x4f37c0) manda cada pedido en el orden original; el resultado conserva solo el último.
@@ -609,10 +612,10 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
             return Core::Unexpected(
                 std::format("0x495da7: la acción {:#x} sin las acciones del modelo {:#x}", chosen, actor.type));
         Models::SetAction(actor.animation, *skeleton,
-                          TableAnimationOf(actor.characterClass, static_cast<std::uint8_t>(chosen)));
+                          Actors::TableAnimationOf(actor.characterClass, static_cast<std::uint8_t>(chosen)));
     }
     // 0x495daf..0x495db8: 0x4fd5f0 y 0x505de0 con el mundo en curso.
-    if (auto stepped = StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
+    if (auto stepped = Actors::StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
         return Core::Unexpected(stepped.Error());
     portrait.shownAction = chosen;
     return chosen;
@@ -623,7 +626,7 @@ void TurnThePortrait(LetterPortrait& portrait)
     portrait.actor.angles = {PortraitPitch, PortraitRoll, PortraitYaw};
 }
 
-Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& base, const ActorState& actor)
+Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& base, const Kernel::ActorState& actor)
 {
     // 0x6ba004: el alto del retrato.
     constexpr float PortraitHeight = 141.0f;
@@ -663,7 +666,7 @@ Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& bas
 
 Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitPart& part, Core::PixelSize screen)
 {
-    ActorState& actor = portrait.actor;
+    Kernel::ActorState& actor = portrait.actor;
     // 0x4957a4..0x4958c6.
     Render::Pass3D pass = PortraitPass(screen, part.base, actor);
     // 0x495849: 0x620370 guarda la modelview en la identidad en 0x7d366f0, la cámara de las billboards, y nadie la
@@ -680,7 +683,7 @@ Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitP
     portrait.helper.light = glm::vec3(1.0f);
     // 0x4959a1..0x4959bf.
     actor.byte3e4 = 1;
-    actor.safeZone = actor.wings.model != NoItemModel && part.action > LastGroundAction ? 1 : 0;
+    actor.safeZone = actor.wings.model != Kernel::NoItemModel && part.action > LastGroundAction ? 1 : 0;
     return pass;
 }
 
@@ -688,7 +691,7 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
                                                                    Core::PixelSize screen,
                                                                    const WorldEntryResources& resources)
 {
-    ActorState& actor = portrait.actor;
+    Kernel::ActorState& actor = portrait.actor;
     // 0x497cac..0x497d3d: el frame contra +0x6a8 (la x87: el int a la pila y el float del frame).
     if (static_cast<double>(actor.animation.frame) < static_cast<double>(portrait.frameMark))
     {
@@ -714,11 +717,11 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
     // 0x497d3d..0x497d4f: +0x360 por debajo de 4, 0x414340.
     constexpr std::uint8_t FirstKeptLayer = 4;
     if (actor.byte360 < FirstKeptLayer)
-        ReleaseTheLayer(actor);
+        Kernel::ReleaseTheLayer(actor);
     {
         // 0x495766..0x49579e: con el mundo en 0.
         const MapAtZero map(resources.world.Runtime());
-        if (auto stepped = StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
+        if (auto stepped = Actors::StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
             return Core::Unexpected(stepped.Error());
         // 0x495796: 0x444010(ayudante, 1), vivo o no.
         auto helped = StepTheHelperOutsideTheTable(portrait.helper, actor, HelperStepContextOf(resources));
@@ -742,7 +745,7 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
     Render::Pass3D cleared = pass;
     cleared.clearDepth = true;
     draw.batch.Begin(cleared, true);
-    const GameCharacterPass& characters = draw.characters;
+    const Actors::Drawing::GameCharacterPass& characters = draw.characters;
     const float worldClock =
         static_cast<float>(std::chrono::duration<double, std::milli>(characters.frameClock).count());
     const HelperDrawContext helpers{.batch = draw.batch,
@@ -766,8 +769,9 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
     // 0x4959cc: 0x445260(ayudante, 1); 0x4959d5: 0x50ba30(personaje, personaje, 0).
     auto drawn = DrawTheHelperOutsideTheTable(portrait.helper, portrait.actor, helpers);
     if (drawn.HasValue())
-        drawn = DrawCharacterOutsideThePool(draw.batch, resources.models, resources.world, portrait.actor,
-                                            portrait.cloth, characters, draw.originalFrame);
+        drawn =
+            Actors::Drawing::DrawCharacterOutsideThePool(draw.batch, resources.models, resources.world, portrait.actor,
+                                                         portrait.cloth, characters, draw.originalFrame);
     // 0x4959dd..0x495a0c: las matrices y el viewport de la pantalla (0x620d10(0, 0, W, H)), que el lote 2D pone solo.
     if (draw.flushModels)
         draw.flushModels();

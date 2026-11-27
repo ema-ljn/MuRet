@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 void StoreViewportPacket(ViewportPacketRing& ring, std::span<const std::byte> packet)
 {
@@ -31,4 +31,4 @@ void StoreViewportPacket(ViewportPacketRing& ring, std::span<const std::byte> pa
     ring.sizes[slot] = size;
     ++ring.count;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

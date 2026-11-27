@@ -136,7 +136,7 @@ constexpr std::int32_t NamedCameraMap = 6;
 // 0x6372e0..0x6372f1: el punto de la rama de "webzen" (0x45c80000 y 0x4670a000) con la z del héroe.
 constexpr float SpectatorTargetX = 6400.0f;
 constexpr float SpectatorTargetY = 15400.0f;
-// 0x5fc33e: el mapa 7 no tiene el pase del pasto (su agua va con 0x5fa4b0, World::DrawTerrainCell).
+// 0x5fc33e: el mapa 7 no tiene el pase del pasto (su agua va con 0x5fa4b0, Terrain::DrawTerrainCell).
 constexpr std::int32_t AnimatedWaterMap = 7;
 // 0x6374bb: el mapa 10 no dibuja el terreno.
 constexpr std::int32_t WithoutTerrainMap = 10;
@@ -186,7 +186,7 @@ std::string MapText(std::int32_t map)
 
 // 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
 // World::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
-bool HeroInTheCastleSiegeFog(const WorldState& world)
+bool HeroInTheCastleSiegeFog(const Kernel::WorldState& world)
 {
     return world.Runtime().map == CastleMap && World::InTheCastleSiegeFog(world.Hero().position);
 }
@@ -199,10 +199,10 @@ bool HasTheGrassPass(std::int32_t map)
 
 // 0x635c54..0x635d7f: la celda del servidor del héroe por la tabla de protección, la Y (+0x420) y
 // después la X (+0x41c), cada una en un acceso que se cierra (0x412890), y el atributo de 0x5f8290(X, Y).
-std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAttributes& attributes,
+std::uint8_t HeroCellAttribute(Kernel::ActorState& hero, const Data::Terrain::TerrainAttributes& attributes,
                                Crt::CrtRandom& random)
 {
-    const LogicalCell cell = ReadLogicalCell(hero, random);
+    const Actors::LogicalCell cell = Actors::ReadLogicalCell(hero, random);
     // 0x635f14..0x635fe3: el word de 0x7d0d348, del que la cámara mira el byte bajo.
     return static_cast<std::uint8_t>(attributes.cells[Data::Terrain::CellIndex(cell.x, cell.y)]);
 }
@@ -213,8 +213,10 @@ GameScene::GameScene(const SceneContext& context, App::ServerSession* session, c
                      const Tables::GateTable* gates, const Tables::SkillTable* skills, const Tables::TextTable* texts,
                      GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
-      m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
-      m_sandTextures(context.textures, SandTextureSet), m_guildMarks(context.textures), m_tiles(context.textures)
+      m_skills(skills), m_texts(texts), m_chatTables(chat),
+      m_windowTextures(context.textures, Assets::WindowTextureSet),
+      m_sandTextures(context.textures, Assets::SandTextureSet), m_guildMarks(context.textures),
+      m_tiles(context.textures)
 {
 }
 
@@ -317,7 +319,7 @@ void GameScene::StepEntry()
         // el filtro también (0x45db50).
         if (m_context.world != nullptr)
         {
-            WorldRuntime& runtime = m_context.world->Runtime();
+            Kernel::WorldRuntime& runtime = m_context.world->Runtime();
             UI::ChatInputState& input = runtime.chat.input;
             UI::ResetTheTextBuffers(input, true);
             runtime.ui.chatOpen = false;
@@ -369,7 +371,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         return {};
     }
     ObserveMapLoad();
-    WorldRuntime& runtime = m_context.world->Runtime();
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     // 0x636da3: el estado 0x3d marca el mundo cargado; sin él y con el mundo sin cargar, el paso
     // termina acá (0x636dbc).
     if (m_session != nullptr && m_session->State() == App::SessionState::InWorld)
@@ -382,7 +384,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     }
     // 0x636dc2..0x636ddb: el temblor de la cámara se reduce en cada paso; la x87 multiplica y guarda en
     // float, como el producto exacto en double redondeado una vez.
-    World::GameCameraInput& cameraInput = CameraInputState();
+    Camera::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.shake = F32(static_cast<double>(cameraInput.shake) * static_cast<double>(ShakeDecay));
     // 0x636dd4..0x636de3: sólo con el marcador inicial 0x43 busca la primera habilidad del asedio.
     if (m_context.world->Hero().byte371 == 0x43)
@@ -391,7 +393,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
     // buffer dinámico precede las luces de objetos y fauna (06 § Terreno). El rango y las olas
     // son de la escena: el original los comparte con la selección (08 P-C41).
-    const World::WorldTerrain* stepTerrain = &m_context.world->Map().terrain;
+    const Terrain::WorldTerrain* stepTerrain = &m_context.world->Map().terrain;
     if (runtime.map == SelectionMap && m_context.selection != nullptr && m_context.selection->Terrain() != nullptr)
     {
         stepTerrain = m_context.selection->Terrain();
@@ -402,8 +404,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     }
     if (m_context.clock != nullptr)
     {
-        World::UpdateWaves(m_water, m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
-                           static_cast<std::uint8_t>(runtime.map));
+        Terrain::UpdateWaves(m_water, m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
+                             static_cast<std::uint8_t>(runtime.map));
     }
     // 0x636ded..0x63705b: la UI del paso, que corre en cada paso desde el primero, también en la espera.
     if (auto ui = StepTheUi(input); !ui.HasValue())
@@ -473,7 +475,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
 {
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     const std::int32_t map = world.Runtime().map;
     std::span<World::WorldObject> objects = world.Map().objects;
     if (Maps::IsKalimaMap(map))
@@ -491,7 +493,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     std::int32_t chaosCastleSelector = 0;
     if (chaosCastle)
     {
-        const ActorState& hero = world.Hero();
+        const Kernel::ActorState& hero = world.Hero();
         const World::ChaosCastlePreludeContext prelude{
             .random = &m_context.cloth->random,
             .heroPosition = hero.position,
@@ -515,7 +517,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     std::int32_t icarusSelector = 0;
     if (map == IcarusMap)
     {
-        const ActorState& hero = world.Hero();
+        const Kernel::ActorState& hero = world.Hero();
         icarus.emplace(IcarusObjectServices{
             .random = m_context.cloth->random,
             .heroPosition = hero.position,
@@ -543,7 +545,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
     if (bloodCastle)
     {
-        const ActorState& hero = world.Hero();
+        const Kernel::ActorState& hero = world.Hero();
         if (auto orb =
                 World::StepBloodCastlePrelude(m_context.cloth->random, hero.position, &world.Particles(), worldClock);
             !orb.HasValue())
@@ -635,7 +637,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     }
     // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso; el 1 y el 4
     // crean efectos con modelo y la patada del 4 mira la acción del héroe.
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     const World::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
         .worldClock = worldClock,
@@ -707,7 +709,7 @@ void GameScene::PrepareFrame()
         return;
     }
     ObserveMapLoad();
-    WorldRuntime& runtime = m_context.world->Runtime();
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     // 0x6371a6: sin el mundo cargado devuelve 0 sin leer el contador.
     if (!runtime.drawingEnabled)
     {
@@ -721,7 +723,7 @@ void GameScene::PrepareFrame()
         counter = runtime.warpCounter;
     }
     // 0x63722e: cmp esi, 0x1e y jle, con signo.
-    m_holdFrame = counter > WaitDrawThreshold;
+    m_holdFrame = counter > Kernel::WaitDrawThreshold;
     if (m_holdFrame)
     {
         return;
@@ -753,8 +755,8 @@ void GameScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
 
 Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCanvas& canvas)
 {
-    WorldRuntime& runtime = m_context.world->Runtime();
-    const World::WorldTerrain& terrain = m_context.world->Map().terrain;
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
+    const Terrain::WorldTerrain& terrain = m_context.world->Map().terrain;
     const int frames = m_cameraFrames.FramesAtDraw(OriginalFramePaceOf(m_context.pacing));
     if (frames > 0)
         m_frameStarts = true;
@@ -774,7 +776,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
         // Un frame intermedio sólo consulta el valor de su reloj sobre la copia proyectada.
         const float worldClock =
             static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-        UpdateGameItemGlowPulse(FrameItemRender(), worldClock);
+        Actors::Drawing::UpdateGameItemGlowPulse(FrameItemRender(), worldClock);
     }
     if (!terrain.mapping || !terrain.heights || !terrain.attributes || !terrain.lighting)
     {
@@ -792,10 +794,10 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     // 0x63726f..0x637337: en el mapa 6 con "webzen" en el nombre (0x576960; la búsqueda de "webzen2" no cambia
     // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60 y, con el recorrido de
     // la cámara andando (0x637324, 0x4033d0), su posición (0x4034b0), como la cámara de este frame.
-    const World::GameCameraInput& cameraInput = CameraInputState();
+    const Camera::GameCameraInput& cameraInput = CameraInputState();
     const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
                                  ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
-                                 : World::FollowedPointOf(cameraInput);
+                                 : Camera::FollowedPointOf(cameraInput);
     // 0x63733e: 0x5bb8d0, el ancho del mundo, con los rand() del frame (las consultas del comercio y de la tienda
     // con el inventario abierto): 640 sin ventanas, 450 con una y 260 con dos.
     const std::int32_t worldWidth = GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
@@ -804,8 +806,8 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     // 0x637352..0x637366: 0x5fbb00(w · 0,0015625f, &p), los cinco planos, el rango de bloques y el trapecio; con w en
     // 640, 1. El trapecio y su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
     const float widthFactor = F32(static_cast<double>(worldWidth) * static_cast<double>(WorldWidthFactor));
-    m_frustum = World::SphereFrustumOf(view, camera, widthFactor);
-    m_terrainRange = World::TerrainRangeOf(view, camera, widthFactor);
+    m_frustum = Terrain::SphereFrustumOf(view, camera, widthFactor);
+    m_terrainRange = Terrain::TerrainRangeOf(view, camera, widthFactor);
     if (frames > 0)
         m_context.world->DynamicLighting().PublishRange(m_terrainRange);
     const auto polygon = PolygonOfTheFrame(camera, target, worldWidth, frames);
@@ -858,7 +860,7 @@ Core::Expected<void, std::string> GameScene::UploadTheTiles(std::uint8_t map)
         return {};
     }
     std::vector<std::string> skipped;
-    if (auto loaded = m_tiles.Load(m_context.dataRoot, map, skipped, GrassTextures::Upload); !loaded.HasValue())
+    if (auto loaded = m_tiles.Load(m_context.dataRoot, map, skipped, Assets::GrassTextures::Upload); !loaded.HasValue())
     {
         return Core::Unexpected("0x61a560: los tiles del terreno: " + loaded.Error());
     }
@@ -891,11 +893,12 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) reserva sus .wav antes de publicar la tabla
     // (0x6151fc, 0x61520f y 0x615232), si cargó con mallas.
     constexpr std::int32_t SpearmanMonster = 0x4d;
-    if (const auto* spearman = m_worldModels.Find(SpearmanModel); spearman != nullptr && !spearman->meshes.empty())
+    if (const auto* spearman = m_worldModels.Find(Assets::SpearmanModel);
+        spearman != nullptr && !spearman->meshes.empty())
     {
         if (Audio::IPlayback* audio = m_context.world->Runtime().audio)
-            for (const MonsterModelOp& op : MonsterModelCaseOf(SpearmanMonster).ops)
-                if (op.kind == MonsterModelOpKind::Sound)
+            for (const Assets::MonsterModelOp& op : Assets::MonsterModelCaseOf(SpearmanMonster).ops)
+                if (op.kind == Assets::MonsterModelOpKind::Sound)
                     audio->RegisterSound(static_cast<std::int32_t>(op.value), op.path);
         Sound::WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
     }
@@ -909,28 +912,28 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
 
 Render::Camera3D GameScene::CameraOfTheFrame(Render::Frame::SceneCanvas& canvas, int frames)
 {
-    WorldState& world = *m_context.world;
-    const WorldRuntime& runtime = world.Runtime();
-    ActorState& hero = world.Hero();
-    World::GameCameraInput& input = CameraInputState();
+    Kernel::WorldState& world = *m_context.world;
+    const Kernel::WorldRuntime& runtime = world.Runtime();
+    Kernel::ActorState& hero = world.Hero();
+    Camera::GameCameraInput& input = CameraInputState();
     // Lo que 0x635ae0 lee de los globales: el héroe publicado (0x743a170), el mundo (0x6c9dd0) y el reloj
     // del mundo (0x5767b88, en ms, para el mapa 5).
     input.hero = hero.position;
     input.map = static_cast<std::uint8_t>(runtime.map);
-    input.scene = World::CullingScene::Game;
+    input.scene = Terrain::CullingScene::Game;
     // 0x635b3d: el nombre del héroe, con 0x576960 (Q-C152).
-    input.webzen = ActorNameContains(hero, "webzen");
+    input.webzen = Actors::ActorNameContains(hero, "webzen");
     input.worldTime =
         static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
     // 0x635ead y 0x637324: 0x4033d0 sobre [0x6e5904] y, verdadero, 0x4034b0. Nada entre la cámara y el centro del
     // mundo toca el recorrido: los dos lo leen igual.
     const CameraTour& tour = runtime.events.cameraTour;
     input.tour =
-        CameraTourRunning(tour) ? std::optional(World::GameCameraTour{tour.position, tour.level}) : std::nullopt;
+        CameraTourRunning(tour) ? std::optional(Camera::GameCameraTour{tour.position, tour.level}) : std::nullopt;
     if (frames == 0)
     {
         // Un dibujo intermedio de MuRet: consulta la cámara del último frame original, sin gastar rand().
-        return World::GameCameraOf(CameraState(), input);
+        return Camera::GameCameraOf(CameraState(), input);
     }
     // Cada frame original termina en el corte de abajo: de los que cuenta el reloj corre el primero y el
     // corte no deja correr los demás.
@@ -941,18 +944,18 @@ Render::Camera3D GameScene::CameraOfTheFrame(Render::Frame::SceneCanvas& canvas,
         // 0x635ec0: con el recorrido andando, la z del héroe en 300; queda así para el resto del frame (el dibujo del
         // héroe) hasta que un paso la vuelva a escribir.
         if (input.tour)
-            input.hero.z = hero.position.z = World::CameraTourHeroHeight;
+            input.hero.z = hero.position.z = Camera::CameraTourHeroHeight;
     }
-    return World::StepGameCamera(CameraState(), input);
+    return Camera::StepGameCamera(CameraState(), input);
 }
 
-Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(const Render::Camera3D& camera,
-                                                                                const glm::vec3& target,
-                                                                                std::int32_t worldWidth, int frames)
+Core::Expected<Terrain::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(const Render::Camera3D& camera,
+                                                                                  const glm::vec3& target,
+                                                                                  std::int32_t worldWidth, int frames)
 {
-    WorldRuntime& runtime = m_context.world->Runtime();
-    World::TerrainPolygonInput input;
-    input.scene = static_cast<std::int32_t>(World::CullingScene::Game);
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
+    Terrain::TerrainPolygonInput input;
+    input.scene = static_cast<std::int32_t>(Terrain::CullingScene::Game);
     input.map = runtime.map;
     input.translation = target;
     // El selector del mapa 30, como TerrainPolygonOf.
@@ -963,15 +966,15 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
     input.webzenProfile = input.webzenYaw = CameraInputState().webzen;
     if (frames == 0)
     {
-        return TerrainPolygonBetweenFrames(runtime, input);
+        return Camera::TerrainPolygonBetweenFrames(runtime, input);
     }
     // El nivel pedido (0x7d3a0ec), la D (0x7d36ba4) y la meta (0x6d5ee0) que dejó la cámara del frame.
-    return StepTheTerrainPolygon(runtime, input, CameraState());
+    return Camera::StepTheTerrainPolygon(runtime, input, CameraState());
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,
                                                               const Render::Pass3D& pass,
-                                                              const World::TerrainPolygon& polygon, int frames)
+                                                              const Terrain::TerrainPolygon& polygon, int frames)
 {
     const std::int32_t map = m_context.world->Runtime().map;
     // 0x63741d..0x637490: en el 30, con el héroe en el rectángulo de World::InTheCastleSiegeFog (Q-C334), 0x42b0a0
@@ -985,13 +988,13 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     const auto pixelX = (static_cast<std::int64_t>(mouse.x) * canvas.screen.width) / Width640;
     const auto pixelY = (static_cast<std::int64_t>(mouse.y) * canvas.screen.height) / Height480;
     const auto [origin, end] = pass.RayThrough(static_cast<float>(pixelX), static_cast<float>(pixelY));
-    m_mouseRay = World::TerrainPickingSegment{.origin = origin, .end = end};
+    m_mouseRay = Terrain::TerrainPickingSegment{.origin = origin, .end = end};
     // 0x6374b2..0x6374c2: 0x437850() mira el mundo de Kalima (0x723c48), que MuRet no crea (MapLoad corta
     // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
     if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
-        const World::WorldTerrain& terrain = m_context.world->Map().terrain;
-        World::TerrainView view;
+        const Terrain::WorldTerrain& terrain = m_context.world->Map().terrain;
+        Terrain::TerrainView view;
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
         view.attributes = terrain.attributes.get();
@@ -1003,7 +1006,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         view.waterFrame = FrameCloth().waterTextureFrame;
         // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: 0x5fc190(0) con
         // 0x7d0d31c en 0, las celdas del rango que pasan el trapecio.
-        m_water.offset = World::WaterOffsetAt(canvas.frameClock, view.map);
+        m_water.offset = Terrain::WaterOffsetAt(canvas.frameClock, view.map);
         // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, y en los mapas 18 a 23 saca rand()
         // (y, con rand() % 8 en 0, el área en 0, 3 o 6 y la celda en uno de sus rectángulos, la piedra y el
         // temblor, Q-C229). Las demás no lo llaman en MuRet: no saca nada.
@@ -1018,9 +1021,9 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                 .particles = &FrameParticles(),
                 .worldClock = std::cref(frameClock),
                 .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake};
-            if (auto drawn = World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water,
-                                                [&cellContext](std::uint8_t x, std::uint8_t y)
-                                                { return World::StepChaosCastleCell(x, y, cellContext); });
+            if (auto drawn = Terrain::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water,
+                                                  [&cellContext](std::uint8_t x, std::uint8_t y)
+                                                  { return World::StepChaosCastleCell(x, y, cellContext); });
                 !drawn.HasValue())
             {
                 return Core::Unexpected(drawn.Error() + ", en el " + MapText(map));
@@ -1031,15 +1034,15 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
             // 0x5fa695: en el 34, las UV del agua sacan rand() y sueltan las burbujas 698/0 (World::CrywolfWater).
             const float frameClock =
                 static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
-            const ActorState& hero = m_context.world->Hero();
+            const Kernel::ActorState& hero = m_context.world->Hero();
             const World::CrywolfWaterContext waterContext{.heroZ = hero.position.z,
                                                           .heroAngles = hero.angles,
                                                           .random = &FrameCloth().random,
                                                           .particles = &FrameParticles(),
                                                           .worldClock = std::cref(frameClock)};
-            if (auto drawn = World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water,
-                                                [&view, &waterContext](std::uint8_t x, std::uint8_t y)
-                                                { return World::StepCrywolfWaterCell(view, x, y, waterContext); });
+            if (auto drawn = Terrain::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water,
+                                                  [&view, &waterContext](std::uint8_t x, std::uint8_t y)
+                                                  { return World::StepCrywolfWaterCell(view, x, y, waterContext); });
                 !drawn.HasValue())
             {
                 return Core::Unexpected(drawn.Error() + ", en el " + MapText(map));
@@ -1047,16 +1050,16 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         }
         else
         {
-            World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
+            Terrain::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
         }
         // 0x5fc32b..0x5fc353: con la mezcla de 0x620a00(1), 0x6c9d58 y fuera del mapa 7, el pase del pasto (0x5fc190
         // con 0x7d0d31c en 2) en las mismas celdas. No saca rand(): 0x405e00 solo lo hace en los mapas 18 a 23, que no
         // tienen este pase.
         if (HasTheGrassPass(map) && map != AnimatedWaterMap)
         {
-            const World::TerrainGrass grass{.heights = m_tiles.GrassHeights(),
-                                            .offsets = m_context.world->Map().grassOffsets};
-            if (auto grown = World::DrawGrass(canvas.models, view, m_terrainRange, polygon, m_water, grass);
+            const Terrain::TerrainGrass grass{.heights = m_tiles.GrassHeights(),
+                                              .offsets = m_context.world->Map().grassOffsets};
+            if (auto grown = Terrain::DrawGrass(canvas.models, view, m_terrainRange, polygon, m_water, grass);
                 !grown.HasValue())
             {
                 return Core::Unexpected(grown.Error() + ", en el pase del pasto del " + MapText(map));
@@ -1071,14 +1074,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
         // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
         // o el archivo que falta) corta (08 P-C49).
-        const ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
+        const Assets::ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
         const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
         {
             const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
             return metadata ? std::optional(metadata->components) : std::nullopt;
         };
-        if (auto marked = World::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
-                                                 *terrain.heights, components);
+        if (auto marked = Terrain::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
+                                                   *terrain.heights, components);
             !marked.HasValue())
         {
             return Core::Unexpected(marked.Error() + ", en el " + MapText(map));
@@ -1104,8 +1107,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     {
         return loaded;
     }
-    WorldState& world = *m_context.world;
-    const ActorState& hero = world.Hero();
+    Kernel::WorldState& world = *m_context.world;
+    const Kernel::ActorState& hero = world.Hero();
     // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: el paso suma las luces
     // de los fuegos, las lámparas y la fauna al buffer dinámico. El reloj
     // del mundo (0x5767b88), el del frame, como el de la cámara.
@@ -1124,7 +1127,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                     .worldClock = static_cast<float>(
                         std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
                     .particles = &FrameParticles(),
-                    .onPose = [&](const DrawnObject& drawn)
+                    .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
                     { return PublishFaunaPose(FramePoseCarry(), m_worldModels, drawn, true); },
                     .sprites = &FrameSpritesForDraw(),
                     .retainedPose = &FramePoseCarry(),
@@ -1158,8 +1161,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                     .terrainHeight =
                         [&](float x, float y)
                     {
-                        const World::WorldTerrain& terrain = world.Map().terrain;
-                        return static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
+                        const Terrain::WorldTerrain& terrain = world.Map().terrain;
+                        return static_cast<float>(Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
                                                                          CameraState().fixedHeight));
                     },
                     .chaosCastleArea = world.Runtime().chaosCastleArea,
@@ -1174,7 +1177,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     // 0x6374d3: 0x52dc20, los efectos del suelo, sobre la tabla de 0x518cf0 (la de WorldMap).
     if (auto ground = m_groundEffects.Draw(
             canvas.models, FrameEffects().Effects(),
-            World::GroundEffectResources{
+            Terrain::GroundEffectResources{
                 .heights = *world.Map().terrain.heights,
                 .random = FrameCloth().random,
                 .worldClock = static_cast<float>(
@@ -1210,57 +1213,57 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
-                                                               const World::TerrainPolygon& polygon, int frames)
+                                                               const Terrain::TerrainPolygon& polygon, int frames)
 {
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     if (m_models == nullptr)
     {
-        return DrawGameCharacters(
+        return Actors::Drawing::DrawGameCharacters(
             world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells, &world.Runtime(),
-            m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{});
+            m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<Actors::ActorPickingBox>{});
     }
     std::optional<std::string> poseFailure;
-    ItemSpecialDrawContext special;
-    ItemDrawContext itemContext;
+    Actors::Drawing::ItemSpecialDrawContext special;
+    Actors::Drawing::ItemDrawContext itemContext;
     FillTheItemContexts(special, itemContext, canvas.frameClock, frames);
-    const auto drawn = DrawGameCharacters(
+    const auto drawn = Actors::Drawing::DrawGameCharacters(
         canvas.models, *m_models, world,
-        GameCharacterPass{.dynamicLighting = &FrameLighting(),
-                          .clothWorld = &FrameCloth(),
-                          .frameClock = canvas.frameClock,
-                          .originalFrames = frames,
-                          // 0x510d00 contornea los elegidos que dejó el picking del dibujo anterior (0x59ec80 corre
-                          // después de los personajes): 0x6c8e30 y 0x6c8e2c.
-                          .hovered = world.Runtime().selectedTargets[2],
-                          .targeted = world.Runtime().selectedTargets[1],
-                          .cloths = world.ActorCloths(),
-                          .sprites = &FrameSpritesForDraw(),
-                          .poseCarry = &FramePoseCarry(),
-                          .joints = FrameTail().joints,
-                          .particles = &FrameParticles(),
-                          .effects = &FrameEffects(),
-                          .itemContext = &itemContext,
-                          .pace = OriginalFramePaceOf(m_context.pacing),
-                          .onPose =
-                              [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
-                                  const Models::ObjectTransform& transform, bool translated)
-                          {
-                              const auto published =
-                                  PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
-                              if (!published.HasValue() && !poseFailure)
-                                  poseFailure = published.Error();
-                          },
-                          .publishProjectedPose = true,
-                          .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
-                                                            : std::span<ActorPickingBox>{},
-                          .poseBones = [&](std::uint16_t)
-                          { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
-                          .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
-                          .polygon = &polygon,
-                          .fixedHeight = CameraState().fixedHeight,
-                          .guildMarks = &m_guildMarks,
-                          .kalima = FrameKalima(),
-                          .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
+        Actors::Drawing::GameCharacterPass{
+            .dynamicLighting = &FrameLighting(),
+            .clothWorld = &FrameCloth(),
+            .frameClock = canvas.frameClock,
+            .originalFrames = frames,
+            // 0x510d00 contornea los elegidos que dejó el picking del dibujo anterior (0x59ec80 corre
+            // después de los personajes): 0x6c8e30 y 0x6c8e2c.
+            .hovered = world.Runtime().selectedTargets[2],
+            .targeted = world.Runtime().selectedTargets[1],
+            .cloths = world.ActorCloths(),
+            .sprites = &FrameSpritesForDraw(),
+            .poseCarry = &FramePoseCarry(),
+            .joints = FrameTail().joints,
+            .particles = &FrameParticles(),
+            .effects = &FrameEffects(),
+            .itemContext = &itemContext,
+            .pace = OriginalFramePaceOf(m_context.pacing),
+            .onPose =
+                [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
+                    const Models::ObjectTransform& transform, bool translated)
+            {
+                const auto published =
+                    PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
+                if (!published.HasValue() && !poseFailure)
+                    poseFailure = published.Error();
+            },
+            .publishProjectedPose = true,
+            .pickingBoxes =
+                m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<Actors::ActorPickingBox>{},
+            .poseBones = [&](std::uint16_t) { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
+            .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
+            .polygon = &polygon,
+            .fixedHeight = CameraState().fixedHeight,
+            .guildMarks = &m_guildMarks,
+            .kalima = FrameKalima(),
+            .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;
@@ -1307,7 +1310,7 @@ bool GameScene::WantsTextInput() const
     // El chat abierto, el EDIT de una ventana vieja con el foco (CL9 hito 9) o uno de los dos de los diálogos: el de
     // [0x5763504] (hito 11 y CL9 hito 8) o el de [0x5763508] (CL9 hito 8). El que tiene el foco de Windows recibe los
     // WM_CHAR.
-    const WorldRuntime& runtime = m_context.world->Runtime();
+    const Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     const UI::ChatFocus focus = runtime.chat.input.focus;
     return runtime.ui.chatOpen || focus == UI::ChatFocus::OldWindow || focus == UI::ChatFocus::Dialog ||
            focus == UI::ChatFocus::NumberField;
@@ -1323,17 +1326,17 @@ std::optional<std::string> GameScene::Failure() const
     return m_failure;
 }
 
-const std::optional<World::TerrainPickingSegment>& GameScene::MouseRay() const
+const std::optional<Terrain::TerrainPickingSegment>& GameScene::MouseRay() const
 {
     return m_mouseRay;
 }
 
-World::GameCamera& GameScene::CameraState()
+Camera::GameCamera& GameScene::CameraState()
 {
     return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
 }
 
-World::GameCameraInput& GameScene::CameraInputState()
+Camera::GameCameraInput& GameScene::CameraInputState()
 {
     return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
 }

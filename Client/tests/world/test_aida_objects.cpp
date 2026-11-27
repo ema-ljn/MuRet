@@ -19,9 +19,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepWorldObjectChecked;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t SelectionMap = 54;
@@ -69,10 +69,10 @@ TEST(AidaObjectsTest, TheGuardiansLightTheDynamicBufferWithOneDraw)
             const float first = static_cast<float>(base + static_cast<double>(green ? 0.4f : 0.9f));
             const float second = static_cast<float>(base + static_cast<double>(green ? 0.6f : 0.2f));
             auto expected = std::make_unique<TerrainLighting>();
-            Client::World::AddTerrainLight(*expected, 1000.0f, 1500.0f,
-                                           green ? Client::Data::Terrain::TerrainLightColor{first, second, first}
-                                                 : Client::Data::Terrain::TerrainLightColor{first, second, second},
-                                           2);
+            Client::Terrain::AddTerrainLight(*expected, 1000.0f, 1500.0f,
+                                             green ? Client::Data::Terrain::TerrainLightColor{first, second, first}
+                                                   : Client::Data::Terrain::TerrainLightColor{first, second, second},
+                                             2);
             EXPECT_EQ(step.lighting->cells, expected->cells);
             EXPECT_EQ(random.State(), draws.State());
             EXPECT_EQ(step.sounds, std::vector<std::int32_t>{0x246});

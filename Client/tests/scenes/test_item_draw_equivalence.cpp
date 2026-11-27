@@ -49,13 +49,20 @@
 // thing that differs. Each row names the difference of the plan that explains it.
 namespace
 {
+using Client::Actors::Drawing::DrawnCharacter;
+using Client::Actors::Drawing::ItemDrawContext;
+using Client::Actors::Drawing::ItemPart;
+using Client::Actors::Drawing::ItemPartOwner;
+using Client::Actors::Drawing::ItemSpecialDrawContext;
+using Client::Actors::Drawing::ObjectOutlinePass;
+using Client::Actors::Drawing::WornParts;
 using Client::Crt::CrtRandom;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::Model;
 using Client::Data::Models::ModelFile;
-using Client::GameLogic::BodyPart;
-using Client::GameLogic::CharacterAppearance;
-using Client::GameLogic::WornItem;
+using Client::Kernel::BodyPart;
+using Client::Kernel::CharacterAppearance;
+using Client::Kernel::WornItem;
 using Client::Models::IModelLibrary;
 using Client::Models::Skeleton;
 using Client::Render::ModelBatch;
@@ -63,13 +70,6 @@ using Client::Render::ModelDrawCommand;
 using Client::Render::ModelDrawState;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
-using Client::Scenes::DrawnCharacter;
-using Client::Scenes::ItemDrawContext;
-using Client::Scenes::ItemPart;
-using Client::Scenes::ItemPartOwner;
-using Client::Scenes::ItemSpecialDrawContext;
-using Client::Scenes::ObjectOutlinePass;
-using Client::Scenes::WornParts;
 
 constexpr std::uint16_t ArmorMale17 = 0x1212 + 16;
 constexpr std::uint16_t ArmorMale10 = 0x1212 + 9;
@@ -291,16 +291,17 @@ DrawnCharacter CharacterOf(const ItemDrawCase& drawn)
 
 Client::Render::Pass3D TestPass()
 {
-    return Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, Client::Scenes::WorldViewport,
-                                      Client::Scenes::SelectionCamera());
+    return Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, Client::Camera::WorldViewport,
+                                      Client::Camera::SelectionCamera());
 }
 
 Drawn DrawFirst(const PartModels& models, const ItemDrawCase& drawn)
 {
     Drawn result;
     result.batch.Begin(TestPass());
-    Client::Scenes::DrawCharacter(result.batch, models, CharacterOf(drawn), std::chrono::milliseconds{drawn.clock},
-                                  Client::Scenes::CharacterDrawPass::Parts);
+    Client::Actors::Drawing::DrawCharacter(result.batch, models, CharacterOf(drawn),
+                                           std::chrono::milliseconds{drawn.clock},
+                                           Client::Actors::Drawing::CharacterDrawPass::Parts);
     result.random = CrtRandom{}.State();
     return result;
 }
@@ -312,7 +313,7 @@ Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
     Drawn result;
     result.batch.Begin(TestPass());
     const DrawnCharacter character = CharacterOf(drawn);
-    const auto body = Client::Scenes::PoseCharacterBody(models, character);
+    const auto body = Client::Actors::Drawing::PoseCharacterBody(models, character);
     const Client::Core::Duration clock = std::chrono::milliseconds{drawn.clock};
     constexpr float PlayerOutlineScale = 1.2f;
     const auto inner = static_cast<float>(static_cast<double>(PlayerOutlineScale) -
@@ -338,8 +339,8 @@ Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
                                 .ancient = drawn.ancient ? std::uint8_t{1} : std::uint8_t{0}};
     const auto worldClock = static_cast<float>(drawn.clock);
     CrtRandom random;
-    Client::Scenes::GameItemRenderState render;
-    Client::Scenes::UpdateGameItemGlowPulse(render, worldClock);
+    Client::Actors::Drawing::GameItemRenderState render;
+    Client::Actors::Drawing::UpdateGameItemGlowPulse(render, worldClock);
     ItemSpecialDrawContext special;
     special.flags = 2;
     special.worldClock = worldClock;
@@ -350,8 +351,8 @@ Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
     context.glowPulse = render.glowPulse;
     context.selections = &render.selections;
     context.glowDetail = drawn.detail;
-    const auto done =
-        Client::Scenes::DrawWornParts(result.batch, models, owner, parts, drawn.characterClass, clock, context, {});
+    const auto done = Client::Actors::Drawing::DrawWornParts(result.batch, models, owner, parts, drawn.characterClass,
+                                                             clock, context, {});
     EXPECT_TRUE(done.HasValue()) << (done.HasValue() ? std::string{} : done.Error());
     result.random = random.State();
     return result;

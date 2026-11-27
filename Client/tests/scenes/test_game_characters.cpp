@@ -50,11 +50,11 @@
 #include <string>
 #include <vector>
 
-// Client::Scenes::DrawGameCharacters (0x510d00 en la escena 5; 06 § El dibujo del juego): el héroe que no se
+// Client::Actors::Drawing::DrawGameCharacters (0x510d00 en la escena 5; 06 § El dibujo del juego): el héroe que no se
 // dibuja, el corte en el primer personaje vivo y visto (0x50ba30) y el TerrainWall de 0x42da60 al final.
 namespace
 {
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 
 constexpr std::size_t Hero = 42;
 
@@ -79,7 +79,7 @@ TEST(GameCharactersTest, WithoutASeenCharacterThePassOpensTheGates)
     (*actors)[7].seen = true;
     auto walls = GateWalls();
 
-    const auto drawn = Client::Scenes::DrawGameCharacters(*actors, Hero, *walls);
+    const auto drawn = Client::Actors::Drawing::DrawGameCharacters(*actors, Hero, *walls);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     for (std::uint8_t x = 118; x <= 121; ++x)
@@ -97,16 +97,16 @@ TEST(GameCharactersTest, TheHeroWithControlBitFourIsNotDrawn)
     ActorState& hero = (*actors)[Hero];
     hero.alive = true;
     hero.seen = true;
-    hero.controlCode = Client::Scenes::UndrawnHeroControlBit;
+    hero.controlCode = Client::Actors::Drawing::UndrawnHeroControlBit;
     auto walls = GateWalls();
 
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(*actors, Hero, *walls).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(*actors, Hero, *walls).HasValue());
     EXPECT_EQ(hero.field13c, 1000.0f);
     EXPECT_EQ(hero.field148, 1.0f);
     EXPECT_EQ(hero.field158, 1.0f);
     EXPECT_EQ(hero.field168, 1.0f);
 
-    const auto other = Client::Scenes::DrawGameCharacters(*actors, Hero + 1, *walls);
+    const auto other = Client::Actors::Drawing::DrawGameCharacters(*actors, Hero + 1, *walls);
     ASSERT_FALSE(other.HasValue());
     EXPECT_NE(other.Error().find("0x510ea1"), std::string::npos) << other.Error();
 }
@@ -117,21 +117,21 @@ TEST(GameCharactersTest, ProjectedHeroSuppressionWritesOnlyTheProjectionBox)
     ActorState& hero = (*actors)[Hero];
     hero.alive = true;
     hero.seen = true;
-    hero.controlCode = Client::Scenes::UndrawnHeroControlBit;
+    hero.controlCode = Client::Actors::Drawing::UndrawnHeroControlBit;
     hero.field13c = 10.0f;
     hero.field140 = 20.0f;
     hero.field144 = 30.0f;
     hero.field148 = 40.0f;
     hero.field158 = 50.0f;
     hero.field168 = 60.0f;
-    std::array<Client::Scenes::ActorPickingBox, 400> boxes{};
+    std::array<Client::Actors::ActorPickingBox, 400> boxes{};
     boxes[Hero] = {.origin = {1.0f, 2.0f, 3.0f},
                    .axisX = {4.0f, 5.0f, 6.0f},
                    .axisY = {7.0f, 8.0f, 9.0f},
                    .axisZ = {10.0f, 11.0f, 12.0f}};
     auto walls = GateWalls();
 
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(*actors, Hero, *walls, nullptr, boxes).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(*actors, Hero, *walls, nullptr, boxes).HasValue());
 
     EXPECT_EQ(hero.field13c, 10.0f);
     EXPECT_EQ(hero.field140, 20.0f);
@@ -156,7 +156,7 @@ TEST(GameCharactersTest, TheFirstSeenCharacterStopsThePass)
     (*actors)[300].seen = true;
     auto walls = GateWalls();
 
-    const auto drawn = Client::Scenes::DrawGameCharacters(*actors, Hero, *walls);
+    const auto drawn = Client::Actors::Drawing::DrawGameCharacters(*actors, Hero, *walls);
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x510ea1"), std::string::npos) << drawn.Error();
@@ -218,12 +218,12 @@ class UnarmedGameCharacterTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         m_world->Runtime().map = 2;
         m_world->Runtime().hero = Hero;
         m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         m_world->Map().terrain.attributes->cells = *GateWalls();
-        m_light = std::make_unique<Client::World::TerrainLighting>();
+        m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         ActorState& actor = Actor();
         actor = Client::Tests::UnarmedPlayer(1);
@@ -232,7 +232,7 @@ protected:
         actor.word376 = 0xffff;
         actor.head = 0xffff;
         for (auto& part : actor.body)
-            part.model = Client::Scenes::NoItemModel;
+            part.model = Client::Kernel::NoItemModel;
         actor.body.back().model = Boots;
         actor.position = {150.0f, 150.0f, 10.0f};
         actor.scale = 1.0f;
@@ -246,13 +246,13 @@ protected:
     {
         return m_world->Actors()[7];
     }
-    [[nodiscard]] Client::Scenes::GameCharacterPass Pass()
+    [[nodiscard]] Client::Actors::Drawing::GameCharacterPass Pass()
     {
         return {.dynamicLighting = m_light.get(), .clothWorld = &m_cloth};
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world;
-    std::unique_ptr<Client::World::TerrainLighting> m_light;
+    std::unique_ptr<Client::Kernel::WorldState> m_world;
+    std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     UnarmedModels m_models;
     Client::Models::ClothWorld m_cloth;
     Client::Render::ModelBatch m_batch;
@@ -298,7 +298,7 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
         m_batch.Begin({});
         auto pass = Pass();
         pass.guildMarks = &marks;
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
         EXPECT_TRUE(result.HasValue()) << result.Error();
         return VerticesWith(m_batch, drawn);
     };
@@ -346,7 +346,7 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
     auto low = draw(2, slot);
     ASSERT_EQ(low.size(), 6u);
     EXPECT_EQ(low[0].position, expectedQuad(-18.0f)[0]);
-    Actor().body[1].model = Client::Scenes::NoItemModel;
+    Actor().body[1].model = Client::Kernel::NoItemModel;
 
     Actor().flags78 |= 0x4000;
     EXPECT_TRUE(draw(2, slot).empty());
@@ -371,7 +371,7 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
 // El lazo repite para ambas manos (50e9ea..f4), aunque las dos estén vacías.
 TEST_F(UnarmedGameCharacterTest, WalkingUnarmedClosesBothHandBytesAfterTheBodyRandom)
 {
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
@@ -389,7 +389,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     Actor().flags78 |= 0x40000;
     auto pass = Pass();
     pass.particles = &m_world->Particles();
-    const auto quiet = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto quiet = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
@@ -398,7 +398,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     m_world->Runtime().castleSiege.siegeActive = true;
     m_cloth.random = Client::Crt::CrtRandom(1);
     m_batch.Begin({});
-    const auto siege = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto siege = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     ASSERT_TRUE(siege.HasValue()) << siege.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     const auto& blessing = m_world->Particles().All().front();
@@ -418,7 +418,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeRequiresTheParticlePoolAfterTheBo
     m_world->Runtime().map = 30;
     m_world->Runtime().castleSiege.siegeActive = true;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x42de7f"), std::string::npos) << result.Error();
@@ -437,7 +437,7 @@ TEST_F(UnarmedGameCharacterTest, HeldOrWrappedHandByteDepthDoesNotConsumeClosing
         m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(Actor().byte38eAccesses, depth);
@@ -466,7 +466,7 @@ TEST_F(UnarmedGameCharacterTest, TheHeroClosesItsOwnRecordBeforeTheBodyAndTheTwo
         m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_cloth.random.State(), probe.random);
@@ -495,7 +495,7 @@ TEST_F(UnarmedGameCharacterTest, NativeUnarmedStandingWalkingAndRunningActionsRe
         m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_batch.Vertices().size(), 6u);
@@ -528,7 +528,7 @@ TEST_F(UnarmedGameCharacterTest, OnlyTheNativeBackCasesSkipTheTwoHandByteReads)
         m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_cloth.random.State(), probe.random);
@@ -542,7 +542,7 @@ TEST_F(UnarmedGameCharacterTest, AnIntermediateDrawDoesNotOpenTheHandBytesOrAdva
     pass.originalFrames = 0;
     const ActorState before = Actor();
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
@@ -559,7 +559,7 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     auto pass = Pass();
     pass.originalFrames = 2;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
@@ -577,11 +577,11 @@ TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerMode
     Actor().scale = 1.3f;
     auto pass = Pass();
     pass.originalFrames = 0;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
 
     pass.originalFrames = 1;
-    const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto drawn = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(m_world->PlayerModel().scale, 1.3f);
@@ -589,7 +589,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerMode
 
     m_world->PlayerModel() = {};
     Actor().alpha = 0.009f;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
 }
 
@@ -659,13 +659,13 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
-        const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto drawn = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(Actor().position.x, 150.0f);
         EXPECT_EQ(Actor().position.y, 150.0f);
         EXPECT_TRUE(SameZ(Actor().position.z, probe.grounded)) << Actor().position.z;
-        const Client::Scenes::SharedModelPlacement shadow = m_world->ModelPlacement(Client::Tables::PlayerShadowModel);
+        const Client::Kernel::SharedModelPlacement shadow = m_world->ModelPlacement(Client::Tables::PlayerShadowModel);
         EXPECT_TRUE(SameZ(shadow.origin.z, probe.grounded)) << shadow.origin.z;
         EXPECT_EQ(shadow.scale, 1.0f);
         const auto boots = BootVertices(m_batch);
@@ -705,11 +705,11 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         m_world->PlaceModel(Client::Tables::PlayerShadowModel, {});
         m_batch.Begin({});
 
-        const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto drawn = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(Actor().position.z, guard.grounded);
-        const Client::Scenes::SharedModelPlacement shadow = m_world->ModelPlacement(Client::Tables::PlayerShadowModel);
+        const Client::Kernel::SharedModelPlacement shadow = m_world->ModelPlacement(Client::Tables::PlayerShadowModel);
         EXPECT_EQ(shadow.scale, guard.grounded == 4.0f ? 1.0f : 0.0f);
         const auto boots = BootVertices(m_batch);
         ASSERT_EQ(boots.size(), 3u);
@@ -726,7 +726,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
     m_batch.Begin({});
     auto between = Pass();
     between.originalFrames = 0;
-    const auto projected = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, between);
+    const auto projected = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, between);
     ASSERT_TRUE(projected.HasValue()) << projected.Error();
     EXPECT_EQ(Actor().position.z, 10.0f);
     EXPECT_EQ(m_world->ModelPlacement(Client::Tables::PlayerShadowModel).scale, 0.0f);
@@ -736,7 +736,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
 
     m_world->Map().terrain.heights.reset();
     m_batch.Begin({});
-    const auto blind = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto blind = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x50bc9d"), std::string::npos) << blind.Error();
     EXPECT_EQ(Actor().position.z, 10.0f);
@@ -775,7 +775,7 @@ TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereThe
     };
     const std::vector<glm::vec3> fromTen(2, glm::vec3{146.0f, 161.0f, 10.0f});
 
-    const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto drawn = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(actor.position.z, 4.0f);
@@ -791,7 +791,7 @@ TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereThe
     actor.position.z = 10.0f;
     m_batch.Begin({});
     pass.originalFrames = 0;
-    const auto projected = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto projected = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     ASSERT_TRUE(projected.HasValue()) << projected.Error();
     EXPECT_EQ(actor.position.z, 10.0f);
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
@@ -816,12 +816,12 @@ TEST_F(UnarmedGameCharacterTest, OutsideThePoolTheLetterPortraitDrawsWithoutItsS
             SCOPED_TRACE(static_cast<int>(portrait));
             ActorState outside = pooled;
             outside.byte3e4 = portrait;
-            Client::Scenes::CharacterCloth cloth;
+            Client::Actors::Drawing::CharacterCloth cloth;
             m_cloth.random = Client::Crt::CrtRandom(1);
             m_batch.Begin({});
 
-            const auto drawn =
-                Client::Scenes::DrawCharacterOutsideThePool(m_batch, m_models, *m_world, outside, cloth, Pass(), true);
+            const auto drawn = Client::Actors::Drawing::DrawCharacterOutsideThePool(m_batch, m_models, *m_world,
+                                                                                    outside, cloth, Pass(), true);
 
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             EXPECT_EQ(m_batch.Vertices().size(), portrait != 0 ? 3u : 6u);
@@ -860,7 +860,7 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
         Actor().flags78 = probe.flags;
         m_batch.Begin({});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         if (probe.cut == nullptr)
         {
@@ -897,7 +897,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose
         pass.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform>,
                           const Client::Models::ObjectTransform&, bool) { published.push_back(model); };
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(published.empty());
@@ -933,7 +933,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
         pass.originalFrames = frames;
         pass.poseBones = [&](std::uint16_t) { return std::span<const Client::Math::BoneTransform>(global); };
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), 6u);
@@ -946,10 +946,10 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
     }
 }
 // El personaje como lo arma el caller del login o de la selección: el cuerpo de su paso, sin lo que cuelga.
-Client::Scenes::DrawnCharacter Drawn(const ActorState& actor)
+Client::Actors::Drawing::DrawnCharacter Drawn(const ActorState& actor)
 {
-    Client::Scenes::DrawnCharacter character;
-    character.appearance = Client::Scenes::AppearanceOfActor(actor);
+    Client::Actors::Drawing::DrawnCharacter character;
+    character.appearance = Client::Actors::AppearanceOfActor(actor);
     character.body = actor.animation;
     character.object = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     return character;
@@ -963,15 +963,15 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithou
 {
     Actor().byte88 = 1;
     Actor().byte369 = 1;
-    const auto game = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto game = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
     ASSERT_FALSE(game.HasValue());
     EXPECT_NE(game.Error().find("0x510f4d"), std::string::npos) << game.Error();
 
     m_cloth.random = Client::Crt::CrtRandom(1);
     Actor().bodyPose.clear();
     m_batch.Begin({});
-    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),
-                                                        Client::Scenes::FullSetScan{}, true);
+    const auto tail = Client::Actors::Drawing::DrawCharacterTail(
+        m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(), Client::Actors::FullSetScan{}, true);
 
     ASSERT_TRUE(tail.HasValue()) << tail.Error();
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
@@ -982,8 +982,8 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithou
 // Entre frames del original, sobre copias: ni el rand(), ni los huesos propios, ni el modelo compartido.
 TEST_F(UnarmedGameCharacterTest, OutsideTheGameAnIntermediateTailSpendsNothing)
 {
-    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),
-                                                        Client::Scenes::FullSetScan{}, false);
+    const auto tail = Client::Actors::Drawing::DrawCharacterTail(
+        m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(), Client::Actors::FullSetScan{}, false);
 
     ASSERT_TRUE(tail.HasValue()) << tail.Error();
     EXPECT_EQ(m_cloth.random.State(), 1u);
@@ -996,13 +996,13 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameAnIntermediateTailSpendsNothing)
 TEST_F(UnarmedGameCharacterTest, OutsideTheGameWithoutTheTrapezoidTheCallerDrawsTheRaven)
 {
     Actor().darkSpirit.emplace();
-    const auto game = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto game = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
     ASSERT_FALSE(game.HasValue());
     EXPECT_NE(game.Error().find("0x418320"), std::string::npos) << game.Error();
 
     m_batch.Begin({});
-    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),
-                                                        Client::Scenes::FullSetScan{}, true);
+    const auto tail = Client::Actors::Drawing::DrawCharacterTail(
+        m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(), Client::Actors::FullSetScan{}, true);
 
     ASSERT_TRUE(tail.HasValue()) << tail.Error();
 }
@@ -1012,8 +1012,8 @@ TEST_F(UnarmedGameCharacterTest, TheTailNeedsTheGlobalRandom)
 {
     auto pass = Pass();
     pass.clothWorld = nullptr;
-    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), pass,
-                                                        Client::Scenes::FullSetScan{}, true);
+    const auto tail = Client::Actors::Drawing::DrawCharacterTail(
+        m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), pass, Client::Actors::FullSetScan{}, true);
 
     ASSERT_FALSE(tail.HasValue());
     EXPECT_NE(tail.Error().find("0x50db57"), std::string::npos) << tail.Error();

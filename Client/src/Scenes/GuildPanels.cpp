@@ -53,14 +53,14 @@ Core::Expected<void, std::string> Send(const GuildSender& send, Protocol::Outgoi
     return {};
 }
 
-UI::PanelDialogAnswer AnswerOf(WorldState& world, const GuildSender& send)
+UI::PanelDialogAnswer AnswerOf(Kernel::WorldState& world, const GuildSender& send)
 {
     return [&world, send](UI::PanelDialogOwner owner, std::uint32_t reason)
     { return AnswerThePanelDialog(world, send, owner, reason); };
 }
 } // namespace
 
-Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(WorldRuntime& runtime,
+Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(Kernel::WorldRuntime& runtime,
                                                                const UI::PanelDialogRequest& request,
                                                                const Render::Text::ITextMeasure& measure,
                                                                Core::PixelSize screen, std::uint32_t now)
@@ -89,7 +89,7 @@ Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(WorldRuntime& run
                     "al lado del diálogo de los paneles (Q-C1305)"));
 }
 
-Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const GuildSender& send,
+Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world, const GuildSender& send,
                                                        UI::PanelDialogOwner owner, std::uint32_t reason)
 {
     const GuildState& guild = world.Runtime().guild;
@@ -141,7 +141,7 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
         // campos del chat.
         if (reason != UI::PanelAnswerConfirm)
             return true;
-        WorldRuntime& runtime = world.Runtime();
+        Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.dialogs.current = KickDialogId;
         runtime.guild.kickMember = runtime.guild.kickIndex;
         return true;
@@ -153,7 +153,7 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
         // 0x6c8e78 y 0x77f31c0 son de la entrada sin EDIT, que MuRet no tiene.
         if (reason != UI::PanelAnswerConfirm)
             return true;
-        WorldRuntime& runtime = world.Runtime();
+        Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.guild.kickMember = 0;
         runtime.dialogs.current = KickDialogId;
         UI::ResetTheTextBuffers(runtime.chat.input, false);
@@ -184,9 +184,9 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
     return Core::Unexpected(std::string("0x6600d0: el diálogo de los paneles responde sin quien lo abrió"));
 }
 
-Core::Expected<void, std::string> CloseTheGuildWindow(WorldState& world, const GuildSender& send)
+Core::Expected<void, std::string> CloseTheGuildWindow(Kernel::WorldState& world, const GuildSender& send)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     UI::DelegatedPanels& delegated = runtime.panels.delegated;
     GuildWindowState& window = runtime.guild.window;
     if (delegated.guild == 0)
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> CloseTheGuildWindow(WorldState& world, const G
     return CancelTheGuildWindowDialog(world, send);
 }
 
-Core::Expected<void, std::string> CancelTheGuildWindowDialog(WorldState& world, const GuildSender& send)
+Core::Expected<void, std::string> CancelTheGuildWindowDialog(Kernel::WorldState& world, const GuildSender& send)
 {
     UI::DelegatedPanels& delegated = world.Runtime().panels.delegated;
     if (UI::PanelDialogHandle(delegated.panelDialog) != world.Runtime().guild.window.dialog)
@@ -206,15 +206,15 @@ Core::Expected<void, std::string> CancelTheGuildWindowDialog(WorldState& world, 
     return UI::CancelThePanelDialog(delegated.panelDialog, AnswerOf(world, send));
 }
 
-Core::Expected<void, std::string> CloseTheSecondGuildWindow(WorldState& world, const GuildSender& send)
+Core::Expected<void, std::string> CloseTheSecondGuildWindow(Kernel::WorldState& world, const GuildSender& send)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     UI::DelegatedPanels& delegated = runtime.panels.delegated;
     GuildState& guild = runtime.guild;
     if (delegated.secondGuild == 0)
         return {};
     delegated.secondGuild = 0;
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     if (static_cast<std::int16_t>(hero.word1f2) == CreatingGuildIndex)
         hero.word1f2 = static_cast<std::uint16_t>(NoGuildIndex);
     runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)
@@ -233,7 +233,7 @@ Core::Expected<void, std::string> CloseTheSecondGuildWindow(WorldState& world, c
     return Send(send, Protocol::Guild::WriteMasterAnswer(ClosedMasterAnswer), "0x6570b0");
 }
 
-void LendTheGuildTo(UI::PanelContext& context, WorldState& world, const GuildSender& send)
+void LendTheGuildTo(UI::PanelContext& context, Kernel::WorldState& world, const GuildSender& send)
 {
     if (!send)
         return;
@@ -243,12 +243,12 @@ void LendTheGuildTo(UI::PanelContext& context, WorldState& world, const GuildSen
     context.panelDialogAnswer = AnswerOf(world, send);
 }
 
-void LendThePanelDialogStepTo(UI::PanelContext& context, WorldState& world, const GuildSender& send,
+void LendThePanelDialogStepTo(UI::PanelContext& context, Kernel::WorldState& world, const GuildSender& send,
                               std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now)
 {
     context.panelDialogStep = [&world, &context, send, mouseX, mouseY, now]() -> Core::Expected<void, std::string>
     {
-        WorldRuntime& runtime = world.Runtime();
+        Kernel::WorldRuntime& runtime = world.Runtime();
         const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
         UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
         if (auto stepped = UI::StepThePanelDialog(dialog, globals, mouseX, mouseY, now, context.panelDialogAnswer);

@@ -25,13 +25,13 @@
 // nueva ejecución o emulación del original. Los puntos asimétricos evitan la diagonal excluida.
 namespace
 {
-using Client::World::PickTerrain;
-using Client::World::PickTerrainTarget;
-using Client::World::TerrainPickingSegment;
-using Client::World::TerrainPickingState;
-using Client::World::TerrainPickingTarget;
-using Client::World::TerrainPolygon;
-using Client::World::TerrainRange;
+using Client::Terrain::PickTerrain;
+using Client::Terrain::PickTerrainTarget;
+using Client::Terrain::TerrainPickingSegment;
+using Client::Terrain::TerrainPickingState;
+using Client::Terrain::TerrainPickingTarget;
+using Client::Terrain::TerrainPolygon;
+using Client::Terrain::TerrainRange;
 
 class TerrainPickingTest : public ::testing::Test
 {
@@ -40,7 +40,7 @@ protected:
         std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> m_attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::World::TerrainView m_view{
+    Client::Terrain::TerrainView m_view{
         .heights = m_heights.get(), .attributes = m_attributes.get(), .fixedHeight = 1200.0f};
     TerrainPickingState m_state{
         .selected = true, .selectedX = 5.0f, .selectedY = 6.0f, .maxT = 0.25f, .hit = {11.0f, 22.0f, 33.0f}};

@@ -23,12 +23,12 @@
 
 namespace
 {
-using Client::World::CullingScene;
-using Client::World::GameCamera;
-using Client::World::GameCameraInput;
-using Client::World::GameCameraOf;
-using Client::World::GameCameraTour;
-using Client::World::StepGameCamera;
+using Client::Camera::GameCamera;
+using Client::Camera::GameCameraInput;
+using Client::Camera::GameCameraOf;
+using Client::Camera::GameCameraTour;
+using Client::Camera::StepGameCamera;
+using Client::Terrain::CullingScene;
 
 GameCameraInput Lorencia()
 {
@@ -366,8 +366,8 @@ TEST(GameCameraTest, TheTourMovesTheCameraAsIfTheHeroStoodThereAt300)
         EXPECT_EQ(state.targetDistance, 1200.0f);
         EXPECT_EQ(state.distance, SmoothedDistance(1000.0f, 1200.0f));
         EXPECT_EQ(twin.distance, 1000.0f);
-        EXPECT_EQ(Client::World::FollowedPointOf(input), TourAtTheFirstCell.position);
-        EXPECT_EQ(Client::World::CameraTargetOf(input), input.effectTarget);
+        EXPECT_EQ(Client::Camera::FollowedPointOf(input), TourAtTheFirstCell.position);
+        EXPECT_EQ(Client::Camera::CameraTargetOf(input), input.effectTarget);
         // El frame siguiente lee el nivel 2 (2.600), lo vuelve a dejar y se aleja con la D que ya había subido.
         const float second = state.distance;
         const auto away = StepGameCamera(state, input);

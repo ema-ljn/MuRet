@@ -40,7 +40,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::CrywolfGlobals;
+using Client::Kernel::CrywolfGlobals;
 using Client::Scenes::CrywolfObjectBody;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::StepCrywolfObjectFrame;
@@ -569,7 +569,7 @@ TEST(CrywolfObjectServicesTest, TheObjectDrawCountsFromOneToFortyOne)
     Fixture fixture;
     const NoModels models;
     Client::Render::ModelBatch batch;
-    const Client::World::TerrainPolygon polygon{};
+    const Client::Terrain::TerrainPolygon polygon{};
     std::vector<WorldObject> objects;
     fixture.drawCounter = 0;
     std::vector<std::int32_t> seen;
@@ -626,7 +626,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             pass.publishProjectedPose = true;
             pass.modelState = &shared;
             std::vector<float> posedScales;
-            pass.onPose = [&](const Client::Scenes::DrawnObject& object)
+            pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
             {
                 posedScales.push_back(object.transform.scale);
                 EXPECT_EQ(shared.unlitMeshes.at(0x51), 7);
@@ -636,7 +636,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             batch.Begin(Client::Render::Pass3D{});
             const auto seed = fixture.random;
             const auto drawn = Client::Scenes::DrawGameWorldObjects(
-                batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {}, pass);
+                batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {}, pass);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             ASSERT_EQ(posedScales, (std::vector<float>{1.25f}));
             EXPECT_EQ(objects[0].transform.scale, std::bit_cast<float>(0x3f83d70au));
@@ -697,7 +697,7 @@ TEST(CrywolfObjectServicesTest, OtherAltarStatesStayHiddenWithoutScaleOrModelSto
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         const auto drawn = Client::Scenes::DrawGameWorldObjects(
-            batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {}, pass);
+            batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {}, pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(batch.Vertices().empty());
         EXPECT_EQ(objects[0].transform.scale, 1.25f);

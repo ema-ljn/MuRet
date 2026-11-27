@@ -12,7 +12,7 @@
 // modelos de cada parte, como 0x517270, 0x5139f0 y 0x512930.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los personajes de la lista", y el plan
 // de la CL6 (CL6.3). Todo *estático*, del desensamblado.
-namespace Client::GameLogic
+namespace Client::Kernel
 {
 // Las cinco partes del cuerpo, en el orden de 0x5139f0 (+0x218 a +0x298 del personaje).
 enum class BodyPart : std::uint8_t
@@ -81,4 +81,4 @@ using Equipment = std::span<const std::byte, Protocol::FrontEnd::EquipmentSize>;
 // cabeza y la escala. Una mano de tipo 0xfff conserva el modelo 0x1211: CMP AX,0x1fff nunca la toma como vacía.
 // Aunque no tenga mallas, el consumidor gasta los rand() de 0x509340 (Q-C102).
 [[nodiscard]] CharacterAppearance AppearanceOf(std::uint8_t characterClass, std::uint8_t skin, Equipment equipment);
-} // namespace Client::GameLogic
+} // namespace Client::Kernel

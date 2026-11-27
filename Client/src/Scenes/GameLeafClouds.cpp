@@ -91,7 +91,7 @@ Core::Expected<void, std::string> CreateCloud(glm::vec3 position, GameLeafContex
     {
         // 443c96 guarda la altura en binary32 ANTES del rand%20 de 443c9e.
         const auto height = static_cast<float>(
-            World::TerrainHeightAt(context.heights, context.attributes, position.x, position.y, context.fixedHeight));
+            Terrain::TerrainHeightAt(context.heights, context.attributes, position.x, position.y, context.fixedHeight));
         position.z = static_cast<float>(static_cast<double>(context.random.Next() % CloudGroundOffsetSpan) + height);
     }
     const char* address = crywolf ? "4358ed" : "443cd1";

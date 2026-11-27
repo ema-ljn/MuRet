@@ -106,15 +106,15 @@ using Client::Scenes::SingleModelLibrary;
 using Client::Tests::FixedSeed;
 using Client::Tests::FrameEvent;
 using Kind = Client::Tests::FrameEvent::Kind;
+using Client::Assets::LoadingTextureSet;
+using Client::Assets::LoginTextureSet;
+using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Render::TextureSlot;
 using Client::Scenes::LoadingScene;
-using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginScene;
-using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
-using Client::Scenes::WindowTextureSet;
 using Client::Tables::LoadGameData;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::RecordedText;
@@ -244,7 +244,7 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     // Con los modelos de la carga, para que el personaje se dibuje.
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
     LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -353,8 +353,8 @@ protected:
         ASSERT_TRUE(drop.has_value());
         std::filesystem::create_directories(copyRoot / "Object8");
         std::filesystem::copy_file(*drop, copyRoot / "Object8" / drop->filename());
-        Client::Tests::WriteTextureSet(copyRoot, Client::Scenes::LoginTextureSet);
-        Client::Tests::WriteTextureSet(copyRoot, Client::Scenes::WindowTextureSet);
+        Client::Tests::WriteTextureSet(copyRoot, Client::Assets::LoginTextureSet);
+        Client::Tests::WriteTextureSet(copyRoot, Client::Assets::WindowTextureSet);
         const auto attributes = Client::Data::ResolveDataPath(copyRoot, "World56\\EncTerrain56.att", error);
         ASSERT_TRUE(attributes.has_value());
         auto plain = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
@@ -367,7 +367,7 @@ protected:
     RecordingSink m_sink;
     Log m_log{m_sink, LogLevel::Debug};
     std::optional<Client::Tables::GameData> m_data;
-    Client::Scenes::GameModels m_models;
+    Client::Assets::GameModels m_models;
 };
 
 TEST_F(GoldenLoginWorld, LeavingLoginKeepsTheCommonFireSnuffSlot)
@@ -551,7 +551,7 @@ TEST_F(GoldenLoginScene, TheLakeMovesWithTheClock)
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     Client::Tests::FakeClock clock;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
     LoginScene scene(SceneContext{m_dataRoot, store, log, &clock}, data.Value(), models, nullptr, Version, FixedSeed);
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -663,10 +663,10 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
 // Q-C278: una sola tabla sobrevive login → espera de lista → carga54 → llegada al juego.
 TEST_F(GoldenLoginWorld, LoginUpdatesTheSharedLightBeforeItsDrawPublishesANewRange)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Tests::FakeClock clock;
     clock.Advance(std::chrono::milliseconds{40});
-    const auto base = Client::World::LoadTerrainLighting(m_dataRoot, 55);
+    const auto base = Client::Terrain::LoadTerrainLighting(m_dataRoot, 55);
     ASSERT_TRUE(base.HasValue()) << base.Error();
     world->DynamicLighting().Lighting().cells[1000][0] = -77.0f;
     LoginScene scene(
@@ -689,7 +689,7 @@ TEST_F(GoldenLoginWorld, LoginUpdatesTheSharedLightBeforeItsDrawPublishesANewRan
 
 TEST_F(GoldenLoginWorld, LoginClearsTheSharedParticlePoolWithoutResettingWind)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     auto& particles = world->Particles();
     particles.All()[0].alive = true;
     particles.Wind().wind = {3.0f, 4.0f};
@@ -707,10 +707,10 @@ TEST_F(GoldenLoginWorld, LoginClearsTheSharedParticlePoolWithoutResettingWind)
 
 TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState selection(*world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot,
                                   .textures = m_store,
                                   .log = m_log,
@@ -753,7 +753,7 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
 // El mundo sobrevive a la escena: se retiran sólo los enlaces a sus objetos, aun en un slot inactivo.
 TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     int unrelatedOwner = 0;
     auto effects = world->Map().effects.Effects();
     {
@@ -857,7 +857,7 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 // derecha; en 400 pasos sortea alguna vez, y cada paso queda más cerca de su blanco que el anterior o igual.
 TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Models::ClothWorld cloth;
     const auto before = cloth.random;
     LoginScene scene(
@@ -897,7 +897,7 @@ TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
 
 TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Models::ClothWorld cloth;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
@@ -932,7 +932,7 @@ TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
 TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
 {
     using namespace std::chrono_literals;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Models::ClothWorld cloth;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
@@ -966,7 +966,7 @@ TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
 
 TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Models::ClothWorld cloth;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
@@ -1018,9 +1018,9 @@ TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
     glm::vec2 target = scene.Head().target;
     for (int step = 0; step < 400; ++step)
     {
-        const Client::Scenes::CharacterHead before = scene.Head();
+        const Client::Kernel::CharacterHead before = scene.Head();
         scene.Step(Client::Input::InputState{});
-        const Client::Scenes::CharacterHead& after = scene.Head();
+        const Client::Kernel::CharacterHead& after = scene.Head();
         if (after.target != target)
         {
             ++targets;
@@ -1321,7 +1321,7 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
         // Lo que va a leer el aliento de este paso: el caballo como se dibujó recién. Con el alpha por debajo
         // de 0,01 (antes de su primer paso) no se dibujó ni escribió el hueso: el aliento nace en (0, 0, 0).
         const bool horseDrawn = horse.alpha >= 0.01f;
-        const auto expected = Client::Scenes::PosedBonePoint(
+        const auto expected = Client::Actors::Drawing::PosedBonePoint(
             m_models,
             Client::Scenes::DrawnDarkHorse(horse, horseSkeleton, Client::Scenes::LoginCharacterTransform(),
                                            Client::Scenes::DarkHorseLoginScale, 0.0f),
@@ -1388,12 +1388,12 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
 // (L; 0,5 · L; 0,2 · L) y L entre 0,7 y 0,99.
 TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 {
-    Client::Scenes::WorldModels world;
+    Client::Assets::WorldModels world;
     ASSERT_TRUE(world.Load(m_dataRoot, 0x37, m_store, m_log, nullptr).HasValue());
-    const Client::Models::Skeleton* dragon = world.SkeletonOf(Client::Scenes::DragonModel);
+    const Client::Models::Skeleton* dragon = world.SkeletonOf(Client::Assets::DragonModel);
     ASSERT_NE(dragon, nullptr);
     Client::Data::Terrain::TerrainObject record;
-    record.type = static_cast<std::int16_t>(Client::Scenes::DragonModel);
+    record.type = static_cast<std::int16_t>(Client::Assets::DragonModel);
     record.position = {5600.0f, 23000.0f, 0.0f};
     record.scale = 1.0f;
     Client::World::WorldObject owner =
@@ -1453,19 +1453,19 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
             }
         }
         ASSERT_EQ(centers.size(), 2u) << "el paso " << step;
-        Client::Scenes::DrawnObject drawn;
-        drawn.model = Client::Scenes::DragonModel;
+        Client::Actors::Drawing::DrawnObject drawn;
+        drawn.model = Client::Assets::DragonModel;
         drawn.animation = owner.animation;
         drawn.transform = owner.transform;
-        const Client::Scenes::DrawnObject drawnHorse = Client::Scenes::DrawnDarkHorse(
+        const Client::Actors::Drawing::DrawnObject drawnHorse = Client::Scenes::DrawnDarkHorse(
             horse, horseSkeleton, Client::Scenes::LoginCharacterTransform(), Client::Scenes::DarkHorseLoginScale, 0.0f);
         for (std::size_t bone = 8; bone <= 9; ++bone)
         {
-            const auto expected = Client::Scenes::PosedBonePoint(world, drawn, bone, {});
+            const auto expected = Client::Actors::Drawing::PosedBonePoint(world, drawn, bone, {});
             ASSERT_TRUE(expected.has_value());
             EXPECT_LT(glm::length(centers[bone - 8] - glm::dvec3(*expected)), 0.05)
                 << "el paso " << step << ", el hueso " << bone;
-            const auto onTheHorse = Client::Scenes::PosedBonePoint(m_models, drawnHorse, bone, {});
+            const auto onTheHorse = Client::Actors::Drawing::PosedBonePoint(m_models, drawnHorse, bone, {});
             ASSERT_TRUE(onTheHorse.has_value());
             EXPECT_GT(glm::length(centers[bone - 8] - glm::dvec3(*onTheHorse)), 1000.0) << "no en el caballo";
         }
@@ -1671,9 +1671,9 @@ TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
     ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
     const auto sample = [&](float height) -> std::optional<glm::vec2>
     {
-        Client::World::GameCamera camera;
+        Client::Camera::GameCamera camera;
         camera.fixedHeight = height;
-        Client::World::GameCameraInput cameraInput;
+        Client::Camera::GameCameraInput cameraInput;
         Client::Models::ClothWorld cloth;
         LoginScene scene(SceneContext{.dataRoot = copy.Path(),
                                       .textures = m_store,
@@ -1881,9 +1881,9 @@ TEST_F(GoldenLoginWorld, TheSceneTerrainUsesTheSharedFixedHeight)
 {
     Client::Tests::TemporaryFolder copy{"terrain-shared-height"};
     ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
-    Client::World::GameCamera camera;
+    Client::Camera::GameCamera camera;
     camera.fixedHeight = 1201.0f;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCameraInput cameraInput;
     LoginScene scene(
         SceneContext{
             .dataRoot = copy.Path(), .textures = m_store, .log = m_log, .camera = &camera, .cameraInput = &cameraInput},
@@ -1906,9 +1906,9 @@ TEST_F(GoldenLoginWorld, TheSceneEmbersReadTheSharedGroundHeight)
 {
     Client::Tests::TemporaryFolder copy{"embers-shared-height"};
     ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
-    Client::World::GameCamera camera;
+    Client::Camera::GameCamera camera;
     camera.fixedHeight = 1201.0f;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = copy.Path(),
                                   .textures = m_store,
@@ -1935,10 +1935,10 @@ TEST_F(GoldenLoginWorld, ASelectionDrawSetsTheHeroHeightUsedByTheFirstLoginEmber
 {
     Client::Tests::TemporaryFolder copy{"selection-login-ember-height"};
     ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
-    Client::Tests::WriteTextureSet(copy.Path(), Client::Scenes::SelectionTextureSet);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
-    cameraInput.hero = Client::Scenes::LoginHeroPosition;
+    Client::Tests::WriteTextureSet(copy.Path(), Client::Assets::SelectionTextureSet);
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
+    cameraInput.hero = Client::Camera::LoginHeroPosition;
     Client::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
@@ -1985,11 +1985,11 @@ TEST_F(GoldenLoginWorld, AFailedLoginEntryRetainsItsTerrainBeforeDestruction)
     Client::Tests::TemporaryFolder copy{"failed-login-retains-cpu"};
     ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
     // Falla la primera textura de escena, después de cargar correctamente el mundo.
-    const auto texture = Client::Tests::SceneTextureFile(Client::Scenes::LoginTextureSet.front());
+    const auto texture = Client::Tests::SceneTextureFile(Client::Assets::LoginTextureSet.front());
     ASSERT_TRUE(std::filesystem::remove(copy.Path() / texture));
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
-    Client::Scenes::WorldState worldState;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
+    Client::Kernel::WorldState worldState;
     Client::Scenes::SelectionState state(worldState);
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
@@ -2007,8 +2007,8 @@ TEST_F(GoldenLoginWorld, AFailedLoginEntryRetainsItsTerrainBeforeDestruction)
     ASSERT_NE(state.Terrain()->heights, nullptr);
     ASSERT_NE(state.Terrain()->attributes, nullptr);
     EXPECT_EQ(state.Map(), 55);
-    EXPECT_EQ(Client::World::TerrainHeightAt(*state.Terrain()->heights, *state.Terrain()->attributes, 50.0f, 50.0f,
-                                             camera.fixedHeight),
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*state.Terrain()->heights, *state.Terrain()->attributes, 50.0f, 50.0f,
+                                               camera.fixedHeight),
               1200.0);
 }
 
@@ -2027,13 +2027,13 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     std::fill(plain.begin() + Client::Data::Terrain::TerrainAttributesHeaderSize, plain.end(), std::byte{0x40});
     Client::Tests::WriteSceneFile(copy.Path(), std::filesystem::relative(*attributes, copy.Path()),
                                   Client::Tests::EncryptTerrainAttributes(std::move(plain)));
-    Client::Tests::WriteTextureSet(copy.Path(), Client::Scenes::SelectionTextureSet);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Tests::WriteTextureSet(copy.Path(), Client::Assets::SelectionTextureSet);
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     // En el heap: WorldState pesa unos 900 KB con las ventanas de los NPC (hito 6) y, con la sesión y los dos
     // destinos del dibujo, el frame no entra en la pila de 1 MB de MSVC.
-    const auto ownedWorld = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::WorldState& worldState = *ownedWorld;
+    const auto ownedWorld = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::WorldState& worldState = *ownedWorld;
     Client::Scenes::SelectionState state(worldState);
     Client::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
@@ -2126,7 +2126,7 @@ TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
     after.Present();
     const std::vector<glm::vec3> born = EmberCentersOf(after);
     ASSERT_EQ(born.size(), 80u);
-    const glm::vec3 hero = Client::Scenes::LoginHeroPosition;
+    const glm::vec3 hero = Client::Camera::LoginHeroPosition;
     for (const glm::vec3& c : born)
     {
         EXPECT_GE(c.x - hero.x, -800.5f);
@@ -2195,7 +2195,7 @@ TEST_F(GoldenLoginWorld, EnteringAgainTheEmbersAreBornAgain)
     using namespace std::chrono_literals;
     constexpr int Drift = 100;
     constexpr std::size_t Embers = 80;
-    const glm::vec3 hero = Client::Scenes::LoginHeroPosition;
+    const glm::vec3 hero = Client::Camera::LoginHeroPosition;
     const auto bornAroundTheHero = [&hero](const glm::vec3& center)
     {
         const glm::vec3 offset = center - hero;

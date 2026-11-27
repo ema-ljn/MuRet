@@ -31,11 +31,11 @@ void Draw(Crt::CrtRandom& random, std::uint16_t count)
         static_cast<void>(random.Next());
 }
 
-void StepTheGameMusic(WorldState& world, Crt::CrtRandom& random)
+void StepTheGameMusic(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     StepWorldAmbience(runtime, random);
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
                             [&hero, &random] { return InTheDeviasChurch(hero, random); });
     StepTheCrywolfMusic(runtime);
@@ -73,7 +73,7 @@ void CloseTheFrameCounter(Crt::CrtRandom& random)
     Draw(random, CounterCloseRandoms);
 }
 
-bool InTheDeviasChurch(ActorState& hero, Crt::CrtRandom& random)
+bool InTheDeviasChurch(Kernel::ActorState& hero, Crt::CrtRandom& random)
 {
     const auto read = [&random](const std::uint8_t& cell, std::uint8_t& depth, std::uint32_t& left)
     {
@@ -86,7 +86,7 @@ bool InTheDeviasChurch(ActorState& hero, Crt::CrtRandom& random)
            read(hero.cellY, hero.cellYAccesses, hero.cellYLeft) <= 31;
 }
 
-void StepWorldAmbience(WorldRuntime& runtime, Crt::CrtRandom& random)
+void StepWorldAmbience(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     constexpr int Wind = 0, Rain = 1, Forest = 2, Dungeon = 3, Tower = 5, Atlans = 6, Tarkan = 7, Icarus = 0x14;
     const auto loop = [&runtime](std::int32_t id) { runtime.RequestSound(id, std::nullopt, true); };
@@ -155,7 +155,7 @@ void StepWorldAmbience(WorldRuntime& runtime, Crt::CrtRandom& random)
         runtime.StopSound(Icarus, true);
 }
 
-void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Crt::CrtRandom& random, Core::Duration now,
+void FinishTheWinMainLoop(WinMainLoopState& loop, Kernel::WorldState& world, Crt::CrtRandom& random, Core::Duration now,
                           Models::OriginalFramePace pace, bool gameScene)
 {
     world.Runtime().ui.enterPressed = false;

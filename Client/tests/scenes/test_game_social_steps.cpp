@@ -32,8 +32,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 1;
 
@@ -94,7 +94,7 @@ protected:
         Runtime().hud.tradeY = 0;
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }

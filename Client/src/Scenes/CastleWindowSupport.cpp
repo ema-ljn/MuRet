@@ -74,21 +74,21 @@ Core::Expected<std::uint32_t, std::string> PopupAt(const GameUiContext& context,
     return Popup(context, lines, owner, flags, placed);
 }
 
-Core::Expected<void, std::string> CancelPopup(WorldState& world, const CastleSender& send)
+Core::Expected<void, std::string> CancelPopup(Kernel::WorldState& world, const CastleSender& send)
 {
     return UI::CancelThePanelDialog(world.Runtime().panels.delegated.panelDialog,
                                     [&world, &send](UI::PanelDialogOwner owner, std::uint32_t reason)
                                     { return AnswerThePanelDialog(world, send, owner, reason); });
 }
 
-void ConsumeClick(WorldRuntime& runtime)
+void ConsumeClick(Kernel::WorldRuntime& runtime)
 {
     runtime.movement.pendingClick = false;
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = 6;
 }
 
-bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random)
+bool HeroCanRegister(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     if (world.Hero().guildStatus != Master)
         return false;
@@ -96,7 +96,7 @@ bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random)
     return world.OwnCharacter().level >= 200;
 }
 
-std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
+std::uint32_t CountMarks(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
 {
     const Models::LogicalAccess access(depth, random, Models::OwnRecordCloseRandoms);
     std::uint32_t count = 0;
@@ -108,7 +108,7 @@ std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t
     return count;
 }
 
-std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
+std::int32_t FirstMark(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
 {
     const Models::LogicalAccess access(depth, random, Models::OwnRecordCloseRandoms);
     const auto& cells = world.Inventory().cells;
@@ -121,7 +121,7 @@ std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& 
     return -1;
 }
 
-Core::Expected<std::pair<std::string_view, std::string_view>, std::string> GuildNames(const WorldState& world)
+Core::Expected<std::pair<std::string_view, std::string_view>, std::string> GuildNames(const Kernel::WorldState& world)
 {
     const auto index = static_cast<std::int16_t>(world.Hero().word1f2);
     const auto& state = world.Runtime().guild;
@@ -133,7 +133,7 @@ Core::Expected<std::pair<std::string_view, std::string_view>, std::string> Guild
     return std::pair<std::string_view, std::string_view>{*alliance, *guild};
 }
 
-Core::Expected<bool, std::string> HeroCanEditTaxes(const WorldState& world)
+Core::Expected<bool, std::string> HeroCanEditTaxes(const Kernel::WorldState& world)
 {
     if (world.Hero().guildStatus != Master)
         return false;

@@ -39,11 +39,11 @@
 #include <string>
 #include <vector>
 
-// Scenes::ApplyActionReply: el 18 de otro personaje (0x4cb750; 04 § La acción, 18). Las claves, las clases y las
+// Actors::ApplyActionReply: el 18 de otro personaje (0x4cb750; 04 § La acción, 18). Las claves, las clases y las
 // posiciones son inventadas; la tabla esperada sale de los bloques del ASM (0x4cb812..0x4cbcdb), no de una corrida.
 namespace
 {
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 
 constexpr std::uint16_t OtherKey = 0x1234;
 constexpr std::size_t OtherSlot = 12;
@@ -149,18 +149,18 @@ protected:
     Client::Core::Expected<void, std::string> Apply(std::uint8_t direction, std::uint8_t action,
                                                     std::uint16_t key = OtherKey)
     {
-        Client::Scenes::ActionSender send{};
+        Client::Actors::ActionSender send{};
         if (m_withSender)
             send = Client::Tests::RecordingActions(m_sent);
-        return Client::Scenes::ApplyActionReply(
+        return Client::Actors::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = key, .direction = direction, .action = action}, Resources(),
             send);
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_input;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
     ReplyModels m_models;
     Client::Tests::RecordingSink m_sink;

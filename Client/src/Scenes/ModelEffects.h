@@ -22,6 +22,12 @@ class FrameSprites;
 class Particles;
 } // namespace Client::World
 
+namespace Client::Kernel
+{
+struct ActorState;
+class WorldState;
+} // namespace Client::Kernel
+
 // 0x505de0 de un personaje que no es el 0x20a, desde el rand() & 7 de 0x506cac hasta 0x50862f (06, "Los efectos de los
 // personajes (0x505de0)"): el caso de su tipo (la tabla de bytes 0x508884 sobre la de saltos 0x50880c) o, sin caso, los
 // seis helpers de 0x5085db en orden hasta el primero que devuelve 1 (0x43bdd0, 0x42de90, 0x441210, 0x42f550, 0x431470 y
@@ -31,14 +37,12 @@ class Particles;
 // indefinido del original), siempre después de los rand() que el original saca antes.
 namespace Client::Scenes
 {
-struct ActorState;
-class WorldState;
 
 struct ModelEffectsPass
 {
-    ActorState& actor;
+    Kernel::ActorState& actor;
     std::size_t slot = 0;
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     // El modelo del tipo (0x5769ad8 + tipo · 0xe0): la cantidad de huesos de +0x22 y la velocidad de las acciones.
     const Models::Skeleton& skeleton;

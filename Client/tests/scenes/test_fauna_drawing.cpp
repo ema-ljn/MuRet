@@ -63,9 +63,9 @@ class FaunaDrawingTest : public ::testing::Test
 protected:
     Client::Scenes::FaunaState m_fauna;
     Models m_models;
-    Client::World::WorldTerrain m_terrain;
-    Client::World::TerrainLighting m_light;
-    Client::World::TerrainPolygon m_polygon{.everything = true};
+    Client::Terrain::WorldTerrain m_terrain;
+    Client::Terrain::TerrainLighting m_light;
+    Client::Terrain::TerrainPolygon m_polygon{.everything = true};
     Client::Models::ClothWorld m_cloth;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
@@ -186,7 +186,7 @@ TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
     pass.originalFrame = true;
     pass.random = &m_cloth.random;
     int publications = 0;
-    pass.onPose = [&](const Client::Scenes::DrawnObject& drawn)
+    pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     {
         ++publications;
         return PublishFaunaPose(m_carry, m_models, drawn, true);
@@ -207,7 +207,7 @@ TEST_F(FaunaDrawingTest, AnIntermediateWorldDrawDoesNotPublishTheNativeScratchAg
     Client::Scenes::GameObjectPass pass;
     pass.originalFrame = false;
     int publications = 0;
-    pass.onPose = [&](const Client::Scenes::DrawnObject& drawn)
+    pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     {
         ++publications;
         return PublishFaunaPose(m_carry, m_models, drawn, true);
@@ -299,7 +299,7 @@ TEST_F(FaunaDrawingTest, DurableFixedHeightFeedsBirdAndFishShadowsAndTheirModelO
 }
 TEST_F(FaunaDrawingTest, TransparentFloorItemsPublishBonesWithoutReplacingTheMeshScratch)
 {
-    Client::Scenes::DrawnObject item;
+    Client::Actors::Drawing::DrawnObject item;
     item.model = 0xad;
     item.alpha = 0;
     item.transform.position = {1000, 2000, 3000};
@@ -338,7 +338,7 @@ TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposin
     Client::Scenes::GameObjectPass pass;
     pass.random = &m_cloth.random;
     pass.retainedPose = &m_carry;
-    pass.onPose = [&](const Client::Scenes::DrawnObject& object)
+    pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return PublishFaunaPose(m_carry, m_models, object, true); };
     ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
     ASSERT_FALSE(m_batch.Vertices().empty());
@@ -371,7 +371,7 @@ TEST_F(FaunaDrawingTest, CharacterBodiesInitializeDummyMatricesFromTheSharedScra
 {
     m_carry.bones.resize(3, Client::Math::BoneTransform(0));
     m_carry.bones[2][3] = {7, 8, 9};
-    Client::Scenes::DrawnCharacter character;
+    Client::Actors::Drawing::DrawnCharacter character;
     character.object.position = {1000, 1000, 300};
     character.castsShadow = false;
     character.poseBones = [&](std::uint16_t) { return std::span<const Client::Math::BoneTransform>(m_carry.bones); };

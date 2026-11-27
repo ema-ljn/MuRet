@@ -11,27 +11,31 @@ namespace Client::Models
 struct ClothWorld;
 }
 
-namespace Client::World
+namespace Client::Terrain
 {
 struct WorldTerrain;
 }
 
-// El constructor de personaje, 0x511290. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
-// "El héroe" y "Los personajes de la lista".
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+// El constructor de personaje, 0x511290. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
+// "El héroe" y "Los personajes de la lista".
+namespace Client::Actors
+{
 
 // Lo que 0x511290 lee fuera del personaje para la altura. Quien llama lo presta durante la llamada.
 struct ActorConstructionContext
 {
     // Las tablas del mundo cargado: los atributos y las alturas.
-    const World::WorldTerrain& terrain;
+    const Terrain::WorldTerrain& terrain;
     // DAT_006c9dd0, el mundo en curso: con −1 no suma el corrimiento de la mascota.
     std::int32_t map;
     // DAT_006d5dc8: 0x5f93c0 no mira las tablas en las escenas 0, 1 y 3.
-    World::CullingScene scene;
-    // 0x6c9d5c, la altura fija de la cámara (World::GameCamera::fixedHeight).
+    Terrain::CullingScene scene;
+    // 0x6c9d5c, la altura fija de la cámara (Camera::GameCamera::fixedHeight).
     float fixedHeight;
 };
 
@@ -44,7 +48,7 @@ struct ActorPlacement
 };
 
 // 0x5f93c0 sale con 0 antes de leer las tablas con estos valores nativos de escena.
-[[nodiscard]] bool HeightSkippedIn(World::CullingScene scene);
+[[nodiscard]] bool HeightSkippedIn(Terrain::CullingScene scene);
 
 // 0xa8..0xac: los cinco NewFace de 0x61ca30, con el camino genérico leído de 0x511290.
 [[nodiscard]] bool IsNewFace(std::uint16_t type);
@@ -62,8 +66,8 @@ struct ActorPlacement
 // 4 rand() de `cloth` si queda sin accesos: 28 desde cero. No toca la clave (+0x1f4). Cualquier tipo (CL9 hito 2):
 // solo el 0x20a arranca en la acción 1 y solo los NewFace conservan la clase; la caja (+0x124..+0x138) y los huesos de
 // las manos (+0x2bd y +0x2dd) van por las tablas del tipo, con 0x43a250 y 0x42d7f0 en el caso 0x5126b2.
-[[nodiscard]] Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_t type,
+[[nodiscard]] Core::Expected<void, std::string> ConstructActor(Kernel::ActorState& actor, std::uint16_t type,
                                                                const ActorPlacement& placement,
                                                                const ActorConstructionContext& context,
                                                                Models::ClothWorld& cloth);
-} // namespace Client::Scenes
+} // namespace Client::Actors

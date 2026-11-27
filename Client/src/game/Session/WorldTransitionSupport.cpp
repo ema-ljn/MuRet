@@ -43,12 +43,12 @@
 
 namespace Client::Scenes
 {
-ActorState& PublishedHero(const WorldEntryResources& resources)
+Kernel::ActorState& PublishedHero(const WorldEntryResources& resources)
 {
     return resources.world.Hero();
 }
-Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorState& actor,
-                                                                    const WorldEntryResources& resources)
+Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(const Kernel::ActorState& actor,
+                                                                            const WorldEntryResources& resources)
 {
     const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
     const bool isPlayer = actor.type == Tables::PlayerSkeletonModel;
@@ -57,38 +57,43 @@ Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorS
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, actor.type);
-    return ActorStopContext{.runtime = resources.world.Runtime(),
-                            .scene = SceneId::Game,
-                            .playerSkeleton = *playerSkeleton,
-                            .items = resources.items,
-                            .random = resources.cloth.random,
-                            .terrainWalls = resources.world.Map().terrain.attributes
-                                                ? &resources.world.Map().terrain.attributes->cells
-                                                : nullptr,
-                            .actorSkeleton = actorSkeleton,
-                            .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
+    return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
+                                    .scene = SceneId::Game,
+                                    .playerSkeleton = *playerSkeleton,
+                                    .items = resources.items,
+                                    .random = resources.cloth.random,
+                                    .terrainWalls = resources.world.Map().terrain.attributes
+                                                        ? &resources.world.Map().terrain.attributes->cells
+                                                        : nullptr,
+                                    .actorSkeleton = actorSkeleton,
+                                    .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
 }
-Core::Expected<void, std::string> StopTransitionHero(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> StopTransitionHero(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     actor.movement = 0;
     const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
-    const auto stopped = SetActorStop(actor, stop.Value());
+    const auto stopped = Actors::SetActorStop(actor, stop.Value());
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     return {};
 }
-Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> DressTransitionHero(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     auto& world = resources.world;
     const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
-    const ActorEquipmentContext context{
-        world.OwnCharacter(), world.Runtime().ownRecordDepth, PublishedHero(resources), world.Runtime().fullSetScan,
-        stop.Value(),         resources.itemSetTables,        &world.ItemSets(),        HeldItemOf(world.Runtime())};
-    const auto dressed = ApplyActorEquipment(actor, context);
+    const Actors::ActorEquipmentContext context{world.OwnCharacter(),
+                                                world.Runtime().ownRecordDepth,
+                                                PublishedHero(resources),
+                                                world.Runtime().fullSetScan,
+                                                stop.Value(),
+                                                resources.itemSetTables,
+                                                &world.ItemSets(),
+                                                Player::HeldItemOf(world.Runtime())};
+    const auto dressed = Actors::ApplyActorEquipment(actor, context);
     if (!dressed.HasValue())
         return Core::Unexpected(dressed.Error());
     return {};
@@ -105,16 +110,17 @@ Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint1
     resources.cameraInput.map = static_cast<std::uint8_t>(resources.world.Runtime().map);
     return {};
 }
-Core::Expected<void, std::string> RefreshTransitionHeight(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> RefreshTransitionHeight(Kernel::ActorState& actor,
+                                                          const WorldEntryResources& resources)
 {
     const auto& terrain = resources.world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x5f93c0: faltan alturas o atributos al trasladar al héroe"));
-    const ActorConstructionContext context{terrain, resources.world.Runtime().map, World::CullingScene::Game,
-                                           resources.camera.fixedHeight};
+    const Actors::ActorConstructionContext context{terrain, resources.world.Runtime().map, Terrain::CullingScene::Game,
+                                                   resources.camera.fixedHeight};
     constexpr std::uint16_t Dinorant = 0x1c15;
-    actor.position.z = static_cast<float>(ConstructionHeight(context, actor.position.x, actor.position.y,
-                                                             actor.pet.model == Dinorant, actor.safeZone != 0));
+    actor.position.z = static_cast<float>(Actors::ConstructionHeight(context, actor.position.x, actor.position.y,
+                                                                     actor.pet.model == Dinorant, actor.safeZone != 0));
     return {};
 }
 namespace
@@ -125,7 +131,7 @@ using Maps::LastChaosCastleMap;
 
 // 0x4167b0 desde 0x420d60 o 0x420cf0: el cuervo nuevo en +0x430, en el centro de la celda del dueño y a la
 // altura del terreno ahí (0x5f93c0).
-Core::Expected<void, std::string> CreateTheRaven(ActorState& actor, const WorldEntryResources& resources,
+Core::Expected<void, std::string> CreateTheRaven(Kernel::ActorState& actor, const WorldEntryResources& resources,
                                                  std::string_view where)
 {
     const auto& terrain = resources.world.Map().terrain;
@@ -133,7 +139,7 @@ Core::Expected<void, std::string> CreateTheRaven(ActorState& actor, const WorldE
         return Core::Unexpected(std::format("{}: faltan alturas o atributos para el cuervo", where));
     constexpr float CellSize = 100.0f;
     constexpr float Center = 50.0f;
-    const double height = World::TerrainHeightAt(
+    const double height = Terrain::TerrainHeightAt(
         *terrain.heights, *terrain.attributes, static_cast<float>(actor.cellX) * CellSize + Center,
         static_cast<float>(actor.cellY) * CellSize + Center, resources.camera.fixedHeight);
     actor.darkSpirit =
@@ -143,7 +149,8 @@ Core::Expected<void, std::string> CreateTheRaven(ActorState& actor, const WorldE
 }
 } // namespace
 
-Core::Expected<void, std::string> RecreateTransitionRaven(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> RecreateTransitionRaven(Kernel::ActorState& actor,
+                                                          const WorldEntryResources& resources)
 {
     constexpr std::uint16_t Raven = 0x1c17;
     if (actor.hands[1].model != Raven)
@@ -151,7 +158,7 @@ Core::Expected<void, std::string> RecreateTransitionRaven(ActorState& actor, con
     actor.darkSpirit.reset();
     return CreateTheRaven(actor, resources, "0x420d60");
 }
-Core::Expected<void, std::string> ReplaceTheRaven(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ReplaceTheRaven(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     actor.darkSpirit.reset();
     const std::int32_t map = resources.world.Runtime().map;
@@ -167,7 +174,7 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
     // 0x4c4e86..0x4c4e8d y 0x4c77eb..0x4c77f2: 0x451590 deja solo el cartel de la tienda del héroe.
     KeepTheHeroShopTitle(resources.world);
 }
-void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resources)
+void CreateTransitionArrival(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     static_cast<void>(resources.world.Map().effects.Create(World::ModelEffectArguments{.type = World::ArrivalEffect,
                                                                                        .position = actor.position,
@@ -177,7 +184,8 @@ void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resou
                                                                                        .key = 0xffff,
                                                                                        .scale = 0.0f}));
 }
-Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> StartTheTeleportAction(Kernel::ActorState& actor,
+                                                         const WorldEntryResources& resources)
 {
     RefreshCombatActionSpeeds(resources);
     const auto stop = TransitionStopContext(actor, resources);
@@ -204,7 +212,7 @@ Core::Expected<void, std::string> AddTheWelcomeLine(const WorldEntryResources& r
         return Core::Unexpected(std::string("0x4c4b38 y 0x4c7c26: falta Text.bmd para el renglón de bienvenida"));
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::string("0x4c4b60 y 0x4c7c4e: falta el medidor para el renglón de bienvenida"));
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const auto name = resources.texts->Text(Maps::MapNameText(runtime.map));
     const auto welcome = resources.texts->Text(WelcomeText);
     if (!name || !welcome)

@@ -116,9 +116,9 @@ template <> struct RoutedPart<const Scenes::WorldEntryResources&>
     }
 };
 
-template <> struct RoutedPart<Scenes::WorldState&>
+template <> struct RoutedPart<Kernel::WorldState&>
 {
-    static Scenes::WorldState& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    static Kernel::WorldState& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
     {
         return world.world;
     }
@@ -188,9 +188,9 @@ template <> struct RoutedPart<const Scenes::ActorCombatContext&>
 };
 
 // The C1 18 through the session's GameServer (App::ServerSession::SendAction).
-template <> struct RoutedPart<const Scenes::ActionSender&>
+template <> struct RoutedPart<const Actors::ActionSender&>
 {
-    static Scenes::ActionSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
+    static Actors::ActionSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
 };
 
 // A world packet through the session's GameServer (App::ServerSession::SendGamePacket).

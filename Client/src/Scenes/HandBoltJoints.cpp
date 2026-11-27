@@ -56,7 +56,7 @@ void CreateHandBoltJoint(JointState& joint)
 namespace
 {
 // 0x539def..0x539e6f: (rand() & 3) + 4 por 0,05f (0x6b8a48) en la luz dinámica de radio 2.
-Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, World::TerrainLighting* lighting)
+Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, Terrain::TerrainLighting* lighting)
 {
     constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
     constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
@@ -107,7 +107,7 @@ Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint, const Joi
         // 0x539ce1..0x539cff: salvo la /2, el destino es el personaje dueño, 80 más arriba.
         if (joint.subtype != 2)
         {
-            const ActorState* owner = JointKernels::ActorOwner(joint);
+            const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
             if (owner == nullptr)
                 return Core::Unexpected(
                     std::format("0x539cea: falta el personaje dueño del joint {:#x}/{}", joint.type, joint.subtype));

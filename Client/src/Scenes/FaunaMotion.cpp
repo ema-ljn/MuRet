@@ -44,7 +44,7 @@ std::int32_t TargetAngle(float fromX, float fromY, float targetX, float targetY)
 
 double FaunaHeight(const FaunaStepContext& context, float x, float y)
 {
-    return World::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, x, y, context.fixedHeight);
+    return Terrain::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, x, y, context.fixedHeight);
 }
 float FaunaSine(float phase)
 {

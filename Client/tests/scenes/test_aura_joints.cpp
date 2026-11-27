@@ -31,7 +31,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 

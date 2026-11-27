@@ -65,11 +65,11 @@ Result KnockDownTheHero(const glm::vec3& point, float radius, const WorldEntryRe
     if (hero.animation.action == Knockdown || !InRange(point, hero.position, radius))
         return {};
     const bool fenrir = hero.pet.model == 0x1c37;
-    if (auto set = SetMonsterAction(hero, fenrir ? FenrirHitActionOf(hero) : Knockdown, 0x4295f0, resources);
+    if (auto set = SetMonsterAction(hero, fenrir ? Actors::FenrirHitActionOf(hero) : Knockdown, 0x4295f0, resources);
         !set.HasValue())
         return set;
     // 429724 pasa5d alwireaunquelaacciónlocaldelFenrirseeligecon4e9cd0.
-    const auto direction = ActionDirection(hero.angles.z);
+    const auto direction = Actors::ActionDirection(hero.angles.z);
     if (!direction)
         return Core::Unexpected(std::string("4295f0: ángulodeacciónfuera de_ftol"));
     if (resources.sendGamePacket)
@@ -153,13 +153,13 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
                         .PutU8(lo)));
         },
         .deform = [&world](float x, float y, std::int32_t tx, std::int32_t ty)
-        { return World::DeformTheSiegeTerrain(world.Map().terrain, x, y, tx, ty); },
+        { return Terrain::DeformTheSiegeTerrain(world.Map().terrain, x, y, tx, ty); },
         .sound = [&world](std::int32_t sound, const glm::vec3& position)
         { world.Runtime().RequestSound(sound, position, false); }};
     const auto& terrain = world.Map().terrain;
     if (terrain.heights && terrain.attributes)
         services.terrainHeight = [&terrain, &resources](float x, float y)
-        { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, resources.camera.fixedHeight); };
+        { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, resources.camera.fixedHeight); };
     return services;
 }
 } // namespace Client::Scenes

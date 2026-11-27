@@ -53,7 +53,7 @@ constexpr std::uint32_t GateOpenFlag = 0x20000;
 constexpr std::size_t SummonNameBytes = 24;
 
 // 0x4c9790, los casos con la acción 1, +0x112 en 1, el alpha en 1 y, si hay, el sonido.
-Core::Expected<void, std::string> RiseWithActionOne(ActorState& actor, std::uint32_t address,
+Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, std::uint32_t address,
                                                     std::optional<std::int32_t> sound,
                                                     const WorldEntryResources& resources)
 {
@@ -67,7 +67,7 @@ Core::Expected<void, std::string> RiseWithActionOne(ActorState& actor, std::uint
 }
 
 // 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: la puerta de Castle Siege.
-Core::Expected<void, std::string> CheckTheSiegeGate(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> CheckTheSiegeGate(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     if (resources.world.Runtime().map != CastleSiegeMap || actor.word376 != SiegeGateKind)
         return {};
@@ -80,7 +80,7 @@ Core::Expected<void, std::string> CheckTheSiegeGate(ActorState& actor, const Wor
 
 // 0x4c9cf8..0x4c9d3c: el multiplicador del ángulo, 45 o, con el modelo 0x1b5, los de la celda. Los DWORD de +0x420 y
 // +0x41c se leen sin abrir su entrada: lo que dejó el último cierre de 0x511290 (Q-C849).
-float AngleStepOf(const ActorState& actor)
+float AngleStepOf(const Kernel::ActorState& actor)
 {
     constexpr std::uint16_t RotatedModel = 0x1b5;
     float step = 45.0f; // 0x6b8848
@@ -98,22 +98,23 @@ float AngleStepOf(const ActorState& actor)
 Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Actors::MonsterRecord& record,
                                                      const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
     const auto created = CreateMonster(record.type, record.x, record.y, record.key, resources);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
-    ActorState& actor = world.Actors()[index];
+    Kernel::ActorState& actor = world.Actors()[index];
     // 0x4c9cee..0x4c9cf3.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
+    if (auto flagged = Actors::ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources);
+        !flagged.HasValue())
         return flagged;
     constexpr int DirectionShift = 4;
     const float step = AngleStepOf(actor);
     actor.angles.z = (static_cast<float>(record.direction >> DirectionShift) - 1.0f) * step;
     // 0x4c9d67..0x4c9ee9.
-    WriteTheCells(actor, record.x, record.y, random);
+    Actors::WriteTheCells(actor, record.x, record.y, random);
     constexpr std::uint8_t HighBit = 0x80;
     constexpr std::uint8_t StanceMask = 7;
     actor.byte42d = record.typeHigh & HighBit;
@@ -123,7 +124,7 @@ Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Actors::Mon
     // 0x4c9f4c..0x4ca07a.
     if (record.isNew)
         return ArriveAsNew(actor, resources);
-    return WalkToTheTarget(actor, record.targetX, record.targetY, resources);
+    return Actors::WalkToTheTarget(actor, record.targetX, record.targetY, resources);
 }
 
 // 0x51743f: wsprintfA(local de 0x64 bytes, el nombre de +0x1d9 como formato, el dueño de pkt + 0xd), sin más
@@ -175,7 +176,7 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
     const auto created = CreateMonster(record.type, record.x, record.y, record.key, resources);
     if (!created.HasValue())
         return created;
-    ActorState& actor = resources.world.Actors()[created.Value()];
+    Kernel::ActorState& actor = resources.world.Actors()[created.Value()];
     constexpr std::uint16_t FirstSummonLevel = 0x97;
     actor.level = static_cast<std::uint16_t>(record.type - FirstSummonLevel);
     // 0x51743f: el formato es el nombre que dejó la cola (0x5140c0) con NpcName(%s).txt sobre la cadena vacía del caso
@@ -231,7 +232,8 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
 }
 
 // 0x4ca516..0x4ca5bf: el dueño (diez bytes, con +0x1e3 en 0 antes), el Text 485 y el nombre que tenía.
-Core::Expected<void, std::string> NameAfterTheOwner(ActorState& actor, const Protocol::Actors::SummonRecord& record,
+Core::Expected<void, std::string> NameAfterTheOwner(Kernel::ActorState& actor,
+                                                    const Protocol::Actors::SummonRecord& record,
                                                     const WorldEntryResources& resources)
 {
     // 0x76e0a38, el registro 485 de Text.bmd.
@@ -273,8 +275,8 @@ bool IsSummonType(std::uint16_t type)
 Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::SummonRecord& record,
                                                     const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
     const bool summon = IsSummonType(record.type);
     const auto created = summon ? CreateSummon(record, resources)
@@ -282,12 +284,13 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
-    ActorState& actor = world.Actors()[index];
+    Kernel::ActorState& actor = world.Actors()[index];
     // 0x4ca16d..0x4ca1a4.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
+    if (auto flagged = Actors::ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources);
+        !flagged.HasValue())
         return flagged;
-    actor.angles.z = AngleOf(record.directionAndPk);
-    WriteTheCells(actor, record.x, record.y, random);
+    actor.angles.z = Actors::AngleOf(record.directionAndPk);
+    Actors::WriteTheCells(actor, record.x, record.y, random);
     // 0x4ca4de..0x4ca4fa.
     constexpr std::uint8_t PkMask = 0xf;
     constexpr std::uint8_t MurdererPk = 6;
@@ -335,11 +338,11 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
         }
         return {};
     }
-    return WalkToTheTarget(actor, record.targetX, record.targetY, resources);
+    return Actors::WalkToTheTarget(actor, record.targetX, record.targetY, resources);
 }
 
 // 0x4e0b7f..0x4e0b9b y 0x4e0dea..0x4e0e13: +0x428 en 0x96 y el ángulo rand() % 360.
-void TurnAtRandom(ActorState& actor, Crt::CrtRandom& random)
+void TurnAtRandom(Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
     using Math::FullTurn;
     constexpr std::int32_t ObjectMark = 0x96;
@@ -352,17 +355,17 @@ void TurnAtRandom(ActorState& actor, Crt::CrtRandom& random)
 Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::ObjectRecord& record,
                                                     const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
-    const ActorConstructionContext construction{world.Map().terrain, runtime.map, World::CullingScene::Game,
-                                                resources.camera.fixedHeight};
-    const auto created = CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
-                                     construction, resources.cloth);
+    const Actors::ActorConstructionContext construction{world.Map().terrain, runtime.map, Terrain::CullingScene::Game,
+                                                        resources.camera.fixedHeight};
+    const auto created = Actors::CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
+                                             construction, resources.cloth);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
-    ActorState& actor = world.Actors()[index];
+    Kernel::ActorState& actor = world.Actors()[index];
     // ((b & 0x10) | (b >> 4)) >> 1, como el 12.
     constexpr std::uint8_t EvolutionBit = 0x10;
     constexpr int ClassShift = 4;
@@ -373,12 +376,14 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
     actor.skin = 0;
     actor.pk = 0;
     actor.byte88 = ObjectClass;
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
+    if (auto flagged = Actors::ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources);
+        !flagged.HasValue())
         return flagged;
-    WriteTheCells(actor, record.x, record.y, random);
+    Actors::WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
     // 0x4e0e16..0x4e0e1f: 0x5139f0 con el lugar de 0x5110d0 y el equipo de +7.
-    if (auto set = ApplyCharacterSet(ActorWithKey(world, record.key), record.equipment, resources); !set.HasValue())
+    if (auto set = Actors::ApplyCharacterSet(ActorWithKey(world, record.key), record.equipment, resources);
+        !set.HasValue())
         return set;
     // 0x4e0e24..0x4e0e52: "   " (0x6c8648) y +0x1e3 en 0.
     constexpr std::array<std::byte, 4> Blank{std::byte{' '}, std::byte{' '}, std::byte{' '}, std::byte{0}};
@@ -392,8 +397,8 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
 Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Actors::ObjectRecord& record,
                                                      const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
     constexpr int TypeHighShift = 8;
     const auto type = static_cast<std::int32_t>(record.classOrTypeHigh << TypeHighShift | record.typeLow);
@@ -401,18 +406,19 @@ Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Actors::Obj
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
-    ActorState& actor = world.Actors()[index];
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
+    Kernel::ActorState& actor = world.Actors()[index];
+    if (auto flagged = Actors::ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources);
+        !flagged.HasValue())
         return flagged;
-    WriteTheCells(actor, record.x, record.y, random);
+    Actors::WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
     return CheckTheSiegeGate(actor, resources);
 }
 } // namespace
 
-Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     switch (actor.word376)
     {
     case 0x15:
@@ -423,7 +429,7 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     case 0x36:
     {
         // 0x4c9828..0x4c984f: +0x3e5 en 0x3c antes de la acción 1 (0x4c9832), sin sonido. El freno lo bajan
-        // 0x505de0 (0x5069ae, Scenes::StepActorCooldown, con sus veinte vueltas de efectos), 0x508ba0 y el D3.
+        // 0x505de0 (0x5069ae, Actors::StepActorCooldown, con sus veinte vueltas de efectos), 0x508ba0 y el D3.
         constexpr std::uint8_t ArrivalCooldown = 0x3c;
         actor.movementCooldown = ArrivalCooldown;
         return RiseWithActionOne(actor, 0x4c9832, std::nullopt, resources);

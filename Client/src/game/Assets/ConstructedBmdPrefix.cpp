@@ -7,7 +7,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 Core::Expected<void, std::string> ConstructedBmdPrefix::Initialize(std::uint16_t constructedBeforeBase)
 {
@@ -30,4 +30,4 @@ std::optional<std::uint16_t> ConstructedBmdPrefix::Offset() const
 {
     return m_offset;
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

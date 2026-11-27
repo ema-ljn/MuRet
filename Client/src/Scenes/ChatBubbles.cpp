@@ -9,6 +9,7 @@
 #include "Scenes/ShopSigns.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -116,9 +117,9 @@ std::string ReadAt(const GuildBytes& bytes, std::size_t at)
 // 0x4518b0 con strcpy (0x556e26..0x556e60). Después, con gremio (+0x1f2 no negativo), la alianza (+0x4 de la entrada)
 // en +0x18 si tiene nombre, +0x65 = +0x374 y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y
 // +0x65 en 0.
-Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, const GuildState& guild,
-                                               const Tables::TextTable* texts, const PersonalShopState& shops,
-                                               std::size_t ownerIndex)
+Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const Kernel::ActorState& owner,
+                                               const GuildState& guild, const Tables::TextTable* texts,
+                                               const PersonalShopState& shops, std::size_t ownerIndex)
 {
     bubble.shopTitle = ShortShopTitle(shops, ownerIndex);
     GuildBytes bytes{};
@@ -203,7 +204,7 @@ void PutTheLine(ChatBubble& bubble, std::string_view text, std::int32_t steps)
 }
 } // namespace
 
-std::string ChatNameOf(const ActorState& actor)
+std::string ChatNameOf(const Kernel::ActorState& actor)
 {
     std::string name(HeroNameOf(actor));
     if (name.size() == actor.name.size() && actor.byte1e3 != 0)
@@ -211,16 +212,16 @@ std::string ChatNameOf(const ActorState& actor)
     return name;
 }
 
-Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBubbleMeasure& measure,
+Core::Expected<void, std::string> AddChatBubble(Kernel::WorldState& world, const ChatBubbleMeasure& measure,
                                                 std::string_view name, std::string_view text, std::size_t owner,
                                                 ChatBubbleMode mode, std::optional<std::uint8_t> color)
 {
-    const ActorState& speaker = world.Actors()[owner];
+    const Kernel::ActorState& speaker = world.Actors()[owner];
     if (!speaker.alive || !speaker.seen)
         return {};
     name = CString(name);
     text = CString(text);
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     ChatBubbleTable& bubbles = runtime.chat.bubbles;
     // 0x557190..0x5571a6: sin color (−1), el PK; con +0x88 en 4, 0.
     const std::uint8_t shown = color.value_or(speaker.byte88 == NpcKind ? std::uint8_t{0} : speaker.pk);
@@ -288,18 +289,18 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
     return {};
 }
 
-Core::Expected<void, std::string> AddChatBubbleByName(WorldState& world, const ChatBubbleMeasure& measure,
+Core::Expected<void, std::string> AddChatBubbleByName(Kernel::WorldState& world, const ChatBubbleMeasure& measure,
                                                       std::string_view name, std::string_view text, ChatBubbleMode mode)
 {
     name = CString(name);
     // 0x557560 mira los 400 primeros, sin el 401.
-    constexpr std::size_t Searched = ActorPoolSize - 1;
-    const std::span<const ActorState, ActorPoolSize> actors = world.Actors();
+    constexpr std::size_t Searched = Kernel::ActorPoolSize - 1;
+    const std::span<const Kernel::ActorState, Kernel::ActorPoolSize> actors = world.Actors();
     for (const std::uint8_t kind : {PlayerKind, MonsterKind})
     {
         for (std::size_t index = 0; index < Searched; ++index)
         {
-            const ActorState& actor = actors[index];
+            const Kernel::ActorState& actor = actors[index];
             if (actor.alive && actor.byte88 == kind && ChatNameOf(actor) == name)
                 return AddChatBubble(world, measure, name, text, index, mode);
         }
@@ -307,11 +308,11 @@ Core::Expected<void, std::string> AddChatBubbleByName(WorldState& world, const C
     return {};
 }
 
-Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const ChatBubbleStepInput& input)
+Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, const ChatBubbleStepInput& input)
 {
-    WorldRuntime& runtime = world.Runtime();
-    const std::span<const ActorState, ActorPoolSize> actors = world.Actors();
-    const ActorState& hero = world.Hero();
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    const std::span<const Kernel::ActorState, Kernel::ActorPoolSize> actors = world.Actors();
+    const Kernel::ActorState& hero = world.Hero();
     for (ChatBubble& bubble : runtime.chat.bubbles)
     {
         if (bubble.nameTime > 0)

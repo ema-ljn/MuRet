@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Camera
 {
 namespace
 {
@@ -78,15 +78,15 @@ float FarPlaneOf(const GameCamera& state, const GameCameraInput& input)
     if (input.hero.x >= RectangleMinX && input.hero.x <= RectangleMaxX && input.hero.y >= RectangleMinY &&
         input.hero.y <= RectangleMaxY)
         return RectangleFar;
-    if (input.map == CastleMap && input.scene == CullingScene::Game)
+    if (input.map == CastleMap && input.scene == Terrain::CullingScene::Game)
         return LevelFar[1];
     if (state.level < 0 || state.level >= static_cast<int>(LevelFar.size()))
         return state.farPlane;
     if (state.level != 0)
         return LevelFar[static_cast<std::size_t>(state.level)];
-    if (input.scene == CullingScene::Login)
+    if (input.scene == Terrain::CullingScene::Login)
         return LoginFar;
-    if (input.scene == CullingScene::CharacterSelect)
+    if (input.scene == Terrain::CullingScene::CharacterSelect)
         return SelectionFar;
     return LevelFar[0];
 }
@@ -94,13 +94,13 @@ float FarPlaneOf(const GameCamera& state, const GameCameraInput& input)
 void SetFixedSceneCamera(Render::Camera3D& camera, const GameCameraInput& input)
 {
     float pitch = NormalPitch;
-    if (input.scene == CullingScene::Login)
+    if (input.scene == Terrain::CullingScene::Login)
     {
         camera.position = LoginPosition;
         camera.angles.z = LoginYaw;
         pitch = LoginPitch;
     }
-    else if (input.scene == CullingScene::CharacterSelect)
+    else if (input.scene == Terrain::CullingScene::CharacterSelect)
     {
         camera.position = SelectionPosition;
         camera.angles.z = SelectionYaw;
@@ -237,4 +237,4 @@ Render::Camera3D GameCameraOf(const GameCamera& state, const GameCameraInput& in
     ApplyRocking(camera, input);
     return camera;
 }
-} // namespace Client::World
+} // namespace Client::Camera

@@ -59,7 +59,7 @@ struct Harness
         world->OwnCharacter().equipment[8].id = 0xffff;
         context.requestGate = [this](std::uint8_t gate) { sent.push_back(gate); };
     }
-    std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom random{1};
     GateTable gates;
     std::vector<std::uint8_t> sent;

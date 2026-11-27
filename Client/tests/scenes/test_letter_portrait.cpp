@@ -41,6 +41,7 @@
 #include "Scenes/TooltipLines.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
 #include "UI/LetterModel.h"
@@ -82,11 +83,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::GameLogic::BodyPart;
-using Client::GameLogic::ClassPartModel;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::BodyPart;
+using Client::Kernel::ClassPartModel;
+using Client::Kernel::NoItemModel;
 using Client::Scenes::LetterPortrait;
-using Client::Scenes::NoItemModel;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 
@@ -216,10 +217,10 @@ struct Game
     {
         return world.Actors()[0];
     }
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     // Con `drawable`, los modelos de lo que dibuja el retrato en vez de los de arriba.
@@ -240,7 +241,7 @@ protected:
     std::unique_ptr<Game> Load(std::uint8_t map)
     {
         auto game = std::make_unique<Game>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())
             game->world.Map().terrain = std::move(loaded).Value();
@@ -359,7 +360,7 @@ TEST_F(LetterPortraitTest, DressingKeepsTheFirstHelperOnly)
         const LetterPortrait& portrait = game->portrait;
         EXPECT_TRUE(portrait.helper.alive);
         EXPECT_EQ(portrait.helper.type, 0xc6);
-        EXPECT_EQ(portrait.helper.rider, Client::Scenes::ActorPoolSize);
+        EXPECT_EQ(portrait.helper.rider, Client::Kernel::ActorPoolSize);
         EXPECT_EQ(portrait.actor.pet.model, 0x1c16);
         EXPECT_EQ(portrait.helperScale,
                   static_cast<float>(static_cast<double>(portrait.helper.scale) * static_cast<double>(0.7f) / 0.9));
@@ -689,7 +690,7 @@ public:
     // Con `cloth` de rand() del frame: el del juego o, entre frames, su copia.
     Client::Scenes::LetterPortraitDraw Draw(Client::Models::ClothWorld& cloth, bool originalFrame)
     {
-        Client::Scenes::WorldRuntime& runtime = m_game.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = m_game.world.Runtime();
         ActorState& hero = m_game.Hero();
         m_hud.emplace(Client::Scenes::GameHudContext{.world = m_game.world,
                                                      .random = cloth.random,
@@ -721,7 +722,7 @@ public:
         Client::Tests::MakeTextTable({{997, "Arrastrar gira"}, {998, "Rueda acerca"}, {999, "Clic vuelve"}});
     std::optional<std::int32_t> sound;
     Client::Render::ModelBatch models;
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites frameSprites;
     std::vector<std::pair<std::string, std::size_t>> flushes;
 
@@ -821,9 +822,9 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
                                                           .sprites = &manual.frameSprites})
                         .HasValue());
         EXPECT_EQ(DrawsBetween(beforeHelper, twin->cloth.random), 1);
-        ASSERT_TRUE(Client::Scenes::DrawCharacterOutsideThePool(manual.models, twin->drawn, twin->world,
-                                                                twin->portrait.actor, twin->portrait.cloth,
-                                                                draw.characters, true)
+        ASSERT_TRUE(Client::Actors::Drawing::DrawCharacterOutsideThePool(manual.models, twin->drawn, twin->world,
+                                                                         twin->portrait.actor, twin->portrait.cloth,
+                                                                         draw.characters, true)
                         .HasValue());
         EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
         EXPECT_EQ(drawing.models.Vertices().size(), manual.models.Vertices().size());

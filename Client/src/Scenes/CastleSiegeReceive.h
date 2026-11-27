@@ -30,13 +30,17 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+struct WorldRuntime;
+} // namespace Client::Kernel
+
 // Los paquetes del castillo que llegan fuera de la batalla (CL9 hito 12; 04 § Castle Siege, las ventanas del
 // castillo): lo que hacen 0x4e2b10 y sus funciones con el B2 (0x00..0x10, 0x1A y 0x1F), el B3, el B4, el B5, el B6 y
 // el B8 sobre WorldRuntime::castleSiege, el héroe, los paneles y el chat. Ninguno mira la escena ni el flag de cifrado.
 namespace Client::Scenes
 {
-class WorldState;
-struct WorldRuntime;
 struct WorldEntryResources;
 
 // El GameServer: los C1 que manda el B2 02 con 1 (0x4df1a0).
@@ -44,7 +48,7 @@ using CastleSender = std::function<void(Protocol::Outgoing)>;
 
 struct CastleReceiveContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() de la CRT: lo que abre el B2 00 (0x6599a0) pasa por el registro de los paneles.
     Crt::CrtRandom& random;
     // Lo que se descarta (un registro que caería fuera de 0x7d5c504..0x7d5c658, Q-C1360) queda en el log.
@@ -68,5 +72,5 @@ ApplyCastleSiegePacket(const Protocol::CastleSiege::CastleSiegePacket& packet, c
 
 // 0x64b0f0, lo que el B2 00 con 1 o 2 guarda en [0x7d536f8] después de abrir el panel 0x80000: +4 en 1 (el byte de
 // abierto, DelegatedPanels::castleSiege), el estado, los dos nombres con strncpy, las tres fechas y lo que falta.
-void StoreTheCastleState(const Protocol::CastleSiege::CastleState& state, WorldRuntime& runtime);
+void StoreTheCastleState(const Protocol::CastleSiege::CastleState& state, Kernel::WorldRuntime& runtime);
 } // namespace Client::Scenes

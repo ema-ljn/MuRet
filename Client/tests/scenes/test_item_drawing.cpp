@@ -31,14 +31,14 @@
 
 namespace
 {
+using Client::Actors::Drawing::ItemPart;
+using Client::Actors::Drawing::ItemPartOwner;
+using Client::Actors::Drawing::ObjectOutlinePass;
+using Client::Actors::Drawing::SkinIndexOf;
+using Client::Actors::Drawing::WornParts;
 using Client::Math::BoneTransform;
 using Client::Render::Color;
 using Client::Render::TextureSlot;
-using Client::Scenes::ItemPart;
-using Client::Scenes::ItemPartOwner;
-using Client::Scenes::ObjectOutlinePass;
-using Client::Scenes::SkinIndexOf;
-using Client::Scenes::WornParts;
 
 constexpr std::uint16_t Head = 0x1ec;
 constexpr std::uint16_t Helm = 0x1013;
@@ -121,14 +121,16 @@ protected:
 
     Client::Core::Expected<void, std::string> DrawPart(const ItemPart& part)
     {
-        return Client::Scenes::DrawItemPart(m_batch, m_models, m_owner, part, Clock, m_context,
-                                            [this](const glm::vec3& position) { m_boxes.push_back(position); });
+        return Client::Actors::Drawing::DrawItemPart(m_batch, m_models, m_owner, part, Clock, m_context,
+                                                     [this](const glm::vec3& position)
+                                                     { m_boxes.push_back(position); });
     }
 
     Client::Core::Expected<void, std::string> DrawWorn(const WornParts& parts, std::uint8_t characterClass)
     {
-        return Client::Scenes::DrawWornParts(m_batch, m_models, m_owner, parts, characterClass, Clock, m_context,
-                                             [this](const glm::vec3& position) { m_boxes.push_back(position); });
+        return Client::Actors::Drawing::DrawWornParts(m_batch, m_models, m_owner, parts, characterClass, Clock,
+                                                      m_context, [this](const glm::vec3& position)
+                                                      { m_boxes.push_back(position); });
     }
 
     // The x of the first vertex of each triangle drawn, in order.
@@ -155,8 +157,8 @@ protected:
     Client::Render::ModelBatch m_batch;
     std::array<BoneTransform, 1> m_bones{BoneTransform(1.0f)};
     float m_light = 1.0f;
-    Client::Scenes::ItemSpecialDrawContext m_special;
-    Client::Scenes::ItemDrawContext m_context;
+    Client::Actors::Drawing::ItemSpecialDrawContext m_special;
+    Client::Actors::Drawing::ItemDrawContext m_context;
     ItemPartOwner m_owner;
     std::vector<glm::vec3> m_boxes;
 };

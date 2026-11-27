@@ -63,20 +63,21 @@ bool HasWaterOverlay(std::int16_t type)
 }
 
 Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                 const DrawnObject& drawn, Core::Duration frameClock, std::int16_t mesh,
-                                                 std::uint32_t flags,
+                                                 const Actors::Drawing::DrawnObject& drawn, Core::Duration frameClock,
+                                                 std::int16_t mesh, std::uint32_t flags,
                                                  std::optional<Render::TextureSlot> texture = std::nullopt)
 {
     if (!drawn.retainedMeshes.empty())
-        return DrawItemMeshPass(batch, models, drawn, frameClock, drawn.retainedMeshes, mesh, flags, texture);
+        return Actors::Drawing::DrawItemMeshPass(batch, models, drawn, frameClock, drawn.retainedMeshes, mesh, flags,
+                                                 texture);
     FaunaDrawCarry local;
     if (auto posed = PublishFaunaPose(local, models, drawn, true); !posed.HasValue())
         return posed;
-    return DrawItemMeshPass(batch, models, drawn, frameClock, local.meshes, mesh, flags, texture);
+    return Actors::Drawing::DrawItemMeshPass(batch, models, drawn, frameClock, local.meshes, mesh, flags, texture);
 }
 
 Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                               DrawnObject& drawn, Core::Duration frameClock,
+                                               Actors::Drawing::DrawnObject& drawn, Core::Duration frameClock,
                                                const GameObjectPass& pass)
 {
     // 439570: argumento sin spill binary32; el color sí tiene tres FSTP idénticos.
@@ -165,10 +166,11 @@ Core::Expected<void, std::string> WaterfallSound(const GameObjectPass& pass, std
 } // namespace
 
 Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       const World::WorldObject& object, const DrawnObject& drawn,
+                                                       const World::WorldObject& object,
+                                                       const Actors::Drawing::DrawnObject& drawn,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    DrawnObject current = drawn;
+    Actors::Drawing::DrawnObject current = drawn;
     if (HasWaterOverlay(object.type))
     {
         if (auto overlay = WaterOverlay(batch, models, current, frameClock, pass); !overlay.HasValue())
@@ -178,7 +180,7 @@ Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch
     // 4395bf: el tipo34 tiene una malla extra, sólo si el contador signed16 supera1.
     if (object.type == 34 && models.Find(drawn.model) != nullptr && models.Find(drawn.model)->meshes.size() > 1)
     {
-        if (!models.TextureSlotOf(ChromeTextureSlot.value))
+        if (!models.TextureSlotOf(Actors::Drawing::ChromeTextureSlot.value))
             return Core::Unexpected(std::string("0x4395fc: falta la textura Chrome del objeto34 de Kalima"));
         if (auto chrome = KalimaMeshPass(batch, models, current, frameClock, 1, 0x44); !chrome.HasValue())
             return chrome;

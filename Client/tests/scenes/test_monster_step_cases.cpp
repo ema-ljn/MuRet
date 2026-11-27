@@ -34,9 +34,9 @@
 // literales del ASM c32bbd5f, sin ejecutar el original; los nombres son inventados.
 namespace
 {
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldRuntime;
 using Client::Scenes::CastleObjectStep;
-using Client::Scenes::WorldRuntime;
 
 constexpr std::size_t LevelText = 1176;
 
@@ -436,17 +436,17 @@ TEST(MonsterStepCasesTest, TheEndOfTheFrameOpensTheGatesUnlessTheLockStepped)
     runtime.castleSiege.castleGatesClosed = 1;
     runtime.castleSiege.castleMarkX = 12.0f;
     runtime.castleSiege.castleMarkY = 34.0f;
-    Client::Scenes::FinishTheCastleFrame(&runtime, *walls);
+    Client::Actors::Drawing::FinishTheCastleFrame(&runtime, *walls);
     EXPECT_EQ((*walls)[cell], 4);
     EXPECT_EQ(runtime.castleSiege.castleGatesClosed, 0);
     EXPECT_EQ(runtime.castleSiege.castleMarkX, 0.0f);
     EXPECT_EQ(runtime.castleSiege.castleMarkY, 0.0f);
 
-    Client::Scenes::FinishTheCastleFrame(&runtime, *walls);
+    Client::Actors::Drawing::FinishTheCastleFrame(&runtime, *walls);
     EXPECT_EQ((*walls)[cell], 0);
 
     walls->fill(4);
-    Client::Scenes::FinishTheCastleFrame(nullptr, *walls);
+    Client::Actors::Drawing::FinishTheCastleFrame(nullptr, *walls);
     EXPECT_EQ((*walls)[cell], 0);
 }
 } // namespace

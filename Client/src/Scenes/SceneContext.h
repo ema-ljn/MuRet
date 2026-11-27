@@ -11,16 +11,21 @@
 
 #include <filesystem>
 
-namespace Client::World
+namespace Client::Camera
 {
 struct GameCamera;
 struct GameCameraInput;
-} // namespace Client::World
+} // namespace Client::Camera
 
 namespace Client::Platform
 {
 class IClipboard;
 } // namespace Client::Platform
+
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
 
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
@@ -28,7 +33,6 @@ class IClipboard;
 namespace Client::Scenes
 {
 class SelectionState;
-class WorldState;
 struct WorldEntryResources;
 
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
@@ -53,11 +57,11 @@ struct SceneContext
     // dibujado (la tela y el brillo del cetro) corre uno por dibujo (OriginalFramePaceOf).
     App::PacingMode pacing = App::PacingMode::Decoupled;
     // Estado global de 0x635ae0: vive en main y sobrevive a los cambios de escena (CL7.3 B).
-    World::GameCamera* camera = nullptr;
+    Camera::GameCamera* camera = nullptr;
     // Entradas de 0x635ae0, no réplica completa del actor Hero. SelectionState publica la posición
     // construida por cada recepción; el dibujo de selección escribe Hero Z = 163 después de la cámara.
     // L1 aportará XYZ de la respuesta para el juego.
-    World::GameCameraInput* cameraInput = nullptr;
+    Camera::GameCameraInput* cameraInput = nullptr;
     // La selección sobre los cinco primeros registros del pool durable (WorldState) y las tablas del
     // mundo vigentes (CL7.3 B). main es dueño de los dos y viven más que todas las escenas; conserva
     // las tablas del login después de su Leave.
@@ -66,7 +70,7 @@ struct SceneContext
     // globales de la espera de la entrada al mundo (WorldRuntime). Es el mismo que presta `selection`.
     // nullptr en los tests que no lo miran: la selección entra sin preparar el registro propio, y la
     // carga del mundo y el juego no entran (su Enter da el error), porque la espera vive ahí.
-    WorldState* world = nullptr;
+    Kernel::WorldState* world = nullptr;
     // El GetTextExtentPointA del DC de los textos (0x57634f4) fuera del dibujo: el mouse sobre los nombres del
     // registro del chat (0x45dec0) y los cortes de los mensajes. nullptr sin bucle: no mide.
     const Render::Text::ITextMeasure* textMeasure = nullptr;

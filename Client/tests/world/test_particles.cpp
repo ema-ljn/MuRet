@@ -534,7 +534,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
     for (const std::int32_t life : {19, 18, 17})
     {
         SCOPED_TRACE(life);
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map,
                                                                  trigonometry, {}, {}, {}, {}, lighting.get());
         ASSERT_TRUE(stepped.HasValue());
@@ -545,7 +545,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
         const glm::vec3 color{static_cast<float>(glow * 0.5),
                               static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3e99999au))),
                               static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)))};
-        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
             Client::World::AddDynamicLight(expectedLighting.get(), explosion.position, color, 4, "test").HasValue());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);

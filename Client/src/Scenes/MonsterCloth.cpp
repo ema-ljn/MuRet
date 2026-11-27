@@ -55,7 +55,7 @@ Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Mo
     }
     Models::ClothBody onTheMesh = body;
     onTheMesh.meshVertices = skinned->positions;
-    m_simulatedBody = SimulatedBodyOf(onTheMesh);
+    m_simulatedBody = Actors::Drawing::SimulatedBodyOf(onTheMesh);
     if (!m_cloth->Simulate(StepTime, StepsPerFrame, onTheMesh, world, Maps::ClothWindForMap(map)))
     {
         // 0x50bbb5: 0x4fb1a0(personaje, objeto, 0); el frame siguiente, con +0x190 en 0, la arma de nuevo.
@@ -76,7 +76,7 @@ void MonsterMeshCloth::DrawCurrent(std::span<Models::SkinnedMesh> meshes, const 
     m_cloth->WriteTheMesh(skinned.positions);
     if (!m_simulatedBody)
         return;
-    const auto carry = ClothCarryOf(*m_simulatedBody, body, MeshClothBone);
+    const auto carry = Actors::Drawing::ClothCarryOf(*m_simulatedBody, body, MeshClothBone);
     if (!carry)
         return;
     const auto particles = m_cloth->Particles();

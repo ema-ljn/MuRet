@@ -27,12 +27,12 @@
 // 0x54efe0 (2.304 bytes), 0x54f9b0 (873), 0x54fd40 (193), 0x54fe10 (2.471), 0x5507e0 (425), 0x550990
 // (653), 0x550c30 (46) y 0x550c60 (63), con 0x54ee00 (187), 0x54e680, 0x54e6b0 y 0x54e6d0, cotejados con
 // el PE c32bbd5f: 06, "Los ocho helpers de los stats propios".
-namespace Client::Scenes
+namespace Client::Player
 {
-OwnEquipmentOverride HeldItemOf(const WorldRuntime& runtime)
+OwnEquipmentOverride HeldItemOf(const Kernel::WorldRuntime& runtime)
 {
     return OwnEquipmentOverride{.dword7879fbc = runtime.cursorItemCount,
-                                .window78ab9b8Is78a9bb0 = runtime.cursorGrid == CursorGrid::Inventory,
+                                .window78ab9b8Is78a9bb0 = runtime.cursorGrid == Kernel::CursorGrid::Inventory,
                                 .slot78a6758 = static_cast<std::uint32_t>(runtime.slot78a6758),
                                 .item7879f80 = runtime.cursorItem};
 }
@@ -41,13 +41,13 @@ namespace
 {
 using Kernel::BaseClassOf;
 using Kernel::CharacterClass;
+using Kernel::ItemState;
 using Tables::ItemTable;
-using World::ItemState;
 
 constexpr std::uint16_t EmptyItem = 0xffff;
 
 // Los lugares (06, "El equipo propio en el personaje"): las manos, las partes del cuerpo del 2 al 6 en el
-// orden de GameLogic::BodyPart, las alas y la mascota. Del 9 al 11 no tienen nombre acreditado.
+// orden de Kernel::BodyPart, las alas y la mascota. Del 9 al 11 no tienen nombre acreditado.
 constexpr std::size_t RightHandSlot = 0;
 constexpr std::size_t LeftHandSlot = 1;
 constexpr std::size_t HelmSlot = 2;
@@ -132,7 +132,7 @@ void AddTo(std::uint16_t& word, std::int64_t value)
     word = Low16(word + value);
 }
 
-CharacterClass ClassOf(const OwnCharacterRecord& own)
+CharacterClass ClassOf(const Kernel::OwnCharacterRecord& own)
 {
     return BaseClassOf(own.characterClass);
 }
@@ -154,7 +154,7 @@ bool WornWithDurability(const ItemState& item)
 
 // El lugar `slot`, o el ítem de 0x7879f80 si lo reemplaza. Cada helper lo pide solo en los lugares de
 // su tabla de saltos.
-const ItemState& SlotOrHeld(const OwnCharacterRecord& own, const OwnEquipmentOverride& held, std::size_t slot)
+const ItemState& SlotOrHeld(const Kernel::OwnCharacterRecord& own, const OwnEquipmentOverride& held, std::size_t slot)
 {
     const bool replaces = held.dword7879fbc > 0 && held.window78ab9b8Is78a9bb0 && held.slot78a6758 == slot;
     return replaces ? held.item7879f80 : own.equipment[slot];
@@ -204,7 +204,7 @@ std::uint16_t Reduced(std::uint16_t value, float factor)
 // las nueve de ItemState (como en AddCapeOfLordOptions). Error antes de la primera de esas lecturas.
 Core::Expected<void, std::string> CheckOptionCount(const ItemState& item, std::string_view where)
 {
-    if (item.id == EmptyItem || item.optionCount <= World::MaxItemOptions)
+    if (item.id == EmptyItem || item.optionCount <= Kernel::MaxItemOptions)
     {
         return {};
     }
@@ -227,7 +227,7 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
 void AddOptions(std::uint16_t& word, std::uint32_t selector, const ItemState& item)
 {
     std::array<std::byte, 2> bytes = LittleEndianWord(word);
-    AddOwnItemOptionValues(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes});
+    Scenes::AddOwnItemOptionValues(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes});
     word = FromLittleEndian(bytes);
 }
 
@@ -235,7 +235,8 @@ void AddOptions(std::uint16_t& word, std::uint32_t selector, const ItemState& it
 void ApplyOptionPercent(std::uint16_t& word, std::uint32_t selector, const ItemState& item, std::uint32_t factor)
 {
     std::array<std::byte, 2> bytes = LittleEndianWord(word);
-    ApplyOwnItemOptionPercent(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes}, factor);
+    Scenes::ApplyOwnItemOptionPercent(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes},
+                                      factor);
     word = FromLittleEndian(bytes);
 }
 
@@ -310,7 +311,7 @@ WordPair BaseOfWords50And52(CharacterClass characterClass, int strength, int agi
 
 // 0x54f2f8..0x54f3c0: las alas, sin reemplazo, con el tipo y el +0x2d de Item.bmd distinto de 0 (no mira
 // la durabilidad): sus opciones 0x50, reducidas por 0x54ee00, a los cuatro.
-Core::Expected<void, std::string> AddWingsToWords50To56(OwnCharacterRecord& own, const ItemTable* items)
+Core::Expected<void, std::string> AddWingsToWords50To56(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     const ItemState& wings = own.equipment[WingsSlot];
     if (wings.id == EmptyItem)
@@ -364,7 +365,7 @@ Core::Expected<WordPair, std::string> HandWords(const ItemState& hand, const Ite
 
 // 0x54f3c3..0x54f4e6: la mano derecha va a +0x50 y +0x52, salvo con un tipo de 0xa00 a 0xc00 (con signo,
 // jl y jg), que va a +0x54 y +0x56; sus opciones 0x5d y 0x5e, siempre a +0x50 y +0x52.
-Core::Expected<void, std::string> AddRightHandToWords50To56(OwnCharacterRecord& own, const ItemState& right,
+Core::Expected<void, std::string> AddRightHandToWords50To56(Kernel::OwnCharacterRecord& own, const ItemState& right,
                                                             const ItemTable* items)
 {
     if (!WornWithDurability(right))
@@ -385,7 +386,7 @@ Core::Expected<void, std::string> AddRightHandToWords50To56(OwnCharacterRecord& 
 }
 
 // 0x54f4e9..0x54f5ec: la izquierda, a +0x54 y +0x56 (primero +0x56), con sus opciones.
-Core::Expected<void, std::string> AddLeftHandToWords50To56(OwnCharacterRecord& own, const ItemState& left,
+Core::Expected<void, std::string> AddLeftHandToWords50To56(Kernel::OwnCharacterRecord& own, const ItemState& left,
                                                            const ItemTable* items)
 {
     if (!WornWithDurability(left))
@@ -405,7 +406,7 @@ Core::Expected<void, std::string> AddLeftHandToWords50To56(OwnCharacterRecord& o
 
 // 0x54f5ef..0x54f703: el lugar 9 (opciones 0x5d y 0x5e por 2 a los dos pares) y los 10 y 11 (0x5e por
 // 10 a los cuatro).
-Core::Expected<void, std::string> AddAccessoriesToWords50To56(OwnCharacterRecord& own, const ItemState& slot9,
+Core::Expected<void, std::string> AddAccessoriesToWords50To56(Kernel::OwnCharacterRecord& own, const ItemState& slot9,
                                                               const ItemState& slot10, const ItemState& slot11)
 {
     if (WornWithDurability(slot9))
@@ -437,8 +438,9 @@ Core::Expected<void, std::string> AddAccessoriesToWords50To56(OwnCharacterRecord
 
 // 0x54f706..0x54f7b3: 0x40d690 con 0x91 a +0x54 y +0x50, con 0x92 a +0x56 y +0x52, y 0x40d7f0 con la
 // agilidad (0xa5) y con la fuerza (0xa4) a los cuatro; cada uno sobre un local en 0.
-Core::Expected<void, std::string> AddSetOptionsToWords50To56(OwnCharacterRecord& own, ItemSetOptionList* setOptions,
-                                                             std::uint16_t strength, std::uint16_t agility)
+Core::Expected<void, std::string> AddSetOptionsToWords50To56(Kernel::OwnCharacterRecord& own,
+                                                             ItemSetOptionList* setOptions, std::uint16_t strength,
+                                                             std::uint16_t agility)
 {
     if (setOptions == nullptr)
     {
@@ -485,7 +487,7 @@ std::uint16_t WithAmmunition(std::uint16_t word, std::uint32_t level)
 
 // 0x54f7b0..0x54f8d6: con las dos manos de 0x800 a 0x9ff (con signo), Bolt de nivel en la izquierda
 // ajusta +0x50 y +0x52 y vuelve; si no, Arrow de nivel en la derecha ajusta +0x54 y +0x56.
-void AddAmmunition(OwnCharacterRecord& own, const ItemState& right, const ItemState& left)
+void AddAmmunition(Kernel::OwnCharacterRecord& own, const ItemState& right, const ItemState& left)
 {
     const auto inBowGroup = [](const ItemState& item)
     { return SignedType(item) >= ItemType(4, 0) && SignedType(item) < ItemType(5, 0); };
@@ -510,7 +512,7 @@ void AddAmmunition(OwnCharacterRecord& own, const ItemState& right, const ItemSt
 
 // 0x54fa5e..0x54fb22: las alas, sin reemplazo, con el tipo (no mira la durabilidad ni el +0x2d): sus
 // opciones 0x51, reducidas, a +0x5a y +0x5c.
-Core::Expected<void, std::string> AddWingsToWords5aAnd5c(OwnCharacterRecord& own, const ItemTable* items)
+Core::Expected<void, std::string> AddWingsToWords5aAnd5c(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     const ItemState& wings = own.equipment[WingsSlot];
     if (wings.id == EmptyItem)
@@ -537,7 +539,7 @@ Core::Expected<void, std::string> AddWingsToWords5aAnd5c(OwnCharacterRecord& own
 
 // 0x54fb28..0x54fc2a: la mano derecha suma sus opciones 0x51 (0x50 con 0x15, 0x17 y 0x1f, el 0 21, el 0
 // 23 y el 0 31), reducidas, y después 0x5f y 0x60 por 2.
-Core::Expected<void, std::string> AddRightHandToWords5aAnd5c(OwnCharacterRecord& own, const ItemState& right,
+Core::Expected<void, std::string> AddRightHandToWords5aAnd5c(Kernel::OwnCharacterRecord& own, const ItemState& right,
                                                              const ItemTable* items)
 {
     if (!WornWithDurability(right))
@@ -567,7 +569,7 @@ Core::Expected<void, std::string> AddRightHandToWords5aAnd5c(OwnCharacterRecord&
 }
 
 // 0x54fc30..0x54fccc: el lugar 9 (0x5f y 0x60 por 2) y los 10 y 11 (0x60 por 10).
-Core::Expected<void, std::string> AddAccessoriesToWords5aAnd5c(OwnCharacterRecord& own, const ItemState& slot9,
+Core::Expected<void, std::string> AddAccessoriesToWords5aAnd5c(Kernel::OwnCharacterRecord& own, const ItemState& slot9,
                                                                const ItemState& slot10, const ItemState& slot11)
 {
     if (WornWithDurability(slot9))
@@ -596,8 +598,8 @@ Core::Expected<void, std::string> AddAccessoriesToWords5aAnd5c(OwnCharacterRecor
 
 // 0x54fccf..0x54fd0f: 0x40d690 suma a +0xef4 sin ponerlo en 0, que va a +0x5a y +0x5c; después +0xef4 en
 // 0, 0x40d7f0 con la energía, y otra vez a los dos. +0xef4 queda con lo de 0x40d7f0.
-Core::Expected<void, std::string> AddSetOptionsToWords5aAnd5c(OwnCharacterRecord& own, ItemSetOptionList* setOptions,
-                                                              std::uint16_t energy)
+Core::Expected<void, std::string> AddSetOptionsToWords5aAnd5c(Kernel::OwnCharacterRecord& own,
+                                                              ItemSetOptionList* setOptions, std::uint16_t energy)
 {
     if (setOptions == nullptr)
     {
@@ -638,7 +640,7 @@ WordPair BaseSpeeds(CharacterClass characterClass, int agility)
     }
 }
 
-void AddToSpeeds(OwnCharacterRecord& own, std::int64_t value)
+void AddToSpeeds(Kernel::OwnCharacterRecord& own, std::int64_t value)
 {
     AddTo(own.attackSpeed, value);
     AddTo(own.magicSpeed, value);
@@ -652,7 +654,7 @@ bool CountsForSpeed(const ItemState& hand)
 }
 
 // 0x55001a..0x550072: el D+0x17 de cada mano (0 sin durabilidad); con las dos que cuentan, el promedio.
-void AddWeaponSpeeds(OwnCharacterRecord& own, const ItemState& right, const ItemState& left)
+void AddWeaponSpeeds(Kernel::OwnCharacterRecord& own, const ItemState& right, const ItemState& left)
 {
     const int rightSpeed = right.durability > 0 ? right.byte17 : 0;
     const int leftSpeed = left.durability > 0 ? left.byte17 : 0;
@@ -685,7 +687,7 @@ bool IsSpeedRing(const ItemState& ring)
 // bit 0x04 de +0x3c prendido; sin ninguno, y con el bit prendido, el bit apagado. Cada cambio del bit va
 // entre una apertura y un cierre del registro (en línea; el último cierre, con su propio bucle de rand()).
 // El bit se lee antes de abrir: con el registro cerrado el original leería el byte cifrado.
-void UpdateRingSpeeds(OwnCharacterRecord& own, const ItemState& slot10, const ItemState& slot11,
+void UpdateRingSpeeds(Kernel::OwnCharacterRecord& own, const ItemState& slot10, const ItemState& slot11,
                       std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     constexpr std::int64_t RingBonus = 10;
@@ -708,7 +710,7 @@ void UpdateRingSpeeds(OwnCharacterRecord& own, const ItemState& slot10, const It
 
 // 0x55073b..0x5507ad: las opciones 0x61 de los lugares 0, 1, 9 y 8 del registro, sin reemplazo, a las
 // dos velocidades.
-Core::Expected<void, std::string> AddSpeedOptions(OwnCharacterRecord& own)
+Core::Expected<void, std::string> AddSpeedOptions(Kernel::OwnCharacterRecord& own)
 {
     for (const std::size_t slot : {RightHandSlot, LeftHandSlot, Slot9, PetSlot})
     {
@@ -760,7 +762,7 @@ std::uint16_t Word12WithOptions(const ItemState& item)
 // 0x550a40..0x550b1b: por cada lugar del 1 al 7 con durabilidad, 0x54e680 reducido por 0x54ee00 (las
 // alas, con 0 y 0), sumado en 32 bits; +0x62 suma los 16 de abajo. Con tipo −1 el aporte al WORD es 0:
 // 0x54e680 devuelve AX=0 y todos los factores que devuelve 0x54ee00 son finitos.
-Core::Expected<void, std::string> AddSlotsToWord62(OwnCharacterRecord& own, const ItemTable* items)
+Core::Expected<void, std::string> AddSlotsToWord62(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     std::uint32_t sum = 0;
     for (std::size_t slot = LeftHandSlot; slot <= WingsSlot; ++slot)
@@ -790,7 +792,7 @@ Core::Expected<void, std::string> AddSlotsToWord62(OwnCharacterRecord& own, cons
 
 // 0x550b1e..0x550b83: con [0x743a17c] distinto de 0, +0x62 suma _ftol(+0x62 · f), con f según
 // [0x743a178] (la tabla de saltos de 0x550c20): 0.05f, 0.1f, 0.15f o 0.2f del 10 al 13, y 0 si no.
-void AddScanToWord62(OwnCharacterRecord& own, const Scan505820& scan)
+void AddScanToWord62(Kernel::OwnCharacterRecord& own, const Actors::Scan505820& scan)
 {
     constexpr std::uint32_t FirstScanLevel = 10;
     constexpr std::array<float, 4> ScanFactors{0.05f, 0.1f, 0.15f, 0.2f}; // 0x6b8a48, 0x6b87b8, 0x6b8ae8, 0x6b8854
@@ -807,7 +809,7 @@ void AddScanToWord62(OwnCharacterRecord& own, const Scan505820& scan)
 
 // 0x550b86..0x550be1: 0x40d690 con 0x96, 0x40d7f0 con la agilidad (0xa6) y con la vitalidad (0xa7) y, con
 // un tipo de 0xc00 a 0xdff (con signo) en el lugar 1, 0x40d730 con 0xa2.
-Core::Expected<void, std::string> AddSetOptionsToWord62(OwnCharacterRecord& own, ItemSetOptionList* setOptions,
+Core::Expected<void, std::string> AddSetOptionsToWord62(Kernel::OwnCharacterRecord& own, ItemSetOptionList* setOptions,
                                                         std::uint16_t agility, std::uint16_t vitality)
 {
     if (setOptions == nullptr)
@@ -834,7 +836,7 @@ Core::Expected<void, std::string> AddSetOptionsToWord62(OwnCharacterRecord& own,
 }
 
 // 0x550be6..0x550c14: las opciones 0x96 del lugar 8 y, si es Cape of Lord (0x1a1e), las del 7.
-Core::Expected<void, std::string> AddPetAndCapeToWord62(OwnCharacterRecord& own)
+Core::Expected<void, std::string> AddPetAndCapeToWord62(Kernel::OwnCharacterRecord& own)
 {
     const ItemState& pet = own.equipment[PetSlot];
     if (auto checked = CheckOptionCount(pet, "0x550990 (0x550bf3), el lugar 8"); !checked.HasValue())
@@ -896,8 +898,9 @@ float ItemDurabilityFactor(std::uint8_t durability, std::uint8_t baseDurability,
     return NoFactor;
 }
 
-Core::Expected<void, std::string> UpdateOwnWords50To56(OwnCharacterRecord& own, const OwnEquipmentOverride& held,
-                                                       const ItemTable* items, ItemSetOptionList* setOptions)
+Core::Expected<void, std::string> UpdateOwnWords50To56(Kernel::OwnCharacterRecord& own,
+                                                       const OwnEquipmentOverride& held, const ItemTable* items,
+                                                       ItemSetOptionList* setOptions)
 {
     const ItemState& right = SlotOrHeld(own, held, RightHandSlot);
     const ItemState& left = SlotOrHeld(own, held, LeftHandSlot);
@@ -936,8 +939,9 @@ Core::Expected<void, std::string> UpdateOwnWords50To56(OwnCharacterRecord& own, 
     return {};
 }
 
-Core::Expected<void, std::string> UpdateOwnWords5aAnd5c(OwnCharacterRecord& own, const OwnEquipmentOverride& held,
-                                                        const ItemTable* items, ItemSetOptionList* setOptions)
+Core::Expected<void, std::string> UpdateOwnWords5aAnd5c(Kernel::OwnCharacterRecord& own,
+                                                        const OwnEquipmentOverride& held, const ItemTable* items,
+                                                        ItemSetOptionList* setOptions)
 {
     constexpr int EnergyDivisor = 9;
     constexpr int EnergyShift = 2;
@@ -961,7 +965,7 @@ Core::Expected<void, std::string> UpdateOwnWords5aAnd5c(OwnCharacterRecord& own,
     return AddSetOptionsToWords5aAnd5c(own, setOptions, energy);
 }
 
-Core::Expected<void, std::string> UpdateOwnWord4e(OwnCharacterRecord& own, ItemSetOptionList* setOptions)
+Core::Expected<void, std::string> UpdateOwnWord4e(Kernel::OwnCharacterRecord& own, ItemSetOptionList* setOptions)
 {
     const int agility = Low16(own.word2c + own.agility);
     const int strength = Low16(own.word2a + own.strength);
@@ -983,7 +987,7 @@ Core::Expected<void, std::string> UpdateOwnWord4e(OwnCharacterRecord& own, ItemS
     return AddItemSetOptionValues(*setOptions, own.word4e, SetOptions95);
 }
 
-Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(OwnCharacterRecord& own,
+Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(Kernel::OwnCharacterRecord& own,
                                                                 const OwnEquipmentOverride& held,
                                                                 std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
@@ -1006,7 +1010,7 @@ Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(OwnCharacterReco
     return AddSpeedOptions(own);
 }
 
-Core::Expected<void, std::string> UpdateOwnWord60(OwnCharacterRecord& own, const ItemTable* items)
+Core::Expected<void, std::string> UpdateOwnWord60(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     const int agility = Low16(own.word2c + own.agility);
     const CharacterClass characterClass = ClassOf(own);
@@ -1045,8 +1049,8 @@ Core::Expected<void, std::string> UpdateOwnWord60(OwnCharacterRecord& own, const
     return {};
 }
 
-Core::Expected<void, std::string> UpdateOwnWord62(OwnCharacterRecord& own, const ItemTable* items,
-                                                  const Scan505820& scan, ItemSetOptionList* setOptions)
+Core::Expected<void, std::string> UpdateOwnWord62(Kernel::OwnCharacterRecord& own, const ItemTable* items,
+                                                  const Actors::Scan505820& scan, ItemSetOptionList* setOptions)
 {
     const std::uint16_t vitality = Low16(own.word2e + own.vitality);
     const std::uint16_t agility = Low16(own.word2c + own.agility);
@@ -1063,7 +1067,7 @@ Core::Expected<void, std::string> UpdateOwnWord62(OwnCharacterRecord& own, const
     return AddPetAndCapeToWord62(own);
 }
 
-void UpdateOwnWord64(OwnCharacterRecord& own)
+void UpdateOwnWord64(Kernel::OwnCharacterRecord& own)
 {
     for (std::size_t slot = HelmSlot; slot <= WingsSlot; ++slot)
     {
@@ -1077,7 +1081,7 @@ void UpdateOwnWord64(OwnCharacterRecord& own)
     }
 }
 
-void UpdateOwnWord66(OwnCharacterRecord& own)
+void UpdateOwnWord66(Kernel::OwnCharacterRecord& own)
 {
     // 0x54e6d0: D+0x18, o 0 con el tipo −1.
     const auto word18Of = [](const ItemState& item) { return item.id == EmptyItem ? std::uint16_t{0} : item.word18; };
@@ -1092,4 +1096,4 @@ void UpdateOwnWord66(OwnCharacterRecord& own)
         AddTo(own.word66, word18Of(wings));
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Player

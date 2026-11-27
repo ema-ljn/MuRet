@@ -28,11 +28,19 @@ class FrameSprites;
 class ModelEffects;
 class Particles;
 } // namespace Client::World
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
-struct DrawnObject;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct JointState;
+} // namespace Client::Scenes
+
+namespace Client::Actors::Drawing
+{
+struct DrawnObject;
 
 // Lo que 0x4ee770 recibe además del modelo (ECX): la malla, el tipo, el subtipo, los ángulos del cuarto argumento (sólo
 // el 0x5ac/1 lee su z) y el personaje del quinto (el 0x5ac/1: el destino y el dueño de sus joints).
@@ -42,7 +50,7 @@ struct VertexEffectCall
     std::int32_t type = 0;
     std::int32_t subtype = 0;
     glm::vec3 angles{};
-    ActorState* target = nullptr;
+    Kernel::ActorState* target = nullptr;
 };
 
 // Las tablas a las que suelta: 0x518cf0 (los efectos con modelo), 0x53fe70 (las partículas, con su reloj), 0x5491e0
@@ -53,7 +61,7 @@ struct VertexEffectTables
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
     World::FrameSprites* sprites = nullptr;
-    std::span<JointState> joints{};
+    std::span<Scenes::JointState> joints{};
 };
 
 // 0x4ee770: con la malla entre 0 y las del modelo (+0x24) y con triángulos (+0xa), cada esquina de cada polígono (el
@@ -85,4 +93,4 @@ EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale, std::spa
 EmitVertexEffects(const Models::IModelLibrary& models, const DrawnObject& object,
                   std::span<const Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
                   std::int32_t subtype, World::ModelEffects& effects, Crt::CrtRandom& random);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

@@ -13,13 +13,17 @@ namespace Client::Scenes
 {
 struct JointState;
 }
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class ModelEffects;
 struct ModelEffect;
 class Particles;
 class FrameSprites;
-struct TerrainLighting;
 } // namespace Client::World
 namespace Client::Models
 {
@@ -31,10 +35,10 @@ namespace Client::Scenes
 [[nodiscard]] std::optional<std::size_t> CreateFaunaLightning(World::ModelEffects& effects, const glm::vec3& position);
 [[nodiscard]] Core::Expected<void, std::string>
 StepFaunaLightning(World::ModelEffect& effect, std::size_t physicalIndex, const Models::Skeleton* skeleton,
-                   World::Particles& particles, World::FrameSprites& sprites, World::TerrainLighting& lighting,
+                   World::Particles& particles, World::FrameSprites& sprites, Terrain::TerrainLighting& lighting,
                    Models::ClothWorld& cloth);
 // Préstamos durables; load contiene referencias válidas hasta terminar el paso.
-[[nodiscard]] FaunaStepEffects BindFaunaStepEffects(FaunaModels& models, FaunaModelLoadContext load,
+[[nodiscard]] FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
                                                     std::span<JointState> joints, World::ModelEffects& effects,
                                                     Crt::CrtRandom& random);
 } // namespace Client::Scenes

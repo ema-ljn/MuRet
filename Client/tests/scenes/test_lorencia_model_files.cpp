@@ -53,7 +53,7 @@ TEST(LorenciaModelFilesTest, KeepsTheOriginalCallOrderAndFileNumbers)
         {0x8f, "Furniture", 4},    {0x90, "Furniture", 5},      {0x91, "Furniture", 6},      {0x92, "Furniture", 7},
         {0x96, "Candle", 1},       {0x97, "Beer", 1},           {0x98, "Beer", 2},           {0x99, "Beer", 3},
     }};
-    const auto files = Client::Scenes::LorenciaModelFiles();
+    const auto files = Client::Assets::LorenciaModelFiles();
     ASSERT_EQ(files.size(), Expected.size());
     for (std::size_t index = 0; index < Expected.size(); ++index)
     {
@@ -67,7 +67,7 @@ TEST(LorenciaModelFilesTest, KeepsTheOriginalCallOrderAndFileNumbers)
 // Los huecos no se rellenan con ObjectNN: no hay duplicados ni IDs fuera del bloque 0..159.
 TEST(LorenciaModelFilesTest, RequestsTheNamedFilesFromObject1WithoutFillingTheHoles)
 {
-    const auto files = Client::Scenes::LorenciaModelFiles();
+    const auto files = Client::Assets::LorenciaModelFiles();
     std::array<bool, 160> requested{};
     for (const Client::Data::Models::ModelFile& file : files)
     {

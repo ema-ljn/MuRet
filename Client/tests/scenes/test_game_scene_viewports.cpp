@@ -114,7 +114,7 @@ using ViewportCase = std::tuple<ViewportProbe, int, EntryProbe>;
 
 // 0x5fb570 de la selección: W640, F=13.823,88, T=6.497,223..., giro 45° y centro
 // (12.975, 15.423, 333). Fixture del último dibujo: la entrada y los pasos no deben reemplazarla.
-constexpr Client::World::TerrainPolygon SelectedPolygon{
+constexpr Client::Terrain::TerrainPolygon SelectedPolygon{
     .x = {29.475204467773438f, 126.41022491455078f, 179.11355590820312f, 135.126220703125f},
     .y = {157.5697784423828f, 254.5048065185547f, 148.853759765625f, 104.866455078125f}};
 
@@ -217,7 +217,7 @@ protected:
         }
     }
 
-    [[nodiscard]] Client::Scenes::ActorState& Hero()
+    [[nodiscard]] Client::Kernel::ActorState& Hero()
     {
         return m_world.Hero();
     }
@@ -260,11 +260,11 @@ protected:
     Client::Tests::FakeClock m_clock;
     Client::Input::InputState m_input;
     Client::Models::ClothWorld m_cloth{.random = Client::Crt::CrtRandom(0x1234)};
-    Client::Scenes::WorldState m_world;
+    Client::Kernel::WorldState m_world;
     Client::Scenes::SelectionState m_selection{m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_cameraInput;
-    Client::Scenes::GameModels m_models;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_cameraInput;
+    Client::Assets::GameModels m_models;
     Client::Tables::GameData m_data;
     // El renglón de bienvenida del F3 03 (0x4c4b60).
     Client::Tests::LetterMeasure m_letters;
@@ -323,7 +323,7 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     ASSERT_TRUE(m_camera.lastFrameDistance.has_value());
     EXPECT_FLOAT_EQ(*m_camera.lastFrameDistance, 1000.0f);
     ASSERT_TRUE(m_game->MouseRay().has_value());
-    const Client::World::TerrainPickingSegment ray = *m_game->MouseRay();
+    const Client::Terrain::TerrainPickingSegment ray = *m_game->MouseRay();
     // 0x635ae0: D=1.000, desplazamiento (D/√2, -D/√2), altura HeroZ+D-150.
     const glm::vec3 cameraOffset = ray.origin - Hero().position;
     EXPECT_NEAR(cameraOffset.x, 707.10678f, 0.003f);
@@ -391,10 +391,10 @@ TEST_P(GameSceneViewportTest, TheInventoryItemsGoInTheUiPassAfterTheWorld)
     ASSERT_NO_FATAL_FAILURE(StartGame());
     ASSERT_NO_FATAL_FAILURE(RunSteps(steps));
     m_world.Runtime().panels.inventory = 1;
-    Client::World::ItemState& weapon = m_world.OwnCharacter().equipment[0];
+    Client::Kernel::ItemState& weapon = m_world.OwnCharacter().equipment[0];
     weapon.id = 0x0000;
     weapon.occupied = 1;
-    Client::World::ItemState& shield = m_world.Inventory().cells[0];
+    Client::Kernel::ItemState& shield = m_world.Inventory().cells[0];
     shield.id = 0x0c00;
     shield.occupied = 1;
 

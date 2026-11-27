@@ -35,7 +35,7 @@ using Math::D;
 using Math::F32;
 
 // ((punto + z del dueño) − z del dueño) + 60 en la x87 (0x51e148..0x51e153 y 0x52a07a..0x52a086).
-double MarkHeight(const glm::vec3& bonePoint, const ActorState& owner)
+double MarkHeight(const glm::vec3& bonePoint, const Kernel::ActorState& owner)
 {
     constexpr double Above = 60.0; // 0x6b86cc, 60,0f
     return ((D(bonePoint.z) + D(owner.position.z)) - D(owner.position.z)) + Above;
@@ -95,7 +95,7 @@ Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect,
 } // namespace
 
 Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot,
-                                                    const ActorState& owner, const glm::vec3& bonePoint,
+                                                    const Kernel::ActorState& owner, const glm::vec3& bonePoint,
                                                     World::Particles& particles, Crt::CrtRandom& random,
                                                     float worldClock)
 {
@@ -145,7 +145,7 @@ Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, 
     return {};
 }
 
-bool GuildMarkIsDue(const ActorState& actor, float worldClock)
+bool GuildMarkIsDue(const Kernel::ActorState& actor, float worldClock)
 {
     if (actor.byte369 != 1)
         return false;
@@ -156,7 +156,7 @@ bool GuildMarkIsDue(const ActorState& actor, float worldClock)
     return last == 0.0f || std::isnan(last) || D(worldClock) - D(last) > Period;
 }
 
-Core::Expected<void, std::string> RaiseTheGuildMark(ActorState& actor, const glm::vec3& bonePoint,
+Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint,
                                                     World::ModelEffects& effects, World::Particles& particles,
                                                     Crt::CrtRandom& random, float worldClock)
 {
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> RaiseTheGuildMark(ActorState& actor, const glm
 
 Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
     {
         effect.life = 0; // 0x529f18
@@ -221,7 +221,7 @@ Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, c
     }
     // 0x529fe7..0x52a0aa: 0x4ec110 con el hueso 20 del dueño y el modelo como lo dejó el paso de su personaje.
     const glm::vec3 point = ActorBonePoint(*owner, GuildMarkBone, glm::vec3(0.0f), context.world);
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     glm::vec3& position = effect.transform.position;
     position.x = F32((D(owner->position.x) - D(hero.position.x)) + D(point.x));
     position.y = F32((D(owner->position.y) - D(hero.position.y)) + D(point.y));

@@ -32,10 +32,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::HitTheTargetsAround;
 using Client::Scenes::SkillHitsRequest;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;

@@ -373,7 +373,7 @@ struct StepHarness
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();

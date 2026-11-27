@@ -79,7 +79,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 using Client::Tests::MonsterRecordBytes;
@@ -129,11 +129,11 @@ struct Game
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -188,7 +188,7 @@ protected:
     void Load(std::uint8_t map)
     {
         game = std::make_unique<Game>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -236,7 +236,7 @@ protected:
         // Estado del último dibujo: caja del actor creado y un rayo que la atraviesa.
         npc.seen = true;
         npc.alpha = 1;
-        Client::Scenes::PublishPickingBox(npc, npc.position, npc.boundsMin,
+        Client::Actors::PublishPickingBox(npc, npc.position, npc.boundsMin,
                                           {npc.boundsMaxX, npc.boundsMaxY, npc.boundsTop});
         const glm::vec3 offset{0, 0, 500};
         const auto picked = Client::Scenes::PickInTheFrame(
@@ -244,7 +244,7 @@ protected:
              .random = game->cloth.random,
              .ownRecordDepth = runtime.ownRecordDepth,
              .targets = runtime.selectedTargets,
-             .ray = Client::World::TerrainPickingSegment{npc.position + offset, npc.position - offset}});
+             .ray = Client::Terrain::TerrainPickingSegment{npc.position + offset, npc.position - offset}});
         ASSERT_TRUE(picked.HasValue()) << picked.Error();
         ASSERT_EQ(runtime.selectedTargets[1], 1);
         ASSERT_EQ(runtime.selectedTargets[3], -1);
@@ -503,7 +503,7 @@ TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
         EXPECT_EQ(merchant.key, 0x7265);
         EXPECT_EQ(merchant.head, 0x6e61);
         // La clave ya no es la del registro: el original tampoco lo encuentra por ella.
-        EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0132), Client::Scenes::CreatedActorSearch);
+        EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0132), Client::Actors::CreatedActorSearch);
     }
 }
 
@@ -767,7 +767,7 @@ TEST_F(MonsterViewportTest, TheCrywolfStatueNamesItsBonesUntilItLeaves)
     EXPECT_EQ(bones[2].name, "Monster96_Bottom");
     EXPECT_EQ(bones[2].bone, 29u);
 
-    Client::Scenes::RemoveActor(game->world, 0x0500);
+    Client::Actors::RemoveActor(game->world, 0x0500);
     EXPECT_TRUE(game->world.Runtime().namedBones.empty());
 }
 

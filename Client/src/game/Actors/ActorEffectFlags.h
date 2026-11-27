@@ -5,12 +5,20 @@
 #include <cstdint>
 #include <string>
 
-// Las banderas de efectos de otro personaje (+0x78 y +0x7c) que traen el 0x12 y el 0x45: 0x4e6380 y 0x42ab40.
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el viewport". *Estático*.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// Las banderas de efectos de otro personaje (+0x78 y +0x7c) que traen el 0x12 y el 0x45: 0x4e6380 y 0x42ab40.
+// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el viewport". *Estático*.
+namespace Client::Actors
+{
 
 // 0x4e6380(banderas, personaje), bit por bit en el orden del original: los que solo prenden su bit en +0x78
 // (1, 2, 4, 8, 0x80, 0x200, 0x4000, 0x8000 y 0x1000000), 0x800000 y 0x400000 (que apagan antes el 0x40000),
@@ -25,8 +33,9 @@ struct WorldEntryResources;
 // bit y crea los tres 0x10f/8 (los dos, 0x530860 de AuraJoints).
 // Con 0x2000000 y el héroe publicado, 0x555190 añade Text[1828] con nombre vacío y tipo 1 antes de prender el bit,
 // incluso si ya estaba puesto. Necesita Text.bmd y el medidor; sin el bit no los consulta.
-[[nodiscard]] Core::Expected<void, std::string>
-ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, std::uint32_t flags,
+                                                                 bool publishedHero,
+                                                                 const Scenes::WorldEntryResources& resources);
 
 // Los dos sitios de 0x518cf0 de un hielo (para el error).
 struct IceCalls
@@ -38,12 +47,12 @@ struct IceCalls
 // El hielo de un personaje: 0x518ac0(0xc1, personaje, 1) y el 0xc1/1 y el /2 (z + 180) con él de dueño, su posición,
 // sus ángulos y su luz +0xf4, que cada alta pisa (World::CreateWizardModelEffect). Lo usan la bandera 0x20 (0x4e67bc)
 // y la respuesta de la 0x33 (0x4cd6bc). Con la tabla llena, nada y sin rand().
-[[nodiscard]] Core::Expected<void, std::string> WrapInIce(ActorState& actor, const WorldEntryResources& resources,
-                                                          const IceCalls& calls);
+[[nodiscard]] Core::Expected<void, std::string>
+WrapInIce(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources, const IceCalls& calls);
 
 // 0x42ab40(personaje, banderas): solo en el mapa 30. Con 0x80000, 0x400000 u 0x800000 (el primero que esté, en ese
 // orden), +0x360 en 6, 7 u 8, soltando antes la capa (0x414340) si estaba en 0xc; si no, con 0x40000, +0x360 en 0xc,
 // soltándola antes si estaba en 6, 7 u 8; con ninguno, suelta la capa si +0x360 es 6, 7, 8 o 0xc. Lo que devuelve no
 // lo lee nadie (0x4c9250, 0x4c9396).
-void ApplyCastleSiegeFlags(ActorState& actor, std::uint32_t flags, std::int32_t map);
-} // namespace Client::Scenes
+void ApplyCastleSiegeFlags(Kernel::ActorState& actor, std::uint32_t flags, std::int32_t map);
+} // namespace Client::Actors

@@ -81,8 +81,8 @@ struct FrameFixture
     Client::Tests::FakeClock clock;
     Client::Models::ClothWorld cloth;
     Client::Models::OriginalFrameCarry itemFrames;
-    Client::Scenes::WorldState world;
-    Client::Scenes::GameModels models;
+    Client::Kernel::WorldState world;
+    Client::Assets::GameModels models;
     // El paso del héroe lee su habilidad de Skill.bmd (0x5526f0); estos tests no miran habilidades.
     Client::Tables::SkillTable skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     Client::Tests::RecordingFrameTarget target;
@@ -124,7 +124,7 @@ protected:
         if (frame.itemFrames.FramesAt(now, Client::Models::OriginalFramePace::ByTheClock) == 0)
             return;
         const float clock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
-        Client::Scenes::UpdateGameItemGlowPulse(frame.world.Runtime().itemRender, clock);
+        Client::Actors::Drawing::UpdateGameItemGlowPulse(frame.world.Runtime().itemRender, clock);
     }
     void Render()
     {
@@ -196,7 +196,7 @@ protected:
         frame.scene->PrepareFrame();
         const auto random = frame.cloth.random.State();
         const auto lighting =
-            std::make_unique<Client::World::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+            std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
         auto& canvas = frame.target.BeginFrame(frame.clock.Now());
         frame.scene->Render(canvas, 0.5f);
         ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
@@ -217,12 +217,12 @@ TEST_F(GameSceneTailIntegrationTest, LiveMovingLightReceivesTheRealSpriteAndLigh
     effect.transform.scale = 1;
     effect.transform.position = frame.world.Actors()[0].position;
     effect.light = {0.1f, 0.2f, 0.3f};
-    const auto before = std::make_unique<Client::World::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+    const auto before = std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
     Render();
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
     EXPECT_NE(frame.world.DynamicLighting().Lighting().cells, before->cells);
     EXPECT_TRUE(frame.target.frames.back().presented);
-    const auto retained = std::make_unique<Client::World::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+    const auto retained = std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
     frame.scene->PrepareFrame();
     const auto random = frame.cloth.random.State();
     auto& canvas = frame.target.BeginFrame(frame.clock.Now());
@@ -273,7 +273,7 @@ TEST_F(GameSceneTailIntegrationTest, IntermediateDrawLeavesFloorJointLightingAnd
     floor.seen = false;
     const auto color = joint.light;
     frame.world.Runtime().itemRender.glowPulse = 0.125f;
-    const auto light = std::make_unique<Client::World::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+    const auto light = std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
     frame.scene->PrepareFrame();
     const auto random = frame.cloth.random.State();
     auto& canvas = frame.target.BeginFrame(frame.clock.Now());

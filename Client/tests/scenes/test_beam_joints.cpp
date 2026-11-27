@@ -30,7 +30,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 
@@ -88,7 +88,7 @@ struct BeamWorld
     CrtRandom random{Seed};
     Client::World::Particles particles;
     Client::World::FrameSprites sprites;
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::vector<std::int32_t> sounds;
 };
 

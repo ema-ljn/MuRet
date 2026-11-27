@@ -27,31 +27,31 @@ public:
     GameContext(GameContext&&) = delete;
     GameContext& operator=(GameContext&&) = delete;
 
-    [[nodiscard]] std::span<Scenes::ActorState, ActorPoolSize> Actors();
-    [[nodiscard]] std::span<const Scenes::ActorState, ActorPoolSize> Actors() const;
+    [[nodiscard]] std::span<Kernel::ActorState, ActorPoolSize> Actors();
+    [[nodiscard]] std::span<const Kernel::ActorState, ActorPoolSize> Actors() const;
     // Actors()[HeroIndex()], with no check, as the original reads it: actor 0 until the F3 03 names the hero.
-    [[nodiscard]] Scenes::ActorState& Hero();
-    [[nodiscard]] const Scenes::ActorState& Hero() const;
+    [[nodiscard]] Kernel::ActorState& Hero();
+    [[nodiscard]] const Kernel::ActorState& Hero() const;
     [[nodiscard]] std::size_t HeroIndex() const;
     void SetHero(std::size_t index);
-    [[nodiscard]] Scenes::OwnCharacterRecord& OwnCharacter();
-    [[nodiscard]] const Scenes::OwnCharacterRecord& OwnCharacter() const;
-    [[nodiscard]] Scenes::OwnInventory& Inventory();
-    [[nodiscard]] const Scenes::OwnInventory& Inventory() const;
-    [[nodiscard]] Scenes::WorldMap& Map();
-    [[nodiscard]] const Scenes::WorldMap& Map() const;
+    [[nodiscard]] Kernel::OwnCharacterRecord& OwnCharacter();
+    [[nodiscard]] const Kernel::OwnCharacterRecord& OwnCharacter() const;
+    [[nodiscard]] Kernel::OwnInventory& Inventory();
+    [[nodiscard]] const Kernel::OwnInventory& Inventory() const;
+    [[nodiscard]] Kernel::WorldMap& Map();
+    [[nodiscard]] const Kernel::WorldMap& Map() const;
     // Until AR4 empties it.
-    [[nodiscard]] Scenes::WorldRuntime& Runtime();
-    [[nodiscard]] const Scenes::WorldRuntime& Runtime() const;
+    [[nodiscard]] Kernel::WorldRuntime& Runtime();
+    [[nodiscard]] const Kernel::WorldRuntime& Runtime() const;
 
 private:
     // On the heap: with the pool inside, a local WorldState (main.cpp, the tests) passed 900 KB and overflowed the
     // 1 MB stack of MSVC's Debug on Windows.
-    std::unique_ptr<std::array<Scenes::ActorState, ActorPoolSize>> m_actors =
-        std::make_unique<std::array<Scenes::ActorState, ActorPoolSize>>();
-    Scenes::OwnCharacterRecord m_own;
-    Scenes::OwnInventory m_inventory;
-    Scenes::WorldRuntime m_runtime;
-    Scenes::WorldMap m_map;
+    std::unique_ptr<std::array<Kernel::ActorState, ActorPoolSize>> m_actors =
+        std::make_unique<std::array<Kernel::ActorState, ActorPoolSize>>();
+    Kernel::OwnCharacterRecord m_own;
+    Kernel::OwnInventory m_inventory;
+    Kernel::WorldRuntime m_runtime;
+    Kernel::WorldMap m_map;
 };
 } // namespace Client::Kernel

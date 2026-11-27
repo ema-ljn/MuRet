@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-// Client::World::Leaves con las brasas del login y Client::World::TerrainHeightAt contra el código real del
+// Client::World::Leaves con las brasas del login y Client::Terrain::TerrainHeightAt contra el código real del
 // main.exe: 0x530490 (con 0x42b1e0 y 0x5303a0), 0x5306a0 y 0x5f93c0, en 3 casos de 150 pasos sobre un mapa
 // de alturas de una fórmula (tests/vectors/world55/leaves.txt, make_leaf_vectors.py), bit a bit.
 namespace
@@ -174,7 +174,7 @@ TEST(LeavesTest, ThreeCasesMatchTheBinary)
             const float y = next();
             std::string expected;
             words >> expected;
-            const double got = Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y);
+            const double got = Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y);
             EXPECT_EQ(std::bit_cast<std::uint64_t>(got), std::stoull(expected, nullptr, 16))
                 << where << ": la altura en " << x << ", " << y << " (" << got << ")";
             ++heights;
@@ -274,11 +274,11 @@ TEST(TerrainHeightTest, OutsideTheGridIsFixed)
 {
     Terrain terrain;
     terrain.Build(1, 1, 1, 1);
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, -1.0f, 100.0f), 0.0);
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, -1.0f), 0.0);
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25600.0f), 100.5);
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25601.0f),
-              static_cast<double>(Client::World::FixedTerrainHeight));
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, -1.0f, 100.0f), 0.0);
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, -1.0f), 0.0);
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25600.0f), 100.5);
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25601.0f),
+              static_cast<double>(Client::Terrain::FixedTerrainHeight));
 }
 
 // 0x5f9424: la y se guarda con fst y ftol trunca lo que queda en la pila. 20.000 · 0,01f es 199,9999955:
@@ -292,8 +292,8 @@ TEST(TerrainHeightTest, TheRowComesFromTheUnroundedProduct)
         attribute = 0;
     }
     terrain.attributes->cells[(199 * 256) + 50] = 0x40;
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5050.0f, 20000.0f),
-              static_cast<double>(Client::World::FixedTerrainHeight));
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5050.0f, 20000.0f),
+              static_cast<double>(Client::Terrain::FixedTerrainHeight));
 }
 
 // 0x5f9436: la fila por 256 más la columna, en 32 bits y con signo. Con la fila 2^24 (y = 1.677.721.728)
@@ -307,10 +307,10 @@ TEST(TerrainHeightTest, TheCellIndexWrapsInThirtyTwoBits)
     {
         attribute = 0;
     }
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5000.0f, 1677721728.0f),
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5000.0f, 1677721728.0f),
               static_cast<double>(terrain.heights->cells[50]));
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5000.0f, 1677721600.0f),
-              static_cast<double>(Client::World::FixedTerrainHeight));
+    EXPECT_EQ(Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5000.0f, 1677721600.0f),
+              static_cast<double>(Client::Terrain::FixedTerrainHeight));
 }
 
 // 0x5303e8: en el suelo, el rojo baja 0,05; con `test ah, 0x41` muere también cuando queda justo en 0. La

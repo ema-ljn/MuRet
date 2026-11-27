@@ -78,8 +78,8 @@ protected:
         model.version = 0x0a;
         Client::Tests::WriteSceneFile(m_folder.Path(), "Player/Player.bmd",
                                       Client::Tests::PlainBmd(Client::Tests::BmdContent(model), model.version));
-        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::GlowTextureSet);
-        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::EffectTextureSet);
+        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Assets::GlowTextureSet);
+        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Assets::EffectTextureSet);
     }
     Client::Tests::TemporaryFolder m_folder{"texture-metadata"};
     MetadataStore m_store;
@@ -127,7 +127,7 @@ public:
 TEST(TextureMetadataConversionTest, ADefaultLibraryAndAnUnloadedOwnerReportAbsence)
 {
     LibraryWithoutTextureMetadata library;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     EXPECT_FALSE(library.TextureMetadataOf(0x622).has_value());
     EXPECT_FALSE(models.TextureMetadataOf(0x622).has_value());
     EXPECT_FALSE(models.TextureMetadataOf(0xffffffffu).has_value());
@@ -136,7 +136,7 @@ TEST(TextureMetadataConversionTest, ADefaultLibraryAndAnUnloadedOwnerReportAbsen
 
 TEST_F(TextureMetadataTest, LoadedEffectsUseExactRawSelectorsAndShareTheLegacySize)
 {
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
     const Client::Models::IModelLibrary& library = models;
     const auto metadata = library.TextureMetadataOf(0x5ac);
@@ -168,7 +168,7 @@ TEST_F(TextureMetadataTest, AnUploadFailureKeepsThePublishedPrefixAndContinuesAf
 {
     m_store.blocked = std::uint16_t{0x5fd};
     m_store.failAfterUpload = true;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
     EXPECT_TRUE(models.TextureMetadataOf(0x5ac).has_value());
     EXPECT_FALSE(models.TextureMetadataOf(0x5fd).has_value());
@@ -176,9 +176,9 @@ TEST_F(TextureMetadataTest, AnUploadFailureKeepsThePublishedPrefixAndContinuesAf
     EXPECT_TRUE(m_store.stored.Find({0x5fd}).has_value()); // El upload pudo mutar antes de devolver error.
     EXPECT_TRUE(models.TextureMetadataOf(0x5c6).has_value());
     std::vector<std::uint16_t> expected;
-    for (const auto& entry : Client::Scenes::GlowTextureSet)
+    for (const auto& entry : Client::Assets::GlowTextureSet)
         expected.push_back(entry.slot);
-    for (const auto& entry : Client::Scenes::EffectTextureSet)
+    for (const auto& entry : Client::Assets::EffectTextureSet)
         expected.push_back(entry.slot);
     EXPECT_EQ(m_store.attempted, expected);
 }
@@ -189,7 +189,7 @@ TEST_F(TextureMetadataTest, OnlyUploadedEffectsPublishTheSlotOfTheirSelector)
 {
     m_store.blocked = std::uint16_t{0x5fd};
     m_store.failAfterUpload = true;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     EXPECT_FALSE(models.TextureSlotOf(0x5ac).has_value()) << "antes de cargar";
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
     const Client::Models::IModelLibrary& library = models;
@@ -214,7 +214,7 @@ TEST_F(TextureMetadataTest, MissingRuntimeImagesPublishNeitherMetadataNorPhysica
 {
     ASSERT_TRUE(std::filesystem::remove(m_folder.Path() / "Effect/Fire01.OZJ"));
     ASSERT_TRUE(std::filesystem::remove(m_folder.Path() / "Effect/Shiny01.OZJ"));
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
     for (const std::uint16_t selector : {std::uint16_t{0x5d9}, std::uint16_t{0x5fc}})
     {
@@ -231,7 +231,7 @@ TEST_F(TextureMetadataTest, ReloadFailureRetainsTheOldRowAndValueSnapshotsOutliv
 {
     std::optional<Client::Models::TextureMetadata> snapshot;
     {
-        Client::Scenes::GameModels models;
+        Client::Assets::GameModels models;
         ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
         snapshot = models.TextureMetadataOf(0x5ac);
         ASSERT_TRUE(snapshot.has_value());
@@ -260,7 +260,7 @@ TEST_F(TextureMetadataTest, ReloadFailureRetainsTheOldRowAndValueSnapshotsOutliv
 
 TEST_F(TextureMetadataTest, ARequiredModelFailureDoesNotClearTheAlreadyPublishedTextureMetadata)
 {
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
     const auto attempts = m_store.attempted.size();
     ASSERT_TRUE(std::filesystem::remove(m_folder.Path() / "Player/Player.bmd"));

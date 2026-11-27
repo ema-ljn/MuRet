@@ -3,7 +3,7 @@
 #include <bit>
 #include <cstddef>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 void PlayerActionSpeeds::SetWalking(bool slowed)
 {
@@ -38,4 +38,4 @@ float PlayerActionSpeeds::Speed(std::size_t action, float fallback) const
 {
     return action < m_speeds.size() ? m_speeds[action].value_or(fallback) : fallback;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

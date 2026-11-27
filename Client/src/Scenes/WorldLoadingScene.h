@@ -43,7 +43,7 @@ public:
 
 private:
     SceneContext m_context;
-    SceneTextures m_textures;
+    Assets::SceneTextures m_textures;
     bool m_drawn = false;
     bool m_done = false;
 };

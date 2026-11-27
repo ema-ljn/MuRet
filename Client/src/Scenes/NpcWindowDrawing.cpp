@@ -248,8 +248,8 @@ Core::Expected<void, std::string> DrawTheNpcShop(GameHudContext& context, UI::Pa
     if (!panels.IsOpen(UI::NpcShopPanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::HudState& hud = context.hud;
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::PanelState& state = runtime.panels;
     runtime.ui.npcWindowX = ShopLeft;
     runtime.ui.npcWindowY = ShopTop;
@@ -334,9 +334,9 @@ Core::Expected<void, std::string> DrawTheWarehouse(GameHudContext& context, UI::
     if (!panels.IsOpen(UI::WarehousePanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::HudState& hud = context.hud;
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const NpcWindowState& npc = runtime.npcWindows;
     runtime.ui.npcWindowX = ShopLeft;
     runtime.ui.npcWindowY = ShopTop;

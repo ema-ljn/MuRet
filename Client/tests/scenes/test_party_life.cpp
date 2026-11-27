@@ -58,10 +58,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Scenes::ActorState;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
 
@@ -108,10 +108,10 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -182,7 +182,7 @@ protected:
         GoldenDataTest::SetUp();
         game = std::make_unique<Game>();
         const std::uint8_t map = GetParam();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -222,7 +222,7 @@ protected:
               .targetY = y}}};
         auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
         ASSERT_TRUE(read.HasValue());
-        const auto applied = Client::Scenes::ApplyViewportPlayers(read.Value(), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(read.Value(), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         for (const std::size_t slot : {std::size_t{1}, std::size_t{2}})
         {

@@ -27,7 +27,7 @@ struct CharacterSelectResult;
 // Arranca en cero, como el bloque que WinMain llena de ceros (04, 0x4bafbc..0x4bafc2). El original
 // lo guarda cifrado en la tabla de protección (06, "La tabla de protección"): abrirlo y cerrarlo,
 // con sus rand(), es de quien llama, no de este registro.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 // 06, fila 7 de 0x4c3940: doce lugares desde +0xb68, de a 0x48, y el tipo en −1 al vaciarlos.
 inline constexpr std::size_t OwnEquipmentSlotCount = 12;
@@ -140,7 +140,7 @@ struct OwnCharacterRecord
     // Nadie la escribe hasta la CL9.2: queda en 0.
     std::array<std::int32_t, 255> skillDelays{};
 
-    std::array<World::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68
+    std::array<Kernel::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68
 
     // [0x7681eb4] + 0xecc: desde el login, el mismo bloque que [0x7681eb0] (0x4bafc9).
     std::uint32_t zen = 0;
@@ -177,4 +177,4 @@ struct OwnCharacterRecord
 // que sale (0x61c2e4): SkillAt, con 0 de más allá de +0x16b. Los de +0xac a +0x16b los escribe solo el F3 11
 // (0x4c5070).
 [[nodiscard]] std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index);
-} // namespace Client::Scenes
+} // namespace Client::Kernel

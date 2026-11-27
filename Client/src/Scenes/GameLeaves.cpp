@@ -106,13 +106,13 @@ private:
     Math::Detail::LeafSine m_value{};
 };
 
-class BorrowedAttributeQuery final : public World::ITerrainAttributeQuerySource
+class BorrowedAttributeQuery final : public Terrain::ITerrainAttributeQuerySource
 {
 public:
     explicit BorrowedAttributeQuery(const Data::Terrain::TerrainAttributes& attributes) : m_attributes(attributes) {}
     float ReadScale() override
     {
-        return World::TerrainAttributeQueryScale;
+        return Terrain::TerrainAttributeQueryScale;
     }
     const Data::Terrain::TerrainAttributes& Attributes() override
     {
@@ -292,8 +292,8 @@ Core::Expected<void, std::string> StepRain(World::Leaf& leaf, GameLeafContext& c
 {
     for (glm::vec3::length_type axis = 0; axis < 3; ++axis)
         leaf.position[axis] = F32(static_cast<double>(leaf.velocity[axis]) + leaf.position[axis]);
-    const double height = World::TerrainHeightAt(context.heights, context.attributes, leaf.position.x, leaf.position.y,
-                                                 context.fixedHeight);
+    const double height = Terrain::TerrainHeightAt(context.heights, context.attributes, leaf.position.x,
+                                                   leaf.position.y, context.fixedHeight);
     // 53010e guarda primero la altura en binary32; los otros dos conservan el intermedio.
     const double ground = eventRain ? static_cast<double>(F32(height)) : height;
     const bool hit = ground > static_cast<double>(leaf.position.z) ||
@@ -304,7 +304,7 @@ Core::Expected<void, std::string> StepRain(World::Leaf& leaf, GameLeafContext& c
     {
         // 5f82c0 conserva el wrap de DIRECCIÓN, no envuelve cada coordenada de celda.
         BorrowedAttributeQuery source(context.attributes);
-        const auto attribute = World::TerrainAttributeQueryAt(source, leaf.position.x, leaf.position.y);
+        const auto attribute = Terrain::TerrainAttributeQueryAt(source, leaf.position.x, leaf.position.y);
         if (!attribute.HasValue())
             return Core::Unexpected(std::string("530128: atributo de lluvia fuera de la tabla representada"));
         if ((attribute.Value() & RainBlockedAttribute) != 0)

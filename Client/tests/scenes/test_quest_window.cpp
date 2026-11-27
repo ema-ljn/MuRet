@@ -61,13 +61,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -239,7 +239,7 @@ protected:
     QuestWindowTest() : m_world(std::make_unique<WorldState>()), m_text(m_sprites)
     {
         m_sprites.Begin(Screen640);
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.map = GetParam();
         runtime.hero = 3;
         Hero().alive = true;
@@ -284,7 +284,7 @@ protected:
         m_world->OwnCharacter().zen = 5000;
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -292,7 +292,7 @@ protected:
     {
         return Runtime().quest;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return m_world->Hero();
     }
@@ -319,7 +319,7 @@ protected:
 
     void GiveTheScroll()
     {
-        Client::World::ItemState& item = m_world->Inventory().cells[5];
+        Client::Kernel::ItemState& item = m_world->Inventory().cells[5];
         item.id = static_cast<std::uint16_t>(ScrollType);
         item.occupied = 1;
     }
@@ -349,7 +349,7 @@ protected:
 
     GameHudContext HudContext(std::int32_t x, std::int32_t y, CrtRandom& random)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         return GameHudContext{.world = *m_world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,

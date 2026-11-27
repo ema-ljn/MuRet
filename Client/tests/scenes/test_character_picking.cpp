@@ -36,11 +36,11 @@
 // El picking de los personajes del juego (0x59e700) y lo que 0x59ec80 hace con él. Los mundos van en el heap.
 namespace
 {
+using Client::Actors::PickTheCharacter;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::PickTheCharacter;
-using Client::Scenes::WorldState;
-using Client::World::TerrainPickingSegment;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
+using Client::Terrain::TerrainPickingSegment;
 
 constexpr std::uint8_t Players = 1;
 constexpr std::uint8_t Monsters = 0x22;
@@ -65,7 +65,7 @@ void Place(WorldState& world, std::size_t slot, float x, std::uint8_t kind)
     actor.boundsMaxX = 40.0f;
     actor.boundsMaxY = 40.0f;
     actor.boundsTop = 120.0f;
-    Client::Scenes::PublishPickingBox(actor, actor.position, actor.boundsMin,
+    Client::Actors::PublishPickingBox(actor, actor.position, actor.boundsMin,
                                       {actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop});
 }
 
@@ -153,7 +153,7 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     // Fuera del segmento: en Y 2.000.
     Place(world, 7, 600.0f, Players);
     world.Actors()[7].position.y = 2000.0f;
-    Client::Scenes::PublishPickingBox(
+    Client::Actors::PublishPickingBox(
         world.Actors()[7], world.Actors()[7].position, world.Actors()[7].boundsMin,
         {world.Actors()[7].boundsMaxX, world.Actors()[7].boundsMaxY, world.Actors()[7].boundsTop});
     EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
@@ -183,7 +183,7 @@ TEST(CharacterPickingTest, FloatRoundedBestCanLetTheLaterSlightlyFartherCandidat
     Place(world, 1, 10000.3f, Players);
     Place(world, 2, 10000.3f, Players);
     world.Actors()[2].position.y = 1001.0f;
-    Client::Scenes::PublishPickingBox(
+    Client::Actors::PublishPickingBox(
         world.Actors()[2], world.Actors()[2].position, world.Actors()[2].boundsMin,
         {world.Actors()[2].boundsMaxX, world.Actors()[2].boundsMaxY, world.Actors()[2].boundsTop});
 
@@ -214,7 +214,7 @@ TEST(CharacterPickingTest, TheBoxComesFromTheConstructedType)
     tall.boundsMaxX = 90.0f;
     tall.boundsMaxY = 50.0f;
     tall.boundsTop = 200.0f;
-    Client::Scenes::PublishPickingBox(tall, tall.position, tall.boundsMin,
+    Client::Actors::PublishPickingBox(tall, tall.position, tall.boundsMin,
                                       {tall.boundsMaxX, tall.boundsMaxY, tall.boundsTop});
     const TerrainPickingSegment high{.origin = {0.0f, 1000.0f, 150.0f}, .end = {20000.0f, 1000.0f, 150.0f}};
     EXPECT_EQ(PickTheCharacter(world, Monsters, high.origin, high), 2);
@@ -383,7 +383,7 @@ TEST(CharacterPickingTest, IsInThePartyComparesTheNameAsAPrefix)
         Picking tested;
         WorldState& world = *tested.world;
         world.Runtime().map = map;
-        Client::Scenes::ActorState& actor = world.Actors()[3];
+        Client::Kernel::ActorState& actor = world.Actors()[3];
         Name(actor.name, "Brezal");
         EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
         Party(world, {"Tejon", "Brez"}, -2);
@@ -485,7 +485,7 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
         world.Actors()[3].type = 0x20a;
         world.Actors()[3].position.y = 5000.0f;
         // La caja que lee el picking es la que publicó el último dibujo (+0x13c..+0x168): la del lugar nuevo.
-        Client::Scenes::PublishPickingBox(
+        Client::Actors::PublishPickingBox(
             world.Actors()[3], world.Actors()[3].position, world.Actors()[3].boundsMin,
             {world.Actors()[3].boundsMaxX, world.Actors()[3].boundsMaxY, world.Actors()[3].boundsTop});
         Name(world.Actors()[3].name, "Brezal");
@@ -574,7 +574,7 @@ TEST(CharacterPickingTest, TheChosenMonsterStaysWithoutButtons)
     world.Actors()[0].characterClass = 1;
     Place(world, 5, 8000.0f, 2);
     world.Actors()[5].position.y = 5000.0f;
-    Client::Scenes::PublishPickingBox(
+    Client::Actors::PublishPickingBox(
         world.Actors()[5], world.Actors()[5].position, world.Actors()[5].boundsMin,
         {world.Actors()[5].boundsMaxX, world.Actors()[5].boundsMaxY, world.Actors()[5].boundsTop});
     Place(world, 3, 2000.0f, Players);

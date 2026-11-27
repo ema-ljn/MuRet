@@ -19,12 +19,12 @@
 
 // 0x5b8b80 (1.328 bytes), 0x5513d0 (783) y 0x5516e0 (769), cotejados con el PE c32bbd5f: 06, "La ventana del
 // personaje" y "El cuerpo de la skill".
-namespace Client::Scenes
+namespace Client::Player
 {
 namespace
 {
 // El tipo de un ítem como lo lee el original: un short con signo.
-std::int32_t TypeOf(const World::ItemState& item)
+std::int32_t TypeOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int16_t>(item.id);
 }
@@ -45,7 +45,7 @@ bool UsesSecondPair(std::int32_t right, std::int32_t left)
 }
 
 // El nivel de una flecha o de un virote, (+4 & 0x78) en 8 o más.
-bool HasLevel(const World::ItemState& item)
+bool HasLevel(const Kernel::ItemState& item)
 {
     return (item.scalar1Low & 0x78u) >= 8u;
 }
@@ -80,13 +80,13 @@ Core::Expected<std::int32_t, std::string> SetBonusOf(std::span<const std::byte, 
 }
 } // namespace
 
-OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
+OwnAttackDamage AttackDamageOf(const Kernel::OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
                                const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     // 0x5b8c45..0x5b8cad: el ítem del cursor en lugar de una mano.
-    const World::ItemState* rightItem = &own.equipment[0];
-    const World::ItemState* leftItem = &own.equipment[1];
+    const Kernel::ItemState* rightItem = &own.equipment[0];
+    const Kernel::ItemState* leftItem = &own.equipment[1];
     if (held.dword7879fbc > 0 && held.window78ab9b8Is78a9bb0)
     {
         if (held.slot78a6758 == 0)
@@ -131,7 +131,7 @@ OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, Kernel::CharacterC
     return damage;
 }
 
-Core::Expected<OwnMagicDamage, std::string> MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill,
+Core::Expected<OwnMagicDamage, std::string> MagicDamageOf(const Kernel::OwnCharacterRecord& own, std::uint8_t skill,
                                                           const Tables::SkillTable* skills, std::uint8_t& skillDepth,
                                                           Crt::CrtRandom& random, ItemSetOptionList& setOptions)
 {
@@ -171,4 +171,4 @@ Core::Expected<OwnSkillDamage, std::string> SkillDamageOf(std::uint8_t skill, co
     damage.max += bonus.Value();
     return damage;
 }
-} // namespace Client::Scenes
+} // namespace Client::Player

@@ -56,7 +56,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -124,9 +124,9 @@ bool IsMaskedClass(std::uint8_t characterClass)
 
 // El modelo con que 0x50ba30 dibuja la parte `part`: el casco de la clase 4, si tiene máscara, con
 // ella (el modelo + 0x328b, con la misma piel).
-std::uint16_t DrawnPartModel(GameLogic::BodyPart part, std::uint16_t model, std::uint8_t characterClass)
+std::uint16_t DrawnPartModel(Kernel::BodyPart part, std::uint16_t model, std::uint8_t characterClass)
 {
-    if (part != GameLogic::BodyPart::Helm || !IsMaskedClass(characterClass) ||
+    if (part != Kernel::BodyPart::Helm || !IsMaskedClass(characterClass) ||
         std::ranges::find(Tables::HelmsWithMask, model) == Tables::HelmsWithMask.end())
     {
         return model;
@@ -737,16 +737,16 @@ struct DrawnPart
 
 // Las partes en el orden del lazo, de la 5 a la 0 (+0x1f8 + k · 0x20): las botas, los guantes, el
 // pantalón, la armadura, el casco y la cabeza.
-std::vector<DrawnPart> PartsInOrder(const GameLogic::CharacterAppearance& appearance)
+std::vector<DrawnPart> PartsInOrder(const Kernel::CharacterAppearance& appearance)
 {
     std::vector<DrawnPart> parts;
     for (std::size_t index = appearance.bodyParts.size(); index-- > 0;)
     {
-        const GameLogic::WornItem& part = appearance.bodyParts[index];
-        const auto bodyPart = static_cast<GameLogic::BodyPart>(index);
+        const Kernel::WornItem& part = appearance.bodyParts[index];
+        const auto bodyPart = static_cast<Kernel::BodyPart>(index);
         parts.push_back(DrawnPart{DrawnPartModel(bodyPart, part.model, appearance.characterClass),
                                   Models::ItemGlowOf(part.level, part.excellent, part.ancient),
-                                  bodyPart == GameLogic::BodyPart::Helm});
+                                  bodyPart == Kernel::BodyPart::Helm});
     }
     if (appearance.head)
     {
@@ -830,7 +830,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
                      const glm::vec3& bodyOrigin, const Models::AnimationState& state, const Models::ItemGlow& glow)
 {
     constexpr std::uint32_t HiddenAttachmentFlag = 0x4000;
-    if (!Models::HangsAsAModel(modelId) || (frame.character.objectFlags & HiddenAttachmentFlag) != 0)
+    if (!Actors::HangsAsAModel(modelId) || (frame.character.objectFlags & HiddenAttachmentFlag) != 0)
     {
         return;
     }
@@ -892,22 +892,22 @@ glm::vec3 HangingOrigin(const BoneTransform& parent, const glm::vec3& offset, co
 
 // Lo que cuelga de su lugar: desde su hueso del cuerpo con el desplazamiento (0x509340 con la bandera
 // en 0).
-void DrawHanging(const CharacterFrame& frame, std::uint16_t modelId, Models::AttachmentSlot slot,
+void DrawHanging(const CharacterFrame& frame, std::uint16_t modelId, Actors::AttachmentSlot slot,
                  const Models::AnimationState& state, std::span<const BoneTransform> body, const Models::ItemGlow& glow)
 {
-    const Models::Attachment attachment = Models::AttachmentOf(slot);
+    const Actors::Attachment attachment = Actors::AttachmentOf(slot);
     if (static_cast<std::size_t>(attachment.bone) >= body.size())
     {
         return;
     }
     const BoneTransform& parent = body[static_cast<std::size_t>(attachment.bone)];
-    DrawHangingFrom(frame, modelId, Models::AttachmentRoot(parent, attachment.offset),
+    DrawHangingFrom(frame, modelId, Actors::AttachmentRoot(parent, attachment.offset),
                     HangingOrigin(parent, attachment.offset, frame.character.object), state, glow);
 }
 
 // El carcaj de 0x50ba30 con las armas en la mano (local_20 en 0): las saetas de la mano izquierda o,
 // si no, las flechas de la derecha.
-std::optional<GameLogic::WornItem> QuiverOf(const GameLogic::CharacterAppearance& appearance)
+std::optional<Kernel::WornItem> QuiverOf(const Kernel::CharacterAppearance& appearance)
 {
     if (appearance.leftHand && appearance.leftHand->model == Bolts)
     {
@@ -925,15 +925,15 @@ std::optional<GameLogic::WornItem> QuiverOf(const GameLogic::CharacterAppearance
 // la pose no depende del frame del lugar de las alas, con que el original lo posa.
 void DrawQuiver(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
-    const std::optional<GameLogic::WornItem> quiver = QuiverOf(frame.character.appearance);
-    const auto bone = static_cast<std::size_t>(Models::AttachmentOf(Models::AttachmentSlot::Wings).bone);
+    const std::optional<Kernel::WornItem> quiver = QuiverOf(frame.character.appearance);
+    const auto bone = static_cast<std::size_t>(Actors::AttachmentOf(Actors::AttachmentSlot::Wings).bone);
     if (!quiver || bone >= body.size())
     {
         return;
     }
     const Models::ItemGlow glow = Models::ItemGlowOf(Models::QuiverGlowLevel(quiver->level), quiver->excellent, false);
     // Por ese camino, el origen del cuerpo es la posición del personaje (0x509607).
-    DrawHangingFrom(frame, quiver->model, Models::PlacedRoot(body[bone], Models::QuiverPlacement),
+    DrawHangingFrom(frame, quiver->model, Actors::PlacedRoot(body[bone], Actors::QuiverPlacement),
                     frame.character.object.position, Models::AnimationState{}, glow);
 }
 
@@ -951,10 +951,10 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
     {
         return;
     }
-    const GameLogic::CharacterAppearance& appearance = character.appearance;
+    const Kernel::CharacterAppearance& appearance = character.appearance;
     ClothWearer wearer;
     wearer.characterClass = appearance.characterClass;
-    wearer.armor = appearance.bodyParts[static_cast<std::size_t>(GameLogic::BodyPart::Armor)].model;
+    wearer.armor = appearance.bodyParts[static_cast<std::size_t>(Kernel::BodyPart::Armor)].model;
     wearer.wings = appearance.wings;
     wearer.objectFlags = character.objectFlags;
     wearer.monster = character.monster;
@@ -1002,8 +1002,8 @@ bool DrawTheBodyPass(const CharacterFrame& frame, std::span<const BoneTransform>
 // El lazo de las manos de 0x50ba30 (0x50e6af), después de la espalda, las alas y la mascota.
 void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
-    const GameLogic::CharacterAppearance& appearance = frame.character.appearance;
-    using Models::AttachmentSlot;
+    const Kernel::CharacterAppearance& appearance = frame.character.appearance;
+    using Actors::AttachmentSlot;
     for (const auto& [hand, slot] : {std::pair{appearance.rightHand, AttachmentSlot::RightHand},
                                      std::pair{appearance.leftHand, AttachmentSlot::LeftHand}})
     {
@@ -1074,7 +1074,7 @@ void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& model
     }
     if (character.onPose)
         character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
-    const GameLogic::CharacterAppearance& appearance = character.appearance;
+    const Kernel::CharacterAppearance& appearance = character.appearance;
     std::minstd_rand random(RandomSeedOf(frameClock));
     const CharacterFrame frame{batch, models, character, frameClock, random};
     if (!DrawTheBodyPass(frame, body, pass))
@@ -1083,12 +1083,12 @@ void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& model
     }
     DrawQuiver(frame, body);
     const Models::ItemGlow noGlow{};
-    using Models::AttachmentSlot;
+    using Actors::AttachmentSlot;
     if (appearance.wings)
     {
         DrawHanging(frame, *appearance.wings, AttachmentSlot::Wings, character.wings, body, noGlow);
     }
-    if (appearance.pet && Models::DrawsThePet(*appearance.pet))
+    if (appearance.pet && Actors::DrawsThePet(*appearance.pet))
     {
         DrawHanging(frame, *appearance.pet, AttachmentSlot::Pet, character.pet, body, noGlow);
     }
@@ -1910,15 +1910,20 @@ void DrawWaterspout(Render::ModelBatch& batch, const Models::IModelLibrary& mode
     }
 }
 
+} // namespace Client::Actors::Drawing
+
+namespace Client::Scenes
+{
 Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                         DrawnObject& object, Core::Duration frameClock,
+                                                         Actors::Drawing::DrawnObject& object,
+                                                         Core::Duration frameClock,
                                                          World::ObjectModelStepState* modelState)
 {
     std::vector<Models::SkinnedMesh> skinned;
     std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
-        static_cast<void>(ObjectMeshDraws(models, object, frameClock, skinned));
+        static_cast<void>(Actors::Drawing::ObjectMeshDraws(models, object, frameClock, skinned));
         meshes = skinned;
     }
     // 430ab5..430b14: el segundo pase lee el RGB que pudo guardar el primero dentro de 0x4ecc30.
@@ -1930,8 +1935,8 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
             modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = selection;
         if (!meshes.empty())
         {
-            if (auto drawn =
-                    DrawItemMeshPass(batch, models, object, frameClock, meshes, 0, flags, std::nullopt, &object.color);
+            if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, object, frameClock, meshes, 0, flags,
+                                                               std::nullopt, &object.color);
                 !drawn.HasValue())
                 return drawn;
         }
@@ -1941,6 +1946,10 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
         modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = std::int8_t{-1};
     return {};
 }
+} // namespace Client::Scenes
+
+namespace Client::Actors::Drawing
+{
 
 void DrawTarkanChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock)
@@ -2556,4 +2565,4 @@ std::optional<glm::vec3> LastPosedBonePoint(std::span<const PosedInTheBuffer> po
     }
     return std::nullopt;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

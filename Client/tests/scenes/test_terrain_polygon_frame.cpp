@@ -11,17 +11,17 @@
 #include <limits>
 #include <string>
 
-// Client::Scenes::StepTheTerrainPolygon y TerrainPolygonBetweenFrames: el trapecio de 0x5fb570 y su nivel
+// Client::Camera::StepTheTerrainPolygon y TerrainPolygonBetweenFrames: el trapecio de 0x5fb570 y su nivel
 // efectivo en los globales de WorldRuntime (0x78ecbf0, 0x78ecc00 y 0x7b4ccb8), uno para las tres escenas que los
 // escriben. 06 § El trapecio completo.
 namespace
 {
-using Client::Scenes::StepTheTerrainPolygon;
-using Client::Scenes::TerrainPolygonBetweenFrames;
-using Client::Scenes::WorldRuntime;
-using Client::World::GameCamera;
-using Client::World::TerrainPolygon;
-using Client::World::TerrainPolygonInput;
+using Client::Camera::GameCamera;
+using Client::Camera::StepTheTerrainPolygon;
+using Client::Camera::TerrainPolygonBetweenFrames;
+using Client::Kernel::WorldRuntime;
+using Client::Terrain::TerrainPolygon;
+using Client::Terrain::TerrainPolygonInput;
 
 constexpr std::array<float, 4> Zeros{};
 
@@ -29,7 +29,7 @@ constexpr std::array<float, 4> Zeros{};
 TerrainPolygonInput GameInput()
 {
     TerrainPolygonInput input;
-    input.scene = static_cast<std::int32_t>(Client::World::CullingScene::Game);
+    input.scene = static_cast<std::int32_t>(Client::Terrain::CullingScene::Game);
     input.map = 0;
     input.translation = {13350.0f, 12750.0f, 165.0f};
     input.objectPosition = {13350.0f, 12750.0f};
@@ -39,7 +39,7 @@ TerrainPolygonInput GameInput()
 
 TerrainPolygon PolygonAtLevel(std::int32_t level)
 {
-    const auto polygon = Client::World::TerrainPolygonOf(GameInput(), level);
+    const auto polygon = Client::Terrain::TerrainPolygonOf(GameInput(), level);
     EXPECT_TRUE(polygon.HasValue());
     return polygon.HasValue() ? polygon.Value() : TerrainPolygon{};
 }

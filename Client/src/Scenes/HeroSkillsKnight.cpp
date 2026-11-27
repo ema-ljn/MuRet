@@ -87,16 +87,16 @@ SkillDelayContext DelaysOf(const HeroSkillContext& context)
     return SkillDelayContext{.world = context.world, .random = context.random, .skills = context.skills};
 }
 
-const ActorState& PublishedHero(const HeroSkillContext& context)
+const Kernel::ActorState& PublishedHero(const HeroSkillContext& context)
 {
     return context.world.Hero();
 }
 
 // 0x558eb0 compara el puntero con [0x743a170]: el lugar de `hero` en la tabla, o uno de más si no está.
-std::size_t SlotOf(const WorldState& world, const ActorState& hero)
+std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& hero)
 {
     const auto actors = world.Actors();
-    const std::less<const ActorState*> before;
+    const std::less<const Kernel::ActorState*> before;
     if (before(&hero, actors.data()) || !before(&hero, actors.data() + actors.size()))
         return actors.size();
     return static_cast<std::size_t>(&hero - actors.data());
@@ -104,7 +104,7 @@ std::size_t SlotOf(const WorldState& world, const ActorState& hero)
 
 // 0x581912..0x58197a: sin arma derecha, o con un bastón (0xc12 a 0xe11, MOVSX) en una de las manos del héroe publicado,
 // solo siguen las skills de la lista.
-bool TheHandsAllow(const ActorState& published, std::uint8_t skill)
+bool TheHandsAllow(const Kernel::ActorState& published, std::uint8_t skill)
 {
     const auto right = static_cast<std::int16_t>(published.hands[0].model);
     const auto left = static_cast<std::int16_t>(published.hands[1].model);
@@ -134,9 +134,9 @@ std::uint8_t HorseDurability(const HeroSkillContext& context)
 }
 
 // 0x58197f..0x581b6c: [ebp−0x3d], si se puede usar, antes del maná.
-bool UsableHere(std::uint8_t skill, const ActorState& published, const HeroSkillContext& context)
+bool UsableHere(std::uint8_t skill, const Kernel::ActorState& published, const HeroSkillContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool usable = true;
     if (skill == 0x3f)
         usable = runtime.hud.partyCount > 0;
@@ -164,7 +164,7 @@ Core::Expected<std::optional<bool>, std::string> PaysForTheSkill(Kernel::Charact
                                                                  const HeroSkillContext& context)
 {
     const SkillDelayContext delays = DelaysOf(context);
-    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     if (static_cast<std::int32_t>(costs.mana) > static_cast<std::int32_t>(own.mana))
     {
         // 0x581b86..0x5822d1: 0x558110(3) busca la poción; sin ella o con ella, no se puede (Q-C1233).
@@ -209,7 +209,7 @@ struct Cells
 };
 
 // 0x40b570 y 0x40b800 sobre +0x420 y después sobre +0x41c: la Y primero.
-Cells ReadTheCells(ActorState& hero, Crt::CrtRandom& random)
+Cells ReadTheCells(Kernel::ActorState& hero, Crt::CrtRandom& random)
 {
     Cells cells;
     {
@@ -224,7 +224,7 @@ Cells ReadTheCells(ActorState& hero, Crt::CrtRandom& random)
 }
 
 // 0x4e93f0(+0x10, +0x14, +0x3a8, +0x3ac) en +0x24.
-void FaceTheTarget(ActorState& hero)
+void FaceTheTarget(Kernel::ActorState& hero)
 {
     hero.angles.z = static_cast<float>(
         Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
@@ -232,7 +232,7 @@ void FaceTheTarget(ActorState& hero)
 
 // 0x583f12..0x583f63 (y 0x586436, 0x587aab y 0x588899): la distancia del héroe al centro de la celda del blanco
 // (0x77e1ba8 y 0x77e1bac) contra el alcance (el local de 0x5526f0) · 100; con NaN, en alcance (TEST AH, 0x41).
-bool OutOfRange(const ActorState& hero, const GameMovementState& state)
+bool OutOfRange(const Kernel::ActorState& hero, const GameMovementState& state)
 {
     const double dx = static_cast<double>(hero.position.x) -
                       (static_cast<double>(std::bit_cast<std::int32_t>(state.targetX)) * CellSize + HalfCell);
@@ -275,7 +275,7 @@ Core::Expected<std::uint8_t, std::string> LowByte(double value, std::string_view
 }
 
 // El rumbo del 1E: +0x24 · 256/360.
-Core::Expected<std::uint8_t, std::string> DirectionOf(const ActorState& hero, std::string_view where)
+Core::Expected<std::uint8_t, std::string> DirectionOf(const Kernel::ActorState& hero, std::string_view where)
 {
     return LowByte(static_cast<double>(hero.angles.z) * TurnsOf256, where);
 }
@@ -287,7 +287,7 @@ Core::Expected<std::int32_t, std::string> CellOf(float coordinate, std::string_v
 }
 
 // 0x4e9920(+0x10, +0x14, _ftol(+0x3a8), _ftol(+0x3ac)): la celda relativa, con las del blanco sin el · 0,01.
-Core::Expected<std::uint8_t, std::string> RelativeCellOf(const ActorState& hero, std::string_view where)
+Core::Expected<std::uint8_t, std::string> RelativeCellOf(const Kernel::ActorState& hero, std::string_view where)
 {
     const auto y = Ftol(static_cast<double>(hero.attackPosition.y), where);
     if (!y.HasValue())
@@ -302,7 +302,7 @@ Core::Expected<std::uint8_t, std::string> RelativeCellOf(const ActorState& hero,
 }
 
 // 0x558eb0(héroe, elegido): la clave, de la que el 1E manda los 16 bits de abajo.
-Core::Expected<std::uint16_t, std::string> ChosenKey(const ActorState& hero, std::int32_t target,
+Core::Expected<std::uint16_t, std::string> ChosenKey(const Kernel::ActorState& hero, std::int32_t target,
                                                      const HeroSkillContext& context)
 {
     const auto key = ChosenKeyOf(context.world, SlotOf(context.world, hero), target, context.controlDown);
@@ -312,7 +312,8 @@ Core::Expected<std::uint16_t, std::string> ChosenKey(const ActorState& hero, std
 }
 
 // 0x5823b1..0x5823ce: con el elegido de la skill del arma (0x7758588) en −1, 0xffff sin llamar a 0x558eb0.
-Core::Expected<std::uint16_t, std::string> WeaponTargetKey(const ActorState& hero, const HeroSkillContext& context)
+Core::Expected<std::uint16_t, std::string> WeaponTargetKey(const Kernel::ActorState& hero,
+                                                           const HeroSkillContext& context)
 {
     const std::int32_t target = context.world.Runtime().movement.weaponSkill.target;
     if (target == -1)
@@ -323,7 +324,7 @@ Core::Expected<std::uint16_t, std::string> WeaponTargetKey(const ActorState& her
 // El strstr en línea con "webzen" sobre el nombre del héroe publicado (+0x1d9): con él, no manda.
 bool SentByTheGameMaster(const HeroSkillContext& context)
 {
-    return ActorNameContains(PublishedHero(context), GameMasterName);
+    return Actors::ActorNameContains(PublishedHero(context), GameMasterName);
 }
 
 // El 1E (0x582446..0x582dd1 y los demás): 0x5767948 con la skill, las celdas lógicas del héroe (la Y antes que la X)
@@ -337,7 +338,7 @@ struct DurationBytes
     std::uint8_t magicKey = 0;
 };
 
-void SendTheDurationMagic(ActorState& hero, std::uint8_t skill, const DurationBytes& bytes,
+void SendTheDurationMagic(Kernel::ActorState& hero, std::uint8_t skill, const DurationBytes& bytes,
                           const HeroSkillContext& context)
 {
     context.world.Runtime().lastShotSkill = skill;
@@ -370,7 +371,8 @@ Core::Expected<void, std::string> SendTheMagicAttack(std::uint8_t skill, const H
 }
 
 // 0x4ea030 con el esqueleto del jugador: el héroe de la rama es un 0x20a (0x581912).
-Core::Expected<void, std::string> PutTheAction(ActorState& hero, std::uint8_t action, const HeroSkillContext& context)
+Core::Expected<void, std::string> PutTheAction(Kernel::ActorState& hero, std::uint8_t action,
+                                               const HeroSkillContext& context)
 {
     if (context.playerSkeleton == nullptr)
         return Core::Unexpected(std::format("0x4ea030: falta el esqueleto del jugador para la acción {:#x}", action));
@@ -379,7 +381,8 @@ Core::Expected<void, std::string> PutTheAction(ActorState& hero, std::uint8_t ac
 }
 
 // 0x58885c..0x58886f: la acción y +0x378 en 0.
-Core::Expected<void, std::string> ActAndStop(ActorState& hero, std::uint8_t action, const HeroSkillContext& context)
+Core::Expected<void, std::string> ActAndStop(Kernel::ActorState& hero, std::uint8_t action,
+                                             const HeroSkillContext& context)
 {
     if (auto put = PutTheAction(hero, action, context); !put.HasValue())
         return put;
@@ -396,7 +399,8 @@ Core::Expected<void, std::string> ForgetTheOtherTarget(const HeroSkillContext& c
 
 // 0x582393..0x5830dc: la 0x29. El rumbo hacia el blanco, la clave y el 1E con 0 en los bytes 7 y 8; con "webzen", sin
 // mandar. Las velocidades (0x4f3f80) y la acción 0x3d.
-Core::Expected<void, std::string> UseSkill29(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill29(Kernel::ActorState& hero, std::uint8_t skill,
+                                             const HeroSkillContext& context)
 {
     FaceTheTarget(hero);
     const auto key = WeaponTargetKey(hero, context);
@@ -415,7 +419,8 @@ Core::Expected<void, std::string> UseSkill29(ActorState& hero, std::uint8_t skil
 
 // 0x587a8d..0x58886f: la 0x2a. El rumbo; fuera de alcance, el otro elegido en −1 y nada más. Si no, la celda relativa
 // de 0x4e9920 en el byte 8, la clave y el 1E; la acción 0x3e, sin 0x4f3f80.
-Core::Expected<void, std::string> UseSkill2a(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill2a(Kernel::ActorState& hero, std::uint8_t skill,
+                                             const HeroSkillContext& context)
 {
     FaceTheTarget(hero);
     if (OutOfRange(hero, context.world.Runtime().movement))
@@ -438,7 +443,8 @@ Core::Expected<void, std::string> UseSkill2a(ActorState& hero, std::uint8_t skil
 }
 
 // 0x5830e1..0x583ece: la 0x37. El rumbo, las celdas (la primera lectura) y la posición del blanco en el byte 7.
-Core::Expected<void, std::string> UseSkill37(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill37(Kernel::ActorState& hero, std::uint8_t skill,
+                                             const HeroSkillContext& context)
 {
     const GameMovementState& state = context.world.Runtime().movement;
     FaceTheTarget(hero);
@@ -463,7 +469,8 @@ Core::Expected<void, std::string> UseSkill37(ActorState& hero, std::uint8_t skil
 // 0x583ed3..0x584d6e: la 0x38. Montado (0x1c14 a 0x1c16 o Fenrir), nada; fuera de alcance, nada. El rumbo va en la
 // escala de 255 (· 1/360 · 255) y el byte 8 es el rumbo opuesto ((+0x24 + 180) · 1/360 · 255). La acción, 0x8d; la 0x5d
 // de Fenrir fuera de la zona segura (EBX, 0x58187f) no llega, porque Fenrir ya salió.
-Core::Expected<void, std::string> UseSkill38(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill38(Kernel::ActorState& hero, std::uint8_t skill,
+                                             const HeroSkillContext& context)
 {
     const auto pet = static_cast<std::int16_t>(hero.pet.model);
     if ((pet >= static_cast<std::int16_t>(UniriaModel) && pet <= static_cast<std::int16_t>(DarkHorseModel)) ||
@@ -502,7 +509,8 @@ Core::Expected<void, std::string> UseSkill38(ActorState& hero, std::uint8_t skil
 // elegido en −1. La celda del blanco (+0x3a8 y +0x3ac · 0,01) contra la del héroe en el byte 7, la de 0x4e9920 en el
 // 8, la clave, y el rumbo después. La 0x41 hace 0x51 en el caballo, 0x5b en Fenrir (fuera de la zona segura) o 0x94;
 // la 0x3e, 0x53 y el sonido 0x1ce.
-Core::Expected<void, std::string> UseSkill3eOr41(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill3eOr41(Kernel::ActorState& hero, std::uint8_t skill,
+                                                 const HeroSkillContext& context)
 {
     if (skill == 0x3e && (hero.pet.model != DarkHorseModel || hero.safeZone != 0))
         return {};
@@ -551,7 +559,8 @@ Core::Expected<void, std::string> UseSkill3eOr41(ActorState& hero, std::uint8_t 
 }
 
 // 0x58734b..0x587a88: la 0x30. El 19 y, mande o no, la acción 0x3f.
-Core::Expected<void, std::string> UseSkill30(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill30(Kernel::ActorState& hero, std::uint8_t skill,
+                                             const HeroSkillContext& context)
 {
     if (auto sent = SendTheMagicAttack(skill, context, "0x5873ba"); !sent.HasValue())
         return sent;
@@ -559,7 +568,7 @@ Core::Expected<void, std::string> UseSkill30(ActorState& hero, std::uint8_t skil
 }
 
 // 0x584d73..0x5854b7, 0x5854fd.. y 0x585c8a..: las 0x3f, 0x40 y 0x4b. El 19 y +0x378 en 0, sin acción.
-Core::Expected<void, std::string> UseSkillWithTheMagicAttack(ActorState& hero, std::uint8_t skill,
+Core::Expected<void, std::string> UseSkillWithTheMagicAttack(Kernel::ActorState& hero, std::uint8_t skill,
                                                              const HeroSkillContext& context, std::string_view where)
 {
     if (auto sent = SendTheMagicAttack(skill, context, where); !sent.HasValue())
@@ -572,15 +581,15 @@ Core::Expected<void, std::string> UseSkillWithTheMagicAttack(ActorState& hero, s
 // de la celda del blanco (0x4eac00), con la Y del héroe leída antes que la X. Con camino, +0x378 en 1.
 // Con la celda del blanco fuera de 0..255, que PathFinding2 (0x58975f) toma como índice lineal, MuRet descarta el
 // camino después de las lecturas, como sin camino (08, P-C256).
-Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
-                                                       const HeroSkillContext& context)
+Core::Expected<void, std::string> WalkTowardsTheTarget(Kernel::ActorState& hero, std::int32_t targetX,
+                                                       std::int32_t targetY, const HeroSkillContext& context)
 {
     const Cells cells = ReadTheCells(hero, context.random);
     const auto reach =
         static_cast<float>(static_cast<double>(context.world.Runtime().movement.selectedSkillRange) * WalkReach);
     if (!InRange(targetX, 0, 0xff) || !InRange(targetY, 0, 0xff))
         return {};
-    World::WorldTerrain& terrain = context.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x58975f: falta TerrainWall para acercarse con la 0x4c"));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con el alcance distinto de 0 no cuenta (0x4eadd4).
@@ -600,7 +609,8 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::in
 // nada más (ni +0x378). Si no: el rumbo, la espera (0x552990), la clave (0x558eb0 sin mirar el −1), +0x434 con el
 // elegido y el 1E con la clave de la magia (0x57cf90 en línea, en +0x1bd) en el byte 11; +0x378 en 0 y la acción de
 // las manos del héroe (0x4e9c50).
-Core::Expected<void, std::string> UseSkill4c(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseSkill4c(Kernel::ActorState& hero, std::uint8_t skill,
+                                             const HeroSkillContext& context)
 {
     GameMovementState& state = context.world.Runtime().movement;
     const auto targetX = CellOf(hero.attackPosition.x, "0x588880");
@@ -649,7 +659,8 @@ Core::Expected<void, std::string> UseSkill4c(ActorState& hero, std::uint8_t skil
 }
 
 // 0x58238c: la tabla 0x599e10/0x599de0 por la skill − 0x29 (hasta 0x23); las demás van a 0x5854be.
-Core::Expected<void, std::string> UseTheSkill(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+Core::Expected<void, std::string> UseTheSkill(Kernel::ActorState& hero, std::uint8_t skill,
+                                              const HeroSkillContext& context)
 {
     switch (skill)
     {
@@ -680,7 +691,7 @@ Core::Expected<void, std::string> UseTheSkill(ActorState& hero, std::uint8_t ski
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, Kernel::CharacterClass heroClass,
+Core::Expected<void, std::string> UseTheKnightSkill(Kernel::ActorState& hero, Kernel::CharacterClass heroClass,
                                                     std::uint8_t skill, const HeroSkillContext& context)
 {
     // 0x581894: el registro propio queda abierto hasta 0x5854be..0x5897a2, donde se cierra (3.848 rand() en 0).
@@ -690,7 +701,7 @@ Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, Kernel::Ch
         return Core::Unexpected(costs.Error());
     if (hero.type != PlayerType)
         return {};
-    const ActorState& published = PublishedHero(context);
+    const Kernel::ActorState& published = PublishedHero(context);
     if (!TheHandsAllow(published, skill))
         return {};
     const bool usable = UsableHere(skill, published, context);

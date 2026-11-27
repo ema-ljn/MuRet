@@ -185,11 +185,11 @@ std::map<std::int32_t, std::int32_t>* PricesOf(PersonalShopState& shops)
 }
 
 // 0x5ea37f..0x5ea3f4: cada ítem de la grilla con su precio de más de 0, alguno y el título.
-bool TheShopIsReady(WorldState& world)
+bool TheShopIsReady(Kernel::WorldState& world)
 {
     PersonalShopState& shops = world.Runtime().social.personalShop;
     bool empty = true;
-    for (const World::ItemState& cell : world.Inventory().secondCells)
+    for (const Kernel::ItemState& cell : world.Inventory().secondCells)
     {
         if (std::bit_cast<std::int16_t>(cell.id) < 0)
             continue;
@@ -213,7 +213,7 @@ bool TheShopIsReady(WorldState& world)
 // 0x5ea3a3..0x5eaa4f: el botón de abrir.
 Core::Expected<void, std::string> PressTheOpenButton(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     runtime.movement.pendingClick = false;
     if (!TheShopIsReady(context.world))
@@ -249,7 +249,7 @@ Core::Expected<void, std::string> PressTheOpenButton(const GameUiContext& contex
 // 0x5dc807.. y 0x5da5ac..: el precio escrito al lugar del ítem.
 Core::Expected<void, std::string> SetThePrice(const GameUiContext& context, const InventoryMoveContext& moves)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     SocialState& social = runtime.social;
     // 0x5dc807..0x5dcd38: con la tienda abierta, el C1 04 3F 03.
@@ -287,7 +287,7 @@ Core::Expected<void, std::string> SetThePrice(const GameUiContext& context, cons
 // 0x5dc79e..0x5deac0: la respuesta del diálogo del precio.
 Core::Expected<bool, std::string> AnswerThePriceDialog(const GameUiContext& context, const InventoryMoveContext& moves)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     PersonalShopState& shops = runtime.social.personalShop;
     if (trade.warningByte == Yes)
@@ -330,7 +330,7 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const GameUiContext& cont
 Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context, const InventoryMoveContext& moves,
                                                    std::int32_t kind)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     const std::uint8_t answer = trade.warningByte;
     if (answer != Yes && answer != No)
@@ -399,7 +399,7 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
 }
 } // namespace
 
-void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode)
+void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
 {
     if (mode != ShopTitleMode && mode != ShopPriceMode)
         return;
@@ -425,7 +425,7 @@ void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode)
 
 Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     PersonalShopState& shops = runtime.social.personalShop;
     SocialState& social = runtime.social;
@@ -529,7 +529,7 @@ bool OpenTheConfirmBox(ConfirmBoxState& box, UI::DialogState& dialogs, std::int3
 
 Core::Expected<void, std::string> StepTheConfirmBox(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
     if (runtime.dialogs.current != ConfirmDialog || !click)
         return {};
@@ -572,7 +572,7 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& conte
 {
     if (id != OpenShopConfirm || (answer != Yes && answer != No))
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (answer == Yes)
     {
         const std::string& title = runtime.social.personalShop.ownTitle;
@@ -594,7 +594,7 @@ Core::Expected<void, std::string> StepThePersonalShopWindow(const GameUiContext&
 {
     if (!panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel))
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     TradeState& trade = runtime.social.trade;
     if (shops.mode != OwnShopView)
@@ -635,7 +635,7 @@ Core::Expected<void, std::string> StepThePersonalShopWindow(const GameUiContext&
 
 Core::Expected<bool, std::string> StepTheWarningAnswers(const GameUiContext& context, const InventoryMoveContext& moves)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t kind = runtime.social.trade.warningKind;
     if (kind >= 1 && kind <= PriceWarningKind)
         return AnswerTheWarning(context, moves, kind);

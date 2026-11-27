@@ -11,7 +11,7 @@
 
 // Las tablas de 0x612d90 y 0x612270, leídas del listado caso por caso (*estático*). Los .wav son los de la .data, sin
 // el "Data\" del principio (como FaunaModels); los bits de cada velocidad, los del MOV del ASM.
-namespace Client::Scenes
+namespace Client::Assets
 {
 namespace
 {
@@ -1131,4 +1131,4 @@ NpcModelCase NpcModelCaseOf(std::uint16_t model) noexcept
                                     [model](const NpcModelEntry& entry) { return entry.model == model; });
     return found != NpcCases.end() ? NpcModelCase{found->address, found->ops} : NpcModelCase{};
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

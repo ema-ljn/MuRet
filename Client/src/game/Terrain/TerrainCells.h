@@ -24,7 +24,7 @@
 // pasto es la misma celda con 0x7d0d31c en 2 (06 § El pasto): solo lo dibuja el juego (en el mapa 55
 // no dibuja nada, 06 § El terreno del login). Está el agua del mapa 7 (0x5fa4b0, con el 5.º argumento de
 // 0x5fa5c0 en 1) y el corrimiento al revés del 0x1e; no, las burbujas 0x698 del 0x22 (0x5fa5c0, con rand()).
-namespace Client::World
+namespace Client::Terrain
 {
 // El tile i es el slot i + 0x23 (0x5fa260 y 0x5fa350).
 inline constexpr std::uint16_t FirstTileSlot = 0x23;
@@ -134,4 +134,4 @@ struct TerrainGrass
                                                               const TerrainWater& water, const TerrainGrass& grass,
                                                               std::uint8_t x, std::uint8_t y);
 
-} // namespace Client::World
+} // namespace Client::Terrain

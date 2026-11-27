@@ -67,11 +67,11 @@ Core::Expected<void, std::string> ReturnTheCursor(const WorldEntryResources& res
 }
 
 // 0x4db933..0x4db951 y 0x4dbb64..0x4dbb82: en las 32 casillas de 0x78ab0b8, el tipo en −1, +0x3c y +0x1b en 0.
-void ClearTheShopGrid(WorldState& world)
+void ClearTheShopGrid(Kernel::WorldState& world)
 {
-    for (World::ItemState& cell : world.Inventory().secondCells)
+    for (Kernel::ItemState& cell : world.Inventory().secondCells)
     {
-        cell.id = EmptyOwnItemId;
+        cell.id = Kernel::EmptyOwnItemId;
         cell.occupied = 0;
         cell.flags1b = 0;
     }
@@ -135,7 +135,7 @@ std::string TitleOf(const std::array<std::byte, Shop::TitleSize>& title)
 }
 } // namespace
 
-Core::Expected<void, std::string> OpenThePersonalShop(WorldState& world, Crt::CrtRandom& random, UI::PanelId id,
+Core::Expected<void, std::string> OpenThePersonalShop(Kernel::WorldState& world, Crt::CrtRandom& random, UI::PanelId id,
                                                       const GamePacketSender& send)
 {
     PersonalShopState& shops = world.Runtime().social.personalShop;
@@ -171,10 +171,10 @@ void ResetThePersonalShops(PersonalShopState& shops)
     shops.pricesBuilt = false;
 }
 
-Core::Expected<void, std::string> CloseThePersonalShop(WorldState& world, Crt::CrtRandom& random,
+Core::Expected<void, std::string> CloseThePersonalShop(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                        const GamePacketSender& send)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     if (shops.mode == OtherShopView)
     {
@@ -205,7 +205,7 @@ Core::Expected<void, std::string> CloseThePersonalShop(WorldState& world, Crt::C
 Core::Expected<void, std::string> ApplyPriceResult(const Shop::PriceResult& result,
                                                    const WorldEntryResources& resources, const GamePacketSender& send)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     if (result.result == 1 || shops.mode != OwnShopView)
         return {};
@@ -240,7 +240,7 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
         resources.log.Warning("se descarta el 3F 05: {}", *past);
         return {};
     }
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     PersonalShopState& shops = world.Runtime().social.personalShop;
     GamePanels panels(world, resources.cloth.random);
     // Abrir la tienda de otro (0x65b319) cierra lo demás: el comercio con el 3D y las misiones con el 31.
@@ -280,7 +280,7 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
     const std::size_t owner = ActorWithKey(world, list.key);
     if (owner >= KeysSearched)
         return {};
-    const ActorState& actor = world.Actors()[owner];
+    const Kernel::ActorState& actor = world.Actors()[owner];
     shops.ownerKey = actor.key;
     std::ranges::copy(actor.name, shops.ownerName.begin());
     return {};
@@ -289,8 +289,8 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
 Core::Expected<void, std::string> ApplyShopPurchase(const Shop::ShopPurchase& purchase,
                                                     const WorldEntryResources& resources, const GamePacketSender& send)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     if (purchase.result == Bought)
     {
@@ -339,7 +339,7 @@ Core::Expected<void, std::string> ApplyShopPurchase(const Shop::ShopPurchase& pu
 Core::Expected<void, std::string> ApplyShopRefresh(const Shop::ShopRefresh& refresh,
                                                    const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     PersonalShopState& shops = world.Runtime().social.personalShop;
     // 0x4dbc8f: si no, el log 0x6c85b0.
     if (refresh.result != Shop::ListedResult || shops.mode != OtherShopView)

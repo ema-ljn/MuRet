@@ -45,12 +45,12 @@
 // la malla 2, el hueso 0x12, las banderas 0x400, las dos esferas y cinco pasos de 0,005f.
 namespace
 {
+using Client::Actors::Drawing::GameCharacterPass;
+using Client::Kernel::ActorState;
 using Client::Models::Cloth;
 using Client::Models::ClothBody;
 using Client::Models::ClothWindSource;
 using Client::Models::ClothWorld;
-using Client::Scenes::ActorState;
-using Client::Scenes::GameCharacterPass;
 
 constexpr std::uint16_t Spider = 0x15b;        // un modelo sin casos en 0x6002e0
 constexpr std::uint16_t MagicSkeleton = 0x190; // Monster63.bmd, el de los 89, 95, 112, 118, 124, 130 y 143
@@ -188,13 +188,13 @@ class MonsterClothTest : public testing::Test
 protected:
     void SetUp() override
     {
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         m_world->FaunaResources().Bind(&m_models);
         m_world->Runtime().map = 0;
         m_world->Runtime().hero = 42;
         m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         m_world->Map().terrain.attributes->cells.fill(0);
-        m_light = std::make_unique<Client::World::TerrainLighting>();
+        m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         m_joints.resize(16);
         m_cloths.resize(16);
@@ -251,7 +251,7 @@ protected:
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
     {
         m_batch.Begin(Client::Render::Pass3D{});
-        return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        return Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     }
 
     const std::optional<Cloth>& Worn()
@@ -272,13 +272,13 @@ protected:
     }
 
     ClothModels m_models;
-    std::unique_ptr<Client::Scenes::WorldState> m_world;
-    std::unique_ptr<Client::World::TerrainLighting> m_light;
+    std::unique_ptr<Client::Kernel::WorldState> m_world;
+    std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
-    std::vector<Client::Scenes::CharacterCloth> m_cloths;
+    std::vector<Client::Actors::Drawing::CharacterCloth> m_cloths;
     Client::Render::ModelBatch m_batch;
 };
 

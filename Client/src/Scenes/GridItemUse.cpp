@@ -29,9 +29,9 @@ namespace Client::Scenes
 {
 namespace
 {
-using World::ItemState;
+using Kernel::ItemState;
 
-constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
 constexpr std::int32_t FirstGridSlot = 12;
 constexpr int LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> Notice(const InventoryMoveContext& context, st
     const std::optional<std::string_view> text = UI::TextAt(context.services.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: falta el texto {} de Text.bmd", where, index));
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *text);
     return {};
 }
@@ -100,7 +100,7 @@ Core::Expected<void, std::string> Notice(const InventoryMoveContext& context, st
 Core::Expected<void, std::string> UseTheSkillItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
                                                   const ItemState& hovered, std::int32_t cell)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (context.services.items == nullptr)
         return Core::Unexpected(std::string("0x5c90c1: lee *[0x7758550] (Item.bmd) y no está cargado"));
@@ -112,7 +112,7 @@ Core::Expected<void, std::string> UseTheSkillItem(const InventoryMoveContext& co
                                    (std::to_integer<std::uint16_t>((*record)[RequiredLevelOffset + 1]) << 8));
     // 0x5c90ab..0x5c90e3: tres JC sobre WORD, sin signo; la energía y la fuerza con lo de +0x30 y +0x2a sumados en 16
     // bits.
-    const OwnCharacterRecord& stats = world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& stats = world.OwnCharacter();
     if (stats.level < required)
         return {};
     if (static_cast<std::uint16_t>(stats.word30 + stats.energy) < hovered.word22)
@@ -128,8 +128,8 @@ Core::Expected<void, std::string> UseTheSkillItem(const InventoryMoveContext& co
 Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& context, const ItemState& hovered,
                                               std::int32_t cell)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     std::uint16_t level = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -148,7 +148,7 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
         // 0x5c8219..0x5c8237: los doce lugares del equipo, de a 0x48 desde +0xb6c; 0x5c8245: la clase (+0xb), entera.
         for (const ItemState& worn : world.OwnCharacter().equipment)
         {
-            if (worn.id != EmptyOwnItemId)
+            if (worn.id != Kernel::EmptyOwnItemId)
                 unequipped = false;
         }
         heroClass = world.OwnCharacter().characterClass;
@@ -166,7 +166,7 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
 // 0x5c9e10: conserva el destino del mouse temporal hasta que 0x5ca250 lo consume.
 Core::Expected<void, std::string> AimTheAutomaticMove(const InventoryMoveContext& context, bool inventory)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const auto footprint = ItemFootprintOf(context.services.items, runtime.cursorItem.id, "0x5c9e10");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
@@ -200,10 +200,10 @@ Core::Expected<void, std::string> AimTheAutomaticMove(const InventoryMoveContext
 Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& context, UI::PanelRegistry& panels,
                                                     UsedGrid grid, std::int32_t cell)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.cursorItem = grid.cells[static_cast<std::size_t>(cell)];
     runtime.cursorGrid = grid.grid;
-    const bool inventory = grid.grid == CursorGrid::Inventory;
+    const bool inventory = grid.grid == Kernel::CursorGrid::Inventory;
     if (inventory)
         runtime.ui.field78abb28 = 1;
     if (panels.IsOpen(UI::WarehousePanel))
@@ -219,7 +219,7 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
     }
     const bool pendingClick = runtime.movement.pendingClick;
     const auto picked = inventory ? PickUpFromTheGrid(context, static_cast<std::size_t>(cell))
-                        : grid.grid == CursorGrid::OwnTrade
+                        : grid.grid == Kernel::CursorGrid::OwnTrade
                             ? PickUpFromTheTradeGrid(context, static_cast<std::size_t>(cell))
                             : PickUpFromOtherGrid(context, grid.grid, static_cast<std::size_t>(cell));
     runtime.movement.pendingClick = pendingClick;
@@ -261,10 +261,10 @@ Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& 
     context.services.sendGamePacket(Protocol::Events::WriteEventTimeRequest(kind));
     if (type == EventTicket1a1d)
     {
-        const auto cell = static_cast<std::size_t>(item.gridRow) * InventoryColumns + item.gridColumn;
+        const auto cell = static_cast<std::size_t>(item.gridRow) * Kernel::InventoryColumns + item.gridColumn;
         if (cell >= grid.cells.size())
             return Core::Unexpected(std::string("0x5c6c20: el origen de la entrada está fuera de la grilla"));
-        WorldRuntime& runtime = context.world.Runtime();
+        Kernel::WorldRuntime& runtime = context.world.Runtime();
         runtime.slot78a6758 = static_cast<std::int32_t>(cell) + FirstGridSlot;
         runtime.dialogItem = grid.cells[cell];
     }
@@ -274,7 +274,7 @@ Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& 
 Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
                                                       UsedGrid grid, std::size_t index)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const std::span<ItemState> cells = grid.cells;
     if (index >= cells.size())
         return Core::Unexpected(std::format("0x5c7bc6: la casilla {} está fuera de la grilla", index));

@@ -48,15 +48,15 @@ protected:
         Actor().cellY = Actor().targetY = 20;
         Actor().position = {1050.0f, 2050.0f, 0.0f};
     }
-    Client::Scenes::ActorState& Actor()
+    Client::Kernel::ActorState& Actor()
     {
         return m_world.Actors()[1];
     }
     auto Step()
     {
-        return Client::Scenes::StepCharacters({.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton});
+        return Client::Actors::StepCharacters({.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton});
     }
-    Client::Scenes::WorldState m_world;
+    Client::Kernel::WorldState m_world;
     Client::Crt::CrtRandom m_random{1};
     Client::Models::Skeleton m_skeleton;
 };
@@ -86,7 +86,7 @@ TEST_F(CharacterMotionStepTest, CooldownIsRetainedOffscreenAndDecrementedBeforeI
     auto& actor = Actor();
     actor.movementCooldown = 2;
     m_world.Runtime().terrainPolygon = {.x = {200.0f, 201.0f, 201.0f, 200.0f}, .y = {200.0f, 200.0f, 201.0f, 201.0f}};
-    ASSERT_FALSE(Client::Scenes::CharacterSeen(m_world.Runtime().terrainPolygon, actor.position));
+    ASSERT_FALSE(Client::Actors::CharacterSeen(m_world.Runtime().terrainPolygon, actor.position));
     const auto unseen = Step();
     ASSERT_TRUE(unseen.HasValue()) << (unseen.HasValue() ? "" : unseen.Error());
     EXPECT_EQ(actor.movementCooldown, 2);
@@ -116,11 +116,11 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
     for (const Border border : {Border{0, 172, 128, false}, Border{2, 220, 76, true}})
     {
         SCOPED_TRACE(border.map);
-        Client::Scenes::WorldState world;
+        Client::Kernel::WorldState world;
         world.Runtime().map = border.map;
         world.Runtime().hero = 0;
         world.Runtime().terrainPolygon.everything = true;
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, border.map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, border.map);
         ASSERT_TRUE(loaded.HasValue()) << (loaded.HasValue() ? "" : loaded.Error());
         world.Map().terrain = std::move(loaded).Value();
         auto& actor = world.Actors()[1];
@@ -142,7 +142,7 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
         Client::Crt::CrtRandom random(1);
         const auto stepped =
-            Client::Scenes::StepCharacters({.world = world, .random = random, .playerSkeleton = &skeleton});
+            Client::Actors::StepCharacters({.world = world, .random = random, .playerSkeleton = &skeleton});
         ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
         EXPECT_EQ(actor.cellX, actor.targetX);
         EXPECT_EQ(actor.cellY, actor.targetY);
@@ -160,7 +160,7 @@ TEST_F(CharacterMotionStepTest, WalkingHeroRequestsItsSoundWithoutStoppingTheWor
     actor.animation.action = 13;
     actor.animation.frame = 1.6f;
     std::vector<std::int32_t> sounds;
-    const auto stepped = Client::Scenes::StepCharacters(
+    const auto stepped = Client::Actors::StepCharacters(
         {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .soundRequest = [&](std::int32_t sound) {
              sounds.push_back(sound);
          }});

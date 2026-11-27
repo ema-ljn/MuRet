@@ -28,7 +28,7 @@ constexpr std::uint32_t Seed = 0xc0ffee;
 
 TEST(LoginActorTest, MapCleanupDropsTheRavenEvenOfSurvivingActors)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     auto& survivor = world.Actors()[0];
     survivor.alive = true;
     survivor.key = 7;
@@ -46,7 +46,7 @@ TEST(LoginActorTest, MapCleanupDropsTheRavenEvenOfSurvivingActors)
 // +0x360 queda como estaba.
 TEST(LoginActorTest, MapCleanupReleasesTheGameMasterLayers)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     auto& survivor = world.Actors()[0];
     survivor.alive = true;
     survivor.key = 7;
@@ -66,13 +66,13 @@ TEST(LoginActorTest, MapCleanupReleasesTheGameMasterLayers)
 // 0x510f99 (CL9 hito 2): 0x401040 saca los huesos con nombre de los que mueren; los del que sobrevive quedan.
 TEST(LoginActorTest, MapCleanupForgetsTheNamedBonesOfTheKilled)
 {
-    const auto world = std::make_unique<Client::Scenes::WorldState>();
+    const auto world = std::make_unique<Client::Kernel::WorldState>();
     world->Actors()[0].alive = true;
     world->Actors()[0].key = 7;
     world->Actors()[1].alive = true;
     world->Actors()[1].key = 8;
-    Client::Scenes::NameABone(world->Runtime(), 0, "Hueso_Uno", 3);
-    Client::Scenes::NameABone(world->Runtime(), 1, "Hueso_Dos", 4);
+    Client::Actors::NameABone(world->Runtime(), 0, "Hueso_Uno", 3);
+    Client::Actors::NameABone(world->Runtime(), 1, "Hueso_Dos", 4);
     Client::Scenes::KillOtherActors(*world, 7);
     ASSERT_EQ(world->Runtime().namedBones.size(), 1u);
     EXPECT_EQ(world->Runtime().namedBones[0].actor, 0u);
@@ -83,17 +83,18 @@ TEST(LoginActorTest, MissingWorldDataCutsAfterThePreviousCellRandoms)
 {
     for (const bool missingAttributes : {true, false})
     {
-        Client::World::WorldTerrain terrain;
+        Client::Terrain::WorldTerrain terrain;
         if (!missingAttributes)
         {
             terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         }
-        Client::Scenes::ActorState actor;
-        Client::Scenes::WorldRuntime runtime;
+        Client::Kernel::ActorState actor;
+        Client::Kernel::WorldRuntime runtime;
         Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
         const auto built = Client::Scenes::ConstructLoginActor(
-            actor, {.terrain = terrain, .map = 55, .scene = Client::World::CullingScene::Login, .fixedHeight = 450.0f},
+            actor,
+            {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
             runtime, cloth, skeleton);
         ASSERT_FALSE(built.HasValue());
         EXPECT_NE(built.Error().find(missingAttributes ? "0x511b9f" : "0x51225f"), std::string::npos);
@@ -103,16 +104,16 @@ TEST(LoginActorTest, MissingWorldDataCutsAfterThePreviousCellRandoms)
 
 TEST(LoginActorTest, TheHorseChoosesItsStandingActionWithoutItemBmd)
 {
-    Client::World::WorldTerrain terrain;
+    Client::Terrain::WorldTerrain terrain;
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.headTurn.angles = {20.0f, 30.0f};
-    Client::Scenes::WorldRuntime runtime;
+    Client::Kernel::WorldRuntime runtime;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     const auto built = Client::Scenes::ConstructLoginActor(
-        actor, {.terrain = terrain, .map = 55, .scene = Client::World::CullingScene::Login, .fixedHeight = 450.0f},
+        actor, {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
         runtime, cloth, skeleton);
     ASSERT_TRUE(built.HasValue()) << built.Error();
     EXPECT_EQ(actor.animation.action, 0x4a);
@@ -125,17 +126,17 @@ TEST(LoginActorTest, TheHorseChoosesItsStandingActionWithoutItemBmd)
 
 TEST(LoginActorTest, OpenCellAndCounterAccessesKeepTheirBirthRandoms)
 {
-    Client::World::WorldTerrain terrain;
+    Client::Terrain::WorldTerrain terrain;
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.cellXAccesses = 1;
     actor.cellYAccesses = 1;
-    Client::Scenes::WorldRuntime runtime;
+    Client::Kernel::WorldRuntime runtime;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed), .openCounterAccesses = 1};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     const auto built = Client::Scenes::ConstructLoginActor(
-        actor, {.terrain = terrain, .map = 55, .scene = Client::World::CullingScene::Login, .fixedHeight = 450.0f},
+        actor, {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
         runtime, cloth, skeleton);
     ASSERT_TRUE(built.HasValue()) << built.Error();
     // Ni el personaje ni el cuervo cierran estas cuentas en cero: solo el sufijo de parado.

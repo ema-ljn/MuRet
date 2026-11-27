@@ -12,7 +12,7 @@
 // (CL8 hito 5) y +0x9306 no lo lee nadie de lo portado. Arranca en cero, como el objeto estático, que además su
 // constructor (0x40f2a0) pone en cero de +0x9304 a +0x9347. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
 // "Los stats del registro propio".
-namespace Client::Scenes
+namespace Client::Player
 {
 // Las dos clases de pieza de 0x40d010, el byte +0x1c & 3 del ítem menos 1: los nombres de +0x9308 y
 // +0x9328, y en la lista las cuentas de +0x9348 y +0x9349 y los conjuntos de +0x934a y +0x934b. Con
@@ -41,4 +41,4 @@ struct ItemSetState
     // helpers de 0x550d10. 0x550d10 pone sus marcas en 0 después de 0x40e1b0 (0x550d29).
     ItemSetOptionList list;
 };
-} // namespace Client::Scenes
+} // namespace Client::Player

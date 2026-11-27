@@ -169,10 +169,10 @@ struct Stage
         return Xor32Decode(sent.at(index).packet);
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items =
@@ -369,7 +369,7 @@ TEST_F(NpcWindowRepliesTest, ClosingTheShopSends31AndEmptiesTheGrid)
     EXPECT_EQ(stage->world.Runtime().panels.inventory, 0);
     ASSERT_EQ(stage->sent.size(), 1u);
     EXPECT_TRUE(SameBytes(stage->sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
-    EXPECT_EQ(Npc().grid[5].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Npc().grid[5].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(Npc().grid[5].occupied, 0);
 }
 
@@ -402,7 +402,7 @@ TEST_F(NpcWindowRepliesTest, TheLockAndAFullChaosBoxKeepTheirWindowsOpen)
     ASSERT_FALSE(stage->world.Runtime().chat.log.entries.empty());
     EXPECT_EQ(stage->world.Runtime().chat.log.entries.back().text, "la caja tiene algo");
 
-    Npc().chaosBox[3].id = Client::Scenes::EmptyOwnItemId;
+    Npc().chaosBox[3].id = Client::Kernel::EmptyOwnItemId;
     WithThePanels([](UI::PanelRegistry& panels) { ASSERT_TRUE(panels.Close(UI::ChaosBoxPanel).HasValue()); });
     EXPECT_EQ(stage->world.Runtime().panels.chaosBox, 0);
     EXPECT_EQ(stage->world.Runtime().dialogs.current, 0);
@@ -420,7 +420,7 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheShopGridAndTheChaosBox)
     const auto listed = Client::Scenes::ApplyItemList(shop, stage->Resources());
     ASSERT_TRUE(listed.HasValue()) << listed.Error();
     const auto& grid = Npc().grid;
-    EXPECT_EQ(grid[40].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(grid[40].id, Client::Kernel::EmptyOwnItemId);
     for (const std::size_t cell : {2u, 10u, 18u})
     {
         EXPECT_EQ(grid[cell].id, Sword) << cell;
@@ -455,7 +455,7 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheTrainerBoxWithTheTailOfEachItem)
     ASSERT_TRUE(listed.HasValue()) << listed.Error();
     EXPECT_EQ(stage->cloth.random.State(), expected.State());
     const auto& box = Npc().trainerBox;
-    EXPECT_EQ(box[30].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(box[30].id, Client::Kernel::EmptyOwnItemId);
     for (const std::size_t cell : {3u, 11u, 19u})
         EXPECT_EQ(box[cell].id, Sword) << cell;
     for (const std::size_t cell : {12u, 13u, 20u, 21u})
@@ -551,7 +551,7 @@ TEST_F(NpcWindowRepliesTest, TakingAnItemSends24WhenThePasswordIsAccepted)
         auto& runtime = stage->world.Runtime();
         ASSERT_TRUE(Client::Scenes::ApplyWarehouseState({.state = 1}, stage->Resources()).HasValue());
         Npc().pendingMove = {.slot = 2, .second = 17, .third = 0, .fourth = 30};
-        runtime.cursorItem = Client::World::ItemState{.id = Shield, .scalar1Low = 2u << 3, .durability = 9};
+        runtime.cursorItem = Client::Kernel::ItemState{.id = Shield, .scalar1Low = 2u << 3, .durability = 9};
         runtime.cursorItemCount = 1;
         runtime.ui.field78abb39 = alreadyMoving ? 1 : 0;
         const CrtRandom expected = Advanced(stage->cloth.random, alreadyMoving ? 0 : 2);
@@ -583,11 +583,11 @@ TEST_F(NpcWindowRepliesTest, ListsDiscardOnlyTheEntryPastTheGrid)
             {.grid = grid, .items = {{.slot = bad, .item = ItemBytes(Shield)}, {.slot = 0, .item = ItemBytes(Jewel)}}},
             stage->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        const std::span<const Client::World::ItemState> cells =
-            grid == 0   ? std::span<const Client::World::ItemState>(Npc().grid)
-            : grid == 3 ? std::span<const Client::World::ItemState>(Npc().chaosBox)
-                        : std::span<const Client::World::ItemState>(Npc().trainerBox);
-        EXPECT_EQ(cells[bad].id, Client::Scenes::EmptyOwnItemId);
+        const std::span<const Client::Kernel::ItemState> cells =
+            grid == 0   ? std::span<const Client::Kernel::ItemState>(Npc().grid)
+            : grid == 3 ? std::span<const Client::Kernel::ItemState>(Npc().chaosBox)
+                        : std::span<const Client::Kernel::ItemState>(Npc().trainerBox);
+        EXPECT_EQ(cells[bad].id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(cells[0].id, Jewel);
         ASSERT_FALSE(stage->sink.lines.empty());
         EXPECT_NE(stage->sink.lines.back().find("Q-C200"), std::string::npos);
@@ -603,10 +603,10 @@ TEST_F(NpcWindowRepliesTest, ListsPreserveTheNativeCarryAcrossRows)
         const auto applied = Client::Scenes::ApplyItemList(
             {.grid = grid, .items = {{.slot = 7, .item = ItemBytes(Shield)}}}, stage->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        const std::span<const Client::World::ItemState> cells =
-            grid == 0   ? std::span<const Client::World::ItemState>(Npc().grid)
-            : grid == 3 ? std::span<const Client::World::ItemState>(Npc().chaosBox)
-                        : std::span<const Client::World::ItemState>(Npc().trainerBox);
+        const std::span<const Client::Kernel::ItemState> cells =
+            grid == 0   ? std::span<const Client::Kernel::ItemState>(Npc().grid)
+            : grid == 3 ? std::span<const Client::Kernel::ItemState>(Npc().chaosBox)
+                        : std::span<const Client::Kernel::ItemState>(Npc().trainerBox);
         for (const std::size_t cell : {7u, 8u, 15u, 16u})
         {
             EXPECT_EQ(cells[cell].id, Shield);
@@ -621,7 +621,7 @@ TEST_F(NpcWindowRepliesTest, BuyingAnItemPastTheGridDoesNotWriteAPartialFootprin
     Npc().buyLock = 1;
     const auto applied = Client::Scenes::ApplyBuyResult({.slot = 75, .item = ItemBytes(Sword)}, stage->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(stage->world.Inventory().cells[63].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(stage->world.Inventory().cells[63].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(Npc().buyLock, 1);
     ASSERT_FALSE(stage->sink.lines.empty());
     EXPECT_NE(stage->sink.lines.back().find("Q-C200"), std::string::npos);
@@ -640,10 +640,10 @@ TEST_F(NpcWindowRepliesTest, MovingAnItemPastAnyNpcGridDiscardsItsWholeFootprint
         const auto applied = Client::Scenes::ApplyItemMoveResult(
             {.result = grid, .slot = bad, .item = ItemBytes(Shield)}, stage->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        const std::span<const Client::World::ItemState> cells =
-            grid == 2   ? std::span<const Client::World::ItemState>(Npc().grid)
-            : grid == 3 ? std::span<const Client::World::ItemState>(Npc().chaosBox)
-                        : std::span<const Client::World::ItemState>(Npc().trainerBox);
+        const std::span<const Client::Kernel::ItemState> cells =
+            grid == 2   ? std::span<const Client::Kernel::ItemState>(Npc().grid)
+            : grid == 3 ? std::span<const Client::Kernel::ItemState>(Npc().chaosBox)
+                        : std::span<const Client::Kernel::ItemState>(Npc().trainerBox);
         EXPECT_EQ(cells[bad].id, Jewel);
         EXPECT_EQ(stage->world.Runtime().cursorItemCount, 1);
         EXPECT_EQ(stage->world.Runtime().ui.field78abb39, 1);
@@ -680,7 +680,7 @@ TEST_F(NpcWindowRepliesTest, ASuccessfulMixLeavesTheNewItemInTheChaosBox)
     const auto mixed = Client::Scenes::ApplyChaosMixResult({.result = 1, .item = ItemBytes(Sword)}, stage->Resources());
     ASSERT_TRUE(mixed.HasValue()) << mixed.Error();
     EXPECT_EQ(Npc().chaosMixState, 2);
-    EXPECT_EQ(Npc().chaosBox[20].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Npc().chaosBox[20].id, Client::Kernel::EmptyOwnItemId);
     for (const std::size_t cell : {0u, 8u, 16u})
         EXPECT_EQ(Npc().chaosBox[cell].id, Sword) << cell;
     EXPECT_EQ(stage->world.Runtime().chat.log.entries.back().text, "salio");
@@ -722,7 +722,7 @@ TEST_F(NpcWindowRepliesTest, TheTrainerMixLeavesItsItemInTheTrainerBox)
         Client::Scenes::ApplyChaosMixResult({.result = 100, .item = ItemBytes(Sword)}, stage->Resources());
     ASSERT_TRUE(mixed.HasValue()) << mixed.Error();
     EXPECT_EQ(stage->cloth.random.State(), before.State());
-    EXPECT_EQ(Npc().trainerBox[20].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Npc().trainerBox[20].id, Client::Kernel::EmptyOwnItemId);
     for (const std::size_t cell : {0u, 8u, 16u})
         EXPECT_EQ(Npc().trainerBox[cell].id, Sword) << cell;
     EXPECT_EQ(Npc().trainerBox[0].occupied, 1);

@@ -78,13 +78,13 @@ constexpr std::int32_t HorseSkillArgument = 2;
 constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t WithFrame = 1;
 
-using PetTable = std::array<PetStats, PetStatsCount>;
+using PetTable = std::array<Kernel::PetStats, Kernel::PetStatsCount>;
 
 // 0x423c65..0x42403d: anota el ítem y pide su A9 por la sesión del juego, como el botón de la mascota (0x424610).
-void AskForThePet(GameHudContext& hud, std::uint32_t key, const World::ItemState& item, std::uint8_t pet)
+void AskForThePet(GameHudContext& hud, std::uint32_t key, const Kernel::ItemState& item, std::uint8_t pet)
 {
-    WorldRuntime& runtime = hud.world.Runtime();
-    runtime.petTooltipQuery = PetTooltipQuery{.key = key, .type = item.id, .scalar = item.scalar1Low};
+    Kernel::WorldRuntime& runtime = hud.world.Runtime();
+    runtime.petTooltipQuery = Kernel::PetTooltipQuery{.key = key, .type = item.id, .scalar = item.scalar1Low};
     const Protocol::Pets::PetInfoRequest request{.pet = pet,
                                                  .place = static_cast<std::uint8_t>(runtime.ui.field78abb28),
                                                  .slot = static_cast<std::uint8_t>(runtime.ui.field78abb2c)};
@@ -136,7 +136,7 @@ Core::Expected<void, std::string> WriteTheLeadershipRequirement(GameHudContext& 
     std::int32_t leadership = 0;
     {
         const Models::LogicalAccess own(hud.ownRecordDepth, hud.random, Models::OwnRecordCloseRandoms);
-        const OwnCharacterRecord& record = hud.world.OwnCharacter();
+        const Kernel::OwnCharacterRecord& record = hud.world.OwnCharacter();
         leadership = static_cast<std::uint16_t>(record.word36 + record.leadership);
     }
     if (leadership < required)
@@ -158,7 +158,7 @@ Core::Expected<void, std::string> WriteTheLeadershipRequirement(GameHudContext& 
 // 0x96), 0x4225d0 (que con el cuervo vuelve enseguida) y 0x5b2320(tipo, renglón, tag, valor, 0), en azul y sin
 // negrita, con un medio renglón. Con la 0x96 en la primera opción cada vuelta agrega otra (Q-C415) y el lazo no
 // termina hasta que la cuenta da la vuelta, escribiendo más allá del ítem (Q-C1044): MuRet corta antes de la décima.
-Core::Expected<void, std::string> WriteTheOptions(GameHudContext& hud, TooltipWriter& lines, World::ItemState& item,
+Core::Expected<void, std::string> WriteTheOptions(GameHudContext& hud, TooltipWriter& lines, Kernel::ItemState& item,
                                                   std::int32_t& halves)
 {
     const std::int32_t type = static_cast<std::int16_t>(item.id);
@@ -170,18 +170,18 @@ Core::Expected<void, std::string> WriteTheOptions(GameHudContext& hud, TooltipWr
         if (item.id == DarkHorseItem)
         {
             const std::uint8_t place = DarkHorseOptionPlace(item);
-            if (place >= World::MaxItemOptions)
+            if (place >= Kernel::MaxItemOptions)
                 return Core::Unexpected(
                     std::format("0x423b07: la 0x96 del caballo va en la opción {} (D+0x2b + {}), fuera de las {} que "
                                 "guarda MuRet (Q-C415, Q-C1044)",
-                                place, place, World::MaxItemOptions));
+                                place, place, Kernel::MaxItemOptions));
             AddTheDarkHorseOption(item, hud.world, hud.ownRecordDepth, hud.random);
         }
-        if (i >= World::MaxItemOptions)
+        if (i >= Kernel::MaxItemOptions)
             return Core::Unexpected(
                 std::format("0x423b0c: la opción {} de {} lee su valor fuera de D+0x2b..D+0x3b", i, item.optionCount));
         const std::uint8_t tag = item.optionBytes[i];
-        const std::uint8_t value = item.optionBytes[World::ItemOptionValueOffset + i];
+        const std::uint8_t value = item.optionBytes[Kernel::ItemOptionValueOffset + i];
         if (auto written = WriteAnOption(hud, lines, type, tag, value); !written.HasValue())
             return written;
         lines.Color(TooltipBlue);
@@ -218,19 +218,19 @@ Core::Expected<void, std::string> DrawThePetBox(const ItemTooltipContext& contex
 
 Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& context)
 {
-    World::ItemState& item = context.item;
+    Kernel::ItemState& item = context.item;
     if (item.id != DarkHorseItem && item.id != DarkRavenItem)
         return false;
     GameHudContext& hud = context.hud;
-    WorldState& world = hud.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = hud.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const bool horse = item.id == DarkHorseItem;
     // 0x422a1a..0x422a2d y 0x423c7c..0x423c85: el byte de la mascota, 1 el caballo y 0 el cuervo.
     const std::uint8_t pet = horse ? Protocol::Pets::DarkHorsePet : Protocol::Pets::DarkRavenPet;
     // 0x4229d4..0x422a12: otro lugar, otro tipo u otro D+4 que los del último pedido.
     const std::uint32_t key = ((static_cast<std::uint32_t>(context.y) & KeyMask) << KeyShift) |
                               (static_cast<std::uint32_t>(context.x) & KeyMask);
-    const PetTooltipQuery& query = runtime.petTooltipQuery;
+    const Kernel::PetTooltipQuery& query = runtime.petTooltipQuery;
     if (query.key != key || query.type != item.id || query.scalar != item.scalar1Low)
     {
         if (!hud.projecting)
@@ -276,7 +276,7 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
     lines.Bold(1);
     std::int32_t levelRequirement = 0;
     std::int32_t leadershipRequirement = 0;
-    const PetStats& stats = pets[pet];
+    const Kernel::PetStats& stats = pets[pet];
     if (horse)
     {
         levelRequirement = static_cast<std::int32_t>(stats.level) * LevelRequirementFactor + LevelRequirementBase;

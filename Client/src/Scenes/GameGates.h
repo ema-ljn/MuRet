@@ -13,13 +13,17 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // 0x599ef0: barrido de Gate.bmd con los accesos lógicos, efectos y envío en orden (06, Pisar un gate).
 namespace Client::Scenes
 {
-class WorldState;
 struct GameGateContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     const Tables::GateTable& gates;
     Crt::CrtRandom& random;
     std::uint32_t ticksMs = 0;

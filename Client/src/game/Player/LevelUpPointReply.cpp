@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Player
 {
 namespace
 {
@@ -27,16 +27,16 @@ constexpr std::uint8_t StatBits = 0x0f;
 } // namespace
 
 Core::Expected<void, std::string> ApplyLevelUpPointResult(const Player::LevelUpPointResult& reply,
-                                                          const WorldEntryResources& resources)
+                                                          const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
     if ((reply.result & AddedBits) != 0)
     {
         // 0x4d3216..0x4d32cd: la apertura en línea; 0x4d335a..0x4d3415, el cierre.
         const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        OwnCharacterRecord& own = world.OwnCharacter();
+        Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         // 0x4d32d8: DEC word [+0x68], antes del switch.
         --own.levelUpPoints;
         switch (reply.result & StatBits)
@@ -76,4 +76,4 @@ Core::Expected<void, std::string> ApplyLevelUpPointResult(const Player::LevelUpP
                                                                      .held = HeldItemOf(runtime),
                                                                      .scan505820 = runtime.fullSetScan});
 }
-} // namespace Client::Scenes
+} // namespace Client::Player

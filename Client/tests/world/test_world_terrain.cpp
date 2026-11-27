@@ -12,16 +12,16 @@
 #include <cstdint>
 #include <string>
 
-// Client::World::LoadWorldTerrain y la tabla de los tiles de 0x61a560: lo que el terreno de un mundo
+// Client::Terrain::LoadWorldTerrain y la tabla de los tiles de 0x61a560: lo que el terreno de un mundo
 // lee de su carpeta (06 § Terreno y § El terreno del login).
 namespace
 {
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::Wrap;
-using Client::World::AcceptBoxTexture;
-using Client::World::LoadWorldTerrain;
-using Client::World::WorldGrassTextures;
-using Client::World::WorldTileTextures;
+using Client::Terrain::AcceptBoxTexture;
+using Client::Terrain::LoadWorldTerrain;
+using Client::Terrain::WorldGrassTextures;
+using Client::Terrain::WorldTileTextures;
 
 constexpr std::uint8_t Login = 55;
 

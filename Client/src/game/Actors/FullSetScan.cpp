@@ -17,11 +17,11 @@
 
 // 0x505820, cotejado con el PE c32bbd5f (914 bytes, 0x505820..0x505bb1): 06, "El conjunto completo de
 // 0x505820".
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
-static_assert(ScannedPartCount == GameLogic::BodyPartCount);
+static_assert(ScannedPartCount == Kernel::BodyPartCount);
 
 // 0x50582c..0x505846: la clase 3 empieza por la armadura (ecx = 2); las otras, por el casco (ecx = 1).
 constexpr std::size_t HelmPart = 0;
@@ -90,14 +90,14 @@ bool IsComplete(const ScannedCharacter& character, std::size_t first, std::int32
 }
 
 // 0x50591f..0x505ba3: el registro propio entre una apertura y un cierre por la tabla de protección.
-bool KeepsTheBonus(const OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
+bool KeepsTheBonus(const Kernel::OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(ownRecordAccesses, random, Models::OwnRecordCloseRandoms);
     return std::ranges::find(ArmorsThatKeepTheBonus, own.equipment[OwnArmorSlot].id) != ArmorsThatKeepTheBonus.end();
 }
 } // namespace
 
-ScannedCharacter ScannedCharacterOf(const ActorState& actor)
+ScannedCharacter ScannedCharacterOf(const Kernel::ActorState& actor)
 {
     ScannedCharacter character{.characterClass = actor.characterClass};
     for (std::size_t part = 0; part < ScannedPartCount; ++part)
@@ -107,18 +107,18 @@ ScannedCharacter ScannedCharacterOf(const ActorState& actor)
     return character;
 }
 
-ScannedCharacter ScannedCharacterOf(const GameLogic::CharacterAppearance& appearance)
+ScannedCharacter ScannedCharacterOf(const Kernel::CharacterAppearance& appearance)
 {
     ScannedCharacter character{.characterClass = appearance.characterClass};
     for (std::size_t part = 0; part < ScannedPartCount; ++part)
     {
-        const GameLogic::WornItem& worn = appearance.bodyParts[part];
+        const Kernel::WornItem& worn = appearance.bodyParts[part];
         character.body[part] = {.model = worn.model, .level = worn.level};
     }
     return character;
 }
 
-FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRecord& own,
+FullSetScan ScanFullSet(const ScannedCharacter& character, const Kernel::OwnCharacterRecord& own,
                         std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     const bool magicGladiator = IsMagicGladiator(character.characterClass);
@@ -132,10 +132,10 @@ FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRec
     return scan;
 }
 
-FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character, Crt::CrtRandom& random,
+FullSetScan ScanTheDrawnCharacter(Kernel::WorldState& world, const ScannedCharacter& character, Crt::CrtRandom& random,
                                   int frames)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     if (frames == 0)
     {
         // Un dibujo entre frames no vuelve a consumir ni a publicar el scan del original.
@@ -151,4 +151,4 @@ FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& cha
     }
     return scan;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

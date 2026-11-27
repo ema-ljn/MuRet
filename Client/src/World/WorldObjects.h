@@ -24,6 +24,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 // Los objetos de un mundo (CL7.2): los del .obj como los arma 0x606660, su paso de 0x604ab0 y lo que
 // 0x6002e0 hace con cada uno. Contrato: 06 § El mundo del login; vectores del código real en
 // Client/tests/vectors/world55/objects.txt (scripts/login/make_world55_vectors.py).
@@ -180,7 +185,6 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton);
 
-struct TerrainLighting;
 struct ObjectModelStepState;
 class Particles;
 class ModelEffects;
@@ -193,7 +197,7 @@ struct ObjectStepGlobals
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
     // 0x7b4ccc4 y 0x743a198: los destinos durables del paso; no se fabrican buffers locales.
-    TerrainLighting* dynamicLighting = nullptr;
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
     Particles* particles = nullptr;
     // Las puertas consultan al héroe publicado y el modo editor, antes de mover o sonar.
     const glm::vec3* heroPosition = nullptr;

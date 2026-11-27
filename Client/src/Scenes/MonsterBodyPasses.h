@@ -34,9 +34,13 @@ class ModelEffects;
 class Particles;
 } // namespace Client::World
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct JointState;
 
 // Lo que 0x4ef0c0 (RenderBody) y 0x4ecc30 (RenderMesh) reciben después de las banderas: el alpha, el blendMesh, su
@@ -53,7 +57,7 @@ struct BodyPassArgs
 
 // Los de un pase con lo del personaje: +0x174, +0x64, +0x68, +0x6c (ActorState::textureU), +0x70 (en 0: solo el alta
 // la escribe), +0x58 y la textura −1.
-[[nodiscard]] BodyPassArgs ActorPassArgs(const ActorState& actor);
+[[nodiscard]] BodyPassArgs ActorPassArgs(const Kernel::ActorState& actor);
 
 // El modelo compartido mientras 0x6002e0 lo dibuja: el color (+0x48..+0x50), el +0x88 (sin luz y con la UV corrida;
 // 0xff es nullopt), la luz por vértice (+0x44) y las mallas que dejó 0x4ebc80 en los huesos del personaje.
@@ -61,7 +65,7 @@ struct MonsterBodyModel
 {
     Render::ModelBatch& batch;
     const Models::IModelLibrary& models;
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     std::span<const Models::SkinnedMesh> meshes;
     Core::Duration frameClock{};
     // El reloj del mundo (0x5767b88) en ms, que lee la onda de 0x4ecc30 (la bandera 0x400, 0x4ed775).
@@ -89,7 +93,7 @@ struct MonsterBodyModel
 struct MonsterBodyFrame
 {
     MonsterBodyModel& model;
-    ActorState& actor;
+    Kernel::ActorState& actor;
     // Los huesos que posó 0x5ffdf0 en el buffer propio (+0x120).
     std::span<const Math::BoneTransform> bones;
     // El mapa (0x6c9dd0) y el cuarto argumento de 0x602e90 (SpecialOf).

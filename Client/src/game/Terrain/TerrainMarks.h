@@ -13,7 +13,7 @@ struct TerrainAttributes;
 
 // Las marcas que los eventos ponen y sacan en el .att del mapa cargado (0x7d0d348, un WORD por celda): los paquetes
 // 46 (04 § Los eventos) y los derrumbes de Blood Castle y Chaos Castle (06 § Los dibujos de los eventos).
-namespace Client::Scenes
+namespace Client::Terrain
 {
 // Un rectángulo de celdas de 0x5f8750: desde (x, y), `width` columnas y `height` filas.
 struct TerrainArea
@@ -36,4 +36,4 @@ struct TerrainArea
 [[nodiscard]] Core::Expected<void, std::string> MarkTheTerrainArea(Data::Terrain::TerrainAttributes* attributes,
                                                                    const TerrainArea& area, std::uint8_t attribute,
                                                                    bool add, std::string_view where);
-} // namespace Client::Scenes
+} // namespace Client::Terrain

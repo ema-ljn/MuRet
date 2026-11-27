@@ -210,13 +210,13 @@ std::uint32_t StatPlus(std::uint16_t stat, std::uint16_t added)
 }
 
 // El tipo de un ítem con signo, como lo lee el original (movsx).
-std::int32_t TypeOf(const World::ItemState& item)
+std::int32_t TypeOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int16_t>(item.id);
 }
 
 // sprintf("%s", [0x7681eb0]): el nombre hasta su 0.
-Core::Expected<std::string, std::string> NameOf(const OwnCharacterRecord& own)
+Core::Expected<std::string, std::string> NameOf(const Kernel::OwnCharacterRecord& own)
 {
     const auto end = std::ranges::find(own.name, std::byte{0});
     if (end == own.name.end())
@@ -232,8 +232,8 @@ Core::Expected<std::string, std::string> NameOf(const OwnCharacterRecord& own)
 struct Window
 {
     GameHudContext& context;
-    const OwnCharacterRecord& own;
-    const ActorState& hero;
+    const Kernel::OwnCharacterRecord& own;
+    const Kernel::ActorState& hero;
     // local_28: la clase del héroe.
     CharacterClass heroClass = CharacterClass::DarkWizard;
     std::int32_t x = WindowX;
@@ -318,7 +318,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
 Core::Expected<void, std::string> DrawTheLevel(Window& window)
 {
     GameHudContext& context = window.context;
-    const OwnCharacterRecord& own = window.own;
+    const Kernel::OwnCharacterRecord& own = window.own;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
     auto levelFormat = TextOf(context, LevelText, "0x5ee8e5");
@@ -379,8 +379,8 @@ Core::Expected<void, std::string> DrawTheLevel(Window& window)
 Core::Expected<bool, std::string> DrawTheStrength(Window& window)
 {
     GameHudContext& context = window.context;
-    const OwnCharacterRecord& own = window.own;
-    const ActorState& hero = window.hero;
+    const Kernel::OwnCharacterRecord& own = window.own;
+    const Kernel::ActorState& hero = window.hero;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
     auto strengthFormat = TextOf(context, StrengthText, "0x5ef04e");
@@ -406,8 +406,8 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
         // Acceso 6: solo toma el puntero al lugar 0 (+0xb6c), que lee la magia.
         const auto access = OwnAccess(context);
     }
-    const OwnAttackDamage attack = AttackDamageOf(own, window.heroClass, HeldItemOf(context.world.Runtime()),
-                                                  context.ownRecordDepth, context.random);
+    const Player::OwnAttackDamage attack = Player::AttackDamageOf(
+        own, window.heroClass, Player::HeldItemOf(context.world.Runtime()), context.ownRecordDepth, context.random);
     {
         // Acceso 7 (0x5ef450..0x5ef55f).
         const auto access = OwnAccess(context);
@@ -442,7 +442,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
     for (std::size_t slot = FirstArmorSlot; slot <= LastArmorSlot; ++slot)
     {
         const auto access = OwnAccess(context);
-        const World::ItemState& item = own.equipment[slot];
+        const Kernel::ItemState& item = own.equipment[slot];
         const bool empty = TypeOf(item) == -1;
         const bool helmOptional = window.heroClass == CharacterClass::MagicGladiator && slot == FirstArmorSlot;
         if ((empty && !helmOptional) || (!empty && item.durability == 0))
@@ -488,7 +488,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
 Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
 {
     GameHudContext& context = window.context;
-    const OwnCharacterRecord& own = window.own;
+    const Kernel::OwnCharacterRecord& own = window.own;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
     auto agilityFormat = TextOf(context, AgilityText, "0x5efd55");
@@ -539,22 +539,22 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
 Core::Expected<void, std::string> DrawTheMagic(Window& window)
 {
     GameHudContext& context = window.context;
-    const OwnCharacterRecord& own = window.own;
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    const Kernel::OwnCharacterRecord& own = window.own;
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const std::optional<std::uint8_t> skill = own.SkillAt(window.hero.skillIndex);
     if (!skill)
         return Core::Unexpected(
             std::format("0x5f04cd: el byte +0x6c + {} del registro propio no está en MuRet", window.hero.skillIndex));
     // Un dibujo intermedio no deja las marcas de la lista: trabaja sobre una copia.
-    ItemSetOptionList projected = world.ItemSets().list;
-    ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
-    OwnMagicDamage damage;
+    Player::ItemSetOptionList projected = world.ItemSets().list;
+    Player::ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
+    Player::OwnMagicDamage damage;
     {
         // Acceso 13, adentro del 12: no saca nada al cerrarse.
         const auto access = OwnAccess(context);
-        auto magic = MagicDamageOf(own, *skill, context.skills, runtime.movement.skillDepths[*skill], context.random,
-                                   setOptions);
+        auto magic = Player::MagicDamageOf(own, *skill, context.skills, runtime.movement.skillDepths[*skill],
+                                           context.random, setOptions);
         if (!magic.HasValue())
             return Core::Unexpected(magic.Error());
         damage = magic.Value();
@@ -570,7 +570,7 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
     }
     // 0x5f054d..0x5f0571: con un báculo (0xa00 a 0xbff) o los tipos 0x1f, 0x17 y 0x15 en la derecha, el agregado de
     // su byte +0x16 por lo que queda de su durabilidad (0x54ee00 sobre el byte +0x2e de Item.bmd, no el +0x2d).
-    const World::ItemState& right = own.equipment[0];
+    const Kernel::ItemState& right = own.equipment[0];
     const std::int32_t type = TypeOf(right);
     std::string text;
     if ((type >= 0xa00 && type < 0xc00) || type == 0x1f || type == 0x17 || type == 0x15)
@@ -585,9 +585,9 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
             return Core::Unexpected(std::format("0x5f05a2: Item.bmd no tiene el tipo {}", type));
         constexpr std::size_t MagicDurabilityByte = 0x2e;
         const float share = F32(static_cast<double>(right.byte16) * static_cast<double>(0.01f));
-        const float factor =
-            ItemDurabilityFactor(right.durability, std::to_integer<std::uint8_t>((*record)[MagicDurabilityByte]),
-                                 right.scalar1Low, right.flags1b, right.flags1c);
+        const float factor = Player::ItemDurabilityFactor(right.durability,
+                                                          std::to_integer<std::uint8_t>((*record)[MagicDurabilityByte]),
+                                                          right.scalar1Low, right.flags1b, right.flags1c);
         // 0x5f05d1..0x5f05dd: (f − r · f) · max, en la x87.
         const std::int32_t bonus =
             Truncate((static_cast<double>(share) - static_cast<double>(factor) * static_cast<double>(share)) *
@@ -610,7 +610,7 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
 Core::Expected<void, std::string> DrawTheVitality(Window& window)
 {
     GameHudContext& context = window.context;
-    const OwnCharacterRecord& own = window.own;
+    const Kernel::OwnCharacterRecord& own = window.own;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
     auto vitalityFormat = TextOf(context, VitalityText, "0x5f0243");
@@ -720,7 +720,7 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
 Core::Expected<void, std::string> DrawTheCommand(Window& window)
 {
     GameHudContext& context = window.context;
-    const OwnCharacterRecord& own = window.own;
+    const Kernel::OwnCharacterRecord& own = window.own;
     auto format = TextOf(context, CommandText, "0x5f0aef");
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
@@ -781,8 +781,8 @@ std::uint32_t PkNameColor(std::uint8_t pk)
 
 Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context)
 {
-    WorldState& world = context.world;
-    const ActorState& hero = world.Hero();
+    Kernel::WorldState& world = context.world;
+    const Kernel::ActorState& hero = world.Hero();
     Window window{
         .context = context, .own = world.OwnCharacter(), .hero = hero, .heroClass = BaseClassOf(hero.characterClass)};
     context.hud.characterX = window.x;

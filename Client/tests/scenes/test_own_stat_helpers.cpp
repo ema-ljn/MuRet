@@ -27,16 +27,16 @@
 // rand(); el Item.bmd de estos tests es sintético (el real, en test_golden_own_stat_helpers.cpp).
 namespace
 {
+using Client::Actors::Scan505820;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Models::OwnRecordCloseRandoms;
-using Client::Scenes::ItemDurabilityFactor;
-using Client::Scenes::ItemSetOptionList;
-using Client::Scenes::OwnCharacterRecord;
-using Client::Scenes::OwnEquipmentOverride;
-using Client::Scenes::Scan505820;
+using Client::Player::ItemDurabilityFactor;
+using Client::Player::ItemSetOptionList;
+using Client::Player::OwnEquipmentOverride;
 using Client::Tables::ItemTable;
 using Client::Tests::AfterDraws;
-using Client::World::ItemState;
 
 constexpr std::size_t BaseDurabilityOffset = 0x2d;
 constexpr std::uint16_t EmptyType = 0xffff;
@@ -114,7 +114,7 @@ ItemState Item(std::uint16_t type, std::uint8_t durability, std::initializer_lis
     for (const Option& option : options)
     {
         item.optionBytes[index] = option.tag;
-        item.optionBytes[Client::World::ItemOptionValueOffset + index] = option.value;
+        item.optionBytes[Client::Kernel::ItemOptionValueOffset + index] = option.value;
         ++index;
     }
     item.optionCount = static_cast<std::uint8_t>(index);
@@ -215,7 +215,7 @@ TEST(OwnStatHelpersTest, Words50To56StartFromTheClass)
         own.word30 = 6; // 96
         ItemSetOptionList setOptions;
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, nullptr, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, nullptr, &setOptions).HasValue());
 
         EXPECT_EQ(own.word50, expected.word50);
         EXPECT_EQ(own.word52, expected.word52);
@@ -244,7 +244,7 @@ TEST(OwnStatHelpersTest, TheArcherBranchAndTheAmmunition)
     ItemState bolt = Item(Bolt, 1);
     bolt.scalar1Low = 2 << 3;
     OwnCharacterRecord own = archer(Item(Crossbow, 1), bolt);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 168);
     EXPECT_EQ(own.word52, 294);
     EXPECT_EQ(own.word54, 160);
@@ -253,7 +253,7 @@ TEST(OwnStatHelpersTest, TheArcherBranchAndTheAmmunition)
     ItemState arrow = Item(Arrow, 1);
     arrow.scalar1Low = 1 << 3;
     own = archer(arrow, Item(ShortBow, 1));
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 160);
     EXPECT_EQ(own.word52, 280);
     EXPECT_EQ(own.word54, 165);
@@ -261,15 +261,15 @@ TEST(OwnStatHelpersTest, TheArcherBranchAndTheAmmunition)
 
     // Sin nivel, nada; Bolt sola no es la rama, ni la ballesta sin durabilidad: la del Elf.
     own = archer(Item(Crossbow, 1), Item(Bolt, 1));
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 160);
     EXPECT_EQ(own.word52, 280);
     own = archer(Item(EmptyType, 0), bolt);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 180);
     EXPECT_EQ(own.word52, 315);
     own = archer(Item(Crossbow, 0), Item(EmptyType, 0));
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 180);
     EXPECT_EQ(own.word52, 315);
 }
@@ -295,7 +295,7 @@ TEST(OwnStatHelpersTest, Words50To56AddTheWingsTheHandsAndTheAccessories)
     own.equipment[Slot11] = Item(TypeOf(13, 9), 0, {{0x5e, 0}});
     ItemSetOptionList setOptions;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
 
     // 25 + 11 + 4 = 40 (más 0), + 3 = 43, + 4 = 47; 35 + 17 + 4 = 56, + 1 = 57, + 3 = 60, + 6 = 66;
     // 25 + 10 + 1 + 3 = 39, + 3 = 42; 35 + 6 + 1 + 3 = 45, + 4 = 49.
@@ -326,7 +326,7 @@ TEST(OwnStatHelpersTest, AStaffInTheRightHandGoesToWords54And56)
         own.equipment[RightHand].word0e = 9;
         own.equipment[Wings] = Item(TypeOf(12, 1), 1, {{0x50, 9}});
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions).HasValue());
 
         EXPECT_EQ(own.word50, right.secondPair ? 0 : 7);
         EXPECT_EQ(own.word52, right.secondPair ? 0 : 9);
@@ -343,7 +343,7 @@ TEST(OwnStatHelpersTest, Words50To56AddTheSetOptions)
     own.agility = 84;
     ItemSetOptionList setOptions = SetOptionsOf({{0x05, 0, 7}, {0x06, 0, 11}, {0x19, 1, 50}, {0x18, 1, 10}});
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, {}, nullptr, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, {}, nullptr, &setOptions).HasValue());
 
     EXPECT_EQ(own.word50, 15 + 7 + 42 + 12);
     EXPECT_EQ(own.word52, 30 + 11 + 42 + 12);
@@ -367,20 +367,20 @@ TEST(OwnStatHelpersTest, Words50To56ReadTheHeldItemInsteadOfASlot)
     held.item7879f80 = Item(SkullStaff, 1);
     held.item7879f80.word0c = 7;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, held, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, held, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 0);
     EXPECT_EQ(own.word54, 7);
 
     for (const std::int32_t count : {0, -1})
     {
         held.dword7879fbc = count;
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, held, &items, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, held, &items, &setOptions).HasValue());
         EXPECT_EQ(own.word50, 5);
         EXPECT_EQ(own.word54, 0);
     }
     held.dword7879fbc = 1;
     held.window78ab9b8Is78a9bb0 = false;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords50To56(own, held, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords50To56(own, held, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word50, 5);
 }
 
@@ -391,18 +391,18 @@ TEST(OwnStatHelpersTest, Words50To56StopWhereTheyReadWhatMuRetLacks)
     own.strength = 120;
     own.equipment[RightHand] = Item(Kris, 1);
     ItemSetOptionList setOptions;
-    auto updated = Client::Scenes::UpdateOwnWords50To56(own, {}, nullptr, &setOptions);
+    auto updated = Client::Player::UpdateOwnWords50To56(own, {}, nullptr, &setOptions);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("Item.bmd"), std::string::npos);
     EXPECT_EQ(own.word50, 20);
 
     const ItemTable items = ItemsWithBaseDurability({});
-    updated = Client::Scenes::UpdateOwnWords50To56(own, {}, &items, nullptr);
+    updated = Client::Player::UpdateOwnWords50To56(own, {}, &items, nullptr);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("0x40e1b0"), std::string::npos);
 
     own.equipment[RightHand].optionCount = 10;
-    updated = Client::Scenes::UpdateOwnWords50To56(own, {}, &items, &setOptions);
+    updated = Client::Player::UpdateOwnWords50To56(own, {}, &items, &setOptions);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("10 opciones"), std::string::npos);
 }
@@ -419,13 +419,13 @@ TEST(OwnStatHelpersTest, Words5aAnd5cCarryWordEf4IntoTheNextCall)
     own.wordef4 = 5;
     ItemSetOptionList setOptions = SetOptionsOf({{0x07, 0, 3}, {0x1c, 1, 10}});
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions).HasValue());
     EXPECT_EQ(own.word5a, 10 + 8 + 9);
     EXPECT_EQ(own.word5c, 22 + 8 + 9);
     EXPECT_EQ(own.wordef4, 9);
 
     // Las entradas ya están marcadas: suma el 9 que quedó.
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions).HasValue());
     EXPECT_EQ(own.word5a, 10 + 9);
     EXPECT_EQ(own.word5c, 22 + 9);
     EXPECT_EQ(own.wordef4, 0);
@@ -452,7 +452,7 @@ TEST(OwnStatHelpersTest, Words5aAnd5cAddTheRightHand)
         own.equipment[RightHand] = Item(expected.type, 2, {{0x50, 9}, {0x51, 7}, {0x5f, 6}, {0x60, 0}});
         ItemSetOptionList setOptions;
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, &items, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, &items, &setOptions).HasValue());
 
         EXPECT_EQ(own.word5a, expected.word5a);
         EXPECT_EQ(own.word5c, expected.word5c);
@@ -467,12 +467,12 @@ TEST(OwnStatHelpersTest, Words5aAnd5cAddTheWingsAndTheAccessories)
     ItemSetOptionList setOptions;
     OwnCharacterRecord own = EmptyRecord(DarkWizard);
     own.equipment[Wings] = Item(WingsOfElf, 30, {{0x51, 9}});
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word5a, 5);
     EXPECT_EQ(own.word5c, 5);
 
     own.equipment[Wings] = Item(TypeOf(12, 1), 30, {{0x51, 9}});
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, &items, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, &items, &setOptions).HasValue());
     EXPECT_EQ(own.word5a, 9);
     EXPECT_EQ(own.word5c, 9);
 
@@ -480,7 +480,7 @@ TEST(OwnStatHelpersTest, Words5aAnd5cAddTheWingsAndTheAccessories)
     own.energy = 900;
     own.equipment[Slot9] = Item(TypeOf(13, 12), 1, {{0x5f, 4}, {0x60, 0}});
     own.equipment[Slot10] = Item(TypeOf(13, 8), 1, {{0x60, 0}});
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions).HasValue());
     EXPECT_EQ(own.word5a, 116); // 104, 106, 116
     EXPECT_EQ(own.word5c, 256); // 229, 233, 256
 }
@@ -489,7 +489,7 @@ TEST(OwnStatHelpersTest, Words5aAnd5cStopWhereTheyReadWhatMuRetLacks)
 {
     OwnCharacterRecord own = EmptyRecord(DarkWizard);
     own.energy = 90;
-    auto updated = Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, nullptr, nullptr);
+    auto updated = Client::Player::UpdateOwnWords5aAnd5c(own, {}, nullptr, nullptr);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("0x40e1b0"), std::string::npos);
     EXPECT_EQ(own.word5a, 10);
@@ -497,7 +497,7 @@ TEST(OwnStatHelpersTest, Words5aAnd5cStopWhereTheyReadWhatMuRetLacks)
 
     own.equipment[Wings] = Item(WingsOfElf, 0);
     ItemSetOptionList setOptions;
-    updated = Client::Scenes::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions);
+    updated = Client::Player::UpdateOwnWords5aAnd5c(own, {}, nullptr, &setOptions);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("Item.bmd"), std::string::npos);
 }
@@ -527,7 +527,7 @@ TEST(OwnStatHelpersTest, Word4eByClassAndLevelThenTheSetOptions)
         own.level = 10;
         ItemSetOptionList setOptions = SetOptionsOf({{0x09, 0, 4}});
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWord4e(own, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWord4e(own, &setOptions).HasValue());
 
         EXPECT_EQ(own.word4e, expected.word4e + 4);
     }
@@ -535,11 +535,11 @@ TEST(OwnStatHelpersTest, Word4eByClassAndLevelThenTheSetOptions)
     OwnCharacterRecord own = EmptyRecord(DarkWizard);
     own.level = 13108; // · 5 = 65540
     ItemSetOptionList setOptions;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWord4e(own, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWord4e(own, &setOptions).HasValue());
     EXPECT_EQ(own.word4e, 4);
 
     own.level = 10;
-    const auto updated = Client::Scenes::UpdateOwnWord4e(own, nullptr);
+    const auto updated = Client::Player::UpdateOwnWord4e(own, nullptr);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("0x40e1b0"), std::string::npos);
     EXPECT_EQ(own.word4e, 50);
@@ -566,7 +566,7 @@ TEST(OwnStatHelpersTest, TheSpeedsStartFromTheClassAndTheAgility)
         std::uint8_t accesses = 0;
         CrtRandom random(7);
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
 
         EXPECT_EQ(own.attackSpeed, expected.attack);
         EXPECT_EQ(own.magicSpeed, expected.magic);
@@ -604,7 +604,7 @@ TEST(OwnStatHelpersTest, TheSpeedsAddTheWeapons)
         std::uint8_t accesses = 0;
         CrtRandom random;
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
 
         EXPECT_EQ(own.attackSpeed, expected.added);
         EXPECT_EQ(own.magicSpeed, expected.added);
@@ -633,7 +633,7 @@ TEST(OwnStatHelpersTest, TheWizardsRingAddsTenAndSetsBit04InsideAnAccess)
         std::uint8_t accesses = 0;
         CrtRandom random(Seed);
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
 
         EXPECT_EQ(own.attackSpeed, ring.counts ? 10 : 0);
         EXPECT_EQ(own.magicSpeed, ring.counts ? 10 : 0);
@@ -648,7 +648,7 @@ TEST(OwnStatHelpersTest, TheWizardsRingAddsTenAndSetsBit04InsideAnAccess)
     own.equipment[Slot11] = Item(WizardsRing, 1);
     std::uint8_t accesses = 1;
     CrtRandom random(Seed);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 10);
     EXPECT_EQ(accesses, 1);
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
@@ -663,12 +663,12 @@ TEST(OwnStatHelpersTest, WithoutTheRingBit04IsClearedInsideAnAccess)
     std::uint8_t accesses = 0;
     CrtRandom random(Seed);
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
     EXPECT_EQ(own.speedAdjustBits, 0x02);
     EXPECT_EQ(random.State(), AfterDraws(Seed, OwnRecordCloseRandoms).State());
 
     random = CrtRandom(Seed);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
     EXPECT_EQ(own.speedAdjustBits, 0x02);
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
@@ -690,7 +690,7 @@ TEST(OwnStatHelpersTest, TheSpeedsAddTheGlovesTheBitsAndTheOptions61)
     std::uint8_t accesses = 1;
     CrtRandom random;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
 
     EXPECT_EQ(own.attackSpeed, 20 + 20 + 10 + 7 + 20 + 5 + 3);
     EXPECT_EQ(own.magicSpeed, 15 + 20 + 10 + 7 + 20 + 5 + 3);
@@ -699,11 +699,11 @@ TEST(OwnStatHelpersTest, TheSpeedsAddTheGlovesTheBitsAndTheOptions61)
     // Los guantes sin durabilidad o con el tipo −1, y el bit 0x01.
     own.speedAdjustBits = 0x01;
     own.equipment[Gloves].durability = 0;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 20 + 20 + 10 + 20 + 5 + 3);
     own.equipment[Gloves] = Item(EmptyType, 1);
     own.equipment[Gloves].byte17 = 7;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 20 + 20 + 10 + 20 + 5 + 3);
 }
 
@@ -723,28 +723,28 @@ TEST(OwnStatHelpersTest, TheSpeedsReadTheHeldItemButTheOptionsOfTheRecord)
     std::uint8_t accesses = 0;
     CrtRandom random;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 15 + 40 + 5);
     EXPECT_EQ(own.magicSpeed, 30 + 40 + 5);
 
     held.slot78a6758 = 1;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 15 + 30 + 5);
 
     held.slot78a6758 = 5;
     held.item7879f80.byte17 = 7;
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 15 + 20 + 7 + 5);
 
     held.slot78a6758 = 11;
     held.item7879f80 = Item(WizardsRing, 1);
-    ASSERT_TRUE(Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnAttackAndMagicSpeeds(own, held, accesses, random).HasValue());
     EXPECT_EQ(own.attackSpeed, 15 + 20 + 10 + 5);
     EXPECT_EQ(own.speedAdjustBits, 0x04);
 
     own.equipment[Pet] = Item(TypeOf(13, 0), 1);
     own.equipment[Pet].optionCount = 10;
-    const auto updated = Client::Scenes::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random);
+    const auto updated = Client::Player::UpdateOwnAttackAndMagicSpeeds(own, {}, accesses, random);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("0x54fe10"), std::string::npos);
 }
@@ -767,7 +767,7 @@ TEST(OwnStatHelpersTest, Word60StartsFromTheClassAndTheAgility)
         own.agility = 290;
         own.equipment[LeftHand] = Item(SmallShield, 0, {{0x52, 9}});
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWord60(own, nullptr).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWord60(own, nullptr).HasValue());
 
         EXPECT_EQ(own.word60, expected.word60);
     }
@@ -787,16 +787,16 @@ TEST(OwnStatHelpersTest, Word60AddsTheLeftHandAndTheOptions5a)
     own.equipment[Pet] = Item(TypeOf(13, 0), 1, {{0x5a, 0}});
     own.equipment[Slot9] = Item(TypeOf(13, 12), 1, {{0x5a, 0}});
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWord60(own, &items).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWord60(own, &items).HasValue());
 
     EXPECT_EQ(own.word60, 140); // 102, 107, 117, 128, 140
 
     own.equipment[LeftHand].optionCount = 10;
-    auto updated = Client::Scenes::UpdateOwnWord60(own, &items);
+    auto updated = Client::Player::UpdateOwnWord60(own, &items);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_EQ(own.word60, 102);
 
-    updated = Client::Scenes::UpdateOwnWord60(own, nullptr);
+    updated = Client::Player::UpdateOwnWord60(own, nullptr);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("Item.bmd"), std::string::npos);
     EXPECT_EQ(own.word60, 100);
@@ -820,7 +820,7 @@ TEST(OwnStatHelpersTest, Word62StartsFromTheClassAndTheAgility)
         own.agility = 290;
         ItemSetOptionList setOptions;
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWord62(own, nullptr, {}, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWord62(own, nullptr, {}, &setOptions).HasValue());
 
         EXPECT_EQ(own.word62, expected.word62);
     }
@@ -845,7 +845,7 @@ TEST(OwnStatHelpersTest, Word62AddsTheReducedWord12OfSlots1To7)
     own.equipment[Wings].flags1c = 1;
     ItemSetOptionList setOptions;
 
-    ASSERT_TRUE(Client::Scenes::UpdateOwnWord62(own, &items, {}, &setOptions).HasValue());
+    ASSERT_TRUE(Client::Player::UpdateOwnWord62(own, &items, {}, &setOptions).HasValue());
 
     EXPECT_EQ(own.word62, 75 + 7 + 7 + 7);
 }
@@ -867,7 +867,7 @@ TEST(OwnStatHelpersTest, Word62AddsTheScanOf505820)
         own.agility = 356; // 89
         ItemSetOptionList setOptions;
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWord62(own, nullptr, expected.scan, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWord62(own, nullptr, expected.scan, &setOptions).HasValue());
 
         EXPECT_EQ(own.word62, expected.word62);
     }
@@ -893,7 +893,7 @@ TEST(OwnStatHelpersTest, Word62AddsTheSetOptions)
         own.equipment[LeftHand] = Item(expected.leftType, 0);
         ItemSetOptionList setOptions = SetOptionsOf({{0x0a, 0, 5}, {0x1a, 1, 10}, {0x1b, 1, 20}, {0x16, 0, 50}});
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWord62(own, nullptr, {}, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWord62(own, nullptr, {}, &setOptions).HasValue());
 
         EXPECT_EQ(own.word62, expected.word62);
     }
@@ -912,7 +912,7 @@ TEST(OwnStatHelpersTest, Word62AddsThePetAndTheCapeOfLord)
         own.equipment[Wings] = Item(wings, 1, {{0x96, 3}});
         ItemSetOptionList setOptions;
 
-        ASSERT_TRUE(Client::Scenes::UpdateOwnWord62(own, &items, {}, &setOptions).HasValue());
+        ASSERT_TRUE(Client::Player::UpdateOwnWord62(own, &items, {}, &setOptions).HasValue());
 
         EXPECT_EQ(own.word62, wings == CapeOfLord ? 35 : 32);
     }
@@ -927,17 +927,17 @@ TEST(OwnStatHelpersTest, Word62StopsWhereItReadsWhatMuRetLacks)
     own.equipment[Armor] = Item(0x2000, 5);
     ItemSetOptionList setOptions;
 
-    auto updated = Client::Scenes::UpdateOwnWord62(own, &items, {}, &setOptions);
+    auto updated = Client::Player::UpdateOwnWord62(own, &items, {}, &setOptions);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("Q-C184"), std::string::npos);
     EXPECT_EQ(own.word62, 75);
 
     own.equipment[Armor] = Item(TypeOf(8, 0), 5);
-    updated = Client::Scenes::UpdateOwnWord62(own, nullptr, {}, &setOptions);
+    updated = Client::Player::UpdateOwnWord62(own, nullptr, {}, &setOptions);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("Item.bmd"), std::string::npos);
 
-    updated = Client::Scenes::UpdateOwnWord62(own, &items, {12, 1}, nullptr);
+    updated = Client::Player::UpdateOwnWord62(own, &items, {12, 1}, nullptr);
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("0x40e1b0"), std::string::npos);
     EXPECT_EQ(own.word62, 75 + 11); // la armadura suma 0 y el 15 % de 75 es 11
@@ -957,7 +957,7 @@ TEST(OwnStatHelpersTest, EmptySlotsWithDurabilityContributeZeroWithoutReadingRes
     }
     ItemSetOptionList setOptions;
 
-    const auto updated = Client::Scenes::UpdateOwnWord62(own, nullptr, {}, &setOptions);
+    const auto updated = Client::Player::UpdateOwnWord62(own, nullptr, {}, &setOptions);
 
     ASSERT_TRUE(updated.HasValue()) << updated.Error();
     EXPECT_EQ(own.word62, 75);
@@ -978,7 +978,7 @@ TEST(OwnStatHelpersTest, Word64IsWord14OfTheLastBodySlotWithDurability)
     own.equipment[RightHand].word14 = 99;
     own.equipment[Pet] = Item(TypeOf(13, 0), 1);
     own.equipment[Pet].word14 = 98;
-    Client::Scenes::UpdateOwnWord64(own);
+    Client::Player::UpdateOwnWord64(own);
     EXPECT_EQ(own.word64, 0x1234);
 
     own.equipment[Helm] = Item(BronzeHelm, 1);
@@ -987,11 +987,11 @@ TEST(OwnStatHelpersTest, Word64IsWord14OfTheLastBodySlotWithDurability)
     own.equipment[Armor].word14 = 22;
     own.equipment[Pants] = Item(TypeOf(9, 0), 3);
     own.equipment[Pants].word14 = 33;
-    Client::Scenes::UpdateOwnWord64(own);
+    Client::Player::UpdateOwnWord64(own);
     EXPECT_EQ(own.word64, 33);
 
     own.equipment[Wings].durability = 1;
-    Client::Scenes::UpdateOwnWord64(own);
+    Client::Player::UpdateOwnWord64(own);
     EXPECT_EQ(own.word64, 0);
 }
 
@@ -1005,21 +1005,21 @@ TEST(OwnStatHelpersTest, Word66IsWord18OfTheBootsPlusTheWings)
     own.equipment[Boots].word18 = 7;
     own.equipment[Wings] = Item(WingsOfElf, 1);
     own.equipment[Wings].word18 = 5;
-    Client::Scenes::UpdateOwnWord66(own);
+    Client::Player::UpdateOwnWord66(own);
     EXPECT_EQ(own.word66, 12);
 
     own.equipment[Boots].durability = 0;
-    Client::Scenes::UpdateOwnWord66(own);
+    Client::Player::UpdateOwnWord66(own);
     EXPECT_EQ(own.word66, 17);
 
     own.equipment[Boots] = Item(EmptyType, 4);
     own.equipment[Boots].word18 = 7;
-    Client::Scenes::UpdateOwnWord66(own);
+    Client::Player::UpdateOwnWord66(own);
     EXPECT_EQ(own.word66, 5);
 
     own.equipment[Boots].durability = 0;
     own.equipment[Wings].durability = 0;
-    Client::Scenes::UpdateOwnWord66(own);
+    Client::Player::UpdateOwnWord66(own);
     EXPECT_EQ(own.word66, 5);
 }
 } // namespace

@@ -21,13 +21,17 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class ModelEffects;
 struct ModelEffectArguments;
 struct ModelEffect;
 class Particles;
-struct TerrainLighting;
 struct WorldObject;
 // 429ec0: sector original y primer objeto válido en orden de inserción; el quinto argumento nativo no se lee.
 [[nodiscard]] Core::Expected<bool, std::string> CollideTheSiegeObject(ModelEffect& projectile,
@@ -38,7 +42,7 @@ struct SiegeStoneStepServices
 {
     std::function<double(float, float)> terrainHeight{};
     ModelEffects* effects = nullptr;
-    TerrainLighting* lighting = nullptr;
+    Terrain::TerrainLighting* lighting = nullptr;
     const void* hero = nullptr;
     glm::vec3* cameraTarget = nullptr;
     float* cameraShake = nullptr;

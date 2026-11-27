@@ -51,7 +51,7 @@
 #include <utility>
 #include <vector>
 
-// Client::World::DrawTerrainCell contra el terreno de la traza de Lorencia (MU_CLIENT_GL_TRACE_DIR,
+// Client::Terrain::DrawTerrainCell contra el terreno de la traza de Lorencia (MU_CLIENT_GL_TRACE_DIR,
 // 06 § Terreno): cada fan de cuatro vértices del pase del terreno, con su geometría, sus UV, su
 // textura, su alfa y su luz, contra lo que MuRet arma para esa celda con el Data\ de World1.
 namespace
@@ -59,10 +59,10 @@ namespace
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawCommand;
+using Client::Terrain::DrawTerrainCell;
+using Client::Terrain::TerrainView;
+using Client::Terrain::TerrainWater;
 using Client::Tests::GlTraceBlock;
-using Client::World::DrawTerrainCell;
-using Client::World::TerrainView;
-using Client::World::TerrainWater;
 
 constexpr std::string_view LorenciaTrace = "lorencia-Frame_016215.txt";
 constexpr std::uint8_t Lorencia = 0;
@@ -196,21 +196,21 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
     auto trace = Client::Tests::ReadGlTrace(*path);
     ASSERT_TRUE(trace.HasValue()) << trace.Error();
     ASSERT_FALSE(trace.Value().frames.empty());
-    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Lorencia);
+    auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, Lorencia);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
 
-    Client::World::GameCamera cameraState;
-    const Client::World::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
-    const auto camera = Client::World::StepGameCamera(cameraState, cameraInput);
+    Client::Camera::GameCamera cameraState;
+    const Client::Camera::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
+    const auto camera = Client::Camera::StepGameCamera(cameraState, cameraInput);
     ExpectCameraInTrace(trace.Value().frames.front(), camera);
     const auto worldPass = Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
     TerrainView view{.mapping = terrain.Value().mapping.get(),
                      .heights = terrain.Value().heights.get(),
                      .attributes = terrain.Value().attributes.get(),
                      .lighting = terrain.Value().lighting.get()};
-    std::vector<Client::World::WorldTileTexture> textures = Client::World::WorldTileTextures(Lorencia);
-    textures.push_back(Client::World::AcceptBoxTexture());
-    for (const Client::World::WorldTileTexture& texture : textures)
+    std::vector<Client::Terrain::WorldTileTexture> textures = Client::Terrain::WorldTileTextures(Lorencia);
+    textures.push_back(Client::Terrain::AcceptBoxTexture());
+    for (const Client::Terrain::WorldTileTexture& texture : textures)
     {
         const std::array<Client::Data::Textures::TextureSetEntry, 1> entry{
             {{texture.path, texture.slot, texture.sampling}}};
@@ -218,7 +218,7 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
         if (loaded.HasValue())
         {
             const auto& t = loaded.Value().front().texture;
-            view.tiles[static_cast<std::size_t>(texture.slot - Client::World::FirstTileSlot) % 256] = {
+            view.tiles[static_cast<std::size_t>(texture.slot - Client::Terrain::FirstTileSlot) % 256] = {
                 static_cast<float>(t.textureWidth), static_cast<float>(t.textureHeight)};
         }
     }
@@ -261,7 +261,8 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
             ASSERT_TRUE(command.state.texture.has_value()) << where;
             if (block.texture >= FirstTileName && block.texture < FirstTileName + TileCount)
             {
-                EXPECT_EQ(command.state.texture->value, Client::World::FirstTileSlot + (block.texture - FirstTileName))
+                EXPECT_EQ(command.state.texture->value,
+                          Client::Terrain::FirstTileSlot + (block.texture - FirstTileName))
                     << where;
             }
             else
@@ -323,24 +324,24 @@ TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
     }
     auto trace = Client::Tests::ReadGlTrace(*path);
     ASSERT_TRUE(trace.HasValue()) << trace.Error();
-    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Lorencia);
+    auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, Lorencia);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-    Client::World::GameCamera cameraState;
-    const Client::World::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
-    const auto camera = Client::World::StepGameCamera(cameraState, cameraInput);
+    Client::Camera::GameCamera cameraState;
+    const Client::Camera::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
+    const auto camera = Client::Camera::StepGameCamera(cameraState, cameraInput);
     ASSERT_FALSE(trace.Value().frames.empty());
     ExpectCameraInTrace(trace.Value().frames.front(), camera);
     const auto pass = Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
-    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
-    const auto polygon =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, Lorencia, cameraInput.hero, camera.angles.z);
+    const auto range = Client::Terrain::TerrainRangeOf(pass.view, camera);
+    const auto polygon = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, Lorencia,
+                                                           cameraInput.hero, camera.angles.z);
     const TerrainView view{.mapping = terrain.Value().mapping.get(),
                            .heights = terrain.Value().heights.get(),
                            .attributes = terrain.Value().attributes.get(),
                            .lighting = terrain.Value().lighting.get()};
     ModelBatch batch;
     batch.Begin(pass);
-    Client::World::DrawTerrain(batch, view, range, polygon, TerrainWater{});
+    Client::Terrain::DrawTerrain(batch, view, range, polygon, TerrainWater{});
 
     const auto traced = TracedCells(trace.Value().frames[0]);
     ASSERT_EQ(traced.size(), 329u);
@@ -390,7 +391,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     auto trace = Client::Tests::ReadGlTrace(*path);
     ASSERT_TRUE(trace.HasValue()) << trace.Error();
     ASSERT_FALSE(trace.Value().frames.empty());
-    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Lorencia);
+    auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, Lorencia);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     const auto itemPath = DataFile("Local\\Item.bmd");
     const auto skillPath = DataFile("Local\\Skill.bmd");
@@ -409,13 +410,13 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Client::Tests::FakeTextureStore store;
-    const auto worldOwner = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::WorldState& world = *worldOwner;
+    const auto worldOwner = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::WorldState& world = *worldOwner;
     world.Map().terrain = std::move(terrain).Value();
     // El corrimiento del pasto que llena 0x5f8300 al cargar: la u no cambia qué celdas lo llevan.
     world.Map().grassOffsets.assign(Client::Data::Terrain::TerrainCellCount, 0.0f);
     constexpr std::size_t HeroSlot = 7;
-    Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+    Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
     hero.alive = true;
     hero.cellX = 143;
     hero.cellY = 120;
@@ -423,10 +424,10 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     world.Runtime().map = Lorencia;
     world.Runtime().hero = HeroSlot;
     world.Runtime().drawingEnabled = true;
-    world.Runtime().warpCounter = Client::Scenes::WaitDrawThreshold;
+    world.Runtime().warpCounter = Client::Kernel::WaitDrawThreshold;
     Client::Models::ClothWorld cloth;
-    Client::World::GameCamera cameraState;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera cameraState;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
                                                                  .textures = store,
                                                                  .log = log,
@@ -455,9 +456,9 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     }
     ASSERT_NE(models, nullptr);
     ASSERT_TRUE(models->pass.has_value());
-    Client::World::GameCamera fresh;
-    const auto camera = Client::World::StepGameCamera(
-        fresh, Client::World::GameCameraInput{.hero = hero.position, .cellAttribute = cameraInput.cellAttribute});
+    Client::Camera::GameCamera fresh;
+    const auto camera = Client::Camera::StepGameCamera(
+        fresh, Client::Camera::GameCameraInput{.hero = hero.position, .cellAttribute = cameraInput.cellAttribute});
     ExpectCameraInTrace(trace.Value().frames.front(), camera);
     EXPECT_EQ(models->pass->view,
               Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, {0, 0, 640, 432}, camera).view);
@@ -490,21 +491,21 @@ TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
     auto trace = Client::Tests::ReadGlTrace(*path);
     ASSERT_TRUE(trace.HasValue()) << trace.Error();
     constexpr std::uint8_t Selection = 54;
-    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Selection);
+    auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, Selection);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-    const auto camera = Client::Scenes::SelectionCamera();
+    const auto camera = Client::Camera::SelectionCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, Client::Scenes::WorldViewport, camera);
-    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
-    const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, Selection,
-                                                         {12975.0f, 15423.0f, 333.0f}, camera.angles.z);
+        Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, Client::Camera::WorldViewport, camera);
+    const auto range = Client::Terrain::TerrainRangeOf(pass.view, camera);
+    const auto polygon = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, Selection,
+                                                           {12975.0f, 15423.0f, 333.0f}, camera.angles.z);
     const TerrainView view{.mapping = terrain.Value().mapping.get(),
                            .heights = terrain.Value().heights.get(),
                            .attributes = terrain.Value().attributes.get(),
                            .lighting = terrain.Value().lighting.get()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::World::DrawTerrain(batch, view, range, polygon, TerrainWater{});
+    Client::Terrain::DrawTerrain(batch, view, range, polygon, TerrainWater{});
 
     const auto traced = TracedCells(trace.Value().frames[0]);
     ASSERT_EQ(traced.size(), 5109u);
@@ -521,21 +522,21 @@ using GoldenTerrainLogin = Client::Tests::GoldenDataTest;
 TEST_F(GoldenTerrainLogin, TheLoginDrawsTheCellsOfTheEmulatedCode)
 {
     constexpr std::uint8_t Login = 55;
-    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Login);
+    auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, Login);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-    const auto camera = Client::Scenes::LoginCamera();
+    const auto camera = Client::Camera::LoginCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
-    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
-    const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::Login, Login,
-                                                         Client::Scenes::LoginHeroPosition, camera.angles.z);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Camera::WorldViewport, camera);
+    const auto range = Client::Terrain::TerrainRangeOf(pass.view, camera);
+    const auto polygon = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Login, Login,
+                                                           Client::Camera::LoginHeroPosition, camera.angles.z);
     const TerrainView view{.mapping = terrain.Value().mapping.get(),
                            .heights = terrain.Value().heights.get(),
                            .attributes = terrain.Value().attributes.get(),
                            .lighting = terrain.Value().lighting.get()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::World::DrawTerrain(batch, view, range, polygon, TerrainWater{});
+    Client::Terrain::DrawTerrain(batch, view, range, polygon, TerrainWater{});
 
     const auto cells = DrawnCells(batch);
     ASSERT_EQ(cells.size(), 3244u);

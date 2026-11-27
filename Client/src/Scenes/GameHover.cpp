@@ -49,7 +49,7 @@ Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int
 {
     if (context.projecting)
         return {};
-    const ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
+    const Kernel::ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
     return AddChatBubble(
         context.world,
         ChatBubbleMeasure{.measure = context.text, .screen = context.sprites.Screen(), .texts = context.texts},
@@ -59,7 +59,7 @@ Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int
 // 0x5bbc9e..0x5bbd2f: el personaje elegido.
 Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::int32_t index)
 {
-    const ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
+    const Kernel::ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
     if (actor.byte88 != MonsterKind)
     {
         // 0x5bbd06..0x5bbd15: con el cartel de su tienda a la vista (0x451770), nada; si no, el globo del nombre.
@@ -112,15 +112,15 @@ Core::Expected<void, std::string> FloorItemNames(GameHoverContext& context)
 
 Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
 {
-    WorldState& world = context.world;
-    const WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     const std::int32_t floorItem = context.targets[0];
     const std::int32_t npc = context.targets[1];
     const std::int32_t character = context.targets[2];
     const std::int32_t pickedOther = context.targets[4];
     // 0x5bbbc6..0x5bbc0a.
-    const ActorState& hero = world.Hero();
-    if (IsChaosCastle(runtime.map) && !ActorNameContains(hero, WebzenWord) &&
+    const Kernel::ActorState& hero = world.Hero();
+    if (IsChaosCastle(runtime.map) && !Actors::ActorNameContains(hero, WebzenWord) &&
         (npc != NoTarget || character != NoTarget))
         return {};
     // 0x5bbc10..0x5bbc2c.

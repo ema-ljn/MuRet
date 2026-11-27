@@ -130,7 +130,7 @@ struct ElfHero
         hero.cellX = 182;
         hero.cellY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
-        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Scenes::NoItemModel;
+        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Kernel::NoItemModel;
         hero.alpha = 1.0f;
         hero.animation.action = 1;
         hero.skillIndex = 0;
@@ -146,11 +146,11 @@ struct ElfHero
         runtime.selectedTargets[2] = static_cast<std::int32_t>(ChosenSlot);
         runtime.movement.selectedSkillRange = 4.0f;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Actors()[0];
     }
-    Client::Scenes::ActorState& Chosen()
+    Client::Kernel::ActorState& Chosen()
     {
         return world.Actors()[ChosenSlot];
     }
@@ -165,7 +165,7 @@ struct ElfHero
         chosen.type = Client::Tables::PlayerSkeletonModel;
         chosen.byte88 = 1;
         chosen.byte370 = 0;
-        chosen.hands[0].model = chosen.hands[1].model = Client::Scenes::NoItemModel;
+        chosen.hands[0].model = chosen.hands[1].model = Client::Kernel::NoItemModel;
     }
     // Sin elegido: 0x57ce80 apunta al terreno, a (183, 116).
     void AimAtTheTerrain()
@@ -204,7 +204,7 @@ struct ElfHero
     }
 
     std::uint8_t skill;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     std::optional<glm::vec3> terrainPoint;

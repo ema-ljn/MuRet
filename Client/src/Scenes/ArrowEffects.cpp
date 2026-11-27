@@ -109,7 +109,7 @@ void AddRotated(glm::vec3& position, const glm::vec3& rotated)
 
 // 0x51a1b6 (y 0x51a4b7 en el 0xe2): abre el registro propio (0x4e79a0, no gasta), copia su +0xf04 a +0x8c (MOVZX) y lo
 // cierra (0x40f370: 3.848 rand() si la cuenta queda en 0).
-void CopyTheOwnCount(World::ModelEffect& effect, WorldState& world, CrtRandom& random)
+void CopyTheOwnCount(World::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
 {
     const LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     effect.word8c = world.OwnCharacter().bytef04;
@@ -117,7 +117,7 @@ void CopyTheOwnCount(World::ModelEffect& effect, WorldState& world, CrtRandom& r
 
 // 0x53e365..0x53e440 (y 0x53e4dd..0x53e611, 0x53e75b..0x53e92c): el registro propio abierto en línea, +0xf04 uno más
 // (la cuenta de la tanda, que las flechas copian a +0x8c) y cerrado (0x40b4d0: 3.848 rand() si queda en 0).
-void CountTheVolley(WorldState& world, CrtRandom& random)
+void CountTheVolley(Kernel::WorldState& world, CrtRandom& random)
 {
     const LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     ++world.OwnCharacter().bytef04;
@@ -129,8 +129,8 @@ void CountTheVolley(WorldState& world, CrtRandom& random)
 // escala 10 y la luz (0,9; 0,4; 0,6) (0x51a01b), los dos con la partida en la posición del dueño (0x51a040); después,
 // cuatro joints 610/0..3 con la clave 30 y el subtipo del alta de noveno argumento, el sonido 7a sin posición y la
 // escala en 1. Cada alta busca el primer hueco, aun con saturación parcial; sin rand().
-Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, WorldState& world, CrtRandom& random,
-                                                      std::int32_t subtype)
+Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, Kernel::WorldState& world,
+                                                      CrtRandom& random, std::int32_t subtype)
 {
     constexpr std::int16_t TrailType = 0x105;
     constexpr std::int32_t TrailLife = 100, PulseSubtype = 3;
@@ -188,7 +188,7 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
 // + 50) · 0,0666…f (0x6ba1e0), la partida en la posición del héroe ([0x743a170]) y, con el 3, la y de la velocidad en
 // −(rand() % 30 + 50) y la x de los ángulos en −(rand() % 20 + 45); con el 4, la velocidad en −(rand() % 15 + 55) y la
 // x en −10. Cada fild más la constante y el fchs en la x87, guardados en float.
-void BeginTheSiegeArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random)
+void BeginTheSiegeArrow(World::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
 {
     constexpr std::int32_t SiegeArrowLife = 40;
     constexpr float SiegeArrowScale = 1.5f; // 0x3fc00000
@@ -214,7 +214,8 @@ void BeginTheSiegeArrow(World::ModelEffect& effect, WorldState& world, CrtRandom
 }
 
 // 0x51c43b..0x51c722: el alta común de las flechas 0xdb..0xe1, 0xe3, 0xf9 y 0x11c.
-Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random)
+Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kernel::WorldState& world,
+                                                CrtRandom& random)
 {
     const std::int16_t type = effect.type;
     // 0x51c43b..0x51c477: +0x64 (el blendMesh) en 1 con el 0xdb, en −2 con el 0xe1 y en 0 (ESI) con el 0xdd, el 0xde,
@@ -314,7 +315,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
 }
 
 // 0x51a41e..0x51a4ed: el alta de la flecha 0xe2.
-void BeginTheAquagoldArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random)
+void BeginTheAquagoldArrow(World::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
 {
     constexpr std::int32_t FirstLife = 30;
     constexpr std::int32_t AquagoldLife = 40;
@@ -338,8 +339,8 @@ void BeginTheAquagoldArrow(World::ModelEffect& effect, WorldState& world, CrtRan
 }
 
 // 51a2bd..51a417: el punto de partida usa los ángulos originales; después escribe los del caller, no los del efecto.
-Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random,
-                                                      glm::vec3* callerAngles)
+Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect, Kernel::WorldState& world,
+                                                      CrtRandom& random, glm::vec3* callerAngles)
 {
     constexpr glm::vec3 Muzzle{-10.0f, -100.0f, 15.0f};
     effect.velocity = {0.0f, -60.0f, 0.0f};
@@ -370,8 +371,8 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
 }
 
 // 51a10f/51a1e6/51a2bd/51be81: prefijos y colas que el allocator de joints lleno también alcanza.
-Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random,
-                                                     glm::vec3* callerAngles)
+Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect, Kernel::WorldState& world,
+                                                     CrtRandom& random, glm::vec3* callerAngles)
 {
     if (effect.type == ReignArrow && effect.subtype != 0 && effect.subtype != 2)
         return {};
@@ -429,9 +430,9 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
 }
 
 // 0x518cf0(tipo, o+0x10, o+0x1c, o+0xf4, subtipo, o, o+0x8a, lugar, bandera, 0, 0), como lo llama 0x53d9a0.
-Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& owner, std::int32_t subtype,
+Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, Kernel::ActorState& owner, std::int32_t subtype,
                                                  std::int32_t skillIndex, std::uint8_t flag,
-                                                 const CharacterStepContext& context)
+                                                 const Actors::CharacterStepContext& context)
 {
     const World::ModelEffectArguments arguments{.type = type,
                                                 .position = owner.position,
@@ -452,8 +453,9 @@ Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& 
 // velocidad en −30, la luz en (0,3f; 0,8f; 1), (−10; −80; 200) girado por los ángulos y sumado a la posición y la x de
 // los ángulos en −30; después, el joint 0x632/4 (0x51e01a) y la cuenta de la tanda. Con la tabla llena, nada y sin
 // rand().
-Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* target, std::int32_t skillIndex,
-                                                 std::uint8_t flag, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kernel::ActorState* target,
+                                                 std::int32_t skillIndex, std::uint8_t flag,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t BlastType = 0x13a;
     constexpr std::int32_t BlastLife = 20;
@@ -508,7 +510,8 @@ Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* 
 }
 
 // 0x53e642..0x53e73a: quince puntos del hueso de la mano, un joint par y una chispa por iteración.
-Core::Expected<void, std::string> CreateTheReignHandShine(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateTheReignHandShine(Kernel::ActorState& actor,
+                                                          const Actors::CharacterStepContext& context)
 {
     constexpr int Samples = 15;
     constexpr int FullTurn = Math::FullTurn;
@@ -518,7 +521,7 @@ Core::Expected<void, std::string> CreateTheReignHandShine(ActorState& actor, con
     const std::size_t handBone = actor.hands[0].bone;
     const Math::BoneTransform matrix =
         handBone < actor.bodyPose.size() ? actor.bodyPose[handBone] : Math::BoneTransform(0.0f);
-    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
     glm::vec3 point =
         Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), HandOffset, placement.scale, placement.origin);
     glm::vec3 angles{};
@@ -547,11 +550,11 @@ Core::Expected<void, std::string> CreateTheReignHandShine(ActorState& actor, con
 }
 
 // 0x53d9a0(c, o, blanco, lugar, bandera, skill).
-Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, ActorState* target, std::int32_t skillIndex,
-                                                 std::uint8_t flag, std::uint8_t skill,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> ShootTheArrows(Kernel::ActorState& actor, Kernel::ActorState* target,
+                                                 std::int32_t skillIndex, std::uint8_t flag, std::uint8_t skill,
+                                                 const Actors::CharacterStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hero >= context.world.Actors().size())
         return Core::Unexpected(std::string("0x53d9cf: el héroe publicado ([0x743a170]) no está en el pool"));
     // 0x53d9ac..0x53d9cf: las de +0x2b8 y +0x2d8 (MOVSX); con el héroe ([0x743a170]), 0x53d9d5..0x53de8a: las del
@@ -619,11 +622,11 @@ Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, ActorState* 
 // 0x517850(efecto, radio, _, clase): el primero de los 400 vivos, que no sea de la clase (+0x88; 0 no excluye), ni el
 // dueño (+0x108), que se vea (+0x16c), que no sea el héroe salvo con la clase 2 y que no se esté muriendo (+0x389), a
 // `radius` o menos en el plano (la raíz en la x87 con PC53, guardada en float; NaN choca).
-bool HitsSomeone(const World::ModelEffect& effect, WorldState& world, const ActorState& hero, float radius,
-                 std::uint8_t kind)
+bool HitsSomeone(const World::ModelEffect& effect, Kernel::WorldState& world, const Kernel::ActorState& hero,
+                 float radius, std::uint8_t kind)
 {
     constexpr std::uint8_t HeroKind = 2;
-    for (const ActorState& actor : world.Actors().first(CreatedActorSearch))
+    for (const Kernel::ActorState& actor : world.Actors().first(Actors::CreatedActorSearch))
     {
         if (!actor.alive)
             continue;
@@ -695,20 +698,20 @@ Core::Expected<void, std::string> CreatePiercingImpactJoint(World::ModelEffect& 
 
 Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effect, const ArrowStepContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     // 0x5201ed..0x5201fe: rand() & 1 (con signo, sobre un rand() no negativo); con 1, nada.
     if ((context.random.Next() & 1) != 0)
         return {};
     // 0x520204..0x520211: solo con el héroe ([0x743a170]) de dueño (+0x108).
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     if (effect.ownerContext != static_cast<const void*>(&hero))
         return {};
     // 0x520217..0x520415: la skill del lugar +0x89, con el registro propio abierto y cerrado en línea.
     std::uint8_t skill = 0;
     {
         const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        skill = OwnSkillByte(world.OwnCharacter(), effect.byte89);
+        skill = Kernel::OwnSkillByte(world.OwnCharacter(), effect.byte89);
     }
     constexpr std::uint8_t ArrowRainSkill = 0x33;
     constexpr std::uint8_t PiercingSkill = 0x34;
@@ -781,7 +784,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
 // 0x520170(efecto): el choque de la flecha.
 Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, const ArrowStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x520179..0x5201d2: con el asedio (0x4294b0), el bit 0x100 de la celda (0x5f82c0) la frena y le deja media vida.
     if (runtime.castleSiege.siegeActive)
     {
@@ -789,7 +792,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
         if (!attributes)
             return Core::Unexpected(std::string("0x52018d: faltan los atributos para el choque de la flecha"));
         const auto query =
-            World::TerrainAttributeQueryAt(*attributes, effect.transform.position.x, effect.transform.position.y);
+            Terrain::TerrainAttributeQueryAt(*attributes, effect.transform.position.x, effect.transform.position.y);
         if (!query.HasValue())
             return Core::Unexpected(std::string("0x52018d: dirección del atributo fuera de la tabla del mundo"));
         if ((query.Value() & 0x100) != 0)
@@ -815,7 +818,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     std::uint8_t skill = 0;
     {
         const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        skill = OwnSkillByte(context.world.OwnCharacter(), effect.byte89);
+        skill = Kernel::OwnSkillByte(context.world.OwnCharacter(), effect.byte89);
     }
     const bool bursts = effect.type == AquagoldArrow || effect.type == CelestialArrow;
     constexpr std::uint8_t ArrowRainSkill = 0x33;
@@ -912,7 +915,7 @@ Core::Expected<void, std::string> StepTheSiegeArrow(World::ModelEffect& effect, 
     constexpr float HighestPitch = 50.0f; // 0x6b86b0
     if (effect.transform.angles.x > HighestPitch)
         effect.transform.angles.x = HighestPitch;
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (!terrain.attributes)
     {
         return Core::Unexpected(std::string("0x524186: la flecha 0xdb del asedio lee el atributo de su celda "
@@ -1145,7 +1148,7 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
     {
         if (auto burst = BurstAt(position, context); !burst.HasValue())
             return burst;
-        WorldRuntime& runtime = context.world.Runtime();
+        Kernel::WorldRuntime& runtime = context.world.Runtime();
         if (runtime.hero >= context.world.Actors().size())
             return Core::Unexpected(std::string("0x5243d3: el héroe publicado ([0x743a170]) no está en el pool"));
         constexpr std::int32_t MarkedSubtype = 0x63;
@@ -1326,7 +1329,8 @@ Core::Expected<void, std::string> StepAdvancedArrow(World::ModelEffect& effect, 
 
 } // namespace
 
-Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position, const CharacterStepContext& context)
+Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position,
+                                                       const Actors::CharacterStepContext& context)
 {
     constexpr int Groups = 8;
     constexpr int YawStep = 45;
@@ -1352,8 +1356,8 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
     return {};
 }
 
-Core::Expected<void, std::string> CreateAquagoldArrow(ActorState& owner, const glm::vec3& angles,
-                                                      const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateAquagoldArrow(Kernel::ActorState& owner, const glm::vec3& angles,
+                                                      const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t ArrowType = 0xe2;
     const World::ModelEffectArguments arguments{.type = ArrowType,
@@ -1375,7 +1379,8 @@ Core::Expected<void, std::string> CreateAquagoldArrow(ActorState& owner, const g
     return {};
 }
 
-Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
+                                                      const Actors::CharacterStepContext& context)
 {
     if (context.particles == nullptr)
     {
@@ -1403,8 +1408,9 @@ bool IsArrowEffect(std::int16_t type)
            type == ArchangelArrow || type == ReignArrow || type == TwentiethArrow || type == TourArrow;
 }
 
-Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments, WorldState& world,
-                                                       CrtRandom& random, glm::vec3* callerAngles)
+Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
+                                                       Kernel::WorldState& world, CrtRandom& random,
+                                                       glm::vec3* callerAngles)
 {
     if (!IsArrowEffect(arguments.type))
     {
@@ -1431,9 +1437,9 @@ Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectA
     }
 }
 
-Core::Expected<void, std::string> FireTheArrow(ActorState& actor, ActorState* target, std::size_t /*slot*/,
-                                               std::int32_t skillIndex, std::uint8_t flag, std::uint8_t skill,
-                                               const CharacterStepContext& context)
+Core::Expected<void, std::string> FireTheArrow(Kernel::ActorState& actor, Kernel::ActorState* target,
+                                               std::size_t /*slot*/, std::int32_t skillIndex, std::uint8_t flag,
+                                               std::uint8_t skill, const Actors::CharacterStepContext& context)
 {
     // 0x53e2bb..0x53e2ce y 0x53e741..0x53e92c: las skills 0x34, 0x33 y 0x2e, un tiro y la cuenta de la tanda, sin el
     // brillo de la 0xa25.

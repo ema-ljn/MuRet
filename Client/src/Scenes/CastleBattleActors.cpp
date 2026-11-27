@@ -32,7 +32,8 @@ constexpr std::uint32_t ThirdAttacker = 0x800000;
 constexpr std::uint32_t OpenGate = 0x20000;
 constexpr std::int32_t GateSound = 0x1ed;
 
-Core::Expected<void, std::string> ChangeTheGateWall(ActorState& actor, bool open, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, bool open,
+                                                    const WorldEntryResources& resources)
 {
     std::int32_t x = 0, y = 0;
     // El orden de los cierres de 4 bytes es Y, X; no se comparte con accesos exteriores.
@@ -67,7 +68,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(ActorState& actor, bool open
 }
 } // namespace
 
-Core::Expected<void, std::string> SetTheCastleGateState(ActorState& actor, bool open,
+Core::Expected<void, std::string> SetTheCastleGateState(Kernel::ActorState& actor, bool open,
                                                         const WorldEntryResources& resources)
 {
     if (auto action = SetMonsterAction(actor, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
@@ -75,7 +76,7 @@ Core::Expected<void, std::string> SetTheCastleGateState(ActorState& actor, bool 
     return ChangeTheGateWall(actor, open, resources);
 }
 
-Core::Expected<void, std::string> SetTheCastleGate(ActorState& cellsActor, ActorState& gate, bool open,
+Core::Expected<void, std::string> SetTheCastleGate(Kernel::ActorState& cellsActor, Kernel::ActorState& gate, bool open,
                                                    const WorldEntryResources& resources)
 {
     if (auto action = SetMonsterAction(gate, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
@@ -87,20 +88,20 @@ Core::Expected<void, std::string> SetTheCastleGate(ActorState& cellsActor, Actor
     return {};
 }
 
-Core::Expected<void, std::string> ApplyTheCastleOwner(std::string_view name, WorldState& world)
+Core::Expected<void, std::string> ApplyTheCastleOwner(std::string_view name, Kernel::WorldState& world)
 {
     return ApplyTheCastleOwner(name, world.Actors().first<CastleBattleActorCount>(), world.Runtime().guild);
 }
 
 Core::Expected<void, std::string> ApplyTheCastleOwner(std::string_view name,
-                                                      std::span<ActorState, CastleBattleActorCount> actors,
+                                                      std::span<Kernel::ActorState, CastleBattleActorCount> actors,
                                                       const GuildState& guild)
 {
-    for (ActorState& actor : actors)
+    for (Kernel::ActorState& actor : actors)
     {
         if (!actor.alive || !actor.seen)
             continue;
-        ReleaseTheLayer(actor);
+        Kernel::ReleaseTheLayer(actor);
         const auto unionName = UnionNameAt(guild, static_cast<std::int16_t>(actor.word1f2));
         if (!unionName)
             return Core::Unexpected(std::format("0x42aea2: la alianza del índice {} sale de la tabla del gremio",

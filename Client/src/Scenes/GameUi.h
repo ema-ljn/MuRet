@@ -60,26 +60,30 @@ struct GameUiState;
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
 // dirección; lo que el original hace sin efecto en MuRet (listas vacías, objetos que nadie arma) va como comentario
 // en su lugar.
-namespace Client::World
+namespace Client::Terrain
 {
 struct TerrainPickingSegment;
 }
+
+namespace Client::Kernel
+{
+class WorldState;
+struct WorldRuntime;
+} // namespace Client::Kernel
 
 namespace Client::Scenes
 {
 // 0x553520 para las teclas de las ventanas viejas: mismo latch en el paso y al atender mensajes durante el dibujo.
 [[nodiscard]] bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey);
 
-class WorldState;
 struct FloorItemState;
 struct GameChatContext;
 struct GameMovementState;
 struct InventoryServices;
 struct WorldEntryResources;
-struct WorldRuntime;
 
 // 0x6578e0: campos de chat/gremio/panel y GetFocus distinto de la ventana del juego.
-[[nodiscard]] bool GameTextInputBusy(const WorldRuntime& runtime);
+[[nodiscard]] bool GameTextInputBusy(const Kernel::WorldRuntime& runtime);
 
 // Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
 // cable, el disco y el log.
@@ -112,7 +116,7 @@ public:
 
 struct GameUiContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     const Input::InputState& input;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
@@ -171,7 +175,7 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
 
 // Los globales de las ventanas viejas sobre los del juego: los del mouse, los de la UI, el foco del teclado (el de la
 // entrada del chat) y el último sonido.
-[[nodiscard]] UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime);
+[[nodiscard]] UI::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime);
 
 // Lo que el paso de las ventanas viejas lee del juego, además del mouse, las teclas, los textos y el cable: las flechas
 // (GetAsyncKeyState, 0x47b0f0), el susurro (0x4694c0), las malas palabras (0x622b40 con 0), el nombre del héroe, la
@@ -191,7 +195,7 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
 
 struct FramePickingContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() del frame: el real en un frame del original, la copia en uno proyectado.
     Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
@@ -200,12 +204,12 @@ struct FramePickingContext
     // GetAsyncKeyState(0x12) en 0x59ef37.
     bool altDown = false;
     // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
-    std::optional<World::TerrainPickingSegment> ray{};
+    std::optional<Terrain::TerrainPickingSegment> ray{};
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480, que lee la lista de la party (0x5e4140).
     UI::Point mouse{};
     // La posición de la cámara del dibujo (0x7d36884), distinta del origen del rayo.
     glm::vec3 cameraPosition{};
-    std::span<ActorPickingBox> pickingBoxes{};
+    std::span<Actors::ActorPickingBox> pickingBoxes{};
     // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
     // mismo segmento; sin él (antes del primer dibujo) no busca.
     std::span<FloorItemState> floorItems{};

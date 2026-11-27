@@ -34,6 +34,8 @@
 // la del 2D, que no son de una cámara de MuRet.
 namespace
 {
+using Client::Camera::SelectionCamera;
+using Client::Camera::WorldViewport;
 using Client::Core::PixelSize;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
@@ -41,8 +43,6 @@ using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;
 using Client::Render::ViewportRect;
-using Client::Scenes::SelectionCamera;
-using Client::Scenes::WorldViewport;
 using Client::Tests::GlTrace;
 using Client::Tests::GlTraceFrame;
 using Client::Tests::GlTraceMatrixCall;
@@ -229,12 +229,12 @@ TEST_F(GoldenPass3DTrace, TheLorenciaWorldPassMatches)
     ASSERT_TRUE(trace.has_value());
     ASSERT_FALSE(trace->frames.empty());
 
-    Client::World::GameCamera state;
-    const Client::World::GameCameraInput input{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
+    Client::Camera::GameCamera state;
+    const Client::Camera::GameCameraInput input{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
     for (std::size_t f = 0; f < trace->frames.size(); ++f)
     {
         const std::vector<TracedPass> passes = PassesOf(trace->frames[f]);
-        const Camera3D camera = Client::World::StepGameCamera(state, input);
+        const Camera3D camera = Client::Camera::StepGameCamera(state, input);
         const Pass3D pass = MakePass3D(TraceWindow, LorenciaWorld, camera);
         const TracedPass* traced = FindPass(passes, pass.viewport);
         ASSERT_NE(traced, nullptr) << "frame " << f << ": ningún glViewport es el del mundo";

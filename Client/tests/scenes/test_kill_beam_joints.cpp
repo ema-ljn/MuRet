@@ -25,7 +25,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x2b1d3e5u;
@@ -66,7 +66,7 @@ struct BeamWorld
     std::vector<JointState> joints = std::vector<JointState>(4);
     CrtRandom random{Seed};
     Client::World::Particles particles;
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::vector<std::int32_t> sounds;
     bool created = true;
 };

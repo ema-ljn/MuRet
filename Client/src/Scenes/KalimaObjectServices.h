@@ -18,14 +18,18 @@ namespace Client::Models
 class IModelLibrary;
 }
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
+namespace Client::Scenes
+{
 struct GameObjectPass;
 // 438fe0/43948d: cola pública del cuerpo de Kalima, ya emitido por el caller.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawKalimaObjectTail(Render::ModelBatch& batch, const Models::IModelLibrary& models, const World::WorldObject& object,
-                     const DrawnObject& drawn, Core::Duration frameClock, const GameObjectPass& pass);
+                     const Actors::Drawing::DrawnObject& drawn, Core::Duration frameClock, const GameObjectPass& pass);
 // 6044ed→438c10 después del rand común. Los prefijos fallidos quedan visibles al caller.
 [[nodiscard]] Core::Expected<void, std::string> StepKalimaObjectFrame(World::WorldObject& object,
                                                                       const GameObjectPass& pass);

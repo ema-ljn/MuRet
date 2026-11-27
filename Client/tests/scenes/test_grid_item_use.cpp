@@ -41,14 +41,14 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Items::UseItem;
 using Client::Scenes::InventoryMoveContext;
 using Client::Scenes::InventoryServices;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::World::ItemState;
 namespace Scenes = Client::Scenes;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
@@ -151,18 +151,18 @@ protected:
 
     ItemState& Cell(std::int32_t column, std::int32_t row)
     {
-        return world.Inventory().cells.at(static_cast<std::size_t>(row) * Scenes::InventoryColumns +
+        return world.Inventory().cells.at(static_cast<std::size_t>(row) * Client::Kernel::InventoryColumns +
                                           static_cast<std::size_t>(column));
     }
 
     Scenes::UsedGrid InventoryGrid()
     {
-        return Scenes::UsedGrid{.cells = world.Inventory().cells, .grid = Scenes::CursorGrid::Inventory};
+        return Scenes::UsedGrid{.cells = world.Inventory().cells, .grid = Client::Kernel::CursorGrid::Inventory};
     }
 
     static std::size_t Index(std::int32_t column, std::int32_t row)
     {
-        return static_cast<std::size_t>(row) * Scenes::InventoryColumns + static_cast<std::size_t>(column);
+        return static_cast<std::size_t>(row) * Client::Kernel::InventoryColumns + static_cast<std::size_t>(column);
     }
 
     Expected<void, std::string> RightClick(std::int32_t column, std::int32_t row)
@@ -190,7 +190,7 @@ protected:
     // ítems.
     void Qualify()
     {
-        Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.level = RequiredLevel;
         own.energy = 30;
         own.word30 = 10;
@@ -265,11 +265,11 @@ TEST_F(GridItemUseTest, ABookWithoutItsLevelEnergyOrStrengthDoesNothing)
         EXPECT_TRUE(messages.empty());
         EXPECT_EQ(world.Runtime().ui.field5767954, 0);
     };
-    refused([](Scenes::OwnCharacterRecord& own) { own.level = RequiredLevel - 1; });
-    refused([](Scenes::OwnCharacterRecord& own) { own.word30 = 9; });
-    refused([](Scenes::OwnCharacterRecord& own) { own.word2a = 4; });
+    refused([](Client::Kernel::OwnCharacterRecord& own) { own.level = RequiredLevel - 1; });
+    refused([](Client::Kernel::OwnCharacterRecord& own) { own.word30 = 9; });
+    refused([](Client::Kernel::OwnCharacterRecord& own) { own.word2a = 4; });
     refused(
-        [](Scenes::OwnCharacterRecord& own)
+        [](Client::Kernel::OwnCharacterRecord& own)
         {
             own.energy = 0xfff0;
             own.word30 = 0x20;
@@ -310,7 +310,7 @@ TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyWithoutTheWarehouse)
     {
         SCOPED_TRACE(index);
         world.Runtime().cursorItem.id = Potion;
-        world.Runtime().cursorGrid = Scenes::CursorGrid::None;
+        world.Runtime().cursorGrid = Client::Kernel::CursorGrid::None;
         world.Runtime().ui.field78abb28 = 0;
         const CrtRandom expected = random;
         Scenes::GamePanels panels(world, random);
@@ -320,7 +320,7 @@ TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyWithoutTheWarehouse)
         EXPECT_EQ(world.Runtime().cursorItem.id, 0);
         EXPECT_EQ(world.Runtime().cursorItem.occupied, 0u);
         EXPECT_EQ(world.Runtime().cursorItemCount, 0);
-        EXPECT_EQ(world.Runtime().cursorGrid, Scenes::CursorGrid::Inventory);
+        EXPECT_EQ(world.Runtime().cursorGrid, Client::Kernel::CursorGrid::Inventory);
         EXPECT_EQ(world.Runtime().ui.field78abb28, 1);
         EXPECT_TRUE(sent.empty());
     }
@@ -337,7 +337,7 @@ TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWi
     runtime.ui.npcWindowX = 260;
     runtime.ui.npcWindowY = 0;
     for (auto& item : runtime.npcWindows.grid)
-        item.id = Scenes::EmptyOwnItemId;
+        item.id = Client::Kernel::EmptyOwnItemId;
     Put(Sword, 1, 1, 3u << 3);
     std::vector<Client::Protocol::Items::ItemMove> moves;
     services.sendItemMove = [&moves](const Client::Protocol::Items::ItemMove& move)
@@ -351,13 +351,13 @@ TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWi
     EXPECT_EQ(runtime.cursorItemCount, 1);
     EXPECT_EQ(runtime.cursorItem.id, Sword);
     EXPECT_EQ(runtime.slot78a6758, 21);
-    EXPECT_EQ(Cell(1, 1).id, Scenes::EmptyOwnItemId);
-    EXPECT_EQ(Cell(1, 3).id, Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Cell(1, 1).id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(Cell(1, 3).id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(runtime.lastSoundId, 0x1d);
     EXPECT_EQ(random.State(), before.State());
     EXPECT_FALSE(runtime.movement.pendingClick);
     const auto dropped = Scenes::DropOnOtherGrid(
-        Moves(), {.mouseX = 100, .mouseY = 100, .left = 275, .top = 50, .grid = Scenes::CursorGrid::NpcGrid});
+        Moves(), {.mouseX = 100, .mouseY = 100, .left = 275, .top = 50, .grid = Client::Kernel::CursorGrid::NpcGrid});
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
     EXPECT_TRUE(dropped.Value());
     ASSERT_EQ(moves.size(), 1u);
@@ -397,7 +397,7 @@ TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPasswor
     {
         world.Inventory().ClearForInventoryReply();
         for (auto& item : runtime.npcWindows.grid)
-            item.id = Scenes::EmptyOwnItemId;
+            item.id = Client::Kernel::EmptyOwnItemId;
         for (const std::size_t index : {9u, 17u, 25u})
         {
             auto& cell = runtime.npcWindows.grid[index];
@@ -415,9 +415,10 @@ TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPasswor
         const auto before = random;
         Scenes::GamePanels panels(world, random);
         const auto used = Scenes::UseTheLaterGridItem(
-            Moves(), panels.Registry(), {.cells = runtime.npcWindows.grid, .grid = Scenes::CursorGrid::NpcGrid}, 17);
+            Moves(), panels.Registry(), {.cells = runtime.npcWindows.grid, .grid = Client::Kernel::CursorGrid::NpcGrid},
+            17);
         ASSERT_TRUE(used.HasValue()) << used.Error();
-        EXPECT_EQ(runtime.npcWindows.grid[9].id, Scenes::EmptyOwnItemId);
+        EXPECT_EQ(runtime.npcWindows.grid[9].id, Client::Kernel::EmptyOwnItemId);
         const auto dropped = Scenes::DropOnTheInventoryGrid(
             Moves(), {.mouseX = 0, .mouseY = 0, .left = 465, .top = 200, .inventoryOpen = true});
         ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
@@ -599,7 +600,7 @@ TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
 // allá de la grilla, el original lee la memoria de al lado; el paquete ya salió y MuRet no la lee: sin sonido ni corte.
 TEST_F(GridItemUseTest, AUseFromOutsideTheGridSendsWithoutTheSound)
 {
-    for (const std::int32_t slot : {3, 12 + static_cast<std::int32_t>(Scenes::InventoryCellCount)})
+    for (const std::int32_t slot : {3, 12 + static_cast<std::int32_t>(Client::Kernel::InventoryCellCount)})
     {
         SCOPED_TRACE(slot);
         sent.clear();
@@ -625,7 +626,7 @@ protected:
     {
         GridItemUseTest::SetUp();
         world.Runtime().cursorItemCount = 1;
-        world.Runtime().cursorGrid = Scenes::CursorGrid::Inventory;
+        world.Runtime().cursorGrid = Client::Kernel::CursorGrid::Inventory;
         world.Runtime().slot78a6758 = JewelCell + 12;
     }
 

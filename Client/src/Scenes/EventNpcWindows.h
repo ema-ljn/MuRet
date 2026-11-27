@@ -13,11 +13,15 @@ namespace Client::UI
 class PanelRegistry;
 }
 
+namespace Client::Kernel
+{
+struct OwnInventory;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 struct GameHudContext;
 struct GameUiContext;
-struct OwnInventory;
 
 // 0x5f58f0, desde 0x5f7440 sin condición: con el 0x1000, el fondo (0x5ee220), los seis botones (0xf0 de 140 × 35 desde
 // (x + 25, 187), de a 40) con 645 o 646 y los niveles de la tabla 0x6ba4c8 (0x6ba4f8 con la clase 3 o 4 del registro
@@ -38,9 +42,11 @@ struct OwnInventory;
 // 0x5583a0(tipo, nivel): la casilla del inventario (0 a 63) de un ítem del tipo con +0x3c mayor que 0 y el nivel ((+4
 // >> 3) & 0xf), o cualquiera con −1, recorriendo de la columna 7 a la 0 y en cada una de la fila 7 a la 0; −1 sin
 // ninguno.
-[[nodiscard]] std::int32_t FindInventoryItem(const OwnInventory& inventory, std::uint16_t type, std::int32_t level);
+[[nodiscard]] std::int32_t FindInventoryItem(const Kernel::OwnInventory& inventory, std::uint16_t type,
+                                             std::int32_t level);
 
 // 0x558740(tipo, nivel): cuántas casillas del inventario tienen el tipo (el word con signo), +0x3c mayor que 0 salvo
 // con el tipo −1 y el nivel, o cualquiera con −1. Con (−1, −1) cuenta las libres.
-[[nodiscard]] std::int32_t CountInventoryItems(const OwnInventory& inventory, std::int32_t type, std::int32_t level);
+[[nodiscard]] std::int32_t CountInventoryItems(const Kernel::OwnInventory& inventory, std::int32_t type,
+                                               std::int32_t level);
 } // namespace Client::Scenes

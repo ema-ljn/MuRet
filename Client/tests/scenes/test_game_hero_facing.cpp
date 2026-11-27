@@ -16,7 +16,7 @@ namespace
 {
 struct IdleHero
 {
-    Client::Scenes::ActorState hero;
+    Client::Kernel::ActorState hero;
     Client::Scenes::GameMovementState movement;
     bool secondGuildOpen = false;
     std::uint8_t mouseOnUi = 0;

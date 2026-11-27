@@ -11,7 +11,7 @@
 
 namespace Client::Scenes
 {
-void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y,
+void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                  std::string_view line)
 {
     if (!line.empty())
@@ -21,7 +21,7 @@ void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudSt
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, screen);
 }
 
-void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y,
+void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                      std::string_view line)
 {
     const Render::Text::TextExtent extent = text.Measure(hud.dcFont, line);

@@ -17,7 +17,7 @@ namespace Client::Models
 class IModelLibrary;
 }
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 // Registro físico durable de 60d550/63c150. El cursor puede retroceder; los nombres siguen vivos.
 class ModelTextureTable final
@@ -46,4 +46,4 @@ private:
     };
     std::map<std::uint32_t, Entry> m_entries;
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

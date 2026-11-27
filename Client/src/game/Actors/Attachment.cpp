@@ -2,7 +2,7 @@
 
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "Tables/PlayerModels.h"
+#include "Tables/PlayerBones.h"
 
 #include <glm/ext/vector_float3.hpp>
 

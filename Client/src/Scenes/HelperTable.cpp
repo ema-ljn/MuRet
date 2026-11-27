@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Maps/MapId.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -81,7 +82,7 @@ constexpr float HiddenAlpha = 0.0f;
 // 0x44403e: con el +0x88 del jinete distinto de 1, la escena 5 lo apaga.
 constexpr std::uint8_t RiderShown = 1;
 // Las acciones del jinete (+0x111) y del caballo que miran el polvo, el aliento y el efecto.
-constexpr std::uint8_t GallopingRiderAction = 0x4b;
+constexpr std::uint8_t GallopingRiderAction = Tables::HorseWalkAction;
 constexpr std::uint8_t DustHorseAction = 1;
 constexpr std::uint8_t EffectHorseAction = 3;
 // 0x444196: en el mapa 10 el polvo es otro; 0x4445a9: en el 7 el aliento es la gota 607.

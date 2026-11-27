@@ -13,6 +13,7 @@
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
 #include "Crt/SprintfFormat.h"
+#include "Protocol/Movement/Movement.h"
 #include "UI/TextField.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
@@ -102,7 +103,7 @@ constexpr std::size_t ToLimit = 10;
 constexpr std::size_t SubjectLimit = 0x20;
 constexpr std::size_t BodyLimit = 1000;
 // 0x497f50: la acción 0x7a y el ángulo 90 (0x42b40000).
-constexpr std::int32_t WritePortraitAction = 0x7a;
+constexpr std::int32_t WritePortraitAction = Protocol::Movement::FacingAction;
 constexpr float WritePortraitAngle = 90.0f;
 // El 4 de la ventana de escribir y su 5: la acción del retrato, una para atrás y una para adelante (0x497910).
 constexpr std::int32_t PreviousAction = -1;

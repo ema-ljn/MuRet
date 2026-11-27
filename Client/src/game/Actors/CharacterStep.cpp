@@ -9,6 +9,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Tables/PlayerBones.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -795,7 +796,7 @@ constexpr glm::vec3 ActionFlareLight{0.3f, 0.5f, 1.0f};
 
 Core::Expected<void, std::string> CreateTheActionFlare(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
-    constexpr std::size_t FlareBone = 42;
+    constexpr std::size_t FlareBone = static_cast<std::size_t>(Tables::PlayerLeftHandBone);
     constexpr std::int32_t FlareType = 0x5ac;
     constexpr glm::vec3 Light = ActionFlareLight;
     const glm::vec3 point = SharedBonePoint(actor, FlareBone, glm::vec3(0.0f), context.world);

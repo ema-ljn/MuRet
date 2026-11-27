@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
 #include "Kernel/ActorState.h"
@@ -28,7 +29,7 @@ constexpr std::uint16_t Uniria = 0x1c14;
 constexpr std::uint16_t Dinorant = 0x1c15;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 constexpr std::uint16_t Fenrir = 0x1c37;
-constexpr std::uint8_t PlayerShockAction = 0xc2;
+constexpr std::uint8_t PlayerShockAction = Tables::ShockAction;
 constexpr std::uint8_t MonsterShockAction = 5;
 bool IgnoresShock(const Kernel::ActorState& actor, std::uint16_t damage)
 {

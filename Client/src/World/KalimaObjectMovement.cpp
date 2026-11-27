@@ -1,5 +1,6 @@
 #include "World/KalimaObjectMovement.h"
 
+#include "Tables/PlayerActions.h"
 #include "World/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -10,10 +11,9 @@ namespace Client::World
 {
 void MoveKalimaObject(WorldObject& object, const glm::vec3& heroPosition, std::uint8_t heroAction)
 {
-    constexpr std::uint8_t FirstAction = 0x0d, LastAction = 0x21;
     constexpr double Trigger = static_cast<double>(0.1f), Radius = 50;
     constexpr double Repulsion = static_cast<double>(-0.6f), Damping = static_cast<double>(0.6f);
-    if (heroAction < FirstAction || heroAction > LastAction)
+    if (heroAction < Tables::FirstWalkAction || heroAction > Tables::LastWalkAction)
         return;
     const auto f32 = [](double value) { return static_cast<float>(value); };
     auto& position = object.transform.position;

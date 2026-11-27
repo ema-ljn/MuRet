@@ -13,6 +13,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
+#include "Tables/PlayerBones.h"
 #include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -99,7 +100,7 @@ constexpr glm::vec3 PerchOffset{-10.0f, 0.0f, 10.0f};
 constexpr double PerchTurn = 120.0;
 // 0x417974: bajando, hacia el hueso 42 (0x7e0 / 0x30) del dueño; acelera 1 (0x6b87d4) y se posa a menos
 // de 50 (0x6b86b0).
-constexpr std::size_t LandingBone = 42;
+constexpr std::size_t LandingBone = static_cast<std::size_t>(Tables::PlayerLeftHandBone);
 constexpr double LandingAcceleration = 1.0;
 constexpr double PerchReach = 50.0;
 // Los estados del ataque (CL9 hito 4): el 2 vuelve, el 5 ataca y el 6 grita (0x416ae3, 0x417833).

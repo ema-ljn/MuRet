@@ -5,6 +5,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Models/Animation.h"
@@ -44,6 +45,8 @@
 #include "Kernel/ItemState.h"
 #include "Terrain/TerrainCulling.h"
 #include "Audio/SoundId.h"
+#include "Protocol/Combat/Combat.h"
+#include "Protocol/Movement/Movement.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -80,10 +83,10 @@ constexpr std::int32_t LastGroundAction = 0x82;
 // 0x495b2a: el blanco (+0x3a4) de la acción 0x78.
 constexpr std::uint16_t NoAttackTarget = 0xffff;
 // 0x5130cc..0x513124: 0x513100 no llama a 0x4f2250 con la acción entre 0x22 y 0x97 o entre 0xc5 y 0xcc.
-constexpr std::uint8_t FirstBusyAction = 0x22;
-constexpr std::uint8_t LastBusyAction = 0x97;
-constexpr std::uint8_t FirstEmoteAction = 0xc5;
-constexpr std::uint8_t LastEmoteAction = 0xcc;
+using Tables::FirstBusyAction;
+using Tables::FirstEmoteAction;
+using Tables::LastBusyAction;
+using Tables::LastEmoteAction;
 // El registro propio: las manos en 0 y 1, el cuerpo de 2 a 6, las alas en 7 y la mascota en 8 (+0xb6c + 0x48 · i).
 constexpr std::size_t FirstBodySlot = 2;
 constexpr std::size_t WingsSlot = 7;
@@ -98,8 +101,8 @@ constexpr std::array<std::int32_t, 24> GestureActions{0x7a, 0x83, 0x85, 0x86, 0x
                                                       0x8a, 0x88, 0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92,
                                                       0x93, 0x84, 0x7c, 0x94, 0x80, 0x81, 0x82, 0x78};
 constexpr std::int32_t GestureWrap = 2400;
-constexpr std::int32_t StrikeAction = 0x78;
-constexpr std::int32_t StopAction = 0x7a;
+constexpr std::int32_t StrikeAction = Protocol::Combat::AttackAction;
+constexpr std::int32_t StopAction = Protocol::Movement::FacingAction;
 constexpr std::int32_t WalkAction = 0x7c;
 constexpr std::int32_t FirstGesture = 0x80;
 constexpr std::int32_t LastGesture = 0x94;

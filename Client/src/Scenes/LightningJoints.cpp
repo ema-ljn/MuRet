@@ -9,6 +9,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Tables/PlayerBones.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "World/IFishStepServices.h"
@@ -52,14 +53,14 @@ glm::vec3 RandomGray(CrtRandom& random)
 // 0x5313fe..0x53145b: la /2 apunta al hueso 33 (0x630) del personaje dueño, (0, −150, 0) con el modelo del jugador.
 Core::Expected<void, std::string> AimAtTheOwnerBone(JointState& joint, const JointKernels::CreationServices* services)
 {
-    constexpr std::size_t ChestBone = 33;
+    constexpr std::size_t HandBone = static_cast<std::size_t>(Tables::PlayerRightHandBone);
     constexpr glm::vec3 BelowTheBone{0.0f, -150.0f, 0.0f}; // 0xc3160000
     const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x531412: falta el personaje dueño del joint 0x614/2"));
     if (services == nullptr || !services->playerBonePoint)
         return Core::Unexpected(std::string("0x531456: falta el modelo del jugador para el joint 0x614/2 (0x4ec110)"));
-    joint.targetPosition = services->playerBonePoint(*owner, ChestBone, BelowTheBone);
+    joint.targetPosition = services->playerBonePoint(*owner, HandBone, BelowTheBone);
     return {};
 }
 } // namespace

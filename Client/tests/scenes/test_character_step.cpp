@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/ModelFiles.h"
+#include "Tables/PlayerBones.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"

@@ -26,9 +26,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Player::RecalculateOwnStats y los pasos de 0x550d10 que MuRet tiene (06, "Los stats del
-// registro propio"; 07, Q-C184, Q-C185 y Q-C187). Los valores salen del ASM cotejado con el PE c32bbd5f, y los
-// rand() del modelo de la CRT; ninguno de una corrida del original.
+// Client::Player::RecalculateOwnStats and the steps of 0x550d10 that MuRet has (06, "Los stats del registro propio";
+// 07, Q-C184, Q-C185 and Q-C187). The values come from the ASM checked against the PE c32bbd5f, and the rand() calls
+// from the CRT's model; none from a run of the original.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -47,15 +47,15 @@ constexpr std::size_t WingsSlot = 7;
 constexpr std::uint16_t CapeOfLord = 0x1a1e;
 constexpr std::uint16_t EmptyType = 0xffff;
 
-// Un tipo de Item.bmd y su byte +0x44. Agregado y no std::pair: el constructor de pair desde int
-// estrecha dentro de <utility> (C4242 en MSVC).
+// An Item.bmd type and its byte +0x44. An aggregate and not std::pair: pair's constructor from int narrows inside
+// <utility> (C4242 on MSVC).
 struct TypeKind
 {
     std::uint16_t type;
     std::uint8_t kind;
 };
 
-// Item.bmd sintético: el byte +0x44 de cada tipo de `kinds` y todo lo demás en 0.
+// A synthetic Item.bmd: byte +0x44 of each type in `kinds` and everything else at 0.
 Client::Tables::ItemTable ItemsWithKinds(std::initializer_list<TypeKind> kinds)
 {
     std::vector<std::byte> plain(Client::Tables::ItemTableSize);
@@ -68,7 +68,7 @@ Client::Tables::ItemTable ItemsWithKinds(std::initializer_list<TypeKind> kinds)
     return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
-// Un ítem con durabilidad y el valor `value` en los bits 2 y 3 del byte +0x1c.
+// An item with durability and value `value` in bits 2 and 3 of byte +0x1c.
 ItemState Worn(std::uint16_t type, std::uint8_t value, std::uint8_t durability = 1)
 {
     ItemState item;
@@ -78,8 +78,7 @@ ItemState Worn(std::uint16_t type, std::uint8_t value, std::uint8_t durability =
     return item;
 }
 
-// Lo que 0x550d10 lee y escribe fuera del registro, con la cuenta de accesos en 0: cada cierre saca
-// 3.848 rand().
+// What 0x550d10 reads and writes outside the record, with the access count at 0: each closing draws 3,848 rand() calls.
 class OwnStatsFixture : public ::testing::Test
 {
 protected:
@@ -101,8 +100,8 @@ protected:
     static constexpr std::uint32_t Seed = 13;
 };
 
-// 0x550d24: lo primero es 0x40e1b0. Sin las tablas de los conjuntos (0x40c600) corta antes de tocar
-// nada: ni el registro, ni [0x6eed3c], ni el héroe, ni un rand().
+// 0x550d24: 0x40e1b0 comes first. Without the sets' tables (0x40c600) it stops before touching anything: not the
+// record, [0x6eed3c], the hero or a rand().
 TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAnything)
 {
     OwnCharacterRecord own;
@@ -127,11 +126,11 @@ TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAn
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
 
-// 0x550d10 en orden hasta 0x550990: 0x40e1b0 (dos piezas del conjunto 1, con las opciones 0 y 4), las
-// marcas de +0x937c en 0, 0x54ef00, los doce lugares (el tipo 1 suma a +0x2c), 0x40da20 con 0x8c a
-// 0x90, Cape of Lord y los cinco primeros helpers. La opción 0 ya la marcó 0x40de10 sobre las copias:
-// si las marcas no volvieran a 0, +0x2a no la sumaría. Sin saber qué dejó 0x505820 (scan505820 en
-// nullopt) corta en 0x550990, sin la cola: 33 cierres de 0x40e1b0 y el de la capa, y ningún rand() más.
+// 0x550d10 in order up to 0x550990: 0x40e1b0 (two pieces of set 1, with options 0 and 4), the marks of +0x937c at 0,
+// 0x54ef00, the twelve places (type 1 adds to +0x2c), 0x40da20 with 0x8c to 0x90, Cape of Lord and the first five
+// helpers. 0x40de10 already marked option 0 on the copies: if the marks did not go back to 0, +0x2a would not add it.
+// Without knowing what 0x505820 left (scan505820 at nullopt) it stops at 0x550990, without the tail: 33 closings of
+// 0x40e1b0 and the cape's, and no other rand().
 TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
 {
     std::vector<std::byte> types(Client::Tables::ItemSetTypeTableSize, std::byte{0xff});
@@ -141,8 +140,8 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
         std::span(options).subspan(Client::Tables::ItemSetOptionRecordSize, Client::Tables::ItemSetOptionRecordSize);
     set1[0] = std::byte{'U'};
     set1[1] = std::byte{0};
-    set1[0x20] = std::byte{0}; // la opción 0 (0x8c, +0x2a) con 7
-    set1[0x21] = std::byte{4}; // la opción 4 (0x90, +0x36) con 9
+    set1[0x20] = std::byte{0}; // option 0 (0x8c, +0x2a) with 7
+    set1[0x21] = std::byte{4}; // option 4 (0x90, +0x36) with 9
     set1[0x2c] = std::byte{7};
     set1[0x2d] = std::byte{9};
     const ItemSetTables tables = Client::Tests::ItemSetTablesFrom(std::move(types), std::move(options));
@@ -150,7 +149,7 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
     OwnCharacterRecord own;
     own.equipment.fill(Worn(EmptyType, 0, 0));
     own.equipment[2] = Worn(1, 1);
-    own.equipment[2].flags1c = 0x05; // el valor 1 en los bits 2 y 3, y el conjunto del byte 0
+    own.equipment[2].flags1c = 0x05; // value 1 in bits 2 and 3, and byte 0's set
     own.equipment[3] = own.equipment[2];
     ItemState& wings = own.equipment[WingsSlot];
     wings = Worn(CapeOfLord, 0);
@@ -182,10 +181,10 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
     EXPECT_EQ(m_random.State(), AfterDraws(Seed, 34 * OwnRecordCloseRandoms).State());
 }
 
-// Con lo de 0x505820 (acá, [0x743a17c] en 0), 0x550d10 llega al final: los ocho helpers en su orden y la
-// cola. Sin equipo ni conjuntos, 0x40e1b0 cierra 33 veces el registro; la cola saca sus tres rand(): el
-// del IDIV con +0xee2 = +0xee4 = 0 (divide por 1) y los dos % 100. +0xef8 y +0xefa son restas de
-// WORD en 0, y +0xefc es 0 − +0x62.
+// With 0x505820's result (here, [0x743a17c] at 0), 0x550d10 reaches the end: the eight helpers in their order and the
+// tail. With no equipment or sets, 0x40e1b0 closes the record 33 times; the tail draws its three rand() calls: the
+// IDIV's with +0xee2 = +0xee4 = 0 (divides by 1) and the two % 100. +0xef8 and +0xefa are subtractions of WORDs at 0,
+// and +0xefc is 0 − +0x62.
 TEST_F(OwnStatsFixture, WithTheScanOf0x505820TheRecalculationRunsTheHelpersAndTheTail)
 {
     const ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
@@ -209,8 +208,8 @@ TEST_F(OwnStatsFixture, WithTheScanOf0x505820TheRecalculationRunsTheHelpersAndTh
     EXPECT_EQ(m_random.State(), AfterDraws(Seed, 33 * OwnRecordCloseRandoms + 3).State());
 }
 
-// 0x550dc2..0x550e12: +0x2a con 0x8c, +0x2c con 0x8d, +0x30 con 0x8e, +0x2e con 0x8f y +0x36 con 0x90;
-// +0x32 y +0x34 no tienen opción de conjunto. Con más de 16 opciones, error en la primera llamada.
+// 0x550dc2..0x550e12: +0x2a with 0x8c, +0x2c with 0x8d, +0x30 with 0x8e, +0x2e with 0x8f and +0x36 with 0x90; +0x32
+// and +0x34 have no set option. With more than 16 options, an error at the first call.
 TEST(OwnDerivedStatsTest, EachWordTakesTheSetOptionsOfItsSelector)
 {
     ItemSetOptionList list;
@@ -246,7 +245,7 @@ TEST(OwnDerivedStatsTest, EachWordTakesTheSetOptionsOfItsSelector)
     EXPECT_EQ(own.word2a, 0x101);
 }
 
-// 0x54ef00: los siete WORD de +0x2a a +0x36 en 0; +0x28 y +0x38, los de al lado, quedan.
+// 0x54ef00: the seven WORDs from +0x2a to +0x36 at 0; +0x28 and +0x38, the neighbors, stay.
 TEST(OwnDerivedStatsTest, TheClearZeroesTheSevenItemStatWordsOnly)
 {
     OwnCharacterRecord own;
@@ -273,14 +272,14 @@ TEST(OwnDerivedStatsTest, TheClearZeroesTheSevenItemStatWordsOnly)
     EXPECT_EQ(own.bp, 0x38);
 }
 
-// 0x40dc50: el valor es (D+0x1c >> 2) & 3, sin los otros bits, y el tipo el byte +0x44 del registro de
-// Item.bmd del tipo del ítem.
+// 0x40dc50: the value is (D+0x1c >> 2) & 3, without the other bits, and the type is byte +0x44 of the item type's
+// Item.bmd record.
 TEST(OwnDerivedStatsTest, TheItemBonusIsBits2And3OfByte1cAndTheKindAt44)
 {
     const auto items = ItemsWithKinds({{0x10, 3}, {0x1fff, 0xa7}});
     ItemState item;
     item.id = 0x10;
-    item.flags1c = 0xf3; // 1111 0011: los bits 2 y 3 en 0
+    item.flags1c = 0xf3; // 1111 0011: bits 2 and 3 at 0
     auto bonus = Client::Player::ItemStatBonusOf(item, items);
     ASSERT_TRUE(bonus.HasValue());
     EXPECT_EQ(bonus.Value().kind, 3);
@@ -291,7 +290,7 @@ TEST(OwnDerivedStatsTest, TheItemBonusIsBits2And3OfByte1cAndTheKindAt44)
     ASSERT_TRUE(bonus.HasValue());
     EXPECT_EQ(bonus.Value().value, 3);
 
-    // El último tipo de la tabla, 8191, todavía está adentro.
+    // The table's last type, 8191, is still inside.
     item.id = 0x1fff;
     item.flags1c = 0x18;
     bonus = Client::Player::ItemStatBonusOf(item, items);
@@ -300,8 +299,8 @@ TEST(OwnDerivedStatsTest, TheItemBonusIsBits2And3OfByte1cAndTheKindAt44)
     EXPECT_EQ(bonus.Value().value, 2);
 }
 
-// Q-C184: movsx y la tabla de 8.192: con −1 (un lugar vaciado), un tipo negativo o uno de 8.192 o más, el
-// original lee memoria que no es de la tabla. MuRet no inventa ese byte.
+// Q-C184: movsx and the 8,192-entry table: with −1 (an emptied place), a negative type or one of 8,192 or more, the
+// original reads memory that is not the table's. MuRet does not invent that byte.
 TEST(OwnDerivedStatsTest, ATypeOutsideItemBmdIsAnExplicitError)
 {
     const auto items = ItemsWithKinds({});
@@ -321,8 +320,8 @@ TEST(OwnDerivedStatsTest, ATypeOutsideItemBmdIsAnExplicitError)
     }
 }
 
-// 0x550d72..0x550da9: con valor 0, cualquiera de los 256 selectores suma 0 o no suma.
-// No se conoce el byte de base(Item.bmd)-16; el consumidor tampoco lo necesita en esta rama.
+// 0x550d72..0x550da9: with value 0, any of the 256 selectors adds 0 or does not add. The byte at base(Item.bmd)-16 is
+// unknown; the consumer does not need it on this branch either.
 TEST(OwnDerivedStatsTest, AnEmptySlotWithZeroBonusPreservesItsResidualDataAndAllStatWords)
 {
     const auto items = ItemsWithKinds({});
@@ -350,9 +349,9 @@ TEST(OwnDerivedStatsTest, AnEmptySlotWithZeroBonusPreservesItsResidualDataAndAll
     }
 }
 
-// 0x550d49..0x550db1: los doce lugares, también del 9 al 11, que 0x512a30 no lee; sin durabilidad no
-// llama a 0x40dc50. Los tipos 1 a 4 suman 5 · valor a +0x2a, +0x2c, +0x30 y +0x2e (la tabla de saltos
-// de 0x5513b4), en 16 bits; los otros, nada.
+// 0x550d49..0x550db1: the twelve places, also 9 to 11, which 0x512a30 does not read; without durability it does not
+// call 0x40dc50. Types 1 to 4 add 5 · value to +0x2a, +0x2c, +0x30 and +0x2e (0x5513b4's jump table), in 16 bits; the
+// others, nothing.
 TEST(OwnDerivedStatsTest, BonusesAddFiveTimesTheValueToTheirWordInAllTwelveSlots)
 {
     const auto items = ItemsWithKinds({{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 0}, {6, 5}});
@@ -374,7 +373,7 @@ TEST(OwnDerivedStatsTest, BonusesAddFiveTimesTheValueToTheirWordInAllTwelveSlots
 
     ASSERT_TRUE(Client::Player::AddOwnItemStatBonuses(own, &items).HasValue());
 
-    EXPECT_EQ(own.word2a, 20); // 0xfff6 + 15 envuelve a 5, y el lugar 11 suma otros 15
+    EXPECT_EQ(own.word2a, 20); // 0xfff6 + 15 wraps to 5, and place 11 adds another 15
     EXPECT_EQ(own.word2c, 10);
     EXPECT_EQ(own.word30, 5);
     EXPECT_EQ(own.word2e, 25);
@@ -383,8 +382,8 @@ TEST(OwnDerivedStatsTest, BonusesAddFiveTimesTheValueToTheirWordInAllTwelveSlots
     EXPECT_EQ(own.word36, 0);
 }
 
-// Un lugar que corta deja lo que sumaron los anteriores, y no sigue. Sin Item.bmd, corta en el primer
-// lugar que la lee; si ninguno tiene durabilidad, ninguno la lee.
+// A place that stops keeps what the earlier ones added, and goes no further. Without Item.bmd, it stops at the first
+// place that reads it; if none has durability, none reads it.
 TEST(OwnDerivedStatsTest, ABonusErrorKeepsWhatTheEarlierSlotsAdded)
 {
     const auto items = ItemsWithKinds({{1, 1}, {2, 2}});
@@ -412,9 +411,9 @@ TEST(OwnDerivedStatsTest, ABonusErrorKeepsWhatTheEarlierSlotsAdded)
     EXPECT_NE(unloaded.Error().find("lugar 4"), std::string::npos);
 }
 
-// 0x550e17..0x551284: con 0x1a1e en el lugar 7, abre el registro, 0x54e540 suma los valores de las
-// opciones 0x90 a +0x36 (con durabilidad, 16 bits) y lo cierra: con la cuenta en 0, 3.848 rand(); con
-// el registro abierto por quien llama, como en 0x512a30, ninguno.
+// 0x550e17..0x551284: with 0x1a1e in place 7, it opens the record, 0x54e540 adds the values of the 0x90 options to
+// +0x36 (with durability, 16 bits) and closes it: with the count at 0, 3,848 rand() calls; with the record opened by
+// the caller, as in 0x512a30, none.
 TEST(OwnDerivedStatsTest, TheCapeOfLordAddsItsOption90ToWord36AndClosesTheRecord)
 {
     constexpr std::uint32_t Seed = 7;
@@ -440,7 +439,7 @@ TEST(OwnDerivedStatsTest, TheCapeOfLordAddsItsOption90ToWord36AndClosesTheRecord
     EXPECT_EQ(accesses, 1);
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 
-    // Sin durabilidad 0x54e540 no suma, pero el registro se abre y se cierra igual.
+    // Without durability 0x54e540 adds nothing, but the record is opened and closed anyway.
     wings.durability = 0;
     random = CrtRandom(Seed);
     accesses = 0;
@@ -449,7 +448,7 @@ TEST(OwnDerivedStatsTest, TheCapeOfLordAddsItsOption90ToWord36AndClosesTheRecord
     EXPECT_EQ(random.State(), AfterDraws(Seed, OwnRecordCloseRandoms).State());
 }
 
-// Con otro tipo en las alas, aunque tenga la opción 0x90, ni abre el registro ni suma.
+// With another type in the wings, even with option 0x90, it neither opens the record nor adds.
 TEST(OwnDerivedStatsTest, OtherWingsDoNotOpenTheRecord)
 {
     OwnCharacterRecord own;
@@ -471,8 +470,8 @@ TEST(OwnDerivedStatsTest, OtherWingsDoNotOpenTheRecord)
     }
 }
 
-// Más de nueve opciones: 0x54e540 seguiría leyendo en el lugar 8, fuera de la proyección. Error, después
-// de abrir, y con el acceso cerrado.
+// More than nine options: 0x54e540 would keep reading into place 8, outside the projection. An error, after opening,
+// and with the access closed.
 TEST(OwnDerivedStatsTest, ACapeWithMoreThanNineOptionsIsAnExplicitErrorWithTheRecordClosed)
 {
     OwnCharacterRecord own;
@@ -491,8 +490,8 @@ TEST(OwnDerivedStatsTest, ACapeWithMoreThanNineOptionsIsAnExplicitErrorWithTheRe
     EXPECT_EQ(random.State(), AfterDraws(5, OwnRecordCloseRandoms).State());
 }
 
-// La cola con un rango de un solo valor: el resto es 0 sea cual sea el rand(). Las restas envuelven, el
-// tope de +0xefe deja 100 (y +0xf02 en 1 con cualquier sorteo) y +0xf00 en 0 deja +0xf03 en 0. Saca tres.
+// The tail with a one-value range: the remainder is 0 whatever the rand(). The subtractions wrap, +0xefe's cap leaves
+// 100 (and +0xf02 at 1 with any draw) and +0xf00 at 0 leaves +0xf03 at 0. It draws three.
 TEST(OwnDerivedStatsTest, TheTailSubtractsWithWrapAndDrawsThreeRandoms)
 {
     constexpr std::uint32_t Seed = 11;
@@ -516,15 +515,15 @@ TEST(OwnDerivedStatsTest, TheTailSubtractsWithWrapAndDrawsThreeRandoms)
     EXPECT_EQ(own.wordef8, 0xfffe);
     EXPECT_EQ(own.wordefa, 9);
     EXPECT_EQ(own.wordefc, 0xff2c); // 300 − 0x200
-    EXPECT_EQ(own.wordefe, 100);    // 3 − 5 = 0xfffe, sin signo, al tope
+    EXPECT_EQ(own.wordefe, 100);    // 3 − 5 = 0xfffe, unsigned, to the cap
     EXPECT_EQ(own.wordf00, 0);
     EXPECT_EQ(own.bytef02, 1);
     EXPECT_EQ(own.bytef03, 0);
     EXPECT_EQ(random.State(), AfterDraws(Seed, 3).State());
 }
 
-// El tope es "más de 100" (jbe): 100 queda y 101 baja. Los sorteos comparan rand() % 100 con < (jge al
-// revés): con 50, un 49 da 1 y un 50 da 0.
+// The cap is "above 100" (jbe): 100 stays and 101 drops. The draws compare rand() % 100 with < (jge reversed): with
+// 50, a 49 gives 1 and a 50 gives 0.
 TEST(OwnDerivedStatsTest, TheTailCapsAboveOneHundredAndComparesStrictly)
 {
     const std::uint32_t seed = FirstSeedWhere(
@@ -554,8 +553,8 @@ TEST(OwnDerivedStatsTest, TheTailCapsAboveOneHundredAndComparesStrictly)
     EXPECT_EQ(own.wordf00, 100);
 }
 
-// El rango usa los dos WORD sin signo y un IDIV con signo: de 10 a 19, rand() % 10 + 10; con +0xee2
-// mayor que +0xee4 + 1 el divisor es negativo y el resto sigue al rand() (0 a 32.767).
+// The range uses the two unsigned WORDs and a signed IDIV: from 10 to 19, rand() % 10 + 10; with +0xee2 above
+// +0xee4 + 1 the divisor is negative and the remainder follows the rand() (0 to 32,767).
 TEST(OwnDerivedStatsTest, TheTailRangeIsASignedDivision)
 {
     constexpr std::uint32_t Seed = 23;
@@ -568,7 +567,7 @@ TEST(OwnDerivedStatsTest, TheTailRangeIsASignedDivision)
     ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(first % 10 + 10 - 4));
 
-    // 0 − 65.535 + 1 = −65.534: el resto es el rand() entero, y + 65.535 en 16 bits es − 1.
+    // 0 − 65,535 + 1 = −65,534: the remainder is the whole rand(), and + 65,535 in 16 bits is − 1.
     own.wordee2 = 0xffff;
     own.wordee4 = 0;
     own.word62 = 0;
@@ -576,7 +575,7 @@ TEST(OwnDerivedStatsTest, TheTailRangeIsASignedDivision)
     ASSERT_TRUE(Client::Player::UpdateOwnDerivedStatsTail(own, random).HasValue());
     EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(first - 1));
 
-    // 0xffff − 0 + 1 = 65.536: tampoco limita el rand().
+    // 0xffff − 0 + 1 = 65,536: it does not limit the rand() either.
     own.wordee2 = 0;
     own.wordee4 = 0xffff;
     random = CrtRandom(Seed);
@@ -584,8 +583,8 @@ TEST(OwnDerivedStatsTest, TheTailRangeIsASignedDivision)
     EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(first));
 }
 
-// Q-C185: con +0xee2 = +0xee4 + 1 el IDIV de 0x551306 divide por 0. Ya están +0xef8, +0xefa y el primer
-// rand(); lo demás queda.
+// Q-C185: with +0xee2 = +0xee4 + 1 the IDIV of 0x551306 divides by 0. +0xef8, +0xefa and the first rand() are done;
+// the rest stays.
 TEST(OwnDerivedStatsTest, TheTailDividesByZeroAsAnExplicitError)
 {
     OwnCharacterRecord own;

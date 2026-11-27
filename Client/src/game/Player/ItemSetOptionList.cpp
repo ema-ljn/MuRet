@@ -9,18 +9,18 @@
 #include <string>
 #include <string_view>
 
-// 0x40d690 (151 bytes, igual a 0x40da20), 0x40d730 (185) y 0x40d7f0 (197), cotejados con el PE c32bbd5f:
-// 06, "Los ocho helpers de los stats propios".
+// 0x40d690 (151 bytes, equal to 0x40da20), 0x40d730 (185) and 0x40d7f0 (197), checked against the PE c32bbd5f: 06,
+// "Los ocho helpers de los stats propios".
 namespace Client::Player
 {
 namespace
 {
-// sub edi, 0x8c: el selector contra el primer byte de cada entrada.
+// sub edi, 0x8c: the selector against each entry's first byte.
 constexpr std::uint32_t SelectorBase = 0x8c;
-// El divisor de 0x40d730 y 0x40d7f0 (imul por 0x51eb851f y sar 5).
+// The divisor of 0x40d730 and 0x40d7f0 (imul by 0x51eb851f and sar 5).
 constexpr std::int32_t PercentScale = 100;
 
-// Lo que suman las entradas que eligió `take`, cuántas fueron y el valor de la última.
+// What the entries `take` chose add up to, how many there were and the last one's value.
 struct Taken
 {
     std::uint32_t sum = 0;
@@ -28,7 +28,7 @@ struct Taken
     std::int32_t count = 0;
 };
 
-// El largo de la lista, +0x9348 más +0x9349, si cabe en las 16 entradas.
+// The list's length, +0x9348 plus +0x9349, if it fits in the 16 entries.
 Core::Expected<std::size_t, std::string> EntryCount(const ItemSetOptionList& list, std::string_view function)
 {
     const std::size_t count = std::size_t{list.count9348} + list.count9349;
@@ -41,8 +41,8 @@ Core::Expected<std::size_t, std::string> EntryCount(const ItemSetOptionList& lis
     return count;
 }
 
-// El recorrido común: cada entrada sin usar cuyo primer byte es selector − 0x8c y que `wanted` acepta
-// queda marcada y cuenta. La suma es de 32 bits y envuelve (add edi, edx).
+// The common walk: each unused entry whose first byte is selector − 0x8c and that `wanted` accepts is marked and
+// counts. The sum is 32 bits and wraps (add edi, edx).
 template <typename Wanted>
 Core::Expected<Taken, std::string> TakeEntries(ItemSetOptionList& list, std::uint32_t selector,
                                                std::string_view function, Wanted wanted)
@@ -74,7 +74,7 @@ std::uint16_t Low16(std::uint32_t value)
     return static_cast<std::uint16_t>(value);
 }
 
-// imul de 32 bits: los 32 bits de abajo del producto, con signo.
+// 32-bit imul: the product's low 32 bits, signed.
 std::int32_t Multiply32(std::int32_t left, std::int32_t right)
 {
     const auto product = std::bit_cast<std::uint32_t>(left) * std::bit_cast<std::uint32_t>(right);
@@ -90,7 +90,7 @@ Core::Expected<void, std::string> AddItemSetOptionValues(ItemSetOptionList& list
     {
         return Core::Unexpected(taken.Error());
     }
-    // test edi, edi / je: con la suma en 0 no escribe, que es lo mismo que sumar 0.
+    // test edi, edi / je: with the sum at 0 it does not write, which is the same as adding 0.
     word = Low16(word + taken.Value().sum);
     return {};
 }
@@ -130,7 +130,7 @@ Core::Expected<void, std::string> AddSkillSetOptionValues(ItemSetOptionList& lis
     {
         return Core::Unexpected(count.Error());
     }
-    // 0x40d8ee..0x40d919: cmp 0x18 / jc, el byte menos 0x1d contra el selector & 0xff, el segundo y la marca.
+    // 0x40d8ee..0x40d919: cmp 0x18 / jc, the byte minus 0x1d against selector & 0xff, the second byte and the mark.
     constexpr std::uint32_t LowestKind = 0x17;
     constexpr std::uint32_t KindBase = 0x1d;
     const std::uint32_t wanted = selector & 0xffu;

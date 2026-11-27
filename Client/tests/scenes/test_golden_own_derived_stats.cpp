@@ -24,10 +24,9 @@
 #include <utility>
 #include <vector>
 
-// 0x40dc50 y la suma de 0x550d10 (0x550d49..0x550db1) con el Item.bmd real de la carpeta golden, y
-// 0x550d10 hasta sus helpers con ItemSetType.bmd e ItemSetOption.bmd reales (06, "Los stats del
-// registro propio"; 05, "Las tablas de los conjuntos"). Lo que se espera sale de los archivos, leídos
-// aparte.
+// 0x40dc50 and 0x550d10's sum (0x550d49..0x550db1) with the golden folder's real Item.bmd, and 0x550d10 up to its
+// helpers with the real ItemSetType.bmd and ItemSetOption.bmd (06, "Los stats del registro propio"; 05, "Las tablas de
+// los conjuntos"). The expected values come from the files, read separately.
 namespace
 {
 using Client::Kernel::ItemState;
@@ -39,7 +38,7 @@ constexpr std::string_view ItemFile = "Local\\Item.bmd";
 constexpr std::string_view ItemSetTypeFile = "Local\\ItemSetType.bmd";
 constexpr std::string_view ItemSetOptionFile = "Local\\ItemSetOption.bmd";
 
-// El tipo de un ítem, el índice de su registro: el modelo sin el 0x212.
+// An item's type, its record's index: the model without the 0x212.
 std::uint16_t TypeOf(std::uint8_t group, std::uint16_t index)
 {
     return static_cast<std::uint16_t>(ItemModel(group, index) - FirstItemModel);
@@ -77,7 +76,7 @@ protected:
         return std::move(loaded).Value();
     }
 
-    // Las dos tablas de 0x40c600, con su checksum.
+    // 0x40c600's two tables, with their checksum.
     std::optional<Client::Tables::ItemSetTables> LoadItemSets()
     {
         const auto typePath = DataFile(ItemSetTypeFile);
@@ -102,8 +101,8 @@ protected:
     }
 };
 
-// En el Item.bmd real, el +0x44 vale 1 en Kris (0 0), 2 en Short Bow (4 0), 3 en Skull Staff (5 0), 4 en
-// Small Shield (6 0), y 0 en Wings of Elf (12 0) y en Cape of Lord (13 30).
+// In the real Item.bmd, +0x44 is 1 in Kris (0 0), 2 in Short Bow (4 0), 3 in Skull Staff (5 0), 4 in Small Shield
+// (6 0), and 0 in Wings of Elf (12 0) and in Cape of Lord (13 30).
 TEST_F(GoldenOwnDerivedStats, TheKindIsByte44OfTheRealItemBmd)
 {
     const auto items = LoadItems();
@@ -125,9 +124,9 @@ TEST_F(GoldenOwnDerivedStats, TheKindIsByte44OfTheRealItemBmd)
     }
 }
 
-// Un equipo con ítems del Item.bmd real: Short Bow con 2 suma 10 a +0x2c, Small Shield con 3 y Bronze Helm
-// (7 0, también 4) con 1 suman 20 a +0x2e, Pendant of Lightning (13 12, 3) en el lugar 9 suma 5 a +0x30,
-// y Wings of Elf (0) no suma.
+// An equipment with real Item.bmd items: Short Bow with 2 adds 10 to +0x2c, Small Shield with 3 and Bronze Helm (7 0,
+// also 4) with 1 add 20 to +0x2e, Pendant of Lightning (13 12, 3) in place 9 adds 5 to +0x30, and Wings of Elf (0)
+// adds nothing.
 TEST_F(GoldenOwnDerivedStats, TheBonusesOfARealEquipment)
 {
     const auto items = LoadItems();
@@ -150,13 +149,13 @@ TEST_F(GoldenOwnDerivedStats, TheBonusesOfARealEquipment)
     EXPECT_EQ(own.word2e, 20);
     EXPECT_EQ(own.word30, 5);
 }
-// Hyperion, el conjunto 3 de ItemSetOption.bmd, con sus tres piezas del byte 0 de ItemSetType.bmd: Bronze
-// Armor (8 0), Bronze Pants (9 0) y Bronze Boots (11 0), con el byte +0x1c & 3 en 1. Con n = 2 entran los
-// pares (2, 15) y (1, 15), y con +0x3c en 4 está completo: (0x13, 20) y (0x0c, 30), y el +0x358 del héroe
-// en 1. 0x40da20 suma 15 a +0x2c (0x8d) y 15 a +0x30 (0x8e); 0x13 y 0x0c no son de ningún WORD de
-// 0x550d10. La armadura con valor 1 suma 5 a +0x2e (el +0x44 de Item.bmd es 4). Sin marcas de clase, da
-// lo mismo en todas las clases, con y sin evolución. Corta en 0x550990, sin saber qué dejó 0x505820
-// (scan505820 en nullopt), con el registro abierto por quien llama: ningún rand().
+// Hyperion, ItemSetOption.bmd's set 3, with its three pieces of ItemSetType.bmd's byte 0: Bronze Armor (8 0), Bronze
+// Pants (9 0) and Bronze Boots (11 0), with byte +0x1c & 3 at 1. With n = 2 the pairs (2, 15) and (1, 15) apply, and
+// with +0x3c at 4 it is complete: (0x13, 20) and (0x0c, 30), and the hero's +0x358 at 1. 0x40da20 adds 15 to +0x2c
+// (0x8d) and 15 to +0x30 (0x8e); 0x13 and 0x0c belong to no WORD of 0x550d10. The armor with value 1 adds 5 to +0x2e
+// (Item.bmd's +0x44 is 4). With no class marks, it is the same for every class, with or without evolution. It stops at
+// 0x550990, without knowing what 0x505820 left (scan505820 at nullopt), with the record opened by the caller: no
+// rand().
 TEST_F(GoldenOwnDerivedStats, TheRealHyperionSetUntil0x550990)
 {
     const auto items = LoadItems();

@@ -34,8 +34,8 @@
 #include <memory>
 #include <vector>
 
-// La respuesta del F3 06 (0x4d3200), el punto de subir de nivel que el servidor aceptó o no: lo que escribe en el
-// registro propio y 0x550d10, con los rand() de cada cierre.
+// The F3 06 reply (0x4d3200), the level-up point the server accepted or not: what it writes in the own record and
+// 0x550d10, with each closing's rand() calls.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -97,9 +97,9 @@ struct Stage
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
 
-// 0x4d32d8..0x4d334d: los puntos menos 1 y la estadística del nibble bajo más 1 (la jump table de 0x4d34f4); la
-// vitalidad pone la vida máxima de pkt[6..7] (0x4d332d) y la energía el maná máximo (0x4d333b), sin tocar la vida ni
-// el maná actuales; las cinco, el BP máximo de pkt[8..9] (0x4d3356).
+// 0x4d32d8..0x4d334d: the points minus 1 and the low nibble's stat plus 1 (0x4d34f4's jump table); the vitality sets
+// the max life from pkt[6..7] (0x4d332d) and the energy the max mana (0x4d333b), without touching the current life or
+// mana; all five, the max BP from pkt[8..9] (0x4d3356).
 TEST(LevelUpPointReplyTest, EachStatTakesTheDistributedPoint)
 {
     struct Case
@@ -135,8 +135,8 @@ TEST(LevelUpPointReplyTest, EachStatTakesTheDistributedPoint)
     }
 }
 
-// 0x4d32df: un nibble bajo de más de 4 salta el switch (JA a 0x4d334d), pero los puntos ya bajaron (0x4d32d8, antes
-// del switch) y el BP máximo se escribe igual. Los puntos son un word: de 0 dan la vuelta a 0xffff.
+// 0x4d32df: a low nibble above 4 skips the switch (JA to 0x4d334d), but the points already dropped (0x4d32d8, before
+// the switch) and the max BP is written anyway. The points are a word: from 0 they wrap to 0xffff.
 TEST(LevelUpPointReplyTest, ANibbleAboveFourOnlyTakesThePointAndTheBp)
 {
     auto stage = std::make_unique<Stage>();
@@ -156,8 +156,8 @@ TEST(LevelUpPointReplyTest, ANibbleAboveFourOnlyTakesThePointAndTheBp)
     EXPECT_EQ(own.maxBp, 88);
 }
 
-// La secuencia de 0x4d341a..0x4d34ed sobre otro Stage igual: abrir el registro, 0x550d10 y cerrarlo. 0x550d10 saca sus
-// propios rand() (las otras tablas protegidas que lee), así que la referencia es correrla, no contarlos.
+// 0x4d341a..0x4d34ed's sequence on another equal Stage: open the record, 0x550d10 and close it. 0x550d10 draws its own
+// rand() calls (the other protected tables it reads), so the reference is running it, not counting them.
 void OpenRecalculateAndClose(Stage& stage)
 {
     Client::Kernel::WorldRuntime& runtime = stage.world.Runtime();
@@ -174,9 +174,9 @@ void OpenRecalculateAndClose(Stage& stage)
     ASSERT_TRUE(recalculated.HasValue()) << recalculated.Error();
 }
 
-// 0x4d320c: sin el nibble alto (el servidor no sumó el punto) no toca el registro, pero 0x4d341a..0x4d34ed lo abre,
-// corre 0x550d10 y lo cierra igual. Con el punto sumado, antes, la apertura y el cierre de 0x4d3216..0x4d3415: sin otro
-// acceso abierto, 3.848 rand() más.
+// 0x4d320c: without the high nibble (the server did not add the point) it does not touch the record, but
+// 0x4d341a..0x4d34ed opens it, runs 0x550d10 and closes it anyway. With the point added, first 0x4d3216..0x4d3415's
+// opening and closing: with no other access open, 3,848 more rand() calls.
 TEST(LevelUpPointReplyTest, TheStatsAreRecalculatedEvenWithoutThePoint)
 {
     auto stage = std::make_unique<Stage>();

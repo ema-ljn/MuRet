@@ -8,9 +8,9 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/TextureSets.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Assets/TextureSets.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"

@@ -6,7 +6,7 @@
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 
 #include <optional>
 #include <string>

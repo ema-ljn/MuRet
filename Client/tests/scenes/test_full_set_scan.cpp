@@ -1,13 +1,13 @@
-#include "Scenes/FullSetScan.h"
+#include "Actors/FullSetScan.h"
 
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>

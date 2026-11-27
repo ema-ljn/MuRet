@@ -5,10 +5,10 @@
 #include "Crt/CrtRandom.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/WorldState.h"
-#include "World/TerrainCulling.h"
-#include "World/WorldTerrain.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/WorldState.h"
+#include "Terrain/TerrainCulling.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <filesystem>
 #include <optional>

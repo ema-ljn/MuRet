@@ -4,11 +4,11 @@
 #include "Crt/CrtRandom.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameLeaves.h"
 #include "World/Leaves.h"
 #include "World/Particles.h"
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainHeight.h"
 
 #include <glm/ext/vector_float3.hpp>
 

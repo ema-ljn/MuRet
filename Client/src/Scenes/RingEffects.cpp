@@ -5,7 +5,7 @@
 #include "Math/X87.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalAngles.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
 #include "World/GameModelEffects.h"

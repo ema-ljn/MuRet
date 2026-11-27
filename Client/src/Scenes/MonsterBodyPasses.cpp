@@ -3,8 +3,8 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Kernel/ActorState.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include <cstdint>
 #include <format>

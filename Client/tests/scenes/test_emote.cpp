@@ -1,6 +1,6 @@
 #include "Network/Xor32Packet.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/Emote.h"
+#include "Actors/Emote.h"
 
 #include "Data/Models/Model.h"
 #include "Tables/PlayerModels.h"
@@ -9,7 +9,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "UI/Emotes.h"
 
 #include "support/Bytes.h"

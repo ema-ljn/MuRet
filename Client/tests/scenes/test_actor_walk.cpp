@@ -1,13 +1,13 @@
-#include "Scenes/ActorWalk.h"
+#include "Actors/ActorWalk.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/PlayerActionSpeeds.h"
+#include "Kernel/ActorState.h"
+#include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>

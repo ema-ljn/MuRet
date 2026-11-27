@@ -11,7 +11,7 @@
 #include "Math/Ftol.h"
 #include "World/KalimaWaves.h"
 #include "World/KalimaWorld.h"
-#include "World/TerrainDecal.h"
+#include "Terrain/TerrainDecal.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

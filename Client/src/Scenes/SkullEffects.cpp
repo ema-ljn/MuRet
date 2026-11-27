@@ -5,12 +5,12 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorFlags.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorFlags.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
-#include "Scenes/WorldMap.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldMap.h"
+#include "Kernel/WorldState.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>

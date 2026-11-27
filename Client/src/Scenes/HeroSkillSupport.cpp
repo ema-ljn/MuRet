@@ -5,10 +5,10 @@
 #include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorCombat.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include <array>
 #include <cstddef>

@@ -6,16 +6,16 @@
 #include "Kernel/PlayerKey.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorShock.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorShock.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/HandShine.h"
 #include "Scenes/MonsterCreation.h"
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

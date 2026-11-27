@@ -2,7 +2,7 @@
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "UI/OptionsWindow.h"
 
 // Los globales que leen y escriben las opciones (+0x7e8; CL8, hito 8; 06 § Las opciones), en WorldRuntime:

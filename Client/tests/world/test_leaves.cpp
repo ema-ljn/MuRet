@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Math/X87.h"
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainHeight.h"
 
 #include "support/WorldObjectVectors.h"
 

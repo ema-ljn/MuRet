@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Scenes/ActorState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/OwnInventory.h"
-#include "Scenes/WorldMap.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/OwnInventory.h"
+#include "Kernel/WorldMap.h"
+#include "Kernel/WorldRuntime.h"
 
 #include <array>
 #include <cstddef>

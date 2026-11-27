@@ -9,7 +9,7 @@
 #include "Models/Skeleton.h"
 #include "Render/Billboard.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/WorldObjectsDrawing.h"

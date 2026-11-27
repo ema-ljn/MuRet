@@ -6,7 +6,7 @@
 #include "Models/IModelLibrary.h"
 #include "Models/Skinning.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 

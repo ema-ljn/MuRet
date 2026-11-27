@@ -10,7 +10,7 @@
 #include "Math/Ftol.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
-#include "World/TerrainAttributeQuery.h"
+#include "Terrain/TerrainAttributeQuery.h"
 
 #include <glm/ext/vector_float3.hpp>
 

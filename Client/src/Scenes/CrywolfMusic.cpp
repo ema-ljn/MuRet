@@ -4,7 +4,7 @@
 #include "Audio/Playback.h"
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 
 #include <cstdint>
 #include <string_view>

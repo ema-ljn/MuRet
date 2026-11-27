@@ -1,6 +1,6 @@
 #include "Scenes/Skill4e9c50.h"
 
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 
 #include <cstdint>
 

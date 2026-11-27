@@ -2,9 +2,9 @@
 
 #include "Crt/CrtRandom.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/PlayerActionSpeeds.h"
+#include "Actors/PlayerActionSpeeds.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include <cstddef>
 #include <initializer_list>

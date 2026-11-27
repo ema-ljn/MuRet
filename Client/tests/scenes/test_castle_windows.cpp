@@ -26,8 +26,8 @@
 #include "Render/SpriteBatch.h"
 #include "Render/ScreenScale.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
 

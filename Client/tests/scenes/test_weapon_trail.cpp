@@ -1,4 +1,4 @@
-#include "Scenes/WeaponTrail.h"
+#include "Actors/Drawing/WeaponTrail.h"
 
 #include "Core/Expected.h"
 #include <string>
@@ -6,12 +6,12 @@
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/CharacterStep.h"
+#include "Kernel/ActorState.h"
+#include "Actors/CharacterStep.h"
 #include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaModels.h"
+#include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "World/Particles.h"
 #include "support/PlayerActors.h"
 

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Scenes/ActorActions.h"
+#include "Actors/ActorActions.h"
 
 #include <cstddef>
 #include <cstdint>

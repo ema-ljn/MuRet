@@ -9,7 +9,7 @@
 #include "Models/ObjectState.h"
 #include "Math/OriginalRotation.h"
 #include "World/Particles.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 
 #include "support/ParticleDrawRecorder.h"

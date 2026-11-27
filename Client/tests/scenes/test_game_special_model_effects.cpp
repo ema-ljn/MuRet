@@ -5,9 +5,9 @@
 #include "Crt/CrtRandom.h"
 #include "Models/ObjectState.h"
 #include "World/ModelEffects.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
-#include "Scenes/GameItemSpecialDrawing.h"
+#include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skinning.h"
 #include <vector>
@@ -16,9 +16,9 @@
 #include "Render/ModelBatch.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/Sprites.h"
-#include "World/ITerrainAttributeQuerySource.h"
+#include "Terrain/ITerrainAttributeQuerySource.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include <memory>
 #include <gtest/gtest.h>

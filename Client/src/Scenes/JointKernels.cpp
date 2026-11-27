@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 
 #include <glm/ext/vector_float3.hpp>

@@ -12,7 +12,7 @@
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainLight.h"
 

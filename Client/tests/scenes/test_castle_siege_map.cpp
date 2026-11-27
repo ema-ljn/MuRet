@@ -1,10 +1,10 @@
 #include "Scenes/CastleSiegeMap.h"
 
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Scenes/WorldMap.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
-#include "World/WorldTerrain.h"
+#include "Kernel/WorldMap.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

@@ -3,7 +3,7 @@
 #include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 

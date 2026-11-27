@@ -10,9 +10,9 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "World/Particles.h"
-#include "World/TerrainCulling.h"
+#include "Terrain/TerrainCulling.h"
 
 #include <glm/ext/vector_float3.hpp>
 

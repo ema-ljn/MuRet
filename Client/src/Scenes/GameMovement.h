@@ -9,7 +9,7 @@
 #include "Pathfinding/PathCell.h"
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
-#include "Scenes/ActionSend.h"
+#include "Actors/ActionSend.h"
 
 #include <glm/ext/vector_float3.hpp>
 

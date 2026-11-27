@@ -1,5 +1,5 @@
-#include "World/SiegeTerrain.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/SiegeTerrain.h"
+#include "Terrain/TerrainLighting.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"

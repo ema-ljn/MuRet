@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Scenes/WorldObjectsDrawing.h"
-#include "World/GroundEffectDrawing.h"
+#include "Terrain/GroundEffectDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 

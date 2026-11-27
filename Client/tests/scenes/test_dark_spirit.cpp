@@ -9,8 +9,8 @@
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
 #include "World/Particles.h"
-#include "World/TerrainCulling.h"
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainHeight.h"
 
 #include "support/WorldObjectVectors.h"
 

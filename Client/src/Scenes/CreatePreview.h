@@ -11,9 +11,9 @@
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/SceneTextures.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Kernel/ActorState.h"
+#include "Assets/SceneTextures.h"
 #include "Models/TextureMetadata.h"
 #include "UI/Widget.h"
 

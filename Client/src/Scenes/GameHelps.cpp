@@ -6,7 +6,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/TooltipLines.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "UI/PanelRegistry.h"
 
 #include <cstddef>

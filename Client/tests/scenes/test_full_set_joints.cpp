@@ -6,7 +6,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/JointKernels.h"

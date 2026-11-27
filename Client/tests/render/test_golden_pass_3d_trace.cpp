@@ -1,8 +1,8 @@
 #include "Core/PixelSize.h"
 #include "Math/RoundedMath.h"
 #include "Render/Pass3D.h"
-#include "Scenes/SceneCameras.h"
-#include "World/GameCamera.h"
+#include "Camera/SceneCameras.h"
+#include "Camera/GameCamera.h"
 
 #include "support/GlTrace.h"
 #include "support/GoldenDir.h"

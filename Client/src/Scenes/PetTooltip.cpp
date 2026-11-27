@@ -13,16 +13,16 @@
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ZenText.h"
 #include "Scenes/ItemTooltips.h"
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/PetStats.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/PanelRegistry.h"
 #include "Math/Ftol.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <array>
 #include <cstddef>

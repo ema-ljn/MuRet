@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/ActorActions.h"
+#include "Actors/ActorActions.h"
 
 #include <cstdint>
 #include <string>

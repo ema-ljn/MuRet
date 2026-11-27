@@ -1,11 +1,11 @@
 #include "Scenes/PersonalShopTitles.h"
 
 #include "Render/Text/FontSet.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/SocialState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <cstddef>
 #include <cstdint>

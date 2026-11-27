@@ -1,4 +1,4 @@
-#include "Scenes/WorldModels.h"
+#include "Assets/WorldModels.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -9,9 +9,9 @@
 #include "Data/Textures/TextureSet.h"
 #include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/GameModels.h"
+#include "Assets/GameModels.h"
 #include "Scenes/LoginModels.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"

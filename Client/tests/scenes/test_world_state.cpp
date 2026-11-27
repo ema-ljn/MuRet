@@ -1,13 +1,13 @@
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include "Crt/CrtRandom.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/ItemSetOptionList.h"
-#include "Scenes/ItemSetState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "World/ItemState.h"
+#include "Kernel/ActorState.h"
+#include "Player/ItemSetOptionList.h"
+#include "Player/ItemSetState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/ItemState.h"
 
 #include <gtest/gtest.h>
 

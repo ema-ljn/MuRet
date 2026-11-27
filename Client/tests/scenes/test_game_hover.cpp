@@ -5,11 +5,11 @@
 #include "Crt/CrtRandom.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>

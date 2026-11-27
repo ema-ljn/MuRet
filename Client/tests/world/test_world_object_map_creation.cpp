@@ -7,7 +7,7 @@
 #include "Maps/WorldFolder.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
 

@@ -2,12 +2,12 @@
 
 #include "Crt/CrtRandom.h"
 #include "Protocol/Pets/PetOrders.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/DarkSpirit.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <cstddef>
 #include <cstdint>

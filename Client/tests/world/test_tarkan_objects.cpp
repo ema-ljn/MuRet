@@ -5,7 +5,7 @@
 #include "Models/Skeleton.h"
 #include "World/ObjectModelStepState.h"
 #include "World/TarkanObjectStep.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 

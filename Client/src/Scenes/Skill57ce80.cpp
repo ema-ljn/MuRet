@@ -1,11 +1,11 @@
 #include "Scenes/Skill57ce80.h"
 
 #include "Core/Expected.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroSkills.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>

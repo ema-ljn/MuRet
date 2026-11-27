@@ -1,20 +1,20 @@
-#include "Scenes/CharacterPicking.h"
+#include "Actors/CharacterPicking.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/ActorPickingBox.h"
+#include "Kernel/ActorState.h"
+#include "Actors/ActorPickingBox.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SocialState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/Widget.h"
-#include "World/TerrainPickingSegment.h"
+#include "Terrain/TerrainPickingSegment.h"
 
 #include <glm/ext/vector_float3.hpp>
 

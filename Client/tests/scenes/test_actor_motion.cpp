@@ -1,4 +1,4 @@
-#include "Scenes/ActorMotion.h"
+#include "Actors/ActorMotion.h"
 
 #include "Models/LogicalAccess.h"
 
@@ -8,11 +8,11 @@
 #include "Pathfinding/PathFinder.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/ActorWalk.h"
-#include "Scenes/PlayerActionSpeeds.h"
+#include "Kernel/ActorState.h"
+#include "Actors/ActorWalk.h"
+#include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "support/PlayerActors.h"
 

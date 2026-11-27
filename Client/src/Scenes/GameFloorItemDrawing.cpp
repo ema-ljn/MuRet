@@ -6,12 +6,12 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skinning.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameItemSpecialDrawing.h"
-#include "World/SphereFrustum.h"
-#include "World/TerrainLighting.h"
+#include "Actors/Drawing/GameItemSpecialDrawing.h"
+#include "Terrain/SphereFrustum.h"
+#include "Terrain/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
 

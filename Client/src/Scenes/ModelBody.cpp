@@ -7,9 +7,9 @@
 #include "Models/Animation.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorConstruction.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/WorldRuntime.h"
+#include "Actors/ActorConstruction.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/WorldRuntime.h"
 
 #include <array>
 #include <cmath>

@@ -3,7 +3,7 @@
 #include "Models/Animation.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include <cstdint>
 

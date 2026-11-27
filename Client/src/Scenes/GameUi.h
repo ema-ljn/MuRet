@@ -3,12 +3,12 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Tables/SkillTable.h"
-#include "Scenes/ActorPickingBox.h"
+#include "Actors/ActorPickingBox.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
 #include "UI/Widget.h"
-#include "World/TerrainPickingSegment.h"
+#include "Terrain/TerrainPickingSegment.h"
 
 #include <array>
 #include <cstdint>

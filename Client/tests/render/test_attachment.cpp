@@ -1,4 +1,4 @@
-#include "Models/Attachment.h"
+#include "Actors/Attachment.h"
 
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"

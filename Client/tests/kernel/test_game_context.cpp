@@ -1,6 +1,6 @@
 #include "Kernel/GameContext.h"
 
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include <gtest/gtest.h>
 

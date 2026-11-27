@@ -1,4 +1,4 @@
-#include "Scenes/GameModels.h"
+#include "Assets/GameModels.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"

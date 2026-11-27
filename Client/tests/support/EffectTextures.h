@@ -7,7 +7,7 @@
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Models/TextureMetadata.h"
-#include "Scenes/TextureSets.h"
+#include "Assets/TextureSets.h"
 
 #include <glm/ext/vector_float2.hpp>
 

@@ -5,7 +5,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Scenes/GameProjection.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <glm/ext/vector_float3.hpp>

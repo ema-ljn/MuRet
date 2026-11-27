@@ -10,9 +10,9 @@
 #include "Math/RoundedTransforms.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
-#include "Scenes/GameItemSpecialDrawing.h"
+#include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "support/TableFiles.h"
 

@@ -3,9 +3,9 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include "support/TableFiles.h"
 

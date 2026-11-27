@@ -5,8 +5,8 @@
 #include "Models/LogicalAccess.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/SkillDelays.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <cstddef>
 #include <cstdint>

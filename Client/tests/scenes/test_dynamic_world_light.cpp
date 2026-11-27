@@ -1,9 +1,9 @@
-#include "Scenes/DynamicWorldLight.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "World/TerrainCells.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainLighting.h"
 
 #include <gtest/gtest.h>
 

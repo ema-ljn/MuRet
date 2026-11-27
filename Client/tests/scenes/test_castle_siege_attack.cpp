@@ -1,7 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/CastleSiegeAttack.h"
 #include "Core/Expected.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "World/ModelEffects.h"
 #include "World/SiegeVertexEffects.h"
 #include <gtest/gtest.h>

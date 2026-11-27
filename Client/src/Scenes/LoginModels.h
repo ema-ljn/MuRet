@@ -5,7 +5,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Textures/Sampling.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Models/IModelLibrary.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"

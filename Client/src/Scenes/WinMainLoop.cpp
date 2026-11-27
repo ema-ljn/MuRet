@@ -4,11 +4,11 @@
 #include "Crt/CrtRandom.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/CrywolfMusic.h"
 #include "Scenes/Slides.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <chrono>
 #include <cstdint>

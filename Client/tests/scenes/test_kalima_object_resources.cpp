@@ -1,5 +1,5 @@
-#include "Scenes/ModelTextureTable.h"
-#include "Scenes/TerrainTiles.h"
+#include "Assets/ModelTextureTable.h"
+#include "Assets/TerrainTiles.h"
 
 #include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"

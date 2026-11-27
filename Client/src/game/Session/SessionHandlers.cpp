@@ -15,7 +15,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/SocialEvents.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "Session/Route.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionContexts.h"

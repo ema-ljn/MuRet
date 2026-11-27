@@ -1,11 +1,11 @@
-#include "Scenes/ActorRemains.h"
+#include "Actors/ActorRemains.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
-#include "World/GroundMarks.h"
+#include "Kernel/ActorState.h"
+#include "Terrain/GroundMarks.h"
 #include "World/ModelEffects.h"
 #include "support/PlayerActors.h"
 

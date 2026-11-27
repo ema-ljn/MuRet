@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
 

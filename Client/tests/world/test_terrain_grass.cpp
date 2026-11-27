@@ -1,5 +1,5 @@
-#include "World/TerrainCells.h"
-#include "World/TerrainCulling.h"
+#include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainCulling.h"
 
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -10,7 +10,7 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 
 #include <gtest/gtest.h>
 

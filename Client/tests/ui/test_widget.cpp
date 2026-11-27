@@ -4,7 +4,7 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "support/UiInput.h"
 
 #include <gtest/gtest.h>

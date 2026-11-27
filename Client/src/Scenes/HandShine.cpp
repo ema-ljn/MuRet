@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 

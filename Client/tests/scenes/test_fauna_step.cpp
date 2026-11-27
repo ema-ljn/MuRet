@@ -7,7 +7,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Models/Cloth.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaMotion.h"
 #include "Data/Models/Model.h"
@@ -16,8 +16,8 @@
 #include "Scenes/FaunaState.h"
 #include "World/IBirdStepServices.h"
 #include "World/IFishStepServices.h"
-#include "World/TerrainLighting.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/TerrainLighting.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <gtest/gtest.h>
 

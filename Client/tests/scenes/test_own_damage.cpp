@@ -1,13 +1,13 @@
-#include "Scenes/OwnDamage.h"
+#include "Player/OwnDamage.h"
 
 #include "Crt/CrtRandom.h"
 #include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ItemSetOptionList.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/OwnStatHelpers.h"
-#include "World/ItemState.h"
+#include "Player/ItemSetOptionList.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Player/OwnStatHelpers.h"
+#include "Kernel/ItemState.h"
 #include "support/TableFiles.h"
 
 #include <gtest/gtest.h>

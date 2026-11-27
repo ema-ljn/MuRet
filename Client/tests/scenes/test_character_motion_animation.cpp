@@ -1,11 +1,11 @@
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/CharacterAnimation.h"
+#include "Actors/CharacterAnimation.h"
 
 #include "Data/Models/Model.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/PlayerActionSpeeds.h"
+#include "Actors/PlayerActionSpeeds.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>

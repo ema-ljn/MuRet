@@ -1,6 +1,6 @@
 #include "Math/X87.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/GameHanging.h"
+#include "Actors/Drawing/GameHanging.h"
 #include "Scenes/GuildState.h"
 
 #include "Crt/CrtRandom.h"
@@ -11,8 +11,8 @@
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Kernel/ActorState.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"

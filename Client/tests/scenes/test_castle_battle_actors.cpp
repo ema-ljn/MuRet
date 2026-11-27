@@ -1,6 +1,6 @@
 #include "Scenes/CastleBattleActors.h"
 
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GuildState.h"
 
 #include <gtest/gtest.h>

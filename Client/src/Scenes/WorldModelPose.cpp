@@ -5,10 +5,10 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaModels.h"
-#include "Scenes/WorldState.h"
+#include "Assets/FaunaModels.h"
+#include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>

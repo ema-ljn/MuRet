@@ -1,4 +1,4 @@
-#include "World/GroundEffectDrawing.h"
+#include "Terrain/GroundEffectDrawing.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"

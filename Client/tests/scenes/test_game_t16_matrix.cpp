@@ -1,6 +1,6 @@
 #include "test_game_t16_support.h"
 #include "App/SessionState.h"
-#include "Scenes/WorldMap.h"
+#include "Kernel/WorldMap.h"
 #include "Render/ModelBatch.h"
 
 #include <gtest/gtest.h>

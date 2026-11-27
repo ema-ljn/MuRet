@@ -1,10 +1,10 @@
-#include "Scenes/ModelTextureTable.h"
-#include "Scenes/TerrainTiles.h"
+#include "Assets/ModelTextureTable.h"
+#include "Assets/TerrainTiles.h"
 
 #include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
 #include "Render/TextureSlot.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/WorldTerrain.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 

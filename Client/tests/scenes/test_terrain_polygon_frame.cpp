@@ -1,8 +1,8 @@
-#include "Scenes/TerrainPolygonFrame.h"
+#include "Camera/TerrainPolygonFrame.h"
 
-#include "Scenes/WorldRuntime.h"
-#include "World/GameCamera.h"
-#include "World/TerrainCulling.h"
+#include "Kernel/WorldRuntime.h"
+#include "Camera/GameCamera.h"
+#include "Terrain/TerrainCulling.h"
 
 #include <gtest/gtest.h>
 

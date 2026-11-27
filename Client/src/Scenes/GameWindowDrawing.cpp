@@ -12,7 +12,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/GameHud.h"
 #include "Render/Frame/ITextDrawer.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "UI/HudPrimitives.h"
 #include "UI/Widget.h"
 

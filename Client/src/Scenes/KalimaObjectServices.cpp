@@ -10,7 +10,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Sprites.h"
@@ -19,7 +19,7 @@
 #include "World/KalimaObjectMovement.h"
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
 
 #include <glm/ext/vector_float3.hpp>

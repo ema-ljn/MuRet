@@ -5,7 +5,7 @@
 #include "Math/X87.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"

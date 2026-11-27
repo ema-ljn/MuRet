@@ -3,8 +3,8 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/SlideTable.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/SlideBanner.h"
 
 #include <gtest/gtest.h>

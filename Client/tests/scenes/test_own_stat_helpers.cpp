@@ -1,13 +1,13 @@
-#include "Scenes/OwnStatHelpers.h"
+#include "Player/OwnStatHelpers.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/FullSetScan.h"
-#include "Scenes/ItemSetOptionList.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "World/ItemState.h"
+#include "Actors/FullSetScan.h"
+#include "Player/ItemSetOptionList.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/ItemState.h"
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
 

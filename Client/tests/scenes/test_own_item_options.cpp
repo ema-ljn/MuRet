@@ -1,6 +1,6 @@
 #include "Scenes/OwnItemOptions.h"
 
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <array>
 #include <cstddef>

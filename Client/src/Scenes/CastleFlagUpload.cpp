@@ -6,7 +6,7 @@
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
 #include "Scenes/CastleFlagImage.h"
-#include "Scenes/ModelTextureTable.h"
+#include "Assets/ModelTextureTable.h"
 #include "Math/Ftol.h"
 
 #include <cstddef>

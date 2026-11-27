@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/GameItemRenderState.h"
+#include "Actors/Drawing/GameItemRenderState.h"
 #include <gtest/gtest.h>
 #include <array>
 #include <bit>

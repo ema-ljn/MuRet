@@ -6,9 +6,9 @@
 #include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Models/Animation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/MonsterCreation.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "Scenes/WorldTexts.h"
 #include "Crt/SprintfFormat.h"
 

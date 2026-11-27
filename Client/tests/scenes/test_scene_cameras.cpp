@@ -1,4 +1,4 @@
-#include "Scenes/SceneCameras.h"
+#include "Camera/SceneCameras.h"
 
 #include "Core/PixelSize.h"
 #include "Render/Pass3D.h"

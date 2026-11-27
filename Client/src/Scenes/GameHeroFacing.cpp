@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Math/OriginalAngles.h"
-#include "Scenes/ActionSend.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActionSend.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Math/Ftol.h"
 

@@ -8,8 +8,8 @@
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
-#include "Scenes/SceneCameras.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Camera/SceneCameras.h"
 #include "UI/Widget.h"
 
 #include <gtest/gtest.h>

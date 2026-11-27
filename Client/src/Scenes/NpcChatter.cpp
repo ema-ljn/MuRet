@@ -5,11 +5,11 @@
 #include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
 #include "Models/Animation.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/CharacterStep.h"
+#include "Kernel/ActorState.h"
+#include "Actors/CharacterStep.h"
 #include "Scenes/ChatBubbles.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/GameText.h"
 
 #include <array>

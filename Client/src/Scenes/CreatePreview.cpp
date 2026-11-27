@@ -15,13 +15,13 @@
 #include "Render/Pass3D.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
-#include "Scenes/ActorConstruction.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Actors/ActorConstruction.h"
 #include "Models/Cloth.h"
-#include "Scenes/SceneCameras.h"
-#include "Scenes/SceneTextures.h"
+#include "Camera/SceneCameras.h"
+#include "Assets/SceneTextures.h"
 #include "Models/TextureMetadata.h"
-#include "Scenes/TextureSets.h"
+#include "Assets/TextureSets.h"
 #include "UI/Widget.h"
 
 #include <glm/ext/vector_float3.hpp>

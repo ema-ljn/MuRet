@@ -1,11 +1,11 @@
 #include "Crt/CrtRandom.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/GameItemSpecialDrawing.h"
+#include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Scenes/FaunaDrawing.h"
-#include "Scenes/GameModels.h"
+#include "Assets/GameModels.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingSink.h"
@@ -14,7 +14,7 @@
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "World/Sprites.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>

@@ -1,4 +1,4 @@
-#include "Scenes/CharacterHead.h"
+#include "Kernel/CharacterHead.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"

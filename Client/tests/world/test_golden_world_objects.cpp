@@ -6,8 +6,8 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Scenes/WorldModels.h"
-#include "World/WorldTerrain.h"
+#include "Assets/WorldModels.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"

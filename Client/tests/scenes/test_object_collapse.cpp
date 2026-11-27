@@ -6,7 +6,7 @@
 #include "Models/ObjectState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/WorldObjectsDrawing.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
 

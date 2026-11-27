@@ -6,7 +6,7 @@
 #include "Render/ITextureStore.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GuildState.h"
-#include "Scenes/TextureSets.h"
+#include "Assets/TextureSets.h"
 
 #include <array>
 #include <cstddef>

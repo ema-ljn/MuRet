@@ -1,6 +1,6 @@
 #pragma once
 
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainHeight.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

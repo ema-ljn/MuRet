@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "Audio/Playback.h"
 #include "Scenes/WinMainLoop.h"
 #include "UI/ChatInput.h"

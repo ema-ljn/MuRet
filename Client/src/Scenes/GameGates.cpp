@@ -8,10 +8,10 @@
 #include "GameLogic/GateDecision.h"
 #include "Maps/MapId.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <cstddef>
 #include <cstdint>

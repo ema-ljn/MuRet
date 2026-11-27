@@ -6,12 +6,12 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/CharacterStep.h"
+#include "Kernel/ActorState.h"
+#include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameRibbonCreation.h"
+#include "Actors/Drawing/GameRibbonCreation.h"
 #include "Scenes/WorldModelPose.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -16,8 +16,8 @@
 #include "Scenes/ItemNames.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/NpcNames.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/GameText.h"
 #include "Crt/SprintfFormat.h"
 

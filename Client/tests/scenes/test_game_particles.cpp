@@ -12,10 +12,10 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/ActorCreation.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/WorldState.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/ActorCreation.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/WorldState.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Models/TextureMetadata.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -23,7 +23,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
-#include "World/TerrainCulling.h"
+#include "Terrain/TerrainCulling.h"
 #include "World/WorldObjects.h"
 
 #include <gtest/gtest.h>

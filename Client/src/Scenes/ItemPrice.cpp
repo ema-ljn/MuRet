@@ -4,7 +4,7 @@
 #include "Tables/ItemTable.h"
 #include "Scenes/HudItems.h"
 #include "Math/Ftol.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

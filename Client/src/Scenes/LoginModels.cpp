@@ -5,7 +5,7 @@
 
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Kernel/CharacterClass.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"

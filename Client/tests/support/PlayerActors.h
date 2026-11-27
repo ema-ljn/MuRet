@@ -4,7 +4,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "support/TableFiles.h"
 
 #include <cstddef>

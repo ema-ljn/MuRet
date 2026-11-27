@@ -133,7 +133,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
                     return Core::Unexpected(std::string("0x4fbee8: no hay sesión para el AF 02"));
                 return m_session->SendChaosCastleReposition(x, y);
             },
-            .groundMarks = &m_context.states->terrain.groundMarks});
+            .groundMarks = &m_context.states->terrain.groundMarks,
+            .trapezoid = &m_context.states->camera.trapezoid});
         !stepped.HasValue())
     {
         return stepped;

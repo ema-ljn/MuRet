@@ -31,6 +31,7 @@ struct SkinnedMesh;
 namespace Client::Terrain
 {
 struct TerrainLighting;
+struct TerrainPolygon;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
@@ -203,6 +204,8 @@ struct HelperDrawContext
     World::Particles* particles = nullptr;
     std::function<std::uint32_t()> systemTime{};
     std::function<std::span<const Math::BoneTransform>()> globalPose{};
+    // The global trapezoid (Camera::CameraState::trapezoid) that 0x5fba90 reads. nullptr: the .bss's zeros.
+    const Terrain::TerrainPolygon* trapezoid = nullptr;
 };
 
 // 0x4453b0 en la escena 5 (0x637508) y en la 4 (0x63486a): 0x445260(lugar, 0) en los 10. Con el lugar vivo,

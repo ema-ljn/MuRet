@@ -31,7 +31,7 @@ protected:
     {
         m_world.Runtime().map = 0;
         m_world.Runtime().hero = 0;
-        m_world.Runtime().terrainPolygon.everything = true;
+        m_trapezoid.everything = true;
         auto& terrain = m_world.Map().terrain;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -54,9 +54,11 @@ protected:
     }
     auto Step()
     {
-        return Client::Actors::StepCharacters({.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton});
+        return Client::Actors::StepCharacters(
+            {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .trapezoid = &m_trapezoid});
     }
     Client::Kernel::WorldState m_world;
+    Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Crt::CrtRandom m_random{1};
     Client::Models::Skeleton m_skeleton;
 };
@@ -85,12 +87,12 @@ TEST_F(CharacterMotionStepTest, CooldownIsRetainedOffscreenAndDecrementedBeforeI
 {
     auto& actor = Actor();
     actor.movementCooldown = 2;
-    m_world.Runtime().terrainPolygon = {.x = {200.0f, 201.0f, 201.0f, 200.0f}, .y = {200.0f, 200.0f, 201.0f, 201.0f}};
-    ASSERT_FALSE(Client::Actors::CharacterSeen(m_world.Runtime().terrainPolygon, actor.position));
+    m_trapezoid = {.x = {200.0f, 201.0f, 201.0f, 200.0f}, .y = {200.0f, 200.0f, 201.0f, 201.0f}};
+    ASSERT_FALSE(Client::Actors::CharacterSeen(m_trapezoid, actor.position));
     const auto unseen = Step();
     ASSERT_TRUE(unseen.HasValue()) << (unseen.HasValue() ? "" : unseen.Error());
     EXPECT_EQ(actor.movementCooldown, 2);
-    m_world.Runtime().terrainPolygon.everything = true;
+    m_trapezoid.everything = true;
     const auto seen = Step();
     EXPECT_FALSE(seen.HasValue());
     EXPECT_EQ(actor.movementCooldown, 1);
@@ -119,7 +121,7 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
         Client::Kernel::WorldState world;
         world.Runtime().map = border.map;
         world.Runtime().hero = 0;
-        world.Runtime().terrainPolygon.everything = true;
+        const Client::Terrain::TerrainPolygon trapezoid{.everything = true};
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, border.map);
         ASSERT_TRUE(loaded.HasValue()) << (loaded.HasValue() ? "" : loaded.Error());
         world.Map().terrain = std::move(loaded).Value();
@@ -141,8 +143,8 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
         const auto original = actor.position;
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
         Client::Crt::CrtRandom random(1);
-        const auto stepped =
-            Client::Actors::StepCharacters({.world = world, .random = random, .playerSkeleton = &skeleton});
+        const auto stepped = Client::Actors::StepCharacters(
+            {.world = world, .random = random, .playerSkeleton = &skeleton, .trapezoid = &trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
         EXPECT_EQ(actor.cellX, actor.targetX);
         EXPECT_EQ(actor.cellY, actor.targetY);
@@ -160,10 +162,12 @@ TEST_F(CharacterMotionStepTest, WalkingHeroRequestsItsSoundWithoutStoppingTheWor
     actor.animation.action = 13;
     actor.animation.frame = 1.6f;
     std::vector<std::int32_t> sounds;
-    const auto stepped = Client::Actors::StepCharacters(
-        {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .soundRequest = [&](std::int32_t sound) {
-             sounds.push_back(sound);
-         }});
+    const auto stepped =
+        Client::Actors::StepCharacters({.world = m_world,
+                                        .random = m_random,
+                                        .playerSkeleton = &m_skeleton,
+                                        .soundRequest = [&](std::int32_t sound) { sounds.push_back(sound); },
+                                        .trapezoid = &m_trapezoid});
     ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
     EXPECT_EQ(sounds, (std::vector<std::int32_t>{9}));
     EXPECT_EQ(actor.firstFootstepSound, 1);

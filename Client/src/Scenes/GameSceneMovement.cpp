@@ -18,6 +18,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/GameLeaves.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -118,12 +119,12 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         view.map = static_cast<std::uint8_t>(world.Runtime().map);
         view.fixedHeight = CameraState().fixedHeight;
         if (auto swept =
-                Terrain::PickTerrain(m_picking, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+                Terrain::PickTerrain(m_picking, view, m_terrainRange, m_context.states->camera.trapezoid, *m_mouseRay);
             !swept.HasValue())
             return Core::Unexpected(std::move(swept).Error());
         Terrain::TerrainPickingTarget target;
         const auto picked = Terrain::PickTerrainTarget(m_picking, target, view, m_terrainRange,
-                                                       world.Runtime().terrainPolygon, *m_mouseRay);
+                                                       m_context.states->camera.trapezoid, *m_mouseRay);
         if (!picked.HasValue())
             return Core::Unexpected(picked.Error());
         if (!picked.Value())
@@ -158,7 +159,7 @@ Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::Gro
     view.fixedHeight = CameraState().fixedHeight;
     Terrain::TerrainPickingTarget target;
     const auto picked = Terrain::PickTerrainTarget(m_picking, target, view, m_terrainRange,
-                                                   world.Runtime().terrainPolygon, *m_mouseRay);
+                                                   m_context.states->camera.trapezoid, *m_mouseRay);
     if (!picked.HasValue())
         return Core::Unexpected(picked.Error());
     if (!picked.Value())

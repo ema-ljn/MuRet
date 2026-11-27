@@ -11,6 +11,7 @@
 #include "Audio/Music.h"
 #include "Audio/Playback.h"
 #include "App/ServerAddress.h"
+#include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
@@ -413,7 +414,7 @@ Camera::GameCameraInput& LoginScene::CameraInputState()
 
 Terrain::TerrainPolygon& LoginScene::SharedTerrainPolygon()
 {
-    return CharacterWorld().Runtime().terrainPolygon;
+    return m_context.states != nullptr ? m_context.states->camera.trapezoid : m_localTrapezoid;
 }
 
 Kernel::WorldState& LoginScene::CharacterWorld() const
@@ -861,7 +862,8 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          .counter = cloth.logicSteps,
          .soundRequest = [this](std::int32_t sound) { CharacterWorld().Runtime().RequestSound(sound); },
          .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
-         { CharacterWorld().Runtime().RequestSound(sound, origin); }});
+         { CharacterWorld().Runtime().RequestSound(sound, origin); },
+         .trapezoid = &SharedTerrainPolygon()});
 }
 
 void LoginScene::StepTheWorld()

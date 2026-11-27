@@ -405,7 +405,8 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .fixedHeight = resources.camera.fixedHeight,
         .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); },
         .soundAt = [&runtime](std::int32_t sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
-        .groundMarks = resources.states != nullptr ? &resources.states->terrain.groundMarks : nullptr};
+        .groundMarks = resources.states != nullptr ? &resources.states->terrain.groundMarks : nullptr,
+        .trapezoid = resources.states != nullptr ? &resources.states->camera.trapezoid : nullptr};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.

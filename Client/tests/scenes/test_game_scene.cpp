@@ -1230,7 +1230,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
                 models != nullptr ? models->pass : std::optional<Client::Render::Pass3D>{};
             target.Present();
             Drawn drawn{.pass = {},
-                        .polygon = world.Runtime().terrainPolygon,
+                        .polygon = states.camera.trapezoid,
                         .seen = SeenObjects(world),
                         .random = cloth.random.State()};
             if (pass)
@@ -1330,7 +1330,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         const Drawn leveled = draw(scene, target, at);
         EXPECT_EQ(camera.level, 2);
         EXPECT_EQ(camera.targetDistance, 1200.0f);
-        EXPECT_EQ(states.camera.terrainPolygon.effectiveLevel, 2);
+        EXPECT_EQ(states.camera.trapezoidLevel.effectiveLevel, 2);
         EXPECT_EQ(leveled.pass.farPlane, 2000.0f);
         EXPECT_EQ(leveled.pass.view, twin.pass.view);
         EXPECT_NE(leveled.polygon.x, twin.polygon.x);
@@ -1349,15 +1349,15 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         EXPECT_EQ(camera.targetDistance, 1000.0f);
         EXPECT_EQ(back.pass.farPlane, 2600.0f);
         EXPECT_GT(camera.distance, 1001.0f);
-        EXPECT_EQ(states.camera.terrainPolygon.effectiveLevel, 2);
+        EXPECT_EQ(states.camera.trapezoidLevel.effectiveLevel, 2);
         int frames = 1;
-        while (states.camera.terrainPolygon.effectiveLevel != 0 && frames < 30)
+        while (states.camera.trapezoidLevel.effectiveLevel != 0 && frames < 30)
         {
             at += FrameTime;
             static_cast<void>(draw(scene, target, at));
             ++frames;
         }
-        EXPECT_EQ(states.camera.terrainPolygon.effectiveLevel, 0);
+        EXPECT_EQ(states.camera.trapezoidLevel.effectiveLevel, 0);
         EXPECT_LT(camera.distance, 1001.0f);
         EXPECT_GT(frames, 5);
         scene.Leave();
@@ -1703,7 +1703,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
         MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
         const Client::Terrain::TerrainPolygon selection = SelectionPolygon();
-        world.Runtime().terrainPolygon = selection;
+        states.camera.trapezoid = selection;
         GameScene scene = Scene();
         ASSERT_TRUE(scene.Enter().HasValue());
         const std::uint16_t before = Cell(221, 11);
@@ -1734,7 +1734,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
                   Client::Pathfinding::CharacterWallBit);
         EXPECT_EQ(hero.seen, probe.seen);
         EXPECT_EQ(hero.safeZone, probe.safeZone);
-        EXPECT_EQ(world.Runtime().terrainPolygon.x, selection.x) << "el paso no escribe el trapecio";
+        EXPECT_EQ(states.camera.trapezoid.x, selection.x) << "el paso no escribe el trapecio";
         EXPECT_EQ(cloth.random.State(), reference.random.State());
 
         Client::Tests::RecordingFrameTarget target;
@@ -1754,7 +1754,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
             static_cast<void>(expected.Next());
         }
         EXPECT_EQ(cloth.random.State(), expected.State());
-        EXPECT_NE(world.Runtime().terrainPolygon.x, selection.x) << "el dibujo deja el trapecio del juego";
+        EXPECT_NE(states.camera.trapezoid.x, selection.x) << "el dibujo deja el trapecio del juego";
         scene.Leave();
     }
 }
@@ -1769,7 +1769,7 @@ TEST_F(GameSceneDrawTest, AnIntermediateDrawKeepsTheScanOfTheLastFrame)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 96, 126));
     MakeTheHeroAPlayer(95, 126);
-    world.Runtime().terrainPolygon = SelectionPolygon();
+    states.camera.trapezoid = SelectionPolygon();
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
@@ -1820,7 +1820,7 @@ TEST_F(GameSceneDrawTest, EachFrameStartCountsTheSkillDelaysDown)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 96, 126));
     MakeTheHeroAPlayer(95, 126);
-    world.Runtime().terrainPolygon = SelectionPolygon();
+    states.camera.trapezoid = SelectionPolygon();
     Client::Tests::FakeClock clock;
     clock.Advance(std::chrono::milliseconds{1000});
     GameScene scene(SceneContext{.dataRoot = m_dataRoot,
@@ -1898,7 +1898,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
         MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
-        world.Runtime().terrainPolygon = SelectionPolygon();
+        states.camera.trapezoid = SelectionPolygon();
         Client::Terrain::GroundMarkTable& marks = states.terrain.groundMarks;
         marks = {};
         const Client::Terrain::GroundMark blood{.live = true,
@@ -1948,8 +1948,8 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(2, 220, 76));
     MakeTheHeroAPlayer(220, 77);
-    ASSERT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{}));
-    ASSERT_EQ(world.Runtime().terrainPolygon.y, (std::array<float, 4>{}));
+    ASSERT_EQ(states.camera.trapezoid.x, (std::array<float, 4>{}));
+    ASSERT_EQ(states.camera.trapezoid.y, (std::array<float, 4>{}));
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
 

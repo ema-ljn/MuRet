@@ -89,6 +89,7 @@ namespace
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: on map 30 (0x1e), 0x412140 builds the siege panel.
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
+constexpr Terrain::TerrainPolygon BssTrapezoid{};
 
 // 0x4fd603: the type that passes its name and level to 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
@@ -1346,7 +1347,7 @@ Core::Expected<void, std::string> StepACharacter(Kernel::ActorState& actor, std:
     {
         return {};
     }
-    actor.seen = CharacterSeen(context.world.Runtime().terrainPolygon, actor.position);
+    actor.seen = CharacterSeen(context.trapezoid != nullptr ? *context.trapezoid : BssTrapezoid, actor.position);
     if (!hero)
     {
         if (auto other = StepOtherCharacter(actor, slot, context); !other.HasValue())
@@ -1420,7 +1421,7 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     Data::Terrain::TerrainLayer<std::uint16_t>& walls = terrain.attributes->cells;
     Pathfinding::ClearCharacterWalls(walls);
     // 0x5fba90 reads the globals of 0x78ecbf0 and 0x78ecc00: the trapezoid of the last drawing of any scene.
-    const Terrain::TerrainPolygon& polygon = runtime.terrainPolygon;
+    const Terrain::TerrainPolygon& polygon = context.trapezoid != nullptr ? *context.trapezoid : BssTrapezoid;
     const auto actors = world.Actors();
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {

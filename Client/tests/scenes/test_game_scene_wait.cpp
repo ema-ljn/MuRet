@@ -106,12 +106,12 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     const auto initialized = selection.InitializeSelection(m_dataRoot, cameraInput);
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     selection.DrawSelection(cameraInput);
-    world.Runtime().terrainPolygon = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect,
+    states.camera.trapezoid = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect,
                                                                        54, Client::Camera::SelectionCullingPoint,
                                                                        Client::Camera::SelectionCamera().angles.z);
     ASSERT_NE(online.session.ChosenCharacter(), nullptr);
     world.PrepareSelectedActor(*online.session.ChosenCharacter(), cloth.random);
-    const auto polygon = world.Runtime().terrainPolygon;
+    const auto polygon = states.camera.trapezoid;
     const auto* selectionTerrain = selection.Terrain();
     ASSERT_NE(selectionTerrain, nullptr);
     ASSERT_NE(selectionTerrain->heights, nullptr);
@@ -244,8 +244,8 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     EXPECT_EQ(selectionTerrain->attributes->cells[0], cellBefore | Client::Pathfinding::CharacterWallBit);
     EXPECT_EQ(selection.Terrain(), &world.Map().terrain);
     EXPECT_EQ(world.Runtime().map, 54);
-    EXPECT_EQ(world.Runtime().terrainPolygon.x, polygon.x);
-    EXPECT_EQ(world.Runtime().terrainPolygon.y, polygon.y);
+    EXPECT_EQ(states.camera.trapezoid.x, polygon.x);
+    EXPECT_EQ(states.camera.trapezoid.y, polygon.y);
     EXPECT_TRUE(manager.HoldsTheLastFrame());
     EXPECT_FALSE(game->MouseRay().has_value());
     ASSERT_EQ(target.frames.size(), 1u) << "GameLoop no llama BeginFrame/Present mientras se retiene";

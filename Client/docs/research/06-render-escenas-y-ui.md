@@ -10766,9 +10766,9 @@ escribió: en las escenas 2, 4 y 5, que son las que los escriben, prueba el trap
 .data del archivo, desde `0x6c6000`, trae `0x20000` bytes): arrancan en cero, un trapecio sin área en (0, 0)
 que deja pasar todo con margen negativo (Q-C217). Así, el paso de los personajes de cada escena lee el del
 último dibujo de cualquiera: el primero del login, los ceros o el de la escena de antes; el primero del
-juego después de la espera, el de la selección (Q-C216). En MuRet son `Kernel::WorldRuntime::terrainPolygon`
-y `Camera::CameraState::terrainPolygon`. Cada frame del original corre la cámara (`0x635ae0`) y detrás `0x5fbb00`, en par
-(`Scenes::StepTheTerrainPolygon`, en la selección y el juego); un dibujo intermedio de MuRet solo calcula con
+juego después de la espera, el de la selección (Q-C216). En MuRet son `Camera::CameraState::trapezoid`
+y `Camera::CameraState::trapezoidLevel`. Cada frame del original corre la cámara (`0x635ae0`) y detrás `0x5fbb00`, en par
+(`Camera::StepTheTerrainPolygon`, en la selección y el juego); un dibujo intermedio de MuRet solo calcula con
 el nivel que hay, sin escribir (`TerrainPolygonBetweenFrames`). El login escribe el trapecio del nivel 0 sin
 la transición: con el nivel pedido siempre en 0, da lo mismo ([08](08-pendientes.md) P-C41 d). El rango
 también es compartido ahora por `WorldState::DynamicLighting()`, que lo publica desde el dibujo de las

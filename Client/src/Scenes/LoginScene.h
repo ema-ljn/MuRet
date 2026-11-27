@@ -242,7 +242,7 @@ private:
 
     [[nodiscard]] Camera::GameCamera& CameraState();
     [[nodiscard]] Camera::GameCameraInput& CameraInputState();
-    // El trapecio global del último 0x5fb570 (WorldRuntime::terrainPolygon), el de cualquier escena.
+    // The global trapezoid of the last 0x5fb570 (Camera::CameraState::trapezoid), any scene's.
     [[nodiscard]] Terrain::TerrainPolygon& SharedTerrainPolygon();
     [[nodiscard]] Kernel::WorldState& CharacterWorld() const;
     [[nodiscard]] Models::ClothWorld& CharacterRandomWorld();
@@ -255,6 +255,7 @@ private:
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     Camera::GameCamera m_localCamera;
     Camera::GameCameraInput m_localCameraInput;
+    Terrain::TerrainPolygon m_localTrapezoid{};
     Models::OriginalFrameCarry m_cameraFrames;
     // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
     Models::OriginalFrameCarry m_objectEffectFrames;

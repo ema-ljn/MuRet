@@ -25,29 +25,27 @@ std::string DescribePolygonError(Terrain::TerrainPolygonError error)
 }
 } // namespace
 
-Core::Expected<Terrain::TerrainPolygon, std::string> StepTheTerrainPolygon(CameraState& state,
-                                                                           Terrain::TerrainPolygon& trapezoid,
-                                                                           const Terrain::TerrainPolygonInput& input,
-                                                                           const Camera::GameCamera& camera)
+Core::Expected<Terrain::TerrainPolygon, std::string>
+StepTheTerrainPolygon(CameraState& state, const Terrain::TerrainPolygonInput& input, const Camera::GameCamera& camera)
 {
     const Terrain::TerrainPolygonCameraInput cameraInput{.requestedLevel = static_cast<std::int16_t>(camera.level),
                                                          .distance = camera.distance,
                                                          .targetDistance = camera.targetDistance};
-    const auto frame = Terrain::TerrainPolygonFrameOf(state.terrainPolygon, input, cameraInput);
+    const auto frame = Terrain::TerrainPolygonFrameOf(state.trapezoidLevel, input, cameraInput);
     if (!frame.HasValue())
     {
         return Core::Unexpected(DescribePolygonError(frame.Error()));
     }
     // 0x5fb731 and 0x5fba55..0x5fba68: the level and the trapezoid, in the globals the three scenes read.
-    state.terrainPolygon = frame.Value().nextState;
-    trapezoid = frame.Value().polygon;
+    state.trapezoidLevel = frame.Value().nextState;
+    state.trapezoid = frame.Value().polygon;
     return frame.Value().polygon;
 }
 
 Core::Expected<Terrain::TerrainPolygon, std::string>
 TerrainPolygonBetweenFrames(const CameraState& state, const Terrain::TerrainPolygonInput& input)
 {
-    const auto polygon = Terrain::TerrainPolygonOf(input, state.terrainPolygon.effectiveLevel);
+    const auto polygon = Terrain::TerrainPolygonOf(input, state.trapezoidLevel.effectiveLevel);
     if (!polygon.HasValue())
     {
         return Core::Unexpected(DescribePolygonError(polygon.Error()));

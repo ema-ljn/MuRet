@@ -1195,8 +1195,8 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         target.Present();
         ASSERT_EQ(selection.Failure(), std::nullopt);
         selection.Leave();
-        ASSERT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x);
-        ASSERT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
+        ASSERT_EQ(tested.states.camera.trapezoid.x, selected.x);
+        ASSERT_EQ(tested.states.camera.trapezoid.y, selected.y);
         const Client::Tables::ItemSetTables sets = NoSets();
         WorldEntryResources resources = tested.Resources();
         resources.itemSetTables = &sets;
@@ -1204,8 +1204,8 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         const auto entered =
             ApplyWorldEntry(ReplyAt(probe.map, probe.firstX, probe.firstY, 0), PlayerKey, resources, publisher);
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
-        EXPECT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x) << "la entrada no toca el trapecio";
-        EXPECT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
+        EXPECT_EQ(tested.states.camera.trapezoid.x, selected.x) << "la entrada no toca el trapecio";
+        EXPECT_EQ(tested.states.camera.trapezoid.y, selected.y);
         // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
         tested.world.Runtime().drawingEnabled = true;
         CompleteFrameResources frameResources;

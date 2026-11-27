@@ -82,8 +82,6 @@ struct LogicalCell
 
 struct CharacterStepContext
 {
-    // With the global trapezoid the last 0x5fb570 left (WorldRuntime::terrainPolygon): before the game's first
-    // drawing, that of the selection's last drawing (Q-C216).
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
     // DAT_006d5dc8: the selection (4) decides the end of the animation with the frame + 2 (Q-C21), and the 0x607
@@ -139,6 +137,9 @@ struct CharacterStepContext
     // The ground marks (Terrain::TerrainState::groundMarks) the remains (0x52e96c) and the 0x182 (0x507486) add to.
     // nullptr: whoever adds one stops there.
     Terrain::GroundMarkTable* groundMarks = nullptr;
+    // The global trapezoid the last 0x5fb570 left (Camera::CameraState::trapezoid): before the game's first drawing,
+    // that of the selection's last drawing (Q-C216). nullptr: the .bss's zeros, as before any 0x5fb570.
+    const Terrain::TerrainPolygon* trapezoid = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

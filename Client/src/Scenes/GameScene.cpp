@@ -959,7 +959,7 @@ Core::Expected<Terrain::TerrainPolygon, std::string> GameScene::PolygonOfTheFram
                                                                                   const glm::vec3& target,
                                                                                   std::int32_t worldWidth, int frames)
 {
-    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
+    const Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     Terrain::TerrainPolygonInput input;
     input.scene = static_cast<std::int32_t>(Terrain::CullingScene::Game);
     input.map = runtime.map;
@@ -975,7 +975,7 @@ Core::Expected<Terrain::TerrainPolygon, std::string> GameScene::PolygonOfTheFram
         return Camera::TerrainPolygonBetweenFrames(m_context.states->camera, input);
     }
     // El nivel pedido (0x7d3a0ec), la D (0x7d36ba4) y la meta (0x6d5ee0) que dejó la cámara del frame.
-    return Camera::StepTheTerrainPolygon(m_context.states->camera, runtime.terrainPolygon, input, CameraState());
+    return Camera::StepTheTerrainPolygon(m_context.states->camera, input, CameraState());
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,

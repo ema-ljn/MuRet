@@ -519,7 +519,8 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); },
             .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
             { m_context.world->Runtime().RequestSound(sound, origin); },
-            .groundMarks = m_context.states != nullptr ? &m_context.states->terrain.groundMarks : nullptr};
+            .groundMarks = m_context.states != nullptr ? &m_context.states->terrain.groundMarks : nullptr,
+            .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -1220,9 +1221,8 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const Camera
         {
             continue;
         }
-        auto polygon =
-            Camera::StepTheTerrainPolygon(m_context.states->camera, m_context.world->Runtime().terrainPolygon,
-                                          SelectionPolygonInput(input, camera), CameraState());
+        auto polygon = Camera::StepTheTerrainPolygon(m_context.states->camera, SelectionPolygonInput(input, camera),
+                                                     CameraState());
         if (!polygon.HasValue())
         {
             m_failure = polygon.Error();
@@ -1534,7 +1534,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             .systemTime = [systemTime = static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
             { return systemTime; },
-            .globalPose = [&]() { return std::span<const Math::BoneTransform>(poseCarry->bones); }});
+            .globalPose = [&]() { return std::span<const Math::BoneTransform>(poseCarry->bones); },
+            .trapezoid = &m_context.states->camera.trapezoid});
         !drawn.HasValue())
     {
         m_failure = "0x63486a → " + drawn.Error();

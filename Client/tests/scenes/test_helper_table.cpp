@@ -351,7 +351,8 @@ public:
                                  .particles = &world.Particles(),
                                  .systemTime = []() { return FenrirHour; },
                                  .globalPose = [this]()
-                                 { return std::span<const Client::Math::BoneTransform>(world.PoseCarry().bones); }};
+                                 { return std::span<const Client::Math::BoneTransform>(world.PoseCarry().bones); },
+                                 .trapezoid = &trapezoid};
     }
 
     // El timeGetTime() que ve el dibujo de los Fenrir.
@@ -360,7 +361,7 @@ public:
     Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
                                                    bool originalFrame = true, SceneId scene = SceneId::Game)
     {
-        world.Runtime().terrainPolygon = polygon;
+        trapezoid = polygon;
         batch.Begin(Client::Render::Pass3D{});
         return DrawHelpers(DrawContext(batch, originalFrame, scene));
     }
@@ -387,6 +388,8 @@ public:
     // La luz del terreno (0x5ffce0), (0,25; 0,5; 0,75) en cada celda, y los sprites del frame (0x5491e0).
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = UniformLighting();
     Client::World::FrameSprites sprites;
+    // The global trapezoid that 0x5fba90 reads (Camera::CameraState::trapezoid).
+    TerrainPolygon trapezoid{};
 
 private:
     static std::unique_ptr<Client::Terrain::TerrainLighting> UniformLighting()
@@ -815,10 +818,14 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
     const HorseModels& models = tested.models;
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
     tested.Horse().horse.alpha = 1.0f;
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    HelperDrawContext context{.batch = batch, .models = models, .world = tested.world, .random = tested.random};
+    HelperDrawContext context{.batch = batch,
+                              .models = models,
+                              .world = tested.world,
+                              .random = tested.random,
+                              .trapezoid = &tested.trapezoid};
     context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(tested.world.PoseCarry(), models, object, true); };
     ASSERT_TRUE(DrawHelpers(context).HasValue());
@@ -1528,10 +1535,14 @@ TEST(HelperTableTest, OnlyTheOriginalHorseDrawPublishesItsPoseToTheNextFrame)
     HelperWorld tested;
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
     tested.Horse().horse.alpha = 1.0f;
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
     ModelBatch batch;
     int publications = 0;
-    HelperDrawContext context{.batch = batch, .models = tested.models, .world = tested.world, .random = tested.random};
+    HelperDrawContext context{.batch = batch,
+                              .models = tested.models,
+                              .world = tested.world,
+                              .random = tested.random,
+                              .trapezoid = &tested.trapezoid};
     context.onPose =
         [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
     {
@@ -1656,7 +1667,7 @@ TEST(HelperTableTest, TheRidersFlag4000DrawsEveryHelperAsAChromeShell)
         }
         tested.Horse().horse.alpha = 1.0f;
         tested.Rider().flags78 = 0x4000;
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         const CrtRandom before = tested.random;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
@@ -1722,7 +1733,7 @@ TEST(HelperTableTest, InTheSiegeTheFlag4000HidesTheHelperOfAnotherRiderUnlessIts
         {
             tested.world.Runtime().hero = OtherSlot;
         }
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         HelperDrawContext context = tested.DrawContext(batch);
@@ -2013,7 +2024,7 @@ TEST(HelperTableTest, TheLetterPortraitHelperIsAlwaysSeenAndDrawnAtItsOwnScale)
             const auto built = ConstructHelper(helper, type, rider.position, rider, ActorPoolSize, map, nullptr);
             ASSERT_TRUE(built.HasValue()) << built.Error();
             helper.horse.alpha = 1.0f;
-            tested.world.Runtime().terrainPolygon =
+            tested.trapezoid =
                 Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, CellCentre(200, 200), -45.0f);
             ModelBatch batch;
             batch.Begin(Client::Render::Pass3D{});
@@ -2359,7 +2370,7 @@ TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
         ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
         EXPECT_FLOAT_EQ(tested.Horse().scale, 0.9f);
         tested.Horse().horse.alpha = 1.0f;
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         std::vector<Client::Actors::Drawing::DrawnObject> posed;
@@ -2443,7 +2454,7 @@ TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
         EXPECT_EQ(tested.Horse().position, glm::vec3(9835.0f, 9829.0f, 360.0f));
         tested.Rider().type = 0x100;
         tested.Horse().horse.alpha = alpha;
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         std::vector<Client::Actors::Drawing::DrawnObject> posed;
@@ -2494,7 +2505,7 @@ TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
         tested.Horse().horse.alpha = 1.0f;
         tested.Horse().horse.animation.action = 4;
         tested.PoseTheGlobalBones(60);
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         HelperDrawContext context = tested.DrawContext(batch);
@@ -2524,7 +2535,7 @@ TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
     HelperWorld angel;
     ASSERT_NO_FATAL_FAILURE(angel.Ride(GuardianAngelModel));
     angel.Horse().horse.alpha = 0.0f;
-    angel.world.Runtime().terrainPolygon = Everything;
+    angel.trapezoid = Everything;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     HelperDrawContext context = angel.DrawContext(batch);

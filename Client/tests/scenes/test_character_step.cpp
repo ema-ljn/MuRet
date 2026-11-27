@@ -339,18 +339,22 @@ struct GameWorld
         Cell(5, 6) = 8;
     }
 
-    // Con `polygon` en el global que deja el último 0x5fb570 (WorldRuntime::terrainPolygon).
+    // Con `polygon` en el global que deja el último 0x5fb570 (Camera::CameraState::trapezoid).
     Client::Core::Expected<void, std::string> Step(const TerrainPolygon& polygon, SceneId scene = SceneId::Game)
     {
-        world.Runtime().terrainPolygon = polygon;
+        trapezoid = polygon;
         return Step(scene);
     }
 
     // Con el global como esté.
     Client::Core::Expected<void, std::string> Step(SceneId scene = SceneId::Game)
     {
-        return StepCharacters(CharacterStepContext{
-            .world = world, .random = random, .scene = scene, .playerSkeleton = player, .groundMarks = &marks});
+        return StepCharacters(CharacterStepContext{.world = world,
+                                                   .random = random,
+                                                   .scene = scene,
+                                                   .playerSkeleton = player,
+                                                   .groundMarks = &marks,
+                                                   .trapezoid = &trapezoid});
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -362,6 +366,7 @@ struct GameWorld
     Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     const Skeleton* player = &skeleton;
     Client::Terrain::GroundMarkTable marks{};
+    TerrainPolygon trapezoid{};
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -396,13 +401,14 @@ TEST(CharacterStepTest, FullJointsKeepTheBoneEmitterSelectorsAndDecrementItsByte
         tested.skeleton.bones[2].parent = -1;
         tested.skeleton.bones[3].parent = 5; // Fuera del modelo.
         tested.skeleton.bones[4].parent = 0;
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         for (auto& joint : tested.world.DrawTail().joints)
             joint.alive = true;
         const auto stepped = StepCharacters({.world = tested.world,
                                              .random = tested.random,
                                              .playerSkeleton = &tested.skeleton,
-                                             .joints = tested.world.DrawTail().joints});
+                                             .joints = tested.world.DrawTail().joints,
+                                             .trapezoid = &tested.trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.Hero().byte1a0, map == 30 ? 35 : 34);
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + (map == 30 ? 0 : 12)).State());
@@ -418,14 +424,15 @@ TEST(CharacterStepTest, TheFlareSkillActionUsesTheExistingParticleAndSkipsItsFul
         tested.Hero().animation.action = 0x4d;
         tested.Hero().animation.frame = 6.0f;
         tested.Hero().animation.previousAction = 0x4d;
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         if (full)
             for (auto& particle : tested.world.Particles().All())
                 particle.alive = true;
         const auto stepped = StepCharacters({.world = tested.world,
                                              .random = tested.random,
                                              .playerSkeleton = &tested.skeleton,
-                                             .particles = &tested.world.Particles()});
+                                             .particles = &tested.world.Particles(),
+                                             .trapezoid = &tested.trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(),
                   Client::Tests::AfterDraws(Seed, SeenHeroDraws + TrailDraws + (full ? 0 : 3)).State());
@@ -451,7 +458,7 @@ TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudge
         tested.Hero().byte1bc = 1;
         tested.skeleton.bones.resize(5);
         tested.skeleton.bones[2].dummy = true;
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         for (auto& joint : tested.world.DrawTail().joints)
             joint.alive = true;
         if (full)
@@ -461,7 +468,8 @@ TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudge
                                              .random = tested.random,
                                              .playerSkeleton = &tested.skeleton,
                                              .particles = &tested.world.Particles(),
-                                             .joints = tested.world.DrawTail().joints});
+                                             .joints = tested.world.DrawTail().joints,
+                                             .trapezoid = &tested.trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 6 + (full ? 0 : 12)).State());
         if (!full)
@@ -510,11 +518,12 @@ TEST(CharacterStepTest, TheChargedSkillReleasesThreeEnergyJointsWithTheirRandoms
         hero.animation.action = action;
         hero.animation.previousAction = action;
         hero.position = {1000.0f, 2000.0f, 300.0f};
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         const auto stepped = StepCharacters({.world = tested.world,
                                              .random = tested.random,
                                              .playerSkeleton = &tested.skeleton,
-                                             .joints = tested.world.DrawTail().joints});
+                                             .joints = tested.world.DrawTail().joints,
+                                             .trapezoid = &tested.trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 9).State());
         const auto& joints = tested.world.DrawTail().joints;
@@ -548,14 +557,15 @@ TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoice
         tested.Hero().animation.action = 0x96;
         tested.Hero().animation.previousAction = 0x96;
         tested.skeleton.bones.resize(3);
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         if (full)
             for (auto& particle : tested.world.Particles().All())
                 particle.alive = true;
         const auto stepped = StepCharacters({.world = tested.world,
                                              .random = tested.random,
                                              .playerSkeleton = &tested.skeleton,
-                                             .particles = &tested.world.Particles()});
+                                             .particles = &tested.world.Particles(),
+                                             .trapezoid = &tested.trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         // 506f7a selector y 541189/5411ce/5413ef, tres del constructor5d9/0 si hay hueco.
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 10 * (full ? 1 : 4)).State());
@@ -574,7 +584,7 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
     GameWorld tested;
     tested.Hero().alive = false;
     ActorState& actor = tested.Other(2);
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
     tested.world.Map().terrain.attributes.reset();
     Client::Terrain::WorldTerrain sceneTerrain;
     sceneTerrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -585,7 +595,8 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
                                          .random = tested.random,
                                          .scene = SceneId::Login,
                                          .playerSkeleton = tested.player,
-                                         .terrain = &sceneTerrain});
+                                         .terrain = &sceneTerrain,
+                                         .trapezoid = &tested.trapezoid});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.safeZone, 1);
@@ -601,7 +612,7 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
     actor.position = {10603.0f, 14112.0f, 580.0f};
     actor.darkSpirit.emplace();
     actor.darkSpirit->position = {50.0f, 50.0f, 300.0f};
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
     Skeleton raven;
     raven.actions.resize(4);
     Client::World::Particles particles;
@@ -611,7 +622,8 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
                                          .scene = SceneId::Login,
                                          .playerSkeleton = tested.player,
                                          .darkSpiritSkeleton = &raven,
-                                         .particles = &particles});
+                                         .particles = &particles,
+                                         .trapezoid = &tested.trapezoid});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     // 8 paredes + 8 del otro + 1 cuerpo + 7 cuervo + 8 celda + 1 cabeza + 1 sufijo.
@@ -643,13 +655,14 @@ TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
     Skeleton raven;
     raven.actions.resize(4);
     Client::World::Particles particles;
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
 
     const auto stepped = StepCharacters({.world = tested.world,
                                          .random = tested.random,
                                          .playerSkeleton = tested.player,
                                          .darkSpiritSkeleton = &raven,
-                                         .particles = &particles});
+                                         .particles = &particles,
+                                         .trapezoid = &tested.trapezoid});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
@@ -685,7 +698,7 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
                 Skeleton raven;
                 raven.actions.resize(4);
                 Client::World::Particles particles;
-                tested.world.Runtime().terrainPolygon = Everything;
+                tested.trapezoid = Everything;
                 std::vector<Client::Protocol::Outgoing> sent;
                 const auto stepped = StepCharacters(
                     {.world = tested.world,
@@ -694,7 +707,8 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
                      .playerSkeleton = tested.player,
                      .darkSpiritSkeleton = &raven,
                      .particles = &particles,
-                     .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+                     .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
+                     .trapezoid = &tested.trapezoid});
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
                 if (flags == 0)
                 {
@@ -728,7 +742,7 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
     Skeleton raven;
     raven.actions.resize(4);
     Client::World::Particles particles;
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
     std::vector<Client::Protocol::Outgoing> sent;
     const auto stepped =
         StepCharacters({.world = tested.world,
@@ -737,7 +751,8 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
                         .playerSkeleton = tested.player,
                         .darkSpiritSkeleton = &raven,
                         .particles = &particles,
-                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
+                        .trapezoid = &tested.trapezoid});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(actor.darkSpirit->state, 6);
@@ -750,7 +765,8 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
                         .playerSkeleton = tested.player,
                         .darkSpiritSkeleton = &raven,
                         .particles = &particles,
-                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
+                        .trapezoid = &tested.trapezoid});
     ASSERT_TRUE(hidden.HasValue()) << hidden.Error();
     EXPECT_EQ(sent.size(), 1u);
 }
@@ -1066,9 +1082,9 @@ TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
 TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
 {
     GameWorld tested;
-    ASSERT_EQ(tested.world.Runtime().terrainPolygon.x, (std::array<float, 4>{}));
-    ASSERT_EQ(tested.world.Runtime().terrainPolygon.y, (std::array<float, 4>{}));
-    ASSERT_FALSE(tested.world.Runtime().terrainPolygon.everything);
+    ASSERT_EQ(tested.trapezoid.x, (std::array<float, 4>{}));
+    ASSERT_EQ(tested.trapezoid.y, (std::array<float, 4>{}));
+    ASSERT_FALSE(tested.trapezoid.everything);
     tested.Hero().position = CellCentre(250, 3);
     tested.world.Actors()[0].position = CellCentre(7, 200);
 
@@ -1618,14 +1634,15 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                                    .random = tested.random,
                                                    .scene = SceneId::Game,
                                                    .playerSkeleton = tested.player,
-                                                   .worldClock = clock});
+                                                   .worldClock = clock,
+                                                   .trapezoid = &tested.trapezoid});
     };
     {
         SCOPED_TRACE("otra celda");
         GameWorld moved(18);
         moved.Hero().cellX = 5;
         moved.Hero().cellY = 6;
-        moved.world.Runtime().terrainPolygon = Everything;
+        moved.trapezoid = Everything;
         const auto stepped = step(moved, 1234.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(moved.world.Runtime().reportedCellX, 5);
@@ -1638,7 +1655,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         GameWorld waiting(18);
         waiting.StandOnTheReportedCell(18);
         waiting.world.Runtime().reportedCellTime = 0.0f;
-        waiting.world.Runtime().terrainPolygon = Everything;
+        waiting.trapezoid = Everything;
         const auto stepped = step(waiting, 9999.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(waiting.world.Runtime().reportedCellTime, 0.0f);
@@ -1650,7 +1667,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         still.StandOnTheReportedCell(18);
         still.Cell(5, 6) = 0;
         still.world.Runtime().reportedCellTime = 0.0f;
-        still.world.Runtime().terrainPolygon = Everything;
+        still.trapezoid = Everything;
         const auto stepped = step(still, 10000.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(still.world.Runtime().reportedCellTime, 10000.0f);
@@ -1663,7 +1680,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         GameWorld reported(map);
         reported.StandOnTheReportedCell(map);
         reported.world.Runtime().reportedCellTime = 0.0f;
-        reported.world.Runtime().terrainPolygon = Everything;
+        reported.trapezoid = Everything;
         std::vector<std::pair<std::uint8_t, std::uint8_t>> sent;
         const auto stepped = StepCharacters(
             CharacterStepContext{.world = reported.world,
@@ -1676,7 +1693,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                  {
                                      sent.emplace_back(x, y);
                                      return {};
-                                 }});
+                                 },
+                                 .trapezoid = &reported.trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{std::uint8_t{5}, std::uint8_t{6}}));
@@ -1688,7 +1706,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         GameWorld failing(18);
         failing.StandOnTheReportedCell(18);
         failing.world.Runtime().reportedCellTime = 0.0f;
-        failing.world.Runtime().terrainPolygon = Everything;
+        failing.trapezoid = Everything;
         const auto stepped = StepCharacters(CharacterStepContext{
             .world = failing.world,
             .random = failing.random,
@@ -1696,7 +1714,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
             .playerSkeleton = failing.player,
             .worldClock = 10000.0f,
             .sendChaosCastleReposition = [](std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
-            { return Client::Core::Unexpected(std::string("el GameServer no está abierto")); }});
+            { return Client::Core::Unexpected(std::string("el GameServer no está abierto")); },
+            .trapezoid = &failing.trapezoid});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find("GameServer"), std::string::npos) << stepped.Error();
         EXPECT_EQ(failing.world.Runtime().reportedCellTime, 10000.0f);
@@ -2234,14 +2253,19 @@ struct SceneCharacters
 
     Client::Core::Expected<void, std::string> Step(SceneId scene)
     {
-        return StepCharacters(CharacterStepContext{
-            .world = world, .random = random, .scene = scene, .playerSkeleton = &skeleton, .items = items});
+        return StepCharacters(CharacterStepContext{.world = world,
+                                                   .random = random,
+                                                   .scene = scene,
+                                                   .playerSkeleton = &skeleton,
+                                                   .items = items,
+                                                   .trapezoid = &trapezoid});
     }
 
     WorldState world;
     CrtRandom random{Seed};
     Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     const Client::Tables::ItemTable* items = nullptr;
+    TerrainPolygon trapezoid{};
 };
 
 // El trapecio que deja el dibujo de la selección (0x63475c), el de su punto fijo.
@@ -2267,7 +2291,7 @@ TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
     SceneCharacters tested(m_dataRoot, SelectionMap, 0);
     tested.items = &items->table;
     tested.PlaceTheFiveSlots();
-    tested.world.Runtime().terrainPolygon = SelectionPolygon();
+    tested.trapezoid = SelectionPolygon();
     CrtRandom expected(Seed);
     std::array<CharacterHead, Client::Scenes::CharacterSlots.size()> heads{};
     int sorted = 0;
@@ -2302,7 +2326,7 @@ TEST_F(GoldenCharacterStep, WithoutItemBmdTheSelectionHeroStopsAtItsWings)
 {
     SceneCharacters tested(m_dataRoot, SelectionMap, 0);
     tested.PlaceTheFiveSlots();
-    tested.world.Runtime().terrainPolygon = SelectionPolygon();
+    tested.trapezoid = SelectionPolygon();
 
     const auto stepped = tested.Step(SceneId::CharacterSelect);
 
@@ -2320,7 +2344,7 @@ TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
     constexpr int Steps = 64;
     SceneCharacters tested(m_dataRoot, SelectionMap, 42);
     tested.PlaceTheFiveSlots();
-    tested.world.Runtime().terrainPolygon = SelectionPolygon();
+    tested.trapezoid = SelectionPolygon();
     CrtRandom expected(Seed);
     std::array<CharacterHead, Client::Scenes::CharacterSlots.size()> heads{};
     int sorted = 0;
@@ -2444,7 +2468,7 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
             head = Client::Math::BoneTransform(1.0f);
             head[3] = glm::vec3(5.0f, 6.0f, 7.0f);
         }
-        tested.world.Runtime().terrainPolygon = Everything;
+        tested.trapezoid = Everything;
         Client::World::Particles particles;
 
         const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
@@ -2452,7 +2476,8 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
                                                                  .scene = SceneId::Game,
                                                                  .playerSkeleton = tested.player,
                                                                  .particles = &particles,
-                                                                 .worldClock = probe.clock});
+                                                                 .worldClock = probe.clock,
+                                                                 .trapezoid = &tested.trapezoid});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const Client::World::Particle& bubble = particles.All()[0];
@@ -2499,14 +2524,15 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
             hero.bodyPose[26][3] = glm::vec3(5.0f, 6.0f, 7.0f);
             hero.bodyPose[35] = Client::Math::BoneTransform(1.0f);
             hero.bodyPose[35][3] = glm::vec3(1.0f, 2.0f, 3.0f);
-            tested.world.Runtime().terrainPolygon = Everything;
+            tested.trapezoid = Everything;
             Client::World::Particles particles;
 
             const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
                                                                      .random = tested.random,
                                                                      .scene = SceneId::Game,
                                                                      .playerSkeleton = tested.player,
-                                                                     .particles = pooled ? &particles : nullptr});
+                                                                     .particles = pooled ? &particles : nullptr,
+                                                                     .trapezoid = &tested.trapezoid});
 
             CrtRandom oracle(seed);
             Skip(oracle, SeenHeroDraws);
@@ -2589,10 +2615,13 @@ TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
 {
     GameWorld tested(24);
     tested.Hero().animation.action = 0x15;
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
     Client::World::Particles particles;
-    const auto stepped = StepCharacters(
-        {.world = tested.world, .random = tested.random, .playerSkeleton = tested.player, .particles = &particles});
+    const auto stepped = StepCharacters({.world = tested.world,
+                                         .random = tested.random,
+                                         .playerSkeleton = tested.player,
+                                         .particles = &particles,
+                                         .trapezoid = &tested.trapezoid});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto& p = particles.All()[0];
     ASSERT_TRUE(p.alive);
@@ -2628,13 +2657,14 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
     Skeleton raven;
     raven.actions.resize(4);
     Client::World::Particles particles;
-    tested.world.Runtime().terrainPolygon = Everything;
+    tested.trapezoid = Everything;
 
     const auto stepped = StepCharacters({.world = tested.world,
                                          .random = tested.random,
                                          .playerSkeleton = tested.player,
                                          .darkSpiritSkeleton = &raven,
-                                         .particles = &particles});
+                                         .particles = &particles,
+                                         .trapezoid = &tested.trapezoid});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);

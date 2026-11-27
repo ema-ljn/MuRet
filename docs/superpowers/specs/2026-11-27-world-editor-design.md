@@ -97,10 +97,10 @@ of 256 × 256 cells, cell `(x, y)` at `y * 256 + x`, plus rows in the server's f
 | File | Holds | Original reader | MuRet reader | Original writer (in `main.exe`) |
 | --- | --- | --- | --- | --- |
 | `EncTerrain<N>.map` | tile layer 1, tile layer 2, blend alpha (`0x30002` bytes, K16) | `0x5f87b0` | `engine/Data/Terrain/TerrainMapping` | `0x5f8960` (writes `0x30002`, K16) |
-| `EncTerrain<N>.att` | attributes per cell, 1 or 2 bytes (`0x10004` or `0x20004`, XOR3 + K16) | `0x5f8390` | `TerrainAttributes` | `0x5f8690` (writes `0x10004`) |
-| `EncTerrain<N>.obj` | objects: type (int16), position, angle (3 floats each), scale; 30 bytes each (K16) | `0x607370` | `TerrainObjects` | not located yet |
+| `EncTerrain<N>.att` | attributes per cell, 1 or 2 bytes (`0x10004` or `0x20004`, XOR3 + K16) | `0x5f8390` | `TerrainAttributes` | `0x5f8690` (the loose `Terrain.att`: the header and the first `0x10000` bytes of its WORD table, unencrypted, Q-C1831) |
+| `EncTerrain<N>.obj` | objects: type (int16), position, angle (3 floats each), scale; 30 bytes each (K16) | `0x607370` | `TerrainObjects` | `0x607540` (by sector; its count includes deleted objects, Q-C1830) |
 | `TerrainHeight.OZB` | heights, a 256 × 256 grayscale BMP after 4 bytes | `0x5f9020` | `TerrainHeights` | `0x5f92b0` (a development tool) |
-| `TerrainLight.OZJ` | base light, a JPEG after 24 bytes | `0x63b490` | `TerrainLight` | the OZJ/OZT exporter `0x63b280` |
+| `TerrainLight.OZJ` | base light, a JPEG after 24 bytes | `0x63b490` | `TerrainLight` | `0x5f8f60` (JPEG through `0x63b150`, quality 100) and `0x63b280` (the prefix) |
 | `Tile*.OZJ/OZT` | the tile textures | the texture loaders | `Data/Textures` | `0x63b280` |
 | `Object<N>\Object<k>.bmd` | the world's 160 object models (`k` from 1 to 160; Lorencia names its 112) | `0x616ec0` | `game/Assets/WorldModels` | — |
 
@@ -281,14 +281,20 @@ Two promises, each with its tests:
    bytes of the OZB, the BMP header the original copies and ignores, the 24 bytes before the OZJ's JPEG, the comments
    of the server's text files) keeps it in the document.
 2. **Edits follow the original's writer.** A changed file is written as the original's saver writes it (`0x5f8960`,
-   `0x5f8690`, `0x5f92b0`, `0x63b280`): sizes, headers, the world byte, the encryption. Where the original's writer is
-   not located (`.obj`), the layout is the reader's, and the plan says so. The original's `.att` saver writes one
-   byte per cell (`0x10004`); a world whose file has two (`0x20004`: in `Client/assets/Data`, World1 and World31
-   on) keeps its own layout.
+   `0x5f8690`, `0x607540`, `0x5f92b0`, `0x63b280`): sizes, headers, the world byte, the encryption. Two exceptions,
+   from the stage 1 plan (`docs/superpowers/plans/2026-11-27-world-editor-stage-1.md`, decisions 4 and 5): the
+   `.att` saver writes the loose file unencrypted, and as its cells the first `0x10000` bytes of its WORD table
+   (Q-C1831), so the editor writes the layout the loader reads (the header and one byte per cell, `0x10004`) and
+   encrypts it as the loader decrypts it (XOR3, then K16); and the `.obj` saver writes by sector and counts deleted
+   objects too, so the editor keeps the document's order and writes the real count. A file with two bytes per cell
+   (`0x20004`: in `Client/assets/Data`, World1, World3's test copy and World31 on) keeps its own layout and its high
+   bytes.
 
 An unchanged layer is never re-encoded. This matters for `TerrainLight.OZJ`: a JPEG re-encoded is not the same file,
-so the light is written only when it was painted, with the original exporter's JPEG settings (`engine/Data/Textures/
-JpegWriter`).
+so the light is written only when it was painted. Measured on 2026-11-27 (stage 1 plan, "Findings"): only 7 of the
+19 shipped lights look like the exporter's output (`0x5f8f60` through `0x63b150`: quality 100, 4:2:0), and one
+re-encode with those settings changes pixels nobody painted, by up to 174 levels in World25. How a painted light is
+encoded is decided with Emanuel in stage 6's plan, with those numbers.
 
 ### What the editor edits
 
@@ -436,8 +442,9 @@ Not designed here; what stage A leaves ready:
 
 One PR or a milestone block each, each with its plan in `docs/superpowers/plans/` and Emanuel's yes before code:
 
-1. **Write the world's client files:** writers beside the readers, `EncryptK16`, and the round trip of every world in
-   `Client/assets/Data`. No editor yet.
+1. **Write the world's client files:** readers and writers of the whole `.map`, `.att`, `.obj` and `TerrainHeight.OZB`
+   beside the loaders, `EncryptK16`, and the round trip of every one of them in `Client/assets/Data`. No editor yet.
+   The light has no code there: an unpainted one is copied as it is, and its encoder is stage 6's.
 2. **The server's files:** `editor/ServerData` (`Terrain<N>.att`, `MonsterSetBase.txt`, `gate.txt`, `Monster.txt`),
    the `Gate.bmd` writer, the map of the client's attribute bits to the server's, and their round trip. The clean
    copy's map files (those four kinds, nothing else of the folder: it also holds addresses and configuration) go into
@@ -449,13 +456,11 @@ One PR or a milestone block each, each with its plan in `docs/superpowers/plans/
    minimap, the browser, the inspector, problems and history, and editing end to end on the minimap.
 5. **The 3D view:** the GL table fed by Qt, the terrain and the objects drawn by the engine, the camera, picking, the
    brush on the ground and the overlays; every tool in 3D.
-6. **The world alive and the details:** the per-map behavior (after AR4.3), the light brush, thumbnails, the path
-   preview, and the VM check that closes stage A.
+6. **The world alive and the details:** the per-map behavior (after AR4.3), the light brush and the light's encoder,
+   thumbnails, the path preview, and the VM check that closes stage A.
 
 ## Left to the builder
 
-- Locating the original's `.obj` writer (or confirming there is none) and the JPEG settings of `0x63b280`, in the
-  research repo.
 - Where exactly the GL table and its loader go if they leave `Platform/Sdl` (its own PR, with Emanuel's yes).
 - The extraction of "draw a world without a session" from `GameScene`, agreed with the AR4/AR5 plans.
 - `MonsterSetBase.txt`'s sections and their row shapes, keeping every comment and blank line of the file.

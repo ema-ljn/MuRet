@@ -17,6 +17,7 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Assets/FaunaModels.h"
 
 #include <array>
 #include <cstddef>
@@ -116,17 +117,17 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
         actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
-    const ActorStopContext context{.runtime = resources.world.Runtime(),
-                                   .scene = Scenes::SceneId::Game,
-                                   .playerSkeleton = *playerSkeleton,
-                                   .items = resources.items,
-                                   .random = resources.cloth.random,
-                                   .terrainWalls = Scenes::TerrainOf(resources).attributes
-                                                       ? &Scenes::TerrainOf(resources).attributes->cells
-                                                       : nullptr,
-                                   .sendAction = sendAction,
-                                   .actorSkeleton = actorSkeleton,
-                                   .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
+    const ActorStopContext context{
+        .runtime = resources.world.Runtime(),
+        .scene = Scenes::SceneId::Game,
+        .playerSkeleton = *playerSkeleton,
+        .items = resources.items,
+        .random = resources.cloth.random,
+        .terrainWalls =
+            Scenes::TerrainOf(resources).attributes ? &Scenes::TerrainOf(resources).attributes->cells : nullptr,
+        .sendAction = sendAction,
+        .actorSkeleton = actorSkeleton,
+        .modelSounds = Assets::FaunaModelsOrEmpty(Scenes::FaunaModelsOf(resources)).SoundActions(actor.type)};
     const auto stopped = SetActorStop(actor, context);
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());

@@ -12,6 +12,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/RecordingSink.h"
 #include "support/TemporaryFolder.h"
+#include "Session/ModuleStates.h"
 
 #include <gtest/gtest.h>
 
@@ -28,21 +29,26 @@ TEST(LoadingModelPrefixTest, PublishesTheCrtChoiceBeforeARequiredFileFailsAndKee
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(1)};
-    const Client::Scenes::SceneContext context{
-        .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = world.get()};
+    const Client::Scenes::SceneContext context{.dataRoot = folder.Path(),
+                                               .textures = textures,
+                                               .log = log,
+                                               .cloth = &cloth,
+                                               .world = world.get(),
+                                               .states = &states};
     Client::Assets::GameModels models;
     Client::Scenes::LoadingScene first(context, &models);
     first.Step(Client::Input::InputState{});
     EXPECT_TRUE(first.WantsToQuit());
-    EXPECT_EQ(world->FaunaResources().PrefixOffset(), std::optional<std::uint16_t>{std::uint16_t{41}});
-    EXPECT_NE(world->FaunaResources().PrefixModel(), nullptr);
+    EXPECT_EQ(states.assets.fauna.PrefixOffset(), std::optional<std::uint16_t>{std::uint16_t{41}});
+    EXPECT_NE(states.assets.fauna.PrefixModel(), nullptr);
     EXPECT_EQ(cloth.random.State(), 0x0029e2c0u);
 
     Client::Scenes::LoadingScene second(context, &models);
     second.Step(Client::Input::InputState{});
     EXPECT_TRUE(second.WantsToQuit());
-    EXPECT_EQ(world->FaunaResources().PrefixOffset(), std::optional<std::uint16_t>{std::uint16_t{41}});
+    EXPECT_EQ(states.assets.fauna.PrefixOffset(), std::optional<std::uint16_t>{std::uint16_t{41}});
     EXPECT_EQ(cloth.random.State(), 0x0029e2c0u);
 }
 
@@ -53,15 +59,20 @@ TEST(LoadingModelPrefixTest, KeepsTheZeroChoiceWithoutInventingAPrecedingConstru
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(302)};
-    const Client::Scenes::SceneContext context{
-        .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = world.get()};
+    const Client::Scenes::SceneContext context{.dataRoot = folder.Path(),
+                                               .textures = textures,
+                                               .log = log,
+                                               .cloth = &cloth,
+                                               .world = world.get(),
+                                               .states = &states};
     Client::Assets::GameModels models;
     Client::Scenes::LoadingScene scene(context, &models);
     scene.Step(Client::Input::InputState{});
     ASSERT_TRUE(scene.WantsToQuit());
-    EXPECT_EQ(world->FaunaResources().PrefixOffset(), std::optional<std::uint16_t>{std::uint16_t{0}});
-    EXPECT_EQ(world->FaunaResources().PrefixModel(), nullptr);
+    EXPECT_EQ(states.assets.fauna.PrefixOffset(), std::optional<std::uint16_t>{std::uint16_t{0}});
+    EXPECT_EQ(states.assets.fauna.PrefixModel(), nullptr);
     const auto afterChoice = cloth.random.State();
     Client::Scenes::LoadingScene reentry(context, &models);
     reentry.Step(Client::Input::InputState{});

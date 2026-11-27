@@ -408,7 +408,8 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .soundAt = [&runtime](std::int32_t sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
         .groundMarks = resources.states != nullptr ? &resources.states->terrain.groundMarks : nullptr,
         .trapezoid = resources.states != nullptr ? &resources.states->camera.trapezoid : nullptr,
-        .dynamicLighting = DynamicLightingOf(resources)};
+        .dynamicLighting = DynamicLightingOf(resources),
+        .faunaModels = FaunaModelsOf(resources)};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.

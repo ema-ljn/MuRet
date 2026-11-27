@@ -170,4 +170,7 @@ private:
     };
     std::map<std::uint16_t, AnimationMetadata> m_animationMetadata;
 };
+
+// What a reader without the models sees: no model, the zero sounds and the zero pose.
+[[nodiscard]] const FaunaModels& FaunaModelsOrEmpty(const FaunaModels* models);
 } // namespace Client::Assets

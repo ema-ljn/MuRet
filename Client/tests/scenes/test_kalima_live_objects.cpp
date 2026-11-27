@@ -80,7 +80,8 @@ protected:
                                               .textures = m_textures,
                                               .log = m_log,
                                               .cloth = m_cloth.get(),
-                                              .world = m_world.get()},
+                                              .world = m_world.get(),
+                                              .states = m_states.get()},
                                              m_models.get());
         ASSERT_TRUE(loading.Enter().HasValue());
         loading.Step(m_input);

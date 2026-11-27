@@ -102,12 +102,12 @@ glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
     return {F32(D(a.x) + D(b.x)), F32(D(a.y) + D(b.y)), F32(D(a.z) + D(b.z))};
 }
 
-// El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos del mapa, y si
+// El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de `faunaModels`, que sigue con los modelos del mapa, y si
 // no el de `models` (los ítems y Player.bmd), como MonsterSkeletonOf.
-const Models::Skeleton* ModelSkeletonOf(const Kernel::WorldState& world, const Models::IModelLibrary* models,
+const Models::Skeleton* ModelSkeletonOf(const Assets::FaunaModels* faunaModels, const Models::IModelLibrary* models,
                                         std::uint16_t model)
 {
-    const auto* skeleton = world.FaunaResources().SkeletonOf(model);
+    const auto* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(model);
     if (skeleton == nullptr && models != nullptr)
         skeleton = models->SkeletonOf(model);
     return skeleton;
@@ -142,10 +142,11 @@ void BeginTheSiegeSpearman(World::ModelEffect& effect, const HighEffectContext& 
     effect.life = SpearmanLife;
     effect.objectState.hiddenMesh = SpearmanHidden;
     effect.speed = SpearmanSpeed;
-    // 0x4ea030 lee el BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos
+    // 0x4ea030 lee el BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de `faunaModels`, que sigue con los modelos
     // del mapa, y si no el de `models`, como MonsterSkeletonOf. Sin el BMD cargado, la cuenta de acciones del original
     // es 0 y no hace nada.
-    const auto* skeleton = ModelSkeletonOf(context.world, context.models, static_cast<std::uint16_t>(effect.type));
+    const auto* skeleton =
+        ModelSkeletonOf(context.faunaModels, context.models, static_cast<std::uint16_t>(effect.type));
     if (skeleton != nullptr)
         Models::SetAction(effect.animation, *skeleton, SpearmanAction);
     effect.transform.angles = glm::vec3(0.0f);
@@ -866,8 +867,11 @@ Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, 
     constexpr double LateBoost = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8, 0,1f
     constexpr std::int32_t LateLife = 10;
     constexpr std::int32_t TrailSubtype = 1;
-    const HighEffectContext created{
-        .world = context.world, .random = context.random, .worldClock = context.worldClock, .terrain = context.terrain};
+    const HighEffectContext created{.world = context.world,
+                                    .random = context.random,
+                                    .worldClock = context.worldClock,
+                                    .terrain = context.terrain,
+                                    .faunaModels = context.faunaModels};
     for (int count = 1; static_cast<double>(count) < D(effect.turnDirection); ++count)
     {
         if ((context.random.Next() & 1) == 0)
@@ -1015,7 +1019,8 @@ Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, co
         const HighEffectContext created{.world = context.world,
                                         .random = context.random,
                                         .worldClock = context.worldClock,
-                                        .terrain = context.terrain};
+                                        .terrain = context.terrain,
+                                        .faunaModels = context.faunaModels};
         if (auto flash = CreateHighModelEffect({.type = ManaRune,
                                                 .position = effect.transform.position,
                                                 .angles = effect.transform.angles,
@@ -1158,7 +1163,7 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     effect.objectState.light = F32(static_cast<double>(context.random.Next() % GlowSpan) * Tenth);
     // 0x52ba1d: el BMD de la tabla global por el tipo del dueño, por el mismo camino que el alta del 0x19f.
-    const Models::Skeleton* skeleton = ModelSkeletonOf(context.world, context.models, owner->type);
+    const Models::Skeleton* skeleton = ModelSkeletonOf(context.faunaModels, context.models, owner->type);
     constexpr int SideSpan = 100, SideCenter = 50, DepthSpan = 20, DepthCenter = 10;
     constexpr std::int32_t SparkSubtype = 8;
     constexpr float SparkScale = 1.0f;
@@ -1214,7 +1219,8 @@ HighEffectContext HighContextOf(const Actors::CharacterStepContext& context)
             .worldClock = context.worldClock,
             .send = context.send,
             .models = context.models,
-            .terrain = context.terrain};
+            .terrain = context.terrain,
+            .faunaModels = context.faunaModels};
 }
 
 glm::vec3 ActorBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,

@@ -506,7 +506,7 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, 9).State());
 }
 // El 0x186 es el modelo de un monstruo (el tipo 71, Monster53.bmd): su D3 llega desde gObjMonster (CGMoveRecv del GS
-// 0.97) y 0x4f37c0 → 0x4ea030 lee las acciones del modelo que cargó su alta (WorldState::FaunaResources), no las de la
+// 0.97) y 0x4f37c0 → 0x4ea030 lee las acciones del modelo que cargó su alta (Assets::AssetsState::fauna), no las de la
 // biblioteca del mapa, que no lo tiene. En Lorencia y en Devias.
 TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
 {
@@ -516,7 +516,7 @@ TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
         const auto tested = std::make_unique<Replies>();
         tested->world.Runtime().map = map;
         MovementModels fauna;
-        tested->world.FaunaResources().Bind(&fauna);
+        tested->states.assets.fauna.Bind(&fauna);
         auto& other = tested->world.Actors()[8];
         other = Client::Tests::UnarmedPlayer();
         other.alive = true;
@@ -534,7 +534,7 @@ TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
         const auto result =
             Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                            Client::Kernel::PlayerKey{Replies::PlayerKey}, tested->Resources());
-        tested->world.FaunaResources().Bind(nullptr);
+        tested->states.assets.fauna.Bind(nullptr);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(other.cellX, 30);
         EXPECT_EQ(other.cellY, 31);
@@ -568,7 +568,7 @@ TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
 {
     Replies tested;
     MovementModels fauna;
-    tested.world.FaunaResources().Bind(&fauna);
+    tested.states.assets.fauna.Bind(&fauna);
     tested.states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     auto& other = tested.world.Actors()[8];
     other = Client::Tests::UnarmedPlayer();
@@ -583,7 +583,7 @@ TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
     const auto result =
         Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
-    tested.world.FaunaResources().Bind(nullptr);
+    tested.states.assets.fauna.Bind(nullptr);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(other.movement, 0);

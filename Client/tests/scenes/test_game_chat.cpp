@@ -161,7 +161,8 @@ protected:
                                .screen = {640, 480},
                                .send = [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
                                .clipboard = &clipboard,
-                               .models = &models};
+                               .models = &models,
+                               .faunaModels = &faunaModels};
     }
 
     Client::Core::Expected<void, std::string> Type(std::string_view typed)
@@ -189,8 +190,10 @@ protected:
         return window->second.add.edit;
     }
 
-    // Fauna conserva el backend hasta destruirse: debe vivir más que WorldState, incluso si falla un ASSERT.
+    // Los modelos de la fauna conservan el backend hasta destruirse: debe vivir más que ellos, incluso si falla un
+    // ASSERT.
     Client::Tests::FakeTextureStore m_faunaStore;
+    Client::Assets::FaunaModels faunaModels;
     WorldState world;
     CrtRandom random;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
@@ -1078,14 +1081,14 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{{0x41c}};
     Client::Assets::FaunaModelLoadContext load{folder.Path(), m_faunaStore, log, slots};
-    const auto loaded = world.FaunaResources().LoadMonster(9, 0, load);
+    const auto loaded = faunaModels.LoadMonster(9, 0, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     auto& hero = world.Hero();
     hero.type = 0x15b;
     hero.animation.action = 1;
     hero.angles.z = 100.0f;
     ASSERT_EQ(models.SkeletonOf(hero.type), nullptr);
-    ASSERT_NE(world.FaunaResources().SkeletonOf(hero.type), nullptr);
+    ASSERT_NE(faunaModels.SkeletonOf(hero.type), nullptr);
     const auto before = random.State();
     const auto said = Type("\rhola ^^\r");
     ASSERT_TRUE(said.HasValue()) << said.Error();

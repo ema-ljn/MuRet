@@ -22,6 +22,7 @@
 #include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
+#include "Session/ModuleStates.h"
 
 #include <gtest/gtest.h>
 
@@ -61,13 +62,13 @@ protected:
             Client::Tests::WriteSceneFile(m_folder.Path(), name,
                                           Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
         Client::Tests::WriteSceneFile(m_folder.Path(), "Monster/body.OZT", Client::Tests::PlainOzt(2, 2));
-        m_world->FaunaResources().TextureTable().Bind(m_store);
-        auto context = m_world->FaunaResources().LoadContextOf(m_folder.Path(), m_log);
+        m_states.assets.fauna.TextureTable().Bind(m_store);
+        auto context = m_states.assets.fauna.LoadContextOf(m_folder.Path(), m_log);
         ASSERT_TRUE(context.has_value());
         context->sounds = &m_world->Runtime().modelSounds;
         for (const std::int32_t number : {0, 1})
         {
-            const auto loaded = m_world->FaunaResources().LoadMonster(number, 0, *context);
+            const auto loaded = m_states.assets.fauna.LoadMonster(number, 0, *context);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         }
         m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
@@ -98,13 +99,15 @@ protected:
                 .camera = m_camera,
                 .cameraInput = m_input,
                 .models = m_models,
-                .log = m_log};
+                .log = m_log,
+                .states = &m_states};
     }
 
     Client::Tests::TemporaryFolder m_folder{"actor-shock"};
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
+    Client::Session::ModuleStates m_states;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;

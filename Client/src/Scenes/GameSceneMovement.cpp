@@ -60,6 +60,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .models = m_models};
     context.terrain = &MapTerrain();
     context.dynamicLighting = &DynamicLight().Lighting();
+    context.faunaModels = &LoadedFaunaModels();
     context.saveOptionsAndMacros = [this, &world]() -> Core::Expected<void, std::string>
     {
         std::optional<std::uint8_t> chosenSlot;
@@ -187,24 +188,20 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
                              hero.safeZone,
                              StepTerrain(),
                              m_context.states->terrain.dynamicLight.Lighting(),
-                             world.FaunaResources(),
+                             LoadedFaunaModels(),
                              *m_context.cloth,
                              time};
     context.fixedHeight = CameraState().fixedHeight;
-    context.prefixModel = world.FaunaResources().PrefixModel();
+    context.prefixModel = LoadedFaunaModels().PrefixModel();
     context.runtime = &world.Runtime();
     auto* slots = m_worldModels.TextureSlots();
     if (!slots)
         return Core::Unexpected(std::string("612d90: falta la tabla de texturas del mundo"));
-    const Assets::FaunaModelLoadContext resources{m_context.dataRoot,
-                                                  m_context.textures,
-                                                  m_context.log,
-                                                  *slots,
-                                                  &world.FaunaResources().TextureTable(),
-                                                  &world.Runtime().modelSounds,
-                                                  world.Runtime().audio};
-    context.effects = BindFaunaStepEffects(world.FaunaResources(), resources, world.DrawTail().joints,
-                                           world.Map().effects, m_context.cloth->random);
+    const Assets::FaunaModelLoadContext resources{
+        m_context.dataRoot,           m_context.textures,   m_context.log, *slots, &LoadedFaunaModels().TextureTable(),
+        &world.Runtime().modelSounds, world.Runtime().audio};
+    context.effects = BindFaunaStepEffects(LoadedFaunaModels(), resources, world.DrawTail().joints, world.Map().effects,
+                                           m_context.cloth->random);
     return StepGameFauna(context);
 }
 
@@ -223,6 +220,11 @@ const Terrain::WorldTerrain& GameScene::MapTerrain() const
 Terrain::DynamicWorldLight& GameScene::DynamicLight() const
 {
     return m_context.states->terrain.dynamicLight;
+}
+
+Assets::FaunaModels& GameScene::LoadedFaunaModels() const
+{
+    return m_context.states->assets.fauna;
 }
 
 Core::Expected<void, std::string> GameScene::StepTheLeaves()

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 
+#include "Assets/FaunaModels.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/CameraTour.h"
@@ -41,18 +42,23 @@ constexpr std::int32_t NoKey = -1;
 constexpr std::int32_t NoMap = -1;
 
 // 0x61eef0: objetos, pools, ítems del piso y personajes; conserva terreno y héroe publicado.
-void ReleaseTheGame(Kernel::WorldState& world)
+Core::Expected<void, std::string> ReleaseTheGame(const WorldEntryResources& resources)
 {
+    Kernel::WorldState& world = resources.world;
     ReleaseTheMapObjects(world.Map());
     if (world.Runtime().audio != nullptr)
     {
         world.Runtime().audio->ReleaseWorldSounds();
-        world.FaunaResources().ResetSoundRegistrationStamps();
+        Assets::FaunaModels* models = FaunaModelsOf(resources);
+        if (models == nullptr)
+            return Core::Unexpected(std::string("0x61eef0: no fauna models (0x5769ad8)"));
+        models->ResetSoundRegistrationStamps();
     }
     ClearWorldTransientPools(world);
     for (auto& item : world.DrawTail().floorItems)
         item.alive = false;
     KillOtherActors(world, NoKey);
+    return {};
 }
 
 // 0x42fdc0. Con 2 precede a 0x61eef0; con 1 va después.
@@ -142,7 +148,8 @@ Core::Expected<void, std::string> PrepareReturnToSelection(const WorldEntryResou
     StopAudioForSceneReturn(resources.world.Runtime());
     if (auto restored = RestoreTheCursor(resources); !restored.HasValue())
         return restored;
-    ReleaseTheGame(resources.world);
+    if (auto released = ReleaseTheGame(resources); !released.HasValue())
+        return released;
     ResetTheInterface(resources.world.Runtime());
     resources.world.Runtime().orderedScene = SceneId::CharacterSelect; // 0x4c363f
     return {};
@@ -173,8 +180,7 @@ Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryReso
     StopAudioForSceneReturn(resources.world.Runtime());
     if (auto restored = RestoreTheCursor(resources); !restored.HasValue())
         return restored;
-    ReleaseTheGame(resources.world);
-    return {};
+    return ReleaseTheGame(resources);
 }
 
 Core::Expected<void, std::string> ApplyReturnToServerList(const WorldEntryResources& resources)

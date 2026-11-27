@@ -111,7 +111,7 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
     return draws;
 }
 
-// La biblioteca del mapa, detrás de FaunaResources: Player.bmd, también en el modelo del monstruo de Lorencia.
+// La biblioteca del mapa, detrás de AssetsState::fauna: Player.bmd, también en el modelo del monstruo de Lorencia.
 class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -137,7 +137,7 @@ struct Game
     Game()
     {
         // 0x612d90 sube las texturas de los modelos que carga por la tabla que liga el juego (CL9 hito 2).
-        world.FaunaResources().TextureTable().Bind(store);
+        states.assets.fauna.TextureTable().Bind(store);
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
         hero.alive = true;
@@ -255,7 +255,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     Load(0);
     const std::size_t slot = Create(LorenciaType);
     ActorState& monster = game->world.Actors()[slot];
-    ASSERT_NE(game->world.FaunaResources().SkeletonOf(LorenciaModel), nullptr);
+    ASSERT_NE(game->states.assets.fauna.SkeletonOf(LorenciaModel), nullptr);
     EXPECT_EQ(game->models.SkeletonOf(LorenciaModel), nullptr);
     const std::uint32_t created = game->cloth.random.State();
 
@@ -567,7 +567,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsFinalSoundWhenEverySparkGateMisse
 }
 
 // En Devias el alta real escribe dos registros, 0x15e y 0x15f. Sus WORD 2 y 3 distinguen el registro elegido por el
-// golpe; comprobar ambos evita leer una copia vieja de FaunaResources para uno de los modelos.
+// golpe; comprobar ambos evita leer una copia vieja de AssetsState::fauna para uno de los modelos.
 TEST_F(MonsterCombatTest, TheTwoDeviasModelsUseTheirOwnCanonicalHitSoundPairs)
 {
     Load(2);

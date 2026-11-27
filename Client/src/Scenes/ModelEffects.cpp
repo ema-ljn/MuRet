@@ -255,7 +255,9 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     const auto bones = std::span(carry.bones).first(skeleton.bones.size());
     if (!Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("{:#x}: la pose del modelo {:#x} falló", address, actor.type));
-    Assets::FaunaModels& models = pass.world.FaunaResources();
+    if (pass.faunaModels == nullptr)
+        return Core::Unexpected(std::format("{:#x}: no fauna models (0x5769ad8) for model {:#x}", address, actor.type));
+    Assets::FaunaModels& models = *pass.faunaModels;
     if (auto published = PublishFaunaPoseRaw(carry, models, actor.type, bones, transform, true, false);
         !published.HasValue())
         return Core::Unexpected(published.Error());

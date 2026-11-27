@@ -216,7 +216,9 @@ Result SampleRibbon(Kernel::ActorState& actor, const Trail& trail, const Models:
     const auto offsets = OffsetsOf(trail.mode);
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
-        if (auto posed = Scenes::PoseWorldModel(context.world, actor, skeleton, frame, actor.angles); !posed.HasValue())
+        if (auto posed =
+                Scenes::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
+            !posed.HasValue())
             return posed;
         const auto& bones = context.world.PoseCarry().bones;
         const auto first = Math::OriginalVectorTransform(

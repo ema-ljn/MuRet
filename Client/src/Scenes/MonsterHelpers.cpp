@@ -1381,10 +1381,10 @@ struct Swing
     float step = 0.0f;
 };
 
-Core::Expected<Swing, std::string> SwingOf(Kernel::WorldState& world, const Kernel::ActorState& actor,
+Core::Expected<Swing, std::string> SwingOf(const Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
                                            std::uint8_t speedAction)
 {
-    const Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(actor.type);
     if (skeleton == nullptr || skeleton->actions.size() <= speedAction)
     {
         return Core::Unexpected(std::format("0x432bd0: el modelo {:#x} no tiene la acción {} cuya velocidad lee la "
@@ -1398,10 +1398,10 @@ Core::Expected<Swing, std::string> SwingOf(Kernel::WorldState& world, const Kern
 
 // 0x4eb860 con flags (0, 1): PoseWorldModel conserva la colocación compartida, escribe el scratch mundial y registra la
 // key del modelo, incluidos los huesos dummy. El 0x1b0 también consume la última muestra a través de ese scratch.
-Result PoseTheSwing(Kernel::WorldState& world, const Kernel::ActorState& actor, const Swing& swing, float frame,
-                    const glm::vec3& angles)
+Result PoseTheSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
+                    const Swing& swing, float frame, const glm::vec3& angles)
 {
-    return PoseWorldModel(world, actor, *swing.skeleton, frame, angles);
+    return PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, angles);
 }
 
 struct SwingLeg
@@ -1414,16 +1414,17 @@ struct SwingLeg
     std::int32_t key;
 };
 
-Result EmitSwing(Kernel::WorldState& world, const Kernel::ActorState& actor, const Swing& swing,
-                 World::Particles* particles, std::span<const SwingLeg> legs, Crt::CrtRandom& random, float worldClock,
-                 bool weaponBone = false, bool particle640 = false)
+Result EmitSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
+                 const Swing& swing, World::Particles* particles, std::span<const SwingLeg> legs,
+                 Crt::CrtRandom& random, float worldClock, bool weaponBone = false, bool particle640 = false)
 {
     const std::uint8_t bone = weaponBone ? actor.hands[0].bone : 0;
     float frame = swing.first;
     glm::vec3 particleLight(1.0f);
     for (int sample = 0; sample < SwingSampleCount; ++sample)
     {
-        if (auto posed = PoseWorldModel(world, actor, *swing.skeleton, frame, actor.angles); !posed.HasValue())
+        if (auto posed = PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, actor.angles);
+            !posed.HasValue())
             return posed;
         const auto& bones = world.PoseCarry().bones;
         for (const auto& leg : legs)
@@ -1464,10 +1465,10 @@ Result EmitSwing(Kernel::WorldState& world, const Kernel::ActorState& actor, con
 // hueso 16 (0x4ec110 en 0x68b1b1c, sin trasladar: el buffer ya está en el mundo) para la partícula 0x5d9/0 con el
 // frame del objeto en (5, 7), con esos ángulos, luz blanca y escala 1 (0x432d07), el punto (0, −150, 0) girado
 // (0x5fc8f0 y 0x5fcbd0), que no lee nadie, y dos rand() (0x432d6f y 0x432d74).
-Result SwingThe1b0(Kernel::WorldState& world, const Kernel::ActorState& actor, Crt::CrtRandom& random,
-                   World::Particles* particles, float worldClock)
+Result SwingThe1b0(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
+                   Crt::CrtRandom& random, World::Particles* particles, float worldClock)
 {
-    const auto swing = SwingOf(world, actor, 4);
+    const auto swing = SwingOf(faunaModels, actor, 4);
     if (!swing.HasValue())
         return Core::Unexpected(swing.Error());
     const float frame = actor.animation.frame;
@@ -1479,7 +1480,7 @@ Result SwingThe1b0(Kernel::WorldState& world, const Kernel::ActorState& actor, C
     constexpr int Poses = 10;
     for (int turn = 0; turn < Poses; ++turn)
     {
-        if (auto posed = PoseTheSwing(world, actor, swing.Value(), pose, angles); !posed.HasValue())
+        if (auto posed = PoseTheSwing(world, faunaModels, actor, swing.Value(), pose, angles); !posed.HasValue())
             return posed;
         if (sparks)
         {
@@ -1602,8 +1603,9 @@ Core::Expected<void, std::string> DrawTheMonsterHelpers(MonsterHelperPass& pass)
 }
 
 Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
-                                                          Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                          World::Particles* particles, float worldClock)
+                                                          Kernel::WorldState& world, Assets::FaunaModels* faunaModels,
+                                                          Crt::CrtRandom& random, World::Particles* particles,
+                                                          float worldClock)
 {
     // 0x432bf1: antes de mirar el tipo.
     static_cast<void>(random.Next());
@@ -1616,11 +1618,11 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& ac
         // 0x432f19: diez poses y640/0 antes de cada ribbon; primeraluz blanca y luego(0,0,5).
         if (action != 3)
             return {};
-        const auto swing = SwingOf(world, actor, 3);
+        const auto swing = SwingOf(faunaModels, actor, 3);
         if (!swing.HasValue())
             return Core::Unexpected(swing.Error());
         constexpr std::array legs{SwingLeg{0, 0, {0, 0, -60}, {0, 0, -150}, {0, 0, 5}, 80}};
-        return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock, true, true);
+        return EmitSwing(world, faunaModels, actor, swing.Value(), particles, legs, random, worldClock, true, true);
     }
     case 0x1ae:
         // 0x4330a9: en la 8, el punto de la mano izquierda y sus tres partículas. En la 4 con el frame en (4,5; 5),
@@ -1655,22 +1657,22 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& ac
                                                                            .owner = &actor}));
         }
         {
-            const auto swing = SwingOf(world, actor, action);
+            const auto swing = SwingOf(faunaModels, actor, action);
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{0, 0, {0, 0, -60}, {0, 0, -150}, {1, 1, 1}, 80}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock, true);
+            return EmitSwing(world, faunaModels, actor, swing.Value(), particles, legs, random, worldClock, true);
         }
     case 0x1af:
         // 0x433451: en la 3 y la 4, con la velocidad de la suya.
         if (action != 3 && action != 4)
             return {};
         {
-            const auto swing = SwingOf(world, actor, action);
+            const auto swing = SwingOf(faunaModels, actor, action);
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{27, 27, {0, 250, 0}, {}, {0.2f, 1.0f, 0.4f}, 80}};
-            if (auto emitted = EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
+            if (auto emitted = EmitSwing(world, faunaModels, actor, swing.Value(), particles, legs, random, worldClock);
                 !emitted.HasValue())
                 return emitted;
             if (frame > 4.5f && frame < 5.0f)
@@ -1680,38 +1682,38 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& ac
     case 0x1b0:
         if (action != 4)
             return {};
-        return SwingThe1b0(world, actor, random, particles, worldClock);
+        return SwingThe1b0(world, faunaModels, actor, random, particles, worldClock);
     case 0x1b1:
         if (action != 4)
             return {};
         {
-            const auto swing = SwingOf(world, actor, 4);
+            const auto swing = SwingOf(faunaModels, actor, 4);
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{80, 80, {0, 0, -90}, {}, {1, 1, 1}, 80},
                                       SwingLeg{82, 82, {0, 0, 90}, {}, {1, 1, 1}, 84}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
+            return EmitSwing(world, faunaModels, actor, swing.Value(), particles, legs, random, worldClock);
         }
     case 0x1b3:
         if (action != 3)
             return {};
         {
-            const auto swing = SwingOf(world, actor, 3);
+            const auto swing = SwingOf(faunaModels, actor, 3);
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{25, 25, {0, 0, 120}, {}, {1, 1, 1}, 25}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
+            return EmitSwing(world, faunaModels, actor, swing.Value(), particles, legs, random, worldClock);
         }
     case 0x1b4:
         if (action != 3)
             return {};
         {
-            const auto swing = SwingOf(world, actor, 3);
+            const auto swing = SwingOf(faunaModels, actor, 3);
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{12, 16, {20, 0, 0}, {60, 0, 0}, {1, 1, 1}, 23},
                                       SwingLeg{20, 24, {20, 0, 0}, {60, 0, 0}, {1, 1, 1}, 24}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
+            return EmitSwing(world, faunaModels, actor, swing.Value(), particles, legs, random, worldClock);
         }
     default:
         // 0x432c05: el 0x1ac, el 0x1ad, el 0x1b2 y los de fuera de la tabla, nada más.

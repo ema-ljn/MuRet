@@ -367,7 +367,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     if (frame.originalFrame)
     {
         if (const auto key = PoseKeyOf(skeleton, actor.animation))
-            frame.world.FaunaResources().RecordAnimation(actor.type, actor.animation.frame, *key);
+            frame.pass.faunaModels->RecordAnimation(actor.type, actor.animation.frame, *key);
     }
     if (frame.pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x5ffce0: falta el buffer dinámico de luz del terreno");
@@ -1480,7 +1480,9 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     Kernel::ActorState& stored = world.Actors()[slot];
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand del dibujo de los personajes");
-    const Models::IModelLibrary& fauna = world.FaunaResources();
+    if (pass.faunaModels == nullptr)
+        return Core::Unexpected(std::format("0x50ba82: no fauna models (0x5769ad8) for model {:#x}", stored.type));
+    const Models::IModelLibrary& fauna = *pass.faunaModels;
     const Models::Skeleton* skeleton = fauna.SkeletonOf(stored.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));

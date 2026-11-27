@@ -16,6 +16,11 @@
 #include <span>
 #include <string>
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Render
 {
 class ModelBatch;
@@ -111,14 +116,17 @@ struct GameCharacterPass
     // the projection's.
     World::KalimaWorld* kalima = nullptr;
     float* cameraShake = nullptr;
+    // The models a creation loaded for the monsters and NPCs (Assets::AssetsState::fauna), where their pose leaves
+    // its key. nullptr: no monster or NPC is drawn.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // The ordinary player's body, its terrain light and the hero's override, reusing DrawCharacter, then what hangs with
 // DrawGameHanging (0x50db57..0x50e9fa): the weapon on the back, the wings, Helper02 and the hands; the player's effects
 // with DrawGameCharacterEffects (0x50ea20..0x510ab6) and the raven with DrawGameRaven (0x420df0). Monsters and NPCs (a
 // type other than the 0x20a) go through DrawGameMonster (Scenes/MonsterDrawing.h), with their model from
-// WorldState::FaunaResources. What is not ported yet stops with its address: the cases by +0x376 and by type, those of
-// 0x509340 with joints or particles and what the effects create. Between original frames, what hangs and the effects
+// GameCharacterPass::faunaModels. What is not ported yet stops with its address: the cases by +0x376 and by type, those
+// of 0x509340 with joints or particles and what the effects create. Between original frames, what hangs and the effects
 // are drawn on a copy of the character and of the rand(): nothing advances or is spent.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const Models::IModelLibrary& models,

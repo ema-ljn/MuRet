@@ -9,6 +9,11 @@
 #include <functional>
 #include <string>
 
+namespace Client::Assets
+{
+class FaunaModels;
+}
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -48,6 +53,8 @@ struct MapLoadContext
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto. Vacío, como el socket en −1:
     // no sale nada.
     std::function<void()> requestCastleSiegeState{};
+    // The models whose sound stamps the load resets with the audio (0x5769ad8). nullptr: the load stops there.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // 0x61a560(argumento), con el mundo en curso ya escrito por quien llama: la guarda de 32 a 9 (Q-C58);

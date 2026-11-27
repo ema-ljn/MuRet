@@ -72,7 +72,8 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     online.session.ChooseCharacter(std::uint8_t{0});
     ASSERT_NE(online.session.ChosenCharacter(), nullptr);
 
-    // Fauna conserva el backend: store vive más que world, también si un ASSERT termina el test antes.
+    // Los modelos de la fauna conservan el backend: store vive más que states, también si un ASSERT termina el test
+    // antes.
     Client::Tests::FakeTextureStore store;
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Session::ModuleStates states;
@@ -99,10 +100,10 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
 
     Client::Models::ModelTextureSlots slots{FaunaFirstTexture};
     Client::Assets::FaunaModelLoadContext load{dataRoot, store, online.log, slots};
-    const auto loaded = world->FaunaResources().LoadMonster(Monster32Resource, LorenciaMap, load);
+    const auto loaded = states.assets.fauna.LoadMonster(Monster32Resource, LorenciaMap, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_EQ(models.SkeletonOf(TransformedModel), nullptr);
-    const auto* skeleton = world->FaunaResources().SkeletonOf(TransformedModel);
+    const auto* skeleton = states.assets.fauna.SkeletonOf(TransformedModel);
     ASSERT_NE(skeleton, nullptr);
     ASSERT_EQ(skeleton->actions.size(), 8u);
     auto& hero = world->Hero();

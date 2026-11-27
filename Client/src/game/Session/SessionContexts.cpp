@@ -89,7 +89,8 @@ Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& 
         .dataRoot = resources.dataRoot,
         .tick = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
         .entryResources = &resources,
-        .terrain = Scenes::WritableTerrainOf(resources)};
+        .terrain = Scenes::WritableTerrainOf(resources),
+        .faunaModels = Scenes::FaunaModelsOf(resources)};
 }
 
 Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session,

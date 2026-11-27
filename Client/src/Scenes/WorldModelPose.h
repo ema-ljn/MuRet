@@ -6,6 +6,11 @@
 
 #include <string>
 
+namespace Client::Assets
+{
+class FaunaModels;
+}
+
 namespace Client::Models
 {
 struct Skeleton;
@@ -20,9 +25,9 @@ class WorldState;
 namespace Client::Scenes
 {
 
-// 4eb860 con flags (0, 1): conserva los huesos dummy y publica la pose global y la key del modelo.
-[[nodiscard]] Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world,
-                                                               const Kernel::ActorState& actor,
-                                                               const Models::Skeleton& skeleton, float frame,
-                                                               const glm::vec3& angles);
+// 4eb860 con flags (0, 1): conserva los huesos dummy y publica la pose global y la key del modelo en `faunaModels`;
+// sin ellos corta ahí.
+[[nodiscard]] Core::Expected<void, std::string>
+PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
+               const Models::Skeleton& skeleton, float frame, const glm::vec3& angles);
 } // namespace Client::Scenes

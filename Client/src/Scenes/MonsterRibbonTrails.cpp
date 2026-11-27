@@ -72,7 +72,8 @@ Core::Expected<void, std::string> EmitSamples(Kernel::ActorState& actor, const M
     const float frameStep = F32(static_cast<double>(speed) * SampleStep);
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
-        if (auto posed = PoseWorldModel(context.world, actor, skeleton, frame, actor.angles); !posed.HasValue())
+        if (auto posed = PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
+            !posed.HasValue())
             return posed;
         for (std::size_t legIndex = 0; legIndex < legs.size(); ++legIndex)
         {

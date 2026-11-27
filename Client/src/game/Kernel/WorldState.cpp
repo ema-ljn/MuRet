@@ -13,7 +13,6 @@
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/FaunaState.h"
-#include "Assets/FaunaModels.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Leaves.h"
@@ -156,14 +155,6 @@ Scenes::FaunaState& WorldState::Fauna()
 const Scenes::FaunaState& WorldState::Fauna() const
 {
     return m_fauna;
-}
-Assets::FaunaModels& WorldState::FaunaResources()
-{
-    return m_faunaResources;
-}
-const Assets::FaunaModels& WorldState::FaunaResources() const
-{
-    return m_faunaResources;
 }
 SharedModelPlacement& WorldState::PlayerModel()
 {

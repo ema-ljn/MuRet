@@ -299,8 +299,10 @@ private:
         actor.alpha = 0.0f;
         if (speed >= 0.0f)
         {
-            auto set = m_context.world.FaunaResources().SetActionSpeed(ScriptModelOf(type, sparks), WalkAction, speed,
-                                                                       "0x403abe");
+            Assets::FaunaModels* models = FaunaModelsOf(*m_context.resources);
+            if (models == nullptr)
+                return Core::Unexpected(std::string("0x403abe: no fauna models (0x5769ad8)"));
+            auto set = models->SetActionSpeed(ScriptModelOf(type, sparks), WalkAction, speed, "0x403abe");
             if (!set.HasValue())
                 return set;
         }

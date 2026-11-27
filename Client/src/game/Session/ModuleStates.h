@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/AssetsState.h"
 #include "Camera/CameraState.h"
 #include "Terrain/TerrainState.h"
 
@@ -9,6 +10,7 @@ namespace Client::Session
 {
 struct ModuleStates
 {
+    Assets::AssetsState assets;
     Camera::CameraState camera;
     Terrain::TerrainState terrain;
 };

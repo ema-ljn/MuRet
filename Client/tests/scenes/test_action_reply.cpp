@@ -25,6 +25,7 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SentActions.h"
+#include "Session/ModuleStates.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -143,7 +144,8 @@ protected:
                 .camera = m_camera,
                 .cameraInput = m_input,
                 .models = m_models,
-                .log = m_log};
+                .log = m_log,
+                .states = &m_states};
     }
 
     Client::Core::Expected<void, std::string> Apply(std::uint8_t direction, std::uint8_t action,
@@ -158,6 +160,7 @@ protected:
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates m_states;
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_input;
@@ -627,7 +630,7 @@ TEST_F(ActionReplyTest, TheAnimationUsesTheModelOfTheActor)
     EXPECT_EQ(m_cloth.random.State(), 1u);
 }
 
-// Un monstruo con su modelo cargado por el alta (WorldState::FaunaResources, con su biblioteca detrás) toma las
+// Un monstruo con su modelo cargado por el alta (Assets::AssetsState::fauna, con su biblioteca detrás) toma las
 // acciones de ese modelo, no las de la biblioteca del mapa. En Lorencia y en Devias.
 TEST_F(ActionReplyTest, AMonsterTakesTheActionsOfItsLoadedModel)
 {
@@ -638,11 +641,11 @@ TEST_F(ActionReplyTest, AMonsterTakesTheActionsOfItsLoadedModel)
     {
         SCOPED_TRACE(map);
         m_world->Runtime().map = map;
-        m_world->FaunaResources().Bind(&fauna);
+        m_states.assets.fauna.Bind(&fauna);
         Other().type = SmallModel;
         Other().animation = {};
         const auto applied = Apply(3, 11);
-        m_world->FaunaResources().Bind(nullptr);
+        m_states.assets.fauna.Bind(nullptr);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Other().animation.action, 11);
     }

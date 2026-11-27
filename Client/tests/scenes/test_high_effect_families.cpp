@@ -30,6 +30,7 @@
 #include "World/WizardModelEffects.h"
 #include "World/WorldObjectStepServices.h"
 #include "Terrain/WorldTerrain.h"
+#include "Assets/FaunaModels.h"
 
 #include "support/SyntheticModels.h"
 
@@ -82,12 +83,13 @@ struct FamilyWorld
 {
     HighEffectContext Context()
     {
-        return {.world = *world, .random = random, .worldClock = clock};
+        return {.world = *world, .random = random, .worldClock = clock, .faunaModels = &faunaModels};
     }
 
     HighEffectStepContext StepContext()
     {
-        return {.world = *world, .random = random, .services = services, .worldClock = clock};
+        return {
+            .world = *world, .random = random, .services = services, .worldClock = clock, .faunaModels = &faunaModels};
     }
 
     ModelEffect& Effect(std::size_t slot)
@@ -123,6 +125,7 @@ struct FamilyWorld
     CrtRandom random{Seed};
     float clock = 1234.5f;
     Client::World::ModelEffectStepServices services{.effects = &world->Map().effects, .lighting = lighting.get()};
+    Client::Assets::FaunaModels faunaModels;
 };
 
 // Los rand() de una partícula: la crea en un pool aparte con `replay`, que avanza como el original.

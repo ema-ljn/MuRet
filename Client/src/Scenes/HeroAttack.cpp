@@ -321,7 +321,8 @@ HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
                             .controlDown = context.controlDown,
                             .send = context.sendSkill,
                             .terrain = context.combat.terrain,
-                            .dynamicLighting = context.combat.dynamicLighting};
+                            .dynamicLighting = context.combat.dynamicLighting,
+                            .faunaModels = context.combat.faunaModels};
 }
 
 // 0x56601f..0x566754: el caso 5.

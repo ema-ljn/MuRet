@@ -226,9 +226,9 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
         return {};
     // 0x576abf→0x4ea030 lee el arreglo global: los modelos cargados por el viewport también están disponibles.
     // Fauna conserva esos recursos por separado y puede existir antes de ligar los modelos del primer dibujo.
-    const Models::IModelLibrary* models = context.world.FaunaResources().SkeletonOf(hero.type) != nullptr
-                                              ? &context.world.FaunaResources()
-                                              : context.models;
+    const Models::IModelLibrary* models =
+        context.faunaModels != nullptr && context.faunaModels->SkeletonOf(hero.type) != nullptr ? context.faunaModels
+                                                                                                : context.models;
     if (models == nullptr)
         return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
     const Actors::ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)

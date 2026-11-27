@@ -36,6 +36,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
+#include "Assets/FaunaModels.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -67,7 +68,7 @@ Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(cons
         .random = resources.cloth.random,
         .terrainWalls = TerrainOf(resources).attributes ? &TerrainOf(resources).attributes->cells : nullptr,
         .actorSkeleton = actorSkeleton,
-        .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
+        .modelSounds = Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> StopTransitionHero(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {

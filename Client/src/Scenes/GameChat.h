@@ -16,6 +16,11 @@
 #include <string>
 #include <string_view>
 
+namespace Client::Assets
+{
+class FaunaModels;
+}
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -73,9 +78,11 @@ struct GameChatContext
     // El C1 03 31 que /personalshop manda al cerrar las misiones o un NPC de evento (0x419900, 0x657a90).
     std::function<void()> sendWindowClose{};
     Platform::IClipboard* clipboard = nullptr;
-    // Biblioteca base: el emote consulta primero FaunaResources(), donde el viewport carga los transformados,
+    // Biblioteca base: el emote consulta primero `faunaModels`, donde el viewport carga los transformados,
     // y después ésta. 0x4ea030 mira las acciones del tipo del héroe; si ninguna ofrece el modelo, corta.
     const Models::IModelLibrary* models = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna); without them, only `models`.
+    const Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // 0x6a0c01 (atoi) → 0x6a0b76 (atol de la CRT) con el locale "C": los blancos (el espacio y de 0x09 a 0x0d), un '-' o

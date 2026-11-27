@@ -65,9 +65,9 @@ Core::Expected<void, std::string> GameScene::DrawTheBirds(Render::Frame::SceneCa
 {
     Kernel::WorldState& world = *m_context.world;
     FaunaDrawContext context{
-        world.Fauna(),     world.FaunaResources(), MapTerrain(),     FrameLighting(),           polygon,
-        FrameCloth(),      FrameSpritesForDraw(),  FramePoseCarry(), world.Runtime().map,       world.Runtime().storm,
-        canvas.frameClock, &FrameParticles(),      frames > 0,       CameraState().fixedHeight, true};
+        world.Fauna(),     LoadedFaunaModels(),   MapTerrain(),     FrameLighting(),           polygon,
+        FrameCloth(),      FrameSpritesForDraw(), FramePoseCarry(), world.Runtime().map,       world.Runtime().storm,
+        canvas.frameClock, &FrameParticles(),     frames > 0,       CameraState().fixedHeight, true};
     return DrawGameBirds(canvas.models, context);
 }
 
@@ -135,7 +135,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
             return result;
     }
     FaunaDrawContext fauna{world.Fauna(),
-                           world.FaunaResources(),
+                           LoadedFaunaModels(),
                            MapTerrain(),
                            FrameLighting(),
                            polygon,

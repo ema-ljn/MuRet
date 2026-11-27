@@ -24,6 +24,7 @@
 #include "support/RecordingSink.h"
 #include "support/FakeTextureStore.h"
 #include "support/SceneDataFiles.h"
+#include "Assets/FaunaModels.h"
 
 #include <gtest/gtest.h>
 
@@ -87,7 +88,8 @@ protected:
                                     .texts = &m_texts,
                                     .send = [this](Client::Protocol::Outgoing packet)
                                     { m_sent.push_back(std::move(packet)); },
-                                    .tick = 77};
+                                    .tick = 77,
+                                    .faunaModels = &m_faunaModels};
     }
 
     void Apply(const Battle::CastleBattlePacket& packet)
@@ -119,6 +121,7 @@ protected:
     }
 
     Client::Tests::FakeTextureStore m_store;
+    Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random;
     BattleMeasure m_measure;
@@ -146,7 +149,7 @@ TEST_P(CastleBattleReceiveTest, NpcLevelWritesByte93OfTheKeyOrOfRecord400)
 // B9 02 (0x4e0790): el par de cada byte arriba y el impar abajo, 64 colores, y una vuelta más de la marca.
 TEST_P(CastleBattleReceiveTest, OwnerMarkUnpacksTheNibblesHighFirst)
 {
-    auto& table = m_world->FaunaResources().TextureTable();
+    auto& table = m_faunaModels.TextureTable();
     table.Bind(m_store);
     ASSERT_TRUE(table
                     .Upload(Client::Data::Textures::LoadedTexture{

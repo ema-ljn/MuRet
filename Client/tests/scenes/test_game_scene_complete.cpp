@@ -130,7 +130,7 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
             {
                 if (map == 0)
                 {
-                    ASSERT_TRUE(world.FaunaResources().TextureTable().Metadata(0x64).has_value());
+                    ASSERT_TRUE(states.assets.fauna.TextureTable().Metadata(0x64).has_value());
                 }
                 ASSERT_FALSE(world.PoseCarry().bones.empty());
                 const auto bones = world.PoseCarry().bones;

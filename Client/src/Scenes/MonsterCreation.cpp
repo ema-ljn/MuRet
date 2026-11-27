@@ -282,12 +282,14 @@ void PutOnTheBoxArmour(Kernel::ActorState& actor)
     actor.animation.action = BoxAction;
 }
 
-// 0x612d90(n) y 0x612270(modelo) sobre los modelos del juego que no se sueltan (WorldState::FaunaResources), con el
+// 0x612d90(n) y 0x612270(modelo) sobre los modelos del juego que no se sueltan (Assets::AssetsState::fauna), con el
 // mapa en curso y la tabla de texturas que liga el juego.
 Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const WorldEntryResources& resources)
 {
-    Assets::FaunaModels& models = resources.world.FaunaResources();
-    auto context = models.LoadContextOf(resources.dataRoot, resources.log);
+    Assets::FaunaModels* models = FaunaModelsOf(resources);
+    if (models == nullptr)
+        return Core::Unexpected(std::format("{:#x}: no fauna models (0x5769ad8)", step.address));
+    auto context = models->LoadContextOf(resources.dataRoot, resources.log);
     if (!context)
         return Core::Unexpected(std::format("{:#x}: {} sin el backend de las texturas que liga el juego "
                                             "(GameScene::Enter)",
@@ -300,12 +302,12 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Wo
         // WorldRuntime::modelSounds, que leen los pasos del ataque.
         context->sounds = &resources.world.Runtime().modelSounds;
         if (auto loaded =
-                models.LoadMonster(static_cast<std::int32_t>(step.value), resources.world.Runtime().map, *context);
+                models->LoadMonster(static_cast<std::int32_t>(step.value), resources.world.Runtime().map, *context);
             !loaded.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", step.address, loaded.Error()));
         return {};
     }
-    if (auto loaded = models.LoadNpc(static_cast<std::uint16_t>(step.value), *context); !loaded.HasValue())
+    if (auto loaded = models->LoadNpc(static_cast<std::uint16_t>(step.value), *context); !loaded.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", step.address, loaded.Error()));
     return {};
 }
@@ -552,7 +554,7 @@ private:
 
 const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model)
 {
-    if (const auto* skeleton = resources.world.FaunaResources().SkeletonOf(model))
+    if (const auto* skeleton = Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SkeletonOf(model))
         return skeleton;
     return resources.models.SkeletonOf(model);
 }

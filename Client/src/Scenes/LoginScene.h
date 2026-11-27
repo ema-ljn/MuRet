@@ -24,6 +24,7 @@
 #include "Tables/GameData.h"
 #include "Scenes/IScene.h"
 #include "Assets/LoadedWorld.h"
+#include "Session/ModuleStates.h"
 #include "Terrain/DynamicWorldLight.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
@@ -248,18 +249,19 @@ private:
     [[nodiscard]] Kernel::WorldState& CharacterWorld() const;
     // The dynamic light (Terrain::TerrainState::dynamicLight), which the selection and the game go on with.
     [[nodiscard]] Terrain::DynamicWorldLight& DynamicLight() const;
+    // The context's module states, or the local ones of the tests without them.
+    [[nodiscard]] Session::ModuleStates& States() const;
     [[nodiscard]] Models::ClothWorld& CharacterRandomWorld();
 
     SceneContext m_context;
     // Los tests de vista sin los globales de main usan el mismo pool y paso, con un dueño local en el heap.
     std::unique_ptr<Kernel::WorldState> m_localWorld;
-    std::unique_ptr<Terrain::DynamicWorldLight> m_localLight;
+    std::unique_ptr<Session::ModuleStates> m_localStates;
     Models::ClothWorld m_localCloth;
     std::optional<std::string> m_failure;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     Camera::GameCamera m_localCamera;
     Camera::GameCameraInput m_localCameraInput;
-    Terrain::TerrainPolygon m_localTrapezoid{};
     Models::OriginalFrameCarry m_cameraFrames;
     // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
     Models::OriginalFrameCarry m_objectEffectFrames;

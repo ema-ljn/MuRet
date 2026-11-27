@@ -686,8 +686,9 @@ Scenes/FaunaEffects.cpp	137	Scenes	game/Fauna	medium	ambient fauna (birds, fish)
 Scenes/FaunaEffects.h	39	Scenes	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaJointCreation.cpp	2386	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 Scenes/FaunaJointCreation.h	91	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
-game/Assets/FaunaModels.cpp	534	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
-game/Assets/FaunaModels.h	173	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/AssetsState.h	13	game/Assets	game/Assets	high	what the assets own of the original's globals: the fauna models (AR4.1)
+game/Assets/FaunaModels.cpp	539	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/FaunaModels.h	176	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/FaunaMotion.cpp	138	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaMotion.h	24	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaObject.h	73	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
@@ -1197,8 +1198,8 @@ game/Kernel/WorldRuntime.h	623	game/Kernel	game/Kernel	medium	durable globals, m
 game/Sound/WorldRuntimeAudio.cpp	37	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
-game/Kernel/WorldState.cpp	275	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
-game/Kernel/WorldState.h	156	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.cpp	266	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.h	152	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 Scenes/WorldTexts.cpp	92	Scenes	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 Scenes/WorldTexts.h	60	Scenes	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 game/Session/WorldTransitionSupport.cpp	225	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr

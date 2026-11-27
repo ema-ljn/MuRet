@@ -8,7 +8,6 @@
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/FaunaState.h"
-#include "Assets/FaunaModels.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Leaves.h"
@@ -100,8 +99,6 @@ public:
     [[nodiscard]] const Actors::PlayerActionSpeeds& ActionSpeeds() const;
     [[nodiscard]] Scenes::FaunaState& Fauna();
     [[nodiscard]] const Scenes::FaunaState& Fauna() const;
-    [[nodiscard]] Assets::FaunaModels& FaunaResources();
-    [[nodiscard]] const Assets::FaunaModels& FaunaResources() const;
     [[nodiscard]] Scenes::FaunaDrawCarry& PoseCarry();
     [[nodiscard]] const Scenes::FaunaDrawCarry& PoseCarry() const;
     [[nodiscard]] Scenes::GameDrawTailState& DrawTail();
@@ -146,7 +143,6 @@ private:
     std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
     Actors::PlayerActionSpeeds m_actionSpeeds;
     Scenes::FaunaState m_fauna;
-    Assets::FaunaModels m_faunaResources;
     Scenes::FaunaDrawCarry m_poseCarry;
     std::unique_ptr<Scenes::GameDrawTailState> m_drawTail = std::make_unique<Scenes::GameDrawTailState>();
     std::unique_ptr<World::Leaves> m_leaves = std::make_unique<World::Leaves>();

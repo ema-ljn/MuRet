@@ -55,12 +55,16 @@ protected:
 
     Client::Core::Expected<void, std::string> Emit()
     {
-        return Client::Actors::Drawing::EmitWeaponTrail(
-            m_actor, &m_skeleton,
-            {.world = *m_world, .random = m_random, .playerSkeleton = &m_skeleton, .particles = &m_world->Particles()});
+        return Client::Actors::Drawing::EmitWeaponTrail(m_actor, &m_skeleton,
+                                                        {.world = *m_world,
+                                                         .random = m_random,
+                                                         .playerSkeleton = &m_skeleton,
+                                                         .particles = &m_world->Particles(),
+                                                         .faunaModels = &m_faunaModels});
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Assets::FaunaModels m_faunaModels;
     Client::Kernel::ActorState m_actor;
     Client::Models::Skeleton m_skeleton;
     Client::Crt::CrtRandom m_random{0x12345678u};
@@ -139,7 +143,7 @@ TEST_F(WeaponTrailTest, TenSamplesUseThePublishedModelActionAndRetainTheFinalPos
     EXPECT_NEAR(ribbon.first[0].x, 154.0f, 0.001f);
     EXPECT_EQ(ribbon.first[9].x, 100.0f);
     EXPECT_NEAR(m_world->PoseCarry().bones[0][3].x, 154.0f, 0.001f);
-    EXPECT_EQ(m_world->FaunaResources().PoseKey(m_actor.type), 3);
+    EXPECT_EQ(m_faunaModels.PoseKey(m_actor.type), 3);
     EXPECT_EQ(m_random.State(), 0x12345678u);
 }
 
@@ -211,8 +215,8 @@ TEST_F(WeaponTrailTest, Type194CompletesTenSamplesWithNormalFullAndPartialPartic
         {
             EXPECT_FALSE(m_world->Particles().All()[granted].alive);
         }
-        EXPECT_NEAR(m_world->FaunaResources().PoseFrame(m_actor.type), 3.9f, 0.00001f);
-        EXPECT_EQ(m_world->FaunaResources().PoseKey(m_actor.type), 3);
+        EXPECT_NEAR(m_faunaModels.PoseFrame(m_actor.type), 3.9f, 0.00001f);
+        EXPECT_EQ(m_faunaModels.PoseKey(m_actor.type), 3);
     }
 }
 

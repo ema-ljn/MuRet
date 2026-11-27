@@ -95,7 +95,7 @@ struct Game
     Game()
     {
         // 0x612d90 and 0x612270 upload the textures of the models they load through the table the game binds.
-        world.FaunaResources().TextureTable().Bind(store);
+        states.assets.fauna.TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();

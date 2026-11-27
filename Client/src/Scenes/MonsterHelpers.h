@@ -7,6 +7,11 @@
 #include <functional>
 #include <string>
 
+namespace Client::Assets
+{
+class FaunaModels;
+}
+
 namespace Client::Data::Terrain
 {
 struct TerrainHeights;
@@ -103,6 +108,7 @@ struct MonsterHelperPass
 // modelo (+0xa0, +0x68 y +0x6c, de su último 0x5ffdf0) son las del personaje (Q-C1102, *inferido*).
 [[nodiscard]] Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
                                                                         Kernel::WorldState& world,
+                                                                        Assets::FaunaModels* faunaModels,
                                                                         Crt::CrtRandom& random,
                                                                         World::Particles* particles, float worldClock);
 } // namespace Client::Scenes

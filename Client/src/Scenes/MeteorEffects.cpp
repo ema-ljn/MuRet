@@ -110,7 +110,7 @@ void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext&
 // banderas (0, 0). Sin acciones no hace nada; si no, deja en el modelo el frame y su key (+0xa4 y +0xa8), como
 // PoseWorldModel.
 Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect, const Models::Skeleton& skeleton,
-                                                Kernel::WorldState& world)
+                                                Kernel::WorldState& world, Assets::FaunaModels* faunaModels)
 {
     auto& carry = world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
@@ -140,7 +140,9 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
     auto key = static_cast<std::int16_t>(*whole);
     if (key < 0 || key >= skeleton.actions[placement.action].keyCount)
         key = 0;
-    world.FaunaResources().RecordAnimation(type, effect.animation.frame, key);
+    if (faunaModels == nullptr)
+        return Core::Unexpected(std::string("0x4eb860: no fauna models (0x5769ad8) for the meteor"));
+    faunaModels->RecordAnimation(type, effect.animation.frame, key);
     return {};
 }
 
@@ -220,7 +222,8 @@ Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect, 
                                      .random = context.random,
                                      .worldClock = context.worldClock,
                                      .models = context.models,
-                                     .terrain = context.terrain};
+                                     .terrain = context.terrain,
+                                     .faunaModels = context.faunaModels};
     for (const auto& [type, address] : {std::pair{MeteorEffect, 0x526090u}, std::pair{MeteorShellEffect, 0x5260adu}})
     {
         const auto made = CreateHighModelEffect({.type = type,
@@ -252,7 +255,7 @@ Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, cons
     // Sin el BMD del 0x13d (0x5769ad8 en cero): sin acciones ni huesos, ni la pose ni las chispas.
     if (skeleton == nullptr)
         return {};
-    if (auto posed = PoseTheMeteor(effect, *skeleton, context.world); !posed.HasValue())
+    if (auto posed = PoseTheMeteor(effect, *skeleton, context.world, context.faunaModels); !posed.HasValue())
         return posed;
     return SparkTheBones(effect, *skeleton, context);
 }

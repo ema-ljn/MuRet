@@ -22,6 +22,7 @@
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Assets/FaunaModels.h"
 
 #include <algorithm>
 #include <array>
@@ -101,7 +102,7 @@ Core::Expected<void, std::string> SetTheAction(Kernel::ActorState& actor, const 
         skeleton = context.playerSkeleton;
     else
     {
-        skeleton = context.world.FaunaResources().SkeletonOf(actor.type);
+        skeleton = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(actor.type);
         if (skeleton == nullptr && context.models != nullptr)
             skeleton = context.models->SkeletonOf(actor.type);
     }
@@ -462,7 +463,8 @@ World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
     return WizardEffectServicesOf(world, context.random,
                                   WizardSceneParts{.particles = &world.Particles(),
                                                    .terrain = &Terrain::TerrainOrEmpty(context.terrain),
-                                                   .dynamicLighting = context.dynamicLighting});
+                                                   .dynamicLighting = context.dynamicLighting,
+                                                   .faunaModels = context.faunaModels});
 }
 
 // 0x4f589d..0x4f58f6 (el jugador) y 0x4f5938..0x4f5991 (el 0x170): 0x518cf0(0xd5, +0x10, +0x1c, +0xf4, 0, 0, −1, …)
@@ -495,7 +497,8 @@ ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
                               .models = &resources.models,
                               .items = resources.items,
                               .terrain = &TerrainOf(resources),
-                              .dynamicLighting = DynamicLightingOf(resources)};
+                              .dynamicLighting = DynamicLightingOf(resources),
+                              .faunaModels = FaunaModelsOf(resources)};
 }
 
 Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, const ActorCombatContext& context)
@@ -533,7 +536,8 @@ Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, cons
             HighEffectContext{.world = context.world,
                               .random = context.random,
                               .models = context.models,
-                              .terrain = context.terrain});
+                              .terrain = context.terrain,
+                              .faunaModels = context.faunaModels});
         if (!struck.HasValue())
             return Core::Unexpected(std::format("0x4f4fb9: {}", struck.Error()));
         context.world.Runtime().RequestSound(0x79);

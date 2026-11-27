@@ -25,6 +25,11 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -57,6 +62,8 @@ struct ActorCombatContext
     const Terrain::WorldTerrain* terrain = nullptr;
     // The dynamic light (Terrain::TerrainState::dynamicLight) the effects add to; nullptr: adding one stops.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 [[nodiscard]] ActorCombatContext CombatContextOf(const WorldEntryResources& resources);
 

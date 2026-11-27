@@ -82,7 +82,8 @@ Core::Expected<void, std::string> StepTheKundunCall(World::ModelEffect& effect, 
                                      .random = context.random,
                                      .worldClock = context.worldClock,
                                      .models = context.models,
-                                     .terrain = context.terrain};
+                                     .terrain = context.terrain,
+                                     .faunaModels = context.faunaModels};
     if (effect.subtype == 0)
     {
         if (effect.life != CallLife)

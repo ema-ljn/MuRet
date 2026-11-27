@@ -29,6 +29,11 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -77,6 +82,8 @@ struct HeroSkillContext
     const Terrain::WorldTerrain* terrain = nullptr;
     // The dynamic light (Terrain::TerrainState::dynamicLight) the skills' effects add to; nullptr: adding one stops.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // 0x57cfc0(héroe): con el modo del editor (0x77f3b18), el mouse de la UI (0x775857c) o 0x1000 en +0x78, nada. Si no:

@@ -355,7 +355,8 @@ GameChatContext GameScene::ChatContext()
         .sendWindowClose = session != nullptr ? std::function<void()>([session] { session->SendWindowClose(); })
                                               : std::function<void()>{},
         .clipboard = m_context.clipboard,
-        .models = m_models};
+        .models = m_models,
+        .faunaModels = &LoadedFaunaModels()};
 }
 
 InventoryServices GameScene::InventoryContext()
@@ -565,7 +566,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                     { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
                     .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                     .fixedHeight = CameraState().fixedHeight,
-                    .terrain = &MapTerrain()},
+                    .terrain = &MapTerrain(),
+                    .faunaModels = &LoadedFaunaModels()},
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const Actors::Drawing::DrawnObject& object)
             { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },

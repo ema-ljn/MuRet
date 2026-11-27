@@ -193,7 +193,7 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 }
 
 // The model of 0x5769ad8 + type · 0xe0 that 0x4f9580, 0x4fcbb0 and 0x505de0 read: Player.bmd, the loose NewFace or
-// that of the monsters and NPCs (WorldState::FaunaResources, with the map's library behind it; 08, P-C176).
+// that of the monsters and NPCs (Assets::AssetsState::fauna, with the map's library behind it; 08, P-C176).
 // A monster's or an NPC's record always exists: that of a model that was not loaded (a .bmd missing in Npc or
 // Object35, which 0x60da30 skips, or a type without a load case) is at 0, without actions (+0x26), and 0x4ea030,
 // 0x4f9580 and 0x505de0 take it as an empty model.
@@ -204,7 +204,7 @@ const Models::Skeleton* ModelSkeletonOf(const Kernel::ActorState& actor, const C
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
-    const Models::Skeleton* loaded = context.world.FaunaResources().SkeletonOf(actor.type);
+    const Models::Skeleton* loaded = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(actor.type);
     return loaded != nullptr ? loaded : &ZeroRecord;
 }
 
@@ -237,7 +237,8 @@ Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, 
     const Models::Skeleton empty;
     const Models::Skeleton& skeleton = context.playerSkeleton != nullptr ? *context.playerSkeleton : empty;
     PlayerActionSpeeds& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
-    const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
+    const std::span<const std::int16_t> modelSounds =
+        Assets::FaunaModelsOrEmpty(context.faunaModels).SoundActions(actor.type);
     const ActorWalkContext walk{
         {context.world.Runtime(), context.scene, skeleton, context.items, context.random, &terrain.attributes->cells},
         speeds,
@@ -405,7 +406,9 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
     if (!whole)
         return Core::Unexpected(std::string("0x4ec31f: el frame avanzado no tiene conversión nativa observada"));
     const auto key = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(*whole));
-    context.world.FaunaResources().RecordAnimation(actor.type, animation.frame, key);
+    if (context.faunaModels == nullptr)
+        return Core::Unexpected(std::format("0x4ec200: no fauna models (0x5769ad8) for model {:#x}", actor.type));
+    context.faunaModels->RecordAnimation(actor.type, animation.frame, key);
     return finished;
 }
 
@@ -451,7 +454,8 @@ Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const 
             playerSkeleton = &emptyPlayerSkeleton;
         const bool player = actor.type == Tables::PlayerSkeletonModel;
         const Models::Skeleton* actorSkeleton = player ? nullptr : ModelSkeletonOf(actor, context);
-        const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
+        const std::span<const std::int16_t> modelSounds =
+            Assets::FaunaModelsOrEmpty(context.faunaModels).SoundActions(actor.type);
         const auto stopped = SetActorStop(
             actor, ActorStopContext{.runtime = context.world.Runtime(),
                                     .scene = context.scene,
@@ -550,7 +554,7 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
             return Core::Unexpected(std::format("0x4fce9c: la acción {} del 0x1f5 del lugar {} está fuera de su modelo",
                                                 static_cast<int>(action), slot));
         const std::int32_t lastKey = skeleton.actions[action].keyCount - 1;
-        if (context.world.FaunaResources().PoseKey(TraderModel) == lastKey)
+        if (Assets::FaunaModelsOrEmpty(context.faunaModels).PoseKey(TraderModel) == lastKey)
         {
             constexpr int OddsOfTheOtherAction = 32;
             const std::uint8_t next = context.random.Next() % OddsOfTheOtherAction == 0 ? 1 : 0;
@@ -580,8 +584,8 @@ Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, 
         return emitted;
     // 0x4fd5c1..0x4fd5df: 0x441260 (only 0x1a7), 0x42fa40 (0x1b1 and 0x1b3), 0x432bd0 and 0x426d90 (0x1b8 to
     // 0x1ba). 0x4fd5d7: 0x432bd0, with its unconditional rand() of 0x432bf1 (Scenes::StepTheSwingsOf1abTo1b4).
-    if (auto swung = Scenes::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.random, context.particles,
-                                                     context.worldClock);
+    if (auto swung = Scenes::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.faunaModels, context.random,
+                                                     context.particles, context.worldClock);
         !swung.HasValue())
         return swung;
     return Scenes::EmitLateMonsterRibbonTrails(actor, skeleton, context);
@@ -657,7 +661,8 @@ Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const Char
                                             .models = context.models,
                                             .items = context.items,
                                             .terrain = context.terrain,
-                                            .dynamicLighting = context.dynamicLighting};
+                                            .dynamicLighting = context.dynamicLighting,
+                                            .faunaModels = context.faunaModels};
     constexpr std::uint8_t DyingAgain = 15;
     actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
     if (actor.dying >= DyingAgain)
@@ -1270,7 +1275,8 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
                                       .worldClock = context.worldClock,
                                       .map = map,
                                       .groundMarks = context.groundMarks,
-                                      .dynamicLighting = context.dynamicLighting};
+                                      .dynamicLighting = context.dynamicLighting,
+                                      .faunaModels = context.faunaModels};
         return Scenes::StepTheModelEffects(pass);
     }
     static_cast<void>(context.random.Next());

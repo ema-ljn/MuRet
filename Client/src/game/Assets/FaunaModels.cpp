@@ -530,4 +530,10 @@ void FaunaModels::RecordPoseKey(std::uint16_t model, std::int16_t key)
 {
     m_animationMetadata[model].key = key;
 }
+
+const FaunaModels& FaunaModelsOrEmpty(const FaunaModels* models)
+{
+    static const FaunaModels Empty;
+    return models != nullptr ? *models : Empty;
+}
 } // namespace Client::Assets

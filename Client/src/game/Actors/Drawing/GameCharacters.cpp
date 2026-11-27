@@ -592,10 +592,10 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
     if ((actor.flags7c & HiddenCharacterFlag) != 0)
         return {};
     // 0x50ba65..0x50ba87: with no actions in the type's model (+0x26), nothing. Player.bmd for the 0x20a; for monsters
-    // and NPCs, the one the addition loaded (WorldState::FaunaResources, with the map's library behind it).
+    // and NPCs, the one the addition loaded (GameCharacterPass::faunaModels, with the map's library behind it).
     const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton =
-        player ? models.SkeletonOf(actor.type) : world.FaunaResources().SkeletonOf(actor.type);
+        player ? models.SkeletonOf(actor.type) : Assets::FaunaModelsOrEmpty(pass.faunaModels).SkeletonOf(actor.type);
     if (skeleton == nullptr || skeleton->actions.empty())
         return {};
     if (!player)

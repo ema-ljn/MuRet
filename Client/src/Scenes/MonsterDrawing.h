@@ -113,7 +113,7 @@ namespace Client::Scenes
 //   (DrawTheMonsterHelpers, MonsterHelpers.h), con sus efectos de la CL11 cortados;
 // - 0x510ef0 en la escena 5 con +0x88 en 1 y +0x369 (corta en 0x510f4d, CL11); después el cuervo de +0x430
 //   (DrawGameRaven, con pass.polygon).
-// `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de WorldState::FaunaResources. Entre
+// `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de Assets::AssetsState::fauna. Entre
 // frames del original, todo sobre una copia del personaje y del rand().
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,

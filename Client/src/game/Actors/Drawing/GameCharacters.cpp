@@ -39,7 +39,6 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SocialState.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
@@ -549,7 +548,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                               .models = models,
                                               .polygon = *pass.polygon,
                                               .lighting = pass.dynamicLighting,
-                                              .terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain,
+                                              .terrain = Terrain::TerrainOrEmpty(pass.terrain),
                                               .fixedHeight = pass.fixedHeight,
                                               .carry = pass.poseCarry,
                                               .frameClock = pass.frameClock,
@@ -629,7 +628,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
     std::optional<GroundBetweenFrames> projectedGround;
     if (DrawsTheShadow(character))
     {
-        const auto ground = Scenes::ShadowGroundOf(world, pass, actor, map, 0x50bc9d);
+        const auto ground = Scenes::ShadowGroundOf(pass, actor, map, 0x50bc9d);
         if (!ground.HasValue())
             return Core::Unexpected(ground.Error());
         character.object.position.z = ground.Value();
@@ -689,9 +688,10 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const M
                 return blessed;
         }
     }
-    if (!world.Map().terrain.attributes)
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
+    if (!terrain.attributes)
         return Core::Unexpected<std::string>("0x42da60: falta el TerrainWall que abre las puertas");
-    FinishTheCastleFrame(&world.Runtime(), world.Map().terrain.attributes->cells);
+    FinishTheCastleFrame(&world.Runtime(), terrain.attributes->cells);
     return {};
 }
 } // namespace

@@ -13,7 +13,6 @@
 #include "Scenes/JointKernels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SkillHits.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/IFishStepServices.h"
@@ -135,6 +134,7 @@ struct HeroWorld
 
     std::unique_ptr<Client::Kernel::WorldState> ownedWorld = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
@@ -145,11 +145,12 @@ void Attach(SweepWorld& sweep, HeroWorld& hero)
     sweep.volley =
         std::make_unique<Client::Scenes::JointKernels::VolleyServices>(Client::Scenes::JointKernels::VolleyServices{
             .siegeActive = hero.world.Runtime().castleSiege.siegeActive,
-            .attributes = hero.world.Map().terrain.attributes.get(),
+            .attributes = hero.terrain.attributes.get(),
             .skillHits = [&sweep, &hero](const Client::Scenes::SkillHitsRequest& request)
                 -> Client::Core::Expected<void, std::string>
             {
-                const auto hit = Client::Scenes::HitTheTargetsAround(request, hero.world, sweep.random, hero.Capture());
+                const auto hit = Client::Scenes::HitTheTargetsAround(request, hero.world, hero.terrain, sweep.random,
+                                                                     hero.Capture());
                 if (!hit.HasValue())
                     return Client::Core::Unexpected(hit.Error());
                 return {};
@@ -448,8 +449,8 @@ TEST(SweepJointsTest, TheSiegeStopsTheHeroSweepOnTheMarkedCells)
         SCOPED_TRACE(attribute);
         HeroWorld hero;
         hero.world.Runtime().castleSiege.siegeActive = true;
-        hero.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        hero.world.Map().terrain.attributes->cells.fill(static_cast<std::uint16_t>(attribute));
+        hero.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        hero.terrain.attributes->cells.fill(static_cast<std::uint16_t>(attribute));
         SweepWorld tested;
         Attach(tested, hero);
         ActorState& owner = hero.world.Actors()[HeroSlot];

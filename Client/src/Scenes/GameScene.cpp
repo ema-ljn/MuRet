@@ -398,7 +398,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
     // buffer dinámico precede las luces de objetos y fauna (06 § Terreno). El rango y las olas
     // son de la escena: el original los comparte con la selección (08 P-C41).
-    const Terrain::WorldTerrain* stepTerrain = &m_context.world->Map().terrain;
+    const Terrain::WorldTerrain* stepTerrain = &MapTerrain();
     if (runtime.map == SelectionMap && m_context.selection != nullptr && m_context.selection->Terrain() != nullptr)
     {
         stepTerrain = m_context.selection->Terrain();
@@ -436,7 +436,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                                      .random = m_context.cloth->random,
                                                      .worldClock = worldClock,
                                                      .scene = SceneId::Game,
-                                                     .terrain = nullptr,
+                                                     .terrain = &MapTerrain(),
                                                      .logicSteps = m_context.cloth->logicSteps,
                                                      .cameraShake = &CameraInputState().shake});
         !helpers.HasValue())
@@ -475,7 +475,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .chat = &chat,
                                              .inventory = &inventory,
                                              .fixedHeight = CameraState().fixedHeight,
-                                             .worldEntry = m_context.worldEntry});
+                                             .worldEntry = m_context.worldEntry,
+                                             .terrain = &MapTerrain()});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -614,7 +615,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                                 .worldClock = worldClock,
                                                 .heroZ = world.Hero().position.z,
                                                 .cameraShake = &CameraInputState().shake,
-                                                .attributes = world.Map().terrain.attributes.get()};
+                                                .attributes = MapTerrain().attributes.get()};
     const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
     { return CollapseTheObject(object, collapseContext); };
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
@@ -762,7 +763,7 @@ void GameScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
 Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCanvas& canvas)
 {
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    const Terrain::WorldTerrain& terrain = m_context.world->Map().terrain;
+    const Terrain::WorldTerrain& terrain = MapTerrain();
     const int frames = m_cameraFrames.FramesAtDraw(OriginalFramePaceOf(m_context.pacing));
     if (frames > 0)
         m_frameStarts = true;
@@ -946,7 +947,7 @@ Render::Camera3D GameScene::CameraOfTheFrame(Render::Frame::SceneCanvas& canvas,
     // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()) ni el recorrido.
     if (!(input.map == NamedCameraMap && input.webzen))
     {
-        input.cellAttribute = HeroCellAttribute(hero, *world.Map().terrain.attributes, m_context.cloth->random);
+        input.cellAttribute = HeroCellAttribute(hero, *MapTerrain().attributes, m_context.cloth->random);
         // 0x635ec0: con el recorrido andando, la z del héroe en 300; queda así para el resto del frame (el dibujo del
         // héroe) hasta que un paso la vuelva a escribir.
         if (input.tour)
@@ -999,7 +1000,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
     if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
-        const Terrain::WorldTerrain& terrain = m_context.world->Map().terrain;
+        const Terrain::WorldTerrain& terrain = MapTerrain();
         Terrain::TerrainView view;
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
@@ -1167,7 +1168,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                     .terrainHeight =
                         [&](float x, float y)
                     {
-                        const Terrain::WorldTerrain& terrain = world.Map().terrain;
+                        const Terrain::WorldTerrain& terrain = MapTerrain();
                         return static_cast<float>(Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
                                                                          CameraState().fixedHeight));
                     },
@@ -1184,7 +1185,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     if (auto ground = m_groundEffects.Draw(
             canvas.models, FrameEffects().Effects(),
             Terrain::GroundEffectResources{
-                .heights = *world.Map().terrain.heights,
+                .heights = *MapTerrain().heights,
                 .random = FrameCloth().random,
                 .worldClock = static_cast<float>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
@@ -1225,7 +1226,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
     if (m_models == nullptr)
     {
         return Actors::Drawing::DrawGameCharacters(
-            world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells, &world.Runtime(),
+            world.Actors(), world.Runtime().hero, MapTerrain().attributes->cells, &world.Runtime(),
             m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<Actors::ActorPickingBox>{});
     }
     std::optional<std::string> poseFailure;
@@ -1267,6 +1268,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
             .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
             .polygon = &polygon,
             .fixedHeight = CameraState().fixedHeight,
+            .terrain = &MapTerrain(),
             .guildMarks = &m_guildMarks,
             .kalima = FrameKalima(),
             .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});

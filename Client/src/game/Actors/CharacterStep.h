@@ -99,7 +99,7 @@ struct CharacterStepContext
     // The skeletons of the other models, for 0x4f5660 (SetActorDie) with the dying one from step 15. nullptr: a
     // model that is not the 0x20a stops there.
     const Models::IModelLibrary* models = nullptr;
-    // The load of scene 2 or 4; empty, the game's map. The TerrainWall is written right there.
+    // The load of scene 2 or 4; without it, an empty one. The TerrainWall is written right there.
     const Terrain::WorldTerrain* terrain = nullptr;
     const Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;

@@ -141,6 +141,8 @@ private:
     // 0x63420a: con alguno de los dos números de pkt[5] de la lista, el 1240 en el área de mensajes.
     [[nodiscard]] Core::Expected<void, std::string> AddTheAccountNotice();
     [[nodiscard]] Actors::CharacterStepContext CharacterContext();
+    // The selection's terrain or, before it lends one, the current map's.
+    [[nodiscard]] const Terrain::WorldTerrain* StepTerrain() const;
     void StepCharacters();
     void StepTheScene(const Input::InputState& input);
     // Si abrió el aviso 0x70 en este paso.

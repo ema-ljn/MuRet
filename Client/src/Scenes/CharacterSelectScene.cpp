@@ -499,6 +499,13 @@ Core::Expected<void, std::string> CharacterSelectScene::AddTheAccountNotice()
     return AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
 }
 
+const Terrain::WorldTerrain* CharacterSelectScene::StepTerrain() const
+{
+    if (m_context.selection != nullptr && m_context.selection->Terrain() != nullptr)
+        return m_context.selection->Terrain();
+    return m_context.states != nullptr ? &m_context.states->terrain.current : nullptr;
+}
+
 Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
 {
     const float clock =
@@ -510,7 +517,7 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .scene = SceneId::CharacterSelect,
             .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel),
             .items = m_items,
-            .terrain = m_context.selection->Terrain(),
+            .terrain = StepTerrain(),
             .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
             .particles = &m_context.world->Particles(),
             .worldClock = clock,
@@ -542,7 +549,8 @@ void CharacterSelectScene::StepCharacters()
                 m_failure = loaded.Error();
                 return;
             }
-            if (auto objects = m_world.StepObjects(*m_context.world, m_context.cloth->random, worldClock);
+            if (auto objects = m_world.StepObjects(*m_context.world, m_context.states->terrain.current,
+                                                   m_context.cloth->random, worldClock);
                 !objects.HasValue())
             {
                 m_failure = objects.Error();
@@ -555,7 +563,7 @@ void CharacterSelectScene::StepCharacters()
                                                          .random = m_context.cloth->random,
                                                          .worldClock = worldClock,
                                                          .scene = SceneId::CharacterSelect,
-                                                         .terrain = m_context.selection->Terrain(),
+                                                         .terrain = StepTerrain(),
                                                          .logicSteps = m_context.cloth->logicSteps});
             !helpers.HasValue())
         {
@@ -906,8 +914,13 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     }
     if (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized())
     {
+        if (m_context.states == nullptr)
+        {
+            m_failure = "0x633f20: la selección no carga su mundo sin los estados de los módulos";
+            return;
+        }
         if (auto initialized = m_context.selection->InitializeSelection(
-                m_context.dataRoot, CameraInputState(),
+                m_context.dataRoot, m_context.states->terrain, CameraInputState(),
                 m_context.cloth != nullptr ? &m_context.cloth->random : nullptr);
             !initialized.HasValue())
         {
@@ -927,8 +940,9 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     }
     if (m_context.world != nullptr)
     {
-        const Terrain::WorldTerrain* terrain =
-            m_context.selection != nullptr ? m_context.selection->Terrain() : &m_context.world->Map().terrain;
+        const Terrain::WorldTerrain* terrain = m_context.selection != nullptr ? m_context.selection->Terrain()
+                                               : m_context.states != nullptr  ? &m_context.states->terrain.current
+                                                                              : nullptr;
         if (terrain != nullptr && terrain->lighting != nullptr)
         {
             m_context.world->DynamicLighting().Update(*terrain->lighting);
@@ -1748,7 +1762,7 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kerne
                                                   .pace = OriginalFramePaceOf(m_context.pacing),
                                                   .polygon = &m_polygon,
                                                   .fixedHeight = CameraState().fixedHeight,
-                                                  .terrain = m_context.selection->Terrain()};
+                                                  .terrain = StepTerrain()};
     if (auto drawnTail = Actors::Drawing::DrawCharacterTail(canvas.models, m_models, world, actor, slot, drawn, pass,
                                                             scan, originalFrame);
         !drawnTail.HasValue())

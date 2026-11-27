@@ -410,7 +410,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     const auto worldOwner = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& world = *worldOwner;
     Client::Session::ModuleStates states;
-    world.Map().terrain = std::move(terrain).Value();
+    states.terrain.current = std::move(terrain).Value();
     // The grass offset 0x5f8300 fills on load: the u does not change which cells carry it.
     world.Map().grassOffsets.assign(Client::Data::Terrain::TerrainCellCount, 0.0f);
     constexpr std::size_t HeroSlot = 7;

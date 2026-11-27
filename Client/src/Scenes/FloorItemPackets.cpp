@@ -375,7 +375,7 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::F
                                                         const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    const Terrain::WorldTerrain& terrain = world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = TerrainOf(resources);
     const float fixedHeight = resources.camera.fixedHeight;
     const FloorItemCreation creation{
         .random = resources.cloth.random,

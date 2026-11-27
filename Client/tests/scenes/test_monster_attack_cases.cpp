@@ -20,6 +20,7 @@
 #include "Scenes/MonsterAttackStep.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -154,11 +155,13 @@ struct Game
                 .models = models,
                 .items = &items,
                 .itemSetTables = &sets,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
@@ -210,7 +213,7 @@ protected:
         game = std::make_unique<Game>();
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, terrain);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        game->world.Map().terrain = std::move(loaded).Value();
+        game->states.terrain.current = std::move(loaded).Value();
         game->world.Runtime().map = map;
         game->dataRoot = m_dataRoot;
     }
@@ -259,6 +262,7 @@ protected:
         const Client::Actors::CharacterStepContext context{.world = game->world,
                                                            .random = game->cloth.random,
                                                            .models = &game->models,
+                                                           .terrain = &game->states.terrain.current,
                                                            .particles = withParticles ? &game->particles : nullptr,
                                                            .joints = game->joints,
                                                            .soundRequest = [this](std::int32_t sound)

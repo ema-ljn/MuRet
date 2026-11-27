@@ -34,6 +34,8 @@
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainHeight.h"
+#include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -57,16 +59,15 @@ Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(cons
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, actor.type);
-    return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
-                                    .scene = SceneId::Game,
-                                    .playerSkeleton = *playerSkeleton,
-                                    .items = resources.items,
-                                    .random = resources.cloth.random,
-                                    .terrainWalls = resources.world.Map().terrain.attributes
-                                                        ? &resources.world.Map().terrain.attributes->cells
-                                                        : nullptr,
-                                    .actorSkeleton = actorSkeleton,
-                                    .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
+    return Actors::ActorStopContext{
+        .runtime = resources.world.Runtime(),
+        .scene = SceneId::Game,
+        .playerSkeleton = *playerSkeleton,
+        .items = resources.items,
+        .random = resources.cloth.random,
+        .terrainWalls = TerrainOf(resources).attributes ? &TerrainOf(resources).attributes->cells : nullptr,
+        .actorSkeleton = actorSkeleton,
+        .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> StopTransitionHero(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
@@ -102,18 +103,21 @@ Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint1
                                                     const WorldEntryResources& resources)
 {
     resources.world.Runtime().map = map;
-    const auto loaded = LoadMap(map, {resources.dataRoot, resources.world, SceneId::Game, playerKey,
+    if (resources.states == nullptr)
+        return Core::Unexpected(std::string("0x61a560: no hay estado del terreno para la carga"));
+    Terrain::TerrainState& terrain = resources.states->terrain;
+    const auto loaded = LoadMap(map, {resources.dataRoot, resources.world, terrain, SceneId::Game, playerKey,
                                       resources.cloth.random, resources.requestCastleSiegeState});
     if (!loaded.HasValue())
         return loaded;
-    resources.selection.BorrowTerrain(resources.world.Runtime().map, &resources.world.Map().terrain);
+    resources.selection.BorrowTerrain(resources.world.Runtime().map, &terrain.current);
     resources.cameraInput.map = static_cast<std::uint8_t>(resources.world.Runtime().map);
     return {};
 }
 Core::Expected<void, std::string> RefreshTransitionHeight(Kernel::ActorState& actor,
                                                           const WorldEntryResources& resources)
 {
-    const auto& terrain = resources.world.Map().terrain;
+    const auto& terrain = TerrainOf(resources);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x5f93c0: faltan alturas o atributos al trasladar al héroe"));
     const Actors::ActorConstructionContext context{terrain, resources.world.Runtime().map, Terrain::CullingScene::Game,
@@ -134,7 +138,7 @@ using Maps::LastChaosCastleMap;
 Core::Expected<void, std::string> CreateTheRaven(Kernel::ActorState& actor, const WorldEntryResources& resources,
                                                  std::string_view where)
 {
-    const auto& terrain = resources.world.Map().terrain;
+    const auto& terrain = TerrainOf(resources);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::format("{}: faltan alturas o atributos para el cuervo", where));
     constexpr float CellSize = 100.0f;

@@ -31,6 +31,7 @@
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/SelectionState.h"
 #include "Session/SessionEventApplier.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
@@ -173,7 +174,8 @@ public:
                                    .itemSetTables = &sets,
                                    .log = log,
                                    .textMeasure = &letters,
-                                   .texts = &texts};
+                                   .texts = &texts,
+                                   .states = &states};
     }
 
     // El héroe publicado en PublishedSlot, un jugador sin armas en el mapa 0.
@@ -195,6 +197,7 @@ public:
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState& world = *m_world;
     Client::Scenes::SelectionState selection{world};
+    Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
@@ -717,8 +720,8 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
     constexpr int RavenRandoms = 3 * Client::Models::SmallLogicalCloseRandoms;
     const auto testedStage = FreshOnTheHeap();
     Stage& tested = *testedStage;
-    tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.states.terrain.current.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    tested.states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     ActorState& hero = tested.PublishedHero();
     hero.cellX = 133;
     hero.cellY = 127;

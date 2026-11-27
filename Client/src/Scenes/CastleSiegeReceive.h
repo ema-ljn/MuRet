@@ -36,6 +36,11 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 // Los paquetes del castillo que llegan fuera de la batalla (CL9 hito 12; 04 § Castle Siege, las ventanas del
 // castillo): lo que hacen 0x4e2b10 y sus funciones con el B2 (0x00..0x10, 0x1A y 0x1F), el B3, el B4, el B5, el B6 y
 // el B8 sobre WorldRuntime::castleSiege, el héroe, los paneles y el chat. Ninguno mira la escena ni el flag de cifrado.
@@ -62,6 +67,8 @@ struct CastleReceiveContext
     std::filesystem::path dataRoot{};
     std::uint32_t tick = 0;
     const WorldEntryResources* entryResources = nullptr;
+    // The current map's terrain, whose .att and light the siege's B2 reloads (0x4294c0); without it, that stops.
+    Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // 0x4e2b10 con un paquete del castillo: B2 00 (0x4e50bd), 01 (0x4df080), 02 (0x4df1a0), 03 (0x4e5186), 04

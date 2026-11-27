@@ -199,7 +199,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                                          [session = m_session](Protocol::Outgoing packet)
                                                          { session->SendChat(std::move(packet)); })
                                                    : std::function<void(Protocol::Outgoing)>{};
-            const auto hit = HitTheTargetsAround(request, *m_context.world, m_context.cloth->random, send);
+            const auto hit =
+                HitTheTargetsAround(request, *m_context.world, MapTerrain(), m_context.cloth->random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
@@ -326,7 +327,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                              .random = m_context.cloth->random,
                                              .services = services,
                                              .worldClock = worldClock,
-                                             .models = m_models};
+                                             .models = m_models,
+                                             .terrain = &MapTerrain()};
             if (auto stepped = StepHighModelEffect(effect, skeleton, high); !stepped.HasValue())
                 return stepped;
             continue;
@@ -396,7 +398,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
                                                          [session = m_session](Protocol::Outgoing packet)
                                                          { session->SendChat(std::move(packet)); })
                                                    : std::function<void(Protocol::Outgoing)>{};
-            const auto hit = HitTheTargetsAround(request, *m_context.world, m_context.cloth->random, send);
+            const auto hit =
+                HitTheTargetsAround(request, *m_context.world, MapTerrain(), m_context.cloth->random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};

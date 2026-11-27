@@ -226,7 +226,7 @@ public:
     {
         world.Runtime().map = map;
         world.Runtime().hero = HeroSlot;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         Rider() = Client::Tests::UnarmedPlayer(1);
         Rider().alive = true;
         Rider().byte88 = 1;
@@ -252,7 +252,7 @@ public:
 
     std::uint16_t& Cell(std::uint8_t x, std::uint8_t y)
     {
-        return world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
+        return terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
     // 0x443fa0(0xbf, héroe + 0x10, héroe, 0, 0), como lo llama 0x5bc997.
@@ -278,7 +278,7 @@ public:
                                              .random = random,
                                              .worldClock = clock,
                                              .scene = scene,
-                                             .terrain = nullptr});
+                                             .terrain = &terrain});
     }
 
     // El paso del juego con la cuenta de los pasos lógicos (0x7d3a0f0) y el temblor de la cámara (0x7d325c8).
@@ -289,7 +289,7 @@ public:
                                              .random = random,
                                              .worldClock = clock,
                                              .scene = SceneId::Game,
-                                             .terrain = nullptr,
+                                             .terrain = &terrain,
                                              .logicSteps = logicSteps,
                                              .cameraShake = shake});
     }
@@ -381,6 +381,7 @@ public:
     }
 
     WorldState& world = *m_world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     // El reloj del mundo (0x5767b88) con que 0x53fe70 gira las 5f2: 12.345 ms, 105 grados.
     float clock = 12345.0f;
@@ -712,7 +713,7 @@ TEST_F(GoldenHelperTable, TheHorseLooksAtTheDrawnCellAndNotAtTheLogicalOne)
             HelperWorld tested(border.map);
             auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, border.map);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-            tested.world.Map().terrain = std::move(loaded).Value();
+            tested.terrain = std::move(loaded).Value();
             ASSERT_EQ(tested.Cell(border.insideX, border.insideY) & 1, 1);
             ASSERT_EQ(tested.Cell(border.outsideX, border.outsideY) & 1, 0);
             ASSERT_NO_FATAL_FAILURE(tested.Mount());
@@ -1215,7 +1216,7 @@ TEST(HelperTableTest, TheStonesSkipTheCellsTheirAttributeMasks)
 {
     HelperWorld quake;
     ASSERT_NO_FATAL_FAILURE(quake.Mount());
-    quake.world.Map().terrain.attributes->cells.fill(0x08);
+    quake.terrain.attributes->cells.fill(0x08);
     quake.Rear(8.5f, 4);
     float shake = 0.0f;
     ASSERT_TRUE(quake.StepCounting(1, &shake).HasValue());
@@ -1296,7 +1297,7 @@ TEST(HelperTableTest, ALiveHorseNeedsItsSkeletonAndTheMap)
     HelperWorld empty;
     EXPECT_TRUE(
         StepHelpers(HelperStepContext{.world = empty.world, .models = nullptr, .random = empty.random}).HasValue());
-    empty.world.Map().terrain.attributes.reset();
+    empty.terrain.attributes.reset();
     EXPECT_TRUE(empty.Step().HasValue());
 
     HelperWorld noSkeleton;
@@ -1307,7 +1308,7 @@ TEST(HelperTableTest, ALiveHorseNeedsItsSkeletonAndTheMap)
 
     HelperWorld noMap;
     ASSERT_NO_FATAL_FAILURE(noMap.Mount());
-    noMap.world.Map().terrain.attributes.reset();
+    noMap.terrain.attributes.reset();
     EXPECT_TRUE(HasError(noMap.Step(), "0x4440db"));
 }
 
@@ -1944,7 +1945,7 @@ TEST(HelperTableTest, InTheRidersSafeCellTheRidingHelpersHide)
 
     HelperWorld noMap;
     ASSERT_NO_FATAL_FAILURE(noMap.Ride(DinorantModel));
-    noMap.world.Map().terrain.attributes.reset();
+    noMap.terrain.attributes.reset();
     EXPECT_TRUE(HasError(noMap.Step(), "0x4447e7"));
 }
 
@@ -1976,9 +1977,11 @@ TEST(HelperTableTest, TheLetterPortraitHelperFollowsItsRiderInTheSafeCell)
                 ConstructHelper(helper, type, portrait.Rider().position, rider, ActorPoolSize, map, &portrait.random);
             ASSERT_TRUE(built.HasValue()) << built.Error();
             ASSERT_TRUE(built.Value());
-            const auto stepped = StepTheHelperOutsideTheTable(
-                helper, rider,
-                HelperStepContext{.world = portrait.world, .models = &portrait.models, .random = portrait.random});
+            const auto stepped = StepTheHelperOutsideTheTable(helper, rider,
+                                                              HelperStepContext{.world = portrait.world,
+                                                                                .models = &portrait.models,
+                                                                                .random = portrait.random,
+                                                                                .terrain = &portrait.terrain});
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
             const HelperState& expected = table.Horse();
@@ -1996,11 +1999,12 @@ TEST(HelperTableTest, TheLetterPortraitHelperFollowsItsRiderInTheSafeCell)
             helper.alive = false;
             const HelperState dead = helper;
             const auto before = portrait.random.State();
-            ASSERT_TRUE(
-                StepTheHelperOutsideTheTable(
-                    helper, rider,
-                    HelperStepContext{.world = portrait.world, .models = &portrait.models, .random = portrait.random})
-                    .HasValue());
+            ASSERT_TRUE(StepTheHelperOutsideTheTable(helper, rider,
+                                                     HelperStepContext{.world = portrait.world,
+                                                                       .models = &portrait.models,
+                                                                       .random = portrait.random,
+                                                                       .terrain = &portrait.terrain})
+                            .HasValue());
             EXPECT_EQ(helper.position, dead.position);
             EXPECT_EQ(helper.horse.animation.frame, dead.horse.animation.frame);
             EXPECT_EQ(portrait.random.State(), before);

@@ -15,9 +15,9 @@
 #include "Scenes/HeroSkills.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/Skill55faa0.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -122,7 +122,7 @@ struct ElfHero
     {
         auto& runtime = world.Runtime();
         runtime.map = map;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
         hero.type = Client::Tables::PlayerSkeletonModel;
@@ -188,7 +188,8 @@ struct ElfHero
                                  .worldTime = 5000.0f,
                                  .send = [this](Client::Protocol::Outgoing outgoing)
                                  { sent.push_back(std::move(outgoing)); },
-                                 .playerKey = PlayerKey};
+                                 .playerKey = PlayerKey,
+                                 .terrain = &terrain};
         if (terrainPoint)
             context.pickTerrainPoint = [this]() -> Client::Core::Expected<std::optional<glm::vec3>, std::string>
             { return terrainPoint; };
@@ -205,6 +206,7 @@ struct ElfHero
 
     std::uint8_t skill;
     Client::Kernel::WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     std::optional<glm::vec3> terrainPoint;

@@ -20,6 +20,7 @@
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 
@@ -115,7 +116,7 @@ struct FrameWorld
         world.OwnCharacter().word3e = FarTimer;
         world.OwnCharacter().word40 = FarTimer;
         world.OwnCharacter().word42 = FarTimer;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     }
 
     // El héroe, un jugador con +0x381 en `step`, la acción y el frame, sin blanco.
@@ -138,6 +139,7 @@ struct FrameWorld
         return CharacterStepContext{.world = world,
                                     .random = random,
                                     .playerSkeleton = &skeleton,
+                                    .terrain = &terrain,
                                     .particles = withParticles ? &particles : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); }};
@@ -155,6 +157,7 @@ struct FrameWorld
 
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
     Client::Models::Skeleton skeleton = SkeletonWithBones();
     std::vector<std::int32_t> sounds;

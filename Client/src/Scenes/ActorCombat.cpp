@@ -21,6 +21,7 @@
 #include "Kernel/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <algorithm>
 #include <array>
@@ -458,8 +459,9 @@ void DeathSound(const Kernel::ActorState& actor, const ActorCombatContext& conte
 World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
 {
     Kernel::WorldState& world = context.world;
-    return WizardEffectServicesOf(world, context.random,
-                                  WizardSceneParts{.particles = &world.Particles(), .terrain = &world.Map().terrain});
+    return WizardEffectServicesOf(
+        world, context.random,
+        WizardSceneParts{.particles = &world.Particles(), .terrain = &Terrain::TerrainOrEmpty(context.terrain)});
 }
 
 // 0x4f589d..0x4f58f6 (el jugador) y 0x4f5938..0x4f5991 (el 0x170): 0x518cf0(0xd5, +0x10, +0x1c, +0xf4, 0, 0, −1, …)
@@ -490,7 +492,8 @@ ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
                               .random = resources.cloth.random,
                               .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
                               .models = &resources.models,
-                              .items = resources.items};
+                              .items = resources.items,
+                              .terrain = &TerrainOf(resources)};
 }
 
 Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, const ActorCombatContext& context)
@@ -525,7 +528,10 @@ Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, cons
         // (Scenes/SkillBurstEffects; con la tabla llena, nada), y el sonido 0x79.
         const auto struck = CreateHighModelEffect(
             {.type = FlameBurstEffect, .position = actor.position, .angles = actor.angles, .light = actor.light},
-            HighEffectContext{.world = context.world, .random = context.random, .models = context.models});
+            HighEffectContext{.world = context.world,
+                              .random = context.random,
+                              .models = context.models,
+                              .terrain = context.terrain});
         if (!struck.HasValue())
             return Core::Unexpected(std::format("0x4f4fb9: {}", struck.Error()));
         context.world.Runtime().RequestSound(0x79);

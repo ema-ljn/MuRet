@@ -162,6 +162,7 @@ struct SkillWorld
         return CharacterStepContext{.world = world,
                                     .random = random,
                                     .skills = skills,
+                                    .terrain = &terrain,
                                     .particles = withParticles ? &world.Particles() : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
@@ -186,6 +187,7 @@ struct SkillWorld
 
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> soundOrigins;
@@ -519,9 +521,8 @@ TEST(AttackSkillCasesTest, TheSummonsLeaveTheirDecalOverTheStriker)
 }
 
 // Un mundo plano para la Flame: las alturas en 150 y los atributos en 0.
-void Flatten(WorldState& world)
+void Flatten(Client::Terrain::WorldTerrain& terrain)
 {
-    auto& terrain = world.Map().terrain;
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     terrain.heights->cells.fill(150.0f);
@@ -539,7 +540,7 @@ TEST(AttackSkillCasesTest, TheFlameLightsItsJetOnTheSkillCell)
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << (hero ? ", el héroe" : ", otro"));
             SkillWorld tested(map);
-            Flatten(tested.world);
+            Flatten(tested.terrain);
             if (hero)
                 tested.world.Runtime().hero = StrikerSlot;
             ActorState& striker = tested.Striker();
@@ -578,7 +579,7 @@ TEST(AttackSkillCasesTest, TheFlameLightsItsJetOnTheSkillCell)
 TEST(AttackSkillCasesTest, TheFlameWithoutRoomOrGroundSkipsItsJet)
 {
     SkillWorld full;
-    Flatten(full.world);
+    Flatten(full.terrain);
     full.world.Runtime().hero = StrikerSlot;
     for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
     {
@@ -1685,7 +1686,7 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
     }
     {
         SkillWorld tested;
-        Flatten(tested.world);
+        Flatten(tested.terrain);
         ActorState& striker = tested.Striker();
         striker.skillCellX = 120;
         striker.skillCellY = 33;
@@ -1706,7 +1707,7 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
     {
         SCOPED_TRACE(jointsFull);
         SkillWorld tested;
-        Flatten(tested.world);
+        Flatten(tested.terrain);
         ActorState& striker = tested.Striker();
         striker.skillCellX = 120;
         striker.skillCellY = 33;
@@ -1762,14 +1763,14 @@ TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
         SkillWorld tested;
         tested.withParticles = true;
         // La 0x27 y la 0x0d leen la altura de la celda de la skill (0x5f93c0) aun sin lugar en la tabla.
-        Flatten(tested.world);
+        Flatten(tested.terrain);
         auto& actor = tested.Hero();
         actor.position = glm::vec3(125.0f, 250.0f, 375.0f);
         actor.skillTarget4c = static_cast<std::int32_t>(VictimSlot);
         actor.attackTarget = static_cast<std::uint16_t>(VictimSlot);
         actor.flags78 = probe.skill == 0x48 ? 0x8000u : 0u;
         if (probe.skill == 0x26)
-            Flatten(tested.world);
+            Flatten(tested.terrain);
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
         for (auto& joint : tested.joints)
@@ -2200,7 +2201,7 @@ TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
 TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
 {
     SkillWorld tested;
-    Flatten(tested.world);
+    Flatten(tested.terrain);
     ActorState& striker = tested.Striker();
     striker.skillCellX = 120;
     striker.skillCellY = 33;
@@ -2251,7 +2252,7 @@ TEST(AttackSkillCasesTest, TheTwisterTakesTheBodyLight)
     for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
     {
         SkillWorld tested;
-        Flatten(tested.world);
+        Flatten(tested.terrain);
         ActorState& striker = tested.Striker();
         striker.position = glm::vec3(1250.0f, 3350.0f, 20.0f);
         striker.light = glm::vec3(0.5f, 0.25f, 1.0f);

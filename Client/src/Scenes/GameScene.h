@@ -177,6 +177,8 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> StepTheFauna();
     [[nodiscard]] Core::Expected<void, std::string> StepTheLeaves();
     [[nodiscard]] const Terrain::WorldTerrain& StepTerrain() const;
+    // The current map's terrain (Terrain::TerrainState::current); StepTerrain adds the selection's in map 54.
+    [[nodiscard]] const Terrain::WorldTerrain& MapTerrain() const;
     // 0x63706a: 0x606560 con los objetos vistos (StepGameWorldObjects); los demás mapas cortan si hay alguno.
     [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
 

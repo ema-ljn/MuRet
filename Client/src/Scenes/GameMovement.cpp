@@ -38,7 +38,6 @@
 #include "Scenes/HeroSkills.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcTalk.h"
-#include "Kernel/WorldMap.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowSteps.h"
 #include "Math/Ftol.h"
@@ -290,7 +289,7 @@ Core::Expected<void, std::string> UseGroundClick(Kernel::ActorState& hero, const
         return Core::Unexpected(picked.Error());
     if (!picked.Value())
         return {};
-    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     GameMovementState& state = context.world.Runtime().movement;
@@ -348,7 +347,8 @@ HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
                                          .random = context.random,
                                          .playerSkeleton = context.playerSkeleton,
                                          .models = context.models,
-                                         .items = context.items},
+                                         .items = context.items,
+                                         .terrain = context.terrain},
                               .sendWalk = context.sendWalk,
                               .sendAttack = context.sendAttack,
                               .skills = context.skills,
@@ -415,7 +415,7 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
         return Core::Unexpected(std::string("0x59d421: la celda del elegido fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*targetX);
     state.targetY = std::bit_cast<std::uint32_t>(*targetY);
-    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver al elegido"));
     // 0x59d439..0x59d531: la Y y la X, cada una en su acceso.
@@ -484,7 +484,7 @@ Core::Expected<void, std::string> ArriveAtTheTarget(Kernel::ActorState& hero, co
             InventoryMoveContext{.world = context.world,
                                  .random = context.random,
                                  .services = context.inventory != nullptr ? *context.inventory : NoServices},
-            hero.position, context.fixedHeight);
+            hero.position, Terrain::TerrainOrEmpty(context.terrain), context.fixedHeight);
     }
     return InteractOnArrival(hero, ArrivalContextOf(context));
 }
@@ -513,7 +513,7 @@ Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const H
     state.chosenNpc = npc;
     state.chosenNpcType = static_cast<std::int16_t>(target.type);
     state.chosenNpcAngle = std::bit_cast<std::uint32_t>(target.angles.z);
-    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -551,7 +551,7 @@ Core::Expected<void, std::string> WalkToTheFloorItem(Kernel::ActorState& hero, c
         return Core::Unexpected(std::string("0x59dc8e: la posición del ítem del piso fuera del perfil ftol"));
     state.targetX = static_cast<std::uint32_t>(*x);
     state.targetY = static_cast<std::uint32_t>(*y);
-    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -572,7 +572,7 @@ Core::Expected<void, std::string> WalkToTheFloorItem(Kernel::ActorState& hero, c
         InventoryMoveContext{.world = context.world,
                              .random = context.random,
                              .services = context.inventory != nullptr ? *context.inventory : NoServices},
-        hero.position, context.fixedHeight);
+        hero.position, Terrain::TerrainOrEmpty(context.terrain), context.fixedHeight);
     hero.movementType = 0;
     return picked;
 }
@@ -698,7 +698,7 @@ Core::Expected<void, std::string> MoveTheHero(Kernel::ActorState& hero, const He
     if (hero.movement == 0)
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     const auto stopContext = StopContextForActor(hero, context, terrain, "0x4f37c0: falta Player.bmd");
     if (!stopContext.HasValue())
         return Core::Unexpected(stopContext.Error());
@@ -808,6 +808,7 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
 }
 
 } // namespace
+
 Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -817,7 +818,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).
     if (CameraTourRunning(runtime.events.cameraTour))
     {
-        const auto& terrain = context.world.Map().terrain;
+        const auto& terrain = Terrain::TerrainOrEmpty(context.terrain);
         const auto stop =
             StopContextForActor(hero, context, terrain, "0x59ae24: falta Player.bmd para parar durante el recorrido");
         if (!stop.HasValue())
@@ -889,10 +890,11 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
                                                    .controlDown = context.input.controlDown,
                                                    .pickTerrainPoint = context.pickTerrainPoint,
                                                    .send = context.sendSkill,
-                                                   .playerKey = context.playerKey});
+                                                   .playerKey = context.playerKey,
+                                                   .terrain = context.terrain});
         !used.HasValue())
         return used;
-    PublishHeroLayer(hero, runtime, context.world.Map().terrain);
+    PublishHeroLayer(hero, runtime, Terrain::TerrainOrEmpty(context.terrain));
     return {};
 }
 } // namespace Client::Scenes

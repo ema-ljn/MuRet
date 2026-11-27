@@ -216,8 +216,11 @@ Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect, 
         return {};
     constexpr int FullTurn = Math::FullTurn; // 0x168
     const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(context.random.Next() % FullTurn)};
-    const HighEffectContext creation{
-        .world = context.world, .random = context.random, .worldClock = context.worldClock, .models = context.models};
+    const HighEffectContext creation{.world = context.world,
+                                     .random = context.random,
+                                     .worldClock = context.worldClock,
+                                     .models = context.models,
+                                     .terrain = context.terrain};
     for (const auto& [type, address] : {std::pair{MeteorEffect, 0x526090u}, std::pair{MeteorShellEffect, 0x5260adu}})
     {
         const auto made = CreateHighModelEffect({.type = type,

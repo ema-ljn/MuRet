@@ -27,6 +27,8 @@
 #include "Camera/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -62,14 +64,13 @@ Kernel::ActorState& HeroOf(const WorldEntryResources& resources)
 
 Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
 {
-    return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
-                                    .scene = SceneId::Game,
-                                    .playerSkeleton = player,
-                                    .items = resources.items,
-                                    .random = resources.cloth.random,
-                                    .terrainWalls = resources.world.Map().terrain.attributes
-                                                        ? &resources.world.Map().terrain.attributes->cells
-                                                        : nullptr};
+    return Actors::ActorStopContext{
+        .runtime = resources.world.Runtime(),
+        .scene = SceneId::Game,
+        .playerSkeleton = player,
+        .items = resources.items,
+        .random = resources.cloth.random,
+        .terrainWalls = TerrainOf(resources).attributes ? &TerrainOf(resources).attributes->cells : nullptr};
 }
 
 // 0x4c40cb..0x4c41c4: abre el registro propio, copia los stats y lo cierra (el primer cierre en línea).
@@ -88,8 +89,14 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
 {
     Kernel::WorldState& world = resources.world;
     world.Runtime().map = map;
+    if (resources.states == nullptr)
+    {
+        return Core::Unexpected(std::string("0x61a560: no hay estado del terreno para la carga"));
+    }
+    Terrain::TerrainState& terrain = resources.states->terrain;
     const auto loaded = LoadMap(map, MapLoadContext{.dataRoot = resources.dataRoot,
                                                     .world = world,
+                                                    .terrain = terrain,
                                                     .scene = SceneId::Game,
                                                     .playerKey = playerKey,
                                                     .random = resources.cloth.random,
@@ -98,7 +105,7 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
     {
         return loaded;
     }
-    resources.selection.BorrowTerrain(world.Runtime().map, &world.Map().terrain);
+    resources.selection.BorrowTerrain(world.Runtime().map, &terrain.current);
     resources.cameraInput.map = static_cast<std::uint8_t>(world.Runtime().map);
     ArmEventMapObject(world.Runtime().map, world.Runtime());
     return {};
@@ -115,7 +122,7 @@ Core::Expected<void, std::string> BuildTheHero(const Protocol::FrontEnd::Charact
     const auto angle =
         static_cast<float>((static_cast<double>(reply.direction) - DirectionOffset) * DegreesPerDirection);
     Kernel::ActorState& hero = HeroOf(resources);
-    const Actors::ActorConstructionContext construction{.terrain = world.Map().terrain,
+    const Actors::ActorConstructionContext construction{.terrain = TerrainOf(resources),
                                                         .map = world.Runtime().map,
                                                         .scene = Terrain::CullingScene::Game,
                                                         .fixedHeight = resources.camera.fixedHeight};
@@ -183,7 +190,7 @@ void PublishTheHero(const WorldEntryResources& resources)
     world.Runtime().hero = static_cast<std::size_t>(world.Runtime().heroSlot);
     Kernel::ActorState& hero = HeroOf(resources);
     resources.cameraInput.hero = hero.position;
-    if (const auto& attributes = world.Map().terrain.attributes)
+    if (const auto& attributes = TerrainOf(resources).attributes)
     {
         const std::size_t cell = Data::Terrain::CellIndex(hero.cellX, hero.cellY);
         resources.cameraInput.cellAttribute = static_cast<std::uint8_t>(attributes->cells[cell]);
@@ -278,6 +285,16 @@ Core::Expected<const Models::Skeleton*, std::string> PlayerSkeletonOf(const Worl
     return player;
 }
 } // namespace
+
+Terrain::WorldTerrain* WritableTerrainOf(const WorldEntryResources& resources)
+{
+    return resources.states != nullptr ? &resources.states->terrain.current : nullptr;
+}
+
+const Terrain::WorldTerrain& TerrainOf(const WorldEntryResources& resources)
+{
+    return resources.states != nullptr ? resources.states->terrain.current : Terrain::EmptyTerrain();
+}
 
 Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply,
                                                               std::uint16_t playerKey,

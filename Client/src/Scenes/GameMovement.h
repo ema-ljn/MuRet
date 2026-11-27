@@ -40,6 +40,11 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::Scenes
 {
 struct InventoryServices;
@@ -117,6 +122,9 @@ struct HeroMovementContext
     const Models::IModelLibrary* models = nullptr;
     // 0x599ef0 → 0x61c210/0x61c170: opciones y macros antes de entrar a Castle Siege o Land of Trial.
     std::function<Core::Expected<void, std::string>()> saveOptionsAndMacros{};
+    // The current map's terrain (Terrain::TerrainState::current). Without it, an empty one: walking stops where it
+    // reads the TerrainWall.
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

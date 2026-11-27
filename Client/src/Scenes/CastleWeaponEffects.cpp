@@ -152,11 +152,16 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
                         .PutU8(hi)
                         .PutU8(lo)));
         },
-        .deform = [&world](float x, float y, std::int32_t tx, std::int32_t ty)
-        { return Terrain::DeformTheSiegeTerrain(world.Map().terrain, x, y, tx, ty); },
+        .deform = [terrain = WritableTerrainOf(resources)](float x, float y, std::int32_t tx,
+                                                           std::int32_t ty) -> Core::Expected<void, std::string>
+        {
+            if (terrain == nullptr)
+                return Core::Unexpected(std::string("0x5283df: no hay terreno que hundir"));
+            return Terrain::DeformTheSiegeTerrain(*terrain, x, y, tx, ty);
+        },
         .sound = [&world](std::int32_t sound, const glm::vec3& position)
         { world.Runtime().RequestSound(sound, position, false); }};
-    const auto& terrain = world.Map().terrain;
+    const auto& terrain = TerrainOf(resources);
     if (terrain.heights && terrain.attributes)
         services.terrainHeight = [&terrain, &resources](float x, float y)
         { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, resources.camera.fixedHeight); };

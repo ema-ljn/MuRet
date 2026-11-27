@@ -14,6 +14,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -114,7 +115,8 @@ struct Tour
                 .camera = camera,
                 .cameraInput = input,
                 .models = models,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Step(std::uint32_t now = 0)
@@ -137,6 +139,7 @@ struct Tour
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
@@ -430,7 +433,7 @@ protected:
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(map));
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())
-            tour->world.Map().terrain = std::move(loaded).Value();
+            tour->states.terrain.current = std::move(loaded).Value();
         tour->world.Runtime().map = map;
         tour->dataRoot = m_dataRoot;
         return tour;

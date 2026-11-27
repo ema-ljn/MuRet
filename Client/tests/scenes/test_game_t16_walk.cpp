@@ -57,7 +57,7 @@ protected:
     void ClickCell(std::uint8_t x, std::uint8_t y)
     {
         ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
-        const auto& terrain = m_world->Map().terrain;
+        const auto& terrain = m_states->terrain.current;
         const float px = static_cast<float>(x) * 100 + 50;
         const float py = static_cast<float>(y) * 100 + 50;
         const float pz = static_cast<float>(
@@ -268,7 +268,7 @@ protected:
             const float previousHeight = Hero().position.z;
             Step();
             ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
-            const auto& terrain = m_world->Map().terrain;
+            const auto& terrain = m_states->terrain.current;
             if (Hero().movement != 0)
             {
                 EXPECT_FLOAT_EQ(Hero().position.z, static_cast<float>(Client::Terrain::TerrainHeightAt(
@@ -600,9 +600,9 @@ TEST_P(GameT16KalimaWalk, RealPickingLiteralD3AndEchoAdvanceTheHeroAndEmitNative
                                         << " time=" << m_world->Runtime().movement.mouseUpdateTime << "/"
                                         << m_world->Runtime().movement.mouseUpdateTimeMax
                                         << " block=" << m_world->Runtime().movement.movementBlocked
-                                        << " walls=" << m_world->Map().terrain.attributes->cells[64 * 256 + 64] << ","
-                                        << m_world->Map().terrain.attributes->cells[64 * 256 + 65] << ","
-                                        << m_world->Map().terrain.attributes->cells[64 * 256 + 66];
+                                        << " walls=" << m_states->terrain.current.attributes->cells[64 * 256 + 64]
+                                        << "," << m_states->terrain.current.attributes->cells[64 * 256 + 65] << ","
+                                        << m_states->terrain.current.attributes->cells[64 * 256 + 66];
     const auto expected = Client::Tests::Bytes({0xc1, 7, 0xd3, 62, 67, 0x32, 0x33});
     ASSERT_EQ(std::vector<std::byte>(walk->Bytes().begin(), walk->Bytes().end()), expected);
     ASSERT_NO_FATAL_FAILURE(EchoValidatedWalk(*walk));

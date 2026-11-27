@@ -19,7 +19,6 @@
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/Sprites.h"
@@ -192,8 +191,8 @@ protected:
         m_world->FaunaResources().Bind(&m_models);
         m_world->Runtime().map = 0;
         m_world->Runtime().hero = 42;
-        m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        m_world->Map().terrain.attributes->cells.fill(0);
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.attributes->cells.fill(0);
         m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         m_joints.resize(16);
@@ -245,7 +244,8 @@ protected:
                 .cloths = m_cloths,
                 .sprites = &m_sprites,
                 .poseCarry = &m_carry,
-                .joints = m_joints};
+                .joints = m_joints,
+                .terrain = &m_terrain};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -273,6 +273,7 @@ protected:
 
     ClothModels m_models;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
+    Client::Terrain::WorldTerrain m_terrain;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;

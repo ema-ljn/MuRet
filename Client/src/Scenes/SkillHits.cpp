@@ -80,7 +80,7 @@ Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& reques
 } // namespace
 
 Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& request, Kernel::WorldState& world,
-                                                      Crt::CrtRandom& random,
+                                                      const Terrain::WorldTerrain& terrain, Crt::CrtRandom& random,
                                                       const std::function<void(Protocol::Outgoing)>& send)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -95,7 +95,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     bool siegePlayers = false;
     if (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive)
     {
-        const auto& attributes = world.Map().terrain.attributes;
+        const auto& attributes = terrain.attributes;
         if (!attributes)
             return Core::Unexpected(std::string("0x517b1e: faltan los atributos del punto de la skill"));
         const auto query = Terrain::TerrainAttributeQueryAt(*attributes, request.point.x, request.point.y);

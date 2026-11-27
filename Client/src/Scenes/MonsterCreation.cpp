@@ -314,7 +314,7 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Wo
 Core::Expected<double, std::string> GroundAt(const Kernel::ActorState& actor, const WorldEntryResources& resources,
                                              std::uint32_t address)
 {
-    const Terrain::WorldTerrain& terrain = resources.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = TerrainOf(resources);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::format("{:#x}: 0x5f93c0 sin las alturas del mundo cargado", address));
     return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, actor.position.x, actor.position.y,
@@ -430,7 +430,7 @@ private:
     {
         Kernel::WorldState& world = m_resources.world;
         const Actors::ActorConstructionContext construction{
-            world.Map().terrain, world.Runtime().map, Terrain::CullingScene::Game, m_resources.camera.fixedHeight};
+            TerrainOf(m_resources), world.Runtime().map, Terrain::CullingScene::Game, m_resources.camera.fixedHeight};
         const Actors::ActorPlacement placement{m_x, m_y, std::bit_cast<float>(step.extra)};
         auto created = Actors::CreateActor(world, m_key, static_cast<std::uint16_t>(step.value), placement,
                                            construction, m_resources.cloth);

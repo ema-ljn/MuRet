@@ -45,17 +45,17 @@ protected:
     void ExpectAliasWorldTen()
     {
         const auto& loaded = m_world->Map();
-        ASSERT_NE(loaded.terrain.mapping, nullptr);
-        ASSERT_NE(loaded.terrain.heights, nullptr);
+        const auto& terrain = m_states->terrain.current;
+        ASSERT_NE(terrain.mapping, nullptr);
+        ASSERT_NE(terrain.heights, nullptr);
         Client::Diagnostics::Crc32 first;
         Client::Diagnostics::Crc32 second;
-        first.Update(std::as_bytes(std::span(loaded.terrain.mapping->layer1)));
-        second.Update(std::as_bytes(std::span(loaded.terrain.mapping->layer2)));
+        first.Update(std::as_bytes(std::span(terrain.mapping->layer1)));
+        second.Update(std::as_bytes(std::span(terrain.mapping->layer2)));
         // Firma independiente de World10: inventario Data de map-sweep-2026-11-10.
         EXPECT_EQ(first.Value(), 0xd7978eebu);
         EXPECT_EQ(second.Value(), 0xdeab7e4eu);
-        EXPECT_EQ(std::accumulate(loaded.terrain.heights->cells.begin(), loaded.terrain.heights->cells.end(), 0.0),
-                  9888340.0 * 1.5);
+        EXPECT_EQ(std::accumulate(terrain.heights->cells.begin(), terrain.heights->cells.end(), 0.0), 9888340.0 * 1.5);
         EXPECT_EQ(loaded.objectRecords.size(), 564u);
     }
 
@@ -122,8 +122,8 @@ TEST_P(GameT16Transitions, EncryptedTeleportEntersAndReturnsOrNamesItsExactBound
     EXPECT_EQ(m_world->Runtime().warpCounter, 30);
     EXPECT_EQ(Hero().cellX, Client::Tests::T16::HomeX);
     EXPECT_EQ(Hero().cellY, Client::Tests::T16::HomeY);
-    ASSERT_NE(m_world->Map().terrain.heights, nullptr);
-    ASSERT_NE(m_world->Map().terrain.attributes, nullptr);
+    ASSERT_NE(m_states->terrain.current.heights, nullptr);
+    ASSERT_NE(m_states->terrain.current.attributes, nullptr);
     Teleport(0);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
     EXPECT_EQ(m_world->Runtime().map, 0);

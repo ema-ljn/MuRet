@@ -9,10 +9,10 @@
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/Particles.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 
@@ -73,7 +73,8 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         RibbonModels models;
         world->FaunaResources().Bind(&models);
         world->Runtime().map = 0;
-        world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        Client::Terrain::WorldTerrain terrain;
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         Client::Kernel::ActorState actor;
         actor.alive = true;
         actor.type = probe.type;
@@ -86,7 +87,8 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         actor.hands[0].model = actor.hands[1].model = 0xffff;
         Client::Crt::CrtRandom random{123};
 
-        const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world, .random = random});
+        const auto stepped =
+            Client::Actors::StepCharacter(actor, {.world = *world, .random = random, .terrain = &terrain});
 
         // 1b1 alcanza después el sprite de un helper CL11; la estela ya tiene ambas tandas.
         if (probe.type == 0x1b1)
@@ -121,7 +123,8 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
         RibbonModels models;
         world->FaunaResources().Bind(&models);
         world->Runtime().map = 0;
-        world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        Client::Terrain::WorldTerrain terrain;
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         Client::Kernel::ActorState actor;
         actor.alive = true;
         actor.type = 0x194;
@@ -137,8 +140,8 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
             for (auto& particle : world->Particles().All())
                 particle.alive = true;
 
-        const auto stepped =
-            Client::Actors::StepCharacter(actor, {.world = *world, .random = random, .particles = &world->Particles()});
+        const auto stepped = Client::Actors::StepCharacter(
+            actor, {.world = *world, .random = random, .terrain = &terrain, .particles = &world->Particles()});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const auto& ribbon = world->DrawTail().ribbons[0];
@@ -173,7 +176,8 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     models.skeleton.actions[3].speed = 2.0f;
     world->FaunaResources().Bind(&models);
     world->Runtime().map = 30;
-    world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    Client::Terrain::WorldTerrain terrain;
+    terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.type = 0x153;
@@ -186,7 +190,7 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     actor.hands[0].model = actor.hands[1].model = 0xffff;
     Client::Crt::CrtRandom random{123};
 
-    const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world, .random = random});
+    const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world, .random = random, .terrain = &terrain});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.animation.action, 0);

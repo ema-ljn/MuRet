@@ -45,6 +45,11 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::Scenes
 {
 
@@ -60,6 +65,8 @@ struct HighEffectContext
     float worldClock = 0.0f;
     std::function<void(Protocol::Outgoing)> send{};
     const Models::IModelLibrary* models = nullptr;
+    // The current map's terrain, whose cells 0x517a20 reads in the siege; without it, an empty one.
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
@@ -95,6 +102,8 @@ struct HighEffectStepContext
     const World::ModelEffectStepServices& services;
     float worldClock = 0.0f;
     const Models::IModelLibrary* models = nullptr;
+    // The current map's terrain, for the fire of Kundun's fall (0x527a6f); without it, an empty one.
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // Los tipos cuyo paso está en este archivo.

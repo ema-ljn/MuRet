@@ -88,7 +88,8 @@ Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& 
         .send = [&session](Protocol::Outgoing packet) { session.SendCastlePacket(std::move(packet)); },
         .dataRoot = resources.dataRoot,
         .tick = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
-        .entryResources = &resources};
+        .entryResources = &resources,
+        .terrain = Scenes::WritableTerrainOf(resources)};
 }
 
 Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session,
@@ -110,7 +111,8 @@ Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& res
         .dataRoot = resources.dataRoot,
         .sendNpcWindow = [&session](Protocol::Outgoing outgoing)
         { return session.SendNpcWindowPacket(std::move(outgoing)); },
-        .inventory = &inventory};
+        .inventory = &inventory,
+        .terrain = Scenes::WritableTerrainOf(resources)};
 }
 
 SessionPublisher::SessionPublisher(App::ServerSession& session) : m_session(session) {}

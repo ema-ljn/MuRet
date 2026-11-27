@@ -25,6 +25,11 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::Scenes
 {
 struct WorldEntryResources;
@@ -46,6 +51,9 @@ struct ActorCombatContext
     // La tabla de sonidos del modelo (ModelSounds); vacía, la de WorldRuntime::modelSounds. Sin ninguna de las dos, las
     // diez WORD en 0 de 0x60dc80 (SoundsOrZeros): 0x4f4a10 saca su rand() y pide el 0xd2 (08, P-C253).
     ModelSoundLookup modelSounds{};
+    // The current map's terrain (Terrain::TerrainState::current), whose TerrainWall the deaths and the effects read;
+    // without it, an empty one, and they stop where they read it.
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 [[nodiscard]] ActorCombatContext CombatContextOf(const WorldEntryResources& resources);
 

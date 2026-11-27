@@ -121,9 +121,10 @@ public:
     // 0x5fbf60, después de la copia de la luz: las olas de la ventana del rango con el reloj del paso.
     void StepWaves(Core::Duration clock, const Terrain::TerrainRange& range, std::uint8_t map);
     // 0x606560 en la selección: los objetos vistos en el último dibujo, con la luz dinámica, el pool de
-    // partículas y el pedido sonoro del mundo.
-    [[nodiscard]] Core::Expected<void, std::string> StepObjects(Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                                float worldClock);
+    // partículas y el pedido sonoro del mundo. `terrain` is the current map's (Terrain::TerrainState::current).
+    [[nodiscard]] Core::Expected<void, std::string> StepObjects(Kernel::WorldState& world,
+                                                                const Terrain::WorldTerrain& terrain,
+                                                                Crt::CrtRandom& random, float worldClock);
     // 0x52d220 y 0x53c670, después de la vista previa: los efectos con modelo (la mariposa, con la altura
     // del terreno y los sprites del frame, y el calco 0x14e de los Fenrir, con timeGetTime() en `systemTime`) y las
     // juntas.

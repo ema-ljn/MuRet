@@ -78,8 +78,11 @@ CreateTheKundunCall(World::ModelEffects& effects, const World::ModelEffectArgume
 
 Core::Expected<void, std::string> StepTheKundunCall(World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    const HighEffectContext creation{
-        .world = context.world, .random = context.random, .worldClock = context.worldClock, .models = context.models};
+    const HighEffectContext creation{.world = context.world,
+                                     .random = context.random,
+                                     .worldClock = context.worldClock,
+                                     .models = context.models,
+                                     .terrain = context.terrain};
     if (effect.subtype == 0)
     {
         if (effect.life != CallLife)

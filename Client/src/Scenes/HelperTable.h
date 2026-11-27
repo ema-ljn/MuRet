@@ -134,7 +134,7 @@ struct HelperStepContext
     // DAT_006d5dc8: solo la 5 apaga el ayudante sin jinete (0x44402a), y la 4 decide el final de la animación
     // con el frame + 2 (0x4ec200, Q-C21).
     SceneId scene = SceneId::Game;
-    // Los atributos (0x7d0d348) de la carga de la escena 4; vacío, los del mapa del juego.
+    // The attributes (0x7d0d348) of scene 4's load; without it, an empty terrain's.
     const Terrain::WorldTerrain* terrain = nullptr;
     // 0x7d3a0f0, la cuenta de los pasos lógicos que 0x4453e0 lee cruda para la onda 0x6eb/0 de la acción 3 del
     // caballo (P-C22 a: en el original es la cuenta cifrada, Q-C125).

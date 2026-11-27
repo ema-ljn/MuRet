@@ -121,8 +121,8 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
                                    .playerSkeleton = *playerSkeleton,
                                    .items = resources.items,
                                    .random = resources.cloth.random,
-                                   .terrainWalls = resources.world.Map().terrain.attributes
-                                                       ? &resources.world.Map().terrain.attributes->cells
+                                   .terrainWalls = Scenes::TerrainOf(resources).attributes
+                                                       ? &Scenes::TerrainOf(resources).attributes->cells
                                                        : nullptr,
                                    .sendAction = sendAction,
                                    .actorSkeleton = actorSkeleton,

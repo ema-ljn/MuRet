@@ -72,6 +72,7 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "Kernel/ItemState.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <algorithm>
 #include <array>
@@ -2548,7 +2549,9 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     // (0x775857c) levanta el primer ítem del piso vivo y a la vista a menos de 300 del héroe (0x5650c0, CL9 hito 5).
     if (runtime.cursorItemCount == 0 && KeyEdge(ui, input, SpaceKey) && !ui.chatOpen && ui.mouseOnUi == 0)
     {
-        if (auto picked = PickUpTheNearestFloorItem(MovesOf(context), context.fixedHeight); !picked.HasValue())
+        if (auto picked = PickUpTheNearestFloorItem(MovesOf(context), Terrain::TerrainOrEmpty(context.terrain),
+                                                    context.fixedHeight);
+            !picked.HasValue())
             return picked;
     }
     // 0x5ac9ce..0x5aca42: F1 pasa por las ayudas (0x77f3b08): de 3 o 4 (la del ítem o la ventana /move) a 0 y si no
@@ -2672,8 +2675,10 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    const auto pick = [&context](std::uint8_t mask) {
-        return Actors::PickTheCharacter(context.world, mask, context.cameraPosition, context.ray, context.pickingBoxes);
+    const auto pick = [&context](std::uint8_t mask)
+    {
+        return Actors::PickTheCharacter(context.world, Terrain::TerrainOrEmpty(context.terrain), mask,
+                                        context.cameraPosition, context.ray, context.pickingBoxes);
     };
     // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
     KeepTheChosen(context);

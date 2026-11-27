@@ -7,6 +7,7 @@
 #include "Protocol/Outgoing.h"
 #include "Scenes/SceneId.h"
 #include "Session/ModuleStates.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -118,6 +119,11 @@ struct WorldEntryResources
     // App::GameClient's, beside `world`. Last, like `skills`.
     Session::ModuleStates* states = nullptr;
 };
+
+// The current map's terrain (Terrain::TerrainState::current), which the load replaces. nullptr without `states`.
+[[nodiscard]] Terrain::WorldTerrain* WritableTerrainOf(const WorldEntryResources& resources);
+// The same, to read. Without `states`, Terrain::EmptyTerrain().
+[[nodiscard]] const Terrain::WorldTerrain& TerrainOf(const WorldEntryResources& resources);
 
 // Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para
 // diagnóstico y fixtures.

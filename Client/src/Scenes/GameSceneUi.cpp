@@ -294,7 +294,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .requests = &requests,
                                             .inventory = &inventory,
                                             .worldEntry = m_context.worldEntry,
-                                            .sendNpcWindow = NpcWindowSenderOf(m_session)});
+                                            .sendNpcWindow = NpcWindowSenderOf(m_session),
+                                            .terrain = &MapTerrain()});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -324,7 +325,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .itemSetTables = m_chatTables.itemSetTables,
                                        .skills = m_skills,
                                        .worldEntry = m_context.worldEntry,
-                                       .sendNpcWindow = NpcWindowSenderOf(m_session)});
+                                       .sendNpcWindow = NpcWindowSenderOf(m_session),
+                                       .terrain = &MapTerrain()});
 }
 
 NpcWindowSender GameScene::NpcWindowSenderOf(App::ServerSession* session)
@@ -401,7 +403,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                             .cameraPosition = m_drawnCamera.position,
                             .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
                                                               : std::span<Actors::ActorPickingBox>{},
-                            .floorItems = FrameTail().floorItems});
+                            .floorItems = FrameTail().floorItems,
+                            .terrain = &MapTerrain()});
     tintRestore.Restore();
     if (!picked.HasValue())
         return picked;
@@ -561,7 +564,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                     .poseBones = [&](std::uint16_t)
                     { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
                     .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
-                    .fixedHeight = CameraState().fixedHeight},
+                    .fixedHeight = CameraState().fixedHeight,
+                    .terrain = &MapTerrain()},
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const Actors::Drawing::DrawnObject& object)
             { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
@@ -644,7 +648,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                                    .texts = m_texts,
                                    .chosenSlot = drawChosenSlot,
                                    .requests = &drawRequests,
-                                   .worldEntry = m_context.worldEntry},
+                                   .worldEntry = m_context.worldEntry,
+                                   .terrain = &MapTerrain()},
                      !m_projectingFrame);
     drawStep.field78abaac = drawUi.field78abaac;
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,

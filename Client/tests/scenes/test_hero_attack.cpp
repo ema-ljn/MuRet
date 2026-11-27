@@ -14,7 +14,6 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"
 
@@ -116,7 +115,7 @@ protected:
     // El contexto de la llegada con los envíos grabados, como los manda la sesión (XOR32 y en claro).
     [[nodiscard]] Client::Scenes::HeroArrivalContext Arrival()
     {
-        return {.combat = {.world = *m_world, .random = m_random, .playerSkeleton = &m_skeleton},
+        return {.combat = {.world = *m_world, .random = m_random, .playerSkeleton = &m_skeleton, .terrain = &m_terrain},
                 .sendWalk = [this](std::span<const Client::Protocol::Movement::Cell> path,
                                    Client::Protocol::Movement::Cell target,
                                    float angle) -> Client::Core::Expected<void, std::string>
@@ -158,6 +157,7 @@ protected:
     static constexpr std::size_t TargetIndex = 13;
     static constexpr std::uint16_t TargetKey = 0x1234;
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
+    Client::Terrain::WorldTerrain m_terrain;
     CrtRandom m_random{Seed};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<std::vector<std::byte>> m_sent;
@@ -323,7 +323,7 @@ TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x566272"), std::string::npos);
 
-    m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     m_random = CrtRandom(Seed);
     ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(Hero().movement, 1);
@@ -348,7 +348,7 @@ TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywol
         {
             SCOPED_TRACE(::testing::Message() << "mapa " << map << (offTheGrid ? ", la columna 256" : ", el altar"));
             Reset(map);
-            m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+            m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
             Hero().characterClass = 2;
             Hero().movement = 0;
             Hero().path = {};

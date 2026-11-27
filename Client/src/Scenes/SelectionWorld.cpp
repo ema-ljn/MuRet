@@ -193,8 +193,9 @@ void SelectionWorld::StepWaves(Core::Duration clock, const Terrain::TerrainRange
     Terrain::UpdateWaves(m_water, clock, range, map);
 }
 
-Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                              float worldClock)
+Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState& world,
+                                                              const Terrain::WorldTerrain& terrain,
+                                                              Crt::CrtRandom& random, float worldClock)
 {
     std::span<World::WorldObject> objects = world.Map().objects;
     // 0x5ff960 con cada vivo del recorrido, también en la espera (Scenes/ObjectCollapse.h). La escena no tiene el
@@ -206,7 +207,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
                                                 .worldClock = worldClock,
                                                 .heroZ = world.Hero().position.z,
                                                 .cameraShake = nullptr,
-                                                .attributes = world.Map().terrain.attributes.get()};
+                                                .attributes = terrain.attributes.get()};
     const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
     { return CollapseTheObject(object, collapseContext); };
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda

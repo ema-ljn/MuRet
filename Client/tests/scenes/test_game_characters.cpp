@@ -23,7 +23,6 @@
 #include "Actors/FullSetScan.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildState.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainLighting.h"
@@ -221,8 +220,8 @@ protected:
         m_world = std::make_unique<Client::Kernel::WorldState>();
         m_world->Runtime().map = 2;
         m_world->Runtime().hero = Hero;
-        m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        m_world->Map().terrain.attributes->cells = *GateWalls();
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.attributes->cells = *GateWalls();
         m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         ActorState& actor = Actor();
@@ -248,10 +247,11 @@ protected:
     }
     [[nodiscard]] Client::Actors::Drawing::GameCharacterPass Pass()
     {
-        return {.dynamicLighting = m_light.get(), .clothWorld = &m_cloth};
+        return {.dynamicLighting = m_light.get(), .clothWorld = &m_cloth, .terrain = &m_terrain};
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world;
+    Client::Terrain::WorldTerrain m_terrain;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     UnarmedModels m_models;
     Client::Models::ClothWorld m_cloth;
@@ -378,7 +378,7 @@ TEST_F(UnarmedGameCharacterTest, WalkingUnarmedClosesBothHandBytesAfterTheBodyRa
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au); // seed 1: 0x50db57 and two one-byte closes
     EXPECT_EQ(Actor().byte38eAccesses, 0);
-    EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
+    EXPECT_EQ(m_terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
 }
 
 // 0x510ea9..0x510eb3 and 0x42afe0: after the 0x20a, 0x42ddb0 emits 0x638 on a defender near a mark every 10 steps. The
@@ -411,7 +411,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     Client::Crt::CrtRandom expected(1);
     expected.Discard(5);
     EXPECT_EQ(m_cloth.random.State(), expected.State());
-    EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
+    EXPECT_EQ(m_terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
 }
 
 TEST_F(UnarmedGameCharacterTest, TheCastleSiegeRequiresTheParticlePoolAfterTheBodyPrefix)
@@ -426,7 +426,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeRequiresTheParticlePoolAfterTheBo
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
     // It does not reach 0x42da60: the gates' bit 0x04 stays closed.
-    EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 5);
+    EXPECT_EQ(m_terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 5);
 }
 
 TEST_F(UnarmedGameCharacterTest, HeldOrWrappedHandByteDepthDoesNotConsumeClosingRandoms)
@@ -627,7 +627,7 @@ bool SameZ(float drawn, float expected)
 // it stops at the call to 0x5f93c0.
 TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 {
-    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     struct Case
     {
         std::int32_t map;
@@ -648,7 +648,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x1a1 " << int{probe.byte1a1} << ", +0x389 "
                                           << int{probe.dying} << ", z " << probe.z << ", terreno " << probe.height);
-        m_world->Map().terrain.heights->cells.fill(probe.height);
+        m_terrain.heights->cells.fill(probe.height);
         m_world->Runtime().map = probe.map;
         // In Chaos Castle, without the Angel (+0x88 other than 1).
         Actor().byte88 = probe.map == 0x12 ? std::uint8_t{0} : kind;
@@ -689,7 +689,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
     const std::array guards{Guard{0.49f, 0, noPet, 0, 10.0f}, Guard{0.5f, 0, noPet, 0, 4.0f},
                             Guard{1.0f, 1, noPet, 0, 10.0f},  Guard{1.0f, 0, 0x1c14, 0, 10.0f},
                             Guard{1.0f, 0, 0x1c15, 0, 10.0f}, Guard{1.0f, 0, 0x1c14, 1, 4.0f}};
-    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
     Actor().byte1a1 = 1;
     Actor().dying = 1;
@@ -734,7 +734,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
     ASSERT_EQ(boots.size(), 3u);
     EXPECT_EQ(boots[0].position.z, 4.0f);
 
-    m_world->Map().terrain.heights.reset();
+    m_terrain.heights.reset();
     m_batch.Begin({});
     const auto blind = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
     ASSERT_FALSE(blind.HasValue());
@@ -751,8 +751,8 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
 TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereTheyStoodBeforeTheGround)
 {
     m_models.GrowTo(20);
-    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
     ActorState& actor = Actor();
     actor.characterClass = 0; // the wizard: 0x50ea38 looks for class & 7 at 0
@@ -875,9 +875,9 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
         EXPECT_EQ(m_cloth.random.State(), probe.random);
         EXPECT_EQ(Actor().byte38eAccesses, 0);
         // Without a stop, 0x42da60 opens the gates at the end of the pass: the cell loses the 0x04.
-        EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)],
+        EXPECT_EQ(m_terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)],
                   probe.cut == nullptr ? 1 : 5);
-        m_world->Map().terrain.attributes->cells = *GateWalls();
+        m_terrain.attributes->cells = *GateWalls();
     }
 }
 

@@ -270,7 +270,7 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
                 return CrownState(received, context);
             else if constexpr (std::is_same_v<Received, Battle::SiegeActivation>)
             {
-                auto loaded = SetTheSiegeActive(received.active, world, context.dataRoot);
+                auto loaded = SetTheSiegeActive(received.active, world, context.terrain, context.dataRoot);
                 ResetSiegeClock(runtime);
                 return loaded;
             }

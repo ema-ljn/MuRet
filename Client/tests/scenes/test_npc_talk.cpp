@@ -22,7 +22,6 @@
 #include "Scenes/GameMovement.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/SceneId.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/MessageArea.h"
@@ -100,7 +99,6 @@ public:
         runtime.map = map;
         // Las misiones ya tienen la clase: sin el A0.
         runtime.quest.characterClass = 0;
-        auto& terrain = world.Map().terrain;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
@@ -138,6 +136,7 @@ public:
     HeroMovementContext Context()
     {
         HeroMovementContext context{.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills};
+        context.terrain = &terrain;
         context.sendWalk = [this](std::span<const Client::Protocol::Movement::Cell> /*path*/,
                                   Client::Protocol::Movement::Cell target,
                                   float /*angle*/) -> Client::Core::Expected<void, std::string>
@@ -187,6 +186,7 @@ public:
     }
 
     WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     std::optional<CrtRandom> randomAtTheWalk;
     Client::Models::Skeleton skeleton;
@@ -207,7 +207,7 @@ CrtRandom AfterTheStop(const CrtRandom& start)
                                                 twin->skeleton,
                                                 nullptr,
                                                 twin->random,
-                                                &twin->world.Map().terrain.attributes->cells,
+                                                &twin->terrain.attributes->cells,
                                                 {}};
     EXPECT_TRUE(Client::Actors::SetActorStop(twin->Hero(), stop).HasValue());
     return twin->random;
@@ -331,7 +331,7 @@ TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
         tested->world.Runtime().map = 34;
         tested->world.Runtime().crywolf.stage = stage;
         tested->Npc().type = 0x205;
-        auto& walls = tested->world.Map().terrain.attributes->cells;
+        auto& walls = tested->terrain.attributes->cells;
         const std::size_t altar = Client::Data::Terrain::CellIndex(185, 115);
         walls[altar] = 0x06;
         const auto clicked = tested->Click();
@@ -368,7 +368,7 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
         runtime.crywolf.stage = 4;
         runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
         tested->Npc().type = 0x205;
-        auto& walls = tested->world.Map().terrain.attributes->cells;
+        auto& walls = tested->terrain.attributes->cells;
         const std::size_t clicked = Client::Data::Terrain::CellIndex(186, 115);
         walls[clicked] = 0x04;
         runtime.movement.mouseUpdateTime = 6;
@@ -414,7 +414,7 @@ TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
         tested->Npc().type = 0x205;
         runtime.selectedTargets[0] = FloorItem;
         tested->world.DrawTail().floorItems[FloorItem].position = {18650.0f, 11550.0f, 0.0f};
-        auto& walls = tested->world.Map().terrain.attributes->cells;
+        auto& walls = tested->terrain.attributes->cells;
         const std::size_t item = Client::Data::Terrain::CellIndex(186, 115);
         walls[item] = 0x04;
         runtime.movement.mouseUpdateTime = 6;
@@ -694,7 +694,7 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
         const auto tested = std::make_unique<TalkingHero>();
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(probe.map));
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        tested->world.Map().terrain = std::move(loaded).Value();
+        tested->terrain = std::move(loaded).Value();
         auto& runtime = tested->world.Runtime();
         runtime.map = probe.map;
         runtime.crywolf.stage = 4;
@@ -709,7 +709,7 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
         altar.type = 0x206;
         altar.key = 0x013e;
         altar.position = {center(probe.altarX), center(probe.altarY), 0.0f};
-        auto& walls = tested->world.Map().terrain.attributes->cells;
+        auto& walls = tested->terrain.attributes->cells;
         const std::size_t cell = Client::Data::Terrain::CellIndex(probe.altarX, probe.altarY);
         ASSERT_EQ(walls[cell], Client::Pathfinding::BlockedWallBit);
         for (std::uint8_t x = probe.altarX + 1; x <= heroX; ++x)

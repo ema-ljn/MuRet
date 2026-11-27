@@ -75,7 +75,7 @@ float Shifted(int by, float value)
 Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& context, const Kernel::ActorState& rider,
                                                       std::string_view address)
 {
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
     {
         return Core::Unexpected(std::format("{}: el paso del ayudante lee el atributo de la celda del jinete "

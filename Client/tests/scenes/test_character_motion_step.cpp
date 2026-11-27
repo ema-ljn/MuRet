@@ -32,9 +32,8 @@ protected:
         m_world.Runtime().map = 0;
         m_world.Runtime().hero = 0;
         m_trapezoid.everything = true;
-        auto& terrain = m_world.Map().terrain;
-        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_skeleton = Client::Tests::PlayerActionsSkeleton();
         for (auto& info : m_skeleton.actions)
         {
@@ -54,10 +53,14 @@ protected:
     }
     auto Step()
     {
-        return Client::Actors::StepCharacters(
-            {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .trapezoid = &m_trapezoid});
+        return Client::Actors::StepCharacters({.world = m_world,
+                                               .random = m_random,
+                                               .playerSkeleton = &m_skeleton,
+                                               .terrain = &m_terrain,
+                                               .trapezoid = &m_trapezoid});
     }
     Client::Kernel::WorldState m_world;
+    Client::Terrain::WorldTerrain m_terrain;
     Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Crt::CrtRandom m_random{1};
     Client::Models::Skeleton m_skeleton;
@@ -124,7 +127,7 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
         const Client::Terrain::TerrainPolygon trapezoid{.everything = true};
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, border.map);
         ASSERT_TRUE(loaded.HasValue()) << (loaded.HasValue() ? "" : loaded.Error());
-        world.Map().terrain = std::move(loaded).Value();
+        const Client::Terrain::WorldTerrain terrain = std::move(loaded).Value();
         auto& actor = world.Actors()[1];
         actor = Client::Tests::UnarmedPlayer();
         actor.alive = true;
@@ -143,8 +146,11 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
         const auto original = actor.position;
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
         Client::Crt::CrtRandom random(1);
-        const auto stepped = Client::Actors::StepCharacters(
-            {.world = world, .random = random, .playerSkeleton = &skeleton, .trapezoid = &trapezoid});
+        const auto stepped = Client::Actors::StepCharacters({.world = world,
+                                                             .random = random,
+                                                             .playerSkeleton = &skeleton,
+                                                             .terrain = &terrain,
+                                                             .trapezoid = &trapezoid});
         ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
         EXPECT_EQ(actor.cellX, actor.targetX);
         EXPECT_EQ(actor.cellY, actor.targetY);
@@ -166,6 +172,7 @@ TEST_F(CharacterMotionStepTest, WalkingHeroRequestsItsSoundWithoutStoppingTheWor
         Client::Actors::StepCharacters({.world = m_world,
                                         .random = m_random,
                                         .playerSkeleton = &m_skeleton,
+                                        .terrain = &m_terrain,
                                         .soundRequest = [&](std::int32_t sound) { sounds.push_back(sound); },
                                         .trapezoid = &m_trapezoid});
     ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());

@@ -156,7 +156,7 @@ Core::Expected<void, std::string> RebuildRegenHero(const Protocol::Movement::Reg
     const auto guildStatus = hero.guildStatus;
     const auto byte369 = hero.byte369;
     const auto byte370 = hero.byte370;
-    const Actors::ActorConstructionContext construction{world.Map().terrain, world.Runtime().map,
+    const Actors::ActorConstructionContext construction{TerrainOf(resources), world.Runtime().map,
                                                         Terrain::CullingScene::Game, resources.camera.fixedHeight};
     const auto built =
         Actors::ConstructActor(hero, Tables::PlayerSkeletonModel,

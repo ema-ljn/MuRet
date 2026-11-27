@@ -29,6 +29,11 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 // CL9 hito 4, fase 2b: usar una skill desde el juego (0x57cfc0). Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Usar una skill". MoveHero la llama al final del clic (0x59e255),
 // salvo cuando el clic de ataque sale sin flechas (MoveHeroEnd::Leave, 0x59d666).
@@ -66,6 +71,9 @@ struct HeroSkillContext
     std::function<void(Protocol::Outgoing)> send{};
     // CL9 hito 4, fase 2c. La clave del jugador que dio el F1 00 ([0x57678bc]), que va en los C1 19 de las ramas.
     std::uint16_t playerKey = 0;
+    // The current map's terrain (Terrain::TerrainState::current); without it, an empty one, and the skills stop where
+    // they read it.
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // 0x57cfc0(héroe): con el modo del editor (0x77f3b18), el mouse de la UI (0x775857c) o 0x1000 en +0x78, nada. Si no:

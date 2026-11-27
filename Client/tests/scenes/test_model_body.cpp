@@ -19,6 +19,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/GroundMarks.h"
+#include "Terrain/WorldTerrain.h"
 #include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
@@ -299,7 +300,7 @@ protected:
             Client::Tests::WriteSceneFile(m_folder.Path(), name,
                                           Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
         Client::Tests::WriteSceneFile(m_folder.Path(), "Monster/body.OZT", Client::Tests::PlainOzt(2, 2));
-        m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         m_world->FaunaResources().TextureTable().Bind(m_store);
         auto context = m_world->FaunaResources().LoadContextOf(m_folder.Path(), m_log);
         ASSERT_TRUE(context.has_value());
@@ -321,6 +322,7 @@ protected:
         return Client::Actors::StepCharacter(m_actor, {.world = *m_world,
                                                        .random = random,
                                                        .scene = Client::Scenes::SceneId::Game,
+                                                       .terrain = &m_terrain,
                                                        .particles = &m_world->Particles(),
                                                        .groundMarks = &m_marks});
     }
@@ -335,6 +337,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Terrain::WorldTerrain m_terrain;
     Client::Terrain::GroundMarkTable m_marks{};
     ActorState m_actor;
 };

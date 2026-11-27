@@ -215,7 +215,7 @@ class EventPacketsTest : public testing::Test
 protected:
     void SetUp() override
     {
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         // 0x4ea030 con la acción 0xc0 de 0x5111a0 y la 0xca del BD 03: Player.bmd las tiene.
         player.actions.resize(0xcb);
         for (auto& action : player.actions)
@@ -249,7 +249,8 @@ protected:
                                   .models = &models,
                                   .send = [this](Client::Protocol::Outgoing packet)
                                   { worldPackets.push_back(std::move(packet)); },
-                                  .dataRoot = dataRoot};
+                                  .dataRoot = dataRoot,
+                                  .terrain = &terrain};
     }
 
     Client::Core::Expected<EventPacketResult, std::string> Apply(const Events::EventPacket& packet)
@@ -308,17 +309,17 @@ protected:
 
     std::uint16_t& Cell(std::uint8_t x, std::uint8_t y)
     {
-        return world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
+        return terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
     // El terreno del mapa con la Data del repo, como lo deja la carga (0x61a560).
     void LoadTheTerrain(std::uint8_t map)
     {
-        world.Map().terrain = {};
+        terrain = {};
         std::optional<std::string> fatal;
-        const auto layout = Client::Terrain::LoadWorldTerrainLayout(dataRoot, map, world.Map().terrain, fatal);
+        const auto layout = Client::Terrain::LoadWorldTerrainLayout(dataRoot, map, terrain, fatal);
         ASSERT_TRUE(layout.HasValue()) << layout.Error();
-        const auto surface = Client::Terrain::LoadWorldTerrainSurface(dataRoot, map, world.Map().terrain, fatal);
+        const auto surface = Client::Terrain::LoadWorldTerrainSurface(dataRoot, map, terrain, fatal);
         ASSERT_TRUE(surface.HasValue()) << surface.Error();
     }
 
@@ -338,12 +339,13 @@ protected:
         EXPECT_TRUE(bytes.has_value()) << relative;
         const auto light = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*bytes)));
         EXPECT_TRUE(light.HasValue()) << relative;
-        return Client::Terrain::ShadeTerrainLight(*light.Value(), *world.Map().terrain.heights, 34);
+        return Client::Terrain::ShadeTerrainLight(*light.Value(), *terrain.heights, 34);
     }
 
     // En el heap: el WorldState pasa de 340 KB (el stack de Windows es de 1 MB).
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     std::filesystem::path dataRoot{MU_CLIENT_REPO_DATA_DIR};
     CrtRandom random{1};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
@@ -463,7 +465,7 @@ TEST_F(EventPacketsTest, TheAreaAttributesMarkRectanglesAndTheBloodCastleGateCol
 TEST_F(EventPacketsTest, TheAttributesNeedTheMapAttributes)
 {
     Applied(Events::MapAttributes{.type = 2, .attribute = 8, .mode = 0, .count = 3});
-    world.Map().terrain.attributes.reset();
+    terrain.attributes.reset();
     const std::string cut =
         Cut(Events::MapAttributes{.type = 1, .attribute = 4, .mode = 0, .count = 1, .cells = {{1, 2}}});
     EXPECT_NE(cut.find("0x4dabd0"), std::string::npos) << cut;
@@ -1130,7 +1132,7 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
         Runtime() = WorldRuntime{};
         Runtime().map = map;
         Runtime().eventObject = EventMapObject{.kind = EventMapKind::ChaosCastle};
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         Runtime().chaosCastleTrapArmed = 0;
         Runtime().chaosCastleArea = 0;
         Runtime().ui.chatOpen = true;
@@ -1318,26 +1320,26 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     Runtime().map = 34;
     LoadTheTerrain(34);
     const auto plain = AttributesOf("world35/EncTerrain35.att");
-    ASSERT_EQ(world.Map().terrain.attributes->cells, plain->cells);
+    ASSERT_EQ(terrain.attributes->cells, plain->cells);
     Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
     ui.message = -1;
     const auto first = Shaded("world35/TerrainLight1.OZJ");
     Applied(Events::CrywolfState{.state = 1, .stage = 1});
     EXPECT_EQ(Runtime().crywolf.state, 1);
-    EXPECT_EQ(world.Map().terrain.lighting->cells, first->cells);
-    EXPECT_EQ(world.Map().terrain.attributes->cells, AttributesOf("world35/EncTerrain351.att")->cells);
+    EXPECT_EQ(terrain.lighting->cells, first->cells);
+    EXPECT_EQ(terrain.attributes->cells, AttributesOf("world35/EncTerrain351.att")->cells);
     EXPECT_EQ(Runtime().events.cameraTour.stage, 1);
 
     Applied(Events::CrywolfState{.state = 2, .stage = 5});
     EXPECT_EQ(Runtime().crywolf.state, 2);
     EXPECT_EQ(Runtime().crywolf.stage, 5);
     EXPECT_EQ(ui.message, -1);
-    EXPECT_EQ(world.Map().terrain.lighting->cells, Shaded("world35/TerrainLight2.OZJ")->cells);
-    EXPECT_EQ(world.Map().terrain.attributes->cells, AttributesOf("world35/EncTerrain352.att")->cells);
+    EXPECT_EQ(terrain.lighting->cells, Shaded("world35/TerrainLight2.OZJ")->cells);
+    EXPECT_EQ(terrain.attributes->cells, AttributesOf("world35/EncTerrain352.att")->cells);
 
     Applied(Events::CrywolfState{.state = 0, .stage = 5});
-    EXPECT_EQ(world.Map().terrain.lighting->cells, Shaded("world35/TerrainLight.OZJ")->cells);
-    EXPECT_EQ(world.Map().terrain.attributes->cells, plain->cells);
+    EXPECT_EQ(terrain.lighting->cells, Shaded("world35/TerrainLight.OZJ")->cells);
+    EXPECT_EQ(terrain.attributes->cells, plain->cells);
     EXPECT_FALSE(Runtime().fatalDataMessage.has_value());
 
     // Q-C1328: con el estado ya escrito, se descartan la carga y 0x4033b0; la sesión sigue.
@@ -1345,8 +1347,8 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     EXPECT_NE(broken.find("Q-C1328"), std::string::npos) << broken;
     EXPECT_EQ(Runtime().crywolf.state, 3);
     EXPECT_EQ(Runtime().crywolf.stage, 2);
-    EXPECT_EQ(world.Map().terrain.lighting->cells, Shaded("world35/TerrainLight.OZJ")->cells);
-    EXPECT_EQ(world.Map().terrain.attributes->cells, plain->cells);
+    EXPECT_EQ(terrain.lighting->cells, Shaded("world35/TerrainLight.OZJ")->cells);
+    EXPECT_EQ(terrain.attributes->cells, plain->cells);
     EXPECT_EQ(Runtime().events.cameraTour.stage, 5);
 }
 
@@ -1362,19 +1364,18 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
         Runtime().fatalDataMessage.reset();
         LoadTheTerrain(static_cast<std::uint8_t>(map));
         // Las copias, en el heap: la luz ocupa 768 KB y el stack de Windows es de 1 MB.
-        const auto lighting = std::make_unique<Client::Terrain::TerrainLighting>(*world.Map().terrain.lighting);
-        const auto attributes =
-            std::make_unique<Client::Data::Terrain::TerrainAttributes>(*world.Map().terrain.attributes);
+        const auto lighting = std::make_unique<Client::Terrain::TerrainLighting>(*terrain.lighting);
+        const auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>(*terrain.attributes);
         Applied(Events::CrywolfState{.state = 1, .stage = 0});
         const std::string folder = map == 0 ? "World1" : "World3";
         ASSERT_TRUE(Runtime().fatalDataMessage.has_value());
         EXPECT_EQ(*Runtime().fatalDataMessage, "Data\\" + folder + "\\TerrainLight1.OZJ - File not exist.");
-        EXPECT_EQ(world.Map().terrain.lighting->cells, lighting->cells);
-        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes->cells);
+        EXPECT_EQ(terrain.lighting->cells, lighting->cells);
+        EXPECT_EQ(terrain.attributes->cells, attributes->cells);
 
-        world.Map().terrain.attributes->cells[0] = 0x55;
+        terrain.attributes->cells[0] = 0x55;
         Applied(Events::CrywolfState{.state = 0, .stage = 0});
-        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes->cells);
+        EXPECT_EQ(terrain.attributes->cells, attributes->cells);
     }
     // Sin la carpeta Data, corta.
     Runtime().crywolf.state = 0;
@@ -1620,7 +1621,7 @@ TEST_F(EventPacketsTest, TheSoccerScoreSharesTheWarPointsAndEmitsOnTheRawHeroCel
                                     .firstScore = 2,
                                     .secondName = {'R', 'o', 'j', 'o', 0, 0, 0, 0},
                                     .secondScore = 1};
-    world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Hero().cellXLeft = 12;
     Hero().cellYLeft = 34;
     Hero().cellX = 99;
@@ -1696,7 +1697,7 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
     Applied(Events::ServerCommand{.command = 7, .value5 = 0, .value6 = 0});
     EXPECT_EQ(Runtime().dialogs.current, 0xaa);
     EXPECT_EQ(Applied(Events::ServerCommand{.command = 2}).sounds, std::vector<std::int32_t>{0x5a});
-    world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Applied(Events::ServerCommand{.command = 0, .value5 = 4, .value6 = 7});
     EXPECT_EQ(world.Map().effects.Effects()[0].transform.position, (glm::vec3{450, 750, 100}));
     ResetTheBox();

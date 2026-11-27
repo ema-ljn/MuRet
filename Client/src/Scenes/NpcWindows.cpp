@@ -293,7 +293,8 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
                                       .dataRoot = resources.dataRoot,
                                       .tick =
                                           resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
-                                      .entryResources = &resources};
+                                      .entryResources = &resources,
+                                      .terrain = WritableTerrainOf(resources)};
     LendTheCastlePanelServices(panels, castle);
     LendTheNpcWindows(panels, resources);
     UI::PanelRegistry& registry = panels.Registry();

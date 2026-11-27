@@ -14,10 +14,10 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroSkills.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -135,7 +135,7 @@ struct TailHero
     {
         auto& runtime = world.Runtime();
         runtime.map = map;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
         hero.type = Client::Tables::PlayerSkeletonModel;
@@ -189,7 +189,8 @@ struct TailHero
                                 .worldTime = 5000.0f,
                                 .send = [this](Client::Protocol::Outgoing outgoing)
                                 { sent.push_back(std::move(outgoing)); },
-                                .playerKey = PlayerKey};
+                                .playerKey = PlayerKey,
+                                .terrain = &terrain};
     }
     Client::Core::Expected<void, std::string> Use()
     {
@@ -202,6 +203,7 @@ struct TailHero
 
     std::uint8_t skill;
     Client::Kernel::WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();

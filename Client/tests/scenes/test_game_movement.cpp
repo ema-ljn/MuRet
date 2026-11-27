@@ -19,7 +19,6 @@
 #include "Protocol/Movement/Movement.h"
 #include "Scenes/GameMovementState.h"
 #include "UI/ChatInput.h"
-#include "Kernel/WorldMap.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindows.h"
 #include "Terrain/WorldTerrain.h"
@@ -81,7 +80,6 @@ public:
     MovingHero()
     {
         world.Runtime().map = 0;
-        auto& terrain = world.Map().terrain;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
@@ -105,9 +103,15 @@ public:
     }
     HeroMovementContext Context()
     {
-        return {.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills, .models = &models};
+        return {.world = world,
+                .random = random,
+                .playerSkeleton = &skeleton,
+                .skills = &skills,
+                .models = &models,
+                .terrain = &terrain};
     }
     WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     Client::Models::Skeleton skeleton;
     MovementModels models;
@@ -222,7 +226,7 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     MovingHero tested;
     // El cable no captura ocupantes. Esta celda fuerza el camino documentado7,6,7;
     // en una grilla vacía el A* nativo puede elegir7,7,6 con la misma meta.
-    tested.world.Map().terrain.attributes->cells[115 * 256 + 180] = 2;
+    tested.terrain.attributes->cells[115 * 256 + 180] = 2;
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
@@ -894,7 +898,7 @@ TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
     {
         SCOPED_TRACE(wall);
         const auto tested = AHeroClickingAPlayer(185);
-        tested->world.Map().terrain.attributes->cells[115 * 256 + 184] = wall;
+        tested->terrain.attributes->cells[115 * 256 + 184] = wall;
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
@@ -980,7 +984,7 @@ TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarClearsTh
         runtime.map = probe.map;
         runtime.crywolf.stage = probe.stage;
         tested->world.Actors()[ChosenSlot].position = {probe.position.x, probe.position.y, 0.0f};
-        auto& goalWall = tested->world.Map().terrain.attributes->cells[115 * 256 + 185];
+        auto& goalWall = tested->terrain.attributes->cells[115 * 256 + 185];
         const bool onTheGrid = probe.position == near;
         if (onTheGrid)
             goalWall = Occupied;
@@ -1482,7 +1486,7 @@ TEST(GameMovementTest, TheMovingHeroUsesTheFixedHeightPublishedByTheCamera)
     hero.path.count = 2;
     hero.path.cells[0] = {182, 115};
     hero.path.cells[1] = {183, 115};
-    tested.world.Map().terrain.attributes->cells.fill(0x40);
+    tested.terrain.attributes->cells.fill(0x40);
     auto context = tested.Context();
     context.fixedHeight = 1201;
     const auto result = StepHeroMovement(context);

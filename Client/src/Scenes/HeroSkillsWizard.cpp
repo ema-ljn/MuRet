@@ -29,7 +29,6 @@
 #include "Scenes/Skill57cf90.h"
 #include "Scenes/Skill57ce80.h"
 #include "Scenes/SkillDelays.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
@@ -147,7 +146,7 @@ Core::Expected<void, std::string> WalkToward(Kernel::ActorState& hero, std::int3
     constexpr std::int32_t LastCell = 0xff;
     if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
         return {};
-    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
@@ -574,7 +573,7 @@ Core::Expected<void, std::string> WizardBranch::UseByReach()
     // 0x58ee05..0x58eeb2: la línea de vista desde la celda del héroe (la Y y la X). La que sale de TerrainWall
     // (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
     const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
-    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(m_context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
     const bool seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, cell.x, cell.y,
@@ -728,7 +727,7 @@ Core::Expected<void, std::string> WizardBranch::Teleport()
     if (m_runtime.cursorItemCount > 0 || (m_hero.flags78 & FrozenHeroFlag) == FrozenHeroFlag || CannotTeleport(m_hero))
         return {};
     // 0x5930be..0x5930f9: el TerrainWall de 0x5f82a0 (los dos con & 0xff) sin 0x20 ni 0x40.
-    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(m_context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x5930cc: falta TerrainWall para el Teleport"));
     const std::size_t index = ((m_state.targetY & 0xffu) << 8) + (m_state.targetX & 0xffu);
@@ -801,7 +800,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
         Math::OriginalFtolLow(static_cast<double>(m_hero.position.y) * static_cast<double>(CellReciprocal));
     if (!heroX || !heroY)
         return Core::Unexpected(std::string("0x5927b2: la celda del héroe fuera del perfil ftol"));
-    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(m_context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x59280f: falta TerrainWall para el Teleport Ally"));
     // 0x5927cb..0x5928f1: una de las ocho celdas de al lado (dos rand() % 3, sin el centro) sin TerrainWall (salvo

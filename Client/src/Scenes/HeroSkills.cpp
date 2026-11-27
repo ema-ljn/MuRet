@@ -16,7 +16,6 @@
 #include "Scenes/HeroSkillsTail.h"
 #include "Scenes/HeroSkillsWizard.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
@@ -546,7 +545,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
             return aimed;
         const auto y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
         const auto x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-        const Terrain::WorldTerrain& terrain = world.Map().terrain;
+        const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
         if (!terrain.attributes)
             return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
         const bool seen =

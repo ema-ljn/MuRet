@@ -80,8 +80,8 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
             return std::nullopt;
         },
         .hero = &world.Hero(),
-        .skillHits = [&world, &random, send = parts.send](const World::ModelEffect& effect,
-                                                          float radius) -> Core::Expected<void, std::string>
+        .skillHits = [&world, &random, terrain, send = parts.send](const World::ModelEffect& effect,
+                                                                   float radius) -> Core::Expected<void, std::string>
         {
             // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0).
             const SkillHitsRequest request{.skillIndex = effect.byte89,
@@ -90,7 +90,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
                                            .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                            .key = effect.disturbanceState,
                                            .extra = 0};
-            const auto hit = HitTheTargetsAround(request, world, random, send);
+            const auto hit = HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(terrain), random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
@@ -173,18 +173,17 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
 
 World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context)
 {
-    return WizardEffectServicesOf(
-        context.world, context.random,
-        WizardSceneParts{.particles = context.particles,
-                         .worldClock = context.worldClock,
-                         .sprites = context.sprites,
-                         .terrain = context.terrain != nullptr ? context.terrain : &context.world.Map().terrain,
-                         .fixedHeight = context.fixedHeight,
-                         .cameraShake = nullptr,
-                         .sound = context.soundRequest,
-                         .send = context.send,
-                         .joints = context.joints,
-                         .models = context.models});
+    return WizardEffectServicesOf(context.world, context.random,
+                                  WizardSceneParts{.particles = context.particles,
+                                                   .worldClock = context.worldClock,
+                                                   .sprites = context.sprites,
+                                                   .terrain = &Terrain::TerrainOrEmpty(context.terrain),
+                                                   .fixedHeight = context.fixedHeight,
+                                                   .cameraShake = nullptr,
+                                                   .sound = context.soundRequest,
+                                                   .send = context.send,
+                                                   .joints = context.joints,
+                                                   .models = context.models});
 }
 
 World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

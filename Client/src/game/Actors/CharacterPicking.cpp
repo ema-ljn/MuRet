@@ -72,14 +72,15 @@ void Tint(Kernel::ActorState& actor)
 // 0x59e9ec..0x59ea6d: in Lorencia layer 4 and in Devias layer 3 (the roofs and upper floors) only with the layer of
 // the hero's cell. The cell comes from the position truncated (0x69fd3c) and divided by 100, Y · 256 + X. A cell
 // outside the layer, which the original would read from the memory next to it, MuRet takes as another layer's.
-bool OnTheHeroLayer(const Kernel::ActorState& actor, const Kernel::WorldState& world)
+bool OnTheHeroLayer(const Kernel::ActorState& actor, const Kernel::WorldState& world,
+                    const Terrain::WorldTerrain& terrain)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
     constexpr std::int32_t Lorencia = 0;
     constexpr std::int32_t Devias = 2;
     if (runtime.map != Lorencia && runtime.map != Devias)
         return true;
-    const auto& mapping = world.Map().terrain.mapping;
+    const auto& mapping = terrain.mapping;
     if (!mapping)
         return true;
     constexpr std::int32_t CellSize = 100;
@@ -106,8 +107,8 @@ double DistanceSquared(const glm::vec3& position, const glm::vec3& distanceOrigi
 }
 } // namespace
 
-std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask, const glm::vec3& distanceOrigin,
-                              const std::optional<Terrain::TerrainPickingSegment>& ray,
+std::int32_t PickTheCharacter(Kernel::WorldState& world, const Terrain::WorldTerrain& terrain, std::uint8_t mask,
+                              const glm::vec3& distanceOrigin, const std::optional<Terrain::TerrainPickingSegment>& ray,
                               std::span<const ActorPickingBox> pickingBoxes)
 {
     const auto actors = world.Actors();
@@ -141,7 +142,7 @@ std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask, cons
         if (!Models::SegmentHitsBox(ray->origin, ray->end, AxisAlignedBoxOf(storedBox)))
             continue;
         const double distance = DistanceSquared(actor.position, distanceOrigin);
-        if (distance >= static_cast<double>(best) || !OnTheHeroLayer(actor, world))
+        if (distance >= static_cast<double>(best) || !OnTheHeroLayer(actor, world, terrain))
             continue;
         best = static_cast<float>(distance);
         picked = static_cast<std::int32_t>(slot);

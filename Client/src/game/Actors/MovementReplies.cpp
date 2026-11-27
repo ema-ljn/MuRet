@@ -76,8 +76,8 @@ Core::Expected<ActorStopContext, std::string> StopContext(const Kernel::ActorSta
                             .playerSkeleton = *playerSkeleton,
                             .items = resources.items,
                             .random = resources.cloth.random,
-                            .terrainWalls = resources.world.Map().terrain.attributes
-                                                ? &resources.world.Map().terrain.attributes->cells
+                            .terrainWalls = Scenes::TerrainOf(resources).attributes
+                                                ? &Scenes::TerrainOf(resources).attributes->cells
                                                 : nullptr,
                             .actorSkeleton = actorSkeleton,
                             .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
@@ -94,7 +94,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(Kernel::ActorState& actor,
     {
         const Models::LogicalAccess x(actor.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
     }
-    auto& attributes = resources.world.Map().terrain.attributes;
+    const auto& attributes = Scenes::TerrainOf(resources).attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el D3 recibido"));
     Pathfinding::PathFinder finder(attributes->cells);

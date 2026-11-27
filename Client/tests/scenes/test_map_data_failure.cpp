@@ -15,6 +15,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 #include "support/GoldenDir.h"
 #include "support/TemporaryFolder.h"
 #include "support/TerrainFiles.h"
@@ -45,6 +46,7 @@ protected:
         m_world->Runtime().map = map;
         return Client::Scenes::LoadMap(map, {.dataRoot = root,
                                              .world = *m_world,
+                                             .terrain = m_terrain,
                                              .scene = Client::Scenes::SceneId::Game,
                                              .playerKey = 5,
                                              .random = m_random});
@@ -70,6 +72,7 @@ protected:
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Terrain::TerrainState m_terrain;
     Client::Crt::CrtRandom m_random{Seed};
 };
 
@@ -79,8 +82,8 @@ TEST_F(MapDataFailureTest, WorldThirtySixReachesItsMissingAttributesAfterTheMiss
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_NE(loaded.Error().find("Data\\World36\\EncTerrain36.att"), std::string::npos) << loaded.Error();
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, "Data\\World36\\EncTerrain36.att file not found.");
-    EXPECT_FALSE(m_world->Map().terrain.mapping);
-    EXPECT_FALSE(m_world->Map().terrain.attributes);
+    EXPECT_FALSE(m_terrain.current.mapping);
+    EXPECT_FALSE(m_terrain.current.attributes);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 65536).State());
 }
 
@@ -93,9 +96,9 @@ TEST_F(MapDataFailureTest, WorldSixCreatesItsObjectsBeforeTheMissingHeights)
     EXPECT_NE(loaded.Error().find("TerrainHeight.OZB"), std::string::npos);
     EXPECT_EQ(m_world->Map().objectRecords.size(), records.Value().size());
     EXPECT_EQ(m_world->Map().objects.size(), records.Value().size());
-    EXPECT_TRUE(m_world->Map().terrain.mapping);
-    EXPECT_TRUE(m_world->Map().terrain.attributes);
-    EXPECT_FALSE(m_world->Map().terrain.heights);
+    EXPECT_TRUE(m_terrain.current.mapping);
+    EXPECT_TRUE(m_terrain.current.attributes);
+    EXPECT_FALSE(m_terrain.current.heights);
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, "Data\\World6\\TerrainHeight.OZB file not found.");
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 65536).State());
 }
@@ -115,9 +118,9 @@ TEST_F(MapDataFailureTest, MissingHeightsPreserveTheCreatedObjectsAndTheRandomPr
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, "Data\\World1\\TerrainHeight.OZB file not found.");
     EXPECT_EQ(m_world->Map().objectRecords.size(), records.Value().size());
     EXPECT_EQ(m_world->Map().objects.size(), records.Value().size());
-    EXPECT_TRUE(m_world->Map().terrain.mapping);
-    EXPECT_TRUE(m_world->Map().terrain.attributes);
-    EXPECT_FALSE(m_world->Map().terrain.heights);
+    EXPECT_TRUE(m_terrain.current.mapping);
+    EXPECT_TRUE(m_terrain.current.attributes);
+    EXPECT_FALSE(m_terrain.current.heights);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 65536).State());
 }
 
@@ -132,8 +135,8 @@ TEST_F(MapDataFailureTest, MissingMappingWithValidAttributesDoesNotFabricateTerr
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_NE(loaded.Error().find("EncTerrain1.map"), std::string::npos);
     EXPECT_FALSE(m_world->Runtime().fatalDataMessage);
-    EXPECT_FALSE(m_world->Map().terrain.mapping);
-    EXPECT_TRUE(m_world->Map().terrain.attributes);
+    EXPECT_FALSE(m_terrain.current.mapping);
+    EXPECT_TRUE(m_terrain.current.attributes);
     EXPECT_TRUE(m_world->Map().objects.empty());
 }
 
@@ -149,8 +152,8 @@ TEST_F(MapDataFailureTest, AShortAttributeFileHasNoNativeQuitRequest)
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_NE(loaded.Error().find("EncTerrain1.att"), std::string::npos);
     EXPECT_FALSE(m_world->Runtime().fatalDataMessage);
-    EXPECT_TRUE(m_world->Map().terrain.mapping);
-    EXPECT_FALSE(m_world->Map().terrain.attributes);
+    EXPECT_TRUE(m_terrain.current.mapping);
+    EXPECT_FALSE(m_terrain.current.attributes);
 }
 
 TEST_F(MapDataFailureTest, ShortHeightsHaveNoNativeQuitRequestAndKeepTheObjectPrefix)
@@ -166,7 +169,7 @@ TEST_F(MapDataFailureTest, ShortHeightsHaveNoNativeQuitRequestAndKeepTheObjectPr
     EXPECT_NE(loaded.Error().find("TerrainHeight.OZB"), std::string::npos);
     EXPECT_FALSE(m_world->Runtime().fatalDataMessage);
     EXPECT_FALSE(m_world->Map().objects.empty());
-    EXPECT_FALSE(m_world->Map().terrain.heights);
+    EXPECT_FALSE(m_terrain.current.heights);
 }
 
 TEST_F(MapDataFailureTest, ARejectedAttributeHeaderRequestsTheNativeDataError)
@@ -224,9 +227,9 @@ TEST_F(MapDataFailureTest, MissingLightRequestsQuitAfterPublishingHeightsAndObje
 
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, "Data\\World1\\TerrainLight.OZJ - File not exist.");
-    EXPECT_TRUE(m_world->Map().terrain.heights);
+    EXPECT_TRUE(m_terrain.current.heights);
     EXPECT_FALSE(m_world->Map().objects.empty());
-    EXPECT_FALSE(m_world->Map().terrain.lighting);
+    EXPECT_FALSE(m_terrain.current.lighting);
 }
 
 TEST_F(MapDataFailureTest, UnsupportedMapErrorsDoNotRequestQuit)
@@ -261,8 +264,8 @@ TEST_F(MapDataFailureTest, MissingObjectsRequestQuitBeforeTheHeightsAreRead)
 
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, "Data\\World1\\EncTerrain1.obj file not found.");
-    EXPECT_TRUE(m_world->Map().terrain.attributes);
-    EXPECT_FALSE(m_world->Map().terrain.heights);
+    EXPECT_TRUE(m_terrain.current.attributes);
+    EXPECT_FALSE(m_terrain.current.heights);
 }
 
 // La recepción real falla antes de Step; el pedido sobrevive a ApplicationFailed y a manager.Poll.

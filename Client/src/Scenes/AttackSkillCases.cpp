@@ -549,7 +549,7 @@ Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const 
     constexpr double CellSize = 100.0; // 0x6b86b4
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x5004ea: falta la altura del terreno (0x5f93c0) del chorro de la Flame"));
     glm::vec3 point{};
@@ -605,7 +605,7 @@ SkillCellPoint(const Kernel::ActorState& actor, const Actors::CharacterStepConte
 {
     constexpr double CellCentre = 0.5; // 0x6b882c
     constexpr double CellSize = 100.0; // 0x6b86b4
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(
             std::format("{:#x}: falta la altura del terreno (0x5f93c0) de la celda de la skill", address));
@@ -974,7 +974,7 @@ Core::Expected<void, std::string> RainTheMeteors(Kernel::ActorState& actor, std:
     constexpr std::int32_t MeteorSubtype = 6;
     constexpr std::uint16_t MeteorKey = 0;
     constexpr std::int32_t MeteorSound = 0x8e;
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x4ff570: falta la altura del terreno (0x5f93c0) del Meteorito"));
     glm::vec3 point{};

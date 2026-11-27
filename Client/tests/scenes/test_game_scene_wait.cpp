@@ -103,7 +103,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
         Client::App::CharacterListReceived{*online.session.Characters()}};
     const auto applied = selection.Apply(events, camera, cameraInput, &cloth, player);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    const auto initialized = selection.InitializeSelection(m_dataRoot, cameraInput);
+    const auto initialized = selection.InitializeSelection(m_dataRoot, states.terrain, cameraInput);
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     selection.DrawSelection(cameraInput);
     states.camera.trapezoid = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, 54,
@@ -117,7 +117,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_NE(selectionTerrain->heights, nullptr);
     ASSERT_NE(selectionTerrain->attributes, nullptr);
     // 0x633f4e carga el 54 en los globales del mundo (0x61a560): la selección presta ese terreno.
-    ASSERT_EQ(selectionTerrain, &world.Map().terrain);
+    ASSERT_EQ(selectionTerrain, &states.terrain.current);
     ASSERT_EQ(world.Runtime().map, 54);
     ASSERT_TRUE(world.Runtime().drawingEnabled);
     auto& hero = world.Hero();
@@ -242,7 +242,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     EXPECT_EQ(selection.Terrain(), selectionTerrain);
     EXPECT_EQ(selectionTerrain->heights->cells[0], heightBefore);
     EXPECT_EQ(selectionTerrain->attributes->cells[0], cellBefore | Client::Pathfinding::CharacterWallBit);
-    EXPECT_EQ(selection.Terrain(), &world.Map().terrain);
+    EXPECT_EQ(selection.Terrain(), &states.terrain.current);
     EXPECT_EQ(world.Runtime().map, 54);
     EXPECT_EQ(states.camera.trapezoid.x, polygon.x);
     EXPECT_EQ(states.camera.trapezoid.y, polygon.y);

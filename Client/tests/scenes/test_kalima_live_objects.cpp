@@ -333,7 +333,7 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     Client::Scenes::FaunaDrawCarry pose;
     const Client::Scenes::GameObjectPass pass{
         .map = map, .originalFrame = false, .retainedPose = &pose, .waterTextureFrame = 0u};
-    Client::Scenes::ModelEffectDrawResources resources{*m_world->Map().terrain.heights};
+    Client::Scenes::ModelEffectDrawResources resources{*m_states->terrain.current.heights};
     resources.kalimaPass = &pass;
     resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     { return Client::Scenes::PublishFaunaPose(pose, models, drawn, true); };

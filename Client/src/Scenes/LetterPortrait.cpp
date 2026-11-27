@@ -121,7 +121,7 @@ const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
 
 Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
 {
-    const auto& terrain = resources.world.Map().terrain;
+    const auto& terrain = TerrainOf(resources);
     return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
                                     .scene = SceneId::Game,
                                     .playerSkeleton = player,
@@ -397,6 +397,7 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .scene = SceneId::Game,
         .playerSkeleton = PlayerSkeleton(resources),
         .items = resources.items,
+        .terrain = &TerrainOf(resources),
         .darkSpiritSkeleton = resources.models.SkeletonOf(DarkSpiritModel),
         .particles = &world.Particles(),
         .worldClock = worldClock,
@@ -421,7 +422,7 @@ HelperStepContext HelperStepContextOf(const WorldEntryResources& resources)
                              .random = resources.cloth.random,
                              .worldClock = worldClock,
                              .scene = SceneId::Game,
-                             .terrain = nullptr,
+                             .terrain = &TerrainOf(resources),
                              .logicSteps = resources.cloth.logicSteps,
                              .cameraShake = &resources.cameraInput.shake};
 }
@@ -482,7 +483,7 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
     // 0x496354..0x4963e0: la celda lógica del héroe publicado, la Y y después la X.
     const Actors::LogicalCell cell = Actors::ReadLogicalCell(HeroOf(resources), random);
     Kernel::WorldState& world = resources.world;
-    const Actors::ActorConstructionContext construction{world.Map().terrain, world.Runtime().map,
+    const Actors::ActorConstructionContext construction{TerrainOf(resources), world.Runtime().map,
                                                         Terrain::CullingScene::Game, resources.camera.fixedHeight};
     if (auto built = Actors::ConstructActor(actor, Tables::PlayerSkeletonModel, {cell.x, cell.y, 0.0f}, construction,
                                             resources.cloth);

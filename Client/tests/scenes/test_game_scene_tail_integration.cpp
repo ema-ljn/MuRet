@@ -102,8 +102,8 @@ protected:
         const auto models = frame.models.Load(m_dataRoot, frame.textures, frame.log);
         ASSERT_TRUE(models.HasValue()) << models.Error();
         frame.world.Runtime().map = 0;
-        const auto loaded =
-            Client::Scenes::LoadMap(0, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
+        const auto loaded = Client::Scenes::LoadMap(
+            0, {m_dataRoot, frame.world, frame.states.terrain, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         frame.world.Runtime().drawingEnabled = true;
         frame.world.Actors()[0].position = {13550, 12550, 0};
@@ -242,7 +242,7 @@ TEST_F(GameSceneTailIntegrationTest, TheFramePulsePrecedesEvenAFailingWorldDraw)
     auto& items = frame.world.Runtime().itemRender;
     EXPECT_EQ(items.glowPulse, 0);
     // Sin el mapping, 0x6371a0 corta (el mapa no está cargado) después del publisher 639482.
-    frame.world.Map().terrain.mapping.reset();
+    frame.states.terrain.current.mapping.reset();
     Render();
     ASSERT_TRUE(frame.scene->Failure().has_value());
     EXPECT_NE(frame.scene->Failure()->find("no está cargado"), std::string::npos) << *frame.scene->Failure();
@@ -295,8 +295,8 @@ TEST_F(GameSceneTailIntegrationTest, KalimaWaterRunsBothModesWithAnExplicitEmpty
 {
     auto& frame = *m_frame;
     frame.world.Runtime().map = 24;
-    const auto loaded =
-        Client::Scenes::LoadMap(24, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
+    const auto loaded = Client::Scenes::LoadMap(
+        24, {m_dataRoot, frame.world, frame.states.terrain, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_NE(frame.world.Map().kalima, nullptr);
     // Aísla la cola de agua; no acredita los cuerpos por tipo de los objetos de este mapa.
@@ -344,8 +344,8 @@ TEST_F(GameSceneTailIntegrationTest, ReloadingTheSameMapInvalidatesTheGroundRepl
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
     const auto previousX = firstRingX(frame.target.frames.back());
     ASSERT_TRUE(previousX.has_value());
-    const auto loaded =
-        Client::Scenes::LoadMap(0, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
+    const auto loaded = Client::Scenes::LoadMap(
+        0, {m_dataRoot, frame.world, frame.states.terrain, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     arrival(100);
     Render();
@@ -362,9 +362,9 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
     for (const std::uint8_t map : std::array<std::uint8_t, 2>{0, 2})
     {
-        ASSERT_TRUE(
-            Client::Scenes::LoadMap(3, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random})
-                .HasValue());
+        ASSERT_TRUE(Client::Scenes::LoadMap(3, {m_dataRoot, frame.world, frame.states.terrain,
+                                                Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                        .HasValue());
         auto& state = frame.world.Runtime().objectModelState;
         for (const std::int16_t type : std::array<std::int16_t, 2>{0x2a, 0x2b})
         {
@@ -373,8 +373,8 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
             ASSERT_TRUE(Client::World::StepNoriaObject(object, frame.cloth.random, {.modelState = &state}).HasValue());
             ASSERT_EQ(state.unlitMeshes.at(type), 0);
         }
-        ASSERT_TRUE(Client::Scenes::LoadMap(
-                        map, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+        ASSERT_TRUE(Client::Scenes::LoadMap(map, {m_dataRoot, frame.world, frame.states.terrain,
+                                                  Client::Scenes::SceneId::Game, 0, frame.cloth.random})
                         .HasValue());
         ASSERT_NO_FATAL_FAILURE(IntermediateRender());
         EXPECT_TRUE(state.unlitMeshes.empty()) << "la recarga debe limpiar el owner durable, no sólo la proyección";
@@ -444,9 +444,9 @@ TEST_F(GameSceneTailIntegrationTest, ReloadedProjectedMovingLightKeepsItsSprites
     Render();
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
     ASSERT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
-    ASSERT_TRUE(
-        Client::Scenes::LoadMap(0, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random})
-            .HasValue());
+    ASSERT_TRUE(Client::Scenes::LoadMap(0, {m_dataRoot, frame.world, frame.states.terrain,
+                                            Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                    .HasValue());
     MovingLight(100);
     ASSERT_NO_FATAL_FAILURE(IntermediateRender());
     EXPECT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
@@ -468,9 +468,9 @@ TEST_F(GameSceneTailIntegrationTest, FreshProjectedMovingLightSurvivesTheSecondK
 {
     auto& frame = *m_frame;
     Render();
-    ASSERT_TRUE(
-        Client::Scenes::LoadMap(24, {m_dataRoot, frame.world, Client::Scenes::SceneId::Game, 0, frame.cloth.random})
-            .HasValue());
+    ASSERT_TRUE(Client::Scenes::LoadMap(24, {m_dataRoot, frame.world, frame.states.terrain,
+                                             Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                    .HasValue());
     frame.world.Map().objects.clear(); // Aislamiento explícito de la cola; no acredita objetos Kalima.
     frame.world.Actors()[0].position = {9850, 9850, 400};
     frame.world.Actors()[0].cellX = 98;

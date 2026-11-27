@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"
@@ -14,6 +13,7 @@
 namespace Client::Scenes
 {
 Core::Expected<void, std::string> SetTheSiegeActive(std::uint8_t value, Kernel::WorldState& world,
+                                                    Terrain::WorldTerrain* terrain,
                                                     const std::filesystem::path& dataRoot)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -22,15 +22,16 @@ Core::Expected<void, std::string> SetTheSiegeActive(std::uint8_t value, Kernel::
     constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
     if (runtime.map != CastleMap)
         return {};
-    auto& terrain = world.Map().terrain;
+    if (terrain == nullptr)
+        return Core::Unexpected(std::string("0x4294c0: no hay terreno para los archivos del asedio"));
     constexpr auto Folder = "World31";
     constexpr std::int32_t PeaceAttributes = 31;
     constexpr std::int32_t WarAttributes = 312;
     const auto attributes = Terrain::ReloadWorldTerrainAttributes(
-        dataRoot, Folder, runtime.castleSiege.siegeActive ? WarAttributes : PeaceAttributes, terrain,
+        dataRoot, Folder, runtime.castleSiege.siegeActive ? WarAttributes : PeaceAttributes, *terrain,
         runtime.fatalDataMessage);
     const auto light = Terrain::ReloadWorldTerrainLight(
-        dataRoot, Folder, runtime.castleSiege.siegeActive ? "TerrainLight2" : "TerrainLight", CastleMap, terrain,
+        dataRoot, Folder, runtime.castleSiege.siegeActive ? "TerrainLight2" : "TerrainLight", CastleMap, *terrain,
         runtime.fatalDataMessage);
     runtime.castleSiege.siegeMusicTime = 0.0f;
     if (!attributes.HasValue())

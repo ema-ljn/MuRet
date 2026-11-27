@@ -12,6 +12,7 @@
 namespace Client::Terrain
 {
 struct TerrainPickingSegment;
+struct WorldTerrain;
 } // namespace Client::Terrain
 
 // Elegir y levantar los ítems del piso (CL9 hito 5; 06 § Los ítems del piso): la búsqueda del picking del frame
@@ -42,13 +43,16 @@ struct InventoryMoveContext;
 // `actor` (la posición del segundo argumento) a más de 150 del centro de la celda del destino (0x77e1ba8 y 0x77e1bac
 // · 100 + 50), nada; si no, 0x6c8dcc en 6. El zen (0x1c0f): con un pedido en 0x6c82e8, nada; si no, el pedido y el
 // C1 05 22 con el índice (los dos rand() del C3). Otro ítem: sin lugar en la grilla (0x5c9d20), el aviso 375 del
-// tipo 1, el ítem a 3 sobre el terreno (0x5f93c0 con `fixedHeight`) y su caída en 50; con lugar, como el zen.
+// tipo 1, el ítem a 3 sobre el terreno (0x5f93c0 sobre `terrain` con `fixedHeight`) y su caída en 50; con lugar,
+// como el zen.
 [[nodiscard]] Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext& context,
-                                                                   const glm::vec3& actor, float fixedHeight);
+                                                                   const glm::vec3& actor,
+                                                                   const Terrain::WorldTerrain& terrain,
+                                                                   float fixedHeight);
 
 // 0x5ac928..0x5ac9c2, la barra (quien llama ya miró el cursor, el flanco, el chat y 0x775857c): el primer ítem vivo y
 // a la vista a menos de 300 del héroe: +0x379 del héroe en 1, el elegido, 0x77f3b40 en 1, 0x5650c0(héroe, ítem, 1)
 // y los dos en 0 otra vez.
-[[nodiscard]] Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveContext& context,
-                                                                          float fixedHeight);
+[[nodiscard]] Core::Expected<void, std::string>
+PickUpTheNearestFloorItem(const InventoryMoveContext& context, const Terrain::WorldTerrain& terrain, float fixedHeight);
 } // namespace Client::Scenes

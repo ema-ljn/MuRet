@@ -23,7 +23,6 @@
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneId.h"
 #include "Session/ModuleStates.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -65,21 +64,10 @@ Core::Expected<void, std::string> GameScene::DrawTheBirds(Render::Frame::SceneCa
                                                           const Terrain::TerrainPolygon& polygon, int frames)
 {
     Kernel::WorldState& world = *m_context.world;
-    FaunaDrawContext context{world.Fauna(),
-                             world.FaunaResources(),
-                             world.Map().terrain,
-                             FrameLighting(),
-                             polygon,
-                             FrameCloth(),
-                             FrameSpritesForDraw(),
-                             FramePoseCarry(),
-                             world.Runtime().map,
-                             world.Runtime().storm,
-                             canvas.frameClock,
-                             &FrameParticles(),
-                             frames > 0,
-                             CameraState().fixedHeight,
-                             true};
+    FaunaDrawContext context{
+        world.Fauna(),     world.FaunaResources(), MapTerrain(),     FrameLighting(),           polygon,
+        FrameCloth(),      FrameSpritesForDraw(),  FramePoseCarry(), world.Runtime().map,       world.Runtime().storm,
+        canvas.frameClock, &FrameParticles(),      frames > 0,       CameraState().fixedHeight, true};
     return DrawGameBirds(canvas.models, context);
 }
 
@@ -148,7 +136,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     }
     FaunaDrawContext fauna{world.Fauna(),
                            world.FaunaResources(),
-                           world.Map().terrain,
+                           MapTerrain(),
                            FrameLighting(),
                            polygon,
                            FrameCloth(),
@@ -179,14 +167,14 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
         return result;
     const auto view = Render::ViewRows(pass.view);
     const JointDrawResources jointResources{FrameCloth().random, FrameSpritesForDraw(), frames > 0, clock};
-    TailAttributeQuery attributes(*world.Map().terrain.attributes);
+    TailAttributeQuery attributes(*MapTerrain().attributes);
     const GameObjectPass kalimaPass{.map = static_cast<std::uint8_t>(runtime.map),
                                     .originalFrame = false,
                                     .worldClock = clock,
                                     .retainedPose = &FramePoseCarry(),
                                     .waterTextureFrame = FrameCloth().waterTextureFrame,
                                     .kalima = FrameKalima()};
-    ModelEffectDrawResources effectResources{*world.Map().terrain.heights, clock};
+    ModelEffectDrawResources effectResources{*MapTerrain().heights, clock};
     effectResources.onPose = [&](const Actors::Drawing::DrawnObject& object)
     { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); };
     effectResources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)

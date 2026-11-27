@@ -743,7 +743,8 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
                                    .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                    .key = effect.disturbanceState,
                                    .extra = 0};
-    const auto hit = HitTheTargetsAround(request, world, context.random, context.send);
+    const auto hit =
+        HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain), context.random, context.send);
     if (!hit.HasValue())
         return Core::Unexpected(hit.Error());
     if (!hit.Value())
@@ -788,7 +789,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     // 0x520179..0x5201d2: con el asedio (0x4294b0), el bit 0x100 de la celda (0x5f82c0) la frena y le deja media vida.
     if (runtime.castleSiege.siegeActive)
     {
-        const auto& attributes = context.world.Map().terrain.attributes;
+        const auto& attributes = Terrain::TerrainOrEmpty(context.terrain).attributes;
         if (!attributes)
             return Core::Unexpected(std::string("0x52018d: faltan los atributos para el choque de la flecha"));
         const auto query =
@@ -915,7 +916,7 @@ Core::Expected<void, std::string> StepTheSiegeArrow(World::ModelEffect& effect, 
     constexpr float HighestPitch = 50.0f; // 0x6b86b0
     if (effect.transform.angles.x > HighestPitch)
         effect.transform.angles.x = HighestPitch;
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
     {
         return Core::Unexpected(std::string("0x524186: la flecha 0xdb del asedio lee el atributo de su celda "
@@ -1160,7 +1161,9 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
                                         .volley = static_cast<std::uint8_t>(effect.word8c),
                                         .key = static_cast<std::uint16_t>(effect.disturbanceState),
                                         .extra = 0};
-            if (auto hit = HitTheTargetsAround(hits, context.world, context.random, context.send); !hit.HasValue())
+            if (auto hit = HitTheTargetsAround(hits, context.world, Terrain::TerrainOrEmpty(context.terrain),
+                                               context.random, context.send);
+                !hit.HasValue())
                 return Core::Unexpected(hit.Error());
         }
     }

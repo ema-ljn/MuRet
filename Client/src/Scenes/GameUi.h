@@ -63,7 +63,8 @@ struct GameUiState;
 namespace Client::Terrain
 {
 struct TerrainPickingSegment;
-}
+struct WorldTerrain;
+} // namespace Client::Terrain
 
 namespace Client::Kernel
 {
@@ -158,6 +159,8 @@ struct GameUiContext
     // El envío de los paquetes de las ventanas de los NPC (App::ServerSession::SendNpcWindowPacket, CL9 hito 6). Vacío
     // (los tests que no los miran): lo que manda corta.
     std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
+    // The current map's terrain, under the item the space bar drops back (0x5f93c0); without it, an empty one.
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
@@ -213,6 +216,9 @@ struct FramePickingContext
     // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
     // mismo segmento; sin él (antes del primer dibujo) no busca.
     std::span<FloorItemState> floorItems{};
+    // The current map's terrain, whose .map layers the pick reads in Lorencia and Devias. nullptr:
+    // Terrain::EmptyTerrain().
+    const Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra levanta

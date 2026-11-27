@@ -23,7 +23,7 @@
 #include "Actors/FullSetScan.h"
 #include "Tables/GameData.h"
 #include "Scenes/IScene.h"
-#include "Kernel/LoadedWorld.h"
+#include "Assets/LoadedWorld.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"

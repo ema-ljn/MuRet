@@ -663,15 +663,6 @@ Scenes/LetterPortrait.cpp	game/Session/WorldEntry.h	game/Messenger	game/Session
 game/Player/LevelUpPointReply.cpp	game/Session/WorldEntry.h	game/Player	game/Session
 Scenes/LightningJoints.cpp	Scenes/GameDrawTail.h	game/Joints	game/Scenes
 Scenes/LightningJoints.cpp	World/IFishStepServices.h	game/Joints	game/Fauna
-game/Kernel/LoadedWorld.cpp	game/Terrain/TerrainCells.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.cpp	game/Terrain/TerrainCulling.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.cpp	game/Terrain/TerrainLighting.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.cpp	game/Terrain/WorldTerrain.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.h	game/Assets/TerrainTiles.h	game/Kernel	game/Assets
-game/Kernel/LoadedWorld.h	game/Terrain/TerrainCells.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.h	game/Terrain/TerrainCulling.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.h	game/Terrain/TerrainLighting.h	game/Kernel	game/Terrain
-game/Kernel/LoadedWorld.h	game/Terrain/WorldTerrain.h	game/Kernel	game/Terrain
 Scenes/LoginActor.cpp	game/Actors/ActorActions.h	game/FrontEnd	game/Actors
 Scenes/LoginActor.cpp	game/Actors/ActorConstruction.h	game/FrontEnd	game/Actors
 Scenes/LoginActor.cpp	Scenes/SceneId.h	game/FrontEnd	game/Scenes

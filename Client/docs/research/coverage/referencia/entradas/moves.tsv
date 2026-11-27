@@ -689,3 +689,5 @@ e901a4fd80cc38a1638131062b649d0526157b80	Client/src/Scenes/WorldTransitions.h	Cl
 	Client/src/World/WorldFiles.h	Client/src/game/Terrain/WorldFiles.h
 	Client/src/World/WorldTerrain.cpp	Client/src/game/Terrain/WorldTerrain.cpp
 	Client/src/World/WorldTerrain.h	Client/src/game/Terrain/WorldTerrain.h
+	Client/src/game/Kernel/LoadedWorld.cpp	Client/src/game/Assets/LoadedWorld.cpp
+	Client/src/game/Kernel/LoadedWorld.h	Client/src/game/Assets/LoadedWorld.h

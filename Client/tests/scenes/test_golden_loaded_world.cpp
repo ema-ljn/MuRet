@@ -1,4 +1,4 @@
-#include "Kernel/LoadedWorld.h"
+#include "Assets/LoadedWorld.h"
 
 #include "Data/DataPath.h"
 #include "Data/Terrain/TerrainAttributes.h"

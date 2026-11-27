@@ -924,8 +924,8 @@ Scenes/LetterPortrait.h	173	Scenes	game/Messenger	medium	friends and letters (20
 game/Player/LevelUpPointReply.cpp	79	game/Player	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 game/Player/LevelUpPointReply.h	27	game/Player	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 Scenes/LightningJoints.cpp	610	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
-game/Kernel/LoadedWorld.cpp	117	game/Kernel	game/Kernel	high	durable globals, map load, world entry F3 03, map transitions, terrain state
-game/Kernel/LoadedWorld.h	79	game/Kernel	game/Kernel	high	durable globals, map load, world entry F3 03, map transitions, terrain state
+game/Assets/LoadedWorld.cpp	117	game/Assets	game/Assets	high	the login scene's world: the terrain's tiles on the GPU and the terrain's waves and pass (AR4.1)
+game/Assets/LoadedWorld.h	79	game/Assets	game/Assets	high	the login scene's world: the terrain's tiles on the GPU and the terrain's waves and pass (AR4.1)
 Scenes/LoadingScene.cpp	171	Scenes	game/Scenes	high	scene 1, the loading scene script (AR0.1 review)
 Scenes/LoadingScene.h	59	Scenes	game/Scenes	high	scene 1, the loading scene script (AR0.1 review)
 Scenes/LoginActor.cpp	98	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)

@@ -19,8 +19,8 @@ struct ModelRange
     std::string_view name;
 };
 
-// 0x619a21..0x619ea1: 39 grupos, 112 pedidos. Cada grupo numera archivos desde 1.
-// El orden de CALL no es el de ID; DoungeonGate conserva el nombre literal del original.
+// 0x619a21..0x619ea1: 39 groups, 112 requests. Each group numbers its files from 1. The CALL order is not the ID
+// order; DoungeonGate keeps the original's literal name.
 constexpr std::array<ModelRange, 39> ModelRanges{{
     {0x00, 0x0c, "Tree"},         {0x14, 0x1b, "Grass"},          {0x1e, 0x22, "Stone"},
     {0x28, 0x2a, "StoneStatue"},  {0x2b, 0x2b, "SteelStatue"},    {0x2c, 0x2e, "Tomb"},

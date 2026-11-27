@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-// Client::Assets::SceneTextures: el juego de texturas de una escena, subido en su Enter y soltado
-// en su Leave, como lo hacen la carga (0x622e40 y 0x63c150) y el login (0x61c7c0).
+// Client::Assets::SceneTextures: a scene's texture set, uploaded in its Enter and released in its Leave, as the load
+// (0x622e40 and 0x63c150) and the login (0x61c7c0) do.
 namespace
 {
 using Client::Assets::SceneTextures;
@@ -32,7 +32,7 @@ using Client::Tests::SceneOztSide;
 using Client::Tests::TemporaryFolder;
 using Client::Tests::WriteTextureSet;
 
-// Un juego inventado: un OZJ y un OZT, con slots que no usa ninguna escena.
+// A made-up set: one OZJ and one OZT, with slots no scene uses.
 constexpr std::array<TextureSetEntry, 2> Set{{
     {"Prueba\\fondo.jpg", 0x300, Sampling{Filter::Linear, Wrap::Clamp}},
     {"Prueba\\marco.tga", 0x301, Sampling{Filter::Nearest, Wrap::Repeat}},
@@ -61,8 +61,8 @@ TEST(SceneTexturesTest, LoadsTheSetInItsOrder)
     EXPECT_EQ(tested.store.loadCalls, 1);
 }
 
-// El tamaño del buffer que se subió (los floats de +0x20 y +0x24 del slot), para las UV de la UI
-// nueva; de un slot que no subió, 1 × 1.
+// The size of the uploaded buffer (the floats at +0x20 and +0x24 of the slot), for the new UI's UVs; 1 × 1 for a slot
+// that did not upload.
 TEST(SceneTexturesTest, KnowsTheBufferSizeOfEachSlot)
 {
     Harness tested;
@@ -81,9 +81,8 @@ TEST(SceneTexturesTest, KnowsTheBufferSizeOfEachSlot)
     EXPECT_EQ(tested.textures.BufferSize(TextureSlot{0x302}).height, 1);
 }
 
-// La metadata raw32 de cada slot subido (+0x20, +0x24 y +0x28 de su lugar), la que piden las partículas que
-// se dibujan con una textura de la escena (la 0x729 y la 0x719 de la selección); ausente fuera del juego y
-// después de soltarlo.
+// The raw32 metadata of each uploaded slot (+0x20, +0x24 and +0x28 of its place), which the particles drawn with a
+// scene texture ask for (the selection's 0x729 and 0x719); absent outside the set and after releasing it.
 TEST(SceneTexturesTest, KnowsTheMetadataOfEachUploadedSlotUntilItsRelease)
 {
     Harness tested;
@@ -130,8 +129,7 @@ TEST(SceneTexturesTest, AFailedUploadFailsWithTheErrorOfTheTable)
     EXPECT_NE(loaded.Error().find("la tabla falsa no sube"), std::string::npos) << loaded.Error();
 }
 
-// Suelta todo el juego, en orden, aunque la subida haya cortado a la mitad: lo que sí subió no
-// queda en la tabla.
+// Releases the whole set, in order, even if the upload stopped halfway: what did upload does not stay in the table.
 TEST(SceneTexturesTest, ReleasesTheWholeSetOnce)
 {
     Harness tested;

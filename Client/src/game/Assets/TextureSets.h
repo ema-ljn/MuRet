@@ -6,11 +6,9 @@
 #include <array>
 #include <cstdint>
 
-// Las texturas que sube cada escena al entrar, como datos: la ruta como la pide el original, el
-// slot de su tabla y el tercer y cuarto argumento del cargador, en el orden de las llamadas
-// (Client/docs/research/06-render-escenas-y-ui.md, "La carga" y "El login, al entrar"). Las escenas
-// de la CL5.4 las cargan con Data::Textures::LoadTextureSet; un mundo tendrá la suya, con su
-// carpeta (CL7).
+// The textures each scene uploads on entering, as data: the path as the original asks for it, the slot of its table
+// and the loader's third and fourth arguments, in call order (Client/docs/research/06-render-escenas-y-ui.md, "La
+// carga" and "El login, al entrar"). The scenes load them with Data::Textures::LoadTextureSet.
 namespace Client::Assets
 {
 namespace TextureSetsDetail
@@ -20,45 +18,45 @@ using Data::Textures::Sampling;
 using Data::Textures::TextureSetEntry;
 using Data::Textures::Wrap;
 
-// 0x2600 y 0x2900; 0x2601 y 0x2900; 0x2601 y 0x2901; 0x2600 y 0x2901.
+// 0x2600 and 0x2900; 0x2601 and 0x2900; 0x2601 and 0x2901; 0x2600 and 0x2901.
 inline constexpr Sampling NearestClamp{Filter::Nearest, Wrap::Clamp};
 inline constexpr Sampling LinearClamp{Filter::Linear, Wrap::Clamp};
 inline constexpr Sampling LinearRepeat{Filter::Linear, Wrap::Repeat};
 inline constexpr Sampling NearestRepeat{Filter::Nearest, Wrap::Repeat};
 } // namespace TextureSetsDetail
 
-// 0x61bd9f..0x61bdb4: FontTest en el slot1 con NEAREST/CLAMP, antes de la carga común.
-// Es el atlas que 0x621710 usa para las cifras y "miss" de 0x548efd, no la fuente dinámica del slot0.
+// 0x61bd9f..0x61bdb4: FontTest at slot 1 with NEAREST/CLAMP, before the common load. It is the atlas 0x621710 uses for
+// the digits and "miss" of 0x548efd, not the dynamic font of slot 0.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet{{
     {"Interface\\FontTest.tga", 0x01, TextureSetsDetail::NearestClamp},
 }};
 
-// Las del HUD del juego que sube 0x61ccb0 (0x61cce0..0x61e5f0, CL8 hito 2), en su orden y con su sampling: los cursores
-// del juego (0x63bd00 con GL_LINEAR y GL_CLAMP), la barra de abajo (GL_NEAREST y GL_CLAMP), el AG, el botón de los
-// comandos, los de la UI vieja que dibuja 0x4a5120, la caja de la entrada del chat (0xef, 0xf8 y 0xf9, que dibuja
-// 0x5aa9a0), los diálogos que dibuja 0x62db60 (0xf0 a 0xf4 y 0xfb, hito 6), el registro del chat (hito 3), el cursor de
-// identificar, el de atacar en el asedio y los íconos de estado; y las de las skills, que sube 0x61ae60 desde 0x61ccb0.
-// Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de WindowTextureSet, que
-// cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la pisa Skill\SwordEff.jpg
-// con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill. Las de las ventanas del paso
-// que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los comandos; CursorID_Wnd en
-// 0x65b (0x61d3ab), el cartel del personaje elegido. Las de las ventanas viejas (CL9 hito 9, UI/OldWindowDraw.h):
-// win_titlebar, win_button, win_size, win_resize y win_scrollbar en 0x645 a 0x649 (0x61d151..0x61d1db, sin filtro y sin
-// repetir), que la CL8 dibujaba sin subirlas, y las de las cartas y los chats (CL9 hito 10): win_mail y win_mark en
-// 0x64b y 0x64c (0x61d20c, 0x61d228; las dibujan 0x4a0a30, 0x4641f0 y 0x4a5750) y win_question en 0x651 (0x61d29e; la
-// dibuja el retrato, 0x497c10), con Local\Webzenlogo.jpg en 0x653 (0x61d2ba, con 0x63b870: el retrato vacío). Las del
-// inventario (hito 4): setitem, btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354); text_button en
-// 0x659 (0x61d370), los botones de la tienda personal propia que dibuja 0x5f3030 (CL9 hito 7). La del duelo (CL9 hito
-// 7): DuelWindow en 0x650 (0x61d2d6), que dibuja 0x5f37f0. Y las de 0x104 a 0x120 que 0x61ae60 sube después de
-// command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del equipo, la plata,
-// la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la sube nadie. Las de
-// la ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f, que también usa la ventana del personaje),
-// win_button en 0x646 (0x61d17a, con 0x63bd00; también el botón de la UI vieja) y pet1 y pet2 en 0x65d y 0x65e
-// (0x61d4b0 y 0x61d4cc), el botón de la mascota. win_scrollbar (0x649) es también la barra de la lista de los paquetes
-// de joyas (Scenes/JewelBundleList, CL9 hito 6). Las de la caja de la contraseña del almacén y su botón (CL9 hito 6,
-// fase 3): bar.jpg y back1 a back3 en 0xfd a 0x100 (0x61d3e3..0x61d43a, después de menu01_new2) y lock_01 a lock_04 en
-// 0x126 a 0x129 (0x61b2c3..0x61b31d, después de level_02, accept_box y mix_button de 0x121 a 0x125, que son de la caja
-// del caos).
+// The game HUD textures that 0x61ccb0 uploads (0x61cce0..0x61e5f0), in order and with their sampling: the game cursors
+// (0x63bd00 with GL_LINEAR and GL_CLAMP), the bottom bar (GL_NEAREST and GL_CLAMP), the AG, the commands button, those
+// of the old UI that 0x4a5120 draws, the chat input box (0xef, 0xf8 and 0xf9, drawn by 0x5aa9a0), the dialogs 0x62db60
+// draws (0xf0 to 0xf4 and 0xfb), the chat log, the identify cursor, the siege attack cursor and the status icons; and
+// those of the skills, which 0x61ae60 uploads from 0x61ccb0. GameModels uploads them with the models, and they stay. 2
+// and 3, Cursor and CursorPush, do not: they belong to WindowTextureSet, which each scene uploads and releases, the
+// game too. The log's track, nis_back at 0x640, is overwritten by Skill\SwordEff.jpg with GL_LINEAR later in the same
+// function (0x61ccb0, Q-C463): the skill's stays.
+//
+// Frame windows: win_check at 0x64a (0x61d1f0, with 0x63bd00), the commands checkbox; CursorID_Wnd at 0x65b (0x61d3ab),
+// the selected character's label. The old windows (UI/OldWindowDraw.h): win_titlebar, win_button, win_size, win_resize
+// and win_scrollbar at 0x645 to 0x649 (0x61d151..0x61d1db, no filter and no repeat). Letters and chats: win_mail and
+// win_mark at 0x64b and 0x64c (0x61d20c, 0x61d228; drawn by 0x4a0a30, 0x4641f0 and 0x4a5750) and win_question at 0x651
+// (0x61d29e; drawn by the portrait, 0x497c10), with Local\Webzenlogo.jpg at 0x653 (0x61d2ba, with 0x63b870: the empty
+// portrait). The inventory: setitem, btn_pshop and btn_pshop2 at 0x652, 0x657 and 0x658 (0x61d319..0x61d354);
+// text_button at 0x659 (0x61d370), the own personal shop's buttons that 0x5f3030 draws. The duel: DuelWindow at 0x650
+// (0x61d2d6), drawn by 0x5f37f0. And 0x104 to 0x120, which 0x61ae60 uploads after command.jpg (0x61aec8..0x61b1f2): the
+// window background, the equipment slots, the money, the grid, the trade line and the buttons, among them close
+// (0x118). Nobody uploads 0x106.
+//
+// The pet window: Level_box at 0xf5 (0x61cf8f, which the character window also uses), win_button at 0x646 (0x61d17a,
+// with 0x63bd00; also the old UI's button) and pet1 and pet2 at 0x65d and 0x65e (0x61d4b0 and 0x61d4cc), the pet
+// button. win_scrollbar (0x649) is also the bar of the jewel bundle list (Scenes/JewelBundleList). The warehouse
+// password box and its button: bar.jpg and back1 to back3 at 0xfd to 0x100 (0x61d3e3..0x61d43a, after menu01_new2) and
+// lock_01 to lock_04 at 0x126 to 0x129 (0x61b2c3..0x61b31d, after level_02, accept_box and mix_button at 0x121 to
+// 0x125, which belong to the chaos box).
 inline constexpr std::array<Data::Textures::TextureSetEntry, 129> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
@@ -125,7 +123,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 129> HudTextureSet{
     {"Interface\\pet1.jpg", 0x65d, TextureSetsDetail::NearestClamp},
     {"Interface\\pet2.jpg", 0x65e, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
-    // 0x61e385..0x61e46e: controles del asedio, NEAREST/CLAMP.
+    // 0x61e385..0x61e46e: siege controls, NEAREST/CLAMP.
     {"Interface\\BattleSkill.tga", 0x65f, TextureSetsDetail::NearestClamp},
     {"Interface\\senatusmap.jpg", 0x660, TextureSetsDetail::NearestClamp},
     {"Interface\\gate_button2.jpg", 0x661, TextureSetsDetail::NearestClamp},
@@ -136,8 +134,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 129> HudTextureSet{
     {"Interface\\DoorOP.jpg", 0x666, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
     {"Interface\\StatusIcon.jpg", 0x68e, TextureSetsDetail::NearestClamp},
-    // 0x61e678..0x61e77d: órdenes y estados de la batalla, antes de 0x61ae60.
-    // 0x61e605 y 0x61e621: progreso del comando del asedio, NEAREST/CLAMP.
+    // 0x61e678..0x61e77d: battle orders and states, before 0x61ae60.
+    // 0x61e605 and 0x61e621: the siege command's progress, NEAREST/CLAMP.
     {"Interface\\Progress_Back.jpg", 0x667, TextureSetsDetail::NearestClamp},
     {"Interface\\Progress.jpg", 0x668, TextureSetsDetail::NearestClamp},
     {"Interface\\frame.tga", 0x69f, TextureSetsDetail::NearestClamp},
@@ -182,7 +180,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 129> HudTextureSet{
     {"Interface\\repair_02.jpg", 0x11f, TextureSetsDetail::NearestClamp},
     {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
     {"Interface\\level_02.jpg", 0x121, TextureSetsDetail::NearestClamp},
-    // 0x61ae60: el OK marcado del comercio (0x5f3b40). El 0x122 (accept_box01) lo sube el terreno (AcceptBoxTexture).
+    // 0x61ae60: the trade's checked OK (0x5f3b40). 0x122 (accept_box01) is uploaded by the terrain (AcceptBoxTexture).
     {"Interface\\accept_box02.jpg", 0x123, TextureSetsDetail::NearestClamp},
     {"Interface\\mix_button1.jpg", 0x124, TextureSetsDetail::NearestClamp},
     {"Interface\\mix_button2.jpg", 0x125, TextureSetsDetail::NearestClamp},
@@ -190,15 +188,15 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 129> HudTextureSet{
     {"Interface\\lock_02.jpg", 0x127, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_03.jpg", 0x128, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_04.jpg", 0x129, TextureSetsDetail::NearestClamp},
-    // Slots de la carga común de 0x61ccb0 que siguen vivos al entrar al mundo.
+    // Slots of the common load of 0x61ccb0 that are still alive on entering the world.
     {"Interface\\level01.jpg", 0xf6, TextureSetsDetail::NearestClamp}, // 0x61cfb5
     {"Interface\\Quest1.jpg", 0x102, TextureSetsDetail::NearestClamp}, // 0x61d47f
     {"Interface\\Quest2.jpg", 0x103, TextureSetsDetail::NearestClamp}, // 0x61d49b
 }};
 
-// Las de la interfaz de Crywolf que sube 0x61ccb0 (0x61de5f..0x61e373, CL9 hito 11), de 0x6b6 a 0x6e2 en su orden, con
-// GL_LINEAR y GL_CLAMP: 0x63bd00 las .tga y 0x63b870 in_bar2.jpg. Las dibuja 0x4365c0 (Scenes/CrywolfInterfaceDrawing):
-// el estado, el cartel, el rango y los resultados. Las sube GameModels con las del HUD, y quedan.
+// The Crywolf interface textures that 0x61ccb0 uploads (0x61de5f..0x61e373), 0x6b6 to 0x6e2 in order, with GL_LINEAR
+// and GL_CLAMP: 0x63bd00 the .tga files and 0x63b870 in_bar2.jpg. 0x4365c0 draws them (Scenes/CrywolfInterfaceDrawing):
+// the state, the banner, the rank and the results. GameModels uploads them with the HUD's, and they stay.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 45> CrywolfTextureSet{{
     {"Interface\\in_bar.tga", 0x6b6, TextureSetsDetail::LinearClamp},
     {"Interface\\in_bar2.jpg", 0x6b7, TextureSetsDetail::LinearClamp},
@@ -247,35 +245,36 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 45> CrywolfTextureS
     {"Interface\\m_main_rank.tga", 0x6e2, TextureSetsDetail::LinearClamp},
 }};
 
-// Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
-// Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
-// No son de una escena: las sube GameModels con los modelos, y quedan.
+// The glow pass textures, which 0x61ccb0 uploads in its step 0 and nobody releases: Shiny01 for 0x8, Chrome01 for 0x4
+// and Chrome02 for 0x200, 0x800 and 0x1000 (06 § Los pases de brillo). They belong to no scene: GameModels uploads them
+// with the models, and they stay.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
     {"Effect\\Shiny01.jpg", 0x5fc, TextureSetsDetail::LinearClamp},
     {"Effect\\Chrome01.jpg", 0x5c0, TextureSetsDetail::LinearRepeat},
     {"Effect\\Chrome02.jpg", 0x620, TextureSetsDetail::NearestClamp},
 }};
 
-// Las de los sprites y las partículas del login que sube 0x61ccb0 (0x61d6a5, 0x61d925, 0x61d737 y
-// 0x61d753, 0x63b870 con GL_LINEAR y GL_CLAMP) y nadie suelta: Effect\flare01.jpg en 0x5ac (los destellos
-// de la capa y el brillo del cetro), Effect\Shiny02.jpg en 0x5fd (el cetro), Effect\Spark03.jpg en 0x5c6
-// (las chispas del cuervo) y Effect\smoke01.jpg en 0x5f2 (el aliento del caballo). 0x61d768 sube con 0x63bd00
-// Effect\smoke02.tga a 0x5f3, el polvo del galope del caballo, con el mismo sampling. Las sube GameModels
-// con los modelos, y quedan. 0x61d801 sube clouds.jpg a 0x622 con GL_LINEAR y GL_CLAMP: las nubes
-// oscuras del mapa 55. 0x61d6e0 y 0x61d6fc suben Magic_Ground2 y Magic_Circle1 con el mismo sampling:
-// el calco y los dos anillos del efecto de llegada 0x61f (06 § Después de los objetos).
-// 0x61d4db sube Fire01 a 0x5d9, GL_LINEAR/GL_CLAMP, para las llamas de los objetos.
-// Noria agrega Spark02/5c5 (61d711), lightning2/5d5 (61da3c), Spark01/617 (61da77) y
-// flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
-// Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
-// Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
+// The login sprites' and particles' textures that 0x61ccb0 uploads (0x61d6a5, 0x61d925, 0x61d737 and 0x61d753, 0x63b870
+// with GL_LINEAR and GL_CLAMP) and nobody releases: Effect\flare01.jpg at 0x5ac (the cape's flashes and the sceptre's
+// glow), Effect\Shiny02.jpg at 0x5fd (the sceptre), Effect\Spark03.jpg at 0x5c6 (the raven's sparks) and
+// Effect\smoke01.jpg at 0x5f2 (the horse's breath). 0x61d768 uploads Effect\smoke02.tga to 0x5f3 with 0x63bd00, the
+// dust of the horse's gallop, with the same sampling. GameModels uploads them with the models, and they stay. 0x61d801
+// uploads clouds.jpg to 0x622 with GL_LINEAR and GL_CLAMP: the dark clouds of map 55. 0x61d6e0 and 0x61d6fc upload
+// Magic_Ground2 and Magic_Circle1 with the same sampling: the decal and the two rings of the arrival effect 0x61f (06 §
+// Después de los objetos).
+//
+// 0x61d4db uploads Fire01 to 0x5d9, GL_LINEAR/GL_CLAMP, for the objects' flames. Noria adds Spark02/0x5c5 (0x61d711),
+// lightning2/0x5d5 (0x61da3c), Spark01/0x617 (0x61da77) and flareBlue/0x62b (0x61dc9d), all GL_LINEAR/GL_CLAMP; the
+// last two have their own physical slots. What hangs from a player (0x509340 and 0x50ba30) also asks for Shiny03 at
+// 0x5fe (0x61d937) and Object9's Impack03 at 0x5ad (0x61e799), from the same branchless loop of 0x61ccb0 and with the
+// same sampling.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 81> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
-    // 0x61d523: Fire03 para la partícula 0x5db/0 del efecto 0x147/1 de Crywolf.
+    // 0x61d523: Fire03 for particle 0x5db/0 of Crywolf's effect 0x147/1.
     {"Effect\\Fire03.jpg", 0x5db, TextureSetsDetail::LinearClamp},
-    // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
+    // 0x61d663: ShockWave at 0x6eb, the wave of the horse's gallop in Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
-    // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.
+    // 0x61d67f: Flame01 at 0x5de, for flame 0x5de/7 of object 0x43 on map 54.
     {"Effect\\Flame01.jpg", 0x5de, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
@@ -285,57 +284,57 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 81> EffectTextureSe
     {"Effect\\Shiny03.jpg", 0x5fe, TextureSetsDetail::LinearClamp},
     {"Object9\\Impack03.jpg", 0x5ad, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
-    {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 61da58/61da62.
+    {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 0x61da58/0x61da62
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke05.tga", 0x5f6, TextureSetsDetail::LinearClamp},
-    // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
+    // 0x61d7e5 (0x63b870, GL_LINEAR and GL_CLAMP): Explotion01 at 0x5ed, the explosion 0x5ed/0 of earthquake 0xfa.
     {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
-    // 0x61d7aa (0x63bd00, GL_LINEAR y GL_CLAMP): blood01.tga en 0x5e3, las dos marcas del suelo que deja el que termina
-    // de morir (0x52e810, CL9 hito 3), que dibuja 0x549130 con los componentes de este slot.
+    // 0x61d7aa (0x63bd00, GL_LINEAR and GL_CLAMP): blood01.tga at 0x5e3, the two ground marks left by one who finishes
+    // dying (0x52e810), which 0x549130 draws with this slot's components.
     {"Effect\\blood01.tga", 0x5e3, TextureSetsDetail::LinearClamp},
-    // 0x61d7c9 (0x63bd00, GL_LINEAR y GL_CLAMP): blood.tga en 0x5e4, la sangre que suelta el golpe con daño (0x50419c).
+    // 0x61d7c9 (0x63bd00, GL_LINEAR and GL_CLAMP): blood.tga at 0x5e4, the blood a damaging hit sheds (0x50419c).
     {"Effect\\blood.tga", 0x5e4, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},
     {"Effect\\flareBlue.jpg", 0x62b, TextureSetsDetail::LinearClamp},
-    // 61d5bf y61dde7..61de5a: familias nativas de Kalima, LINEAR/CLAMP, argumentos0/1.
+    // 0x61d5bf and 0x61dde7..0x61de5a: Kalima's native families, LINEAR/CLAMP, arguments 0/1.
     {"Effect\\fantaB.jpg", 0x6ed, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL1.jpg", 0x6f0, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL2.jpg", 0x6f1, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL3.jpg", 0x6f2, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL4.jpg", 0x6f3, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL5.jpg", 0x6f4, TextureSetsDetail::LinearClamp},
-    // 0x61d55e, 0x61d57a (0x63bd00) y 0x61dbd3: la chispa y la llama de la antorcha de Blood Castle y la órbita
-    // 0x60f, también el sprite de su 0xd; LINEAR/CLAMP.
+    // 0x61d55e, 0x61d57a (0x63bd00) and 0x61dbd3: the spark and flame of the Blood Castle torch and orbit 0x60f, also
+    // the sprite of its 0xd; LINEAR/CLAMP.
     {"Effect\\fi01.jpg", 0x6ab, TextureSetsDetail::LinearClamp},
     {"Effect\\fi02.tga", 0x6ac, TextureSetsDetail::LinearClamp},
     {"Effect\\PoundingBall.jpg", 0x6ad, TextureSetsDetail::LinearClamp},
-    // 0x61dbb4: la estela de los fuegos artificiales 0x60e.
+    // 0x61dbb4: the trail of fireworks 0x60e.
     {"Effect\\Fire04.jpg", 0x60d, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
-    // 0x61dc0b: Chrome03 para el rastro de Crywolf y los brillos de monstruos, NEAREST/CLAMP.
+    // 0x61dc0b: Chrome03 for the Crywolf trail and the monsters' glows, NEAREST/CLAMP.
     {"Effect\\Chrome03.jpg", 0x6b1, TextureSetsDetail::NearestClamp},
-    // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
+    // 0x61d5a0 and 0x61d893, LINEAR/CLAMP: 0x6ec/5 of Crywolf's 0x39 and 0x47 and the bubble 0x698/0 of its water.
     {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},
     {"Effect\\coll.jpg", 0x698, TextureSetsDetail::LinearClamp},
-    // 0x61e7bd (0x63b870, GL_LINEAR y GL_CLAMP): cra_04 en 0x5ae, la textura (+0x8) de la 6f1/3 de las botas del
-    // conjunto completo (0x544095).
+    // 0x61e7bd (0x63b870, GL_LINEAR and GL_CLAMP): cra_04 at 0x5ae, the texture (+0x8) of 0x6f1/3 of the full set's
+    // boots (0x544095).
     {"Effect\\cra_04.jpg", 0x5ae, TextureSetsDetail::LinearClamp},
-    // 0x61e55c..0x61e5f0 (0x63b870, GL_NEAREST y GL_CLAMP): eff_lighting en 0x68f, el pase 0x46 de la malla 1 de los
-    // Fenrir con la acción 4 (0x60282a), y eff_lightinga01..05 en 0x690..0x694, los cuadros del calco 0x14e (0x52d906).
+    // 0x61e55c..0x61e5f0 (0x63b870, GL_NEAREST and GL_CLAMP): eff_lighting at 0x68f, pass 0x46 of mesh 1 of the Fenrir
+    // with action 4 (0x60282a), and eff_lightinga01..05 at 0x690..0x694, the frames of decal 0x14e (0x52d906).
     {"Effect\\eff_lighting.jpg", 0x68f, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga01.jpg", 0x690, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga02.jpg", 0x691, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga03.jpg", 0x692, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga04.jpg", 0x693, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga05.jpg", 0x694, TextureSetsDetail::NearestClamp},
-    // 0x61e4eb..0x61e542: el cráter y las marcas del mapa 30, NEAREST/CLAMP.
+    // 0x61e4eb..0x61e542: the crater and the marks of map 30, NEAREST/CLAMP.
     {"Effect\\Cratered.tga", 0x636, TextureSetsDetail::NearestClamp},
     {"Effect\\FormationMark.tga", 0x637, TextureSetsDetail::NearestClamp},
     {"Effect\\Plus.tga", 0x638, TextureSetsDetail::NearestClamp},
-    // Materiales persistentes de 0x61ccb0, contrastados con los slots de Lorencia.
+    // Persistent materials of 0x61ccb0, checked against the Lorencia slots.
     {"Effect\\Piercing.jpg", 0x6e8, TextureSetsDetail::LinearRepeat},     // 0x61d5f7
     {"Effect\\Magic_b.jpg", 0x6e9, TextureSetsDetail::NearestClamp},      // 0x61d632
     {"Effect\\Magic_Ground1.jpg", 0x61d, TextureSetsDetail::LinearClamp}, // 0x61d6c4
@@ -366,23 +365,23 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 81> EffectTextureSe
     {"Effect\\Inferno.jpg", 0x633, TextureSetsDetail::LinearClamp},       // 0x61e647
     {"Effect\\Lava.jpg", 0x634, TextureSetsDetail::LinearClamp},          // 0x61e666
     {"Effect\\FireSnuff.jpg", 0x635, TextureSetsDetail::LinearClamp},     // 0x61d877/0x61e494
-    // Slots fijos de 0x615700, fuera de su tabla de nombres de malla.
+    // Fixed slots of 0x615700, outside its mesh name table.
     {"Skill\\dkthreebody_r.jpg", 0x6f7, TextureSetsDetail::LinearRepeat}, // 0x616043
     {"Skill\\flower1.tga", 0x608, TextureSetsDetail::NearestClamp},       // 0x616e6f
     {"Skill\\flower2.tga", 0x609, TextureSetsDetail::NearestClamp},       // 0x616e8c
     {"Skill\\flower3.tga", 0x60a, TextureSetsDetail::NearestClamp},       // 0x616ea9
 }};
 
-// 0x61d83c: la carga común sube el slot y la selección lo libera al salir.
+// 0x61d83c: the common load uploads the slot and the selection frees it on leaving.
 inline constexpr std::uint16_t StartupSelectionTextureSlot = 0x716;
 inline constexpr std::array<Data::Textures::TextureSetEntry, 1> StartupSelectionTextureSet{{
     {"Effect\\Impack03.jpg", StartupSelectionTextureSlot, TextureSetsDetail::LinearClamp},
 }};
 
-// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube
-// JointSpirit02 a 0x6ee (LINEAR/CLAMP): el meteoro 6ee/9 de Chaos Castle (0x4054ad).
-// Spark01 (0x617) ya está en EffectTextureSet. Las cintas sin creador portado no se cargan acá.
-// 0x61daef sube JointEnergy01 a 0x619 (LINEAR/CLAMP): el 619/9 que suelta el 5ac/3 del conjunto completo.
+// Resources of the joints the fish and birds already create: 0x61d858/0x61dab9/0x61dad8/0x61dce2. 0x61d5db uploads
+// JointSpirit02 to 0x6ee (LINEAR/CLAMP): the meteor 0x6ee/9 of Chaos Castle (0x4054ad). Spark01 (0x617) is already in
+// EffectTextureSet. Ribbons without a ported creator are not loaded here. 0x61daef uploads JointEnergy01 to 0x619
+// (LINEAR/CLAMP): the 0x619/9 that the full set's 0x5ac/3 sheds.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 6> FaunaJointTextureSet{{
     {"Effect\\JointSpirit02.jpg", 0x6ee, TextureSetsDetail::LinearClamp},
     {"Effect\\ScolTail.jpg", 0x697, TextureSetsDetail::LinearClamp},
@@ -392,10 +391,9 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 6> FaunaJointTextur
     {"Effect\\JointEnergy01.jpg", 0x619, TextureSetsDetail::LinearClamp},
 }};
 
-// Cola P-C55:61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.
-// 615 no tiene upload propio:5319ea remapea su textura a614.
-// 0x61e4b3 (0x63bd00, GL_LINEAR y GL_CLAMP): Object31\Flag.tga en 0x69c, la de la malla 1 del 0xc del mapa
-// 30 (0x42cc89).
+// Tail P-C55: 0x61d511/0x61d9b4/0x61d9ef/0x61da0b/0x61da2a/0x61da9d/0x61dba2/0x61dcc3. 0x615 has no upload of its own:
+// 0x5319ea remaps its texture to 0x614. 0x61e4b3 (0x63bd00, GL_LINEAR and GL_CLAMP): Object31\Flag.tga at 0x69c, that
+// of mesh 1 of 0xc on map 30 (0x42cc89).
 inline constexpr std::array<Data::Textures::TextureSetEntry, 9> GameTailTextureSet{{
     {"Effect\\Fire02.jpg", 0x5da, TextureSetsDetail::LinearClamp},
     {"Effect\\blur01.jpg", 0x5bb, TextureSetsDetail::NearestClamp},
@@ -408,17 +406,17 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 9> GameTailTextureS
     {"Object31\\Flag.tga", 0x69c, TextureSetsDetail::LinearClamp},
 }};
 
-// Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en
-// 0x256, de las dos telas de adelante del Dark Lord (0x63b870 con GL_NEAREST y GL_CLAMP), y
-// Player\kaa.tga en 0x6ea, la de su cuarta (0x63bd00 con GL_LINEAR y GL_CLAMP). Las demás capas
-// (Robe01 a 03 y DarklordRobe) son de las del personaje (PlayerFixedTextures).
+// The two cloth layers that 0x61ccb0 uploads (0x61d616 and 0x61d64e) and nobody releases: Monster\iui06.jpg at 0x256,
+// for the Dark Lord's two front cloths (0x63b870 with GL_NEAREST and GL_CLAMP), and Player\kaa.tga at 0x6ea, for its
+// fourth (0x63bd00 with GL_LINEAR and GL_CLAMP). The other layers (Robe01 to 03 and DarklordRobe) belong to the
+// character's (PlayerFixedTextures).
 inline constexpr std::array<Data::Textures::TextureSetEntry, 2> ClothTextureSet{{
     {"Monster\\iui06.jpg", 0x256, TextureSetsDetail::NearestClamp},
     {"Player\\kaa.tga", 0x6ea, TextureSetsDetail::LinearClamp},
 }};
 
-// Las 18 de 0x61c7c0, la escena de login. El modelo 0xa2 (Logo\Logo03.bmd), que 0x61c7c0 también
-// carga, no es una textura: llega con los modelos (CL6).
+// The 18 of 0x61c7c0, the login scene. Model 0xa2 (Logo\Logo03.bmd), which 0x61c7c0 also loads, is not a texture: it
+// comes with the models.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet{{
     {"Logo\\Login_Back01.jpg", 0x15, TextureSetsDetail::NearestClamp},
     {"Logo\\Login_Back02.jpg", 0x16, TextureSetsDetail::NearestClamp},
@@ -440,15 +438,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet
     {"Interface\\cr_mu_lo.tga", 0x1a, TextureSetsDetail::LinearClamp},
 }};
 
-// Las de 0x61ccb0 que usan el login, la selección y el juego: los dos cursores (0x61ccf9 y 0x61cd12,
-// con filtro, UI/GameCursor.h), y lo de las ventanas (CL5.5 y CL6.5): el OK y el cancelar de la cuenta y
-// del aviso, la caja del aviso y la del código del borrado, sin filtro y sin repetir (0x2600 y
-// 0x2900). El original las sube con los datos del juego, en la carga, y no las suelta; acá las sube
-// cada escena con las suyas y las suelta al salir. Los otros cursores, de 4 a 0xa, son del HUD
-// (HudTextureSet). Y las del hito 8 de la CL8: el cerrar (0x726), que usan los créditos
-// (UI/CreditsWindow.h); las seis de la ventana de Esc (UI/EscapeWindow.h), el marco de 0x66a1c0 (la
-// piedra, op1_back3 y op1_back4 repetidas) y los botones; y las cinco de las opciones
-// (UI/OptionsWindow.h), el borde de arriba, las casillas y el deslizador, con el relleno repetido.
+// The textures of 0x61ccb0 that the login, the selection and the game use: the two cursors (0x61ccf9 and 0x61cd12, with
+// filter, UI/GameCursor.h), and the windows': the OK and cancel of the account and of the notice, the notice box and
+// the delete code box, without filter and without repeat (0x2600 and 0x2900). The original uploads them with the game
+// data, at load, and does not release them; here each scene uploads them with its own and releases them on leaving. The
+// other cursors, 4 to 0xa, are the HUD's (HudTextureSet). Also close (0x726), which the credits use
+// (UI/CreditsWindow.h); the six of the Esc window (UI/EscapeWindow.h), the frame of 0x66a1c0 (the stone, op1_back3 and
+// op1_back4 repeated) and the buttons; and the five of the options (UI/OptionsWindow.h), the top border, the checkboxes
+// and the slider, with the fill repeated.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 18> WindowTextureSet{{
     {"Interface\\Cursor.tga", 0x02, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorPush.tga", 0x03, TextureSetsDetail::LinearClamp},
@@ -470,10 +467,9 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> WindowTextureSe
     {"Interface\\op2_volume1.tga", 0x734, TextureSetsDetail::NearestClamp},
 }};
 
-// Las ilustraciones de los créditos (0x63fc50, CL8 hito 8; UI/CreditsWindow.h): el par +0x5c8 en 0x6f8
-// y 0x6f9, con filtro y sin repetir (0x63b870 con 0x2601 y 0x2900), de los nombres de +0x5cc. El original
-// las sube cuando los créditos empiezan o pasan al par siguiente, encima de las que había; el login de
-// MuRet suelta el par anterior y sube el nuevo.
+// The credits illustrations (0x63fc50; UI/CreditsWindow.h): the +0x5c8 pair at 0x6f8 and 0x6f9, with filter and without
+// repeat (0x63b870 with 0x2601 and 0x2900), from the names of +0x5cc. The original uploads them when the credits start
+// or move to the next pair, over the ones there were; MuRet's login releases the previous pair and uploads the new one.
 inline constexpr std::array<std::array<Data::Textures::TextureSetEntry, 2>, 8> CreditIllustrationSets{
     {{{{"Interface\\im1_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
        {"Interface\\im1_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
@@ -492,16 +488,16 @@ inline constexpr std::array<std::array<Data::Textures::TextureSetEntry, 2>, 8> C
      {{{"Interface\\im8_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
        {"Interface\\im8_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}}}};
 
-// Las arenas de Tarkan y el humo de Crywolf y del asedio que dibuja el HUD del juego (0x5a7520): 0x61c7c0, el
-// login, las sube con GL_LINEAR y GL_REPEAT y no las suelta, y el juego las usa así. MuRet las suelta con el
-// login (LoginTextureSet): el juego las sube y las suelta él.
+// The Tarkan sands and the Crywolf and siege smoke that the game HUD draws (0x5a7520): 0x61c7c0, the login, uploads
+// them with GL_LINEAR and GL_REPEAT and does not release them, and the game uses them as they are. MuRet releases them
+// with the login (LoginTextureSet): the game uploads and releases its own.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 2> SandTextureSet{{
     {"Object9\\sand01.jpg", 0x5c2, TextureSetsDetail::LinearRepeat},
     {"Object9\\sand02.jpg", 0x5c3, TextureSetsDetail::LinearRepeat},
 }};
 
-// Las seis de 0x622e40, la escena de carga: con filtro, y repetida solo la barra (0x723). Las
-// suelta con 0x63c150 antes de pasar al login.
+// The six of 0x622e40, the loading scene: with filter, and only the bar (0x723) repeated. It releases them with
+// 0x63c150 before moving to the login.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 6> LoadingTextureSet{{
     {"Interface\\lo_back_01.jpg", 0x71e, TextureSetsDetail::LinearClamp},
     {"Interface\\lo_back_02.jpg", 0x71f, TextureSetsDetail::LinearClamp},
@@ -511,9 +507,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 6> LoadingTextureSe
     {"Interface\\lo_lo.jpg", 0x723, TextureSetsDetail::LinearRepeat},
 }};
 
-// Las doce de 0x61ca30, la selección: las de Interface\ en 0xc a 0x13, los dos fondos de Logo\,
-// Impack03 y chasellight, sin filtro y sin repetir (0x2600, 0x2900). Las suelta 0x61cc50 al entrar
-// al mundo.
+// The twelve of 0x61ca30, the selection: those of Interface\ at 0xc to 0x13, the two Logo\ backgrounds, Impack03 and
+// chasellight, without filter and without repeat (0x2600, 0x2900). 0x61cc50 releases them on entering the world.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 12> SelectionTextureSet{{
     {"Interface\\cha_id.tga", 0xc, TextureSetsDetail::NearestClamp},
     {"Interface\\cha_bt.tga", 0xd, TextureSetsDetail::NearestClamp},
@@ -529,8 +524,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 12> SelectionTextur
     {"Logo\\chasellight.jpg", 0x729, TextureSetsDetail::NearestClamp},
 }};
 
-// Las cuatro de 0x6356f0, la carga del mundo: el mosaico de LSBg01 a 04, con filtro y sin repetir
-// (0x2601, 0x2900). Las suelta al pasar al juego.
+// The four of 0x6356f0, the world loading: the LSBg01 to 04 mosaic, with filter and without repeat (0x2601, 0x2900).
+// It releases them on moving to the game.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 4> WorldLoadingTextureSet{{
     {"Interface\\LSBg01.JPG", 0x71e, TextureSetsDetail::LinearClamp},
     {"Interface\\LSBg02.JPG", 0x71f, TextureSetsDetail::LinearClamp},

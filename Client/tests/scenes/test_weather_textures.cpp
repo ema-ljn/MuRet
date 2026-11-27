@@ -71,7 +71,7 @@ TEST(WeatherTexturesTest, ReferenceMapsUploadRealDecodedWeatherIntoThePhysicalSl
         const auto loaded = tiles.Load(root, map, skipped);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         const auto leaf = store.Find(TextureSlot{0x64});
-        // World10 no tiene leaf01 en ninguno de los dos formatos: sus200gotas usan66.
+        // World10 has no leaf01 in either format: its 200 drops use 0x66.
         if (map == 9)
             EXPECT_FALSE(leaf.has_value());
         else

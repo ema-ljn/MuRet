@@ -1,12 +1,16 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Kernel/PlayerKey.h"
+#include "Models/Cloth.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/WorldState.h"
 #include "Session/ServerSession.h"
 #include "Session/WorldEntry.h"
@@ -62,6 +66,23 @@ template <Ignored Warning, auto Report> struct InClear
     }
 };
 
+// A case that answers a packet in clear itself (0x4d4af0): it logs `Warning` and sends Answer()'s F1 03, which draws
+// from the world's CRT, and the packet is not read. Without a world, nothing.
+template <Ignored Warning, auto Answer> struct AnsweredInClear
+{
+    static bool Reported(App::ServerSession& session, const Network::Packet& packet)
+    {
+        if (packet.WasDecrypted())
+            return false;
+        const Scenes::WorldEntryResources* const world = session.RoutedWorld();
+        if (world == nullptr)
+            return true;
+        session.ReportInClear(Warning.View(), Answer(world->cloth.random));
+        session.FinishRoutedReception({});
+        return true;
+    }
+};
+
 // The packet Write(Arguments...) builds, as InClear's Report.
 template <auto Write, auto... Arguments> Protocol::Outgoing Written()
 {
@@ -89,6 +110,22 @@ template <> struct RoutedPart<Scenes::WorldState&>
     }
 };
 
+template <> struct RoutedPart<Core::Log&>
+{
+    static Core::Log& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    {
+        return world.log;
+    }
+};
+
+template <> struct RoutedPart<Crt::CrtRandom&>
+{
+    static Crt::CrtRandom& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    {
+        return world.cloth.random;
+    }
+};
+
 template <> struct RoutedPart<Kernel::PlayerKey>
 {
     static Kernel::PlayerKey Of(const Scenes::WorldEntryResources&, const App::ServerSession& session)
@@ -112,6 +149,12 @@ template <> struct RoutedPart<const Scenes::ActorCombatContext&>
 template <> struct RoutedPart<const Scenes::ActionSender&>
 {
     static Scenes::ActionSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
+};
+
+// A world packet through the session's GameServer (App::ServerSession::SendGamePacket).
+template <> struct RoutedPart<const Scenes::GamePacketSender&>
+{
+    static Scenes::GamePacketSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
 };
 
 // Only the session's own handlers name it.

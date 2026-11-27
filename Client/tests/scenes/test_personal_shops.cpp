@@ -419,10 +419,12 @@ TEST_P(PersonalShopsTest, TheNoticesGoToTheMessages)
     EXPECT_EQ(entries.front().type, Client::UI::SystemMessage);
 
     const std::size_t before = entries.size();
-    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources(), {}).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Client::Protocol::PersonalShop::ShopOwnerLeft{}, Resources(), {})
+                    .HasValue());
     EXPECT_EQ(entries.size(), before);
     Shops().mode = 2;
-    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources(), {}).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Client::Protocol::PersonalShop::ShopOwnerLeft{}, Resources(), {})
+                    .HasValue());
     EXPECT_EQ(entries.front().text, "la tienda se cerro");
     EXPECT_EQ(entries.front().type, Client::UI::ErrorMessage);
 }

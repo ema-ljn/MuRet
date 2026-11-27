@@ -733,7 +733,8 @@ void ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world, C
     }
 }
 
-Core::Expected<void, std::string> ApplyPartyLeft(const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyPartyLeft(const Protocol::Party::PartyLeft&,
+                                                 const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
     runtime.hud.partyCount = 0;
@@ -896,7 +897,8 @@ void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldSt
     AddShopTitle(world, title.key, index, title.title);
 }
 
-Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources, const GamePacketSender& send)
+Core::Expected<void, std::string> ApplyShopOwnerLeft(const Protocol::PersonalShop::ShopOwnerLeft&,
+                                                     const WorldEntryResources& resources, const GamePacketSender& send)
 {
     WorldState& world = resources.world;
     if (world.Runtime().social.personalShop.mode != ViewingAnotherShop)

@@ -1,13 +1,16 @@
 #include "Session/Route.h"
 
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/SocialEvents.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionContexts.h"
 #include "Session/WorldEntry.h"
 
 #include <cstdint>
+#include <utility>
 
 namespace Client::Session::Detail
 {
@@ -27,5 +30,11 @@ Scenes::ActionSender RoutedPart<const Scenes::ActionSender&>::Of(const Scenes::W
                                                                  App::ServerSession& session)
 {
     return [&session](std::uint8_t direction, std::uint8_t action) { session.SendAction(direction, action); };
+}
+
+Scenes::GamePacketSender RoutedPart<const Scenes::GamePacketSender&>::Of(const Scenes::WorldEntryResources&,
+                                                                         App::ServerSession& session)
+{
+    return [&session](Protocol::Outgoing packet) { session.SendGamePacket(std::move(packet)); };
 }
 } // namespace Client::Session::Detail

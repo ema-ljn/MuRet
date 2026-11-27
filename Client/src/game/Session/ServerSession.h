@@ -425,36 +425,6 @@ private:
 
     // Each row with a handler, and its copy to the ring before it.
     void RegisterTheRows(Protocol::Dispatcher& dispatcher, std::span<const Session::OpcodeRow> rows);
-    // Un paquete de mundo que se lee con `read` y se aplica tal cual; `what` es lo que dice el aviso si no se lee.
-    template <typename Read> void ApplyWorldPacket(const Network::Packet& packet, Read read, std::string_view what);
-    // The trade, the party, the duel (CL9 hito 7) and the personal shops (3F).
-    void OnTradeRequest(const Network::Packet& packet);
-    void OnTradeResponse(const Network::Packet& packet);
-    void OnTradeItemRemoved(const Network::Packet& packet);
-    void OnTradeItemAdded(const Network::Packet& packet);
-    void OnTradeMoney(const Network::Packet& packet);
-    void OnTradeOtherMoney(const Network::Packet& packet);
-    void OnTradeOkButton(const Network::Packet& packet);
-    void OnTradeResult(const Network::Packet& packet);
-    void OnPartyRequest(const Network::Packet& packet);
-    void OnPartyRequestResult(const Network::Packet& packet);
-    void OnPartyList(const Network::Packet& packet);
-    void OnPartyLeave(const Network::Packet& packet);
-    void OnPartyLife(const Network::Packet& packet);
-    void OnDuelStart(const Network::Packet& packet);
-    void OnDuelEnd(const Network::Packet& packet);
-    void OnDuelRequest(const Network::Packet& packet);
-    void OnDuelScore(const Network::Packet& packet);
-    void OnShopTitles(const Network::Packet& packet);
-    void OnPriceResult(const Network::Packet& packet);
-    void OnShopCreated(const Network::Packet& packet);
-    void OnShopClosed(const Network::Packet& packet);
-    void OnShopItemList(const Network::Packet& packet);
-    void OnShopPurchase(const Network::Packet& packet);
-    void OnShopNotice(const Network::Packet& packet);
-    void OnShopTitle(const Network::Packet& packet);
-    void OnShopOwnerLeft(const Network::Packet& packet);
-    void OnShopRefresh(const Network::Packet& packet);
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -487,21 +457,9 @@ private:
     void OnMapServerMove(const Network::Packet& packet);
     // 0x4c1e20 con [0x5767928] distinto de 0: el saludo de un GameServer con el login ya mandado.
     void OnGameHelloAfterLogin(const Network::Packet& packet);
-    void OnItemMove(const Network::Packet& packet);
-    void OnLifeRefill(const Network::Packet& packet);
-    void OnManaRefill(const Network::Packet& packet);
-    void OnItemDelete(const Network::Packet& packet);
-    void OnDurability(const Network::Packet& packet);
-    void OnEquipmentChange(const Network::Packet& packet);
-    void OnItemPut(const Network::Packet& packet);
-    void OnFloorItemsCreate(const Network::Packet& packet);
-    void OnFloorItemsDelete(const Network::Packet& packet);
     void OnPickUpResult(const Network::Packet& packet);
     void OnDropResult(const Network::Packet& packet);
     void OnStatFruit(const Network::Packet& packet);
-    // 04 § Las ventanas de los NPC: el 30 (0x4d1e00) y los demás (31..34, 81..83, 86 y 87).
-    void OnTalkResult(const Network::Packet& packet);
-    void OnNpcWindow(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);

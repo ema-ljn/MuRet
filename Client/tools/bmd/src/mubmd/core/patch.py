@@ -1,10 +1,12 @@
 import copy
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.leaves import outline
 from mubmd.core.pointer import format_pointer, list_index, parse_pointer, resolve
 
 
@@ -76,6 +78,14 @@ def _replaced(document: JsonObject, path: str, value: JsonValue) -> JsonObject:
     return replaced
 
 
+def _zeros_of_two_signs(left: JsonValue, right: JsonValue) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return False
+    if not isinstance(left, int | float) or not isinstance(right, int | float):
+        return False
+    return math.copysign(1.0, left) != math.copysign(1.0, right)
+
+
 def same_json(left: JsonValue, right: JsonValue) -> bool:
     if isinstance(left, bool) or isinstance(right, bool):
         return left is right
@@ -83,7 +93,7 @@ def same_json(left: JsonValue, right: JsonValue) -> bool:
         return left.keys() == right.keys() and all(same_json(left[key], right[key]) for key in left)
     if isinstance(left, list) and isinstance(right, list):
         return len(left) == len(right) and all(map(same_json, left, right))
-    return left == right
+    return left == right and not (left == 0 and _zeros_of_two_signs(left, right))
 
 
 def apply_patch(view: JsonObject, ops: Sequence[PatchOp]) -> JsonObject:
@@ -112,7 +122,7 @@ def _diff(old: JsonValue, new: JsonValue, tokens: list[str | int], out: list[Cha
     elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
         for index, (old_item, new_item) in enumerate(zip(old, new, strict=True)):
             _diff(old_item, new_item, [*tokens, index], out)
-    elif old != new:
+    elif old != new or (old == 0 and _zeros_of_two_signs(old, new)):
         out.append(Change(format_pointer(tokens), old, new))
 
 
@@ -120,3 +130,7 @@ def diff_views(old: JsonValue, new: JsonValue) -> tuple[Change, ...]:
     out: list[Change] = []
     _diff(old, new, [], out)
     return tuple(out)
+
+
+def outlined(change: Change) -> Change:
+    return Change(change.pointer, outline(change.old)[0], outline(change.new)[0])

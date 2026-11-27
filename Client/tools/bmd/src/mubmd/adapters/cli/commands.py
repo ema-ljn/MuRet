@@ -41,7 +41,7 @@ from mubmd.app.workspace import WorkspaceResult, workspace_init
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
 from mubmd.core.json_types import JsonObject
-from mubmd.core.patch import Change, parse_patch
+from mubmd.core.patch import Change, outlined, parse_patch
 
 STORE: Final = LocalFileStore()
 REFERENCE_DATA: Final = Path("Client") / "assets" / "Data"
@@ -179,9 +179,10 @@ def has_terminal() -> bool:
     return sys.stdin.isatty() and sys.stdout.isatty()
 
 
-def edit_outcome(command: str, result: EditResult, *, limit: int | None = None, offset: int = 0) -> Outcome:
-    shown = page(list(result.changes), limit or max(1, len(result.changes)), offset)
-    data = EditData(result.path, result.changed, result.dry_run, shown.items, shown.total, shown.next_offset)
+def edit_outcome(command: str, result: EditResult, *, limit: int = DEFAULT_LIMIT, offset: int = 0) -> Outcome:
+    shown = page(list(result.changes), limit, offset)
+    changes = tuple(map(outlined, shown.items))
+    data = EditData(result.path, result.changed, result.dry_run, changes, shown.total, shown.next_offset)
     return Outcome(command, data, EditData, warnings=result.warnings)
 
 
@@ -287,7 +288,7 @@ def get_command(
 @app.command(
     "set",
     help="Change one value and save the file, verified before it is replaced; the result is what was written. "
-    "A value for a string is taken as is, others as JSON",
+    "A value for a string is taken as is, others as JSON. total counts the changes and changes holds the first 50",
 )
 def set_command(
     file: FileArgument,
@@ -319,7 +320,8 @@ def read_patch(patch: str) -> bytes:
 @app.command(
     "apply",
     help="Apply a JSON Patch, all or none: a list of {op: test or replace, path: <pointer>, value}. A test that "
-    "does not hold stops everything with TEST_FAILED, so test the values you last read before replacing them",
+    "does not hold stops everything with TEST_FAILED, so test the values you last read before replacing them. "
+    "total counts the changes and changes holds the first 50",
 )
 def apply_command(
     file: FileArgument,

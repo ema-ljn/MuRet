@@ -8,7 +8,7 @@ from mubmd.core.catalog import identify
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
 from mubmd.core.json_text import view_text
-from mubmd.core.patch import Change, diff_views
+from mubmd.core.patch import Change, diff_views, outlined
 from mubmd.core.ports import FileStore
 
 
@@ -87,7 +87,7 @@ def diff(
 ) -> DiffResult:
     changes = diff_views(load_view(store, a, encoding=encoding), load_view(store, b, encoding=encoding))
     shown = page(list(changes), limit, offset)
-    return DiffResult(shown.items, shown.total, shown.next_offset)
+    return DiffResult(tuple(map(outlined, shown.items)), shown.total, shown.next_offset)
 
 
 def dump(

@@ -144,25 +144,9 @@ def find(
     return page(matches, limit, offset)
 
 
-def _cut(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
-    if isinstance(value, list):
-        items = [_cut(item, limit) for item in value[:limit]]
-        return [item for item, _ in items], len(value) > limit or any(cut for _, cut in items)
-    if isinstance(value, dict):
-        entries = {key: _cut(item, limit) for key, item in value.items()}
-        return {key: item for key, (item, _) in entries.items()}, any(cut for _, cut in entries.values())
-    return value, False
-
-
-def _item(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
-    outlined, counted = outline(value)
-    shown, cut = _cut(outlined, limit)
-    return shown, counted or cut
-
-
 def _levels(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
     if isinstance(value, list):
-        items = [_item(item, limit) for item in value[:limit]]
+        items = [outline(item) for item in value[:limit]]
         return [item for item, _ in items], len(value) > limit or any(cut for _, cut in items)
     if isinstance(value, dict) and not is_leaf(value):
         members = {key: _levels(item, limit) for key, item in value.items()}

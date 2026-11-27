@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -235,3 +236,19 @@ def test_head_of_a_missing_file_is_not_found(tmp_path: Path) -> None:
     with pytest.raises(MubmdError) as caught:
         LocalFileStore().head(tmp_path / "missing.bmd", 3)
     assert caught.value.code is ErrorCode.FILE_NOT_FOUND
+
+
+def test_a_folder_that_cannot_be_listed_lists_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    listing = Path.iterdir
+
+    def refuse(folder: Path) -> Iterator[Path]:
+        if folder == locked:
+            raise PermissionError(errno.EACCES, "Permission denied", str(folder))
+        return listing(folder)
+
+    monkeypatch.setattr(Path, "iterdir", refuse)
+    store = LocalFileStore()
+    assert store.files_in(locked) == ()
+    assert store.folders_in(locked) == ()

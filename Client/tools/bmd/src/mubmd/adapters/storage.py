@@ -69,6 +69,13 @@ def _back_up_once(path: Path) -> None:
         partial.unlink(missing_ok=True)
 
 
+def _listed(folder: Path) -> list[Path]:
+    try:
+        return sorted(folder.iterdir())
+    except OSError:
+        return []
+
+
 class LocalFileStore:
     def read(self, path: Path) -> bytes:
         if not path.is_file():
@@ -145,11 +152,7 @@ class LocalFileStore:
         return tuple(self._walk(folder))
 
     def files_in(self, folder: Path) -> tuple[Path, ...]:
-        if not folder.is_dir():
-            return ()
-        return tuple(sorted(path for path in folder.iterdir() if path.is_file()))
+        return tuple(path for path in _listed(folder) if path.is_file())
 
     def folders_in(self, folder: Path) -> tuple[Path, ...]:
-        if not folder.is_dir():
-            return ()
-        return tuple(sorted(path for path in folder.iterdir() if path.is_dir()))
+        return tuple(path for path in _listed(folder) if path.is_dir())

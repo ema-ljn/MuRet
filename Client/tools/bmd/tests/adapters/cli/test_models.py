@@ -1,5 +1,7 @@
+import errno
 import json
 import struct
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -235,3 +237,86 @@ def test_the_biggest_model_dumps_and_builds(cli: Cli, reference_data: Path, tmp_
     assert size < 12_000_000
     assert cli("build", dumped, "--output", target).code == 0
     assert target.read_bytes() == source.read_bytes()
+
+
+def test_a_page_keeps_each_items_short_lists_whole(cli: Cli, model_copy: Path) -> None:
+    sword = model_copy / "Item" / "Sword01.bmd"
+    vertices = cli("get", sword, "/meshes/0/vertices", "--limit", "2").json["data"]["value"]
+    triangles = cli("get", sword, "/meshes/0/triangles", "--limit", "1").json["data"]["value"]
+    assert [len(vertex["position"]) for vertex in vertices] == [3, 3]
+    assert triangles[0]["vertices"] == [0, 1, 2, -12851]
+
+
+def test_diff_of_two_models_counts_the_lists_it_does_not_show(cli: Cli, reference_data: Path) -> None:
+    result = cli("diff", reference_data / "Item" / "Sword01.bmd", reference_data / "Item" / "Sword02.bmd")
+    changes = {change["pointer"]: change for change in result.json["data"]["changes"]}
+    assert changes["/meshes/0/vertices"]["old"] == {"count": 42}
+    assert changes["/meshes/0/vertices"]["new"].keys() == {"count"}
+    assert len(result.out.encode()) < 4000
+
+
+def test_replacing_a_list_counts_the_old_one_in_the_changes(cli: Cli, model_copy: Path) -> None:
+    sword = model_copy / "Item" / "Sword01.bmd"
+    result = cli("apply", sword, '[{"op": "replace", "path": "/meshes", "value": []}]', "--dry-run")
+    assert result.json["data"]["changes"] == [{"pointer": "/meshes", "old": {"count": 1}, "new": []}]
+
+
+def test_a_shorter_list_warns_of_the_indices_it_leaves_outside(cli: Cli, model_copy: Path) -> None:
+    sword = model_copy / "Item" / "Sword01.bmd"
+    vertices = cli("get", sword, "/meshes/0/vertices", "--limit", "10").json["data"]["value"]
+    result = cli("apply", sword, json.dumps([{"op": "replace", "path": "/meshes/0/vertices", "value": vertices}]))
+    assert result.code == 0, result.err
+    assert [(warning["code"], warning["pointer"]) for warning in result.json["warnings"]] == [
+        ("OUT_OF_RANGE", "/meshes/0/normals/11/vertex"),
+        ("OUT_OF_RANGE", "/meshes/0/triangles/10/vertices/1"),
+    ]
+
+
+def test_one_more_index_outside_warns_again(cli: Cli, model_copy: Path) -> None:
+    sword = model_copy / "Item" / "Sword01.bmd"
+    first = cli("set", sword, "/meshes/0/vertices/3/bone", "9999")
+    second = cli("set", sword, "/meshes/0/vertices/7/bone", "9999")
+    assert codes(first.json["warnings"]) == ["OUT_OF_RANGE"]
+    (warning,) = second.json["warnings"]
+    assert (warning["code"], warning["pointer"]) == ("OUT_OF_RANGE", "/meshes/0/vertices/3/bone")
+    assert warning["message"].startswith("2 vertices")
+
+
+def test_build_warns_of_the_indices_its_view_leaves_outside(cli: Cli, model_copy: Path, tmp_path: Path) -> None:
+    target = model_copy / "skill" / "WaveForce.bmd"
+    dumped = tmp_path / "wave.json"
+    cli("dump", target, "--output", dumped)
+    view = json.loads(dumped.read_text(encoding="utf-8"))
+    view["bones"] = []
+    dumped.write_text(json.dumps(view), encoding="utf-8")
+    result = cli("build", dumped, "--output", target)
+    assert result.code == 0, result.err
+    assert [(warning["code"], warning["pointer"]) for warning in result.json["warnings"]] == [
+        ("OUT_OF_RANGE", "/meshes/0/vertices/0/bone"),
+        ("OUT_OF_RANGE", "/meshes/0/normals/0/bone"),
+    ]
+
+
+def test_set_writes_a_negative_zero(cli: Cli, model_copy: Path) -> None:
+    sword = model_copy / "Item" / "Sword01.bmd"
+    pointer = "/meshes/0/normals/0/normal/0"
+    result = cli("set", sword, pointer, "--", "-0.0")
+    assert result.json["data"]["changed"] is True
+    assert str(cli("get", sword, pointer).json["data"]["value"]) == "-0.0"
+
+
+def test_a_model_beside_a_folder_that_cannot_be_listed_opens(
+    cli: Cli, model_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    locked = model_copy / "locked"
+    locked.mkdir()
+    listing = Path.iterdir
+
+    def refuse(folder: Path) -> Iterator[Path]:
+        if folder == locked:
+            raise PermissionError(errno.EACCES, "Permission denied", str(folder))
+        return listing(folder)
+
+    monkeypatch.setattr(Path, "iterdir", refuse)
+    result = cli("info", model_copy / "Item" / "waterring.bmd")
+    assert (result.code, result.json["data"]["findings"]) == (0, 1)

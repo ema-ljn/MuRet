@@ -102,7 +102,7 @@ list cut to one item:
 | --- | --- | --- |
 | A mesh's texture | `/meshes/0/texture_name` | a text of up to 31 bytes: see the three rules below |
 | A vertex, a normal | `/meshes/0/vertices/41`, `/meshes/0/normals/0` | its `bone` (a bone's number) and three floats |
-| A triangle | `/meshes/0/triangles/0` | three corners: numbers of its own mesh's `vertices`, `normals` and `uvs` |
+| A triangle | `/meshes/0/triangles/0` | `vertices`, `normals` and `uvs`: four places in its own mesh's lists each, of which the client uses the first three |
 | An action (an animation) | `/actions/0` | `keys`, how many poses it has, and `lock` |
 | A bone | `/bones/3` | `name`, `parent` (a bone's number, from 0, or -1 for a root) and its pose in every action |
 | A bone's pose | `/bones/3/actions/0/rotations/0` | `[x, y, z]`; `positions` beside it, one of each per key of action 0 |
@@ -114,9 +114,9 @@ list cut to one item:
   /bones --limit 200` is every bone with its name and its parent, with `total` the number of bones. Point at a counted
   list to read it: `get FILE /meshes/0/vertices --offset 40 --limit 3`. `truncated` is `true` whenever something was
   counted or cut, so it is `true` for that list of bones too: `next_offset: null` is what says every bone is there.
-- **`--limit` also cuts the short lists inside what it shows**, as in a table, and a position has three numbers: with
-  `--limit 2` it comes back with two, and `truncated` is `true`. Read vertices, normals and keys with `--limit` 3 or
-  more.
+- **A page gives each of its items whole**, but for the lists it counts: a vertex keeps its three numbers and a
+  triangle its four whatever the `--limit`, as a dialog keeps its ten answers. `--limit` cuts the list at the pointer
+  and, when the pointer is one part and not a list, the lists directly inside that part.
 - **Names are texts like a table's**, in cp949: a string, `{"text", "tail"}` or `{"hex"}` (the rule on the three
   shapes of a text holds). Most bone names and some texture names come as `{"text": "Bip01 Pelvis", "tail":
   "cdcd..."}`, because the exporter left bytes after the name's 0: read `text`, and `test` the whole object, as `get`
@@ -153,7 +153,9 @@ list cut to one item:
 | `OUT_OF_RANGE` (error) | a number points outside its list: a vertex's or a normal's `bone`, a normal's `vertex`, a triangle's corner, a mesh's `texture`, a bone's `parent`; or the model has more than 200 bones | fix the number: the client reads outside its buffers |
 
 A warning or an error in `warnings` does not stop the write: the file is written as you asked, so read `warnings`
-after every write. Every write looks for the texture files, so no warning on a new texture name means the model's own
+after every write. They hold every finding the write caused, wherever it is: a shorter list of vertices warns at the
+first normal and the first triangle that now point outside it. Every write looks for the texture files, so no warning
+on a new texture name means the model's own
 folder has its file: there is nothing to check with `validate`, `ls` or a `--dry-run`. The tool does not know which
 folder the client opens a given model's textures from. It is the model's own for nearly all of them, and 42 of the
 game's models name a file that only another folder has (`player/Helper03.bmd` names `Item/unicon.OZJ`): `validate`
@@ -185,9 +187,10 @@ On `set`, a value for a text is taken as written, with no quotes of its own, and
 `-1`, `2.5`, `{"hex": "00"}`. In a patch every value is JSON: `"Veneno"` for a text, `45` for a number.
 
 The result of `set` and `apply` is the file as it is now. Do not read it back, and do not run the command with
-`--dry-run` first: the write was verified, and `warnings` already carries any finding at the changed places. The `new`
-of a change is as good as a `get` for a later `test`, and its `old` is the undo: `set` it back. `--dry-run` is for
-showing someone a batch before it is written.
+`--dry-run` first: the write was verified, and `warnings` already carries every finding the write caused. The `new`
+of a change is as good as a `get` for a later `test`, and its `old` is the undo: `set` it back. `changes` holds the
+first 50 and `total` counts them all, and a list of objects, or one whose length changed, shows in `old` and `new` as
+`{"count": n}`, as in `get`. `--dry-run` is for showing someone a batch before it is written.
 
 `find` looks in every text of a record (a name, a dialog's line and its answers) and never in its numbers. Every list
 pages the same way: 50 items by default, `--limit` and `--offset` to move, `total` for the whole count and
@@ -433,9 +436,9 @@ mubmd roundtrip $WORK
   `replace` it with a plain string, which clears the leftover. `{"hex": "..."}` is a text the file's encoding could
   not read: leave it alone, or `replace` it with a string to make it a text again. Its value is JSON, so on `set` a
   string needs its quotes: `set FILE /texts/N '"new text"'`.
-- **Save tokens.** `--fields`, which only `find` has, keeps the keys you name of each match; `--limit` and `--offset`
-  page, and `validate` on a folder lists only the files with findings. `mubmd --help` with no command is 22 KB: ask
-  for one command's help. Never print a model's dump.
+- **Save tokens.** `--fields`, which `find` and `info` have and `get` does not, keeps the keys you name; `--limit` and
+  `--offset` page, and `validate` on a folder lists only the files with findings. `mubmd --help` with no command is
+  22 KB: ask for one command's help. Never print a model's dump.
 - **Several writers can share a working copy.** They take turns on the folder's `.mubmd.lock`, and the one whose file
   changed under it writes nothing and gets `STALE_FILE`. Leave `.mubmd.lock` and `<name>.orig` (the file as it was
   before its first write) where they are; the `.bak` files are the game's own.
@@ -479,6 +482,6 @@ is not `null`, is the next command to run or the flag to use.
 | Searched "Devias" and found nothing | The data says "Davias": search a fragment |
 | Ran `schema model` to learn a model's pointers | They are in [The models](#the-models) |
 | After renaming a texture, ran `validate`, listed the folder and sent a made-up name with `--dry-run` to learn whether the tool looks for the file | It does, on every write: an empty `warnings` is the answer |
-| Passed `--fields` to `get` | Only `find` has it; `get FILE /bones --limit 200` already leaves out each bone's poses |
+| Passed `--fields` to `get` | `find` and `info` have it, `get` does not; `get FILE /bones --limit 200` already leaves out each bone's poses |
 | Answered a question about one bone with a `find`, two `get`, an `info` and a `dump` | `get FILE /bones --limit 200`: every bone, its name and its parent |
 | Guessed the version of a plain model | 10 |

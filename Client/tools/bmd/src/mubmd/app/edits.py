@@ -2,7 +2,6 @@ import dataclasses
 from collections.abc import Sequence
 from pathlib import Path
 
-from mubmd.app.checks import findings_of
 from mubmd.app.documents import (
     EditResult,
     check_encoding,
@@ -12,7 +11,7 @@ from mubmd.app.documents import (
     parse_value,
     refuse_reference,
     save_view,
-    touches,
+    warnings_of,
 )
 from mubmd.core.catalog import format_by_name, target_of
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -59,8 +58,7 @@ def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> Edi
             return EditResult(output, changed=False, dry_run=dry_run, changes=(), warnings=())
         original = spec.codec.decode(current, target.file)
         changes = diff_views(spec.codec.to_view(original), written)
-    findings = findings_of(store, output, target, document, original)
-    warnings = tuple(finding for finding in findings if not exists or touches(finding, changes))
+    warnings = warnings_of(store, output, target, document, original, changes)
     if not dry_run:
         store.write(output, data, expected_sha256=expected)
     return EditResult(output, changed=True, dry_run=dry_run, changes=changes, warnings=warnings)

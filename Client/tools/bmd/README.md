@@ -130,7 +130,9 @@ model's first mesh. On `set`, a value for a text is taken as written and any oth
 
 `get` shows the value at the pointer and the lists directly inside it, `--limit` items of each, and a list of objects
 further in as `{"count": n}`: `mubmd get <model> '' --limit 3` is a model's header and its first parts, under 1 KB
-even for `player/Player.bmd`, whose dump is 9 MB.
+even for `player/Player.bmd`, whose dump is 9 MB. The `changes` of `diff`, `set`, `apply` and `build` count such
+lists the same way, and `set` and `apply` show their first 50 changes with the `total`. A write's `warnings` hold
+every finding it caused, wherever it is in the file.
 
 ## The JSON view
 
@@ -182,7 +184,7 @@ Every other table is a list of `records`, each an object with the names the rese
 - **A counted table** (move requirements, monster skills) starts with its number of records, so `build` takes a
   list of any length and writes the count.
 
-A model's view follows the file. This is `Item/Sword01.bmd` with each list cut to one item:
+A model's view follows the file. This is its shape, with each list cut to one item:
 
 ```json
 {

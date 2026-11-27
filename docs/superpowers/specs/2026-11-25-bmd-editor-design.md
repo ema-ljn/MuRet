@@ -262,8 +262,10 @@ mubmd tui [<folder|file>]                   the console UI
   (`"truncated": true`), `info` summarizes, and `dump` writes to a file and returns only its path and size. `get`
   shows the value asked for and the lists directly inside it; a list of objects further in prints as `{"count": n}`,
   so `get <model> ''` is the header and the first parts with their counts, and a page of quest records does not spell
-  out each record's entries. A whole model never lands on stdout. `validate` and `roundtrip` over a folder take
-  `--ndjson` to stream one finding per line.
+  out each record's entries. An item of a page keeps its own short lists whole (a vertex's three numbers, a dialog's
+  ten answers). The `changes` of `diff`, `set`, `apply` and `build` count lists the same way, and `set` and `apply`
+  show their first 50 changes with the total. A whole model never lands on stdout. `validate` and `roundtrip` over a
+  folder take `--ndjson` to stream one finding per line.
 
 **Errors.**
 
@@ -300,7 +302,8 @@ mubmd tui [<folder|file>]                   the console UI
   neither the model's folder nor a folder beside it has (`TEXTURE_NOT_FOUND`), one that only a folder beside it has
   (`TEXTURE_ELSEWHERE`), and a new texture name that changes what the client reads from it: the file's kind, the
   mesh's slot or its effect (`TEXTURE_ROLE_CHANGED`). A number that points outside its list is `OUT_OF_RANGE`, an
-  error that is still written.
+  error that is still written. A write's warnings are the findings at the places it changed and every finding the
+  file did not have before it.
 - The reference folder is never written (`REFERENCE_READ_ONLY`, with the `workspace init` suggestion).
 - Writes go only to files the catalog knows (a table by its name, a model to any `.bmd` name), after write-verify,
   with the original kept as `.orig`.

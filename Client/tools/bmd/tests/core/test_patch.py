@@ -112,3 +112,14 @@ def test_a_diff_skips_the_parts_two_views_share() -> None:
 
     shared: Any = [Unequal()]
     assert diff_views({"same": shared, "x": 1}, {"same": shared, "x": 2}) == (Change("/x", 1, 2),)
+
+
+def test_a_zero_of_the_other_sign_is_a_change() -> None:
+    (change,) = diff_views({"x": [0.0, 1.0]}, {"x": [-0.0, 1.0]})
+    assert (change.pointer, str(change.old), str(change.new)) == ("/x/0", "0.0", "-0.0")
+
+
+def test_a_test_tells_a_negative_zero_from_zero() -> None:
+    with pytest.raises(MubmdError) as caught:
+        apply_patch({"x": 0.0}, (PatchOp("test", "/x", -0.0),))
+    assert caught.value.code is ErrorCode.TEST_FAILED

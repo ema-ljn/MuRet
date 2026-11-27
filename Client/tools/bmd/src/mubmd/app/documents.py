@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
-from mubmd.app.checks import findings_of
+from mubmd.app.checks import TextureFiles, findings_of
 from mubmd.core.catalog import Identified, identify
 from mubmd.core.documents.model import MODEL_MAGIC
 from mubmd.core.documents.text_table import is_text_encoding
@@ -139,6 +139,22 @@ def touches(finding: Finding, changes: tuple[Change, ...]) -> bool:
     )
 
 
+def warnings_of(
+    store: FileStore,
+    path: Path,
+    identified: Identified,
+    document: Any,
+    original: Any | None,
+    changes: tuple[Change, ...],
+) -> tuple[Finding, ...]:
+    textures = TextureFiles(store)
+    findings = findings_of(store, path, identified, document, original, textures)
+    known: frozenset[Finding] = frozenset()
+    if original is not None:
+        known = frozenset(findings_of(store, path, identified, original, None, textures))
+    return tuple(finding for finding in findings if touches(finding, changes) or finding not in known)
+
+
 def encode_verified(opened: Identified, view: JsonObject) -> tuple[Any, bytes, JsonObject]:
     codec = opened.format.codec
     document = codec.from_view(view)
@@ -173,8 +189,9 @@ def refuse_reference(store: FileStore, path: Path) -> None:
 
 def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_run: bool) -> EditResult:
     unchanged = EditResult(opened.path, changed=False, dry_run=dry_run, changes=(), warnings=())
-    refuse_header_changes(diff_views(opened.view, view))
-    if view == opened.view:
+    asked = diff_views(opened.view, view)
+    refuse_header_changes(asked)
+    if not asked:
         opened.identified.format.codec.from_view(view)
         return unchanged
     refuse_reference(store, opened.path)
@@ -182,8 +199,7 @@ def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_r
     changes = tuple(change for change in diff_views(opened.view, written) if change.pointer not in HEADER_POINTERS)
     if not changes:
         return unchanged
-    findings = findings_of(store, opened.path, opened.identified, document, opened.document)
-    warnings = tuple(finding for finding in findings if touches(finding, changes))
+    warnings = warnings_of(store, opened.path, opened.identified, document, opened.document, changes)
     if not dry_run:
         store.write(opened.path, data, expected_sha256=opened.sha256)
     return EditResult(opened.path, changed=True, dry_run=dry_run, changes=changes, warnings=warnings)

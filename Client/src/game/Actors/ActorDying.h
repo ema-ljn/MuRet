@@ -23,18 +23,17 @@ struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
 
-// CL9 hito 3, fase 2a: el paso del que se muere (+0x389 distinto de 0), 0x4fb9e0(c, o, b), que el cuerpo de los
-// personajes (0x4fd5f0) llama en 0x4fd722. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Morirse".
-// *Estático*.
+// The step of the dying (+0x389 other than 0), 0x4fb9e0(c, o, b), which the characters' body (0x4fd5f0) calls at
+// 0x4fd722. Contract: Client/docs/research/06-render-escenas-y-ui.md, "Morirse". *Static*.
 namespace Client::Actors
 {
 
 struct ActorDyingContext
 {
     std::int32_t map = 0;
-    // DAT_006d5dc8: las burbujas del mapa 7 son solo de la escena 5.
+    // DAT_006d5dc8: the bubbles of map 7 belong to scene 5 only.
     Scenes::SceneId scene = Scenes::SceneId::Game;
-    // c == [0x743a170]: el héroe se hunde pero no se borra.
+    // c == [0x743a170]: the hero sinks but is not erased.
     bool hero = false;
     Crt::CrtRandom& random;
     World::Particles* particles = nullptr;
@@ -43,22 +42,21 @@ struct ActorDyingContext
     std::function<void(std::int32_t)> soundRequest{};
 };
 
-// 0x4fb9e0: apaga 0x1000, 0x4000 y 0x20 de +0x78; +0x3c8 sube 0,02 por paso (0,05 el 0x172 en el mapa 7 y 0,01 el
-// 0x192 con +0x60 del objeto en 100 o más, ActorState::dword60, que escribe su alta); desde 1, el
-// alpha es 2 − +0x3c8 y, mientras no baje de 0,01, la Z baja 0,4; debajo, el que no es el héroe se borra (+0 en 0 y
-// +0x391, +0x1a1 y +0x1bc en 0; 0x401040 saca sus huesos con nombre y 0x4fb1a0 suelta sus telas). Después, el vuelo
-// del empuje: en Blood Castle (11 a 17) con +0x1a1, 0x4fb2b0; con la skill 0x28 o 0x3b (fuera de los castillos), antes
-// del paso 15, 0x51fd20. Las burbujas 0x607 del mapa 7 en la escena 5 (cuatro, con tres rand() cada una). En Chaos
-// Castle completa 0x51fe10; la skill 0x28, hasta el paso 30, suelta diez 0x5ac/5 (dos rand() cada una: hueso y
-// escala).
+// 0x4fb9e0: turns off 0x1000, 0x4000 and 0x20 of +0x78; +0x3c8 rises 0.02 per step (0.05 for 0x172 on map 7 and 0.01
+// for 0x192 with the object's +0x60 at 100 or more, ActorState::dword60, which its creation writes); from 1, the alpha
+// is 2 − +0x3c8 and, while it does not drop below 0.01, the Z drops 0.4; below that, anyone but the hero is erased
+// (+0 at 0 and +0x391, +0x1a1 and +0x1bc at 0; 0x401040 takes out its named bones and 0x4fb1a0 frees its cloths).
+// Then the push flight: in Blood Castle (11 to 17) with +0x1a1, 0x4fb2b0; with skill 0x28 or 0x3b (outside the
+// castles), before step 15, 0x51fd20. The 0x607 bubbles of map 7 in scene 5 (four, with three rand() each). In Chaos
+// Castle it completes 0x51fe10; skill 0x28, up to step 30, releases ten 0x5ac/5 (two rand() each: bone and scale).
 [[nodiscard]] Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std::size_t slot,
                                                                const ActorDyingContext& context);
 
-// 0x4fb2b0(c, o): el vuelo del que muere en un castillo: (0, +0xd0, 0) girado por +0x1a4 (0x5fc8f0 y 0x5fcbd0) desde
-// +0x1b0, +0xd0 más +0xcc, +0xe4 más +0xd8, +0xd8 menos +0xd4, el ángulo X menos 5 y la Z en +0x1b8 + +0xe4.
+// 0x4fb2b0(c, o): the flight of one who dies in a castle: (0, +0xd0, 0) turned by +0x1a4 (0x5fc8f0 and 0x5fcbd0)
+// from +0x1b0, +0xd0 plus +0xcc, +0xe4 plus +0xd8, +0xd8 minus +0xd4, the X angle minus 5 and the Z at +0x1b8 + +0xe4.
 void FlyFromTheCastle(Kernel::ActorState& actor);
 
-// 0x51fd20(o, o + 0x28): la posición más (+0xcc, +0xd0, +0xd4) girado por los ángulos de +0x28 (los de la cabeza y
+// 0x51fd20(o, o + 0x28): the position plus (+0xcc, +0xd0, +0xd4) turned by the angles of +0x28 (those of the head and
 // +0x30).
 void FlyFromThePush(Kernel::ActorState& actor);
 } // namespace Client::Actors

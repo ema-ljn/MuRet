@@ -27,16 +27,17 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// Los restos del que termina de morir (CL9 hito 3, fase 7): 0x52e810, que llaman 0x4fcb10 (el 0x20a con la acción 0xc3
-// o 0xc4, 0x4fcb9c) y 0x4fcbb0 (los monstruos con la 6, 0x4fcc3c) con +0x38a en 0, que ponen en 1 antes. *Estático*.
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las marcas del suelo" y "Los restos (0x52e810)".
+// The remains of one who finishes dying: 0x52e810, called by 0x4fcb10 (the 0x20a with action 0xc3 or 0xc4,
+// 0x4fcb9c) and 0x4fcbb0 (the monsters with action 6, 0x4fcc3c) with +0x38a at 0, which they set to 1 first.
+// *Static*. Contract: Client/docs/research/06-render-escenas-y-ui.md, "Las marcas del suelo" and "Los restos
+// (0x52e810)".
 namespace Client::Actors
 {
 
-// Lo que 0x52e810 lee y escribe además del personaje: el modelo de su tipo (0x5769ad8 + tipo · 0xe0, su +0x54) con la
-// escala (+0x68) y la posición (+0x6c) del último que las copió en él (Q-C1178, como Q-C412:
-// WorldState::ModelPlacement), la tabla de los efectos con modelo (0x518cf0), la de las marcas del suelo (0x548fe0) y
-// el rand().
+// What 0x52e810 reads and writes besides the character: the model of its type (0x5769ad8 + type · 0xe0, its +0x54)
+// with the scale (+0x68) and position (+0x6c) of the last one that copied them into it (Q-C1178, like Q-C412:
+// WorldState::ModelPlacement), the table of model effects (0x518cf0), that of the ground marks (0x548fe0) and
+// rand().
 struct ActorRemainsContext
 {
     const Models::Skeleton* skeleton = nullptr;
@@ -47,13 +48,13 @@ struct ActorRemainsContext
     Crt::CrtRandom& random;
 };
 
-// 0x52e810(c): con el hueso +0x54 del modelo en −1, nada. El 0x161 (el monstruo de hielo de Devias) apaga su byte vivo
-// y crea diez pedazos de hielo 0xca (0x518cf0, ModelEffects::CreateIceShard, cinco rand() cada uno); el 0x159, el 0x160
-// y el 0x164 no dejan nada. Los demás, dos veces: rand() % 100 − 50 para la x y otro para la y del corrimiento (z en
-// 0), el punto del hueso +0x54 de los huesos propios (+0x120, 0x4ec110 con Translate en 1; sin ellos, la matriz en
-// cero, Q-C318), el lado ((rand() & 3) + 8) · 0,1f, el giro rand() % 360 y la marca de sangre 0x5e3 con la luz +0xf4
-// (0x548fe0, Terrain::AddGroundMark, con el rand() de la vida si hay lugar). Sin el modelo cargado corta en 0x52e834;
-// si AddGroundMark corta, también.
+// 0x52e810(c): with the model's +0x54 bone at −1, nothing. 0x161 (the ice monster of Devias) turns off its live byte
+// and creates ten 0xca ice shards (0x518cf0, ModelEffects::CreateIceShard, five rand() each); 0x159, 0x160 and 0x164
+// leave nothing. The rest, twice: rand() % 100 − 50 for the x and another for the y of the offset (z at 0), the point
+// of the +0x54 bone of the own bones (+0x120, 0x4ec110 with Translate at 1; without them, the matrix at zero,
+// Q-C318), the side ((rand() & 3) + 8) · 0.1f, the turn rand() % 360 and the blood mark 0x5e3 with the +0xf4 light
+// (0x548fe0, Terrain::AddGroundMark, with the life's rand() if there is room). Without the model loaded it stops at
+// 0x52e834; if AddGroundMark stops, too.
 [[nodiscard]] Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor,
                                                                 const ActorRemainsContext& context);
 } // namespace Client::Actors

@@ -17,10 +17,10 @@
 #include <utility>
 #include <vector>
 
-// 0x505aa7..0x505ac1 con el Item.bmd real de la carpeta golden (06, "El conjunto completo de 0x505820"). Las
-// cuatro armaduras con las que [0x743a17c] queda en 1 son, de las 512 del grupo 8, las que tienen nombre y
-// no tienen casco con nombre en el mismo índice del grupo 7: los conjuntos sin casco, que la clase 3 viste
-// sin él (06 lo da como *inferido*). El nombre es el comienzo del registro: sin nombre, su primer byte es 0.
+// 0x505aa7..0x505ac1 with the real Item.bmd of the golden folder (06, "El conjunto completo de 0x505820"). The four
+// armors with which [0x743a17c] stays at 1 are, of the 512 of group 8, those that have a name and have no named helmet
+// at the same index of group 7: the sets without a helmet, which class 3 wears without one (06 gives it as *inferred*).
+// The name is the start of the record: without a name, its first byte is 0.
 namespace
 {
 using Client::Tables::FirstItemModel;
@@ -71,7 +71,7 @@ TEST_F(GoldenFullSetScan, TheArmorsThatKeepTheBonusAreTheNamedOnesWithoutAHelm)
     for (std::uint16_t index = 0; index < Client::Tables::ItemModelsPerGroup; ++index)
     {
         SCOPED_TRACE(index);
-        // La clase 3 con el conjunto +13 de ese índice, sin casco, y su armadura en el registro.
+        // Class 3 with the +13 set of that index, without a helmet, and its armor in the record.
         Client::Actors::ScannedCharacter character{.characterClass = MagicGladiator};
         character.body[0].model = 0xffff;
         for (std::size_t part = 1; part < character.body.size(); ++part)

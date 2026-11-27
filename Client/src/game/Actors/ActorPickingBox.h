@@ -12,7 +12,7 @@ struct ActorState;
 namespace Client::Actors
 {
 
-// Los 48 bytes de +0x13c..+0x168: origen y tres ejes de la caja que publicó el último dibujo.
+// The 48 bytes of +0x13c..+0x168: origin and three axes of the box the last drawing published.
 struct ActorPickingBox
 {
     glm::vec3 origin{};

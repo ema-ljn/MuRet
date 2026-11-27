@@ -7,9 +7,9 @@
 
 #include <cstdint>
 
-// Lo que avanza de un personaje en cada paso de lógica (Client/docs/research/06-render-escenas-y-ui.md,
-// "Cuánto avanza la animación"): el cuerpo con la velocidad de su acción, y la mascota y las alas por
-// tiempo (Q-C20). Lo comparten la selección y el login.
+// How much a character advances on each logic step (Client/docs/research/06-render-escenas-y-ui.md,
+// "Cuánto avanza la animación"): the body at its action's speed, and the pet and the wings by
+// time (Q-C20). The selection and the login share it.
 namespace Client::Actors
 {
 class PlayerActionSpeeds;
@@ -23,20 +23,20 @@ struct CharacterAnimation
 // 0x50ba30: the body action selects the wing speed (+0x308 in the part at +0x2f8).
 [[nodiscard]] float WingKeysPerOriginalFrame(std::uint8_t characterAction);
 
-// Un paso: 0x4ec200 con el cuerpo de Player.bmd a la velocidad de su acción (con la regla de `scene`:
-// la selección decide "terminó" con el frame + 2, Q-C21), y la mascota y las alas un paso de tiempo,
-// las alas a la velocidad que 0x50ba30 les pone en +0x308 por la acción del cuerpo. Lo que la
-// biblioteca no tiene no avanza. Devuelve si la acción del cuerpo terminó: con eso, 0x4fcd00 le pone
-// la de parado otra vez (0x4fcb10 → 0x4f2250).
+// One step: 0x4ec200 with the Player.bmd body at its action's speed (with the rule of `scene`:
+// the selection decides "finished" with the frame + 2, Q-C21), and the pet and the wings one time step,
+// the wings at the speed 0x50ba30 sets in +0x308 by the body's action. What the
+// library does not have does not advance. Returns whether the body's action finished: with that, 0x4fcd00 sets
+// the standing one again (0x4fcb10 → 0x4f2250).
 [[nodiscard]] bool StepCharacterAnimation(CharacterAnimation& animation, const Kernel::CharacterAppearance& appearance,
                                           const Models::IModelLibrary& models, Models::AnimationScene scene);
 
-// Solo las dos animaciones colgantes: el cuerpo ya vino del ActorState que avanzó 0x508f00.
+// Only the two hanging animations: the body already came from the ActorState that 0x508f00 advanced.
 void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::CharacterAppearance& appearance,
                               const Models::IModelLibrary& models);
 
-// El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Models::Interpolated). Sin la
-// acción en Player.bmd, el del paso.
+// The body posed between two steps: `alpha` of one more step (Models::Interpolated). Without the
+// action in Player.bmd, the step's.
 [[nodiscard]] Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
                                                       const Models::IModelLibrary& models, float alpha,
                                                       const PlayerActionSpeeds* speeds = nullptr);

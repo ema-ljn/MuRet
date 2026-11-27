@@ -17,8 +17,8 @@
 #include <cstdint>
 #include <optional>
 
-// Client::Actors::ScanFullSet: 0x505820, cotejado con el PE c32bbd5f (06, "El conjunto completo de
-// 0x505820"). Los valores salen del ASM; ninguno de una corrida.
+// Client::Actors::ScanFullSet: 0x505820, checked against PE c32bbd5f (06, "El conjunto completo de 0x505820"). The
+// values come from the ASM; none from a run.
 namespace
 {
 using Client::Actors::FullSetScan;
@@ -34,10 +34,10 @@ constexpr std::uint8_t MagicGladiator = 3;
 constexpr std::size_t Helm = 0;
 constexpr std::size_t Armor = 1;
 constexpr std::size_t Boots = 4;
-// La armadura del registro propio: el lugar 3 (+0xc44).
+// The own record's armor: slot 3 (+0xc44).
 constexpr std::size_t OwnArmorSlot = 3;
 
-// Del casco a las botas, el índice `index` de los grupos 7 a 11, con los niveles `levels`.
+// From the helmet to the boots, index `index` of groups 7 to 11, with levels `levels`.
 ScannedCharacter Wearing(std::uint8_t characterClass, std::uint16_t index, const std::array<std::uint8_t, 5>& levels)
 {
     ScannedCharacter character{.characterClass = characterClass};
@@ -66,8 +66,8 @@ protected:
     CrtRandom m_random{Seed};
 };
 
-// 0x50582c..0x5058f4: el nivel más chico de las cinco, que van del 9 al 15 con el mismo índice que las
-// botas; [0x743a17c] en 1 sin abrir el registro.
+// 0x50582c..0x5058f4: the lowest level of the five, which go from 9 to 15 with the same index as the boots; [0x743a17c]
+// at 1 without opening the record.
 TEST_F(FullSetScanTest, AFullSetLeavesItsLowestLevel)
 {
     const FullSetScan scan = Scan(Wearing(1, 5, {12, 9, 15, 10, 11}));
@@ -77,23 +77,23 @@ TEST_F(FullSetScanTest, AFullSetLeavesItsLowestLevel)
     EXPECT_EQ(m_accesses, 0);
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 
-    // Con los cinco iguales, ese.
+    // With all five equal, that one.
     EXPECT_EQ(Scan(Wearing(1, 5, {14, 14, 14, 14, 14})).globals.dword743a178, 14);
 }
 
-// 0x50582c..0x505846: todas las clases miran el casco salvo las de & 7 en 3, que empiezan por la armadura.
+// 0x50582c..0x505846: every class looks at the helmet except those with & 7 at 3, which start with the armor.
 TEST_F(FullSetScanTest, OnlyClassThreeSkipsTheHelm)
 {
     for (std::uint8_t characterClass = 0; characterClass < 16; ++characterClass)
     {
         SCOPED_TRACE(int{characterClass});
         const bool skipsTheHelm = (characterClass & 7) == MagicGladiator;
-        // El casco del 9: con él, el más chico es 9; sin él, 13.
+        // The level 9 helmet: with it, the lowest is 9; without it, 13.
         const FullSetScan low = Scan(Wearing(characterClass, 5, {9, 13, 13, 13, 13}));
         EXPECT_TRUE(low.complete);
         EXPECT_EQ(low.globals.dword743a178, skipsTheHelm ? 13 : 9);
 
-        // Sin casco, o con uno del 8 o de otro índice, solo la 3 tiene el conjunto.
+        // Without a helmet, or with a level 8 one or one of another index, only class 3 has the set.
         for (const std::uint16_t helm : {std::uint16_t{0xffff}, ItemModel(7, 6)})
         {
             ScannedCharacter character = WearingPlus13(characterClass, 5);
@@ -106,7 +106,7 @@ TEST_F(FullSetScanTest, OnlyClassThreeSkipsTheHelm)
     }
 }
 
-// 0x50585f: una parte en 0xffff corta el primer lazo, antes de mirar los niveles: [0x743a178] en 0.
+// 0x50585f: a part at 0xffff ends the first loop, before looking at the levels: [0x743a178] at 0.
 TEST_F(FullSetScanTest, AnEmptyPartIsNoSet)
 {
     for (std::size_t part = Armor; part <= Boots; ++part)
@@ -126,8 +126,8 @@ TEST_F(FullSetScanTest, AnEmptyPartIsNoSet)
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
 
-// 0x5058ab..0x5058b4: el nivel es el byte & 0xf, y con signo menor que 9 corta. Lo que estaba de más
-// arriba no cuenta: 0x19 es un 9 y 0xf8 un 8.
+// 0x5058ab..0x5058b4: the level is the byte & 0xf, and below 9, signed, it stops. The higher bits do not count: 0x19 is
+// a 9 and 0xf8 an 8.
 TEST_F(FullSetScanTest, ALevelBelowNineIsNoSetAndOnlyTheLowNibbleCounts)
 {
     for (std::size_t part = 0; part <= Boots; ++part)
@@ -147,9 +147,9 @@ TEST_F(FullSetScanTest, ALevelBelowNineIsNoSetAndOnlyTheLowNibbleCounts)
     EXPECT_FALSE(Scan(character).complete);
 }
 
-// 0x505871..0x505893 y 0x5058b6..0x5058ce: el índice es (modelo con signo − 0x212) con el resto con signo de 512. El
-// grupo no importa; uno de otro índice corta. Con modelos de menos de 0x212 el resto es negativo: 0x10 y 0x210 dan −2
-// los dos, y 0x410 da 510, que no es −2 aunque esté 1.024 más arriba.
+// 0x505871..0x505893 and 0x5058b6..0x5058ce: the index is (signed model − 0x212) with the signed remainder of 512. The
+// group does not matter; one of another index stops. With models below 0x212 the remainder is negative: 0x10 and 0x210
+// both give −2, and 0x410 gives 510, which is not −2 even though it is 1,024 higher.
 TEST_F(FullSetScanTest, TheIndexIsTheSignedRemainderOf512)
 {
     for (std::size_t part = 0; part < Boots; ++part)
@@ -158,7 +158,7 @@ TEST_F(FullSetScanTest, TheIndexIsTheSignedRemainderOf512)
         ScannedCharacter character = WearingPlus13(0, 5);
         character.body[part].model = ItemModel(7, 6);
         EXPECT_FALSE(Scan(character).complete);
-        // Cualquier grupo con el mismo índice.
+        // Any group with the same index.
         character.body[part].model = ItemModel(13, 5);
         EXPECT_TRUE(Scan(character).complete);
     }
@@ -173,9 +173,9 @@ TEST_F(FullSetScanTest, TheIndexIsTheSignedRemainderOf512)
     EXPECT_FALSE(Scan(low).complete);
 }
 
-// 0x505902..0x505ba3: con la clase 3 y el conjunto abre el registro propio, mira su armadura (+0xc44) y lo
-// cierra: [0x743a17c] queda en 1 solo con 0x100f, 0x1014, 0x1017 o 0x1020. El cierre que deja la cuenta
-// en 0 saca 3.848 rand().
+// 0x505902..0x505ba3: with class 3 and the set it opens the own record, looks at its armor (+0xc44) and closes it:
+// [0x743a17c] stays at 1 only with 0x100f, 0x1014, 0x1017 or 0x1020. The close that leaves the count at 0 draws 3,848
+// rand().
 TEST_F(FullSetScanTest, TheMagicGladiatorKeepsTheBonusOnlyWithFourArmors)
 {
     for (const std::uint16_t armor :
@@ -186,7 +186,7 @@ TEST_F(FullSetScanTest, TheMagicGladiatorKeepsTheBonusOnlyWithFourArmors)
         m_random = CrtRandom(Seed);
         m_own.equipment[OwnArmorSlot].id = armor;
         const bool keeps = armor == 0x100f || armor == 0x1014 || armor == 0x1017 || armor == 0x1020;
-        // Lo que lleva puesto no importa: solo el registro.
+        // What it wears does not matter: only the record.
         const FullSetScan scan = Scan(WearingPlus13(MagicGladiator, 9));
         EXPECT_TRUE(scan.complete);
         EXPECT_EQ(scan.globals.dword743a178, 13);
@@ -194,13 +194,13 @@ TEST_F(FullSetScanTest, TheMagicGladiatorKeepsTheBonusOnlyWithFourArmors)
         EXPECT_EQ(m_accesses, 0);
         EXPECT_EQ(m_random.State(), AfterDraws(Seed, OwnRecordCloseRandoms).State());
     }
-    // La clase 11 es una 3.
+    // Class 11 is a 3.
     m_own.equipment[OwnArmorSlot].id = 0x1005;
     EXPECT_EQ(Scan(WearingPlus13(MagicGladiator + 8, 9)).globals.byte743a17c, 0);
 }
 
-// Sin el conjunto, o con otra clase, no abre el registro: [0x743a17c] en 1 y ningún rand(). Con el registro
-// ya abierto, el cierre no lo deja en 0 y tampoco saca.
+// Without the set, or with another class, it does not open the record: [0x743a17c] at 1 and no rand(). With the record
+// already open, the close does not leave it at 0 and draws nothing either.
 TEST_F(FullSetScanTest, TheRecordOpensOnlyForAFullSetOfClassThree)
 {
     m_own.equipment[OwnArmorSlot].id = 0x1005;
@@ -216,7 +216,7 @@ TEST_F(FullSetScanTest, TheRecordOpensOnlyForAFullSetOfClassThree)
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
 
-// Lo que lee de un personaje: la clase y el modelo y el nivel de +0x218 a +0x298, de a 0x20.
+// What it reads from a character: the class, and the model and level from +0x218 to +0x298, every 0x20.
 TEST(FullSetScanCharacterTest, ItReadsTheClassAndTheFiveBodyParts)
 {
     Client::Kernel::ActorState actor = Client::Tests::UnarmedPlayer(0x23);
@@ -245,9 +245,9 @@ TEST(FullSetScanCharacterTest, ItReadsTheClassAndTheFiveBodyParts)
     }
 }
 
-// 0x50c904..0x50c926 una vez por frame del original: deja lo del último en WorldRuntime::fullSetScan, aunque
-// MuRet no supiera qué había, y la clase 3 con el conjunto abre y cierra el registro de WorldState en cada
-// uno, y devuelve lo del último. Sin frames, devuelve lo mismo sin gastar ni publicar nada.
+// 0x50c904..0x50c926 once per frame of the original: leaves the last one's result in WorldRuntime::fullSetScan, even if
+// MuRet did not know what was there, and class 3 with the set opens and closes WorldState's record in each one, and
+// returns the last one's result. Without frames, it returns the same without drawing or publishing anything.
 TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
 {
     Client::Kernel::WorldState world;
@@ -272,7 +272,7 @@ TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(random.State(), AfterDraws(Seed, 2 * OwnRecordCloseRandoms).State());
 
-    // El que viene después pisa los dos.
+    // The next one overwrites both.
     EXPECT_FALSE(Client::Actors::ScanTheDrawnCharacter(world, Wearing(0, 9, {13, 13, 8, 13, 13}), random, 1).complete);
     EXPECT_EQ(world.Runtime().fullSetScan->dword743a178, 0);
     EXPECT_EQ(world.Runtime().fullSetScan->byte743a17c, 1);

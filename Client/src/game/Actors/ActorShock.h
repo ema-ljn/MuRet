@@ -17,7 +17,7 @@ struct WorldEntryResources;
 
 namespace Client::Actors
 {
-// 4e9cd0: acción de golpe del Fenrir según las dos manos, sin sonido ni RNG.
+// 0x4e9cd0: Fenrir's hit action by both hands, without sound or RNG.
 [[nodiscard]] std::uint8_t FenrirHitActionOf(const Kernel::ActorState& actor);
 [[nodiscard]] Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::uint16_t damage,
                                                               const Scenes::WorldEntryResources& resources);

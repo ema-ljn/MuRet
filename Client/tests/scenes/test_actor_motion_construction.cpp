@@ -55,7 +55,7 @@ TEST(ActorMotionConstructionTest, ResetsWrittenFieldsAndRetainsUnwrittenMotionHi
     EXPECT_EQ(actor.damage, 123);
     EXPECT_EQ(actor.byte369, 0);
     EXPECT_EQ(actor.byte370, 0);
-    // 0x511ccf y 0x511cc8 (CL9 hito 12): la cuenta del B8 en 0 y la habilidad guardada en 0xff.
+    // 0x511ccf and 0x511cc8: the B8's count at 0 and the stored skill at 0xff.
     EXPECT_EQ(actor.byte372, 0);
     EXPECT_EQ(actor.byte373, 0xff);
     EXPECT_EQ(actor.byte374, 0);

@@ -53,7 +53,7 @@ protected:
             .terrain = terrain, .map = map, .scene = Client::Terrain::CullingScene::Game, .fixedHeight = FixedHeight};
     }
 
-    // La primera celda de Lorencia con el bit de la zona segura como `safe`.
+    // The first Lorencia cell with the safe zone bit as `safe`.
     [[nodiscard]] std::pair<std::uint8_t, std::uint8_t> FirstCell(bool safe) const
     {
         for (std::size_t cell = 0; cell < Client::Data::Terrain::TerrainCellCount; ++cell)
@@ -78,7 +78,7 @@ protected:
     ClothWorld cloth{.random = CrtRandom(Seed)};
 };
 
-// La celda del cable (133, 127): el centro en (13.350, 12.750), el ángulo en +0x24 y la Z del terreno.
+// The cable's cell (133, 127): the center at x = 13,350 and y = 12,750, the angle at +0x24 and the terrain's Z.
 TEST_F(ActorConstructionTest, PutsThePlayerInTheCentreOfItsCell)
 {
     ActorState actor;
@@ -98,8 +98,8 @@ TEST_F(ActorConstructionTest, PutsThePlayerInTheCentreOfItsCell)
     EXPECT_EQ(actor.revision, 1u);
 }
 
-// Siete accesos de la tabla de protección, cada uno con sus 4 rand() al cerrar desde cero; el del
-// contador de pasos no gasta si la tela lo tiene abierto.
+// Seven accesses of the protection table, each with its 4 rand() when closing from zero; the step counter's draws
+// nothing if the cloth has it open.
 TEST_F(ActorConstructionTest, SpendsTwentyEightRandomsFromZero)
 {
     ActorState actor;
@@ -137,8 +137,8 @@ TEST_F(ActorConstructionTest, NewFacesKeepTheirClassAndHeadButStartAtActionZero)
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 28).State());
 }
 
-// El word318 de antes en 0x1c15 suma 30 (90 en los mapas 8 y 10) fuera de la zona segura y con un
-// mundo; después la mascota queda sin ítem.
+// The earlier word318 at 0x1c15 adds 30 (90 on maps 8 and 10) outside the safe zone and with a world; then the pet is
+// left without an item.
 TEST_F(ActorConstructionTest, TheOld1c15AddsThePetOffsetOutsideTheSafeZone)
 {
     const auto [x, y] = FirstCell(false);
@@ -161,8 +161,8 @@ TEST_F(ActorConstructionTest, TheOld1c15AddsThePetOffsetOutsideTheSafeZone)
     EXPECT_EQ(safe.safeZone, 1);
 }
 
-// El estado de partida que lee 0x512a30 después: el equipo sin ítem, las acciones en 1, +0x3e3 en 0 y
-// +0x358 en 0 (0x511c99).
+// The starting state 0x512a30 reads afterwards: the equipment without items, the actions at 1, +0x3e3 at 0 and +0x358
+// at 0 (0x511c99).
 TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
@@ -182,8 +182,7 @@ TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
     EXPECT_EQ(actor.hands[0].level, 0);
     EXPECT_EQ(actor.hands[0].flags1b, 0);
     EXPECT_EQ(actor.hands[0].flags1c, 2);
-    // 0x5126b2..0x5126d5: las manos de un 0x20a cuelgan de los huesos 33 y 42; lo que cuelga sigue con la
-    // animación que tenía.
+    // 0x5126b2..0x5126d5: a 0x20a's hands hang from bones 33 and 42; what hangs keeps the animation it had.
     EXPECT_EQ(actor.hands[0].bone, 0x21);
     EXPECT_EQ(actor.hands[1].bone, 0x2a);
     EXPECT_EQ(actor.wings.animation.frame, 3.5f);
@@ -207,9 +206,9 @@ TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
     EXPECT_EQ(actor.word376, 0xffff);
 }
 
-// Lo que lee el paso de los personajes (0x508f00): sin verse (+0x16c, 0x511bd8) y sin morirse (+0x389,
-// 0x511c05), aunque el lugar los tuviera de antes. Y lo que lee 0x4e9980 desde su cuerpo (0x4fd5f0): el alpha de a
-// 0,05 (+0x16d, 0x511bdf) y la luz del blendMesh en 1,0 (+0x68, 0x512499).
+// What the characters' step reads (0x508f00): not seen (+0x16c, 0x511bd8) and not dying (+0x389, 0x511c05), even if the
+// slot had them from before. And what 0x4e9980 reads from its body (0x4fd5f0): the alpha in steps of 0.05 (+0x16d,
+// 0x511bdf) and the blendMesh light at 1.0 (+0x68, 0x512499).
 TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
@@ -226,8 +225,8 @@ TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
     EXPECT_EQ(actor.blendMeshLight, 1.0f);
 }
 
-// 0x511872: la capa de +0x364 queda en 0 sin 0x414340, así que +0x360 sigue en el 5 de un GM anterior y el
-// próximo dibujo vuelve a crearla (Q-C301).
+// 0x511872: the layer at +0x364 is left at 0 without 0x414340, so +0x360 stays at the 5 of an earlier GM and the next
+// draw creates it again (Q-C301).
 TEST_F(ActorConstructionTest, DropsTheLayerButKeepsItsKind)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
@@ -240,8 +239,8 @@ TEST_F(ActorConstructionTest, DropsTheLayerButKeepsItsKind)
     EXPECT_EQ(actor.byte360, 5);
 }
 
-// 0x5123c4..0x5123ff: suelta los huesos propios del último dibujo (+0x120) y pide otros sin iniciar; MuRet los
-// deja vacíos hasta el próximo dibujo (Q-C318).
+// 0x5123c4..0x5123ff: releases the own bones of the last draw (+0x120) and asks for others without initializing them;
+// MuRet leaves them empty until the next draw (Q-C318).
 TEST_F(ActorConstructionTest, ReleasesTheBonesOfTheLastDraw)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
@@ -252,7 +251,7 @@ TEST_F(ActorConstructionTest, ReleasesTheBonesOfTheLastDraw)
     EXPECT_TRUE(actor.bodyPose.empty());
 }
 
-// Otro tipo (CL9 hito 2): la acción 0, la clase en 0, la caja de la tabla de 0x512700 y los huesos de 0x512824.
+// Another type: action 0, the class at 0, the box from the table at 0x512700 and the bones from 0x512824.
 TEST_F(ActorConstructionTest, MonstersTakeTheirBoxAndHandBonesFromTheType)
 {
     ActorState actor;
@@ -277,7 +276,7 @@ TEST_F(ActorConstructionTest, MonstersTakeTheirBoxAndHandBonesFromTheType)
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 28).State());
 }
 
-// 0x51257f: el 0x17b solo escribe la mano derecha; la izquierda queda la del uso anterior.
+// 0x51257f: 0x17b only writes the right hand; the left one stays as the earlier use left it.
 TEST_F(ActorConstructionTest, SomeTypesLeaveTheLeftHandBone)
 {
     ActorState actor;
@@ -289,7 +288,8 @@ TEST_F(ActorConstructionTest, SomeTypesLeaveTheLeftHandBone)
     EXPECT_EQ(actor.hands[1].bone, 0x77u);
 }
 
-// 0x5126b2: 0x43a250 pone los huesos del 0x195; 0x42d7f0 la caja del 0x19b (sin huesos) y la del 0x1f8 (con 33 y 42).
+// 0x5126b2: 0x43a250 sets the bones of 0x195; 0x42d7f0 the box of 0x19b (without bones) and that of 0x1f8 (with 33 and
+// 42).
 TEST_F(ActorConstructionTest, TheDefaultCaseAsksTheEventTables)
 {
     ActorState first;

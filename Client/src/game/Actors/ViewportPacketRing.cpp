@@ -10,7 +10,7 @@ namespace Client::Actors
 void StoreViewportPacket(ViewportPacketRing& ring, std::span<const std::byte> packet)
 {
     constexpr std::int8_t LastSlot = 9;
-    // 0x4e3736..0x4e3773: el JLE es con signo.
+    // 0x4e3736..0x4e3773: the JLE is signed.
     if (ring.count > LastSlot)
     {
         ring.count = LastSlot;
@@ -22,7 +22,7 @@ void StoreViewportPacket(ViewportPacketRing& ring, std::span<const std::byte> pa
             ring.sizes[slot - 1] = ring.sizes[slot];
         }
     }
-    // 0x4e3778..0x4e377e: JG con signo contra 0x100.
+    // 0x4e3778..0x4e377e: a signed JG against 0x100.
     const auto size = static_cast<std::int32_t>(packet.size());
     if (size > static_cast<std::int32_t>(ViewportPacketSlotSize))
         return;

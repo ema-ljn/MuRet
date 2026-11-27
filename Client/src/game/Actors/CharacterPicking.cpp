@@ -36,7 +36,7 @@ bool Visible(const Kernel::ActorState& actor)
     return actor.alive && actor.seen && actor.alpha > 0.0f;
 }
 
-// 0x59e737..0x59e7e6: +0xe8 en 1 antes de la tabla de color por el WORD de +0x1d6 y el PK.
+// 0x59e737..0x59e7e6: +0xe8 at 1 before the color table by the WORD of +0x1d6 and the PK.
 void Tint(Kernel::ActorState& actor)
 {
     actor.byteE8 = 1;
@@ -69,9 +69,9 @@ void Tint(Kernel::ActorState& actor)
         actor.light = glm::vec3(Dark);
 }
 
-// 0x59e9ec..0x59ea6d: en Lorencia la capa 4 y en Devias la 3 (los techos y los pisos de arriba) solo con la capa de
-// la celda del héroe. La celda sale de la posición truncada (0x69fd3c) y dividida por 100, Y · 256 + X. Una celda
-// fuera de la capa, que el original leería de la memoria de al lado, MuRet la toma como de otra capa.
+// 0x59e9ec..0x59ea6d: in Lorencia layer 4 and in Devias layer 3 (the roofs and upper floors) only with the layer of
+// the hero's cell. The cell comes from the position truncated (0x69fd3c) and divided by 100, Y · 256 + X. A cell
+// outside the layer, which the original would read from the memory next to it, MuRet takes as another layer's.
 bool OnTheHeroLayer(const Kernel::ActorState& actor, const Kernel::WorldState& world)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
@@ -95,8 +95,8 @@ bool OnTheHeroLayer(const Kernel::ActorState& actor, const Kernel::WorldState& w
     return layer != upper || static_cast<std::int32_t>(layer) == runtime.heroCellLayer;
 }
 
-// 0x59e9ad..0x59e9dc: (dz² + dy²) + dx² en x87 con el PC53 del startup de main.exe (0x6a4b73..0x6adf2c); MuRet
-// conserva el orden de sumas y double, sin suponer PC64.
+// 0x59e9ad..0x59e9dc: (dz² + dy²) + dx² on the x87 with the PC53 of main.exe's startup (0x6a4b73..0x6adf2c); MuRet
+// keeps the order of the sums and the double, without assuming PC64.
 double DistanceSquared(const glm::vec3& position, const glm::vec3& distanceOrigin)
 {
     const double dx = static_cast<double>(position.x) - static_cast<double>(distanceOrigin.x);
@@ -119,7 +119,7 @@ std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask, cons
         if (Matches(actor, mask) && Visible(actor))
             Tint(actor);
     }
-    // 0x59e7fc..0x59ea95. 0x5368d4a5: el mejor de arranque, ~1e12.
+    // 0x59e7fc..0x59ea95. 0x5368d4a5: the starting best, ~1e12.
     std::int32_t picked = NoPick;
     float best = std::bit_cast<float>(0x5368d4a5u);
     constexpr std::uint32_t Hidden = 0x10000000;
@@ -129,10 +129,10 @@ std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask, cons
         const Kernel::ActorState& actor = actors[slot];
         if (!Visible(actor) || actor.dying != 0 || (actor.flags7c & Hidden) == Hidden)
             continue;
-        // 0x59e86a..0x59e948: un jugador busca su lugar en la party antes de las demás condiciones (CL9 hito 7).
+        // 0x59e86a..0x59e948: a player looks for its place in the party before the other conditions.
         if (actor.byte88 == PlayerKind)
             Scenes::MatchThePartyMembers(world, slot);
-        // Sin segmento (antes del primer dibujo) no hay caja que tocar.
+        // Without a segment (before the first drawing) there is no box to touch.
         if (!ray)
             continue;
         if (slot == hero || actor.byte42c == 0 || !Matches(actor, mask))

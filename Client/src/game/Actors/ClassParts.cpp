@@ -11,20 +11,20 @@
 #include <cstdint>
 #include <string>
 
-// 0x513100, cotejado con el PE c32bbd5f (89 instrucciones, 353 bytes).
+// 0x513100, checked against PE c32bbd5f (89 instructions, 353 bytes).
 namespace Client::Actors
 {
 namespace
 {
-// 0x51311c..0x51312e: 0x4f2250 sólo con la acción fuera de las dos ventanas.
+// 0x51311c..0x51312e: 0x4f2250 only with the action outside both windows.
 constexpr std::uint8_t FirstBusyAction = 0x22;
 constexpr std::uint8_t LastBusyAction = 0x97;
 constexpr std::uint8_t FirstEmoteAction = 0xc5;
 constexpr std::uint8_t LastEmoteAction = 0xcc;
 
-// 0x513146..0x51324d: la parte que se compara con el modelo base de la de cada vuelta. La del casco es la suya
-// (+0x218); las otras, la siguiente: +0x258 con la armadura, +0x278 con los pantalones, +0x298 con los guantes y la
-// mano derecha (+0x2b8) con las botas (Q-C1024).
+// 0x513146..0x51324d: the part compared with the base model of each round's part. The helmet's is its own (+0x218);
+// the others, the next one: +0x258 with the armor, +0x278 with the pants, +0x298 with the gloves and the right hand
+// (+0x2b8) with the boots (Q-C1024).
 const Kernel::ActorItemPart& ComparedPart(const Kernel::ActorState& actor, std::size_t part)
 {
     if (part == 0)
@@ -52,9 +52,9 @@ Core::Expected<ActorStopResult, std::string> ApplyTheClassParts(Kernel::ActorSta
             return Core::Unexpected(stopped.Error());
         result = stopped.Value();
     }
-    // 0x513140..0x51324d: la clase entera (+0x1d4) se lee una vez, después de 0x4f2250. Cada vuelta compara el word con
-    // signo (MOVSX) con base + (clase & 7) y escribe base + (clase >> 3) · 5 + (clase & 7), con el nivel (+2) y los
-    // bytes +3 y +4 en 0. Las comparaciones leen la parte siguiente antes de que la vuelta siguiente la escriba.
+    // 0x513140..0x51324d: the whole class (+0x1d4) is read once, after 0x4f2250. Each round compares the word, signed
+    // (MOVSX), with base + (class & 7) and writes base + (class >> 3) · 5 + (class & 7), with the level (+2) and
+    // bytes +3 and +4 at 0. The comparisons read the next part before the next round writes it.
     const std::uint8_t characterClass = actor.characterClass;
     const auto baseClass = static_cast<std::uint8_t>(characterClass & 7u);
     for (std::size_t part = 0; part < actor.body.size(); ++part)

@@ -20,8 +20,8 @@
 #include <memory>
 #include <string>
 
-// Actors::LeaveTheRemains, 0x52e810 (CL9 hito 3, fase 7): el hueso +0x54 del modelo del tipo, los diez pedazos de
-// hielo del 0x161, los tres que no dejan nada y las dos marcas de sangre 0x5e3 de los demás, con sus rand() en orden.
+// Actors::LeaveTheRemains, 0x52e810: the +0x54 bone of the type's model, the ten ice shards of 0x161, the three that
+// leave nothing and the two 0x5e3 blood marks of the others, with their rand() in order.
 namespace
 {
 using Client::Actors::ActorRemainsContext;
@@ -31,12 +31,12 @@ using Client::Kernel::ActorState;
 using Client::Math::BoneTransform;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
-// Dos marcas: x, y, el lado, el giro y la vida de 0x548fe0 con lugar.
+// Two marks: x, y, the side, the turn and the life from 0x548fe0 with a free slot.
 constexpr int BloodDraws = 2 * 5;
 constexpr std::int32_t BloodMark = 0x5e3;
 constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 
-// Lo que 0x52e810 lee y escribe además del personaje, en el heap (las 200 entradas de 0x518cf0 y las 100 marcas).
+// What 0x52e810 reads and writes besides the character, on the heap (the 200 entries of 0x518cf0 and the 100 marks).
 struct Remains
 {
     Client::Models::Skeleton skeleton;
@@ -82,7 +82,7 @@ ActorState Dead(std::uint16_t type)
     return actor;
 }
 
-// Lo que 0x52e810 saca para una marca, en su orden, y la vida de 0x548fe0.
+// What 0x52e810 draws for a mark, in its order, and the life from 0x548fe0.
 struct DrawnMark
 {
     int x;
@@ -103,7 +103,7 @@ DrawnMark DrawMark(CrtRandom& draws)
     return drawn;
 }
 
-// 0x52e834..0x52e83b: con el +0x54 del modelo en −1 no hace nada, ni con el 0x161, y no saca rand().
+// 0x52e834..0x52e83b: with the model's +0x54 at −1 it does nothing, not even with 0x161, and draws no rand().
 TEST(ActorRemainsTest, AModelWithoutTheHeadBoneLeavesNothing)
 {
     for (const std::uint16_t type : {std::uint16_t{0x161}, std::uint16_t{0x153}, std::uint16_t{0x20a}})
@@ -119,8 +119,8 @@ TEST(ActorRemainsTest, AModelWithoutTheHeadBoneLeavesNothing)
     }
 }
 
-// 0x52e841..0x52e889: el monstruo de hielo de Devias (0x161, Monster16) apaga su byte vivo y suelta diez pedazos 0xca
-// en su posición, con sus ángulos y su luz, cinco rand() cada uno (ModelEffects::CreateIceShard); sin marcas.
+// 0x52e841..0x52e889: Devias's ice monster (0x161, Monster16) turns off its live byte and drops ten 0xca shards at its
+// position, with its angles and its light, five rand() each (ModelEffects::CreateIceShard); no marks.
 TEST(ActorRemainsTest, TheIceMonsterOfDeviasBreaksIntoTenIceShards)
 {
     auto remains = std::make_unique<Remains>();
@@ -153,7 +153,7 @@ TEST(ActorRemainsTest, TheIceMonsterOfDeviasBreaksIntoTenIceShards)
     }
 }
 
-// 0x52e88a..0x52e8a5: el 0x159, el 0x160 y el 0x164 no dejan nada, sin rand().
+// 0x52e88a..0x52e8a5: 0x159, 0x160 and 0x164 leave nothing, without rand().
 TEST(ActorRemainsTest, ThreeMonstersLeaveNothing)
 {
     for (const std::uint16_t type : {std::uint16_t{0x159}, std::uint16_t{0x160}, std::uint16_t{0x164}})
@@ -170,10 +170,9 @@ TEST(ActorRemainsTest, ThreeMonstersLeaveNothing)
     }
 }
 
-// 0x52e8ab..0x52e975: dos veces, el corrimiento (rand() % 100 − 50, rand() % 100 − 50, 0) desde el hueso +0x54 de los
-// huesos propios, por la escala y más la posición del modelo compartido (0x4ec110), el lado ((rand() & 3) + 8) · 0,1f,
-// el giro rand() % 360 y la marca 0x5e3 con la luz del personaje; 0x548fe0 le sortea la vida. El jugador de Lorencia
-// con su hueso 20 posado.
+// 0x52e8ab..0x52e975: twice, the offset (rand() % 100 − 50, rand() % 100 − 50, 0) from the +0x54 bone of the own bones,
+// times the scale and plus the shared model's position (0x4ec110), the side ((rand() & 3) + 8) · 0.1f, the turn rand()
+// % 360 and mark 0x5e3 with the character's light; 0x548fe0 draws its life. The Lorencia player with its bone 20 posed.
 TEST(ActorRemainsTest, ThePlayerLeavesTwoBloodMarksAroundItsHeadBone)
 {
     auto remains = std::make_unique<Remains>();
@@ -206,8 +205,8 @@ TEST(ActorRemainsTest, ThePlayerLeavesTwoBloodMarksAroundItsHeadBone)
     EXPECT_EQ(draws.State(), Client::Tests::AfterDraws(Seed, BloodDraws).State());
 }
 
-// Un monstruo de Devias sin huesos propios (su dibujo no está portado, o antes del primero): la matriz en cero
-// (Q-C318), y las dos marcas caen en la posición del modelo compartido, con los mismos rand().
+// A Devias monster without own bones (its drawing is not ported, or before the first one): the matrix at zero (Q-C318),
+// and the two marks fall at the shared model's position, with the same rand().
 TEST(ActorRemainsTest, AMonsterWithoutItsBonesBleedsOnItsModelPlacement)
 {
     auto remains = std::make_unique<Remains>();
@@ -227,8 +226,8 @@ TEST(ActorRemainsTest, AMonsterWithoutItsBonesBleedsOnItsModelPlacement)
     EXPECT_EQ(remains->random.State(), draws.State());
 }
 
-// Con la tabla de las marcas llena, 0x548fe0 apaga la de menos vida sin poner la nueva ni sacar la vida (Q-C231): la
-// segunda vuelta de 0x52e810 encuentra ese lugar apagado y la pone ahí, con la vida.
+// With the marks table full, 0x548fe0 turns off the one with the least life without placing the new one or drawing its
+// life (Q-C231): the second round of 0x52e810 finds that slot off and places it there, with its life.
 TEST(ActorRemainsTest, AFullTableOfMarksMakesRoomForTheSecondOne)
 {
     auto remains = std::make_unique<Remains>();
@@ -252,8 +251,8 @@ TEST(ActorRemainsTest, AFullTableOfMarksMakesRoomForTheSecondOne)
     EXPECT_EQ(remains->random.State(), Client::Tests::AfterDraws(Seed, 9).State());
 }
 
-// Los cortes: sin el modelo cargado (0x52e834) y con un hueso +0x54 fuera de los huesos propios ya posados (0x4ec110
-// leería otra memoria), antes de cualquier rand().
+// The errors: without the model loaded (0x52e834) and with a +0x54 bone outside the own bones already posed (0x4ec110
+// would read other memory), before any rand().
 TEST(ActorRemainsTest, WithoutTheModelOrWithTheBoneOutsideTheOwnBonesItCuts)
 {
     auto remains = std::make_unique<Remains>();

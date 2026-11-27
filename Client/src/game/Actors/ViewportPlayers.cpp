@@ -57,12 +57,12 @@ namespace Client::Actors
 {
 namespace
 {
-constexpr std::string_view HiddenName = "webzen"; // 0x6c8418 y 0x6c8420
+constexpr std::string_view HiddenName = "webzen"; // 0x6c8418 and 0x6c8420
 constexpr float CellSize = 100.0f;                // 0x6b86b4
 constexpr float CellCenter = 0.5f;                // 0x6b882c
-constexpr float DirectionDegrees = 45.0f;         // 0x6b8848, con el 1 de 0x6b87d4
+constexpr float DirectionDegrees = 45.0f;         // 0x6b8848, with the 1 from 0x6b87d4
 
-// Los diez bytes del nombre con el 0 de -0x4a (0x4c88b7) o de -0x12 (0x4c92e2) detrás.
+// The ten bytes of the name with the 0 at -0x4a (0x4c88b7) or at -0x12 (0x4c92e2) after them.
 std::string NameText(const Protocol::FrontEnd::NameBytes& name)
 {
     std::string text;
@@ -91,7 +91,7 @@ std::uint8_t PkOf(std::uint8_t directionAndPk)
     return directionAndPk & PkMask;
 }
 
-// 0x4c8a36: los estados 2 a 4 con su acción (la segunda, de la clase 2: & 7, el elfo).
+// 0x4c8a36: states 2 to 4 with their action (the second one for class 2: & 7, the elf).
 std::optional<std::uint8_t> StateAction(std::uint8_t state, std::uint8_t characterClass)
 {
     const bool elf = Kernel::BaseClassOf(characterClass) == Kernel::CharacterClass::Elf;
@@ -108,7 +108,7 @@ std::optional<std::uint8_t> StateAction(std::uint8_t state, std::uint8_t charact
     }
 }
 
-// Lo que el estado 1 conserva del vivo con la clave (0x4c8919..0x4c8965).
+// What state 1 keeps from the live character with the key (0x4c8919..0x4c8965).
 struct Kept
 {
     std::uint8_t byte1f2 = 0;
@@ -131,7 +131,7 @@ Kept KeepFrom(const Kernel::ActorState& actor)
             .byte372 = actor.byte372};
 }
 
-// 0x4c89b4..0x4c89ed: el MOVZX deja +0x1f2 con el byte de abajo y el de arriba en 0.
+// 0x4c89b4..0x4c89ed: the MOVZX leaves +0x1f2 with the low byte and the high one at 0.
 void GiveBack(Kernel::ActorState& actor, const Kept& kept)
 {
     actor.word1f2 = kept.byte1f2;
@@ -193,7 +193,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     {
         if (auto teleported = Scenes::StartTheTeleportAction(actor, resources); !teleported.HasValue())
             return teleported;
-        // 0x4c8a43..0x4c8ad4: el paquete entero otra vez a la cola (Q-C801).
+        // 0x4c8a43..0x4c8ad4: the whole packet to the queue again (Q-C801).
         StoreViewportPacket(runtime.viewportPackets, packet);
     }
     else if (const auto action = StateAction(state, actor.characterClass))
@@ -224,9 +224,9 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     {
         return walked;
     }
-    // 0x4c91aa..0x4c91e1: en Kalima (24..29 y 36), 0x530860(0x610, posición, posición, ángulos, 8, jugador, 20, −1, 0,
-    // 0, −1), sin rand(): la clase del pez de Atlans con el ActorState de dueño. Con los joints llenos no crea nada y
-    // sigue.
+    // 0x4c91aa..0x4c91e1: in Kalima (24..29 and 36), 0x530860(0x610, position, position, angles, 8, player, 20, −1, 0,
+    // 0, −1), without rand(): the class of the Atlans fish with the ActorState as owner. With the joints full it
+    // creates nothing and goes on.
     if (IsKalimaMap(runtime.map))
     {
         constexpr std::int32_t KalimaBeamJoint = 0x610, KalimaBeamSubtype = 8, NoKey = -1, NoTarget = -1;
@@ -255,7 +255,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
     return Scenes::RefreshTheSiegePanel(runtime);
 }
 
-// 0x513340 con el nibble entero: de 8 a 15 sale por el JA con 0 (0x51334e).
+// 0x513340 with the whole nibble: from 8 to 15 it leaves through the JA with 0 (0x51334e).
 std::uint8_t ShownLevelOf(std::uint8_t bits)
 {
     constexpr std::uint8_t LastLevelBits = 7;
@@ -277,8 +277,8 @@ struct ShownItem
     std::uint8_t ancient = 0;
 };
 
-// 0x4c83ec..0x4c8486: las manos. La derecha vacía no toca el nivel; la izquierda vacía suelta el cuervo del héroe
-// publicado ([0x743a170], 0x4c8438).
+// 0x4c83ec..0x4c8486: the hands. An empty right hand does not touch the level; an empty left one releases the published
+// hero's raven ([0x743a170], 0x4c8438).
 Core::Expected<void, std::string> ShowInTheHand(Kernel::ActorState& actor, std::size_t hand, const ShownItem& item,
                                                 const Scenes::WorldEntryResources& resources)
 {
@@ -299,7 +299,7 @@ Core::Expected<void, std::string> ShowInTheHand(Kernel::ActorState& actor, std::
     return {};
 }
 
-// 0x4c848b..0x4c8667: las cinco del cuerpo; vacías, la de la clase con los tres bytes en 0.
+// 0x4c848b..0x4c8667: the five of the body; an empty one takes the class's part with the three bytes at 0.
 void ShowOnTheBody(Kernel::ActorState& actor, std::size_t index, const ShownItem& item)
 {
     Kernel::ActorItemPart& part = actor.body[index];
@@ -317,7 +317,7 @@ void ShowOnTheBody(Kernel::ActorState& actor, std::size_t index, const ShownItem
     part.flags1c = item.ancient;
 }
 
-// 0x4c8711..0x4c87d4: la mascota y su ayudante (la tabla de 0x4c882c sobre el tipo − 0x1a00).
+// 0x4c8711..0x4c87d4: the pet and its helper (the table at 0x4c882c on the type − 0x1a00).
 Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem& item,
                                              const Scenes::WorldEntryResources& resources)
 {
@@ -352,7 +352,7 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
         break;
     case 0x25:
     {
-        // 0x4c879a..0x4c87ca: Fenrir, con el excelente (& 0x3f) en +0x31b.
+        // 0x4c879a..0x4c87ca: Fenrir, with the excellent bits (& 0x3f) at +0x31b.
         constexpr std::uint16_t RedFenrir = 0x14a;
         constexpr std::uint16_t BlueFenrir = 0x14c;
         constexpr std::uint16_t OtherFenrir = 0x14b;
@@ -368,21 +368,21 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
 }
 } // namespace
 
-// Una escritura de +0x41c o +0x420: abre la entrada, escribe y la cierra (4 rand() si queda sin accesos).
+// A write of +0x41c or +0x420: opens the entry, writes and closes it (4 rand() if no access is left open).
 void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     cell = value;
 }
 
-// Una lectura: abre, lee y cierra (0x40b800 o el cierre en línea).
+// A read: opens, reads and closes (0x40b800 or the inline close).
 std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
-// 0x4c8b0c..0x4c8f1b y 0x4c939e..0x4c9523: la celda protegida y el blanco con los mismos valores.
+// 0x4c8b0c..0x4c8f1b and 0x4c939e..0x4c9523: the protected cell and the target with the same values.
 void WriteTheCells(Kernel::ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random)
 {
     WriteCell(x, actor.cellX, actor.cellXAccesses, random);
@@ -391,14 +391,14 @@ void WriteTheCells(Kernel::ActorState& actor, std::uint8_t x, std::uint8_t y, Cr
     actor.targetY = y;
 }
 
-// 0x4c8f21..0x4c8f42 y 0x4c950c..0x4c9540: el nibble de arriba de la dirección.
+// 0x4c8f21..0x4c8f42 and 0x4c950c..0x4c9540: the high nibble of the direction.
 float AngleOf(std::uint8_t directionAndPk)
 {
     constexpr int DirectionShift = 4;
     return (static_cast<float>(directionAndPk >> DirectionShift) - 1.0f) * DirectionDegrees;
 }
 
-// 0x4c8f4b..0x4c905c: la X y después la Y, leídas de la tabla, al centro de la celda.
+// 0x4c8f4b..0x4c905c: the X and then the Y, read from the table, to the center of the cell.
 void PutInTheCellCenter(Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
     const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
@@ -407,8 +407,8 @@ void PutInTheCellCenter(Kernel::ActorState& actor, Crt::CrtRandom& random)
     actor.position.y = (static_cast<float>(y) + CellCenter) * CellSize;
 }
 
-// 0x4c907c..0x4c91a3 y 0x4c9684..0x4c972c: la Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay
-// camino (sin él queda como estaba).
+// 0x4c907c..0x4c91a3 and 0x4c9684..0x4c972c: the Y, the X and 0x4eac00(X, Y, target, +0x3e8, 0); +0x378 at 1 only if
+// there is a path (without one it stays as it was).
 Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std::uint8_t targetX, std::uint8_t targetY,
                                                   const Scenes::WorldEntryResources& resources)
 {
@@ -419,7 +419,7 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
     Pathfinding::PathFinder finder(attributes->cells);
-    // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el camino de otro.
+    // 0x4eac0a..0x4eac41: with a Crywolf altar at 0x6c8e54, the A* flag also on another character's path.
     const auto path = finder.Find({x, y}, {targetX, targetY}, Scenes::CrywolfAltarGoal(resources.world));
     if (!path)
         return {};
@@ -431,7 +431,7 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
 Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::Players& players,
                                                        const Scenes::WorldEntryResources& resources)
 {
-    // La copia del dispatcher (0x4e372e..0x4e37b8) ya la hizo la sesión, antes del lector (CopyToPacketRing).
+    // The session already made the dispatcher's copy (0x4e372e..0x4e37b8), before the reader (CopyToPacketRing).
     for (const Protocol::Actors::PlayerRecord& record : players.records)
     {
         // 0x4c88d2..0x4c88dc.
@@ -451,7 +451,7 @@ void ApplyViewportLeave(const Protocol::Actors::Leave& leave, Kernel::WorldState
         // 0x4ca7e1..0x4ca7e8.
         const auto key = static_cast<std::int32_t>(word & Protocol::Actors::KeyMask);
         RemoveActor(world, key);
-        // 0x4ca7f0..0x4ca809: el cartel de la tienda con la clave, si hay (CL9 hito 7, fase 3).
+        // 0x4ca7f0..0x4ca809: the shop sign with the key, if there is one.
         Scenes::PersonalShopState& shops = world.Runtime().social.personalShop;
         if (const std::optional<std::size_t> owner = Scenes::ShopTitleWithKey(shops, key))
             Scenes::RemoveShopTitle(shops, *owner);
@@ -466,8 +466,8 @@ Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Trans
         // 0x4c9307..0x4c9311.
         if (IsHidden(record.name))
             continue;
-        // 0x4c9317..0x4c934c: la clase del héroe publicado antes del alta y 0x5141e0(tipo, X, Y, clave), sin mirar si
-        // devuelve 0.
+        // 0x4c9317..0x4c934c: the published hero's class before the creation and 0x5141e0(type, X, Y, key), without
+        // looking at whether it returns 0.
         const std::uint8_t heroClass = Scenes::PublishedHero(resources).characterClass;
         const auto created = Scenes::CreateMonster(record.type, record.x, record.y, record.key, resources);
         if (!created.HasValue())
@@ -506,9 +506,9 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
         // 0x4c9549..0x4c9652.
         PutInTheCellCenter(actor, random);
         actor.alpha = 0.0f;
-        // 0x4c961f..0x4c967f: 0x518cf0(0xec, +0x10, +0x1c, +0xf4, 0, el personaje, −1, 0, 0, 0, 0), el círculo mágico
-        // (World/BlastModelEffects), y 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje), el rayo que lo
-        // sigue en su paso; ninguno saca rand(). Con la tabla llena, nada.
+        // 0x4c961f..0x4c967f: 0x518cf0(0xec, +0x10, +0x1c, +0xf4, 0, the character, −1, 0, 0, 0, 0), the magic circle
+        // (World/BlastModelEffects), and 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1.0f, the character), the ray that
+        // follows it on its way; neither draws a rand(). With the table full, nothing.
         constexpr std::int16_t MagicCircle = 0xec;
         if (auto circle = Scenes::CreateBlastEffectOutsideTheStep({.type = MagicCircle,
                                                                    .position = actor.position,
@@ -542,7 +542,7 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::Eq
     const std::size_t index = Scenes::ActorWithKey(world, shown.key);
     Kernel::ActorState& actor = world.Actors()[index];
     const std::span<const std::byte> bytes = shown.item;
-    // 0x4c83b4..0x4c83dc: pkt[6] (el byte 1), pkt[8] (el 3) y pkt[9] (el 4).
+    // 0x4c83b4..0x4c83dc: pkt[6] (byte 1), pkt[8] (byte 3) and pkt[9] (byte 4).
     constexpr std::uint8_t LevelMask = 0xf;
     constexpr int SlotShift = 4;
     constexpr std::uint8_t ExcellentMask = 0x3f;
@@ -598,8 +598,8 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::
     constexpr std::uint16_t PushedType = 0xf1;
     if (actor.type == PushedType)
     {
-        // 0x4c6b80..0x4c6ca3: +0xe4 en 20; la X leída, (pkt[5] − X) · 400 en +0xd0; la Y leída, (Y − pkt[6]) · 400 en
-        // +0xcc (0x6b87b0); el sonido 0x1b y 0x51fe10 con la posición.
+        // 0x4c6b80..0x4c6ca3: +0xe4 at 20; the X read, (pkt[5] − X) · 400 at +0xd0; the Y read, (Y − pkt[6]) · 400 at
+        // +0xcc (0x6b87b0); sound 0x1b and 0x51fe10 with the position.
         constexpr float PushSpeed = 20.0f;
         constexpr float PushScale = 400.0f;
         constexpr std::int32_t PushSound = 0x1b;
@@ -610,7 +610,7 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::
         const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
         actor.floatCC =
             static_cast<float>(static_cast<std::int32_t>(y) - static_cast<std::int32_t>(position.y)) * PushScale;
-        // (CL10) 0x41ed10(0x1b, 0, 0).
+        // 0x41ed10(0x1b, 0, 0).
         world.Runtime().RequestSound(PushSound);
         if (auto burst = World::CreatePushBurst(world.Particles(), actor.position, random); !burst.HasValue())
             return Core::Unexpected(std::format("0x51fe9e: falla la partícula 0x5c5/2 del empujón DF, error {}",

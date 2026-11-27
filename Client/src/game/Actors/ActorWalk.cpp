@@ -130,7 +130,7 @@ Core::Expected<std::uint8_t, std::string> GroundAction(const Kernel::ActorState&
     }
     if (right >= 0x212 && right < 0x812)
     {
-        // 0x4f3c7c: dos armas de estos grupos corriendo evitan leer Item.bmd.
+        // 0x4f3c7c: two weapons of these groups while running avoid reading Item.bmd.
         if (running && left >= 0x212 && left < 0x812)
         {
             return std::uint8_t{0x18};
@@ -143,7 +143,7 @@ Core::Expected<std::uint8_t, std::string> GroundAction(const Kernel::ActorState&
     {
         return MarkedAction(right, context.stop.items, running, static_cast<std::uint8_t>(running ? 0x1a : 0x12));
     }
-    // 0x4f3bca/0x4f3bd4: el segundo literal es 0xa14, no 0x814.
+    // 0x4f3bca/0x4f3bd4: the second literal is 0xa14, not 0x814.
     if (!running && (right == 0x813 || right == 0xa14))
     {
         return std::uint8_t{0x11};
@@ -159,7 +159,7 @@ Core::Expected<std::uint8_t, std::string> GroundAction(const Kernel::ActorState&
     return RightBow(right) ? static_cast<std::uint8_t>(running ? 0x1c : 0x14) : unarmed;
 }
 
-// Los helpers 0x4e9f50/0x4e9da0 conservan los sentinelas de arco/ballesta antes de mirar clase.
+// The helpers 0x4e9f50/0x4e9da0 keep the bow and crossbow sentinels before looking at the class.
 std::uint8_t FenrirAction(const Kernel::ActorState& actor, bool fast)
 {
     const std::uint16_t right = actor.hands[0].model;
@@ -219,7 +219,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Kern
         const auto map = context.stop.runtime.map;
         if (actor.pet.model == FlyingMount && (map == 8 || map == 10))
         {
-            return std::optional<std::uint8_t>{}; // 0x4f3a14: conserva la acción, pero corre el sufijo.
+            return std::optional<std::uint8_t>{}; // 0x4f3a14: keeps the action, but runs the suffix.
         }
         return chosen(
             actor.hands[0].model == Kernel::NoItemModel && actor.hands[1].model == Kernel::NoItemModel ? 0x20 : 0x21);
@@ -299,8 +299,8 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const Kernel::ActorState&
     {
         return ActorWalkResult{};
     }
-    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden 0x7b antes de elegir la WORD 0 o 1 de la tabla del modelo.
-    // El segundo pedido no borra el primero aunque sea el último que queda en el diagnóstico.
+    // 0x4f3edc..0x4f3f6c: subtypes 209 to 211 request 0x7b before picking WORD 0 or 1 of the model's table.
+    // The second request does not erase the first even though it is the last one left in the diagnostic.
     ActorWalkResult result;
     if (modelSound)
     {

@@ -27,47 +27,48 @@ struct ActorState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// Las acciones de un personaje: la de parado, 0x4f2250 (el SetPlayerStop de MuMain).
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Caminar" (SetPlayerStop) y P-C14 c.
+// A character's actions: the standing one, 0x4f2250 (MuMain's SetPlayerStop).
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "Caminar" (SetPlayerStop) and P-C14 c.
 namespace Client::Actors
 {
 
-// Lo que 0x4f2250 lee y escribe fuera del personaje. Quien llama lo presta durante la llamada.
+// What 0x4f2250 reads and writes outside the character. The caller lends it for the call.
 struct ActorStopContext
 {
-    // El mundo en curso (DAT_006c9dd0) y el latch de Fenrir (0x7d3a0d0, movementSpeed.itemLatch).
+    // The current world (DAT_006c9dd0) and the Fenrir latch (0x7d3a0d0, movementSpeed.itemLatch).
     Kernel::WorldRuntime& runtime;
-    // DAT_006d5dc8: los mapas de vuelo miran la celda solo en la escena 5 (0x4f23a2).
+    // DAT_006d5dc8: the flying maps look at the cell only in scene 5 (0x4f23a2).
     Scenes::SceneId scene;
-    // Las acciones de Player.bmd: 0x4ea030 no pone una que el modelo no tiene.
+    // The actions of Player.bmd: 0x4ea030 does not set one the model lacks.
     const Models::Skeleton& playerSkeleton;
-    // *[0x7758550], Item.bmd en memoria: la matriz de armas lee el byte +0x1e del registro del arma
-    // (0x4f2c52). nullptr si no se cargó: la matriz corta con error al leerlo.
+    // *[0x7758550], Item.bmd in memory: the weapon matrix reads byte +0x1e of the weapon's record
+    // (0x4f2c52). nullptr if it was not loaded: the matrix stops with an error when it reads it.
     const Tables::ItemTable* items = nullptr;
-    // El rand() de la CRT: el sufijo saca uno siempre, y Fenrir hasta dos más (0x4f36be..0x4f3731).
+    // The CRT's rand(): the suffix always draws one, and Fenrir up to two more (0x4f36be..0x4f3731).
     Crt::CrtRandom& random;
-    // 0x4f23c1: lee la celda visible en los mapas de vuelo de la escena 5.
+    // 0x4f23c1: reads the visible cell on the flying maps of scene 5.
     const Data::Terrain::TerrainLayer<std::uint16_t>* terrainWalls = nullptr;
-    // El C1 18 de sentarse (0x4f2416..0x4f2bea). Vacío, sentarse corta con error después de poner la 0xca.
+    // The C1 18 of sitting down (0x4f2416..0x4f2bea). Empty, sitting down stops with an error after setting 0xca.
     ActionSender sendAction{};
-    // El esqueleto de este actor; nullptr representa un registro de modelo sin acciones.
+    // This actor's skeleton; nullptr stands for a model record without actions.
     const Models::Skeleton* actorSkeleton = nullptr;
-    // +0xaa del registro del modelo, los primeros sonidos que lee el sufijo para no jugadores y subtipos 209 a 211.
+    // +0xaa of the model record, the first sounds the suffix reads for non-players and subtypes 209 to 211.
     std::span<const std::int16_t> modelSounds{};
 };
 
-// El ID emitido por 0x41ed10(id, personaje, 0) en el sufijo de 0x4f2250 (0x4f37a0).
-// Queda disponible para el diagnóstico después de que lo despachó SetActorStop.
+// The ID 0x41ed10(id, character, 0) emits in the suffix of 0x4f2250 (0x4f37a0).
+// It stays available for diagnostics after SetActorStop dispatched it.
 struct ActorStopResult
 {
     std::optional<std::int32_t> sound;
 };
 
-// 0x4f2250: siempre pone Run en 0. El jugador elige su acción por mascota, zona segura, armas, alas y mapa; los
-// otros leen la celda lógica Y y luego X, y el tipo 0x172 consulta TerrainWall para elegir 7 o 0. Después, cada ruta
-// corre el sufijo de rand(). Sentado (+0x7c con 0x200000), el jugador pide la 0xca y el C1 05 18 con su dirección y la
-// acción 0x82 (CL9 hito 1), o nada si ya la tiene; después corre el sufijo. Error si falta una dependencia consultada:
-// TerrainWall para los casos que lo leen, sendAction al sentarse o la tabla de sonidos al abrirse el gate del sufijo.
+// 0x4f2250: always sets Run to 0. The player picks its action by pet, safe zone, weapons, wings and map; the others
+// read the logical cell Y and then X, and type 0x172 checks TerrainWall to pick 7 or 0. Then each path runs the
+// rand() suffix. Sitting (+0x7c with 0x200000), the player asks for 0xca and the C1 05 18 with its direction and
+// action 0x82, or nothing if it already has it; then the suffix runs. Error if a dependency it consults is missing:
+// TerrainWall for the cases that read it, sendAction when sitting down, or the sound table when the suffix's gate
+// opens.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string> SetActorStop(Kernel::ActorState& actor,
                                                                         const ActorStopContext& context);
 } // namespace Client::Actors

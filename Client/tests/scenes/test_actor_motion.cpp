@@ -202,8 +202,8 @@ TEST_F(ActorMotionTest, SixStraightCellsUseTwelveUnitsUntilTheFinalSnap)
         }
     }
     ASSERT_TRUE(arrived);
-    // Desde el centro exacto: 49 avances de12 dejan588/600; la llamada50 hace snap desde12.
-    // El research histórico dice49, pero no proporciona su posición/fase inicial para reproducirla.
+    // From the exact center: 49 advances of 12 leave 588/600; call 50 snaps from 12.
+    // The old research says 49, but gives no starting position or phase to reproduce it.
     EXPECT_EQ(steps, 50);
     EXPECT_FLOAT_EQ(actor.position.x, 1650.0f);
     EXPECT_FLOAT_EQ(actor.position.y, 2050.0f);
@@ -215,7 +215,7 @@ TEST_F(ActorMotionTest, ATransformedActorStopsWithItsOwnSkeletonAtArrival)
 {
     auto actor = Client::Tests::UnarmedPlayer();
     actor.type = 0x154;
-    // 0x511d48: la construcción deja10 en +0x386; el noPlayer usa esa velocidad, no la de Player.
+    // 0x511d48: the construction leaves 10 at +0x386; the noPlayer uses that speed, not Player's.
     constexpr std::uint16_t ConstructedMovementSpeed = 10;
     actor.baseMovementSpeed = ConstructedMovementSpeed;
     actor.movement = 1;

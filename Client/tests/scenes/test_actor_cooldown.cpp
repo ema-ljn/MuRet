@@ -71,17 +71,17 @@ TEST(ActorCooldownTest, MissingCreatorReturnsAfterTheDecrementLightAndFourRandom
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 4).State());
 }
 
-// 0x5069ae..0x506ac6 con los creadores del paso (Actors::CharacterCooldownServices): la 5f3/1 en el pool del contexto
-// (0x506a73, con los ángulos y la luz del personaje, escala 1 y sin dueño) y la piedrita 0xc8 + (rand() & 1) en la
-// tabla del mundo (0x506ab7, en la posición del personaje, sin dueño), cada uno con sus rand() en medio de las veinte
-// vueltas. Con los dos llenos, los creadores no sacan nada y el freno sigue con sus cinco o seis rand() por vuelta. Los
-// valores salen de cooldown.py (0x54271f, 0x51b72b, 0x5fc8f0 y 0x5fcbd0 en una x87 aparte), no de CreateChecked ni de
+// 0x5069ae..0x506ac6 with the step's creators (Actors::CharacterCooldownServices): the 0x5f3/1 in the context's pool
+// (0x506a73, with the character's angles and light, scale 1 and no owner) and the stone chip 0xc8 + (rand() & 1) in the
+// world's table (0x506ab7, at the character's position, no owner), each with its rand() in the middle of the twenty
+// rounds. With both full, the creators draw nothing and the brake goes on with its five or six rand() per round. The
+// values come from cooldown.py (0x54271f, 0x51b72b, 0x5fc8f0 and 0x5fcbd0 on a separate x87), not from CreateChecked or
 // CreateStoneChip.
 struct BrakeSeed
 {
     bool full;
     std::uint32_t seed;
-    std::uint32_t state; // CrtRandom::State() al terminar
+    std::uint32_t state; // CrtRandom::State() at the end
     int dusts;
     int chips;
 };
@@ -135,8 +135,8 @@ TEST(ActorCooldownTest, TheStepCreatorsInterleaveTheBrakeDustAndTheStoneChips)
     }
 }
 
-// La semilla 3 de arriba, campo por campo: la piedrita 0xc8 de la vuelta 9 (empuje ((rand() & 255) + 64) · 0,1f
-// girado por (0, 0, rand() % 360)) y los polvos 5f3/1 de las vueltas 12, 17 y 19 (cooldown.py).
+// Seed 3 above, field by field: the stone chip 0xc8 of round 9 (push ((rand() & 255) + 64) · 0.1f turned by (0, 0,
+// rand() % 360)) and the 0x5f3/1 dust of rounds 12, 17 and 19 (cooldown.py).
 TEST(ActorCooldownTest, TheBrakeOfSeedThreeLeavesItsDustAndChipBitByBit)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -191,7 +191,7 @@ TEST(ActorCooldownTest, TheBrakeOfSeedThreeLeavesItsDustAndChipBitByBit)
     EXPECT_FALSE(world->Map().effects.Effects()[1].alive);
 }
 
-// Sin el pool de partículas en el contexto, la 5f3/1 corta en 0x506a73 con lo de antes hecho.
+// Without the particle pool in the context, the 0x5f3/1 stops at 0x506a73 with what came before done.
 TEST(ActorCooldownTest, TheStepCreatorsCutWithoutTheParticlePool)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();

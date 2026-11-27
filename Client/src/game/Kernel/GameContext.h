@@ -12,7 +12,7 @@
 #include <span>
 
 // The state every module reads: the actor pool and the hero in it, the player's own record and inventory, what the
-// last map load left and the world's runtime. Scenes::WorldState forwards to it while AR3 and AR4 move the rest.
+// last map load left and the world's runtime. WorldState forwards to it while AR3 and AR4 move the rest.
 namespace Client::Kernel
 {
 inline constexpr std::size_t ActorPoolSize = 401;

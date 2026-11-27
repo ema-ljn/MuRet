@@ -16,8 +16,8 @@
 #include <cstdint>
 #include <type_traits>
 
-// Client::Scenes::WorldState: lo que WinMain deja en cero y dura de una escena a otra (06, "Los
-// personajes de la lista"; 04, el registro propio).
+// Client::Kernel::WorldState: what WinMain zeroes and lasts from one scene to another (06, "Los personajes de la
+// lista"; 04, the own record).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -26,7 +26,7 @@ using Client::Protocol::FrontEnd::CharacterEntry;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
 
-// El estado del rand() de la CRT sembrado con Seed después de `draws` llamadas.
+// The state of the CRT's rand() seeded with Seed after `draws` calls.
 std::uint32_t StateAfter(int draws)
 {
     CrtRandom random(Seed);
@@ -37,14 +37,14 @@ std::uint32_t StateAfter(int draws)
     return random.State();
 }
 
-// Un solo dueño: copiarlo o moverlo daría otra copia de la historia del pool.
+// One owner: copying or moving it would give another copy of the pool's history.
 static_assert(!std::is_copy_constructible_v<WorldState>);
 static_assert(!std::is_copy_assignable_v<WorldState>);
 static_assert(!std::is_move_constructible_v<WorldState>);
 static_assert(!std::is_move_assignable_v<WorldState>);
 
-// El REP STOSD de WinMain (0x4bafa6..0x4bafb3): 401 registros en cero, también el que queda fuera de
-// los 400 que recorren el dibujo y el picking.
+// WinMain's REP STOSD (0x4bafa6..0x4bafb3): 401 zeroed records, including the one outside the 400 that the drawing
+// and the picking walk.
 TEST(WorldStateTest, StartsWith401ZeroedRecords)
 {
     const WorldState world;
@@ -61,8 +61,8 @@ TEST(WorldStateTest, StartsWith401ZeroedRecords)
     }
 }
 
-// WinMain llena de ceros el registro propio (04, 0x4bafbc..0x4bafc2): el tipo de los doce lugares
-// arranca en 0, no en −1. El −1 lo pone recién la respuesta del F3 03 (06, fila 7 de 0x4c3940).
+// WinMain zeroes the own record (04, 0x4bafbc..0x4bafc2): the type of the twelve places starts at 0, not at −1. Only
+// the F3 03 reply sets the −1 (06, row 7 of 0x4c3940).
 TEST(WorldStateTest, TheOwnRecordStartsZeroed)
 {
     const WorldState world;
@@ -81,8 +81,8 @@ TEST(WorldStateTest, TheOwnRecordStartsZeroed)
     }
 }
 
-// El objeto de los conjuntos, [0x6eed3c], es un estático: arranca en cero, y lo que escriben 0x40e1b0 y
-// 0x40da20 queda de una llamada a otra (06, "Los stats del registro propio").
+// The sets' object, [0x6eed3c], is a static: it starts at zero, and what 0x40e1b0 and 0x40da20 write stays from one
+// call to the next (06, "Los stats del registro propio").
 TEST(WorldStateTest, TheItemSetStateStartsZeroedAndStays)
 {
     WorldState world;
@@ -99,10 +99,10 @@ TEST(WorldStateTest, TheItemSetStateStartsZeroedAndStays)
     EXPECT_EQ(shown.ItemSets().list.used[3], 1);
 }
 
-// 06, "La entrada al mundo", paso 1: al pasar a la escena 3 la selección abre el registro propio, le
-// copia el nivel, la clase y la piel 0 del elegido y el nombre con un strcpy, que deja lo que sigue al
-// cero (0x634433..0x63444e); el cierre gasta 3.848 rand() si lo deja sin accesos (0x40f370, 0x40b4d0).
-// Después baja la bandera de la carga del mundo (0x633efe, 0x634469, 0x634631).
+// 06, "La entrada al mundo", step 1: on going to scene 3 the selection opens the own record, copies the chosen one's
+// level, class and skin 0 into it and the name with a strcpy, which keeps what follows the zero (0x634433..0x63444e);
+// the closing spends 3,848 rand() calls if it leaves it with no access (0x40f370, 0x40b4d0). Then it clears the world
+// load's flag (0x633efe, 0x634469, 0x634631).
 TEST(WorldStateTest, PreparingTheChosenCopiesItIntoTheOwnRecord)
 {
     struct Case
@@ -143,8 +143,8 @@ TEST(WorldStateTest, PreparingTheChosenCopiesItIntoTheOwnRecord)
     }
 }
 
-// Un nombre de diez bytes llega sin cero en la lista: el strcpy lee el cero de +0x1e3 y lo escribe en
-// el último byte del registro.
+// A ten-byte name arrives with no zero in the list: the strcpy reads +0x1e3's zero and writes it in the record's last
+// byte.
 TEST(WorldStateTest, AFullNameIsTerminatedInTheOwnRecord)
 {
     WorldState world;

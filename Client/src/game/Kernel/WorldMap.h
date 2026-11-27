@@ -11,27 +11,26 @@
 #include <memory>
 #include <vector>
 
-// Lo que 0x61a560 deja del mapa cargado en la CPU, en los globales del original: las tablas del
-// terreno, el corrimiento del pasto, los objetos y los efectos con modelo. Lo de la GPU (las texturas
-// y los modelos) es de cada escena. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La
-// carga del mapa".
+// What 0x61a560 leaves of the loaded map on the CPU, in the original's globals: the terrain tables, the grass shift,
+// the objects and the effects with a model. The GPU part (the textures and the models) is each scene's. Contract:
+// Client/docs/research/06-render-escenas-y-ui.md, "La carga del mapa".
 namespace Client::Kernel
 {
 struct WorldMap
 {
-    // Invalidación interna por intento deLoadMap; no es un contador ni un rand nativo.
+    // Internal invalidation per LoadMap attempt; neither a counter nor a native rand.
     std::uint64_t loadRevision = 0;
     Terrain::WorldTerrain terrain;
-    // 723c48: se reemplaza sólo al llegar a4377a0, después de los archivos.
+    // 0x723c48: replaced only on reaching 0x4377a0, after the files.
     std::unique_ptr<World::KalimaWorld> kalima;
-    // 0x7b0cca4: los 65.536 (rand() % 4) · 0,25 que llena 0x5f8300 (Q-C146).
+    // 0x7b0cca4: the 65,536 (rand() % 4) · 0.25 that 0x5f8300 fills (Q-C146).
     std::vector<float> grassOffsets;
-    // EncTerrain<N>.obj, en el orden del archivo, y lo que 0x606660 creó con ellos y con los
-    // especiales del mapa (0x616ec0).
+    // EncTerrain<N>.obj, in the file's order, and what 0x606660 created with them and with the map's specials
+    // (0x616ec0).
     std::vector<Data::Terrain::TerrainObject> objectRecords;
     std::vector<World::WorldObject> objects;
     World::WorldObjectRegistrations registrations;
-    // Los efectos con modelo (0x7491fd8), los del efecto de llegada (0x61f) incluidos.
+    // The effects with a model (0x7491fd8), the arrival effect's (0x61f) included.
     World::ModelEffects effects;
 };
 } // namespace Client::Kernel

@@ -17,9 +17,9 @@
 #include <sstream>
 #include <string>
 
-// Client::Kernel::StepCharacterHead contra el código real del main.exe emulado: el tramo de 0x505de0 que
-// mueve la cabeza (0x5068eb..0x5069ab), con 0x4e96f0 y 0x4e9560, bit a bit (tests/vectors/world55/head.txt,
-// de docs/research/scripts/login/make_head_vectors.py).
+// Client::Kernel::StepCharacterHead against the real code of the emulated main.exe: the stretch of 0x505de0 that
+// moves the head (0x5068eb..0x5069ab), with 0x4e96f0 and 0x4e9560, bit for bit (tests/vectors/world55/head.txt, from
+// Client/docs/research/scripts/login/make_head_vectors.py).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -63,7 +63,7 @@ TEST(CharacterHeadTest, TurnsLikeTheBinary)
         CharacterHead state;
         if (kind == "walk")
         {
-            // Los comienzos de make_head_vectors.py.
+            // make_head_vectors.py's starting states.
             const std::size_t index = cases - 1;
             const glm::vec2 heads[] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {350.0f, 10.0f}, {300.0f, 5.0f}};
             const glm::vec2 targets[] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {20.0f, 340.0f}, {10.0f, 200.0f}};
@@ -110,7 +110,7 @@ TEST(CharacterHeadTest, TurnsLikeTheBinary)
     EXPECT_GT(sorted, 40u) << "los pasos seguidos sortean blancos nuevos";
 }
 
-// El héroe no sortea: no saca rand(), y la cabeza sigue girando hacia el blanco que tenía.
+// The hero does not draw: no rand(), and the head keeps turning toward the target it had.
 TEST(CharacterHeadTest, TheHeroOnlyTurns)
 {
     CrtRandom random(3);
@@ -124,7 +124,7 @@ TEST(CharacterHeadTest, TheHeroOnlyTurns)
     EXPECT_FLOAT_EQ(state.angles.y, 2.0f);
 }
 
-// 0x4e96f0: la resta, o la vuelta por el otro lado, y con el tercer argumento, sin signo.
+// 0x4e96f0: the difference, or the way round the other side, and with the third argument, unsigned.
 TEST(CharacterHeadTest, TheAngleDistanceTakesTheShortWay)
 {
     using Client::Math::AngleDistance;

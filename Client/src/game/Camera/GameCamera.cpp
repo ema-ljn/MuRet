@@ -19,7 +19,7 @@ namespace Client::Camera
 {
 namespace
 {
-// 06 § La cámara del juego: las constantes de 0x635ae0, con los bits de su .data.
+// 06 § La cámara del juego: 0x635ae0's constants, with the bits of its .data.
 constexpr std::uint8_t FixedHeightAttribute = 0x40;
 constexpr std::uint8_t ZoomAttribute = 0x80;
 constexpr std::uint8_t RockingMap = 5;
@@ -38,8 +38,8 @@ constexpr std::array<float, 5> LevelFar{2000.0f, 2500.0f, 2600.0f, 2950.0f, 3200
 constexpr float LoginFar = 20400.0f;
 constexpr float SelectionFar = std::bit_cast<float>(std::uint32_t{0x4633ff9a});
 constexpr float WebzenFar = 5000.0f;
-// 0x6361e3..0x636231 (la tabla 0x636270): la meta de D por el word del nivel. El FLD de cada caso (0x6b88c4, 0x6b8bdc,
-// 0x6ba198, 0x6ba6e0 y 0x6ba188) carga el mismo float que el MOV a 0x6d5ee0.
+// 0x6361e3..0x636231 (table 0x636270): D's target by the level word. Each case's FLD (0x6b88c4, 0x6b8bdc, 0x6ba198,
+// 0x6ba6e0 and 0x6ba188) loads the same float as the MOV to 0x6d5ee0.
 constexpr std::array<float, 5> LevelDistance{1000.0f, 1100.0f, 1200.0f, 1300.0f, 1400.0f};
 constexpr float CastleDistance = 1100.0f;
 constexpr float WebzenDistance = 3200.0f;
@@ -122,7 +122,7 @@ void AdvanceZoom(GameCamera& state, std::uint8_t attribute)
 
 bool IsOrderedNonZero(float value)
 {
-    // 06 § La cámara del juego: 0x44dc60 prueba C3, no C2; unordered no elige el objetivo global.
+    // 06 § La cámara del juego: 0x44dc60 tests C3, not C2; unordered does not pick the global target.
     return value < 0.0f || value > 0.0f;
 }
 
@@ -133,7 +133,7 @@ Render::Camera3D NormalCamera(float distance, float yaw, float farPlane, float z
     camera.farPlane = farPlane;
     const glm::vec3 offset = Offset(-distance, yaw);
     camera.position = Add(offset, FollowedPointOf(input));
-    // 0x635f02..0x635f11: el 30 antes que el héroe, que el recorrido dejó en 300 (0x635ec0).
+    // 0x635f02..0x635f11: map 30 before the hero, whom the tour left at 300 (0x635ec0).
     float baseHeight = input.map == CastleMap ? CastleHeight : input.tour ? CameraTourHeroHeight : input.hero.z;
     if ((input.cellAttribute & FixedHeightAttribute) != 0)
     {
@@ -183,8 +183,8 @@ void FinishFrame(GameCamera& state, const GameCameraInput& input)
         state.targetDistance = state.distance = CastleDistance;
         return;
     }
-    // 0x6361d0..0x63624d: el word del nivel ya reescrito (0 o el +0x150 del recorrido); fuera de 0..4 (el JA de
-    // 0x6361da) sale sin tocar D ni su meta.
+    // 0x6361d0..0x63624d: the level word already rewritten (0 or the tour's +0x150); outside 0..4 (the JA of 0x6361da)
+    // it leaves D and its target untouched.
     if (state.level < 0 || state.level >= static_cast<int>(LevelDistance.size()))
         return;
     state.targetDistance = LevelDistance[static_cast<std::size_t>(state.level)];
@@ -212,7 +212,7 @@ Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input)
     if (!webzen)
     {
         state.farPlane = FarPlaneOf(state, input);
-        // 0x635ead..0x635ee3: el word que devuelve 0x4034b0 con el recorrido; sin él, 0.
+        // 0x635ead..0x635ee3: the word 0x4034b0 returns with the tour; without it, 0.
         state.level = input.tour ? static_cast<std::int16_t>(input.tour->level) : 0;
         if ((input.cellAttribute & FixedHeightAttribute) != 0)
             state.fixedHeight = AttributeHeight;

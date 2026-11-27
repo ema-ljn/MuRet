@@ -17,7 +17,7 @@ namespace
 {
 using Client::Kernel::OwnCharacterRecord;
 
-// Un tipo distinto por lugar, como el equipo viejo que deja una entrada anterior.
+// A different type per place, like the old equipment a previous entry leaves.
 std::uint16_t OldTypeOf(std::size_t slot)
 {
     return static_cast<std::uint16_t>(0x0100 + slot);
@@ -38,7 +38,7 @@ void DressWithOldTypes(OwnCharacterRecord& own)
 TEST(OwnCharacterRecordTest, TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveSlots)
 {
     OwnCharacterRecord own;
-    // WinMain llena de ceros el registro (04, 0x4bafbc..0x4bafc2): el tipo arranca en 0, no en −1.
+    // WinMain zeroes the record (04, 0x4bafbc..0x4bafc2): the type starts at 0, not at −1.
     for (const Client::Kernel::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0);
@@ -47,8 +47,8 @@ TEST(OwnCharacterRecordTest, TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveS
 
     own.ClearEquipmentForEntry();
 
-    // 06, fila 7 de 0x4c3940 (0x4c47c8..0x4c47da): el tipo en −1, el dword de +4 y el byte de +0x1b
-    // en 0. El loop no toca nada más del lugar.
+    // 06, row 7 of 0x4c3940 (0x4c47c8..0x4c47da): the type at −1, the dword of +4 and the byte of +0x1b at 0. The
+    // loop touches nothing else of the place.
     ASSERT_EQ(own.equipment.size(), 12u);
     for (const Client::Kernel::ItemState& item : own.equipment)
     {
@@ -71,8 +71,8 @@ TEST(OwnCharacterRecordTest, TheInventoryClearEmptiesTypeOccupiedAndFlags1bOfThe
 
     own.ClearEquipmentForInventory();
 
-    // 06, "El F3 10, el inventario" (0x4c564d..0x4c565f): el tipo en −1, el dword de +0x3c y el byte de
-    // +0x1b en 0. A diferencia del de la entrada, deja el dword de +4; la durabilidad queda (Q-C203).
+    // 06, "El F3 10, el inventario" (0x4c564d..0x4c565f): the type at −1, the dword of +0x3c and the byte of +0x1b at
+    // 0. Unlike the entry's, it keeps the dword of +4; the durability stays (Q-C203).
     for (const Client::Kernel::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0xffff);
@@ -89,7 +89,7 @@ TEST(OwnCharacterRecordTest, ReceivedStatsGoToTheirFieldsAndKeepIdentityAndEquip
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     OwnCharacterRecord own;
-    // La identidad que copia la selección (06, "La lógica"), con valores de relleno, sin nombre.
+    // The identity the selection copies (06, "La lógica"), with filler values, no name.
     own.name.fill(std::byte{0x7e});
     own.characterClass = 0x21;
     own.skin = 0x02;
@@ -99,9 +99,9 @@ TEST(OwnCharacterRecordTest, ReceivedStatsGoToTheirFieldsAndKeepIdentityAndEquip
     own.word3e = 0x3e3e;
     own.word40 = 0x4040;
     own.word42 = 0x4242;
-    // Del cable, lo que documenta 04: la celda (133, 127), el mapa 0, la dirección 0 y ff ff en
-    // pkt[0x32..0x33]. Lo demás va distinto en cada campo, para que se vea un cruce: la vida y el
-    // maná llegan en otro orden que el de sus offsets en el registro.
+    // From the wire, what 04 documents: cell (133, 127), map 0, direction 0 and ff ff in pkt[0x32..0x33]. The rest
+    // differs in each field, so that a crossing shows: the life and the mana arrive in another order than their
+    // offsets in the record.
     const Client::Protocol::FrontEnd::CharacterSelectResult reply{.x = 133,
                                                                   .y = 127,
                                                                   .map = 0,
@@ -128,7 +128,7 @@ TEST(OwnCharacterRecordTest, ReceivedStatsGoToTheirFieldsAndKeepIdentityAndEquip
 
     own.ApplyStats(reply, log);
 
-    // 04, la tabla de la respuesta del F3 03.
+    // 04, the F3 03 reply's table.
     EXPECT_EQ(own.experience, reply.experience);
     EXPECT_EQ(own.nextExperience, reply.nextExperience);
     EXPECT_EQ(own.levelUpPoints, reply.levelUpPoints);
@@ -146,12 +146,12 @@ TEST(OwnCharacterRecordTest, ReceivedStatsGoToTheirFieldsAndKeepIdentityAndEquip
     EXPECT_EQ(own.addedPoints, reply.addedPoints);
     EXPECT_EQ(own.maxAddedPoints, reply.maxAddedPoints);
     EXPECT_EQ(own.leadership, 0xffff);
-    // 04: "además pone en 0 el byte de +0x3c y los WORD de +0x3e, +0x40 y +0x42".
+    // 04: it also zeroes the byte of +0x3c and the WORDs of +0x3e, +0x40 and +0x42.
     EXPECT_EQ(own.speedAdjustBits, 0);
     EXPECT_EQ(own.word3e, 0);
     EXPECT_EQ(own.word40, 0);
     EXPECT_EQ(own.word42, 0);
-    // La identidad no la escribe, y el equipo sigue viejo para 0x512a30 (06, fila 5).
+    // It does not write the identity, and the equipment stays old for 0x512a30 (06, row 5).
     for (const std::byte nameByte : own.name)
     {
         EXPECT_EQ(nameByte, std::byte{0x7e});
@@ -175,8 +175,8 @@ TEST(OwnCharacterRecordTest, TheWordsPastThePacketGoToZeroWithAWarning)
 
     own.ApplyStats({}, log);
 
-    // Q-C144: el original copia pkt[0x34..0x37], lo que haya quedado en el buffer después de los
-    // 0x34 bytes del paquete. MuRet deja los dos WORD en 0 y lo avisa.
+    // Q-C144: the original copies pkt[0x34..0x37], whatever stayed in the buffer after the packet's 0x34 bytes. MuRet
+    // leaves the two WORDs at 0 and says so.
     EXPECT_EQ(own.word48, 0);
     EXPECT_EQ(own.word4a, 0);
     ASSERT_EQ(sink.lines.size(), 1u);

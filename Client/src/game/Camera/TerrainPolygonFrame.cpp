@@ -37,7 +37,7 @@ Core::Expected<Terrain::TerrainPolygon, std::string> StepTheTerrainPolygon(Kerne
     {
         return Core::Unexpected(DescribePolygonError(frame.Error()));
     }
-    // 0x5fb731 y 0x5fba55..0x5fba68: el nivel y el trapecio, en los globales que leen las tres escenas.
+    // 0x5fb731 and 0x5fba55..0x5fba68: the level and the trapezoid, in the globals the three scenes read.
     runtime.terrainPolygonState = frame.Value().nextState;
     runtime.terrainPolygon = frame.Value().polygon;
     return frame.Value().polygon;

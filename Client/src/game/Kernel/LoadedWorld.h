@@ -16,56 +16,56 @@
 #include <string>
 #include <vector>
 
-// El mundo de una escena mientras la escena vive (CL7.1): lo que 0x61a560 carga para el terreno (el
-// .map, el .att, las alturas, la luz y los tiles, World/WorldTerrain.h) y lo que la escena hace con él
-// en cada paso (las olas de 0x5fbf60) y en cada frame (el pase del terreno de 0x5fc260(0)).
+// A scene's world while the scene lives (CL7.1): what 0x61a560 loads for the terrain (the .map, the .att, the heights,
+// the light and the tiles, Terrain/WorldTerrain.h) and what the scene does with it on each step (0x5fbf60's waves) and
+// each frame (0x5fc260(0)'s terrain pass).
 namespace Client::Kernel
 {
 class LoadedWorld
 {
 public:
-    // `store` tiene que vivir más que esto.
+    // `store` must outlive this.
     explicit LoadedWorld(Render::ITextureStore& store);
-    // Es dueño de los slots que subió: una copia los soltaría dos veces.
+    // It owns the slots it uploaded: a copy would release them twice.
     LoadedWorld(const LoadedWorld&) = delete;
     LoadedWorld& operator=(const LoadedWorld&) = delete;
     LoadedWorld(LoadedWorld&&) = delete;
     LoadedWorld& operator=(LoadedWorld&&) = delete;
     ~LoadedWorld() = default;
 
-    // Normaliza `map` con argumento=observación local (32 → 9) antes de leer terreno y tiles;
-    // no reproduce las lecturas globales mutables ni los modelos de 0x61a560.
-    // Lee el terreno del mapa efectivo y sube sus tiles y el slot 0x122. Un tile que no avisa y falta
-    // o no se lee se saltea y va a `skipped`, con lo que pasó y la ruta como la pide el original; uno que avisa
-    // (TileGrass01, el 0x122) y falta o no se lee, el terreno que no se lee o la tabla que no sube son
-    // un error, y no queda nada cargado ni subido.
+    // Normalizes `map` with argument = local observation (32 → 9) before it reads the terrain and the tiles; it does
+    // not reproduce the mutable global reads or the models of 0x61a560. Reads the effective map's terrain and uploads
+    // its tiles and slot 0x122. A tile that does not warn and is missing or unreadable is skipped and goes to
+    // `skipped`, with what happened and the path as the original asks for it; one that warns (TileGrass01, the 0x122)
+    // and is missing or unreadable, an unreadable terrain or a table that does not upload are an error, and nothing
+    // stays loaded or uploaded.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          std::vector<std::string>& skipped);
 
-    // Suelta los slots que subió y el terreno. Sin un Load, o una segunda vez, no hace nada.
+    // Releases the slots it uploaded and the terrain. Without a Load, or a second time, it does nothing.
     void Release();
 
     [[nodiscard]] bool IsLoaded() const;
 
-    // La identidad efectiva del terreno que posee: vacía sin carga, tras fallo, Release o TakeTerrain.
+    // The effective map of the terrain it owns: empty before a load and after a failure, Release or TakeTerrain.
     [[nodiscard]] std::optional<std::uint8_t> LoadedMap() const;
 
-    // La base sombreada, si hay terreno. Los lectores de escena usan la copia dinámica de WorldState.
+    // The shaded base, if there is terrain. The scene's readers use WorldState's dynamic copy.
     [[nodiscard]] const Terrain::TerrainLighting* Lighting() const;
-    // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
+    // The whole terrain (the heights and the attributes 0x5f93c0 asks for), if any.
     [[nodiscard]] const Terrain::WorldTerrain* Terrain() const;
     [[nodiscard]] Terrain::WorldTerrain* Terrain();
 
-    // Transfiere sólo CPU al estado que sobrevive a la escena. Invalida las vistas del terreno;
-    // los slots GPU siguen siendo de este objeto y Release los suelta una sola vez.
+    // Hands only the CPU part to the state that outlives the scene. It invalidates the terrain views; the GPU slots
+    // stay this object's and Release frees them once.
     [[nodiscard]] std::optional<Terrain::WorldTerrain> TakeTerrain();
 
-    // Step y DrawTerrain usan la identidad efectiva de LoadedMap() (32 → 9), no la solicitada.
-    // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
+    // Step and DrawTerrain use LoadedMap()'s effective map (32 → 9), not the requested one.
+    // 0x5fbf60, on each step: the wave of the range window's cells, with the step clock.
     void Step(Core::Duration clock, const Terrain::TerrainRange& range);
 
-    // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango,
-    // con el recorte del trapecio y, si se presta, la luz dinámica. Sin terreno, nada.
+    // 0x5fc260(0): the water shift with the frame clock and the terrain pass over the range, with the trapezoid clip
+    // and, if lent, the dynamic light. Without terrain, nothing.
     void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const Terrain::TerrainRange& range,
                      const Terrain::TerrainPolygon& polygon, float fixedHeight = Terrain::FixedCornerHeight,
                      const Terrain::TerrainLighting* dynamicLighting = nullptr);

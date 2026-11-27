@@ -12,12 +12,12 @@ namespace Client::Camera
 {
 namespace
 {
-// Los floats de 0x635ae0: 35 (0x6d5d48) y 20 (0x6d5d40) en las dos escenas.
+// 0x635ae0's floats: 35 (0x6d5d48) and 20 (0x6d5d40) in both scenes.
 constexpr float FieldOfView = 35.0f;
 constexpr float NearPlane = 20.0f;
-// El far de 0x6d5d44 en la escena 4, el 0x4633ff9a que deja 0x635ae0: 11.519,9.
+// 0x6d5d44's far plane in scene 4, the 0x4633ff9a that 0x635ae0 leaves: 11519.9.
 constexpr float SelectionFar = std::bit_cast<float>(std::uint32_t{0x4633ff9a});
-// El de la escena 2: 20.400.
+// Scene 2's: 20400.
 constexpr float LoginFar = 20400.0f;
 } // namespace
 

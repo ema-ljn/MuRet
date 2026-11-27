@@ -8,8 +8,8 @@
 #include <cstdint>
 #include <optional>
 
-// Client::GameLogic::CharacterAppearance: de la clase y los 17 bytes del equipo de la lista a los
-// modelos de cada parte, como 0x517270, 0x5139f0 y 0x512930 (06 § Los personajes de la lista).
+// Client::Kernel::CharacterAppearance: from the class and the list's 17 equipment bytes to each part's models, as
+// 0x517270, 0x5139f0 and 0x512930 do (06 § Los personajes de la lista).
 namespace
 {
 using Client::Kernel::AppearanceOf;
@@ -22,11 +22,11 @@ using Client::Protocol::FrontEnd::EquipmentSize;
 
 using EquipmentBytes = std::array<std::byte, EquipmentSize>;
 
-// Los modelos de la ropa de la clase: HelmClass a BootClass.
+// The class's clothes models: HelmClass to BootClass.
 constexpr std::array<std::uint16_t, 5> ClassBase = {0x2212, 0x221a, 0x2222, 0x222a, 0x2232};
 
-// Un equipo sin nada: las manos en 0xfff, las cinco partes en 0x1ff, sin alas (3 con b[8] & 7 en
-// 0) y sin mascota (3 sin los bits de b[9] y b[11]).
+// An empty equipment: the hands at 0xfff, the five parts at 0x1ff, no wings (3 with b[8] & 7 at 0) and no pet (3
+// without the bits of b[9] and b[11]).
 EquipmentBytes Naked()
 {
     EquipmentBytes bytes{};
@@ -44,15 +44,15 @@ std::uint16_t PartModel(const CharacterAppearance& appearance, BodyPart part)
     return appearance.bodyParts[static_cast<std::size_t>(part)].model;
 }
 
-// Un modelo opcional armado desde un std::uint16_t: desde un int, la conversión cae adentro del
-// constructor de std::optional y MSVC la avisa (C4242), aunque el valor entre.
+// An optional model built from a std::uint16_t: from an int, the conversion lands inside std::optional's constructor
+// and MSVC warns about it (C4242), even though the value fits.
 std::optional<std::uint16_t> Model(std::uint16_t model)
 {
     return model;
 }
 
-// 0x517270 fuera de la escena 2: casco a botas de la clase, en HelmClass a BootClass más
-// (clase >> 3) · 5 + (clase & 7), y las manos, las alas y la mascota vacías.
+// 0x517270 outside scene 2: the class's helmet to boots, at HelmClass to BootClass plus (class >> 3) · 5 +
+// (class & 7), and the hands, the wings and the pet empty.
 TEST(CharacterAppearanceTest, WithoutEquipmentWearsTheClassParts)
 {
     for (const int classValue : {0, 1, 2, 3, 4, 8, 9, 10, 11, 12})
@@ -74,14 +74,14 @@ TEST(CharacterAppearanceTest, WithoutEquipmentWearsTheClassParts)
     }
 }
 
-// La segunda clase (el bit 3) viste las partes de su clase corridas 5.
+// The second class (bit 3) wears its class's parts shifted by 5.
 TEST(CharacterAppearanceTest, TheSecondClassWearsItsOwnParts)
 {
     EXPECT_EQ(ClassPartModel(BodyPart::Helm, 0x08), 0x2212 + 5);
     EXPECT_EQ(ClassPartModel(BodyPart::Boots, 0x0A), 0x2232 + 5 + 2);
 }
 
-// Un índice 0x1ff es "vacío": queda la parte de la clase. Con el equipo vacío, como la clase sola.
+// An index 0x1ff is "empty": the class's part stays. With empty equipment, like the class alone.
 TEST(CharacterAppearanceTest, AnEmptySlotIsTheClassPart)
 {
     const CharacterAppearance appearance = AppearanceOf(2, 0, Naked());
@@ -94,8 +94,8 @@ TEST(CharacterAppearanceTest, AnEmptySlotIsTheClassPart)
     EXPECT_FALSE(appearance.pet.has_value());
 }
 
-// 0x513a35/0x513a79 comparan AX con 0x1fff, después de armar sólo 12 bits. El DWORD bajo más0x212
-// queda en el WORD del modelo: 0xfff produce0x1211, no0xffff.
+// 0x513a35/0x513a79 compare AX with 0x1fff after building only 12 bits. The low DWORD plus 0x212 stays in the model's
+// WORD: 0xfff gives 0x1211, not 0xffff.
 TEST(CharacterAppearanceTest, AnEncodedEmptyHandKeepsTheNativeUnloadedModel)
 {
     const CharacterAppearance appearance = AppearanceOf(0, 0, Naked());
@@ -122,36 +122,36 @@ TEST(CharacterAppearanceTest, EncodedEmptyHandsKeepTheirLevelAndOptionBits)
     EXPECT_TRUE(appearance.leftHand->ancient);
 }
 
-// Cada byte del equipo, por separado, va a su parte (la tabla de 0x5139f0 en 06).
+// Each equipment byte, on its own, goes to its part (0x5139f0's table in 06).
 TEST(CharacterAppearanceTest, EachEquipmentByteGivesItsItem)
 {
     EquipmentBytes bytes = Naked();
-    // La mano derecha: el tipo ((b[11] & 0xf0) << 4) | b[0], el grupo 1 y el índice 0x23.
+    // The right hand: type ((b[11] & 0xf0) << 4) | b[0], group 1 and index 0x23.
     bytes[0] = std::byte{0x23};
     bytes[11] = std::byte{0x20};
-    // La izquierda: ((b[12] & 0xf0) << 4) | b[1], el grupo 2 y el índice 4.
+    // The left: ((b[12] & 0xf0) << 4) | b[1], group 2 and index 4.
     bytes[1] = std::byte{0x04};
     bytes[12] = std::byte{0x40};
-    // El casco: ((b[8] >> 7) + (b[12] & 0xf) · 2) · 16 + (b[2] >> 4), con b[12] & 0xf en 0 y el bit
-    // 7 de b[8] en 1: 16 + 3.
-    // La armadura: (((b[8] >> 6) & 1) + (b[13] >> 4) · 2) · 16 + (b[2] & 0xf): 2 · 16 + 5.
+    // The helmet: ((b[8] >> 7) + (b[12] & 0xf) · 2) · 16 + (b[2] >> 4), with b[12] & 0xf at 0 and bit 7 of b[8] at
+    // 1: 16 + 3.
+    // The armor: (((b[8] >> 6) & 1) + (b[13] >> 4) · 2) · 16 + (b[2] & 0xf): 2 · 16 + 5.
     bytes[2] = std::byte{0x35};
     bytes[13] = std::byte{0x16};
-    // El pantalón: (((b[8] >> 5) & 1) + (b[13] & 0xf) · 2) · 16 + (b[3] >> 4): (1 + 12) · 16 + 7.
-    // Los guantes: (((b[8] >> 4) & 1) + (b[14] >> 4) · 2) · 16 + (b[3] & 0xf): 2 · 16 + 9.
+    // The pants: (((b[8] >> 5) & 1) + (b[13] & 0xf) · 2) · 16 + (b[3] >> 4): (1 + 12) · 16 + 7.
+    // The gloves: (((b[8] >> 4) & 1) + (b[14] >> 4) · 2) · 16 + (b[3] & 0xf): 2 · 16 + 9.
     bytes[3] = std::byte{0x79};
     bytes[14] = std::byte{0x10};
-    // Las botas: (((b[8] >> 3) & 1) + (b[14] & 0xf) · 2) · 16 + (b[4] >> 4): 16 + 2; las alas, el
-    // 1 de los bits 2 y 3 de b[4], y la mascota, el 0 de los bits 0 y 1.
+    // The boots: (((b[8] >> 3) & 1) + (b[14] & 0xf) · 2) · 16 + (b[4] >> 4): 16 + 2; the wings, the 1 of b[4]'s bits
+    // 2 and 3, and the pet, the 0 of bits 0 and 1.
     bytes[4] = std::byte{0x24};
     bytes[8] = std::byte{0xA8};
-    // Los niveles, 3 bits cada uno desde b[7]: la derecha 1 (3), la izquierda 2 (5), el casco 3 (7),
-    // la armadura 4 (9), el pantalón 5 (11), los guantes 6 (12) y las botas 7 (13).
+    // The levels, 3 bits each from b[7]: the right 1 (3), the left 2 (5), the helmet 3 (7), the armor 4 (9), the
+    // pants 5 (11), the gloves 6 (12) and the boots 7 (13).
     const std::uint32_t levels = 1 | (2 << 3) | (3 << 6) | (4 << 9) | (5 << 12) | (6 << 15) | (7 << 18);
     bytes[5] = static_cast<std::byte>(levels >> 16);
     bytes[6] = static_cast<std::byte>((levels >> 8) & 0xFF);
     bytes[7] = static_cast<std::byte>(levels & 0xFF);
-    // Excelente: el casco (bit 7) y la mano izquierda (bit 1).
+    // Excellent: the helmet (bit 7) and the left hand (bit 1).
     bytes[9] = std::byte{0x82};
 
     const CharacterAppearance appearance = AppearanceOf(0, 0, bytes);
@@ -180,8 +180,7 @@ TEST(CharacterAppearanceTest, EachEquipmentByteGivesItsItem)
     EXPECT_EQ(appearance.pet, Model(0x1c12));
 }
 
-// 0x513340: los 3 bits de cada parte, de 0 a 7, dan los niveles 0, 3, 5, 7, 9, 11, 12 y 13
-// (la tabla de 0x51338c).
+// 0x513340: each part's 3 bits, 0 to 7, give levels 0, 3, 5, 7, 9, 11, 12 and 13 (0x51338c's table).
 TEST(CharacterAppearanceTest, TheLevelBitsGoThroughTheTable)
 {
     constexpr std::array<std::uint8_t, 8> Levels = {0, 3, 5, 7, 9, 11, 12, 13};
@@ -191,8 +190,7 @@ TEST(CharacterAppearanceTest, TheLevelBitsGoThroughTheTable)
     }
 }
 
-// Las alas: con los bits 2 y 3 de b[4] en 3, b[8] & 7 da ninguna (0), la capa 0x1c30 (5) o
-// 0x1a14 más el valor.
+// The wings: with b[4]'s bits 2 and 3 at 3, b[8] & 7 gives none (0), the cape 0x1c30 (5) or 0x1a14 plus the value.
 TEST(CharacterAppearanceTest, TheWingsOfTheThirdValueComeFromByteEight)
 {
     EquipmentBytes bytes = Naked();
@@ -202,8 +200,8 @@ TEST(CharacterAppearanceTest, TheWingsOfTheThirdValueComeFromByteEight)
     EXPECT_EQ(AppearanceOf(0, 0, bytes).wings, Model(0x1a14 + 2));
 }
 
-// La mascota: con los bits 0 y 1 de b[4] en 3, el bit 0 de b[9] da 0x1c15; después, el bit 0 de
-// b[11] la pisa con 0x1c16, y el 2 con 0x1c37, en ese orden.
+// The pet: with b[4]'s bits 0 and 1 at 3, b[9]'s bit 0 gives 0x1c15; then b[11]'s bit 0 overrides it with 0x1c16,
+// and bit 2 with 0x1c37, in that order.
 TEST(CharacterAppearanceTest, ThePetBitsOverrideInOrder)
 {
     EquipmentBytes bytes = Naked();
@@ -219,7 +217,7 @@ TEST(CharacterAppearanceTest, ThePetBitsOverrideInOrder)
     EXPECT_EQ(AppearanceOf(0, 0, bytes).pet, Model(0x1c12 + 2));
 }
 
-// La clase 4 con el tipo 0xa05 en la izquierda lleva 0x1c17 (0x420cf0).
+// Class 4 with type 0xa05 on the left holds 0x1c17 (0x420cf0).
 TEST(CharacterAppearanceTest, ClassFourWithTheTypeA05HoldsTheRaven)
 {
     EquipmentBytes bytes = Naked();
@@ -230,8 +228,7 @@ TEST(CharacterAppearanceTest, ClassFourWithTheTypeA05HoldsTheRaven)
     EXPECT_EQ(AppearanceOf(3, 0, bytes).leftHand->model, 0x212 + 0xa05);
 }
 
-// 0x512930: 0,9 o 0,93 en las clases 0 y 1, 0,88 o 0,86 en la 2, 0,95 en la 3 y 0,92 en la 4,
-// según la piel sea 0 o no.
+// 0x512930: 0.9 or 0.93 for classes 0 and 1, 0.88 or 0.86 for 2, 0.95 for 3 and 0.92 for 4, as the skin is 0 or not.
 TEST(CharacterAppearanceTest, TheScaleGoesByClassAndSkin)
 {
     EXPECT_FLOAT_EQ(ClassAppearance(0, 0).scale, 0.9f);
@@ -244,7 +241,7 @@ TEST(CharacterAppearanceTest, TheScaleGoesByClassAndSkin)
     EXPECT_FLOAT_EQ(ClassAppearance(8, 0).scale, 0.9f);
 }
 
-// 0x512930: la cabeza de la clase va solo con los cascos 0x1012, 0x1014 y 0x101c a 0x101f.
+// 0x512930: the class's head shows only with helmets 0x1012, 0x1014 and 0x101c to 0x101f.
 TEST(CharacterAppearanceTest, TheHeadShowsUnderTheOpenHelmets)
 {
     EquipmentBytes bytes = Naked();

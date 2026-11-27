@@ -37,8 +37,8 @@ and the `.orig` copy hold.
 
 ## Global Constraints
 
-- `Client/assets/Data` is never written: `mutools web --edit` on it is `USAGE`, and `roundtrip` still gives 1,991
-  identical and 3 skipped.
+- `Client/assets/Data` is never written: `mutools web --edit` on it is `REFERENCE_READ_ONLY`, and `roundtrip` still
+  gives 1,991 identical and 3 skipped.
 - Without `--edit` the studio writes nothing and looks as it does today.
 - `core/` imports only the standard library; only `adapters/web` imports NiceGUI.
 - Schema 1 holds: `web` gains `--edit` and its output a boolean `edit`; no new error code, exit code or finding.
@@ -52,7 +52,8 @@ and the `.orig` copy hold.
    SHA-256. Its `import ... from 'three'` reaches the bundled three through a two-line module of ours registered as
    `three` in the import map, which re-exports those names from `nicegui-scene`; another test checks that the module
    exports every name the vendored file imports.
-2. **Only a working copy is edited.** `--edit` on the reference is `USAGE`, with `workspace init` as the suggestion.
+2. **Only a working copy is edited.** `--edit` on the reference is `REFERENCE_READ_ONLY`, as every other write there,
+   with `workspace init` as the suggestion.
    In edit mode the header says "Working copy, editing".
 3. **The page's own connection carries the edits.** No new route writes. The server refuses (403) every request whose
    `Origin` is not its own address, so a page of another site cannot open the socket or drive the page.

@@ -270,7 +270,7 @@ private:
     Assets::SceneTextures m_windowTextures;
     // El de SceneWorlds.h: el 55.
     std::optional<Render::Frame::SceneWorld> m_world;
-    Kernel::LoadedWorld m_terrain;
+    Assets::LoadedWorld m_terrain;
     // El rango de bloques del terreno con la cámara del login (0x5fbb00): la carga lo inicializa; cada dibujo
     // lo actualiza para el paso siguiente. El trapecio (0x5fb570) es el global de WorldRuntime.
     Terrain::TerrainRange m_terrainRange;

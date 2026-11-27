@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Kernel
+namespace Client::Assets
 {
 LoadedWorld::LoadedWorld(Render::ITextureStore& store) : m_tiles(store) {}
 
@@ -114,4 +114,4 @@ void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClo
     m_water.offset = Terrain::WaterOffsetAt(frameClock, m_view.map);
     Terrain::DrawTerrain(batch, view, range, polygon, m_water);
 }
-} // namespace Client::Kernel
+} // namespace Client::Assets

@@ -19,7 +19,7 @@
 // A scene's world while the scene lives (CL7.1): what 0x61a560 loads for the terrain (the .map, the .att, the heights,
 // the light and the tiles, Terrain/WorldTerrain.h) and what the scene does with it on each step (0x5fbf60's waves) and
 // each frame (0x5fc260(0)'s terrain pass).
-namespace Client::Kernel
+namespace Client::Assets
 {
 class LoadedWorld
 {
@@ -76,4 +76,4 @@ private:
     Terrain::TerrainView m_view;
     Terrain::TerrainWater m_water;
 };
-} // namespace Client::Kernel
+} // namespace Client::Assets

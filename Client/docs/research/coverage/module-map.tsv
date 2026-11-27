@@ -1473,3 +1473,5 @@ game/Kernel/ActorSpirit.h	51	game/Kernel	game/Kernel	high	the raven's per-actor 
 game/Kernel/CharacterClass.h	31	game/Kernel	game/Kernel	high	the character class: its five base classes and the original's & 7 (AR3.1)
 game/Kernel/GameContext.h	57	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
 game/Kernel/GameContext.cpp	83	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
+game/Session/Route.h	107	game/Session	game/Session	high	routes a row's packet to its handler with the parts of the world the handler names (AR2.2)
+game/Kernel/PlayerKey.h	11	game/Kernel	game/Kernel	high	the key of the player's own character, a part a routed handler can name (AR2.2)

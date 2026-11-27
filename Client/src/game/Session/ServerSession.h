@@ -145,6 +145,11 @@
 // Send que falla) deja el resto del lote sin recorrer: es de una conexión que ya no está, y lo que
 // quedaba del CS no llega nunca al dispatcher del GS. Si la cerró el otro lado, lo que llegó antes
 // del cierre se despacha, y después el Closed.
+namespace Client::Scenes
+{
+struct WorldEntryResources;
+}
+
 namespace Client::App
 {
 // 04 § El flujo de conexión: el timer 1000 de 20.000 ms del original, y 156 keepalives, uno cada
@@ -234,6 +239,13 @@ public:
     // DAT_057678bc, la clave del jugador: la que trae el F1 00 aceptado (0x4c1ec0, antes de mirar la
     // versión) hasta el próximo. 0 antes, como la .bss. La respuesta del F3 03 la pone en el héroe.
     [[nodiscard]] std::uint16_t PlayerIndex() const;
+
+    // What a routed row (Session/Route.h) needs: the world its handler takes its parts from, nullptr if the sink has
+    // none; the warning when its packet cannot be read; and the end of its reception, the sink's AfterWorldReception
+    // and then the result, as after ApplyWorld.
+    [[nodiscard]] const Scenes::WorldEntryResources* RoutedWorld() const;
+    void IgnoreUnreadable(std::string_view ignored);
+    void FinishRoutedReception(Core::Expected<void, std::string> applied);
 
     // 04 § Caminar y pegar y § Los cambios de mapa. El caller decide cuándo corresponde;
     // la sesión sólo exige un GameServer abierto, nunca manda estos paquetes al ConnectServer.
@@ -463,24 +475,14 @@ private:
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
     void OnWeather(const Network::Packet& packet);
-    void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
     // CL9 hito 3: el 0x16 (0x4cf200), el 0x9C (0x4cfce0) y el 0x17 (0x4d0a30).
     void OnKillExperience(const Network::Packet& packet);
     void OnExtendedKillExperience(const Network::Packet& packet);
     void OnDeath(const Network::Packet& packet);
     void OnAction(const Network::Packet& packet);
-    // Los otros jugadores en el viewport (CL9 hito 1): 0x12, 0x14, 0x45, 0x25 y 0xDF.
-    void OnViewportPlayers(const Network::Packet& packet);
-    void OnViewportLeave(const Network::Packet& packet);
-    void OnTransformed(const Network::Packet& packet);
-    void OnEquipmentShown(const Network::Packet& packet);
-    void OnViewportPosition(const Network::Packet& packet);
-    void OnViewportMonsters(const Network::Packet& packet);
-    void OnSummons(const Network::Packet& packet);
     // El 1A (0x4cedd0): la skill que pega a varios.
     void OnMagicAttackCount(const Network::Packet& packet);
-    void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/PlayerKey.h"
 #include "Tables/PlayerModels.h"
 #include "Pathfinding/PathFinder.h"
 #include "Protocol/Movement/Movement.h"
@@ -226,14 +227,14 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& a
     CreateRisingDamage(resources.world, actor.position, reply.amount, light, scale);
 }
 } // namespace
-Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply, std::uint16_t playerKey,
+Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply, Kernel::PlayerKey player,
                                                  const WorldEntryResources& resources)
 {
     ActorState* actor = FindActor(resources.world, reply.characterId);
     if (actor == nullptr || actor->dying != 0)
         return {};
     actor->direction = reply.direction;
-    if (reply.characterId == playerKey)
+    if (reply.characterId == player.Value())
     {
         if (actor->movement != 0)
             return {};

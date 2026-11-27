@@ -10,6 +10,7 @@
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/PlayerKey.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Actors/Viewport.h"
@@ -1087,8 +1088,9 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ActorState& actor = Actor(1);
 
-        applied = Client::Scenes::ApplyWalkReply(
-            Client::Protocol::Movement::Walk{0x0456, {Byte(cell.x + 3), cell.y}, 2}, HeroKey, game->Resources());
+        applied =
+            Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{0x0456, {Byte(cell.x + 3), cell.y}, 2},
+                                           Client::Kernel::PlayerKey{HeroKey}, game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(actor.targetX, cell.x + 3);
         EXPECT_EQ(actor.direction, 2);

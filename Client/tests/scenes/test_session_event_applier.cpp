@@ -31,6 +31,7 @@
 #include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/LetterModel.h"
 #include "World/GameCamera.h"
 
 #include "support/Bytes.h"
@@ -233,15 +234,33 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
 
-TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
+TEST(SessionEventApplierTest, DamageReachesItsApplierWithoutFallingThroughToF303)
 {
     auto owned = std::make_unique<Applier>();
     Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
-    const Client::App::WorldEvent walk = Client::Protocol::Movement::Walk{42, {30, 31}, 15};
     const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
-    EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
     EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
+}
+
+// The routed rows (Session/Route.h) take their parts from the applier's world: the 14 through the real session lets go
+// of the other player, and the orders the chat windows left go out after it, as after every reception.
+TEST(SessionEventApplierTest, TheLeaveWireLetsGoOfAnotherThroughTheRealSession)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    EXPECT_EQ(&tested->applier.RoutedWorld()->world, &tested->world);
+    auto& other = tested->world.Actors()[8];
+    other.alive = true;
+    other.key = 0x45;
+    tested->world.Runtime().oldWindows.chatRooms.orders.push_back(
+        Client::UI::ChatRoomOrder{.kind = Client::UI::ChatRoomOrder::Kind::Ping, .room = 0x0304, .text = {}});
+    online.socket.reads = {Client::Tests::Bytes({0xc1, 6, 0x14, 1, 0x80, 0x45})};
+    ASSERT_TRUE(online.session.Poll().HasValue());
+    EXPECT_FALSE(other.alive);
+    EXPECT_TRUE(tested->world.Runtime().oldWindows.chatRooms.orders.empty());
+    EXPECT_NE(online.session.State(), Client::App::SessionState::Failed);
 }
 // 07 Q-C1240: el 22, el 23 y el 2C cortos llegan a lo que sueltan (0x4d10b9, 0x4d13e5 y 0x4deb0e), sin caer en el
 // F3 03.

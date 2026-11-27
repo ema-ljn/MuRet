@@ -33,6 +33,7 @@
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/ModuleStates.h"
 
 #include "support/CharacterPackets.h"
 #include "support/GoldenDir.h"
@@ -81,6 +82,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
+    Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     auto data = Client::Tables::LoadGameData(m_dataRoot);
@@ -144,7 +146,8 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
                                                .camera = &camera,
                                                .cameraInput = &cameraInput,
                                                .selection = &selection,
-                                               .world = &world};
+                                               .world = &world,
+                                               .states = &states};
     Client::Scenes::GameScene* game = nullptr;
     Client::Tests::RecordingFrameTarget target;
     Client::Scenes::SceneManager manager(

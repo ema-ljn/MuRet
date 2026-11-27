@@ -345,8 +345,9 @@ Result StepThe182(ModelEffectsPass& pass)
                                              .angle = actor.angles.x,
                                              .color = actor.light,
                                              .size = Bits(0x3f266666u)};
-    if (auto marked = Terrain::AddGroundMark(pass.world.Runtime().groundMarks, request, pass.random);
-        !marked.HasValue())
+    if (pass.groundMarks == nullptr)
+        return Core::Unexpected(std::format("0x507486: no ground marks table (model {:#x})", actor.type));
+    if (auto marked = Terrain::AddGroundMark(*pass.groundMarks, request, pass.random); !marked.HasValue())
         return Core::Unexpected(std::format("0x507486: {} (modelo {:#x})", marked.Error(), actor.type));
     return {};
 }

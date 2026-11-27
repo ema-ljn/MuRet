@@ -24,6 +24,7 @@
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
+#include "Session/ModuleStates.h"
 #include "support/Bytes.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
@@ -85,6 +86,7 @@ protected:
         ASSERT_FALSE(HasFatalFailure());
         ASSERT_NO_FATAL_FAILURE(m_online.LogIn());
         m_world = std::make_unique<Client::Kernel::WorldState>();
+        m_states = std::make_unique<Client::Session::ModuleStates>();
         m_models = std::make_unique<Client::Assets::GameModels>();
         const auto models = m_models->Load(m_dataRoot, m_textures, m_online.log);
         ASSERT_TRUE(models.HasValue()) << models.Error();
@@ -102,7 +104,8 @@ protected:
                                                                                            .input = &m_input,
                                                                                            .world = m_world.get(),
                                                                                            .textMeasure = &m_letters,
-                                                                                           .clipboard = &m_clipboard},
+                                                                                           .clipboard = &m_clipboard,
+                                                                                           .states = m_states.get()},
                                                               &m_online.session, m_models.get(), nullptr,
                                                               &m_models->TextureSlots(), nullptr, &m_skills);
         ASSERT_TRUE(m_scene->Enter().HasValue());
@@ -173,6 +176,7 @@ protected:
         .measure = m_letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
     Client::Tables::SkillTable m_skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     std::unique_ptr<Client::Kernel::WorldState> m_world;
+    std::unique_ptr<Client::Session::ModuleStates> m_states;
     std::unique_ptr<Client::Assets::GameModels> m_models;
     Client::Tests::RecordingFrameTarget m_target;
     std::unique_ptr<Client::Scenes::GameScene> m_scene;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Terrain/GroundMarks.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -51,6 +52,8 @@ struct ModelEffectsPass
     World::FrameSprites* sprites = nullptr;
     float worldClock = 0.0f;
     std::int32_t map = 0;
+    // The ground marks the 0x182 adds to (0x507486). nullptr: it stops there.
+    Terrain::GroundMarkTable* groundMarks = nullptr;
 };
 
 [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects(ModelEffectsPass& pass);

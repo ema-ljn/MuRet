@@ -22,6 +22,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
@@ -147,8 +148,10 @@ public:
     [[nodiscard]] World::ObjectModelStepState& FrameModelState();
 
     // 0x5fc260(0): el terreno, el pasto y las marcas del suelo.
-    [[nodiscard]] Core::Expected<void, std::string>
-    DrawTerrain(Kernel::WorldState& world, const Terrain::WorldTerrain& terrain, const SelectionWorldFrame& frame);
+    [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(Kernel::WorldState& world,
+                                                                const Terrain::WorldTerrain& terrain,
+                                                                const Terrain::GroundMarkTable& groundMarks,
+                                                                const SelectionWorldFrame& frame);
     // 0x6046a0 con los casos de 0x602ed0 → 0x425260. `poseCarry` es el buffer global de la pose del frame.
     [[nodiscard]] Core::Expected<void, std::string>
     DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, FaunaDrawCarry& poseCarry);

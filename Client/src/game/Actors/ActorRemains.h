@@ -44,8 +44,9 @@ struct ActorRemainsContext
     float modelScale = 0.0f;
     glm::vec3 modelOrigin{};
     World::ModelEffects& effects;
-    Terrain::GroundMarkTable& marks;
     Crt::CrtRandom& random;
+    // nullptr: the first blood mark stops at 0x52e96c.
+    Terrain::GroundMarkTable* marks = nullptr;
 };
 
 // 0x52e810(c): with the model's +0x54 bone at −1, nothing. 0x161 (the ice monster of Devias) turns off its live byte

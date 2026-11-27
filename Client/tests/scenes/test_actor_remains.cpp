@@ -50,8 +50,8 @@ struct Remains
                                    .modelScale = scale,
                                    .modelOrigin = origin,
                                    .effects = effects,
-                                   .marks = marks,
-                                   .random = random};
+                                   .random = random,
+                                   .marks = &marks};
     }
 
     [[nodiscard]] std::size_t LiveEffects() const
@@ -203,6 +203,23 @@ TEST(ActorRemainsTest, ThePlayerLeavesTwoBloodMarksAroundItsHeadBone)
     }
     EXPECT_EQ(remains->random.State(), draws.State());
     EXPECT_EQ(draws.State(), Client::Tests::AfterDraws(Seed, BloodDraws).State());
+}
+
+// Without the marks table, the first mark stops at 0x52e96c after its four rand(), before 0x548fe0 draws its life.
+TEST(ActorRemainsTest, WithoutTheMarksTableTheFirstMarkStops)
+{
+    auto remains = std::make_unique<Remains>();
+    remains->skeleton.headBone = 5;
+    ActorState actor = Dead(0x153);
+    ActorRemainsContext context = remains->Context(1.0f, {500.0f, 600.0f, 0.0f});
+    context.marks = nullptr;
+
+    const auto left = LeaveTheRemains(actor, context);
+
+    ASSERT_FALSE(left.HasValue());
+    EXPECT_NE(left.Error().find("0x52e96c"), std::string::npos) << left.Error();
+    EXPECT_EQ(remains->LiveMarks(), 0u);
+    EXPECT_EQ(remains->random.State(), Client::Tests::AfterDraws(Seed, 4).State());
 }
 
 // A Devias monster without own bones (its drawing is not ported, or before the first one): the matrix at zero (Q-C318),

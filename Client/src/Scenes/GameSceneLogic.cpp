@@ -18,6 +18,7 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 
+#include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -40,7 +41,6 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SkillHits.h"
-#include "Camera/TerrainPolygonFrame.h"
 #include "Kernel/WorldRuntime.h"
 #include "Terrain/GroundEffectDrawing.h"
 #include "Scenes/WizardEffects.h"
@@ -132,7 +132,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
                 if (m_session == nullptr)
                     return Core::Unexpected(std::string("0x4fbee8: no hay sesión para el AF 02"));
                 return m_session->SendChaosCastleReposition(x, y);
-            }});
+            },
+            .groundMarks = &m_context.states->terrain.groundMarks});
         !stepped.HasValue())
     {
         return stepped;
@@ -419,7 +420,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     {
         return particles;
     }
-    Terrain::StepGroundMarks(runtime.groundMarks);
+    Terrain::StepGroundMarks(m_context.states->terrain.groundMarks);
     // 0x637132: 0x403590, el recorrido de la cámara, con timeGetTime (0x404c90): el reloj de la escena en ms.
     const auto now = m_context.clock != nullptr
                          ? static_cast<std::uint32_t>(

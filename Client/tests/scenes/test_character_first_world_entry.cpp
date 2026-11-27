@@ -28,6 +28,7 @@
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
+#include "Session/ModuleStates.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
@@ -96,7 +97,8 @@ protected:
                 .cameraInput = &m_cameraInput,
                 .selection = &m_selection,
                 .world = m_world.get(),
-                .textMeasure = &m_letters};
+                .textMeasure = &m_letters,
+                .states = &m_states};
     }
 
     void CreateAndChoose(std::uint8_t characterClass = 0, std::uint8_t slot = 3, bool firstSelection = true)
@@ -217,6 +219,7 @@ protected:
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates m_states;
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::Models::ClothWorld m_cloth;
     Client::Camera::GameCamera m_camera;

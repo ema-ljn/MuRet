@@ -48,6 +48,7 @@
 #include "Assets/GameModels.h"
 #include "Scenes/HelperTable.h"
 #include "Session/MapLoad.h"
+#include "Session/ModuleStates.h"
 #include "Camera/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -118,6 +119,7 @@ using Client::Models::ClothWorld;
 using Client::Scenes::GameScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
+using Client::Session::ModuleStates;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::LoggedInSession;
 
@@ -280,7 +282,8 @@ struct Harness
                              .log = log,
                              .cloth = &cloth,
                              .world = &world,
-                             .textMeasure = &letters},
+                             .textMeasure = &letters,
+                             .states = &states},
                 session)
     {
         GiveInertTerrain(world);
@@ -295,6 +298,7 @@ struct Harness
     LetterMeasure letters;
     ClothWorld cloth{.random = CrtRandom(Seed)};
     WorldState world;
+    ModuleStates states;
     GameScene scene;
     const Client::Input::InputState input;
 };
@@ -428,8 +432,8 @@ TEST(GameSceneTest, TheLogHasTheSlotNotTheName)
 }
 
 // La espera vive en el WorldState y sus cierres gastan el rand() de la tela: sin alguno de los dos,
-// el juego no entra en vez de dibujar sin esperar.
-TEST(GameSceneTest, DoesNotEnterWithoutTheWorldOrTheRandom)
+// el juego no entra en vez de dibujar sin esperar. Without the modules' states, neither.
+TEST(GameSceneTest, DoesNotEnterWithoutTheWorldTheRandomOrTheStates)
 {
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
@@ -438,13 +442,24 @@ TEST(GameSceneTest, DoesNotEnterWithoutTheWorldOrTheRandom)
         SceneContext{
             .dataRoot = Client::Tests::RepoDataDir(), .textures = tested.store, .log = log, .cloth = &tested.cloth},
         nullptr);
-    GameScene withoutRandom(
-        SceneContext{
-            .dataRoot = Client::Tests::RepoDataDir(), .textures = tested.store, .log = log, .world = &tested.world},
-        nullptr);
+    GameScene withoutRandom(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
+                                         .textures = tested.store,
+                                         .log = log,
+                                         .world = &tested.world,
+                                         .states = &tested.states},
+                            nullptr);
+    GameScene withoutStates(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
+                                         .textures = tested.store,
+                                         .log = log,
+                                         .cloth = &tested.cloth,
+                                         .world = &tested.world},
+                            nullptr);
 
     EXPECT_FALSE(withoutWorld.Enter().HasValue());
     EXPECT_FALSE(withoutRandom.Enter().HasValue());
+    const auto entered = withoutStates.Enter();
+    ASSERT_FALSE(entered.HasValue());
+    EXPECT_NE(entered.Error().find("modules' states"), std::string::npos) << entered.Error();
 }
 
 // 06, "La entrada al mundo", pasos 3, 4 y 6: con el mundo cargado y el contador que dejó la carga, el
@@ -652,13 +667,15 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
         FakeTextureStore store;
         ClothWorld cloth{.random = RandomAfter(Skipped)};
         WorldState world;
+        ModuleStates states;
         GiveInertTerrain(world);
         const HorseSkeletonOnly models;
         GameScene scene(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
                                      .textures = store,
                                      .log = log,
                                      .cloth = &cloth,
-                                     .world = &world},
+                                     .world = &world,
+                                     .states = &states},
                         nullptr, &models);
         world.Runtime().drawingEnabled = true;
         world.Runtime().warpCounter = WorldLoadingWait;
@@ -764,6 +781,7 @@ TEST(GameSceneTest, AStepWithTheWorldLeavesAFifthOfTheShake)
     FakeTextureStore store;
     ClothWorld cloth{.random = CrtRandom(Seed)};
     WorldState world;
+    ModuleStates states;
     GiveInertTerrain(world);
     Client::Camera::GameCameraInput cameraInput;
     GameScene scene(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
@@ -771,7 +789,8 @@ TEST(GameSceneTest, AStepWithTheWorldLeavesAFifthOfTheShake)
                                  .log = log,
                                  .cloth = &cloth,
                                  .cameraInput = &cameraInput,
-                                 .world = &world},
+                                 .world = &world,
+                                 .states = &states},
                     nullptr);
     ASSERT_TRUE(scene.Enter().HasValue());
     cameraInput.shake = 3.0f;
@@ -901,7 +920,8 @@ protected:
                                       .pacing = pacing,
                                       .camera = &camera,
                                       .cameraInput = &cameraInput,
-                                      .world = &world},
+                                      .world = &world,
+                                      .states = &states},
                          nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
                          &*data.skills, texts);
     }
@@ -912,6 +932,7 @@ protected:
     FakeTextureStore store;
     ClothWorld cloth{.random = CrtRandom(Seed)};
     WorldState world;
+    ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Assets::GameModels playerModels;
@@ -1309,7 +1330,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         const Drawn leveled = draw(scene, target, at);
         EXPECT_EQ(camera.level, 2);
         EXPECT_EQ(camera.targetDistance, 1200.0f);
-        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 2);
+        EXPECT_EQ(states.camera.terrainPolygon.effectiveLevel, 2);
         EXPECT_EQ(leveled.pass.farPlane, 2000.0f);
         EXPECT_EQ(leveled.pass.view, twin.pass.view);
         EXPECT_NE(leveled.polygon.x, twin.polygon.x);
@@ -1328,15 +1349,15 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         EXPECT_EQ(camera.targetDistance, 1000.0f);
         EXPECT_EQ(back.pass.farPlane, 2600.0f);
         EXPECT_GT(camera.distance, 1001.0f);
-        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 2);
+        EXPECT_EQ(states.camera.terrainPolygon.effectiveLevel, 2);
         int frames = 1;
-        while (world.Runtime().terrainPolygonState.effectiveLevel != 0 && frames < 30)
+        while (states.camera.terrainPolygon.effectiveLevel != 0 && frames < 30)
         {
             at += FrameTime;
             static_cast<void>(draw(scene, target, at));
             ++frames;
         }
-        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 0);
+        EXPECT_EQ(states.camera.terrainPolygon.effectiveLevel, 0);
         EXPECT_LT(camera.distance, 1001.0f);
         EXPECT_GT(frames, 5);
         scene.Leave();
@@ -1574,14 +1595,14 @@ TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
-        world.Runtime().groundMarks = {};
-        world.Runtime().groundMarks[17] = Client::Terrain::GroundMark{.live = true,
-                                                                      .type = 0x5e3,
-                                                                      .size = 0.65f,
-                                                                      .position = world.Actors()[HeroSlot].position,
-                                                                      .color = glm::vec3(0.1f, 0.0f, 0.0f),
-                                                                      .alpha = 1.0f,
-                                                                      .life = 60};
+        states.terrain.groundMarks = {};
+        states.terrain.groundMarks[17] = Client::Terrain::GroundMark{.live = true,
+                                                                     .type = 0x5e3,
+                                                                     .size = 0.65f,
+                                                                     .position = world.Actors()[HeroSlot].position,
+                                                                     .color = glm::vec3(0.1f, 0.0f, 0.0f),
+                                                                     .alpha = 1.0f,
+                                                                     .life = 60};
         GameScene scene = Scene();
         ASSERT_TRUE(scene.Enter().HasValue());
         Client::Tests::RecordingFrameTarget target;
@@ -1605,7 +1626,7 @@ TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
                   RandomAfter(4 + 8 + probe.objectDraws + FramePickingDraws + HudBaseDraws).State());
         scene.Leave();
     }
-    world.Runtime().groundMarks = {};
+    states.terrain.groundMarks = {};
 }
 
 // Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), y 0x5fa830 llama a 0x405e00 con cada celda del
@@ -1809,7 +1830,8 @@ TEST_F(GameSceneDrawTest, EachFrameStartCountsTheSkillDelaysDown)
                                  .cloth = &cloth,
                                  .camera = &camera,
                                  .cameraInput = &cameraInput,
-                                 .world = &world},
+                                 .world = &world,
+                                 .states = &states},
                     nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
                     &*data.skills);
     Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
@@ -1877,7 +1899,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
         MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
         world.Runtime().terrainPolygon = SelectionPolygon();
-        Client::Terrain::GroundMarkTable& marks = world.Runtime().groundMarks;
+        Client::Terrain::GroundMarkTable& marks = states.terrain.groundMarks;
         marks = {};
         const Client::Terrain::GroundMark blood{.live = true,
                                                 .type = 0x5e3,
@@ -1916,7 +1938,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         EXPECT_EQ(cloth.random.State(), reference.random.State());
         scene.Leave();
     }
-    world.Runtime().groundMarks = {};
+    states.terrain.groundMarks = {};
 }
 
 // Q-C217: sin un dibujo antes (un WorldState recién hecho), el trapecio es el de la .bss, todo en cero, y 0x5fba90
@@ -1967,7 +1989,8 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
                                      .cloth = &cloth,
                                      .camera = &camera,
                                      .cameraInput = &cameraInput,
-                                     .world = &world},
+                                     .world = &world,
+                                     .states = &states},
                         nullptr, nullptr, &data.items->table, nullptr, &*data.gates, &*data.skills);
         ASSERT_TRUE(scene.Enter().HasValue());
 
@@ -1994,13 +2017,13 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
 TEST_F(GameSceneDrawTest, AStepAfterACutDrawDoesNothing)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 143, 120));
-    world.Runtime().groundMarks[0] = Client::Terrain::GroundMark{.live = true,
-                                                                 .type = 0x606,
-                                                                 .size = 1.0f,
-                                                                 .position = world.Actors()[HeroSlot].position,
-                                                                 .color = glm::vec3(1.0f),
-                                                                 .alpha = 1.0f,
-                                                                 .life = 60};
+    states.terrain.groundMarks[0] = Client::Terrain::GroundMark{.live = true,
+                                                                .type = 0x606,
+                                                                .size = 1.0f,
+                                                                .position = world.Actors()[HeroSlot].position,
+                                                                .color = glm::vec3(1.0f),
+                                                                .alpha = 1.0f,
+                                                                .life = 60};
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     Client::Tests::RecordingFrameTarget target;

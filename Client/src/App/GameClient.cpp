@@ -129,7 +129,8 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                 .world = &m_world,
                 .textMeasure = &devices.textMeasure,
                 .worldEntry = &m_worldEntry,
-                .clipboard = devices.clipboard},
+                .clipboard = devices.clipboard,
+                .states = &m_states},
       m_manager([this](Scenes::SceneId id) { return MakeScene(id); }, devices.frame, devices.clock,
                 [this] { return PollNetwork(); }, devices.log, [this] { return TakeSceneOrder(); },
                 [this](Core::Duration now) { BeforeSceneFrame(now); }, [this](Core::Duration now)

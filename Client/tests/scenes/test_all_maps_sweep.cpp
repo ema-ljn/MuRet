@@ -16,7 +16,6 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "Terrain/GroundMarks.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
@@ -65,8 +64,6 @@ constexpr std::array<std::uint8_t, 7> RegistrationPayload{1, 2, 3, 4, 5, 6, 7};
 constexpr std::size_t OwnActor = 1;
 constexpr std::size_t OtherActor = 2;
 constexpr std::size_t LastActor = 400;
-constexpr std::size_t DurableMarkSlot = 63;
-constexpr Client::Terrain::GroundMark DurableMark{.live = true, .type = 0x5e3, .size = 0.65f, .life = 25};
 
 const MapSweepWorldCase* WorldCase(std::uint8_t folder)
 {
@@ -141,7 +138,6 @@ void SeedTheEffectPools(WorldState& world)
     }
     world.Particles().Wind().wind = glm::vec2(1.0f, -0.5f);
     world.Particles().Wind().change = glm::vec2(-0.25f, 0.125f);
-    world.Runtime().groundMarks[DurableMarkSlot] = DurableMark;
     world.Runtime().warpCounter = 123;
     world.Runtime().drawingEnabled = true;
 }
@@ -303,7 +299,6 @@ void ExpectEffectCleanup(const WorldState& world, const MapSweepCase& probe)
     }
     EXPECT_EQ(world.Particles().Wind().wind, glm::vec2(1.0f, -0.5f));
     EXPECT_EQ(world.Particles().Wind().change, glm::vec2(-0.25f, 0.125f));
-    EXPECT_EQ(world.Runtime().groundMarks[DurableMarkSlot], DurableMark);
     EXPECT_EQ(world.Runtime().warpCounter, 123);
     EXPECT_TRUE(world.Runtime().drawingEnabled);
 }

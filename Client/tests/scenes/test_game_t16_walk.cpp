@@ -475,8 +475,7 @@ TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
     input.cameraYaw = -40.0f;
     input.webzenProfile = true;
     input.webzenYaw = true;
-    const auto expected =
-        Client::Terrain::TerrainPolygonOf(input, m_world->Runtime().terrainPolygonState.effectiveLevel);
+    const auto expected = Client::Terrain::TerrainPolygonOf(input, m_states->camera.terrainPolygon.effectiveLevel);
     ASSERT_TRUE(expected.HasValue());
     EXPECT_EQ(m_world->Runtime().terrainPolygon.x, expected.Value().x);
     EXPECT_EQ(m_world->Runtime().terrainPolygon.y, expected.Value().y);

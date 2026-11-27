@@ -78,7 +78,8 @@ protected:
                                               .particles = &m_world->Particles(),
                                               .sprites = &m_sprites,
                                               .worldClock = m_clock,
-                                              .map = map};
+                                              .map = map,
+                                              .groundMarks = m_groundMarks};
         return Client::Scenes::StepTheModelEffects(pass);
     }
 
@@ -194,6 +195,8 @@ protected:
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::World::FrameSprites m_sprites;
+    Client::Terrain::GroundMarkTable m_marks{};
+    Client::Terrain::GroundMarkTable* m_groundMarks = &m_marks;
     Client::Models::Skeleton m_skeleton;
     ActorState m_actor;
     float m_clock = Clock;
@@ -740,12 +743,30 @@ TEST_F(ModelEffectsTest, TheBleedingMonsterMarksTheGround)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        m_world->Runtime().groundMarks = {};
+        m_marks = {};
         CrtRandom random(mark);
         ASSERT_TRUE(Step(0x182, map, random).HasValue());
-        EXPECT_TRUE(m_world->Runtime().groundMarks[0].live);
-        EXPECT_EQ(m_world->Runtime().groundMarks[0].type, 0x5e3);
+        EXPECT_TRUE(m_marks[0].live);
+        EXPECT_EQ(m_marks[0].type, 0x5e3);
     }
+}
+
+// Without the marks table, the 0x182 that marks stops at 0x507486.
+TEST_F(ModelEffectsTest, WithoutTheMarksTableTheBleedingMonsterStops)
+{
+    const std::uint32_t mark = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 5 == 0;
+        });
+    m_groundMarks = nullptr;
+    CrtRandom random(mark);
+
+    const auto stepped = Step(0x182, 0, random);
+
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x507486"), std::string::npos) << stepped.Error();
 }
 
 // 0x43bdd0: el 0x191 y el 0x196 laten +0x68; del 0x193 al 0x195, nada; el 0xc5 fuera de la 0 pone +0x64 en 1; en la

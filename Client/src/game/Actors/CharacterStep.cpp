@@ -418,8 +418,8 @@ Core::Expected<void, std::string> LeaveTheRemainsOf(Kernel::ActorState& actor, c
                                                       .modelScale = placement.scale,
                                                       .modelOrigin = placement.origin,
                                                       .effects = context.world.Map().effects,
-                                                      .marks = context.world.Runtime().groundMarks,
-                                                      .random = context.random});
+                                                      .random = context.random,
+                                                      .marks = context.groundMarks});
 }
 
 // 0x4fcb10(c, c) from 0x4fce57, with the action that finished.
@@ -1267,7 +1267,8 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
                                       .particles = context.particles,
                                       .sprites = context.sprites,
                                       .worldClock = context.worldClock,
-                                      .map = map};
+                                      .map = map,
+                                      .groundMarks = context.groundMarks};
         return Scenes::StepTheModelEffects(pass);
     }
     static_cast<void>(context.random.Next());

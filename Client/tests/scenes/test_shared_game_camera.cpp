@@ -31,6 +31,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/ModuleStates.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FixedRandom.h"
@@ -75,7 +76,8 @@ protected:
                 .log = m_log,
                 .pacing = pacing,
                 .camera = &m_camera,
-                .cameraInput = &m_cameraInput};
+                .cameraInput = &m_cameraInput,
+                .states = &m_states};
     }
 
     Client::Render::Pass3D Frame(Client::Scenes::IScene& scene, Client::Core::Duration clock)
@@ -111,6 +113,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     Client::Tests::RecordingFrameTarget m_target;
+    Client::Session::ModuleStates m_states;
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tables::GameData m_data;
     GameCamera m_camera;

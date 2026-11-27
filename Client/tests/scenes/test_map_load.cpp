@@ -20,6 +20,7 @@
 #include "Kernel/WorldState.h"
 #include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainLighting.h"
+#include "Terrain/TerrainState.h"
 #include "World/WorldObjectRegistrations.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainCulling.h"
@@ -154,6 +155,7 @@ protected:
     }
 
     WorldState world;
+    Client::Terrain::TerrainState terrainState;
     CrtRandom random{Seed};
 };
 
@@ -314,14 +316,14 @@ TEST_F(MapLoadTest, TheGroundMarksSurviveTheMapLoad)
                                            .color = glm::vec3(0.1f, 0.0f, 0.0f),
                                            .alpha = 0.5f,
                                            .life = 25};
-    world.Runtime().groundMarks[63] = mark;
+    terrainState.groundMarks[63] = mark;
 
     for (const std::uint8_t map : {std::uint8_t{2}, std::uint8_t{0}})
     {
         SCOPED_TRACE(static_cast<int>(map));
         ASSERT_TRUE(Load(map).HasValue());
-        EXPECT_EQ(world.Runtime().groundMarks[63], mark);
-        EXPECT_FALSE(world.Runtime().groundMarks[62].live);
+        EXPECT_EQ(terrainState.groundMarks[63], mark);
+        EXPECT_FALSE(terrainState.groundMarks[62].live);
     }
 }
 

@@ -10391,7 +10391,7 @@ lado, el color y el alfa del último paso del juego, quietas (Q-C233).
 
 **MuRet** (CL7, hito 1):
 
-- **La tabla.** `WorldRuntime::groundMarks` (`World::GroundMarkTable`): 100 `GroundMark` apagadas al
+- **La tabla.** `Terrain::TerrainState::groundMarks` (`Terrain::GroundMarkTable`): 100 `GroundMark` apagadas al
   arrancar, como la .bss, que `LoadMap` no toca.
 - **`0x548fe0`.** `World::AddGroundMark`, con el `rand()` de `CrtRandom`. Si la tabla está llena y
   ninguna vida baja de 9.999, corta con error en `0x54900c`. La llama `0x52e810` (`Scenes::LeaveTheRemains`,
@@ -10766,8 +10766,8 @@ escribió: en las escenas 2, 4 y 5, que son las que los escriben, prueba el trap
 .data del archivo, desde `0x6c6000`, trae `0x20000` bytes): arrancan en cero, un trapecio sin área en (0, 0)
 que deja pasar todo con margen negativo (Q-C217). Así, el paso de los personajes de cada escena lee el del
 último dibujo de cualquiera: el primero del login, los ceros o el de la escena de antes; el primero del
-juego después de la espera, el de la selección (Q-C216). En MuRet son `Scenes::WorldRuntime::terrainPolygon`
-y `terrainPolygonState`. Cada frame del original corre la cámara (`0x635ae0`) y detrás `0x5fbb00`, en par
+juego después de la espera, el de la selección (Q-C216). En MuRet son `Kernel::WorldRuntime::terrainPolygon`
+y `Camera::CameraState::terrainPolygon`. Cada frame del original corre la cámara (`0x635ae0`) y detrás `0x5fbb00`, en par
 (`Scenes::StepTheTerrainPolygon`, en la selección y el juego); un dibujo intermedio de MuRet solo calcula con
 el nivel que hay, sin escribir (`TerrainPolygonBetweenFrames`). El login escribe el trapecio del nivel 0 sin
 la transición: con el nivel pedido siempre en 0, da lo mismo ([08](08-pendientes.md) P-C41 d). El rango
@@ -15160,7 +15160,7 @@ por los ángulos, `0x5fc8f0` y `0x5fcbd0`) y la caída (`+0xe4`) en `(rand() & 1
 
 **MuRet.** `Scenes::LeaveTheRemains` (`ActorRemains.h`), desde `CharacterStep`: `StopAtTheEnd` con el `0x20a` y
 `ModelActionEnd::LeaveRemains` de `FinishTheModelAction` con los monstruos. Toma el esqueleto del tipo, la tabla
-`WorldMap::effects`, `WorldRuntime::groundMarks` y la escala y la posición de `WorldState::ModelPlacement`, las del
+`WorldMap::effects`, `Terrain::TerrainState::groundMarks` y la escala y la posición de `WorldState::ModelPlacement`, las del
 último `0x505ec6` de ese tipo (`WorldState::PlaceModel`). El pedazo, `ModelEffects::CreateIceShard`, y su paso,
 `StepStoneChip` con el aliento. El juego sube `Effect\blood01.tga` al `0x5e3` (`0x61d7aa`) para dibujar las marcas.
 Cortan el modelo sin cargar (`0x52e834`) y un hueso fuera de los huesos propios posados (`0x52e91c`, donde el original

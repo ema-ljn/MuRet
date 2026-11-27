@@ -32,6 +32,7 @@
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/Particles.h"
@@ -348,8 +349,8 @@ struct GameWorld
     // Con el global como esté.
     Client::Core::Expected<void, std::string> Step(SceneId scene = SceneId::Game)
     {
-        return StepCharacters(
-            CharacterStepContext{.world = world, .random = random, .scene = scene, .playerSkeleton = player});
+        return StepCharacters(CharacterStepContext{
+            .world = world, .random = random, .scene = scene, .playerSkeleton = player, .groundMarks = &marks});
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -360,6 +361,7 @@ struct GameWorld
     CrtRandom random{Seed};
     Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     const Skeleton* player = &skeleton;
+    Client::Terrain::GroundMarkTable marks{};
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -2816,7 +2818,7 @@ TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(hero.animation.action, action);
             EXPECT_EQ(hero.byte38a, 1);
-            const auto& marks = tested.world.Runtime().groundMarks;
+            const auto& marks = tested.marks;
             CrtRandom draws = RandomAfter(WallDraws + OwnRecordDraws);
             for (std::size_t slot = 0; slot < 2; ++slot)
             {

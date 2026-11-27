@@ -6,6 +6,7 @@
 #include "Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/SceneId.h"
+#include "Session/ModuleStates.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -56,11 +57,6 @@ namespace Client::Kernel
 {
 class WorldState;
 } // namespace Client::Kernel
-
-namespace Client::Session
-{
-struct ModuleStates;
-} // namespace Client::Session
 
 // La respuesta del F3 03, 0x4c3940 con el paquete cifrado: la carga del mapa, el héroe y lo que
 // sigue. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo" (la tabla

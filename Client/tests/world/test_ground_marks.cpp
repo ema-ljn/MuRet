@@ -5,8 +5,8 @@
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Kernel/WorldRuntime.h"
 #include "Terrain/TerrainDecal.h"
+#include "Terrain/TerrainState.h"
 
 #include <gtest/gtest.h>
 
@@ -89,13 +89,13 @@ ModelBatch BatchBeforeTheMarks()
 }
 } // namespace
 
-// In the .bss: all 100 off at startup, and that is how they reach WorldRuntime.
+// In the .bss: all 100 off at startup, and that is how they reach the terrain's state.
 TEST(GroundMarksTest, TheTableStartsWithEveryMarkOff)
 {
-    const Client::Kernel::WorldRuntime runtime{};
+    const Client::Terrain::TerrainState state{};
 
-    ASSERT_EQ(runtime.groundMarks.size(), 100u);
-    for (const GroundMark& mark : runtime.groundMarks)
+    ASSERT_EQ(state.groundMarks.size(), 100u);
+    for (const GroundMark& mark : state.groundMarks)
     {
         EXPECT_FALSE(mark.live);
         EXPECT_EQ(mark.life, 0);

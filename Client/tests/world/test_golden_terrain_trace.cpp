@@ -23,6 +23,7 @@
 #include "Scenes/SceneContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Session/ModuleStates.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
@@ -408,6 +409,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     Client::Tests::FakeTextureStore store;
     const auto worldOwner = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& world = *worldOwner;
+    Client::Session::ModuleStates states;
     world.Map().terrain = std::move(terrain).Value();
     // The grass offset 0x5f8300 fills on load: the u does not change which cells carry it.
     world.Map().grassOffsets.assign(Client::Data::Terrain::TerrainCellCount, 0.0f);
@@ -430,7 +432,8 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
                                                                  .cloth = &cloth,
                                                                  .camera = &cameraState,
                                                                  .cameraInput = &cameraInput,
-                                                                 .world = &world},
+                                                                 .world = &world,
+                                                                 .states = &states},
                                     nullptr, nullptr, &items.Value().table, nullptr, nullptr, &skills.Value(),
                                     &texts.Value());
     ASSERT_TRUE(scene.Enter().HasValue());

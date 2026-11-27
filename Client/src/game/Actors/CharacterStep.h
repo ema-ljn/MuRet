@@ -9,6 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
+#include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainCulling.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -135,6 +136,9 @@ struct CharacterStepContext
     // The C1 06 AF 02 x y of 0x4fbee8 (Chaos Castle, the hero 10 s on a cell with bit 8), through the session. Empty,
     // that send stops.
     std::function<Core::Expected<void, std::string>(std::uint8_t, std::uint8_t)> sendChaosCastleReposition{};
+    // The ground marks (Terrain::TerrainState::groundMarks) the remains (0x52e96c) and the 0x182 (0x507486) add to.
+    // nullptr: whoever adds one stops there.
+    Terrain::GroundMarkTable* groundMarks = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

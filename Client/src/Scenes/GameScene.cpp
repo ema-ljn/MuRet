@@ -43,6 +43,7 @@
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
 
+#include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
@@ -229,6 +230,10 @@ Core::Expected<void, std::string> GameScene::Enter()
         return Core::Unexpected(std::string("el juego no entra sin el WorldState y el rand() de la CRT: el contador "
                                             "de la espera vive ahí y sus cierres gastan rand()"));
     }
+    if (m_context.states == nullptr)
+    {
+        return Core::Unexpected(std::string("the game does not enter without the modules' states"));
+    }
     m_firstStep = true;
     m_holdFrame = true;
     // Fuera de la escena 5, 0x4eb620 no baja las esperas. Su primer frame en la 5 se lleva los ms desde el último de la
@@ -365,8 +370,8 @@ void GameScene::StepEntry()
 
 Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& input)
 {
-    // Enter no deja entrar sin los dos.
-    if (m_context.world == nullptr || m_context.cloth == nullptr)
+    // Enter no deja entrar sin los tres.
+    if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.states == nullptr)
     {
         return {};
     }
@@ -704,7 +709,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
 void GameScene::PrepareFrame()
 {
     m_holdFrame = true;
-    if (m_context.world == nullptr || m_context.cloth == nullptr)
+    if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.states == nullptr)
     {
         return;
     }
@@ -742,7 +747,8 @@ void GameScene::PrepareFrame()
 
 void GameScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
 {
-    if (m_failure || m_holdFrame || m_context.world == nullptr || m_context.cloth == nullptr)
+    if (m_failure || m_holdFrame || m_context.world == nullptr || m_context.cloth == nullptr ||
+        m_context.states == nullptr)
     {
         return;
     }
@@ -966,10 +972,10 @@ Core::Expected<Terrain::TerrainPolygon, std::string> GameScene::PolygonOfTheFram
     input.webzenProfile = input.webzenYaw = CameraInputState().webzen;
     if (frames == 0)
     {
-        return Camera::TerrainPolygonBetweenFrames(runtime, input);
+        return Camera::TerrainPolygonBetweenFrames(m_context.states->camera, input);
     }
     // El nivel pedido (0x7d3a0ec), la D (0x7d36ba4) y la meta (0x6d5ee0) que dejó la cámara del frame.
-    return Camera::StepTheTerrainPolygon(runtime, input, CameraState());
+    return Camera::StepTheTerrainPolygon(m_context.states->camera, runtime.terrainPolygon, input, CameraState());
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,
@@ -1080,7 +1086,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
             const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
             return metadata ? std::optional(metadata->components) : std::nullopt;
         };
-        if (auto marked = Terrain::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
+        if (auto marked = Terrain::DrawGroundMarks(canvas.models, m_context.states->terrain.groundMarks,
                                                    *terrain.heights, components);
             !marked.HasValue())
         {

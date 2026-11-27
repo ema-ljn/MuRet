@@ -24,6 +24,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -195,7 +196,8 @@ protected:
                                                            .camera = &m_camera,
                                                            .cameraInput = &m_cameraInput,
                                                            .selection = &m_selection,
-                                                           .world = &m_world};
+                                                           .world = &m_world,
+                                                           .states = &m_states};
                 auto game = std::make_unique<Client::Scenes::GameScene>(context, nullptr, &m_models,
                                                                         &m_data.items->table, &m_models.TextureSlots(),
                                                                         &*m_data.gates, &*m_data.skills, &*m_data.text);
@@ -227,7 +229,7 @@ protected:
         EXPECT_EQ(m_world.Runtime().terrainPolygon.x, SelectedPolygon.x);
         EXPECT_EQ(m_world.Runtime().terrainPolygon.y, SelectedPolygon.y);
         EXPECT_FALSE(m_world.Runtime().terrainPolygon.everything);
-        EXPECT_EQ(m_world.Runtime().terrainPolygonState.effectiveLevel, 0);
+        EXPECT_EQ(m_states.camera.terrainPolygon.effectiveLevel, 0);
     }
 
     void ExpectGamePolygon() const
@@ -244,7 +246,7 @@ protected:
             EXPECT_NEAR(polygon.y[corner], static_cast<float>(entry.y) + 0.5f + OffsetY[corner], 0.00005f);
         }
         EXPECT_FALSE(polygon.everything);
-        EXPECT_EQ(m_world.Runtime().terrainPolygonState.effectiveLevel, 0);
+        EXPECT_EQ(m_states.camera.terrainPolygon.effectiveLevel, 0);
     }
 
     void ExpectCompleteFrame() const
@@ -261,6 +263,7 @@ protected:
     Client::Input::InputState m_input;
     Client::Models::ClothWorld m_cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Kernel::WorldState m_world;
+    Client::Session::ModuleStates m_states;
     Client::Scenes::SelectionState m_selection{m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;

@@ -1,12 +1,22 @@
+import re
 import socket
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from nicegui import ui
 from nicegui.testing import User
+from nicegui.testing.general import nicegui_reset_globals
 
 from mubmd.adapters.storage import LocalFileStore
-from mubmd.adapters.web.server import HOST, build, free_port, guard
+from mubmd.adapters.web.server import HOST, build, free_port, guard, serve
 from mubmd.core.errors import ErrorCode, MubmdError
+
+
+@pytest.fixture
+def app_not_started() -> Iterator[None]:
+    with nicegui_reset_globals():
+        yield
 
 
 def test_a_taken_port_is_an_error_with_a_way_out() -> None:
@@ -46,3 +56,15 @@ async def test_another_host_is_refused(user: User, web_copy: Path) -> None:
     ]
 
     assert answers == [400, 200, 200]
+
+
+@pytest.mark.usefixtures("app_not_started")
+def test_ctrl_c_ends_the_server_with_its_address(web_copy: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def stopped_with_ctrl_c(**_: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(ui, "run", stopped_with_ctrl_c)
+
+    address = serve(LocalFileStore(), web_copy, port=0, open_browser=False)
+
+    assert re.fullmatch(r"http://127\.0\.0\.1:\d+", address)

@@ -1,6 +1,7 @@
 import os
 import socket
 import sys
+from contextlib import suppress
 from pathlib import Path
 from typing import Final
 from urllib.parse import urlencode
@@ -48,13 +49,15 @@ def serve(store: FileStore, target: Path, *, port: int, open_browser: bool) -> s
     build(store, root)
     guard()
     app.on_startup(lambda: print(f"mubmd web: {address} (Ctrl+C stops it)", file=sys.stderr, flush=True))
-    ui.run(
-        host=HOST,
-        port=chosen,
-        title=TITLE,
-        dark=True,
-        show=first_page if open_browser else False,
-        reload=False,
-        show_welcome_message=False,
-    )
+    # uvicorn shuts down on Ctrl+C and then raises the signal again.
+    with suppress(KeyboardInterrupt):
+        ui.run(
+            host=HOST,
+            port=chosen,
+            title=TITLE,
+            dark=True,
+            show=first_page if open_browser else False,
+            reload=False,
+            show_welcome_message=False,
+        )
     return address

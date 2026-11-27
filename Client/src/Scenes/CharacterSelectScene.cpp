@@ -529,7 +529,8 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .groundMarks = m_context.states != nullptr ? &m_context.states->terrain.groundMarks : nullptr,
             .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr,
             .dynamicLighting =
-                m_context.states != nullptr ? &m_context.states->terrain.dynamicLight.Lighting() : nullptr};
+                m_context.states != nullptr ? &m_context.states->terrain.dynamicLight.Lighting() : nullptr,
+            .faunaModels = m_context.states != nullptr ? &m_context.states->assets.fauna : nullptr};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -925,7 +926,7 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
         }
         if (auto initialized = m_context.selection->InitializeSelection(
                 m_context.dataRoot, m_context.states->terrain, CameraInputState(),
-                m_context.cloth != nullptr ? &m_context.cloth->random : nullptr);
+                m_context.cloth != nullptr ? &m_context.cloth->random : nullptr, &m_context.states->assets.fauna);
             !initialized.HasValue())
         {
             m_failure = initialized.Error();

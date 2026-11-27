@@ -24,6 +24,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+#include "Assets/FaunaModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -106,12 +107,17 @@ struct HighWorld
 
     HighEffectContext Context(const Client::Models::IModelLibrary* models = nullptr)
     {
-        return {.world = *world, .random = random, .worldClock = clock, .models = models};
+        return {.world = *world, .random = random, .worldClock = clock, .models = models, .faunaModels = &faunaModels};
     }
 
     HighEffectStepContext StepContext(const Client::Models::IModelLibrary* models = nullptr)
     {
-        return {.world = *world, .random = random, .services = services, .worldClock = clock, .models = models};
+        return {.world = *world,
+                .random = random,
+                .services = services,
+                .worldClock = clock,
+                .models = models,
+                .faunaModels = &faunaModels};
     }
 
     ModelEffect& Effect(std::size_t slot)
@@ -144,6 +150,7 @@ struct HighWorld
 
     static constexpr std::size_t HeroSlot = 12;
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
+    Client::Assets::FaunaModels faunaModels;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
     float clock = 1234.5f;
@@ -260,8 +267,8 @@ TEST(HighModelEffectsTest, TheArrivalAuraHoldsWhileItsActorLivesAndHidesWithoutT
 }
 
 // 0x51e4ba: el lancero 0x19f/0 con vida 20, +0x58 en 3, +0xd8 en 0,33f, la acción 2 (0x4ea030, si el BMD la tiene: el
-// de FaunaResources o, si no, el de la biblioteca) y los ángulos en 0. Sin el BMD, sin acción. Con otro subtipo, sólo
-// el prefijo.
+// de AssetsState::fauna o, si no, el de la biblioteca) y los ángulos en 0. Sin el BMD, sin acción. Con otro subtipo,
+// sólo el prefijo.
 TEST(HighModelEffectsTest, TheSiegeSpearmanTakesActionTwoWhenItsModelHasIt)
 {
     for (const std::size_t actions : {std::size_t{0}, std::size_t{2}, std::size_t{3}})
@@ -733,7 +740,7 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     ActionModels models(1);
     models.skeleton.bones.resize(2);
     models.skeleton.bones[1].dummy = true;
-    tested.world->FaunaResources().Bind(&models);
+    tested.faunaModels.Bind(&models);
     ActorState& owner = tested.world->Actors()[3];
     owner.alive = true;
     owner.type = 0x20a;
@@ -818,7 +825,7 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     EXPECT_EQ(decal.transform.position, arguments.position);
     EXPECT_GT(sparks, 0);
     EXPECT_EQ(tested.Draws(), draws);
-    tested.world->FaunaResources().Bind(nullptr);
+    tested.faunaModels.Bind(nullptr);
 }
 
 // El 0x61e/6 sin huesos en el modelo de su dueño: el original divide por cero (0x52ba47); MuRet corta, después del
@@ -835,8 +842,8 @@ TEST(HighModelEffectsTest, TheBindingDecalCutsWhenItsOwnerHasNoBones)
     EXPECT_EQ(tested.Draws(), 1 + 2);
 }
 
-// 0x52ba1d: el BMD del dueño sale de la tabla global, como en el alta del 0x19f: sin el de FaunaResources (un jugador),
-// el de `models`. Con un solo hueso dummy, cada vida saca solo el hueso y la partícula no corre.
+// 0x52ba1d: el BMD del dueño sale de la tabla global, como en el alta del 0x19f: sin el de AssetsState::fauna (un
+// jugador), el de `models`. Con un solo hueso dummy, cada vida saca solo el hueso y la partícula no corre.
 TEST(HighModelEffectsTest, TheBindingDecalFindsItsOwnerModelLikeTheSpearman)
 {
     HighWorld tested;

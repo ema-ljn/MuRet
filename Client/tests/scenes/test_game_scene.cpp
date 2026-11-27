@@ -213,11 +213,11 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
 Client::Core::Expected<void, std::string>
-AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Terrain::TerrainState& terrainState,
+AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::ModuleStates& states,
                          const Client::Kernel::ActorState& hero, Client::World::LeafWeather weather,
                          std::int32_t heroCellLayer, Client::Models::ClothWorld& reference)
 {
-    const Client::Terrain::WorldTerrain& terrain = terrainState.current;
+    const Client::Terrain::WorldTerrain& terrain = states.terrain.current;
     Client::World::Leaves leaves;
     Client::Scenes::FaunaState fauna;
     const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
@@ -234,8 +234,8 @@ AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Terrain::Ter
                                                   hero.animation.action,
                                                   hero.safeZone,
                                                   terrain,
-                                                  terrainState.dynamicLight.Lighting(),
-                                                  world.FaunaResources(),
+                                                  states.terrain.dynamicLight.Lighting(),
+                                                  states.assets.fauna,
                                                   reference,
                                                   worldClock};
     return Client::Scenes::StepGameFauna(faunaContext);
@@ -1431,8 +1431,8 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         scene.Step(Client::Input::InputState{});
 
         ASSERT_EQ(scene.Failure(), std::nullopt);
-        ASSERT_TRUE(AdvanceEnvironmentPrefix(world, states.terrain, heroBefore, weatherBefore, probe.layer, reference)
-                        .HasValue());
+        ASSERT_TRUE(
+            AdvanceEnvironmentPrefix(world, states, heroBefore, weatherBefore, probe.layer, reference).HasValue());
         // MoveHero, 57cfc0, TerrainWall, cuerpo, celda vista y viento, detrás de los tres blendMesh.
         reference.random =
             Advanced(reference.random, 8 + HeroActionPrefixRandoms + 8 + HeroBodyDraws + 8 + 1 + ParticleWindDraws +
@@ -1720,8 +1720,8 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         scene.Step(Client::Input::InputState{});
 
         ASSERT_EQ(scene.Failure(), std::nullopt);
-        ASSERT_TRUE(AdvanceEnvironmentPrefix(world, states.terrain, heroBefore, weatherBefore, layerBefore, reference)
-                        .HasValue());
+        ASSERT_TRUE(
+            AdvanceEnvironmentPrefix(world, states, heroBefore, weatherBefore, layerBefore, reference).HasValue());
         reference.random =
             Advanced(reference.random, probe.draws + HeroActionPrefixRandoms + ParticleWindDraws +
                                            GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
@@ -1924,8 +1924,8 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         scene.Step(Client::Input::InputState{});
 
         ASSERT_EQ(scene.Failure(), std::nullopt);
-        ASSERT_TRUE(AdvanceEnvironmentPrefix(world, states.terrain, heroBefore, weatherBefore, layerBefore, reference)
-                        .HasValue());
+        ASSERT_TRUE(
+            AdvanceEnvironmentPrefix(world, states, heroBefore, weatherBefore, layerBefore, reference).HasValue());
         reference.random =
             Advanced(reference.random, probe.draws + HeroActionPrefixRandoms + ParticleWindDraws +
                                            GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
@@ -1964,8 +1964,7 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
     scene.Step(Client::Input::InputState{});
 
     ASSERT_EQ(scene.Failure(), std::nullopt);
-    ASSERT_TRUE(
-        AdvanceEnvironmentPrefix(world, states.terrain, heroBefore, weatherBefore, layerBefore, reference).HasValue());
+    ASSERT_TRUE(AdvanceEnvironmentPrefix(world, states, heroBefore, weatherBefore, layerBefore, reference).HasValue());
     reference.random =
         Advanced(reference.random, 8 + 8 + HeroBodyDraws + 8 + 1 + HeroActionPrefixRandoms + ParticleWindDraws +
                                        GateProbeRandoms(*data.gates, world.Runtime().map, heroBefore));
@@ -2005,8 +2004,8 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
         reference.random = Advanced(reference.random, FirstStepDraws);
         scene.Step(Client::Input::InputState{});
 
-        ASSERT_TRUE(AdvanceEnvironmentPrefix(world, states.terrain, heroBefore, weatherBefore, layerBefore, reference)
-                        .HasValue());
+        ASSERT_TRUE(
+            AdvanceEnvironmentPrefix(world, states, heroBefore, weatherBefore, layerBefore, reference).HasValue());
         ASSERT_TRUE(scene.Failure().has_value());
         EXPECT_NE(scene.Failure()->find("0x4f9580"), std::string::npos) << *scene.Failure();
         EXPECT_EQ(cloth.random.State(),

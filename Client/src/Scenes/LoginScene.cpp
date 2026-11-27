@@ -357,7 +357,7 @@ LoginScene::LoginScene(const SceneContext& context, const Tables::GameData& data
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<Kernel::WorldState>() : nullptr),
-      m_localLight(context.states == nullptr ? std::make_unique<Terrain::DynamicWorldLight>() : nullptr),
+      m_localStates(context.states == nullptr ? std::make_unique<Session::ModuleStates>() : nullptr),
       m_localCloth{.random = Crt::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models), m_session(session),
       m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, Assets::LoginTextureSet),
       m_windowTextures(context.textures, Assets::WindowTextureSet), m_world(WorldOf(SceneId::Login)),
@@ -415,7 +415,7 @@ Camera::GameCameraInput& LoginScene::CameraInputState()
 
 Terrain::TerrainPolygon& LoginScene::SharedTerrainPolygon()
 {
-    return m_context.states != nullptr ? m_context.states->camera.trapezoid : m_localTrapezoid;
+    return States().camera.trapezoid;
 }
 
 Kernel::WorldState& LoginScene::CharacterWorld() const
@@ -425,7 +425,12 @@ Kernel::WorldState& LoginScene::CharacterWorld() const
 
 Terrain::DynamicWorldLight& LoginScene::DynamicLight() const
 {
-    return m_context.states != nullptr ? m_context.states->terrain.dynamicLight : *m_localLight;
+    return States().terrain.dynamicLight;
+}
+
+Session::ModuleStates& LoginScene::States() const
+{
+    return m_context.states != nullptr ? *m_context.states : *m_localStates;
 }
 
 Models::ClothWorld& LoginScene::CharacterRandomWorld()
@@ -532,7 +537,7 @@ void LoginScene::LoadTheWorld()
     if (world.Runtime().audio != nullptr)
     {
         world.Runtime().audio->ReleaseWorldSounds();
-        world.FaunaResources().ResetSoundRegistrationStamps();
+        States().assets.fauna.ResetSoundRegistrationStamps();
     }
     // Rango inicial de 0x5fbb00 con el pase de entrada (los bloques que empiezan en x 0..128 e y 120..248, 06 §
     // El terreno del login). El trapecio no: es el global, que antes del primer dibujo del login tiene los
@@ -870,7 +875,8 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
          { CharacterWorld().Runtime().RequestSound(sound, origin); },
          .trapezoid = &SharedTerrainPolygon(),
-         .dynamicLighting = &DynamicLight().Lighting()});
+         .dynamicLighting = &DynamicLight().Lighting(),
+         .faunaModels = &States().assets.fauna});
 }
 
 void LoginScene::StepTheWorld()
@@ -1030,7 +1036,8 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
                                                 .fixedHeight = CameraState().fixedHeight,
                                                 .cameraShake = &CameraInputState().shake,
                                                 .sound = sound,
-                                                .dynamicLighting = &DynamicLight().Lighting()});
+                                                .dynamicLighting = &DynamicLight().Lighting(),
+                                                .faunaModels = &States().assets.fauna});
     // 0x52d222..0x52d22d: 0x44dc40(0, 0, 0) borra el desvío de la cámara antes del primer efecto.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     const LoginEffectModels models(m_worldModels, m_models);

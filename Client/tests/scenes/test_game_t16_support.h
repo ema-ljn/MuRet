@@ -90,7 +90,7 @@ protected:
         ASSERT_FALSE(loading.WantsToQuit());
         ASSERT_EQ(loading.Progress(), 1);
         ASSERT_GT(m_models->Count(), 0u);
-        ASSERT_TRUE(m_world->FaunaResources().PrefixOffset().has_value());
+        ASSERT_TRUE(m_states->assets.fauna.PrefixOffset().has_value());
         loading.Leave();
         m_world->OwnCharacter().ClearEquipmentForEntry();
         m_applier = std::make_unique<Scenes::SessionEventApplier>(Resources());

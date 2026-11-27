@@ -67,6 +67,26 @@ void WriteMonster(const std::filesystem::path& root, int number)
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
     Client::Tests::WriteSceneFile(root, "Monster/fauna.OZT", Client::Tests::PlainOzt(2, 2));
 }
+TEST(FaunaModelsTest, AReaderWithoutTheModelsSeesNoModelAndTheZeroPose)
+{
+    const Client::Assets::FaunaModels& empty = Client::Assets::FaunaModelsOrEmpty(nullptr);
+
+    EXPECT_EQ(empty.SkeletonOf(0x153), nullptr);
+    EXPECT_EQ(empty.PoseKey(0x153), 0);
+    EXPECT_EQ(empty.PoseFrame(0x153), 0.0f);
+}
+
+TEST(FaunaModelsTest, AReaderWithTheModelsSeesTheirPose)
+{
+    Client::Assets::FaunaModels models;
+    models.RecordAnimation(0x153, 2.5f, 2);
+
+    const Client::Assets::FaunaModels& seen = Client::Assets::FaunaModelsOrEmpty(&models);
+
+    EXPECT_EQ(&seen, &models);
+    EXPECT_EQ(seen.PoseKey(0x153), 2);
+}
+
 TEST(FaunaModelsTest, CachedMonsterSoundsAreRegisteredAgainAfterWorldSoundRelease)
 {
     Client::Tests::TemporaryFolder folder{"fauna-model32-audio"};

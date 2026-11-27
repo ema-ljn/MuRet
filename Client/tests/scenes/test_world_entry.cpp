@@ -124,11 +124,11 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
 Client::Core::Expected<void, std::string>
-AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Terrain::TerrainState& terrainState,
+AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::ModuleStates& states,
                          const Client::Kernel::ActorState& hero, Client::World::LeafWeather weather,
                          std::int32_t heroCellLayer, Client::Models::ClothWorld& reference)
 {
-    const Client::Terrain::WorldTerrain& terrain = terrainState.current;
+    const Client::Terrain::WorldTerrain& terrain = states.terrain.current;
     Client::World::Leaves leaves;
     Client::Scenes::FaunaState fauna;
     const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
@@ -145,8 +145,8 @@ AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Terrain::Ter
                                                   hero.animation.action,
                                                   hero.safeZone,
                                                   terrain,
-                                                  terrainState.dynamicLight.Lighting(),
-                                                  world.FaunaResources(),
+                                                  states.terrain.dynamicLight.Lighting(),
+                                                  states.assets.fauna,
                                                   reference,
                                                   worldClock};
     return Client::Scenes::StepGameFauna(faunaContext);
@@ -1251,9 +1251,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Step(Client::Input::InputState{});
 
         ASSERT_EQ(game.Failure(), std::nullopt);
-        ASSERT_TRUE(AdvanceEnvironmentPrefix(tested.world, tested.states.terrain, heroBefore, weatherBefore,
-                                             layerBefore, reference)
-                        .HasValue());
+        ASSERT_TRUE(
+            AdvanceEnvironmentPrefix(tested.world, tested.states, heroBefore, weatherBefore, layerBefore, reference)
+                .HasValue());
         const int body = OwnRecordClose + 1;
         // 57cfc0 cierra own (3.848) y Skill.bmd (60); los dos Arrival vivos aportan uno cada uno.
         reference.random = Advanced(

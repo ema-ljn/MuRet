@@ -54,6 +54,11 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::Camera
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -131,6 +136,8 @@ struct WorldEntryResources
 [[nodiscard]] const Terrain::WorldTerrain& TerrainOf(const WorldEntryResources& resources);
 // The dynamic light (0x7b4ccc4, Terrain::TerrainState::dynamicLight). nullptr without `states`: adding a light stops.
 [[nodiscard]] Terrain::TerrainLighting* DynamicLightingOf(const WorldEntryResources& resources);
+// The models a creation loads (0x5769ad8, Assets::AssetsState::fauna). nullptr without `states`.
+[[nodiscard]] Assets::FaunaModels* FaunaModelsOf(const WorldEntryResources& resources);
 
 // Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para
 // diagnóstico y fixtures.

@@ -28,6 +28,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "Session/ModuleStates.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -83,7 +84,7 @@ public:
     Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
-// Lo que 0x612d90 deja en WorldState::FaunaResources para un monstruo: solo sus acciones.
+// Lo que 0x612d90 deja en Assets::AssetsState::fauna para un monstruo: solo sus acciones.
 class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -194,7 +195,8 @@ protected:
                                                             .camera = m_camera,
                                                             .cameraInput = m_input,
                                                             .models = m_models,
-                                                            .log = m_log};
+                                                            .log = m_log,
+                                                            .states = &m_states};
         return Client::Scenes::ApplyMagicAttackCount(
             Client::Protocol::Actors::MagicAttackCount{.key = caster, .magic = Magic, .targets = std::move(targets)},
             Client::Kernel::PlayerKey{PlayerKey}, resources);
@@ -218,8 +220,9 @@ protected:
         return numbers;
     }
 
-    // Antes del mundo: su FaunaResources la presta y se destruye después.
+    // Antes de los estados: sus modelos de la fauna la prestan y se destruyen después.
     MonsterModels m_fauna;
+    Client::Session::ModuleStates m_states;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;
@@ -353,11 +356,11 @@ TEST_F(MagicAttackCountTest, AnUnknownCasterIsTheGhostSlot)
     }
 }
 
-// Un monstruo que pega: 0x4ea030 lee las acciones de su modelo, el que cargó su alta en WorldState::FaunaResources
+// Un monstruo que pega: 0x4ea030 lee las acciones de su modelo, el que cargó su alta en Assets::AssetsState::fauna
 // (0x612d90), no Player.bmd. El GS 0.97 manda el 1A también por un monstruo (user.cpp:11887). En Lorencia y en Devias.
 TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
 {
-    m_world->FaunaResources().Bind(&m_fauna);
+    m_states.assets.fauna.Bind(&m_fauna);
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
@@ -379,7 +382,7 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
     }
     // Sin el modelo cargado, su registro de 0x5769ad8 está en 0 (+0x26 sin acciones): 0x4ea030 sale en 0x4ea056 sin
     // tocar la acción (revisión B del hito 2, B3) y el 1A sigue.
-    m_world->FaunaResources().Bind(nullptr);
+    m_states.assets.fauna.Bind(nullptr);
     Caster().animation = {};
     const auto before = Caster().animation.action;
     const auto unloaded = Apply({});

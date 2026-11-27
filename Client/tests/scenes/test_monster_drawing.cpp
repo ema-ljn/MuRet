@@ -168,7 +168,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<Client::Kernel::WorldState>();
-        m_world->FaunaResources().Bind(&m_models);
+        m_faunaModels.Bind(&m_models);
         m_world->Runtime().map = 0;
         m_world->Runtime().hero = 42;
         m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -181,7 +181,7 @@ protected:
 
     void TearDown() override
     {
-        m_world->FaunaResources().Bind(nullptr);
+        m_faunaModels.Bind(nullptr);
     }
 
     // Un monstruo como lo deja 0x511290 con lo que escribe el alta (0x511c70..0x511c88, 0x511d45, 0x51248d).
@@ -223,7 +223,8 @@ protected:
                 .sprites = &m_sprites,
                 .poseCarry = &m_carry,
                 .joints = m_joints,
-                .terrain = &m_terrain};
+                .terrain = &m_terrain,
+                .faunaModels = &m_faunaModels};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -243,6 +244,7 @@ protected:
     }
 
     MonsterModels m_models;
+    Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
@@ -264,14 +266,14 @@ void ExpectColor(const Client::Render::ModelVertex& vertex, float red, float gre
 TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAttachmentRandom)
 {
     ActorState& spider = Monster(7, Spider, 3);
-    m_world->FaunaResources().RecordAnimation(Spider, 6.25f, 7);
+    m_faunaModels.RecordAnimation(Spider, 6.25f, 7);
 
     const auto result = Draw(Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     // 0x4eb8cd..0x4eb94c: la key de la pose en +0xa8 del modelo; la acción tiene una sola, la 0.
-    EXPECT_EQ(m_world->FaunaResources().PoseKey(Spider), 0);
-    EXPECT_EQ(m_world->FaunaResources().PoseFrame(Spider), spider.animation.frame);
+    EXPECT_EQ(m_faunaModels.PoseKey(Spider), 0);
+    EXPECT_EQ(m_faunaModels.PoseFrame(Spider), spider.animation.frame);
     // 0x6002e0 y después la sombra de 0x50bd89.
     ASSERT_EQ(m_batch.Vertices().size(), 6u);
     ASSERT_EQ(m_batch.Commands().size(), 2u);
@@ -1635,15 +1637,15 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
     m_world->Runtime().map = 20;
     m_world->Actors()[42].byte1a1 = 1;
     ActorState& spider = Monster(2, Spider, 3);
-    m_world->FaunaResources().RecordAnimation(Spider, 6.25f, 7);
+    m_faunaModels.RecordAnimation(Spider, 6.25f, 7);
     GameCharacterPass pass = Pass();
     pass.originalFrames = 0;
 
     const auto result = Draw(pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_EQ(m_world->FaunaResources().PoseKey(Spider), 7);
-    EXPECT_EQ(m_world->FaunaResources().PoseFrame(Spider), 6.25f);
+    EXPECT_EQ(m_faunaModels.PoseKey(Spider), 7);
+    EXPECT_EQ(m_faunaModels.PoseFrame(Spider), 6.25f);
     EXPECT_FLOAT_EQ(spider.alpha, 1.0f);
     EXPECT_TRUE(spider.bodyPose.empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
@@ -1897,7 +1899,7 @@ protected:
     void SetUp() override
     {
         MonsterDrawingTest::SetUp();
-        m_world->FaunaResources().Bind(&m_parts);
+        m_faunaModels.Bind(&m_parts);
     }
 
     ActorState& Npc(const DressedNpc& npc)

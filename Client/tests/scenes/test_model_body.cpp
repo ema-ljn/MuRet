@@ -276,7 +276,7 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
 // Las antiguas expectativas de corte de 4fcee0 se sustituyeron por geometría y continuidad
 // en test_weapon_trail, test_monster_ribbon_trails y test_weapon_trail_pipeline.
 
-// Un Monster02 (el modelo 0x153) cargado por 0x612d90 en WorldState::FaunaResources da su paso fuera del pool: avanza
+// Un Monster02 (el modelo 0x153) cargado por 0x612d90 en Assets::AssetsState::fauna da su paso fuera del pool: avanza
 // con la velocidad de su acción (0,2 la 1, 0x612e5a..0x612e9f) y, al terminar la 3, vuelve a la 0 (0x4fcbb0), que
 // después sortea la cabeza con 0x4ea190. Los rand(): los dos accesos de 0x508ba0, el % 6 del cuerpo, la celda de
 // 0x505de0, 0x4ea190 (solo con la 0), la cabeza común y el & 7.
@@ -302,15 +302,15 @@ protected:
                                           Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
         Client::Tests::WriteSceneFile(m_folder.Path(), "Monster/body.OZT", Client::Tests::PlainOzt(2, 2));
         m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        m_world->FaunaResources().TextureTable().Bind(m_store);
-        auto context = m_world->FaunaResources().LoadContextOf(m_folder.Path(), m_log);
+        m_faunaModels.TextureTable().Bind(m_store);
+        auto context = m_faunaModels.LoadContextOf(m_folder.Path(), m_log);
         ASSERT_TRUE(context.has_value());
         for (const std::int32_t number : {0, 1})
         {
-            const auto loaded = m_world->FaunaResources().LoadMonster(number, 0, *context);
+            const auto loaded = m_faunaModels.LoadMonster(number, 0, *context);
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         }
-        ASSERT_NE(m_world->FaunaResources().SkeletonOf(0x153), nullptr);
+        ASSERT_NE(m_faunaModels.SkeletonOf(0x153), nullptr);
         m_actor.alive = true;
         m_actor.type = 0x153;
         m_actor.byte88 = 2;
@@ -326,18 +326,20 @@ protected:
                                                        .terrain = &m_terrain,
                                                        .particles = &m_world->Particles(),
                                                        .groundMarks = &m_marks,
-                                                       .dynamicLighting = &m_lighting});
+                                                       .dynamicLighting = &m_lighting,
+                                                       .faunaModels = &m_faunaModels});
     }
 
     const Skeleton& Model() const
     {
-        return *m_world->FaunaResources().SkeletonOf(0x153);
+        return *m_faunaModels.SkeletonOf(0x153);
     }
 
     Client::Tests::TemporaryFolder m_folder{"model-body"};
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
+    Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Terrain::WorldTerrain m_terrain;
     Client::Terrain::GroundMarkTable m_marks{};
@@ -478,11 +480,11 @@ TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
     model.meshes.front().textureName = "body.tga";
     Client::Tests::WriteSceneFile(m_folder.Path(), "Monster/Monster16.bmd",
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
-    auto context = m_world->FaunaResources().LoadContextOf(m_folder.Path(), m_log);
+    auto context = m_faunaModels.LoadContextOf(m_folder.Path(), m_log);
     ASSERT_TRUE(context.has_value());
-    const auto loaded = m_world->FaunaResources().LoadMonster(15, 2, *context);
+    const auto loaded = m_faunaModels.LoadMonster(15, 2, *context);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    const Skeleton* ice = m_world->FaunaResources().SkeletonOf(0x161);
+    const Skeleton* ice = m_faunaModels.SkeletonOf(0x161);
     ASSERT_NE(ice, nullptr);
     EXPECT_EQ(ice->headBone, 0x13);
     m_actor.type = 0x161;
@@ -561,7 +563,7 @@ TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// La biblioteca del mapa detrás de FaunaResources con el 0x1f5 (un NPC) en el esqueleto de Monster02.
+// La biblioteca del mapa detrás de AssetsState::fauna con el 0x1f5 (un NPC) en el esqueleto de Monster02.
 class TraderLibrary final : public Client::Models::IModelLibrary
 {
 public:
@@ -593,14 +595,14 @@ private:
 TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNextAction)
 {
     TraderLibrary trader(Model());
-    m_world->FaunaResources().Bind(&trader);
+    m_faunaModels.Bind(&trader);
     m_actor.type = 0x1f5;
     const std::int16_t last = static_cast<std::int16_t>(Model().actions[2].keyCount - 1);
     const auto stepFrom = [this](std::int16_t key, std::uint32_t seed, float frame)
     {
         m_actor.animation.action = 2;
         m_actor.animation.frame = frame;
-        m_world->FaunaResources().RecordPoseKey(0x1f5, key);
+        m_faunaModels.RecordPoseKey(0x1f5, key);
         CrtRandom random(seed);
         return Step(random);
     };
@@ -612,7 +614,7 @@ TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNex
     // Un dibujo anterior en last no dispara el gate: el avance actual lo sobrescribe con 0.
     ASSERT_TRUE(stepFrom(last, Seed, 0.0f).HasValue());
     EXPECT_EQ(m_actor.animation.action, 2);
-    EXPECT_EQ(m_world->FaunaResources().PoseKey(0x1f5), 0);
+    EXPECT_EQ(m_faunaModels.PoseKey(0x1f5), 0);
     const float beforeLast = static_cast<float>(last) - Model().actions[2].speed;
     int rests = 0;
     int others = 0;
@@ -631,7 +633,7 @@ TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNex
     }
     EXPECT_GT(rests, others);
     EXPECT_GT(others, 0);
-    m_world->FaunaResources().Bind(nullptr);
+    m_faunaModels.Bind(nullptr);
 }
 
 // 0x4fd5d7: desde el frame 3, 0x432bd0 con el 0x1b0 en la 4 fuera de (5, 7) saca su rand() de 0x432bf1 y los dos de
@@ -647,7 +649,7 @@ TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
             if (!keys.empty())
                 keys.resize(10, keys.front());
     TraderLibrary library(swinging, 0x1b0);
-    m_world->FaunaResources().Bind(&library);
+    m_faunaModels.Bind(&library);
     m_actor.type = 0x1b0;
     m_actor.animation.action = 4;
     m_actor.animation.frame = 3.0f;
@@ -661,7 +663,7 @@ TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
     DrawTheHeadAndTheEffects(expected);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(m_world->PoseCarry().models.count(0x1b0), 1u);
-    m_world->FaunaResources().Bind(nullptr);
+    m_faunaModels.Bind(nullptr);
 }
 
 // 0x4fd5c1: quieto desde el frame 3, el 0x1a7 (Monster85, de los tipos 294 y 302: la 31) no deja estela en 0x441260
@@ -676,7 +678,7 @@ TEST_F(MonsterStep, AStanding1a7GoesPastItsTrailHelper)
             if (!keys.empty())
                 keys.resize(10, keys.front());
     TraderLibrary library(standing, 0x1a7);
-    m_world->FaunaResources().Bind(&library);
+    m_faunaModels.Bind(&library);
     for (const std::int32_t map : {0, 2, 31})
     {
         SCOPED_TRACE(map);
@@ -697,6 +699,6 @@ TEST_F(MonsterStep, AStanding1a7GoesPastItsTrailHelper)
         DrawTheHeadAndTheEffects(expected);
         EXPECT_EQ(random.State(), expected.State());
     }
-    m_world->FaunaResources().Bind(nullptr);
+    m_faunaModels.Bind(nullptr);
 }
 } // namespace

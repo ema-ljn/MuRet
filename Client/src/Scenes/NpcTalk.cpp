@@ -24,6 +24,7 @@
 #include "UI/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
 #include "Terrain/WorldTerrain.h"
+#include "Assets/FaunaModels.h"
 
 #include <bit>
 #include <cstddef>
@@ -120,9 +121,10 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
     const Models::Skeleton* playerSkeleton =
         context.playerSkeleton != nullptr ? context.playerSkeleton : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton = nullptr;
+    const Assets::FaunaModels& faunaModels = Assets::FaunaModelsOrEmpty(context.faunaModels);
     if (!player)
     {
-        actorSkeleton = context.world.FaunaResources().SkeletonOf(hero.type);
+        actorSkeleton = faunaModels.SkeletonOf(hero.type);
         if (actorSkeleton == nullptr && context.models != nullptr)
             actorSkeleton = context.models->SkeletonOf(hero.type);
     }
@@ -135,7 +137,7 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
                                     .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
                                     .sendAction = context.sendAction,
                                     .actorSkeleton = actorSkeleton,
-                                    .modelSounds = context.world.FaunaResources().SoundActions(hero.type)};
+                                    .modelSounds = faunaModels.SoundActions(hero.type)};
 }
 } // namespace
 

@@ -25,7 +25,7 @@ namespace Client::Scenes
 struct WorldEntryResources;
 
 // El esqueleto del modelo `model` como lo lee 0x4ea030 (0x5769ad8 + modelo · 0xe0): primero los que cargan 0x612d90 y
-// 0x612270 (WorldState::FaunaResources, que sigue con la biblioteca del mapa) y después los de `resources.models`.
+// 0x612270 (Assets::AssetsState::fauna, que sigue con la biblioteca del mapa) y después los de `resources.models`.
 [[nodiscard]] const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model);
 
 // 0x4ea030(personaje, acción) con el esqueleto de MonsterSkeletonOf. Un modelo que no está es el registro en 0 del
@@ -61,7 +61,7 @@ inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 
 // 0x5141e0 con la cola 0x5140c0: el creador de evento o el caso del switch (MonsterCreationOf con el mapa de
 // WorldRuntime::map) corre sus pasos en orden, con cada rand() en su lugar entre los del alta (0x511290 y sus celdas):
-// - LoadMonster y LoadNpc cargan el modelo en WorldState::FaunaResources (0x612d90 y 0x612270, con las texturas de la
+// - LoadMonster y LoadNpc cargan el modelo en Assets::AssetsState::fauna (0x612d90 y 0x612270, con las texturas de la
 //   tabla que liga el juego): sin Monster{n + 1}.bmd, el original cierra (0x612dd6..0x612de1, Q-C23) y MuRet corta.
 //   LoadMonster escribe la tabla de sonidos del modelo también en WorldRuntime::modelSounds (MonsterSounds.h).
 // - Create es CreateActor con la clave, el modelo, la celda y el ángulo del paso; Write, Name, Dress (0x512930), Box

@@ -25,6 +25,7 @@
 #include "Session/WorldTransitionSupport.h"
 #include "Kernel/ItemState.h"
 #include "World/ModelEffects.h"
+#include "Assets/FaunaModels.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -309,13 +310,15 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
         .ownRecordAccesses = runtime.ownRecordDepth,
         .publishedHero = hero,
         .fullSetScan = runtime.fullSetScan,
-        .stop = Actors::ActorStopContext{.runtime = runtime,
-                                         .scene = SceneId::Game,
-                                         .playerSkeleton = *playerSkeleton,
-                                         .items = resources.items,
-                                         .random = resources.cloth.random,
-                                         .actorSkeleton = actorSkeleton,
-                                         .modelSounds = world.FaunaResources().SoundActions(hero.type)},
+        .stop =
+            Actors::ActorStopContext{.runtime = runtime,
+                                     .scene = SceneId::Game,
+                                     .playerSkeleton = *playerSkeleton,
+                                     .items = resources.items,
+                                     .random = resources.cloth.random,
+                                     .actorSkeleton = actorSkeleton,
+                                     .modelSounds =
+                                         Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SoundActions(hero.type)},
         .itemSetTables = resources.itemSetTables,
         .itemSets = &world.ItemSets(),
         .held = Player::HeldItemOf(runtime)};

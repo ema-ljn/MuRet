@@ -134,7 +134,8 @@ void SelectionState::RefreshCameraAttribute(Camera::GameCameraInput& input) cons
 Core::Expected<void, std::string> SelectionState::InitializeSelection(const std::filesystem::path& dataRoot,
                                                                       Terrain::TerrainState& terrain,
                                                                       Camera::GameCameraInput& input,
-                                                                      Crt::CrtRandom* random)
+                                                                      Crt::CrtRandom* random,
+                                                                      Assets::FaunaModels* faunaModels)
 {
     if (m_initialized || !m_receivedList)
     {
@@ -156,7 +157,8 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
                                  .terrain = terrain,
                                  .scene = SceneId::CharacterSelect,
                                  .playerKey = 0,
-                                 .random = random != nullptr ? *random : m_localCloth.random};
+                                 .random = random != nullptr ? *random : m_localCloth.random,
+                                 .faunaModels = faunaModels};
     if (auto loaded = LoadMap(SelectionMap, context); !loaded.HasValue())
     {
         return Fail(loaded.Error());

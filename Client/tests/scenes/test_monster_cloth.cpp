@@ -188,7 +188,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<Client::Kernel::WorldState>();
-        m_world->FaunaResources().Bind(&m_models);
+        m_faunaModels.Bind(&m_models);
         m_world->Runtime().map = 0;
         m_world->Runtime().hero = 42;
         m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -203,7 +203,7 @@ protected:
 
     void TearDown() override
     {
-        m_world->FaunaResources().Bind(nullptr);
+        m_faunaModels.Bind(nullptr);
     }
 
     // Un monstruo con la tela sobre la malla como lo deja 0x511290 con lo que escribe el alta.
@@ -245,7 +245,8 @@ protected:
                 .sprites = &m_sprites,
                 .poseCarry = &m_carry,
                 .joints = m_joints,
-                .terrain = &m_terrain};
+                .terrain = &m_terrain,
+                .faunaModels = &m_faunaModels};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -272,6 +273,7 @@ protected:
     }
 
     ClothModels m_models;
+    Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;

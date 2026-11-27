@@ -241,7 +241,7 @@ Core::Expected<void, std::string> GameScene::Enter()
     m_frameStarts = true;
     m_lastFrameStart.reset();
     m_groundEffects.Reset();
-    auto& textureTable = m_context.world->FaunaResources().TextureTable();
+    auto& textureTable = LoadedFaunaModels().TextureTable();
     textureTable.Bind(m_context.textures);
     if (m_gameSlots != nullptr)
     {
@@ -890,9 +890,8 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     m_context.world->Runtime().objectModelState.unlitMeshes.clear();
     if (m_projectingFrame)
         FrameModelState().unlitMeshes.clear();
-    if (auto loaded =
-            m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures, m_context.log,
-                               m_gameSlots, m_models, &m_context.world->FaunaResources().TextureTable());
+    if (auto loaded = m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures,
+                                         m_context.log, m_gameSlots, m_models, &LoadedFaunaModels().TextureTable());
         !loaded.HasValue())
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
@@ -913,7 +912,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);
     if (m_projectingFrame)
         World::SeedTarkanModelState(static_cast<std::uint8_t>(map), FrameModelState());
-    m_context.world->FaunaResources().Bind(&m_worldModels);
+    LoadedFaunaModels().Bind(&m_worldModels);
     return {};
 }
 
@@ -1081,7 +1080,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
         // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
         // o el archivo que falta) corta (08 P-C49).
-        const Assets::ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
+        const Assets::ModelTextureTable& textureTable = LoadedFaunaModels().TextureTable();
         const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
         {
             const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
@@ -1271,7 +1270,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
             .terrain = &MapTerrain(),
             .guildMarks = &m_guildMarks,
             .kalima = FrameKalima(),
-            .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
+            .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake,
+            .faunaModels = &LoadedFaunaModels()});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;
@@ -1289,8 +1289,8 @@ World::FrameSprites& GameScene::FrameSpritesForDraw()
 
 void GameScene::Leave()
 {
-    if (m_context.world)
-        m_context.world->FaunaResources().Bind(nullptr);
+    if (m_context.states != nullptr)
+        LoadedFaunaModels().Bind(nullptr);
     m_tiles.Release();
     m_worldModels.Release();
     m_worldModelsMap.reset();

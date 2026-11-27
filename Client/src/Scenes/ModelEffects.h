@@ -29,6 +29,11 @@ struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -61,6 +66,8 @@ struct ModelEffectsPass
     Terrain::GroundMarkTable* groundMarks = nullptr;
     // The dynamic light (0x7b4ccc4) 0x5f9780 adds to. nullptr: it stops there.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects(ModelEffectsPass& pass);

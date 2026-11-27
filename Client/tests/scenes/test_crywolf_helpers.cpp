@@ -12,6 +12,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Assets/FaunaModels.h"
 #include <gtest/gtest.h>
 #include <cstdint>
 #include <memory>
@@ -46,6 +47,7 @@ TEST(CrywolfHelpersTest, TheThreeAttackWindowsContinueWhenTheRealPoolsAreFull)
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
         Client::World::FrameSprites sprites;
         Client::Crt::CrtRandom random(7);
+        Client::Assets::FaunaModels faunaModels;
         Client::Scenes::ModelEffectsPass pass{.actor = *actor,
                                               .slot = 3,
                                               .world = *world,
@@ -53,7 +55,8 @@ TEST(CrywolfHelpersTest, TheThreeAttackWindowsContinueWhenTheRealPoolsAreFull)
                                               .skeleton = skeleton,
                                               .particles = &world->Particles(),
                                               .sprites = &sprites,
-                                              .map = 34};
+                                              .map = 34,
+                                              .faunaModels = &faunaModels};
         const auto stepped = Client::Scenes::StepTheModelEffects(pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), 0x003d7aaeu);
@@ -90,6 +93,7 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
             skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
             Client::World::FrameSprites sprites;
             Client::Crt::CrtRandom random(7);
+            Client::Assets::FaunaModels faunaModels;
             Client::Scenes::ModelEffectsPass pass{.actor = *actor,
                                                   .slot = 3,
                                                   .world = *world,
@@ -97,7 +101,8 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
                                                   .skeleton = skeleton,
                                                   .particles = &world->Particles(),
                                                   .sprites = &sprites,
-                                                  .map = 34};
+                                                  .map = 34,
+                                                  .faunaModels = &faunaModels};
             const auto stepped = Client::Scenes::StepTheModelEffects(pass);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             const bool inside = edge == 0;

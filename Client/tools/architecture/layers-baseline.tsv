@@ -1050,7 +1050,6 @@ game/Kernel/WorldRuntime.h	World/ObjectModelStepState.h	game/Kernel	game/WorldOb
 game/Kernel/WorldRuntime.h	game/Sound/MonsterSounds.h	game/Kernel	game/Sound
 game/Kernel/WorldState.cpp	game/Actors/Drawing/CharacterCloth.h	game/Kernel	game/Actors
 game/Kernel/WorldState.cpp	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
-game/Kernel/WorldState.cpp	game/Assets/FaunaModels.h	game/Kernel	game/Assets
 game/Kernel/WorldState.cpp	Scenes/FaunaState.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.cpp	Scenes/GameDrawTail.h	game/Kernel	game/Scenes
 game/Kernel/WorldState.cpp	Scenes/HelperTable.h	game/Kernel	game/Pets
@@ -1060,7 +1059,6 @@ game/Kernel/WorldState.cpp	World/Leaves.h	game/Kernel	game/Weather
 game/Kernel/WorldState.cpp	World/Particles.h	game/Kernel	game/Particles
 game/Kernel/WorldState.h	game/Actors/Drawing/CharacterCloth.h	game/Kernel	game/Actors
 game/Kernel/WorldState.h	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
-game/Kernel/WorldState.h	game/Assets/FaunaModels.h	game/Kernel	game/Assets
 game/Kernel/WorldState.h	Scenes/FaunaState.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.h	Scenes/GameDrawTail.h	game/Kernel	game/Scenes
 game/Kernel/WorldState.h	Scenes/HelperTable.h	game/Kernel	game/Pets

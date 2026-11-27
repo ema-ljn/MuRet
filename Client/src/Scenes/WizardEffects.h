@@ -23,6 +23,11 @@ namespace Client::Models
 {
 class IModelLibrary;
 } // namespace Client::Models
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -68,11 +73,13 @@ struct WizardSceneParts
     std::function<void(Protocol::Outgoing)> send{};
     // La tabla de joints (0x530860); vacía, la del mundo (WorldState::DrawTail).
     std::span<JointState> joints{};
-    // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (WorldState::FaunaResources), para el empujón
+    // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (`faunaModels`), para el empujón
     // del 0xc2/4 (0x524a8d). Sin ellos, un 0x20a que empuja corta.
     const Models::IModelLibrary* models = nullptr;
     // The dynamic light (Terrain::TerrainState::dynamicLight) the effects add to (0x5f9780). nullptr: adding one stops.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 [[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,

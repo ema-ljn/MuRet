@@ -13,6 +13,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/CastleBattleState.h"
 #include "UI/CastleSiegeState.h"
+#include "Assets/FaunaModels.h"
 
 #include <algorithm>
 #include <array>
@@ -35,7 +36,8 @@ void ApplyNpcLevel(const Battle::NpcLevel& level, Kernel::WorldState& world)
 }
 
 // B9 02, 0x4e0790: el byte i / 2, el par en el nibble de arriba (SHR 4) y el impar en el de abajo (AND 0xf).
-Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, Kernel::WorldState& world)
+Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, Kernel::WorldState& world,
+                                                 Assets::FaunaModels* faunaModels)
 {
     auto& battle = world.Runtime().castleSiege.battle;
     for (std::size_t i = 0; i < UI::OwnerMarkColors; ++i)
@@ -45,7 +47,9 @@ Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, 
             (i % 2 == 0) ? static_cast<std::uint8_t>(packed >> 4u) : static_cast<std::uint8_t>(packed & 0xfu);
     }
     ++battle.ownerMarkRevision;
-    return UploadTheCastleFlag(battle.ownerMark, world.FaunaResources().TextureTable());
+    if (faunaModels == nullptr)
+        return Core::Unexpected(std::string("0x4e0790: no fauna models (0x5769ad8) for the castle's flag"));
+    return UploadTheCastleFlag(battle.ownerMark, faunaModels->TextureTable());
 }
 
 // BA, 0x4cf1b0: 0x5110d0 siempre; +0x1bc solo con cuál en 0x28, también en el registro 400.
@@ -121,7 +125,7 @@ Core::Expected<void, std::string> ApplyCastleBattlePacket(const Protocol::Castle
             }
             else if constexpr (std::is_same_v<Received, Battle::OwnerMark>)
             {
-                return ApplyOwnerMark(received, context.world);
+                return ApplyOwnerMark(received, context.world, context.faunaModels);
             }
             else if constexpr (std::is_same_v<Received, Battle::HuntZoneInfo>)
                 return ApplyHuntInformation(received.mode, received.allowed, received.fee, received.at0c, received.at10,

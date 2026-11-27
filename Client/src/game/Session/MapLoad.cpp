@@ -31,6 +31,7 @@
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
+#include "Assets/FaunaModels.h"
 
 #include <array>
 #include <cstddef>
@@ -276,7 +277,9 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     if (runtime.audio != nullptr)
     {
         runtime.audio->ReleaseWorldSounds();
-        context.world.FaunaResources().ResetSoundRegistrationStamps();
+        if (context.faunaModels == nullptr)
+            return Core::Unexpected(std::string("0x61a560: no fauna models (0x5769ad8)"));
+        context.faunaModels->ResetSoundRegistrationStamps();
     }
     runtime.map = Maps::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;

@@ -71,7 +71,8 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         SCOPED_TRACE(probe.type);
         auto world = std::make_unique<Client::Kernel::WorldState>();
         RibbonModels models;
-        world->FaunaResources().Bind(&models);
+        Client::Assets::FaunaModels faunaModels;
+        faunaModels.Bind(&models);
         world->Runtime().map = 0;
         Client::Terrain::WorldTerrain terrain;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -87,8 +88,8 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         actor.hands[0].model = actor.hands[1].model = 0xffff;
         Client::Crt::CrtRandom random{123};
 
-        const auto stepped =
-            Client::Actors::StepCharacter(actor, {.world = *world, .random = random, .terrain = &terrain});
+        const auto stepped = Client::Actors::StepCharacter(
+            actor, {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels});
 
         // 1b1 alcanza después el sprite de un helper CL11; la estela ya tiene ambas tandas.
         if (probe.type == 0x1b1)
@@ -121,7 +122,8 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
         SCOPED_TRACE(full);
         auto world = std::make_unique<Client::Kernel::WorldState>();
         RibbonModels models;
-        world->FaunaResources().Bind(&models);
+        Client::Assets::FaunaModels faunaModels;
+        faunaModels.Bind(&models);
         world->Runtime().map = 0;
         Client::Terrain::WorldTerrain terrain;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -140,8 +142,11 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
             for (auto& particle : world->Particles().All())
                 particle.alive = true;
 
-        const auto stepped = Client::Actors::StepCharacter(
-            actor, {.world = *world, .random = random, .terrain = &terrain, .particles = &world->Particles()});
+        const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world,
+                                                                   .random = random,
+                                                                   .terrain = &terrain,
+                                                                   .particles = &world->Particles(),
+                                                                   .faunaModels = &faunaModels});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const auto& ribbon = world->DrawTail().ribbons[0];
@@ -174,7 +179,8 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     RibbonModels models;
     models.skeleton.actions[0].speed = 0.25f;
     models.skeleton.actions[3].speed = 2.0f;
-    world->FaunaResources().Bind(&models);
+    Client::Assets::FaunaModels faunaModels;
+    faunaModels.Bind(&models);
     world->Runtime().map = 30;
     Client::Terrain::WorldTerrain terrain;
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -190,12 +196,13 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     actor.hands[0].model = actor.hands[1].model = 0xffff;
     Client::Crt::CrtRandom random{123};
 
-    const auto stepped = Client::Actors::StepCharacter(actor, {.world = *world, .random = random, .terrain = &terrain});
+    const auto stepped = Client::Actors::StepCharacter(
+        actor, {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.animation.action, 0);
     EXPECT_EQ(actor.animation.frame, 2.0f);
-    EXPECT_EQ(world->FaunaResources().PoseFrame(actor.type), 2.0f);
+    EXPECT_EQ(faunaModels.PoseFrame(actor.type), 2.0f);
 }
 
 } // namespace

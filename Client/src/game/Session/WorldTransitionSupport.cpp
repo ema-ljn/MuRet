@@ -36,6 +36,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
+#include "Assets/FaunaModels.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -67,7 +68,7 @@ Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(cons
         .random = resources.cloth.random,
         .terrainWalls = TerrainOf(resources).attributes ? &TerrainOf(resources).attributes->cells : nullptr,
         .actorSkeleton = actorSkeleton,
-        .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
+        .modelSounds = Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> StopTransitionHero(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
@@ -106,8 +107,9 @@ Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint1
     if (resources.states == nullptr)
         return Core::Unexpected(std::string("0x61a560: no hay estado del terreno para la carga"));
     Terrain::TerrainState& terrain = resources.states->terrain;
-    const auto loaded = LoadMap(map, {resources.dataRoot, resources.world, terrain, SceneId::Game, playerKey,
-                                      resources.cloth.random, resources.requestCastleSiegeState});
+    const auto loaded =
+        LoadMap(map, {resources.dataRoot, resources.world, terrain, SceneId::Game, playerKey, resources.cloth.random,
+                      resources.requestCastleSiegeState, &resources.states->assets.fauna});
     if (!loaded.HasValue())
         return loaded;
     resources.selection.BorrowTerrain(resources.world.Runtime().map, &terrain.current);

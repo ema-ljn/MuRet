@@ -28,6 +28,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/WizardModelEffects.h"
+#include "Assets/FaunaModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1806,7 +1807,7 @@ Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::si
             return StepTheBoneSkill(actor, victim, *found, slot, context, localLight);
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
-        const Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(model);
+        const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(model);
         if (model == Tables::PlayerSkeletonModel && context.playerSkeleton != nullptr)
             skeleton = context.playerSkeleton;
         if (skeleton == nullptr && context.models != nullptr)

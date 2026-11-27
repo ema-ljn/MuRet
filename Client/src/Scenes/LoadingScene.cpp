@@ -15,6 +15,7 @@
 #include "Assets/SceneTextures.h"
 #include "Assets/TextureSets.h"
 #include "Kernel/WorldState.h"
+#include "Session/ModuleStates.h"
 
 #include <array>
 #include <cstdint>
@@ -103,9 +104,9 @@ Core::Expected<void, std::string> LoadingScene::LoadModels()
 {
     // 60dc4c elige la base de la tabla global antes de abrir el primer BMD; el dueño
     // conserva esa elección aunque falle un archivo o se vuelva a entrar en la carga.
-    if (m_context.world != nullptr && m_context.cloth != nullptr)
+    if (m_context.states != nullptr && m_context.cloth != nullptr)
     {
-        auto& fauna = m_context.world->FaunaResources();
+        auto& fauna = m_context.states->assets.fauna;
         if (!fauna.PrefixOffset())
         {
             constexpr int NativePrefixMask = 1023;

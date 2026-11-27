@@ -30,6 +30,7 @@
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
+#include "Assets/FaunaModels.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
@@ -185,6 +186,7 @@ protected:
         HeroMovementContext context{
             .world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .skills = &*m_skills};
         context.terrain = &m_terrain.current;
+        context.faunaModels = &m_faunaModels;
         context.input.leftPressed = click;
         context.input.leftDown = click;
         context.input.worldTime = static_cast<float>(m_ticks) * 40.0f;
@@ -236,6 +238,7 @@ protected:
     Client::Crt::CrtRandom m_random{Seed};
     Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Models::Skeleton m_skeleton;
+    Client::Assets::FaunaModels m_faunaModels;
     std::optional<Client::Tables::SkillTable> m_skills;
     std::optional<PathCell> m_target;
     std::vector<std::vector<std::byte>> m_packets;
@@ -406,7 +409,8 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
                                                          .playerSkeleton = &m_skeleton,
                                                          .terrain = &m_terrain.current,
                                                          .particles = particles.get(),
-                                                         .trapezoid = &m_trapezoid});
+                                                         .trapezoid = &m_trapezoid,
+                                                         .faunaModels = &m_faunaModels});
     // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Hero().safeZone, 1);

@@ -20,12 +20,15 @@
 
 namespace Client::Scenes
 {
-Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, const Kernel::ActorState& actor,
-                                                 const Models::Skeleton& skeleton, float frame, const glm::vec3& angles)
+Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels,
+                                                 const Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                                 float frame, const glm::vec3& angles)
 {
     // 4eb86d: sin acciones no publica ni metadatos ni scratch, aunque el modelo tenga huesos.
     if (skeleton.actions.empty())
         return {};
+    if (faunaModels == nullptr)
+        return Core::Unexpected(std::string("0x4eb860: no fauna models (0x5769ad8)"));
     Kernel::SharedModelPlacement placement = world.ModelPlacement(actor.type);
     const std::uint8_t action = placement.action < skeleton.actions.size() ? placement.action : 0;
     if (placement.action != action)
@@ -51,7 +54,7 @@ Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, cons
     std::int16_t key = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(*whole));
     if (key < 0 || key >= skeleton.actions[action].keyCount)
         key = 0;
-    world.FaunaResources().RecordAnimation(actor.type, frame, key);
+    faunaModels->RecordAnimation(actor.type, frame, key);
     return {};
 }
 

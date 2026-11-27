@@ -38,6 +38,11 @@ namespace Client::Tables
 class TextTable;
 }
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -144,6 +149,8 @@ struct CharacterStepContext
     // The dynamic light (Terrain::TerrainState::dynamicLight) the hands (0x506b50), the 0xf1's fire and the effects add
     // to, and the body reads. nullptr: whoever adds a light stops there.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

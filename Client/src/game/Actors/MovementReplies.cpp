@@ -23,6 +23,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/ModelEffects.h"
+#include "Assets/FaunaModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -71,16 +72,16 @@ Core::Expected<ActorStopContext, std::string> StopContext(const Kernel::ActorSta
     const Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
         actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
-    return ActorStopContext{.runtime = resources.world.Runtime(),
-                            .scene = Scenes::SceneId::Game,
-                            .playerSkeleton = *playerSkeleton,
-                            .items = resources.items,
-                            .random = resources.cloth.random,
-                            .terrainWalls = Scenes::TerrainOf(resources).attributes
-                                                ? &Scenes::TerrainOf(resources).attributes->cells
-                                                : nullptr,
-                            .actorSkeleton = actorSkeleton,
-                            .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
+    return ActorStopContext{
+        .runtime = resources.world.Runtime(),
+        .scene = Scenes::SceneId::Game,
+        .playerSkeleton = *playerSkeleton,
+        .items = resources.items,
+        .random = resources.cloth.random,
+        .terrainWalls =
+            Scenes::TerrainOf(resources).attributes ? &Scenes::TerrainOf(resources).attributes->cells : nullptr,
+        .actorSkeleton = actorSkeleton,
+        .modelSounds = Assets::FaunaModelsOrEmpty(Scenes::FaunaModelsOf(resources)).SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> ApplyOtherWalk(Kernel::ActorState& actor,
                                                  const Scenes::WorldEntryResources& resources)
@@ -132,7 +133,7 @@ Core::Expected<void, std::string> ApplyJumpingWalk(Kernel::ActorState& actor,
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
     // 0x4f37c0 → 0x4ea030 with the character's model: 0x186 is a monster (GS 0.97 sends its D3 from
-    // gObjMonster, which calls CGMoveRecv), with its model in WorldState::FaunaResources (MonsterSkeletonOf).
+    // gObjMonster, which calls CGMoveRecv), with its model in Assets::AssetsState::fauna (MonsterSkeletonOf).
     const auto walked = SetActorWalk(actor, {context.Value(), resources.world.ActionSpeeds(), false,
                                              context.Value().actorSkeleton, context.Value().modelSounds});
     if (!walked.HasValue())

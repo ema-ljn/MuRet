@@ -43,6 +43,11 @@
 #include <string>
 #include <span>
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 class DynamicWorldLight;
@@ -182,6 +187,8 @@ private:
     [[nodiscard]] const Terrain::WorldTerrain& MapTerrain() const;
     // The dynamic light (Terrain::TerrainState::dynamicLight), the one the login and the selection leave.
     [[nodiscard]] Terrain::DynamicWorldLight& DynamicLight() const;
+    // The models a creation loads (Assets::AssetsState::fauna), which outlive the map.
+    [[nodiscard]] Assets::FaunaModels& LoadedFaunaModels() const;
     // 0x63706a: 0x606560 con los objetos vistos (StepGameWorldObjects); los demás mapas cortan si hay alguno.
     [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
 

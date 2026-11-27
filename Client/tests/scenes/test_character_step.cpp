@@ -142,12 +142,14 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     Skeleton face;
     face.actions.assign(2, ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 12});
     CrtRandom random(Seed);
+    Client::Assets::FaunaModels faunaModels;
 
     const auto stepped = StepCharacter(preview, {.world = world,
                                                  .random = random,
                                                  .scene = SceneId::CharacterSelect,
                                                  .terrain = &terrain,
-                                                 .newFaceSkeleton = &face});
+                                                 .newFaceSkeleton = &face,
+                                                 .faunaModels = &faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FLOAT_EQ(preview.animation.frame, 0.6f);
@@ -175,10 +177,14 @@ TEST(CharacterStepTest, ANewFaceInTheGameUsesTheGameAnimationEndGate)
     Skeleton face;
     face.actions.assign(2, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 4});
     CrtRandom random(Seed);
+    Client::Assets::FaunaModels faunaModels;
 
-    const auto stepped = StepCharacter(
-        preview,
-        {.world = *world, .random = random, .scene = SceneId::Game, .terrain = &terrain, .newFaceSkeleton = &face});
+    const auto stepped = StepCharacter(preview, {.world = *world,
+                                                 .random = random,
+                                                 .scene = SceneId::Game,
+                                                 .terrain = &terrain,
+                                                 .newFaceSkeleton = &face,
+                                                 .faunaModels = &faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(preview.firstFootstepSound, 1);
@@ -202,12 +208,14 @@ TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesMod
     face.actions.assign(1, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 100});
     constexpr std::uint32_t HeadSeed = 35;
     CrtRandom random(HeadSeed);
+    Client::Assets::FaunaModels faunaModels;
 
     const auto stepped = StepCharacter(actor, {.world = world,
                                                .random = random,
                                                .scene = SceneId::CharacterSelect,
                                                .terrain = &terrain,
-                                               .newFaceSkeleton = &face});
+                                               .newFaceSkeleton = &face,
+                                               .faunaModels = &faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     // Rand 19..22: 1536, 18843, 27303 y 16668; %48 da Y23, mientras que %32 daría Y351.
@@ -365,7 +373,8 @@ struct GameWorld
                                                    .terrain = &terrain,
                                                    .groundMarks = &marks,
                                                    .trapezoid = &trapezoid,
-                                                   .dynamicLighting = &light.Lighting()});
+                                                   .dynamicLighting = &light.Lighting(),
+                                                   .faunaModels = &faunaModels});
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -380,6 +389,7 @@ struct GameWorld
     Client::Terrain::GroundMarkTable marks{};
     TerrainPolygon trapezoid{};
     Client::Terrain::DynamicWorldLight light;
+    Client::Assets::FaunaModels faunaModels;
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -423,7 +433,8 @@ TEST(CharacterStepTest, FullJointsKeepTheBoneEmitterSelectorsAndDecrementItsByte
                                              .terrain = &tested.terrain,
                                              .joints = tested.world.DrawTail().joints,
                                              .trapezoid = &tested.trapezoid,
-                                             .dynamicLighting = &tested.light.Lighting()});
+                                             .dynamicLighting = &tested.light.Lighting(),
+                                             .faunaModels = &tested.faunaModels});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.Hero().byte1a0, map == 30 ? 35 : 34);
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + (map == 30 ? 0 : 12)).State());
@@ -449,7 +460,8 @@ TEST(CharacterStepTest, TheFlareSkillActionUsesTheExistingParticleAndSkipsItsFul
                                              .terrain = &tested.terrain,
                                              .particles = &tested.world.Particles(),
                                              .trapezoid = &tested.trapezoid,
-                                             .dynamicLighting = &tested.light.Lighting()});
+                                             .dynamicLighting = &tested.light.Lighting(),
+                                             .faunaModels = &tested.faunaModels});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(),
                   Client::Tests::AfterDraws(Seed, SeenHeroDraws + TrailDraws + (full ? 0 : 3)).State());
@@ -488,7 +500,8 @@ TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudge
                                              .particles = &tested.world.Particles(),
                                              .joints = tested.world.DrawTail().joints,
                                              .trapezoid = &tested.trapezoid,
-                                             .dynamicLighting = &tested.light.Lighting()});
+                                             .dynamicLighting = &tested.light.Lighting(),
+                                             .faunaModels = &tested.faunaModels});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 6 + (full ? 0 : 12)).State());
         if (!full)
@@ -544,7 +557,8 @@ TEST(CharacterStepTest, TheChargedSkillReleasesThreeEnergyJointsWithTheirRandoms
                                              .terrain = &tested.terrain,
                                              .joints = tested.world.DrawTail().joints,
                                              .trapezoid = &tested.trapezoid,
-                                             .dynamicLighting = &tested.light.Lighting()});
+                                             .dynamicLighting = &tested.light.Lighting(),
+                                             .faunaModels = &tested.faunaModels});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 9).State());
         const auto& joints = tested.world.DrawTail().joints;
@@ -588,7 +602,8 @@ TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoice
                                              .terrain = &tested.terrain,
                                              .particles = &tested.world.Particles(),
                                              .trapezoid = &tested.trapezoid,
-                                             .dynamicLighting = &tested.light.Lighting()});
+                                             .dynamicLighting = &tested.light.Lighting(),
+                                             .faunaModels = &tested.faunaModels});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         // 506f7a selector y 541189/5411ce/5413ef, tres del constructor5d9/0 si hay hueco.
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 10 * (full ? 1 : 4)).State());
@@ -620,7 +635,8 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
                                          .playerSkeleton = tested.player,
                                          .terrain = &sceneTerrain,
                                          .trapezoid = &tested.trapezoid,
-                                         .dynamicLighting = &tested.light.Lighting()});
+                                         .dynamicLighting = &tested.light.Lighting(),
+                                         .faunaModels = &tested.faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.safeZone, 1);
@@ -649,7 +665,8 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
                                          .darkSpiritSkeleton = &raven,
                                          .particles = &particles,
                                          .trapezoid = &tested.trapezoid,
-                                         .dynamicLighting = &tested.light.Lighting()});
+                                         .dynamicLighting = &tested.light.Lighting(),
+                                         .faunaModels = &tested.faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     // 8 paredes + 8 del otro + 1 cuerpo + 7 cuervo + 8 celda + 1 cabeza + 1 sufijo.
@@ -690,7 +707,8 @@ TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
                                          .darkSpiritSkeleton = &raven,
                                          .particles = &particles,
                                          .trapezoid = &tested.trapezoid,
-                                         .dynamicLighting = &tested.light.Lighting()});
+                                         .dynamicLighting = &tested.light.Lighting(),
+                                         .faunaModels = &tested.faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
@@ -738,7 +756,8 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
                      .particles = &particles,
                      .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
                      .trapezoid = &tested.trapezoid,
-                     .dynamicLighting = &tested.light.Lighting()});
+                     .dynamicLighting = &tested.light.Lighting(),
+                     .faunaModels = &tested.faunaModels});
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
                 if (flags == 0)
                 {
@@ -784,7 +803,8 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
                         .particles = &particles,
                         .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
                         .trapezoid = &tested.trapezoid,
-                        .dynamicLighting = &tested.light.Lighting()});
+                        .dynamicLighting = &tested.light.Lighting(),
+                        .faunaModels = &tested.faunaModels});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(actor.darkSpirit->state, 6);
@@ -800,7 +820,8 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
                         .particles = &particles,
                         .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
                         .trapezoid = &tested.trapezoid,
-                        .dynamicLighting = &tested.light.Lighting()});
+                        .dynamicLighting = &tested.light.Lighting(),
+                        .faunaModels = &tested.faunaModels});
     ASSERT_TRUE(hidden.HasValue()) << hidden.Error();
     EXPECT_EQ(sent.size(), 1u);
 }
@@ -1254,13 +1275,13 @@ TEST(CharacterStepTest, AdvancingTheBodyPublishesTheSharedFrameAndUnclampedKey)
     GameWorld tested;
     tested.skeleton = SkeletonWith(1, 20, 0.4f);
     tested.Hero().animation.frame = 1.2f;
-    tested.world.FaunaResources().RecordPoseKey(tested.Hero().type, 9);
+    tested.faunaModels.RecordPoseKey(tested.Hero().type, 9);
 
     const auto stepped = tested.Step(Everything);
 
     ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
-    EXPECT_FLOAT_EQ(tested.world.FaunaResources().PoseFrame(tested.Hero().type), 1.6f);
-    EXPECT_EQ(tested.world.FaunaResources().PoseKey(tested.Hero().type), 1);
+    EXPECT_FLOAT_EQ(tested.faunaModels.PoseFrame(tested.Hero().type), 1.6f);
+    EXPECT_EQ(tested.faunaModels.PoseKey(tested.Hero().type), 1);
 }
 
 // 4ec21b/4ec229 y 4f973a: sin avance no se publican+a4/+a8 ni se hereda el frame del actor.
@@ -1273,13 +1294,13 @@ TEST(CharacterStepTest, AOneKeyOrFrozenBodyPreservesTheSharedAnimationMetadata)
         tested.skeleton = SkeletonWith(1, frozen ? 20 : 1, 0.4f);
         tested.Hero().animation.frame = 1.2f;
         tested.Hero().flags78 = frozen ? 0x1000 : 0;
-        tested.world.FaunaResources().RecordAnimation(tested.Hero().type, 6.25f, 9);
+        tested.faunaModels.RecordAnimation(tested.Hero().type, 6.25f, 9);
 
         const auto stepped = tested.Step(Everything);
 
         ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
-        EXPECT_EQ(tested.world.FaunaResources().PoseFrame(tested.Hero().type), 6.25f);
-        EXPECT_EQ(tested.world.FaunaResources().PoseKey(tested.Hero().type), 9);
+        EXPECT_EQ(tested.faunaModels.PoseFrame(tested.Hero().type), 6.25f);
+        EXPECT_EQ(tested.faunaModels.PoseKey(tested.Hero().type), 9);
     }
 }
 
@@ -1671,7 +1692,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                                    .terrain = &tested.terrain,
                                                    .worldClock = clock,
                                                    .trapezoid = &tested.trapezoid,
-                                                   .dynamicLighting = &tested.light.Lighting()});
+                                                   .dynamicLighting = &tested.light.Lighting(),
+                                                   .faunaModels = &tested.faunaModels});
     };
     {
         SCOPED_TRACE("otra celda");
@@ -1732,7 +1754,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                      return {};
                                  },
                                  .trapezoid = &reported.trapezoid,
-                                 .dynamicLighting = &reported.light.Lighting()});
+                                 .dynamicLighting = &reported.light.Lighting(),
+                                 .faunaModels = &reported.faunaModels});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{std::uint8_t{5}, std::uint8_t{6}}));
@@ -1755,7 +1778,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
             .sendChaosCastleReposition = [](std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
             { return Client::Core::Unexpected(std::string("el GameServer no está abierto")); },
             .trapezoid = &failing.trapezoid,
-            .dynamicLighting = &failing.light.Lighting()});
+            .dynamicLighting = &failing.light.Lighting(),
+            .faunaModels = &failing.faunaModels});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find("GameServer"), std::string::npos) << stepped.Error();
         EXPECT_EQ(failing.world.Runtime().reportedCellTime, 10000.0f);
@@ -2521,7 +2545,8 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
                                                                  .particles = &particles,
                                                                  .worldClock = probe.clock,
                                                                  .trapezoid = &tested.trapezoid,
-                                                                 .dynamicLighting = &tested.light.Lighting()});
+                                                                 .dynamicLighting = &tested.light.Lighting(),
+                                                                 .faunaModels = &tested.faunaModels});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const Client::World::Particle& bubble = particles.All()[0];
@@ -2578,7 +2603,8 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
                                                                      .terrain = &tested.terrain,
                                                                      .particles = pooled ? &particles : nullptr,
                                                                      .trapezoid = &tested.trapezoid,
-                                                                     .dynamicLighting = &tested.light.Lighting()});
+                                                                     .dynamicLighting = &tested.light.Lighting(),
+                                                                     .faunaModels = &tested.faunaModels});
 
             CrtRandom oracle(seed);
             Skip(oracle, SeenHeroDraws);
@@ -2669,7 +2695,8 @@ TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
                                          .terrain = &tested.terrain,
                                          .particles = &particles,
                                          .trapezoid = &tested.trapezoid,
-                                         .dynamicLighting = &tested.light.Lighting()});
+                                         .dynamicLighting = &tested.light.Lighting(),
+                                         .faunaModels = &tested.faunaModels});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto& p = particles.All()[0];
     ASSERT_TRUE(p.alive);
@@ -2714,7 +2741,8 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
                                          .darkSpiritSkeleton = &raven,
                                          .particles = &particles,
                                          .trapezoid = &tested.trapezoid,
-                                         .dynamicLighting = &tested.light.Lighting()});
+                                         .dynamicLighting = &tested.light.Lighting(),
+                                         .faunaModels = &tested.faunaModels});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);

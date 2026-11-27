@@ -101,7 +101,8 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
                                                     .scene = SceneId::Game,
                                                     .playerKey = playerKey,
                                                     .random = resources.cloth.random,
-                                                    .requestCastleSiegeState = resources.requestCastleSiegeState});
+                                                    .requestCastleSiegeState = resources.requestCastleSiegeState,
+                                                    .faunaModels = &resources.states->assets.fauna});
     if (!loaded.HasValue())
     {
         return loaded;
@@ -300,6 +301,11 @@ const Terrain::WorldTerrain& TerrainOf(const WorldEntryResources& resources)
 Terrain::TerrainLighting* DynamicLightingOf(const WorldEntryResources& resources)
 {
     return resources.states != nullptr ? &resources.states->terrain.dynamicLight.Lighting() : nullptr;
+}
+
+Assets::FaunaModels* FaunaModelsOf(const WorldEntryResources& resources)
+{
+    return resources.states != nullptr ? &resources.states->assets.fauna : nullptr;
 }
 
 Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply,

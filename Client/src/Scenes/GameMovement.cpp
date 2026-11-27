@@ -51,6 +51,7 @@
 #include "UI/Dialogs.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
+#include "Assets/FaunaModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -107,10 +108,11 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForActor(const 
         playerSkeleton = &EmptySkeleton;
 
     const Models::Skeleton* actorSkeleton = nullptr;
-    const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
+    const Assets::FaunaModels& faunaModels = Assets::FaunaModelsOrEmpty(context.faunaModels);
+    const std::span<const std::int16_t> modelSounds = faunaModels.SoundActions(actor.type);
     if (actor.type != Tables::PlayerSkeletonModel)
     {
-        actorSkeleton = context.world.FaunaResources().SkeletonOf(actor.type);
+        actorSkeleton = faunaModels.SkeletonOf(actor.type);
         if (actorSkeleton == nullptr && context.models != nullptr)
             actorSkeleton = context.models->SkeletonOf(actor.type);
     }
@@ -349,7 +351,8 @@ HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
                                          .models = context.models,
                                          .items = context.items,
                                          .terrain = context.terrain,
-                                         .dynamicLighting = context.dynamicLighting},
+                                         .dynamicLighting = context.dynamicLighting,
+                                         .faunaModels = context.faunaModels},
                               .sendWalk = context.sendWalk,
                               .sendAttack = context.sendAttack,
                               .skills = context.skills,
@@ -893,7 +896,8 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
                                                    .send = context.sendSkill,
                                                    .playerKey = context.playerKey,
                                                    .terrain = context.terrain,
-                                                   .dynamicLighting = context.dynamicLighting});
+                                                   .dynamicLighting = context.dynamicLighting,
+                                                   .faunaModels = context.faunaModels});
         !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, Terrain::TerrainOrEmpty(context.terrain));

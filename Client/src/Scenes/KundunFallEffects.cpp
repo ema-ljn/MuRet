@@ -431,7 +431,8 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
                                WizardSceneParts{.particles = &context.world.Particles(),
                                                 .worldClock = context.worldClock,
                                                 .terrain = context.terrain,
-                                                .dynamicLighting = context.services.lighting});
+                                                .dynamicLighting = context.services.lighting,
+                                                .faunaModels = context.faunaModels});
     const auto fire = World::CreateWizardModelEffect(
         context.world.Map().effects, WizardArguments(FireEffect, point, angles, glm::vec3(1.0f), 0, nullptr, FireKey),
         random, services);

@@ -2314,7 +2314,7 @@ viejo; no se declara equivalente al EDIT completo. Los ids de los dos EDIT (1 y 
   que empiece en el segundo byte de un carácter doble; MuRet compara de a un byte, como con la occidental (1252). Ni
   la búsqueda ni los casos sacan `rand()`. En MuRet: `UI::FindTheEmote`, `Scenes::PlayTheEmote` y
   `Scenes::DoTheEmote`, con los `C1 18` por el `send` del chat. El caller `GameChat` consulta primero los modelos
-  ya cargados en `WorldState::FaunaResources()` y después la biblioteca base: un transformado no falla sólo porque
+  ya cargados en `Assets::AssetsState::fauna` y después la biblioteca base: un transformado no falla sólo porque
   su BMD no esté en `GameModels`, incluso antes del primer dibujo. Si la animación queda fuera del modelo,
   `0x4ea030` no la cambia, pero se conservan los dos envíos del héroe parado y el chat posterior.
 
@@ -13781,7 +13781,7 @@ GL_REPEAT, 1)`. Un `.bmd` que falta no cierra: `0x60da30` solo cierra con `Monst
 
 MuRet: `Scenes::MonsterModelTable` (las tablas: `CommonMonsterSpeeds`, `MonsterSpeedFactorOf`, `EarlyMonsterSpeedsOf`,
 `MonsterFirstActionStops`, `MonsterModelCaseOf`, `MonsterTextureFolderOf` y `NpcModelCaseOf`) y
-`FaunaModels::LoadMonster` y `LoadNpc`, que cargan en `WorldState::FaunaResources()`, el dueño que dura más que los
+`FaunaModels::LoadMonster` y `LoadNpc`, que cargan en `Assets::AssetsState::fauna`, el dueño que dura más que los
 mapas, con la biblioteca del mapa detrás para las guardas (el `0x19f` que carga el mapa 30, `WorldModels::LoadTheSpearman`,
 no se vuelve a leer). Las texturas suben por la tabla propia de `FaunaModels`, con el backend que le liga
 `GameScene::Enter` (sin él, el alta corta). Los `.wav` quedan en `FaunaModels::SoundFiles` y las tablas de `0x612c80`
@@ -14028,7 +14028,7 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
 
 MuRet: `Scenes::ModelBody` (`ModelSpeedOf`, `FinishTheModelAction` con `0x42d890`, `SetTheModelHeadTarget` y
 `LookAtTheTarget` y `ModelTrailCutOf`) y `Scenes::StepTheModelEffects` (los casos de `0x505de0`), llamados desde `CharacterStep` con el modelo de
-`WorldState::FaunaResources()` (con la biblioteca del mapa detrás); el sonido al caminar con
+`Assets::AssetsState::fauna` (con la biblioteca del mapa detrás); el sonido al caminar con
 `ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`); con el subtipo 209 a 211, antes el `0x7b` (`0x4f3ef2`, que
 la tabla pisa en `lastSoundId` si suena). El `0x1f5` lee la key de la última pose de su modelo en
 `FaunaModels::PoseKey`, que guarda el dibujo ([El dibujo de los monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)).
@@ -14278,7 +14278,7 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    después el cuervo (`0x420df0`).
 
 MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGameCharacters` con el modelo de
-`WorldState::FaunaResources()`; el cuerpo con `Scenes::SkinObjectMeshes`, `DrawObjectOutline` y `DrawObjectFromMeshes`,
+`Assets::AssetsState::fauna`; el cuerpo con `Scenes::SkinObjectMeshes`, `DrawObjectOutline` y `DrawObjectFromMeshes`,
 y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
 otro tipo; el contorno del `0xc5` con `DrawObjectOutlineOfTheFirstMesh`, que corta en `0x60ce4e` con el `+0x58`
 distinto de −1; el calco del `0xe8` y el `0xe9` con `World::DrawTerrainDecal` sobre las alturas del terreno del pase o
@@ -14461,7 +14461,7 @@ MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffect
 (`MonsterCreation`, `StepTheSiege`, `StepTheDoppelganger`), de Crywolf (`LaunchTheRadialVolley`) y desde
 `GameSceneLogic`; la flecha y la estela en `ArrowEffects.cpp` y `World/GameModelEffects.cpp`; el alta del `0x61e` en
 `World/ColoredDecals` y su dibujo en `World/GroundEffectDrawing`. El BMD del `0x19f` sale de
-`WorldState::FaunaResources()` y, si no está, de los modelos del contexto, como `MonsterSkeletonOf`. Los llamadores
+`Assets::AssetsState::fauna` y, si no está, de los modelos del contexto, como `MonsterSkeletonOf`. Los llamadores
 destrabados: de `0x4fd5f0` la 0x30 y la 0x45 (`0x4fe015`, `0x4fe253`, el anillo de calcos hasta su primer joint
 `0x613`), la 0x46 (`0x4fe424`), la 0x2c (el `0x13b` sobre o), la 0x31 (el `0x6ac`, `0x4fec15`, `Scenes::FireBreathEffect`), la 0x2d (los tres `0x139`, `0x504a3a`, `Scenes::JavelinEffect`), la 0x0c (`0x500cb9`), las manos de la 0x40 y
 la 0x4b (con el `0x138`), la 0x4a y la 0x3d; de `0x4f97b0` la 0x2b, la 0x2f y la 0x37 (`0x4f9f3e`); de `0x4f5b70` el

@@ -16,6 +16,11 @@
 // el prefijo de World::ModelEffects::Begin. 06, "Los efectos con modelo de los tipos altos". El dibujo de estos tipos
 // va por el camino común de 0x52d620 (0x52da84 → 0x602e90, GameDrawTail) o no se dibuja: los de 0x151 en adelante,
 // salvo 0x5e8..0x5ea y 0xc1a, no tienen caso en 0x52d620 ni en el pase del suelo (0x52dc20).
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -57,7 +62,7 @@ namespace Client::Scenes
 // joints (0x530860, GameDrawTailState::joints), las partículas (0x53fe70), el sonido (0x41ed10, que queda en
 // WorldRuntime), el héroe ([0x743a170]) y el registro propio, todo de `world`, y el reloj del mundo (0x5767b88). `send`
 // es lo que manda 0x517a20 (el C1 10) desde el alta del 0x5e8; vacío, no sale (sus rand() sí). `models`, si está, da el
-// BMD que 0x4ea030 no encuentra en world.FaunaResources() (los modelos del mapa), como MonsterSkeletonOf.
+// BMD que 0x4ea030 no encuentra en `faunaModels` (los modelos del mapa), como MonsterSkeletonOf.
 struct HighEffectContext
 {
     Kernel::WorldState& world;
@@ -67,6 +72,8 @@ struct HighEffectContext
     const Models::IModelLibrary* models = nullptr;
     // The current map's terrain, whose cells 0x517a20 reads in the siege; without it, an empty one.
     const Terrain::WorldTerrain* terrain = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna); without them, none.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
@@ -94,7 +101,7 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
 
 // Lo que el paso de estos tipos pide: los servicios del paso común (la altura del terreno, la luz dinámica, el
 // sonido, la acción publicada del modelo) y el mundo y el CRT del juego. `models`, como en HighEffectContext, da el BMD
-// que world.FaunaResources() no tiene (el de un jugador dueño del 0x61e/6).
+// que Assets::AssetsState::fauna no tiene (el de un jugador dueño del 0x61e/6).
 struct HighEffectStepContext
 {
     Kernel::WorldState& world;
@@ -104,6 +111,9 @@ struct HighEffectStepContext
     const Models::IModelLibrary* models = nullptr;
     // The current map's terrain, for the fire of Kundun's fall (0x527a6f); without it, an empty one.
     const Terrain::WorldTerrain* terrain = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna), where the meteor's pose leaves its key. nullptr: that
+    // pose stops.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // Los tipos cuyo paso está en este archivo.

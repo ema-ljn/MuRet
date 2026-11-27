@@ -23,6 +23,7 @@
 #include "World/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Assets/FaunaModels.h"
 
 #include "support/PlayerActors.h"
 
@@ -180,7 +181,8 @@ struct AttackWorld
                                         sounds.push_back(sound);
                                         soundOrigins.push_back(origin);
                                     },
-                                    .controlDown = controlDown};
+                                    .controlDown = controlDown,
+                                    .faunaModels = &faunaModels};
     }
 
     Client::Core::Expected<void, std::string> Attack(ActorState& striker, std::size_t slot)
@@ -201,6 +203,7 @@ struct AttackWorld
     // Un pool corto: los dos 0x618 del que mató son los únicos joints de estas pruebas.
     std::vector<JointState> joints = std::vector<JointState>(16);
     bool withJoints = true;
+    Client::Assets::FaunaModels faunaModels;
 };
 
 // Las partículas vivas de `type`.

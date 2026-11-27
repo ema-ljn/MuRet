@@ -40,6 +40,11 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -119,7 +124,7 @@ struct HeroMovementContext
     // del SetCursorPos de SendMove con 0x78abb00 (CL9 hito 11).
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
-    // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
+    // La biblioteca base para acciones de personajes transformados que no estén en AssetsState::fauna.
     const Models::IModelLibrary* models = nullptr;
     // 0x599ef0 → 0x61c210/0x61c170: opciones y macros antes de entrar a Castle Siege o Land of Trial.
     std::function<Core::Expected<void, std::string>()> saveOptionsAndMacros{};
@@ -128,6 +133,8 @@ struct HeroMovementContext
     const Terrain::WorldTerrain* terrain = nullptr;
     // The dynamic light (Terrain::TerrainState::dynamicLight) the skills' effects add to; nullptr: adding one stops.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

@@ -36,6 +36,11 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Terrain
 {
 struct WorldTerrain;
@@ -69,6 +74,9 @@ struct CastleReceiveContext
     const WorldEntryResources* entryResources = nullptr;
     // The current map's terrain, whose .att and light the siege's B2 reloads (0x4294c0); without it, that stops.
     Terrain::WorldTerrain* terrain = nullptr;
+    // The models a creation loads (Assets::AssetsState::fauna), whose texture table takes the B9 02's castle flag;
+    // without them, that stops.
+    Assets::FaunaModels* faunaModels = nullptr;
 };
 
 // 0x4e2b10 con un paquete del castillo: B2 00 (0x4e50bd), 01 (0x4df080), 02 (0x4df1a0), 03 (0x4e5186), 04

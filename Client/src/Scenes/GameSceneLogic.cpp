@@ -135,7 +135,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             },
             .groundMarks = &m_context.states->terrain.groundMarks,
             .trapezoid = &m_context.states->camera.trapezoid,
-            .dynamicLighting = &DynamicLight().Lighting()});
+            .dynamicLighting = &DynamicLight().Lighting(),
+            .faunaModels = &LoadedFaunaModels()});
         !stepped.HasValue())
     {
         return stepped;
@@ -224,7 +225,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                                             { session->SendChat(std::move(packet)); })
                                                       : std::function<void(Protocol::Outgoing)>{},
                          .models = m_models,
-                         .dynamicLighting = &DynamicLight().Lighting()});
+                         .dynamicLighting = &DynamicLight().Lighting(),
+                         .faunaModels = &LoadedFaunaModels()});
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
@@ -330,7 +332,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                              .services = services,
                                              .worldClock = worldClock,
                                              .models = m_models,
-                                             .terrain = &MapTerrain()};
+                                             .terrain = &MapTerrain(),
+                                             .faunaModels = &LoadedFaunaModels()};
             if (auto stepped = StepHighModelEffect(effect, skeleton, high); !stepped.HasValue())
                 return stepped;
             continue;

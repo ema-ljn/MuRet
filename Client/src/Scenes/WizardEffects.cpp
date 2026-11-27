@@ -20,6 +20,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Assets/FaunaModels.h"
 
 #include <algorithm>
 #include <cmath>
@@ -127,8 +128,8 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
                 return Core::Unexpected(created.Error());
             return {};
         },
-        .pushAround = [&world, hero = runtime.hero, models = parts.models](float x,
-                                                                           float y) -> Core::Expected<void, std::string>
+        .pushAround = [&world, hero = runtime.hero, models = parts.models,
+                       faunaModels = parts.faunaModels](float x, float y) -> Core::Expected<void, std::string>
         {
             constexpr std::size_t PooledActors = 400;       // 0x524b1b: 0x69780 / 0x438.
             constexpr double PushRadius = 200.0;            // 0x6b8928
@@ -150,7 +151,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
                     continue;
                 // 0x4ea030 lee las acciones de 0x5769ad8 + tipo · 0xe0: primero los modelos del mapa (FaunaModels) y
                 // después los del juego, como MonsterSkeletonOf. Un modelo que no está es el registro sin acciones.
-                const Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
+                const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(actor.type);
                 if (skeleton == nullptr && models != nullptr)
                     skeleton = models->SkeletonOf(actor.type);
                 if (actor.type != Tables::PlayerSkeletonModel)
@@ -184,7 +185,8 @@ World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepCo
                                                    .send = context.send,
                                                    .joints = context.joints,
                                                    .models = context.models,
-                                                   .dynamicLighting = context.dynamicLighting});
+                                                   .dynamicLighting = context.dynamicLighting,
+                                                   .faunaModels = context.faunaModels});
 }
 
 World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

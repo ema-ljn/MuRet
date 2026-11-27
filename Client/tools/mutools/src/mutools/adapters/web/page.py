@@ -1,319 +1,289 @@
-import json
-import math
-from collections.abc import Sequence
-from contextlib import suppress
+from collections.abc import Callable
 from functools import partial
 from pathlib import PurePosixPath
-from typing import Any, Final
+from typing import Final
 from urllib.parse import urlencode
 
 from nicegui import ui
-from nicegui.events import ValueChangeEventArguments
+from nicegui.events import GenericEventArguments
 
-from mutools.adapters.palette import LORENCIA
+from mutools import __version__
 from mutools.adapters.web.api import DONOR, OWN
-from mutools.adapters.web.models import Models
-from mutools.adapters.web.scene import BmdModel
-from mutools.app.model_parts import Part, counted, model_parts, part_facts, part_fields, part_of, part_title
-from mutools.app.model_scene import Bounds, model_scene, rest_bounds
-from mutools.app.textures import mesh_texture
+from mutools.adapters.web.elements import RenderState, Shortcuts, Viewport
+from mutools.adapters.web.finder import Command, Finder
+from mutools.adapters.web.inspector import FINDINGS, MODEL, PARTS, Inspector, numbered
+from mutools.adapters.web.library import Library
+from mutools.adapters.web.models import Models, folder_of
+from mutools.adapters.web.opened import OpenedModel, open_model
+from mutools.adapters.web.theme import paint
+from mutools.adapters.web.timeline import RATES, Timeline
+from mutools.adapters.web.widgets import AXES, Press, icon, words
+from mutools.app.model_parts import part_of
 from mutools.core.errors import MutoolsError
-from mutools.core.findings import Finding
-from mutools.core.json_types import JsonObject, JsonValue
-from mutools.core.leaves import leaf_text
-from mutools.core.pointer import parse_pointer
 
-DEFAULT_SPEED: Final = 8
-SPEEDS: Final = (2, 4, 8, 16)
-FILES_MARK: Final = "files"
-PARTS_MARK: Final = "parts"
-THIS_FOLDER: Final = "."
-PICK_A_MODEL: Final = "Pick a model on the left."
+TITLE: Final = "mutools"
+VIEWS: Final = (("textured", "Textured"), ("lit", "Lit"), ("wire", "Wire"))
+PICK_A_MODEL: Final = "Pick a model from the library."
+PICK_A_MODEL_DETAIL: Final = "Its meshes, bones and actions show here, drawn the way the client draws them."
 NOTHING_TO_DRAW: Final = "This model has no meshes and no bones: there is nothing to draw."
-SHOW_CHOSEN_FILE: Final = "document.querySelector('.q-tree__node--selected')?.scrollIntoView({block: 'center'})"
-PART_TOKENS: Final = 2
-SCENE_WIDTH: Final = 960
-SCENE_HEIGHT: Final = 640
-FRAMES_PER_SECOND: Final = 60
-DEFAULT_BOUNDS: Final = Bounds((-50.0, -50.0, 0.0), (50.0, 50.0, 100.0))
-VIEW_DIRECTION: Final = (0.45, -0.8, 0.4)
-VIEW_DISTANCE: Final = 2.2
-STYLE: Final = f"""
-body {{ background: {LORENCIA.background}; color: {LORENCIA.foreground}; }}
-.mutools-panel {{ background: {LORENCIA.surface}; border: 1px solid {LORENCIA.panel}; border-radius: 4px; }}
-.mutools-side {{ width: 20rem; flex-shrink: 0; max-height: calc(100vh - 6rem); overflow: auto; }}
-.mutools-title {{ color: {LORENCIA.accent}; font-weight: 600; }}
-.mutools-dim {{ color: {LORENCIA.secondary}; }}
-.mutools-scene {{ width: 100%; height: calc(100vh - 17rem); min-height: 20rem; }}
-.mutools-key {{ min-width: 5rem; font-variant-numeric: tabular-nums; }}
-"""
+CANNOT_OPEN: Final = "This model cannot be opened."
+REFERENCE_NOTE: Final = "Reference copy, read-only"
+WORKING_NOTE: Final = "Working copy"
+PIXELS_NOTE: Final = "Twice the pixels at rest, one to one while the model moves."
+STUDIO_MARK: Final = "studio"
+VIEWPORT_MARK: Final = "viewport"
 
 
-def _address(file: str, on: str = OWN) -> str:
-    return "/?" + urlencode({"file": file} if on == OWN else {"file": file, "on": on})
+def address(file: str, on: str = OWN, action: int = 0) -> str:
+    query = {"file": file} | ({"on": on} if on != OWN else {}) | ({"action": str(action)} if action else {})
+    return "/?" + urlencode(query)
 
 
-def _folder_label(folder: str) -> str:
-    return folder or THIS_FOLDER
-
-
-def _file_nodes(listed: Sequence[str]) -> list[dict[str, Any]]:
-    folders: dict[str, list[str]] = {}
-    for file in listed:
-        folders.setdefault(_folder_label(file.rpartition("/")[0]), []).append(file)
-    return [
-        {
-            "id": folder,
-            "label": f"{folder} ({len(files)})",
-            "selectable": False,
-            "children": [{"id": file, "label": PurePosixPath(file).name} for file in files],
-        }
-        for folder, files in folders.items()
-    ]
-
-
-def _part_nodes(parts: Sequence[Part]) -> list[dict[str, Any]]:
-    return [{"id": part.pointer, "label": part.label, "children": _part_nodes(part.children)} for part in parts]
-
-
-def _shown_value(value: JsonValue) -> str:
-    text = leaf_text(value)
-    return json.dumps(value) if text is None else text
-
-
-def _numbered(part: str, group: str) -> int | None:
-    tokens = parse_pointer(part)
-    numbered = len(tokens) == PART_TOKENS and tokens[0] == group and tokens[1].isdecimal()
-    return int(tokens[1]) if numbered else None
-
-
-def _paint() -> None:
-    ui.colors(
-        primary=LORENCIA.primary,
-        secondary=LORENCIA.secondary,
-        accent=LORENCIA.accent,
-        dark=LORENCIA.surface,
-        dark_page=LORENCIA.background,
-        positive=LORENCIA.success,
-        negative=LORENCIA.error,
-        warning=LORENCIA.warning,
-    )
-    ui.add_css(STYLE)
-
-
-def _files_panel(listed: Sequence[str], file: str) -> None:
-    def go(event: ValueChangeEventArguments[str | None]) -> None:
-        if event.value is not None and event.value in listed:
-            ui.navigate.to(_address(event.value))
-
-    with ui.column().classes("mutools-panel mutools-side q-pa-sm"):
-        search = ui.input(placeholder="filter").props("dense clearable dark").classes("w-full")
-        tree = (
-            ui.tree(_file_nodes(listed), on_select=go)
-            .props("dense dark no-selection-unset selected-color=primary")
-            .mark(FILES_MARK)
-        )
-        search.bind_value_to(tree, "filter")
-        if file in listed:
-            tree.expand([_folder_label(file.rpartition("/")[0])]).select(file)
-            ui.context.client.on_connect(lambda: ui.run_javascript(SHOW_CHOSEN_FILE))
-
-
-class _ModelPanels:
-    def __init__(self, models: Models, file: str, on: str) -> None:
-        session = models.session(file)
+class Studio:
+    def __init__(self, models: Models) -> None:
         self._models = models
-        self._file = file
-        self._path = session.path
-        self._own: JsonObject = session.view
-        self._findings = session.findings
-        self._donor = models.donor(file)
-        self._on = DONOR if on == DONOR and self._donor is not None else OWN
-        self._view: JsonObject = self._own
-        if self._donor is not None and self._on == DONOR:
-            posed = models.session(self._donor).view
-            self._view = {**self._own, "actions": posed["actions"], "bones": posed["bones"]}
-        self._scene = model_scene(self._view)
-        self._bounds = rest_bounds(self._view) or DEFAULT_BOUNDS
+        self._listed = models.listed()
+        self._file = ""
+        self._opened: OpenedModel | None = None
+        self._trouble = ""
         self._action = 0
-        self._playing = bool(self._scene.actions)
+        self._rate = 1.0
+        self._tab = PARTS
+        self._part = ""
+        self._view = VIEWS[0][0]
+        self._bones = False
+        self._additive = False
+        self._modes: dict[str, Press] = {}
+        self._toggles: dict[str, Press] = {}
+        self._inspector = Inspector(models, self._choose, self._show_tab)
+        self._timeline = Timeline(self._play, self._set_rate)
 
-    def _keys(self) -> int:
-        return self._scene.actions[self._action].keys if self._scene.actions else 0
+    def build(self, file: str, on: str, action: int) -> None:
+        self._finder = Finder(self._listed, self.open, self._commands())
+        Shortcuts().on("find", self._find)
+        with ui.element("div").classes("mt-studio").mark(STUDIO_MARK):
+            self._header()
+            with ui.element("div").classes("mt-body"):
+                self._library = Library(self._models, self._listed, file, self.open)
+                self._library.build()
+                with ui.element("main").classes("mt-main"):
+                    self._viewport = Viewport().mark(VIEWPORT_MARK).on("failed", self._failed)
+                    with self._viewport:
+                        self._overlays()
+                    self._timeline.build(None, 0, self._rate)
+                self._inspector.build(None, self._tab, "")
+            self._footer()
+        if file:
+            self.open(file, on, action, keep_address=True)
 
-    def _action_text(self) -> str:
-        return f"action {self._action} · {counted(self._keys(), 'key')}" if self._scene.actions else "no actions"
+    def _commands(self) -> tuple[Command, ...]:
+        views = tuple(Command(f"Show {label.lower()}", "", partial(self._set_view, view)) for view, label in VIEWS)
+        rates = tuple(Command(f"Play at {label.lower()}", "", partial(self._set_rate, rate)) for rate, label in RATES)
+        return (
+            Command("Frame the model", "F", self._frame),
+            Command("Play or pause", "Space", self._toggle_playing),
+            Command("Show or hide the bones", "", lambda: self._set_bones(not self._bones)),
+            Command("Draw additive", "", lambda: self._set_additive(not self._additive)),
+            Command("Save a picture", "", self._picture),
+            *views,
+            *rates,
+            Command("Show the findings", "", lambda: self._show_tab(FINDINGS)),
+        )
 
-    def _camera(self, scene: ui.scene) -> None:
-        low, high = self._bounds.low, self._bounds.high
-        center = [(low[axis] + high[axis]) / 2 for axis in range(len(low))]
-        distance = max(math.dist(low, high), 1.0) * VIEW_DISTANCE / 2
-        x, y, z = (center[axis] + VIEW_DIRECTION[axis] * distance for axis in range(len(center)))
-        look_at_x, look_at_y, look_at_z = center
-        scene.move_camera(x, y, z, look_at_x, look_at_y, look_at_z, duration=0)
+    def _header(self) -> None:
+        with ui.element("header").classes("mt-header"):
+            with ui.element("div").classes("mt-brand"):
+                words(TITLE, "mt-wordmark")
+                words("studio", "mt-brand-studio")
+            self._crumbs()
+            with ui.element("div").classes("mt-header-end"):
+                with ui.element("span").classes("mt-note"):
+                    reference = self._models.store.is_reference(self._models.root)
+                    icon("lock" if reference else "open", 13)
+                    words(REFERENCE_NOTE if reference else WORKING_NOTE)
+                find = Press("Find or run", label="Find a model or run a command", on_click=self._find)
+                with find.classes("mt-find"):
+                    icon("search", 15)
+                    words("Ctrl K", "mt-key")
 
-    def _send_state(self) -> None:
-        self._model.speed(self._speed.value)
-        self._model.skeleton(self._skeleton.value)
-        self._model.additive(self._additive.value)
-        if self._scene.actions:
-            self._model.play(self._action)
-            if not self._playing:
-                self._model.pause()
+    @ui.refreshable_method
+    def _crumbs(self) -> None:
+        with ui.element("nav").classes("mt-crumbs").props('aria-label="Where"'):
+            words(self._models.root.name or str(self._models.root))
+            if not self._file:
+                return
+            folder = folder_of(self._file)
+            if folder:
+                words("/", "mt-crumb-cut")
+                Press(folder, on_click=lambda: self._library.show(folder)).classes("mt-crumb-folder")
+            words("/", "mt-crumb-cut")
+            words(PurePosixPath(self._file).name, "mt-crumb-file")
 
-    def _show_playing(self) -> None:
-        self._play_button.props(f"icon={'pause' if self._playing else 'play_arrow'}")
+    def _footer(self) -> None:
+        with ui.element("footer").classes("mt-footer"):
+            RenderState("footer")
+            words(PIXELS_NOTE)
+            ui.element("span").classes("mt-footer-gap")
+            words(str(self._models.root))
+            words(f"mutools {__version__}")
 
-    async def _toggle_playing(self) -> None:
-        if self._playing:
-            key = None
-            with suppress(TimeoutError):
-                key = await self._model.pause()
-            if isinstance(key, int):
-                self._key.value = key
-        else:
-            self._model.resume()
-        self._playing = not self._playing
-        self._show_playing()
+    @ui.refreshable_method
+    def _overlays(self) -> None:
+        opened = self._opened
+        if opened is None:
+            self._message(CANNOT_OPEN if self._trouble else PICK_A_MODEL, self._trouble or PICK_A_MODEL_DETAIL)
+            return
+        self._modes, self._toggles = {}, {}
+        with ui.element("div").classes("mt-vitrine-top"):
+            with ui.element("div").classes("mt-modes").props('role="group" aria-label="View"'):
+                for view, label in VIEWS:
+                    mode = Press(label, on_click=partial(self._set_view, view)).classes("mt-mode")
+                    self._modes[view] = mode.chosen(view == self._view)
+                ui.element("span").classes("mt-modes-cut")
+                self._toggle("bones", "Bones", self._bones, lambda: self._set_bones(not self._bones))
+                self._toggle("additive", "Additive", self._additive, lambda: self._set_additive(not self._additive))
+                if opened.donor is not None:
+                    name = PurePosixPath(opened.donor).name
+                    self._toggle("donor", f"On {name}'s skeleton", opened.on == DONOR, self._switch_skeleton)
+            with ui.element("div").classes("mt-vitrine-tools"):
+                with Press(label="Frame the model, F", on_click=self._frame).classes("mt-round-light"):
+                    icon("frame", 17)
+                with Press(label="Save a picture", on_click=self._picture).classes("mt-round-light"):
+                    icon("picture", 17)
+        with ui.element("div").classes("mt-label"):
+            words(opened.name, "mt-model-name").tag = "h1"
+            if opened.slot_line():
+                words(opened.slot_line(), "mt-model-slot")
+            words(opened.facts_line(), "mt-model-facts")
+        with ui.element("div").classes("mt-vitrine-corner"):
+            RenderState("vitrine")
+            ui.html(AXES, sanitize=False, tag="span").classes("mt-axes")
+        if self._trouble:
+            self._message(CANNOT_OPEN, self._trouble)
+        elif not opened.scene.meshes and not opened.scene.bones:
+            self._message("Nothing to draw", NOTHING_TO_DRAW)
+
+    def _message(self, title: str, text: str) -> None:
+        with ui.element("div").classes("mt-vitrine-message").props('role="status"'):
+            words(title, "mt-vitrine-message-title")
+            words(text, "mt-vitrine-message-text")
+
+    def _toggle(self, name: str, label: str, on: bool, flip: Callable[[], object]) -> None:
+        self._toggles[name] = Press(label, on_click=flip).classes("mt-toggle").chosen(on)
+
+    def open(self, file: str, on: str = OWN, action: int = 0, *, keep_address: bool = False) -> None:
+        self._file, self._trouble, self._part = file, "", ""
+        try:
+            self._opened = open_model(self._models, file, on)
+        except MutoolsError as error:
+            self._opened, self._trouble = None, error.message
+        opened = self._opened
+        self._action = action if opened is not None and 0 <= action < len(opened.actions) else 0
+        if opened is not None:
+            self._bones = self._bones or not opened.drawn
+            self._viewport.skeleton(self._bones)
+            self._viewport.open(file, opened.on)
+            self._send_action(start=False)
+            ui.page_title(f"{opened.name}, {TITLE}")
+        self._library.choose(file)
+        self._crumbs.refresh()
+        self._overlays.refresh()
+        self._timeline.build.refresh(opened, self._action, self._rate)
+        self._inspector.build.refresh(opened, self._tab, "")
+        if not keep_address:
+            self._remember()
+
+    def _remember(self) -> None:
+        if self._opened is not None:
+            ui.navigate.history.replace(address(self._file, self._opened.on, self._action))
+
+    def _failed(self, event: GenericEventArguments) -> None:
+        self._trouble = str(event.args)
+        self._overlays.refresh()
+
+    def _send_action(self, *, start: bool) -> None:
+        opened = self._opened
+        if opened is None or not opened.actions:
+            return
+        shown = opened.actions[self._action]
+        self._viewport.speed(shown.keys_per_second * self._rate)
+        if start or self._action:
+            self._viewport.play(self._action, repeats=shown.repeats, start=start)
 
     def _play(self, action: int) -> None:
         self._action = action
-        self._playing = True
-        self._action_label.text = self._action_text()
-        self._key.props(f"max={max(self._keys() - 1, 0)}")
-        self._key.value = 0
-        self._model.play(action)
-        self._show_playing()
+        self._send_action(start=True)
+        self._timeline.build.refresh(self._opened, action, self._rate)
+        self._remember()
 
-    def _toolbar(self) -> None:
-        with ui.row().classes("items-center w-full q-gutter-x-sm"):
-            self._play_button = ui.button(on_click=self._toggle_playing).props("flat dense round")
-            self._show_playing()
-            self._key = ui.slider(
-                min=0,
-                max=max(self._keys() - 1, 0),
-                step=1,
-                value=0,
-                on_change=lambda event: self._model.seek(event.value),
-            ).classes("col")
-            ui.label().classes("mutools-key")
-            self._action_label = ui.label(self._action_text()).classes("mutools-dim")
-            self._speed = ui.select(
-                {speed: f"{speed} keys/s" for speed in SPEEDS},
-                value=DEFAULT_SPEED,
-                on_change=lambda event: self._model.speed(event.value),
-            ).props("dense borderless dark")
-        with ui.row().classes("items-center w-full q-gutter-x-md"):
-            drawn = any(mesh.bones for mesh in self._scene.meshes)
-            self._skeleton = ui.switch(
-                "skeleton", value=not drawn, on_change=lambda event: self._model.skeleton(event.value)
-            )
-            self._additive = ui.switch("additive", on_change=lambda event: self._model.additive(event.value))
-            if self._donor is not None:
-                ui.switch(
-                    f"On {PurePosixPath(self._donor).name}'s skeleton",
-                    value=self._on == DONOR,
-                    on_change=lambda event: ui.navigate.to(_address(self._file, DONOR if event.value else OWN)),
-                )
+    def _set_rate(self, rate: float) -> None:
+        self._rate = rate
+        opened = self._opened
+        if opened is not None and opened.actions:
+            self._viewport.speed(opened.actions[self._action].keys_per_second * rate)
+        self._timeline.build.refresh(opened, self._action, rate)
 
-    def _middle(self) -> None:
-        with ui.column().classes("mutools-panel col q-pa-sm"):
-            ui.label(self._file).classes("mutools-title")
-            self._toolbar()
-            if not self._scene.bones and not self._scene.meshes:
-                ui.label(NOTHING_TO_DRAW).classes("mutools-dim")
-            distance = math.dist(self._bounds.low, self._bounds.high) * VIEW_DISTANCE
-            camera = ui.scene.perspective_camera(near=max(distance / 1000, 0.01), far=max(distance * 50, 1000))
-            # NiceGUI's grid comes with a floor that hides what a model has under z = 0: bmd_model.js draws ours.
-            with ui.scene(
-                SCENE_WIDTH,
-                SCENE_HEIGHT,
-                grid=False,
-                camera=camera,
-                background_color=LORENCIA.background,
-                fps=FRAMES_PER_SECOND,
-            ).classes("mutools-scene") as scene:
-                self._model = BmdModel(self._file, self._on)
-            self._camera(scene)
-            scene.on("init", self._send_state)
+    def _set_view(self, view: str) -> None:
+        self._view = view
+        self._viewport.mode(view)
+        for name, mode in self._modes.items():
+            mode.chosen(name == view)
 
-    def _mesh_notes(self, mesh: int) -> list[tuple[str, str]]:
-        notes: list[tuple[str, str]] = []
-        skipped = self._scene.meshes[mesh].skipped
-        if skipped:
-            notes.append(("drawn", f"{counted(skipped, 'triangle')} not drawn"))
-        try:
-            mesh_texture(self._models.store, self._path, self._own, mesh)
-        except MutoolsError as error:
-            notes.append(("texture", f"not shown: {error.message}"))
-        return notes
+    def _set_bones(self, shown: bool) -> None:
+        self._bones = shown
+        self._viewport.skeleton(shown)
+        if "bones" in self._toggles:
+            self._toggles["bones"].chosen(shown)
 
-    @ui.refreshable_method
-    def _details(self, part: str) -> None:
-        mesh = _numbered(part, "meshes")
-        notes = self._mesh_notes(mesh) if mesh is not None and mesh < len(self._scene.meshes) else []
-        fields = [(name, _shown_value(value)) for name, value in part_fields(self._view, part).items()]
-        ui.label(part_title(part)).classes("mutools-title")
-        with ui.grid(columns="auto 1fr").classes("gap-x-4 gap-y-0 w-full"):
-            for name, value in (*part_facts(self._view, part), *notes, *fields):
-                ui.label(name).classes("mutools-dim")
-                ui.label(value).style("overflow-wrap: anywhere")
+    def _set_additive(self, on: bool) -> None:
+        self._additive = on
+        self._viewport.additive(on)
+        if "additive" in self._toggles:
+            self._toggles["additive"].chosen(on)
 
-    def _choose(self, pointer: str | None) -> None:
-        part = part_of(pointer or "")
-        bone = _numbered(part, "bones")
-        action = _numbered(part, "actions")
-        self._details.refresh(part)
-        self._model.highlight(_numbered(part, "meshes"))
-        self._model.mark_bone(bone)
-        if bone is not None:
-            self._skeleton.value = True
-        if action is not None and action < len(self._scene.actions):
+    def _switch_skeleton(self) -> None:
+        if self._opened is not None:
+            self.open(self._file, OWN if self._opened.on == DONOR else DONOR, self._action)
+
+    def _find(self) -> None:
+        self._finder.show()
+
+    def _frame(self) -> None:
+        self._viewport.frame()
+
+    def _toggle_playing(self) -> None:
+        self._viewport.toggle()
+
+    def _picture(self) -> None:
+        if self._opened is not None:
+            self._viewport.picture(self._opened.name)
+
+    def _show_tab(self, tab: str) -> None:
+        self._tab = tab
+        self._inspector.build.refresh(self._opened, tab, self._part)
+
+    def _choose(self, pointer: str) -> None:
+        opened = self._opened
+        if opened is None:
+            return
+        part = part_of(pointer)
+        mesh, bone, action = numbered(part, "meshes"), numbered(part, "bones"), numbered(part, "actions")
+        if mesh is not None and part == self._part and self._tab == PARTS:
+            part, mesh = "", None
+        self._part = part
+        self._viewport.highlight(mesh)
+        self._viewport.mark_bone(bone)
+        if bone is not None and not self._bones:
+            self._set_bones(True)
+        if action is not None and action < len(opened.actions):
             self._play(action)
-
-    def _choose_finding(self, finding: Finding) -> None:
-        part = part_of(finding.pointer)
-        self._parts.select(part or None)
-        self._choose(part)
-
-    def _right(self) -> None:
-        with ui.column().classes("mutools-panel mutools-side q-pa-sm"):
-            nodes = _part_nodes(model_parts(self._view).children)
-            self._parts = ui.tree(nodes, on_select=lambda event: self._choose(event.value)).props(
-                "dense dark selected-color=primary"
-            )
-            self._parts.mark(PARTS_MARK)
-            ui.separator()
-            self._details("")
-            ui.separator()
-            ui.label(f"findings ({len(self._findings)})").classes("mutools-title")
-            for finding in self._findings:
-                with ui.column().classes("gap-0 cursor-pointer").on("click", partial(self._choose_finding, finding)):
-                    ui.label(f"{finding.code} {finding.pointer}").classes(
-                        "text-negative" if finding.severity == "error" else "text-warning"
-                    )
-                    ui.label(finding.message).classes("mutools-dim")
-
-    def build(self) -> None:
-        self._middle()
-        self._right()
+        if self._tab == FINDINGS:
+            self._tab = PARTS if mesh is not None or bone is not None else MODEL
+        self._inspector.build.refresh(opened, self._tab, part)
 
 
 def add_page(models: Models) -> None:
-    @ui.page("/", title="mutools")
-    def index(file: str = "", on: str = OWN) -> None:
-        _paint()
-        with ui.header().classes("items-center q-py-xs").style(f"background: {LORENCIA.panel}"):
-            ui.label("◆ mutools").classes("mutools-title")
-            ui.label(str(models.root)).classes("mutools-dim")
-        with ui.row().classes("w-full no-wrap items-start q-pa-sm q-gutter-x-sm"):
-            _files_panel(models.listed(), file)
-            if not file:
-                ui.label(PICK_A_MODEL).classes("mutools-dim q-pa-md")
-                return
-            try:
-                panels = _ModelPanels(models, file, on)
-            except MutoolsError as error:
-                ui.label(error.message).classes("text-negative q-pa-md")
-                return
-            panels.build()
+    @ui.page("/", title=TITLE)
+    def index(file: str = "", on: str = OWN, action: int = 0) -> None:
+        paint()
+        Studio(models).build(file, on, action)

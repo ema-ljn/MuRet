@@ -1,3 +1,5 @@
+import struct
+import zlib
 from dataclasses import dataclass
 from struct import Struct
 from typing import Final
@@ -15,6 +17,10 @@ OZT_PIXELS_OFFSET: Final = OZT_PREFIX + 18
 PIXEL_SIZE: Final = 4
 RED: Final = 0
 BLUE: Final = 2
+PNG_SIGNATURE: Final = b"\x89PNG\r\n\x1a\n"
+PNG_NO_FILTER: Final = b"\x00"
+PNG_DEPTH: Final = 8
+PNG_RGBA: Final = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,3 +62,13 @@ def read_ozj(data: bytes) -> bytes:
     if not jpeg.startswith(JPEG_START):
         raise _refused("it is not a JPEG")
     return jpeg
+
+
+def png_of(image: RgbaImage) -> bytes:
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    row = image.width * PIXEL_SIZE
+    rows = b"".join(PNG_NO_FILTER + image.pixels[top : top + row] for top in range(0, row * image.height, row))
+    header = struct.pack(">IIBBBBB", image.width, image.height, PNG_DEPTH, PNG_RGBA, 0, 0, 0)
+    return PNG_SIGNATURE + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")

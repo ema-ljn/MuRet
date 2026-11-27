@@ -1,11 +1,13 @@
 import hashlib
+import struct
+import zlib
 from pathlib import Path
 from struct import pack_into
 
 import pytest
 
 from mutools.core.errors import ErrorCode, MutoolsError
-from mutools.core.formats.texture_images import read_ozj, read_ozt
+from mutools.core.formats.texture_images import RgbaImage, png_of, read_ozj, read_ozt
 
 WIDTH_OFFSET = 0x10
 PIXEL = 4
@@ -95,3 +97,15 @@ def test_an_ozj_shorter_than_its_prefix_is_refused() -> None:
         read_ozj(bytes(24))
 
     refused(error)
+
+
+def test_a_png_keeps_the_pixels_row_by_row() -> None:
+    pixels = bytes(range(16))
+    png = png_of(RgbaImage(2, 2, pixels))
+
+    width, height, depth, color = struct.unpack(">IIBB", png[16:26])
+    (size,) = struct.unpack(">I", png[33:37])
+    assert (png[:8], png[12:16], width, height, depth, color) == (b"\x89PNG\r\n\x1a\n", b"IHDR", 2, 2, 8, 6)
+    assert png[37:41] == b"IDAT"
+    assert zlib.decompress(png[41 : 41 + size]) == b"\x00" + pixels[:8] + b"\x00" + pixels[8:]
+    assert png.endswith(b"IEND" + struct.pack(">I", zlib.crc32(b"IEND")))

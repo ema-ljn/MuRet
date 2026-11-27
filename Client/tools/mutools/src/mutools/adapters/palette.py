@@ -44,3 +44,17 @@ LORENCIA_LIGHT: Final = Palette(
     panel="#E2D3AE",
     dark=False,
 )
+
+STUDIO: Final = Palette(
+    primary="#9AA6FF",
+    secondary="#A3A5AB",
+    accent="#3A47B0",
+    warning="#E0B25E",
+    error="#E8867D",
+    success="#7FCB9F",
+    foreground="#E7E5DE",
+    background="#111214",
+    surface="#191A1D",
+    panel="#1F2023",
+    dark=True,
+)

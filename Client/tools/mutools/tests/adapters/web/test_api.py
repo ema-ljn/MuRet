@@ -7,7 +7,7 @@ from nicegui.testing import User
 SWORD = "Item/Sword01.bmd"
 HELM = "player/HelmMale01.bmd"
 PLAYER = "player/Player.bmd"
-ROUTES = ("/api/scene", "/api/poses", "/api/texture")
+ROUTES = ("/api/scene", "/api/poses", "/api/texture", "/api/swatch")
 NEAR = 0.01
 
 
@@ -55,6 +55,14 @@ async def test_a_tga_texture(viewer: User) -> None:
 
     assert (response.headers["Content-Type"], len(response.content)) == ("application/octet-stream", 4096)
     assert (response.headers["X-Width"], response.headers["X-Height"]) == ("32", "32")
+
+
+async def test_a_swatch_is_the_jpeg_or_a_png_of_the_tga(viewer: User) -> None:
+    jpeg = await viewer.http_client.get("/api/swatch", params={"file": SWORD, "mesh": 0})
+    tga = await viewer.http_client.get("/api/swatch", params={"file": "player/Helper03.bmd", "mesh": 1})
+
+    assert (jpeg.headers["Content-Type"], len(jpeg.content)) == ("image/jpeg", 6292)
+    assert (tga.headers["Content-Type"], tga.content[:8]) == ("image/png", b"\x89PNG\r\n\x1a\n")
 
 
 async def test_a_texture_that_is_not_there(viewer: User) -> None:

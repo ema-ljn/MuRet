@@ -1,9 +1,10 @@
-from collections import OrderedDict
+from collections import Counter, OrderedDict
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from threading import Lock
 from typing import Final
 
-from mutools.app.documents import format_name_of
+from mutools.app.documents import decode_document, format_name_of
 from mutools.app.model_scene import borrows_skeleton, donor_of
 from mutools.app.session import EditSession
 from mutools.core.errors import ErrorCode, MutoolsError
@@ -12,6 +13,21 @@ from mutools.core.ports import FileStore
 
 KEPT_SESSIONS: Final = 4
 UP: Final = ".."
+STAMP_LENGTH: Final = 16
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryEntry:
+    file: str
+    folder: str
+    name: str
+    meshes: int
+    actions: int
+    stamp: str
+
+
+def folder_of(file: str) -> str:
+    return file.rpartition("/")[0]
 
 
 def _stays_inside(file: str) -> bool:
@@ -25,6 +41,7 @@ class Models:
         self.store = store
         self.root = root.resolve()
         self._sessions: OrderedDict[Path, tuple[str, EditSession]] = OrderedDict()
+        self._entries: dict[Path, LibraryEntry] = {}
         self._opening = Lock()
 
     def _is_model(self, path: Path) -> bool:
@@ -33,6 +50,22 @@ class Models:
     def listed(self) -> tuple[str, ...]:
         paths = self.store.list_bmd(self.root)
         return tuple(path.relative_to(self.root).as_posix() for path in paths if self._is_model(path))
+
+    def folders(self, listed: tuple[str, ...]) -> tuple[tuple[str, int], ...]:
+        counted = Counter(folder_of(file) for file in listed)
+        return tuple(sorted(counted.items(), key=lambda folder: folder[0].lower()))
+
+    def entry(self, file: str) -> LibraryEntry:
+        path = self.path(file)
+        stamp = self.store.sha256(path)[:STAMP_LENGTH]
+        kept = self._entries.get(path)
+        if kept is None or kept.stamp != stamp:
+            decoded = decode_document(self.store, path)
+            summary = decoded.identified.format.codec.summarize(decoded.document)
+            name = PurePosixPath(file).stem
+            kept = LibraryEntry(file, folder_of(file), name, summary.meshes or 0, summary.actions or 0, stamp)
+            self._entries[path] = kept
+        return kept
 
     def _served(self, file: str) -> Path | None:
         if not _stays_inside(file):

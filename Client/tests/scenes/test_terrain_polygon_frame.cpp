@@ -11,9 +11,9 @@
 #include <limits>
 #include <string>
 
-// Client::Camera::StepTheTerrainPolygon y TerrainPolygonBetweenFrames: el trapecio de 0x5fb570 y su nivel
-// efectivo en los globales de WorldRuntime (0x78ecbf0, 0x78ecc00 y 0x7b4ccb8), uno para las tres escenas que los
-// escriben. 06 § El trapecio completo.
+// Client::Camera::StepTheTerrainPolygon and TerrainPolygonBetweenFrames: 0x5fb570's trapezoid and its effective level
+// in WorldRuntime's globals (0x78ecbf0, 0x78ecc00 and 0x7b4ccb8), one for the three scenes that write them. 06 § El
+// trapecio completo.
 namespace
 {
 using Client::Camera::GameCamera;
@@ -25,7 +25,7 @@ using Client::Terrain::TerrainPolygonInput;
 
 constexpr std::array<float, 4> Zeros{};
 
-// El dibujo del juego en Lorencia, con el héroe en (133, 127) y el yaw de arranque.
+// The game's drawing in Lorencia, with the hero at (133, 127) and the starting yaw.
 TerrainPolygonInput GameInput()
 {
     TerrainPolygonInput input;
@@ -44,7 +44,7 @@ TerrainPolygon PolygonAtLevel(std::int32_t level)
     return polygon.HasValue() ? polygon.Value() : TerrainPolygon{};
 }
 
-// La cámara que pide el nivel 0 con la D en `distance` y la meta en `target`.
+// The camera that asks for level 0 with D at `distance` and the target at `target`.
 GameCamera CameraAt(float distance, float target)
 {
     GameCamera camera;
@@ -54,7 +54,7 @@ GameCamera CameraAt(float distance, float target)
     return camera;
 }
 
-// Q-C217: lo que WinMain encuentra en la .bss, los ocho float del trapecio en cero y el nivel en 0.
+// Q-C217: what WinMain finds in the .bss, the trapezoid's eight floats at zero and the level at 0.
 TEST(TerrainPolygonFrameTest, TheRuntimeStartsWithTheZerosOfTheBss)
 {
     const WorldRuntime runtime;
@@ -64,8 +64,8 @@ TEST(TerrainPolygonFrameTest, TheRuntimeStartsWithTheZerosOfTheBss)
     EXPECT_EQ(runtime.terrainPolygonState.effectiveLevel, 0);
 }
 
-// 0x5fb72a..0x5fb731 y 0x5fba55..0x5fba68: con la meta a la altura de la D, el nivel pedido (0x7d3a0ec) pasa a ser
-// el efectivo y el trapecio de ese nivel queda en los globales.
+// 0x5fb72a..0x5fb731 and 0x5fba55..0x5fba68: with the target at D, the requested level (0x7d3a0ec) becomes the
+// effective one and that level's trapezoid stays in the globals.
 TEST(TerrainPolygonFrameTest, AFrameLeavesTheLevelAndTheTrapezoid)
 {
     ASSERT_NE(PolygonAtLevel(0).x, PolygonAtLevel(3).x);
@@ -83,8 +83,8 @@ TEST(TerrainPolygonFrameTest, AFrameLeavesTheLevelAndTheTrapezoid)
     EXPECT_EQ(runtime.terrainPolygon.y, expected.y);
 }
 
-// 0x5fb70e..0x5fb738: con la meta (0x6d5ee0) debajo de la D (0x7d36ba4), la cámara que se acerca, el nivel efectivo
-// no cambia (el jl de 0x5fb728) y el trapecio es el del nivel de antes.
+// 0x5fb70e..0x5fb738: with the target (0x6d5ee0) below D (0x7d36ba4), the camera approaching, the effective level
+// does not change (0x5fb728's jl) and the trapezoid is the previous level's.
 TEST(TerrainPolygonFrameTest, WhileTheCameraApproachesTheLevelStays)
 {
     WorldRuntime runtime;
@@ -99,7 +99,7 @@ TEST(TerrainPolygonFrameTest, WhileTheCameraApproachesTheLevelStays)
     EXPECT_EQ(runtime.terrainPolygon.y, expected.y);
 }
 
-// ADR 0009: con la D fuera de un int64 no deja nada y el error nombra 0x5fb570.
+// ADR 0009: with D outside an int64 it leaves nothing and the error names 0x5fb570.
 TEST(TerrainPolygonFrameTest, AnErrorLeavesTheGlobalsAsTheyWere)
 {
     WorldRuntime runtime;
@@ -116,8 +116,8 @@ TEST(TerrainPolygonFrameTest, AnErrorLeavesTheGlobalsAsTheyWere)
     EXPECT_EQ(runtime.terrainPolygon.y, Zeros);
 }
 
-// Un dibujo intermedio de MuRet: el trapecio con el nivel efectivo que hay, sin la transición y sin escribir. Un
-// nivel fuera de 0 a 4 da el error de 0x5fb570.
+// A MuRet in-between drawing: the trapezoid with the current effective level, without the transition and without
+// writing. A level outside 0 to 4 gives 0x5fb570's error.
 TEST(TerrainPolygonFrameTest, BetweenFramesNothingIsWritten)
 {
     WorldRuntime runtime;

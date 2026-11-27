@@ -28,7 +28,7 @@ void Initialize(ItemState& item, const Metadata& metadata, std::uint32_t b1 = 0,
     InitializeItemState(item, metadata, {b1, b3, b4}, contextWord, {});
 }
 
-// Detecta inicialización completa indebida, borrado de valores previos y stores omitidos.
+// Catches an undue full initialization, erased previous values and missed stores.
 TEST(ItemStateTest, CopiesMetadataAndPreservesUntouchedFields)
 {
     ItemState item;
@@ -78,7 +78,7 @@ TEST(ItemStateTest, CopiesMetadataAndPreservesUntouchedFields)
     EXPECT_EQ(item.gridRow, 27);
 }
 
-// Los catorce/quince usan el default de tabla, no saturan el bonus en trece.
+// Fourteen and fifteen use the table's default; the bonus does not saturate at thirteen.
 TEST(ItemStateTest, CoversAllLevelThresholdsWithIndependentLiterals)
 {
     constexpr std::array<std::uint16_t, 16> Expected{1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 32, 37, 43, 50, 28, 28};
@@ -207,7 +207,7 @@ TEST(ItemStateTest, ClassifiesSignedIdsWithPriorityAndLevelExceptions)
         EXPECT_EQ(item.itemClass, entry.expected);
     }
 }
-// Detecta bonus P/Q ausentes, uso de T27 en vez de T26 y requisitos antes de escala correcta.
+// Catches missing P/Q bonuses, T27 used instead of T26 and requirements before the right scale.
 TEST(ItemStateTest, CalculatesAllMetadataFieldsAndSeparateArmorFormula)
 {
     Metadata metadata{};
@@ -251,7 +251,7 @@ TEST(ItemStateTest, CalculatesAllMetadataFieldsAndSeparateArmorFormula)
     EXPECT_EQ(item.word0c, 84);
 }
 
-// Expected derivados del contrato ASM 54bf40 c338..c433: 2*min(L,9)+h para estas familias.
+// Expected values from the ASM contract of 0x54bf40 c338..c433: 2*min(L,9)+h for these families.
 TEST(ItemStateTest, UsesTheTwofoldWord12LevelAdjustmentOnlyForTheSpecialFamilies)
 {
     Metadata metadata{};
@@ -302,7 +302,7 @@ TEST(ItemStateTest, WrapsByte10WithAndWithoutTheQBonus)
     Initialize(item, metadata, 13 << 3);
     EXPECT_EQ(item.byte10, 48);
     Initialize(item, metadata, 13 << 3, 1);
-    // 255 + (25*255/1+5) +27+22 =6684, cuyo low8 es28.
+    // 255 + (25*255/1+5) +27+22 = 6684, whose low8 is 28.
     EXPECT_EQ(item.byte10, 28);
 }
 
@@ -316,7 +316,7 @@ TEST(ItemStateTest, AppliesTheSpecialBonusToWord0eAndByte16OnlyWithANonzeroDenom
     ItemState item;
     item.id = 0x806;
     Initialize(item, metadata, 10 << 3, 1, 1);
-    // k=30 distingue ambos campos de la fórmula ordinaria (79/65).
+    // k=30 tells both fields apart from the ordinary formula (79/65).
     EXPECT_EQ(item.word0e, 99);
     EXPECT_EQ(item.byte16, 72);
     metadata[0x20] = std::byte{0};
@@ -372,7 +372,7 @@ TEST(ItemStateTest, WrapsProductsTo32BitsBeforeSignedDivisionTruncatingTowardZer
     EXPECT_EQ(item.word20, 23722);
     EXPECT_EQ(item.word22, 3660);
     EXPECT_EQ(item.word24, 23722);
-    EXPECT_EQ(item.word26, 65535); // sobrescritura raw posterior al requisito
+    EXPECT_EQ(item.word26, 65535); // raw overwrite after the requirement
     item.id = 0x1c17;
     Initialize(item, metadata, 15 << 3, 1);
     EXPECT_EQ(item.word26, 170);
@@ -556,7 +556,7 @@ TEST(ItemStateTest, SelectsBothLateTagFamiliesAndKeepsTheLiteralSeven)
     }
 }
 
-// El doble representa la frontera requerida; no acredita sus auxiliares transitivos.
+// The double stands for the required boundary; it does not credit its transitive helpers.
 TEST(ItemStateTest, Calls4225d0OnTheSameDestinationBeforeClassification)
 {
     Metadata metadata{};
@@ -668,8 +668,8 @@ TEST(ItemStateTest, TruncatesTheContextQuotientToAByte)
     EXPECT_EQ(item.OptionValue(0), 204);
 }
 
-// cd8a..cdac/cde5..ce08 leen el word de la fuente al llegar a la opción, tras los stores D+e.
-// Ambos almacenamientos son válidos: un word separado o la fuente coincidente con D+e.
+// cd8a..cdac/cde5..ce08 read the source's word on reaching the option, after the D+e stores. Both storages are
+// valid: a separate word or the source matching D+e.
 TEST(ItemStateTest, ReadsTheContextWordLateIncludingWhenItAliasesTheDestinationWord)
 {
     Metadata metadata{};
@@ -695,8 +695,8 @@ TEST(ItemStateTest, ReadsTheContextWordLateIncludingWhenItAliasesTheDestinationW
     EXPECT_EQ(aliased.OptionValue(0), 4);
 }
 
-// Quién lee el word: la familia tardía de las armas, con signo, y el bit 0x10 del byte bajo de B3. Es lo
-// que 0x5bc740 tiene que saber antes de llamar a 0x54bf40 con el registro propio cerrado (Q-C202).
+// Who reads the word: the weapons' late family, signed, and bit 0x10 of B3's low byte. It is what 0x5bc740 must know
+// before calling 0x54bf40 with the own record closed (Q-C202).
 TEST(ItemStateTest, OnlyTheLateWeaponFamilyWithBit10ReadsTheContextWord)
 {
     using Client::Kernel::ReadsTheContextWord;
@@ -715,7 +715,7 @@ TEST(ItemStateTest, OnlyTheLateWeaponFamilyWithBit10ReadsTheContextWord)
     }
 }
 
-// Si P fuerza Q antes de requisitos, E suma25 incluso con B3 inicialmente cero.
+// If P forces Q before the requirements, E adds 25 even with B3 initially zero.
 TEST(ItemStateTest, PForcesQBeforeRequirementBaseSelection)
 {
     Metadata metadata{};
@@ -756,7 +756,7 @@ TEST(ItemStateDeathTest, InvalidValueIndicesStopWithADiagnosticInEveryBuild)
 
 using GoldenItemState = Client::Tests::GoldenDataTest;
 
-// Metadata real cargada una vez: expected de registros observados, no de InitializeItemState.
+// Real metadata loaded once: expected values from observed records, not from InitializeItemState.
 TEST_F(GoldenItemState, UsesTheItemTableOwnedByGameData)
 {
     const auto data = Client::Tables::LoadGameData(m_dataRoot);

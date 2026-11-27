@@ -9,7 +9,7 @@ namespace Client::Kernel
 {
 namespace
 {
-// El mismo trío que en el equipo del registro (0x4c56ad..0x4c56b7 y 0x4c56ca..0x4c56d4).
+// The same three as in the record's equipment (0x4c56ad..0x4c56b7 and 0x4c56ca..0x4c56d4).
 void Clear(std::span<Kernel::ItemState> cells)
 {
     for (Kernel::ItemState& item : cells)

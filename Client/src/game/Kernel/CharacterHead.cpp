@@ -23,7 +23,7 @@ using Math::F32;
 
 void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random)
 {
-    // 0x5068fd: rand() & 0x8000001f con el arreglo del signo, el % 32 de C.
+    // 0x5068fd: rand() & 0x8000001f with the sign fix-up, C's % 32.
     if (sorts && random.Next() % SortOneIn == 0)
     {
         head.target.x = static_cast<float>((random.Next() % TurnSpan) - TurnCenter);

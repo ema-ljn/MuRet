@@ -25,8 +25,6 @@
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/FrontEnd/CharacterSelect.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Player/LevelUpPoint.h"
-#include "Protocol/Player/PkLevel.h"
 #include "Protocol/Combat/Combat.h"
 #include "Protocol/Session/Hello.h"
 #include "Protocol/Session/Keepalive.h"
@@ -45,7 +43,6 @@
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Messenger/Letters.h"
-#include "Protocol/Chat/Messages.h"
 #include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -58,7 +55,6 @@
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Quests/Quest.h"
 #include "Protocol/Social/Trade.h"
-#include "Protocol/Actors/Viewport.h"
 #include "Protocol/Movement/World.h"
 #include "Protocol/Weather/Weather.h"
 #include "Protocol/Movement/Movement.h"
@@ -522,6 +518,12 @@ const Scenes::WorldEntryResources* ServerSession::RoutedWorld() const
 void ServerSession::IgnoreUnreadable(std::string_view ignored)
 {
     m_log.Warning("{}: {}", ignored, Unreadable);
+}
+
+void ServerSession::ReportInClear(std::string_view warning, Protocol::Outgoing report)
+{
+    m_log.Warning("{}: se le avisa al GameServer (F1 03)", warning);
+    m_connection.Send(std::move(report.packet), report.delivery);
 }
 
 void ServerSession::FinishRoutedReception(Core::Expected<void, std::string> applied)
@@ -1231,52 +1233,6 @@ void ServerSession::OnWeather(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(weather.Value(), *this)));
 }
 
-// 04 § El chat que llega: ninguno mira el estado de la sesión, la escena (salvo el 00 y el 0D, que la mira el sink)
-// ni el flag de cifrado. Los avisos del log no llevan el nombre ni el texto.
-void ServerSession::OnChat(const Network::Packet& packet)
-{
-    const auto chat = Protocol::Chat::ReadChat(packet);
-    if (!chat.HasValue())
-    {
-        m_log.Warning("se ignora el chat (00): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(chat.Value(), *this)));
-}
-
-void ServerSession::OnKeyChat(const Network::Packet& packet)
-{
-    const auto chat = Protocol::Chat::ReadKeyChat(packet);
-    if (!chat.HasValue())
-    {
-        m_log.Warning("se ignora el chat por clave (01): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(chat.Value(), *this)));
-}
-
-void ServerSession::OnWhisper(const Network::Packet& packet)
-{
-    const auto whisper = Protocol::Chat::ReadWhisper(packet);
-    if (!whisper.HasValue())
-    {
-        m_log.Warning("se ignora el susurro (02): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(whisper.Value(), *this)));
-}
-
-void ServerSession::OnWhisperResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Chat::ReadWhisperResult(packet);
-    if (!result.HasValue())
-    {
-        m_log.Warning("se ignora el resultado del susurro (0C): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
 void ServerSession::OnGuild(const Network::Packet& packet)
 {
     auto guild = Protocol::Guild::ReadGuildPacket(packet);
@@ -1409,17 +1365,6 @@ void ServerSession::OnInviteResult(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
 }
 
-void ServerSession::OnNotice(const Network::Packet& packet)
-{
-    const auto notice = Protocol::Chat::ReadNotice(packet);
-    if (!notice.HasValue())
-    {
-        m_log.Warning("se ignora el aviso (0D): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(notice.Value(), *this)));
-}
-
 void ServerSession::OnCastleSiege(const Network::Packet& packet)
 {
     auto castle = Protocol::CastleSiege::ReadCastleSiegePacket(packet);
@@ -1440,17 +1385,6 @@ void ServerSession::OnCastleBattle(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(battle).Value(), *this)));
-}
-
-void ServerSession::OnOptionData(const Network::Packet& packet)
-{
-    const auto options = Protocol::Player::ReadOptionData(packet);
-    if (!options.HasValue())
-    {
-        m_log.Warning("se ignoran las opciones (F3 30): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(options.Value(), *this)));
 }
 
 // 04 § Mover y equipar ítems. El 24 sin cifrar no se lee: 0x4d1400 manda el C1 06 F1 03 00 16 en C3 y no suelta la
@@ -2008,18 +1942,6 @@ void ServerSession::PollTheChatRooms()
     }
 }
 
-// 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
-void ServerSession::OnDamage(const Network::Packet& packet)
-{
-    const auto damage = Protocol::Movement::ReadDamage(packet);
-    if (!damage.HasValue())
-    {
-        m_log.Warning("se ignora el daño (D7): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
-}
-
 // 0x4cc530: sin el cifrado, el F1 03 con 0x19 y nada más.
 void ServerSession::OnMagicAttack(const Network::Packet& packet)
 {
@@ -2123,39 +2045,6 @@ void ServerSession::OnSkillList(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
 }
 
-void ServerSession::OnLevelUp(const Network::Packet& packet)
-{
-    const auto reply = Protocol::Skills::ReadLevelUp(packet);
-    if (!reply.HasValue())
-    {
-        m_log.Warning("se ignora la subida de nivel (F3 05): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(reply.Value(), *this)));
-}
-
-void ServerSession::OnLevelUpPointResult(const Network::Packet& packet)
-{
-    const auto reply = Protocol::Player::ReadLevelUpPointResult(packet);
-    if (!reply.HasValue())
-    {
-        m_log.Warning("se ignora el punto de subir de nivel (F3 06): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(reply.Value(), *this)));
-}
-
-void ServerSession::OnPkLevel(const Network::Packet& packet)
-{
-    const auto level = Protocol::Player::ReadPkLevel(packet);
-    if (!level.HasValue())
-    {
-        m_log.Warning("se ignora el estado de PK (F3 08): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(level.Value(), *this)));
-}
-
 void ServerSession::OnSummonLife(const Network::Packet& packet)
 {
     const auto summon = Protocol::Skills::ReadSummonLife(packet);
@@ -2201,109 +2090,6 @@ void ServerSession::OnPetInfo(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(info.Value(), *this)));
-}
-
-// CL9 hito 3. 0x4cf200 y 0x4cfce0 miran el flag antes de leer: con 0, el F1 03 con el opcode y nada más.
-void ServerSession::OnKillExperience(const Network::Packet& packet)
-{
-    if (!packet.WasDecrypted())
-    {
-        m_log.Warning("la experiencia (16) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::KillExperienceOpcode);
-        m_connection.Send(std::move(report.packet), report.delivery);
-        return;
-    }
-    const auto experience = Protocol::Combat::ReadKillExperience(packet);
-    if (!experience.HasValue())
-    {
-        m_log.Warning("se ignora la experiencia (16): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
-}
-
-void ServerSession::OnExtendedKillExperience(const Network::Packet& packet)
-{
-    if (!packet.WasDecrypted())
-    {
-        m_log.Warning("la experiencia (9C) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::ExtendedKillExperienceOpcode);
-        m_connection.Send(std::move(report.packet), report.delivery);
-        return;
-    }
-    const auto experience = Protocol::Combat::ReadExtendedKillExperience(packet);
-    if (!experience.HasValue())
-    {
-        m_log.Warning("se ignora la experiencia (9C): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
-}
-
-// 0x4d0a30 recibe el paquete y el largo: no mira el flag.
-void ServerSession::OnDeath(const Network::Packet& packet)
-{
-    const auto death = Protocol::Combat::ReadDeath(packet);
-    if (!death.HasValue())
-    {
-        m_log.Warning("se ignora la muerte (17): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(death.Value(), *this)));
-}
-
-// 0x4cb750 (desde 0x4e39ab): la acción de otro, sin guarda de escena ni del flag de cifrado.
-void ServerSession::OnAction(const Network::Packet& packet)
-{
-    const auto action = Protocol::Movement::ReadAction(packet);
-    if (!action.HasValue())
-    {
-        m_log.Warning("se ignora la acción (18): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(action.Value(), *this)));
-}
-
-void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
-{
-    const auto attack = Protocol::Actors::ReadMagicAttackCount(packet);
-    if (!attack.HasValue())
-    {
-        m_log.Warning("se ignora la skill que pega a varios (1A): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
-}
-
-// P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.
-void ServerSession::OnTeleport(const Network::Packet& packet)
-{
-    if (!packet.WasDecrypted())
-    {
-        m_log.Warning("el warp (1C) no llegó cifrado: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Movement::WriteRejectedTeleport();
-        m_connection.Send(std::move(report.packet), report.delivery);
-        return;
-    }
-    const auto teleport = Protocol::Movement::ReadTeleport(packet);
-    if (!teleport.HasValue())
-    {
-        m_log.Warning("se ignora el warp (1C): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(teleport.Value(), *this)));
-}
-
-// 0x4c4b80 recibe sólo el paquete: no mira el flag de cifrado.
-void ServerSession::OnRegen(const Network::Packet& packet)
-{
-    const auto regen = Protocol::Movement::ReadRegen(packet);
-    if (!regen.HasValue())
-    {
-        m_log.Warning("se ignora la reaparición (F3 04): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(regen.Value(), *this)));
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

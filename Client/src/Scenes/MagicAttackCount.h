@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/PlayerKey.h"
 #include "Protocol/Actors/Viewport.h"
 
-#include <cstdint>
 #include <string>
 
 // La skill que pega a varios (CL9 hito 2): el 1A, 0x4cedd0. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
@@ -18,10 +18,10 @@ struct WorldEntryResources;
 // tabla: un rand() al cerrarse) y +0x381 en 1. Con el 400 todo eso va al 400 salvo la acción, que lee el tipo que
 // haya ahí y se descarta con una línea de depuración (Q-C1125). Después, por cada blanco (0x5110d0, también el
 // fantasma): rand() par, el golpe de 0x4f53a0 con su +0x384; con +0x384, el número de daño (0x548e40, amarillo naranja
-// de 15, que sube) y, si la clave es la del jugador (`playerKey`, [0x57678bc]), la vida (+0x22) del registro propio
+// de 15, que sube) y, si la clave es la del jugador (`player`, [0x57678bc]), la vida (+0x22) del registro propio
 // baja +0x384 hasta 0 (abierto y cerrado por la tabla: 3.848 rand() al cerrarse). Sin el modelo cargado del que pega o
 // con un golpe que corta, corta con la dirección.
 [[nodiscard]] Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::MagicAttackCount& attack,
-                                                                      std::uint16_t playerKey,
+                                                                      Kernel::PlayerKey player,
                                                                       const WorldEntryResources& resources);
 } // namespace Client::Scenes

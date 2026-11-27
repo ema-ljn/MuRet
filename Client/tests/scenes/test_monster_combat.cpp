@@ -3,6 +3,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/PlayerKey.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Tables/ItemSetTables.h"
@@ -296,7 +297,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     const Client::Protocol::Movement::Damage hurt{
         .characterId = MonsterKey, .shock = false, .amount = 12, .type = 0, .flag = false};
     const std::uint32_t created = game->cloth.random.State();
-    const auto damaged = Client::Scenes::ApplyDamageReply(hurt, HeroKey, game->Resources());
+    const auto damaged = Client::Scenes::ApplyDamageReply(hurt, Client::Kernel::PlayerKey{HeroKey}, game->Resources());
     ASSERT_TRUE(damaged.HasValue()) << damaged.Error();
     // 0x4f53a0: la acción 5 y, con el frame en 0, el golpe de la WORD 2 o la 3 de su tabla (0x4f553d..0x4f55ac).
     EXPECT_EQ(monster.animation.action, 5);
@@ -342,7 +343,8 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
     const auto hit = Client::Protocol::Movement::ReadDamage(
         Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 8, 0xd7, 0x01, 0x23, 0x00, 0x0c, 0x00})));
     ASSERT_TRUE(hit.HasValue());
-    const auto appliedHit = Client::Scenes::ApplyDamageReply(hit.Value(), HeroKey, game->Resources());
+    const auto appliedHit =
+        Client::Scenes::ApplyDamageReply(hit.Value(), Client::Kernel::PlayerKey{HeroKey}, game->Resources());
     ASSERT_TRUE(appliedHit.HasValue()) << appliedHit.Error();
 
     const auto death =

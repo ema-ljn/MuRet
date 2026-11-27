@@ -1175,7 +1175,6 @@ game/Session/ServerSession.h	App/IChatRoomLinks.h	game/Session	app
 game/Session/ServerSession.h	App/ServerAddress.h	game/Session	app
 game/Session/ServerSession.h	App/SessionState.h	game/Session	app
 game/Session/SessionEventApplier.cpp	App/FaithfulPacer.h	game/Session	app
-game/Session/SessionEventApplier.cpp	Scenes/SceneId.h	game/Session	game/Scenes
 game/Session/WorldEntry.cpp	Scenes/SceneId.h	game/Session	game/Scenes
 game/Session/WorldEntry.h	Scenes/SceneId.h	game/Session	game/Scenes
 game/Session/WorldTransitionSupport.cpp	Scenes/GameDrawTail.h	game/Session	game/Scenes

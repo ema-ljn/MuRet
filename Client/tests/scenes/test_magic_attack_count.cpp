@@ -6,6 +6,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/PlayerKey.h"
 #include "Tables/PlayerModels.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/Cloth.h"
@@ -196,7 +197,7 @@ protected:
                                                             .log = m_log};
         return Client::Scenes::ApplyMagicAttackCount(
             Client::Protocol::Actors::MagicAttackCount{.key = caster, .magic = Magic, .targets = std::move(targets)},
-            PlayerKey, resources);
+            Client::Kernel::PlayerKey{PlayerKey}, resources);
     }
 
     std::vector<const Client::World::Particle*> Shines() const

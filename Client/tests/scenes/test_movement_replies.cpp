@@ -170,7 +170,7 @@ TEST(MovementRepliesTest, ShockStopsTheHeroBeforeLifeClosesTheOwnRecord)
     tested.world.OwnCharacter().life = 40;
     ASSERT_TRUE(
         Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 50, 0, false},
-                                         Replies::PlayerKey, tested.Resources())
+                                         Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
             .HasValue());
     EXPECT_EQ(hero.movement, 0);
     EXPECT_EQ(hero.animation.action, 0xc2);
@@ -279,7 +279,7 @@ TEST(MovementRepliesTest, OrdinaryHeroDamageNeverShocksAndItsNumberDoesNotReques
     tested.world.OwnCharacter().life = 40;
     ASSERT_TRUE(
         Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false},
-                                         Replies::PlayerKey, tested.Resources())
+                                         Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
             .HasValue());
     EXPECT_EQ(tested.Hero().movement, 1);
     EXPECT_EQ(tested.Hero().animation.action, 13);
@@ -303,13 +303,13 @@ TEST(MovementRepliesTest, OtherDamageConsumesTheCoinEvenWhenShockIsBlockedByTheM
     other.movement = 1;
     other.pet.model = 0x1c15;
     ASSERT_TRUE(Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{44, false, 30, 0, false},
-                                                 Replies::PlayerKey, tested.Resources())
+                                                 Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(other.movement, 1);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
     other.word376 = 0x113;
     ASSERT_TRUE(Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{44, false, 30, 0, false},
-                                                 Replies::PlayerKey, tested.Resources())
+                                                 Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
 }
@@ -319,7 +319,7 @@ TEST(MovementRepliesTest, DamageFlagsCreateCopiesInPhysicalSlotsWithoutAdditiona
     tested.world.Runtime().ownRecordDepth = 1;
     ASSERT_TRUE(Client::Scenes::ApplyDamageReply(
                     Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 2, true, true},
-                    Replies::PlayerKey, tested.Resources())
+                    Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                     .HasValue());
     const auto& numbers = tested.world.DrawTail().damage;
     ASSERT_TRUE(numbers[0].alive);
@@ -351,7 +351,7 @@ TEST(MovementRepliesTest, ShockSoundClassesPreserveTheirDistinctRandomCounts)
         tested.cloth.random = Client::Crt::CrtRandom(seed);
         ASSERT_TRUE(
             Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 10, 0, false},
-                                             Replies::PlayerKey, tested.Resources())
+                                             Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources())
                 .HasValue());
         EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, characterClass == 4 ? 2 : 1).State());
     }
@@ -383,8 +383,8 @@ struct ShieldReplies
     Client::Core::Expected<void, std::string> Hit()
     {
         return Client::Scenes::ApplyDamageReply(
-            Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false}, Replies::PlayerKey,
-            tested.Resources());
+            Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false},
+            Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     }
     std::ptrdiff_t Shields() const
     {
@@ -593,8 +593,8 @@ TEST(MovementRepliesTest, BitSixProducesTwoDimCopiesBeforeTheNormalNumberAtTheOr
     Replies tested;
     tested.world.Runtime().ownRecordDepth = 1;
     const auto result = Client::Scenes::ApplyDamageReply(
-        Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false, true}, Replies::PlayerKey,
-        tested.Resources());
+        Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 0, false, true},
+        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto& numbers = tested.world.DrawTail().damage;
     EXPECT_TRUE(numbers[0].alive);
@@ -614,8 +614,8 @@ TEST(MovementRepliesTest, BitSevenFallsThroughFromItsThirdNumberToTheFourthNorma
     Replies tested;
     tested.world.Runtime().ownRecordDepth = 1;
     const auto result = Client::Scenes::ApplyDamageReply(
-        Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 5, true, false}, Replies::PlayerKey,
-        tested.Resources());
+        Client::Protocol::Movement::Damage{Replies::PlayerKey, false, 30, 5, true, false},
+        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto& numbers = tested.world.DrawTail().damage;
     EXPECT_TRUE(numbers[3].alive);
@@ -636,7 +636,7 @@ TEST(MovementRepliesTest, ShockTreatsAnUnorderedExistingFrameAsEqualForTheHitSou
     tested.Hero().animation.frame = std::numeric_limits<float>::quiet_NaN();
     const auto result =
         Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 30, 0, false},
-                                         Replies::PlayerKey, tested.Resources());
+                                         Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested.world.Runtime().lastSoundId.has_value());
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());

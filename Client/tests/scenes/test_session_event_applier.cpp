@@ -3,6 +3,7 @@
 
 #include "Session/CharacterEvent.h"
 #include "Session/ServerSession.h"
+#include "Session/SessionHandlers.h"
 #include "App/SessionState.h"
 #include "Session/WorldEvent.h"
 #include "Core/ILogSink.h"
@@ -14,8 +15,6 @@
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
-#include "Protocol/Chat/Messages.h"
-#include "Protocol/Movement/Movement.h"
 #include "Protocol/Pets/PetOrders.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Movement/World.h"
@@ -234,13 +233,18 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
 
-TEST(SessionEventApplierTest, DamageReachesItsApplierWithoutFallingThroughToF303)
+TEST(SessionEventApplierTest, TheDamageWireReachesItsActorThroughTheRealSession)
 {
-    auto owned = std::make_unique<Applier>();
-    Applier& tested = *owned;
-    Client::Tests::LoggedInSession online;
-    const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
-    EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    auto& other = tested->world.Actors()[3];
+    other.alive = true;
+    other.key = 42;
+    online.socket.reads = {Client::Tests::Bytes({0xc1, 8, 0xd7, 0, 42, 0, 50, 0})};
+    ASSERT_TRUE(online.session.Poll().HasValue());
+    EXPECT_EQ(other.damage, 50);
+    EXPECT_EQ(online.session.State(), Client::App::SessionState::LoggedIn);
 }
 
 // The routed rows (Session/Route.h) take their parts from the applier's world: the 14 through the real session lets go
@@ -292,7 +296,7 @@ TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
 TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
 {
     auto tested = std::make_unique<Applier>();
-    Client::Tests::LoggedInSession online;
+    Client::Tests::LoggedInSession online(&tested->applier);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     Client::Scenes::ActorState& other = tested->world.Actors()[12];
     other = Client::Tests::UnarmedPlayer();
@@ -300,10 +304,9 @@ TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
     other.key = 0x1234;
     other.flags7c = 0x200000;
     const std::size_t sent = online.socket.sent.size();
-    const Client::App::WorldEvent event =
-        Client::Protocol::Movement::Action{.key = 0x1234, .direction = 3, .action = 0x7a};
+    online.socket.reads = {Client::Tests::Bytes({0xc1, 7, 0x18, 0x12, 0x34, 3, 0x7a})};
 
-    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+    ASSERT_TRUE(online.session.Poll().HasValue());
     EXPECT_EQ(other.animation.action, 0xca);
     const std::vector<std::byte> action(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
                                         online.socket.sent.end());
@@ -335,9 +338,6 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {
     auto owned = std::make_unique<Applier>();
     Applier& tested = *owned;
-    Client::Tests::LoggedInSession online;
-    ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    const std::size_t sent = online.socket.sent.size();
     Client::Scenes::SessionEventApplier inTheLogin{Client::Scenes::WorldEntryResources{
         .world = tested.world,
         .selection = tested.selection,
@@ -348,9 +348,12 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
         .models = tested.models,
         .log = tested.log,
         .scene = [] { return std::optional<Client::Scenes::SceneId>(Client::Scenes::SceneId::Login); }}};
-    const Client::App::WorldEvent event = Client::Protocol::Chat::Chat{};
+    Client::Tests::LoggedInSession online(&inTheLogin);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    const std::size_t sent = online.socket.sent.size();
+    online.socket.reads = {Client::Tests::Bytes({0xc1, 3, 0x00})};
 
-    ASSERT_TRUE(inTheLogin.ApplyWorld(event, online.session).HasValue());
+    ASSERT_TRUE(online.session.Poll().HasValue());
     const std::vector<std::byte> request(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
                                          online.socket.sent.end());
     EXPECT_EQ(request, Client::Tests::ListRequest());
@@ -385,8 +388,8 @@ TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
     Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.Runtime().cursorItemCount = 1;
-    const Client::App::WorldEvent event = Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0};
-    const auto result = tested.applier.ApplyWorld(event, online.session);
+    const auto result = Client::Session::ReceiveTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0},
+                                                         online.session, *tested.applier.RoutedWorld());
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
 }

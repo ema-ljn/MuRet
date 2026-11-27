@@ -1,32 +1,45 @@
 #include "Session/Route.h"
 
+#include "App/IChatRoomLinks.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Kernel/PlayerKey.h"
+#include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/Movement/Movement.h"
+#include "Protocol/Movement/World.h"
+#include "Scenes/ActionSend.h"
+#include "Scenes/ActorCombat.h"
+#include "Scenes/ChatReceive.h"
 #include "Scenes/WorldState.h"
 #include "Session/ServerSession.h"
 #include "Session/WorldEntry.h"
+#include "Tables/PlayerModels.h"
+
+#include "test_server_session_support.h"
 
 #include "support/BareWorld.h"
 #include "support/Bytes.h"
 #include "support/Packets.h"
-#include "support/SessionHarness.h"
+#include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
 {
 using Client::App::SessionState;
 using Client::Protocol::Movement::Walk;
+using Client::Tests::ServerSessionSupport::Harness;
 
 struct Handled
 {
@@ -55,14 +68,72 @@ void HandleTheWalkAlone(const Walk& walk)
     handled.push_back({.walk = walk, .player = std::nullopt, .world = nullptr, .resources = nullptr});
 }
 
+struct ChatParts
+{
+    const Client::Scenes::WorldState* world = nullptr;
+    const Client::Crt::CrtRandom* random = nullptr;
+    std::optional<std::uint8_t> chosenSlot;
+    bool sendsToTheGuild = false;
+    const Client::App::IChatRoomLinks* rooms = nullptr;
+    const Client::Scenes::WorldEntryResources* worldEntry = nullptr;
+};
+std::optional<ChatParts> chatParts;
+
+void HandleWithTheChat(const Walk&, const Client::Scenes::ChatReceiveContext& chat)
+{
+    chatParts = ChatParts{.world = &chat.world,
+                          .random = &chat.random,
+                          .chosenSlot = chat.chosenSlot,
+                          .sendsToTheGuild = static_cast<bool>(chat.guildSend),
+                          .rooms = chat.rooms,
+                          .worldEntry = chat.worldEntry};
+}
+
+struct CombatParts
+{
+    const Client::Scenes::WorldState* world = nullptr;
+    const Client::Crt::CrtRandom* random = nullptr;
+    const Client::Models::Skeleton* playerSkeleton = nullptr;
+    const Client::Models::IModelLibrary* models = nullptr;
+};
+std::optional<CombatParts> combatParts;
+
+void HandleWithTheCombat(const Walk&, const Client::Scenes::ActorCombatContext& combat)
+{
+    combatParts = CombatParts{.world = &combat.world,
+                              .random = &combat.random,
+                              .playerSkeleton = combat.playerSkeleton,
+                              .models = combat.models};
+}
+
+void HandleBySitting(const Walk& walk, const Client::Scenes::ActionSender& sendAction)
+{
+    sendAction(walk.direction, 0x7a);
+}
+
+const Client::App::ServerSession* sessionPart = nullptr;
+
+void HandleWithTheSession(const Walk&, Client::App::ServerSession& session)
+{
+    sessionPart = &session;
+}
+
 constexpr auto RouteEveryPart = &Client::Session::Route<"se ignora el movimiento de prueba",
                                                         &Client::Protocol::Movement::ReadWalk, &HandleWithEveryPart>;
 constexpr auto RouteTheWalkAlone = &Client::Session::Route<"se ignora el movimiento de prueba",
                                                            &Client::Protocol::Movement::ReadWalk, &HandleTheWalkAlone>;
+constexpr auto RouteEncrypted =
+    &Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                            &HandleWithEveryPart,
+                            Client::Session::InClear<"el movimiento de prueba no llegó cifrado",
+                                                     &Client::Protocol::Movement::WriteRejectedTeleport>>;
 
-Client::Network::Packet WalkPacket()
+Client::Network::Packet WalkPacket(bool decrypted = false)
 {
-    return Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 8, 0xd3, 0x12, 0x34, 7, 9, 0xf0}));
+    auto packet =
+        Client::Network::Packet::FromBytes(Client::Tests::Bytes({0xc1, 8, 0xd3, 0x12, 0x34, 7, 9, 0xf0}), decrypted);
+    EXPECT_TRUE(packet.HasValue());
+    return std::move(packet).Value();
 }
 
 class RouteTest : public ::testing::Test
@@ -72,7 +143,10 @@ protected:
     {
         handled.clear();
         nextFailure.reset();
-        ASSERT_NO_FATAL_FAILURE(online.LogIn());
+        chatParts.reset();
+        combatParts.reset();
+        sessionPart = nullptr;
+        ASSERT_NO_FATAL_FAILURE(online.ReachLoggedIn());
         online.eventSink.routedWorld = &world->resources;
     }
 
@@ -83,7 +157,7 @@ protected:
     }
 
     std::unique_ptr<Client::Tests::BareWorld> world = std::make_unique<Client::Tests::BareWorld>();
-    Client::Tests::LoggedInSession online;
+    Harness online{Client::Network::IdentityObfuscation::Shared()};
 };
 
 TEST_F(RouteTest, HandsTheHandlerTheReadValueAndThePartsItNames)
@@ -114,6 +188,56 @@ TEST_F(RouteTest, AHandlerThatReturnsNothingEndsItsReceptionToo)
     EXPECT_NE(online.session.State(), SessionState::Failed);
 }
 
+// The chat's context is the world's with the session's: its chosen character, its chat rooms and its GameServer for
+// what the guild's window sends.
+TEST_F(RouteTest, AChatHandlerGetsTheChatContextOfTheWorldAndTheSession)
+{
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleWithTheChat>(online.session, WalkPacket());
+
+    ASSERT_TRUE(chatParts.has_value());
+    EXPECT_EQ(chatParts->world, &world->world);
+    EXPECT_EQ(chatParts->random, &world->cloth.random);
+    EXPECT_FALSE(chatParts->chosenSlot.has_value());
+    EXPECT_TRUE(chatParts->sendsToTheGuild);
+    EXPECT_EQ(chatParts->rooms, static_cast<const Client::App::IChatRoomLinks*>(&online.session));
+    EXPECT_EQ(chatParts->worldEntry, &world->resources);
+}
+
+TEST_F(RouteTest, ACombatHandlerGetsTheCombatContextOfTheWorld)
+{
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleWithTheCombat>(online.session, WalkPacket());
+
+    ASSERT_TRUE(combatParts.has_value());
+    EXPECT_EQ(combatParts->world, &world->world);
+    EXPECT_EQ(combatParts->random, &world->cloth.random);
+    EXPECT_EQ(combatParts->playerSkeleton, world->models.SkeletonOf(Client::Tables::PlayerSkeletonModel));
+    EXPECT_EQ(combatParts->models, &world->models);
+}
+
+// The action sender sends the C1 05 18 through the session's GameServer, with the XOR32.
+TEST_F(RouteTest, AnActionSenderSendsThroughTheSession)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleBySitting>(online.session, WalkPacket());
+
+    const auto received = online.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets.back()).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 5, 0x18, 15, 0x7a})));
+}
+
+TEST_F(RouteTest, OnlyTheSessionsOwnHandlersNameTheSession)
+{
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleWithTheSession>(online.session, WalkPacket());
+
+    EXPECT_EQ(sessionPart, &online.session);
+}
+
 TEST_F(RouteTest, AnUnreadablePacketReachesNoHandlerAndIsIgnoredWithAWarning)
 {
     RouteEveryPart(online.session, Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 5, 0xd3, 0x12, 0x34})));
@@ -122,6 +246,36 @@ TEST_F(RouteTest, AnUnreadablePacketReachesNoHandlerAndIsIgnoredWithAWarning)
     EXPECT_TRUE(online.eventSink.routedAfter.empty());
     EXPECT_TRUE(Warned("se ignora el movimiento de prueba: no se puede leer"));
     EXPECT_NE(online.session.State(), SessionState::Failed);
+}
+
+// 0x4c6e32, 0x4cf200 and 0x4cfce0 look at the flag before reading: in clear, the F1 03 and nothing more.
+TEST_F(RouteTest, APacketThatMustArriveEncryptedIsReportedInClearWithoutBeingRead)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    RouteEncrypted(online.session, WalkPacket());
+
+    EXPECT_TRUE(handled.empty());
+    EXPECT_TRUE(online.eventSink.routedAfter.empty());
+    EXPECT_TRUE(Warned("el movimiento de prueba no llegó cifrado: se le avisa al GameServer (F1 03)"));
+    const auto received = online.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets.back()).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 6, 0xf1, 3, 0, 0x1c})));
+    EXPECT_TRUE(received.packets.back().WasDecrypted());
+    EXPECT_NE(online.session.State(), SessionState::Failed);
+}
+
+TEST_F(RouteTest, AnEncryptedPacketPassesTheCheckAndIsHandled)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    RouteEncrypted(online.session, WalkPacket(true));
+
+    ASSERT_EQ(handled.size(), 1u);
+    EXPECT_EQ(handled[0].walk.characterId, 0x1234);
+    EXPECT_EQ(online.GameServerReads().packets.size(), before);
+    EXPECT_FALSE(Warned("no llegó cifrado"));
 }
 
 TEST_F(RouteTest, WithoutAWorldThePacketReachesNoHandler)

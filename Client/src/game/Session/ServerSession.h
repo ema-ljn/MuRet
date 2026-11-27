@@ -241,10 +241,12 @@ public:
     [[nodiscard]] std::uint16_t PlayerIndex() const;
 
     // What a routed row (Session/Route.h) needs: the world its handler takes its parts from, nullptr if the sink has
-    // none; the warning when its packet cannot be read; and the end of its reception, the sink's AfterWorldReception
-    // and then the result, as after ApplyWorld.
+    // none; the warning when its packet cannot be read; the warning and the F1 03 when a packet that must arrive
+    // encrypted arrives in clear; and the end of its reception, the sink's AfterWorldReception and then the result, as
+    // after ApplyWorld.
     [[nodiscard]] const Scenes::WorldEntryResources* RoutedWorld() const;
     void IgnoreUnreadable(std::string_view ignored);
+    void ReportInClear(std::string_view warning, Protocol::Outgoing report);
     void FinishRoutedReception(Core::Expected<void, std::string> applied);
 
     // 04 § Caminar y pegar y § Los cambios de mapa. El caller decide cuándo corresponde;
@@ -475,23 +477,8 @@ private:
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
     void OnWeather(const Network::Packet& packet);
-    void OnDamage(const Network::Packet& packet);
-    // CL9 hito 3: el 0x16 (0x4cf200), el 0x9C (0x4cfce0) y el 0x17 (0x4d0a30).
-    void OnKillExperience(const Network::Packet& packet);
-    void OnExtendedKillExperience(const Network::Packet& packet);
-    void OnDeath(const Network::Packet& packet);
-    void OnAction(const Network::Packet& packet);
-    // El 1A (0x4cedd0): la skill que pega a varios.
-    void OnMagicAttackCount(const Network::Packet& packet);
-    void OnTeleport(const Network::Packet& packet);
-    void OnRegen(const Network::Packet& packet);
-    void OnChat(const Network::Packet& packet);
     // CL9 hito 11, los eventos (04 § Los eventos): los lee con Protocol::Events::ReadEventPacket.
     void OnEventPacket(const Network::Packet& packet);
-    void OnKeyChat(const Network::Packet& packet);
-    void OnWhisper(const Network::Packet& packet);
-    void OnWhisperResult(const Network::Packet& packet);
-    void OnNotice(const Network::Packet& packet);
     // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
     void OnCastleSiege(const Network::Packet& packet);
     // CL9 hito 13: los de la batalla (Protocol::CastleSiege::ReadCastleBattlePacket).
@@ -500,7 +487,6 @@ private:
     void OnMapServerMove(const Network::Packet& packet);
     // 0x4c1e20 con [0x5767928] distinto de 0: el saludo de un GameServer con el login ya mandado.
     void OnGameHelloAfterLogin(const Network::Packet& packet);
-    void OnOptionData(const Network::Packet& packet);
     void OnItemMove(const Network::Packet& packet);
     void OnLifeRefill(const Network::Packet& packet);
     void OnManaRefill(const Network::Packet& packet);
@@ -530,9 +516,6 @@ private:
     void OnSkillTarget(const Network::Packet& packet);
     void OnReport73(const Network::Packet& packet);
     void OnSkillList(const Network::Packet& packet);
-    void OnLevelUp(const Network::Packet& packet);
-    void OnLevelUpPointResult(const Network::Packet& packet);
-    void OnPkLevel(const Network::Packet& packet);
     void OnSummonLife(const Network::Packet& packet);
     void OnPetOrder(const Network::Packet& packet);
     void OnPetAttack(const Network::Packet& packet);

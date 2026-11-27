@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -49,6 +50,8 @@ struct ChatReceiveContext
     // El GameServer de la sesión, para lo que abrir la ventana 2 del gremio cierra (0x4e345c, CL9 hito 8). Sin él,
     // el 01 del Guild Master corta si hay algo que cerrar con cable.
     GuildSender guildSend{};
+    // 0x4c6098: at the login scene the 00 asks the ConnectServer for the list again through the open socket.
+    std::function<void()> requestServerList{};
     // Las conexiones de las salas del chat con un amigo (la sesión); sin ellas, el CA que entra a una corta.
     App::IChatRoomLinks* rooms = nullptr;
     // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
@@ -60,6 +63,7 @@ struct ChatReceiveContext
 // 0x8000 no la tiene nadie); sin ninguno, el 400.
 [[nodiscard]] std::size_t ActorWithKey(const WorldState& world, std::uint16_t key);
 
+// 0x4c6098: at the login scene (2), requestServerList and nothing else.
 // 0x4c6070 fuera de la escena 2: el nombre de pkt[3..12] y, según pkt[0xd], el texto al chat de la party (~, tipo 4),
 // al aviso del gremio (@@, tipo 6), al del gremio (@, tipo 5), solo a un globo que también va al registro (#,
 // 0x557560 con 1) o a un globo y al chat normal (0x557560 con 0 y el tipo 3). Cada rama copia 59, 58, 59, 59 o 60

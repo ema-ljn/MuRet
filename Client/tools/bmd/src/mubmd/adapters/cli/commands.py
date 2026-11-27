@@ -41,7 +41,7 @@ from mubmd.app.workspace import WorkspaceResult, workspace_init
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
 from mubmd.core.json_types import JsonObject
-from mubmd.core.patch import Change, parse_patch
+from mubmd.core.patch import Change, outlined, parse_patch
 
 STORE: Final = LocalFileStore()
 REFERENCE_DATA: Final = Path("Client") / "assets" / "Data"
@@ -125,7 +125,12 @@ EXAMPLES: Final = {
 }
 
 FileArgument = Annotated[Path, typer.Argument(help="A .bmd file", show_default=False)]
-PointerArgument = Annotated[str, typer.Argument(help="A JSON Pointer into the file's view, such as /texts/500")]
+PointerArgument = Annotated[
+    str,
+    typer.Argument(
+        help="A JSON Pointer into the file's view, such as /texts/500 in a table or /meshes/0/texture_name in a model"
+    ),
+]
 EncodingOption = Annotated[
     str | None, typer.Option("--encoding", help="Read texts in this encoding instead of the catalog's")
 ]
@@ -174,20 +179,27 @@ def has_terminal() -> bool:
     return sys.stdin.isatty() and sys.stdout.isatty()
 
 
-def edit_outcome(command: str, result: EditResult, *, limit: int | None = None, offset: int = 0) -> Outcome:
-    shown = page(list(result.changes), limit or max(1, len(result.changes)), offset)
-    data = EditData(result.path, result.changed, result.dry_run, shown.items, shown.total, shown.next_offset)
+def edit_outcome(command: str, result: EditResult, *, limit: int = DEFAULT_LIMIT, offset: int = 0) -> Outcome:
+    shown = page(list(result.changes), limit, offset)
+    changes = tuple(map(outlined, shown.items))
+    data = EditData(result.path, result.changed, result.dry_run, changes, shown.total, shown.next_offset)
     return Outcome(command, data, EditData, warnings=result.warnings)
 
 
-@app.command("formats", help="List the formats this version reads, their files and whether the client reads them")
+@app.command(
+    "formats",
+    help="List the formats this version reads, their files and whether the client reads them; matches says whether "
+    "a file is known by its name (a table) or by its content (a model)",
+)
 def formats_command() -> Outcome:
     return Outcome("formats", FormatList(list_formats()), FormatList)
 
 
 @app.command("schema", help="Describe a format's fields: JSON Pointer, type, limit and research reference")
 def schema_command(
-    format_name: Annotated[str, typer.Argument(metavar="FORMAT", help="A format name from mubmd formats")],
+    format_name: Annotated[
+        str, typer.Argument(metavar="FORMAT", help="A format name from mubmd formats, such as text or model")
+    ],
 ) -> Outcome:
     return Outcome("schema", format_schema(format_name), SchemaResult)
 
@@ -224,7 +236,10 @@ def workspace_init_command(
     return Outcome("workspace init", result, WorkspaceResult)
 
 
-@app.command("info", help="Format, encoding, cipher, record counts and number of findings of one file")
+@app.command(
+    "info",
+    help="Format, encoding, cipher, a table's record counts or a model's parts, and number of findings of one file",
+)
 def info_command(file: FileArgument, encoding: EncodingOption = None, fields: FieldsOption = None) -> Outcome:
     with about(file):
         result = info(STORE, expanded(file), encoding=encoding)
@@ -273,7 +288,7 @@ def get_command(
 @app.command(
     "set",
     help="Change one value and save the file, verified before it is replaced; the result is what was written. "
-    "A value for a string is taken as is, others as JSON",
+    "A value for a string is taken as is, others as JSON. total counts the changes and changes holds the first 50",
 )
 def set_command(
     file: FileArgument,
@@ -305,7 +320,8 @@ def read_patch(patch: str) -> bytes:
 @app.command(
     "apply",
     help="Apply a JSON Patch, all or none: a list of {op: test or replace, path: <pointer>, value}. A test that "
-    "does not hold stops everything with TEST_FAILED, so test the values you last read before replacing them",
+    "does not hold stops everything with TEST_FAILED, so test the values you last read before replacing them. "
+    "total counts the changes and changes holds the first 50",
 )
 def apply_command(
     file: FileArgument,
@@ -377,8 +393,8 @@ def dump_command(
 
 @app.command(
     "build",
-    help="Write a .bmd from a JSON view; the file name must be one the catalog knows. total counts the changes "
-    "and changes holds --limit of them",
+    help="Write a .bmd from a JSON view: a table's view to the file name the catalog knows, a model's view to any .bmd "
+    "name. total counts the changes and changes holds --limit of them",
 )
 def build_command(
     source: Annotated[Path, typer.Argument(help="A JSON view written by mubmd dump", show_default=False)],

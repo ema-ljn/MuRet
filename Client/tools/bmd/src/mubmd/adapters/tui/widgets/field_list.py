@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import ClassVar
 
 from rich.text import Text
@@ -16,6 +17,7 @@ CELL_PADDING = 2
 COLUMNS = 3
 SCROLLBAR_WIDTH = 1
 BYTES_SHOWN = 16
+FACT_KEY = "fact "
 
 
 def shown_value(value: JsonValue, width: int) -> Text:
@@ -40,6 +42,7 @@ class FieldList(DataTable[Text]):
         self._record: JsonValue = None
         self._original: JsonValue = None
         self._names: list[str] = []
+        self._facts: Sequence[tuple[str, str]] = ()
         self._mark = "red"
         self._value_width = VALUE_WIDTH_FLOOR
 
@@ -47,42 +50,63 @@ class FieldList(DataTable[Text]):
         mark = Text("●" if changed else " ", style=f"bold {self._mark}" if changed else "")
         return mark, shown_value(value, self._value_width)
 
-    def show(self, pointer: str, title: str, record: JsonValue, original: JsonValue, mark: str) -> None:
+    def show(
+        self,
+        pointer: str,
+        title: str,
+        record: JsonValue,
+        original: JsonValue,
+        mark: str,
+        facts: Sequence[tuple[str, str]] = (),
+    ) -> None:
         fields = [(format_pointer(tokens)[1:], value) for tokens, value in leaves(record)]
         before = {format_pointer(tokens)[1:]: value for tokens, value in leaves(original)}
-        names = [name for name, _ in fields]
+        names = [*(name for name, _ in fields), *(f"{FACT_KEY}{label}" for label, _ in facts)]
         same_rows = pointer == self.record_pointer and names == self._names
         self.record_pointer, self._record, self._original, self._mark = pointer, record, original, mark
+        self._facts = facts
         self.border_title = title
-        name_width = min(NAME_WIDTH_LIMIT, max((len(name) for name in names), default=1))
+        labels = [*(name for name, _ in fields), *(label for label, _ in facts)]
+        name_width = min(NAME_WIDTH_LIMIT, max(map(len, labels), default=1))
         fixed = name_width + MARK_WIDTH + COLUMNS * CELL_PADDING + SCROLLBAR_WIDTH
         value_width = max(VALUE_WIDTH_FLOOR, self.size.width - fixed)
         in_place = same_rows and value_width == self._value_width
         self._names, self._value_width = names, value_width
-        rows = [(name, self._cells(value, name not in before or before[name] != value)) for name, value in fields]
+        rows = [
+            (name, Text(name), *self._cells(value, name not in before or before[name] != value))
+            for name, value in fields
+        ]
+        rows += [
+            (f"{FACT_KEY}{label}", Text(label, style="dim"), Text(" "), Text(value, style="dim"))
+            for label, value in facts
+        ]
         if in_place:
-            for name, (changed, shown) in rows:
-                self.update_cell(name, "mark", changed)
-                self.update_cell(name, "value", shown)
+            for key, _, changed, shown in rows:
+                self.update_cell(key, "mark", changed)
+                self.update_cell(key, "value", shown)
             return
         cursor = self.cursor_row if same_rows else 0
         self.clear(columns=True)
         self.add_column("field", key="field", width=name_width)
         self.add_column("", key="mark", width=MARK_WIDTH)
         self.add_column("value", key="value", width=value_width)
-        for name, (changed, shown) in rows:
-            self.add_row(Text(name), changed, shown, key=name)
+        for key, label, changed, shown in rows:
+            self.add_row(label, changed, shown, key=key)
         if rows:
             self.move_cursor(row=min(cursor, len(rows) - 1))
 
     def empty(self) -> None:
         self.record_pointer, self._record, self._original, self._names = None, None, None, []
+        self._facts = ()
         self.border_title = None
         self.clear(columns=True)
 
     def on_resize(self, event: events.Resize) -> None:
         if self.record_pointer is not None and self.border_title is not None:
-            self.show(self.record_pointer, str(self.border_title), self._record, self._original, self._mark)
+            title = str(self.border_title)
+            self.show(self.record_pointer, title, self._record, self._original, self._mark, self._facts)
 
     def pointer_of(self, name: str) -> str | None:
-        return None if self.record_pointer is None else f"{self.record_pointer}/{name}"
+        if self.record_pointer is None or name.startswith(FACT_KEY):
+            return None
+        return f"{self.record_pointer}/{name}"

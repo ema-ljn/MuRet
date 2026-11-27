@@ -11,9 +11,9 @@ from mubmd.app.documents import (
     parse_value,
     refuse_reference,
     save_view,
-    touches,
+    warnings_of,
 )
-from mubmd.core.catalog import format_by_name, identify
+from mubmd.core.catalog import format_by_name, target_of
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.patch import Change, PatchOp, apply_patch, diff_views
 from mubmd.core.pointer import resolve
@@ -42,13 +42,7 @@ def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> Edi
         raise MubmdError(ErrorCode.INVALID_VALUE, f"{source} does not hold a JSON object")
     format_name = view.get("format")
     spec = format_by_name(format_name if isinstance(format_name, str) else "")
-    target = identify(output.absolute(), b"")
-    if target.format.name != spec.name:
-        raise MubmdError(
-            ErrorCode.INVALID_VALUE,
-            f"{source} is a {spec.name} view and {output.name} is a {target.format.name} file",
-            pointer="/format",
-        )
+    target = target_of(output.absolute(), spec)
     encoding = view.get("encoding")
     if isinstance(encoding, str):
         target = dataclasses.replace(target, file=dataclasses.replace(target.file, encoding=check_encoding(encoding)))
@@ -64,8 +58,7 @@ def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> Edi
             return EditResult(output, changed=False, dry_run=dry_run, changes=(), warnings=())
         original = spec.codec.decode(current, target.file)
         changes = diff_views(spec.codec.to_view(original), written)
-    findings = spec.codec.check(document, original)
-    warnings = tuple(finding for finding in findings if not exists or touches(finding, changes))
+    warnings = warnings_of(store, output, target, document, original, changes)
     if not dry_run:
         store.write(output, data, expected_sha256=expected)
     return EditResult(output, changed=True, dry_run=dry_run, changes=changes, warnings=warnings)

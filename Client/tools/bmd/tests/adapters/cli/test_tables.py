@@ -27,24 +27,36 @@ def test_editing_a_skill_updates_its_checksum(cli: Cli, working_copy: Path, refe
     assert len(data) == len(source)
 
 
-def test_roundtrip_reads_every_table(cli: Cli, reference_data: Path) -> None:
+def test_roundtrip_reads_every_file(cli: Cli, reference_data: Path) -> None:
     result = cli("roundtrip", reference_data)
     assert result.code == 0, result.out
-    assert result.json["data"] == {"checked": 29, "identical": 29, "differing": [], "skipped": 1965}
+    assert result.json["data"] == {"checked": 1991, "identical": 1991, "differing": [], "skipped": 3}
 
 
 def test_the_reference_has_only_its_known_findings(cli: Cli, reference_data: Path) -> None:
-    result = cli("validate", reference_data)
+    data = cli("validate", reference_data).json["data"]
     found = {
-        Path(entry["path"]).name: [finding["code"] for finding in entry["findings"]]
-        for entry in result.json["data"]["files"]
+        Path(entry["path"]).relative_to(reference_data).as_posix(): [
+            (finding["code"], finding["pointer"]) for finding in entry["findings"]
+        ]
+        for entry in data["files"]
     }
+    assert (data["checked"], data["skipped"]) == (1991, 3)
     assert found == {
-        "Text.bmd": ["TEXT_FILLS_RECORD"],
-        "Texttest.bmd": ["TEXT_FILLS_RECORD", "TEXT_FILLS_RECORD"],
-        "TKOU.bmd": ["TEXT_HAS_TAIL"],
-        "item.bmd": ["CHECKSUM_MISMATCH"],
-        "n380.bmd": ["CHECKSUM_MISMATCH"],
+        "Local/Text.bmd": [("TEXT_FILLS_RECORD", "/texts/7")],
+        "Local/Texttest.bmd": [("TEXT_FILLS_RECORD", "/texts/7"), ("TEXT_FILLS_RECORD", "/texts/714")],
+        "Local/TKOU.bmd": [("TEXT_HAS_TAIL", "/texts/1829")],
+        "Local/item.bmd": [("CHECKSUM_MISMATCH", "/stored_checksum")],
+        "Local/n380.bmd": [("CHECKSUM_MISMATCH", "/stored_checksum")],
+        "Item/waterring.bmd": [("TEXTURE_NOT_FOUND", "/meshes/1/texture_name")],
+        "NPC/BloodCastle01.bmd": [
+            ("PARENT_AFTER_CHILD", "/bones/43/parent"),
+            ("PARENT_AFTER_CHILD", "/bones/44/parent"),
+        ],
+        "object35/Object36.bmd": [
+            ("OUT_OF_RANGE", "/meshes/1/vertices/0/bone"),
+            ("OUT_OF_RANGE", "/meshes/1/normals/0/bone"),
+        ],
     }
 
 
@@ -91,3 +103,16 @@ def test_find_takes_a_field(cli: Cli, working_copy: Path) -> None:
     target = working_copy / "Local" / "movereq.bmd"
     items = cli("find", target, "Arena", "--field", "name").json["data"]["items"]
     assert [item["pointer"] for item in items] == ["/records/0/name"]
+
+
+def test_get_of_one_quest_shows_its_entries(cli: Cli, working_copy: Path) -> None:
+    data = cli("get", working_copy / "Local" / "quest.bmd", "/records/0").json["data"]
+    assert (len(data["value"]["entries"]), len(data["value"]["conditions"])) == (16, 16)
+    assert data["value"]["entries"][0]["dialogs"] == [52, 54, 55, 56]
+
+
+def test_a_page_of_quests_counts_their_entries(cli: Cli, working_copy: Path) -> None:
+    data = cli("get", working_copy / "Local" / "quest.bmd", "/records", "--limit", "2").json["data"]
+    counted = {"count": 16}
+    assert [(record["entries"], record["conditions"]) for record in data["value"]] == [(counted, counted)] * 2
+    assert (data["truncated"], data["total"], data["next_offset"]) == (True, 200, 2)

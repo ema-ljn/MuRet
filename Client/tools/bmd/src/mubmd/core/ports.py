@@ -10,7 +10,7 @@ from mubmd.core.json_types import JsonObject, JsonValue
 class CatalogFile:
     name: str
     encoding: str | None
-    read_by_client: bool
+    read_by_client: bool | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,9 +25,13 @@ class FieldInfo:
 @dataclass(frozen=True, slots=True)
 class Summary:
     cipher: str
-    records: int
-    used_records: int
+    records: int | None
+    used_records: int | None
     section_size: int | None = None
+    version: int | None = None
+    meshes: int | None = None
+    bones: int | None = None
+    actions: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,3 +76,9 @@ class FileStore(Protocol):
     def list_bmd(self, folder: Path) -> tuple[Path, ...]: ...
 
     def list_files(self, folder: Path) -> tuple[Path, ...]: ...
+
+    def files_in(self, folder: Path) -> tuple[Path, ...]: ...
+
+    def folders_in(self, folder: Path) -> tuple[Path, ...]: ...
+
+    def head(self, path: Path, count: int) -> bytes: ...

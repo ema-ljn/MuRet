@@ -1,10 +1,12 @@
 import copy
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.leaves import outline
 from mubmd.core.pointer import format_pointer, list_index, parse_pointer, resolve
 
 
@@ -46,22 +48,42 @@ def parse_patch(raw: JsonValue) -> tuple[PatchOp, ...]:
     return tuple(ops)
 
 
-def _replace(document: JsonObject, path: str, value: JsonValue) -> None:
+def _holds(parent: JsonValue, token: str) -> bool:
+    if isinstance(parent, dict):
+        return token in parent
+    return isinstance(parent, list) and list_index(token, len(parent)) is not None
+
+
+def _with(node: JsonValue, tokens: Sequence[str], value: JsonValue) -> JsonValue:
+    if not tokens:
+        return value
+    token, rest = tokens[0], tokens[1:]
+    if isinstance(node, dict):
+        return {**node, token: _with(node[token], rest, value)}
+    assert isinstance(node, list)
+    items = list(node)
+    items[int(token)] = _with(node[int(token)], rest, value)
+    return items
+
+
+def _replaced(document: JsonObject, path: str, value: JsonValue) -> JsonObject:
     tokens = parse_pointer(path)
     if not tokens:
         raise _invalid("replace needs a path inside the document", path)
-    parent = resolve(document, format_pointer(tokens[:-1]))
-    last = tokens[-1]
-    if isinstance(parent, dict) and last in parent:
-        parent[last] = copy.deepcopy(value)
-        return
-    if isinstance(parent, list):
-        index = list_index(last, len(parent))
-        if index is not None:
-            parent[index] = copy.deepcopy(value)
-            return
-    resolve(document, path)
-    raise MubmdError(ErrorCode.POINTER_NOT_FOUND, f"Nothing at {path}", pointer=path)
+    if not _holds(resolve(document, format_pointer(tokens[:-1])), tokens[-1]):
+        resolve(document, path)
+        raise MubmdError(ErrorCode.POINTER_NOT_FOUND, f"Nothing at {path}", pointer=path)
+    replaced = _with(document, tokens, copy.deepcopy(value))
+    assert isinstance(replaced, dict)
+    return replaced
+
+
+def _zeros_of_two_signs(left: JsonValue, right: JsonValue) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return False
+    if not isinstance(left, int | float) or not isinstance(right, int | float):
+        return False
+    return math.copysign(1.0, left) != math.copysign(1.0, right)
 
 
 def same_json(left: JsonValue, right: JsonValue) -> bool:
@@ -71,11 +93,11 @@ def same_json(left: JsonValue, right: JsonValue) -> bool:
         return left.keys() == right.keys() and all(same_json(left[key], right[key]) for key in left)
     if isinstance(left, list) and isinstance(right, list):
         return len(left) == len(right) and all(map(same_json, left, right))
-    return left == right
+    return left == right and not (left == 0 and _zeros_of_two_signs(left, right))
 
 
 def apply_patch(view: JsonObject, ops: Sequence[PatchOp]) -> JsonObject:
-    document = copy.deepcopy(view)
+    document = view
     for op in ops:
         if op.op == "test":
             current = resolve(document, op.path)
@@ -87,18 +109,20 @@ def apply_patch(view: JsonObject, ops: Sequence[PatchOp]) -> JsonObject:
                     pointer=op.path,
                 )
         else:
-            _replace(document, op.path, op.value)
+            document = _replaced(document, op.path, op.value)
     return document
 
 
 def _diff(old: JsonValue, new: JsonValue, tokens: list[str | int], out: list[Change]) -> None:
+    if old is new:
+        return
     if isinstance(old, dict) and isinstance(new, dict):
         for key in [*old, *(key for key in new if key not in old)]:
             _diff(old.get(key), new.get(key), [*tokens, key], out)
     elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
         for index, (old_item, new_item) in enumerate(zip(old, new, strict=True)):
             _diff(old_item, new_item, [*tokens, index], out)
-    elif old != new:
+    elif old != new or (old == 0 and _zeros_of_two_signs(old, new)):
         out.append(Change(format_pointer(tokens), old, new))
 
 
@@ -106,3 +130,7 @@ def diff_views(old: JsonValue, new: JsonValue) -> tuple[Change, ...]:
     out: list[Change] = []
     _diff(old, new, [], out)
     return tuple(out)
+
+
+def outlined(change: Change) -> Change:
+    return Change(change.pointer, outline(change.old)[0], outline(change.new)[0])

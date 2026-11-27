@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from mubmd.core.catalog import all_formats, format_by_name, identify
+from mubmd.core.catalog import all_formats, format_by_name, identify, target_of
 from mubmd.core.errors import ErrorCode, MubmdError
 
 
@@ -24,7 +24,7 @@ def test_a_test_twin_is_not_read_by_the_client(text_bytes: bytes) -> None:
     assert identify("Texttest.bmd", text_bytes).file.read_by_client is False
 
 
-def test_a_file_of_a_later_stage_is_unknown(text_bytes: bytes) -> None:
+def test_a_file_that_is_no_table_and_no_model_is_unknown(text_bytes: bytes) -> None:
     with pytest.raises(MubmdError) as caught:
         identify("Player.bmd", text_bytes)
     assert caught.value.code is ErrorCode.UNKNOWN_FORMAT
@@ -86,6 +86,7 @@ def test_formats_are_listed_and_found_by_name() -> None:
         "monster_skill",
         "dialog",
         "quest",
+        "model",
     ]
     assert format_by_name("text").size == 614_400
     assert format_by_name("skill").size == 256 * 0x3C + 4
@@ -99,3 +100,53 @@ def test_an_unknown_format_name_is_reported() -> None:
     with pytest.raises(MubmdError) as caught:
         format_by_name("items")
     assert caught.value.code is ErrorCode.UNKNOWN_FORMAT
+
+
+def test_a_model_is_known_by_its_first_bytes() -> None:
+    found = identify("Data/Item/Sword01.bmd", b"BMD\x0a")
+    assert (found.format.name, found.file.name) == ("model", "Sword01.bmd")
+    assert (found.file.encoding, found.file.read_by_client) == ("cp949", None)
+
+
+def test_a_models_name_alone_does_not_say_what_it_is() -> None:
+    with pytest.raises(MubmdError) as caught:
+        identify("Data/Item/Sword01.bmd", b"")
+    assert caught.value.code is ErrorCode.UNKNOWN_FORMAT
+
+
+def test_a_tables_name_wins_over_the_bytes() -> None:
+    assert identify("Data/Local/Text.bmd", b"BMD\x0a").format.name == "text"
+
+
+def test_a_model_inside_a_model_folder_named_like_a_table_is_a_model() -> None:
+    assert identify("Data/Item/item.bmd", b"BMD\x0a").format.name == "model"
+
+
+def test_the_model_format_has_no_files_and_no_size() -> None:
+    model = format_by_name("model")
+    assert (model.size, model.files) == (None, ())
+
+
+def test_a_model_view_builds_to_any_bmd_name() -> None:
+    target = target_of(Path("work/Item/x.bmd"), format_by_name("model"))
+    assert (target.format.name, target.file.name, target.file.encoding) == ("model", "x.bmd", "cp949")
+
+
+def test_a_table_view_builds_to_its_file() -> None:
+    target = target_of(Path("work/Gatetest.bmd"), format_by_name("gate"))
+    assert (target.format.name, target.file.read_by_client) == ("gate", False)
+
+
+@pytest.mark.parametrize(
+    ("output", "view", "code"),
+    [
+        ("work/Gate.bmd", "model", ErrorCode.INVALID_VALUE),
+        ("work/Local/Text.bmd", "gate", ErrorCode.INVALID_VALUE),
+        ("work/x.bmd", "gate", ErrorCode.UNKNOWN_FORMAT),
+        ("work/x.json", "model", ErrorCode.UNKNOWN_FORMAT),
+    ],
+)
+def test_a_view_does_not_build_to_a_file_of_another_format(output: str, view: str, code: ErrorCode) -> None:
+    with pytest.raises(MubmdError) as caught:
+        target_of(Path(output), format_by_name(view))
+    assert caught.value.code is code

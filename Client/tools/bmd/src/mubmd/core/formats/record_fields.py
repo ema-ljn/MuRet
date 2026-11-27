@@ -1,20 +1,23 @@
 from collections.abc import Iterator, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
+from functools import lru_cache
 from math import isfinite
 from struct import Struct
 from typing import Final, Literal
 
-from mubmd.core.documents.text_table import decode_text, encode_fixed_text
+from mubmd.core.documents.text_table import decode_text, encode_fixed_text, is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
-from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.json_types import VIEW_VERSION, JsonObject, JsonValue
 from mubmd.core.pointer import list_index
 from mubmd.core.ports import FieldInfo
 
 Kind = Literal["text", "bytes", "uint", "int", "f32", "struct"]
 
 FLOAT32: Final = Struct("<f")
+FLOAT32_DIGITS: Final = 9
+SHORTEST_FLOATS_KEPT: Final = 1 << 16
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,7 +54,18 @@ def read_hex(value: JsonValue, pointer: str, size: int | None = None) -> bytes:
     return decoded
 
 
-def _text_view(data: bytes, encoding: str) -> JsonValue:
+def view_encoding(view: JsonObject, name: str) -> str:
+    if type(view.get("format_version")) is not int or view["format_version"] != VIEW_VERSION:
+        raise invalid(f"This tool reads format_version {VIEW_VERSION} views", "/format_version")
+    if view.get("format") != name:
+        raise invalid(f"Not a {name} view", "/format")
+    encoding = view.get("encoding")
+    if not isinstance(encoding, str) or not is_text_encoding(encoding):
+        raise invalid("The view needs a text encoding", "/encoding")
+    return encoding
+
+
+def text_view(data: bytes, encoding: str) -> JsonValue:
     end = data.find(b"\0")
     text = decode_text(data[: end + 1], encoding) if end >= 0 else None
     if text is None:
@@ -60,9 +74,27 @@ def _text_view(data: bytes, encoding: str) -> JsonValue:
     return {"text": text, "tail": tail.hex()} if tail else text
 
 
-def _float_view(data: bytes) -> JsonValue:
+def _packs_to(number: float, data: bytes) -> bool:
+    with suppress(OverflowError):
+        return FLOAT32.pack(number) == data
+    return False
+
+
+@lru_cache(maxsize=SHORTEST_FLOATS_KEPT)
+def _shortest_float(data: bytes) -> float | None:
     number: float = FLOAT32.unpack(data)[0]
-    return number if isfinite(number) else {"f32": data.hex()}
+    if not isfinite(number):
+        return None
+    for digits in range(1, FLOAT32_DIGITS + 1):
+        short = float(f"{number:.{digits}g}")
+        if _packs_to(short, data):
+            return short
+    return number
+
+
+def float_view(data: bytes) -> JsonValue:
+    short = _shortest_float(data)
+    return {"f32": data.hex()} if short is None else short
 
 
 def _leaf_view(field: RecordField, data: bytes, encoding: str) -> JsonValue:
@@ -70,9 +102,9 @@ def _leaf_view(field: RecordField, data: bytes, encoding: str) -> JsonValue:
         case "uint" | "int":
             return int.from_bytes(data, "little", signed=field.kind == "int")
         case "f32":
-            return _float_view(data)
+            return float_view(data)
         case "text":
-            return _text_view(data, encoding)
+            return text_view(data, encoding)
         case _:
             return {"hex": data.hex()}
 
@@ -110,7 +142,7 @@ def _integer_bytes(field: RecordField, value: JsonValue, pointer: str) -> bytes:
     return value.to_bytes(field.size, "little", signed=signed)
 
 
-def _float_bytes(value: JsonValue, pointer: str) -> bytes:
+def float_bytes(value: JsonValue, pointer: str) -> bytes:
     if isinstance(value, dict) and value.keys() == {"f32"}:
         return read_hex(value["f32"], pointer, FLOAT32.size)
     if isinstance(value, int | float) and not isinstance(value, bool):
@@ -120,34 +152,35 @@ def _float_bytes(value: JsonValue, pointer: str) -> bytes:
     raise invalid('Expected a finite number a float32 holds, or {"f32": "<8 hex digits>"}', pointer)
 
 
-def _hex_bytes(field: RecordField, value: JsonValue, pointer: str, expected: str) -> bytes:
+def hex_bytes(value: JsonValue, size: int, pointer: str, expected: str = "Expected a hex object") -> bytes:
     if not isinstance(value, dict) or value.keys() != {"hex"}:
         raise invalid(expected, pointer)
-    return read_hex(value["hex"], pointer, field.size)
+    return read_hex(value["hex"], pointer, size)
 
 
-def _tailed_text_bytes(field: RecordField, value: JsonObject, encoding: str, pointer: str) -> bytes:
+def _tailed_text_bytes(value: JsonObject, size: int, encoding: str, pointer: str, label: str) -> bytes:
     text = value["text"]
     if not isinstance(text, str):
         raise invalid("Expected a string as the text", pointer)
     tail = read_hex(value["tail"], pointer)
-    padded = encode_fixed_text(text, encoding, field.size, pointer, field.name, require_terminator=True)
+    padded = encode_fixed_text(text, encoding, size, pointer, label, require_terminator=True)
     body = padded[: padded.index(b"\0") + 1] + tail
-    if len(body) > field.size:
+    if len(body) > size:
         raise MubmdError(
             ErrorCode.TEXT_TOO_LONG,
-            f"{field.name}, its 0 and its tail are {len(body)} bytes, the field holds {field.size}",
+            f"{label}, its 0 and its tail are {len(body)} bytes, the field holds {size}",
             pointer=pointer,
         )
-    return body.ljust(field.size, b"\0")
+    return body.ljust(size, b"\0")
 
 
-def _text_bytes(field: RecordField, value: JsonValue, encoding: str, pointer: str) -> bytes:
+def text_bytes(value: JsonValue, size: int, encoding: str, pointer: str, label: str | None = None) -> bytes:
+    name = label or pointer.rpartition("/")[2]
     if isinstance(value, str):
-        return encode_fixed_text(value, encoding, field.size, pointer, field.name, require_terminator=True)
+        return encode_fixed_text(value, encoding, size, pointer, name, require_terminator=True)
     if isinstance(value, dict) and value.keys() == {"text", "tail"}:
-        return _tailed_text_bytes(field, value, encoding, pointer)
-    return _hex_bytes(field, value, pointer, "Expected a string, a text with its tail or a hex object")
+        return _tailed_text_bytes(value, size, encoding, pointer, name)
+    return hex_bytes(value, size, pointer, "Expected a string, a text with its tail or a hex object")
 
 
 def leaf_bytes(field: RecordField, value: JsonValue, encoding: str, pointer: str) -> bytes:
@@ -155,11 +188,11 @@ def leaf_bytes(field: RecordField, value: JsonValue, encoding: str, pointer: str
         case "uint" | "int":
             return _integer_bytes(field, value, pointer)
         case "f32":
-            return _float_bytes(value, pointer)
+            return float_bytes(value, pointer)
         case "text":
-            return _text_bytes(field, value, encoding, pointer)
+            return text_bytes(value, field.size, encoding, pointer, field.name)
         case _:
-            return _hex_bytes(field, value, pointer, "Expected a hex object")
+            return hex_bytes(value, field.size, pointer)
 
 
 def _element_bytes(field: RecordField, value: JsonValue, encoding: str, pointer: str) -> bytes:

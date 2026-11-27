@@ -1,13 +1,14 @@
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from mubmd.app.documents import load_view, open_document
+from mubmd.app.checks import TextureFiles, findings_of
+from mubmd.app.documents import decode_document, load_view, open_document
 from mubmd.app.paging import DEFAULT_LIMIT, page
 from mubmd.core.catalog import identify
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
-from mubmd.core.patch import Change, diff_views
+from mubmd.core.json_text import view_text
+from mubmd.core.patch import Change, diff_views, outlined
 from mubmd.core.ports import FileStore
 
 
@@ -45,24 +46,31 @@ class RoundtripResult:
     skipped: int
 
 
-def _validate_file(store: FileStore, path: Path, encoding: str | None) -> tuple[Finding, ...] | None:
+def _file_findings(
+    store: FileStore, path: Path, encoding: str | None, textures: TextureFiles | None = None
+) -> tuple[Finding, ...]:
+    decoded = decode_document(store, path, encoding=encoding)
+    return findings_of(store, path, decoded.identified, decoded.document, None, textures)
+
+
+def _validate_file(
+    store: FileStore, path: Path, encoding: str | None, textures: TextureFiles
+) -> tuple[Finding, ...] | None:
     try:
-        opened = open_document(store, path, encoding=encoding)
+        return _file_findings(store, path, encoding, textures)
     except MubmdError as error:
         if error.code is ErrorCode.UNKNOWN_FORMAT:
             return None
         if error.code is ErrorCode.CORRUPT_FILE:
             return (Finding(error.code, Severity.ERROR, "", error.message),)
         raise
-    return opened.identified.format.codec.check(opened.document, None)
 
 
 def validate(store: FileStore, path: Path, *, encoding: str | None = None) -> ValidateResult:
     if path.suffix.casefold() == ".bmd":
-        opened = open_document(store, path, encoding=encoding)
-        findings = opened.identified.format.codec.check(opened.document, None)
-        return ValidateResult((FileFindings(path, findings),), checked=1, skipped=0)
-    results = [(file, _validate_file(store, file, encoding)) for file in store.list_bmd(path)]
+        return ValidateResult((FileFindings(path, _file_findings(store, path, encoding)),), checked=1, skipped=0)
+    textures = TextureFiles(store)
+    results = [(file, _validate_file(store, file, encoding, textures)) for file in store.list_bmd(path)]
     known = [(file, findings) for file, findings in results if findings is not None]
     files = tuple(FileFindings(file, findings) for file, findings in known if findings)
     return ValidateResult(files, checked=len(known), skipped=len(results) - len(known))
@@ -79,7 +87,7 @@ def diff(
 ) -> DiffResult:
     changes = diff_views(load_view(store, a, encoding=encoding), load_view(store, b, encoding=encoding))
     shown = page(list(changes), limit, offset)
-    return DiffResult(shown.items, shown.total, shown.next_offset)
+    return DiffResult(tuple(map(outlined, shown.items)), shown.total, shown.next_offset)
 
 
 def dump(
@@ -88,7 +96,7 @@ def dump(
     if output.suffix.casefold() == ".bmd":
         raise MubmdError(ErrorCode.USAGE, f"dump writes JSON and {output.name} is a .bmd: give --output a .json name")
     view = open_document(store, path, encoding=encoding).view
-    data = (json.dumps(view, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    data = view_text(view).encode("utf-8")
     if not dry_run:
         expected = store.sha256(output) if store.exists(output) else None
         store.write(output, data, expected_sha256=expected)

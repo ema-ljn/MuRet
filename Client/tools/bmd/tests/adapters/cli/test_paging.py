@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from tests.adapters.cli.conftest import Cli
@@ -77,3 +78,9 @@ def test_build_pages_its_changes(cli: Cli, text: Path, tmp_path: Path) -> None:
     data = cli("build", tmp_path / "tkou.json", "--output", text, "--dry-run", "--limit", "3").json["data"]
     assert (len(data["changes"]), data["next_offset"]) == (3, 3)
     assert data["total"] > 1000
+
+
+def test_an_edit_shows_its_first_changes_and_counts_them_all(cli: Cli, text: Path) -> None:
+    patch = [{"op": "replace", "path": f"/texts/{number}", "value": f"t{number}"} for number in range(100, 160)]
+    data = cli("apply", text, json.dumps(patch)).json["data"]
+    assert (len(data["changes"]), data["total"], data["next_offset"]) == (50, 60, 50)

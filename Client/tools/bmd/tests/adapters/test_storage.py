@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -204,3 +205,50 @@ def test_copy_creates_folders_and_refuses_the_reference(reference: Path, tmp_pat
     with pytest.raises(MubmdError) as caught:
         STORE.copy(source, reference / "Local" / "Copy.bmd")
     assert caught.value.code is ErrorCode.REFERENCE_READ_ONLY
+
+
+def test_files_in_and_folders_in_list_one_level(tmp_path: Path) -> None:
+    (tmp_path / "Item" / "deep").mkdir(parents=True)
+    (tmp_path / "skill").mkdir()
+    for name in ("a.OZJ", "Item/b.OZJ", "Item/deep/c.OZJ"):
+        (tmp_path / name).touch()
+    store = LocalFileStore()
+    assert store.files_in(tmp_path) == (tmp_path / "a.OZJ",)
+    assert store.files_in(tmp_path / "Item") == (tmp_path / "Item" / "b.OZJ",)
+    assert store.folders_in(tmp_path) == (tmp_path / "Item", tmp_path / "skill")
+
+
+def test_a_folder_that_is_not_there_lists_nothing(tmp_path: Path) -> None:
+    store = LocalFileStore()
+    assert store.files_in(tmp_path / "missing") == ()
+    assert store.folders_in(tmp_path / "missing") == ()
+
+
+def test_head_gives_the_first_bytes(tmp_path: Path) -> None:
+    file = tmp_path / "a.bmd"
+    file.write_bytes(b"BMD\x0a and more")
+    store = LocalFileStore()
+    assert store.head(file, 3) == b"BMD"
+    assert store.head(file, 100) == b"BMD\x0a and more"
+
+
+def test_head_of_a_missing_file_is_not_found(tmp_path: Path) -> None:
+    with pytest.raises(MubmdError) as caught:
+        LocalFileStore().head(tmp_path / "missing.bmd", 3)
+    assert caught.value.code is ErrorCode.FILE_NOT_FOUND
+
+
+def test_a_folder_that_cannot_be_listed_lists_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    listing = Path.iterdir
+
+    def refuse(folder: Path) -> Iterator[Path]:
+        if folder == locked:
+            raise PermissionError(errno.EACCES, "Permission denied", str(folder))
+        return listing(folder)
+
+    monkeypatch.setattr(Path, "iterdir", refuse)
+    store = LocalFileStore()
+    assert store.files_in(locked) == ()
+    assert store.folders_in(locked) == ()

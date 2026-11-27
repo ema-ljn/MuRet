@@ -40,7 +40,8 @@ def render_success(console: Console, command: str, data: JsonValue, warnings: li
     console.print(_line((command, "bold")))
     if isinstance(data, dict):
         lists = {key: value for key, value in data.items() if isinstance(value, list) and value}
-        console.print(_object_table({key: value for key, value in data.items() if key not in lists}))
+        scalars: JsonObject = {k: v for k, v in data.items() if k not in lists and v is not None}
+        console.print(_object_table(scalars))
         for key, value in lists.items():
             console.print(_line((key, "bold")))
             console.print(_rows_table(value))

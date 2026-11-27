@@ -459,5 +459,6 @@ Bindings: `/` search, `enter` edit the selected record, `escape` cancel, `ctrl+z
   - [x] Item tables: schema, byte-exact roundtrip, checksum on edit, CLI name translation, and TUI name editing.
   - [x] Every other table, the console UI for any table and the skill's recipes.
 - **Stage 4, models:** the lossless model codec (K16, every raw byte), its view (bytes as hex, floats as numbers or
-  `{"f32"}`), validation, `info` summaries that never print geometry, and the TUI's model tree.
+  `{"f32"}`), validation, `info` summaries that never print geometry, and the TUI's model tree. Its plan is
+  [`2026-11-27-bmd-editor-models.md`](2026-11-27-bmd-editor-models.md).
 - **Stage 5, the preview:** the braille wireframe of a model, posed with the first key of its first action.

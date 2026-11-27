@@ -1,7 +1,7 @@
 import pytest
 
 from mubmd.core.json_types import JsonValue
-from mubmd.core.leaves import is_blank, is_leaf, leaf_text, leaves
+from mubmd.core.leaves import is_blank, is_leaf, leaf_text, leaves, outline
 
 TAILED: JsonValue = {"text": "x", "tail": "01"}
 
@@ -46,3 +46,24 @@ NOT_BLANK: list[JsonValue] = ["a", 1, -1, 2.5, {"hex": "ff"}, {"text": "", "tail
 @pytest.mark.parametrize("value", [*NOT_BLANK, [0, 1], {"a": 0, "b": "x"}])
 def test_values_that_are_not_blank(value: JsonValue) -> None:
     assert not is_blank(value)
+
+
+def test_outline_counts_the_lists_of_objects() -> None:
+    value: JsonValue = {
+        "name": "a",
+        "classes": [1, 0],
+        "entries": [{"kind": 1}],
+        "uvs": [[0.5, 0.25]],
+        "at": {"hex": "00"},
+    }
+    expected = {"name": "a", "classes": [1, 0], "entries": {"count": 1}, "uvs": {"count": 1}, "at": {"hex": "00"}}
+    assert outline(value) == (expected, True)
+
+
+def test_outline_counts_inside_an_object() -> None:
+    assert outline({"header": {"rows": [{"x": 1}, {"x": 2}]}}) == ({"header": {"rows": {"count": 2}}}, True)
+
+
+@pytest.mark.parametrize("value", ["text", [1, 2], [], {"name": "a", "tail": [TAILED, {"hex": "00"}], "more": {}}])
+def test_outline_keeps_leaves_and_lists_of_leaves(value: JsonValue) -> None:
+    assert outline(value) == (value, False)

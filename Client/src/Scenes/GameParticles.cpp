@@ -21,6 +21,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -295,7 +296,7 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World
     if (particle.type == World::SwellLifeParticle && particle.subtype == World::SwellLifeParticleSubtype)
     {
         // 0x544a9d..0x544b09: dirección retenida, sin leer alive ni flags. No usa la escala del modelo ni 53fdb0.
-        constexpr std::uint16_t PlayerType = 0x20a;
+        constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
         if (owner.type != PlayerType || owner.byte88 != 1)
             return std::nullopt;
         const auto bone = Math::OriginalFtolLow(static_cast<double>(particle.rotation));

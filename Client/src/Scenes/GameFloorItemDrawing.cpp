@@ -12,6 +12,7 @@
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Terrain/SphereFrustum.h"
 #include "Terrain/TerrainLighting.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -31,7 +32,7 @@ namespace
 constexpr std::int16_t FirstArmor = 0x1012;
 constexpr std::int16_t EndArmor = 0x1a12;
 constexpr std::int16_t Money = 0x1e21;
-constexpr std::uint16_t Player = 0x20a;
+constexpr std::uint16_t Player = Tables::PlayerSkeletonModel;
 constexpr float VisibleAlpha = 0.01f;
 using Math::F32;
 std::uint8_t Level(const FloorItemState& item)

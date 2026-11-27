@@ -11,6 +11,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
+#include "Tables/PlayerModels.h"
 
 #include <algorithm>
 #include <array>
@@ -28,7 +29,7 @@ constexpr std::int32_t NotInView = -1;
 constexpr std::int32_t NotSearched = -2;
 constexpr std::int32_t TheHero = -3;
 // 0x59e3cb: el tipo de los jugadores; 0x59e3d7: +0x88 en 1.
-constexpr std::uint16_t PlayerType = 0x20a;
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr std::uint8_t PlayerKind = 1;
 // 0x59e4fa..0x59e500: 400 registros de 0x438.
 constexpr std::size_t SearchedActors = 400;

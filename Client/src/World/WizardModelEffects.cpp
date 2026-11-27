@@ -22,6 +22,7 @@
 #include "World/Sprites.h"
 #include "Terrain/TerrainAttributeQuery.h"
 #include "World/WorldObjectStepServices.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -93,9 +94,10 @@ constexpr std::int32_t ColumnJoint = 0x62b;
 constexpr std::int32_t FireTrailJoint = 0x5f2;
 constexpr std::uint16_t FlareSprite = 0x5ac;
 constexpr std::uint16_t ShineSprite = 0x5fd;
-constexpr std::int16_t ChipEffect = 0xc8;   // 0xc8 + (rand() & 1): las piedritas.
-constexpr std::int16_t MeteorBurst = 0xf6;  // 0x524d05: el 0xf6/2 del lote del switch.
-constexpr std::uint16_t PlayerType = 0x20a; // +0x2 del personaje jugador.
+constexpr std::int16_t ChipEffect = 0xc8;  // 0xc8 + (rand() & 1): las piedritas.
+constexpr std::int16_t MeteorBurst = 0xf6; // 0x524d05: el 0xf6/2 del lote del switch.
+// +0x2 del personaje jugador.
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr std::uint16_t NoKey = 0xffff;
 constexpr std::int32_t NoTarget = -1;
 constexpr std::int32_t StoneChipFallMask = 15;

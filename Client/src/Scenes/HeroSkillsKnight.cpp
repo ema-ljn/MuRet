@@ -30,6 +30,7 @@
 #include "Math/Ftol.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
+#include "Tables/PlayerModels.h"
 
 #include <algorithm>
 #include <bit>
@@ -46,7 +47,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::uint16_t PlayerType = 0x20a;
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr std::int16_t NoWeapon = -1;
 constexpr std::int16_t FirstStaffModel = 0xc12;
 constexpr std::int16_t StaffModelsEnd = 0xe12;

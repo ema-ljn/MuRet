@@ -39,6 +39,7 @@
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1425,7 +1426,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     {
         // 0x5048f1..0x50492b: el jugador crea el 0xc3 (blanco+0x10, o+0x1c, o+0xf4, 0, sin dueño, −1, …); después
         // TODOS los tipos, con la luz local en (0,4f; 0,6f; 1), intentan diez partículas 5f2/1 (0x50497e).
-        constexpr std::uint16_t PlayerType = 0x20a;
+        constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
         if (actor.type == PlayerType)
         {
             if (auto created = CreateWizard(

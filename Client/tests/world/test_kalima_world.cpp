@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 #include "Core/Expected.h"
+#include "Terrain/WorldTerrain.h"
 
 namespace
 {
@@ -335,7 +336,7 @@ TEST(KalimaWorldTest, AFailedPeriodicReadKeepsTheAlreadyToggledAndUpdatedWaveKer
 
 TEST(KalimaResourcesTest, LoadsTheRealObject25FilesIntoNativeSlotsAndSampling)
 {
-    const auto set = Client::World::KalimaTextureSet();
+    const auto set = Client::Terrain::KalimaWaterTextureSet();
     ASSERT_EQ(set.size(), 2u);
     EXPECT_EQ(set[0].path, "Object25\\water1.tga");
     EXPECT_EQ(set[0].slot, 0x23);

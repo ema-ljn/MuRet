@@ -10,6 +10,7 @@
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainPickingSegment.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -83,7 +84,7 @@ bool OnTheHeroLayer(const Kernel::ActorState& actor, const Kernel::WorldState& w
     const auto& mapping = terrain.mapping;
     if (!mapping)
         return true;
-    constexpr std::int32_t CellSize = 100;
+    constexpr std::int32_t CellSize = static_cast<std::int32_t>(Terrain::CellSize);
     constexpr std::int32_t RowCells = 256;
     const std::int32_t index = static_cast<std::int32_t>(actor.position.y) / CellSize * RowCells +
                                static_cast<std::int32_t>(actor.position.x) / CellSize;

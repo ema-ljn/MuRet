@@ -212,7 +212,7 @@ TEST(KalimaSceneTextureTest, APartialUploadRollsBackOnlyItsSuccessfulPhysicalRef
 TEST(KalimaSceneTextureTest, MissingRequiredWaterFailsBeforeAnyPhysicalUpload)
 {
     Client::Tests::TemporaryFolder missing("kalima-missing-water");
-    Client::Tests::WriteTextureSet(missing.Path(), Client::World::KalimaTextureSet(), std::uint16_t{0x24});
+    Client::Tests::WriteTextureSet(missing.Path(), Client::Terrain::KalimaWaterTextureSet(), std::uint16_t{0x24});
     // 616ec0 pide drop01 con sexto 1 antes de llegar a water2: el fixture debe alcanzar esa segunda frontera.
     const auto drop = Client::Terrain::DropTexture();
     const std::array<Client::Data::Textures::TextureSetEntry, 1> prefix{{{drop.path, drop.slot, drop.sampling}}};
@@ -231,7 +231,7 @@ TEST(KalimaSceneTextureTest, MissingRequiredWaterFailsBeforeAnyPhysicalUpload)
 TEST(KalimaSceneTextureTest, TheNativeOptionalAlphaWaterMayBeSkippedWhileTheRequiredWaterStillLoads)
 {
     Client::Tests::TemporaryFolder folder("kalima-optional-alpha");
-    Client::Tests::WriteTextureSet(folder.Path(), Client::World::KalimaTextureSet(), std::uint16_t{0x23});
+    Client::Tests::WriteTextureSet(folder.Path(), Client::Terrain::KalimaWaterTextureSet(), std::uint16_t{0x23});
     const auto box = Client::Terrain::AcceptBoxTexture();
     const auto drop = Client::Terrain::DropTexture();
     const std::array<Client::Data::Textures::TextureSetEntry, 2> entries{

@@ -43,6 +43,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <array>
 #include <cstddef>
@@ -58,7 +59,7 @@ namespace Client::Actors
 namespace
 {
 constexpr std::string_view HiddenName = "webzen"; // 0x6c8418 and 0x6c8420
-constexpr float CellSize = 100.0f;                // 0x6b86b4
+using Terrain::CellSize;                          // 0x6b86b4
 constexpr float CellCenter = 0.5f;                // 0x6b882c
 constexpr float DirectionDegrees = 45.0f;         // 0x6b8848, with the 1 from 0x6b87d4
 

@@ -38,6 +38,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -545,8 +546,8 @@ Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const 
 {
     constexpr std::uint8_t FlameSkill = 5;
     constexpr std::int32_t FlameSound = 0x79;
-    constexpr double CellCentre = 0.5; // 0x6b882c
-    constexpr double CellSize = 100.0; // 0x6b86b4
+    constexpr double CellCentre = 0.5;                     // 0x6b882c
+    constexpr double CellSize = Terrain::CellSizeAsDouble; // 0x6b86b4
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
@@ -603,8 +604,8 @@ Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm:
 Core::Expected<glm::vec3, std::string>
 SkillCellPoint(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context, std::uint32_t address)
 {
-    constexpr double CellCentre = 0.5; // 0x6b882c
-    constexpr double CellSize = 100.0; // 0x6b86b4
+    constexpr double CellCentre = 0.5;                     // 0x6b882c
+    constexpr double CellSize = Terrain::CellSizeAsDouble; // 0x6b86b4
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(
@@ -779,7 +780,7 @@ Core::Expected<void, std::string> SwingTheHands(const Kernel::ActorState& actor,
 // pila (53 bits) por su copia en float, la raíz (0x6a1920) sobre 100 (0x6b86b4) y el cociente guardado en float.
 float CellsBetween(const Kernel::ActorState& from, const Kernel::ActorState& to)
 {
-    constexpr double CellSize = 100.0;
+    constexpr double CellSize = Terrain::CellSizeAsDouble;
     const auto dx = static_cast<float>(static_cast<double>(from.position.x) - static_cast<double>(to.position.x));
     const double dy = static_cast<double>(from.position.y) - static_cast<double>(to.position.y);
     const auto storedDy = static_cast<float>(dy);
@@ -968,8 +969,8 @@ Core::Expected<void, std::string> LightTheHellfire(Kernel::ActorState& actor, st
 Core::Expected<void, std::string> RainTheMeteors(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                  const Actors::CharacterStepContext& context)
 {
-    constexpr double CellCentre = 0.5; // 0x6b882c
-    constexpr double CellSize = 100.0; // 0x6b86b4
+    constexpr double CellCentre = 0.5;                     // 0x6b882c
+    constexpr double CellSize = Terrain::CellSizeAsDouble; // 0x6b86b4
     constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bit_cast<float>(0x3dcccccdu)};
     constexpr std::int32_t MeteorSubtype = 6;
     constexpr std::uint16_t MeteorKey = 0;

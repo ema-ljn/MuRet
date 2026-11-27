@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
+#include "Data/Textures/TextureSet.h"
 #include "Terrain/TerrainLighting.h"
 #include "Data/Terrain/TerrainLight.h"
 
@@ -13,6 +14,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -130,6 +132,10 @@ struct WorldTileTexture
 
 // 0x617ff6/0x618016: World31\\Map1/2.jpg, the castle minimaps, only when loading map 30.
 [[nodiscard]] std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map);
+
+// 0x6189e9..0x618a18: Kalima's water, Object25\\water1.tga at 0x23 and water2.jpg at 0x24, loaded before 0x61a92a
+// jumps over the ordinary tiles.
+[[nodiscard]] std::span<const Data::Textures::TextureSetEntry> KalimaWaterTextureSet();
 
 // Slot 0x122, which a layer 2 of 255 asks for (Q-C19): Interface\accept_box01.jpg, which the original uploads at load
 // (0x61ae60) and keeps forever; MuRet uploads it with the world.

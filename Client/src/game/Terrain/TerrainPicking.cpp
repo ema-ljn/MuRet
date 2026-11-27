@@ -7,6 +7,7 @@
 #include "Terrain/FaceNormal.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainDefines.h"
 #include "Terrain/TerrainPickingSegment.h"
 #include "Terrain/TerrainPickingState.h"
 #include "Terrain/TerrainPickingTarget.h"
@@ -217,12 +218,12 @@ Core::Expected<std::array<glm::vec3, 4>, std::string> Vertices(const TerrainView
         heights[i] = height;
     }
     // 0x5fac90 keeps X/Y in registers before the stores: do not add 100 from the rounded float.
-    const double x = static_cast<double>(xf) * static_cast<double>(TerrainCellSize);
-    const double y = static_cast<double>(yf) * static_cast<double>(TerrainCellSize);
+    const double x = static_cast<double>(xf) * static_cast<double>(CellSize);
+    const double y = static_cast<double>(yf) * static_cast<double>(CellSize);
     std::array<glm::vec3, 4> vertices{{{F32(x), F32(y), heights[0]},
-                                       {F32(x + TerrainCellSize), F32(y), heights[1]},
-                                       {F32(x + TerrainCellSize), F32(y + TerrainCellSize), heights[2]},
-                                       {F32(x), F32(y + TerrainCellSize), heights[3]}}};
+                                       {F32(x + CellSize), F32(y), heights[1]},
+                                       {F32(x + CellSize), F32(y + CellSize), heights[2]},
+                                       {F32(x), F32(y + CellSize), heights[3]}}};
     for (std::size_t i = 0; i < indices.size(); ++i)
     {
         if ((view.attributes->cells[indices[i]] & FixedHeightBit) != 0)

@@ -27,6 +27,7 @@
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -66,7 +67,7 @@ constexpr std::array<std::int16_t, 2> MedalCracks{0x100, 0xfe};
 constexpr std::int16_t MedalCrackSize = 0x37;
 // 0x4d0bdd y 0x4d0be9: (celda + 0,5) · 100.
 constexpr float CellHalf = 0.5f;
-constexpr float CellSize = 100.0f;
+using Terrain::CellSize;
 // Los sonidos de 0x41ed10 (CL10): 0x6083a5 el zen, 0x60840a las joyas y 0x608400 lo demás; 0x4d10af y 0x4d10a2 los
 // del 22.
 constexpr std::int32_t ZenDropSound = 0x1f;

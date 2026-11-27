@@ -29,6 +29,7 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <algorithm>
 #include <bit>
@@ -62,7 +63,7 @@ constexpr std::int32_t MaximumOffset = 7;
 constexpr std::uint8_t OffsetBias = 8;
 constexpr unsigned HighNibble = 4;
 constexpr std::uint8_t LowNibbleMask = 0xf;
-constexpr double CellSize = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x42c80000}));       // [0x6b86b4]
+constexpr double CellSize = Terrain::CellSizeAsDouble;                                                  // [0x6b86b4]
 constexpr double HalfCell = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x42480000}));       // [0x6b86b0]
 constexpr double CellReciprocal = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3c23d70a})); // [0x6b86c0]
 constexpr double TurnsOf256 = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3f360b61}));     // [0x6ba440]

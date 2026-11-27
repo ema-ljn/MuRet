@@ -18,6 +18,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Assets/FaunaModels.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <array>
 #include <cstddef>
@@ -35,7 +36,7 @@ constexpr std::uint16_t DarkHorsePet = 0x1c16;
 // 0x6b86b0).
 constexpr double DirectionBase = 1.0;
 constexpr double DegreesPerDirection = 45.0;
-constexpr double CellSize = 100.0;
+constexpr double CellSize = Terrain::CellSizeAsDouble;
 constexpr double HalfCell = 50.0;
 // 0x4cb853..0x4cb864: action 0x12 sets 0x98 and requests sound 0x6f.
 constexpr std::uint8_t ShieldAction = 0x12;

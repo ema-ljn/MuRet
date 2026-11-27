@@ -10,6 +10,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -29,7 +30,7 @@ constexpr std::int32_t FirstLargeOffsetMap = 8;
 constexpr std::int32_t SecondLargeOffsetMap = 10;
 constexpr std::int32_t NoMap = -1;
 // 0x6b86b4 and 0x6b86b0: the center of the cell, X · 100 + 50.
-constexpr float CellSize = 100.0f;
+using Terrain::CellSize;
 constexpr float CellCenter = 50.0f;
 constexpr float PlayerScale = 0.9f;
 constexpr std::uint8_t ConstructedPk = 3;

@@ -74,6 +74,7 @@ Scenes/AttackSkillCases.cpp	Scenes/SkillBurstEffects.h	game/Skills	game/Effects
 Scenes/AttackSkillCases.cpp	Scenes/WizardEffects.h	game/Skills	game/Effects
 Scenes/AttackSkillCases.cpp	World/ModelEffects.h	game/Skills	game/Effects
 Scenes/AttackSkillCases.cpp	World/WizardModelEffects.h	game/Skills	game/Effects
+Scenes/AttackSkillCases.cpp	game/Terrain/ColoredDecals.h	game/Skills	game/Effects
 Scenes/AttackSkillReads.cpp	game/Actors/CharacterStep.h	game/Skills	game/Actors
 Scenes/AttackStep.cpp	Scenes/AttackFrameSkills.h	game/Combat	game/Skills
 Scenes/AttackStep.cpp	Scenes/AttackSkillCases.h	game/Combat	game/Skills
@@ -936,7 +937,6 @@ Scenes/SweepJoints.cpp	World/IFishStepServices.h	game/Joints	game/Fauna
 Scenes/TarkanObjectFrame.cpp	Scenes/ObjectFrameSprites.h	game/MapScripts/Tarkan	game/WorldObjects
 Scenes/TarkanObjectFrame.cpp	Scenes/WorldObjectsDrawing.h	game/MapScripts/Tarkan	game/WorldObjects
 Scenes/TarkanObjectFrame.cpp	World/WorldObjects.h	game/MapScripts/Tarkan	game/WorldObjects
-game/Assets/TerrainTiles.cpp	World/KalimaResources.h	game/Assets	game/Events
 Scenes/TestScene.h	App/ILoopClient.h	game/Scenes	app
 Scenes/UiItemDrawing.cpp	game/Actors/Drawing/CharacterDrawing.h	game/Items	game/Actors
 Scenes/UiItemDrawing.cpp	Scenes/GameDrawTail.h	game/Items	game/Scenes
@@ -1009,12 +1009,14 @@ Scenes/WorldObjectsDrawing.cpp	World/ParticleDrawing.h	game/WorldObjects	game/Pa
 Scenes/WorldObjectsDrawing.cpp	World/Particles.h	game/WorldObjects	game/Particles
 Scenes/WorldObjectsDrawing.cpp	World/Sprites.h	game/WorldObjects	game/Particles
 Scenes/WorldObjectsDrawing.cpp	World/WizardModelEffects.h	game/WorldObjects	game/Effects
+Scenes/WorldObjectsDrawing.cpp	game/Terrain/GroundEffectDrawing.h	game/WorldObjects	game/Effects
 Scenes/WorldObjectsDrawing.h	game/Actors/Drawing/CharacterDrawing.h	game/WorldObjects	game/Actors
 Scenes/WorldObjectsDrawing.h	game/Actors/Drawing/ModelPoseCallbacks.h	game/WorldObjects	game/Actors
 Scenes/WorldObjectsDrawing.h	World/ModelEffects.h	game/WorldObjects	game/Effects
 Scenes/WorldObjectsDrawing.h	World/ParticleDrawing.h	game/WorldObjects	game/Particles
 Scenes/WorldObjectsDrawing.h	World/Particles.h	game/WorldObjects	game/Particles
 Scenes/WorldObjectsDrawing.h	World/Sprites.h	game/WorldObjects	game/Particles
+Scenes/WorldObjectsDrawing.h	game/Terrain/GroundEffectDrawing.h	game/WorldObjects	game/Effects
 game/Kernel/WorldRuntime.h	GameLogic/MovementSpeed.h	game/Kernel	game/Movement
 game/Kernel/WorldRuntime.h	Scenes/ChatBubbles.h	game/Kernel	game/Chat
 game/Kernel/WorldRuntime.h	Scenes/EventGlobals.h	game/Kernel	game/Events
@@ -1102,7 +1104,6 @@ World/CastleSiegeObjectStep.cpp	World/WorldObjectMapCreation.h	game/CastleSiege	
 World/CastleSiegeObjectStep.cpp	World/WorldObjectStepServices.h	game/CastleSiege	game/WorldObjects
 World/CastleSiegeObjectStep.cpp	World/WorldObjects.h	game/CastleSiege	game/WorldObjects
 World/ChaosCastle.cpp	World/WorldObjects.h	game/Events	game/WorldObjects
-game/Terrain/ColoredDecals.cpp	World/ModelEffects.h	game/Terrain	game/Effects
 World/DungeonObjectStep.cpp	World/ObjectModelStepState.h	game/MapScripts/Dungeon	game/WorldObjects
 World/DungeonObjectStep.cpp	World/WorldObjectStepServices.h	game/MapScripts/Dungeon	game/WorldObjects
 World/DungeonObjectStep.cpp	World/WorldObjects.h	game/MapScripts/Dungeon	game/WorldObjects
@@ -1113,9 +1114,6 @@ World/GameModelEffects.cpp	World/KalimaWorld.h	game/Effects	game/Events
 World/GameModelEffects.cpp	World/SiegeGateEffects.h	game/Effects	game/CastleSiege
 World/GameModelEffects.cpp	World/SiegeVertexEffects.h	game/Effects	game/CastleSiege
 World/GameModelEffects.cpp	World/WorldObjectStepServices.h	game/Effects	game/WorldObjects
-game/Terrain/GroundEffectDrawing.cpp	World/KalimaSurfaceDecal.h	game/Terrain	game/Events
-game/Terrain/GroundEffectDrawing.cpp	World/ModelEffects.h	game/Terrain	game/Effects
-game/Terrain/GroundEffectDrawing.h	World/ModelEffects.h	game/Terrain	game/Effects
 World/KalimaObjectMovement.cpp	World/WorldObjects.h	game/Events	game/WorldObjects
 World/NoriaObjectStep.cpp	World/ObjectModelStepState.h	game/MapScripts/Noria	game/WorldObjects
 World/NoriaObjectStep.cpp	World/WorldObjects.h	game/MapScripts/Noria	game/WorldObjects
@@ -1164,3 +1162,5 @@ game/Session/WorldTransitionSupport.cpp	Scenes/GameDrawTail.h	game/Session	game/
 game/Session/WorldTransitionSupport.cpp	Scenes/SceneId.h	game/Session	game/Scenes
 game/Tables/GameData.cpp	UI/MacroFile.h	game/Tables	game/Chat
 game/Tables/GameData.h	UI/MacroFile.h	game/Tables	game/Chat
+
+game/Terrain/GroundEffectDrawing.cpp	World/KalimaSurfaceDecal.h	game/Effects	game/Events

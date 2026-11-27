@@ -39,8 +39,8 @@ constexpr std::uint32_t AdditiveBodyFlags = 0x42;   // 0x6005c7
 constexpr float VisibleAlpha = 0.01f;               // 0x6b88d4, el de 0x5ffdf0
 } // namespace
 
-Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int32_t subtype,
-                                                    const Models::IModelLibrary& models, WorldState& world,
+Core::Expected<void, std::string> ShedTheSkinShells(Kernel::ActorState& owner, std::int32_t subtype,
+                                                    const Models::IModelLibrary& models, Kernel::WorldState& world,
                                                     World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     constexpr std::uint16_t Shadow = Tables::PlayerShadowModel;
@@ -50,7 +50,7 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
         return Core::Unexpected(std::string("0x53c1eb: falta el modelo 0x20b (Player\\Shadow01) del joint 0x632"));
     // 0x53c1c6..0x53c1eb: el cuadro, el anterior y la acción anterior en 0; la acción, la escala y el origen, los del
     // modelo (+0xa0, +0x68 y +0x6c); +0x84 queda en 0 (sólo 0x6001b0 lo escribe, y nunca en el 0x20b).
-    const SharedModelPlacement placement = world.ModelPlacement(Shadow);
+    const Kernel::SharedModelPlacement placement = world.ModelPlacement(Shadow);
     const Models::AnimationState animation{
         .action = placement.action, .frame = 0.0f, .previousAction = 0, .previousKey = 0};
     const Models::ObjectTransform transform{
@@ -78,22 +78,24 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
     }
     // 0x4ec04d..0x4ec0f6 (sin el modo del editor, 0x77f3b18): la caja del dueño, de su +0x124..+0x138, desde el origen
     // del modelo.
-    PublishPickingBox(owner, placement.origin, owner.boundsMin, {owner.boundsMaxX, owner.boundsMaxY, owner.boundsTop});
+    Actors::PublishPickingBox(owner, placement.origin, owner.boundsMin,
+                              {owner.boundsMaxX, owner.boundsMaxY, owner.boundsTop});
     // 0x53c215..0x53c246: 0x4ee770 con el /0 (0x53c227) o el /1 (0x53c241); el joint sólo llega acá con esos dos.
-    DrawnObject shadow;
+    Actors::Drawing::DrawnObject shadow;
     shadow.model = Shadow;
-    return EmitVertexEffects(models, shadow, meshes, 0, World::SkinShellEffect, subtype, effects, random);
+    return Actors::Drawing::EmitVertexEffects(models, shadow, meshes, 0, World::SkinShellEffect, subtype, effects,
+                                              random);
 }
 
 Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       const World::ModelEffect& effect, DrawnObject& object,
-                                                       Core::Duration frameClock)
+                                                       const World::ModelEffect& effect,
+                                                       Actors::Drawing::DrawnObject& object, Core::Duration frameClock)
 {
     if (effect.subtype == 0)
     {
         // 0x600568..0x600588 → 0x600b37.
         object.color = effect.light;
-        DrawObjectWithTexture(batch, models, object, frameClock, ChromeTexture);
+        Actors::Drawing::DrawObjectWithTexture(batch, models, object, frameClock, ChromeTexture);
         return true;
     }
     if (effect.subtype != 1)
@@ -108,12 +110,13 @@ Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch
         // WorldScratchOf, la normal girada por R · s. Nada sin el modelo, su esqueleto o la pose.
         if (object.alpha < VisibleAlpha)
             return true;
-        posed = WorldScratchOf(models, object);
+        posed = Actors::Drawing::WorldScratchOf(models, object);
         if (posed.empty())
             return true;
         meshes = posed;
     }
-    if (auto drawn = DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, AdditiveBodyFlags, ChromeTexture);
+    if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, AdditiveBodyFlags,
+                                                       ChromeTexture);
         !drawn.HasValue())
         return Core::Unexpected("0x6005cb: " + drawn.Error());
     return true;

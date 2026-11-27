@@ -194,8 +194,8 @@ struct Harness
 {
     explicit Harness(bool withLogo = true, bool withWorld = true) : log(sink, LogLevel::Debug)
     {
-        Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::LoginTextureSet);
-        Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WindowTextureSet);
+        Client::Tests::WriteTextureSet(folder.Path(), Client::Assets::LoginTextureSet);
+        Client::Tests::WriteTextureSet(folder.Path(), Client::Assets::WindowTextureSet);
         if (withLogo)
         {
             Client::Tests::WriteLoginLogo(folder.Path());
@@ -208,7 +208,7 @@ struct Harness
 
     // Con `cloth`, lo global de la tela del bucle: el rand() de la CRT.
     LoginScene& Make(std::mt19937::result_type seed = FixedSeed, FakeClock* sceneClock = nullptr,
-                     Client::Models::ClothWorld* cloth = nullptr, Client::Scenes::WorldState* world = nullptr)
+                     Client::Models::ClothWorld* cloth = nullptr, Client::Kernel::WorldState* world = nullptr)
     {
         SceneContext context{folder.Path(), store, log, sceneClock, cloth};
         context.world = world;
@@ -274,9 +274,9 @@ void ExpectNear(const glm::vec3& actual, const glm::vec3& expected)
 // La luz de light-256.jpg en (x, y), sin sombra: el terreno es plano.
 glm::vec3 WorldLightAt(const std::filesystem::path& root, const glm::vec3& position)
 {
-    const auto lighting = Client::World::LoadTerrainLighting(root, 55);
+    const auto lighting = Client::Terrain::LoadTerrainLighting(root, 55);
     EXPECT_TRUE(lighting.HasValue()) << lighting.Error();
-    return lighting.HasValue() ? Client::World::LightAt(*lighting.Value(), position.x, position.y) : glm::vec3(0.0f);
+    return lighting.HasValue() ? Client::Terrain::LightAt(*lighting.Value(), position.x, position.y) : glm::vec3(0.0f);
 }
 
 // 0x6350b0: en el pase 3D, el personaje (0x510d00) y después el logo (0x6046a0), que es el último:
@@ -670,7 +670,7 @@ namespace
 {
 TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateDrawsKeepItsHistory)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Harness tested;
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
     std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
@@ -703,7 +703,7 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
 
 // El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso. Con `cloth`, el flujo
 // global de la tela: la rama del 0x50ba30 con la tela y Player.bmd.
-void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world,
+void EnterTheLoginWithItsWorld(Harness& tested, Client::Kernel::WorldState& world,
                                Client::Models::ClothWorld* cloth = nullptr)
 {
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
@@ -733,7 +733,7 @@ void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& worl
 TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
 {
     constexpr std::uint16_t Shadow = Client::Tables::PlayerShadowModel;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Harness tested;
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, *world, &cloth));
@@ -742,7 +742,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
     ASSERT_TRUE(actor.alive && actor.seen);
     // Sin el cetro: su modelo no está en la biblioteca sintética y lo que cuelga cortaría en 0x50a169.
     for (auto& hand : actor.hands)
-        hand.model = Client::Scenes::NoItemModel;
+        hand.model = Client::Kernel::NoItemModel;
     const auto drawAt = [&tested](Client::Core::Duration clock)
     {
         tested.scene->Render(tested.target.BeginFrame(clock), 0.0f);
@@ -779,7 +779,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
 TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
 {
     Harness tested;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     world.Runtime().chat.area.rows[0].text = "viejo";
     world.Runtime().chat.area.count = 1;
 
@@ -794,7 +794,7 @@ TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
 // (0x68b181c) ni en un frame del original ni en uno intermedio, y sólo el frame del original lo guarda en el propio.
 TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
     auto& actor = world.Actors()[Client::Scenes::LoginActorSlot];
@@ -822,7 +822,7 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 // (10.715; 14.288; 788).
 TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Harness tested;
     tested.models.RetainTheDummyRoot();
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
@@ -854,7 +854,7 @@ TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
 {
     constexpr std::int16_t MeteorMarker = 0x59;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Harness tested;
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
     std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
@@ -925,7 +925,7 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
 // dueño, ancho 50) pierde una vida en un paso.
 TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Harness tested;
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
     std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});

@@ -82,10 +82,10 @@ std::vector<Data::Terrain::TerrainObject> SpecialObjectsOf(std::int32_t map)
 }
 
 // Las tablas de atributos y luz cruda sólo sobreviven si Crywolf reutiliza las rutas de carga (Q-C181).
-void ForgetThePreviousTerrain(WorldMap& loaded, bool retainTerrainTables)
+void ForgetThePreviousTerrain(Kernel::WorldMap& loaded, bool retainTerrainTables)
 {
     loaded.grassOffsets.clear();
-    World::WorldTerrain terrain;
+    Terrain::WorldTerrain terrain;
     if (retainTerrainTables)
     {
         terrain.attributes = std::move(loaded.terrain.attributes);
@@ -124,7 +124,7 @@ World::ObjectScene ObjectSceneOf(SceneId scene)
 }
 
 Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain::TerrainObject> records,
-                                                   const char* source, WorldMap& loaded, std::int32_t map,
+                                                   const char* source, Kernel::WorldMap& loaded, std::int32_t map,
                                                    const MapLoadContext& context)
 {
     Crt::CrtRandom& random = context.random;
@@ -166,10 +166,10 @@ void FillTheGrassOffsets(std::vector<float>& offsets, Crt::CrtRandom& random)
 // objetos con 0x606660 (0x42aa70..0x42ab27), en (x; 11.300; 270), ángulos en 0 y escala 1. El byte 0x7239d8
 // (CastleSiegeState::castleByte7239d8), que también pone en 0 (0x42a78e), lo escribe 0x42d890 y lo lee 0x42da90 con los
 // monstruos 0x11e y 0x11f.
-Core::Expected<void, std::string> PrepareTheCastleSiege(WorldMap& loaded, std::int32_t map,
+Core::Expected<void, std::string> PrepareTheCastleSiege(Kernel::WorldMap& loaded, std::int32_t map,
                                                         const MapLoadContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.castleSiege.siegeMusicTime = 0.0f;
     runtime.castleSiege.castleByte7239d8 = 0;
     // 0x42a981: el B9 02 sale solo con el socket del GS abierto (0x6c82a0 + 0xc distinto de −1).
@@ -196,18 +196,18 @@ struct TerrainFileNames
 };
 
 // Lo que no depende de un mapa de frontera: el terreno, el .obj y sus objetos.
-Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, WorldMap& loaded, std::int32_t map,
-                                               const TerrainFileNames& names)
+Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Kernel::WorldMap& loaded,
+                                               std::int32_t map, const TerrainFileNames& names)
 {
     const auto folderMap = static_cast<std::uint8_t>(map);
     auto& fatalMessage = context.world.Runtime().fatalDataMessage;
-    auto terrain = World::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage,
-                                                 names.attributesNumber, names.reusePreviousPaths);
+    auto terrain = Terrain::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage,
+                                                   names.attributesNumber, names.reusePreviousPaths);
     if (!terrain.HasValue())
     {
         return Core::Unexpected(terrain.Error());
     }
-    auto records = World::LoadWorldObjects(context.dataRoot, folderMap, &fatalMessage);
+    auto records = Terrain::LoadWorldObjects(context.dataRoot, folderMap, &fatalMessage);
     if (!records.HasValue())
     {
         return Core::Unexpected(records.Error());
@@ -216,34 +216,34 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
     if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context);
         !created.HasValue())
         return created;
-    return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage, names.lightName,
-                                          names.reusePreviousPaths);
+    return Terrain::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage, names.lightName,
+                                            names.reusePreviousPaths);
 }
 } // namespace
 
-void KillOtherActors(WorldState& world, std::int32_t key)
+void KillOtherActors(Kernel::WorldState& world, std::int32_t key)
 {
-    const std::span<ActorState, ActorPoolSize> actors = world.Actors();
+    const std::span<Kernel::ActorState, Kernel::ActorPoolSize> actors = world.Actors();
     for (std::size_t slot = 0; slot < KilledActorCount; ++slot)
     {
-        ActorState& actor = actors[slot];
+        Kernel::ActorState& actor = actors[slot];
         const auto actorKey = static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key));
         if (actor.alive && actorKey != key)
         {
             actor.alive = false;
             // 0x510f99: 0x401040, los huesos con nombre del registro.
-            ForgetNamedBones(world.Runtime(), slot);
+            Actors::ForgetNamedBones(world.Runtime(), slot);
             TurnOffHelpersOf(world.Helpers(), slot);
         }
         // 0x510fc2..0x510fc3: 0x421d60 también con los muertos y los que conservan su clave, y después
         // 0x414340 (0x510fd2), la capa de los GM.
         world.ActorCloths()[slot] = {};
         actor.darkSpirit.reset();
-        ReleaseTheLayer(actor);
+        Kernel::ReleaseTheLayer(actor);
     }
 }
 
-void ReleaseTheMapObjects(WorldMap& loaded)
+void ReleaseTheMapObjects(Kernel::WorldMap& loaded)
 {
     loaded.effects.Clear();
     loaded.objects.clear();
@@ -255,7 +255,7 @@ void ReleaseTheMapObjects(WorldMap& loaded)
     }
 }
 
-void ClearWorldTransientPools(WorldState& world)
+void ClearWorldTransientPools(Kernel::WorldState& world)
 {
     world.Fauna().Clear();
     world.Leaves().Clear();
@@ -270,7 +270,7 @@ void ClearWorldTransientPools(WorldState& world)
 
 Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.audio != nullptr)
     {
         runtime.audio->ReleaseWorldSounds();
@@ -283,7 +283,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
             runtime.audio->RegisterSound(sound.id, sound.path);
     const std::uint8_t crywolfState = runtime.crywolf.state;
     const bool reusePreviousPaths = map == CrywolfMap && crywolfState > Protocol::Events::CrywolfWarState;
-    WorldMap& loaded = context.world.Map();
+    Kernel::WorldMap& loaded = context.world.Map();
     // Invalidación interna por intento, también si falla antes de alcanzar4377a0. No consume CRT.
     ++loaded.loadRevision;
     ReleaseTheMapObjects(loaded);
@@ -358,7 +358,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     return {};
 }
 
-void ArmEventMapObject(std::int32_t map, WorldRuntime& runtime)
+void ArmEventMapObject(std::int32_t map, Kernel::WorldRuntime& runtime)
 {
     // 0x447d84..0x447de2: el argumento entre 11 y 17, la vtable 0x6b8c30.
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)

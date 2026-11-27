@@ -8,22 +8,22 @@
 
 #include <cstdint>
 
-// Client::World::TerrainRangeOf y TerrainPolygonOf con la cámara del login (06 § El terreno del login):
+// Client::Terrain::TerrainRangeOf y TerrainPolygonOf con la cámara del login (06 § El terreno del login):
 // el rango de bloques de 0x5fbb00 y el trapecio de 0x5fb570, que en el login no recorta nada.
 namespace
 {
-using Client::World::CullingScene;
-using Client::World::PolygonContains;
-using Client::World::TerrainPolygonOf;
-using Client::World::TerrainRangeOf;
+using Client::Terrain::CullingScene;
+using Client::Terrain::PolygonContains;
+using Client::Terrain::TerrainPolygonOf;
+using Client::Terrain::TerrainRangeOf;
 
 constexpr std::uint8_t Login = 55;
 
 TEST(TerrainCullingTest, TheLoginSeesBlocksFrom0To128And120To248)
 {
-    const auto camera = Client::Scenes::LoginCamera();
+    const auto camera = Client::Camera::LoginCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Camera::WorldViewport, camera);
     const auto range = TerrainRangeOf(pass.view, camera);
     EXPECT_EQ(range.firstX, 0);
     EXPECT_EQ(range.lastX, 128);
@@ -36,8 +36,8 @@ TEST(TerrainCullingTest, TheLoginSeesBlocksFrom0To128And120To248)
 // El trapecio del login, girado 36°, cubre todo el mapa: cada bloque y cada celda del rango pasan.
 TEST(TerrainCullingTest, TheLoginPolygonPassesEveryCell)
 {
-    const auto polygon = TerrainPolygonOf(CullingScene::Login, Login, Client::Scenes::LoginHeroPosition,
-                                          Client::Scenes::LoginCamera().angles.z);
+    const auto polygon = TerrainPolygonOf(CullingScene::Login, Login, Client::Camera::LoginHeroPosition,
+                                          Client::Camera::LoginCamera().angles.z);
     EXPECT_FALSE(polygon.everything);
     // Las esquinas del código real emulado, bit a bit (06 § El terreno del login).
     EXPECT_EQ(polygon.x[0], -1627.8109130859375f);
@@ -52,7 +52,7 @@ TEST(TerrainCullingTest, TheLoginPolygonPassesEveryCell)
     {
         for (int x = 0; x < 256; x += 5)
         {
-            EXPECT_TRUE(PolygonContains(polygon, x + 0.5, y + 0.5, Client::World::CellMargin)) << x << ", " << y;
+            EXPECT_TRUE(PolygonContains(polygon, x + 0.5, y + 0.5, Client::Terrain::CellMargin)) << x << ", " << y;
         }
     }
 }

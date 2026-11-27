@@ -240,7 +240,7 @@ Core::Expected<void, std::string> WriteTheDamage(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
     lines.At("0x5b4f93");
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     if (item.word0c == 0)
         return {};
     const std::int32_t type = static_cast<std::int16_t>(item.id);
@@ -281,7 +281,7 @@ void WriteTheDefenses(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
     lines.At("0x5b556c");
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     if (item.word12 != 0)
     {

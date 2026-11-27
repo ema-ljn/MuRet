@@ -183,7 +183,7 @@ protected:
         EXPECT_EQ(command->blend, Client::Render::BlendMode::Alpha);
         EXPECT_TRUE(command->alphaTest);
     }
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom m_random{4242};
     Client::Input::InputState m_input;
     Requests m_requests;

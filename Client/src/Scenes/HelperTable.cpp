@@ -182,7 +182,7 @@ Core::Expected<void, std::string> RaiseTheIcarusDust(const HelperState& helper, 
 // 0x44416b..0x4444ef con la acción 0x4b del jinete, después de 0x4ea030(1): el polvo. Fuera del 10, con rand() % 2 en
 // 0, fuera de Kalima y sin el 0x4000 del jinete (0x44440a..0x444412: sin jinete, nada; 0x443fa0 siempre le da uno),
 // el polvo alrededor del caballo (ScatterTheDust: el 10 de 0x4444c0 no llega).
-Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const Kernel::ActorState& rider,
                                                const HelperStepContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
@@ -204,7 +204,7 @@ Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const 
 
 // 0x44453f..0x4445de: el aliento, con la acción del caballo distinta de 1 y sin el 0x4000 del jinete: con rand() % 3
 // en 0, el punto del hueso 27 del buffer global y la 5f2, o la gota 607 en el 7, con la luz del caballo.
-Core::Expected<void, std::string> Breathe(const HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> Breathe(const HelperState& helper, const Kernel::ActorState& rider,
                                           const HelperStepContext& context)
 {
     if (helper.horse.animation.action == DustHorseAction || (rider.flags78 & RiderWithoutDust) != 0)
@@ -259,16 +259,16 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
     {
         return Core::Unexpected(second.Error());
     }
-    ActorState& hero = context.world.Hero();
-    const auto created =
-        CreateRibbon(context.world.DrawTail().ribbons, RibbonCreateRequest{.ownerContext = &hero,
-                                                                           .ownerEquipment = &hero.level,
-                                                                           .first = first.Value(),
-                                                                           .second = second.Value(),
-                                                                           .light = EarthquakeRibbonLight,
-                                                                           .type = 0,
-                                                                           .shortTrail = false,
-                                                                           .key = 0});
+    Kernel::ActorState& hero = context.world.Hero();
+    const auto created = Actors::Drawing::CreateRibbon(
+        context.world.DrawTail().ribbons, Actors::Drawing::RibbonCreateRequest{.ownerContext = &hero,
+                                                                               .ownerEquipment = &hero.level,
+                                                                               .first = first.Value(),
+                                                                               .second = second.Value(),
+                                                                               .light = EarthquakeRibbonLight,
+                                                                               .type = 0,
+                                                                               .shortTrail = false,
+                                                                               .key = 0});
     if (!created.HasValue())
     {
         return Core::Unexpected("0x444671 → " + created.Error());
@@ -296,7 +296,7 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
     {
         if ((helper.horse.effectCount & 1) != 0)
         {
-            const World::WorldTerrain& terrain =
+            const Terrain::WorldTerrain& terrain =
                 context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
             const glm::vec3 reach(0.0f, F32(static_cast<double>(helper.horse.effectCount >> 1) * StoneRingStep), 0.0f);
             glm::vec3 turn(0.0f, 0.0f, static_cast<float>(context.random.Next() % StoneDegrees));
@@ -382,7 +382,7 @@ Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const Help
 }
 
 // 0x4440b8..0x444766, el cuerpo del 0xbf.
-Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorState& rider,
+Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, Kernel::ActorState& rider,
                                                    const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x4440db");
@@ -448,8 +448,8 @@ bool HasItsBody(std::uint16_t type)
     return type == DarkHorseModel || type == RiderlessHelper || IsRidingHelper(type);
 }
 
-Core::Expected<void, std::string> StepTheBody(HelperState& helper, ActorState& rider, const Models::Skeleton& skeleton,
-                                              const HelperStepContext& context)
+Core::Expected<void, std::string> StepTheBody(HelperState& helper, Kernel::ActorState& rider,
+                                              const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     if (helper.type == DarkHorseModel)
     {
@@ -467,7 +467,8 @@ Core::Expected<void, std::string> StepTheBody(HelperState& helper, ActorState& r
 }
 
 // 0x444010(lugar, 0) con un lugar vivo, en la escena 4 o en la 5, con su jinete (+0x108).
-Core::Expected<void, std::string> StepHelper(HelperState& helper, ActorState& rider, const HelperStepContext& context)
+Core::Expected<void, std::string> StepHelper(HelperState& helper, Kernel::ActorState& rider,
+                                             const HelperStepContext& context)
 {
     // 0x44402a..0x444047: solo en la escena 5, con el jinete muerto o sin el 1 en +0x88.
     if (context.scene == SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
@@ -522,10 +523,10 @@ float DrawScaleOf(const HelperState& helper, SceneId scene)
 // Lo que se dibuja de un ayudante que no es el caballo: su lugar, sus ángulos y su escala, la animación entre dos
 // pasos, el blendMesh con su luz en 1, la U y la V en 0, sin malla oculta, el color de 0x5ffce0 con la luz por
 // vértice (la del terreno más la de +0xf4, el 3 de 0x443d70) y su alpha.
-DrawnObject DrawnHelper(const HelperState& helper, const Models::Skeleton* skeleton, const glm::vec3& terrainLight,
-                        float stepAlpha)
+Actors::Drawing::DrawnObject DrawnHelper(const HelperState& helper, const Models::Skeleton* skeleton,
+                                         const glm::vec3& terrainLight, float stepAlpha)
 {
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     drawn.model = helper.type;
     drawn.animation = helper.horse.animation;
     if (skeleton != nullptr && helper.horse.animation.action < skeleton->actions.size())
@@ -598,7 +599,8 @@ Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const Helpe
     if (context.posedMeshes)
         drawn.retainedMeshes = context.posedMeshes();
     const bool charging = helper.horse.animation.action == FenrirChargeAction;
-    if (auto body = DrawFenrirBody(context.batch, context.models, drawn, map, charging, context.frameClock);
+    if (auto body =
+            Actors::Drawing::DrawFenrirBody(context.batch, context.models, drawn, map, charging, context.frameClock);
         !body.HasValue())
         return body;
     const std::span<const Math::BoneTransform> bones = context.globalPose();
@@ -690,7 +692,7 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
                 return published;
         if (context.posedMeshes)
             drawn.retainedMeshes = context.posedMeshes();
-        DrawDarkHorse(context.batch, context.models, drawn, map, context.frameClock);
+        Actors::Drawing::DrawDarkHorse(context.batch, context.models, drawn, map, context.frameClock);
         return {};
     }
     if (IsFenrir(helper.type))
@@ -701,7 +703,7 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
         return Core::Unexpected(std::format(
             "0x5ffce0: falta el buffer dinámico de la luz del terreno para el ayudante {:#x}", helper.type));
     }
-    const glm::vec3 terrainLight = World::LightAt(*context.lighting, helper.position.x, helper.position.y);
+    const glm::vec3 terrainLight = Terrain::LightAt(*context.lighting, helper.position.x, helper.position.y);
     auto drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), terrainLight, context.stepAlpha);
     if (context.onPose)
         if (const auto published = context.onPose(drawn); !published.HasValue())
@@ -710,7 +712,7 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
         drawn.retainedMeshes = context.posedMeshes();
     // 0x600b35 (el Dinorant) y 0x602360 (el Uniria y el Guardian Angel): RenderBody(2, alpha, blendMesh, 1, 0, 0,
     // −1, −1).
-    DrawObject(context.batch, context.models, drawn, context.frameClock);
+    Actors::Drawing::DrawObject(context.batch, context.models, drawn, context.frameClock);
     return {};
 }
 
@@ -720,14 +722,14 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
 constexpr std::size_t CharacterTableSlots = 400; // 0x69780 / 0x438
 constexpr std::uint8_t ShownInTheSiege = 1;
 
-bool HiddenInTheSiege(const WorldState& world, std::size_t rider)
+bool HiddenInTheSiege(const Kernel::WorldState& world, std::size_t rider)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.castleSiege.siegeActive)
     {
         return false;
     }
-    const ActorState& riding = world.Actors()[rider];
+    const Kernel::ActorState& riding = world.Actors()[rider];
     return (riding.flags78 & RiderWithoutDust) != 0 && riding.byte370 != ShownInTheSiege;
 }
 
@@ -736,7 +738,7 @@ bool HiddenInTheSiege(const WorldState& world, std::size_t rider)
 // que 0x60039d pisa con el blanco. El 0x1c12 conserva su blendMesh, que el 0x4000 no mira.
 Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const HelperDrawContext& context)
 {
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     if (helper.type == DarkHorseModel)
     {
         const Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
@@ -756,17 +758,17 @@ Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const Helper
     {
         return {};
     }
-    return DrawChromeShell(context.batch, context.models, drawn, context.frameClock);
+    return Actors::Drawing::DrawChromeShell(context.batch, context.models, drawn, context.frameClock);
 }
 
 // 0x445260(lugar, `always`) con un lugar vivo y su jinete (+0x108). Con `always` (el retrato de las cartas), visto sin
 // el trapecio (0x4452a4) y con la escala de 0x4452d2.
-Core::Expected<void, std::string> DrawHelper(HelperState& helper, const ActorState& rider, bool always,
+Core::Expected<void, std::string> DrawHelper(HelperState& helper, const Kernel::ActorState& rider, bool always,
                                              const HelperDrawContext& context)
 {
-    WorldState& world = context.world;
-    const WorldRuntime& runtime = world.Runtime();
-    helper.seen = always || CharacterSeen(runtime.terrainPolygon, helper.position);
+    Kernel::WorldState& world = context.world;
+    const Kernel::WorldRuntime& runtime = world.Runtime();
+    helper.seen = always || Actors::CharacterSeen(runtime.terrainPolygon, helper.position);
     if (!helper.seen)
     {
         return {};
@@ -816,8 +818,8 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const ActorSta
 } // namespace
 
 Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type, const glm::vec3& position,
-                                                  const ActorState& rider, std::size_t riderSlot, std::int32_t map,
-                                                  Crt::CrtRandom* random)
+                                                  const Kernel::ActorState& rider, std::size_t riderSlot,
+                                                  std::int32_t map, Crt::CrtRandom* random)
 {
     // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
     if (IsChaosCastle(map))
@@ -868,12 +870,12 @@ Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint
     return true;
 }
 
-Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState& world, std::uint16_t type,
+Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(Kernel::WorldState& world, std::uint16_t type,
                                                                      const glm::vec3& position, std::size_t rider,
                                                                      Crt::CrtRandom* random)
 {
     const std::int32_t map = world.Runtime().map;
-    const ActorState& riding = world.Actors()[rider];
+    const Kernel::ActorState& riding = world.Actors()[rider];
     if (IsChaosCastle(map) || (riding.type != Tables::PlayerSkeletonModel && type != RiderlessHelper))
     {
         return std::optional<std::size_t>{};
@@ -925,7 +927,7 @@ Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, ActorState& rider,
+Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, Kernel::ActorState& rider,
                                                                const HelperStepContext& context)
 {
     // 0x444021: sin el byte vivo, nada.
@@ -938,7 +940,7 @@ Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& help
     return StepHelper(helper, rider, anywhere);
 }
 
-Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(HelperState& helper, const ActorState& rider,
+Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(HelperState& helper, const Kernel::ActorState& rider,
                                                                const HelperDrawContext& context)
 {
     // 0x44526b: sin el byte vivo, nada.
@@ -977,7 +979,7 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
             continue;
         }
         HelperState projectedHelper = helper;
-        const ActorState& rider = context.world.Actors()[helper.rider];
+        const Kernel::ActorState& rider = context.world.Actors()[helper.rider];
         auto drawn = context.originalFrame ? DrawHelper(helper, rider, false, context)
                                            : DrawHelper(projectedHelper, rider, false, projected);
         if (!drawn.HasValue())

@@ -44,33 +44,34 @@ namespace
 // 0x65c966..0x65ca6d: [0x6eed3c] de +0x9304 a +0x9347 en 0 (los cuatro bytes y los dos nombres), y con el registro
 // propio abierto alrededor (3.848 rand() al cerrarlo sin otros accesos), 0x550d10 si 0x550cf0 encuentra un lugar del
 // equipo con la durabilidad (+0x1a) en 0, lo que pasa con cualquier lugar vacío.
-Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
+Core::Expected<void, std::string> OpenTheCharacter(Kernel::WorldState& world, Crt::CrtRandom& random,
+                                                   GamePanelTables tables)
 {
-    ItemSetState& sets = world.ItemSets();
+    Player::ItemSetState& sets = world.ItemSets();
     sets.names = {};
     sets.byte9304 = 0;
     sets.byte9305 = 0;
     sets.byte9306 = 0;
     sets.byte9307 = 0;
-    WorldRuntime& runtime = world.Runtime();
-    OwnCharacterRecord& own = world.OwnCharacter();
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-    if (std::ranges::none_of(own.equipment, [](const World::ItemState& item) { return item.durability == 0; }))
+    if (std::ranges::none_of(own.equipment, [](const Kernel::ItemState& item) { return item.durability == 0; }))
         return {};
-    return RecalculateOwnStats(own, OwnStatsContext{.itemSetTables = tables.itemSetTables,
-                                                    .itemSets = &sets,
-                                                    .items = tables.items,
-                                                    .publishedHero = world.Hero(),
-                                                    .ownRecordAccesses = runtime.ownRecordDepth,
-                                                    .random = random,
-                                                    .held = HeldItemOf(runtime),
-                                                    .scan505820 = runtime.fullSetScan});
+    return Player::RecalculateOwnStats(own, Player::OwnStatsContext{.itemSetTables = tables.itemSetTables,
+                                                                    .itemSets = &sets,
+                                                                    .items = tables.items,
+                                                                    .publishedHero = world.Hero(),
+                                                                    .ownRecordAccesses = runtime.ownRecordDepth,
+                                                                    .random = random,
+                                                                    .held = Player::HeldItemOf(runtime),
+                                                                    .scan505820 = runtime.fullSetScan});
 }
 
-UI::PanelContext ContextOf(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
+UI::PanelContext ContextOf(Kernel::WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
 {
-    WorldRuntime& runtime = world.Runtime();
-    const ActorState& hero = world.Hero();
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    const Kernel::ActorState& hero = world.Hero();
     UI::PanelContext context{.random = random, .dialogs = runtime.dialogs};
     context.map = runtime.map;
     context.cursorItemCount = runtime.cursorItemCount;
@@ -99,13 +100,13 @@ UI::PanelContext ContextOf(WorldState& world, Crt::CrtRandom& random, GamePanelT
 }
 } // namespace
 
-GamePanels::GamePanels(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
+GamePanels::GamePanels(Kernel::WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
     LendTheCastleLifecycleTo(m_context, world, random, {});
 }
 
-void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Protocol::Outgoing)> send)
+void GamePanels::LendTheSiegeControls(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send)
 {
     m_context.siegeControlOpened = [&world](UI::PanelId id,
                                             std::uint32_t auxiliary) -> Core::Expected<void, std::string>
@@ -123,7 +124,7 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
         return;
     m_context.siegeControlClosed = [&world, send = std::move(send)](UI::PanelId id) -> Core::Expected<void, std::string>
     {
-        WorldRuntime& runtime = world.Runtime();
+        Kernel::WorldRuntime& runtime = world.Runtime();
         if (id == UI::SiegeGatePanel)
         {
             // 0x44f120: primero baja los campos, después sale el 31.
@@ -142,7 +143,7 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
     };
 }
 
-void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send,
+void GamePanels::LendTheCastleRequests(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send,
                                        CastleWindowServices services)
 {
     // El aviso local de Senior ocupado necesita los servicios también sin un envío disponible.
@@ -179,7 +180,7 @@ void GamePanels::LendTheCastleWindowSteps(const GameUiContext& context)
     LendTheCastleWindowStepsTo(m_context, context);
 }
 
-void GamePanels::LendTheNpcWindows(WorldState& world, Crt::CrtRandom& random, InventoryServices services,
+void GamePanels::LendTheNpcWindows(Kernel::WorldState& world, Crt::CrtRandom& random, InventoryServices services,
                                    NpcWindowSender send)
 {
     m_context.npcWindowOpened = [&world, &random, services, send](UI::PanelId id) {
@@ -194,7 +195,7 @@ void GamePanels::LendTheNpcWindows(WorldState& world, Crt::CrtRandom& random, In
     };
 }
 
-void GamePanels::LendThePersonalShops(WorldState& world, Crt::CrtRandom& random,
+void GamePanels::LendThePersonalShops(Kernel::WorldState& world, Crt::CrtRandom& random,
                                       std::function<void(Protocol::Outgoing)> send)
 {
     if (!send)
@@ -204,8 +205,8 @@ void GamePanels::LendThePersonalShops(WorldState& world, Crt::CrtRandom& random,
     m_context.personalShopClosed = [&world, &random, send]() { return CloseThePersonalShop(world, random, send); };
 }
 
-void GamePanels::LendTheSession(WorldState& world, Crt::CrtRandom& random, std::function<void(Protocol::Outgoing)> send,
-                                std::function<void()> sendWindowClose)
+void GamePanels::LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random,
+                                std::function<void(Protocol::Outgoing)> send, std::function<void()> sendWindowClose)
 {
     if (send)
     {
@@ -223,7 +224,7 @@ void GamePanels::LendTheSession(WorldState& world, Crt::CrtRandom& random, std::
         LendTheWindowClose(std::move(sendWindowClose));
 }
 
-void GamePanels::LendTheSession(WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests)
+void GamePanels::LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return;
@@ -252,11 +253,11 @@ void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
     m_context.eventNpcClosed = m_context.questClosed;
 }
 
-void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
+void GamePanels::LendThePartyList(Kernel::WorldState& world, IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     m_context.partyOpened = [&runtime, requests]()
     {
         runtime.hud.partyCount = 0;
@@ -264,12 +265,12 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
     };
 }
 
-void GamePanels::LendTheGuild(WorldState& world, const GuildSender& send)
+void GamePanels::LendTheGuild(Kernel::WorldState& world, const GuildSender& send)
 {
     LendTheGuildTo(m_context, world, send);
 }
 
-void GamePanels::LendThePanelDialogStep(WorldState& world, const GuildSender& send, std::int32_t mouseX,
+void GamePanels::LendThePanelDialogStep(Kernel::WorldState& world, const GuildSender& send, std::int32_t mouseX,
                                         std::int32_t mouseY, std::uint32_t now)
 {
     LendThePanelDialogStepTo(m_context, world, send, mouseX, mouseY, now);

@@ -55,8 +55,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 
 constexpr std::uint32_t Seed = 1;
 // Un tipo de Item.bmd de 1 por 2 y otro de 1 por 1 (sintéticos).
@@ -149,7 +149,7 @@ struct Stage
                 .textMeasure = &letters,
                 .texts = &texts};
     }
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return world->Runtime();
     }
@@ -164,8 +164,8 @@ struct Stage
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     Client::Scenes::SelectionState selection{*world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
@@ -407,8 +407,8 @@ TEST_P(SocialEventsTest, AWholeTradeRound)
     EXPECT_EQ(stage->cloth.random.State(), expected.State());
     EXPECT_EQ(stage->Runtime().panels.trade, 0);
     EXPECT_EQ(stage->Runtime().panels.inventory, 0);
-    EXPECT_EQ(trade.otherGrid[9].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(trade.otherGrid[17].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(trade.otherGrid[9].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(trade.otherGrid[17].id, Client::Kernel::EmptyOwnItemId);
 }
 
 // 0x5bd750 guarda la copia de lo que el otro saca (0x5bc5e0) y 0x5bc470 marca con 99 lo que vuelve peor.
@@ -421,8 +421,8 @@ TEST_P(SocialEventsTest, TheOtherGridMarksAWorseItemThanItsCopy)
     const Client::Scenes::TradeState& trade = stage->Trade();
     EXPECT_EQ(trade.backup[0].id, TallType);
     EXPECT_EQ((trade.backup[0].scalar1Low >> 3) & 0xf, 5u);
-    EXPECT_EQ(trade.otherGrid[0].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(trade.otherGrid[8].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(trade.otherGrid[0].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(trade.otherGrid[8].id, Client::Kernel::EmptyOwnItemId);
 
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({0, ItemBytes(TallType, 4)}, stage->Resources()).HasValue());
     EXPECT_EQ(trade.changed, 1);
@@ -445,9 +445,9 @@ TEST_P(SocialEventsTest, APlainItemIsNotWorthACopy)
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({0, ItemBytes(SmallType, 4)}, stage->Resources()).HasValue());
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({0}, stage->Resources()).HasValue());
     // La copia queda como la dejó 0x5bbe10: el 36 ya había puesto el nombre y el 37 no corrió 0x5bbdf0.
-    EXPECT_EQ(stage->Trade().backup[0].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(stage->Trade().backup[1].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(stage->Trade().otherGrid[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().backup[0].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().backup[1].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().otherGrid[0].id, Client::Kernel::EmptyOwnItemId);
 }
 
 // 0x5bc52d..0x5bc54a: la lista de la pila de 0x5bc470 es de 10; el undécimo tipo igual a su copia cae en el puntero de
@@ -503,7 +503,7 @@ TEST_P(SocialEventsTest, TwelveItemsLikeTheirCopiesDiscardTheTwelfth)
     const CrtRandom random = stage->cloth.random;
     const auto twelfth = Client::Scenes::ApplyTradeItemAdded({11, ItemBytes(SmallType, 5)}, stage->Resources());
     ASSERT_TRUE(twelfth.HasValue()) << twelfth.Error();
-    EXPECT_EQ(stage->Trade().otherGrid[11].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().otherGrid[11].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(GridsOf(stage->Trade()), before);
     EXPECT_EQ(stage->cloth.random.State(), random.State());
     EXPECT_EQ(stage->Runtime().lastSoundId, 0);
@@ -527,7 +527,7 @@ TEST_P(SocialEventsTest, ARemovalThatLeavesTwelveLikeTheirCopyIsDiscarded)
     const auto removed = Client::Scenes::ApplyTradeItemRemoved({12}, stage->Resources());
     ASSERT_TRUE(removed.HasValue()) << removed.Error();
     EXPECT_EQ(stage->Trade().otherGrid[12].id, SmallType);
-    EXPECT_EQ(stage->Trade().backup[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().backup[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(GridsOf(stage->Trade()), before);
     EXPECT_EQ(stage->Runtime().lastSoundId, 0);
     EXPECT_TRUE(WarnedWith(*stage, "0x5bc545"));
@@ -538,7 +538,7 @@ TEST_P(SocialEventsTest, ARemovalThatLeavesTwelveLikeTheirCopyIsDiscarded)
         ASSERT_TRUE(
             Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, other->Resources()).HasValue());
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({11}, other->Resources()).HasValue());
-    EXPECT_EQ(other->Trade().otherGrid[11].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(other->Trade().otherGrid[11].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(other->Trade().backup[0].id, SmallType);
     EXPECT_FALSE(WarnedWith(*other, "0x5bc545"));
 }
@@ -591,8 +591,8 @@ TEST_P(SocialEventsTest, ANewNameClearsTheCopy)
 {
     auto stage = MakeStage();
     ASSERT_TRUE(Client::Scenes::ApplyTradeResponse({1, NameOf<10>("Brezal"), 50, 7}, stage->Resources()).HasValue());
-    EXPECT_EQ(stage->Trade().backup[0].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(stage->Trade().backup[31].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().backup[0].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().backup[31].id, Client::Kernel::EmptyOwnItemId);
 }
 
 // 0x5bc107..0x5bc13f: la entrada a la selección deja 0x78abaa5 en 0 y las dos grillas y la copia vacías, sin rand().
@@ -607,9 +607,9 @@ TEST_P(SocialEventsTest, TheSelectionEntryEmptiesTheTrade)
     EXPECT_EQ(trade.changed, 0);
     for (std::size_t slot = 0; slot < Client::Scenes::TradeGridCells; ++slot)
     {
-        EXPECT_EQ(trade.otherGrid[slot].id, Client::Scenes::EmptyOwnItemId);
-        EXPECT_EQ(trade.ownGrid[slot].id, Client::Scenes::EmptyOwnItemId);
-        EXPECT_EQ(trade.backup[slot].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(trade.otherGrid[slot].id, Client::Kernel::EmptyOwnItemId);
+        EXPECT_EQ(trade.ownGrid[slot].id, Client::Kernel::EmptyOwnItemId);
+        EXPECT_EQ(trade.backup[slot].id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(trade.otherGrid[slot].occupied, 0u);
         EXPECT_EQ(trade.ownGrid[slot].occupied, 0u);
     }
@@ -669,9 +669,9 @@ TEST_P(SocialEventsTest, ClosingTheGridsSendsTheCancelOnlyByHand)
                     .HasValue());
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(DrawsSince(stage->cloth.random), 0);
-    EXPECT_EQ(stage->Trade().ownGrid[3].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(stage->Trade().otherGrid[4].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(stage->Trade().backup[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().ownGrid[3].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().otherGrid[4].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(stage->Trade().backup[0].id, Client::Kernel::EmptyOwnItemId);
 
     ASSERT_TRUE(Client::Scenes::CloseTheTradeGrids(*stage->world, stage->cloth.random, false,
                                                    [&sent](Client::Protocol::Outgoing out)
@@ -726,10 +726,10 @@ TEST_P(SocialEventsTest, CompareTradeItemsGoesFieldByField)
     EXPECT_EQ(Client::Scenes::CompareTradeItems(a, b), 1);
     b.optionCount = 1;
     b.optionBytes[0] = 0x50;
-    b.optionBytes[Client::World::ItemOptionValueOffset] = 4;
+    b.optionBytes[Client::Kernel::ItemOptionValueOffset] = 4;
     EXPECT_EQ(Client::Scenes::CompareTradeItems(a, b), -1);
     a.optionBytes[0] = 0x53;
-    a.optionBytes[Client::World::ItemOptionValueOffset] = 4;
+    a.optionBytes[Client::Kernel::ItemOptionValueOffset] = 4;
     EXPECT_EQ(Client::Scenes::CompareTradeItems(a, b), 0);
     a.durability = 9;
     b.durability = 10;

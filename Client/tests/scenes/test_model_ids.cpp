@@ -28,7 +28,7 @@ std::string FileIn(std::span<const ModelFile> files, std::uint16_t model)
 
 std::string FileOfMap(std::int32_t map, std::uint16_t model)
 {
-    return FileIn(Client::Scenes::SpecialWorldModelsOf(static_cast<std::uint8_t>(map)).files, model);
+    return FileIn(Client::Assets::SpecialWorldModelsOf(static_cast<std::uint8_t>(map)).files, model);
 }
 
 TEST(ModelIdsTest, EachFaunaModelHasTheSlotOfTheOriginal)

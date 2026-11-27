@@ -20,15 +20,15 @@
 #include <memory>
 #include <string>
 
-// Scenes::LeaveTheRemains, 0x52e810 (CL9 hito 3, fase 7): el hueso +0x54 del modelo del tipo, los diez pedazos de
+// Actors::LeaveTheRemains, 0x52e810 (CL9 hito 3, fase 7): el hueso +0x54 del modelo del tipo, los diez pedazos de
 // hielo del 0x161, los tres que no dejan nada y las dos marcas de sangre 0x5e3 de los demás, con sus rand() en orden.
 namespace
 {
+using Client::Actors::ActorRemainsContext;
+using Client::Actors::LeaveTheRemains;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Math::BoneTransform;
-using Client::Scenes::ActorRemainsContext;
-using Client::Scenes::ActorState;
-using Client::Scenes::LeaveTheRemains;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 // Dos marcas: x, y, el lado, el giro y la vida de 0x548fe0 con lugar.
@@ -41,7 +41,7 @@ struct Remains
 {
     Client::Models::Skeleton skeleton;
     Client::World::ModelEffects effects;
-    Client::World::GroundMarkTable marks{};
+    Client::Terrain::GroundMarkTable marks{};
     CrtRandom random{Seed};
 
     [[nodiscard]] ActorRemainsContext Context(float scale = 0.0f, const glm::vec3& origin = {})
@@ -234,7 +234,7 @@ TEST(ActorRemainsTest, AFullTableOfMarksMakesRoomForTheSecondOne)
     auto remains = std::make_unique<Remains>();
     remains->skeleton.headBone = 5;
     for (auto& mark : remains->marks)
-        mark = Client::World::GroundMark{.live = true, .type = BloodMark, .alpha = 1.0f, .life = 90};
+        mark = Client::Terrain::GroundMark{.live = true, .type = BloodMark, .alpha = 1.0f, .life = 90};
     remains->marks[40].life = 55;
     ActorState actor = Dead(0x153);
     ASSERT_TRUE(LeaveTheRemains(actor, remains->Context(1.0f, {500.0f, 600.0f, 0.0f})).HasValue());
@@ -248,7 +248,7 @@ TEST(ActorRemainsTest, AFullTableOfMarksMakesRoomForTheSecondOne)
     EXPECT_EQ(mark.size, second.size);
     EXPECT_EQ(mark.angle, second.angle);
     EXPECT_EQ(mark.life, second.life);
-    EXPECT_EQ(remains->LiveMarks(), Client::World::GroundMarkCount);
+    EXPECT_EQ(remains->LiveMarks(), Client::Terrain::GroundMarkCount);
     EXPECT_EQ(remains->random.State(), Client::Tests::AfterDraws(Seed, 9).State());
 }
 

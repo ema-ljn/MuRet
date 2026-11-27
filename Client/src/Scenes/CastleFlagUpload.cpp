@@ -18,7 +18,8 @@
 
 namespace Client::Scenes
 {
-Core::Expected<void, std::string> UploadTheCastleFlag(std::span<const std::uint8_t, 64> mark, ModelTextureTable& table)
+Core::Expected<void, std::string> UploadTheCastleFlag(std::span<const std::uint8_t, 64> mark,
+                                                      Assets::ModelTextureTable& table)
 {
     const auto metadata = table.Metadata(0x69c);
     if (!metadata || table.Store() == nullptr)

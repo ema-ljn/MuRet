@@ -17,7 +17,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -49,7 +49,7 @@ bool IsClean(std::uint16_t type)
 
 // 0x4ec110(modelo, +0x120 + hueso · 0x30, corrimiento, punto, 1): el hueso de los huesos propios por la escala y más la
 // posición del modelo compartido. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
-glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
+glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
                     const ActorRemainsContext& context)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
@@ -58,7 +58,7 @@ glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& 
 }
 } // namespace
 
-Core::Expected<void, std::string> LeaveTheRemains(ActorState& actor, const ActorRemainsContext& context)
+Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor, const ActorRemainsContext& context)
 {
     // 0x52e81c..0x52e83b: el DWORD +0x54 del modelo del tipo (MOVSX del WORD +2).
     if (context.skeleton == nullptr)
@@ -95,11 +95,11 @@ Core::Expected<void, std::string> LeaveTheRemains(ActorState& actor, const Actor
         const auto size =
             static_cast<float>(static_cast<double>((context.random.Next() & SizeMask) + SizeBase) * SizeStep);
         const auto angle = static_cast<float>(context.random.Next() % Degrees);
-        const World::GroundMarkRequest request{
+        const Terrain::GroundMarkRequest request{
             .type = BloodMark, .position = point, .angle = angle, .color = actor.light, .size = size};
-        if (auto added = World::AddGroundMark(context.marks, request, context.random); !added.HasValue())
+        if (auto added = Terrain::AddGroundMark(context.marks, request, context.random); !added.HasValue())
             return Core::Unexpected(std::format("0x52e96c: {}", added.Error()));
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

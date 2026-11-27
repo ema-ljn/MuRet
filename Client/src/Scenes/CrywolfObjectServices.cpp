@@ -88,7 +88,7 @@ Core::Expected<void, std::string> RisingSmoke(const World::WorldObject& object, 
 
 // 0x4305db..0x43068c.
 Core::Expected<void, std::string> Glow(const World::WorldObject& object, const GameObjectPass& pass,
-                                       CrywolfGlobals& crywolf)
+                                       Kernel::CrywolfGlobals& crywolf)
 {
     // fst guarda el giro en float y fcomp compara con 360 la suma que quedó en la x87; NaN no vuelve a 0.
     const double turned = static_cast<double>(crywolf.glowRotation) + GlowStep;
@@ -135,7 +135,7 @@ Core::Expected<void, std::string> StepCrywolfObjectFrame(const World::WorldObjec
         return Core::Unexpected(std::string("0x430510: falta el rand() de la CRT"));
     if (pass.crywolf == nullptr)
         return Core::Unexpected(std::string("0x430523: faltan los globales de Crywolf (0x723c0c y 0x5763358)"));
-    CrywolfGlobals& crywolf = *pass.crywolf;
+    Kernel::CrywolfGlobals& crywolf = *pass.crywolf;
     ++crywolf.frameCount;
     if (crywolf.frameCount > WeatherPeriod)
     {
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
 {
     if (pass.crywolf == nullptr)
         return Core::Unexpected(std::string("0x4306a0: faltan los globales de Crywolf (0x723c04 y 0x5763358)"));
-    const CrywolfGlobals& crywolf = *pass.crywolf;
+    const Kernel::CrywolfGlobals& crywolf = *pass.crywolf;
     const bool frame = pass.originalFrame;
     if (frame && pass.random == nullptr)
         return Core::Unexpected(std::string("0x4306a0: falta el rand() de la CRT"));

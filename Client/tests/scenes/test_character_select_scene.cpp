@@ -114,6 +114,8 @@
 namespace
 {
 using Client::App::SessionState;
+using Client::Assets::SelectionTextureSet;
+using Client::Assets::WindowTextureSet;
 using Client::Core::PixelSize;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
@@ -130,8 +132,6 @@ using Client::Scenes::CharacterSlotHeight;
 using Client::Scenes::CharacterSlots;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::SelectionTextureSet;
-using Client::Scenes::WindowTextureSet;
 using Client::Tables::GameData;
 using Client::Tests::CharacterEntryFields;
 using Client::Tests::FakeTextureStore;
@@ -256,7 +256,7 @@ std::vector<CharacterEntryFields> TwoCharacters(bool locked = false)
 void RetainLoginTerrain(Client::Scenes::SelectionState& selection)
 {
     constexpr std::uint8_t LoginMap = 55;
-    auto terrain = Client::World::LoadWorldTerrain(Client::Tests::RepoDataDir(), LoginMap);
+    auto terrain = Client::Terrain::LoadWorldTerrain(Client::Tests::RepoDataDir(), LoginMap);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     selection.RetainTerrain(LoginMap, std::move(terrain).Value());
 }
@@ -276,7 +276,7 @@ struct Harness
 {
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
                      Client::Scenes::SelectionState* selectionState = nullptr,
-                     Client::Scenes::WorldState* worldState = nullptr,
+                     Client::Kernel::WorldState* worldState = nullptr,
                      Client::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true,
                      const Client::Scenes::WorldEntryResources* worldEntry = nullptr)
         : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState),
@@ -480,8 +480,8 @@ struct Harness
     GameData data;
     FlatModels models;
     LoggedInSession online;
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Scenes::SelectionState* selection;
     Client::Models::ClothWorld* sharedRandom;
     RecordingFrameTarget target;
@@ -1160,11 +1160,11 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
 }
 
 // El trapecio que deja el dibujo de la selección: el de su punto fijo en el 54, con su cámara.
-Client::World::TerrainPolygon SelectionPolygon()
+Client::Terrain::TerrainPolygon SelectionPolygon()
 {
-    return Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, 54,
-                                           Client::Scenes::SelectionCullingPoint,
-                                           Client::Scenes::SelectionCamera().angles.z);
+    return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, 54,
+                                             Client::Camera::SelectionCullingPoint,
+                                             Client::Camera::SelectionCamera().angles.z);
 }
 
 // 0x63475c: cada frame del original, después de la cámara (0x6346ca), 0x5fbb00 deja en los globales el trapecio
@@ -1172,7 +1172,7 @@ Client::World::TerrainPolygon SelectionPolygon()
 // efectivo (0x5fb731) con el nivel que pidió la cámara, en 0. Un dibujo intermedio, al mismo reloj, no escribe.
 TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world);
@@ -1181,7 +1181,7 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
 
     static_cast<void>(tested.Frame());
 
-    const Client::World::TerrainPolygon expected = SelectionPolygon();
+    const Client::Terrain::TerrainPolygon expected = SelectionPolygon();
     EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 0);
     EXPECT_EQ(world.Runtime().terrainPolygon.x, expected.x);
     EXPECT_EQ(world.Runtime().terrainPolygon.y, expected.y);
@@ -1199,7 +1199,7 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
 // registro en 0 de 0x5769ad8: 0x4f9580 no avanza el cuadro y 0x505de0 arma la caja y sale (revisión B del hito 2, B3).
 TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1226,7 +1226,7 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 
 TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResetsOnlyEightOwnLevels)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     auto& own = world.OwnCharacter();
@@ -1265,14 +1265,14 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     EXPECT_EQ(own.words6c, (std::array<std::uint32_t, 16>{}));
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
-        EXPECT_EQ(own.equipment[slot].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(own.equipment[slot].id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(own.equipment[slot].occupied, 0u);
         EXPECT_EQ(own.equipment[slot].scalar1Low, slot < 8 ? 0u : 31u);
         EXPECT_EQ(own.equipment[slot].flags1b, 17u);
     }
     for (const auto& item : world.Inventory().cells)
     {
-        EXPECT_EQ(item.id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(item.id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(item.occupied, 0);
         EXPECT_EQ(item.flags1b, 17u);
     }
@@ -1288,13 +1288,13 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
 {
     for (const std::uint8_t mode : {std::uint8_t{1}, std::uint8_t{2}})
     {
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         Client::Scenes::SelectionState selection(*world);
         Client::Models::ClothWorld cloth;
         ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
         FlatModels models;
-        Client::World::GameCamera camera;
-        Client::World::GameCameraInput cameraInput;
+        Client::Camera::GameCamera camera;
+        Client::Camera::GameCameraInput cameraInput;
         Client::Tests::RecordingSink sink;
         Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
         Client::Scenes::WorldEntryResources resources{.world = *world,
@@ -1319,7 +1319,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
         resources.sendGamePacket = [&](Client::Protocol::Outgoing packet)
         {
             EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode); // El 31 precede a 0x44dcf0.
-            EXPECT_EQ(world->Inventory().cells[0].id, Client::Scenes::EmptyOwnItemId);
+            EXPECT_EQ(world->Inventory().cells[0].id, Client::Kernel::EmptyOwnItemId);
             EXPECT_EQ(world->Inventory().cells[0].occupied, 0);
             EXPECT_EQ(runtime.social.trade.changed, 1);
             EXPECT_EQ(runtime.social.trade.ownGrid[0].id, 7);
@@ -1337,7 +1337,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
         EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 0);
         EXPECT_EQ(runtime.panels.delegated.siegeGate, 1); // 0x5bbe10 sólo consulta las dos armas.
         EXPECT_EQ(runtime.social.trade.changed, 0);
-        EXPECT_EQ(runtime.social.trade.ownGrid[0].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(runtime.social.trade.ownGrid[0].id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(world->OwnCharacter().equipment[0].scalar1Low, 0u);
         EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 3848 + 65536).State());
     }
@@ -1348,12 +1348,12 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
 // como sistema y sin nombre.
 TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccountNotice)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.chat.area.rows[3].text = "viejo";
     runtime.chat.area.count = 4;
     runtime.chat.input.dialogFieldOn = true;
@@ -1380,7 +1380,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
 // Con pkt[5] en 0, solo las entradas vacías.
 TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1396,7 +1396,7 @@ TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
 // 0x633f91 vacía el lugar 7 antes de que 0x4fd5f0 consulte su ítem en 0x54efe0.
 TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBodyReadsItemBmd)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1407,13 +1407,13 @@ TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBody
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
 
     ASSERT_FALSE(tested.scene->Failure().has_value());
-    EXPECT_EQ(world.OwnCharacter().equipment[7].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(world.OwnCharacter().equipment[7].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.6f);
 }
 
 TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreviewStep)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1425,13 +1425,13 @@ TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreview
 
     ASSERT_FALSE(tested.scene->Failure().has_value());
     EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.6f);
-    EXPECT_EQ(world.OwnCharacter().equipment[7].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(world.OwnCharacter().equipment[7].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_TRUE(world.Actors()[0].seen);
 }
 
 TEST(CharacterSelectSceneTest, ThePreviewAdvancesClosedTwiceUnderItsWindowAndOnceUnderANotice)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1457,7 +1457,7 @@ TEST(CharacterSelectSceneTest, ThePreviewAdvancesClosedTwiceUnderItsWindowAndOnc
 
 TEST(CharacterSelectSceneTest, ThePreviewHeadBelongsToTheDurableSelectionBeforeTheNextList)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     selection.PreviewActor().headTurn.angles = {17.0f, 23.0f};
@@ -1474,7 +1474,7 @@ TEST(CharacterSelectSceneTest, ThePreviewHeadBelongsToTheDurableSelectionBeforeT
 
 TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCounter)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1502,7 +1502,7 @@ TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCou
 
 TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReused)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1538,7 +1538,7 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
 // la velocidad 0,34 y el byte vivo del jinete (0x444ac0), y la selección sigue.
 TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1566,7 +1566,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
 // 0x443d70) y el color de 0x5ffce0 con la luz del terreno 54, sin cortar.
 TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1600,7 +1600,7 @@ TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
 // (0x634315): no gasta rand() ni avanza el contador, y el alpha que subió (0x4e9980) queda.
 TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePool)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1634,7 +1634,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePoo
 
 TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClothAndLaterSlots)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -1674,7 +1674,7 @@ TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClot
 // del mundo, la escena queda en Failure con la dirección y los globales quedan como estaban.
 TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world);
@@ -1696,7 +1696,7 @@ TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
 TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWithoutStep)
 {
     constexpr std::uint8_t DeletedSlot = 1;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection);
@@ -1800,7 +1800,7 @@ TEST(CharacterSelectSceneTest, AnIdenticalCreationRestartsItsVisualWhenPollIsFol
     constexpr std::uint8_t CreatedSlot = 1;
     constexpr int AnimationSteps = 5;
     constexpr auto StepTime = std::chrono::milliseconds{40};
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection);
@@ -2489,7 +2489,7 @@ std::vector<CharacterEntryFields> TwoWingedCharacters()
 // Lo que cuelga del personaje (las alas) va al buffer global en un frame del original y no en uno intermedio.
 TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeFrames)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2508,7 +2508,7 @@ TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeF
 // La lista nueva ya construyó los actores: Enter no debe volver a esperar otra respuesta.
 TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastFrameHeld)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState selection(*world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2541,7 +2541,7 @@ TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastF
 // Las alas, que cuelgan, sí van al global.
 TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2583,7 +2583,7 @@ TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 {
     using Client::Models::OriginalFrameTime;
     constexpr std::uint16_t Shadow = Client::Tables::PlayerShadowModel;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState selection(*world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2621,7 +2621,7 @@ TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 // que la rama del color del héroe deja ahí (0x50d231). Un frame intermedio no saca rand().
 TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFour)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2660,7 +2660,7 @@ int DrawsBetween(Client::Crt::CrtRandom before, std::uint32_t after)
 TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 {
     using Client::Models::OriginalFrameTime;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2701,7 +2701,7 @@ TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 // → 0x4182f0), también en la selección, con su trapecio: en un frame del original deja su pose en el buffer global.
 TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2731,7 +2731,7 @@ TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
 // dibujo intermedio, que interpola otra pose, no toca el propio.
 TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2739,7 +2739,7 @@ TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPos
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
     tested.ClickAt(CreateButton);
-    Client::Scenes::ActorState& preview = selection.PreviewActor();
+    Client::Kernel::ActorState& preview = selection.PreviewActor();
     preview.bodyPose.clear();
 
     const std::vector<FrameEvent> passes = ModelPasses(tested.Frame());
@@ -2765,7 +2765,7 @@ TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPos
 // hueso, sin escalar.
 TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNormals)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2773,7 +2773,7 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
     tested.ClickAt(CreateButton);
-    Client::Scenes::ActorState& preview = selection.PreviewActor();
+    Client::Kernel::ActorState& preview = selection.PreviewActor();
     preview.bodyPose.clear();
 
     const std::vector<FrameEvent> passes = ModelPasses(tested.Frame());
@@ -2821,7 +2821,7 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
 // cambia el pool del paso.
 TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNativeFrames)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
@@ -2954,7 +2954,7 @@ TEST(CharacterSelectSceneTest, TheOptionsOpenFromTheEscapeWindow)
 {
     static constexpr TextureSlot EscapeButtons{0x72f};
     static constexpr TextureSlot Checks{0x731};
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Harness tested(true, false, false, nullptr, &world);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
     tested.ClickAt(tested.OnScreen(3));

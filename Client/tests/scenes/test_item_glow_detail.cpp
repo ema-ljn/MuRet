@@ -76,18 +76,18 @@ struct Drawn
 Drawn DrawSword(std::uint8_t level, std::uint8_t excellent, std::uint8_t glowDetail)
 {
     const OneTriangle models;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x212;
     object.color = glm::vec3(1.0f);
     const std::array<Client::Math::BoneTransform, 1> bones{Client::Math::BoneTransform(1.0f)};
-    const auto meshes = Client::Scenes::SkinObjectMeshes(models, object, bones);
-    Client::Scenes::ItemDrawContext context;
+    const auto meshes = Client::Actors::Drawing::SkinObjectMeshes(models, object, bones);
+    Client::Actors::Drawing::ItemDrawContext context;
     context.glowDetail = glowDetail;
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
 
-    const auto drawn = Client::Scenes::DrawItemFromMeshes(batch, models, object, std::chrono::milliseconds(1571),
-                                                          meshes, level, excellent, 0, context);
+    const auto drawn = Client::Actors::Drawing::DrawItemFromMeshes(
+        batch, models, object, std::chrono::milliseconds(1571), meshes, level, excellent, 0, context);
 
     EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
     Drawn result{.vertices = {batch.Vertices().begin(), batch.Vertices().end()}, .states = {}};

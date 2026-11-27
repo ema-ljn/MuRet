@@ -191,7 +191,7 @@ void DrawInTheTabBox(GameHudContext& context, std::int32_t x, std::int32_t y, st
 // del héroe, sin mirar el −1: Q-C1281), C1 03 E9 en claro por el socket (0x6c82a0) y +0x84 en 1.
 Core::Expected<void, std::string> AskForTheUnionList(const GuildWindowStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     if (guild.window.unionRequested != 0)
         return {};
@@ -215,7 +215,7 @@ template <typename Row>
 std::int32_t HoverTheRow(const GuildWindowStepContext& context, UI::OldList& list, std::vector<Row>& rows,
                          std::int32_t row, std::size_t at)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::size_t size = rows.size();
     const std::int32_t width =
         Truncate(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
@@ -236,7 +236,7 @@ std::int32_t HoverTheRow(const GuildWindowStepContext& context, UI::OldList& lis
 template <typename Row>
 void StepTheGuildList(const GuildWindowStepContext& context, UI::OldList& list, std::vector<Row>& rows)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.ui.capture = list.base.id;
     if (PassesTheGuildWindowGate(list.base, runtime.ui, context.mouseX, context.mouseY))
     {
@@ -324,7 +324,7 @@ Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContex
 {
     if (context.measure == nullptr)
         return Core::Unexpected(std::format("{}: el diálogo de los paneles (0x6600d0) sin medidor", where));
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     auto opened = PopUpThePanelDialog(
         runtime, UI::PanelDialogRequest{.lines = lines, .flags = flags, .owner = owner, .placed = 0}, *context.measure,
         context.screen, context.now);
@@ -365,7 +365,7 @@ Core::Expected<void, std::string> AskAboutTheMember(const GuildWindowStepContext
 // 0x6503bd..0x6507bb: los tres botones del maestro, uno detrás del otro.
 Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
@@ -426,7 +426,7 @@ Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext
 {
     if (!context.keyEdge)
         return Core::Unexpected(std::string("0x650387: PgUp y PgDn de la lista de los miembros sin el teclado"));
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildWindowState& window = runtime.guild.window;
     UI::OldList& list = window.memberList;
     StepTheGuildList(context, list, window.members);
@@ -446,7 +446,7 @@ struct HeroGuildNames
     std::string_view alliance;
 };
 
-Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(WorldState& world, std::string_view where)
+Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(Kernel::WorldState& world, std::string_view where)
 {
     const auto index = static_cast<std::int16_t>(world.Hero().word1f2);
     const GuildState& guild = world.Runtime().guild;
@@ -460,7 +460,7 @@ Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(WorldState& world, 
 // 0x64fdb0..0x64fddf y 0x64de99..0x64ded4: el diálogo 0x7d del juego (0x7d3a10c), 0x553570(0), el campo del chat
 // cerrado (0x6c8e68) y un solo campo para Tab (0x6c8e6c). 0x6c8e78 (el tope de la entrada sin EDIT, de [0x7d3a0a4]) y
 // 0x77f31c0 (sus marcas) son de la entrada sin EDIT, que MuRet no tiene.
-void OpenTheNumberDialog(WorldRuntime& runtime)
+void OpenTheNumberDialog(Kernel::WorldRuntime& runtime)
 {
     runtime.dialogs.current = NumberDialog;
     UI::ResetTheTextBuffers(runtime.chat.input, false);
@@ -499,14 +499,14 @@ Core::Expected<std::array<std::string, DisbandTexts.size()>, std::string> Disban
 // 0x64fc00: la pestaña 0.
 Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     StepTheGuildList(context, window.noticeList, window.notice);
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
     if (!UI::ClickTheButton(window.tabButtons[GuildLeaveButton], globals, context.mouseX, context.mouseY))
         return {};
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     if (hero.guildStatus == MasterStatus)
     {
         auto names = HeroGuildNamesOf(context.world, "0x64fc55");
@@ -532,11 +532,11 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
 // 0x650c10: la pestaña de la alianza.
 Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     StepTheGuildList(context, window.unionList, window.unions);
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     if (hero.guildStatus != MasterStatus)
         return {};
     auto names = HeroGuildNamesOf(context.world, "0x650c74");
@@ -668,7 +668,7 @@ bool PassesTheGuildWindowGate(const UI::OldWindowBase& base, UI::GameUiState& ui
 
 Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildWindowState& window = runtime.guild.window;
     const UI::OldWindowBase& base = window.base;
     if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
@@ -718,11 +718,11 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
     return StepTheTab(context, window.tab);
 }
 
-void AddTheGuildMember(WorldState& world, const GuildMemberSlot& slot)
+void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot)
 {
     if (slot.name[0] == '\0')
         return;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GuildWindowState& window = runtime.guild.window;
     UI::OldList& list = window.memberList;
     const std::string_view name = GuildTextOf(slot.name);
@@ -799,10 +799,11 @@ void ClearTheUnions(GuildWindowState& window)
     ClearTheGuildList(window.unionList, window.unions);
 }
 
-Core::Expected<void, std::string> StepTheGuildPositions(WorldState& world, const GuildSender& send, std::int32_t mouseX,
-                                                        std::int32_t mouseY, const UI::PanelDialogAnswer& answer)
+Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& world, const GuildSender& send,
+                                                        std::int32_t mouseX, std::int32_t mouseY,
+                                                        const UI::PanelDialogAnswer& answer)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GuildState& guild = runtime.guild;
     GuildPositionsState& positions = guild.positions;
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
@@ -848,7 +849,7 @@ void LendTheGuildWindowStepTo(UI::PanelContext& panels, const GuildWindowStepCon
 
 Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const GuildState& guild = runtime.guild;
     const GuildWindowState& window = guild.window;
     const std::int32_t x = window.base.x;
@@ -864,7 +865,7 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
     context.hud.textColors = TitleColors;
     SelectFont(context, FontKind::Bold);
     WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
-    const ActorState& hero = context.world.Hero();
+    const Kernel::ActorState& hero = context.world.Hero();
     const bool inAGuild = hero.guildStatus != NoGuildStatus;
     if (inAGuild)
     {

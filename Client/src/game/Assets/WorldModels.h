@@ -29,7 +29,7 @@
 // Sus texturas, de Object<N>\, siguen la tabla desde 0x60d530(0x41c), con GL_NEAREST y
 // repitiendo (0x60d5f0(k, "Object<N>\\", 0x2901, 0x2600, 1)). Contrato: 05 § Los modelos de cada mundo
 // y 06 § El mundo del login. Los efectos y objetos fijos de los especiales los crea MapLoad.
-namespace Client::Scenes
+namespace Client::Assets
 {
 struct WorldSpecialModelSet;
 struct WorldModelTextureRequests;
@@ -110,4 +110,4 @@ private:
     // No poseedor: los modelos y texturas globales viven hasta Release; no se copian ni se modifican.
     const Models::IModelLibrary* m_globalModels = nullptr;
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

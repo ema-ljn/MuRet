@@ -100,8 +100,8 @@ constexpr float OuterSpan = std::bit_cast<float>(0x3dcccccdu);         // 0,1 (0
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);
 constexpr float PulseSpan = std::bit_cast<float>(0x3e99999au);
 constexpr std::uint16_t WideOutlineType = 0x172;
-constexpr std::uint16_t KalimaGate = 0xc5;                                       // los monstruos 152 a 158 (0x514390)
-constexpr auto ArmorPart = static_cast<std::size_t>(GameLogic::BodyPart::Armor); // +0x238
+constexpr std::uint16_t KalimaGate = 0xc5;                                    // los monstruos 152 a 158 (0x514390)
+constexpr auto ArmorPart = static_cast<std::size_t>(Kernel::BodyPart::Armor); // +0x238
 constexpr std::uint32_t RiderFlag = 0x4000;
 
 // El tercer argumento de 0x602e90, que pasa a 0x5ffdf0 (0x5fff7f..0x5fffb7): con 1, el contorno; con 2 y 3, sin él,
@@ -173,7 +173,7 @@ double ClockSinePlus(float worldClock, float rate, float addend)
     return Math::Detail::SineSumPC53(D(worldClock) * D(rate), D(addend)).value_or(0.0);
 }
 
-ModelLight ModelLightOf(const ActorState& actor, const World::TerrainLighting& lighting, float worldClock)
+ModelLight ModelLightOf(const Kernel::ActorState& actor, const Terrain::TerrainLighting& lighting, float worldClock)
 {
     if (actor.type == 0x189)
         return {glm::vec3(std::bit_cast<float>(0x3f19999au)), false};
@@ -182,7 +182,7 @@ ModelLight ModelLightOf(const ActorState& actor, const World::TerrainLighting& l
         const float shade = F32(ClockSinePlus(worldClock, std::bit_cast<float>(0x3b449ba6u), 1.0f) * 0.5);
         return {glm::vec3(shade), false};
     }
-    const glm::vec3 terrain = World::LightAt(lighting, actor.position.x, actor.position.y);
+    const glm::vec3 terrain = Terrain::LightAt(lighting, actor.position.x, actor.position.y);
     if (actor.byteE8 != 0)
         return {{F32(D(terrain.x) + D(actor.light.x)), F32(D(terrain.y) + D(actor.light.y)),
                  F32(D(terrain.z) + D(actor.light.z))},
@@ -196,7 +196,7 @@ ModelLight ModelLightOf(const ActorState& actor, const World::TerrainLighting& l
 // 0x5fffbd..0x600135: los dos pases del contorno de 0x5ffdf0, con los colores del NPC (+0x88 en 4, fuera de Chaos
 // Castle) o los de los demás, y la escala de +0x94 o la del objeto (+0xc). 0x622150 es el mayor de los dos (con
 // empate, el segundo).
-std::array<ObjectOutlinePass, 2> OutlinePassesOf(const ActorState& actor, std::int32_t map)
+std::array<Actors::Drawing::ObjectOutlinePass, 2> OutlinePassesOf(const Kernel::ActorState& actor, std::int32_t map)
 {
     const float scale94 = actor.float94;
     const auto atLeast = [](float value) { return value > MinimumOutline ? value : MinimumOutline; };
@@ -218,22 +218,24 @@ std::array<ObjectOutlinePass, 2> OutlinePassesOf(const ActorState& actor, std::i
 }
 
 // La altura del terreno (0x5f93c0) del terreno del pase o, sin él, del mapa del mundo.
-std::optional<double> GroundHeight(const WorldState& world, const GameCharacterPass& pass, float x, float y)
+std::optional<double> GroundHeight(const Kernel::WorldState& world, const Actors::Drawing::GameCharacterPass& pass,
+                                   float x, float y)
 {
-    const World::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return std::nullopt;
-    return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
+    return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
 }
 
 // La misma altura como función para el cuerpo (MonsterBodyFrame::terrainHeight); vacía sin las alturas o los atributos.
-std::function<double(float, float)> BodyTerrainHeight(const WorldState& world, const GameCharacterPass& pass)
+std::function<double(float, float)> BodyTerrainHeight(const Kernel::WorldState& world,
+                                                      const Actors::Drawing::GameCharacterPass& pass)
 {
-    const World::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return {};
     return [&terrain, fixed = pass.fixedHeight](float x, float y)
-    { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixed); };
+    { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixed); };
 }
 
 // 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, el frame (+0x114) por 0x69fd3c en un short, en 0
@@ -259,9 +261,9 @@ struct MonsterFrame
     Render::ModelBatch& batch;
     const Models::IModelLibrary& items;
     const Models::IModelLibrary& fauna;
-    WorldState& world;
-    ActorState& actor;
-    const GameCharacterPass& pass;
+    Kernel::WorldState& world;
+    Kernel::ActorState& actor;
+    const Actors::Drawing::GameCharacterPass& pass;
     Crt::CrtRandom& random;
     std::size_t slot = 0;
     std::int32_t map = 0;
@@ -282,13 +284,13 @@ struct MonsterFrame
 
 void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const glm::vec3 max{actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop};
-    const ActorPickingBox box = PickingBoxFor(position, actor.boundsMin, max);
+    const Actors::ActorPickingBox box = Actors::PickingBoxFor(position, actor.boundsMin, max);
     if (frame.slot < frame.pass.pickingBoxes.size())
         frame.pass.pickingBoxes[frame.slot] = box;
     else
-        PublishPickingBox(actor, position, actor.boundsMin, max);
+        Actors::PublishPickingBox(actor, position, actor.boundsMin, max);
 }
 
 // 0x50bae7..0x50bbca: la tela sobre la malla (MonsterCloth.h) entre 0x5ffdf0 y 0x6002e0, sobre `meshes` (lo que dejó
@@ -296,11 +298,11 @@ void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
 Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> meshes,
                         std::span<const BoneTransform> bones, const glm::vec3& position)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     if (frame.slot >= frame.pass.cloths.size())
         return Core::Unexpected<std::string>("0x50bb96: falta la tela persistente del lugar del personaje");
     // objeto + 0x190: la del lugar, en sus telas.
-    CharacterCloth& worn = frame.pass.cloths[frame.slot];
+    Actors::Drawing::CharacterCloth& worn = frame.pass.cloths[frame.slot];
     MonsterMeshCloth& cloth = worn.OnTheMesh();
     const Models::ClothBody body{.bones = bones, .angles = actor.angles, .scale = actor.scale, .position = position};
     if (!frame.originalFrame)
@@ -319,7 +321,7 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> mesh
 // (0x50bae7), 0x5ffdf0 y 0x6002e0 van separados y la tela entre los dos, con el cuarto argumento en 0.
 Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::uint16_t special, PoseMode mode)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const bool cloth = WearsClothOnTheMesh(actor.word376);
     // 0x5ffdf0: en Chaos Castle, con +0x1a1 del héroe, el alpha guardado baja 0,15f.
     if (IsChaosCastle(frame.map) && frame.world.Hero().byte1a1 != 0)
@@ -333,10 +335,10 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
         if (actor.bodyPose.empty())
             return Core::Unexpected<std::string>(
                 "0x50bb3b: la tela sobre la malla de un monstruo que no se dibujó lee 0x5786f9c de otro modelo");
-        DrawnObject stale;
+        Actors::Drawing::DrawnObject stale;
         stale.model = actor.type;
         stale.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
-        std::vector<Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, stale, actor.bodyPose);
+        std::vector<Models::SkinnedMesh> meshes = Actors::Drawing::SkinObjectMeshes(frame.fauna, stale, actor.bodyPose);
         return StepTheMeshCloth(frame, meshes, actor.bodyPose, actor.position);
     }
     // 0x5ffe9d..0x5ffeef: el 0x18f y el 0x18e van 60 y 120 más allá en y (0x6b86cc y 0x6b86c8).
@@ -350,9 +352,9 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     frame.modelOrigin = transform.position;
     // 0x4ec110 copia la escala y el origen del modelo compartido antes de posar; entre frames del original no escribe.
     if (frame.originalFrame)
-        frame.world.PlaceModel(actor.type, SharedModelPlacement{.scale = transform.scale,
-                                                                .origin = transform.position,
-                                                                .action = actor.animation.action});
+        frame.world.PlaceModel(actor.type, Kernel::SharedModelPlacement{.scale = transform.scale,
+                                                                        .origin = transform.position,
+                                                                        .action = actor.animation.action});
     // 0x5ffef2: con un dueño (+0x108) con +0x78 & 0x1000, el frame (+0x114) a 0. Ninguna alta ni paquete escribe el
     // +0x108 de un personaje del pool: queda en 0 (Q-C224, *inferido*).
     // 0x4eb860 en el buffer propio (+0x120, que 0x511290 le dio a todo personaje): los huesos dummy quedan como los
@@ -372,7 +374,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     if (frame.pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x5ffce0: falta el buffer dinámico de luz del terreno");
     const ModelLight light = ModelLightOf(actor, *frame.pass.dynamicLighting, frame.worldClock);
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     object.model = actor.type;
     object.animation = actor.animation;
     object.transform = transform;
@@ -392,12 +394,14 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
         if (actor.type == KalimaGate && actor.dword58 != -1)
             return Cut("0x60ce4e", "la textura +0x58 del contorno del 0xc5", actor.type);
         if (actor.type == KalimaGate)
-            DrawObjectOutlineOfTheFirstMesh(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
+            Actors::Drawing::DrawObjectOutlineOfTheFirstMesh(frame.batch, frame.fauna, object, frame.pass.frameClock,
+                                                             bones, passes);
         else
-            DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
+            Actors::Drawing::DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
     // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala de 0x6c881c por el modo, deja las mallas en 0x5786f9c.
-    std::vector<Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
+    std::vector<Models::SkinnedMesh> meshes =
+        Actors::Drawing::SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
     if (!(actor.alpha < DrawnAlpha))
         PublishMonsterPickingBox(frame, transform.position);
     if (cloth)
@@ -447,7 +451,7 @@ Result DrawTheFloorMark(MonsterFrame& frame)
     constexpr float Span = std::bit_cast<float>(0x3e99999au); // 0x6b89dc: 0,3
     constexpr float Base = std::bit_cast<float>(0x3f4ccccdu); // 0x6b8a38: 0,8
     constexpr float Lift = std::bit_cast<float>(0x40a00000u); // 5
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     // 0x620a90: ONE / ONE, sin culling ni alpha test y sin escribir la profundidad.
     Render::ModelDrawState state = frame.batch.State();
     state.blend = Render::ModelBlend::Additive;
@@ -460,22 +464,22 @@ Result DrawTheFloorMark(MonsterFrame& frame)
                                     Render::ModelStateOperation::Texture2d};
     for (const Render::ModelStateOperation operation : Operations)
         frame.batch.ApplyOperation(state, operation);
-    const World::WorldTerrain& terrain =
+    const Terrain::WorldTerrain& terrain =
         frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
     if (!terrain.heights)
         return Core::Unexpected<std::string>("0x5fb2f0: faltan las alturas del terreno del calco del 0xe8 y el 0xe9");
     const double pulse = ClockSine(frame.worldClock, Rate, Span) + D(Base);
     const float half = F32(pulse * D(std::bit_cast<float>(0x3f000000u)));
-    const World::TerrainDecal decal{.slot = Mark,
-                                    .x = actor.position.x,
-                                    .y = actor.position.y,
-                                    .width = Side,
-                                    .height = Side,
-                                    .color = {half, half, F32(pulse)},
-                                    .angle = -actor.angles.z,
-                                    .alpha = 1.0f,
-                                    .lift = Lift};
-    auto drawn = World::DrawTerrainDecal(frame.batch, *terrain.heights, decal);
+    const Terrain::TerrainDecal decal{.slot = Mark,
+                                      .x = actor.position.x,
+                                      .y = actor.position.y,
+                                      .width = Side,
+                                      .height = Side,
+                                      .color = {half, half, F32(pulse)},
+                                      .angle = -actor.angles.z,
+                                      .alpha = 1.0f,
+                                      .lift = Lift};
+    auto drawn = Terrain::DrawTerrainDecal(frame.batch, *terrain.heights, decal);
     actor.dword58 = -1;
     return drawn;
 }
@@ -484,7 +488,7 @@ Result DrawTheFloorMark(MonsterFrame& frame)
 // y el origen del registro (MonsterFrame::modelOrigin: el de la sombra, ya en el suelo, o el de 0x5ffdf0 sin ella).
 glm::vec3 PointOnTheBone(const MonsterFrame& frame, std::size_t bone, const glm::vec3& offset)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, frame.modelOrigin);
 }
@@ -502,7 +506,7 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
     constexpr std::int32_t Spark = 0x5c6;
     constexpr std::int32_t SparkSubtype = 3;
     constexpr int Sparks = 3;
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const auto point = [&frame](std::size_t bone, const glm::vec3& offset)
     { return PointOnTheBone(frame, bone, offset); };
     if (frame.pass.sprites == nullptr)
@@ -562,7 +566,7 @@ Result DrawTheFlareOf0x46(MonsterFrame& frame)
 Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint32_t flags, float factor,
                         std::int32_t texture)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     constexpr std::uint32_t Lit = 0x10;
     constexpr std::uint32_t SecondColor = 0x100;
     const auto special = [](std::uint16_t type)
@@ -600,15 +604,15 @@ constexpr std::int32_t OwnTexture = -1;
 // pasada otra vez al mundo con la posición, los ángulos y la escala, como la sombra.
 struct PosedBody
 {
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     std::vector<Models::SkinnedMesh> meshes;
 };
 
 PosedBody PosedBodyOf(const MonsterFrame& frame)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     PosedBody posed;
-    DrawnObject& object = posed.object;
+    Actors::Drawing::DrawnObject& object = posed.object;
     object.model = actor.type;
     object.animation = actor.animation;
     // Los vértices de 0x5786f9c como los dejó el último 0x4ebc80, con el origen del registro (0x4ebeec): el del
@@ -621,13 +625,13 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
                                        .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.alpha = actor.alpha;
     object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;
-    posed.meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+    posed.meshes = Actors::Drawing::SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
     return posed;
 }
 
 Result DrawTheShines(MonsterFrame& frame)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const std::uint16_t monster = actor.word376;
     if (actor.bodyPose.empty())
         return {};
@@ -665,7 +669,7 @@ Result DrawTheShines(MonsterFrame& frame)
 // con 0x60b300 (0x50c595), que corta.
 Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const std::uint16_t monster = actor.word376;
     constexpr std::uint16_t Chained = 0x49;
     if (monster == Chained)
@@ -752,10 +756,10 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
 // del original dibujada como quedó. Sin la tela del lugar, corta con `address`.
 Result RunTheGridCloth(MonsterFrame& frame, std::string_view address)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     if (frame.slot >= frame.pass.cloths.size())
         return Core::Unexpected(std::format("{}: falta la tela persistente del lugar del personaje", address));
-    CharacterCloth& cloth = frame.pass.cloths[frame.slot];
+    Actors::Drawing::CharacterCloth& cloth = frame.pass.cloths[frame.slot];
     const Models::ClothBody body{
         .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
     if (frame.originalFrame)
@@ -773,7 +777,7 @@ Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
 {
     constexpr std::size_t FirstBone = 23;
     constexpr std::size_t SecondBone = 14;
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50c248: falta el modelo {:#x} del +0x376 0x4d", actor.type));
@@ -803,7 +807,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
     constexpr float Rate = std::bit_cast<float>(0x3a83126fu);   // 0x6b89c8: 0,001
     constexpr float Weight = std::bit_cast<float>(0x3f333333u); // 0x6b8a5c: 0,7
     constexpr float Floor = std::bit_cast<float>(0x3e99999au);  // 0x6b89dc: 0,3
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const auto clock = Math::OriginalFtolLow(D(frame.worldClock));
     if (!clock)
         return Core::Unexpected<std::string>("0x50c17d: el reloj del mundo no cabe en 0x69fd3c");
@@ -847,33 +851,33 @@ Result DrawThePhoenix(MonsterFrame& frame)
 }
 
 // Lo que 0x509340 lee del frame de 0x50ba30, con la biblioteca `models`.
-GameHangingPass HangingPassOf(MonsterFrame& frame, const Models::IModelLibrary& models)
+Actors::Drawing::GameHangingPass HangingPassOf(MonsterFrame& frame, const Models::IModelLibrary& models)
 {
-    const GameCharacterPass& pass = frame.pass;
-    return GameHangingPass{.batch = frame.batch,
-                           .models = models,
-                           .body = frame.actor.bodyPose,
-                           .random = frame.random,
-                           .carry = pass.poseCarry,
-                           .sprites = pass.sprites,
-                           .joints = pass.joints,
-                           .particles = pass.particles,
-                           .itemContext = pass.itemContext,
-                           .frameClock = pass.frameClock,
-                           .worldClock = frame.worldClock,
-                           .map = frame.map,
-                           .heroByte1a1 = frame.world.Hero().byte1a1,
-                           .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
-                           .logicSteps = pass.clothWorld->logicSteps,
-                           .originalFrame = frame.originalFrame,
-                           .modelOrigin = frame.modelOrigin};
+    const Actors::Drawing::GameCharacterPass& pass = frame.pass;
+    return Actors::Drawing::GameHangingPass{.batch = frame.batch,
+                                            .models = models,
+                                            .body = frame.actor.bodyPose,
+                                            .random = frame.random,
+                                            .carry = pass.poseCarry,
+                                            .sprites = pass.sprites,
+                                            .joints = pass.joints,
+                                            .particles = pass.particles,
+                                            .itemContext = pass.itemContext,
+                                            .frameClock = pass.frameClock,
+                                            .worldClock = frame.worldClock,
+                                            .map = frame.map,
+                                            .heroByte1a1 = frame.world.Hero().byte1a1,
+                                            .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
+                                            .logicSteps = pass.clothWorld->logicSteps,
+                                            .originalFrame = frame.originalFrame,
+                                            .modelOrigin = frame.modelOrigin};
 }
 
 // 0x50c762..0x50c826 y 0x50c845..0x50c857: el lugar de las alas (+0x2f8) con el modelo, el hueso, la acción y la
 // anterior en 1 y la velocidad en 0,2f (0x3e4ccccd).
-void ArmTheWingsSlot(ActorState& actor, std::uint16_t model, std::uint8_t bone)
+void ArmTheWingsSlot(Kernel::ActorState& actor, std::uint16_t model, std::uint8_t bone)
 {
-    ActorItemPart& wings = actor.wings;
+    Kernel::ActorItemPart& wings = actor.wings;
     wings.model = model;
     wings.bone = bone;
     wings.animation.action = 1;
@@ -888,10 +892,11 @@ void ArmTheWingsSlot(ActorState& actor, std::uint16_t model, std::uint8_t bone)
 // que sigue con la del mapa y la global, como la tabla única del original.
 Result HangTheCarriedModels(MonsterFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const float scale = actor.scale;
     ArmTheWingsSlot(actor, 0xef, 9);
-    if (auto hung = HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {0.0f, 0.0f, -40.0f}, false, scale);
+    if (auto hung = Actors::Drawing::HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna),
+                                                          {0.0f, 0.0f, -40.0f}, false, scale);
         !hung.HasValue())
         return hung;
     // 0x50c79f: el modelo y el hueso; las acciones y la velocidad quedan como las dejó el 0xef.
@@ -900,7 +905,8 @@ Result HangTheCarriedModels(MonsterFrame& frame)
     const glm::vec3 light = actor.drawnLight;
     actor.drawnLight = glm::vec3(1.0f);
     actor.scale = std::bit_cast<float>(0x3f666666u);
-    auto hung = HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {0.0f, -40.0f, 45.0f}, false, scale);
+    auto hung = Actors::Drawing::HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {0.0f, -40.0f, 45.0f},
+                                                      false, scale);
     actor.drawnLight = light;
     actor.scale = scale;
     return hung;
@@ -911,12 +917,12 @@ Result HangTheCarriedModels(MonsterFrame& frame)
 // vuelve después.
 Result HangTheStatueWeapon(MonsterFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const float scale = actor.scale;
     constexpr std::array<std::uint16_t, 3> Weapons{0xc1c, 0x225, 0xa24};
     ArmTheWingsSlot(actor, Weapons[static_cast<std::size_t>(actor.word376 - 0x84)], 1);
     actor.scale = actor.word376 == 0x86 ? std::bit_cast<float>(0x3f666666u) : std::bit_cast<float>(0x3f333333u);
-    auto hung = HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {}, true, scale);
+    auto hung = Actors::Drawing::HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {}, true, scale);
     actor.scale = scale;
     return hung;
 }
@@ -950,7 +956,7 @@ Result DrawTheDecorations(MonsterFrame& frame)
 // 0x50bd89..0x50bf3e: la sombra de los monstruos.
 Result DrawTheShadow(MonsterFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     constexpr std::array<std::uint16_t, 7> Unshadowed{0x19, 0x16, 0x2a, 0xf2, 0x3b, 0x3f, 0x98};
     if (actor.byte88 == UnwalledKind || OneOf(actor.word376, Unshadowed) || frame.map == NoShadowMap ||
         actor.alpha < ShadowAlpha)
@@ -976,13 +982,13 @@ Result DrawTheShadow(MonsterFrame& frame)
         // con +0x92.
         if ((actor.flags78 & RiderFlag) == 0 && actor.byte92 != 0 && actor.bodyPose.size() > 0)
         {
-            DrawnObject object;
+            Actors::Drawing::DrawnObject object;
             object.model = actor.type;
             object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
             object.state.blendMesh = static_cast<std::int16_t>(actor.dword64);
             object.state.hiddenMesh = static_cast<std::int16_t>(actor.dword58);
-            const auto meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
-            DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
+            const auto meshes = Actors::Drawing::SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+            Actors::Drawing::DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
         }
     }
     if (marked)
@@ -994,7 +1000,7 @@ Result DrawTheShadow(MonsterFrame& frame)
 // 0x60d14c), con la escala de +0x94 y los colores por +0x88 (con 4, los del NPC: 0x60d069 y 0x60d0dd) y el segundo
 // 0,02f (0x6b8b90) más chico; en los mapas 18 a 23, otros colores y las escalas por la del objeto (+0xc): 0,1 / escala
 // + 1 guardado en float y 0,04 / escala + 1,02 − 0,02 en la x87. No son los del cuerpo (OutlinePassesOf, 0x5ffdf0).
-std::array<ObjectOutlinePass, 2> PartOutlinePassesOf(const ActorState& actor, std::int32_t map)
+std::array<Actors::Drawing::ObjectOutlinePass, 2> PartOutlinePassesOf(const Kernel::ActorState& actor, std::int32_t map)
 {
     constexpr float InnerStep = std::bit_cast<float>(0x3ca3d70au); // 0,02 (0x6b8b90)
     if (IsChaosCastle(map))
@@ -1015,10 +1021,11 @@ std::array<ObjectOutlinePass, 2> PartOutlinePassesOf(const ActorState& actor, st
 }
 
 // 0x60cf70(c, model, part, &c+0x3b4, c+0x174, level · 8, +3, +4, 0, 0, 1, mode, 2): the owner is the actor itself.
-ItemPartOwner PartOwnerOf(MonsterFrame& frame, std::span<const ObjectOutlinePass> outline)
+Actors::Drawing::ItemPartOwner PartOwnerOf(MonsterFrame& frame,
+                                           std::span<const Actors::Drawing::ObjectOutlinePass> outline)
 {
-    ActorState& actor = frame.actor;
-    ItemPartOwner owner;
+    Kernel::ActorState& actor = frame.actor;
+    Actors::Drawing::ItemPartOwner owner;
     owner.type = actor.type;
     owner.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     owner.bones = actor.bodyPose;
@@ -1043,25 +1050,27 @@ ItemPartOwner PartOwnerOf(MonsterFrame& frame, std::span<const ObjectOutlinePass
 // mark that follows (0x50d509..0x50d588) needs the 0x20a.
 Result DrawTheParts(MonsterFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     if (actor.byte3e3 != 0)
         return {};
     if (actor.byte88 == PlayerKind && IsChaosCastle(frame.map))
         return Cut("0x50d383", "el Angel de Chaos Castle en un personaje que no es un jugador", actor.type);
-    WornParts parts{};
-    if (actor.head != NoItemModel)
-        parts[0] = ItemPart{.model = actor.head};
+    Actors::Drawing::WornParts parts{};
+    if (actor.head != Kernel::NoItemModel)
+        parts[0] = Actors::Drawing::ItemPart{.model = actor.head};
     for (std::size_t k = 0; k < actor.body.size(); ++k)
     {
-        const ActorItemPart& part = actor.body[k];
-        if (part.model != NoItemModel)
-            parts[k + 1] =
-                ItemPart{.model = part.model, .level = part.level, .excellent = part.flags1b, .ancient = part.flags1c};
+        const Kernel::ActorItemPart& part = actor.body[k];
+        if (part.model != Kernel::NoItemModel)
+            parts[k + 1] = Actors::Drawing::ItemPart{
+                .model = part.model, .level = part.level, .excellent = part.flags1b, .ancient = part.flags1c};
     }
-    const std::array<ObjectOutlinePass, 2> outline = PartOutlinePassesOf(actor, frame.map);
-    const ItemPartOwner owner = PartOwnerOf(frame, outline);
-    ItemDrawContext resources = frame.pass.itemContext != nullptr ? *frame.pass.itemContext : ItemDrawContext{};
-    ItemSpecialDrawContext special = resources.special != nullptr ? *resources.special : ItemSpecialDrawContext{};
+    const std::array<Actors::Drawing::ObjectOutlinePass, 2> outline = PartOutlinePassesOf(actor, frame.map);
+    const Actors::Drawing::ItemPartOwner owner = PartOwnerOf(frame, outline);
+    Actors::Drawing::ItemDrawContext resources =
+        frame.pass.itemContext != nullptr ? *frame.pass.itemContext : Actors::Drawing::ItemDrawContext{};
+    Actors::Drawing::ItemSpecialDrawContext special =
+        resources.special != nullptr ? *resources.special : Actors::Drawing::ItemSpecialDrawContext{};
     special.flags = 2;
     special.worldClock = frame.worldClock;
     special.random = &frame.random;
@@ -1071,8 +1080,9 @@ Result DrawTheParts(MonsterFrame& frame)
     resources.map = frame.map;
     resources.originalFrame = frame.originalFrame;
     resources.ownerContext = &actor;
-    return DrawWornParts(frame.batch, frame.fauna, owner, parts, actor.characterClass, frame.pass.frameClock, resources,
-                         [&frame](const glm::vec3& position) { PublishMonsterPickingBox(frame, position); });
+    return Actors::Drawing::DrawWornParts(frame.batch, frame.fauna, owner, parts, actor.characterClass,
+                                          frame.pass.frameClock, resources, [&frame](const glm::vec3& position)
+                                          { PublishMonsterPickingBox(frame, position); });
 }
 
 // 0x50c929..0x50c96e y 0x50d58b..0x50db57: en un personaje que no es el 0x20a, bVar23 es solo el +0x376 0x37 fuera de
@@ -1081,20 +1091,21 @@ Result DrawTheParts(MonsterFrame& frame)
 Result RunTheCloth(MonsterFrame& frame)
 {
     constexpr std::uint16_t ClothFlare = 0x5ac; // flare01, aditivo (0x5491e0 con 0)
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const auto map = static_cast<std::uint8_t>(frame.map);
-    const bool wears = WearsTheMonsterCloth(actor.word376, map);
+    const bool wears = Actors::Drawing::WearsTheMonsterCloth(actor.word376, map);
     if (!wears)
         return {};
     if (frame.slot >= frame.pass.cloths.size())
         return Core::Unexpected<std::string>("0x50d58b: falta la tela persistente del lugar del personaje");
-    CharacterCloth& cloth = frame.pass.cloths[frame.slot];
-    const ClothWearer wearer{
-        .characterClass = actor.characterClass,
-        .armor = actor.body[ArmorPart].model,
-        .wings = actor.wings.model == NoItemModel ? std::nullopt : std::optional<std::uint16_t>(actor.wings.model),
-        .monster = actor.word376,
-        .objectFlags = actor.flags78};
+    Actors::Drawing::CharacterCloth& cloth = frame.pass.cloths[frame.slot];
+    const Actors::Drawing::ClothWearer wearer{.characterClass = actor.characterClass,
+                                              .armor = actor.body[ArmorPart].model,
+                                              .wings = actor.wings.model == Kernel::NoItemModel
+                                                           ? std::nullopt
+                                                           : std::optional<std::uint16_t>(actor.wings.model),
+                                              .monster = actor.word376,
+                                              .objectFlags = actor.flags78};
     const Models::ClothBody body{
         .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
     if (frame.originalFrame)
@@ -1127,7 +1138,7 @@ void BoneSprite(const MonsterFrame& frame, std::uint16_t texture, float scale, s
 // sin(T · 0,002f) · 0,3f + 0,8f guardada; el último punto queda en +0x40..+0x48.
 void PairOfSprites(MonsterFrame& frame, std::size_t first, std::size_t second, float scale)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const float lum = F32(ClockSine(frame.worldClock, PulseRate, PulseSpan) + D(std::bit_cast<float>(0x3f4ccccdu)));
     // 0x50b99a y 0x50b9f1: 0x4ec110 con el modelo del tipo.
     const auto at = [&frame](std::size_t bone, float x) { return PointOnTheBone(frame, bone, {x, 0.0f, 0.0f}); };
@@ -1158,7 +1169,7 @@ void BoneSprites(const MonsterFrame& frame, std::span<const BoneSpriteCall> call
 // el punto, con los ángulos del objeto, sin dueño y de ancho 20.
 Result DrawTheFairy(MonsterFrame& frame)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     constexpr std::size_t Bone = 20;
     constexpr std::uint16_t Flare = 0x5d5;
     // 0x510780..0x5107b4: 0x4ec110 con [ebp−0x14].
@@ -1199,7 +1210,7 @@ Result DrawTheFairy(MonsterFrame& frame)
 // pase (sin él, las del mapa del mundo). El sonido, solo en el frame del original.
 KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
 {
-    const World::WorldTerrain& terrain =
+    const Terrain::WorldTerrain& terrain =
         frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
     return {.batch = frame.batch,
             .actor = frame.actor,
@@ -1309,12 +1320,12 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
 // 0x50db57..0x510ac2 sobre el cuerpo ya dibujado.
 Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
 {
-    ActorState& actor = frame.actor;
-    const GameCharacterPass& pass = frame.pass;
+    Kernel::ActorState& actor = frame.actor;
+    const Actors::Drawing::GameCharacterPass& pass = frame.pass;
     // 0x50db94: la luz de lo que cuelga; el rand() de 0x50db57 y los dos cierres de +0x38e de las manos los saca
     // DrawGameHanging (Q-C860).
     actor.drawnLight = HangingLightOf(actor, terrainLight, frame.map);
-    if (auto hung = DrawGameHanging(actor, HangingPassOf(frame, frame.items)); !hung.HasValue())
+    if (auto hung = Actors::Drawing::DrawGameHanging(actor, HangingPassOf(frame, frame.items)); !hung.HasValue())
         return hung;
     const auto cased = DrawTheModelCase(frame);
     if (!cased.HasValue())
@@ -1329,7 +1340,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
         {
             // 0x510a42..0x510a72: 0x441400, 0x42fa30, 0x434180 y 0x4271d0.
             // Las alturas del pase (sin él, las del mapa del mundo) para las marcas de 0x434180.
-            const World::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : frame.world.Map().terrain;
+            const Terrain::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : frame.world.Map().terrain;
             MonsterHelperPass helperPass{.actor = actor,
                                          .slot = frame.slot,
                                          .world = frame.world,
@@ -1348,8 +1359,8 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                 if (frame.actor.bodyPose.empty())
                     return Core::Unexpected(std::string("0x4ee770: el cuerpo no tiene pose para sus vértices"));
                 const PosedBody posed = PosedBodyOf(frame);
-                return EmitVertexEffects(frame.fauna, posed.object, posed.meshes, 0, type, subtype,
-                                         frame.world.Map().effects, frame.random);
+                return Actors::Drawing::EmitVertexEffects(frame.fauna, posed.object, posed.meshes, 0, type, subtype,
+                                                          frame.world.Map().effects, frame.random);
             };
             if (auto helpers = DrawTheMonsterHelpers(helperPass); !helpers.HasValue())
                 return helpers;
@@ -1374,8 +1385,9 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
         return {};
     if (pass.polygon == nullptr)
         return Core::Unexpected<std::string>("0x418320: falta el trapecio del dibujo para el cuervo");
-    return DrawGameRaven(actor,
-                         GameRavenPass{.batch = frame.batch,
+    return Actors::Drawing::DrawGameRaven(
+        actor,
+        Actors::Drawing::GameRavenPass{.batch = frame.batch,
                                        .models = frame.items,
                                        .polygon = *pass.polygon,
                                        .lighting = pass.dynamicLighting,
@@ -1431,7 +1443,7 @@ Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster)
     return {};
 }
 
-glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight, std::int32_t map)
+glm::vec3 HangingLightOf(const Kernel::ActorState& actor, const glm::vec3& terrainLight, std::int32_t map)
 {
     const float faint = std::bit_cast<float>(0x3dcccccdu);
     if (actor.pk >= RedPk)
@@ -1451,8 +1463,10 @@ glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight,
     return {F32(static_cast<double>(third) * 0.5), faint, faint};
 }
 
-Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const GameCharacterPass& pass,
-                                                  const ActorState& actor, std::int32_t map, std::uint32_t address)
+Core::Expected<float, std::string> ShadowGroundOf(const Kernel::WorldState& world,
+                                                  const Actors::Drawing::GameCharacterPass& pass,
+                                                  const Kernel::ActorState& actor, std::int32_t map,
+                                                  std::uint32_t address)
 {
     if (!IsBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
         return actor.position.z;
@@ -1466,10 +1480,10 @@ Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const
 }
 
 Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                  WorldState& world, std::size_t slot, const GameCharacterPass& pass,
-                                                  bool originalFrame)
+                                                  Kernel::WorldState& world, std::size_t slot,
+                                                  const Actors::Drawing::GameCharacterPass& pass, bool originalFrame)
 {
-    ActorState& stored = world.Actors()[slot];
+    Kernel::ActorState& stored = world.Actors()[slot];
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand del dibujo de los personajes");
     const Models::IModelLibrary& fauna = world.FaunaResources();
@@ -1477,9 +1491,9 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));
     // Entre frames del original, sobre una copia del personaje y del rand(): no guarda nada.
-    std::optional<ActorState> projected;
+    std::optional<Kernel::ActorState> projected;
     std::optional<Crt::CrtRandom> projectedRandom;
-    ActorState& actor = originalFrame ? stored : projected.emplace(stored);
+    Kernel::ActorState& actor = originalFrame ? stored : projected.emplace(stored);
     Crt::CrtRandom& random = originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
     MonsterFrame frame{.batch = batch,
                        .items = models,
@@ -1512,7 +1526,7 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     // 0x50cc55: la luz del terreno (0x5f99e0) más la propia, en +0x3b4; el 0x189 en 0,6.
     if (pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x50cc55: falta el buffer dinámico de luz del terreno para 0x50ba30");
-    const glm::vec3 terrainLight = World::LightAt(*pass.dynamicLighting, actor.position.x, actor.position.y);
+    const glm::vec3 terrainLight = Terrain::LightAt(*pass.dynamicLighting, actor.position.x, actor.position.y);
     actor.drawnLight = terrainLight + actor.light;
     if (actor.type == 0x189)
         actor.drawnLight = glm::vec3(std::bit_cast<float>(0x3f19999au));

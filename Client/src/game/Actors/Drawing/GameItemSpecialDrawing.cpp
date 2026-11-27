@@ -24,7 +24,7 @@
 #include <ratio>
 #include <span>
 #include <string>
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -610,4 +610,4 @@ Core::Expected<void, std::string> DrawSpecialItemMeshes(Render::ModelBatch& batc
     ItemRenderer draw(batch, models, object, nativeClock, meshes, context);
     return Dispatch(draw, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

@@ -47,11 +47,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::PetStats;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Protocol::Pets::PetInfoReply;
-using Client::Scenes::ActorState;
 using Client::Scenes::DarkSpirit;
-using Client::Scenes::PetStats;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr std::size_t HeroIndex = 6;
@@ -94,16 +94,16 @@ struct Pets
 {
     Pets()
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.hero = HeroIndex;
-        runtime.fullSetScan = Client::Scenes::Scan505820{};
+        runtime.fullSetScan = Client::Actors::Scan505820{};
         runtime.hoveredItemCopy.id = 0xffff;
         ActorState lord = Client::Tests::UnarmedPlayer(4);
         lord.alive = true;
         lord.darkSpirit.emplace();
         world.Actors()[HeroIndex] = lord;
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
-        Client::World::ItemState empty;
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::ItemState empty;
         empty.id = 0xffff;
         own.equipment.fill(empty);
         own.equipment[1].id = DarkRavenItem;
@@ -149,28 +149,28 @@ struct Pets
     // medido sobre este mismo equipo.
     int RecalculationDraws()
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         const CrtRandom before = cloth.random;
         {
             const Client::Models::LogicalAccess access(runtime.ownRecordDepth, cloth.random, OwnRecordCloseRandoms);
-            const auto recalculated = Client::Scenes::RecalculateOwnStats(
-                world.OwnCharacter(), Client::Scenes::OwnStatsContext{.itemSetTables = sets,
+            const auto recalculated = Client::Player::RecalculateOwnStats(
+                world.OwnCharacter(), Client::Player::OwnStatsContext{.itemSetTables = sets,
                                                                       .itemSets = &world.ItemSets(),
                                                                       .items = &items,
                                                                       .publishedHero = world.Hero(),
                                                                       .ownRecordAccesses = runtime.ownRecordDepth,
                                                                       .random = cloth.random,
-                                                                      .held = Client::Scenes::HeldItemOf(runtime),
+                                                                      .held = Client::Player::HeldItemOf(runtime),
                                                                       .scan505820 = runtime.fullSetScan});
             EXPECT_TRUE(recalculated.HasValue()) << recalculated.Error();
         }
         return DrawsBetween(before, cloth.random.State());
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     const Client::Tables::ItemTable items = EmptyItems();
@@ -357,7 +357,7 @@ TEST(PetStatsTest, TheHorseReplyWritesItsStatsTheRiderAndTheOption)
     for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{0xfe}, std::uint8_t{0xff}})
     {
         auto tested = std::make_unique<Pets>();
-        Client::World::ItemState& horseItem = tested->world.OwnCharacter().equipment[8];
+        Client::Kernel::ItemState& horseItem = tested->world.OwnCharacter().equipment[8];
         const auto applied = tested->Reply({.pet = 1, .kind = kind, .slot = 8, .level = 10, .experience = 777});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const PetStats& horse = tested->Pet(1);
@@ -372,7 +372,7 @@ TEST(PetStatsTest, TheHorseReplyWritesItsStatsTheRiderAndTheOption)
         EXPECT_EQ(tested->world.Actors()[HeroIndex].byte8, kind == 0 ? 0 : (kind == 0xfe ? 1 : 2));
         ASSERT_EQ(horseItem.optionCount, 1);
         EXPECT_EQ(horseItem.optionBytes[0], 0x96);
-        EXPECT_EQ(horseItem.optionBytes[Client::World::ItemOptionValueOffset], 3 + 20 + 5);
+        EXPECT_EQ(horseItem.optionBytes[Client::Kernel::ItemOptionValueOffset], 3 + 20 + 5);
         EXPECT_EQ(tested->Raven().level, 0);
     }
 }
@@ -421,8 +421,8 @@ TEST(PetStatsTest, WithoutTheSetTablesTheRecalculationCuts)
 // 0x420cd0: la pestaña, 0x723911 y las tres mascotas en 0, sin rand().
 TEST(PetStatsTest, ResettingThePetsZeroesTheTableTheTabAndTheWindow)
 {
-    const auto owned = std::make_unique<Client::Scenes::WorldRuntime>();
-    Client::Scenes::WorldRuntime& runtime = *owned;
+    const auto owned = std::make_unique<Client::Kernel::WorldRuntime>();
+    Client::Kernel::WorldRuntime& runtime = *owned;
     runtime.petTab = 1;
     runtime.panels.delegated.pet = 2;
     runtime.pets[2].experience = 5;

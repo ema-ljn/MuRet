@@ -1073,7 +1073,7 @@ TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
 // Su mapa0 con pool vacío aisla el gate del dibujo; el caso inicial54 real vive en test_game_scene_wait.
 struct ManagerGameResources
 {
-    Expected<void, std::string> Load(Client::Scenes::WorldState& world, Client::Models::ClothWorld& cloth,
+    Expected<void, std::string> Load(Client::Kernel::WorldState& world, Client::Models::ClothWorld& cloth,
                                      FakeTextureStore& textures, Log& log)
     {
         auto loadedData = Client::Tables::LoadGameData(dataRoot);
@@ -1087,7 +1087,7 @@ struct ManagerGameResources
     }
     std::filesystem::path dataRoot = Client::Tests::GoldenDir();
     Client::Tables::GameData data;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
 };
 
 class ManagerEntryPublisher final : public Client::Scenes::IWorldEntryPublisher
@@ -1109,7 +1109,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     Log log(sink, LogLevel::Debug);
     FakeClock clock;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     ManagerGameResources gameResources;
     const auto loaded = gameResources.Load(world, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
@@ -1145,7 +1145,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
         }
     };
     ASSERT_TRUE(manager.Start(SceneId::WorldLoading).HasValue());
-    EXPECT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    EXPECT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     draw();
     ASSERT_EQ(target.frames.size(), 1u);
     EXPECT_EQ(target.frames[0].events.size(), 4u) << "el mosaico";
@@ -1240,7 +1240,7 @@ TEST(SceneManagerTest, AFailedPollDoesNotTakeTheOrder)
 class ChoosingSelection final : public IScene
 {
 public:
-    ChoosingSelection(Client::Scenes::WorldState& world, Client::Crt::CrtRandom& random, const bool& choose)
+    ChoosingSelection(Client::Kernel::WorldState& world, Client::Crt::CrtRandom& random, const bool& choose)
         : m_world(world), m_random(random), m_choose(choose)
     {
     }
@@ -1285,7 +1285,7 @@ public:
     }
 
 private:
-    Client::Scenes::WorldState& m_world;
+    Client::Kernel::WorldState& m_world;
     Client::Crt::CrtRandom& m_random;
     const bool& m_choose;
     bool m_chosen = false;
@@ -1301,10 +1301,10 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     Log log(sink, LogLevel::Debug);
     FakeClock clock;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     ManagerGameResources gameResources;
     const auto loaded = gameResources.Load(world, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
@@ -1400,7 +1400,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     choose = true;
     manager.Step(input);
     ASSERT_EQ(manager.Current(), SceneId::WorldLoading);
-    EXPECT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    EXPECT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     draw();
     ASSERT_EQ(target.frames.size(), 3u);
     EXPECT_EQ(target.frames[2].events.size(), 4u) << "el mosaico, otra vez";

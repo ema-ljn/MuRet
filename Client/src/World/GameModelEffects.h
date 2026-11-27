@@ -23,6 +23,11 @@ namespace Client::Data::Terrain
 {
 struct TerrainAttributes;
 }
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 struct FishEffectRequest;
@@ -32,7 +37,6 @@ class ModelEffects;
 class Particles;
 class KalimaWorld;
 class FrameSprites;
-struct TerrainLighting;
 // 0x5192a3 y 0x5212e7: alta y cuerpo de la estela compartida por Crywolf y el terremoto.
 inline constexpr std::int16_t SpiritTrailEffect = 0x104;
 [[nodiscard]] std::optional<std::size_t> CreateSpiritTrail(const ModelEffectArguments&, ModelEffects&);
@@ -48,7 +52,7 @@ struct ModelEffectStepServices
     std::function<double(float, float)> terrainHeight{};
     FrameSprites* sprites = nullptr;
     ModelEffects* effects = nullptr;
-    TerrainLighting* lighting = nullptr;
+    Terrain::TerrainLighting* lighting = nullptr;
     std::function<std::uint32_t()> systemTime{};
     const Data::Terrain::TerrainAttributes* terrainAttributes = nullptr;
     const std::int32_t* map = nullptr;

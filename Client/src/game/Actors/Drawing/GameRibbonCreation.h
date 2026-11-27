@@ -11,6 +11,10 @@
 namespace Client::Scenes
 {
 struct RibbonState;
+} // namespace Client::Scenes
+
+namespace Client::Actors::Drawing
+{
 struct RibbonCreateRequest
 {
     const void* ownerContext = nullptr;
@@ -24,8 +28,8 @@ struct RibbonCreateRequest
 };
 
 // 52e470→52e3b0: búsqueda por dueño/key, alta y desplazamiento; no consume CRT.
-[[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string> CreateRibbon(std::span<RibbonState> ribbons,
-                                                                                   const RibbonCreateRequest& request);
+[[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
+CreateRibbon(std::span<Scenes::RibbonState> ribbons, const RibbonCreateRequest& request);
 // 5091d0→52e500: envejece y duplica el primer par antes de la posible segunda resta de count.
-[[nodiscard]] Core::Expected<void, std::string> StepRibbons(std::span<RibbonState> ribbons);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> StepRibbons(std::span<Scenes::RibbonState> ribbons);
+} // namespace Client::Actors::Drawing

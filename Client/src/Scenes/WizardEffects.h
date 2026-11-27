@@ -23,12 +23,26 @@ namespace Client::Models
 {
 class IModelLibrary;
 } // namespace Client::Models
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class Particles;
-struct WorldTerrain;
 } // namespace Client::World
+
+namespace Client::Actors
+{
+struct CharacterStepContext;
+} // namespace Client::Actors
+
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
 
 // CL11, lote magos: los servicios de World::WizardModelEffects desde el mundo de la escena. El dueño (+0x108) de los
 // efectos es un personaje del pool (ActorState: el byte vivo, +0x2, la posición, +0x78, la acción +0x111, +0x16c y
@@ -37,8 +51,6 @@ struct WorldTerrain;
 // Scenes/FaunaJointCreation) y 0x517a20 es Scenes::HitTheTargetsAround.
 namespace Client::Scenes
 {
-class WorldState;
-struct CharacterStepContext;
 struct JointState;
 
 // Lo que pone la escena: las tablas del frame, el terreno del paso (la altura y los atributos), el temblor de la
@@ -48,7 +60,7 @@ struct WizardSceneParts
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
     World::FrameSprites* sprites = nullptr;
-    const World::WorldTerrain* terrain = nullptr;
+    const Terrain::WorldTerrain* terrain = nullptr;
     float fixedHeight = 1200.0f;
     float* cameraShake = nullptr;
     std::function<void(std::int32_t)> sound{};
@@ -60,11 +72,11 @@ struct WizardSceneParts
     const Models::IModelLibrary* models = nullptr;
 };
 
-[[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRandom& random,
+[[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                  const WizardSceneParts& parts);
 
 // Los de un llamador del paso de los personajes (0x4fd5f0, 0x4f97b0, 0x4e6380…): sin el temblor de la cámara.
-[[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(const CharacterStepContext& context);
+[[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context);
 
 // 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, 0, 0, 0, 0): los argumentos de un efecto de los magos.
 [[nodiscard]] World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position,
@@ -76,6 +88,6 @@ struct WizardSceneParts
 // sus servicios (WizardEffectServicesOf). Con la tabla llena, nada y sin rand(). `callerLight` es la luz del llamador
 // que escriben el 0xc1/1 y el /2.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateWizardEffect(const CharacterStepContext& context, const World::ModelEffectArguments& arguments,
+CreateWizardEffect(const Actors::CharacterStepContext& context, const World::ModelEffectArguments& arguments,
                    glm::vec3* callerLight = nullptr);
 } // namespace Client::Scenes

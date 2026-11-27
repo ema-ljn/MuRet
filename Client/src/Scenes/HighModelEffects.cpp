@@ -103,7 +103,7 @@ glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 
 // El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos del mapa, y si
 // no el de `models` (los ítems y Player.bmd), como MonsterSkeletonOf.
-const Models::Skeleton* ModelSkeletonOf(const WorldState& world, const Models::IModelLibrary* models,
+const Models::Skeleton* ModelSkeletonOf(const Kernel::WorldState& world, const Models::IModelLibrary* models,
                                         std::uint16_t model)
 {
     const auto* skeleton = world.FaunaResources().SkeletonOf(model);
@@ -273,7 +273,7 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
         }
     }
     effect.velocity = Rotated(rush, effect.transform.angles);
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     if (effect.ownerContext != &world.Hero())
         return {};
     constexpr float Reach = -150.0f; // 0xc3160000
@@ -578,7 +578,7 @@ Core::Expected<void, std::string> StepTheSiegeAura(World::ModelEffect& effect, c
     constexpr double WaveBase = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));   // 0x6b8854, 0,2f
     constexpr double ScrollRate = static_cast<double>(std::bit_cast<float>(0x3a03126fu)); // 0x6b8a68, 0,0005f
     constexpr std::int32_t HeldLife = 2;
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     const double clock = D(context.worldClock);
     if (owner != nullptr && owner->alive)
     {
@@ -854,7 +854,7 @@ void Advance(World::ModelEffect& effect)
 // variable que nadie lee: MuRet no la pide. Sin dueño, nada.
 Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
         return {};
     const glm::vec3 target = Sum(owner->position, effect.start);
@@ -898,7 +898,7 @@ Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, 
 // nada.
 Core::Expected<void, std::string> StepTheDivingPart(World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
         return {};
     constexpr double Acceleration = static_cast<double>(std::bit_cast<float>(0x4019999au)); // 0x6ba238, 2,4f
@@ -1040,13 +1040,13 @@ Core::Expected<void, std::string> StepThePiercingGlow(World::ModelEffect& effect
 {
     if (effect.subtype == 1 || effect.subtype == 2)
     {
-        const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+        const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
         if (owner == nullptr)
             return Core::Unexpected(std::string("0x52bb86: el brillo 0x621 lee el modelo de un dueño (+0x108) nulo"));
         constexpr std::size_t GlowBone = 0x630 / 0x30;
         constexpr glm::vec3 GlowOffset{0.0f, 0.0f, 10.0f}; // 0x41200000
         const auto type = static_cast<std::uint16_t>(owner->type);
-        SharedModelPlacement placement = context.world.ModelPlacement(type);
+        Kernel::SharedModelPlacement placement = context.world.ModelPlacement(type);
         placement.origin = effect.start;
         context.world.PlaceModel(type, placement);
         effect.transform.position = ActorBonePoint(*owner, GlowBone, GlowOffset, context.world);
@@ -1142,10 +1142,10 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
 // vida · 0,0125f.
 Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    auto* owner = static_cast<ActorState*>(effect.ownerContext);
+    auto* owner = static_cast<Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x52b9c1: el 0x61e/6 lee el modelo de un dueño nulo"));
-    SharedModelPlacement placement = context.world.ModelPlacement(owner->type);
+    Kernel::SharedModelPlacement placement = context.world.ModelPlacement(owner->type);
     placement.origin = effect.start;
     context.world.PlaceModel(owner->type, placement);
     constexpr int GlowSpan = 10;
@@ -1196,12 +1196,12 @@ void StepTheGrowingDecal(World::ModelEffect& effect)
 }
 } // namespace
 
-glm::vec3 PointAround(const ActorState& actor, const glm::vec3& offset)
+glm::vec3 PointAround(const Kernel::ActorState& actor, const glm::vec3& offset)
 {
     return Sum(actor.position, Rotated(offset, actor.angles));
 }
 
-HighEffectContext HighContextOf(const CharacterStepContext& context)
+HighEffectContext HighContextOf(const Actors::CharacterStepContext& context)
 {
     return {.world = context.world,
             .random = context.random,
@@ -1210,7 +1210,8 @@ HighEffectContext HighContextOf(const CharacterStepContext& context)
             .models = context.models};
 }
 
-glm::vec3 ActorBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
+glm::vec3 ActorBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
+                         const Kernel::WorldState& world)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     const auto placement = world.ModelPlacement(actor.type);
@@ -1273,7 +1274,7 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         BeginTheGrowingFlash(effect);
         break;
     case World::ColoredDecalEffect:
-        World::BeginColoredDecal(effect, context.random);
+        Terrain::BeginColoredDecal(effect, context.random);
         break;
     case MovingLightFirst:
     case MovingLightSecond:
@@ -1349,7 +1350,7 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case GuildMarkEffect:
     {
         // 0x51e0d8: el modelo y los huesos propios del dueño (+0x108 → +0x2 y +0x120).
-        const auto* owner = static_cast<const ActorState*>(arguments.owner);
+        const auto* owner = static_cast<const Kernel::ActorState*>(arguments.owner);
         if (owner == nullptr)
         {
             begun = Core::Unexpected(std::string("0x51e0d8: el 0x140 lee el modelo de un dueño (+0x108) nulo"));
@@ -1376,9 +1377,9 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
 {
     // 0x52b984: los 0x61e que no van a 0x518900 (los /0, /1, /3 y los demás que sí van son de StepPetSummon).
     if (effect.type == World::ColoredDecalEffect)
-        return effect.subtype == World::PulsingDecalSubtype || effect.subtype == World::BindingDecalSubtype ||
-               effect.subtype == World::BindingChildSubtype || effect.subtype == World::SpawningDecalSubtype ||
-               effect.subtype == World::GrowingDecalSubtype || effect.subtype == World::CoolPulsingDecalSubtype;
+        return effect.subtype == Terrain::PulsingDecalSubtype || effect.subtype == Terrain::BindingDecalSubtype ||
+               effect.subtype == Terrain::BindingChildSubtype || effect.subtype == Terrain::SpawningDecalSubtype ||
+               effect.subtype == Terrain::GrowingDecalSubtype || effect.subtype == Terrain::CoolPulsingDecalSubtype;
     // El 0x621/0 da su paso en World (StepGameModelEffect).
     if (effect.type == PiercingGlowEffect)
         return effect.subtype != 0;
@@ -1425,9 +1426,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         StepTheGrowingFlash(effect);
         break;
     case World::ColoredDecalEffect:
-        if (effect.subtype == World::BindingDecalSubtype)
+        if (effect.subtype == Terrain::BindingDecalSubtype)
             stepped = StepTheBindingDecal(effect, context);
-        else if (effect.subtype == World::GrowingDecalSubtype)
+        else if (effect.subtype == Terrain::GrowingDecalSubtype)
             StepTheGrowingDecal(effect);
         break;
     case FallingStarEffect:
@@ -1515,11 +1516,11 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
     return tail;
 }
 
-std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const WorldState& world)
+std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const Kernel::WorldState& world)
 {
     return [&world](const void* owner) -> std::optional<glm::vec3>
     {
-        for (const ActorState& actor : world.Actors())
+        for (const Kernel::ActorState& actor : world.Actors())
         {
             if (&actor == owner)
                 return actor.position;

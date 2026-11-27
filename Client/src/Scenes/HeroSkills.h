@@ -23,18 +23,22 @@ class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Models
 
+namespace Client::Kernel
+{
+class WorldState;
+struct ActorState;
+} // namespace Client::Kernel
+
 // CL9 hito 4, fase 2b: usar una skill desde el juego (0x57cfc0). Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Usar una skill". MoveHero la llama al final del clic (0x59e255),
 // salvo cuando el clic de ataque sale sin flechas (MoveHeroEnd::Leave, 0x59d666).
 namespace Client::Scenes
 {
-class WorldState;
-struct ActorState;
 struct InventoryServices;
 
 struct HeroSkillContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: 0x5526f0 corta.
     const Tables::SkillTable* skills = nullptr;
@@ -75,5 +79,6 @@ struct HeroSkillContext
 // las clases 1, 3 y 4 (0x581894) está en HeroSkillsKnight.h, la del elfo (0x57d790) en HeroSkillsElf.h y la del
 // Wizard (0x5897b7, también la del Magic Gladiator después de la suya) es UseTheWizardSkill (HeroSkillsWizard.h); la
 // cola de las skills 0x43..0x48 (0x5808da), de todas las clases, es UseTheSharedTail (HeroSkillsTail.h).
-[[nodiscard]] Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero,
+                                                                const HeroSkillContext& context);
 } // namespace Client::Scenes

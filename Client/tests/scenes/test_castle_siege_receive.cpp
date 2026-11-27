@@ -45,12 +45,12 @@ namespace
 {
 namespace Castle = Client::Protocol::CastleSiege;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 using Client::Scenes::CastleReceiveContext;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 using Client::UI::CastleData;
@@ -119,7 +119,7 @@ protected:
         return applied.HasValue() ? std::string{} : applied.Error();
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -623,7 +623,7 @@ TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
 TEST_P(CastleSiegeReceiveTest, KillCountWritesTheHero)
 {
     Runtime().hero = 17;
-    Client::Scenes::ActorState& hero = m_world->Actors()[17];
+    Client::Kernel::ActorState& hero = m_world->Actors()[17];
     hero.skillIndex = 2;
     hero.byte373 = 0xff;
     Apply(Castle::KillCount{.value = 5});

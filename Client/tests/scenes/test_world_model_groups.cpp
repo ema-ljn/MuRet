@@ -135,7 +135,7 @@ void WritePlayerSkeleton(const std::filesystem::path& root)
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(player), ClearVersion));
 }
 
-void ExpectOptionalGateBindings(const Client::Scenes::WorldModels& models, const Client::Scenes::GameModels& globals,
+void ExpectOptionalGateBindings(const Client::Assets::WorldModels& models, const Client::Assets::GameModels& globals,
                                 const Client::Tests::FakeTextureStore& store, std::uint16_t available)
 {
     EXPECT_EQ(models.Count(), 2u);
@@ -179,7 +179,7 @@ protected:
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
-    Client::Scenes::GameModels m_globals;
+    Client::Assets::GameModels m_globals;
 };
 
 TEST_F(WorldModelGroupsTest, EveryRemainingNominalMapLoadsItsSpecialFilesAndTextureFolders)
@@ -189,7 +189,7 @@ TEST_F(WorldModelGroupsTest, EveryRemainingNominalMapLoadsItsSpecialFilesAndText
         SCOPED_TRACE(static_cast<int>(probe.map));
         Client::Tests::TemporaryFolder folder{"world-special-group"};
         WriteMap(folder.Path(), probe);
-        Client::Scenes::WorldModels models;
+        Client::Assets::WorldModels models;
 
         const auto loaded =
             models.Load(folder.Path(), probe.map, m_store, m_log, &m_globals.TextureSlots(), &m_globals);
@@ -217,7 +217,7 @@ TEST_F(WorldModelGroupsTest, EveryRemainingFamilyFindsItsSpecialModelsInTheRealD
     for (const MapCase& probe : Cases)
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
-        Client::Scenes::WorldModels models;
+        Client::Assets::WorldModels models;
 
         const auto loaded = models.Load(m_dataRoot, probe.map, m_store, m_log, &m_globals.TextureSlots(), &m_globals);
 
@@ -237,7 +237,7 @@ TEST_F(WorldModelGroupsTest, BloodCastleBorrowsTheModelsAndOverlaysTheirTextureB
 {
     Client::Tests::TemporaryFolder folder{"world-gate-overlay"};
     WriteMap(folder.Path(), Cases[2]);
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
 
     ASSERT_TRUE(models.Load(folder.Path(), 11, m_store, m_log, &m_globals.TextureSlots(), &m_globals).HasValue());
 
@@ -286,11 +286,11 @@ TEST(WorldOptionalGateModelsTest, BloodCastleSkipsAbsentGlobalGateFilesAndContin
         Client::Tests::FakeTextureStore store;
         Client::Tests::RecordingSink sink;
         Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-        Client::Scenes::GameModels globals;
+        Client::Assets::GameModels globals;
         const auto globalsLoaded = globals.Load(folder.Path(), store, log);
         ASSERT_TRUE(globalsLoaded.HasValue()) << globalsLoaded.Error();
         store.loaded.clear();
-        Client::Scenes::WorldModels models;
+        Client::Assets::WorldModels models;
 
         const auto loaded = models.Load(folder.Path(), 11, store, log, &globals.TextureSlots(), &globals);
 
@@ -306,7 +306,7 @@ TEST_F(WorldModelGroupsTest, AFaultedUploadKeepsOnlyTheActualPhysicalTextureMeta
 {
     Client::Tests::TemporaryFolder folder{"world-gate-upload-failure"};
     WriteMap(folder.Path(), Cases[2]);
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
     m_store.failNextLoad = true;
 
     ASSERT_TRUE(models.Load(folder.Path(), 11, m_store, m_log, &m_globals.TextureSlots(), &m_globals).HasValue());
@@ -326,7 +326,7 @@ TEST_F(WorldModelGroupsTest, KalimaAppliesOnlyTheFourConcreteFirstActionStores)
 {
     Client::Tests::TemporaryFolder folder{"world-kalima-actions"};
     WriteMap(folder.Path(), Cases[15]);
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
 
     ASSERT_TRUE(models.Load(folder.Path(), 24, m_store, m_log, nullptr).HasValue());
 
@@ -353,7 +353,7 @@ TEST_F(WorldModelGroupsTest, DungeonWritesTheSecondActionSpeedOnlyOnMapOne)
     Client::Tests::TemporaryFolder folder{"world-dungeon-action"};
     WriteModel(folder.Path(), Special{40, "Object2", "Object41.bmd", 0x41c});
     WriteModel(folder.Path(), Special{40, "Object5", "Object41.bmd", 0x41c});
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
     for (const std::uint8_t map : {std::uint8_t{1}, std::uint8_t{4}})
     {
         SCOPED_TRACE(static_cast<int>(map));
@@ -372,7 +372,7 @@ TEST_F(WorldModelGroupsTest, AKalimaActionMissingFromTheBmdStopsAfterTheEarlierS
     Client::Tests::TemporaryFolder folder{"world-kalima-missing-action"};
     WriteMap(folder.Path(), Cases[15]);
     WriteModel(folder.Path(), Kalima.back(), false);
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
     const auto before = m_store.loadCalls;
 
     const auto loaded = models.Load(folder.Path(), 24, m_store, m_log, nullptr);
@@ -390,7 +390,7 @@ TEST_F(WorldModelGroupsTest, AKalimaActionMissingFromTheBmdStopsAfterTheEarlierS
 TEST_F(WorldModelGroupsTest, MissingExileSpecialsAreOptionalButTheirInvalidWrapIsExplicit)
 {
     Client::Tests::TemporaryFolder folder{"world-exile-specials"};
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
     const auto before = m_store.loadCalls;
     const auto absent = models.Load(folder.Path(), 5, m_store, m_log, nullptr);
     ASSERT_TRUE(absent.HasValue()) << absent.Error();
@@ -420,19 +420,19 @@ TEST(WorldModelOwnershipTest, FailedActionsKeepResidentReferencesAcrossReleaseAn
         WriteModel(folder.Path(), Special{0, "Object31", "Object01.bmd", SharedSlot.value});
         if (map == 30)
             WriteModel(folder.Path(),
-                       Special{Client::Scenes::SpearmanModel, "Monster", "Monster78.bmd", SharedSlot.value});
+                       Special{Client::Assets::SpearmanModel, "Monster", "Monster78.bmd", SharedSlot.value});
         WriteModel(folder.Path(), Special{1, map == 1 ? "Object2" : "Object31", "Object02.bmd", 0x41c});
         const auto decoded = Client::Data::Textures::LoadTextureSet(folder.Path(), SharedTexture);
         ASSERT_TRUE(decoded.HasValue());
         Client::Tests::FakeTextureStore store;
-        Client::Scenes::ModelTextureTable table;
+        Client::Assets::ModelTextureTable table;
         table.Bind(store);
         table.Slots().SetName(SharedSlot, "group104.tga");
         table.Slots().SetNext(TextureSlot{0x700});
         ASSERT_TRUE(table.Upload(decoded.Value().front()).HasValue());
         Client::Tests::RecordingSink sink;
         Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-        Client::Scenes::WorldModels models;
+        Client::Assets::WorldModels models;
 
         const auto failed = models.Load(folder.Path(), map, store, log, nullptr, nullptr, &table);
 
@@ -482,8 +482,8 @@ TEST(WorldModelOwnershipTest, AFailedEmptySlotDoesNotOwnALaterUpload)
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Scenes::ModelTextureTable table;
-    Client::Scenes::WorldModels models;
+    Client::Assets::ModelTextureTable table;
+    Client::Assets::WorldModels models;
     ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
     EXPECT_TRUE(table.Slots().NameOf(slot).empty());
     EXPECT_EQ(table.Slots().Next(), TextureSlot{0x41d});
@@ -538,7 +538,7 @@ TEST(WorldModelOwnershipTest, FailedReplacementPreservesTheResidentAndDoesNotDra
             Client::Tests::WriteSceneFile(folder.Path(), "Object3/new.OZT", Client::Tests::PlainOzt(32, 32));
 
         Client::Tests::FakeTextureStore store;
-        Client::Scenes::ModelTextureTable table;
+        Client::Assets::ModelTextureTable table;
         table.Bind(store);
         table.Slots().SetName(resident, residentName);
         const auto oldPath = "Object2\\" + std::string(residentName);
@@ -549,7 +549,7 @@ TEST(WorldModelOwnershipTest, FailedReplacementPreservesTheResidentAndDoesNotDra
         store.failNextLoad = failUpload;
         Client::Tests::RecordingSink sink;
         Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-        Client::Scenes::WorldModels models;
+        Client::Assets::WorldModels models;
 
         ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
         EXPECT_EQ(table.Slots().Next(), TextureSlot{0x41f});
@@ -563,9 +563,9 @@ TEST(WorldModelOwnershipTest, FailedReplacementPreservesTheResidentAndDoesNotDra
         EXPECT_EQ(store.Find(resident)->texture.textureWidth, 8);
 
         Client::Render::ModelBatch batch;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.transform.scale = 1;
-        Client::Scenes::DrawObject(batch, models, object, {});
+        Client::Actors::Drawing::DrawObject(batch, models, object, {});
         ASSERT_EQ(batch.Commands().size(), 2u);
         EXPECT_FALSE(batch.Commands().front().state.texture.has_value());
         EXPECT_EQ(batch.Commands().back().state.texture, shared);

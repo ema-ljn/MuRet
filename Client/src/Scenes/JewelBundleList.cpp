@@ -230,7 +230,7 @@ void RepeatTheKey(JewelBundleList& list, std::int32_t message)
 
 // 0x483bc0: una flecha o la pista con el botón apretado. En 0 corre (las flechas, con el sonido) y empieza la cuenta,
 // hasta 15 la sube (la lista no tiene padre, +0x44 en 0) y desde 16 corre en cada paso.
-void Repeat(JewelBundleList& list, WorldRuntime& runtime, std::int32_t& counter, std::int32_t rows, bool sound)
+void Repeat(JewelBundleList& list, Kernel::WorldRuntime& runtime, std::int32_t& counter, std::int32_t rows, bool sound)
 {
     if (counter == 0)
     {
@@ -247,7 +247,7 @@ void Repeat(JewelBundleList& list, WorldRuntime& runtime, std::int32_t& counter,
 
 // 0x483bc0 con el clic sobre la lista: las flechas de la barra y, con más filas que las que se ven (o tantas), el
 // cursor y la pista. El cursor no se agarra: 0x402af0 dejó el mouse agarrado por la lista (07 Q-C1151).
-void PressTheBar(const GameUiContext& context, JewelBundleList& list, WorldRuntime& runtime)
+void PressTheBar(const GameUiContext& context, JewelBundleList& list, Kernel::WorldRuntime& runtime)
 {
     const auto in = [&](std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
     { return UI::MouseInRect(context.mouseX, context.mouseY, x, y, width, height, TopLeftRect); };
@@ -399,7 +399,7 @@ Core::Expected<void, std::string> DrawTheRow(GameHudContext& context, const Jewe
                                              const JewelBundleList::Row& entry, std::uint8_t kind)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     sprites.SetBlend(Render::BlendMode::Alpha);
     if (list.selection == list.scroll + 1 + row)
     {
@@ -466,7 +466,7 @@ std::optional<JewelBundleList::Row> ChosenBundle(JewelBundleList& list)
 
 BundleListStep StepTheBundleList(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     JewelBundleList& list = runtime.npcWindows.jewels.bundles;
     bool& click = runtime.movement.pendingClick;
@@ -528,7 +528,7 @@ BundleListStep StepTheBundleList(const GameUiContext& context)
 
 Core::Expected<void, std::string> DrawTheBundleList(GameHudContext& context, std::int32_t x, std::int32_t y)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // Un dibujo intermedio de MuRet no escribe la esquina ni la barra que lee el paso: dibuja una copia.
     JewelBundleList projected{};
     if (context.projecting)

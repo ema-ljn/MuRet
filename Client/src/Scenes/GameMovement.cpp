@@ -95,10 +95,10 @@ enum class MoveHeroEnd : std::uint8_t
     Leave,
 };
 
-Core::Expected<ActorStopContext, std::string> StopContextForActor(const ActorState& actor,
-                                                                  const HeroMovementContext& context,
-                                                                  const World::WorldTerrain& terrain,
-                                                                  std::string_view missingPlayer)
+Core::Expected<Actors::ActorStopContext, std::string> StopContextForActor(const Kernel::ActorState& actor,
+                                                                          const HeroMovementContext& context,
+                                                                          const Terrain::WorldTerrain& terrain,
+                                                                          std::string_view missingPlayer)
 {
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = context.playerSkeleton;
@@ -116,15 +116,15 @@ Core::Expected<ActorStopContext, std::string> StopContextForActor(const ActorSta
             actorSkeleton = context.models->SkeletonOf(actor.type);
     }
 
-    return ActorStopContext{.runtime = context.world.Runtime(),
-                            .scene = SceneId::Game,
-                            .playerSkeleton = *playerSkeleton,
-                            .items = context.items,
-                            .random = context.random,
-                            .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
-                            .sendAction = context.sendAction,
-                            .actorSkeleton = actorSkeleton,
-                            .modelSounds = modelSounds};
+    return Actors::ActorStopContext{.runtime = context.world.Runtime(),
+                                    .scene = SceneId::Game,
+                                    .playerSkeleton = *playerSkeleton,
+                                    .items = context.items,
+                                    .random = context.random,
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                                    .sendAction = context.sendAction,
+                                    .actorSkeleton = actorSkeleton,
+                                    .modelSounds = modelSounds};
 }
 
 Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext& context)
@@ -153,7 +153,7 @@ Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext&
     return {};
 }
 
-bool CanStartThePath(const ActorState& hero)
+bool CanStartThePath(const Kernel::ActorState& hero)
 {
     const auto action = hero.animation.action;
     const bool restricted = action == 0xc2 || hero.byte80 == 1 || hero.byte80 == 2 ||
@@ -164,8 +164,8 @@ bool CanStartThePath(const ActorState& hero)
 }
 
 // 0x59b1c2..0x59b1e2: el centro es la mitad del ancho del mundo (0x59b188), no 320 fijo.
-Core::Expected<void, std::string> UpdateTheHead(ActorState& hero, const HeroMovementInput& input, std::int32_t center,
-                                                bool keepsTheHead)
+Core::Expected<void, std::string> UpdateTheHead(Kernel::ActorState& hero, const HeroMovementInput& input,
+                                                std::int32_t center, bool keepsTheHead)
 {
     const double angle = Math::CreateAngle(static_cast<float>(center), 180.0f, static_cast<float>(input.mouseX),
                                            static_cast<float>(input.mouseY));
@@ -217,7 +217,7 @@ std::pair<std::int32_t, std::int32_t> EventWindowCursor(std::int32_t mouseX, std
 // 0x78abb00 en 0, SetCursorPos, 0x6c8dcc en 6 y el izquierdo suelto (0x7d36874).
 Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!context.sendEventWindowLeave)
         return Core::Unexpected(std::string("0x56b4e8: falta el servicio de envío del C1 03 97"));
     if (auto sent = context.sendEventWindowLeave(); !sent.HasValue())
@@ -235,10 +235,10 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
     return {};
 }
 
-Core::Expected<void, std::string> SendThePath(ActorState& hero, Pathfinding::PathCell target,
+Core::Expected<void, std::string> SendThePath(Kernel::ActorState& hero, Pathfinding::PathCell target,
                                               const HeroMovementContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     GamePanels panels(context.world, context.random);
     panels.LendTheSession(context.world, context.random, context.sendGamePacket, context.sendWindowClose);
@@ -281,7 +281,7 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, Pathfinding::Pat
     return LeaveTheEventWindow(context);
 }
 
-Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<void, std::string> UseGroundClick(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
     if (context.input.shiftDown || !context.pickTarget)
         return {};
@@ -290,7 +290,7 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
         return Core::Unexpected(picked.Error());
     if (!picked.Value())
         return {};
-    World::WorldTerrain& terrain = context.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     GameMovementState& state = context.world.Runtime().movement;
@@ -331,7 +331,7 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
 
 // 0x59b23d..0x59b258, 0x59b8a7..0x59b8b9 y 0x57d1bc..0x57d1d7: el ataque automático (0x6c8e3c), fuera del mapa 6 y de
 // Chaos Castle (18 a 23).
-bool AutoAttacksHere(const WorldRuntime& runtime)
+bool AutoAttacksHere(const Kernel::WorldRuntime& runtime)
 {
     constexpr std::int32_t SpectatorMap = 6;
     using Maps::FirstChaosCastleMap;
@@ -375,7 +375,7 @@ bool InHalfOpenRange(std::int32_t value, std::int32_t first, std::int32_t end)
 // 0x59cd49..0x59d3d7: el elfo (+0x1d4 & 7 en 2) que camina (+0x378) sin interacción (+0x379 en 0) y con una ballesta en
 // la derecha (0x808..0x80e o 0x810..0x9ff) o un arco en la izquierda (0x800..0x806 o 0x811, sin el 0x814 ni el 0x815)
 // manda su celda lógica, la Y (+0x420) leída antes que la X (+0x41c): C1 05 DF X Y. Vacío, no manda.
-Core::Expected<void, std::string> SendTheElfCell(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<void, std::string> SendTheElfCell(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
     if (hero.movement == 0 || hero.movementType != 0 ||
         Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::Elf)
@@ -397,9 +397,9 @@ Core::Expected<void, std::string> SendTheElfCell(ActorState& hero, const HeroMov
 // (0x558800), nada más. Si no, PathFinding2 hasta ella (en +0x3e8 si sale): con camino y sin arma de tiro (ni +0x376 en
 // 9), SendMove (0x56acd0); si no, 0x561c50 y, con flechas, 0x5650c0(héroe, héroe, 1), que no lee el tercero. Sin
 // flechas, MoveHero sale ahí (Leave).
-Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     if (auto sent = SendTheElfCell(hero, context); !sent.HasValue())
         return Core::Unexpected(sent.Error());
@@ -408,14 +408,14 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
     state.attackTarget = chosen;
     runtime.selectedTargets[4] = 1;
     hero.movementType = 3;
-    const ActorState& victim = context.world.Actors()[static_cast<std::size_t>(chosen)];
+    const Kernel::ActorState& victim = context.world.Actors()[static_cast<std::size_t>(chosen)];
     const auto targetX = Math::OriginalFtolLow(static_cast<double>(victim.position.x) * CellReciprocal);
     const auto targetY = Math::OriginalFtolLow(static_cast<double>(victim.position.y) * CellReciprocal);
     if (!targetX || !targetY)
         return Core::Unexpected(std::string("0x59d421: la celda del elegido fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*targetX);
     state.targetY = std::bit_cast<std::uint32_t>(*targetY);
-    World::WorldTerrain& terrain = context.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver al elegido"));
     // 0x59d439..0x59d531: la Y y la X, cada una en su acceso.
@@ -473,7 +473,7 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
 // 0x5650fa). El 2 le habla al NPC elegido (NpcTalk.h, hito 2) y el 1 (0x5650ef..0x565100, hito 5) levanta el ítem del
 // piso elegido, que necesitan el contexto de MoveHero; los demás van por InteractOnArrival (HeroAttack.h): el 3 pega
 // (hito 3) y el 4 y el 5 cortan.
-Core::Expected<void, std::string> ArriveAtTheTarget(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<void, std::string> ArriveAtTheTarget(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
     if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(NpcTalkMovement))
         return TalkToTheNpc(hero, context);
@@ -493,16 +493,17 @@ Core::Expected<void, std::string> ArriveAtTheTarget(ActorState& hero, const Hero
 // como destino (0x77e1ba8 y 0x77e1bac, la posición · 0,01 con ftol), el NPC, su tipo y su ángulo en 0x6c8e54,
 // 0x7798bf0 y 0x77f36cc; las celdas del héroe (y después x) y el camino (0x4eac00): con él, 0x56acd0; sin él, la
 // llegada en el lugar (0x5650c0(héroe, héroe, 1)).
-Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovementContext& context, std::int32_t npc)
+Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const HeroMovementContext& context,
+                                               std::int32_t npc)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     if (npc < 0 || static_cast<std::size_t>(npc) >= context.world.Actors().size())
         return Core::Unexpected(std::format("0x59dad9: el NPC elegido {} está fuera de la tabla de personajes", npc));
     if ((hero.flags7c & NpcTalkBlockedFlag) != NpcTalkBlockedFlag)
         hero.movementType = NpcTalkMovement;
     state.attackTarget = npc;
-    const ActorState& target = context.world.Actors()[static_cast<std::size_t>(npc)];
+    const Kernel::ActorState& target = context.world.Actors()[static_cast<std::size_t>(npc)];
     const auto x = Math::OriginalFtolLow(static_cast<double>(target.position.x) * CellReciprocal);
     const auto y = Math::OriginalFtolLow(static_cast<double>(target.position.y) * CellReciprocal);
     if (!x || !y)
@@ -512,7 +513,7 @@ Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovem
     state.chosenNpc = npc;
     state.chosenNpcType = static_cast<std::int16_t>(target.type);
     state.chosenNpcAngle = std::bit_cast<std::uint32_t>(target.angles.z);
-    World::WorldTerrain& terrain = context.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -534,10 +535,10 @@ Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovem
 // 0x59dc5e..0x59ddea (CL9 hito 5): con un ítem del piso elegido (0x6c8e28), +0x379 en 1, el elegido (0x77f27b0) y su
 // celda como destino (0x77e1ba8 y 0x77e1bac, la posición · 0,01 sin la máscara de 0x59de66), las celdas del héroe (y
 // después x) y el camino (0x4eac00): con él, 0x56acd0; sin él, 0x5650c0(héroe, héroe, 1) y +0x379 en 0.
-Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const HeroMovementContext& context,
+Core::Expected<void, std::string> WalkToTheFloorItem(Kernel::ActorState& hero, const HeroMovementContext& context,
                                                      std::int32_t index)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     if (index < 0 || index >= FloorItemCount)
         return Core::Unexpected(std::format("0x59dc82: el ítem del piso {} está fuera de la tabla 0x77f46c8", index));
@@ -550,7 +551,7 @@ Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const Her
         return Core::Unexpected(std::string("0x59dc8e: la posición del ítem del piso fuera del perfil ftol"));
     state.targetX = static_cast<std::uint32_t>(*x);
     state.targetY = static_cast<std::uint32_t>(*y);
-    World::WorldTerrain& terrain = context.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -576,9 +577,9 @@ Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const Her
     return picked;
 }
 
-Core::Expected<MoveHeroEnd, std::string> ProcessInput(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     // 0x59b846..0x59b85a: el modo del editor (0x77f3b18) y el mouse de la UI (0x775857c) saltan también la suma.
     if (state.inputBlocked || runtime.ui.mouseOnUi != 0)
@@ -669,7 +670,8 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(ActorState& hero, const He
     return MoveHeroEnd::Continue;
 }
 
-void PublishHeroLayer(const ActorState& hero, WorldRuntime& runtime, const World::WorldTerrain& terrain)
+void PublishHeroLayer(const Kernel::ActorState& hero, Kernel::WorldRuntime& runtime,
+                      const Terrain::WorldTerrain& terrain)
 {
     if (!terrain.mapping)
         return;
@@ -681,7 +683,7 @@ void PublishHeroLayer(const ActorState& hero, WorldRuntime& runtime, const World
     const auto index = static_cast<std::size_t>(std::clamp<std::int64_t>(raw, 0, 65535));
     runtime.heroCellLayer = terrain.mapping->layer1[index];
 }
-std::int32_t StepTheCounter(WorldRuntime& runtime, Crt::CrtRandom& random)
+std::int32_t StepTheCounter(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     {
         const Models::LogicalAccess access(runtime.warpDepth, random, Models::SmallLogicalCloseRandoms);
@@ -691,31 +693,31 @@ std::int32_t StepTheCounter(WorldRuntime& runtime, Crt::CrtRandom& random)
     const Models::LogicalAccess access(runtime.warpDepth, random, Models::SmallLogicalCloseRandoms);
     return runtime.warpCounter;
 }
-Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<void, std::string> MoveTheHero(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
     if (hero.movement == 0)
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
-    const World::WorldTerrain& terrain = context.world.Map().terrain;
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     const auto stopContext = StopContextForActor(hero, context, terrain, "0x4f37c0: falta Player.bmd");
     if (!stopContext.HasValue())
         return Core::Unexpected(stopContext.Error());
-    const ActorStopContext& stop = stopContext.Value();
+    const Actors::ActorStopContext& stop = stopContext.Value();
     if ((hero.flags78 & MovementLockedFlag) != 0)
     {
-        const auto stopped = SetActorStop(hero, stop);
+        const auto stopped = Actors::SetActorStop(hero, stop);
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         return {};
     }
     const auto walked =
-        SetActorWalk(hero, {stop, context.world.ActionSpeeds(), true, stop.actorSkeleton, stop.modelSounds});
+        Actors::SetActorWalk(hero, {stop, context.world.ActionSpeeds(), true, stop.actorSkeleton, stop.modelSounds});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
-    if (MoveActorPath(hero, 1, context.random))
+    if (Actors::MoveActorPath(hero, 1, context.random))
     {
         hero.movement = 0;
-        const auto stopped = SetActorStop(hero, stop);
+        const auto stopped = Actors::SetActorStop(hero, stop);
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         const auto yaw = Math::OriginalFtolLow(hero.angles.z);
@@ -731,17 +733,17 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
     hero.flags7c &= ~std::uint32_t{0x200000};
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x508a80: falta terreno para mover al héroe"));
-    return UpdateActorPosition(hero, {runtime, context.random, [&](float x, float y) {
-                                          return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
-                                                                        context.fixedHeight);
-                                      }});
+    return Actors::UpdateActorPosition(hero, {runtime, context.random, [&](float x, float y) {
+                                                  return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes,
+                                                                                  x, y, context.fixedHeight);
+                                              }});
 }
 
 // 0x59afdf..0x59b185, entre el contador y la cabeza: el clic derecho (0x7d36880) sobre el personaje elegido
 // (0x6c8e30, el picking del frame). Nada de esto saca rand().
-Core::Expected<void, std::string> NameTheChosen(WorldState& world)
+Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     // 0x59afdf..0x59b033: con la caja de agregar un amigo (+0xf0 de [0x5763514], que solo escribe 0x49d0b0 y 0x490200
     // vuelve a 0; JBE: sin signo) y el derecho, si 0x490a00 la encuentra, el nombre del elegido (+0x1d9, sin mirar el
     // −1) va a su EDIT (+0xb4): la vtable + 0x4c (0x467ee0: SetWindowTextA con menos de 0x100 bytes) y la + 0x30 con 1
@@ -773,13 +775,13 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
     // 0x59b036..0x59b086: el chat abierto (0x6c8e68), el héroe en la zona segura (+0x3e2), un elegido, el derecho y
     // +0x376 del elegido en 0xff (solo lo escribe 0x5140c0, la cola del alta de un monstruo, con el tipo 255).
     const std::int32_t chosen = runtime.selectedTargets[2];
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     if (!runtime.ui.chatOpen || hero.safeZone == 0 || chosen == -1 || !runtime.ui.rightClick)
         return {};
     if (chosen < 0 || static_cast<std::size_t>(chosen) >= world.Actors().size())
         return Core::Unexpected(std::string("0x59b06d: el elegido está fuera de la tabla de personajes"));
     constexpr std::uint16_t WhisperableWord376 = 0xff;
-    const ActorState& target = world.Actors()[static_cast<std::size_t>(chosen)];
+    const Kernel::ActorState& target = world.Actors()[static_cast<std::size_t>(chosen)];
     if (target.word376 != WhisperableWord376)
         return {};
     // 0x59b092: el derecho se gasta también en Chaos Castle (18 a 23), donde no sigue.
@@ -808,8 +810,8 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
 } // namespace
 Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Hero();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    Kernel::ActorState& hero = context.world.Hero();
     // En el juego, StepTheDialogs ya lo hizo en este paso: acá no cambia nada.
     LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
     // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).
@@ -820,7 +822,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
             StopContextForActor(hero, context, terrain, "0x59ae24: falta Player.bmd para parar durante el recorrido");
         if (!stop.HasValue())
             return Core::Unexpected(stop.Error());
-        const auto stopped = SetActorStop(hero, stop.Value());
+        const auto stopped = Actors::SetActorStop(hero, stop.Value());
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         return {};
@@ -829,7 +831,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         return {};
     if (hero.dying != 0 || (hero.flags78 & FrozenHeroFlag) != 0)
         return {};
-    if (StepTheCounter(runtime, context.random) > WaitDrawThreshold)
+    if (StepTheCounter(runtime, context.random) > Kernel::WaitDrawThreshold)
         return {};
     if (auto named = NameTheChosen(context.world); !named.HasValue())
         return named;

@@ -73,7 +73,7 @@ protected:
         m_scene = std::make_unique<Client::Scenes::CharacterSelectScene>(context, m_data, m_models, nullptr);
         const auto entered = m_scene->Enter();
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
-        auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, 54);
+        auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, 54);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
         m_selection.RetainTerrain(54, std::move(terrain).Value());
         ASSERT_NO_FATAL_FAILURE(Step());
@@ -152,10 +152,10 @@ protected:
     Client::Tests::FakeClock m_clock;
     Client::Input::InputState m_input;
     Client::Models::ClothWorld m_cloth;
-    Client::Scenes::WorldState m_world;
+    Client::Kernel::WorldState m_world;
     Client::Scenes::SelectionState m_selection{m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_cameraInput;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_cameraInput;
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tables::GameData m_data;
     Client::Tests::RecordingFrameTarget m_target;
@@ -178,7 +178,7 @@ TEST_P(CreatePreviewReopenTest, ReopeningCountsOneDrawAndKeepsTheCameraBeforeThe
     const ReopenCase probe = GetParam();
     ASSERT_NO_FATAL_FAILURE(OpenWindow());
     ASSERT_NO_FATAL_FAILURE(ChooseClass(probe.initialClass));
-    const Client::Scenes::ActorState* durable = &m_selection.PreviewActor();
+    const Client::Kernel::ActorState* durable = &m_selection.PreviewActor();
     const glm::vec3 first = durable->position;
     ASSERT_NO_FATAL_FAILURE(DrawAt({}));
     EXPECT_EQ(durable->position, first + ClassOffset(probe.initialClass));

@@ -23,13 +23,13 @@
 
 namespace
 {
+using Client::Actors::ActorConstructionContext;
+using Client::Actors::ActorPlacement;
+using Client::Actors::ConstructActor;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::NoItemModel;
 using Client::Models::ClothWorld;
-using Client::Scenes::ActorConstructionContext;
-using Client::Scenes::ActorPlacement;
-using Client::Scenes::ActorState;
-using Client::Scenes::ConstructActor;
-using Client::Scenes::NoItemModel;
 
 constexpr std::uint32_t Seed = 0xc0ffee;
 constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
@@ -42,7 +42,7 @@ protected:
     void SetUp() override
     {
         GoldenDataTest::SetUp();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, 0);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, 0);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         terrain = std::move(loaded).Value();
     }
@@ -50,7 +50,7 @@ protected:
     [[nodiscard]] ActorConstructionContext Context(std::int32_t map = 0) const
     {
         return ActorConstructionContext{
-            .terrain = terrain, .map = map, .scene = Client::World::CullingScene::Game, .fixedHeight = FixedHeight};
+            .terrain = terrain, .map = map, .scene = Client::Terrain::CullingScene::Game, .fixedHeight = FixedHeight};
     }
 
     // La primera celda de Lorencia con el bit de la zona segura como `safe`.
@@ -70,11 +70,11 @@ protected:
 
     [[nodiscard]] double HeightAt(const glm::vec3& position) const
     {
-        return Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y,
-                                              FixedHeight);
+        return Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y,
+                                                FixedHeight);
     }
 
-    Client::World::WorldTerrain terrain;
+    Client::Terrain::WorldTerrain terrain;
     ClothWorld cloth{.random = CrtRandom(Seed)};
 };
 

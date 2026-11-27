@@ -12,14 +12,18 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+struct OwnCharacterRecord;
+} // namespace Client::Kernel
+
 // Los daños del personaje propio que muestran la ventana del personaje (0x5ee2e0) y el tooltip de la skill (0x5b90b0):
 // el del ataque, 0x5b8b80, el de la magia, 0x5513d0, y el de la skill, 0x5516e0, con sus accesos a la tabla de
 // protección y sus rand(). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La ventana del personaje" y "El
 // cuerpo de la skill".
-namespace Client::Scenes
+namespace Client::Player
 {
 struct ItemSetOptionList;
-struct OwnCharacterRecord;
 struct OwnEquipmentOverride;
 
 // Lo que 0x5b8b80 deja en sus dos punteros y lo que devuelve.
@@ -41,7 +45,7 @@ struct OwnAttackDamage
 // derecha en −1 o de 0xa00 a 0xbff, el par +0x54 y +0x56; si no, +0x50 y +0x52. Las clases 1 y 3 con las dos manos
 // de 0 a 0xbff suman el 55 % de cada par (+0x50 y +0x54, +0x52 y +0x56, sin signo y truncando); con el bit 0x02 de
 // +0x3c, 15 más a los dos. `heroClass` es el +0x1d4 del héroe & 7.
-[[nodiscard]] OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
+[[nodiscard]] OwnAttackDamage AttackDamageOf(const Kernel::OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
                                              const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth,
                                              Crt::CrtRandom& random);
 
@@ -58,7 +62,7 @@ struct OwnMagicDamage
 // +0x30 de la skill (0x40d8c0) y a sus 16 bits de abajo las del selector 0x9f (0x40d690), y suma p a los dos. Sin
 // Skill.bmd o sin la skill, error antes de abrir; con más de 16 entradas en la lista, el de 0x40d8c0 o 0x40d690.
 [[nodiscard]] Core::Expected<OwnMagicDamage, std::string>
-MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill, const Tables::SkillTable* skills,
+MagicDamageOf(const Kernel::OwnCharacterRecord& own, std::uint8_t skill, const Tables::SkillTable* skills,
               std::uint8_t& skillDepth, Crt::CrtRandom& random, ItemSetOptionList& setOptions);
 
 // Lo que 0x5516e0 deja en sus dos punteros.
@@ -75,4 +79,4 @@ struct OwnSkillDamage
 [[nodiscard]] Core::Expected<OwnSkillDamage, std::string>
 SkillDamageOf(std::uint8_t skill, const Tables::SkillTable* skills, std::uint8_t& skillDepth, Crt::CrtRandom& random,
               ItemSetOptionList& setOptions);
-} // namespace Client::Scenes
+} // namespace Client::Player

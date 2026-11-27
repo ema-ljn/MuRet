@@ -69,7 +69,7 @@ struct EmberWorld
     float cameraY = 0.0f;
     const Data::Terrain::TerrainHeights* heights = nullptr;
     const Data::Terrain::TerrainAttributes* attributes = nullptr;
-    float fixedHeight = FixedTerrainHeight;
+    float fixedHeight = Terrain::FixedTerrainHeight;
 };
 
 // 0x530490 en el mapa 0x37, con el rand() de la CRT: las 80 primeras, en orden; la apagada nace (con la luz

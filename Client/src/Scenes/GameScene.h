@@ -43,6 +43,11 @@
 #include <string>
 #include <span>
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
 // La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
 // Las poses son globales entre escenas; los cuadros intermedios usan scratch y sprites proyectados.
@@ -52,7 +57,6 @@ namespace Client::World
 {
 class KalimaWorld;
 class Particles;
-struct TerrainLighting;
 struct ObjectModelStepState;
 struct WorldObject;
 } // namespace Client::World
@@ -62,15 +66,19 @@ namespace Client::Models
 class IModelLibrary;
 }
 
+namespace Client::Actors::Drawing
+{
+struct GameItemRenderState;
+struct ItemDrawContext;
+struct ItemSpecialDrawContext;
+} // namespace Client::Actors::Drawing
+
 namespace Client::Scenes
 {
 struct ArrowStepContext;
 struct GameProjection;
 struct GameSceneFrameProjection;
 struct GameDrawTailState;
-struct GameItemRenderState;
-struct ItemDrawContext;
-struct ItemSpecialDrawContext;
 
 // 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
 // (0x7d36899), que no se prende nunca.
@@ -135,7 +143,7 @@ public:
 
     // El segmento del mouse que dejó el último dibujo (0x620480 en 0x7d366c0), para el picking de
     // MoveHero (CL7.4); vacío antes del primero.
-    [[nodiscard]] const std::optional<World::TerrainPickingSegment>& MouseRay() const;
+    [[nodiscard]] const std::optional<Terrain::TerrainPickingSegment>& MouseRay() const;
 
 private:
     // 0x6362b2..0x63693a: solo el primer paso de la escena.
@@ -168,7 +176,7 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> StepTheHero(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFauna();
     [[nodiscard]] Core::Expected<void, std::string> StepTheLeaves();
-    [[nodiscard]] const World::WorldTerrain& StepTerrain() const;
+    [[nodiscard]] const Terrain::WorldTerrain& StepTerrain() const;
     // 0x63706a: 0x606560 con los objetos vistos (StepGameWorldObjects); los demás mapas cortan si hay alguno.
     [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
 
@@ -183,38 +191,39 @@ private:
     [[nodiscard]] Render::Camera3D CameraOfTheFrame(Render::Frame::SceneCanvas& canvas, int frames);
     // 0x5fbb00 → 0x5fb570: el trapecio alrededor de `target`, con su transición si corre un frame. Con un
     // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
-    [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
+    [[nodiscard]] Core::Expected<Terrain::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, std::int32_t worldWidth, int frames);
     // 0x637410: terreno, objetos, suelo, aves y personajes; después continúa la cola del frame.
     // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,
                                                                      const Render::Pass3D& pass,
-                                                                     const World::TerrainPolygon& polygon, int frames);
+                                                                     const Terrain::TerrainPolygon& polygon,
+                                                                     int frames);
 
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
-                                                                      const World::TerrainPolygon& polygon, int frames);
+    [[nodiscard]] Core::Expected<void, std::string>
+    DrawTheCharacters(Render::Frame::SceneCanvas& canvas, const Terrain::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheBirds(Render::Frame::SceneCanvas& canvas,
-                                                                 const World::TerrainPolygon& polygon, int frames);
+                                                                 const Terrain::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(Render::Frame::SceneCanvas& canvas,
                                                                 const Render::Pass3D& pass,
-                                                                const World::TerrainPolygon& polygon, int frames);
+                                                                const Terrain::TerrainPolygon& polygon, int frames);
     // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor. `projection`
     // es 0x6203c0 del pase del mundo, que leen los globos (0x5a9050); nullptr si no se pudo armar.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(Render::Frame::SceneCanvas& canvas,
                                                                      const GameProjection* projection);
     // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
     // ítems del piso (0x608a00): `item` apunta a `special`.
-    void FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,
-                             int frames);
+    void FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special, Actors::Drawing::ItemDrawContext& item,
+                             Core::Duration frameClock, int frames);
     [[nodiscard]] FaunaDrawCarry& FramePoseCarry();
     [[nodiscard]] World::FrameSprites& FrameSpritesForDraw();
     void PrepareDrawProjection(int frames);
     void ObserveMapLoad();
     [[nodiscard]] GameDrawTailState& FrameTail();
-    [[nodiscard]] World::TerrainLighting& FrameLighting();
+    [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
     [[nodiscard]] Models::ClothWorld& FrameCloth();
     [[nodiscard]] World::ObjectModelStepState& FrameModelState();
-    [[nodiscard]] GameItemRenderState& FrameItemRender();
+    [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
     [[nodiscard]] World::ModelEffects& FrameEffects();
     [[nodiscard]] World::Particles& FrameParticles();
     [[nodiscard]] std::span<World::WorldObject> FrameObjects();
@@ -222,8 +231,8 @@ private:
     [[nodiscard]] std::uint8_t ReadFrameHeroCell(bool x);
     [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(Render::Frame::SceneCanvas& canvas);
 
-    World::GameCamera& CameraState();
-    World::GameCameraInput& CameraInputState();
+    Camera::GameCamera& CameraState();
+    Camera::GameCameraInput& CameraInputState();
 
     SceneContext m_context;
     App::ServerSession* m_session;
@@ -235,16 +244,16 @@ private:
     const Tables::TextTable* m_texts;
     GameChatTables m_chatTables;
     // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
-    SceneTextures m_windowTextures;
-    SceneTextures m_sandTextures;
+    Assets::SceneTextures m_windowTextures;
+    Assets::SceneTextures m_sandTextures;
     // Las marcas de los gremios (0x5f16a0), cada una en su slot de la tabla de la escena.
     GuildMarkTextures m_guildMarks;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;
     // La cámara y lo que lee, sin las de main (los tests que no las pasan).
-    World::GameCamera m_localCamera;
-    World::GameCameraInput m_localCameraInput;
+    Camera::GameCamera m_localCamera;
+    Camera::GameCameraInput m_localCameraInput;
     // Los frames del original, por los pasos de la escena (#307).
     OriginalFramesOfTheSteps m_cameraFrames;
     // 0x4eb620: un frame del original empieza con el primer paso después del dibujo que lo fue; el timeGetTime() del
@@ -261,20 +270,20 @@ private:
     bool m_projectingFrame = false;
     FaunaDrawCarry m_projectedPoseCarry;
     FaunaDrawCarry* m_framePoseCarry = nullptr;
-    World::SphereFrustum m_frustum;
+    Terrain::SphereFrustum m_frustum;
     Render::Camera3D m_drawnCamera;
-    World::TerrainPickingState m_picking;
+    Terrain::TerrainPickingState m_picking;
     Core::PixelSize m_screen{640, 480};
-    TerrainTiles m_tiles;
+    Assets::TerrainTiles m_tiles;
     // Los modelos de los objetos del mapa que los cargó, si alguno.
-    WorldModels m_worldModels;
+    Assets::WorldModels m_worldModels;
     std::optional<std::int32_t> m_worldModelsMap;
     std::optional<std::uint64_t> m_loadedRevision;
     // El rango de bloques del último 0x5fbb00 de la escena, el que lee 0x5fbf60 en el paso.
-    World::TerrainRange m_terrainRange;
+    Terrain::TerrainRange m_terrainRange;
     // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.
-    World::TerrainWater m_water;
-    std::optional<World::TerrainPickingSegment> m_mouseRay;
+    Terrain::TerrainWater m_water;
+    std::optional<Terrain::TerrainPickingSegment> m_mouseRay;
     std::optional<std::string> m_failure;
 };
 } // namespace Client::Scenes

@@ -29,10 +29,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Kernel::DarkSpirit;
 using Client::Protocol::Pets::PetAttack;
 using Client::Protocol::Pets::PetOrder;
-using Client::Scenes::ActorState;
 
 constexpr std::uint16_t LordKey = 0x0101;
 constexpr std::uint16_t MonsterKey = 0x0202;
@@ -74,10 +74,10 @@ struct Ravens
         Client::Scenes::ApplyPetAttack(PetAttack{kind, LordKey, MonsterKey}, Resources());
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;

@@ -35,7 +35,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 
@@ -67,7 +67,7 @@ struct Pool
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind, services);
     }
 
-    Client::Core::Expected<void, std::string> Step(float clock = 0.0f, Client::Scenes::WorldState* world = nullptr)
+    Client::Core::Expected<void, std::string> Step(float clock = 0.0f, Client::Kernel::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(joints, random, nullptr, &particles, clock, nullptr, lighting.get(), {}, {},
                                           {}, {}, nullptr, nullptr, world);
@@ -77,7 +77,7 @@ struct Pool
     CrtRandom random{Seed};
     glm::vec3 startAngles{};
     Client::World::Particles particles;
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
 ActorState Owner(glm::vec3 position)
@@ -259,7 +259,7 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
 {
     ActorState owner = Owner({1.0f, 2.0f, 3.0f});
     owner.type = 0x1a5;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     const glm::vec3 origin{700.25f, 800.5f, 900.75f};
     world->PlaceModel(owner.type, {.scale = 1.5f, .origin = origin});
     // y de partida menos y del destino: 40 (< 50 · 1,5, llega), −500 (llega: no hay valor absoluto), 75 (50 · 1,5 = 75

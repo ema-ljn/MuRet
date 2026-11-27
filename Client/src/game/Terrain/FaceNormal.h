@@ -5,7 +5,7 @@
 // 0x5fd000, la normal de una cara. La usan la luz del terreno al cargar un mundo (0x5f8b10, 06 § La
 // luz del terreno en un punto) y el picking en cada triángulo (0x5fac90, 06 § El rayo contra el
 // terreno) y los cinco planos del frustum (0x5fbb00): una sola implementación.
-namespace Client::World
+namespace Client::Terrain
 {
 // (p2 − p1) × (p3 − p1), normalizada, con el perfil PC53/nearest del ASM y sin FMA: uy, uz, vz, nz y
 // el largo quedan en el registro (53 bits); vy, nx, vx, ux y ny pasan por un float de la pila, y cada
@@ -15,4 +15,4 @@ namespace Client::World
 // largo finito y no nulo. En terreno, los triángulos tienen alturas finitas y anchos positivos en x e y
 // (nz es 10.000 en la luz). El constructor del frustum exige una cámara con caras no degeneradas.
 [[nodiscard]] glm::vec3 FaceNormal(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3);
-} // namespace Client::World
+} // namespace Client::Terrain

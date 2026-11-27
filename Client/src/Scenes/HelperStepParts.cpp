@@ -72,10 +72,10 @@ float Shifted(int by, float value)
 }
 } // namespace
 
-Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& context, const ActorState& rider,
+Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& context, const Kernel::ActorState& rider,
                                                       std::string_view address)
 {
-    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
     if (!terrain.attributes)
     {
         return Core::Unexpected(std::format("{}: el paso del ayudante lee el atributo de la celda del jinete "
@@ -97,7 +97,7 @@ Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& c
     return (terrain.attributes->cells[cell] & SafeCellBit) != 0;
 }
 
-Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, std::size_t bone,
+Core::Expected<glm::vec3, std::string> GlobalPosePoint(const Kernel::WorldState& world, std::size_t bone,
                                                        const glm::vec3& offset, std::string_view address)
 {
     return GlobalPosePoint(world.PoseCarry().bones, bone, offset, address);
@@ -175,7 +175,7 @@ Core::Expected<void, std::string> PuffTheIcarusDust(const glm::vec3& base, const
     return {};
 }
 
-void FadeWithTheRider(HelperState& helper, const ActorState& rider)
+void FadeWithTheRider(HelperState& helper, const Kernel::ActorState& rider)
 {
     if (rider.byte80 != FadingRider && rider.byte80 != OtherFadingRider)
     {

@@ -66,9 +66,9 @@
 // ejecutar el original. Un modelo sintético de un triángulo en el hueso 0 deja ver el cuerpo, el contorno y la sombra.
 namespace
 {
+using Client::Actors::Drawing::GameCharacterPass;
+using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
-using Client::Scenes::ActorState;
-using Client::Scenes::GameCharacterPass;
 
 constexpr std::uint16_t Spider = 0x15b;    // Monster10.bmd, el 3 (Lorencia)
 constexpr std::uint16_t Yeti = 0x15e;      // Monster13.bmd, el 19 (Devias)
@@ -167,13 +167,13 @@ class MonsterDrawingTest : public testing::Test
 protected:
     void SetUp() override
     {
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         m_world->FaunaResources().Bind(&m_models);
         m_world->Runtime().map = 0;
         m_world->Runtime().hero = 42;
         m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         m_world->Map().terrain.attributes->cells.fill(0);
-        m_light = std::make_unique<Client::World::TerrainLighting>();
+        m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         m_joints.resize(16);
         m_batch.Begin(Client::Render::Pass3D{});
@@ -227,7 +227,7 @@ protected:
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
     {
-        return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        return Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     }
 
     std::vector<Client::World::Sprite> LiveSprites()
@@ -242,8 +242,8 @@ protected:
     }
 
     MonsterModels m_models;
-    std::unique_ptr<Client::Scenes::WorldState> m_world;
-    std::unique_ptr<Client::World::TerrainLighting> m_light;
+    std::unique_ptr<Client::Kernel::WorldState> m_world;
+    std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
@@ -543,7 +543,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -619,7 +619,7 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_world->Runtime().map = map;
         Monster(4, Gate, 152);
@@ -634,7 +634,7 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
         ExpectColor(m_batch.Vertices()[3], 0.7f, 0.07f, 0.0f, 1.0f);
         TearDown();
 
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_world->Runtime().map = map;
         Monster(4, Spider, 3);
@@ -647,7 +647,7 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
         EXPECT_EQ(m_batch.Vertices().size(), 24u);
         TearDown();
     }
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     ActorState& gate = Monster(4, Gate, 152);
     gate.dword58 = 0;
@@ -667,7 +667,7 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = map;
@@ -680,7 +680,7 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
         TearDown();
     }
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_world->Runtime().map = 30;
@@ -853,7 +853,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         Monster(0, value.type, value.monster);
@@ -931,7 +931,7 @@ TEST_F(MonsterDrawingTest, TheGlowingMonstersAddTheirShinePasses)
         for (const Case& value : cases)
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
-            m_world = std::make_unique<Client::Scenes::WorldState>();
+            m_world = std::make_unique<Client::Kernel::WorldState>();
             SetUp();
             m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_world->Runtime().map = map;
@@ -978,7 +978,7 @@ TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
     for (const Case& value : {Case{0x26, 0.5f, 12}, Case{0x3b, 0.25f, 6}})
     {
         SCOPED_TRACE(value.monster);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         Monster(0, Spider, value.monster).alpha = 0.5f;
@@ -1007,12 +1007,12 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = value.map;
         ActorState& monster = Monster(3, Spider, 0x37);
-        std::vector<Client::Scenes::CharacterCloth> cloths(4);
+        std::vector<Client::Actors::Drawing::CharacterCloth> cloths(4);
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
         Client::Models::ClothWorld expectedWorld = m_clothWorld;
@@ -1030,10 +1030,10 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
         }
         ASSERT_EQ(cloths[3].Cloths().size(), 1u);
         EXPECT_EQ(cloths[3].Count(), 1);
-        Client::Scenes::CharacterCloth expected;
+        Client::Actors::Drawing::CharacterCloth expected;
         Client::Render::ModelBatch expectedBatch;
         expectedBatch.Begin(Client::Render::Pass3D{});
-        Client::Scenes::ClothWearer wearer;
+        Client::Actors::Drawing::ClothWearer wearer;
         wearer.monster = std::uint16_t{0x37};
         const Client::Models::ClothBody body{
             .bones = monster.bodyPose, .angles = monster.angles, .scale = monster.scale, .position = monster.position};
@@ -1054,7 +1054,7 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
         EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(3));
         TearDown();
     }
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     Monster(3, Spider, 0x37);
     const auto unsupplied = Draw(Pass());
@@ -1073,12 +1073,12 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
     for (const std::int32_t map : {0, 2, 10})
     {
         SCOPED_TRACE(map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = map;
         ActorState& phoenix = Monster(3, Phoenix, 0x4d);
-        std::vector<Client::Scenes::CharacterCloth> cloths(4);
+        std::vector<Client::Actors::Drawing::CharacterCloth> cloths(4);
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
         Client::Models::ClothWorld expectedWorld = m_clothWorld;
@@ -1124,7 +1124,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         EXPECT_EQ(cloths[3].Cloths()[0].Columns(), 5);
         EXPECT_EQ(cloths[3].Cloths()[0].Rows(), 12);
         EXPECT_EQ(cloths[3].Cloths()[0].Spheres().size(), 1u);
-        Client::Scenes::CharacterCloth expected;
+        Client::Actors::Drawing::CharacterCloth expected;
         Client::Render::ModelBatch expectedBatch;
         expectedBatch.Begin(Client::Render::Pass3D{});
         const Client::Models::ClothBody body{
@@ -1164,12 +1164,12 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
         for (const Case& value : cases)
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
-            m_world = std::make_unique<Client::Scenes::WorldState>();
+            m_world = std::make_unique<Client::Kernel::WorldState>();
             SetUp();
             m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_world->Runtime().map = map;
             ActorState& crust = Monster(5, Spider, value.monster);
-            std::vector<Client::Scenes::CharacterCloth> cloths(6);
+            std::vector<Client::Actors::Drawing::CharacterCloth> cloths(6);
             GameCharacterPass pass = Pass();
             pass.cloths = cloths;
             Client::Models::ClothWorld expectedWorld = m_clothWorld;
@@ -1186,7 +1186,7 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
             EXPECT_EQ(cloth.Columns(), 5);
             EXPECT_EQ(cloth.Rows(), 15);
             EXPECT_TRUE(cloth.Spheres().empty());
-            Client::Scenes::CharacterCloth expected;
+            Client::Actors::Drawing::CharacterCloth expected;
             Client::Render::ModelBatch expectedBatch;
             expectedBatch.Begin(Client::Render::Pass3D{});
             const Client::Models::ClothBody body{
@@ -1209,7 +1209,7 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
             TearDown();
         }
     }
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     Monster(5, Spider, 0x47);
     const auto unsupplied = Draw(Pass());
@@ -1222,7 +1222,7 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
 TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
 {
     ActorState& phoenix = Monster(3, 0x189, 0x4d);
-    std::vector<Client::Scenes::CharacterCloth> cloths(4);
+    std::vector<Client::Actors::Drawing::CharacterCloth> cloths(4);
     GameCharacterPass pass = Pass();
     pass.cloths = cloths;
     pass.originalFrames = 0;
@@ -1252,7 +1252,7 @@ TEST_F(MonsterDrawingTest, The0x2aCarriesTheHeadAndThePrincessFromTheWingsSlot)
     for (const std::int32_t map : {0, 2, 5})
     {
         SCOPED_TRACE(map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_models.SetBoneCount(64);
         m_models.SetActionCount(2);
@@ -1316,7 +1316,7 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
         for (const Case& value : cases)
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
-            m_world = std::make_unique<Client::Scenes::WorldState>();
+            m_world = std::make_unique<Client::Kernel::WorldState>();
             SetUp();
             m_models.SetActionCount(2);
             m_clothWorld.random = Client::Crt::CrtRandom{1};
@@ -1336,8 +1336,8 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             // El cuerpo, la sombra (sin ella en el 11, como Spider) y los pases del arma (0x60b3d0).
             ASSERT_GE(vertices.size(), 9u);
             // El hueso 0 de lo que cuelga es la raíz: el hueso 1 del cuerpo por el lugar, a la escala del modelo.
-            const Client::Math::BoneTransform root = Client::Models::PlacedRoot(
-                statue.bodyPose[1], Client::Models::HangingPlacement{value.angles, value.translation});
+            const Client::Math::BoneTransform root = Client::Actors::PlacedRoot(
+                statue.bodyPose[1], Client::Actors::HangingPlacement{value.angles, value.translation});
             const glm::vec3 expected = root[3] * value.scale + statue.position;
             EXPECT_NEAR(vertices[6].position.x, expected.x, 1e-3f);
             EXPECT_NEAR(vertices[6].position.y, expected.y, 1e-3f);
@@ -1380,7 +1380,7 @@ TEST_F(MonsterDrawingTest, TheStatueStaffAndSwordReadAnActionTheirModelLacks)
     EXPECT_NE(staff.Error().find("0x4ec200: el modelo 0xc1c no tiene la acción 1"), std::string::npos) << staff.Error();
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(1));
 
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     m_clothWorld.random = Client::Crt::CrtRandom{1};
     Monster(6, Spider, 0x86);
@@ -1420,7 +1420,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_sprites.Clear();
@@ -1455,7 +1455,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
         TearDown();
     }
     // Entre frames del original, los nueve flare01 sin las partículas, sobre una copia del rand().
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_sprites.Clear();
@@ -1508,7 +1508,7 @@ TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
     EXPECT_EQ(links[3]->targetPosition, glm::vec3(150.0f, 150.0f, 33.0f));
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(0));
 
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     TearDown();
     SetUp();
     m_sprites.Clear();
@@ -1537,7 +1537,7 @@ TEST_F(MonsterDrawingTest, The0x46LightsOneFlareOnItsBone20)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_sprites.Clear();
@@ -1569,12 +1569,12 @@ TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
 
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Monster(3, Spider, 3).darkSpirit.emplace();
-    const Client::World::TerrainPolygon everything{.everything = true};
+    const Client::Terrain::TerrainPolygon everything{.everything = true};
     GameCharacterPass pass = Pass();
     pass.polygon = &everything;
     const auto drawn = Draw(pass);
@@ -1703,8 +1703,8 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
     for (int mesh = 1; mesh <= 6; ++mesh)
         m_models.AddMesh();
     auto selection = std::make_unique<Client::Scenes::SelectionState>(*m_world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     const Client::Scenes::WorldEntryResources resources{.world = *m_world,
@@ -1787,7 +1787,7 @@ TEST_F(MonsterDrawingTest, TheBodyPublishesItsSharedModelPlacementOnOriginalFram
                                  OffsetCase{0x18f, 3, {7000.0f, 8000.0f, 80.0f}, 0.75f, 60.0f}};
     for (const OffsetCase& value : offsetCases)
     {
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         ActorState& actor = Monster(5, value.type, value.monster);
         actor.position = value.position;
@@ -1805,7 +1805,7 @@ TEST_F(MonsterDrawingTest, TheBodyPublishesItsSharedModelPlacementOnOriginalFram
         TearDown();
     }
 
-    m_world = std::make_unique<Client::Scenes::WorldState>();
+    m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     ActorState& projected = Monster(7, Spider, 3);
     projected.position = {17000.0f, 18000.0f, 100.0f};
@@ -2080,7 +2080,7 @@ TEST_F(MonsterPartsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfEachPart)
         ActorState& npc = Npc(DressedNpcs[0]);
         for (auto& part : npc.body)
             part.level = 13;
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.glowDetail = detail;
         GameCharacterPass pass = Pass();
         pass.itemContext = &items;

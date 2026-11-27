@@ -15,9 +15,13 @@ namespace Client::Models
 struct Skeleton;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
 
 // El esqueleto del modelo `model` como lo lee 0x4ea030 (0x5769ad8 + modelo · 0xe0): primero los que cargan 0x612d90 y
@@ -26,8 +30,9 @@ struct WorldEntryResources;
 
 // 0x4ea030(personaje, acción) con el esqueleto de MonsterSkeletonOf. Un modelo que no está es el registro en 0 del
 // original (+0x26, sin acciones): no pone nada y no es un error. `address` queda para quien llama.
-[[nodiscard]] Core::Expected<void, std::string>
-SetMonsterAction(ActorState& actor, std::uint8_t action, std::uint32_t address, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
+                                                                 std::uint32_t address,
+                                                                 const WorldEntryResources& resources);
 
 // Los bytes de texto desde +0x1d9: el nombre (diez bytes), +0x1e3 y +0x1e4..+0x1f1 (ActorState::nameSpill).
 inline constexpr std::size_t ActorTextSize = 25;
@@ -41,16 +46,18 @@ inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 // después de los 25 de texto siguen el WORD de +0x1f2, la clave de +0x1f4, +0x1f6 y +0x1f7, la cabeza de +0x1f8 y el
 // resto de su parte hasta +0x217, como en el original; lo que cae en +0x1f6, +0x1f7 y +0x1fa..+0x217, que ActorState
 // no tiene, se pierde (P-C352). Lo que llegaría a las partes de +0x218 corta con `address`, sin escribir nada.
-[[nodiscard]] Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<const std::byte> bytes,
-                                                             std::uint32_t address, std::size_t offset = 0);
+[[nodiscard]] Core::Expected<void, std::string> PutActorText(Kernel::ActorState& actor,
+                                                             std::span<const std::byte> bytes, std::uint32_t address,
+                                                             std::size_t offset = 0);
 
 // La cadena de C desde +0x1d9, sin el 0: hasta el primer 0 de los ActorTextReadable bytes que MuRet guarda seguidos,
 // o esos si no hay (el original seguiría en +0x1f6).
-[[nodiscard]] std::string ActorText(const ActorState& actor);
+[[nodiscard]] std::string ActorText(const Kernel::ActorState& actor);
 
 // El nombre de +0x1d9 como lo lee una función de cadenas del original (strcat, wsprintfA): ActorText si tiene su 0;
 // sin él, el original seguiría en +0x1f6, que MuRet no guarda, y corta con `address` (Q-C847, P-C352).
-[[nodiscard]] Core::Expected<std::string, std::string> ActorCString(const ActorState& actor, std::uint32_t address);
+[[nodiscard]] Core::Expected<std::string, std::string> ActorCString(const Kernel::ActorState& actor,
+                                                                    std::uint32_t address);
 
 // 0x5141e0 con la cola 0x5140c0: el creador de evento o el caso del switch (MonsterCreationOf con el mapa de
 // WorldRuntime::map) corre sus pasos en orden, con cada rand() en su lugar entre los del alta (0x511290 y sus celdas):

@@ -438,9 +438,9 @@ struct UiDrawing
     Client::Render::ModelBatch batch;
     Client::Scenes::FaunaDrawCarry carry;
     CrtRandom random{0x2468aceu};
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     std::map<std::uint16_t, std::int32_t> selections;
-    Client::Scenes::ItemDrawContext context;
+    Client::Actors::Drawing::ItemDrawContext context;
     std::vector<std::string> events;
 };
 } // namespace

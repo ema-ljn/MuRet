@@ -387,11 +387,11 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtR
     return spirit;
 }
 
-bool DarkSpiritSeen(const DarkSpirit& spirit, const World::TerrainPolygon& polygon)
+bool DarkSpiritSeen(const DarkSpirit& spirit, const Terrain::TerrainPolygon& polygon)
 {
     const auto cells = [](float coordinate)
     { return static_cast<double>(F32(static_cast<double>(coordinate) * CellsPerUnit)); };
-    return World::PolygonContains(polygon, cells(spirit.position.x), cells(spirit.position.y), ViewMargin);
+    return Terrain::PolygonContains(polygon, cells(spirit.position.x), cells(spirit.position.y), ViewMargin);
 }
 
 void MissTheView(DarkSpirit& spirit)
@@ -403,10 +403,10 @@ void MissTheView(DarkSpirit& spirit)
     }
 }
 
-DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton, const glm::vec3& terrainLight,
-                            float stepAlpha)
+Actors::Drawing::DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton,
+                                             const glm::vec3& terrainLight, float stepAlpha)
 {
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     drawn.model = DarkSpiritModel;
     drawn.animation = spirit.animation;
     if (skeleton != nullptr && spirit.animation.action < skeleton->actions.size())

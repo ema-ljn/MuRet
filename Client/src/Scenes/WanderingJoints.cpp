@@ -54,7 +54,7 @@ const glm::vec3* Anchor(const JointState& joint)
 {
     if (joint.subtype == WanderSubtype)
     {
-        const ActorState* actor = JointKernels::ActorOwner(joint);
+        const Kernel::ActorState* actor = JointKernels::ActorOwner(joint);
         return actor != nullptr ? &actor->position : nullptr;
     }
     const World::ModelEffect* arrow = ArrowOwner(joint);

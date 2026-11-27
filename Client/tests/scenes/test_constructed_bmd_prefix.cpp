@@ -12,7 +12,7 @@
 
 namespace
 {
-using Client::Scenes::ConstructedBmdPrefix;
+using Client::Assets::ConstructedBmdPrefix;
 TEST(ConstructedBmdPrefixTest, UninitializedAndZeroOffsetsDoNotInventAPredecessor)
 {
     ConstructedBmdPrefix prefix;
@@ -63,7 +63,7 @@ TEST(ConstructedBmdPrefixTest, RejectsImpossibleOffsetsWithoutChangingAnExisting
 }
 TEST(ConstructedBmdPrefixTest, TheProductionFaunaOwnerKeepsTheLoanAcrossRebindingAndResourceRelease)
 {
-    Client::Scenes::FaunaModels resources;
+    Client::Assets::FaunaModels resources;
     EXPECT_EQ(resources.PrefixModel(), nullptr);
     EXPECT_FALSE(resources.PrefixOffset());
     ASSERT_TRUE(resources.InitializePrefix(9).HasValue());

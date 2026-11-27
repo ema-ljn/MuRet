@@ -404,7 +404,7 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
         yaw = F32(count * Turn + D(yaw));
     if (yaw > Facing)
         yaw = F32(D(yaw) - count * Turn);
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hero >= context.world.Actors().size())
         return Core::Unexpected(std::string("0x527919: el héroe publicado ([0x743a170]) no está en el pool"));
     const glm::vec3& hero = context.world.Hero().position;

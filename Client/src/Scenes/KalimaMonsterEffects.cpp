@@ -84,7 +84,7 @@ void BeginTheThunder(World::ModelEffect& effect)
     constexpr std::int32_t Life = 10;                 // 0x51ed79
     constexpr glm::vec3 Offset{-25.0f, -80.0f, 0.0f}; // 0x51eda2..0x51edb0
     effect.life = Life;
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr || effect.subtype != 0)
         return;
     const glm::vec3 step = Math::OriginalVectorRotate(Offset, Math::OriginalAngleMatrix(owner->angles));

@@ -36,14 +36,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::CrywolfInterface;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::CrywolfInterface;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -124,8 +124,8 @@ protected:
 
     GameHudContext Context(CrywolfInterface* copy = nullptr)
     {
-        Client::Scenes::WorldRuntime& runtime = world->Runtime();
-        Client::Scenes::ActorState& hero = world->Hero();
+        Client::Kernel::WorldRuntime& runtime = world->Runtime();
+        Client::Kernel::ActorState& hero = world->Hero();
         return GameHudContext{.world = *world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -173,7 +173,7 @@ protected:
 
     void Enter(std::int32_t map, std::uint8_t stage)
     {
-        world->Runtime() = Client::Scenes::WorldRuntime{};
+        world->Runtime() = Client::Kernel::WorldRuntime{};
         world->Runtime().map = map;
         world->Runtime().crywolf.stage = stage;
     }

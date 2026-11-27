@@ -12,12 +12,16 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class ModelEffects;
 struct FishEffectRequest;
-struct TerrainLighting;
 struct WorldObject;
 } // namespace Client::World
 
@@ -31,7 +35,7 @@ struct IcarusObjectServices
     // +0x10 del héroe (0x743a170).
     const glm::vec3& heroPosition;
     // La luz dinámica durable (0x7b4ccc4).
-    World::TerrainLighting* lighting = nullptr;
+    Terrain::TerrainLighting* lighting = nullptr;
     // La tabla de 0x518cf0.
     World::ModelEffects* effects = nullptr;
     // 0x5491e0.

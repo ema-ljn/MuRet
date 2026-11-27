@@ -252,8 +252,9 @@ ShopSignLayout MeasureTheShopSign(const ShopTitle& sign, std::string_view header
     return layout;
 }
 
-Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& projection, const ActorState& owner,
-                                                        std::int32_t width, Core::PixelSize screen)
+Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& projection,
+                                                        const Kernel::ActorState& owner, std::int32_t width,
+                                                        Core::PixelSize screen)
 {
     // 0x45211c..0x452143: FLD, FADD y FADD en la x87, y FSTP en float.
     const glm::vec3 above{
@@ -350,7 +351,7 @@ ShopSignColors ShopSignColorsOf(std::uint8_t pk, bool hovered)
     return ShopSignColors{.name = text, .header = text, .background = hovered ? 0x80527ab6u : 0x8029396cu};
 }
 
-ShopSignColors ShopBubbleColorsOf(const ActorState& owner, bool hovered)
+ShopSignColors ShopBubbleColorsOf(const Kernel::ActorState& owner, bool hovered)
 {
     const bool enemy = owner.byte370 == RelationTwo || owner.byte370 == RelationEight;
     return ShopSignColorsOf(enemy ? PkSix : owner.pk, hovered);
@@ -365,7 +366,7 @@ bool ShopSignHovered(const PersonalShopState& shops, std::size_t index)
 
 Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     // 0x451c27..0x451c2c: el mapa vacío.
     if (shops.titles.empty())
@@ -385,7 +386,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
     const auto header = ShopSignHeader(context.texts, "0x452776");
     if (!header.HasValue())
         return Core::Unexpected(header.Error());
-    const std::span<const ActorState, ActorPoolSize> actors = context.world.Actors();
+    const std::span<const Kernel::ActorState, Kernel::ActorPoolSize> actors = context.world.Actors();
 
     // 0x451daf..0x451e23: el lugar de cada uno (0x452110), en el orden del mapa.
     std::vector<ShopSignLayout> layouts;

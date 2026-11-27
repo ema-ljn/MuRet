@@ -26,15 +26,19 @@ namespace Client::Render
 class ModelBatch;
 } // namespace Client::Render
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+struct TerrainPolygon;
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 struct ModelEffect;
 class ModelEffects;
 class Particles;
-struct TerrainLighting;
-struct TerrainPolygon;
-struct WorldTerrain;
 } // namespace Client::World
 
 namespace Client::Models
@@ -42,15 +46,23 @@ namespace Client::Models
 class IModelLibrary;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
+struct FaunaDrawCarry;
+} // namespace Client::Scenes
+
 // Los efectos de un jugador en el dibujo del juego: la cola de 0x50ba30 después de lo que cuelga, del caso
 // del 0x20a del switch de 0x50e9fa (0x50ea20) al return, y el cuervo de 0x420df0. Lo que pide un efecto,
 // un joint, una partícula o un sonido que MuRet no tiene corta con su dirección, y sólo cuando la rama de
 // verdad correría. Contrato: 06 § El dibujo del juego, "Los efectos del jugador".
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
-class WorldState;
-struct ActorState;
-struct FaunaDrawCarry;
 
 struct GameCharacterEffectsPass
 {
@@ -63,21 +75,21 @@ struct GameCharacterEffectsPass
     // Las partículas (0x53fe70), los joints (0x530860) y los efectos con modelo (0x518cf0) del frame, para lo que
     // crea el conjunto completo. Hacen falta sólo si una rama crea, en un frame del original.
     World::Particles* particles = nullptr;
-    std::span<JointState> joints{};
+    std::span<Scenes::JointState> joints{};
     World::ModelEffects* effects = nullptr;
     // El mundo, para las altas de 0x518cf0 de las acciones 0x51 y 0x5b del Dark Lord (el 0x621/2 de 0x50f9b3 y los
     // 0x117/2 de 0x50fb64, por CreateHighModelEffect) y su sonido 0x1cc. Sin él, esas ventanas cortan.
-    WorldState* world = nullptr;
+    Kernel::WorldState* world = nullptr;
     // El lugar del personaje en el pool: la identidad del dueño (+0x40) de la órbita 60f/0.
     std::size_t slot = 0;
     // Lo que devolvió 0x505820 en este dibujo (0x50c904) y lo que dejó en [0x743a178].
     FullSetScan scan;
     // Los lugares de la party hasta su cuenta (PartyMembers): las acciones 0x51, 0x5b y 0x94 del Dark Lord los leen
     // con el frame por debajo de 2 (0x50f9c9).
-    std::span<const PartySlot> party{};
+    std::span<const Scenes::PartySlot> party{};
     // Los 400 personajes (0x743a16c): los miembros de la party a los que van los joints 0x618 de esas acciones
     // (0x50fa25). Sin ellos, cortan.
-    std::span<const ActorState> actors{};
+    std::span<const Kernel::ActorState> actors{};
     // DAT_05767b88: el reloj del mundo en ms, en float.
     float worldClock = 0.0f;
     std::int32_t map = 0;        // 0x6c9dd0
@@ -105,15 +117,15 @@ struct GameCharacterEffectsPass
 // escena: lo llaman el juego, el login y la selección. Entre frames, los sprites, el contador y los rand() que eligen
 // sobre la copia del personaje y del rand() que da el caller; lo que nace en las tablas durables, sólo en un frame del
 // original.
-[[nodiscard]] Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor,
+[[nodiscard]] Core::Expected<void, std::string> DrawGameCharacterEffects(Kernel::ActorState& actor,
                                                                          const GameCharacterEffectsPass& pass);
 
 // 0x5208a0 sobre el 0x5ac/3 del conjunto completo (0x52a9ad): el rand() de la luz de todo efecto vivo (0x5208c5), +0xd8
 // un paso más y, con la vida múltiplo de 15 y dueño, el giro z 180 más; la posición a 50 del personaje dueño (+0x108,
 // leído en vivo) con el seno del giro sin redondear y el coseno del giro guardado (Q-C380), 20 más arriba, y el joint
 // 619/9 ahí. Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos.
-[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect,
-                                                                 std::span<JointState> joints, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string>
+StepFullSetFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints, Crt::CrtRandom& random);
 
 // 0x5208a0 sobre el calco 0x61e/0 del level-up, /1 de la mascota y /3 de invocar. El /0 sólo consume el rand() común
 // y descuenta vida (0x52b984 → 0x52bb29). El /1 (0x52b9a6 → 0x518900): el rand() de la luz de todo efecto vivo
@@ -125,8 +137,8 @@ struct GameCharacterEffectsPass
 // negativos, como el /0. Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Los /4 y /6 a
 // /0xa son de Scenes/HighModelEffects (StepsAsPetSummon los deja afuera).
 [[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
-[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
-                                                              Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string>
+StepPetSummon(World::ModelEffect& effect, std::span<Scenes::JointState> joints, Crt::CrtRandom& random);
 
 // 0x5208a0 sobre los 0x5ac/1 y /2 de las skills que llegan (0x52a7b7 y 0x52a8a7, Scenes/SkillReplies): el rand() de la
 // luz de todo efecto vivo (0x5208c5) y la vida en 10 con el dueño (+0x108) vivo (+0x0 en 1) y su bandera de +0x78 (0x10
@@ -136,10 +148,9 @@ struct GameCharacterEffectsPass
 // coseno del giro guardado (Q-C380), 50 más arriba, y suelta el joint 619/9 de ancho 15 ahí (con la tabla de joints
 // llena, ninguno). Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Sin dueño, el original
 // lee +0x78 de 0: MuRet corta.
-[[nodiscard]] Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
-                                                               Crt::CrtRandom& random,
-                                                               World::Particles* particles = nullptr,
-                                                               World::ParticleOwner particleOwner = {});
+[[nodiscard]] Core::Expected<void, std::string>
+StepSkillFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints, Crt::CrtRandom& random,
+               World::Particles* particles = nullptr, World::ParticleOwner particleOwner = {});
 
 // Lo que lee el cuervo del juego (0x420df0 → 0x4182f0) fuera de su dueño.
 struct GameRavenPass
@@ -147,13 +158,13 @@ struct GameRavenPass
     Render::ModelBatch& batch;
     const Models::IModelLibrary& models;
     // El trapecio de este dibujo (0x5fba90) y el buffer dinámico de la luz del terreno (0x5ffce0).
-    const World::TerrainPolygon& polygon;
-    const World::TerrainLighting* lighting = nullptr;
+    const Terrain::TerrainPolygon& polygon;
+    const Terrain::TerrainLighting* lighting = nullptr;
     // Las alturas del terreno de 0x5f93c0, para la sombra, con la altura fija de la cámara.
-    const World::WorldTerrain& terrain;
+    const Terrain::WorldTerrain& terrain;
     float fixedHeight = 0.0f;
     // El buffer global de la pose (0x68b181c), donde 0x5ffdf0 deja la del cuervo. Opcional.
-    FaunaDrawCarry* carry = nullptr;
+    Scenes::FaunaDrawCarry* carry = nullptr;
     Core::Duration frameClock{};
     std::int32_t map = 0;
     // +0x1a1 del héroe, que 0x5ffdf0 lee en los mapas 18 a 23.
@@ -168,7 +179,7 @@ struct GameRavenPass
     // Las tablas del mundo para el estado 5 (0x418aab..0x418c0a: los joints 0x5ac/1 de 0x530860 y los efectos 0x117/3
     // y 0x113/0 de 0x518cf0) y para el final del grito (0x418a8c: los joints 0x613/0xd hacia el personaje de +0x3b0,
     // uno de sus 400). Sin ellas, cortan en la primera alta.
-    WorldState* world = nullptr;
+    Kernel::WorldState* world = nullptr;
 };
 
 // 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),
@@ -181,5 +192,5 @@ struct GameRavenPass
 // 0x5ac/6 de sus huesos (DrawTheRavenAttack), y su final, los joints 0x613/0xd de los vértices de su malla 1 (0x4ee770,
 // EndTheShout). Se dibuja como lo dejó el paso, como el personaje. En un frame del original le quedan los huesos de la
 // pose para la chispa del paso.
-[[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const GameRavenPass& pass);
+} // namespace Client::Actors::Drawing

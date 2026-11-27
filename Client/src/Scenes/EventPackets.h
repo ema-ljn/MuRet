@@ -30,6 +30,12 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+struct WorldRuntime;
+} // namespace Client::Kernel
+
 // CL9 hito 11: lo que los paquetes de los eventos (Protocol::Events, 04 § Los eventos) hacen al llegar, como el
 // dispatcher 0x4e2b10 y sus handlers, sobre los globales de WorldRuntime: los avisos (0x632e30, 0x633300), los
 // mensajes (0x555190), el .att (0x7d0d348), el objeto del evento de [0x723c60], los chips (0x78abb00), Crywolf y los
@@ -37,14 +43,12 @@ class ITextMeasure;
 // que el original hace fuera de sus tablas se descarta (EventPacketResult::discarded).
 namespace Client::Scenes
 {
-class WorldState;
 struct EventMapObject;
 struct InventoryServices;
-struct WorldRuntime;
 
 struct EventPacketContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() de la CRT, que gastan los cierres de los paneles (0x657a90, 0x65cae0).
     Crt::CrtRandom& random;
     // Text.bmd: sin la tabla, un aviso corta.
@@ -101,5 +105,5 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables:
 // 0x42fdc0: los globales de la interfaz de Crywolf a su valor inicial, el estado y la etapa en 0, el NPC elegido de la
 // llegada (0x6c8e54, GameMovementState::chosenNpc) y el segundo de los objetivos elegidos (0x6c8e2c) en −1. Lo llaman
 // la vuelta a la selección (0x4c363a) y el BD 00 con la etapa 6.
-void ResetTheCrywolfInterface(WorldRuntime& runtime);
+void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime);
 } // namespace Client::Scenes

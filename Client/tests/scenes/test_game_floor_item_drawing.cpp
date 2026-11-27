@@ -95,7 +95,7 @@ TEST(GameFloorItemDrawingTest, CommonWeaponAndConsumableFamiliesRenderAndWrapPro
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     const std::array<std::int16_t, 8> types{0x412, 0x612, 0x812, 0xa12, 0xc12, 0xe12, 0x1c12, 0x1e12};
     for (const auto type : types)
     {
@@ -115,7 +115,7 @@ TEST(GameFloorItemDrawingTest, TransparentArmorPosesPlayerWithFamilyRootHeight)
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     const std::array<std::int16_t, 5> types{0x1012, 0x1212, 0x1412, 0x1612, 0x1812};
     const std::array<float, 5> heights{-160, -100, -50, -70, 0};
     for (std::size_t index = 0; index < types.size(); ++index)
@@ -125,7 +125,8 @@ TEST(GameFloorItemDrawingTest, TransparentArmorPosesPlayerWithFamilyRootHeight)
         int calls = 0;
         Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
         context.project = Project;
-        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        context.onPose =
+            [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
         {
             ++calls;
             EXPECT_EQ(object.model, 0x20a);
@@ -143,7 +144,7 @@ TEST(GameFloorItemDrawingTest, ItemLevelSevenAddsChromeGeometry)
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x212);
     item.value = 7 << 3;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
@@ -152,7 +153,7 @@ TEST(GameFloorItemDrawingTest, ItemLevelSevenAddsChromeGeometry)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.8f);
-    EXPECT_EQ(batch.Commands().back().state.texture, Client::Scenes::ChromeTextureSlot);
+    EXPECT_EQ(batch.Commands().back().state.texture, Client::Actors::Drawing::ChromeTextureSlot);
 }
 
 TEST(GameFloorItemDrawingTest, SwordTwentyUsesTwoMeshZeroPassesBeforeMeshOne)
@@ -161,7 +162,7 @@ TEST(GameFloorItemDrawingTest, SwordTwentyUsesTwoMeshZeroPassesBeforeMeshOne)
     models.model.meshes.push_back(models.model.meshes[0]);
     models.model.meshes[1].texture = 1;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x225);
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.project = Project;
@@ -176,7 +177,7 @@ TEST(GameFloorItemDrawingTest, KalimaSkinUsesWaterButProjectionUsesRestoredPosit
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x612);
     item.position = {100, 200, 300};
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
@@ -203,7 +204,7 @@ TEST(GameFloorItemDrawingTest, CoinsReuseOnePoseAndTheExplicitTableBeforeTheCent
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x1e21);
     item.value = 64;
     std::array<std::int32_t, 100> table{};
@@ -223,11 +224,11 @@ TEST(GameFloorItemDrawingTest, MissingCoinTableKeepsThePosePrefixWithoutInventin
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x1e21);
     int poses = 0;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
-    context.onPose = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    context.onPose = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
         ++poses;
         return {};
@@ -253,12 +254,12 @@ TEST_F(GoldenGameFloorItemDrawing, RealWeaponsArmorAndMoneyUseTheSharedPoseAndTh
     Client::Tests::FakeTextureStore textures;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     const auto loaded = models.Load(m_dataRoot, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     Client::Scenes::FaunaDrawCarry carry;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     const std::array<std::int16_t, 5> types{0x225, 0x612, 0x1012, 0x1812, 0x1e21};
     std::array<std::int32_t, 100> table{};
     for (const auto map : {0, 2, 10, 24, 36})
@@ -271,9 +272,9 @@ TEST_F(GoldenGameFloorItemDrawing, RealWeaponsArmorAndMoneyUseTheSharedPoseAndTh
             context.randomTable = table;
             context.waterHeight = [](float, float) -> Client::Core::Expected<float, std::string> { return 20; };
             context.project = Project;
-            context.onPose = [&](const Client::Scenes::DrawnObject& object)
+            context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
             { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
-            context.onSkin = [&](const Client::Scenes::DrawnObject& object)
+            context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
             { return Client::Scenes::TransformFaunaPose(carry, models, object); };
             context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
             const auto before = batch.Vertices().size();
@@ -287,7 +288,7 @@ TEST(GameFloorItemDrawingTest, HelpersOverrideThePackedItemLevelBeforeChoosingTh
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     const std::array<std::int16_t, 4> types{0x1a13, 0x1a19, 0x1e1f, 0x1e1e};
     const std::array<std::size_t, 4> vertices{3, 9, 6, 6};
     for (std::size_t index = 0; index < types.size(); ++index)
@@ -307,10 +308,10 @@ TEST(GameFloorItemDrawingTest, DisabledGlowDetailSuppressesTheExcellentOptionPas
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x212);
     item.excellent = 1;
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     items.glowDetail = 0;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.project = Project;
@@ -329,10 +330,10 @@ TEST(GameFloorItemDrawingTest, TheGlowDetailOfTheOptionsTrimsTheLevel)
         SCOPED_TRACE(static_cast<int>(detail));
         FloorModels models;
         Client::Render::ModelBatch batch;
-        Client::World::SphereFrustum frustum;
+        Client::Terrain::SphereFrustum frustum;
         auto item = Item(0x212);
         item.value = 13 << 3;
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.glowDetail = detail;
         Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
         context.project = Project;
@@ -349,16 +350,16 @@ TEST(GameFloorItemDrawingTest, AncientLowPulseDrawConsumesOneNativeRandomAndPubl
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x212);
     item.ancient = 1;
     Client::Crt::CrtRandom random;
     auto expected = random;
     const auto selection = expected.Next() % 100;
     std::map<std::uint16_t, std::int32_t> selections;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.random = &random;
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     items.special = &special;
     items.selections = &selections;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
@@ -383,7 +384,7 @@ TEST(GameFloorItemDrawingTest, SpecialItemFamiliesChooseTheirNativeEarlyPasses)
     for (std::size_t index = 0; index < types.size(); ++index)
     {
         Client::Render::ModelBatch batch;
-        Client::World::SphereFrustum frustum;
+        Client::Terrain::SphereFrustum frustum;
         auto item = Item(types[index]);
         item.value = levels[index] << 3;
         Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
@@ -403,21 +404,21 @@ TEST(GameFloorItemDrawingTest, GlowItemsPublishTheirSpritesFromTheRetainedBones)
     for (std::size_t index = 0; index < types.size(); ++index)
     {
         Client::Render::ModelBatch batch;
-        Client::World::SphereFrustum frustum;
+        Client::Terrain::SphereFrustum frustum;
         Client::World::FrameSprites sprites;
         Client::Scenes::FaunaDrawCarry carry;
         auto item = Item(types[index]);
-        Client::Scenes::ItemSpecialDrawContext special;
+        Client::Actors::Drawing::ItemSpecialDrawContext special;
         special.sprites = &sprites;
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.special = &special;
         items.poseBones = [&]() -> std::span<const Client::Math::BoneTransform> { return carry.bones; };
         Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
         context.itemContext = &items;
         context.project = Project;
-        context.onPose = [&](const Client::Scenes::DrawnObject& object)
+        context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
         { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
-        context.onSkin = [&](const Client::Scenes::DrawnObject& object)
+        context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
         { return Client::Scenes::TransformFaunaPose(carry, models, object); };
         context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
         const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
@@ -432,12 +433,12 @@ TEST(GameFloorItemDrawingTest, ItemClockTruncationUsesTheLowWordOfTheNativeInt64
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::FrameSprites sprites;
     auto item = Item(0x2247);
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     items.special = &special;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.itemContext = &items;
@@ -455,15 +456,15 @@ TEST(GameFloorItemDrawingTest, HelperBeamsUseTheRetainedBonesAndKeepTheDurableOw
     for (std::size_t bone = 0; bone < models.skeleton.bones.size(); ++bone)
         models.skeleton.bones[bone].actions[0][0].position.x = static_cast<float>(bone);
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::FrameSprites sprites;
     auto item = Item(0x1a18);
     item.scale = 2;
     item.position = {100, 200, 300};
     std::size_t requests = 0;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     items.special = &special;
     items.createJoint =
         [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
@@ -498,7 +499,7 @@ TEST(GameFloorItemDrawingTest, FailedWaterSkinKeepsItsTemporaryPositionAndTheNex
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     std::array<Client::Scenes::FloorItemState, 2> items{Item(0x212), Item(0x612)};
     items[0].position.z = 300;
     items[1].screenX = 17;
@@ -506,7 +507,7 @@ TEST(GameFloorItemDrawingTest, FailedWaterSkinKeepsItsTemporaryPositionAndTheNex
     context.map = 24;
     context.project = Project;
     context.waterHeight = [](float, float) -> Client::Core::Expected<float, std::string> { return 600; };
-    context.onSkin = [](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    context.onSkin = [](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     { return Client::Core::Unexpected(std::string("skin interrumpido")); };
     const auto result = Client::Scenes::DrawFloorItems(items, context);
     ASSERT_FALSE(result.HasValue());
@@ -521,7 +522,7 @@ TEST(GameFloorItemDrawingTest, WaterCannotReuseTheUnshiftedMeshWithoutTheSkinBin
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Models::SkinnedMesh mesh;
     mesh.positions.assign(3, glm::vec3{});
     mesh.normals.assign(1, glm::vec3(0, 0, 1));
@@ -530,7 +531,8 @@ TEST(GameFloorItemDrawingTest, WaterCannotReuseTheUnshiftedMeshWithoutTheSkinBin
     context.map = 24;
     context.project = Project;
     context.waterHeight = [](float, float) -> Client::Core::Expected<float, std::string> { return 600; };
-    context.onPose = [](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string> { return {}; };
+    context.onPose = [](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    { return {}; };
     context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return {&mesh, 1}; };
     const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
     ASSERT_FALSE(result.HasValue());
@@ -543,11 +545,11 @@ TEST(GameFloorItemDrawingTest, MissingAncientRandomPreservesAllThePrecedingLevel
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     auto item = Item(0x212);
     item.value = 13 << 3;
     item.ancient = 1;
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.itemContext = &items;
     context.worldClock = 4700;
@@ -562,7 +564,7 @@ TEST(GameFloorItemDrawingTest, MissingAncientRandomPreservesAllThePrecedingLevel
 TEST(GameFloorItemDrawingTest, ShinePeriodsWrapTheNativeClockWithoutResettingItsSinePhase)
 {
     FloorModels models;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     const auto sine = Client::Math::Detail::SineProductPC53(static_cast<double>(0x1p32f) * 0.002f, 1);
     ASSERT_TRUE(sine.has_value());
     const float phase = static_cast<float>(*sine);
@@ -591,13 +593,13 @@ TEST(GameFloorItemDrawingTest, TheBasePassReadsTheSharedUnlitSelectionBeforeDraw
     FloorModels models;
     models.model.meshes[0].normals[0].normal = {0, 0, -1};
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::ObjectModelStepState state;
     state.unlitMeshes[0x212] = 0;
     auto item = Item(0x212);
     item.vertexLight = true;
     item.objectState.uv = {0.25f, 0.5f};
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     items.modelState = &state;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.itemContext = &items;
@@ -613,15 +615,15 @@ TEST(GameFloorItemDrawingTest, RedGlowSelectsUnlitMeshBeforeRenderingItsScroll)
 {
     FloorModels models;
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::World::FrameSprites sprites;
     Client::World::ObjectModelStepState modelState;
     modelState.unlitMeshes[0x2247] = -1;
     auto item = Item(0x2247);
     item.vertexLight = true;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext items;
+    Client::Actors::Drawing::ItemDrawContext items;
     items.special = &special;
     items.modelState = &modelState;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
@@ -646,12 +648,12 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         SCOPED_TRACE(missingBones);
         FloorModels models;
         Client::Render::ModelBatch batch;
-        Client::World::SphereFrustum frustum;
+        Client::Terrain::SphereFrustum frustum;
         Client::World::ObjectModelStepState modelState;
         modelState.unlitMeshes[0x2247] = -1;
         auto item = Item(0x2247);
         Client::Scenes::FaunaDrawCarry carry;
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.modelState = &modelState;
         items.poseBones = [&]() -> std::span<const Client::Math::BoneTransform>
         { return missingBones ? std::span<const Client::Math::BoneTransform>{} : carry.bones; };
@@ -659,9 +661,9 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         context.itemContext = &items;
         context.worldClock = 1000;
         context.project = Project;
-        context.onPose = [&](const Client::Scenes::DrawnObject& object)
+        context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
         { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
-        context.onSkin = [&](const Client::Scenes::DrawnObject& object)
+        context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
         { return Client::Scenes::TransformFaunaPose(carry, models, object); };
         context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
         const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
@@ -680,15 +682,15 @@ TEST(GameFloorItemDrawingTest, IncompleteStaffScratchKeepsStoresAndFirstMeshThro
     for (std::size_t index = 0; index < models.model.meshes.size(); ++index)
         models.model.meshes[index].texture = static_cast<std::int16_t>(index);
     Client::Render::ModelBatch batch;
-    Client::World::SphereFrustum frustum;
+    Client::Terrain::SphereFrustum frustum;
     Client::Scenes::FaunaDrawCarry carry;
     auto item = Item(0x61c);
     item.objectState.light = 0.25f;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.project = Project;
-    context.onPose = [&](const Client::Scenes::DrawnObject& object)
+    context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
-    context.onSkin = [&](const Client::Scenes::DrawnObject& object)
+    context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         const auto result = Client::Scenes::TransformFaunaPose(carry, models, object);
         carry.meshes.resize(1);

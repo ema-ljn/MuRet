@@ -62,7 +62,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 
 constexpr std::uint32_t Seed = 0x0c19;
 constexpr std::int32_t MonsterKey = 0x0456;
@@ -158,11 +158,11 @@ struct Game
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     AnyModels models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -208,7 +208,7 @@ protected:
     void Load(std::uint8_t map, std::uint8_t terrain)
     {
         game = std::make_unique<Game>();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, terrain);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, terrain);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -256,7 +256,7 @@ protected:
         sounds.clear();
         soundDraws.clear();
         before = game->cloth.random.State();
-        const Client::Scenes::CharacterStepContext context{.world = game->world,
+        const Client::Actors::CharacterStepContext context{.world = game->world,
                                                            .random = game->cloth.random,
                                                            .models = &game->models,
                                                            .particles = withParticles ? &game->particles : nullptr,
@@ -483,7 +483,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
         monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 0.0f, 0.0f);
     monster.bodyPose[60][3] = glm::vec3(12.0f, -7.0f, 45.0f);
     game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
-                           Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = {1000.0f, 1100.0f, 100.0f}});
+                           Client::Kernel::SharedModelPlacement{.scale = 2.0f, .origin = {1000.0f, 1100.0f, 100.0f}});
     ActorState& victim = game->world.Actors()[VictimSlot];
     victim.position = {1200.0f, 1300.0f, 140.0f};
 
@@ -2069,7 +2069,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
         monster.bodyPose.assign(16, Client::Math::BoneTransform(1.0f));
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
-            Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
+            Client::Kernel::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
         SetPoolAvailability(true, false, false);
 
         const auto stepped = Step(monster);
@@ -2141,7 +2141,7 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedFireParticle
             monster.bodyPose[bone][3] =
                 glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f + static_cast<float>(bone));
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
-                               Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
+                               Client::Kernel::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
         SetPoolAvailability(true, false, true);
         CrtRandom expectedRandom(game->cloth.random.State());
         expectedRandom.Discard(static_cast<std::uint32_t>(probe.draws));
@@ -2199,7 +2199,7 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedThunderParti
         monster.bodyPose[bone][3] =
             glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f + static_cast<float>(bone));
     game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
-                           Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
+                           Client::Kernel::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
     SetPoolAvailability(true, false, true);
     CrtRandom expectedRandom(game->cloth.random.State());
     expectedRandom.Discard(14);
@@ -2266,7 +2266,7 @@ TEST_F(MonsterAttackCasesTest, ThunderSkillThreeUsesItsNativeBoneOffsetAndLocalL
         monster.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         monster.bodyPose[0][3] = glm::vec3(1.0f, 2.0f, 3.0f);
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
-                               Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
+                               Client::Kernel::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
         SetPoolAvailability(true, false, true);
 
         const auto stepped = Step(monster);
@@ -2536,7 +2536,7 @@ TEST_F(MonsterAttackCasesTest, Saturated49ActionFourStoresTheBoneTrailBeforeTheS
         monster.trailOrigin = Untouched;
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
-            Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
+            Client::Kernel::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
         const glm::vec3 expectedTrail =
             Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
                                                     glm::vec3(-50.0f, 100.0f, 0.0f), monster.scale, monster.position);
@@ -2866,7 +2866,7 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
         monster.trailOrigin = untouched;
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
-            Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
+            Client::Kernel::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
 
         const auto stepped = Step(monster);
 
@@ -3340,7 +3340,7 @@ TEST_F(MonsterAttackCasesTest, FullModelPoolStoresTheHandTrailThenRequestsTheSou
         monster.trailOrigin = UntouchedTrail;
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
-            Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
+            Client::Kernel::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
         const glm::vec3 expectedTrail =
             Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
                                                     glm::vec3(-50.0f, 100.0f, 0.0f), monster.scale, monster.position);
@@ -3376,7 +3376,7 @@ TEST_F(MonsterAttackCasesTest, TheHandTrailUsesThePublishedSharedModelPlacement)
         monster.bodyPose.assign(16, Client::Math::BoneTransform(1.0f));
         monster.trailOrigin = UntouchedTrail;
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
-                               Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = PublishedOrigin});
+                               Client::Kernel::SharedModelPlacement{.scale = 2.0f, .origin = PublishedOrigin});
         FillModelEffectPoolExceptLast(0);
 
         const auto stepped = Step(monster);
@@ -3419,7 +3419,7 @@ TEST_F(MonsterAttackCasesTest, Kind49And4bStepNineUseTheirOrangeTailLightWithout
         monster.bodyPose.assign(1, Client::Math::BoneTransform(1.0f));
         monster.trailOrigin = UntouchedTrail;
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
-                               Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = PublishedOrigin});
+                               Client::Kernel::SharedModelPlacement{.scale = 2.0f, .origin = PublishedOrigin});
         SetPoolAvailability(true, false, true);
 
         const auto stepped = Step(monster);

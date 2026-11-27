@@ -135,7 +135,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                 { AfterSceneFrame(now); }, [this] { return AfterSceneStep(); }, [this] { return BeforeSceneDraw(); },
                 [this](Render::Frame::SceneCanvas& canvas) { return AfterSceneDraw(canvas); })
 {
-    Scenes::WorldRuntime& runtime = m_world.Runtime();
+    Kernel::WorldRuntime& runtime = m_world.Runtime();
     runtime.music.SetEnabled(m_options.music);
     if (m_devices.playback != nullptr)
     {
@@ -159,7 +159,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
         UI::LoadTheSlides(runtime.hud.slides, *data.slides);
     }
     // 0x4bada2..0x4bade0: the angle table, once, with WinMain's CRT.
-    Scenes::InitializeGameItemRenderState(runtime.itemRender, m_cloth.random);
+    Actors::Drawing::InitializeGameItemRenderState(runtime.itemRender, m_cloth.random);
 }
 
 GameClient::~GameClient() = default;
@@ -192,12 +192,12 @@ std::optional<GameExit> GameClient::Exit() const
                       session != nullptr && session->State() == SessionState::QuitOrdered, m_manager.WantsToQuit());
 }
 
-Scenes::WorldState& GameClient::World()
+Kernel::WorldState& GameClient::World()
 {
     return m_world;
 }
 
-const Scenes::WorldState& GameClient::World() const
+const Kernel::WorldState& GameClient::World() const
 {
     return m_world;
 }
@@ -252,7 +252,7 @@ Core::Expected<void, std::string> GameClient::PollNetwork()
         return {};
     }
     // 0x4bee60 reads the own character's speeds ([0x7681eb0]: +0x3c, +0x4c and +0x58) each time it builds a keepalive.
-    const Scenes::OwnCharacterRecord& own = m_world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = m_world.OwnCharacter();
     m_online->session.SetKeepaliveSpeeds(KeepaliveSpeeds{
         .attackSpeed = own.attackSpeed, .magicSpeed = own.magicSpeed, .characterFlags = own.speedAdjustBits});
     const auto polled = m_online->session.Poll();
@@ -288,7 +288,7 @@ void GameClient::BeforeSceneFrame(Core::Duration now)
         return;
     }
     const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
-    Scenes::UpdateGameItemGlowPulse(m_world.Runtime().itemRender, worldClock);
+    Actors::Drawing::UpdateGameItemGlowPulse(m_world.Runtime().itemRender, worldClock);
 }
 
 void GameClient::AfterSceneFrame(Core::Duration now)

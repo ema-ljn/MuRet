@@ -5,7 +5,7 @@
 #include <optional>
 
 // Overlay durable del Player.bmd compartido: 06, Caminar (0x4f37c0). No altera el recurso const.
-namespace Client::Scenes
+namespace Client::Actors
 {
 class PlayerActionSpeeds
 {
@@ -18,4 +18,4 @@ private:
     static constexpr std::size_t PlayerActionCount = 205;
     std::array<std::optional<float>, PlayerActionCount> m_speeds{};
 };
-} // namespace Client::Scenes
+} // namespace Client::Actors

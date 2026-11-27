@@ -312,7 +312,7 @@ void WriteTheBonuses(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
     lines.At("0x5b79df");
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     const std::int32_t level = frame.level;
     if (type >= FirstBoots && type < BootsEnd && level >= BonusLevel)
@@ -332,7 +332,7 @@ void WriteTheSetStat(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
     lines.At("0x40dd80");
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     const std::int32_t kind = (item.flags1c >> 2) & SetKindMask;
     if (kind <= 0)
         return;
@@ -356,16 +356,16 @@ void WriteTheSetStat(Frame& frame)
 Core::Expected<void, std::string> WriteTheOptionLines(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     for (std::size_t i = 0; i < item.optionCount; ++i)
     {
         lines.At("0x5b7c8a");
-        if (i >= World::MaxItemOptions)
+        if (i >= Kernel::MaxItemOptions)
             return Core::Unexpected(
                 std::format("0x5b7c8d: la opción {} de {} lee su valor fuera de D+0x2b..D+0x3b", i, item.optionCount));
         const std::uint8_t tag = item.optionBytes[i];
-        const std::uint8_t value = item.optionBytes[World::ItemOptionValueOffset + i];
+        const std::uint8_t value = item.optionBytes[Kernel::ItemOptionValueOffset + i];
         if (auto written = WriteAnOption(frame.context, frame.lines, type, tag, value); !written.HasValue())
             return written;
         lines.Color(TooltipBlue);
@@ -388,7 +388,7 @@ Core::Expected<void, std::string> WriteTheBoxes(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
     lines.At("0x5b7de1");
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     const auto gold = [&lines](std::size_t text)
     {
@@ -441,13 +441,13 @@ Core::Expected<void, std::string> WriteASetOption(Frame& frame, std::uint8_t opt
                                                   std::size_t slot, std::uint8_t active, std::uint8_t& start)
 {
     TooltipWriter& lines = frame.lines;
-    const ItemSetOptionList& list = frame.context.world.ItemSets().list;
+    const Player::ItemSetOptionList& list = frame.context.world.ItemSets().list;
     std::string* line = lines.Current();
     if (line == nullptr)
         return Core::Unexpected(lines.Error());
     if (auto written = WriteTheSetOption(lines.Texts(), *line, option, value); !written.HasValue())
         return written;
-    if (start >= ItemSetOptionCapacity)
+    if (start >= Player::ItemSetOptionCapacity)
         return Core::Unexpected(std::format("0x40f160: las opciones del conjunto leen la entrada {} de 16 (las marcas "
                                             "de +0x937c como opciones)",
                                             start));
@@ -472,8 +472,8 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     if (lines.Failed())
         return Core::Unexpected(lines.Error());
     GameHudContext& context = frame.context;
-    const World::ItemState& item = frame.item;
-    ItemSetState& sets = context.world.ItemSets();
+    const Kernel::ItemState& item = frame.item;
+    Player::ItemSetState& sets = context.world.ItemSets();
     if (context.setTypes == nullptr || context.setOptions == nullptr)
         return Core::Unexpected(std::string("0x40ef05: las opciones del conjunto sin ItemSetType.bmd ni "
                                             "ItemSetOption.bmd"));
@@ -514,14 +514,14 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     std::string name;
     for (auto at = record.begin(); at != zero; ++at)
         name.push_back(static_cast<char>(std::to_integer<unsigned char>(*at)));
-    for (std::size_t i = 0; i < ItemSetKindCount; ++i)
+    for (std::size_t i = 0; i < Player::ItemSetKindCount; ++i)
     {
         if (std::ranges::find(sets.names[i], '\0') == sets.names[i].end())
             return Core::Unexpected(std::format("0x40ef75: el nombre {} de +0x9308 no tiene su 0", i));
     }
     const std::string_view first = UpToTheZero(sets.names[0]);
     const std::string_view second = UpToTheZero(sets.names[1]);
-    const ItemSetOptionList& list = sets.list;
+    const Player::ItemSetOptionList& list = sets.list;
     // strncmp(a, b, strlen(a)) da 0 si b empieza con a.
     auto active = static_cast<std::uint8_t>(list.count9348 - sets.byte9307);
     std::uint8_t start = 0;
@@ -567,7 +567,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
             firstValue = byteAt(SetFullValues + slot);
             if (active != NoSet)
             {
-                if (start >= ItemSetOptionCapacity)
+                if (start >= Player::ItemSetOptionCapacity)
                     return Core::Unexpected(std::format("0x40f117: las opciones del conjunto leen la entrada {} de 16 "
                                                         "(las marcas de +0x937c como opciones)",
                                                         start));
@@ -598,7 +598,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
 
 Core::Expected<void, std::string> WriteTheOptions(ItemTooltipFrame& frame)
 {
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     constexpr std::uint16_t AngelQuestItem = 0x1a13;
     constexpr std::uint16_t SealedItem = 0x1a1d;
     if (item.id != AngelQuestItem && item.id != SealedItem)

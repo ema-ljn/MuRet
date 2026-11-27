@@ -53,13 +53,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::ActorCombatContext;
-using Client::Scenes::ActorState;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 4321;
 constexpr std::uint16_t Monster = 0x10;
-constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
+constexpr std::uint16_t NoItem = Client::Kernel::NoItemModel;
 constexpr std::uint32_t OwnRecordDraws = 0xf08;
 constexpr float DeathFrame = std::bit_cast<float>(0x3a83126fu);
 constexpr float UnorderedFrame = std::bit_cast<float>(0x7fc00000u);
@@ -107,7 +107,7 @@ protected:
         m_world->OwnCharacter().life = 50;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -717,11 +717,11 @@ TEST_F(CombatRepliesTest, AnotherPlayerPushedToDeathFliesThroughItsDyingSteps)
     ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x77, .skill = 0x3b, .killer = 0x55}, Combat()).HasValue());
     ASSERT_EQ(dead.dying, 1);
     const std::uint32_t afterTheDeath = m_random.State();
-    const Client::Scenes::ActorDyingContext dying{.map = 0, .hero = false, .random = m_random};
+    const Client::Actors::ActorDyingContext dying{.map = 0, .hero = false, .random = m_random};
 
     const float d0 = dead.floatD0;
     const float d8 = dead.floatD8;
-    ASSERT_TRUE(Client::Scenes::StepActorDying(dead, 20, dying).HasValue());
+    ASSERT_TRUE(Client::Actors::StepActorDying(dead, 20, dying).HasValue());
     EXPECT_EQ(dead.dyingTime, 0.02f);
     EXPECT_EQ(dead.floatD0, static_cast<float>(static_cast<double>(d0) - static_cast<double>(d8)));
     EXPECT_EQ(dead.floatD8, d8 + 1.0f);
@@ -731,12 +731,12 @@ TEST_F(CombatRepliesTest, AnotherPlayerPushedToDeathFliesThroughItsDyingSteps)
     for (std::uint8_t step = 2; step <= 14; ++step)
     {
         dead.dying = step;
-        ASSERT_TRUE(Client::Scenes::StepActorDying(dead, 20, dying).HasValue());
+        ASSERT_TRUE(Client::Actors::StepActorDying(dead, 20, dying).HasValue());
     }
     EXPECT_EQ(dead.floatD0, 0.0f);
     const glm::vec3 landed = dead.position;
     dead.dying = 15;
-    ASSERT_TRUE(Client::Scenes::StepActorDying(dead, 20, dying).HasValue());
+    ASSERT_TRUE(Client::Actors::StepActorDying(dead, 20, dying).HasValue());
     EXPECT_EQ(dead.position, landed);
     EXPECT_EQ(m_random.State(), afterTheDeath);
 }

@@ -8,7 +8,7 @@ namespace
 {
 TEST(CastleSiegeBlessingTest, DefenderChecksAllFourPositionsAndIncludesTheExactRadius)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.flags78 = 0x40000;
     actor.position = {9780, 22700, 0};
     Client::World::Particles particles;
@@ -25,7 +25,7 @@ TEST(CastleSiegeBlessingTest, DefenderChecksAllFourPositionsAndIncludesTheExactR
 }
 TEST(CastleSiegeBlessingTest, AttackerNeedsBothMarksTheSameGuildAndTheTenthFrame)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.word1f2 = 7;
     actor.position = {1000, 2000, 0};
     Client::World::Particles particles;
@@ -45,7 +45,7 @@ TEST(CastleSiegeBlessingTest, AttackerNeedsBothMarksTheSameGuildAndTheTenthFrame
 }
 TEST(CastleSiegeBlessingTest, UnorderedDistanceFollowsTheNativeComparison)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.flags78 = 0x40000;
     actor.position.x = std::numeric_limits<float>::quiet_NaN();
     Client::World::Particles particles;

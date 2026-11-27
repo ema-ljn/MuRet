@@ -84,8 +84,8 @@ protected:
         GoldenDataTest::SetUp();
         ASSERT_FALSE(HasFatalFailure());
         ASSERT_NO_FATAL_FAILURE(m_online.LogIn());
-        m_world = std::make_unique<Client::Scenes::WorldState>();
-        m_models = std::make_unique<Client::Scenes::GameModels>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
+        m_models = std::make_unique<Client::Assets::GameModels>();
         const auto models = m_models->Load(m_dataRoot, m_textures, m_online.log);
         ASSERT_TRUE(models.HasValue()) << models.Error();
         m_world->Runtime().map = 0;
@@ -172,8 +172,8 @@ protected:
     const Client::UI::OldWindowMeasure m_measure{
         .measure = m_letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
     Client::Tables::SkillTable m_skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
-    std::unique_ptr<Client::Scenes::WorldState> m_world;
-    std::unique_ptr<Client::Scenes::GameModels> m_models;
+    std::unique_ptr<Client::Kernel::WorldState> m_world;
+    std::unique_ptr<Client::Assets::GameModels> m_models;
     Client::Tests::RecordingFrameTarget m_target;
     std::unique_ptr<Client::Scenes::GameScene> m_scene;
 };

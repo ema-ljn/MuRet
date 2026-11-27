@@ -75,22 +75,23 @@ void CopyTheLine(std::array<char, 200>& line, std::string_view text)
 }
 
 // 0x4365a0: el nibble alto del altar en 1.
-bool Contracted(const CrywolfInterface& ui, std::size_t altar)
+bool Contracted(const Kernel::CrywolfInterface& ui, std::size_t altar)
 {
     return (ui.altars[altar] & AltarHighBits) == AltarContracted;
 }
 } // namespace
 
-bool InTheCrywolfDefense(const WorldRuntime& runtime)
+bool InTheCrywolfDefense(const Kernel::WorldRuntime& runtime)
 {
     return Protocol::Events::CrywolfIsReadyOrStarted(runtime.crywolf.stage) && runtime.map == CrywolfMap;
 }
 
-Result ShowTheContractMessage(WorldRuntime& runtime, const Tables::TextTable* texts, const ContractMessage& message)
+Result ShowTheContractMessage(Kernel::WorldRuntime& runtime, const Tables::TextTable* texts,
+                              const ContractMessage& message)
 {
     if (!InTheCrywolfDefense(runtime) || runtime.ui.logoutRequested)
         return {};
-    CrywolfInterface& ui = runtime.crywolf.ui;
+    Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
     if (message.line < 0 || static_cast<std::size_t>(message.line) >= ui.contractLines.size())
         return Core::Unexpected(std::format("0x435b00: el renglón {} escribe fuera de 0x723a48", message.line));
     std::array<char, 200>& line = ui.contractLines[static_cast<std::size_t>(message.line)];
@@ -137,11 +138,11 @@ Result ShowTheContractMessage(WorldRuntime& runtime, const Tables::TextTable* te
     return {};
 }
 
-bool SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value)
+bool SetTheAltar(Kernel::WorldRuntime& runtime, std::int32_t altar, std::uint8_t value)
 {
     if (!InTheCrywolfDefense(runtime))
         return true;
-    CrywolfInterface& ui = runtime.crywolf.ui;
+    Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
     // 0x435aeb: sin tope en el original (Q-C1347).
     if (altar < 0 || static_cast<std::size_t>(altar) >= ui.altars.size())
         return false;
@@ -151,8 +152,8 @@ bool SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value)
 
 Result StepTheContractWindow(const ContractWindowContext& context)
 {
-    WorldRuntime& runtime = context.runtime;
-    CrywolfInterface& ui = runtime.crywolf.ui;
+    Kernel::WorldRuntime& runtime = context.runtime;
+    Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
     GameMovementState& movement = runtime.movement;
     const std::int32_t x = context.mouseX;
     const std::int32_t y = context.mouseY;
@@ -205,8 +206,10 @@ Result StepTheContractWindow(const ContractWindowContext& context)
     return {};
 }
 
-Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime, const Tables::TextTable* texts,
-                                                             const ActorState& hero, const ActorState& target)
+Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(Kernel::WorldRuntime& runtime,
+                                                             const Tables::TextTable* texts,
+                                                             const Kernel::ActorState& hero,
+                                                             const Kernel::ActorState& target)
 {
     if (!InTheCrywolfDefense(runtime))
         return AltarClick::NotAnAltar;
@@ -215,7 +218,7 @@ Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runti
     if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::Elf)
         return AltarClick::Talk;
     const std::size_t altar = target.type - FirstAltarType;
-    const CrywolfInterface& ui = runtime.crywolf.ui;
+    const Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
     Result shown;
     if (Contracted(ui, altar))
     {
@@ -242,10 +245,10 @@ Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runti
     return AltarClick::Contract;
 }
 
-bool CrywolfAltarGoal(const WorldState& world)
+bool CrywolfAltarGoal(const Kernel::WorldState& world)
 {
     // 0x4eac0a..0x4eac1a.
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     if (!InTheCrywolfDefense(runtime))
         return false;
     // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, con CMP de 16 bits con signo.

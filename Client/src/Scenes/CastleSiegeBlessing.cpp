@@ -16,7 +16,7 @@ namespace
 // DAT006c72c8..6c72e7, cuatro pares float32 del ejecutable c32bbd5f.
 constexpr std::array<std::array<float, 2>, 4> DefenderMarks{
     {{8200, 13000}, {10700, 13000}, {9400, 18200}, {9400, 22700}}};
-bool InRange(const ActorState& actor, float x, float y)
+bool InRange(const Kernel::ActorState& actor, float x, float y)
 {
     const double dx = static_cast<double>(x) - actor.position.x;
     const double dy = static_cast<double>(y) - actor.position.y;
@@ -24,7 +24,7 @@ bool InRange(const ActorState& actor, float x, float y)
     return !(std::sqrt(dx * dx + dy * dy) > 380.0);
 }
 } // namespace
-Core::Expected<void, std::string> DrawTheCastleBlessing(const ActorState& actor, std::uint16_t heroGuildIndex,
+Core::Expected<void, std::string> DrawTheCastleBlessing(const Kernel::ActorState& actor, std::uint16_t heroGuildIndex,
                                                         float markX, float markY, std::int32_t logicSteps,
                                                         World::Particles& particles, Crt::CrtRandom& random)
 {

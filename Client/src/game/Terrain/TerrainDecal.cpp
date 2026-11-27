@@ -25,7 +25,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -193,4 +193,4 @@ DrawTerrainDecal(Render::ModelBatch& batch, const Data::Terrain::TerrainHeights&
     }
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Terrain

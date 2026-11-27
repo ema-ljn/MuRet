@@ -26,11 +26,19 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Actors
+{
 
 // Lo que comparten las altas del viewport (los jugadores, el 45, el DF y los monstruos de MonsterViewport.h):
 // Una escritura de la celda protegida (+0x41c o +0x420) con su acceso abierto: 4 rand() al cerrarse si queda sin
@@ -39,14 +47,15 @@ void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt:
 // Una lectura, con su acceso (0x40b800 o el cierre en línea).
 [[nodiscard]] std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random);
 // La X y después la Y de la celda protegida, y +0x39a/+0x39b con los mismos valores.
-void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random);
+void WriteTheCells(Kernel::ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random);
 // (nibble alto − 1) · 45 (0x6b8848, con el 1 de 0x6b87d4).
 [[nodiscard]] float AngleOf(std::uint8_t directionAndPk);
 // La X y después la Y, leídas de la tabla, al centro de la celda.
-void PutInTheCellCenter(ActorState& actor, Crt::CrtRandom& random);
+void PutInTheCellCenter(Kernel::ActorState& actor, Crt::CrtRandom& random);
 // La Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay camino.
-[[nodiscard]] Core::Expected<void, std::string>
-WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std::uint8_t targetX,
+                                                                std::uint8_t targetY,
+                                                                const Scenes::WorldEntryResources& resources);
 
 // El dispatcher (0x4e372e..0x4e37b8) guarda el paquete entero en la cola (la sesión, con CopyToPacketRing, antes de
 // leerlo) y 0x4c8860 recorre los registros. Cada uno: si el nombre (los diez bytes, hasta su 0) tiene "webzen"
@@ -63,18 +72,18 @@ WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, c
 // panel (0x412140). Cada celda escrita o leída gasta 4 rand() al cerrarse; el alta, los 28 de 0x511290 y los de sus
 // ayudantes.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::Players& players,
-                                                                     const WorldEntryResources& resources);
+                                                                     const Scenes::WorldEntryResources& resources);
 
 // 0x4ca780: por cada clave, con la información del asedio (0x5767924), la entera 0x13d pone sus bytes 4..6 en 0 y
 // cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca el
 // cartel de la tienda personal de esa clave en el mapa de 0x7245c8 (el primero en su orden) y 0x451430 lo saca.
-void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world);
+void ApplyViewportLeave(const Protocol::Actors::Leave& leave, Kernel::WorldState& world);
 
 // 0x4c92a0: con "webzen" en el nombre, el registro no hace nada. Si no, la clase del héroe publicado (0x4c9328), el
 // alta del transformado o del monstruo de tipo +4 (CreateMonster, 0x5141e0, sin mirar si devuelve 0) y
 // FinishTheTransformed.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Transformed& transformed,
-                                                                 const WorldEntryResources& resources);
+                                                                 const Scenes::WorldEntryResources& resources);
 
 // 0x4c9356..0x4c9762, lo que 0x4c92a0 hace con el personaje `index` que devolvió 0x5141e0: con +0x376 en 7 la escala
 // en 0,8; la clase del héroe publicado que leyó antes del alta (`heroClass`, 0x4c9328), el PK, +0x88 y +0x3e3 en 1;
@@ -84,7 +93,7 @@ void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world)
 [[nodiscard]] Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
                                                                      const Protocol::Actors::TransformedRecord& record,
                                                                      std::uint8_t heroClass,
-                                                                     const WorldEntryResources& resources);
+                                                                     const Scenes::WorldEntryResources& resources);
 
 // 0x4c8380: el personaje de la clave entera (0x5110d0, el 400 si no hay) y el ítem de pkt[5..]: el tipo (0x54b3a0) en
 // el lugar del nibble de arriba de pkt[6], con 0x1fff sin ítem. Las manos (0, 1) con el nivel (0x513340 del nibble de
@@ -94,7 +103,7 @@ void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world)
 // (0x1a00, 0x1a02, 0x1a03, 0x1a04 y Fenrir 0x1a25 con +0x31b en el excelente) con 0x443fa0. Del 9 al 15, nada. Al
 // final, 0x4053f0 y 0x512930.
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::EquipmentShown& shown,
-                                                                    const WorldEntryResources& resources);
+                                                                    const Scenes::WorldEntryResources& resources);
 
 // 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 (el que crea 0x5141e0 para los tipos 160,
 // 180, 188, 196, 266, 274 y 337): +0xe4 en 20, la X y la Y de la celda leídas con su acceso, +0xd0 y +0xcc con las
@@ -102,5 +111,5 @@ void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world)
 // partículas 5c5/2 a Z+80, con dos sorteos por intento aun con el pool lleno y cinco adicionales por alta. Si no, la
 // celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::Position& position,
-                                                                      const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                                      const Scenes::WorldEntryResources& resources);
+} // namespace Client::Actors

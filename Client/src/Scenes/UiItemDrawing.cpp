@@ -723,7 +723,7 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     // 0x5e13c5: 0x4eb860 con el modelo que posa en el buffer global, la acción (+0xa0 del modelo), el frame y el
     // anterior en 0, los ángulos de 0x78aadcc, los de la cabeza (0x78aadd8, que nadie escribe) en 0 y sin la escala ni
     // la posición en la raíz.
-    DrawnObject object;
+    Actors::Drawing::DrawnObject object;
     object.model = placement.poseModel;
     object.transform = Models::ObjectTransform{.position = placement.position,
                                                .angles = placement.angles,
@@ -736,7 +736,7 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     // 0x5e13f3: 0x607b60 con el que dibuja en +2, con sus rand(); 0x5e1404..0x5e1466: la escala, la posición, la luz
     // por vértice en 0 y +0x1d4 en 2. El alpha (+0x174) y la luz, en 1.
     Models::ObjectRandoms randoms{};
-    for (std::size_t index = 0; index < HangingRandomCount(placement.model); ++index)
+    for (std::size_t index = 0; index < Actors::Drawing::HangingRandomCount(placement.model); ++index)
         randoms[index] = random.Next();
     object.model = placement.model;
     object.state = Models::NativeItemObjectState(placement.model, resources.frameClock, randoms);
@@ -746,8 +746,9 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     // 0x60cf70: 0x4ebc80 sobre el buffer global y 0x60b3d0, sin dueño (los efectos de 0x60cf70 no corren).
     if (auto skinned = TransformFaunaPose(resources.poseCarry, resources.models, object); !skinned.HasValue())
         return skinned;
-    ItemDrawContext context = resources.itemContext;
-    ItemSpecialDrawContext special = context.special != nullptr ? *context.special : ItemSpecialDrawContext{};
+    Actors::Drawing::ItemDrawContext context = resources.itemContext;
+    Actors::Drawing::ItemSpecialDrawContext special =
+        context.special != nullptr ? *context.special : Actors::Drawing::ItemSpecialDrawContext{};
     // +0xf4..+0xfc del objeto local, que 0x607b60 pone en 0,3.
     glm::vec3 objectLight(0.3f);
     special.objectLight = &objectLight;
@@ -757,8 +758,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     context.ownerContext = UiItemLocalObject();
     // 0x60b3d0 desempaca el nivel: (nivel >> 3) & 15.
     const auto level = static_cast<std::uint8_t>((placement.level >> 3) & 15);
-    return DrawItemFromMeshes(resources.batch, resources.models, object, resources.frameClock,
-                              resources.poseCarry.meshes, level, excellent, set, context);
+    return Actors::Drawing::DrawItemFromMeshes(resources.batch, resources.models, object, resources.frameClock,
+                                               resources.poseCarry.meshes, level, excellent, set, context);
 }
 
 void CloseUiItemPass(UiItemResources& resources)

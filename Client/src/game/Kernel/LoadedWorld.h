@@ -19,7 +19,7 @@
 // El mundo de una escena mientras la escena vive (CL7.1): lo que 0x61a560 carga para el terreno (el
 // .map, el .att, las alturas, la luz y los tiles, World/WorldTerrain.h) y lo que la escena hace con él
 // en cada paso (las olas de 0x5fbf60) y en cada frame (el pase del terreno de 0x5fc260(0)).
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class LoadedWorld
 {
@@ -51,29 +51,29 @@ public:
     [[nodiscard]] std::optional<std::uint8_t> LoadedMap() const;
 
     // La base sombreada, si hay terreno. Los lectores de escena usan la copia dinámica de WorldState.
-    [[nodiscard]] const World::TerrainLighting* Lighting() const;
+    [[nodiscard]] const Terrain::TerrainLighting* Lighting() const;
     // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
-    [[nodiscard]] const World::WorldTerrain* Terrain() const;
-    [[nodiscard]] World::WorldTerrain* Terrain();
+    [[nodiscard]] const Terrain::WorldTerrain* Terrain() const;
+    [[nodiscard]] Terrain::WorldTerrain* Terrain();
 
     // Transfiere sólo CPU al estado que sobrevive a la escena. Invalida las vistas del terreno;
     // los slots GPU siguen siendo de este objeto y Release los suelta una sola vez.
-    [[nodiscard]] std::optional<World::WorldTerrain> TakeTerrain();
+    [[nodiscard]] std::optional<Terrain::WorldTerrain> TakeTerrain();
 
     // Step y DrawTerrain usan la identidad efectiva de LoadedMap() (32 → 9), no la solicitada.
     // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
-    void Step(Core::Duration clock, const World::TerrainRange& range);
+    void Step(Core::Duration clock, const Terrain::TerrainRange& range);
 
     // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango,
     // con el recorte del trapecio y, si se presta, la luz dinámica. Sin terreno, nada.
-    void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                     const World::TerrainPolygon& polygon, float fixedHeight = World::FixedCornerHeight,
-                     const World::TerrainLighting* dynamicLighting = nullptr);
+    void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const Terrain::TerrainRange& range,
+                     const Terrain::TerrainPolygon& polygon, float fixedHeight = Terrain::FixedCornerHeight,
+                     const Terrain::TerrainLighting* dynamicLighting = nullptr);
 
 private:
-    TerrainTiles m_tiles;
-    std::optional<World::WorldTerrain> m_terrain;
-    World::TerrainView m_view;
-    World::TerrainWater m_water;
+    Assets::TerrainTiles m_tiles;
+    std::optional<Terrain::WorldTerrain> m_terrain;
+    Terrain::TerrainView m_view;
+    Terrain::TerrainWater m_water;
 };
-} // namespace Client::Scenes
+} // namespace Client::Kernel

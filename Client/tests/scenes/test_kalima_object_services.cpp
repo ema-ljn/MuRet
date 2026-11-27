@@ -70,8 +70,8 @@ public:
     }
     std::optional<Client::Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override
     {
-        if (selector == Client::Scenes::ChromeTextureSlot.value)
-            return Client::Scenes::ChromeTextureSlot;
+        if (selector == Client::Actors::Drawing::ChromeTextureSlot.value)
+            return Client::Actors::Drawing::ChromeTextureSlot;
         if (water && selector >= 65 && selector < 97)
             return Client::Render::TextureSlot{static_cast<std::uint16_t>(selector)};
         return std::nullopt;
@@ -257,7 +257,7 @@ TEST(KalimaObjectServicesTest, TheThirtyFourthBodyAddsOnlyItsSecondChromeMeshAft
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(batch.Vertices().size(), 15u);
     ASSERT_FALSE(batch.Commands().empty());
-    EXPECT_EQ(batch.Commands().back().state.texture, Client::Scenes::ChromeTextureSlot);
+    EXPECT_EQ(batch.Commands().back().state.texture, Client::Actors::Drawing::ChromeTextureSlot);
     EXPECT_EQ(batch.Commands().back().state.blend, Client::Render::ModelBlend::Additive);
     EXPECT_EQ(batch.Commands().back().vertexCount, 3u);
 }
@@ -266,7 +266,7 @@ TEST(KalimaObjectServicesTest, HeightWrapperClampsUnorderedAndNegativeCoordinate
 {
     auto object = Object(15);
     object.transform.position = {std::numeric_limits<float>::quiet_NaN(), -100, 999};
-    const Client::Scenes::ActorState hero;
+    const Client::Kernel::ActorState hero;
     Client::World::KalimaWorld water(24);
     const auto result = Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .hero = &hero, .kalima = &water});
     ASSERT_TRUE(result.HasValue()) << result.Error();

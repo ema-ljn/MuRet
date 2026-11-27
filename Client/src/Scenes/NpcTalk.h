@@ -5,13 +5,17 @@
 #include <cstdint>
 #include <string>
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // Hablarle a un NPC (CL9 hito 2, P-C178): el clic de MoveHero sobre el NPC elegido (0x59da75..0x59dc59, en
 // GameMovement.cpp) lleva al héroe hasta su celda con +0x379 en 2, y la llegada (0x5650c0 con ese 2,
 // 0x5674c8..0x5695b3) le manda el C1 30 con su clave. Lo que abre cada NPC lo dice la respuesta del GS (0x4d1e00,
 // hito 6); el diálogo de Dialog.bmd que lleva de una respuesta a otra es el 0x8d (GameDialogSteps.cpp).
 namespace Client::Scenes
 {
-struct ActorState;
 struct HeroMovementContext;
 
 // +0x379 en 2: la llegada le habla al NPC de 0x6c8e54.
@@ -25,5 +29,6 @@ inline constexpr std::uint32_t NpcTalkBlockedFlag = 0x10000000;
 // del 0x101 y el C3 30; en Crywolf activo, antes del C3 30, el clic en un altar (0x567b00..0x567c23,
 // Scenes::ClickTheCrywolfAltar, CL9 hito 11), que con una elfa muestra el estado del altar en vez de hablar. Al final,
 // 0x6eeda8 y 0x6c8e54 en −1.
-[[nodiscard]] Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovementContext& context);
+[[nodiscard]] Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero,
+                                                             const HeroMovementContext& context);
 } // namespace Client::Scenes

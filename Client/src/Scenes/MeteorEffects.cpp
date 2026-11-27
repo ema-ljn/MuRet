@@ -110,7 +110,7 @@ void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext&
 // banderas (0, 0). Sin acciones no hace nada; si no, deja en el modelo el frame y su key (+0xa4 y +0xa8), como
 // PoseWorldModel.
 Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect, const Models::Skeleton& skeleton,
-                                                WorldState& world)
+                                                Kernel::WorldState& world)
 {
     auto& carry = world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
@@ -118,7 +118,7 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
     if (skeleton.actions.empty())
         return {};
     const auto type = static_cast<std::uint16_t>(effect.type);
-    SharedModelPlacement placement = world.ModelPlacement(type);
+    Kernel::SharedModelPlacement placement = world.ModelPlacement(type);
     if (placement.action >= skeleton.actions.size())
     {
         placement.action = 0;
@@ -255,7 +255,8 @@ Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, cons
 }
 
 Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                    World::ModelEffect& effect, const DrawnObject& object,
+                                                    World::ModelEffect& effect,
+                                                    const Actors::Drawing::DrawnObject& object,
                                                     Core::Duration frameClock, std::optional<float> worldClock)
 {
     if (effect.type != MeteorEffect && effect.type != MeteorShellEffect)
@@ -271,22 +272,24 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
         // WorldScratchOf, la normal girada por R · s. Nada sin el modelo, su esqueleto o la pose.
         if (object.alpha < VisibleAlpha)
             return true;
-        posed = WorldScratchOf(models, object);
+        posed = Actors::Drawing::WorldScratchOf(models, object);
         if (posed.empty())
             return true;
         meshes = posed;
     }
-    DrawnObject pass = object;
+    Actors::Drawing::DrawnObject pass = object;
     pass.color = glm::vec3(1.0f);
     pass.state.light = 1.0f;
     if (effect.type == MeteorEffect)
     {
         // 0x443598..0x4435d4: la U y la V del efecto en los dos.
         pass.state.blendMesh = -1;
-        if (auto drawn = DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags); !drawn.HasValue())
+        if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags);
+            !drawn.HasValue())
             return Core::Unexpected("0x4435b2: " + drawn.Error());
         pass.state.blendMesh = 0;
-        if (auto drawn = DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags, RockTexture);
+        if (auto drawn =
+                Actors::Drawing::DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags, RockTexture);
             !drawn.HasValue())
             return Core::Unexpected("0x4435d4: " + drawn.Error());
         return true;
@@ -302,7 +305,8 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
     effect.objectState.uv.x = F32(*sway);
     pass.state.blendMesh = 0;
     pass.state.uv.x = effect.objectState.uv.x;
-    if (auto drawn = DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags); !drawn.HasValue())
+    if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags);
+        !drawn.HasValue())
         return Core::Unexpected("0x443636: " + drawn.Error());
     effect.objectState.uv.x = 1.0f; // 0x44363d
     return true;

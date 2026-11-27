@@ -51,17 +51,17 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::GameModels contra el Data\ del laboratorio (MU_CLIENT_GOLDEN_DIR): los modelos
+// Client::Assets::GameModels contra el Data\ del laboratorio (MU_CLIENT_GOLDEN_DIR): los modelos
 // del personaje y de los ítems que lee la carga, con su esqueleto y sus texturas (06 § El modelo en
 // el binario).
 namespace
 {
+using Client::Assets::ClothTextureSet;
+using Client::Assets::GameModels;
+using Client::Assets::GlowTextureSet;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Render::TextureSlot;
-using Client::Scenes::ClothTextureSet;
-using Client::Scenes::GameModels;
-using Client::Scenes::GlowTextureSet;
 using Client::Tables::ItemModelFiles;
 using Client::Tables::ModelTextureSampling;
 using Client::Tables::PlayerFixedTextures;
@@ -230,7 +230,7 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
     const auto loaded = models.Load(m_dataRoot, store, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
 
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom random(1);
     const Client::World::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
     const auto created = Client::Scenes::CreateTheArrowEffect(arguments, *world, random);
@@ -240,7 +240,7 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
     ASSERT_EQ(arrow.objectState.blendMesh, 1);
     Client::Render::ModelBatch batch;
     const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, world->Map().effects.Effects(),
-                                                            Client::World::SphereFrustum{}, nullptr, {}, 0, 1);
+                                                            Client::Terrain::SphereFrustum{}, nullptr, {}, 0, 1);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(batch.Vertices().empty());
 
@@ -401,8 +401,8 @@ TEST_F(GoldenGameModels, SelectionReplacesAndReleasesTheTemporaryStartupTexture)
     EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
 
     // 0x61784b: Tarkan vuelve a publicar el slot desde la carpeta del mapa.
-    Client::Scenes::ModelTextureTable mapTextures;
-    Client::Scenes::TerrainTiles terrain(textures);
+    Client::Assets::ModelTextureTable mapTextures;
+    Client::Assets::TerrainTiles terrain(textures);
     terrain.BindTextureTable(mapTextures);
     std::vector<std::string> skipped;
     const auto loaded = terrain.Load(m_dataRoot, 8, skipped);
@@ -689,10 +689,10 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
 
     EXPECT_EQ(textures.loaded.size(),
               models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size() +
-                  ClothTextureSet.size() + Client::Scenes::EffectTextureSet.size() +
-                  Client::Scenes::StartupSelectionTextureSet.size() + Client::Scenes::DamageTextureSet.size() +
-                  Client::Scenes::HudTextureSet.size() + Client::Scenes::CrywolfTextureSet.size() +
-                  Client::Scenes::FaunaJointTextureSet.size() + Client::Scenes::GameTailTextureSet.size());
+                  ClothTextureSet.size() + Client::Assets::EffectTextureSet.size() +
+                  Client::Assets::StartupSelectionTextureSet.size() + Client::Assets::DamageTextureSet.size() +
+                  Client::Assets::HudTextureSet.size() + Client::Assets::CrywolfTextureSet.size() +
+                  Client::Assets::FaunaJointTextureSet.size() + Client::Assets::GameTailTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;
@@ -1008,7 +1008,7 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
     for (const std::uint16_t slot :
          {std::uint16_t{0x5ac}, std::uint16_t{0x5fd}, std::uint16_t{0x5c6}, std::uint16_t{0x5f2}})

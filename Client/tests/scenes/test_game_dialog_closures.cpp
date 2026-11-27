@@ -31,7 +31,7 @@ class GameDialogClosuresTest : public ::testing::TestWithParam<std::uint8_t>
 // 623f17→657880: Esc usa su propio registro; los servicios de otro GamePanels del paso no llegan aquí.
 TEST_P(GameDialogClosuresTest, EscapeClosesTheNpcThroughTheTransportBorrowedByTheDialogStep)
 {
-    const auto world = std::make_unique<Client::Scenes::WorldState>();
+    const auto world = std::make_unique<Client::Kernel::WorldState>();
     auto& runtime = world->Runtime();
     const auto kind = GetParam();
     if (kind == 0)

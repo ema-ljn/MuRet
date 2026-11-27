@@ -34,7 +34,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 namespace
 {
@@ -531,4 +531,4 @@ void FaunaModels::RecordPoseKey(std::uint16_t model, std::int16_t key)
 {
     m_animationMetadata[model].key = key;
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

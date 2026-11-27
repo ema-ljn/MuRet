@@ -55,7 +55,7 @@ protected:
     std::int32_t m_layer = 0;
     float m_clock = 0;
     CrtRandom m_random;
-    Client::Scenes::ActorState m_cloudHero;
+    Client::Kernel::ActorState m_cloudHero;
     Client::GameLogic::MovementSpeedSharedState m_movementSpeed;
     std::int32_t m_crywolfState = 2;
     Client::Scenes::GameLeafContext m_context{m_leaves,  m_weather, *m_heights, *m_attributes, m_hero,
@@ -66,7 +66,7 @@ protected:
         m_map = map;
         m_hero = {10000, 15000, 100};
         m_random = CrtRandom(seed);
-        m_cloudHero = Client::Scenes::ActorState{};
+        m_cloudHero = Client::Kernel::ActorState{};
         m_movementSpeed = {};
         m_context.cloudHero = &m_cloudHero;
         m_context.movementSpeed = &m_movementSpeed;

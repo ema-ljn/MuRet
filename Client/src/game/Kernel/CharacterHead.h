@@ -9,11 +9,11 @@ class CrtRandom;
 
 // La cabeza de un personaje (cierre del login): el tramo de 0x505de0 que la mueve (0x5068eb..0x5069ab), en
 // cada paso de 0x508ea0, después de 0x4fd5f0 (el cuerpo y el cuervo). La pose la lee en 0x4eb860
-// (Models::PoseSkeleton, `headAngles`). La corren el paso de los personajes (Scenes::StepCharacters,
+// (Models::PoseSkeleton, `headAngles`). La corren el paso de los personajes (Actors::StepCharacters,
 // con ActorState::headTurn) y, por su cuenta, el login. Contrato: 06 § Lo demás del login y § Los efectos de
 // los personajes (0x505de0). Verificado bit a bit contra el código real emulado
 // (tests/vectors/world55/head.txt).
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct CharacterHead
 {
@@ -30,4 +30,4 @@ struct CharacterHead
 // x = rand() % 128 − 64 e y = rand() % 48 − 16), mira a otro personaje (con 2 y +0x3a4 distinto de −1,
 // 0x4ea0e0), no hace nada (con 6) o lo pone en 0; un NPC puede sortear dos veces por paso (08, P-C17).
 void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random);
-} // namespace Client::Scenes
+} // namespace Client::Kernel

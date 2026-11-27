@@ -9,9 +9,9 @@
 namespace Client::Scenes
 {
 // 0x6446e0: lo que las opciones leen al armarse.
-[[nodiscard]] UI::OptionsSettings OptionsSettingsOf(const WorldRuntime& runtime);
+[[nodiscard]] UI::OptionsSettings OptionsSettingsOf(const Kernel::WorldRuntime& runtime);
 
 // 0x644730: el global de `event`. Con el volumen, el original llama después a 0x632d80 (el DirectSound de
 // 0x41eed0), de la CL10 (P-C79): queda el número.
-void ApplyOption(WorldRuntime& runtime, const UI::OptionsEvent& event);
+void ApplyOption(Kernel::WorldRuntime& runtime, const UI::OptionsEvent& event);
 } // namespace Client::Scenes

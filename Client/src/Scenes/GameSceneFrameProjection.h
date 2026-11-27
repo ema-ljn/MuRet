@@ -24,14 +24,14 @@ namespace Client::Scenes
 struct GameSceneFrameProjection
 {
     GameDrawTailState tail{};
-    World::TerrainLighting lighting{};
+    Terrain::TerrainLighting lighting{};
     World::ObjectModelStepState modelState{};
-    GameItemRenderState items{};
+    Actors::Drawing::GameItemRenderState items{};
     Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     World::ModelEffects effects{};
     World::Particles particles{};
     std::vector<World::WorldObject> objects{};
-    std::vector<ActorPickingBox> actorPickingBoxes{};
+    std::vector<Actors::ActorPickingBox> actorPickingBoxes{};
     std::unique_ptr<World::KalimaWorld> kalima{};
     std::uint8_t heroXDepth = 0;
     std::uint8_t heroYDepth = 0;
@@ -39,10 +39,10 @@ struct GameSceneFrameProjection
     // 0x7d325c8: el temblor de la cámara que 0x405e00 escribe en el dibujo.
     float cameraShake = 0.0f;
     // Lo que el HUD escribe y dura (0x5a7320): sus globales, el humo de Crywolf (0x576353c) y el sonido que pide.
-    HudState hud{};
+    Kernel::HudState hud{};
     std::uint8_t crywolfSandOverlay = 0;
     // Lo que escribe la interfaz de Crywolf (0x4365c0): las cuentas del cartel, la barra, el reloj y el consejo.
-    CrywolfInterface crywolfInterface{};
+    Kernel::CrywolfInterface crywolfInterface{};
     std::optional<std::int32_t> sound{};
     // 0x77f36d4 + 0x12 · 4 y 0x78abb38: el latch de Alt y los nombres del piso, que invierte el hover (0x5bbbc0).
     std::int32_t altLatch = 0;

@@ -39,25 +39,27 @@ constexpr std::int16_t ShieldHiddenMesh = 1;      // 0x602154
 // Las mallas posadas por el llamador o, sin ellas, las que posa acá como 0x5ffdf0 con el segundo argumento en 0
 // (0x52da99 → 0x602e90(efecto, 0, …)): WorldScratchOf, la normal girada por R · s. Vacío por debajo de 0,01 de alpha
 // o sin el modelo, su esqueleto o la pose.
-std::span<const Models::SkinnedMesh> PosedOrScratch(const Models::IModelLibrary& models, const DrawnObject& object,
+std::span<const Models::SkinnedMesh> PosedOrScratch(const Models::IModelLibrary& models,
+                                                    const Actors::Drawing::DrawnObject& object,
                                                     std::vector<Models::SkinnedMesh>& scratch)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
     if (object.alpha < VisibleAlpha)
         return {};
-    scratch = WorldScratchOf(models, object);
+    scratch = Actors::Drawing::WorldScratchOf(models, object);
     return scratch;
 }
 
 Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                  const DrawnObject& object, Core::Duration frameClock)
+                                                  const Actors::Drawing::DrawnObject& object, Core::Duration frameClock)
 {
     std::vector<Models::SkinnedMesh> posed;
     const std::span<const Models::SkinnedMesh> meshes = PosedOrScratch(models, object, posed);
     if (meshes.empty())
         return true;
-    if (auto drawn = DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, DarkBodyFlags); !drawn.HasValue())
+    if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, DarkBodyFlags);
+        !drawn.HasValue())
         return Core::Unexpected("0x6004d7: " + drawn.Error());
     return true;
 }
@@ -65,15 +67,16 @@ Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch, con
 // 0x60213e..0x60216b: RenderBody(0x1040, +0x174, +0x64, +0x68, +0x6c, +0x70, 1, −1), el cromo 0x1000 (Chrome4, la
 // textura del pase) con la 0x40, aditivo, sin la malla 1 y con lo demás del efecto; después, el pase común (0x602170).
 Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                      const DrawnObject& object, Core::Duration frameClock)
+                                                      const Actors::Drawing::DrawnObject& object,
+                                                      Core::Duration frameClock)
 {
     std::vector<Models::SkinnedMesh> posed;
     const std::span<const Models::SkinnedMesh> meshes = PosedOrScratch(models, object, posed);
     if (meshes.empty())
         return {};
-    DrawnObject chromed = object;
+    Actors::Drawing::DrawnObject chromed = object;
     chromed.state.hiddenMesh = ShieldHiddenMesh;
-    if (auto drawn = DrawItemMeshPass(batch, models, chromed, frameClock, meshes, -1, ShieldPassFlags);
+    if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, chromed, frameClock, meshes, -1, ShieldPassFlags);
         !drawn.HasValue())
         return Core::Unexpected("0x60216b: " + drawn.Error());
     return {};
@@ -82,7 +85,8 @@ Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch,
 
 Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& batch,
                                                           const Models::IModelLibrary& models,
-                                                          const World::ModelEffect& effect, DrawnObject& object,
+                                                          const World::ModelEffect& effect,
+                                                          Actors::Drawing::DrawnObject& object,
                                                           Core::Duration frameClock)
 {
     if (effect.renderFlags == World::CrackRenderFlags)
@@ -95,7 +99,7 @@ Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& ba
     if (effect.type == World::InnerCircleEffect && (effect.subtype == 2 || effect.subtype == 3))
     {
         object.color = PaleBlue;
-        DrawObjectWithTexture(batch, models, object, frameClock, MagicTexture);
+        Actors::Drawing::DrawObjectWithTexture(batch, models, object, frameClock, MagicTexture);
         return true;
     }
     if (effect.type == ShieldEffect && effect.subtype == ShieldPassSubtype)

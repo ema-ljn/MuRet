@@ -39,12 +39,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
 using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
-using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x5f30;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -161,7 +161,7 @@ constexpr std::uint32_t LinesBack = 0xff141414u;
 // El mundo del juego, en el heap.
 struct ShopWorld
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0}});
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{370, "ojo"},
                                                                     {560, "cerrada"},
@@ -194,7 +194,7 @@ protected:
         sprites.Begin(Screen640);
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return shop->world.Runtime();
     }
@@ -214,8 +214,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = shop->world.Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = shop->world.Hero();
         return GameHudContext{.world = shop->world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,

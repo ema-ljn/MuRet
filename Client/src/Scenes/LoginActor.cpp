@@ -24,9 +24,9 @@ namespace Client::Scenes
 {
 namespace
 {
-void EquipTheLoginActor(ActorState& actor)
+void EquipTheLoginActor(Kernel::ActorState& actor)
 {
-    const GameLogic::CharacterAppearance appearance = LoginCharacter();
+    const Kernel::CharacterAppearance appearance = LoginCharacter();
     actor.key = static_cast<std::uint16_t>(LoginActorSlot);
     actor.light = glm::vec3(LoginCharacterLight);
     actor.characterClass = appearance.characterClass;
@@ -43,12 +43,12 @@ void EquipTheLoginActor(ActorState& actor)
     actor.hands[1].model = appearance.leftHand->model;
     actor.wings.model = *appearance.wings;
     actor.pet.model = *appearance.pet;
-    actor.head = GameLogic::HeadUnder(actor.body[0].model, actor.characterClass).value_or(NoItemModel);
-    actor.scale = GameLogic::ClassScale(actor.characterClass, actor.skin).value_or(actor.scale);
+    actor.head = Kernel::HeadUnder(actor.body[0].model, actor.characterClass).value_or(Kernel::NoItemModel);
+    actor.scale = Kernel::ClassScale(actor.characterClass, actor.skin).value_or(actor.scale);
 }
 } // namespace
 
-void PrepareLoginPresentationActor(ActorState& actor, const Models::Skeleton& skeleton)
+void PrepareLoginPresentationActor(Kernel::ActorState& actor, const Models::Skeleton& skeleton)
 {
     EquipTheLoginActor(actor);
     actor.alive = true;
@@ -66,17 +66,18 @@ void PrepareLoginPresentationActor(ActorState& actor, const Models::Skeleton& sk
     Models::SetAction(actor.animation, skeleton, LoginCharacterStandingAction);
 }
 
-Core::Expected<void, std::string> ConstructLoginActor(ActorState& actor, const ActorConstructionContext& construction,
-                                                      WorldRuntime& runtime, Models::ClothWorld& cloth,
+Core::Expected<void, std::string> ConstructLoginActor(Kernel::ActorState& actor,
+                                                      const Actors::ActorConstructionContext& construction,
+                                                      Kernel::WorldRuntime& runtime, Models::ClothWorld& cloth,
                                                       const Models::Skeleton& skeleton)
 {
-    const auto built = ConstructActor(actor, Tables::PlayerSkeletonModel, {}, construction, cloth);
+    const auto built = Actors::ConstructActor(actor, Tables::PlayerSkeletonModel, {}, construction, cloth);
     if (!built.HasValue())
     {
         return built;
     }
     EquipTheLoginActor(actor);
-    const auto stopped = SetActorStop(
+    const auto stopped = Actors::SetActorStop(
         actor, {.runtime = runtime, .scene = SceneId::Login, .playerSkeleton = skeleton, .random = cloth.random});
     if (!stopped.HasValue())
     {
@@ -88,8 +89,8 @@ Core::Expected<void, std::string> ConstructLoginActor(ActorState& actor, const A
     actor.scale = transform.scale;
     // 0x420d60, después del caballo: la celda lógica sigue en (0, 0), aunque el dueño ya está situado.
     constexpr float CellCentre = 50.0f;
-    const double ground = World::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes,
-                                                 CellCentre, CellCentre, construction.fixedHeight);
+    const double ground = Terrain::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes,
+                                                   CellCentre, CellCentre, construction.fixedHeight);
     actor.darkSpirit = CreateDarkSpirit(
         actor.cellX, actor.cellY, ground, cloth.random,
         {.cellX = actor.cellXAccesses, .cellY = actor.cellYAccesses, .counter = cloth.openCounterAccesses});

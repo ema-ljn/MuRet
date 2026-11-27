@@ -47,12 +47,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectContext;
 using Client::Scenes::HighEffectStepContext;
 using Client::Scenes::StepHighModelEffect;
-using Client::Scenes::WorldState;
 using Client::World::ModelEffect;
 using Client::World::ModelEffectArguments;
 
@@ -144,7 +144,7 @@ struct HighWorld
 
     static constexpr std::size_t HeroSlot = 12;
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
     float clock = 1234.5f;
     Client::World::ModelEffectStepServices services{.lighting = lighting.get()};

@@ -54,7 +54,7 @@ Core::Expected<void, std::string> AimAtTheOwnerBone(JointState& joint, const Joi
 {
     constexpr std::size_t ChestBone = 33;
     constexpr glm::vec3 BelowTheBone{0.0f, -150.0f, 0.0f}; // 0xc3160000
-    const ActorState* owner = JointKernels::ActorOwner(joint);
+    const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x531412: falta el personaje dueño del joint 0x614/2"));
     if (services == nullptr || !services->playerBonePoint)
@@ -85,7 +85,7 @@ Core::Expected<void, std::string> CreateTheChain(JointState& joint, const World:
     constexpr std::int32_t MostLinks = 6;
     for (std::size_t slot = 0; slot < services->actors.size(); ++slot)
     {
-        const ActorState& actor = services->actors[slot];
+        const Kernel::ActorState& actor = services->actors[slot];
         const double dx = D(joint.position.x) - D(actor.position.x);
         const double dy = D(joint.position.y) - D(actor.position.y);
         const double distance = std::sqrt(dy * dy + dx * dx);
@@ -223,7 +223,7 @@ Core::Expected<void, std::string> FollowTheOwner(JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return {};
-    const ActorState* owner = JointKernels::ActorOwner(joint);
+    const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(
             std::format("0x536989: el dueño del joint 0x614/{:#x} no es un personaje", joint.subtype));
@@ -290,7 +290,8 @@ Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scra
         // 0x74374bc): queda la del BSS, en cero, y el punto es la posición que tenga el modelo compartido. El camino
         // salta 0x4e9810: lo que falta es el [ebp+8] de 0x53586c, la y de la posición menos la del destino al empezar
         // el paso.
-        const ActorState* owner = joint.ownerKind == JointOwnerKind::Actor ? JointKernels::ActorOwner(joint) : nullptr;
+        const Kernel::ActorState* owner =
+            joint.ownerKind == JointOwnerKind::Actor ? JointKernels::ActorOwner(joint) : nullptr;
         if (owner == nullptr)
             return Core::Unexpected(std::string("0x536adf: el dueño del joint 0x614/0xc no es un personaje"));
         if (services == nullptr || services->world == nullptr)
@@ -347,7 +348,7 @@ void Jitter(JointState& joint, CrtRandom& random)
 }
 
 // 0x536d8e..0x536e32: con el ancho en 50 o más, la luz dinámica de radio 2 de la /0, la /0xb y la /2.
-Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, World::TerrainLighting* lighting)
+Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, Terrain::TerrainLighting* lighting)
 {
     if (!(joint.width >= 50.0f))
         return {};

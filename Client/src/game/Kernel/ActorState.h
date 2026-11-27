@@ -19,7 +19,7 @@
 // Un registro del pool durable de personajes, de 0x438 bytes en el original (06, "Los personajes de
 // la lista"). Es una proyección con lo que MuRet lee hoy, no el layout. Arranca en cero, como lo deja
 // el REP STOSD de WinMain (0x4bafa6..0x4bafb3).
-namespace Client::Scenes
+namespace Client::Kernel
 {
 inline constexpr std::int32_t ActorRemovalCountdownSentinel = -0x80;
 
@@ -141,15 +141,15 @@ struct ActorState
     // La acción en +0x111, la anterior en +0x112, el frame en +0x114 y la key anterior en +0x118: lo que
     // pone 0x4ea030.
     Models::AnimationState animation{};
-    std::uint8_t characterClass = 0;                            // +0x1d4
-    std::uint8_t skin = 0;                                      // +0x1d5
-    std::uint16_t level = 0;                                    // +0x1d6, nivel de la lista o del F3 03
-    std::uint8_t guildStatus = 0;                               // +0x368, 0xff desde 0x511290
-    std::uint16_t head = 0;                                     // +0x1f8, de 0x512930: 0xffff sin cabeza
-    std::array<ActorItemPart, GameLogic::BodyPartCount> body{}; // +0x218, en el orden de GameLogic::BodyPart
-    std::array<ActorItemPart, 2> hands{};                       // +0x2b8 la derecha y +0x2d8 la izquierda
-    ActorItemPart wings;                                        // +0x2f8
-    ActorItemPart pet;                                          // +0x318
+    std::uint8_t characterClass = 0;                         // +0x1d4
+    std::uint8_t skin = 0;                                   // +0x1d5
+    std::uint16_t level = 0;                                 // +0x1d6, nivel de la lista o del F3 03
+    std::uint8_t guildStatus = 0;                            // +0x368, 0xff desde 0x511290
+    std::uint16_t head = 0;                                  // +0x1f8, de 0x512930: 0xffff sin cabeza
+    std::array<ActorItemPart, Kernel::BodyPartCount> body{}; // +0x218, en el orden de Kernel::BodyPart
+    std::array<ActorItemPart, 2> hands{};                    // +0x2b8 la derecha y +0x2d8 la izquierda
+    ActorItemPart wings;                                     // +0x2f8
+    ActorItemPart pet;                                       // +0x318
     // +0x358: 0x511290 lo pone en 0 (0x511c99). En el héroe publicado, 0x40d010 lo pone en 0 y en 1 si
     // hay un conjunto completo (06, "Los stats del registro propio"); en la respuesta del F3 03 ese
     // publicado todavía es el anterior (Q-C197). La lista de la selección le copia el bit 0 de b[10],
@@ -182,7 +182,7 @@ struct ActorState
     // +0x1a0: la skill0x2b prende35 pasos de chispas sobre el blanco (4f9ba2); 511c62 lo inicializa en0.
     std::uint8_t byte1a0 = 0;
     // +0x28 y +0x2c, los ángulos de la cabeza, y +0x34 y +0x38, hacia dónde gira: los mueve 0x505de0
-    // (0x5068eb..0x5069ab, Scenes::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:
+    // (0x5068eb..0x5069ab, Kernel::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con
     // el mouse (0x59b1c2..0x59b287, CL7.4), sin portar.
     CharacterHead headTurn{};
@@ -395,4 +395,4 @@ inline void ReleaseTheLayer(ActorState& actor)
         actor.byte360 = 0;
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

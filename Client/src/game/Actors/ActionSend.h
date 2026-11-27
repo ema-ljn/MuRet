@@ -11,7 +11,7 @@
 // El C1 05 18 [dir] [acción] que manda el cliente (04 § La acción, 18): el giro del héroe quieto (0x59b74c), sentarse
 // (0x4f2416..0x4f2bea) y el emote (0x576a60 y los casos de 0x576eb0). Los cuatro sacan la dirección del ángulo +0x24
 // de un personaje con la misma cuenta. *Estático*.
-namespace Client::Scenes
+namespace Client::Actors
 {
 // Quien manda un C1 18 por el socket del GameServer (App::ServerSession::SendAction), con la dirección y la acción.
 using ActionSender = std::function<void(std::uint8_t direction, std::uint8_t action)>;
@@ -26,4 +26,4 @@ using ActionSender = std::function<void(std::uint8_t direction, std::uint8_t act
 // la dirección `where`.
 [[nodiscard]] Core::Expected<void, std::string> SendTheAction(float angle, std::uint8_t action,
                                                               const ActionSender& send, std::string_view where);
-} // namespace Client::Scenes
+} // namespace Client::Actors

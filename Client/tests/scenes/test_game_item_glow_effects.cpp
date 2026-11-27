@@ -13,9 +13,9 @@
 
 namespace
 {
+using Client::Actors::Drawing::ItemShineClockOf;
+using Client::Actors::Drawing::ItemShineTexCoords;
 using Client::Models::ShinePass;
-using Client::Scenes::ItemShineClockOf;
-using Client::Scenes::ItemShineTexCoords;
 
 struct ShineCase
 {

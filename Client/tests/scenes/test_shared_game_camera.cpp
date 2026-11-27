@@ -53,9 +53,9 @@
 
 namespace
 {
-using Client::World::GameCamera;
-using Client::World::GameCameraInput;
-using Client::World::StepGameCamera;
+using Client::Camera::GameCamera;
+using Client::Camera::GameCameraInput;
+using Client::Camera::StepGameCamera;
 using namespace std::chrono_literals;
 
 class SharedGameCameraTest : public testing::Test
@@ -63,9 +63,9 @@ class SharedGameCameraTest : public testing::Test
 protected:
     void SetUp() override
     {
-        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::LoginTextureSet);
-        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::SelectionTextureSet);
-        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::WindowTextureSet);
+        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Assets::LoginTextureSet);
+        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Assets::SelectionTextureSet);
+        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Assets::WindowTextureSet);
     }
 
     Client::Scenes::SceneContext Context(Client::App::PacingMode pacing = Client::App::PacingMode::Decoupled)
@@ -94,7 +94,7 @@ protected:
 
     Client::Scenes::SceneContext SelectionContext(Client::Scenes::SelectionState& state)
     {
-        auto terrain = Client::World::LoadWorldTerrain(Client::Tests::RepoDataDir(), 55);
+        auto terrain = Client::Terrain::LoadWorldTerrain(Client::Tests::RepoDataDir(), 55);
         EXPECT_TRUE(terrain.HasValue());
         if (terrain.HasValue())
         {
@@ -123,19 +123,19 @@ TEST_F(SharedGameCameraTest, LoginAndSelectionDrawWithTheZoomLeftByTheGame)
     Client::Scenes::LoginScene login(Context(), m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());
     EXPECT_EQ(m_camera.zoom, 210.0f);
-    auto expected = Client::Scenes::LoginCamera();
+    auto expected = Client::Camera::LoginCamera();
     expected.position = {12636.5791015625f, 12819.4208984375f, 579.0f};
     EXPECT_EQ(Frame(login, 0ns).view,
-              Client::Render::MakePass3D({640, 480}, Client::Scenes::WorldViewport, expected).view);
+              Client::Render::MakePass3D({640, 480}, Client::Camera::WorldViewport, expected).view);
     EXPECT_EQ(m_camera.zoom, 200.0f);
     login.Leave();
 
     Client::Scenes::CharacterSelectScene selection(Context(), m_data, m_models, nullptr);
     ASSERT_TRUE(selection.Enter().HasValue());
     EXPECT_EQ(m_camera.zoom, 200.0f);
-    auto selected = Client::Scenes::SelectionCamera();
+    auto selected = Client::Camera::SelectionCamera();
     selected.position = {13774.6494140625f, 14616.3505859375f, 543.0f};
-    const auto selectedPass = Client::Render::MakePass3D({640, 480}, Client::Scenes::WorldViewport, selected);
+    const auto selectedPass = Client::Render::MakePass3D({640, 480}, Client::Camera::WorldViewport, selected);
     const auto drawn = Frame(selection, 0ns);
     EXPECT_EQ(drawn.view, selectedPass.view);
     EXPECT_EQ(drawn.projection, selectedPass.projection);
@@ -225,7 +225,7 @@ TEST_F(SharedGameCameraTest, TheGameOnlyWritesTheYawInItsFirstLogicStep)
     m_camera.fixedHeight = 1201.0f;
     // El juego no entra sin la espera (el WorldState) ni el rand() que gastan sus cierres.
     Client::Models::ClothWorld cloth;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     auto context = Context();
     context.cloth = &cloth;
     context.world = &world;
@@ -276,7 +276,7 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     m_cameraInput.hero = {17500.0f, 20000.0f, 165.0f};
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState state(world);
     Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
@@ -286,14 +286,14 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     // 0x5172c4/0x5172ca: las escrituras de 0x517270 al slot0, al que apunta Hero.
     EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
     EXPECT_EQ(m_cameraInput.hero.y, Client::Scenes::CharacterSlots[0].position.y);
-    EXPECT_EQ(Frame(selection, 0ns).farPlane, Client::Scenes::SelectionCamera().farPlane);
+    EXPECT_EQ(Frame(selection, 0ns).farPlane, Client::Camera::SelectionCamera().farPlane);
     selection.Leave();
 }
 
 TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ)
 {
     const auto expected =
-        Client::Render::MakePass3D({640, 480}, Client::Scenes::WorldViewport, Client::Scenes::SelectionCamera());
+        Client::Render::MakePass3D({640, 480}, Client::Camera::WorldViewport, Client::Camera::SelectionCamera());
     // Z sintéticas para aislar el cálculo de cámara; ninguna representa la Z original del actor.
     for (float initialZ : {-10000.0f, 1000000.0f})
     {
@@ -301,7 +301,7 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         m_cameraInput.hero = {17500.0f, 20000.0f, initialZ};
         Client::Tests::LoggedInSession online;
         ASSERT_NO_FATAL_FAILURE(online.LogIn());
-        Client::Scenes::WorldState world;
+        Client::Kernel::WorldState world;
         Client::Scenes::SelectionState state(world);
         Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
         ASSERT_TRUE(selection.Enter().HasValue());
@@ -322,7 +322,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
 {
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState state(world);
     const auto context = SelectionContext(state);
     Client::Scenes::CharacterSelectScene selection(context, m_data, m_models, &online.session);
@@ -336,7 +336,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     Client::Scenes::LoginScene login(context, m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());
     static_cast<void>(Frame(login, 0ns));
-    EXPECT_EQ(m_cameraInput.hero, Client::Scenes::LoginHeroPosition);
+    EXPECT_EQ(m_cameraInput.hero, Client::Camera::LoginHeroPosition);
     login.Leave();
 
     // La misma lista vuelve a llegar: la igualdad visual no elimina esta construcción real.
@@ -368,7 +368,7 @@ TEST_F(SharedGameCameraTest, LoginPreservesTheHeroUntilItsFirstDrawAndOnlyResets
     EXPECT_EQ(m_camera.zoom, 210.0f);
     EXPECT_EQ(m_camera.fixedHeight, 1201.0f);
     EXPECT_EQ(Frame(login, 0ns).farPlane, 20400.0f);
-    EXPECT_EQ(m_cameraInput.hero, Client::Scenes::LoginHeroPosition);
+    EXPECT_EQ(m_cameraInput.hero, Client::Camera::LoginHeroPosition);
     login.Leave();
 }
 
@@ -377,25 +377,25 @@ TEST_F(SharedGameCameraTest, TheFixedHeightIsSharedWithHeightQueriesAndTerrainVe
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     auto mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     attributes->cells.fill(0x40);
     mapping->layer1.fill(0);
     mapping->layer2.fill(0xff);
-    Client::World::TerrainView view;
+    Client::Terrain::TerrainView view;
     view.heights = heights.get();
     view.attributes = attributes.get();
     view.mapping = mapping.get();
     view.lighting = lighting.get();
     const auto check = [&](float expected)
     {
-        EXPECT_EQ(Client::World::TerrainHeightAt(*heights, *attributes, 100.0f, 100.0f, m_camera.fixedHeight),
+        EXPECT_EQ(Client::Terrain::TerrainHeightAt(*heights, *attributes, 100.0f, 100.0f, m_camera.fixedHeight),
                   expected);
-        EXPECT_EQ(Client::World::TerrainHeightAt(*heights, *attributes, 100.0f, 30000.0f, m_camera.fixedHeight),
+        EXPECT_EQ(Client::Terrain::TerrainHeightAt(*heights, *attributes, 100.0f, 30000.0f, m_camera.fixedHeight),
                   expected);
         view.fixedHeight = m_camera.fixedHeight;
         Client::Render::ModelBatch batch;
         batch.Begin({});
-        Client::World::DrawTerrainCell(batch, view, {}, 10, 10);
+        Client::Terrain::DrawTerrainCell(batch, view, {}, 10, 10);
         ASSERT_FALSE(batch.Vertices().empty());
         for (const auto& vertex : batch.Vertices())
             EXPECT_EQ(vertex.position.z, expected);
@@ -406,10 +406,10 @@ TEST_F(SharedGameCameraTest, TheFixedHeightIsSharedWithHeightQueriesAndTerrainVe
     static_cast<void>(StepGameCamera(m_camera, input));
     check(1201.0f);
     input.cellAttribute = 0;
-    input.scene = Client::World::CullingScene::Login;
+    input.scene = Client::Terrain::CullingScene::Login;
     input.map = 55;
     static_cast<void>(StepGameCamera(m_camera, input));
-    input.scene = Client::World::CullingScene::CharacterSelect;
+    input.scene = Client::Terrain::CullingScene::CharacterSelect;
     input.map = 54;
     static_cast<void>(StepGameCamera(m_camera, input));
     check(1201.0f);
@@ -420,9 +420,9 @@ TEST_F(SharedGameCameraTest, ALongDrawUsesTheExistingOriginalFrameLimit)
     m_camera.distance = 0x1p100f;
     GameCamera expected = m_camera;
     GameCameraInput input;
-    input.scene = Client::World::CullingScene::Login;
+    input.scene = Client::Terrain::CullingScene::Login;
     input.map = 55;
-    input.hero = Client::Scenes::LoginHeroPosition;
+    input.hero = Client::Camera::LoginHeroPosition;
     for (int frame = 0; frame < 1 + Client::Models::MaxOriginalFramesPerDraw; ++frame)
         static_cast<void>(StepGameCamera(expected, input));
     Client::Scenes::LoginScene login(Context(), m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);

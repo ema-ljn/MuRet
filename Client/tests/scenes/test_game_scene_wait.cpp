@@ -79,13 +79,13 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
 
     Client::Tests::FakeTextureStore textures;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(0x1234)};
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection(world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     auto data = Client::Tables::LoadGameData(m_dataRoot);
     ASSERT_TRUE(data.HasValue()) << data.Error();
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     const auto loadedModels = models.Load(m_dataRoot, textures, online.log);
     ASSERT_TRUE(loadedModels.HasValue()) << loadedModels.Error();
     const auto* player = models.SkeletonOf(Client::Tables::PlayerSkeletonModel);
@@ -93,7 +93,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
 
     // El constructor de la lista lee el terreno del login anterior; InitializeSelection carga
     // después el54 real. No se presta un esqueleto sintético ni un TerrainWall vacío de juego.
-    auto loginTerrain = Client::World::LoadWorldTerrain(m_dataRoot, 55);
+    auto loginTerrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, 55);
     ASSERT_TRUE(loginTerrain.HasValue()) << loginTerrain.Error();
     selection.RetainTerrain(55, std::move(loginTerrain).Value());
     selection.BeginSelection();
@@ -104,9 +104,9 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     const auto initialized = selection.InitializeSelection(m_dataRoot, cameraInput);
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     selection.DrawSelection(cameraInput);
-    world.Runtime().terrainPolygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, 54,
-                                                                     Client::Scenes::SelectionCullingPoint,
-                                                                     Client::Scenes::SelectionCamera().angles.z);
+    world.Runtime().terrainPolygon = Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect,
+                                                                       54, Client::Camera::SelectionCullingPoint,
+                                                                       Client::Camera::SelectionCamera().angles.z);
     ASSERT_NE(online.session.ChosenCharacter(), nullptr);
     world.PrepareSelectedActor(*online.session.ChosenCharacter(), cloth.random);
     const auto polygon = world.Runtime().terrainPolygon;
@@ -169,7 +169,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     manager.Step(input); // El paso de escena3 pasa a5 después de presentar el mosaico.
     ASSERT_EQ(manager.Current(), Client::Scenes::SceneId::Game);
     ASSERT_NE(game, nullptr);
-    ASSERT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    ASSERT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     const auto before = cloth;
     Client::Models::ClothWorld expected = before;
     // 447108..4471b2:54 admite el fallback de425070 sólo con atributo0/2. La CRT
@@ -212,7 +212,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
     ASSERT_EQ(game->Failure(), std::nullopt);
     EXPECT_EQ(online.session.State(), Client::App::SessionState::EnteringWorld);
-    EXPECT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait - 1);
+    EXPECT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait - 1);
     EXPECT_EQ(world.Runtime().warpDepth, 0);
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(cloth.logicSteps, before.logicSteps + 1);

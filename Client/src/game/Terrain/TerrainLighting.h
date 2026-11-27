@@ -16,7 +16,7 @@
 // la usan los modelos que no van por la luz de cada vértice (Client/docs/research/
 // 06-render-escenas-y-ui.md, "La luz del terreno en un punto"). Nace en la CL6.4, porque el logo y
 // el personaje del login la toman de su lugar en el mapa 55; la CL7 la usa para el terreno.
-namespace Client::World
+namespace Client::Terrain
 {
 // El mapa 30 (0x1e) sombrea con −1 y 1 (0x6b8b9c y 0x6b87d4) donde los demás usan −0,5 y 0,5.
 inline constexpr std::uint8_t BrightShadingMap = 30;
@@ -29,7 +29,7 @@ struct TerrainLighting
 };
 
 // 0x5f8b10 y 0x5f8d90, al cargar un mundo (0x5f8f40):
-//   - la normal de cada celda (x, y) es la de 0x5fd000 (World::FaceNormal) con el triángulo (x + 1, y),
+//   - la normal de cada celda (x, y) es la de 0x5fd000 (Terrain::FaceNormal) con el triángulo (x + 1, y),
 //     (x + 1, y + 1), (x, y + 1), con las celdas a 100 unidades y las alturas de `heights`. Las
 //     alturas se buscan con x + 1 e y + 1 en un byte (la columna 255 toma la altura de la 0, y la fila
 //     255 la de la 0), y las posiciones no;
@@ -82,4 +82,4 @@ void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
 // Devuelve un valor: no modela out3 aliasando tabla/stack ni interferencias entre canales. Los
 // guards de globals del original pertenecen al binding; esta API no recibe esos globals.
 [[nodiscard]] glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y);
-} // namespace Client::World
+} // namespace Client::Terrain

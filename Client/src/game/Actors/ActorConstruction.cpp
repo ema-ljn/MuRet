@@ -18,7 +18,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -85,7 +85,7 @@ ConstructionBox BoxOf(std::uint16_t type)
     }
 }
 
-void PutTheBox(ActorState& actor, const ConstructionBox& box)
+void PutTheBox(Kernel::ActorState& actor, const ConstructionBox& box)
 {
     actor.boundsMin = box.min;
     actor.boundsMaxX = box.maxX;
@@ -205,7 +205,7 @@ std::optional<HandBones> EventHandBonesOf(std::uint16_t type)
 }
 
 // 0x42d7f0: la caja del 0x19b, +0x38f en 0 y 1 (sin los huesos), y la del 0x1f8 con 0 (con los huesos).
-bool SetTheSiegeBox(ActorState& actor, std::uint16_t type)
+bool SetTheSiegeBox(Kernel::ActorState& actor, std::uint16_t type)
 {
     constexpr std::uint16_t SiegeGate = 0x19b;
     constexpr std::uint16_t SiegeStatue = 0x1f8;
@@ -220,7 +220,7 @@ bool SetTheSiegeBox(ActorState& actor, std::uint16_t type)
     return false;
 }
 
-void PutTheHandBones(ActorState& actor, const HandBones& bones)
+void PutTheHandBones(Kernel::ActorState& actor, const HandBones& bones)
 {
     actor.hands[0].bone = bones.right;
     if (bones.left)
@@ -229,7 +229,7 @@ void PutTheHandBones(ActorState& actor, const HandBones& bones)
 
 // 0x512490..0x5126d5: los huesos de las manos por el tipo; el 0x5126b2 prueba 0x43a250 y 0x42d7f0 y, si ninguno
 // devuelve 1, cuelga las manos del 33 y del 42.
-void SetTheHandBones(ActorState& actor, std::uint16_t type)
+void SetTheHandBones(Kernel::ActorState& actor, std::uint16_t type)
 {
     if (const auto bones = TableHandBonesOf(type))
     {
@@ -247,7 +247,7 @@ void SetTheHandBones(ActorState& actor, std::uint16_t type)
 }
 
 // 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
-void ResetTheAnimation(ActorState& actor)
+void ResetTheAnimation(Kernel::ActorState& actor)
 {
     const std::uint8_t action = actor.type == Tables::PlayerSkeletonModel ? PlayerStartAction : 0;
     actor.animation.action = action;
@@ -258,24 +258,24 @@ void ResetTheAnimation(ActorState& actor)
 
 // 0x512455..0x512463 y los lazos de antes: la cabeza y las cinco del cuerpo sin ítem, con nivel y bytes
 // en 0; las manos sin ítem con el nivel y el +3 en 0; las alas, la mascota y +0x338 solo el modelo.
-void ClearTheParts(ActorState& actor)
+void ClearTheParts(Kernel::ActorState& actor)
 {
-    actor.head = NoItemModel;
-    for (ActorItemPart& part : actor.body)
+    actor.head = Kernel::NoItemModel;
+    for (Kernel::ActorItemPart& part : actor.body)
     {
-        part.model = NoItemModel;
+        part.model = Kernel::NoItemModel;
         part.level = 0;
         part.flags1b = 0;
         part.flags1c = 0;
     }
-    for (ActorItemPart& hand : actor.hands)
+    for (Kernel::ActorItemPart& hand : actor.hands)
     {
-        hand.model = NoItemModel;
+        hand.model = Kernel::NoItemModel;
         hand.level = 0;
         hand.flags1b = 0;
     }
-    actor.wings.model = NoItemModel;
-    actor.pet.model = NoItemModel;
+    actor.wings.model = Kernel::NoItemModel;
+    actor.pet.model = Kernel::NoItemModel;
     actor.previousHad1c15 = false;
 }
 
@@ -288,7 +288,7 @@ void AccessTheCell(std::uint8_t& accesses, std::uint8_t value, std::uint32_t& le
 }
 
 // La celda: escribe X y después Y, cada una en su acceso (0x412890 al cerrar), y las copias en claro.
-void WriteTheCell(ActorState& actor, const ActorPlacement& placement, Crt::CrtRandom& random)
+void WriteTheCell(Kernel::ActorState& actor, const ActorPlacement& placement, Crt::CrtRandom& random)
 {
     AccessTheCell(actor.cellXAccesses, placement.x, actor.cellXLeft, random);
     AccessTheCell(actor.cellYAccesses, placement.y, actor.cellYLeft, random);
@@ -313,7 +313,7 @@ std::int32_t ReadTheStepCounter(Models::ClothWorld& cloth)
 }
 
 // Lo que 0x511290 deja fijo en un 0x20a, fuera de la celda, la posición y las partes.
-void SetTheStartingState(ActorState& actor, std::uint16_t type)
+void SetTheStartingState(Kernel::ActorState& actor, std::uint16_t type)
 {
     actor.alive = true;
     actor.type = type;
@@ -354,7 +354,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte110 = 0;    // 0x511c69
     actor.byte1a0 = 0;    // 0x511c62
     actor.byte1bc = 0;    // 0x511ce4
-    actor.word1f2 = NoItemModel;
+    actor.word1f2 = Kernel::NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;
     actor.run = 0;
@@ -399,7 +399,7 @@ bool IsNewFace(std::uint16_t type)
     return type >= FirstNewFace && type <= LastNewFace;
 }
 
-bool HeightSkippedIn(World::CullingScene scene)
+bool HeightSkippedIn(Terrain::CullingScene scene)
 {
     constexpr std::uint8_t InitialScene = 0;
     constexpr std::uint8_t LoadingScene = 1;
@@ -410,10 +410,10 @@ bool HeightSkippedIn(World::CullingScene scene)
 
 double ConstructionHeight(const ActorConstructionContext& context, float x, float y, bool previousHad1c15, bool safe)
 {
-    double height =
-        HeightSkippedIn(context.scene)
-            ? 0.0
-            : World::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, x, y, context.fixedHeight);
+    double height = HeightSkippedIn(context.scene)
+                        ? 0.0
+                        : Terrain::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, x, y,
+                                                   context.fixedHeight);
     if (context.map != NoMap && previousHad1c15 && !safe)
     {
         height += context.map == FirstLargeOffsetMap || context.map == SecondLargeOffsetMap ? LargePetHeightOffset
@@ -422,7 +422,8 @@ double ConstructionHeight(const ActorConstructionContext& context, float x, floa
     return height;
 }
 
-Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_t type, const ActorPlacement& placement,
+Core::Expected<void, std::string> ConstructActor(Kernel::ActorState& actor, std::uint16_t type,
+                                                 const ActorPlacement& placement,
                                                  const ActorConstructionContext& context, Models::ClothWorld& cloth)
 {
     const bool previousHad1c15 = actor.previousHad1c15;
@@ -456,4 +457,4 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
     ++actor.revision;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

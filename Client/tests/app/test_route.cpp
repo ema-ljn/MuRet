@@ -49,7 +49,7 @@ struct Handled
 {
     Walk walk;
     std::optional<Client::Kernel::PlayerKey> player;
-    const Client::Scenes::WorldState* world = nullptr;
+    const Client::Kernel::WorldState* world = nullptr;
     const Client::Scenes::WorldEntryResources* resources = nullptr;
 };
 
@@ -58,7 +58,7 @@ std::vector<Handled> handled;
 std::optional<std::string> nextFailure;
 
 Client::Core::Expected<void, std::string> HandleWithEveryPart(const Walk& walk, Client::Kernel::PlayerKey player,
-                                                              Client::Scenes::WorldState& world,
+                                                              Client::Kernel::WorldState& world,
                                                               const Client::Scenes::WorldEntryResources& resources)
 {
     handled.push_back({walk, player, &world, &resources});
@@ -74,7 +74,7 @@ void HandleTheWalkAlone(const Walk& walk)
 
 struct ChatParts
 {
-    const Client::Scenes::WorldState* world = nullptr;
+    const Client::Kernel::WorldState* world = nullptr;
     const Client::Crt::CrtRandom* random = nullptr;
     std::optional<std::uint8_t> chosenSlot;
     bool sendsToTheGuild = false;
@@ -95,7 +95,7 @@ void HandleWithTheChat(const Walk&, const Client::Scenes::ChatReceiveContext& ch
 
 struct CombatParts
 {
-    const Client::Scenes::WorldState* world = nullptr;
+    const Client::Kernel::WorldState* world = nullptr;
     const Client::Crt::CrtRandom* random = nullptr;
     const Client::Models::Skeleton* playerSkeleton = nullptr;
     const Client::Models::IModelLibrary* models = nullptr;
@@ -110,7 +110,7 @@ void HandleWithTheCombat(const Walk&, const Client::Scenes::ActorCombatContext& 
                               .models = combat.models};
 }
 
-void HandleBySitting(const Walk& walk, const Client::Scenes::ActionSender& sendAction)
+void HandleBySitting(const Walk& walk, const Client::Actors::ActionSender& sendAction)
 {
     sendAction(walk.direction, 0x7a);
 }

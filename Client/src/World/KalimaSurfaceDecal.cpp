@@ -49,7 +49,7 @@ struct DecalProjection
     Math::OriginalMatrix rotation;
 };
 
-Core::Expected<DecalProjection, std::string> Project(const TerrainDecal& decal)
+Core::Expected<DecalProjection, std::string> Project(const Terrain::TerrainDecal& decal)
 {
     const float centerX = F32(static_cast<double>(decal.x) * CellsPerUnit);
     const float centerY = F32(static_cast<double>(decal.y) * CellsPerUnit);
@@ -98,7 +98,7 @@ std::array<glm::vec2, 4> Uvs(const DecalProjection& projection, std::int64_t col
     return turned;
 }
 
-void Cell(Render::ModelBatch& batch, const KalimaWavePlane& heights, const TerrainDecal& decal,
+void Cell(Render::ModelBatch& batch, const KalimaWavePlane& heights, const Terrain::TerrainDecal& decal,
           const DecalProjection& projection, std::int64_t column, std::int64_t row)
 {
     const float x = F32(static_cast<double>(projection.column) + static_cast<double>(column));
@@ -127,7 +127,7 @@ void Cell(Render::ModelBatch& batch, const KalimaWavePlane& heights, const Terra
 } // namespace
 
 Core::Expected<void, std::string> DrawKalimaSurfaceDecal(Render::ModelBatch& batch, const KalimaWorld& world,
-                                                         const TerrainDecal& decal)
+                                                         const Terrain::TerrainDecal& decal)
 {
     if (decal.slot >= static_cast<std::int32_t>(Render::OriginalTextureSlotCount))
         return Core::Unexpected(std::string("0x41dd68: slot del calco fuera de la tabla de texturas"));

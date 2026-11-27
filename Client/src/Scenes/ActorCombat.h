@@ -19,10 +19,14 @@ namespace Client::Models
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Models
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
 
 // La tabla de sonidos de un modelo (ModelSounds, de 0x612c80), para los tests: sin ella, la de
@@ -34,7 +38,7 @@ using ModelSoundLookup = std::function<std::optional<Sound::ModelSounds>(std::ui
 // e Item.bmd para la marca +0x1e del arma.
 struct ActorCombatContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     const Models::Skeleton* playerSkeleton = nullptr;
     const Models::IModelLibrary* models = nullptr;
@@ -48,9 +52,11 @@ struct ActorCombatContext
 // 0x4f4a10, SetPlayerAttack: la acción de pegar según el modelo, las armas y la montura, el sonido con el frame en 0
 // (en WorldRuntime::lastSoundId, para la CL10) y +0x38f + 1. La llaman el ataque del héroe al llegar (0x5650c0) y las
 // acciones 0x78/0x79 del 0x18 (0x4cb750, hito 1). Corta en lo que es de otra ola o de otro hito, con su dirección.
-[[nodiscard]] Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorCombatContext& context);
+[[nodiscard]] Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor,
+                                                               const ActorCombatContext& context);
 
 // 0x4f5660, SetPlayerDie: la vida propia en 0 si es el héroe, la acción de morir (0xc3 o 6) y, con el frame en 0, el
 // sonido (lastSoundId) y el frame en 0,001.
-[[nodiscard]] Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorCombatContext& context);
+[[nodiscard]] Core::Expected<void, std::string> SetActorDie(Kernel::ActorState& actor,
+                                                            const ActorCombatContext& context);
 } // namespace Client::Scenes

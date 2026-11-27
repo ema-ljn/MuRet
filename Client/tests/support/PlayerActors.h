@@ -30,17 +30,17 @@ inline Models::Skeleton PlayerActionsSkeleton()
 }
 
 // Un jugador sin nada en las manos, las alas ni la mascota, fuera de la zona segura.
-inline Scenes::ActorState UnarmedPlayer(std::uint8_t characterClass = 0)
+inline Kernel::ActorState UnarmedPlayer(std::uint8_t characterClass = 0)
 {
-    Scenes::ActorState actor;
+    Kernel::ActorState actor;
     actor.type = Tables::PlayerSkeletonModel;
     actor.characterClass = characterClass;
-    actor.hands[0].model = Scenes::NoItemModel;
-    actor.hands[1].model = Scenes::NoItemModel;
-    actor.wings.model = Scenes::NoItemModel;
-    actor.pet.model = Scenes::NoItemModel;
+    actor.hands[0].model = Kernel::NoItemModel;
+    actor.hands[1].model = Kernel::NoItemModel;
+    actor.wings.model = Kernel::NoItemModel;
+    actor.pet.model = Kernel::NoItemModel;
     // 0x511290: sin gremio (+0x1f2 en −1) y +0x376 en 0xffff (0x511d72), el de un jugador sin transformar.
-    actor.word1f2 = Scenes::NoItemModel;
+    actor.word1f2 = Kernel::NoItemModel;
     actor.word376 = 0xffff;
     return actor;
 }

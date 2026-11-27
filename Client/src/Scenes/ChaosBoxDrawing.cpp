@@ -255,7 +255,7 @@ Core::Expected<void, std::string> DrawTheRate(GameHudContext& context, const Npc
         return Core::Unexpected(format.Error());
     if (!mixing.HasValue())
         return Core::Unexpected(mixing.Error());
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     const bool bonus = npc.field7d2dc9d > 0 && (shown == 2 || shown == 8);
     hud.textColors = Render::Text::TextColors{.text = bonus ? MixableColor : LineColor, .background = LineBackground};
     auto line = Fits(Crt::Sprintf(format.Value(), mixing.Value(), rate), RoomBeforeThePrice, "0x5ff336");
@@ -395,8 +395,8 @@ Core::Expected<void, std::string> DrawTheChaosBox(GameHudContext& context, UI::P
     if (!panels.IsOpen(UI::ChaosBoxPanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::HudState& hud = context.hud;
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     runtime.ui.npcWindowX = WindowLeft;
     runtime.ui.npcWindowY = WindowTop;

@@ -46,17 +46,17 @@
 
 namespace
 {
+using Client::Actors::Drawing::CharacterCloth;
+using Client::Actors::Drawing::ClothWearer;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldRuntime;
+using Client::Kernel::WorldState;
 using Client::Scenes::ArmEventMapObject;
-using Client::Scenes::CharacterCloth;
-using Client::Scenes::ClothWearer;
 using Client::Scenes::EventMapKind;
 using Client::Scenes::EventMapObject;
 using Client::Scenes::LoadMap;
 using Client::Scenes::MapLoadContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::WorldRuntime;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t PlayerKey = 5;
@@ -108,7 +108,7 @@ TEST(ActorClothLifecycleTest, MapCleanupReleasesClothsInEveryPoolSlotExceptTheSe
 // registros de 0x7d34818. La próxima creación debe poder reutilizarlos sin borrar sus demás campos.
 TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
 {
-    Client::Scenes::WorldMap loaded;
+    Client::Kernel::WorldMap loaded;
     auto& registrations = loaded.registrations;
     for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
     {
@@ -181,7 +181,7 @@ TEST_F(MapLoadTest, MapThirtyTwoLoadsWorldTenAsNine)
     ASSERT_TRUE(Load(32).HasValue());
 
     EXPECT_EQ(world.Runtime().map, 9);
-    const auto worldTen = Client::World::LoadWorldTerrain(m_dataRoot, 9);
+    const auto worldTen = Client::Terrain::LoadWorldTerrain(m_dataRoot, 9);
     ASSERT_TRUE(worldTen.HasValue());
     EXPECT_EQ(world.Map().terrain.attributes->cells, worldTen.Value().attributes->cells);
     EXPECT_EQ(world.Map().terrain.heights->cells, worldTen.Value().heights->cells);
@@ -214,11 +214,11 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
 
     buildCloth(world.ActorCloths()[0]);
     ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
-    const Client::Scenes::ActorConstructionContext construction{world.Map().terrain, 0,
-                                                                Client::World::CullingScene::Game, 450.0f};
+    const Client::Actors::ActorConstructionContext construction{world.Map().terrain, 0,
+                                                                Client::Terrain::CullingScene::Game, 450.0f};
     Client::Models::ClothWorld actorClothWorld{.random = CrtRandom(Seed)};
 
-    const auto first = Client::Scenes::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
+    const auto first = Client::Actors::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
                                                    {100, 100, 0.0f}, construction, actorClothWorld);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     ASSERT_EQ(first.Value(), 0u);
@@ -226,15 +226,15 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
 
     buildCloth(world.ActorCloths()[0]);
     ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
-    const auto liveRecreation = Client::Scenes::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
+    const auto liveRecreation = Client::Actors::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
                                                             {100, 100, 0.0f}, construction, actorClothWorld);
     ASSERT_TRUE(liveRecreation.HasValue()) << liveRecreation.Error();
     EXPECT_EQ(liveRecreation.Value(), first.Value());
     EXPECT_FALSE(world.ActorCloths()[0].Cloths().empty());
 
-    Client::Scenes::RemoveActor(world, PlayerKey);
+    Client::Actors::RemoveActor(world, PlayerKey);
     EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
-    const auto afterLeave = Client::Scenes::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
+    const auto afterLeave = Client::Actors::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
                                                         {100, 100, 0.0f}, construction, actorClothWorld);
     ASSERT_TRUE(afterLeave.HasValue()) << afterLeave.Error();
     EXPECT_EQ(afterLeave.Value(), first.Value());
@@ -306,14 +306,14 @@ TEST(MapLoadEventTest, ChaosCastleReadsTheCurrentWorldInsteadOfTheArgument)
 TEST_F(MapLoadTest, TheGroundMarksSurviveTheMapLoad)
 {
     ASSERT_TRUE(Load(0).HasValue());
-    const Client::World::GroundMark mark{.live = true,
-                                         .type = 0x5e3,
-                                         .size = 0.65f,
-                                         .position = glm::vec3(12850.0f, 12850.0f, 170.0f),
-                                         .angle = 45.0f,
-                                         .color = glm::vec3(0.1f, 0.0f, 0.0f),
-                                         .alpha = 0.5f,
-                                         .life = 25};
+    const Client::Terrain::GroundMark mark{.live = true,
+                                           .type = 0x5e3,
+                                           .size = 0.65f,
+                                           .position = glm::vec3(12850.0f, 12850.0f, 170.0f),
+                                           .angle = 45.0f,
+                                           .color = glm::vec3(0.1f, 0.0f, 0.0f),
+                                           .alpha = 0.5f,
+                                           .life = 25};
     world.Runtime().groundMarks[63] = mark;
 
     for (const std::uint8_t map : {std::uint8_t{2}, std::uint8_t{0}})
@@ -513,7 +513,7 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
     const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
     ASSERT_TRUE(decoded.HasValue());
     EXPECT_EQ(world.Map().terrain.lighting->cells,
-              Client::World::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 30)->cells);
+              Client::Terrain::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 30)->cells);
 }
 
 // 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
@@ -550,7 +550,7 @@ TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
         const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
         ASSERT_TRUE(decoded.HasValue());
         EXPECT_EQ(world.Map().terrain.lighting->cells,
-                  Client::World::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 34)->cells);
+                  Client::Terrain::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 34)->cells);
         EXPECT_NE(world.Map().terrain.lighting->cells, plainLight);
     }
 }
@@ -613,7 +613,7 @@ TEST_F(MapLoadTest, CrywolfReusesTerrainTablesAfterTheAttributeReaderRejectsTheM
         ASSERT_NE(terrain.heights, nullptr);
         ASSERT_NE(terrain.lighting, nullptr);
         EXPECT_EQ(terrain.lighting->cells,
-                  Client::World::ShadeTerrainLight(*terrain.rawLight, *terrain.heights, 34)->cells);
+                  Client::Terrain::ShadeTerrainLight(*terrain.rawLight, *terrain.heights, 34)->cells);
     }
 }
 

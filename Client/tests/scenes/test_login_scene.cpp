@@ -79,6 +79,8 @@ using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionSettings;
 using Client::App::SessionState;
+using Client::Assets::LoginTextureSet;
+using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::PixelSize;
@@ -102,12 +104,10 @@ using Client::Render::Text::TextStyle;
 using Client::Scenes::LoginLeftText;
 using Client::Scenes::LoginRightText;
 using Client::Scenes::LoginScene;
-using Client::Scenes::LoginTextureSet;
 using Client::Scenes::LoginVersionText;
 using Client::Scenes::PlaceVersion;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::WindowTextureSet;
 using Client::Scenes::WorldOf;
 using Client::Tables::GameData;
 using Client::Tables::LoadGameData;
@@ -251,7 +251,7 @@ struct Harness
         return scene.emplace(SceneContext{folder.Path(), store, log}, data, models, session, Version, FixedSeed);
     }
 
-    LoginScene& MakeWithWorld(Client::Scenes::WorldState& world)
+    LoginScene& MakeWithWorld(Client::Kernel::WorldState& world)
     {
         return scene.emplace(
             SceneContext{.dataRoot = Client::Tests::GoldenDir(), .textures = store, .log = log, .world = &world}, data,
@@ -465,7 +465,7 @@ TEST(LoginSceneTest, TheModelsGetThePassOfTheLoginCamera)
     ASSERT_EQ(events[3].kind, Kind::Models);
     ASSERT_TRUE(events[3].pass.has_value());
     const Client::Render::Pass3D expected = Client::Render::MakePass3D(
-        Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, Client::Scenes::LoginCamera());
+        Client::Core::PixelSize{640, 480}, Client::Camera::WorldViewport, Client::Camera::LoginCamera());
     EXPECT_EQ(events[3].pass->viewport, glm::ivec4(0, 25, 640, 430));
     EXPECT_EQ(events[3].pass->projection, expected.projection);
     EXPECT_EQ(events[3].pass->view, expected.view);
@@ -564,7 +564,7 @@ TEST(LoginSceneTest, StartsTheSessionOnEnter)
 TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnceWithoutLooping)
 {
     Harness tested;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     RecordingPlayback playback;
     world.Runtime().audio = &playback;
     LoginScene& scene = tested.MakeWithWorld(world);

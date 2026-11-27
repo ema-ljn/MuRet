@@ -11,7 +11,7 @@
 // (Client/docs/research/06-render-escenas-y-ui.md, "La carga" y "El login, al entrar"). Las escenas
 // de la CL5.4 las cargan con Data::Textures::LoadTextureSet; un mundo tendrá la suya, con su
 // carpeta (CL7).
-namespace Client::Scenes
+namespace Client::Assets
 {
 namespace TextureSetsDetail
 {
@@ -537,4 +537,4 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 4> WorldLoadingText
     {"Interface\\LSBg03.JPG", 0x720, TextureSetsDetail::LinearClamp},
     {"Interface\\LSBg04.JPG", 0x721, TextureSetsDetail::LinearClamp},
 }};
-} // namespace Client::Scenes
+} // namespace Client::Assets

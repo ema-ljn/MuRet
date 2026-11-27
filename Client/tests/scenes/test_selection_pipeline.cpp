@@ -135,9 +135,9 @@ protected:
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
         m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
-        auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, LoginMap);
+        auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, LoginMap);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-        m_loginConstructorHeight = static_cast<float>(Client::World::TerrainHeightAt(
+        m_loginConstructorHeight = static_cast<float>(Client::Terrain::TerrainHeightAt(
             *terrain.Value().heights, *terrain.Value().attributes, 50.0f, 50.0f, m_camera.fixedHeight));
         m_state.RetainTerrain(LoginMap, std::move(terrain).Value());
         m_cameraInput.map = LoginMap;
@@ -194,10 +194,10 @@ protected:
     Client::Scenes::SingleModelLibrary m_models;
     // Con las texturas de efectos de GameModels, que piden las partículas del mundo 54.
     Client::Tests::WithEffectTextures m_library{m_models};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_cameraInput;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_cameraInput;
     Client::Models::ClothWorld m_cloth;
-    Client::Scenes::WorldState m_world;
+    Client::Kernel::WorldState m_world;
     Client::Scenes::SelectionState m_state{m_world};
     Client::Tests::RecordingSink m_entrySink;
     Client::Core::Log m_entryLog{m_entrySink, Client::Core::LogLevel::Debug};
@@ -567,7 +567,7 @@ TEST_F(SelectionPipelineTest, TheLiveMapIsFiftyFourOnTheSelectionAndStaysForTheW
     EXPECT_EQ(m_world.Actors()[0].revision, 1u);
     EXPECT_EQ(m_world.Actors()[0].position, constructed);
     EXPECT_TRUE(m_world.Runtime().drawingEnabled);
-    EXPECT_EQ(m_world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    EXPECT_EQ(m_world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     EXPECT_EQ(m_world.Runtime().loadingOnceFlag, 1);
     EXPECT_EQ(m_world.OwnCharacter().level, m_online.session.ChosenCharacter()->level);
 }

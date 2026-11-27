@@ -13,7 +13,7 @@
 // punto, cada celda un fan de cuatro vértices con las alturas del .OZB (0x5faec0). Lo llaman las marcas del
 // suelo (0x549130) y otros catorce lugares sin portar, entre ellos los efectos del suelo (0x52dc20). Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Las marcas del suelo".
-namespace Client::World
+namespace Client::Terrain
 {
 // Lo que recibe 0x5fb2f0, en el orden de sus argumentos.
 struct TerrainDecal
@@ -43,4 +43,4 @@ struct TerrainDecal
 // bits.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawTerrainDecal(Render::ModelBatch& batch, const Data::Terrain::TerrainHeights& heights, const TerrainDecal& decal);
-} // namespace Client::World
+} // namespace Client::Terrain

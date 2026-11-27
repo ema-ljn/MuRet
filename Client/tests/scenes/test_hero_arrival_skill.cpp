@@ -104,7 +104,7 @@ struct ArrivingHero
         hero.cellX = 182;
         hero.cellY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
-        hero.hands[0].model = hero.wings.model = hero.pet.model = Client::Scenes::NoItemModel;
+        hero.hands[0].model = hero.wings.model = hero.pet.model = Client::Kernel::NoItemModel;
         hero.hands[1].model = BowModel;
         hero.alpha = 1.0f;
         hero.animation.action = 1;
@@ -120,11 +120,11 @@ struct ArrivingHero
         target.position = {18450.0f, 11750.0f, 0.0f};
         runtime.movement.weaponSkill = {.active = 1, .slot = 3, .target = static_cast<std::int32_t>(TargetSlot)};
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Actors()[0];
     }
-    Client::Scenes::ActorState& Target()
+    Client::Kernel::ActorState& Target()
     {
         return world.Actors()[TargetSlot];
     }
@@ -162,7 +162,7 @@ struct ArrivingHero
         return ClearBytesOf(sent.at(index));
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();

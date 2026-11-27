@@ -6,7 +6,7 @@
 
 #include <glm/ext/vector_float2.hpp>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 namespace
 {
@@ -42,4 +42,4 @@ void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random)
         head.angles[k] = F32(Math::TurnAngle(head.angles[k], head.target[k], step));
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

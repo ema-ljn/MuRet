@@ -46,10 +46,10 @@
 // con modelo de los tipos altos".
 namespace
 {
+using Client::Actors::Drawing::DrawnObject;
 using Client::Crt::CrtRandom;
 using Client::Math::BoneTransform;
 using Client::Render::ModelBatch;
-using Client::Scenes::DrawnObject;
 using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
@@ -137,8 +137,8 @@ struct Drawer
             .heroByte1a1 = heroByte1a1,
             .originalFrame = originalFrame,
             .posedBones = [this]() -> std::span<const BoneTransform> { return bones; }};
-        return Client::Scenes::DrawGameModelEffects(batch, models, effects, Client::World::SphereFrustum{}, nullptr, {},
-                                                    0, resources, mode);
+        return Client::Scenes::DrawGameModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr,
+                                                    {}, 0, resources, mode);
     }
 
     [[nodiscard]] std::vector<Client::World::Sprite> Alive()
@@ -485,9 +485,9 @@ TEST(HighEffectDrawingTest, TheRingWithoutTheRandomStopsAfterItsGlows)
 // /0xb (BeamJoints) los sigue; sin ese dibujo seguirían en el punto de nacimiento (0x51c84b).
 TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     CrtRandom random(Seed);
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     const auto made = Client::Scenes::CreateHighModelEffect(
         {.type = 0x11b, .position = {1000.0f, 2000.0f, 300.0f}, .subtype = 1, .owner = &owner},
         {.world = *world, .random = random, .worldClock = 0.0f});
@@ -500,7 +500,7 @@ TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
     Drawer drawer;
     const auto drawn = drawer.Draw(world->Map().effects.Effects(), 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto stepped =
         Client::Scenes::StepJoints(joints, random, nullptr, &world->Particles(), 0.0f, &drawer.sprites, lighting.get());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -551,7 +551,7 @@ TEST(HighEffectDrawingTest, TheGuildMarkTakesTwoChromePasses)
     for (const Drawn& command : commands)
     {
         EXPECT_EQ(command.blend, Client::Render::ModelBlend::Additive);
-        EXPECT_EQ(command.texture, std::optional(Client::Scenes::ChromeTextureSlot));
+        EXPECT_EQ(command.texture, std::optional(Client::Actors::Drawing::ChromeTextureSlot));
     }
     ASSERT_EQ(drawer.batch.Vertices().size(), 6u);
     for (const Client::Render::ModelVertex& vertex : drawer.batch.Vertices())
@@ -609,7 +609,7 @@ TEST(HighEffectDrawingTest, TheGuildMarkChromeKeepsTheScaleOfItsNormal)
 TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
 {
     {
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         for (Client::Scenes::JointState& joint : world->DrawTail().joints)
             joint.alive = true;
         CrtRandom creation(Seed);

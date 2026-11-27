@@ -40,13 +40,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x6a3c19e5u;
@@ -148,15 +148,15 @@ protected:
         m_world->Runtime().map = GetParam();
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
 
     GameHudContext Context(std::int32_t x, std::int32_t y, bool projecting = false, bool leftDown = false)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -192,16 +192,16 @@ protected:
     void Open()
     {
         Runtime().panels.npcShop = 1;
-        for (Client::World::ItemState& cell : Runtime().npcWindows.grid)
-            cell.id = Client::Scenes::EmptyOwnItemId;
+        for (Client::Kernel::ItemState& cell : Runtime().npcWindows.grid)
+            cell.id = Client::Kernel::EmptyOwnItemId;
     }
 
     // El almacén abierto como lo deja el 31 con la grilla vacía, con el nivel y el zen guardado.
     void OpenTheWarehouse(std::uint16_t level, std::uint32_t zen)
     {
         Runtime().panels.warehouse = 1;
-        for (Client::World::ItemState& cell : Runtime().npcWindows.grid)
-            cell.id = Client::Scenes::EmptyOwnItemId;
+        for (Client::Kernel::ItemState& cell : Runtime().npcWindows.grid)
+            cell.id = Client::Kernel::EmptyOwnItemId;
         m_world->OwnCharacter().level = level;
         m_world->OwnCharacter().warehouseZen = zen;
     }

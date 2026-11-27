@@ -45,6 +45,9 @@
 // 0x65f200), con un Data\ sintético y la tabla de texturas falsa.
 namespace
 {
+using Client::Assets::LoadingTextureSet;
+using Client::Assets::LoginTextureSet;
+using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::PixelSize;
@@ -58,13 +61,10 @@ using Client::Render::UiImage;
 using Client::Render::UiImageCorners;
 using Client::Scenes::LoadingAdvances;
 using Client::Scenes::LoadingScene;
-using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginScene;
-using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
-using Client::Scenes::WindowTextureSet;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::FixedSeed;
@@ -374,7 +374,7 @@ TEST(LoadingSceneTest, AMissingPlayerFailsTheLoad)
     FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     LoadingScene scene{SceneContext{folder.Path(), store, log}, &models};
     ASSERT_TRUE(scene.Enter().HasValue());
     const Client::Input::InputState input;

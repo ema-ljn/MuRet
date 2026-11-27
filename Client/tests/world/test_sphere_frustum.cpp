@@ -19,9 +19,9 @@
 // prueban la reimplementación; no son vectores de una ejecución del original.
 namespace
 {
-using Client::World::SphereFrustum;
-using Client::World::SphereFrustumOf;
-using Client::World::SphereVisible;
+using Client::Terrain::SphereFrustum;
+using Client::Terrain::SphereFrustumOf;
+using Client::Terrain::SphereVisible;
 
 TEST(SphereFrustumTest, EachOfTheFivePlanesCanRejectASphere)
 {
@@ -80,9 +80,9 @@ TEST(SphereFrustumTest, TheCameraBuildsFourSidesAndTheFarPlane)
 
 TEST(SphereFrustumTest, TheLoginCameraSeesTheDragonButNotAnEffectBehindIt)
 {
-    const auto camera = Client::Scenes::LoginCamera();
+    const auto camera = Client::Camera::LoginCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Camera::WorldViewport, camera);
     const SphereFrustum frustum = SphereFrustumOf(pass.view, camera);
     EXPECT_TRUE(SphereVisible(frustum, {5600.0f, 23000.0f, 3400.0f}, 400.0f));
     EXPECT_FALSE(SphereVisible(frustum, {5600.0f, -100000.0f, 3400.0f}, 400.0f));
@@ -102,7 +102,7 @@ TEST(SphereFrustumTest, RotatedPointsUseTheTransposedViewAndThenTheCameraTransla
     camera.position = {10.0f, 20.0f, 30.0f};
     camera.farPlane = 1000.0f;
     camera.fieldOfView = 0.0f;
-    const auto points = Client::World::FrustumPointsOf(view, camera);
+    const auto points = Client::Terrain::FrustumPointsOf(view, camera);
     EXPECT_EQ(points[0], glm::vec3(10.0f, 20.0f, 30.0f));
     EXPECT_EQ(points[1], glm::vec3(85.0f, -880.0f, -70.0f));
     EXPECT_EQ(points[2], glm::vec3(85.0f, -880.0f, 130.0f));
@@ -122,7 +122,7 @@ TEST(SphereFrustumTest, TheFarPlaneOffsetUsesTheFirstRoundedCorner)
     camera.fieldOfView = 35.0f;
     camera.farPlane = 5000.0f;
     const auto pass =
-        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Camera::WorldViewport, camera);
     const auto frustum = SphereFrustumOf(pass.view, camera);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(frustum.offsets[4]), 0x45cfcddeu);
     EXPECT_TRUE(SphereVisible(frustum, {4271.5732421875f, 14989.9921875f, -2072.60107421875f}, 400.0f));

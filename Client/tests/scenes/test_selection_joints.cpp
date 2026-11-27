@@ -26,7 +26,7 @@
 // juego (06, "Los joints de las familias").
 namespace
 {
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 
@@ -38,7 +38,7 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Client::Tests::FakeTextureStore store;
     Client::Scenes::SelectionWorld selection(store, log);
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     auto cloth = std::make_unique<Client::Models::ClothWorld>();
     ActorState& owner = world->Actors()[1];
     owner.alive = true;
@@ -97,7 +97,7 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
         Client::Tests::FakeTextureStore store;
         Client::Scenes::SelectionWorld selection(store, log);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         auto cloth = std::make_unique<Client::Models::ClothWorld>();
         constexpr std::size_t HeroSlot = 3;
         world->Runtime().hero = HeroSlot;

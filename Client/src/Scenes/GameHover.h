@@ -30,16 +30,20 @@ namespace Client::Render::Frame
 {
 class ITextDrawer;
 } // namespace Client::Render::Frame
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+struct HudState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct GameDrawTailState;
 struct GameHudContext;
-struct HudState;
 
 struct GameHoverContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // Los ítems del piso (0x77f46d0, 1000 de 0x220 bytes) del dibujo de este frame.
     const GameDrawTailState& tail;
     // El rand() del frame, para el ancho del mundo (0x5bb8d0) del nombre de un monstruo.
@@ -48,7 +52,7 @@ struct GameHoverContext
     // picking de este frame.
     const std::array<std::int32_t, 5>& targets;
     // 0x77f3b66 (durabilityWarning), la fuente del DC, 0x6c8e5c y 0x6c8e64, y 0x77f31b8 y 0x77f31bc.
-    HudState& hud;
+    Kernel::HudState& hud;
     // 0x77f36d4 + 0x12 · 4, el latch de Alt de 0x553520, y 0x78abb38, los nombres del piso prendidos. Solo los usa esta
     // función.
     std::int32_t& altLatch;

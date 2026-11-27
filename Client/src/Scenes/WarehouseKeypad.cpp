@@ -241,7 +241,7 @@ Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protoco
 // 0x5e7d80..0x5e9a88: el OK con todas las cifras y sin cuatro iguales, por el modo que tenía (ya en 0).
 Core::Expected<void, std::string> Confirm(const GameUiContext& context, UI::PanelRegistry& panels, std::int32_t mode)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     const auto typed = NumberOf(npc.typedNumber);
     switch (mode)
@@ -298,7 +298,7 @@ Core::Expected<void, std::string> Confirm(const GameUiContext& context, UI::Pane
 // 0x5e7c69..0x5e9a88: la tecla con el clic.
 Core::Expected<void, std::string> PressTheKey(const GameUiContext& context, UI::PanelRegistry& panels, std::int32_t key)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     auto& typed = npc.typedNumber;
     const std::int32_t mode = runtime.ui.field78abb20;
@@ -370,7 +370,7 @@ std::int32_t KeypadKeyAt(std::int32_t mouseX, std::int32_t mouseY)
 
 Core::Expected<bool, std::string> StepTheKeypad(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abb20 == 0)
         return false;
     GameMovementState& movement = runtime.movement;
@@ -396,12 +396,12 @@ Core::Expected<bool, std::string> StepTheKeypad(const GameUiContext& context, UI
 
 Core::Expected<void, std::string> DrawTheKeypad(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t mode = runtime.ui.field78abb20;
     if (mode == 0)
         return {};
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     const NpcWindowState& npc = runtime.npcWindows;
     const std::int32_t hovered = KeypadKeyAt(context.mouse.x, context.mouse.y);
 

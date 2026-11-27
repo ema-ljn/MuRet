@@ -47,7 +47,7 @@ constexpr std::uint8_t ClassPrizeAction = 0xb8;
 Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& resources, std::uint8_t index,
                                                   std::uint8_t state)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     SetTheQuestState(world, index, state);
     GamePanels panels(world, resources.cloth.random, GamePanelTables{.texts = resources.texts});
     LendTheCastlePanelServices(panels, resources);
@@ -70,8 +70,9 @@ Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& res
 // posición, con su posición de destino, sus ángulos, él de dueño, el ancho 40 (0x42200000) y la key 2; con `falling`,
 // cada vuelta suma el 60f/0xa desde la copia de la posición con la z más 200 (0x6b8928), hecha una vez antes de las
 // vueltas (0x4de0ae..0x4de0d0). Un pool lleno no crea ni saca rand(), y las vueltas siguen.
-Core::Expected<void, std::string> CreateThePrizeSparkles(ActorState& actor, const WorldEntryResources& resources,
-                                                         bool falling, std::uint32_t address)
+Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& actor,
+                                                         const WorldEntryResources& resources, bool falling,
+                                                         std::uint32_t address)
 {
     constexpr int Rounds = 15;
     constexpr std::int32_t SparkleJoint = 0x60f, SparkleSubtype = 0, FallingSubtype = 0xa;
@@ -122,13 +123,13 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(ActorState& actor, cons
 
 // 0x513100 (llamado en `address`: 0x4de140, 0x4de411 o 0x4de4c5), 0x4ea030(personaje, 0xb8) en 0x4de4d0 y el 0x66 de
 // 0x4de4db. Cada sonido de 0x4f2250 se despacha; el último queda en lastSoundId.
-Core::Expected<void, std::string> DressTheNewClass(ActorState& actor, const WorldEntryResources& resources,
+Core::Expected<void, std::string> DressTheNewClass(Kernel::ActorState& actor, const WorldEntryResources& resources,
                                                    std::uint32_t address)
 {
     const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, stop.Error()));
-    const auto dressed = ApplyTheClassParts(actor, stop.Value());
+    const auto dressed = Actors::ApplyTheClassParts(actor, stop.Value());
     if (!dressed.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, dressed.Error()));
     if (auto acted = SetMonsterAction(actor, ClassPrizeAction, 0x4de4d0, resources); !acted.HasValue())
@@ -138,7 +139,7 @@ Core::Expected<void, std::string> DressTheNewClass(ActorState& actor, const Worl
 }
 } // namespace
 
-void ApplyQuestFlag(const Protocol::Quests::QuestFlag& flag, WorldState& world)
+void ApplyQuestFlag(const Protocol::Quests::QuestFlag& flag, Kernel::WorldState& world)
 {
     QuestState& quest = world.Runtime().quest;
     if (flag.index < quest.flags.size())
@@ -171,13 +172,13 @@ Core::Expected<void, std::string> ApplySetQuestResult(const Protocol::Quests::Se
 Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::QuestResult& result,
                                                    const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     // Con una clave que no está, 0x5110d0 da el 400, como en el 1A (Q-C1125): la clase, los joints, el calco, 0x513100
     // y la acción van a él, como en el original.
     const std::size_t slot = ActorWithKey(world, result.key);
     runtime.RequestSound(PrizeSound);
-    ActorState& actor = world.Actors()[slot];
+    Kernel::ActorState& actor = world.Actors()[slot];
     const bool isHero = slot == runtime.hero;
     switch (result.kind)
     {
@@ -187,7 +188,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::Quest
         {
             const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
                                             Models::OwnRecordCloseRandoms);
-            OwnCharacterRecord& record = world.OwnCharacter();
+            Kernel::OwnCharacterRecord& record = world.OwnCharacter();
             record.levelUpPoints = static_cast<std::uint16_t>(record.levelUpPoints + result.value);
         }
         if (auto created = CreateThePrizeSparkles(actor, resources, false, 0x4dde20); !created.HasValue())
@@ -212,7 +213,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::Quest
         {
             const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
                                             Models::OwnRecordCloseRandoms);
-            OwnCharacterRecord& record = world.OwnCharacter();
+            Kernel::OwnCharacterRecord& record = world.OwnCharacter();
             record.levelUpPoints = static_cast<std::uint16_t>(record.levelUpPoints + result.value);
         }
         if (auto created = CreateThePrizeSparkles(actor, resources, true, 0x4de3bc); !created.HasValue())

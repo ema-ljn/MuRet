@@ -36,10 +36,14 @@ namespace Client::Render::Frame
 {
 class ITextDrawer;
 } // namespace Client::Render::Frame
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct GameProjection;
 struct PersonalShopState;
 struct ShopTitle;
@@ -103,8 +107,9 @@ struct ShopSignBox
 
 // 0x452110: el punto 60 sobre el techo del dueño (+0x138 + z + 60, como el globo) proyectado con 0x6205b0 a 640 × 480 y
 // pasado a píxeles con IMUL y la división con signo; la x, menos la mitad del ancho, y la y, menos 36 · H / 480.
-[[nodiscard]] Core::Expected<UI::Point, std::string>
-PlaceTheShopSign(const GameProjection& projection, const ActorState& owner, std::int32_t width, Core::PixelSize screen);
+[[nodiscard]] Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& projection,
+                                                                      const Kernel::ActorState& owner,
+                                                                      std::int32_t width, Core::PixelSize screen);
 
 // 0x451e40, en el orden del mapa: para cada par que se pisa (comparaciones con signo), el primero sube hasta el borde
 // de arriba del otro si su borde de abajo está antes de la mitad del otro, y si no baja a su borde de abajo; la x no
@@ -134,7 +139,7 @@ struct ShopSignColors
 [[nodiscard]] ShopSignColors ShopSignColorsOf(std::uint8_t pk, bool hovered);
 
 // 0x451af0, 0x451b50 y 0x451bb0: como el cartel con +0x370 en 2 u 8 tomado como el PK 6.
-[[nodiscard]] ShopSignColors ShopBubbleColorsOf(const ActorState& owner, bool hovered);
+[[nodiscard]] ShopSignColors ShopBubbleColorsOf(const Kernel::ActorState& owner, bool hovered);
 
 // 0x4517c0: +0x60 del cartel del personaje; sin cartel, falso.
 [[nodiscard]] bool ShopSignHovered(const PersonalShopState& shops, std::size_t index);
@@ -142,7 +147,7 @@ struct ShopSignColors
 // Lo que el dibujo de los carteles lee y deja.
 struct ShopSignDrawContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // 0x5bb8d0 (con las consultas de 0x20 y 0x10000 y sus rand()) e IsOpen(0x200).
     UI::PanelRegistry& panels;
     // 0x6203c0 del pase del mundo de este frame: 0x451d60 arma con 0x620db0 el mismo rectángulo (0, 0, w, 432) con la

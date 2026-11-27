@@ -12,7 +12,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 struct ItemDrawContext;
@@ -42,4 +42,4 @@ struct ItemShineClock
                                                                        std::uint8_t level,
                                                                        const ItemDrawContext& context,
                                                                        std::optional<float>& storedAlpha);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

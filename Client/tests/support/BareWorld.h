@@ -49,10 +49,10 @@ struct BareWorld
         resources.itemSetTables = itemSets.get();
     }
 
-    Scenes::WorldState world;
+    Kernel::WorldState world;
     Scenes::SelectionState selection{world};
-    World::GameCamera camera;
-    World::GameCameraInput input;
+    Camera::GameCamera camera;
+    Camera::GameCameraInput input;
     Models::ClothWorld cloth;
     Scenes::SingleModelLibrary models;
     LetterMeasure measure;

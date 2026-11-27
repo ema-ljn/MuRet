@@ -74,7 +74,7 @@ protected:
         const auto error =
             Client::Tests::ReadWorldObjectVectors(Client::Tests::World55VectorsDir() / "objects.txt", m_vectors);
         ASSERT_FALSE(error.has_value()) << *error;
-        auto records = Client::World::LoadWorldObjects(m_dataRoot, Login);
+        auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, Login);
         ASSERT_TRUE(records.HasValue()) << records.Error();
         m_records = std::move(records).Value();
         Client::Core::Log log(m_sink, Client::Core::LogLevel::Debug);
@@ -98,7 +98,7 @@ protected:
     std::vector<Client::Data::Terrain::TerrainObject> m_records;
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::RecordingSink m_sink;
-    Client::Scenes::WorldModels m_models;
+    Client::Assets::WorldModels m_models;
 };
 
 // 0x606660 con cada registro, en la escena 2: lo de siempre, el farol a 0,8 con luz 0,2 y los

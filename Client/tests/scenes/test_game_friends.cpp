@@ -40,6 +40,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Protocol::Messenger::FriendAddResult;
 using Client::Protocol::Messenger::FriendDeleteResult;
 using Client::Protocol::Messenger::FriendList;
@@ -51,7 +52,6 @@ using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 using Client::Scenes::ChatReceiveContext;
 using Client::Scenes::FriendsOpenContext;
-using Client::Scenes::WorldState;
 using Client::UI::FriendSend;
 using Client::UI::FriendSendKind;
 using Client::UI::OldWindowKind;
@@ -147,7 +147,7 @@ protected:
         return Client::UI::StepTheOldWindows(Manager(), Client::Scenes::OldWindowGlobalsOf(Runtime()), View());
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }

@@ -26,5 +26,5 @@ ApplyCastleBattlePacket(const Protocol::CastleSiege::CastleBattlePacket& packet,
 // 0x4ca799..0x4ca7cd: lo que el 0x14 (0x4ca780, el que saca personajes del viewport) hace por cada clave con el
 // objeto de 0x5767924, antes de 0x510ff0: con la clave entera (sin el AND 0x7fff) en 0x13d apaga +4, +5 y +6; con
 // otra, +0x1f, +0x20 y +0x21. Sin objeto, nada. Lo llama el port del 0x14 (hito 1b/2 de la CL9).
-void ForgetTheSwitchHolder(WorldRuntime& runtime, std::uint16_t key);
+void ForgetTheSwitchHolder(Kernel::WorldRuntime& runtime, std::uint16_t key);
 } // namespace Client::Scenes

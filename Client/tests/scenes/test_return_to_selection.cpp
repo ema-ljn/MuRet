@@ -58,7 +58,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::ApplyReturnToSelection;
 using Client::Scenes::WorldEntryResources;
 
@@ -70,7 +70,7 @@ constexpr int OwnRecordClose = 0xf08;
 constexpr std::uint16_t SurvivingKey = 0xffff;
 constexpr std::uint16_t OtherKey = 0x1234;
 // El último del pool, que 0x510f70 no recorre.
-constexpr std::size_t LastActor = Client::Scenes::ActorPoolSize - 1;
+constexpr std::size_t LastActor = Client::Kernel::ActorPoolSize - 1;
 
 class SilentPublisher final : public Client::Scenes::IWorldEntryPublisher
 {
@@ -115,10 +115,10 @@ struct Returning
     }
 
     std::filesystem::path dataRoot;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -192,7 +192,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         const auto entered =
             Client::Scenes::ApplyWorldEntry(ReplyAt(probe.map, probe.x, probe.y), PlayerKey, resources, publisher);
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         const std::size_t hero = runtime.hero;
         ASSERT_TRUE(tested.world.Actors()[hero].alive);
         ASSERT_FALSE(tested.world.Map().objects.empty());
@@ -208,7 +208,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         tested.world.Actors()[survivor].key = SurvivingKey;
         tested.world.Actors()[LastActor].alive = true;
         tested.world.Actors()[LastActor].key = OtherKey;
-        Client::Scenes::OwnCharacterRecord& own = tested.world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = tested.world.OwnCharacter();
         own.speedAdjustBits = 3;
         own.word3e = 4;
         own.word40 = 5;
@@ -270,7 +270,7 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
 TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.petTab = 1;
     runtime.panels.delegated.pet = 2;
     runtime.pets[1].level = 30;
@@ -428,7 +428,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesOnlyTheGuildNotice)
 TEST(ReturnToSelectionWithoutDataTest, TheReturnRestartsTheSiegeClockAndKeepsTheCastle)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     auto& clock = runtime.castleSiege.siegeBattleUi.clock;
     clock = {.blink = 0, .x = 1, .y = 2, .hours = 3, .minutes = 4, .blinkTime = 5.0f, .tick = 6};
     runtime.castleSiege.siegeBattleUi.gateKey = 7;

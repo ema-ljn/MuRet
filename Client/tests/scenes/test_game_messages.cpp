@@ -15,10 +15,10 @@
 // textos son inventados.
 namespace
 {
+using Client::Kernel::WorldRuntime;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::WorldRuntime;
 
 class LetterMeasure final : public ITextMeasure
 {

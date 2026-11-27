@@ -52,7 +52,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::MonsterHelperPass;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
@@ -140,7 +140,7 @@ protected:
 
     void Name(std::string_view name, std::uint32_t bone)
     {
-        Client::Scenes::NameABone(m_world->Runtime(), Slot, name, bone);
+        Client::Actors::NameABone(m_world->Runtime(), Slot, name, bone);
     }
 
     MonsterHelperPass Pass(std::int32_t map, CrtRandom& random, bool originalFrame = true)
@@ -245,7 +245,7 @@ protected:
     }
 
     SwingModels m_models;
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::World::FrameSprites m_sprites;
     std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::Particles> m_reference = std::make_unique<Client::World::Particles>();
@@ -1116,22 +1116,22 @@ void ExpectTheAltarMarks(const Client::Render::ModelBatch& batch, const Client::
 {
     Client::Render::ModelBatch reference;
     reference.Begin(Client::Render::Pass3D{});
-    Client::World::TerrainDecal decal{.slot = 0x69b,
-                                      .x = 12850.0f,
-                                      .y = 12850.0f,
-                                      .width = 2.8f,
-                                      .height = 2.8f,
-                                      .color = marks.light + marks.light,
-                                      .angle = marks.spin,
-                                      .alpha = 1.0f,
-                                      .lift = 5.0f};
-    ASSERT_TRUE(Client::World::DrawTerrainDecal(reference, heights, decal).HasValue());
+    Client::Terrain::TerrainDecal decal{.slot = 0x69b,
+                                        .x = 12850.0f,
+                                        .y = 12850.0f,
+                                        .width = 2.8f,
+                                        .height = 2.8f,
+                                        .color = marks.light + marks.light,
+                                        .angle = marks.spin,
+                                        .alpha = 1.0f,
+                                        .lift = 5.0f};
+    ASSERT_TRUE(Client::Terrain::DrawTerrainDecal(reference, heights, decal).HasValue());
     if (marks.backSpin)
     {
         decal.width = 3.6f;
         decal.height = 3.6f;
         decal.angle = *marks.backSpin;
-        ASSERT_TRUE(Client::World::DrawTerrainDecal(reference, heights, decal).HasValue());
+        ASSERT_TRUE(Client::Terrain::DrawTerrainDecal(reference, heights, decal).HasValue());
     }
     ASSERT_EQ(batch.Vertices().size(), reference.Vertices().size());
     ASSERT_FALSE(batch.Vertices().empty());

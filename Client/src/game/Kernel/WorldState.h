@@ -41,9 +41,8 @@ class CrtRandom;
 // de 0x6e5930), que arranca en cero y no lo vuelve a vaciar nadie. main es su único dueño y lo presta:
 // no se copia ni se mueve, para que no haya otra copia de la historia.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los personajes de la lista".
-namespace Client::Scenes
+namespace Client::Kernel
 {
-inline constexpr std::size_t ActorPoolSize = Kernel::ActorPoolSize;
 // 0x4c20a0 pone cada personaje de la lista en chars[lugar], con el lugar de 0 a 4.
 inline constexpr std::size_t SelectionActorCount = 5;
 
@@ -79,8 +78,8 @@ public:
     // The hero's actor, as GameContext::Hero reads it.
     [[nodiscard]] ActorState& Hero();
     [[nodiscard]] const ActorState& Hero() const;
-    [[nodiscard]] std::span<CharacterCloth, ActorPoolSize> ActorCloths();
-    [[nodiscard]] std::span<const CharacterCloth, ActorPoolSize> ActorCloths() const;
+    [[nodiscard]] std::span<Actors::Drawing::CharacterCloth, ActorPoolSize> ActorCloths();
+    [[nodiscard]] std::span<const Actors::Drawing::CharacterCloth, ActorPoolSize> ActorCloths() const;
     [[nodiscard]] OwnCharacterRecord& OwnCharacter();
     [[nodiscard]] const OwnCharacterRecord& OwnCharacter() const;
     // Lo que llena el F3 10 fuera del equipo (06, "El F3 10, el inventario").
@@ -91,27 +90,27 @@ public:
     // Lo que la última carga de mapa (0x61a560) dejó en la CPU.
     [[nodiscard]] WorldMap& Map();
     [[nodiscard]] const WorldMap& Map() const;
-    [[nodiscard]] ItemSetState& ItemSets();
-    [[nodiscard]] const ItemSetState& ItemSets() const;
+    [[nodiscard]] Player::ItemSetState& ItemSets();
+    [[nodiscard]] const Player::ItemSetState& ItemSets() const;
     // Los ayudantes del juego (0x7d335d0): el caballo oscuro de cada jinete.
-    [[nodiscard]] HelperTable& Helpers();
-    [[nodiscard]] const HelperTable& Helpers() const;
+    [[nodiscard]] Scenes::HelperTable& Helpers();
+    [[nodiscard]] const Scenes::HelperTable& Helpers() const;
     // 0x743a198 y su viento: un pool para login, selección y juego, en el heap por su tamaño.
     [[nodiscard]] World::Particles& Particles();
     [[nodiscard]] const World::Particles& Particles() const;
     // 0x7b4ccc4 y los límites del último 0x5fbb00: una historia para las tres escenas.
-    [[nodiscard]] DynamicWorldLight& DynamicLighting();
-    [[nodiscard]] const DynamicWorldLight& DynamicLighting() const;
-    [[nodiscard]] PlayerActionSpeeds& ActionSpeeds();
-    [[nodiscard]] const PlayerActionSpeeds& ActionSpeeds() const;
-    [[nodiscard]] FaunaState& Fauna();
-    [[nodiscard]] const FaunaState& Fauna() const;
-    [[nodiscard]] FaunaModels& FaunaResources();
-    [[nodiscard]] const FaunaModels& FaunaResources() const;
-    [[nodiscard]] FaunaDrawCarry& PoseCarry();
-    [[nodiscard]] const FaunaDrawCarry& PoseCarry() const;
-    [[nodiscard]] GameDrawTailState& DrawTail();
-    [[nodiscard]] const GameDrawTailState& DrawTail() const;
+    [[nodiscard]] Terrain::DynamicWorldLight& DynamicLighting();
+    [[nodiscard]] const Terrain::DynamicWorldLight& DynamicLighting() const;
+    [[nodiscard]] Actors::PlayerActionSpeeds& ActionSpeeds();
+    [[nodiscard]] const Actors::PlayerActionSpeeds& ActionSpeeds() const;
+    [[nodiscard]] Scenes::FaunaState& Fauna();
+    [[nodiscard]] const Scenes::FaunaState& Fauna() const;
+    [[nodiscard]] Assets::FaunaModels& FaunaResources();
+    [[nodiscard]] const Assets::FaunaModels& FaunaResources() const;
+    [[nodiscard]] Scenes::FaunaDrawCarry& PoseCarry();
+    [[nodiscard]] const Scenes::FaunaDrawCarry& PoseCarry() const;
+    [[nodiscard]] Scenes::GameDrawTailState& DrawTail();
+    [[nodiscard]] const Scenes::GameDrawTailState& DrawTail() const;
     [[nodiscard]] World::Leaves& Leaves();
     [[nodiscard]] const World::Leaves& Leaves() const;
     // Player.bmd (0x20a), compartido por todos los jugadores: lo copian el paso de cada uno (0x505ec6) y la
@@ -148,19 +147,19 @@ public:
 private:
     Kernel::GameContext m_context;
     // On the heap for the same reason as the actor pool (GameContext.h).
-    std::unique_ptr<std::array<CharacterCloth, ActorPoolSize>> m_actorCloths =
-        std::make_unique<std::array<CharacterCloth, ActorPoolSize>>();
-    ItemSetState m_itemSets;
-    HelperTable m_helpers{};
+    std::unique_ptr<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>> m_actorCloths =
+        std::make_unique<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>>();
+    Player::ItemSetState m_itemSets;
+    Scenes::HelperTable m_helpers{};
     std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
-    DynamicWorldLight m_dynamicLighting;
-    PlayerActionSpeeds m_actionSpeeds;
-    FaunaState m_fauna;
-    FaunaModels m_faunaResources;
-    FaunaDrawCarry m_poseCarry;
-    std::unique_ptr<GameDrawTailState> m_drawTail = std::make_unique<GameDrawTailState>();
+    Terrain::DynamicWorldLight m_dynamicLighting;
+    Actors::PlayerActionSpeeds m_actionSpeeds;
+    Scenes::FaunaState m_fauna;
+    Assets::FaunaModels m_faunaResources;
+    Scenes::FaunaDrawCarry m_poseCarry;
+    std::unique_ptr<Scenes::GameDrawTailState> m_drawTail = std::make_unique<Scenes::GameDrawTailState>();
     std::unique_ptr<World::Leaves> m_leaves = std::make_unique<World::Leaves>();
     SharedModelPlacement m_playerModel;
     std::map<std::uint16_t, SharedModelPlacement> m_modelPlacements;
 };
-} // namespace Client::Scenes
+} // namespace Client::Kernel

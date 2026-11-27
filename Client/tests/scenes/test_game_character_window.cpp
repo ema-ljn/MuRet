@@ -45,10 +45,10 @@ using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Protocol::Outgoing;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::SameBytes;
 
 // 0x5a05e5..0x5a10e2: el registro propio de la barra de skills; 0x5a343e..0x5a3587: las consultas del comercio y de
@@ -100,12 +100,12 @@ class SteppingCharacter
 public:
     explicit SteppingCharacter(std::int32_t map)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = map;
-        runtime.fullSetScan = Client::Scenes::Scan505820{};
+        runtime.fullSetScan = Client::Actors::Scan505820{};
         runtime.hud.characterX = WindowX;
         runtime.hud.characterY = WindowY;
-        Client::World::ItemState empty;
+        Client::Kernel::ItemState empty;
         empty.id = EmptyType;
         world.OwnCharacter().equipment.fill(empty);
     }
@@ -178,7 +178,7 @@ TEST(GameCharacterWindowTest, TheLetterCOpensTheCharacterAndRecalculatesTheOwnSt
     for (const std::int32_t map : Maps)
     {
         SteppingCharacter tested(map);
-        Client::Scenes::ItemSetState& sets = tested.world.ItemSets();
+        Client::Player::ItemSetState& sets = tested.world.ItemSets();
         sets.byte9304 = 1;
         sets.byte9305 = 3;
         sets.byte9306 = 1;
@@ -209,7 +209,7 @@ TEST(GameCharacterWindowTest, WithEveryPlaceWornTheOpeningSkipsTheRecalculation)
     for (const std::int32_t map : Maps)
     {
         SteppingCharacter tested(map);
-        for (Client::World::ItemState& item : tested.world.OwnCharacter().equipment)
+        for (Client::Kernel::ItemState& item : tested.world.OwnCharacter().equipment)
             item.durability = 1;
         tested.world.OwnCharacter().wordef8 = 0x3456;
         tested.Press(Key::C);
@@ -368,7 +368,7 @@ TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
     {
         SteppingCharacter tested(map);
         tested.OpenTheWindow();
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         tested.Click();
         ASSERT_TRUE(tested.Step(0x220, 0x190).HasValue());
         EXPECT_EQ(runtime.panels.delegated.pet, 2);

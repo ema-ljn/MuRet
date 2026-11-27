@@ -50,14 +50,14 @@
 // (0x4fdeeb, 0x504372 y 0x5042ce). 06, "El paso del ataque".
 namespace
 {
+using Client::Actors::CharacterStepContext;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::CharacterStepContext;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::JointState;
 using Client::Scenes::SparkTheTarget;
 using Client::Scenes::StepTheHeadSkill;
 using Client::Scenes::StepTheTargetSkill;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;

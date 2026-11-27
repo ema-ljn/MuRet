@@ -147,8 +147,8 @@ constexpr std::uint32_t Yellow = 0xff79ffff;
 // 0x6451d0: el alto de la caja es 10 veces el alto del buffer del slot 0x19 más 12.
 TEST(ServerListWindowTest, TheDescriptionIsTenLinesOfItsTexture)
 {
-    EXPECT_EQ(DescriptionHeight(Client::Scenes::TextureBufferSize{8, 4}), Description);
-    EXPECT_EQ(DescriptionHeight(Client::Scenes::TextureBufferSize{8, 8}), 92);
+    EXPECT_EQ(DescriptionHeight(Client::Assets::TextureBufferSize{8, 4}), Description);
+    EXPECT_EQ(DescriptionHeight(Client::Assets::TextureBufferSize{8, 8}), 92);
 }
 
 // La ventana mide 465 × (16 · 26 + 26 + 52 + 10) = 465 × 504, y 0x65f300 la pone en ((W − 465) / 2,

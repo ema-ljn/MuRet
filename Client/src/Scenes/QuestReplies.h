@@ -13,15 +13,19 @@ struct SetQuestResult;
 struct QuestResult;
 } // namespace Client::Protocol::Quests
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // Los 9F y A0..A3 que llegan (CL9 hito 2), sobre el objeto de las misiones de WorldRuntime. Contrato: 04 § Las
 // misiones y los NPC, y 06, "Las misiones".
 namespace Client::Scenes
 {
-class WorldState;
 struct WorldEntryResources;
 
 // 0x4ddaa0: con pkt[3] de 0 a 3, +6 + pkt[3] de [0x710148] = pkt[4]; con otro, nada.
-void ApplyQuestFlag(const Protocol::Quests::QuestFlag& flag, WorldState& world);
+void ApplyQuestFlag(const Protocol::Quests::QuestFlag& flag, Kernel::WorldState& world);
 
 // 0x4ddad0 → 0x418e20 (ApplyTheQuestList). Lo que la copia escribiría después del objeto se descarta con un aviso en
 // resources.log (Q-C1126).

@@ -19,10 +19,14 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
 struct WorldRuntime;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // 0x4f96d4..0x4f9737, después de los factores comunes: el NewFace (0xa8..0xac) por 2 (FADD), el 0x192 en la acción 6
 // pasado el frame 6 por 4 (0x6b8a44) y el 0x1a9 en la acción 6 por 0,5. Cada uno se guarda en float.
@@ -42,20 +46,20 @@ enum class ModelActionEnd : std::uint8_t
 // la 0; los 0x152..0x1c9 (los monstruos): la 6 con +0x38a en 0 lo pone en 1 y pide los restos (LeaveRemains: 0x52e810,
 // CL9 hito 3; con +0x38a en 1, nada), las 1, 3, 4, 5, 8, 9 y 0xb a la 0; el 0x1ce y el 0x1cf, rand() % 16 debajo de 12
 // a la 0 y si no a 1 + rand() % 2; el NewFace nada; los demás a rand() % 2.
-[[nodiscard]] Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
+[[nodiscard]] Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(Kernel::ActorState& actor,
                                                                                const Models::Skeleton& skeleton,
-                                                                               WorldRuntime& runtime,
+                                                                               Kernel::WorldRuntime& runtime,
                                                                                Crt::CrtRandom& random);
 
 // 0x4ea190(c) desde 0x5068e3, con otro modelo que el 0x20a: la acción 6 no toca el blanco de la cabeza; la 0 sortea uno
 // (rand() % 32 en 0: x = rand() % 128 − 64 e y = rand() % 48 − 16, con 360 más si da negativo); la 2 con +0x3a4
 // distinto de −1 mira a ese personaje del pool (0x4ea0e0); el resto lo pone en 0. Un +0x3a4 fuera del pool corta.
 [[nodiscard]] Core::Expected<void, std::string>
-SetTheModelHeadTarget(ActorState& actor, std::span<const ActorState> pool, Crt::CrtRandom& random);
+SetTheModelHeadTarget(Kernel::ActorState& actor, std::span<const Kernel::ActorState> pool, Crt::CrtRandom& random);
 
 // 0x4ea0e0(c, blanco): con el rumbo de c al blanco (0x4e93f0, en float) a menos de 90 grados de +0x24 (0x4e96f0 sin
 // signo), el blanco de la cabeza es +0x24 menos el rumbo y (z del blanco − (z + 50)) · 0,2f, con 360 más si da
 // negativo; si no, (0, 0).
-void LookAtTheTarget(ActorState& actor, const ActorState& target);
+void LookAtTheTarget(Kernel::ActorState& actor, const Kernel::ActorState& target);
 
 } // namespace Client::Scenes

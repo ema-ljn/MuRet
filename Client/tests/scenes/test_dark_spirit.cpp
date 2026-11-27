@@ -182,9 +182,9 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
             words >> seed >> cellX >> cellY >> start >> flags >> count >> a >> b >> total;
             terrain.Build(a, b);
             random = CrtRandom(Hex(seed));
-            const double ground = Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes,
-                                                                 static_cast<float>((cellX * 100) + 50),
-                                                                 static_cast<float>((cellY * 100) + 50));
+            const double ground = Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes,
+                                                                   static_cast<float>((cellX * 100) + 50),
+                                                                   static_cast<float>((cellY * 100) + 50));
             spirit = Client::Scenes::CreateDarkSpirit(cellX, cellY, ground, random);
             owner = Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = Hex(flags)};
             counter = static_cast<std::int32_t>(Hex(count));
@@ -396,9 +396,9 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
             }
             map = static_cast<std::uint8_t>(Hex(mapWord));
             random = CrtRandom(Hex(seed));
-            const double ground = Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes,
-                                                                 static_cast<float>((cellX * 100) + 50),
-                                                                 static_cast<float>((cellY * 100) + 50));
+            const double ground = Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes,
+                                                                   static_cast<float>((cellX * 100) + 50),
+                                                                   static_cast<float>((cellY * 100) + 50));
             spirit = Client::Scenes::CreateDarkSpirit(cellX, cellY, ground, random);
             owner = Client::Scenes::DarkSpiritOwner{.position = OwnerPosition,
                                                     .flags = 0,
@@ -498,9 +498,9 @@ TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
 {
     DarkSpirit spirit;
     spirit.position = {50.0f, 50.0f, 750.0f};
-    EXPECT_TRUE(Client::Scenes::DarkSpiritSeen(spirit, Client::World::TerrainPolygon{.everything = true}));
+    EXPECT_TRUE(Client::Scenes::DarkSpiritSeen(spirit, Client::Terrain::TerrainPolygon{.everything = true}));
     const auto far =
-        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+        Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     EXPECT_FALSE(Client::Scenes::DarkSpiritSeen(spirit, far));
     spirit.state = 1;
     Client::Scenes::MissTheView(spirit);

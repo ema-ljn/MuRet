@@ -56,11 +56,11 @@ using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Input::MouseButton;
+using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Items::UseItem;
 using Client::Scenes::FramePickingContext;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -275,7 +275,7 @@ TEST(GameUiTest, TheUnownedClickLeavesAnOpenDialogField)
         SCOPED_TRACE(field);
         const auto owned = std::make_unique<SteppingUi>();
         SteppingUi& tested = *owned;
-        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
         runtime.chat.input.otherInput = field == 0;
         runtime.chat.input.dialogFieldOn = field == 1;
         runtime.social.moneyField = field == 2 ? 1 : 0;
@@ -306,7 +306,7 @@ TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
             // En el heap: con el de abajo serían dos WorldState en el stack de 1 MB de Windows.
             const auto owned = std::make_unique<SteppingUi>();
             SteppingUi& tested = *owned;
-            Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+            Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
             runtime.map = map;
             runtime.crywolf.ui.byte723bf9 = 1;
             tested.Click();

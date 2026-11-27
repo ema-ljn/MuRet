@@ -47,8 +47,8 @@
 
 namespace
 {
+using Client::Kernel::WorldState;
 using Client::Scenes::SceneId;
-using Client::Scenes::WorldState;
 using Client::Tests::MapSweepCase;
 using Client::Tests::MapSweepCases;
 using Client::Tests::MapSweepCut;
@@ -66,7 +66,7 @@ constexpr std::size_t OwnActor = 1;
 constexpr std::size_t OtherActor = 2;
 constexpr std::size_t LastActor = 400;
 constexpr std::size_t DurableMarkSlot = 63;
-constexpr Client::World::GroundMark DurableMark{.live = true, .type = 0x5e3, .size = 0.65f, .life = 25};
+constexpr Client::Terrain::GroundMark DurableMark{.live = true, .type = 0x5e3, .size = 0.65f, .life = 25};
 
 const MapSweepWorldCase* WorldCase(std::uint8_t folder)
 {
@@ -109,7 +109,7 @@ void SeedThePreviousMap(WorldState& world)
     loaded.terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
     loaded.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     loaded.terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    loaded.terrain.lighting = std::make_unique<Client::World::TerrainLighting>();
+    loaded.terrain.lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     loaded.terrain.mapping->layer1.front() = 91;
     loaded.terrain.heights->cells.front() = -123456.0f;
     loaded.grassOffsets = {-99.0f};
@@ -168,7 +168,7 @@ std::uint32_t CrcOf(std::span<const std::uint8_t> bytes)
     return crc.Value();
 }
 
-void ExpectTerrain(const Client::World::WorldTerrain& terrain, const MapSweepWorldCase& expected)
+void ExpectTerrain(const Client::Terrain::WorldTerrain& terrain, const MapSweepWorldCase& expected)
 {
     ASSERT_NE(terrain.mapping, nullptr);
     ASSERT_NE(terrain.attributes, nullptr);
@@ -182,7 +182,7 @@ void ExpectTerrain(const Client::World::WorldTerrain& terrain, const MapSweepWor
               static_cast<double>(expected.heightByteSum) * scale);
 }
 
-void ExpectPublishedFiles(const Client::Scenes::WorldMap& loaded, const MapSweepCase& probe,
+void ExpectPublishedFiles(const Client::Kernel::WorldMap& loaded, const MapSweepCase& probe,
                           const MapSweepWorldCase& expected)
 {
     if (probe.cut == MapSweepCut::MissingHeight)
@@ -221,7 +221,7 @@ void ExpectPublishedFiles(const Client::Scenes::WorldMap& loaded, const MapSweep
     }
 }
 
-void ExpectObjectIdentities(const Client::Scenes::WorldMap& loaded, const MapSweepCase& probe)
+void ExpectObjectIdentities(const Client::Kernel::WorldMap& loaded, const MapSweepCase& probe)
 {
     ASSERT_EQ(loaded.objects.size(), probe.created);
     EXPECT_EQ(loaded.registrations.nextIdentity, FirstIdentity + probe.created);
@@ -247,7 +247,7 @@ void ExpectObjectIdentities(const Client::Scenes::WorldMap& loaded, const MapSwe
     }
 }
 
-void ExpectGrassAndRandom(const Client::Scenes::WorldMap& loaded, const MapSweepCase& probe,
+void ExpectGrassAndRandom(const Client::Kernel::WorldMap& loaded, const MapSweepCase& probe,
                           const Client::Crt::CrtRandom& random)
 {
     EXPECT_EQ(random.State(), probe.randomState);
@@ -327,7 +327,7 @@ void ExpectActorCleanup(const WorldState& world, SceneId scene)
 void ExpectArchiveObjects(const std::filesystem::path& dataRoot, const MapSweepCase& probe,
                           const MapSweepWorldCase& expected)
 {
-    const auto records = Client::World::LoadWorldObjects(dataRoot, probe.nominal);
+    const auto records = Client::Terrain::LoadWorldObjects(dataRoot, probe.nominal);
     if (probe.folder == 36)
     {
         ASSERT_FALSE(records.HasValue());
@@ -346,7 +346,7 @@ void ExpectArchiveObjects(const std::filesystem::path& dataRoot, const MapSweepC
 void ExpectArchiveTerrain(const std::filesystem::path& dataRoot, const MapSweepCase& probe,
                           const MapSweepWorldCase& expected)
 {
-    const auto terrain = Client::World::LoadWorldTerrain(dataRoot, probe.nominal);
+    const auto terrain = Client::Terrain::LoadWorldTerrain(dataRoot, probe.nominal);
     if (probe.cut == MapSweepCut::MissingHeight || probe.cut == MapSweepCut::MissingWorld)
     {
         ASSERT_FALSE(terrain.HasValue());

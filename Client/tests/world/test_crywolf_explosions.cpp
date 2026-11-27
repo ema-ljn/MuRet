@@ -30,7 +30,7 @@ TEST(CrywolfExplosionsTest, TheLargeExplosionHasThirtyStepsAndTheRingExplosionTw
 TEST(CrywolfExplosionsTest, TheFullParticlePoolSkipsTheRingCalleesAndKeepsTheFrameAndLight)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     for (auto& p : particles->All())
     {
         p.alive = true;
@@ -62,7 +62,7 @@ TEST(CrywolfExplosionsTest, TheRingRetainsThePhysicalVisitOrderAndTheAcceptedExp
     {
         SCOPED_TRACE(sourceLast);
         auto particles = std::make_unique<Client::World::Particles>();
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         for (auto& p : particles->All())
         {
             p.alive = true;

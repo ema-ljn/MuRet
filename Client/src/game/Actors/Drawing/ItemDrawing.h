@@ -19,7 +19,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 // What 0x60cf70 reads from the object that owns the part, and the two fields it writes.
 struct ItemPartOwner
@@ -64,4 +64,4 @@ using WornParts = std::array<std::optional<ItemPart>, 6>;
 DrawWornParts(Render::ModelBatch& batch, const Models::IModelLibrary& models, const ItemPartOwner& owner,
               const WornParts& parts, std::uint8_t characterClass, Core::Duration frameClock,
               const ItemDrawContext& context, const std::function<void(const glm::vec3&)>& onPartBox);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

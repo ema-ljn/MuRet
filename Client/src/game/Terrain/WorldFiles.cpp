@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -37,4 +37,4 @@ Core::Expected<std::vector<char>, std::string> ReadWorldFile(const std::filesyst
     }
     return std::move(bytes).Value();
 }
-} // namespace Client::World
+} // namespace Client::Terrain

@@ -8,7 +8,7 @@
 
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 Core::Expected<void, std::string> DrawPublishedObject(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       const DrawnObject& object, Core::Duration frameClock,
@@ -23,4 +23,4 @@ Core::Expected<void, std::string> DrawPublishedObject(Render::ModelBatch& batch,
     DrawObjectFromMeshes(batch, models, object, frameClock, meshes);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

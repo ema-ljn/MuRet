@@ -14,7 +14,7 @@
 // los stats propios"). Los valores salen del ASM cotejado con el PE c32bbd5f.
 namespace
 {
-using Client::Scenes::ItemSetOptionList;
+using Client::Player::ItemSetOptionList;
 
 struct Entry
 {
@@ -45,19 +45,19 @@ TEST(ItemSetOptionListTest, ValuesAddOncePerEntryOfTheSelector)
     ItemSetOptionList list = ListOf({{0x05, 0, 7}, {0x06, 0, 100}, {0x05, 0, -3}});
     std::uint16_t word = 10;
 
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(list, word, 0x91).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(list, word, 0x91).HasValue());
     EXPECT_EQ(word, 14);
     EXPECT_EQ(list.used, (std::array<std::uint8_t, 16>{1, 0, 1}));
 
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(list, word, 0x91).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(list, word, 0x91).HasValue());
     EXPECT_EQ(word, 14);
 
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(list, word, 0x92).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(list, word, 0x92).HasValue());
     EXPECT_EQ(word, 114);
 
     std::uint16_t wrapped = 0xfff0;
     ItemSetOptionList other = ListOf({{0x05, 0, 0x20}});
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(other, wrapped, 0x91).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(other, wrapped, 0x91).HasValue());
     EXPECT_EQ(wrapped, 0x10);
 }
 
@@ -69,7 +69,7 @@ TEST(ItemSetOptionListTest, TheLengthIsTheSumOfBothCounts)
     list.count9349 = 1;
     std::uint16_t word = 0;
 
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(list, word, 0x91).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(list, word, 0x91).HasValue());
 
     EXPECT_EQ(word, 3);
     EXPECT_EQ(list.used[2], 0);
@@ -86,16 +86,16 @@ TEST(ItemSetOptionListTest, MoreThanSixteenEntriesIsAnExplicitError)
     list.count9349 = 7;
     std::uint16_t word = 5;
 
-    const auto added = Client::Scenes::AddItemSetOptionValues(list, word, 0x91);
+    const auto added = Client::Player::AddItemSetOptionValues(list, word, 0x91);
     ASSERT_FALSE(added.HasValue());
     EXPECT_NE(added.Error().find("17 entradas"), std::string::npos);
     EXPECT_EQ(word, 5);
     EXPECT_EQ(list.used, (std::array<std::uint8_t, 16>{}));
-    EXPECT_FALSE(Client::Scenes::ApplyItemSetOptionPercent(list, word, 0x91).HasValue());
-    EXPECT_FALSE(Client::Scenes::AddItemSetOptionPercentOf(list, word, 100, 0x91).HasValue());
+    EXPECT_FALSE(Client::Player::ApplyItemSetOptionPercent(list, word, 0x91).HasValue());
+    EXPECT_FALSE(Client::Player::AddItemSetOptionPercentOf(list, word, 100, 0x91).HasValue());
 
     list.count9349 = 6;
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(list, word, 0x91).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(list, word, 0x91).HasValue());
     EXPECT_EQ(word, 21);
 }
 
@@ -104,18 +104,18 @@ TEST(ItemSetOptionListTest, ThePercentIsASigned32BitProductTruncatedTowardZero)
 {
     ItemSetOptionList list = ListOf({{0x16, 0, 5}, {0x16, 0, 10}});
     std::uint16_t word = 1000;
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptionPercent(list, word, 0xa2).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptionPercent(list, word, 0xa2).HasValue());
     EXPECT_EQ(word, 1150);
 
     list = ListOf({{0x16, 0, -3}});
     word = 1001;
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptionPercent(list, word, 0xa2).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptionPercent(list, word, 0xa2).HasValue());
     EXPECT_EQ(word, 971); // −3003 / 100 = −30, no −31
 
     // 65535 · 65536 = 0xffff0000, que con signo es −65536: −655.
     list = ListOf({{0x16, 0, 0x10000}});
     word = 0xffff;
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptionPercent(list, word, 0xa2).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptionPercent(list, word, 0xa2).HasValue());
     EXPECT_EQ(word, 64880);
 }
 
@@ -126,14 +126,14 @@ TEST(ItemSetOptionListTest, ThePercentOfABaseTakesTheLastFlaggedValueTimesTheCou
     ItemSetOptionList list = ListOf({{0x18, 1, 10}, {0x18, 0, 50}, {0x18, 2, 20}});
     std::uint16_t word = 3;
 
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionPercentOf(list, word, 155, 0xa4).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionPercentOf(list, word, 155, 0xa4).HasValue());
 
     EXPECT_EQ(word, 65); // 3 + (155 · 20 / 100) · 2
     EXPECT_EQ(list.used, (std::array<std::uint8_t, 16>{1, 0, 1}));
 
     list = ListOf({{0x18, 1, -7}});
     word = 100;
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionPercentOf(list, word, 101, 0xa4).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionPercentOf(list, word, 101, 0xa4).HasValue());
     EXPECT_EQ(word, 93); // −707 / 100 = −7
 }
 
@@ -142,11 +142,11 @@ TEST(ItemSetOptionListTest, AnEntryTakenByOneFunctionIsNotTakenByAnother)
 {
     ItemSetOptionList list = ListOf({{0x18, 1, 40}});
     std::uint16_t word = 0;
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(list, word, 0xa4).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(list, word, 0xa4).HasValue());
     EXPECT_EQ(word, 40);
 
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionPercentOf(list, word, 1000, 0xa4).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptionPercent(list, word, 0xa4).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionPercentOf(list, word, 1000, 0xa4).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptionPercent(list, word, 0xa4).HasValue());
     EXPECT_EQ(word, 40);
 }
 
@@ -157,22 +157,22 @@ TEST(ItemSetOptionListTest, TheMagicSumTakesTheFlaggedEntriesOfTheSelectorPlus0x
     ItemSetOptionList list = ListOf({{0x20, 1, 70000}, {0x20, 0, 5}, {0x21, 1, 9}, {0x20, 3, -1}});
     std::int32_t value = 12;
 
-    ASSERT_TRUE(Client::Scenes::AddSkillSetOptionValues(list, value, 0x103).HasValue());
+    ASSERT_TRUE(Client::Player::AddSkillSetOptionValues(list, value, 0x103).HasValue());
 
     EXPECT_EQ(value, 12 + 70000 - 1);
     EXPECT_EQ(list.used, (std::array<std::uint8_t, 16>{1, 0, 0, 1}));
-    ASSERT_TRUE(Client::Scenes::AddSkillSetOptionValues(list, value, 3).HasValue());
+    ASSERT_TRUE(Client::Player::AddSkillSetOptionValues(list, value, 3).HasValue());
     EXPECT_EQ(value, 12 + 70000 - 1);
 
     // Un byte menor que 0x1d no da el selector: la resta es de 32 bits (0x10 − 0x1d no es 0xf3).
     list = ListOf({{0x10, 1, 4}});
     value = 0;
-    ASSERT_TRUE(Client::Scenes::AddSkillSetOptionValues(list, value, 0xf3).HasValue());
+    ASSERT_TRUE(Client::Player::AddSkillSetOptionValues(list, value, 0xf3).HasValue());
     EXPECT_EQ(value, 0);
 
     list.count9348 = 10;
     list.count9349 = 7;
-    const auto failed = Client::Scenes::AddSkillSetOptionValues(list, value, 3);
+    const auto failed = Client::Player::AddSkillSetOptionValues(list, value, 3);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x40d8c0"), std::string::npos);
 }

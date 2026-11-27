@@ -296,7 +296,7 @@ TEST(GroundStonesTest, TheGroundStoneLightsTheGroundAndFadesAtTheEnd)
         stone.objectState.light = 0.75f;
         Client::World::Particles particles;
         ModelEffects effects;
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         Client::World::ModelEffectStepServices services;
         services.effects = &effects;
         services.lighting = lighting.get();
@@ -308,7 +308,7 @@ TEST(GroundStonesTest, TheGroundStoneLightsTheGroundAndFadesAtTheEnd)
         EXPECT_EQ(stone.objectState.light, life < 8 ? 0.375f : 0.75f);
         EXPECT_FALSE(particles.Any());
         EXPECT_FALSE(effects.Effects()[0].alive);
-        auto expected = std::make_unique<Client::World::TerrainLighting>();
+        auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
             Client::World::AddDynamicLight(expected.get(), {1000.0f, 2000.0f, 300.0f}, Glow, 2, "test").HasValue());
         EXPECT_EQ(lighting->cells, expected->cells);
@@ -335,7 +335,7 @@ TEST(GroundStonesTest, TheGroundStoneDropsDustAndAChipBetweenThirtyThreeAndThirt
             ModelEffect stone = GroundStone(life);
             Client::World::Particles particles;
             ModelEffects effects;
-            auto lighting = std::make_unique<Client::World::TerrainLighting>();
+            auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
             Client::World::ModelEffectStepServices services;
             services.effects = &effects;
             services.lighting = lighting.get();
@@ -389,7 +389,7 @@ TEST(GroundStonesTest, TheGroundStoneCutsWithoutItsTables)
 {
     ModelEffect stone = GroundStone(35);
     Client::World::Particles particles;
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::ModelEffectStepServices services;
     services.lighting = lighting.get();
     CrtRandom random(1);

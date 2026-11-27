@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::World
+namespace Client::Kernel
 {
 namespace
 {
@@ -607,4 +607,4 @@ bool ReadsTheContextWord(std::uint16_t id, std::uint32_t b3)
 {
     return InLateWeaponFamily(SignedId(id)) && (static_cast<std::uint8_t>(b3) & ContextWordBit) != 0;
 }
-} // namespace Client::World
+} // namespace Client::Kernel

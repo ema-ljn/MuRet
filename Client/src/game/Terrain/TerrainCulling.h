@@ -20,7 +20,7 @@
 // DAT_006c9d60) y de cada celda. Verificado: en Lorencia y en la selección da las celdas de sus trazas,
 // en su orden (06 § Terreno). Todo en double donde la x87 no redondea y en float donde guarda un float,
 // con las constantes por sus bits.
-namespace Client::World
+namespace Client::Terrain
 {
 // La escena de DAT_006d5dc8, que elige el trapecio: el login (2), la selección (4) y el juego (5).
 // En las otras, 0x5fba90 deja pasar todo.
@@ -140,4 +140,4 @@ using TerrainCellHook = std::function<Core::Expected<void, std::string>(std::uin
 [[nodiscard]] Core::Expected<void, std::string> DrawGrass(Render::ModelBatch& batch, const TerrainView& view,
                                                           const TerrainRange& range, const TerrainPolygon& polygon,
                                                           const TerrainWater& water, const TerrainGrass& grass);
-} // namespace Client::World
+} // namespace Client::Terrain

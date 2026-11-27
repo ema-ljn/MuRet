@@ -21,18 +21,26 @@ namespace Client::Models
 struct ClothWorld;
 class IModelLibrary;
 } // namespace Client::Models
-namespace Client::World
+namespace Client::Terrain
 {
 struct WorldTerrain;
 struct TerrainLighting;
 struct TerrainPolygon;
+} // namespace Client::Terrain
+
+namespace Client::World
+{
 class FrameSprites;
 class Particles;
 } // namespace Client::World
+namespace Client::Actors::Drawing
+{
+struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
 namespace Client::Scenes
 {
 class FaunaState;
-struct DrawnObject;
 // El scratch global de la pose/los vértices que leen glows y sombras. El owner lo comparte
 // con los objetos anteriores; publicar también cuando otra familia pisa ese scratch.
 struct FaunaDrawCarry
@@ -43,9 +51,11 @@ struct FaunaDrawCarry
 };
 [[nodiscard]] Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry,
                                                                  const Models::IModelLibrary& models,
-                                                                 const DrawnObject& object, bool translated);
-[[nodiscard]] Core::Expected<void, std::string>
-PublishFaunaFloorPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models, const DrawnObject& object);
+                                                                 const Actors::Drawing::DrawnObject& object,
+                                                                 bool translated);
+[[nodiscard]] Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry,
+                                                                      const Models::IModelLibrary& models,
+                                                                      const Actors::Drawing::DrawnObject& object);
 // Las matrices prestadas ya incluyen cabeza o raíz attached; no vuelve a posar. Con `translated`, `bones` ya están en
 // el mundo (0x4eb860 con la bandera en 1, PoseWorldSkeleton) y el scratch sale de 0x4ebc80 con Translate en 0; sin él,
 // están en el modelo y el scratch lleva la escala y el origen de `transform` (Translate en 1).
@@ -54,15 +64,16 @@ PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Models::IModelLibrary& models, 
                     std::span<const Math::BoneTransform> bones, const Models::ObjectTransform& transform,
                     bool translated, bool skin = true);
 // 4ebc80: actualiza el scratch de mallas con los huesos retenidos, sin ejecutar 4eb860.
-[[nodiscard]] Core::Expected<void, std::string>
-TransformFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models, const DrawnObject& object);
+[[nodiscard]] Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry,
+                                                                   const Models::IModelLibrary& models,
+                                                                   const Actors::Drawing::DrawnObject& object);
 struct FaunaDrawContext
 {
     FaunaState& fauna;
     const Models::IModelLibrary& models;
-    const World::WorldTerrain& terrain;
-    const World::TerrainLighting& lighting;
-    const World::TerrainPolygon& polygon;
+    const Terrain::WorldTerrain& terrain;
+    const Terrain::TerrainLighting& lighting;
+    const Terrain::TerrainPolygon& polygon;
     Models::ClothWorld& cloth;
     World::FrameSprites& sprites;
     FaunaDrawCarry& carry;

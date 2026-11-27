@@ -63,7 +63,7 @@ std::byte ByteOf(std::uint16_t value, std::size_t index)
     return static_cast<std::byte>((static_cast<unsigned>(value) >> (8 * index)) & 0xffu);
 }
 
-void SetTextByte(ActorState& actor, std::size_t index, std::byte value)
+void SetTextByte(Kernel::ActorState& actor, std::size_t index, std::byte value)
 {
     if (index < NameBytes)
         actor.name[index] = value;
@@ -80,7 +80,7 @@ void SetTextByte(ActorState& actor, std::size_t index, std::byte value)
     // +0x1f6, +0x1f7 y +0x1fa..+0x217 no están en ActorState: el byte se pierde (P-C352).
 }
 
-std::byte TextByte(const ActorState& actor, std::size_t index)
+std::byte TextByte(const Kernel::ActorState& actor, std::size_t index)
 {
     if (index < NameBytes)
         return actor.name[index];
@@ -105,7 +105,8 @@ Core::Expected<void, std::string> WrongWrite(const MonsterStep& step)
                                         step.address, step.size, step.offset));
 }
 
-Core::Expected<void, std::string> WriteThePart(ActorItemPart& part, const MonsterStep& step, std::uint16_t field)
+Core::Expected<void, std::string> WriteThePart(Kernel::ActorItemPart& part, const MonsterStep& step,
+                                               std::uint16_t field)
 {
     constexpr std::uint16_t ModelField = 0;
     constexpr std::uint16_t LevelField = 2;
@@ -122,7 +123,7 @@ Core::Expected<void, std::string> WriteThePart(ActorItemPart& part, const Monste
 }
 
 // Los campos de 4 bytes que los casos escriben.
-bool WriteDword(ActorState& actor, std::uint16_t offset, std::uint32_t value)
+bool WriteDword(Kernel::ActorState& actor, std::uint16_t offset, std::uint32_t value)
 {
     const float real = std::bit_cast<float>(value);
     const auto integer = static_cast<std::int32_t>(value);
@@ -182,7 +183,7 @@ bool WriteDword(ActorState& actor, std::uint16_t offset, std::uint32_t value)
     }
 }
 
-bool WriteWord(ActorState& actor, std::uint16_t offset, std::uint16_t value)
+bool WriteWord(Kernel::ActorState& actor, std::uint16_t offset, std::uint16_t value)
 {
     switch (offset)
     {
@@ -197,7 +198,7 @@ bool WriteWord(ActorState& actor, std::uint16_t offset, std::uint16_t value)
     }
 }
 
-bool WriteByte(ActorState& actor, std::uint16_t offset, std::uint8_t value)
+bool WriteByte(Kernel::ActorState& actor, std::uint16_t offset, std::uint8_t value)
 {
     switch (offset)
     {
@@ -239,7 +240,7 @@ bool WriteByte(ActorState& actor, std::uint16_t offset, std::uint8_t value)
     }
 }
 
-Core::Expected<void, std::string> WriteTheField(ActorState& actor, const MonsterStep& step)
+Core::Expected<void, std::string> WriteTheField(Kernel::ActorState& actor, const MonsterStep& step)
 {
     if (step.offset >= FirstPartOffset && step.offset < PartsEnd)
     {
@@ -262,7 +263,7 @@ Core::Expected<void, std::string> WriteTheField(ActorState& actor, const Monster
 
 // 0x5133b0: el techo de la caja más 70 (0x6ba1b0) en la pila, las alas 0x1a15, el cuerpo 0x102a..0x182a de nivel 13,
 // la escala en 1 y +0x111 (la acción) en 9, sin 0x4ea030.
-void PutOnTheBoxArmour(ActorState& actor)
+void PutOnTheBoxArmour(Kernel::ActorState& actor)
 {
     constexpr double BoxRise = 70.0;
     constexpr std::uint16_t BoxWings = 0x1a15;
@@ -285,7 +286,7 @@ void PutOnTheBoxArmour(ActorState& actor)
 // mapa en curso y la tabla de texturas que liga el juego.
 Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const WorldEntryResources& resources)
 {
-    FaunaModels& models = resources.world.FaunaResources();
+    Assets::FaunaModels& models = resources.world.FaunaResources();
     auto context = models.LoadContextOf(resources.dataRoot, resources.log);
     if (!context)
         return Core::Unexpected(std::format("{:#x}: {} sin el backend de las texturas que liga el juego "
@@ -310,14 +311,14 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Wo
 }
 
 // 0x5f93c0 en la escena del juego: la altura del terreno en la X y la Y del personaje.
-Core::Expected<double, std::string> GroundAt(const ActorState& actor, const WorldEntryResources& resources,
+Core::Expected<double, std::string> GroundAt(const Kernel::ActorState& actor, const WorldEntryResources& resources,
                                              std::uint32_t address)
 {
-    const World::WorldTerrain& terrain = resources.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = resources.world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::format("{:#x}: 0x5f93c0 sin las alturas del mundo cargado", address));
-    return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, actor.position.x, actor.position.y,
-                                  resources.camera.fixedHeight);
+    return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, actor.position.x, actor.position.y,
+                                    resources.camera.fixedHeight);
 }
 
 class MonsterBuilder
@@ -331,7 +332,7 @@ public:
 
     Core::Expected<std::size_t, std::string> Run()
     {
-        WorldRuntime& runtime = m_resources.world.Runtime();
+        Kernel::WorldRuntime& runtime = m_resources.world.Runtime();
         const MonsterCreation creation = MonsterCreationOf(m_type, runtime.map);
         MonsterStepResolver resolver({.world = runtime.map, .x = m_x, .siegeActive = runtime.castleSiege.siegeActive});
         for (const MonsterStep& listed : creation.kind.steps)
@@ -353,7 +354,7 @@ public:
     }
 
 private:
-    ActorState& Actor()
+    Kernel::ActorState& Actor()
     {
         return m_resources.world.Actors()[*m_index];
     }
@@ -380,7 +381,7 @@ private:
             if (m_index && ((step.value == 0x618 && (step.offset == 2 || step.offset == 3)) ||
                             (step.value == 0x60f && step.offset == 0x2a)))
             {
-                ActorState& actor = m_resources.world.Actors()[*m_index];
+                Kernel::ActorState& actor = m_resources.world.Actors()[*m_index];
                 auto created =
                     CreateFaunaJoint(m_resources.world.DrawTail().joints,
                                      World::FishEffectRequest{static_cast<std::int32_t>(step.value), actor.position,
@@ -427,12 +428,12 @@ private:
 
     Core::Expected<void, std::string> Create(const MonsterStep& step)
     {
-        WorldState& world = m_resources.world;
-        const ActorConstructionContext construction{world.Map().terrain, world.Runtime().map, World::CullingScene::Game,
-                                                    m_resources.camera.fixedHeight};
-        const ActorPlacement placement{m_x, m_y, std::bit_cast<float>(step.extra)};
-        auto created = CreateActor(world, m_key, static_cast<std::uint16_t>(step.value), placement, construction,
-                                   m_resources.cloth);
+        Kernel::WorldState& world = m_resources.world;
+        const Actors::ActorConstructionContext construction{
+            world.Map().terrain, world.Runtime().map, Terrain::CullingScene::Game, m_resources.camera.fixedHeight};
+        const Actors::ActorPlacement placement{m_x, m_y, std::bit_cast<float>(step.extra)};
+        auto created = Actors::CreateActor(world, m_key, static_cast<std::uint16_t>(step.value), placement,
+                                           construction, m_resources.cloth);
         if (!created.HasValue())
             return Core::Unexpected(created.Error());
         m_index = created.Value();
@@ -441,8 +442,8 @@ private:
 
     Core::Expected<void, std::string> ApplyOnTheActor(const MonsterStep& step)
     {
-        ActorState& actor = Actor();
-        WorldRuntime& runtime = m_resources.world.Runtime();
+        Kernel::ActorState& actor = Actor();
+        Kernel::WorldRuntime& runtime = m_resources.world.Runtime();
         switch (step.kind)
         {
         case MonsterStepKind::Write:
@@ -456,7 +457,7 @@ private:
             return PutActorText(actor, bytes, step.address);
         }
         case MonsterStepKind::Dress:
-            ApplyHeadAndScale(actor);
+            Actors::ApplyHeadAndScale(actor);
             return {};
         case MonsterStepKind::Box:
             PutOnTheBoxArmour(actor);
@@ -497,7 +498,7 @@ private:
                                             .value = static_cast<std::uint8_t>(step.value)});
             return {};
         case MonsterStepKind::BoneName:
-            NameABone(runtime, *m_index, step.text, step.value);
+            Actors::NameABone(runtime, *m_index, step.text, step.value);
             return {};
         default:
             return Core::Unexpected(std::format("{:#x}: paso sin portar", step.address));
@@ -505,7 +506,7 @@ private:
     }
 
     // 0x4ea030(personaje, acción) con la cuenta de acciones del modelo del tipo.
-    Core::Expected<void, std::string> SetTheAction(ActorState& actor, const MonsterStep& step)
+    Core::Expected<void, std::string> SetTheAction(Kernel::ActorState& actor, const MonsterStep& step)
     {
         return SetMonsterAction(actor, static_cast<std::uint8_t>(step.value), step.address, m_resources);
     }
@@ -513,8 +514,8 @@ private:
     // 0x5140c0.
     Core::Expected<void, std::string> ApplyTheTail()
     {
-        ActorState& actor = Actor();
-        const WorldRuntime& runtime = m_resources.world.Runtime();
+        Kernel::ActorState& actor = Actor();
+        const Kernel::WorldRuntime& runtime = m_resources.world.Runtime();
         const MonsterTail tail = MonsterTailOf(m_type, runtime.map);
         if (tail.clearsLevel)
         {
@@ -556,7 +557,7 @@ const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, 
     return resources.models.SkeletonOf(model);
 }
 
-Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8_t action,
+Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
                                                    [[maybe_unused]] std::uint32_t address,
                                                    const WorldEntryResources& resources)
 {
@@ -567,7 +568,7 @@ Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8
     return {};
 }
 
-Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<const std::byte> bytes,
+Core::Expected<void, std::string> PutActorText(Kernel::ActorState& actor, std::span<const std::byte> bytes,
                                                std::uint32_t address, std::size_t offset)
 {
     if (offset + bytes.size() > ActorTextReach)
@@ -579,7 +580,7 @@ Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<cons
     return {};
 }
 
-std::string ActorText(const ActorState& actor)
+std::string ActorText(const Kernel::ActorState& actor)
 {
     std::string text;
     for (std::size_t index = 0; index < ActorTextReadable; ++index)
@@ -592,7 +593,7 @@ std::string ActorText(const ActorState& actor)
     return text;
 }
 
-Core::Expected<std::string, std::string> ActorCString(const ActorState& actor, std::uint32_t address)
+Core::Expected<std::string, std::string> ActorCString(const Kernel::ActorState& actor, std::uint32_t address)
 {
     std::string text = ActorText(actor);
     if (text.size() >= ActorTextReadable)

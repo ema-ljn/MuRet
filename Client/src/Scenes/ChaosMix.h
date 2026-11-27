@@ -18,9 +18,13 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct NpcWindowState;
 
 // 0x5fd120(grilla, columnas, filas): la suma de lo que vale cada ítem con tipo y +0x3c (0x54d0f0 en el modo 0, con
@@ -28,14 +32,14 @@ struct NpcWindowState;
 // 450.000 la de la vida 0x1c10 y la de la creación 0x1c16), en el int que da la vuelta. Sin una joya del caos, 0.
 // `pets` son los niveles de las mascotas que lee 0x54d0f0 con el 0x1a04 y el 0x1a05.
 [[nodiscard]] Core::Expected<std::int32_t, std::string>
-ChaosBoxValue(std::span<const World::ItemState> grid, const Tables::ItemTable* items, const PetPriceLevels& pets);
+ChaosBoxValue(std::span<const Kernel::ItemState> grid, const Tables::ItemTable* items, const PetPriceLevels& pets);
 
 // 0x5fd4f0(0x7d2d380, 8, 4): cuenta lo que hay en la caja y devuelve el tipo de la mezcla (0 sin ninguna; negativo
 // el error que avisa el botón de mezclar). Deja en `npc` los anchos y altos más grandes (0x6c9da0, 0x6c9da4), el
 // valor de los excelentes (0x7d2dc88), la suerte (0x7d2dc9c), la opción de las alas (0x7d2dc90) y, según el tipo, el
 // nivel (0x7d2dc8c), la capa (0x7d2dc84) y la chance de las alas (0x7d2dc94). Las alas de segundo nivel (y la capa
 // 0x18) abren el registro propio para leer el nivel (+0xe): 3.848 rand() al cerrarlo sin otros accesos.
-[[nodiscard]] Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Crt::CrtRandom& random,
+[[nodiscard]] Core::Expected<std::int32_t, std::string> ChaosMixKind(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                      const Tables::ItemTable* items);
 
 // 0x5fd4b0: el tipo de 0x5fd4f0 filtrado por el modo de la caja (0x7d3a114): en el 0, la mezcla 1 (el arma del caos)
@@ -44,12 +48,12 @@ ChaosBoxValue(std::span<const World::ItemState> grid, const Tables::ItemTable* i
 
 // 0x5d8db6..0x5d8dda: con la caja abierta, en cada paso de 0x5d8d50, lo que vale la caja (0x7d2d378) y el tipo de la
 // mezcla (0x7d2dc98).
-[[nodiscard]] Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Crt::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> ScanTheChaosBox(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                 const Tables::ItemTable* items);
 
 // 0x5fd200(grilla, columnas, filas, ancho, alto): si hay un lugar de ancho × alto con todas las casillas sin tipo
 // (0xffff). Con el alto en 0 o menos, sí.
-[[nodiscard]] bool HasRoomFor(std::span<const World::ItemState> grid, std::int32_t columns, std::int32_t rows,
+[[nodiscard]] bool HasRoomFor(std::span<const Kernel::ItemState> grid, std::int32_t columns, std::int32_t rows,
                               std::int32_t width, std::int32_t height);
 
 // Lo que el botón de mezclar pide de lugar para el tipo `kind` (0x5fe9bd..0x5fea04): 5 × 4 para el arma del caos, las

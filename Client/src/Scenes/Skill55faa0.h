@@ -5,11 +5,15 @@
 
 #include <string>
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // CL9 hito 4, fase 2c: las skills del elfo sobre su blanco al alcance (0x55faa0). La llaman la rama del elfo de
 // 0x57cfc0 (0x57f239 y 0x57fa20, con el héroe dos veces) y la llegada de 0x5650c0 (0x56654a y 0x5666db, el caso 5).
 namespace Client::Scenes
 {
-struct ActorState;
 
 // 0x55faa0(p1, p2): primero el D3 de girar con la celda lógica del héroe publicado (la X, +0x41c, y la Y, +0x420,
 // cada una abierta y cerrada) y su ángulo de ese momento. Después, la skill del lugar 0x7758584 (sin mirar
@@ -19,6 +23,6 @@ struct ActorState;
 // - 0x33: sin flechas (0x561c50), nada; si no, el 19 como arriba y 0x4f4a10(p1).
 // - 0x2e: sin flechas, nada; si no, el 19 y 0x4f48e0(p1), la acción de tirar por las manos.
 // - Las demás, nada.
-[[nodiscard]] Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(ActorState& user, ActorState& turned,
-                                                                          const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<void, std::string>
+UseTheElfSkillOnItsTarget(Kernel::ActorState& user, Kernel::ActorState& turned, const HeroSkillContext& context);
 } // namespace Client::Scenes

@@ -29,7 +29,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 
@@ -76,7 +76,7 @@ struct BoltWorld
     glm::vec3 start{1000.0f, 1000.0f, 300.0f};
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
 // 0x4e9810 con el destino: el yaw y el pitch giran de a `turn`; devuelve la distancia sin redondear.
@@ -234,10 +234,10 @@ TEST(TargetBoltJointsTest, TheBoltBrakesOnlyWithinSeventy)
         EXPECT_EQ(tested.random.State(), draws.State());
         const glm::vec3 color{F32(luminosity * D(std::bit_cast<float>(0x3ecccccdu))), F32(luminosity),
                               F32(luminosity * D(std::bit_cast<float>(0x3f4ccccdu)))};
-        auto lit = std::make_unique<Client::World::TerrainLighting>();
+        auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), joint.position, color, 2, "prueba").HasValue());
         EXPECT_TRUE(lit->cells == tested.lighting->cells);
-        const auto dark = std::make_unique<Client::World::TerrainLighting>();
+        const auto dark = std::make_unique<Client::Terrain::TerrainLighting>();
         EXPECT_FALSE(lit->cells == dark->cells);
     }
 }

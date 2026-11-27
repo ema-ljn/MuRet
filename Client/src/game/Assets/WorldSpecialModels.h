@@ -6,7 +6,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 enum class WorldSpecialKind : std::uint8_t
 {
@@ -28,4 +28,4 @@ struct WorldSpecialModelSet
 };
 
 [[nodiscard]] WorldSpecialModelSet SpecialWorldModelsOf(std::uint8_t map);
-} // namespace Client::Scenes
+} // namespace Client::Assets

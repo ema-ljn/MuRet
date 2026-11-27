@@ -68,7 +68,7 @@ protected:
                                      .attributes = m_attributes.get()};
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return *m_runtime;
     }
@@ -99,7 +99,7 @@ protected:
         return Client::Scenes::CollapseTheObject(object, Context());
     }
 
-    std::unique_ptr<Client::Scenes::WorldRuntime> m_runtime = std::make_unique<Client::Scenes::WorldRuntime>();
+    std::unique_ptr<Client::Kernel::WorldRuntime> m_runtime = std::make_unique<Client::Kernel::WorldRuntime>();
     std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> m_attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();

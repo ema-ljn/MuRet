@@ -21,9 +21,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepWorldObjectChecked;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t TrialsMap = 31;
@@ -174,7 +174,7 @@ TEST(LandOfTrialsObjectsTest, TheTorchLightsTheDynamicBufferWithOneDrawAndHides)
     const double level =
         static_cast<double>((draws.Next() & 3) + 3) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
     auto expected = std::make_unique<TerrainLighting>();
-    Client::World::AddTerrainLight(
+    Client::Terrain::AddTerrainLight(
         *expected, 1000.0f, 1500.0f,
         Client::Data::Terrain::TerrainLightColor{static_cast<float>(level * static_cast<double>(0.9f)),
                                                  static_cast<float>(level * static_cast<double>(0.2f)),

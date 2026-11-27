@@ -25,17 +25,21 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // El chat que llega (CL8 hito 3; 04 § El chat que llega y 06 § El chat): lo que hacen 0x4e2b10 y sus funciones con el
 // 00, el 01, el 02, el 0C, el 0D y el F3 30, sobre WorldRuntime. Ninguno mira el estado de la sesión ni el flag de
 // cifrado.
 namespace Client::Scenes
 {
-class WorldState;
 struct WorldEntryResources;
 
 struct ChatReceiveContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() de la CRT: lo sacan los cierres del registro propio de 0x554d20 y de 0x4dd570.
     Crt::CrtRandom& random;
     // Con qué se miden los mensajes; sin medidor, los que entran al chat cortan con error.
@@ -61,7 +65,7 @@ struct ChatReceiveContext
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
 // 0x8000 no la tiene nadie); sin ninguno, el 400.
-[[nodiscard]] std::size_t ActorWithKey(const WorldState& world, std::uint16_t key);
+[[nodiscard]] std::size_t ActorWithKey(const Kernel::WorldState& world, std::uint16_t key);
 
 // 0x4c6098: at the login scene (2), requestServerList and nothing else.
 // 0x4c6070 fuera de la escena 2: el nombre de pkt[3..12] y, según pkt[0xd], el texto al chat de la party (~, tipo 4),

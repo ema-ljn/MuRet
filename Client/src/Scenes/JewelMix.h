@@ -6,6 +6,11 @@
 #include <functional>
 #include <string>
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // La mezcla de joyas (CL9 hito 6, fase 3b; 06 § Los diálogos del juego, "La mezcla de joyas"): los diálogos que abre
 // el 30 con 9 (0x4d25aa) desde 0xa1 y lo que hacen en el paso de 0x623e70, con las funciones de 0x402a10..0x402eb0 y
 // el BC (Protocol::ChaosMix). Ninguno saca rand(): el inventario (0x78a9bb0) no está en la tabla de protección y el BC
@@ -15,7 +20,6 @@ namespace Client::Scenes
 {
 struct GameUiContext;
 struct NpcWindowState;
-class WorldState;
 
 // Lo que manda los paquetes de la mezcla (el C1 03 31 de 0x402eb0): GameUiContext::sendNpcWindow en el paso y
 // WorldEntryResources::sendNpcWindowPacket al recibir.
@@ -27,7 +31,8 @@ void ResetTheJewelMix(NpcWindowState& windows);
 // 0x402e50: de vuelta a elegir: 0x6e5798 en 0 si estaba en 1, el diálogo cerrado (0x6236f0(0)), 0x6e5799 en 0 y la
 // joya sin elegir (0x6c62e0 en 0xff), y el 0xa2 (juntar, 0x6e5794 en 0) o el 0xa4 (deshacer, en 1); con otro modo,
 // todo cerrado (0x402eb0: 0x402e10, el diálogo y el C1 03 31 en claro por `send`).
-[[nodiscard]] Core::Expected<void, std::string> ReturnToTheJewelChoice(WorldState& world, const JewelMixSender& send);
+[[nodiscard]] Core::Expected<void, std::string> ReturnToTheJewelChoice(Kernel::WorldState& world,
+                                                                       const JewelMixSender& send);
 
 // 0x6259c6..0x625b22, el 0xa1: con el clic (que apaga), los dos botones de x en [245, 395] e y en [190, 225] y
 // [255, 290] cierran y abren el 0xa2 (0x6e5794 en 0, juntar) o el 0xa4 (en 1, deshacer), con el MouseUpdateTime en 0

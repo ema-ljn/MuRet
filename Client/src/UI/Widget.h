@@ -43,8 +43,8 @@ struct Rect
 
 // El buffer de la textura de un slot, para las UV de las imágenes: en el cliente,
 // SceneTextures::BufferSize de la escena.
-using TextureSizes = std::function<Scenes::TextureBufferSize(Render::TextureSlot)>;
+using TextureSizes = std::function<Assets::TextureBufferSize(Render::TextureSlot)>;
 
 // Una imagen de una ventana: en píxeles (fx = fy = 1), con la textura de `slot` y su buffer.
-[[nodiscard]] Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Scenes::TextureBufferSize buffer);
+[[nodiscard]] Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Assets::TextureBufferSize buffer);
 } // namespace Client::UI

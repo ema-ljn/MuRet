@@ -16,7 +16,7 @@ namespace
 TEST(ModelTextureTableTest, SharedNamesAndReferencesOutliveAMapAndClearAtTheLastRelease)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::ModelTextureTable table;
+    Client::Assets::ModelTextureTable table;
     table.Bind(store);
     Client::Data::Models::Model model;
     model.meshes.emplace_back().textureName = "fauna.tga";
@@ -41,7 +41,7 @@ namespace
 TEST(ModelTextureTableTest, OverwritingAReferencedSlotChangesThePhysicalMetadataForEveryModel)
 {
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::ModelTextureTable table;
+    Client::Assets::ModelTextureTable table;
     table.Bind(store);
     auto decoded = Client::Data::Textures::LoadOztTexture(Client::Tests::PlainOzt(2, 2));
     ASSERT_TRUE(decoded.HasValue());

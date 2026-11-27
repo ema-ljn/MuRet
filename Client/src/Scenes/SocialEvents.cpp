@@ -47,7 +47,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using World::ItemState;
+using Kernel::ItemState;
 
 // 0x6236f0: los diálogos que abren los paquetes.
 constexpr std::int32_t TradeRequestDialog = 0x78;
@@ -127,7 +127,7 @@ std::int16_t SignedType(const ItemState& item)
 
 bool IsEmpty(const ItemState& item)
 {
-    return item.id == EmptyOwnItemId;
+    return item.id == Kernel::EmptyOwnItemId;
 }
 
 void Copy(std::span<std::byte> target, std::span<const std::byte> name)
@@ -193,7 +193,7 @@ void ClearTheGrid(std::span<ItemState> grid)
 {
     for (ItemState& entry : grid)
     {
-        entry.id = EmptyOwnItemId;
+        entry.id = Kernel::EmptyOwnItemId;
         entry.occupied = 0;
     }
 }
@@ -383,7 +383,7 @@ Core::Expected<Discarded, std::string> RemoveFromTheOtherGrid(TradeState& trade,
                 return Discarded{std::format("0x5bd750: la huella del tipo {:#x} escribiría la casilla {}, fuera de "
                                              "las 32 de 0x78a5a20 (Q-C200)",
                                              item.id, cell)};
-            trade.otherGrid[static_cast<std::size_t>(cell)].id = EmptyOwnItemId;
+            trade.otherGrid[static_cast<std::size_t>(cell)].id = Kernel::EmptyOwnItemId;
             trade.otherGrid[static_cast<std::size_t>(cell)].occupied = 0;
         }
     }
@@ -415,19 +415,19 @@ std::int32_t CompareTradeItems(const ItemState& a, const ItemState& b)
     std::uint32_t foundB = 0;
     std::uint32_t valueA = 0;
     std::uint32_t valueB = 0;
-    for (std::size_t at = 0; at < b.optionCount && at < World::MaxItemOptions; ++at)
+    for (std::size_t at = 0; at < b.optionCount && at < Kernel::MaxItemOptions; ++at)
     {
         const std::uint8_t tagA = a.optionBytes[at];
         if (tagA >= FirstLuckOption && tagA <= LastLuckOption)
         {
             foundA = 1;
-            valueA = a.optionBytes[at + World::ItemOptionValueOffset];
+            valueA = a.optionBytes[at + Kernel::ItemOptionValueOffset];
         }
         const std::uint8_t tagB = b.optionBytes[at];
         if (tagB >= FirstLuckOption && tagB <= LastLuckOption)
         {
             foundB = 1;
-            valueB = b.optionBytes[at + World::ItemOptionValueOffset];
+            valueB = b.optionBytes[at + Kernel::ItemOptionValueOffset];
         }
     }
     if (foundA < foundB || valueA < valueB)
@@ -442,8 +442,8 @@ std::int32_t CompareTradeItems(const ItemState& a, const ItemState& b)
 Core::Expected<std::optional<Protocol::Outgoing>, std::string>
 ApplyTradeRequest(const Protocol::Social::TradeRequest& request, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GamePanels panels(world, resources.cloth.random);
     if (panels.Registry().IsOpen(UI::PersonalShopPanel) || panels.Registry().IsOpen(UI::OtherShopPanel))
         return std::optional<Protocol::Outgoing>{Protocol::Social::WriteTradeResponse(0)};
@@ -476,7 +476,7 @@ Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Social::Tra
         return Message(resources, TradeBusyText, UI::ErrorMessage, "0x4d5594");
     if (response.response != TradeAccepted)
         return {};
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     GamePanels panels(world, resources.cloth.random);
     // 0x4d55b8 → 0x6599a0(0x20): abrir el comercio cierra lo demás, las misiones con el 31 y la tienda de otro con el
     // 3F 07.
@@ -509,7 +509,7 @@ Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Social::
                                                         const WorldEntryResources& resources)
 {
     constexpr std::uint8_t NoSlot = 0xff;
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (removed.slot != NoSlot)
     {
         // Sobre una copia, que reemplaza al comercio solo si todo el paquete queda dentro de lo definido.
@@ -531,7 +531,7 @@ Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Social::
 Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Social::TradeItemAdded& added,
                                                       const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const InventoryItemBytes bytes(added.item);
     constexpr std::string_view Where = "0x5bc740, la grilla de 0x78a5a20";
     // 0x5bd307..0x5bd3ec: la huella que pasa la casilla 31 se escribe sin tope (Q-C200); se mira antes de escribir y de
@@ -572,20 +572,20 @@ Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Social::Tr
     return {};
 }
 
-void ApplyTradeMoneyResult(const Protocol::Social::TradeMoneyResult& result, WorldState& world)
+void ApplyTradeMoneyResult(const Protocol::Social::TradeMoneyResult& result, Kernel::WorldState& world)
 {
     TradeState& trade = world.Runtime().social.trade;
     trade.ownMoney = result.accepted != 0 ? trade.sentMoney : 0;
 }
 
-void ApplyTradeOtherMoney(const Protocol::Social::TradeOtherMoney& money, WorldState& world)
+void ApplyTradeOtherMoney(const Protocol::Social::TradeOtherMoney& money, Kernel::WorldState& world)
 {
     world.Runtime().social.trade.otherMoney = money.money;
 }
 
-void ApplyTradeOkState(const Protocol::Social::TradeOkState& state, WorldState& world)
+void ApplyTradeOkState(const Protocol::Social::TradeOkState& state, Kernel::WorldState& world)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     TradeState& trade = runtime.social.trade;
     if (state.state == OtherOkOff)
         trade.otherOk = 0;
@@ -599,8 +599,8 @@ void ApplyTradeOkState(const Protocol::Social::TradeOkState& state, WorldState& 
 Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Social::TradeResult& result,
                                                    const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     TradeState& trade = runtime.social.trade;
     if (runtime.ui.field78abb39 != 0)
     {
@@ -662,7 +662,7 @@ void ClearTheTradeForSelection(TradeState& trade)
     ClearTheGrid(trade.backup);
 }
 
-Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Crt::CrtRandom& random, bool aux,
+Core::Expected<void, std::string> CloseTheTradeGrids(Kernel::WorldState& world, Crt::CrtRandom& random, bool aux,
                                                      const GamePacketSender& send)
 {
     TradeState& trade = world.Runtime().social.trade;
@@ -676,9 +676,9 @@ Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Crt::Crt
     }
     for (std::size_t slot = 0; slot < trade.ownGrid.size(); ++slot)
     {
-        trade.ownGrid[slot].id = EmptyOwnItemId;
+        trade.ownGrid[slot].id = Kernel::EmptyOwnItemId;
         trade.ownGrid[slot].occupied = 0;
-        trade.otherGrid[slot].id = EmptyOwnItemId;
+        trade.otherGrid[slot].id = Kernel::EmptyOwnItemId;
         trade.otherGrid[slot].occupied = 0;
         if (trade.changed == 1)
             ClearTheBackup(trade);
@@ -686,9 +686,9 @@ Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Crt::Crt
     return {};
 }
 
-void ApplyPartyRequest(const Protocol::Party::PartyRequest& request, WorldState& world)
+void ApplyPartyRequest(const Protocol::Party::PartyRequest& request, Kernel::WorldState& world)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.social.party.requestKey = request.key;
     UI::PushDialog(runtime.dialogs, PartyRequestDialog);
 }
@@ -706,9 +706,9 @@ Core::Expected<void, std::string> ApplyPartyRequestResult(const Protocol::Party:
     return {};
 }
 
-void ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world, Core::Log& log)
+void ApplyPartyList(const Protocol::Party::PartyList& list, Kernel::WorldState& world, Core::Log& log)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     // 0x4d67f0..0x4d6849: la cuenta va a 0x78aba48 y el bucle escribe tantos lugares como diga, sin tope (Q-C960).
     if (list.members.size() > PartySlots)
     {
@@ -736,7 +736,7 @@ void ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world, C
 Core::Expected<void, std::string> ApplyPartyLeft(const Protocol::Party::PartyLeft&,
                                                  const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     runtime.hud.partyCount = 0;
     if (auto shown = Message(resources, PartyLeftText, UI::ErrorMessage, "0x4e40b1"); !shown.HasValue())
         return shown;
@@ -746,7 +746,7 @@ Core::Expected<void, std::string> ApplyPartyLeft(const Protocol::Party::PartyLef
     return {};
 }
 
-void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, Core::Log& log)
+void ApplyPartyLife(const Protocol::Party::PartyLife& life, Kernel::WorldState& world, Core::Log& log)
 {
     PartyState& party = world.Runtime().social.party;
     // 0x4e418e..0x4e41c3: el nibble alto es el lugar, de 0 a 15, sin tope (Q-C960); se mira el paquete entero antes de
@@ -770,7 +770,7 @@ void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, C
 Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Social::DuelStart& start,
                                                  const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     DuelState& duel = runtime.social.duel;
     if (start.result != 0)
     {
@@ -796,7 +796,7 @@ Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Social::DuelSta
 Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Social::DuelEnd& end,
                                                const WorldEntryResources& resources)
 {
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     DuelState& duel = runtime.social.duel;
     duel.active = 0;
     duel.rivalKey = end.key;
@@ -809,9 +809,9 @@ Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Social::DuelEnd& 
     return {};
 }
 
-void ApplyDuelRequest(const Protocol::Social::DuelRequest& request, WorldState& world)
+void ApplyDuelRequest(const Protocol::Social::DuelRequest& request, Kernel::WorldState& world)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     if (runtime.dialogs.current == DuelBusyDialog)
         return;
     DuelState& duel = runtime.social.duel;
@@ -822,7 +822,7 @@ void ApplyDuelRequest(const Protocol::Social::DuelRequest& request, WorldState& 
     runtime.RequestSound(DuelRequestSound);
 }
 
-void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, WorldState& world)
+void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, Kernel::WorldState& world)
 {
     for (const Protocol::PersonalShop::ShopTitleEntry& entry : titles.entries)
     {
@@ -833,12 +833,12 @@ void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, WorldStat
     }
 }
 
-void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, WorldState& world)
+void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, Kernel::WorldState& world)
 {
     // 0x4db7ff: "Fault ReceiveCreatePersonalShop" al log con el resultado, nada más.
     if (created.result != 1)
         return;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     shops.ownOpen = 1;
     const std::size_t hero = runtime.hero;
@@ -846,7 +846,7 @@ void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, WorldS
     AddShopTitle(world, static_cast<std::int32_t>(static_cast<std::int16_t>(world.Actors()[hero].key)), hero, title);
 }
 
-void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, WorldState& world)
+void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, Kernel::WorldState& world)
 {
     // 0x4e4f0e: el log 0x6c8504 con el resultado, nada más.
     if (closed.result != 1)
@@ -854,7 +854,7 @@ void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, WorldStat
     const std::size_t index = ActorWithKey(world, closed.key);
     if (index >= ShopKeysSearched)
         return;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     if (index == runtime.hero)
         runtime.social.personalShop.ownOpen = 0;
     RemoveShopTitle(runtime.social.personalShop, index);
@@ -880,12 +880,12 @@ Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::
     return MessageText(resources, text, UI::SystemMessage, "0x4e4fa3");
 }
 
-void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldState& world)
+void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, Kernel::WorldState& world)
 {
     const std::size_t index = ActorWithKey(world, title.key);
     if (index >= ShopKeysSearched)
         return;
-    const ActorState& actor = world.Actors()[index];
+    const Kernel::ActorState& actor = world.Actors()[index];
     // 0x4db04b: strncmp(+0x1d9, pkt + 0x2a, 10).
     for (std::size_t at = 0; at < title.name.size(); ++at)
     {
@@ -900,7 +900,7 @@ void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldSt
 Core::Expected<void, std::string> ApplyShopOwnerLeft(const Protocol::PersonalShop::ShopOwnerLeft&,
                                                      const WorldEntryResources& resources, const GamePacketSender& send)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     if (world.Runtime().social.personalShop.mode != ViewingAnotherShop)
         return {};
     // El cierre pasa por 0x5eb020, que con la clave del dueño manda el 3F 07.
@@ -921,7 +921,7 @@ Core::Expected<void, std::string> AddSocialNotice(const WorldEntryResources& res
     return Message(resources, text, type, where);
 }
 
-void ApplyDuelScore(const Protocol::Social::DuelScore& score, WorldState& world)
+void ApplyDuelScore(const Protocol::Social::DuelScore& score, Kernel::WorldState& world)
 {
     DuelState& duel = world.Runtime().social.duel;
     if (duel.rivalKey == score.firstKey)

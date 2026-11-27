@@ -28,8 +28,8 @@
 // 0x4f2250 y 0x634c60), como datos y como lo cambia cada paso (06 § El logo en el binario).
 namespace
 {
-using Client::GameLogic::BodyPart;
-using Client::GameLogic::CharacterAppearance;
+using Client::Kernel::BodyPart;
+using Client::Kernel::CharacterAppearance;
 using Client::Models::NoHiddenMesh;
 using Client::Scenes::AdvanceRoutes;
 using Client::Scenes::LoginCharacter;

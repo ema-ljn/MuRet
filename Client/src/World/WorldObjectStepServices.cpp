@@ -56,7 +56,7 @@ Core::Expected<void, std::string> AddObjectLight(const ObjectStepGlobals& global
 }
 } // namespace
 
-Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, const glm::vec3& position,
+Core::Expected<void, std::string> AddDynamicLight(Terrain::TerrainLighting* destination, const glm::vec3& position,
                                                   const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
     if (destination == nullptr)
@@ -76,7 +76,7 @@ Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, 
         }
     }
     const Data::Terrain::TerrainLightColor channels{color.x, color.y, color.z};
-    AddTerrainLight(*destination, position.x, position.y, channels, radius);
+    Terrain::AddTerrainLight(*destination, position.x, position.y, channels, radius);
     return {};
 }
 

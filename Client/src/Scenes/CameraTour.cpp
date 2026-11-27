@@ -128,7 +128,7 @@ void HeadTo(CameraTour& tour, std::int32_t x, std::int32_t y, std::int32_t z, fl
 
 // 0x403430: con +0x34, en la etapa 0 del guion sale del héroe ([0x743a170] + 0x10) y pasa a la 1; el rumbo es destino −
 // salida (en float) y el largo su norma ((x² + y²) + z², en la x87).
-void MeasureTheLeg(CameraTour& tour, const ActorState& hero)
+void MeasureTheLeg(CameraTour& tour, const Kernel::ActorState& hero)
 {
     if (!tour.begin)
         return;
@@ -149,7 +149,7 @@ void MeasureTheLeg(CameraTour& tour, const ActorState& hero)
 // 0x4034e0: con la cámara en camino, 0x403430, el rumbo normalizado y la posición en lo andado · rumbo + salida; lo
 // andado suma +0x74. Con la norma de lo andado (de antes) en el largo o más, llega: la posición y la salida en el
 // destino, +0x36 en 1, +0x35 y lo andado en 0. Devuelve si la cámara estaba en camino (el guion espera).
-bool MoveTheCamera(CameraTour& tour, const ActorState& hero)
+bool MoveTheCamera(CameraTour& tour, const Kernel::ActorState& hero)
 {
     if (!tour.moving)
         return false;
@@ -187,7 +187,7 @@ Core::Expected<std::size_t, std::string> SlotOf(std::int32_t key, const char* ad
 }
 
 // 0x403912..0x403931 y 0x403770..0x403790: el primero vivo con la clave (MOVSX); sin él, el registro 399 (Q-C1349).
-ActorState& ScriptActor(WorldState& world, std::int32_t key)
+Kernel::ActorState& ScriptActor(Kernel::WorldState& world, std::int32_t key)
 {
     auto actors = world.Actors();
     for (std::size_t index = 0; index <= LastRecord; ++index)
@@ -229,7 +229,7 @@ public:
     // 0x4035f0: con la cámara en camino (0x4034e0) nada más; si no, la etapa del guion (+0x144, la tabla 0x403644).
     Result Step()
     {
-        WorldState& world = m_context.world;
+        Kernel::WorldState& world = m_context.world;
         if (MoveTheCamera(m_tour, world.Hero()))
             return {};
         switch (m_tour.scriptStage)
@@ -289,7 +289,7 @@ private:
             return Core::Unexpected(std::format("0x403a25: con los 400 personajes vivos, 0x5141e0 devuelve el registro "
                                                 "400 y 0x4039f0 escribe la clave {} fuera del pool",
                                                 key));
-        ActorState& actor = actors[created.Value()];
+        Kernel::ActorState& actor = actors[created.Value()];
         actor.key = static_cast<std::uint16_t>(key);
         ++m_tour.nextActorKey;
         constexpr std::uint16_t NoItem = 0xffff;
@@ -326,7 +326,7 @@ private:
         const auto slot = SlotOf(key, "0x4037d7");
         if (!slot.HasValue())
             return Core::Unexpected(slot.Error());
-        ActorState& actor = ScriptActor(m_context.world, key);
+        Kernel::ActorState& actor = ScriptActor(m_context.world, key);
         const auto cellOf = [](float position)
         { return Math::FtolLow(static_cast<double>(Math::FtolLow(static_cast<double>(position))) * Hundredth); };
         if (cellOf(actor.position.x) == x && cellOf(actor.position.y) == y)
@@ -368,9 +368,10 @@ private:
                 return Core::Unexpected(walked.Error());
             if (!m_context.height)
                 return Core::Unexpected(std::format("0x403866: 0x508a80 mueve al personaje {} sin la altura", key));
-            if (auto moved = UpdateActorPosition(actor, ActorMotionContext{.runtime = m_context.world.Runtime(),
-                                                                           .random = m_context.random,
-                                                                           .height = m_context.height});
+            if (auto moved =
+                    Actors::UpdateActorPosition(actor, Actors::ActorMotionContext{.runtime = m_context.world.Runtime(),
+                                                                                  .random = m_context.random,
+                                                                                  .height = m_context.height});
                 !moved.HasValue())
                 return Core::Unexpected(moved.Error());
             return false;
@@ -385,7 +386,7 @@ private:
     // 0x4036d0(personaje, x, y, ángulo): (posición − centro de la celda), con la x del centro sin redondear (queda en
     // la x87) y la y en float, z 0; normalizado (0x5fc800), acos de la y (0x69fc70) en grados y, con la x mayor que 0,
     // 360 − eso. El ángulo pedido no se lee.
-    static double AngleTo(const ActorState& actor, std::int32_t x, std::int32_t y)
+    static double AngleTo(const Kernel::ActorState& actor, std::int32_t x, std::int32_t y)
     {
         const double centerX = static_cast<double>(x) * CellSize + CellCenter;
         const float centerY = CellCenterOf(y);
@@ -405,7 +406,7 @@ private:
         const auto slot = SlotOf(key, "0x403933");
         if (!slot.HasValue())
             return Core::Unexpected(slot.Error());
-        ActorState& actor = ScriptActor(m_context.world, key);
+        Kernel::ActorState& actor = ScriptActor(m_context.world, key);
         std::int32_t& count = m_tour.actionCounts[slot.Value()];
         if (count != times)
         {
@@ -439,7 +440,7 @@ private:
         return actor.animation.frame >= LastActionFrame;
     }
 
-    Result SetAction(ActorState& actor, std::uint8_t action, std::uint32_t address)
+    Result SetAction(Kernel::ActorState& actor, std::uint8_t action, std::uint32_t address)
     {
         if (m_context.resources == nullptr)
             return Core::Unexpected(std::format("{:#x}: 0x4ea030 sin los modelos de la entrada", address));
@@ -732,7 +733,8 @@ private:
 } // namespace
 
 // 0x403ae7..0x403d02 y 0x4c98a0..0x4c9ac1: sortear el ancho aunque el pool esté lleno.
-Core::Expected<void, std::string> CreateArrivalSparks(ActorState& actor, WorldState& world, Crt::CrtRandom& random)
+Core::Expected<void, std::string> CreateArrivalSparks(Kernel::ActorState& actor, Kernel::WorldState& world,
+                                                      Crt::CrtRandom& random)
 {
     const auto joint = [&](std::int32_t type, glm::vec3& from, glm::vec3& to, std::int32_t subtype, float width)
     {
@@ -779,10 +781,10 @@ void ResetTheCameraTour(CameraTour& tour)
     tour = CameraTour{};
 }
 
-void RemoveTheCameraTourActors(WorldState& world, const CameraTour& tour)
+void RemoveTheCameraTourActors(Kernel::WorldState& world, const CameraTour& tour)
 {
     for (std::int32_t key = FirstTourActor; key < tour.nextActorKey; ++key)
-        RemoveActor(world, key);
+        Actors::RemoveActor(world, key);
 }
 
 Core::Expected<void, std::string> StepTheCameraTour(const CameraTourContext& context)

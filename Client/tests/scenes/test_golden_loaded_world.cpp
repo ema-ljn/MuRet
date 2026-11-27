@@ -37,13 +37,13 @@
 #include <system_error>
 #include <vector>
 
-// Client::Scenes::LoadedWorld con una copia del World56 del laboratorio (y el accept_box01 de
+// Client::Kernel::LoadedWorld con una copia del World56 del laboratorio (y el accept_box01 de
 // Interface\ y la gota de Object8\), a la que cada test le saca o le rompe un archivo (06 § El terreno del login,
 // Review Focus 2 del plan de la CL7: lo que falta se saltea con un aviso y el login sigue).
 namespace
 {
+using Client::Kernel::LoadedWorld;
 using Client::Render::TextureSlot;
-using Client::Scenes::LoadedWorld;
 using Client::Tests::FakeTextureStore;
 
 constexpr std::uint8_t Login = 55;
@@ -212,14 +212,14 @@ TEST_F(GoldenLoadedWorld, DrawingUsesTheDynamicLightWithoutReplacingItsBase)
     std::vector<std::string> skipped;
     ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
     const float base = world.Lighting()->cells[1000][0];
-    auto dynamic = std::make_unique<Client::World::TerrainLighting>();
+    auto dynamic = std::make_unique<Client::Terrain::TerrainLighting>();
     dynamic->cells.fill({1.0f, 0.0f, 0.0f});
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const Client::World::TerrainRange range{.firstX = 0, .lastX = 128, .firstY = 120, .lastY = 251};
-    Client::World::TerrainPolygon polygon;
+    const Client::Terrain::TerrainRange range{.firstX = 0, .lastX = 128, .firstY = 120, .lastY = 251};
+    Client::Terrain::TerrainPolygon polygon;
     polygon.everything = true;
-    world.DrawTerrain(batch, {}, range, polygon, Client::World::FixedCornerHeight, dynamic.get());
+    world.DrawTerrain(batch, {}, range, polygon, Client::Terrain::FixedCornerHeight, dynamic.get());
     ASSERT_FALSE(batch.Vertices().empty());
     EXPECT_TRUE(std::ranges::all_of(batch.Vertices(), [](const Client::Render::ModelVertex& vertex)
                                     { return vertex.color.green == 0.0f && vertex.color.blue == 0.0f; }));
@@ -229,7 +229,7 @@ TEST_F(GoldenLoadedWorld, DrawingUsesTheDynamicLightWithoutReplacingItsBase)
 // Las tablas siguen vivas entre escenas; los tiles siguen perteneciendo al LoadedWorld.
 TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTilesOnce)
 {
-    std::optional<Client::World::WorldTerrain> retained;
+    std::optional<Client::Terrain::WorldTerrain> retained;
     double height = 0.0;
     {
         LoadedWorld world(m_store);
@@ -237,7 +237,7 @@ TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTi
         ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
         const auto* heights = world.Terrain()->heights.get();
         const auto* attributes = world.Terrain()->attributes.get();
-        height = Client::World::TerrainHeightAt(*heights, *attributes, 50.0f, 50.0f);
+        height = Client::Terrain::TerrainHeightAt(*heights, *attributes, 50.0f, 50.0f);
         retained = world.TakeTerrain();
         ASSERT_TRUE(retained.has_value());
         EXPECT_EQ(retained->heights.get(), heights);
@@ -255,7 +255,7 @@ TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTi
         EXPECT_EQ(m_store.released.size(), LoadedLoginTextureCount);
     }
     ASSERT_TRUE(retained.has_value());
-    EXPECT_DOUBLE_EQ(Client::World::TerrainHeightAt(*retained->heights, *retained->attributes, 50.0f, 50.0f), height);
+    EXPECT_DOUBLE_EQ(Client::Terrain::TerrainHeightAt(*retained->heights, *retained->attributes, 50.0f, 50.0f), height);
 }
 
 // Un tile que no avisa y falta (0x63b870 con el sexto argumento en 0) se saltea, y el resto sube.

@@ -60,7 +60,7 @@
 // pasos 1 a 4 y 6). Arrancan en 0, como la .bss del original; las cuentas de accesos de la tabla de
 // protección, que el original guarda al lado de cada entrada, las pone MuRet en 0 sin haberlas leído
 // (CL7.P, P-C22 c).
-namespace Client::Scenes
+namespace Client::Kernel
 {
 // Una entrada de la cola de las barras de vida (0x7239a8, de 0x10 bytes): la posición del personaje con la z sobre el
 // techo de su caja (+0x18 + +0x138 + 100) y su +0x93, el byte bajo del cuarto DWORD (los otros tres son lo que había en
@@ -182,7 +182,7 @@ struct ChatRuntime
     // 0x77997f8 y 0x77f3b9c: los que susurraron con el nivel propio menor que 10 (0x554d20).
     UI::WhisperSenders whisperSenders{};
     // 0x77e1be0: los globos.
-    ChatBubbleTable bubbles{};
+    Scenes::ChatBubbleTable bubbles{};
     // +0x510 y +0x511 de la barra de la selección (la ventana +0x7f50 de la UI nueva, 0x7d53728): el primer 0D con 1
     // que llega en la selección (0x63eda0) y no se vuelve a escribir, porque la barra se arma una vez (0x63e6e0).
     // Vacío, +0x510 en 0.
@@ -217,7 +217,7 @@ struct HudState
     // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a
     // uno por paso; con más de 0 no sale ninguna (0x5a116f) y el HUD dibuja "Macro Time" (0x5a7369).
     std::int32_t macroTime = 0;
-    QuickSlots quickSlots{};
+    Scenes::QuickSlots quickSlots{};
     // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada
     // texto del HUD deja los suyos y el que sigue sin poner otros sale con ellos, también en el frame siguiente.
     Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
@@ -257,11 +257,11 @@ struct HudState
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};
     // [0x5763534]: el cartel con el nombre del mapa (Scenes/MapBanner.h), que dibuja el 19 (0x65dd70).
-    MapBanner mapBanner = MakeTheMapBanner();
+    Scenes::MapBanner mapBanner = Scenes::MakeTheMapBanner();
     // 0x78793c8, 0x787a560 y 0x78a9230: los renglones de los tooltips, sus colores y sus negritas (CL8 hito 5).
-    TooltipLines tooltip{};
+    Scenes::TooltipLines tooltip{};
     // 0x787a15c y 0x6c9334: la tabla por nivel de la ayuda del ítem y su ítem (−1 en la .data), que llena 0x5afc00.
-    ItemHelpLevels itemHelp{};
+    Scenes::ItemHelpLevels itemHelp{};
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
@@ -359,9 +359,9 @@ struct WorldRuntime
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
     // main muestra el modal antes de cerrar. Unsupported-map y errores sin aviso no lo escriben.
     std::optional<std::string> fatalDataMessage{};
-    GameItemRenderState itemRender{};
+    Actors::Drawing::GameItemRenderState itemRender{};
     // 0x77f3ba0, 0x77e1bb0 y 0x77f27b4: la cola de los últimos 0x0B, 0x12, 0x1C, 0x24 y 0x2A (ViewportPacketRing.h).
-    ViewportPacketRing viewportPackets{};
+    Actors::ViewportPacketRing viewportPackets{};
     // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos
     // (0x7d3a10c, 0x7d3a110) y lo demás de la UI del juego (CL8 hito 1): la .bss, que nadie vacía al cambiar de
     // escena.
@@ -372,40 +372,40 @@ struct WorldRuntime
     UI::CastleSiegeState castleSiege{};
     // El gremio, la alianza y la guerra (CL9 hito 8): la tabla de los gremios (0x787aa48), los miembros (0x787a5e8),
     // los globales de la guerra y lo que los paquetes guardan en las dos ventanas del gremio.
-    GuildState guild{};
+    Scenes::GuildState guild{};
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
     // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6).
-    NpcWindowState npcWindows{};
+    Scenes::NpcWindowState npcWindows{};
     // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
     // WinMain y duran todo el juego.
     UI::OldWindowManager oldWindows{};
     HudState hud{};
     ChatRuntime chat{};
-    GameMovementState movement{};
+    Scenes::GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
     // 0x723c18: la cola de los textos 3D (WorldTexts.h). La llena 0x4381f0 desde el cuerpo de los personajes
     // (0x4fd603, el 0xc5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
-    WorldTextQueue worldTexts{};
+    Scenes::WorldTextQueue worldTexts{};
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
     std::vector<Tables::MoveRequirement> moves{};
     // [0x710148]: el objeto de las misiones (CL9 hito 2). main.cpp copia los registros de quest.bmd (GameData::quests).
-    QuestState quest{};
+    Scenes::QuestState quest{};
     // 0x7688ac0: los 200 diálogos de Dialog.bmd, que main.cpp copia de GameData::dialogs. Vacío: el que muestra uno
     // corta.
     Tables::DialogTable dialogTable{};
     // 0x7681eb8 (CL9 hito 2): los 512 nombres de NpcName(%s).txt que busca 0x54ebb0 (el título de la ventana de las
     // misiones, 0x41be2c) y que la cola del alta (0x5140c0) copia al nombre. main.cpp les copia GameData::npcNames
     // (0x61ed05); sin el archivo quedan en 0.
-    NpcNameTable npcNames = NpcNameTable(NpcNameCount);
+    Scenes::NpcNameTable npcNames = Scenes::NpcNameTable(Tables::NpcNameCount);
     // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
     // las misiones (0x41ba20) con la clase 3 o 4.
     std::uint8_t byte6eeda8 = 0;
     // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
-    World::ItemState cursorItem{};
+    Kernel::ItemState cursorItem{};
     // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
     // quien levanta o suelta el ítem escribe los dos.
     std::int32_t cursorItemCount = 0;
@@ -414,13 +414,13 @@ struct WorldRuntime
     CursorGrid cursorGrid = CursorGrid::None;
     // 0x78a59c8: el ítem de los diálogos (0x633110 lo dibuja, 0x63330f lo nombra, 0x623e70 lo usa), con la casilla de
     // la grilla en el byte +9 (0x78a59d1), que en el ItemState es relleno. Lo escribe la fruta (0x5c8083, CL9 hito 5).
-    World::ItemState dialogItem{};
+    Kernel::ItemState dialogItem{};
     std::uint8_t dialogItemCell = 0;
     // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).
     std::int32_t itemMoveTarget = 0;
     // 0x787a518: la copia del ítem bajo el mouse que lee el cartel (0x5c42a7 y 0x5c3aba). Levantar un ítem le pone el
     // tipo en 0xffff (0x5c5358, 0x5c2d74).
-    World::ItemState hoveredItemCopy{};
+    Kernel::ItemState hoveredItemCopy{};
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
@@ -437,7 +437,7 @@ struct WorldRuntime
     std::uint32_t trialsAmbientTime = 0;
     // DAT_00723c60, el objeto de evento que arma 0x447d70. Vacío como la .bss; sólo 0x447d70 lo suelta
     // (0x447eb0), y sólo para armar otro: al salir del evento a un mapa común sigue vivo (Q-C320).
-    std::optional<EventMapObject> eventObject{};
+    std::optional<Scenes::EventMapObject> eventObject{};
     // 0x6c634c (.data 0xff): el área de Chaos Castle que leen 0x404e20 y 0x405e00 (Q-C229); 0x404d60 la vuelve
     // a poner en 0xff.
     std::uint8_t chaosCastleArea = 0xff;
@@ -445,7 +445,7 @@ struct WorldRuntime
     // 9B de Chaos Castle (0x404e45, CL9 hito 11) la vuelve a armar.
     std::uint8_t chaosCastleTrapArmed = 1;
     // Lo demás que escriben los paquetes de los eventos (CL9 hito 11).
-    EventGlobals events{};
+    Scenes::EventGlobals events{};
     // Lo de Crywolf que leen y escriben la carga, sus objetos y sus hojas.
     CrywolfGlobals crywolf{};
     // 0x5763538 (.bss 0): el contador de 0x6046a0, que da la vuelta de 1 a 41 al empezar cada dibujo de los
@@ -479,7 +479,7 @@ struct WorldRuntime
     // DAT_006d5dc8 escrito por un paquete: el F1 02 con 1 pone la 4 (0x4c363f) mientras se lee la red, y
     // el próximo paso del original ya es el de la selección. MuRet la deja acá y el SceneManager la toma
     // después del Poll (main.cpp) y entra en su próximo paso. Vacía, nadie la pidió.
-    std::optional<SceneId> orderedScene{};
+    std::optional<Scenes::SceneId> orderedScene{};
     // DAT_07d3a13e: si la carga del mundo (0x6356f0) ya armó el contador y subió sus texturas. La
     // baja la selección justo antes de pasar a la escena 3 (0x633efe, 0x634469, 0x634631) y la sube
     // 0x6356f0 (0x635980). Nadie más la escribe.
@@ -516,9 +516,9 @@ struct WorldRuntime
     // (0x50ba30 en 0x50c91e), el del login y el de la selección (ScanTheDrawnCharacter). nullopt después de un
     // frame del juego que llega a los personajes (0x6374dd → 0x510d00), que MuRet no dibuja: no se sabe qué
     // dejó, y 0x550990 corta con error si lo lee.
-    std::optional<Scan505820> fullSetScan = Scan505820{};
+    std::optional<Actors::Scan505820> fullSetScan = Actors::Scan505820{};
     // El comercio, la party y el duelo (CL9 hito 7).
-    SocialState social{};
+    Scenes::SocialState social{};
     // [0x78a6758], en la .bss: 0 al arrancar. 0x5bc740, después de poner un ítem en una de las grillas del
     // inventario, lo compara con signo con 12 (0x5bcd0b y 0x5bd08b) y, con menos, abre el registro propio
     // para las velocidades (0x54fe10). Lo escriben quince lugares de la interfaz del inventario y del juego
@@ -534,15 +534,15 @@ struct WorldRuntime
     // login, el que haya. En la .bss (más allá de los 0x20000 bytes de la .data del archivo, desde 0x6c6000):
     // ceros, un trapecio sin área en (0, 0) con el que 0x5fba90 da 0 en los cuatro lados (*estático*, 06 § El
     // paso de los personajes y Q-C217).
-    World::TerrainPolygon terrainPolygon{};
+    Terrain::TerrainPolygon terrainPolygon{};
     // 0x7b4ccb8, el nivel efectivo del trapecio de un 0x5fb570 al siguiente, en las tres escenas: solo lo
     // escribe 0x5fb570 (0x5fb731). En la .bss: 0.
-    World::TerrainPolygonState terrainPolygonState{};
+    Terrain::TerrainPolygonState terrainPolygonState{};
     // Las marcas del suelo, 0x760cab0..0x760f990, en la .bss: todas apagadas al arrancar. Solo las tocan
     // 0x548fe0, 0x549090 y 0x549130, y ninguna carga las vacía: 0x6070a0 apaga las tablas de al lado y no esta
     // (Q-C228). Las llenan 0x505de0 con el modelo 0x182 (0x507486), que MuRet corta antes (0x507414, 08 P-C241 a), y
-    // 0x52e810 (0x52e96c, Scenes::LeaveTheRemains, CL9 hito 3), desde el paso del cuerpo (0x4fd5f0 → 0x4fcd00).
-    World::GroundMarkTable groundMarks{};
+    // 0x52e810 (0x52e96c, Actors::LeaveTheRemains, CL9 hito 3), desde el paso del cuerpo (0x4fd5f0 → 0x4fcd00).
+    Terrain::GroundMarkTable groundMarks{};
     // 0x77f36d0, la capa 1 de la celda del héroe, en la .bss: 0 al arrancar. La escribe MoveHero (0x59e2ba),
     // después del contador. La leen el paso de los objetos
     // (los techos de 0x604ab0, 0x604bc4 y 0x604c06) y el de las hojas (0x637082..0x6370e5), entre otros.
@@ -591,4 +591,4 @@ struct WorldRuntime
 inline constexpr std::int32_t WaitDrawThreshold = 30;
 // 0x6357eb: lo que deja la carga del mundo en el contador, 0x98967f.
 inline constexpr std::int32_t WorldLoadingWait = 9'999'999;
-} // namespace Client::Scenes
+} // namespace Client::Kernel

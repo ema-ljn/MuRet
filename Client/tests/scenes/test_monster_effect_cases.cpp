@@ -46,7 +46,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 
@@ -192,7 +192,7 @@ protected:
         }
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::World::FrameSprites m_sprites;
     Client::Models::Skeleton m_skeleton;
     ActorState m_actor;

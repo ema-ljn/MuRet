@@ -21,7 +21,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -70,7 +70,7 @@ float Sum(float a, float b)
 
 // 0x4fbd52..0x4fbdf5: cada burbuja, x e y con rand() & 0x7f − 64 y z con rand() & 0xff, sobre la posición, con los
 // ángulos (+0x1c) y la luz propia (+0xf4) del objeto: 0x53fe70(0x607, punto, +0x1c, +0xf4, 0, 1, 0).
-Core::Expected<void, std::string> BlowTheBubbles(const ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> BlowTheBubbles(const Kernel::ActorState& actor, std::size_t slot,
                                                  const ActorDyingContext& context)
 {
     for (int bubble = 0; bubble < Bubbles; ++bubble)
@@ -93,7 +93,7 @@ Core::Expected<void, std::string> BlowTheBubbles(const ActorState& actor, std::s
     return {};
 }
 
-glm::vec3 ChaosCastleBurstPoint(const ActorState& actor, Crt::CrtRandom& random)
+glm::vec3 ChaosCastleBurstPoint(const Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
     const auto offset = [&random]()
     {
@@ -103,7 +103,7 @@ glm::vec3 ChaosCastleBurstPoint(const ActorState& actor, Crt::CrtRandom& random)
     return {Sum(actor.position.x, offset()), Sum(actor.position.y, offset()), Sum(actor.position.z, offset())};
 }
 
-Core::Expected<void, std::string> CreateTheChaosCastleBurst(ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> CreateTheChaosCastleBurst(Kernel::ActorState& actor, std::size_t slot,
                                                             const ActorDyingContext& context)
 {
     const glm::vec3 point = ChaosCastleBurstPoint(actor, context.random);
@@ -127,7 +127,7 @@ Core::Expected<void, std::string> CreateTheChaosCastleBurst(ActorState& actor, s
 // 0x4fbca1..0x4fbd43: diez veces, el hueso rand() % 32 por 0x4ec110 (Translate 1) con el corrimiento (0, 0, 0) y la
 // partícula 0x5ac/5 en ese punto, con los ángulos del objeto (+0x1c), la luz (0,3f; 0,3f; 1) y la escala
 // (rand() % 100) · 0,02f + 0,5 (0x6b89e4 y 0x6b882c). Dos rand() por vuelta, también con el pool lleno.
-Core::Expected<void, std::string> CreateTheDeathSkillFlares(const ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> CreateTheDeathSkillFlares(const Kernel::ActorState& actor, std::size_t slot,
                                                             const ActorDyingContext& context)
 {
     constexpr int Flares = 10;
@@ -138,8 +138,8 @@ Core::Expected<void, std::string> CreateTheDeathSkillFlares(const ActorState& ac
         return Core::Unexpected(std::format("0x4fbd3a: falta el pool para la partícula 0x5ac/5 del lugar {}", slot));
     const Math::BoneTransform emptyPose(0.0f);
     const glm::vec3 offset{};
-    const SharedModelPlacement placement =
-        context.world != nullptr ? context.world->ModelPlacement(actor.type) : SharedModelPlacement{};
+    const Kernel::SharedModelPlacement placement =
+        context.world != nullptr ? context.world->ModelPlacement(actor.type) : Kernel::SharedModelPlacement{};
     for (int flare = 0; flare < Flares; ++flare)
     {
         const auto bone = static_cast<std::size_t>(context.random.Next() % DeathSkillBoneCount);
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> CreateTheDeathSkillFlares(const ActorState& ac
 }
 } // namespace
 
-void FlyFromTheCastle(ActorState& actor)
+void FlyFromTheCastle(Kernel::ActorState& actor)
 {
     const auto matrix = Math::OriginalAngleMatrix(actor.push);
     const glm::vec3 turned = Math::OriginalVectorRotate({0.0f, actor.floatD0, 0.0f}, matrix);
@@ -172,7 +172,7 @@ void FlyFromTheCastle(ActorState& actor)
     actor.position.z = Sum(actor.pushOrigin.z, actor.floatE4);
 }
 
-void FlyFromThePush(ActorState& actor)
+void FlyFromThePush(Kernel::ActorState& actor)
 {
     const glm::vec3 angles{actor.headTurn.angles.x, actor.headTurn.angles.y, actor.angle30};
     const auto matrix = Math::OriginalAngleMatrix(angles);
@@ -182,7 +182,8 @@ void FlyFromThePush(ActorState& actor)
     actor.position.z = Sum(moved.z, actor.position.z);
 }
 
-Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t slot, const ActorDyingContext& context)
+Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std::size_t slot,
+                                                 const ActorDyingContext& context)
 {
     if (actor.dying == 0)
         return {};
@@ -217,7 +218,7 @@ Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t 
             if (context.world != nullptr)
                 ForgetNamedBones(context.world->Runtime(), slot);
         }
-        if (context.world != nullptr && slot < ActorPoolSize)
+        if (context.world != nullptr && slot < Kernel::ActorPoolSize)
             context.world->ActorCloths()[slot].ReleaseResources();
     }
     const std::int32_t map = context.map;
@@ -260,8 +261,8 @@ Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t 
                 return Core::Unexpected(std::format("{} (paso {})", flare.Error(), actor.dying));
         }
     }
-    if (context.scene == SceneId::Game && map == BubbleMap)
+    if (context.scene == Scenes::SceneId::Game && map == BubbleMap)
         return BlowTheBubbles(actor, slot, context);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

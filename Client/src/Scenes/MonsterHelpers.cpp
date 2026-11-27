@@ -91,12 +91,12 @@ bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
     return value >= first && value <= last;
 }
 
-bool Resting(const ActorState& actor)
+bool Resting(const Kernel::ActorState& actor)
 {
     return actor.animation.action == 0 || actor.animation.action == 1;
 }
 
-bool Idling(const ActorState& actor)
+bool Idling(const Kernel::ActorState& actor)
 {
     return actor.animation.action == 2 || actor.animation.action == 10;
 }
@@ -119,7 +119,7 @@ Render::ModelDrawState Blended(Render::ModelDrawState state, Render::ModelBlend 
     return state;
 }
 
-Core::Unexpected<std::string> Cut(std::uint32_t address, std::string_view what, const ActorState& actor)
+Core::Unexpected<std::string> Cut(std::uint32_t address, std::string_view what, const Kernel::ActorState& actor)
 {
     return Core::Unexpected(std::format("{:#x}: {} (el tipo {:#x} en la acción {:#x}) no está portado", address, what,
                                         actor.type, actor.animation.action));
@@ -129,12 +129,12 @@ Core::Unexpected<std::string> Cut(std::uint32_t address, std::string_view what, 
 // con el objeto y el nombre exacto (la lista de 0x401000), y 0x401550 o 0x4015f0: 0x4ec110 sin trasladar en el buffer
 // propio (+0x120), por la escala (+0xc) y más la posición (+0x10), como OriginalTransformPosition. Sin el hueso, el
 // original devuelve 0 y deja el punto como estaba en la pila: corta en la llamada `call`.
-Core::Expected<glm::vec3, std::string> NamedBonePoint(const WorldState& world, const ActorState& actor,
+Core::Expected<glm::vec3, std::string> NamedBonePoint(const Kernel::WorldState& world, const Kernel::ActorState& actor,
                                                       std::size_t slot, std::string_view name, const glm::vec3& offset,
                                                       std::uint32_t call)
 {
     const auto& bones = world.Runtime().namedBones;
-    const auto found = std::ranges::find_if(bones, [slot, name](const NamedBone& bone)
+    const auto found = std::ranges::find_if(bones, [slot, name](const Kernel::NamedBone& bone)
                                             { return bone.actor == slot && bone.name == name; });
     if (found == bones.end())
     {
@@ -168,7 +168,7 @@ Result NeedTheSprites(const MonsterHelperPass& pass, std::uint32_t address)
         std::format("{:#x}: faltan los sprites del frame (0x5491e0) para el tipo {:#x}", address, pass.actor.type));
 }
 
-Core::Unexpected<std::string> NoParticles(const ActorState& actor, std::uint32_t call)
+Core::Unexpected<std::string> NoParticles(const Kernel::ActorState& actor, std::uint32_t call)
 {
     return Core::Unexpected(
         std::format("{:#x}: faltan las partículas del frame (0x53fe70) para el tipo {:#x}", call, actor.type));
@@ -176,9 +176,9 @@ Core::Unexpected<std::string> NoParticles(const ActorState& actor, std::uint32_t
 
 // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en `call`, con un tipo que World::Particles crea: con la
 // tabla llena no crea nada ni saca rand(); con lugar, los rand() de su alta.
-Result CreateParticle(World::Particles* particles, const ActorState& actor, std::int32_t type, std::int32_t subtype,
-                      const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, float scale,
-                      float worldClock, Crt::CrtRandom& random, std::uint32_t call)
+Result CreateParticle(World::Particles* particles, const Kernel::ActorState& actor, std::int32_t type,
+                      std::int32_t subtype, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                      float scale, float worldClock, Crt::CrtRandom& random, std::uint32_t call)
 {
     if (particles == nullptr)
         return NoParticles(actor, call);
@@ -214,13 +214,13 @@ Result OwnedParticle(const MonsterHelperPass& pass, std::int32_t type, std::int3
 }
 
 // 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
-Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particles* particles, Crt::CrtRandom& random,
-                            float clock)
+Result EmitDeathSpiritSwing(Kernel::WorldState& world, Kernel::ActorState& actor, World::Particles* particles,
+                            Crt::CrtRandom& random, float clock)
 {
     const auto targetSlot = static_cast<std::int16_t>(actor.attackTarget);
     if (targetSlot < 0 || targetSlot >= PoolSize)
         return Core::Unexpected(std::format("0x4335f6: el blanco firmado {} de147 está fuera del pool", targetSlot));
-    ActorState& target = world.Actors()[static_cast<std::size_t>(targetSlot)];
+    Kernel::ActorState& target = world.Actors()[static_cast<std::size_t>(targetSlot)];
     const glm::vec3 light{0, 0, target.boundsTop};
     const BoneTransform bone = actor.bodyPose.empty() ? BoneTransform(0) : actor.bodyPose[0];
     glm::vec3 point =
@@ -279,7 +279,7 @@ struct ActionSound
 // las acciones de `sounds`, con +4 en 0, +4 = 1 y el suyo.
 void PlayTheSounds(const MonsterHelperPass& pass, std::int32_t idle, std::span<const ActionSound> sounds)
 {
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     if (Idling(actor))
     {
         if (pass.random.Next() % 15 == 0)
@@ -293,7 +293,7 @@ void PlayTheSounds(const MonsterHelperPass& pass, std::int32_t idle, std::span<c
 }
 
 // La cola común: +4 a 0 en las acciones 0 y 1 (0x442dd2, 0x43458e, 0x428dbd).
-void ResetAtRest(ActorState& actor)
+void ResetAtRest(Kernel::ActorState& actor)
 {
     if (Resting(actor))
         actor.subtype = 0;
@@ -423,7 +423,7 @@ Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, cons
 // la luz en blanco.
 Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const auto right = PointOf(pass, "Monster82_RHand", 0x441ac3);
     if (!right.HasValue())
         return Core::Unexpected(right.Error());
@@ -437,7 +437,7 @@ Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
     // 0x441c58..0x441c68: corta en 0x69780 = 400 · 0x438; el registro 400 (el de reserva de 0x5110d0) no se recorre.
     constexpr std::size_t SearchedPlayers = 400;
     const glm::vec3 white(1.0f);
-    for (const ActorState& other : pass.world.Actors().first<SearchedPlayers>())
+    for (const Kernel::ActorState& other : pass.world.Actors().first<SearchedPlayers>())
     {
         if (other.byte88 != PlayerClass || other.type != Tables::PlayerSkeletonModel || !other.seen || !other.alive)
             continue;
@@ -459,7 +459,7 @@ Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
 // (80, 40, −25) y pide 0x208 incluso con el pool lleno.
 Result DrawThe1a4(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     if (actor.animation.action == 6)
     {
         constexpr std::int32_t Stones = 0, DeathSound = 0x209;
@@ -507,7 +507,7 @@ Result DrawThe1a4(MonsterHelperPass& pass)
 // 40 − 20, rand() % 40 − 20 y rand() % 48 − 24 para el punto de la panza, con los mismos dos sprites y una 0x5ca/0.
 Result DrawThe1a5(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint8_t action = actor.animation.action;
     if (Idling(actor))
         SoundOnce(pass, 0x200, true);
@@ -558,7 +558,7 @@ Result DrawThe1a5(MonsterHelperPass& pass)
 // 0x4420f7..0x44281f. timeGetTime() (0x4420f7) sin usar lo que da.
 Result DrawThe1a6(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint8_t action = actor.animation.action;
     if (Idling(actor))
         SoundOnce(pass, 0x1fa, true);
@@ -688,7 +688,7 @@ Result DrawThe1a7(MonsterHelperPass& pass)
             return Core::Unexpected(point.Error());
         Sprite(pass, Flare, point.Value(), 0.7f, RedEyes);
     }
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const std::uint8_t action = actor.animation.action;
     if (Idling(actor) && pass.random.Next() % 10 == 0)
     {
@@ -712,7 +712,7 @@ Result DrawThe1a9(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x442b3d); !ready.HasValue())
         return ready;
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     constexpr glm::vec3 EyeOffset{0.0f, -2.0f, 0.0f};
     constexpr std::array<std::pair<std::string_view, std::uint32_t>, 2> Eyes{
         {{"Monster87_LeftEye", 0x442ae0}, {"Monster87_RightEye", 0x442bb1}}};
@@ -784,7 +784,7 @@ void BindTheMark(Render::ModelBatch& batch)
 // sin escribir, y sin 0x40000 el giro de la segunda también: esa marca no se dibuja (BindTheMark). 0x620980 cierra.
 Result DrawTheCrywolfMark(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     if (pass.batch == nullptr || pass.heights == nullptr)
         return Cut(0x43436c, "las marcas 0x69b del piso sin el lote o las alturas del terreno (0x5fb2f0)", actor);
     constexpr float WaveRate = std::bit_cast<float>(0x3b03126fu);   // 0x6b89bc: 0,002
@@ -835,22 +835,22 @@ Result DrawTheCrywolfMark(MonsterHelperPass& pass)
         light = glm::vec3{Pale, Pale, b};
         spin = F32(D(pass.worldClock) * D(SpinRate));
     }
-    World::TerrainDecal mark{.slot = CrywolfMark,
-                             .x = actor.position.x,
-                             .y = actor.position.y,
-                             .width = Small,
-                             .height = Small,
-                             .color = light ? *light + *light : glm::vec3(0.0f),
-                             .angle = spin,
-                             .alpha = 1.0f,
-                             .lift = Lift};
+    Terrain::TerrainDecal mark{.slot = CrywolfMark,
+                               .x = actor.position.x,
+                               .y = actor.position.y,
+                               .width = Small,
+                               .height = Small,
+                               .color = light ? *light + *light : glm::vec3(0.0f),
+                               .angle = spin,
+                               .alpha = 1.0f,
+                               .lift = Lift};
     // 0x43436c y 0x43439a.
     for (const std::optional<float> turn : {std::optional(spin), backSpin})
     {
         if (light && turn)
         {
             mark.angle = *turn;
-            if (auto drawn = World::DrawTerrainDecal(*pass.batch, *pass.heights, mark); !drawn.HasValue())
+            if (auto drawn = Terrain::DrawTerrainDecal(*pass.batch, *pass.heights, mark); !drawn.HasValue())
                 return drawn;
         }
         else
@@ -903,7 +903,7 @@ Result DrawThe1b1(MonsterHelperPass& pass)
             return Core::Unexpected(head.Error());
         Sprite(pass, Flare, head.Value(), 3.5f, RedEyes);
     }
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     if (Idling(actor) && pass.random.Next() % 10 == 0)
         return Particle(pass, Dust, 0, actor.position, actor.angles, RedEyes, 1.0f, 0x434d84);
     return {};
@@ -916,7 +916,7 @@ Result DrawThe1b2(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x435119); !ready.HasValue())
         return ready;
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const auto spin = static_cast<float>(pass.random.Next() % 360);
     const auto wave = ClockSine(pass, 0.0012f, 0.8f, 0x434fbb);
     if (!wave.HasValue())
@@ -946,7 +946,7 @@ Result DrawThe1b2(MonsterHelperPass& pass)
 // 0x4343ba..0x435569, por la tabla de bytes 0x43559c sobre la de saltos 0x43556c.
 Handled DrawTheCrywolfCase(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint16_t type = actor.type;
     const std::uint8_t action = actor.animation.action;
     if (Within(type, 0x204, 0x208))
@@ -1020,7 +1020,7 @@ Handled DrawTheCrywolfCase(MonsterHelperPass& pass)
 
 // El blanco +0x3a4 del personaje como WORD con signo dentro de los 0x190 del pool (0x4279cf..0x4279e3 y
 // 0x427fb5..0x427fcd).
-bool HasTarget(const ActorState& actor)
+bool HasTarget(const Kernel::ActorState& actor)
 {
     const auto target = static_cast<std::int16_t>(actor.attackTarget);
     return target >= 0 && target < PoolSize;
@@ -1034,7 +1034,7 @@ bool HasTarget(const ActorState& actor)
 // (0x4e98d0 gira la velocidad en cero), y MuRet pasa (0, 0, 0).
 Result SparkTheFootAndTheTargetOf1b6(MonsterHelperPass& pass)
 {
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const std::uint8_t action = actor.animation.action;
     if (action != 3 && action != 4)
         return {};
@@ -1064,7 +1064,7 @@ Result SparkTheFootAndTheTargetOf1b6(MonsterHelperPass& pass)
             return made;
         if (HasTarget(actor))
         {
-            const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+            const Kernel::ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
             const glm::vec3 above{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
             if (auto made = Particle(pass, Spark, 3, above, Unwritten, White, Flash, 0x427a4d); !made.HasValue())
                 return made;
@@ -1083,7 +1083,7 @@ Result DrawThe1b6(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x4272ee); !ready.HasValue())
         return ready;
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const double v = static_cast<double>(pass.random.Next() % 30) * D(0.01f) + D(0.6f);
     const glm::vec3 light{F32(v + 0.5), F32(v - D(0.05f)), F32(v + 0.5)};
     struct Glow
@@ -1136,7 +1136,7 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     // ángulos del actor y ancho 10. Solo en un frame del original (la tabla es la del mundo).
     if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f && pass.originalFrame)
     {
-        const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+        const Kernel::ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
         glm::vec3 from = target.position;
         glm::vec3 to{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
         glm::vec3 angles = actor.angles;
@@ -1188,7 +1188,7 @@ Result DrawThe1b7(MonsterHelperPass& pass)
     }
     constexpr std::array<ActionSound, 3> Sounds{{{3, 0x249}, {4, 0x24a}, {6, 0x24b}}};
     PlayTheSounds(pass, 0x247, Sounds);
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const float frame = actor.animation.frame;
     if (actor.animation.action == 3 && frame >= 4.0f)
     {
@@ -1216,7 +1216,7 @@ Result DrawThe1b7(MonsterHelperPass& pass)
     // 0x427fd3: 6,9 (0x6b8a3c). Solo en un frame del original (la tabla es la del mundo).
     if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f && pass.originalFrame)
     {
-        ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+        Kernel::ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
         glm::vec3 from{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
         glm::vec3 to = pass.actor.position;
         constexpr std::int32_t BeamSubtype = 0x10;
@@ -1329,7 +1329,7 @@ Result DrawThe1bb(MonsterHelperPass& pass)
     }
     constexpr std::array<ActionSound, 4> Sounds{{{3, 0x25f}, {4, 0x25e}, {8, 0x25d}, {6, 0x260}}};
     PlayTheSounds(pass, 0x25b, Sounds);
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const bool attacking = actor.animation.action == 4;
     constexpr float AttackScale = 5.0f;                             // 0x428aaf y 0x428b70: 0x40a00000.
     constexpr float LeftScale = 2.5f;                               // 0x428c25: 0x40200000.
@@ -1381,7 +1381,8 @@ struct Swing
     float step = 0.0f;
 };
 
-Core::Expected<Swing, std::string> SwingOf(WorldState& world, const ActorState& actor, std::uint8_t speedAction)
+Core::Expected<Swing, std::string> SwingOf(Kernel::WorldState& world, const Kernel::ActorState& actor,
+                                           std::uint8_t speedAction)
 {
     const Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
     if (skeleton == nullptr || skeleton->actions.size() <= speedAction)
@@ -1397,7 +1398,7 @@ Core::Expected<Swing, std::string> SwingOf(WorldState& world, const ActorState& 
 
 // 0x4eb860 con flags (0, 1): PoseWorldModel conserva la colocación compartida, escribe el scratch mundial y registra la
 // key del modelo, incluidos los huesos dummy. El 0x1b0 también consume la última muestra a través de ese scratch.
-Result PoseTheSwing(WorldState& world, const ActorState& actor, const Swing& swing, float frame,
+Result PoseTheSwing(Kernel::WorldState& world, const Kernel::ActorState& actor, const Swing& swing, float frame,
                     const glm::vec3& angles)
 {
     return PoseWorldModel(world, actor, *swing.skeleton, frame, angles);
@@ -1413,9 +1414,9 @@ struct SwingLeg
     std::int32_t key;
 };
 
-Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing, World::Particles* particles,
-                 std::span<const SwingLeg> legs, Crt::CrtRandom& random, float worldClock, bool weaponBone = false,
-                 bool particle640 = false)
+Result EmitSwing(Kernel::WorldState& world, const Kernel::ActorState& actor, const Swing& swing,
+                 World::Particles* particles, std::span<const SwingLeg> legs, Crt::CrtRandom& random, float worldClock,
+                 bool weaponBone = false, bool particle640 = false)
 {
     const std::uint8_t bone = weaponBone ? actor.hands[0].bone : 0;
     float frame = swing.first;
@@ -1441,7 +1442,8 @@ Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing,
                     return made;
             }
             particleLight = leg.light;
-            const auto created = CreateRibbon(world.DrawTail().ribbons, {.ownerContext = &actor,
+            const auto created =
+                Actors::Drawing::CreateRibbon(world.DrawTail().ribbons, {.ownerContext = &actor,
                                                                          .ownerEquipment = &actor.level,
                                                                          .first = first,
                                                                          .second = second,
@@ -1462,8 +1464,8 @@ Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing,
 // hueso 16 (0x4ec110 en 0x68b1b1c, sin trasladar: el buffer ya está en el mundo) para la partícula 0x5d9/0 con el
 // frame del objeto en (5, 7), con esos ángulos, luz blanca y escala 1 (0x432d07), el punto (0, −150, 0) girado
 // (0x5fc8f0 y 0x5fcbd0), que no lee nadie, y dos rand() (0x432d6f y 0x432d74).
-Result SwingThe1b0(WorldState& world, const ActorState& actor, Crt::CrtRandom& random, World::Particles* particles,
-                   float worldClock)
+Result SwingThe1b0(Kernel::WorldState& world, const Kernel::ActorState& actor, Crt::CrtRandom& random,
+                   World::Particles* particles, float worldClock)
 {
     const auto swing = SwingOf(world, actor, 4);
     if (!swing.HasValue())
@@ -1500,7 +1502,7 @@ Result SwingThe1b0(WorldState& world, const ActorState& actor, Crt::CrtRandom& r
 
 Handled DrawTheEffectsOf1a3To1a9(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint16_t type = actor.type;
     // 0x441430: fuera de la tabla sale sin tocar nada; el 0x1a8 va directo a 0x442dd5.
     if (!Within(type, 0x1a3, 0x1a9) || type == 0x1a8)
@@ -1543,7 +1545,7 @@ Handled DrawTheCrywolfEffectsOf1abTo208(MonsterHelperPass& pass)
 
 Handled DrawTheEffectsOf1b6To1bb(MonsterHelperPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint16_t type = actor.type;
     // 0x427200: fuera de la tabla, 0x428dc0 sin tocar +4.
     if (!Within(type, 0x1b6, 0x1bb))
@@ -1599,9 +1601,9 @@ Core::Expected<void, std::string> DrawTheMonsterHelpers(MonsterHelperPass& pass)
     return {};
 }
 
-Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std::size_t slot, WorldState& world,
-                                                          Crt::CrtRandom& random, World::Particles* particles,
-                                                          float worldClock)
+Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
+                                                          Kernel::WorldState& world, Crt::CrtRandom& random,
+                                                          World::Particles* particles, float worldClock)
 {
     // 0x432bf1: antes de mirar el tipo.
     static_cast<void>(random.Next());

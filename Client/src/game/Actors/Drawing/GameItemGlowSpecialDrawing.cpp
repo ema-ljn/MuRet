@@ -20,7 +20,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -243,4 +243,4 @@ Core::Expected<bool, std::string> DrawEarlyItemGlow(Render::ModelBatch& batch, c
         return Core::Unexpected(result.Error());
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

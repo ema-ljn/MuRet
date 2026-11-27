@@ -32,7 +32,7 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::TextureSlot;
 using Client::Scenes::GroundEffectFrame;
-using Client::World::GroundEffectResources;
+using Client::Terrain::GroundEffectResources;
 using Client::World::ModelEffect;
 
 ModelEffect Effect(std::int16_t type)

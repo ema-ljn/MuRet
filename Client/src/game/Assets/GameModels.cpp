@@ -31,7 +31,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 namespace
 {
@@ -257,4 +257,4 @@ const Models::ModelTextureSlots& GameModels::TextureSlots() const
 {
     return m_slots;
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

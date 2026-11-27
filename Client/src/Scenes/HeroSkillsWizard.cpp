@@ -69,12 +69,12 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-bool IsPlayer(const ActorState& actor)
+bool IsPlayer(const Kernel::ActorState& actor)
 {
     return actor.type == Tables::PlayerSkeletonModel;
 }
 
-Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, const HeroSkillContext& context)
+Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t action, const HeroSkillContext& context)
 {
     return SetTheActorAction(actor, action, CombatContextOf(context));
 }
@@ -88,7 +88,7 @@ std::optional<std::uint8_t> LowByteOf(double value)
 }
 
 // El rumbo del 1E: ftol(+0x24 · 0,7111) (0x58c610 y los demás), el byte bajo.
-Core::Expected<std::uint8_t, std::string> DirectionOf(const ActorState& hero, std::string_view where)
+Core::Expected<std::uint8_t, std::string> DirectionOf(const Kernel::ActorState& hero, std::string_view where)
 {
     const auto direction = LowByteOf(static_cast<double>(hero.angles.z) * static_cast<double>(DirectionScale));
     if (!direction)
@@ -103,7 +103,7 @@ struct SkillCell
 };
 
 // La celda lógica del héroe para el 1E y el camino: la Y (+0x420) antes que la X (+0x41c), 4 + 4 rand().
-SkillCell ReadTheHeroCell(ActorState& hero, const HeroSkillContext& context)
+SkillCell ReadTheHeroCell(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
     const std::uint8_t y = ReadTheSkillCell(hero.cellYAccesses, hero.cellY, context.random);
     const std::uint8_t x = ReadTheSkillCell(hero.cellXAccesses, hero.cellX, context.random);
@@ -111,7 +111,7 @@ SkillCell ReadTheHeroCell(ActorState& hero, const HeroSkillContext& context)
 }
 
 // La celda de +0x3a8/+0x3ac (ftol · 0,01, la X primero), sin rand(): la de la 5, la 0x26 y la 0x27.
-Core::Expected<SkillCell, std::string> AttackCellOf(const ActorState& hero, std::string_view where)
+Core::Expected<SkillCell, std::string> AttackCellOf(const Kernel::ActorState& hero, std::string_view where)
 {
     const auto x = LowByteOf(static_cast<double>(hero.attackPosition.x) * static_cast<double>(CellReciprocal));
     const auto y = LowByteOf(static_cast<double>(hero.attackPosition.y) * static_cast<double>(CellReciprocal));
@@ -122,7 +122,7 @@ Core::Expected<SkillCell, std::string> AttackCellOf(const ActorState& hero, std:
 
 // 0x58ecaa..0x58ecf9 (y 0x58b0cd.., 0x58dcec..): la distancia al centro de la celda del blanco (0x77e1ba8, 0x77e1bac)
 // contra el alcance · 100, en la x87. Menor, igual o unordered (C0 o C3) está en alcance.
-bool InReach(const ActorState& hero, const GameMovementState& state)
+bool InReach(const Kernel::ActorState& hero, const GameMovementState& state)
 {
     const auto targetX = std::bit_cast<std::int32_t>(state.targetX);
     const auto targetY = std::bit_cast<std::int32_t>(state.targetY);
@@ -139,14 +139,15 @@ bool InReach(const ActorState& hero, const GameMovementState& state)
 // Con camino, +0x378 en 1; `withType` pone también +0x379 en 5 (el 0x55cbc0 de la llegada, 0x5650c0). Sin camino, nada.
 // Con la meta fuera de 0..255, que PathFinding2 toma como índice lineal (la fila de al lado, o fuera de los 65.536
 // WORD), MuRet descarta el camino después de las lecturas de la celda del héroe, como sin camino (08, P-C256).
-Core::Expected<void, std::string> WalkToward(ActorState& hero, std::int32_t goalX, std::int32_t goalY, float distance,
-                                             bool withType, const HeroSkillContext& context, std::string_view where)
+Core::Expected<void, std::string> WalkToward(Kernel::ActorState& hero, std::int32_t goalX, std::int32_t goalY,
+                                             float distance, bool withType, const HeroSkillContext& context,
+                                             std::string_view where)
 {
     const SkillCell start = ReadTheHeroCell(hero, context);
     constexpr std::int32_t LastCell = 0xff;
     if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
         return {};
-    World::WorldTerrain& terrain = context.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
@@ -164,14 +165,14 @@ Core::Expected<void, std::string> WalkToward(ActorState& hero, std::int32_t goal
 }
 
 // 0x4f5370: 0x4ea030 con 0x93 en un jugador y 5 en otro.
-Core::Expected<void, std::string> ActTheTeleport(ActorState& actor, const HeroSkillContext& context)
+Core::Expected<void, std::string> ActTheTeleport(Kernel::ActorState& actor, const HeroSkillContext& context)
 {
     return Act(actor, IsPlayer(actor) ? std::uint8_t{0x93} : std::uint8_t{5}, context);
 }
 
 // La acción con la que el Teleport y el Teleport Ally no corren (0x593071..0x5930b8, 0x59267b..0x592799): el jugador
 // en 0x93 o el otro en 5, +0x80 en 1 o 2, o el alpha (+0x174) debajo de 0,7 o unordered.
-bool CannotTeleport(const ActorState& actor)
+bool CannotTeleport(const Kernel::ActorState& actor)
 {
     const std::uint8_t action = actor.animation.action;
     if (IsPlayer(actor) ? action == 0x93 : action == 5)
@@ -184,7 +185,7 @@ bool CannotTeleport(const ActorState& actor)
 class WizardBranch
 {
 public:
-    WizardBranch(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+    WizardBranch(Kernel::ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
         : m_hero(hero), m_skill(skill), m_context(context), m_world(context.world), m_runtime(context.world.Runtime()),
           m_state(context.world.Runtime().movement)
     {
@@ -198,7 +199,7 @@ private:
     {
         return IsAttackable(m_world, m_context.controlDown);
     }
-    Core::Expected<ActorState*, std::string> ChosenActor(std::string_view where) const;
+    Core::Expected<Kernel::ActorState*, std::string> ChosenActor(std::string_view where) const;
     Core::Expected<void, std::string> SendTheMagicAttack(std::uint16_t key, std::string_view brake);
     Core::Expected<void, std::string> ReleaseTheCharge();
     Core::Expected<void, std::string> ShootTheCharge();
@@ -215,17 +216,17 @@ private:
     Core::Expected<void, std::string> Teleport();
     Core::Expected<void, std::string> TeleportTheAlly();
 
-    ActorState& m_hero;
+    Kernel::ActorState& m_hero;
     std::uint8_t m_skill;
     const HeroSkillContext& m_context;
-    WorldState& m_world;
-    WorldRuntime& m_runtime;
+    Kernel::WorldState& m_world;
+    Kernel::WorldRuntime& m_runtime;
     GameMovementState& m_state;
     Kernel::CharacterClass m_class = Kernel::CharacterClass::DarkWizard;
     bool m_aimed = false;
 };
 
-Core::Expected<ActorState*, std::string> WizardBranch::ChosenActor(std::string_view where) const
+Core::Expected<Kernel::ActorState*, std::string> WizardBranch::ChosenActor(std::string_view where) const
 {
     const std::int32_t chosen = m_runtime.selectedTargets[2];
     if (chosen < 0 || static_cast<std::size_t>(chosen) >= m_world.Actors().size())
@@ -262,7 +263,7 @@ Core::Expected<bool, std::string> WizardBranch::PassesTheHead()
         m_skill, SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
     if (!energy.HasValue())
         return Core::Unexpected(energy.Error());
-    const OwnCharacterRecord& record = m_world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& record = m_world.OwnCharacter();
     // 0x58988a..0x5898a5: JLE con signo contra +0x1e + +0x30.
     if (energy.Value() > static_cast<std::int32_t>(record.word30) + static_cast<std::int32_t>(record.energy))
         return false;
@@ -399,7 +400,7 @@ Core::Expected<void, std::string> WizardBranch::RaiseTheSoulBarrier()
         }
         // 0x58b06e: 0x59e680, el nombre del elegido entre los de la party (0x77f3cd0, de a 0x24); fuera de ella o sin
         // party, nada (0x599d5d).
-        ActorState& member = *target.Value();
+        Kernel::ActorState& member = *target.Value();
         if (!IsInTheParty(m_world, member))
             return {};
         // 0x58b07e..0x58b0c7: +0x3a4 con el elegido (WORD) y 0x7758580..88 con 1, el lugar de la skill del héroe
@@ -573,7 +574,7 @@ Core::Expected<void, std::string> WizardBranch::UseByReach()
     // 0x58ee05..0x58eeb2: la línea de vista desde la celda del héroe (la Y y la X). La que sale de TerrainWall
     // (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
     const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
-    const World::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
     const bool seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, cell.x, cell.y,
@@ -727,7 +728,7 @@ Core::Expected<void, std::string> WizardBranch::Teleport()
     if (m_runtime.cursorItemCount > 0 || (m_hero.flags78 & FrozenHeroFlag) == FrozenHeroFlag || CannotTeleport(m_hero))
         return {};
     // 0x5930be..0x5930f9: el TerrainWall de 0x5f82a0 (los dos con & 0xff) sin 0x20 ni 0x40.
-    const World::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x5930cc: falta TerrainWall para el Teleport"));
     const std::size_t index = ((m_state.targetY & 0xffu) << 8) + (m_state.targetX & 0xffu);
@@ -763,7 +764,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     const auto chosen = ChosenActor("0x59266d");
     if (!chosen.HasValue())
         return Core::Unexpected(chosen.Error());
-    ActorState& target = *chosen.Value();
+    Kernel::ActorState& target = *chosen.Value();
     if (m_runtime.castleSiege.siegeActive)
     {
         // 0x5925f3..0x5926c8: el puesto del asedio (+0x360) del héroe publicado y el del héroe, en el mismo par.
@@ -800,7 +801,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
         Math::OriginalFtolLow(static_cast<double>(m_hero.position.y) * static_cast<double>(CellReciprocal));
     if (!heroX || !heroY)
         return Core::Unexpected(std::string("0x5927b2: la celda del héroe fuera del perfil ftol"));
-    const World::WorldTerrain& terrain = m_world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x59280f: falta TerrainWall para el Teleport Ally"));
     // 0x5927cb..0x5928f1: una de las ocho celdas de al lado (dos rand() % 3, sin el centro) sin TerrainWall (salvo
@@ -833,7 +834,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
         if (m_runtime.map == CastleSiegeMap)
         {
             // 0x59283b..0x5928de: la X (0x412810/0x40b800) y la Y (0x4e7e40) del héroe publicado.
-            ActorState& published = m_world.Hero();
+            Kernel::ActorState& published = m_world.Hero();
             const std::uint8_t x = ReadTheSkillCell(published.cellXAccesses, published.cellX, m_context.random);
             const std::uint8_t y = ReadTheSkillCell(published.cellYAccesses, published.cellY, m_context.random);
             if (InRange(x, 0x96, 0xc8) && InRange(y, 0xb4, 0xe6))
@@ -862,7 +863,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheWizardSkill(ActorState& hero, std::uint8_t skill,
+Core::Expected<void, std::string> UseTheWizardSkill(Kernel::ActorState& hero, std::uint8_t skill,
                                                     const HeroSkillContext& context)
 {
     return WizardBranch(hero, skill, context).Use();

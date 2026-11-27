@@ -21,9 +21,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepWorldObjectChecked;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t DevilSquareMap = 9;

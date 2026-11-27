@@ -33,11 +33,11 @@
 // 0x4fc8c0. Los textos son inventados; los índices y las ramas salen del ASM.
 namespace
 {
+using Client::Actors::CharacterStepContext;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::CharacterStepContext;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::ChatBubble;
-using Client::Scenes::WorldState;
 
 constexpr std::size_t NpcSlot = 9;
 constexpr std::int32_t Lorencia = 0;

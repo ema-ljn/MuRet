@@ -16,13 +16,13 @@
 
 namespace
 {
-using Client::World::TerrainPolygon;
-using Client::World::TerrainPolygonCameraInput;
-using Client::World::TerrainPolygonError;
-using Client::World::TerrainPolygonFrameOf;
-using Client::World::TerrainPolygonInput;
-using Client::World::TerrainPolygonOf;
-using Client::World::TerrainPolygonState;
+using Client::Terrain::TerrainPolygon;
+using Client::Terrain::TerrainPolygonCameraInput;
+using Client::Terrain::TerrainPolygonError;
+using Client::Terrain::TerrainPolygonFrameOf;
+using Client::Terrain::TerrainPolygonInput;
+using Client::Terrain::TerrainPolygonOf;
+using Client::Terrain::TerrainPolygonState;
 
 // Oráculo analítico: dimensiones locales literales del contrato, sin selector de perfiles.
 // Giros identidad y ±45° (turn=0/+1/−1); seno/coseno de45 almacenados son 0x3f3504f3.
@@ -493,14 +493,14 @@ TEST(TerrainPolygonTest, OtherComputesAndUpdatesWhileLegacyKeepsPositiveZeroSent
     auto expected = AnalyticalPolygon(1760, 726, 1802, -952);
     expected.everything = true;
     ExpectBits(frame.Value().polygon, expected);
-    EXPECT_TRUE(Client::World::PolygonContains(frame.Value().polygon, 1e12, 1e12, 0));
+    EXPECT_TRUE(Client::Terrain::PolygonContains(frame.Value().polygon, 1e12, 1e12, 0));
     input.scene = 5;
     const auto returned = TerrainPolygonFrameOf(frame.Value().nextState, input, {0, 1001, 1000});
     ASSERT_TRUE(returned.HasValue());
     EXPECT_EQ(returned.Value().nextState.effectiveLevel, 4);
     expected.everything = false;
     ExpectBits(returned.Value().polygon, expected);
-    const auto legacy = TerrainPolygonOf(Client::World::CullingScene::Other, 55, {}, 0);
+    const auto legacy = TerrainPolygonOf(Client::Terrain::CullingScene::Other, 55, {}, 0);
     TerrainPolygon sentinel;
     sentinel.everything = true;
     ExpectBits(legacy, sentinel);
@@ -540,7 +540,7 @@ TEST(TerrainPolygonTest, GenericYawAndNonDefaultWidthMatchLegacyCornerBits)
     input.translation = {123.25f, -987.5f, 333};
     const auto query = TerrainPolygonOf(input, 0);
     ASSERT_TRUE(query.HasValue());
-    const auto legacy = TerrainPolygonOf(Client::World::CullingScene::Game, 55, input.translation, -37.25f, 853);
+    const auto legacy = TerrainPolygonOf(Client::Terrain::CullingScene::Game, 55, input.translation, -37.25f, 853);
     constexpr std::array<std::uint32_t, 4> X{0xc198bc04u, 0x40c50f5eu, 0x413076feu, 0xbedb98d2u};
     constexpr std::array<std::uint32_t, 4> Y{0xc1159a03u, 0x411d9b34u, 0xc12de22eu, 0xc19ca4f6u};
     EXPECT_FALSE(query.Value().everything);
@@ -579,15 +579,15 @@ TEST(TerrainPolygonTest, LegacyCastleUsesHeroForRegionAndTranslation)
 {
     const glm::vec3 largeHero{16500, 20000, 333};
     const glm::vec3 smallHero{17700, 20000, 333};
-    const auto large = TerrainPolygonOf(Client::World::CullingScene::Game, 30, largeHero, -37.25f);
-    const auto small = TerrainPolygonOf(Client::World::CullingScene::Game, 30, smallHero, -37.25f);
+    const auto large = TerrainPolygonOf(Client::Terrain::CullingScene::Game, 30, largeHero, -37.25f);
+    const auto small = TerrainPolygonOf(Client::Terrain::CullingScene::Game, 30, smallHero, -37.25f);
     ExpectBits(large, AnalyticalPolygon(2250, 540, 2703, -1428, largeHero, 1));
     ExpectBits(small, AnalyticalPolygon(1300, 580, 1749, -924, smallHero, 1));
 }
 
 TEST(TerrainPolygonTest, LegacySelection54KeepsHistoricalCornerBits)
 {
-    const auto polygon = TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, 54, {12975, 15423, 333}, -45);
+    const auto polygon = TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, 54, {12975, 15423, 333}, -45);
     constexpr std::array<std::uint32_t, 4> X{0x41ebcd38u, 0x42fcd209u, 0x43331d12u, 0x43072050u};
     constexpr std::array<std::uint32_t, 4> Y{0x431d91ddu, 0x437e813bu, 0x4314da90u, 0x42d1bba0u};
     EXPECT_FALSE(polygon.everything);

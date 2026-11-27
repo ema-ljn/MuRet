@@ -57,8 +57,8 @@ protected:
     std::int32_t m_map = 0, m_storm = 0;
     glm::vec3 m_hero{1000, 1000, 0};
     std::uint8_t m_action = 0, m_flag = 0;
-    Client::World::WorldTerrain m_terrain;
-    Client::World::TerrainLighting m_light;
+    Client::Terrain::WorldTerrain m_terrain;
+    Client::Terrain::TerrainLighting m_light;
     Models m_models;
     Client::Models::ClothWorld m_cloth;
     Client::Scenes::FaunaStepContext Context(float time = 0)

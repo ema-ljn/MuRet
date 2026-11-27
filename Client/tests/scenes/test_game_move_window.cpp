@@ -43,13 +43,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed1234u;
@@ -115,12 +115,12 @@ protected:
     GameMoveWindowTest() : m_world(std::make_unique<WorldState>()), m_text(m_sprites)
     {
         m_sprites.Begin(Screen640);
-        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
+        Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
         runtime.panels.overlayMode = Client::UI::MoveOverlayMode;
         // Tres destinos: el primero pasa; el segundo pide más nivel; el tercero, más zen.
         runtime.moves = {Destination(1, "Campo", 10, 100), Destination(2, "Bosque", 50, 100),
                          Destination(3, "Lago", 10, 1000)};
-        Client::Scenes::OwnCharacterRecord& own = m_world->OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
         own.level = 20;
         own.zen = 500;
     }
@@ -144,8 +144,8 @@ protected:
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -175,7 +175,7 @@ protected:
     // Lo que manda el chat con "/mover " y el nombre, con el nombre del héroe.
     [[nodiscard]] bool Said(std::string_view text) const
     {
-        const Client::Scenes::ActorState& hero = m_world->Hero();
+        const Client::Kernel::ActorState& hero = m_world->Hero();
         const Client::Protocol::Outgoing expected = Client::Protocol::Chat::WriteChat(hero.name, text);
         return m_sent.size() == 1 && std::ranges::equal(m_sent[0].packet.Bytes(), expected.packet.Bytes());
     }

@@ -32,7 +32,7 @@
 
 namespace
 {
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 
 // Los esqueletos del juego (0x5769ad8 + tipo · 0xe0): Player.bmd con 0xc3 acciones y un monstruo con 6; el resto no
 // está (el registro sin acciones).
@@ -73,7 +73,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     constexpr std::uint8_t Standing = 1;
     constexpr std::uint16_t Missing = 0x11;
     constexpr std::uint16_t Sword = 0;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     world->Runtime().hero = Hero;
     const PushedModels models;
     Client::Crt::CrtRandom random(1);
@@ -97,7 +97,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     ActorState& rider = place(8, player, 1120.0f, 1160.0f);     // la raíz de 120² + 160²
     rider.pet.model = 0x1c37;
     rider.hands[0].model = Sword;
-    rider.hands[1].model = Client::Scenes::NoItemModel;
+    rider.hands[1].model = Client::Kernel::NoItemModel;
     ActorState& monster = place(9, PushedModels::Monster, 900.0f, 900.0f);
     ActorState& unknown = place(10, Missing, 1000.0f, 1000.0f);
     ActorState& far = place(11, player, 1000.0f, 1201.0f);
@@ -108,7 +108,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     ActorState& dead = place(14, player, 1000.0f, 1000.0f);
     dead.alive = false;
     ActorState& hero = place(Hero, player, 1000.0f, 1000.0f);
-    ActorState& outside = place(Client::Scenes::ActorPoolSize - 1, player, 1000.0f, 1000.0f);
+    ActorState& outside = place(Client::Kernel::ActorPoolSize - 1, player, 1000.0f, 1000.0f);
 
     const auto pushed = services.pushAround(1000.0f, 1000.0f);
     ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
@@ -137,7 +137,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
 // Un dueño que no es un lugar de la tabla no tiene cómo leerse: corta.
 TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom random(5);
     const Client::World::WizardEffectServices services =
         Client::Scenes::WizardEffectServicesOf(*world, random, Client::Scenes::WizardSceneParts{});
@@ -183,7 +183,7 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 // avanza sin cortar.
 TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     ActorState& caster = world->Actors()[5];
     caster.alive = true;
     caster.byte1bc = 0;

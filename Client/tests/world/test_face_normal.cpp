@@ -8,12 +8,12 @@
 #include <bit>
 #include <cstdint>
 
-// Client::World::FaceNormal, 0x5fd000 con el perfil PC53 del ASM, la normal que usan la luz del terreno
+// Client::Terrain::FaceNormal, 0x5fd000 con el perfil PC53 del ASM, la normal que usan la luz del terreno
 // y el picking. Los bits esperados salen de Client/docs/research/scripts/game/maps/terrain_light.py, un
 // cálculo aparte del mismo ASM.
 namespace
 {
-using Client::World::FaceNormal;
+using Client::Terrain::FaceNormal;
 
 using ComponentBits = std::array<std::uint32_t, 3>;
 

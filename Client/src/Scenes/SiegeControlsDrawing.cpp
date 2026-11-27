@@ -123,7 +123,7 @@ void DrawWeaponChoice(GameHudContext& context, std::int32_t index, float x, floa
 }
 Core::Expected<void, std::string> DrawWeapon(GameHudContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::uint8_t mode = runtime.panels.delegated.siegeWeapon;
     if (mode == 0)
         return {};
@@ -171,7 +171,7 @@ Core::Expected<void, std::string> DrawWeapon(GameHudContext& context)
 }
 Core::Expected<void, std::string> DrawGate(GameHudContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.panels.delegated.siegeGate == 0)
         return {};
     context.sprites.SetBlend(Render::BlendMode::Alpha);
@@ -208,7 +208,7 @@ Core::Expected<void, std::string> DrawGate(GameHudContext& context)
     context.sprites.SetColor(White);
     return CloseHelp(context);
 }
-bool HasRole(const ActorState& hero)
+bool HasRole(const Kernel::ActorState& hero)
 {
     return hero.byte360 == 6 || hero.byte360 == 7 || hero.byte360 == 8 || hero.byte360 == 12;
 }
@@ -223,7 +223,7 @@ Core::Expected<void, std::string> DrawTheSiegeControls(GameHudContext& context)
 
 void DrawTheBattleClock(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.castleSiege.siegeActive || runtime.map != 30)
         return;
     auto copy = runtime.castleSiege.siegeBattleUi.clock;
@@ -263,8 +263,8 @@ void DrawTheBattleClock(GameHudContext& context)
 
 Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Hero();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    Kernel::ActorState& hero = context.world.Hero();
     if (!runtime.castleSiege.siegeActive || !HasRole(hero) || static_cast<std::int16_t>(hero.word1f2) < 0 ||
         hero.guildStatus == 0)
         return {};

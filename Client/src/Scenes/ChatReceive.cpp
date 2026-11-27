@@ -128,7 +128,7 @@ Core::Expected<std::string_view, std::string> TextOf(const ChatReceiveContext& c
 }
 
 // REPE CMPSB de 12 bytes desde +0x1d9: los diez del nombre, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
-bool IsTheGuildMaster(const ActorState& actor)
+bool IsTheGuildMaster(const Kernel::ActorState& actor)
 {
     for (std::size_t i = 0; i < actor.name.size(); ++i)
     {
@@ -143,8 +143,8 @@ bool IsTheGuildMaster(const ActorState& actor)
 // al gremio nuevo (0x7cf).
 Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GamePanels panels(world, context.random);
     // 0x4e345c → 0x6599a0: abrir el gremio pasa por los cierres compartidos de NPC, castillo y batalla.
     LendTheCastlePanelServices(panels, world, context.random, context.guildSend, context.worldEntry,
@@ -158,7 +158,7 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
     runtime.ui.chatOpen = false;
     UI::ResetTheTextBuffers(input, false);
     input.fieldCount = 0;
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     if (static_cast<std::int16_t>(hero.word1f2) == NoGuildIndex)
         hero.word1f2 = static_cast<std::uint16_t>(CreatingGuildIndex);
     return {};
@@ -167,12 +167,12 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
 // 0x8000 no la tiene nadie); sin ninguno, el 400.
-std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
+std::size_t ActorWithKey(const Kernel::WorldState& world, std::uint16_t key)
 {
     const auto actors = world.Actors();
     for (std::size_t index = 0; index < KeySearched; ++index)
     {
-        const ActorState& actor = actors[index];
+        const Kernel::ActorState& actor = actors[index];
         if (actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key)
             return index;
     }
@@ -215,10 +215,10 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, co
 
 Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& chat, const ChatReceiveContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const std::size_t index = ActorWithKey(world, chat.key);
     const auto actors = world.Actors();
-    const ActorState& speaker = actors[index];
+    const Kernel::ActorState& speaker = actors[index];
     if (world.Hero().guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))
         return TalkToTheGuildMaster(context);
     auto measure = MeasureOf(context, "0x4e34d6");
@@ -232,7 +232,7 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& ch
 Core::Expected<void, std::string> ApplyWhisper(const Protocol::Chat::Whisper& whisper,
                                                const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.chat.whisperBlocked)
         return {};
     const std::string name = SpeakerName(whisper);
@@ -264,7 +264,7 @@ Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Chat::Whisp
 
 Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& notice, const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::string_view text = CString(notice.text);
     if (notice.type == CenterNotice)
     {
@@ -316,24 +316,24 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
 Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::OptionData& data,
                                                   const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x4dd632..0x4dd645: +0x26c + [0x6d5edc] · 0x100. Con −1 serían +0x16c..+0x26b, que MuRet no tiene.
-    if (!context.chosenSlot || *context.chosenSlot >= OwnSkillKeyPlaces)
+    if (!context.chosenSlot || *context.chosenSlot >= Kernel::OwnSkillKeyPlaces)
         return Core::Unexpected(std::string("0x4dd645: sin elegido (0x6d5edc), el F3 30 escribe fuera de las teclas "
                                             "de las skills (+0x16c del registro propio)"));
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        OwnCharacterRecord& record = context.world.OwnCharacter();
-        std::array<std::uint8_t, OwnSkillKeyBytes>& keys = record.skillKeys[*context.chosenSlot];
+        Kernel::OwnCharacterRecord& record = context.world.OwnCharacter();
+        std::array<std::uint8_t, Kernel::OwnSkillKeyBytes>& keys = record.skillKeys[*context.chosenSlot];
         keys.fill(NoSkill);
         for (std::size_t key = 0; key < data.skillKeys.size(); ++key)
         {
             const std::uint8_t skill = data.skillKeys[key];
             if (skill == NoSkill)
                 continue;
-            for (std::size_t at = 0; at < OwnSkillKeyBytes; ++at)
+            for (std::size_t at = 0; at < Kernel::OwnSkillKeyBytes; ++at)
             {
-                if (OwnSkillByte(record, at) == skill)
+                if (Kernel::OwnSkillByte(record, at) == skill)
                 {
                     keys[at] = static_cast<std::uint8_t>(key);
                     break;

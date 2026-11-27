@@ -18,7 +18,7 @@ namespace
 TEST(CrywolfEffectsTest, TheCraterFadesBeforeItsLastCommonStep)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::ModelEffect crater;
     crater.alive = true;
     crater.type = 0x636;
@@ -103,7 +103,7 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
 TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     for (auto& particle : particles->All())
         particle.alive = true;
     Client::World::ModelEffect firework;
@@ -125,15 +125,15 @@ TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
     EXPECT_FALSE(firework.alive);
     EXPECT_TRUE(sounds.empty());
     EXPECT_EQ(soundsAt, (std::vector<std::pair<int, glm::vec3>>{{0x59, {1000, 2000, 100}}}));
-    auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
-    Client::World::AddTerrainLight(*expectedLighting, 1000, 2000,
-                                   {0.040000010281801224f, 0.030000008642673492f, 0.020000005140900612f}, 1);
+    auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
+    Client::Terrain::AddTerrainLight(*expectedLighting, 1000, 2000,
+                                     {0.040000010281801224f, 0.030000008642673492f, 0.020000005140900612f}, 1);
     EXPECT_EQ(lighting->cells, expectedLighting->cells);
 }
 TEST(CrywolfEffectsTest, TheLastFireworkFillsTheOnlyParticleRoomAndKeepsTheRemainingCallerWork)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     for (auto& particle : particles->All())
         particle.alive = true;
     particles->All()[0].alive = false;

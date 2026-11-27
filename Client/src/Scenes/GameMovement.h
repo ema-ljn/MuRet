@@ -35,9 +35,13 @@ namespace Client::Render::Text
 class ITextMeasure;
 } // namespace Client::Render::Text
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct InventoryServices;
 struct HeroMovementInput
 {
@@ -53,7 +57,7 @@ struct HeroMovementInput
 };
 struct HeroMovementContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     const Models::Skeleton* playerSkeleton = nullptr;
     const Tables::ItemTable* items = nullptr;
@@ -78,7 +82,7 @@ struct HeroMovementContext
     // no manda.
     std::function<Core::Expected<void, std::string>(std::uint8_t x, std::uint8_t y)> sendElfCell{};
     // El C1 18 de sentarse del héroe (0x4f2250, 0x4f2416..0x4f2bea). Vacío: sentarse corta con error.
-    ActionSender sendAction{};
+    Actors::ActionSender sendAction{};
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
     const InventoryServices* inventory = nullptr;

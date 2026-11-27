@@ -148,7 +148,7 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
 
 void SelectionModels::Release()
 {
-    constexpr Render::TextureSlot slot{StartupSelectionTextureSlot};
+    constexpr Render::TextureSlot slot{Assets::StartupSelectionTextureSlot};
     if (m_textures)
     {
         m_textures->Release(m_startupTexture ? std::optional(slot) : std::nullopt);
@@ -185,7 +185,7 @@ std::optional<Models::TextureMetadata> SelectionModels::TextureMetadataOf(std::u
     const auto uploaded = m_textures ? m_textures->MetadataOf(selector) : std::nullopt;
     if (uploaded)
         return uploaded;
-    return selector == StartupSelectionTextureSlot ? m_startupTexture : std::nullopt;
+    return selector == Assets::StartupSelectionTextureSlot ? m_startupTexture : std::nullopt;
 }
 
 std::optional<Render::TextureSlot> SelectionModels::TextureSlotOf(std::uint32_t selector) const
@@ -221,11 +221,11 @@ void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, con
 
 Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
                                                  const Models::IModelLibrary& models,
-                                                 const ActorConstructionContext& construction,
+                                                 const Actors::ActorConstructionContext& construction,
                                                  Models::ClothWorld& cloth)
 {
     preview.characterClass = characterClass;
-    const auto built = ConstructActor(preview, NewFaceOf(characterClass), {}, construction, cloth);
+    const auto built = Actors::ConstructActor(preview, NewFaceOf(characterClass), {}, construction, cloth);
     if (!built.HasValue())
     {
         return built;
@@ -253,8 +253,8 @@ void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models)
     }
 }
 
-DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& models, float stepAlpha,
-                         int originalFrames)
+Actors::Drawing::DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& models, float stepAlpha,
+                                          int originalFrames)
 {
     const ClassPose& pose = ClassPoses[preview.characterClass < NewFaceCount ? preview.characterClass : 1];
     preview.angles = pose.angles;
@@ -264,7 +264,7 @@ DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& mo
     {
         preview.position += pose.offset;
     }
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     drawn.model = NewFaceOf(preview.characterClass);
     drawn.animation = preview.animation;
     if (const Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
@@ -283,7 +283,7 @@ DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& mo
 
 Render::Camera3D PreviewCamera()
 {
-    Render::Camera3D camera = SelectionCamera();
+    Render::Camera3D camera = Camera::SelectionCamera();
     camera.position = PreviewPosition + CameraOffset;
     camera.angles = CameraAngles;
     camera.skipXRotation = false;

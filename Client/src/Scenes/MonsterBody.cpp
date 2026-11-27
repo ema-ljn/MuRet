@@ -89,7 +89,7 @@ Core::Expected<float, std::string> PulseOf(float worldClock, float swing, float 
 
 // Los casos de 0x6002e0 y su cadena de tipos que no da ninguna alta de monstruo (MonsterKinds: sus modelos son
 // objetos del mundo): la dirección del caso, o nada.
-std::optional<std::string_view> UnreachableCaseOf(const ActorState& actor, std::int32_t map)
+std::optional<std::string_view> UnreachableCaseOf(const Kernel::ActorState& actor, std::int32_t map)
 {
     const std::uint16_t type = actor.type;
     const std::int32_t subtype = actor.subtype;
@@ -128,7 +128,7 @@ std::optional<std::string_view> UnreachableCaseOf(const ActorState& actor, std::
 }
 
 // 0x600436..0x6004a4: el 0x171 en el 10, el 0x164 en el 9 y el 0x16d con el cuarto argumento.
-glm::vec3 EarlyColorOf(const ActorState& actor, std::int32_t map, std::uint16_t special, glm::vec3 color)
+glm::vec3 EarlyColorOf(const Kernel::ActorState& actor, std::int32_t map, std::uint16_t special, glm::vec3 color)
 {
     if (map == 10 && actor.type == 0x171)
         color = {std::bit_cast<float>(0x3ca3d70au), std::bit_cast<float>(0x3d4ccccdu),
@@ -141,7 +141,7 @@ glm::vec3 EarlyColorOf(const ActorState& actor, std::int32_t map, std::uint16_t 
 }
 
 // 0x600e69..0x600ec1: +0x78 & 1 y & 2.
-glm::vec3 FlagColorOf(const ActorState& actor, glm::vec3 color)
+glm::vec3 FlagColorOf(const Kernel::ActorState& actor, glm::vec3 color)
 {
     if ((actor.flags78 & 1u) != 0)
         return (actor.flags78 & 2u) != 0 ? glm::vec3{ThreeTenths, 1.0f, EightTenths}
@@ -232,7 +232,8 @@ LateResult EmitTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t eff
         return Core::Unexpected(
             std::format("0x4ee770: faltan los efectos con modelo para los vértices del tipo {:#x}", frame.actor.type));
     MonsterBodyModel& model = frame.model;
-    return Done(EmitVertexEffects(model.models, model.object, model.meshes, 0, effect, 0, *frame.effects, frame.random),
+    return Done(Actors::Drawing::EmitVertexEffects(model.models, model.object, model.meshes, 0, effect, 0,
+                                                   *frame.effects, frame.random),
                 LateNext::Tail);
 }
 
@@ -244,7 +245,7 @@ LateResult EmitTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t eff
 // Sin la malla 1, el original lee fuera de las mallas.
 Core::Expected<bool, std::string> MarksTheSilhouette(const MonsterBodyFrame& frame)
 {
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     if (!(actor.alpha >= Hundredth))
         return false;
     const auto hidden = static_cast<std::int16_t>(actor.dword58);
@@ -264,7 +265,7 @@ Core::Expected<bool, std::string> MarksTheSilhouette(const MonsterBodyFrame& fra
 // 0x601654..0x601bb1: el 0x18e.
 LateResult DrawTheSpiritBody(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     if (actor.animation.action == DeathAction)
         return EmitTheDeathMesh(frame, true, StoneEffects);
     // 0x60166b..0x601b11: el contador de pasos (0x7d3a0f0) menos +0x188, con signo (JL).
@@ -286,7 +287,7 @@ LateResult DrawTheSpiritBody(MonsterBodyFrame& frame)
 // 0x600f74..0x60235c: los casos de 0x6002e0 después de su cadena.
 LateResult DrawTheLateCase(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     const bool special = frame.special != 0;
     const BodyPassArgs args = ActorPassArgs(actor);
@@ -436,7 +437,7 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
 // 0x602365..0x602466: lo que 0x6002e0 agrega después del cuerpo.
 Result DrawTheTail(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     if ((actor.flags78 & 2u) != 0)
     {
@@ -486,7 +487,7 @@ Result DrawTheTail(MonsterBodyFrame& frame)
 
 Result DrawMonsterBody(MonsterBodyFrame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
     model.preludeColor = model.object.color;
     if (const auto address = UnreachableCaseOf(actor, frame.map))

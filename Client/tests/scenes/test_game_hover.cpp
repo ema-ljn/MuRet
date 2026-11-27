@@ -26,13 +26,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::HudState;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
-using Client::Scenes::ActorState;
 using Client::Scenes::GameDrawTailState;
 using Client::Scenes::GameHoverContext;
-using Client::Scenes::HudState;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordingTextDrawer;
 
 constexpr std::uint32_t Seed = 0x13572468u;

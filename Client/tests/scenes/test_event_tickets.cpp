@@ -36,7 +36,7 @@ TEST(EventTicketsTest, TheRightClickRequestsEachEventAndKeepsOnlyTheChaosTicket)
     for (const auto& [type, kind] : tickets)
     {
         SCOPED_TRACE(type);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         world->Inventory().ClearForInventoryReply();
         auto& runtime = world->Runtime();
         runtime.panels.inventory = 1;

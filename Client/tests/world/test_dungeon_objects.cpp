@@ -26,6 +26,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::KickObject;
 using Client::World::ModelEffects;
 using Client::World::ObjectModelStepState;
@@ -34,7 +35,6 @@ using Client::World::Particles;
 using Client::World::StepArenaObject;
 using Client::World::StepDungeonObject;
 using Client::World::StepLostTowerObject;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 WorldObject Object(std::int16_t type)

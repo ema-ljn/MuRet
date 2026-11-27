@@ -25,7 +25,7 @@ TEST(CrywolfMissilesTest, TheEffectPacketCreatesAllThreeNativeDirections)
          {std::uint8_t{0x3e}, std::uint8_t{0xb7}, std::uint8_t{0x7a}, std::uint8_t{0x74}})
     {
         SCOPED_TRACE(direction);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         Client::Crt::CrtRandom random(7);
         const auto wire =
             Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 0x0a, 0xbd, 0x0c, 0, 0, direction, 0xff, 12, 34}));
@@ -56,7 +56,7 @@ TEST(CrywolfMissilesTest, TheSeenMissileCreatesThreeOwnedParticlesBeforeTheCommo
 {
     auto particles = std::make_unique<Client::World::Particles>();
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto made =
         effects->CreateCrywolfMissile({.type = 0xee, .position = {1000, 2000, 300}, .angles = {10, 20, 30}});
     ASSERT_TRUE(made);
@@ -91,7 +91,7 @@ TEST(CrywolfMissilesTest, TheImpactKeepsCallerRandomsAndTheCommonTailWithBothPoo
 {
     auto particles = std::make_unique<Client::World::Particles>();
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto made = effects->CreateCrywolfMissile({.type = 0xee, .position = {1000, 2000, 30}});
     ASSERT_TRUE(made);
     auto& effect = effects->Effects()[*made];
@@ -124,7 +124,7 @@ TEST(CrywolfMissilesTest, TheNormalImpactBuildsAllEightBurstsSixteenStonesAndThe
 {
     auto particles = std::make_unique<Client::World::Particles>();
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto made = effects->CreateCrywolfMissile({.type = 0xee, .position = {1000, 2000, 30}});
     ASSERT_TRUE(made);
     auto& effect = effects->Effects()[*made];

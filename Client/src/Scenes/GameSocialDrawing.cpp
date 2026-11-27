@@ -141,7 +141,7 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
 
 void DrawTheDuelScore(GameHudContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const DuelState& duel = runtime.social.duel;
     if (duel.active == 0)
         return;
@@ -186,7 +186,7 @@ void DrawTheDuelScore(GameHudContext& context, UI::PanelRegistry& panels)
 
 Core::Expected<void, std::string> DrawTheDuelRequest(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abad9 == 0)
         return {};
     auto first = TextOf(context, FirstRequestText);

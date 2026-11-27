@@ -43,9 +43,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Models::ActionInfo;
 using Client::Models::Skeleton;
-using Client::Scenes::ActorState;
 using Client::Scenes::ModelActionEnd;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
@@ -92,7 +92,7 @@ TEST(ModelBodyTest, TheSpeedOfTheOtherModelsByType)
 TEST(ModelBodyTest, TheMonstersGoBackToRestWithoutRandom)
 {
     const Skeleton skeleton = EightActions();
-    Client::Scenes::WorldRuntime runtime;
+    Client::Kernel::WorldRuntime runtime;
     for (const std::uint8_t action : std::array<std::uint8_t, 4>{1, 3, 4, 5})
     {
         SCOPED_TRACE(static_cast<int>(action));
@@ -132,7 +132,7 @@ TEST(ModelBodyTest, TheMonstersGoBackToRestWithoutRandom)
 TEST(ModelBodyTest, TheNpcsDrawTheirNextAction)
 {
     const Skeleton skeleton = EightActions();
-    Client::Scenes::WorldRuntime runtime;
+    Client::Kernel::WorldRuntime runtime;
     for (std::uint32_t seed = 1; seed < 40; ++seed)
     {
         SCOPED_TRACE(seed);
@@ -174,7 +174,7 @@ TEST(ModelBodyTest, TheNpcsDrawTheirNextAction)
 TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
 {
     const Skeleton skeleton = EightActions();
-    Client::Scenes::WorldRuntime runtime;
+    Client::Kernel::WorldRuntime runtime;
     runtime.map = 30;
     CrtRandom random(Seed);
     ActorState guard = Monster(0x1c0, 3);
@@ -228,7 +228,7 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
 // el blanco queda en 0; la 6 no lo toca; la 0 sortea.
 TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     auto pool = world->Actors();
     pool[5].position = {300.0f, 900.0f, 180.0f};
     ActorState actor = Monster(0x160, 2);
@@ -317,7 +317,7 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(CrtRandom& random)
     {
-        return Client::Scenes::StepCharacter(m_actor, {.world = *m_world,
+        return Client::Actors::StepCharacter(m_actor, {.world = *m_world,
                                                        .random = random,
                                                        .scene = Client::Scenes::SceneId::Game,
                                                        .particles = &m_world->Particles()});
@@ -332,15 +332,15 @@ protected:
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     ActorState m_actor;
 };
 
 // Lo que saca después de la celda de 0x505de0: la cabeza común y el & 7.
 void DrawTheHeadAndTheEffects(CrtRandom& random)
 {
-    Client::Scenes::CharacterHead head;
-    Client::Scenes::StepCharacterHead(head, true, random);
+    Client::Kernel::CharacterHead head;
+    Client::Kernel::StepCharacterHead(head, true, random);
     static_cast<void>(random.Next());
 }
 

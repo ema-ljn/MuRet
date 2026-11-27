@@ -44,8 +44,8 @@ namespace
 {
 namespace Battle = Client::Protocol::CastleSiege;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Scenes::CastleReceiveContext;
-using Client::Scenes::WorldState;
 using Client::UI::SwitchHolderHalf;
 using Client::UI::SwitchHoldersSize;
 
@@ -101,7 +101,7 @@ protected:
         return m_world->Runtime().castleSiege;
     }
 
-    [[nodiscard]] Client::Scenes::ActorState& Actor(std::size_t index)
+    [[nodiscard]] Client::Kernel::ActorState& Actor(std::size_t index)
     {
         return m_world->Actors()[index];
     }
@@ -317,11 +317,11 @@ TEST_P(CastleBattleReceiveTest, AViewportLeaveClearsTheReceivedHolderUsingTheFul
 {
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0002, 0x60));
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x813d}}, *m_world);
+    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x813d}}, *m_world);
     auto& holders = *m_world->Runtime().castleSiege.castleSiegeInfo;
     EXPECT_EQ(holders[6], 0x16);
     EXPECT_EQ(holders[0x1b + 6], 0);
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x013d}}, *m_world);
+    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x013d}}, *m_world);
     EXPECT_EQ(holders[6], 0);
     ExpectNoRandom();
 }

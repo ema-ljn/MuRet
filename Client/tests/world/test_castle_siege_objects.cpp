@@ -26,9 +26,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::CastleSiegePrelude;
 using Client::World::ObjectStepGlobals;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t CastleSiegeMap = 30;

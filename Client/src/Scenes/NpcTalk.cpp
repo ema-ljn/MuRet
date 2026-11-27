@@ -64,7 +64,7 @@ constexpr std::int16_t LastCrywolfAltar = 0x208;
 // 0x4303c0: the map 34.
 using Maps::CrywolfMap;
 
-bool IsACrywolfAltar(const ActorState& npc)
+bool IsACrywolfAltar(const Kernel::ActorState& npc)
 {
     const auto model = static_cast<std::int16_t>(npc.type);
     return model >= FirstCrywolfAltar && model <= LastCrywolfAltar;
@@ -82,7 +82,7 @@ void DrawTheC3Randoms(Crt::CrtRandom& random)
 }
 
 // 0x567c2d.., 0x568288.., 0x568908.. y 0x568f54..: C1 05 30 claveH claveL, la clave (+0x1f4) del NPC con MOVSX.
-Core::Expected<void, std::string> SendTheTalk(const HeroMovementContext& context, const ActorState& npc,
+Core::Expected<void, std::string> SendTheTalk(const HeroMovementContext& context, const Kernel::ActorState& npc,
                                               std::string_view where)
 {
     if (!context.sendTalk)
@@ -110,8 +110,8 @@ Core::Expected<std::string_view, std::string> TextOf(const HeroMovementContext& 
     return *text;
 }
 
-Core::Expected<ActorStopContext, std::string> StopContextForHero(const ActorState& hero,
-                                                                 const HeroMovementContext& context)
+Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const Kernel::ActorState& hero,
+                                                                         const HeroMovementContext& context)
 {
     static const Models::Skeleton EmptySkeleton;
     const bool player = hero.type == Tables::PlayerSkeletonModel;
@@ -127,22 +127,22 @@ Core::Expected<ActorStopContext, std::string> StopContextForHero(const ActorStat
         if (actorSkeleton == nullptr && context.models != nullptr)
             actorSkeleton = context.models->SkeletonOf(hero.type);
     }
-    const World::WorldTerrain& terrain = context.world.Map().terrain;
-    return ActorStopContext{.runtime = context.world.Runtime(),
-                            .scene = SceneId::Game,
-                            .playerSkeleton = *playerSkeleton,
-                            .items = context.items,
-                            .random = context.random,
-                            .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
-                            .sendAction = context.sendAction,
-                            .actorSkeleton = actorSkeleton,
-                            .modelSounds = context.world.FaunaResources().SoundActions(hero.type)};
+    const Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    return Actors::ActorStopContext{.runtime = context.world.Runtime(),
+                                    .scene = SceneId::Game,
+                                    .playerSkeleton = *playerSkeleton,
+                                    .items = context.items,
+                                    .random = context.random,
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                                    .sendAction = context.sendAction,
+                                    .actorSkeleton = actorSkeleton,
+                                    .modelSounds = context.world.FaunaResources().SoundActions(hero.type)};
 }
 } // namespace
 
-Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovementContext& context)
+Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     state.mouseUpdateTimeMax = ArrivalMouseUpdateTimeMax;
     // 0x5674d2..0x5674ed: fuera de Crywolf activo (0x435a00 && 0x4303c0), 0x4f2250 y +0x378 en 0 (en la llegada de
@@ -153,7 +153,7 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
         const auto stop = StopContextForHero(hero, context);
         if (!stop.HasValue())
             return Core::Unexpected(stop.Error());
-        const auto stopped = SetActorStop(hero, stop.Value());
+        const auto stopped = Actors::SetActorStop(hero, stop.Value());
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         hero.movement = 0;
@@ -164,7 +164,7 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
     if (state.chosenNpc < 0 || static_cast<std::size_t>(state.chosenNpc) >= context.world.Actors().size())
         return Core::Unexpected(
             std::format("0x567502: el NPC elegido {} está fuera de la tabla de personajes", state.chosenNpc));
-    const ActorState& npc = context.world.Actors()[static_cast<std::size_t>(state.chosenNpc)];
+    const Kernel::ActorState& npc = context.world.Actors()[static_cast<std::size_t>(state.chosenNpc)];
     // 0x56751b: un +0x376 de menos de 0xcd va derecho a 0x569599 (0x6c8e54 en −1, sin tocar 0x6eeda8).
     if (npc.word376 < FirstTalkingNpc)
     {

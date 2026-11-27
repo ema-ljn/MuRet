@@ -50,12 +50,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 // Un acceso de Skill.bmd que cierra en 0 (0x3c bytes) y el IsOpen(0x10000) del precio (un byte protegido).
@@ -255,7 +255,7 @@ protected:
     ItemTooltipsTest()
     {
         sprites.Begin(Screen640);
-        Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.level = 200;
         own.strength = 80;
         own.agility = 30;
@@ -267,8 +267,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = world.Hero();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::ActorState& hero = world.Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -376,7 +376,7 @@ ItemState ExcellentWeapon()
     item.optionCount = 2;
     item.optionBytes[0] = 0x50;
     item.optionBytes[1] = 0x5f;
-    item.optionBytes[Client::World::ItemOptionValueOffset] = 4;
+    item.optionBytes[Client::Kernel::ItemOptionValueOffset] = 4;
     return item;
 }
 
@@ -461,7 +461,7 @@ TEST_F(ItemTooltipsTest, AGladiatorOnlyLooksAtItsOwnClassByte)
 
 TEST_F(ItemTooltipsTest, ASetArmorListsTheStatAndTheOptionsOfItsSet)
 {
-    Client::Scenes::ItemSetState& state = world.ItemSets();
+    Client::Player::ItemSetState& state = world.ItemSets();
     const std::string_view name = "Conjunto Gris";
     for (std::size_t i = 0; i < name.size(); ++i)
         state.names[0][i] = name[i];
@@ -1003,7 +1003,7 @@ protected:
     // La gema en la casilla (2, 1) de la grilla, con la tienda en `mode` (0x6c931c) y el mouse sobre ella.
     ItemState OnTheShop(std::int32_t mode)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.panels.personalShop = 1;
         runtime.social.personalShop.mode = mode;
         runtime.social.personalShop.pricesBuilt = true;

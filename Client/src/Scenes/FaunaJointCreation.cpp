@@ -204,7 +204,7 @@ Core::Expected<void, std::string> StepSwordTrail(JointState& joint, std::size_t 
     constexpr double Third = Math::ThirdAsDouble;                                   // 0x6ba2a0.
     constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu)); // 0x6b8c64.
     constexpr double Above = 50.0;                                                  // 0x6b86b0.
-    const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
+    const auto* actor = static_cast<const Kernel::ActorState*>(joint.ownerContext);
     if (actor == nullptr)
         return Core::Unexpected(std::format("0x537d49: falta el personaje dueño del joint {} (0x610/4)", index));
     if (!actor->alive)
@@ -376,7 +376,7 @@ const glm::vec3* SparkleOwnerLight(const JointState& joint)
         return &static_cast<const HelperState*>(joint.ownerContext)->light;
     if (joint.ownerKind == JointOwnerKind::Raven)
         return &static_cast<const DarkSpirit*>(joint.ownerContext)->light;
-    return &static_cast<const ActorState*>(joint.ownerContext)->light;
+    return &static_cast<const Kernel::ActorState*>(joint.ownerContext)->light;
 }
 
 // +0x111 del dueño del 60f, la acción: la del personaje o la del caballo.
@@ -388,7 +388,7 @@ std::optional<std::uint8_t> SparkleOwnerAction(const JointState& joint)
         return static_cast<const HelperState*>(joint.ownerContext)->horse.animation.action;
     if (joint.ownerKind == JointOwnerKind::Raven)
         return static_cast<const DarkSpirit*>(joint.ownerContext)->animation.action;
-    return static_cast<const ActorState*>(joint.ownerContext)->animation.action;
+    return static_cast<const Kernel::ActorState*>(joint.ownerContext)->animation.action;
 }
 
 // El dueño del 610/8 (0x531c43..0x531f70 al nacer, 0x53801e..0x538055 en el paso): el pez de Atlans (FaunaObject, por
@@ -408,7 +408,7 @@ std::optional<KalimaBeamOwner> KalimaBeamOwnerOf(const JointState& joint)
         return std::nullopt;
     if (joint.ownerKind == JointOwnerKind::Actor)
     {
-        const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
+        const auto* actor = static_cast<const Kernel::ActorState*>(joint.ownerContext);
         return KalimaBeamOwner{actor->alive, &actor->position, &actor->angles, &actor->light};
     }
     const auto* fish = static_cast<const FaunaObject*>(joint.ownerContext);
@@ -589,7 +589,7 @@ Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const World
     constexpr std::int32_t FirstForward = 0xe1, SecondForward = 0x195;
     constexpr float Pale = std::bit_cast<float>(0x3dba2e8cu), Dim = std::bit_cast<float>(0x3d3a2e8cu);
     const bool skill = request.subtype == SkillEnergySubtype;
-    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(joint.ownerContext);
     if (owner == nullptr)
         return Core::Unexpected(std::format("{}: falta el personaje dueño del joint 0x619/{}",
                                             skill ? "0x53263c" : "0x5325a2", request.subtype));
@@ -1545,7 +1545,7 @@ Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t i
     constexpr double Climb = static_cast<double>(std::bit_cast<float>(0x3c4ccccdu)), Height = 300.0; // 0x6ba208
     const bool skill = joint.subtype == SkillEnergySubtype;
     const std::int32_t fadeLife = skill ? 40 : 50, brightLife = skill ? 0x44 : 80;
-    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(joint.ownerContext);
     if (owner == nullptr)
         return Core::Unexpected(std::format("{}: falta el personaje dueño del joint {} (0x619/{})",
                                             skill ? "0x5388f0" : "0x5387b2", index, joint.subtype));
@@ -1640,7 +1640,7 @@ Core::Expected<void, std::string> StepPiercingTrailJoint(JointState& joint)
 // de 15 de vida, la luz es la x por 0,8333333f en los tres canales. Siempre, la luz dinámica de radio 2 en la posición:
 // ((rand() & 3) + 8) · 0,03f por (0,4f; 1; 0,8f), con el producto sin redondear.
 Core::Expected<void, std::string> StepTargetBolt(JointState& joint, Crt::CrtRandom* random,
-                                                 World::TerrainLighting* lighting)
+                                                 Terrain::TerrainLighting* lighting)
 {
     if (joint.ownerContext == nullptr)
     {
@@ -1649,7 +1649,7 @@ Core::Expected<void, std::string> StepTargetBolt(JointState& joint, Crt::CrtRand
     }
     if (random == nullptr)
         return Core::Unexpected(std::string("0x537c2c: falta el CRT del joint 0x610/6"));
-    const auto& owner = *static_cast<const ActorState*>(joint.ownerContext);
+    const auto& owner = *static_cast<const Kernel::ActorState*>(joint.ownerContext);
     constexpr std::int32_t RisingLife = 30, FadingLife = 15;
     constexpr double Tilt = 10.0, Rise = 2.5, Gain = 5.0, Brake = 10.0;       // 0x6b87a8, 0x6b89a8 y 0x6b87f8
     constexpr double Fastest = 30.0, Near = 70.0, Swerve = 20.0, Slow = 20.0; // 0x6b8858, 0x6ba1b0, 0x6ba2f8, 0x6b86d0
@@ -1770,7 +1770,7 @@ Core::Expected<void, std::string> SparkTheViperTrail(JointState& joint, Crt::Crt
 // siguen. La /0xe viva suelta lo suyo (SparkTheViperTrail). Con menos de 15 de vida, la luz por 0,8333333f; después la
 // luz dinámica (r · 0,4f; r; r · 0,8f) con r = ((rand() & 3) + 8) · 0,03f, de radio 2.
 Core::Expected<void, std::string> StepArrowTrail(JointState& joint, Crt::CrtRandom* random,
-                                                 World::TerrainLighting* lighting, World::FrameSprites* sprites,
+                                                 Terrain::TerrainLighting* lighting, World::FrameSprites* sprites,
                                                  World::Particles* particles, float worldClock)
 {
     if (joint.ownerContext == nullptr)
@@ -1813,7 +1813,7 @@ Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_
         return Core::Unexpected(std::format("0x538b17: falta el dueño del joint {} (0x619/{})", index, joint.subtype));
     const glm::vec3& position = joint.ownerKind == JointOwnerKind::ModelEffect
                                     ? static_cast<const World::ModelEffect*>(joint.ownerContext)->transform.position
-                                    : static_cast<const ActorState*>(joint.ownerContext)->position;
+                                    : static_cast<const Kernel::ActorState*>(joint.ownerContext)->position;
     constexpr double Climb = 4.0, Lift = 120.0;
     constexpr float TurnStep = 10;
     joint.speed = F32(Climb + D(joint.speed));
@@ -2151,10 +2151,11 @@ Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family fami
 Core::Expected<void, std::string>
 StepJointsChecked(std::span<JointState> joints, Crt::CrtRandom* random, Models::ClothWorld* cloth,
                   World::Particles* particles, float worldClock, World::FrameSprites* sprites,
-                  World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
-                  const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
-                  const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
-                  WorldState* world, const JointKernels::VolleyServices* volley, const Models::IModelLibrary* models)
+                  Terrain::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
+                  const std::function<double(float, float)>& terrainHeight, std::span<const Kernel::ActorState> actors,
+                  const JointKernels::EffectHit& effectHit, World::ModelEffects* effects,
+                  const Kernel::ActorState* hero, Kernel::WorldState* world, const JointKernels::VolleyServices* volley,
+                  const Models::IModelLibrary* models)
 {
     // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
     std::optional<Math::OriginalMatrix> frameMatrix;
@@ -2370,11 +2371,11 @@ Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 
 Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth, World::Particles* particles,
-           float worldClock, World::FrameSprites* sprites, World::TerrainLighting* lighting,
+           float worldClock, World::FrameSprites* sprites, Terrain::TerrainLighting* lighting,
            const std::function<void(std::int32_t)>& soundRequest,
-           const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
-           const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
-           WorldState* world, const JointKernels::VolleyServices* volley, const Models::IModelLibrary* models)
+           const std::function<double(float, float)>& terrainHeight, std::span<const Kernel::ActorState> actors,
+           const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const Kernel::ActorState* hero,
+           Kernel::WorldState* world, const JointKernels::VolleyServices* volley, const Models::IModelLibrary* models)
 {
     return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
                              terrainHeight, actors, effectHit, effects, hero, world, volley, models);

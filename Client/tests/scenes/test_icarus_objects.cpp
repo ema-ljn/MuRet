@@ -161,7 +161,7 @@ struct StepFixture
 {
     CrtRandom random;
     glm::vec3 hero{12800.0f, 12900.0f, 300.0f};
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     std::vector<JoinedRequest> joins;
@@ -388,7 +388,7 @@ TEST(IcarusObjectsTest, ThePreludeLightsTheSkyAndPicksTheSelector)
     static_cast<void>(draws.Next());
     EXPECT_EQ(fixture.random.State(), draws.State());
 
-    auto lit = std::make_unique<Client::World::TerrainLighting>();
+    auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
     ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), {lightX, fixture.hero.y, 0.0f}, color, 2, "test").HasValue());
     EXPECT_TRUE(lit->cells == fixture.lighting->cells);
 

@@ -117,7 +117,7 @@ Core::Expected<void, std::string> BeginTheRing(World::ModelEffect& effect, const
 Core::Expected<void, std::string> StepTheRing(World::ModelEffect& effect, float luminosity,
                                               const HighEffectStepContext& context)
 {
-    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (effect.subtype != RingSubtype || owner == nullptr)
         return {};
     constexpr std::int32_t MarkEvery = 10;

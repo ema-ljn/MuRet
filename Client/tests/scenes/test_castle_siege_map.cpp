@@ -23,7 +23,7 @@ namespace
 {
 TEST(CastleSiegeMapTest, OtherMapsKeepTheirMusicAndOnlyRememberBothSiegeStates)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     for (const std::int32_t map : {-1, 0, 2})
     {
         auto& runtime = world->Runtime();
@@ -49,8 +49,8 @@ class CastleSiegeMapFilesTest : public Client::Tests::GoldenDataTest
 // La carga y los paquetes repiten ATT/luz incluso con el mismo estado; los objetos y elMAP quedan.
 TEST_F(CastleSiegeMapFilesTest, RepeatedWarPacketsReloadTheFilesAndPeaceRestoresThem)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, 30);
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, 30);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     world->Map().terrain = std::move(loaded).Value();
     world->Runtime().map = 30;

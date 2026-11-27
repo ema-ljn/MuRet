@@ -57,9 +57,9 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::Kernel::ActorState;
 using Client::Pathfinding::PathCell;
 using Client::Protocol::Movement::Cell;
-using Client::Scenes::ActorState;
 using Client::Scenes::HeroMovementContext;
 using Client::Scenes::StepHeroMovement;
 
@@ -230,7 +230,7 @@ protected:
         return {};
     }
 
-    Client::Scenes::WorldState m_world;
+    Client::Kernel::WorldState m_world;
     Client::Crt::CrtRandom m_random{Seed};
     Client::Models::Skeleton m_skeleton;
     std::optional<Client::Tables::SkillTable> m_skills;
@@ -398,7 +398,7 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     // Con el pool: la burbuja de Atlans (0x506d0a, con el reloj en 0), la lluvia de Devil Square (0x506d7f) y los
     // pasos de Kalima (0x5087fc) lo piden.
     auto particles = std::make_unique<Client::World::Particles>();
-    const auto stepped = Client::Scenes::StepCharacters(
+    const auto stepped = Client::Actors::StepCharacters(
         {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .particles = particles.get()});
     // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -426,7 +426,7 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
     for (const auto boundary : Boundaries)
     {
         SCOPED_TRACE(boundary.map);
-        Client::Scenes::WorldState world;
+        Client::Kernel::WorldState world;
         world.Runtime().map = boundary.map;
         Client::Crt::CrtRandom random(Seed);
         const auto loaded =
@@ -439,7 +439,7 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
 // 0x61a560 lleva el 32 al 9 y 0x447d70, con el mundo en curso, arma el objeto de Devil Square.
 TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     world.Runtime().map = 32;
     Client::Crt::CrtRandom random(Seed);
     const auto loaded = Client::Scenes::LoadMap(32, {m_dataRoot, world, Client::Scenes::SceneId::Game, 5, random});
@@ -455,12 +455,13 @@ TEST_F(GameMovementMapEvidenceTest, TheTwoSceneMapsExposeTerrainHeightsWithoutCl
     for (const std::uint8_t map : std::array<std::uint8_t, 2>{54, 55})
     {
         SCOPED_TRACE(map);
-        const auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        const auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         const auto& terrain = loaded.Value();
         ASSERT_NE(terrain.attributes, nullptr);
         ASSERT_NE(terrain.heights, nullptr);
-        const double height = Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 10050.0f, 10050.0f);
+        const double height =
+            Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 10050.0f, 10050.0f);
         EXPECT_TRUE(std::isfinite(height));
         EXPECT_GE(height, 0.0);
         // 54/55 corren otras escenas: no se llama StepHeroMovement aquí.
@@ -474,7 +475,7 @@ TEST(GameMovementMapHeightTest, TheCastleFixedHeightContractDoesNotClaimItsLoade
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     constexpr std::uint16_t FixedHeightBit = 0x40;
     attributes->cells[Client::Data::Terrain::CellIndex(10, 20)] = FixedHeightBit;
-    EXPECT_DOUBLE_EQ(Client::World::TerrainHeightAt(*heights, *attributes, 1050.0f, 2050.0f, 1201.0f), 1201.0);
-    EXPECT_DOUBLE_EQ(Client::World::TerrainHeightAt(*heights, *attributes, 1150.0f, 2050.0f, 1201.0f), FlatHeight);
+    EXPECT_DOUBLE_EQ(Client::Terrain::TerrainHeightAt(*heights, *attributes, 1050.0f, 2050.0f, 1201.0f), 1201.0);
+    EXPECT_DOUBLE_EQ(Client::Terrain::TerrainHeightAt(*heights, *attributes, 1150.0f, 2050.0f, 1201.0f), FlatHeight);
 }
 } // namespace

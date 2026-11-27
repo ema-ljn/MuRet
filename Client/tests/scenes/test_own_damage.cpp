@@ -27,14 +27,14 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::CharacterClass;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Models::OwnRecordCloseRandoms;
-using Client::Scenes::AttackDamageOf;
-using Client::Scenes::ItemSetOptionList;
-using Client::Scenes::MagicDamageOf;
-using Client::Scenes::OwnAttackDamage;
-using Client::Scenes::OwnCharacterRecord;
-using Client::Scenes::OwnEquipmentOverride;
-using Client::Scenes::SkillDamageOf;
+using Client::Player::AttackDamageOf;
+using Client::Player::ItemSetOptionList;
+using Client::Player::MagicDamageOf;
+using Client::Player::OwnAttackDamage;
+using Client::Player::OwnEquipmentOverride;
+using Client::Player::SkillDamageOf;
 
 constexpr std::uint32_t Seed = 0x2468aceu;
 constexpr CharacterClass WizardClass = CharacterClass::DarkWizard;
@@ -53,7 +53,7 @@ CrtRandom Advanced(CrtRandom random, int count)
 OwnCharacterRecord Record()
 {
     OwnCharacterRecord own;
-    for (Client::World::ItemState& item : own.equipment)
+    for (Client::Kernel::ItemState& item : own.equipment)
         item.id = EmptyType;
     own.word50 = 100;
     own.word52 = 150;

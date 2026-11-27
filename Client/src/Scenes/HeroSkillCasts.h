@@ -11,14 +11,18 @@
 // CL9 hito 4, fase 2c: lo que comparten las ramas de las clases de 0x57cfc0 y las funciones que mandan (06, "Usar una
 // skill"). Todo con el contexto de UseTheHeroSkill; las ramas de cada clase lo llaman con el registro propio abierto,
 // como el original.
-namespace Client::World
+namespace Client::Kernel
 {
 struct ItemState;
 }
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // Lo que 0x551c70(skill, 1, 0, &maná, 0, &stamina) deja en sus punteros: el WORD +0x22 y el WORD +0x24 de la entrada
 // de Skill.bmd.
@@ -41,7 +45,7 @@ struct SkillCost
 [[nodiscard]] Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context, std::string_view where);
 
 // 0x5526f0(skill, c): el alcance (+0x26 de Skill.bmd, con el acceso de la entrada), 2 más con `caster` en el 0x1c16.
-[[nodiscard]] Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorState& caster,
+[[nodiscard]] Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const Kernel::ActorState& caster,
                                                               const HeroSkillContext& context);
 // 0x5526f0(skill, 0): sin `c` no mira el 0x1c16 (el lazo de la 0x4c del paso del ataque, 0x50243d).
 [[nodiscard]] Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const HeroSkillContext& context);
@@ -62,8 +66,9 @@ void SendTheSkillPacket(const HeroSkillContext& context, Protocol::Outgoing pack
 // distancia de `hero` al centro de la celda. En alcance, 0x55b6f0(c, héroe); fuera, el camino de PathFinding2 hasta el
 // alcance desde las celdas lógicas de c (+0x420 y +0x41c, 4 rand() cada una) y, si lo hay, +0x378 en 1 y +0x379 en 5
 // (la llegada del caso 5 de 0x5650c0). Da 1 con 0x55b6f0 o con el camino.
-[[nodiscard]] Core::Expected<bool, std::string>
-UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill, const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& caster,
+                                                                       Kernel::ActorState& hero, std::uint8_t skill,
+                                                                       const HeroSkillContext& context);
 
 // 0x55b6f0(c, héroe): la skill de 0x7758584 (con 0x7758580, la del lugar en el registro propio) sobre el personaje de
 // 0x7758588. El D3 de girar con la celda lógica del héroe publicado (+0x41c y +0x420) y su rumbo, por el socket; +0x378
@@ -74,14 +79,15 @@ UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill,
 // de `hero` o c en el 0x1c16, la celda del blanco (corrida por el rumbo en Blood Castle, con las 0x3c, 0x39 y 0x2c o
 // con los monstruos 0x115, 0x11b, 0x116 y 0x120) y, si no es pared (4 u 8 en el atributo) ni una de las skills del
 // arma, el DF con esa celda.
-[[nodiscard]] Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, ActorState& hero,
-                                                                        const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<void, std::string>
+CastTheSkillAtTheTarget(Kernel::ActorState& caster, Kernel::ActorState& hero, const HeroSkillContext& context);
 
 // 0x559afc..0x55a2e5: las skills de la lista de 0x559890 (0x31, 0x3c, 0x3d, 0x2c, 0x4a y la 0x2b, 0x2f y 0x39 con su
 // arma). El costo (0x551c70); sin maná, la poción (UseAManaPotion, 0x559b41) y 0; con la stamina de más que +0x38, 0;
 // sin 0x552c50 (la espera del lugar 0x7758584), 0; si 0x558bb0 no deja atacar al elegido, las opciones del arma
 // (UseTheWeaponOptions); si deja, 0x559510(héroe, héroe, ítem, skill).
-[[nodiscard]] Core::Expected<bool, std::string> UseTheListedWeaponSkill(ActorState& hero, const World::ItemState& item,
+[[nodiscard]] Core::Expected<bool, std::string> UseTheListedWeaponSkill(Kernel::ActorState& hero,
+                                                                        const Kernel::ItemState& item,
                                                                         std::uint8_t skill,
                                                                         const HeroSkillContext& context);
 
@@ -90,8 +96,8 @@ UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill,
 // opción 0x12 pone la acción 0x98 (0x4f4a10 si no es jugador) y, con el nombre sin "webzen" y el freno pasado, manda
 // el C3 19 con la clave del héroe publicado; las 0x13 a 0x17 y la 0x31, si 0x558bb0 deja atacar, 0x559510. Sigue con
 // las demás opciones; el resultado es el de la última que lo puso.
-[[nodiscard]] Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const World::ItemState& item,
-                                                                    const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<bool, std::string>
+UseTheWeaponOptions(Kernel::ActorState& hero, const Kernel::ItemState& item, const HeroSkillContext& context);
 
 // 0x561f60(héroe, ítem) desde 0x562024: con el registro propio abierto, cada opción del arma igual a la skill del lugar
 // +0x425 del héroe publicado: su costo; sin maná, la poción (0x562075) o la que sigue; con la stamina de más que +0x38
@@ -100,6 +106,6 @@ UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill,
 // 0x558eb0 con 0x7758588 y, con el nombre sin "webzen" (sin el freno), 0x5767948 y el 1E (la 0x36 con la celda lógica
 // de c hacia el blanco y la espalda); después 0x4f4a10 y, si c no es un jugador, la flecha (ShootTheArrow, sin portar).
 // Sigue con las demás opciones; da 1 si alguna tiró.
-[[nodiscard]] Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const World::ItemState& item,
-                                                                       const HeroSkillContext& context);
+[[nodiscard]] Core::Expected<bool, std::string>
+UseTheElfWeaponOptions(Kernel::ActorState& hero, const Kernel::ItemState& item, const HeroSkillContext& context);
 } // namespace Client::Scenes

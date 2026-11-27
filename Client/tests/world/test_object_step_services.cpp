@@ -19,10 +19,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particles;
 using Client::World::StepWorldObjectChecked;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 WorldObject Object(std::int16_t type)

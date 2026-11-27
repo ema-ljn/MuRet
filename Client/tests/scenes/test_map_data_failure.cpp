@@ -69,7 +69,7 @@ protected:
         ASSERT_TRUE(file.good());
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom m_random{Seed};
 };
 
@@ -86,7 +86,7 @@ TEST_F(MapDataFailureTest, WorldThirtySixReachesItsMissingAttributesAfterTheMiss
 
 TEST_F(MapDataFailureTest, WorldSixCreatesItsObjectsBeforeTheMissingHeights)
 {
-    const auto records = Client::World::LoadWorldObjects(m_dataRoot, 5);
+    const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, 5);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     const auto loaded = Load(5, m_dataRoot);
     ASSERT_FALSE(loaded.HasValue());
@@ -105,7 +105,7 @@ TEST_F(MapDataFailureTest, MissingHeightsPreserveTheCreatedObjectsAndTheRandomPr
     const Client::Tests::TemporaryFolder folder("fatal-map-data");
     ASSERT_NO_FATAL_FAILURE(CopyWorldOne(folder.Path()));
     std::filesystem::remove(folder.Path() / "World1" / "TerrainHeight.OZB");
-    const auto records = Client::World::LoadWorldObjects(m_dataRoot, 0);
+    const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, 0);
     ASSERT_TRUE(records.HasValue());
     ASSERT_FALSE(records.Value().empty());
 

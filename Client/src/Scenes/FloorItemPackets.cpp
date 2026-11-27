@@ -153,7 +153,7 @@ void InitializeTheObject(FloorItemState& item, const FloorItemCreation& creation
     item.scale = item.type >= FirstSmallModel && item.type < EndSmallModel ? SmallItemScale : ItemScale;
     const auto model = static_cast<std::uint16_t>(item.type);
     Models::ObjectRandoms randoms{};
-    for (std::size_t index = 0; index < HangingRandomCount(model); ++index)
+    for (std::size_t index = 0; index < Actors::Drawing::HangingRandomCount(model); ++index)
         randoms[index] = creation.random.Next();
     item.objectState = Models::NativeItemObjectState(model, creation.clock, randoms);
 }
@@ -180,7 +180,7 @@ Core::Expected<void, std::string> SystemLine(const WorldEntryResources& resource
 Core::Expected<void, std::string> PickUpMessage(const Protocol::Items::PickUpResult& result,
                                                 const WorldEntryResources& resources)
 {
-    const WorldRuntime& runtime = resources.world.Runtime();
+    const Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (runtime.floor.chosen < 0 || runtime.floor.chosen >= FloorItemCount)
         return Core::Unexpected(
             std::format("0x4d0f5f: el elegido {} está fuera de la tabla 0x77f46c8", runtime.floor.chosen));
@@ -207,32 +207,32 @@ Core::Expected<void, std::string> PickUpMessage(const Protocol::Items::PickUpRes
     return SystemLine(resources, Crt::Sprintf("%s %s", std::string_view(name.Value()), picked.Value()), "0x4d1049");
 }
 
-Core::Expected<void, std::string> FruitBox(WorldState& world, const Tables::TextTable* texts, std::size_t text,
+Core::Expected<void, std::string> FruitBox(Kernel::WorldState& world, const Tables::TextTable* texts, std::size_t text,
                                            std::string_view where)
 {
     const auto line = TextOf(texts, text, where);
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, line.Value());
     return {};
 }
 
 // 0x4deab1..0x4deb04: sprintf(buffer, texto) y 0x632e30.
-Core::Expected<void, std::string> FormattedFruitBox(WorldState& world, const Tables::TextTable* texts, std::size_t text,
-                                                    std::string_view where)
+Core::Expected<void, std::string> FormattedFruitBox(Kernel::WorldState& world, const Tables::TextTable* texts,
+                                                    std::size_t text, std::string_view where)
 {
     const auto line = TextOf(texts, text, where);
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(line.Value()));
     return {};
 }
 
 // 0x4de813 y 0x4dea7b: sprintf(buffer, 1904, el texto de sumar o restar) y 0x632e30.
-Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Tables::TextTable* texts, std::size_t kind,
-                                                  std::string_view where)
+Core::Expected<void, std::string> FruitFailureBox(Kernel::WorldState& world, const Tables::TextTable* texts,
+                                                  std::size_t kind, std::string_view where)
 {
     const auto format = TextOf(texts, 1904, where);
     const auto argument = TextOf(texts, kind, where);
@@ -240,22 +240,22 @@ Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Table
         return Core::Unexpected(format.Error());
     if (!argument.HasValue())
         return Core::Unexpected(argument.Error());
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(format.Value(), argument.Value()));
     return {};
 }
 
 // 0x4de53a..0x4de7e4 (sumar) y 0x4de849..0x4dea4c (restar): el stat del registro propio, los puntos y el aviso.
-Core::Expected<void, std::string> EatTheFruit(const Protocol::Items::StatFruit& fruit, WorldState& world,
+Core::Expected<void, std::string> EatTheFruit(const Protocol::Items::StatFruit& fruit, Kernel::WorldState& world,
                                               Crt::CrtRandom& random, const Tables::TextTable* texts, bool adding)
 {
     // 0x4deb74 y 0x4deb88: el stat del lugar y su texto (la energía, la vitalidad, la agilidad, la fuerza y el
     // comando).
     constexpr std::array<std::size_t, 5> StatTexts{168, 169, 167, 166, 1900};
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        OwnCharacterRecord& record = world.OwnCharacter();
+        Kernel::OwnCharacterRecord& record = world.OwnCharacter();
         const std::array<std::uint16_t*, 5> stats{&record.energy, &record.vitality, &record.agility, &record.strength,
                                                   &record.leadership};
         std::uint16_t& stat = *stats[fruit.stat];
@@ -374,8 +374,8 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
 Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::FloorItemsCreate& create,
                                                         const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    const World::WorldTerrain& terrain = world.Map().terrain;
+    Kernel::WorldState& world = resources.world;
+    const Terrain::WorldTerrain& terrain = world.Map().terrain;
     const float fixedHeight = resources.camera.fixedHeight;
     const FloorItemCreation creation{
         .random = resources.cloth.random,
@@ -383,7 +383,7 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::F
         {
             if (!terrain.heights || !terrain.attributes)
                 return Core::Unexpected(std::string("0x5f93c0: la altura del ítem del piso sin el terreno del mapa"));
-            return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight);
+            return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight);
         },
         .clock = resources.clock != nullptr ? resources.clock->Now() : Core::Duration{},
         .soundRequest = [&runtime = world.Runtime()](std::int32_t sound, const glm::vec3& position)
@@ -407,7 +407,7 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::F
     return {};
 }
 
-void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, WorldState& world)
+void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Kernel::WorldState& world)
 {
     auto& items = world.DrawTail().floorItems;
     for (const std::uint16_t key : deleted.keys)
@@ -421,8 +421,8 @@ void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Wor
 Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickUpResult& result,
                                                     const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     if (result.result != Protocol::Items::NothingPickedUp)
     {
         if (result.result == Protocol::Items::ZenPickedUp)
@@ -452,8 +452,8 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickU
 Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::ShortZenPickUp& result,
                                                       const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     {
         // 0x4d0ce0..0x4d0f5f: el zen en +0xecc con el registro abierto.
         const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
@@ -467,13 +467,13 @@ Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::Sho
     return {};
 }
 
-void ApplyShortPickUpResult(WorldState& world)
+void ApplyShortPickUpResult(Kernel::WorldState& world)
 {
     // 0x4d10b9.
     world.Runtime().floor.pendingPickUp = -1;
 }
 
-Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFruit& fruit, WorldState& world,
+Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFruit& fruit, Kernel::WorldState& world,
                                                  Crt::CrtRandom& random, const Tables::TextTable* texts)
 {
     // 0x4de522..0x4de533, la tabla de 0x4deb4c por 0x4deb20.
@@ -519,7 +519,7 @@ Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFrui
     return shown;
 }
 
-void ApplyShortStatFruit(WorldState& world)
+void ApplyShortStatFruit(Kernel::WorldState& world)
 {
     // 0x4de7e4, 0x4de802, 0x4de838, 0x4dea4c, 0x4dea6a, 0x4deaa0 y 0x4deb0e.
     world.Runtime().ui.field5767954 = 0;

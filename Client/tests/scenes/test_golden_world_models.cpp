@@ -38,15 +38,15 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::WorldModels con el Data\ del repo: los modelos de Object56\ que carga 0x616ec0 para
+// Client::Assets::WorldModels con el Data\ del repo: los modelos de Object56\ que carga 0x616ec0 para
 // el mapa 55 (el k de Object<k + 1>.bmd) y sus texturas, que siguen la tabla de la carga desde 0x41c
 // (06 § El mundo del login).
 namespace
 {
+using Client::Assets::WorldModels;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Render::TextureSlot;
-using Client::Scenes::WorldModels;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::RecordingSink;
 
@@ -86,7 +86,7 @@ TEST_F(GoldenWorldModels, LorenciaLoadsTheNamedObjects)
 // El consumidor real de la tabla: los 109 tipos que piden los 2.870 registros de World1.
 TEST_F(GoldenWorldModels, EveryLorenciaObjectTypeHasItsNamedModelAndSkeleton)
 {
-    const auto objects = Client::World::LoadWorldObjects(m_dataRoot, Lorencia);
+    const auto objects = Client::Terrain::LoadWorldObjects(m_dataRoot, Lorencia);
     ASSERT_TRUE(objects.HasValue()) << objects.Error();
     ASSERT_EQ(objects.Value().size(), 2870u);
     std::set<std::int16_t> types;
@@ -116,7 +116,7 @@ TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    Client::Scenes::GameModels game;
+    Client::Assets::GameModels game;
     ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x30f}), "bottle.tga");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x2b3}), "pot3.tga");
@@ -205,7 +205,7 @@ TEST_F(GoldenWorldModels, World55KeepsTheGenericObjects)
     EXPECT_NE(models.Find(1), nullptr);
     EXPECT_EQ(models.Find(0xad), nullptr);
     EXPECT_EQ(models.Find(0xb2), nullptr);
-    EXPECT_EQ(models.Find(Client::Scenes::DragonModel), nullptr);
+    EXPECT_EQ(models.Find(Client::Assets::DragonModel), nullptr);
 }
 
 using GoldenLorenciaModelTextureSlots = Client::Tests::MemoryDumpTest;
@@ -223,7 +223,7 @@ TEST_F(GoldenLorenciaModelTextureSlots, TheWorldNamesMatchTheNativeTable)
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    Client::Scenes::GameModels game;
+    Client::Assets::GameModels game;
     ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Lorencia, store, log, &game.TextureSlots()).HasValue());
@@ -293,14 +293,14 @@ TEST_F(GoldenWorldModels, TheDragonIsModel0xb4)
     Log log(sink, LogLevel::Debug);
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Login, store, log, nullptr).HasValue());
-    const auto* dragon = models.Find(Client::Scenes::DragonModel);
+    const auto* dragon = models.Find(Client::Assets::DragonModel);
     ASSERT_NE(dragon, nullptr);
     EXPECT_EQ(dragon->meshes.size(), 3u);
     EXPECT_EQ(dragon->bones.size(), 93u);
-    ASSERT_NE(models.SkeletonOf(Client::Scenes::DragonModel), nullptr);
-    ASSERT_EQ(models.SkeletonOf(Client::Scenes::DragonModel)->actions.size(), 1u);
-    EXPECT_EQ(models.SkeletonOf(Client::Scenes::DragonModel)->actions.front().keyCount, 41);
-    const auto slots = models.MeshTextures(Client::Scenes::DragonModel);
+    ASSERT_NE(models.SkeletonOf(Client::Assets::DragonModel), nullptr);
+    ASSERT_EQ(models.SkeletonOf(Client::Assets::DragonModel)->actions.size(), 1u);
+    EXPECT_EQ(models.SkeletonOf(Client::Assets::DragonModel)->actions.front().keyCount, 41);
+    const auto slots = models.MeshTextures(Client::Assets::DragonModel);
     ASSERT_EQ(slots.size(), 3u);
     EXPECT_EQ(slots[0], TextureSlot{0x69});
     EXPECT_EQ(slots[1], TextureSlot{0x6a});
@@ -308,7 +308,7 @@ TEST_F(GoldenWorldModels, TheDragonIsModel0xb4)
     // Ningún otro mapa lo tiene.
     WorldModels lorencia;
     ASSERT_TRUE(lorencia.Load(m_dataRoot, 0, store, log, nullptr).HasValue());
-    EXPECT_EQ(lorencia.Find(Client::Scenes::DragonModel), nullptr);
+    EXPECT_EQ(lorencia.Find(Client::Assets::DragonModel), nullptr);
 }
 
 // 0x60d530(0x41c) y las texturas de cada modelo en el orden de k, con GL_NEAREST y repitiendo
@@ -364,7 +364,7 @@ TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingThe
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    Client::Scenes::GameModels game;
+    Client::Assets::GameModels game;
     ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
     struct Global
     {

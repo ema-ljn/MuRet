@@ -69,7 +69,7 @@ Core::Expected<SlotDelay, std::string> SlotDelayOf(std::uint8_t slot, const Skil
     SlotDelay read;
     {
         const auto own = OwnAccess(context);
-        read.skill = OwnSkillByte(context.world.OwnCharacter(), slot);
+        read.skill = Kernel::OwnSkillByte(context.world.OwnCharacter(), slot);
     }
     const auto record = RecordOf(context, read.skill, where);
     if (!record.HasValue())
@@ -82,7 +82,7 @@ Core::Expected<SlotDelay, std::string> SlotDelayOf(std::uint8_t slot, const Skil
 }
 
 // +0x36 + +0x20 del registro propio, en int (los MOV de WORD a registros en 0).
-std::int32_t Allowance(const OwnCharacterRecord& own)
+std::int32_t Allowance(const Kernel::OwnCharacterRecord& own)
 {
     return static_cast<std::int32_t>(own.word36) + static_cast<std::int32_t>(own.leadership);
 }
@@ -104,7 +104,7 @@ Core::Expected<void, std::string> StartSkillDelay(std::uint8_t slot, const Skill
         return Core::Unexpected(read.Error());
     if (read.Value().delay <= 0)
         return {};
-    OwnCharacterRecord& own = context.world.OwnCharacter();
+    Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     const auto access = OwnAccess(context);
     if (slot >= own.skillDelays.size())
         return Core::Unexpected(std::string("0x552990: la espera 255 pisa el equipo del registro propio"));
@@ -126,7 +126,7 @@ Core::Expected<bool, std::string> TryStartSkillDelay(std::uint8_t slot, const Sk
         return Core::Unexpected(read.Error());
     if (read.Value().delay <= 0)
         return true;
-    OwnCharacterRecord& own = context.world.OwnCharacter();
+    Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     const auto access = OwnAccess(context);
     if (slot >= own.skillDelays.size())
         return Core::Unexpected(std::string("0x552c50: la espera 255 pisa el equipo del registro propio"));
@@ -144,7 +144,7 @@ Core::Expected<bool, std::string> TryStartSkillDelay(std::uint8_t slot, const Sk
 
 Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed, const SkillDelayContext& context)
 {
-    OwnCharacterRecord& own = context.world.OwnCharacter();
+    Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     const auto access = OwnAccess(context);
     constexpr std::size_t MaximumSlots = 0x100;
     const std::size_t slots = std::min<std::size_t>(static_cast<std::size_t>(own.byte6a) + 2, MaximumSlots);

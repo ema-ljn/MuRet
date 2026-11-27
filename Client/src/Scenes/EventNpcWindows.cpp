@@ -213,7 +213,7 @@ Result DrawTheTitle(GameHudContext& context, std::size_t index, std::string_view
 // 0x5f5916..0x5f5de6.
 Result DrawTheDevilSquareWindow(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const bool write = !context.projecting;
     if (write)
     {
@@ -264,7 +264,7 @@ Result DrawTheDevilSquareWindow(GameHudContext& context)
 // 0x5f5e01..0x5f653f.
 Result DrawTheBloodCastleWindow(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!context.projecting)
     {
         runtime.ui.npcWindowX = WindowLeft;
@@ -279,7 +279,7 @@ Result DrawTheBloodCastleWindow(GameHudContext& context)
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
         // 0x5f5e68..0x5f5e98: la tabla por la clase del héroe (+0x1d4), y el nivel del registro propio (+0xe).
-        const ActorState& hero = context.world.Hero();
+        const Kernel::ActorState& hero = context.world.Hero();
         const std::size_t row = bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0);
         const LevelRange& levels = BridgeLevels[row];
         bool open = true;
@@ -320,7 +320,7 @@ Result MessageBoxOf(const GameUiContext& context, std::size_t index, std::string
     auto text = TextOf(context.texts, index, where);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, text.Value());
     return {};
 }
@@ -345,7 +345,7 @@ bool InRow(const GameUiContext& context, double top, float height)
 // 0x5e5978..0x5e5f2c.
 Result StepTheDevilSquareWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.movement.pendingClick)
         return {};
     std::optional<std::size_t> chosen;
@@ -388,7 +388,7 @@ Result StepTheDevilSquareWindow(const GameUiContext& context, UI::PanelRegistry&
 // 0x5e5f2e..0x5e650d.
 Result StepTheBloodCastleWindow(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.movement.pendingClick)
         return {};
     std::optional<std::int32_t> chosen;
@@ -396,7 +396,7 @@ Result StepTheBloodCastleWindow(const GameUiContext& context)
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
         // 0x5e5f61..0x5e6080: cada puente abre y cierra el registro propio para su nivel antes de mirar el mouse.
-        const ActorState& hero = context.world.Hero();
+        const Kernel::ActorState& hero = context.world.Hero();
         const LevelRange& levels = BridgeLevels[bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0)];
         bool open = true;
         {
@@ -429,11 +429,11 @@ Result StepTheBloodCastleWindow(const GameUiContext& context)
 }
 } // namespace
 
-std::int32_t CountInventoryItems(const OwnInventory& inventory, std::int32_t type, std::int32_t level)
+std::int32_t CountInventoryItems(const Kernel::OwnInventory& inventory, std::int32_t type, std::int32_t level)
 {
     constexpr std::int32_t AnyItem = -1;
     std::int32_t count = 0;
-    for (const World::ItemState& item : inventory.cells)
+    for (const Kernel::ItemState& item : inventory.cells)
     {
         if (static_cast<std::int32_t>(static_cast<std::int16_t>(item.id)) != type)
             continue;
@@ -445,7 +445,7 @@ std::int32_t CountInventoryItems(const OwnInventory& inventory, std::int32_t typ
     return count;
 }
 
-std::int32_t FindInventoryItem(const OwnInventory& inventory, std::uint16_t type, std::int32_t level)
+std::int32_t FindInventoryItem(const Kernel::OwnInventory& inventory, std::uint16_t type, std::int32_t level)
 {
     constexpr std::int32_t Side = 8;
     for (std::int32_t column = Side - 1; column >= 0; --column)
@@ -453,7 +453,7 @@ std::int32_t FindInventoryItem(const OwnInventory& inventory, std::uint16_t type
         for (std::int32_t row = Side - 1; row >= 0; --row)
         {
             const std::int32_t index = row * Side + column;
-            const World::ItemState& item = inventory.cells[static_cast<std::size_t>(index)];
+            const Kernel::ItemState& item = inventory.cells[static_cast<std::size_t>(index)];
             if (item.id != type || static_cast<std::int32_t>(item.occupied) <= 0)
                 continue;
             if (level == -1 || static_cast<std::int32_t>((item.scalar1Low >> 3) & 0xfu) == level)
@@ -474,7 +474,7 @@ Result DrawTheEventNpcWindow(GameHudContext& context, UI::PanelRegistry& panels)
 
 Result StepTheEventNpcWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (panels.IsOpen(UI::EventNpcPanel))
     {
         runtime.ui.npcWindowX = WindowLeft;

@@ -60,14 +60,14 @@ using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Kernel::EmptyOwnItemId;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Scenes::EmptyOwnItemId;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::World::ItemState;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // Los del paso con el inventario abierto y nada bajo el mouse (test_game_inventory_step.cpp): los del inventario y
@@ -391,7 +391,7 @@ TEST_F(NpcWindowStepsTest, SellingAPlainItemSendsItsPlace)
         runtime.panels.npcShop = 1;
         runtime.cursorItem = ItemState{.id = Shield};
         runtime.cursorItemCount = 1;
-        runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+        runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
         runtime.slot78a6758 = 12 + 20;
         runtime.movement.mouseUpdateTimeMax = 0;
         const CrtRandom expected = Advanced(random, QuietStepRandoms + CursorTradeQuery + 1 + C3);
@@ -417,7 +417,7 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     runtime.panels.npcShop = 1;
     runtime.cursorItem = ItemState{.id = Jewel};
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
     runtime.slot78a6758 = 12 + 3;
     const CrtRandom asked = Advanced(random, QuietStepRandoms + CursorTradeQuery + 1);
     Click();
@@ -601,7 +601,7 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
         ASSERT_TRUE(Step(NpcGridLeft + 20 + 5, NpcGridTop + 10 * 20 + 5).HasValue());
         EXPECT_EQ(random.State(), picked.State());
         ASSERT_EQ(runtime.cursorItemCount, 1);
-        EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::NpcGrid);
+        EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::NpcGrid);
         EXPECT_EQ(runtime.slot78a6758, 73);
         for (const std::size_t cell : {73u, 81u, 89u})
             EXPECT_EQ(Npc().grid[cell].id, EmptyOwnItemId) << cell;
@@ -679,7 +679,7 @@ TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
         const auto picked = Step(x, y);
         ASSERT_TRUE(picked.HasValue()) << picked.Error();
         ASSERT_EQ(runtime.cursorItemCount, 1);
-        EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::TrainerBox);
+        EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::TrainerBox);
         EXPECT_EQ(runtime.slot78a6758, 17);
         EXPECT_EQ(Npc().trainerBox[17].id, EmptyOwnItemId);
         EXPECT_EQ(runtime.lastSoundId, 0x1d);
@@ -718,7 +718,7 @@ TEST_F(NpcWindowStepsTest, TheMixResultLeavesTheChaosBoxForTheInventory)
         const auto picked = Step(NpcGridLeft + 5, ChaosBoxTop + 5);
         ASSERT_TRUE(picked.HasValue()) << picked.Error();
         ASSERT_EQ(runtime.cursorItemCount, 1);
-        EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::ChaosBox);
+        EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::ChaosBox);
         EXPECT_EQ(runtime.slot78a6758, 0);
         for (const std::size_t cell : {0u, 8u, 16u})
             EXPECT_EQ(Npc().chaosBox[cell].id, EmptyOwnItemId) << cell;
@@ -1218,7 +1218,7 @@ TEST_F(NpcWindowStepsTest, TheYesNoDialogsLeaveTheirAnswer)
     runtime.dialogBox.jewelTarget = 9;
     runtime.cursorItem = ItemState{.id = Jewel};
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
     runtime.slot78a6758 = 12 + 4;
     Click();
     ASSERT_TRUE(Dialogs(0x78 + 0xd5, 0x5a + 0x64).HasValue());

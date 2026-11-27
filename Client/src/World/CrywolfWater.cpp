@@ -31,7 +31,7 @@ constexpr double BubbleLift = 10.0; // 0x6b87a8.
 constexpr float BubbleScale = 1.0f; // 0x5fa6f2.
 constexpr std::int32_t BubbleSubtype = 0;
 
-// Las esquinas como World::DrawTerrainCell: (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1), con la vuelta de la
+// Las esquinas como Terrain::DrawTerrainCell: (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1), con la vuelta de la
 // capa en la última fila.
 std::array<std::size_t, 4> Corners(std::uint8_t x, std::uint8_t y)
 {
@@ -70,7 +70,7 @@ Core::Expected<void, std::string> Bubble(std::uint8_t x, std::uint8_t y, const C
 }
 } // namespace
 
-Core::Expected<void, std::string> StepCrywolfWaterCell(const TerrainView& view, std::uint8_t x, std::uint8_t y,
+Core::Expected<void, std::string> StepCrywolfWaterCell(const Terrain::TerrainView& view, std::uint8_t x, std::uint8_t y,
                                                        const CrywolfWaterContext& context)
 {
     if (view.mapping == nullptr)

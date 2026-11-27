@@ -18,7 +18,7 @@
 // dibuja en cada frame dibujado, después de las partes del cuerpo y antes de lo que cuelga (06 § La
 // tela de la clase 4). Las del Dark Lord son tres, la capa y sus dos telas de adelante, y una cuarta
 // con su armadura de la clase; la de la clase 3, una.
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 // Lo que el bloque lee del personaje.
 struct ClothWearer
@@ -121,7 +121,7 @@ public:
     }
     // objeto + 0x190 de un monstruo con la tela sobre la malla (la vtable 0x6b8d04, 0x50bae7): la que arma y
     // simula DrawGameMonster. Con el mismo +0x376 no lleva la de arriba.
-    [[nodiscard]] MonsterMeshCloth& OnTheMesh()
+    [[nodiscard]] Scenes::MonsterMeshCloth& OnTheMesh()
     {
         return m_onTheMesh;
     }
@@ -152,6 +152,6 @@ private:
     std::vector<Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
     Models::OriginalFrameCarry m_frames;
-    MonsterMeshCloth m_onTheMesh;
+    Scenes::MonsterMeshCloth m_onTheMesh;
 };
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

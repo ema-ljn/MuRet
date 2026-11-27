@@ -108,8 +108,8 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
     const auto time = context.localTime();
     if (!time.HasValue())
         return Core::Unexpected(std::format("0x6381c7: {}", time.Error()));
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const std::string_view format = UI::TextAt(context.texts, ScreenshotText).value_or(std::string_view{});
     std::string fileName = ScreenshotFileName(time.Value(), m_state.counter);
     std::string message =

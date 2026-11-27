@@ -72,9 +72,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldEntryResources;
-using Client::World::ItemState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::size_t HeroSlot = 7;
@@ -589,7 +589,7 @@ protected:
         m_world.Actors()[HeroSlot] = Client::Tests::UnarmedPlayer();
         m_world.Actors()[HeroSlot].alive = true;
         m_world.Actors()[HeroSlot].characterClass = Knight;
-        Client::Scenes::OwnCharacterRecord& own = m_world.OwnCharacter();
+        Client::Kernel::OwnCharacterRecord& own = m_world.OwnCharacter();
         own.level = 150;
         own.strength = 200;
         own.agility = 100;
@@ -616,8 +616,8 @@ protected:
 
     GameHudContext Context()
     {
-        Client::Scenes::WorldRuntime& runtime = m_world.Runtime();
-        Client::Scenes::ActorState& hero = m_world.Hero();
+        Client::Kernel::WorldRuntime& runtime = m_world.Runtime();
+        Client::Kernel::ActorState& hero = m_world.Hero();
         return GameHudContext{.world = m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -643,7 +643,7 @@ protected:
         auto& grid = m_world.Runtime().npcWindows.grid;
         for (ItemState& cell : grid)
         {
-            cell.id = Client::Scenes::EmptyOwnItemId;
+            cell.id = Client::Kernel::EmptyOwnItemId;
             cell.occupied = 0;
         }
         const auto bytes = ItemBytes(entry);
@@ -658,7 +658,7 @@ protected:
     // alrededor. El caballo y el cuervo piden la mascota en el primero (0x4229d4) y se dibujan en el segundo.
     Client::Core::Expected<void, std::string> Hover(Client::UI::HoveredItem::Place place, std::uint8_t fromTheShop)
     {
-        Client::Scenes::WorldRuntime& runtime = m_world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = m_world.Runtime();
         runtime.panels.npcShop = 1;
         Client::UI::GameUiState& ui = runtime.ui;
         for (int frame = 0; frame < 2; ++frame)
@@ -674,10 +674,10 @@ protected:
         return {};
     }
 
-    Client::Scenes::WorldState m_world;
+    Client::Kernel::WorldState m_world;
     Client::Scenes::SelectionState m_selection{m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_cameraInput;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_cameraInput;
     Client::Models::ClothWorld m_cloth{.random = CrtRandom(0x1357)};
     Client::Scenes::SingleModelLibrary m_models;
     std::optional<Client::Tables::ItemTable> m_items;
@@ -752,17 +752,17 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
 TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
 {
     Client::Tests::FakeTextureStore textures;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     const auto loaded = models.Load(m_dataRoot, textures, m_log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     Client::Render::ModelBatch batch;
     Client::Scenes::FaunaDrawCarry poseCarry;
     Client::World::FrameSprites sprites;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.random = &m_random;
     special.worldClock = 4321.0f;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext itemContext;
+    Client::Actors::Drawing::ItemDrawContext itemContext;
     itemContext.special = &special;
     itemContext.selections = &m_world.Runtime().itemRender.selections;
     itemContext.originalFrame = true;

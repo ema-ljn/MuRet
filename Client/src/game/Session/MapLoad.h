@@ -14,20 +14,24 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+struct WorldMap;
+struct WorldRuntime;
+} // namespace Client::Kernel
+
 // La carga del mapa en la CPU: 0x61a560 (con 0x510f70, que mata a los personajes de otra clave) y
 // 0x447d70, los objetos de los mapas de evento. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
 // "La carga del mapa" y la tabla de 0x4c3940.
 namespace Client::Scenes
 {
-struct WorldMap;
-struct WorldRuntime;
 
 // Lo que la carga lee y escribe fuera del mapa. Quien llama lo presta durante la llamada.
 struct MapLoadContext
 {
     const std::filesystem::path& dataRoot;
     // El mundo en curso (DAT_006c9dd0), el pool de personajes y el mapa cargado (WorldState::Map).
-    WorldState& world;
+    Kernel::WorldState& world;
     // DAT_006d5dc8: en la selección (4) no corre 0x510f70.
     SceneId scene;
     // DAT_057678bc, la clave del jugador que dio el F1 00.
@@ -58,17 +62,17 @@ struct MapLoadContext
 // (0x4fb1a0) y +0x364 (0x414340) (Q-C194). MuRet no tiene eso en el mundo: ni cuervos ni telas de los
 // personajes del juego. La carga pasa la clave del jugador; la vuelta a la selección, −1 (0x61ef04): solo
 // sobrevive una clave 0xffff (Q-C212).
-void KillOtherActors(WorldState& world, std::int32_t key);
+void KillOtherActors(Kernel::WorldState& world, std::int32_t key);
 
 // 0x6070a0: el byte vivo de los efectos y los objetos del mapa (06, "La carga del mapa", paso 2). No toca
 // el terreno ni el pasto, que la carga pisa después. El registro de los objetos (registrations) queda: su
 // limpieza no está leída.
-void ReleaseTheMapObjects(WorldMap& loaded);
+void ReleaseTheMapObjects(Kernel::WorldMap& loaded);
 // Los otros pools de 0x6070a0: sólo apaga los vivos, sin reconstruir los registros.
-void ClearWorldTransientPools(WorldState& world);
+void ClearWorldTransientPools(Kernel::WorldState& world);
 
 // 0x447d70(mapa): arma el objeto de evento (WorldRuntime::eventObject) de Blood Castle (11 a 17 por el
 // argumento), Chaos Castle (18 a 23 por el mundo en curso, 0x6c9dd0) o Devil Square (9 por el argumento),
 // soltando antes el anterior; en los demás no hace nada y el anterior queda (Q-C320).
-void ArmEventMapObject(std::int32_t map, WorldRuntime& runtime);
+void ArmEventMapObject(std::int32_t map, Kernel::WorldRuntime& runtime);
 } // namespace Client::Scenes

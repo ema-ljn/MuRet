@@ -492,16 +492,16 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
 {
     Client::Scenes::FloorItemState owner;
     owner.type = 0x1a18;
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x1a18;
     std::array<Client::Math::BoneTransform, 31> bones;
     bones.fill(Client::Math::BoneTransform(1));
     std::array<Client::Scenes::JointState, 20> joints{};
     Client::Crt::CrtRandom random(19);
     Client::World::FrameSprites sprites;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext context;
+    Client::Actors::Drawing::ItemDrawContext context;
     context.special = &special;
     context.ownerContext = &owner;
     context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
@@ -514,7 +514,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
         return {};
     };
     std::optional<float> alpha;
-    ASSERT_TRUE(Client::Scenes::PrepareItemGlowEffects(object, {}, 0, context, alpha).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::PrepareItemGlowEffects(object, {}, 0, context, alpha).HasValue());
     for (const auto& joint : joints)
     {
         ASSERT_TRUE(joint.alive);
@@ -541,7 +541,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
 // copia.
 TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
 {
-    Client::Scenes::DrawnObject object;
+    Client::Actors::Drawing::DrawnObject object;
     object.model = 0x1a18;
     std::array<Client::Math::BoneTransform, 31> bones;
     bones.fill(Client::Math::BoneTransform(1));
@@ -550,9 +550,9 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
         joint.targetPosition = {900, 800, 700};
     Client::Crt::CrtRandom random(19);
     Client::World::FrameSprites sprites;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext context;
+    Client::Actors::Drawing::ItemDrawContext context;
     context.special = &special;
     context.ownerContext = Client::Scenes::UiItemLocalObject();
     context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
@@ -566,7 +566,7 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     };
     const Client::Crt::CrtRandom created = random;
     std::optional<float> alpha;
-    ASSERT_TRUE(Client::Scenes::PrepareItemGlowEffects(object, {}, 0, context, alpha).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::PrepareItemGlowEffects(object, {}, 0, context, alpha).HasValue());
     EXPECT_EQ(random.State(), created.State());
     EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 20);
     for (std::size_t index = 0; index < 20; ++index)

@@ -38,14 +38,14 @@
 namespace
 {
 using Client::Core::PixelSize;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
-using Client::Scenes::ActorState;
 using Client::Scenes::ChatBubble;
 using Client::Scenes::ChatBubbleDrawContext;
 using Client::Scenes::GameProjection;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -526,7 +526,7 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
     owner.word376 = 0xff;
     Bubble(0, 4, "Tero", "hola");
-    Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
+    Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
     runtime.ui.chatOpen = true;
     runtime.ui.rightClick = true;
     m_world->Actors()[0].safeZone = 1;

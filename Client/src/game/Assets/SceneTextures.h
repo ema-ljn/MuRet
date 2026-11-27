@@ -16,7 +16,7 @@
 // El juego de texturas de una escena (TextureSets.h) mientras la escena vive (CL5.4): lo lee del
 // Data\ y lo sube en su Enter, como 0x622e40 y 0x61c7c0, y lo suelta en su Leave, como 0x63c150
 // con cada slot. Guarda el tamaño del buffer de cada una, que la UI nueva usa para sus UV.
-namespace Client::Scenes
+namespace Client::Assets
 {
 // Los lados del buffer de una textura subida (Texture::textureWidth y textureHeight).
 struct TextureBufferSize
@@ -55,4 +55,4 @@ private:
     std::map<std::uint16_t, TextureBufferSize> m_sizes;
     std::map<std::uint32_t, Models::TextureMetadata> m_metadata;
 };
-} // namespace Client::Scenes
+} // namespace Client::Assets

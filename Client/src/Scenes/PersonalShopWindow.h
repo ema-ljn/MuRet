@@ -17,12 +17,16 @@ class PanelRegistry;
 struct DialogState;
 } // namespace Client::UI
 
+namespace Client::Kernel
+{
+struct WorldRuntime;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 struct ConfirmBoxState;
 struct GameUiContext;
 struct InventoryMoveContext;
-struct WorldRuntime;
 
 // 0x5eba70: los dos modos del diálogo 0x91, que quedan en 0x78aba60.
 inline constexpr std::int32_t ShopTitleMode = 1;
@@ -35,7 +39,7 @@ inline constexpr std::int32_t OpenShopConfirm = 1000;
 // EDIT de [0x5763504]) y el largo del campo (0x6c8e78) en 0x1c o en 8. Con 0x6c7b8c en 1 (la .data) arma además ese
 // EDIT (ChatInputState::dialogEdit): a la vista, +0x4c en 0xc o 9 (solo cifras), el fondo en 0, el tope de 0x1c o 8, el
 // tamaño de 0x85 o 0x3c por 10 y el lugar en (0xfd o 0x125, 0x8a). Con otro modo, nada. Sin rand().
-void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode);
+void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 
 // 0x6260f6..0x6262e8, el paso del 0x91: el OK (x de 0xff a 0x133, y de 0xa0 a 0xb0, con los bordes) con el clic lo
 // gasta, lee el EDIT al buffer del mensaje y, con el título, lo guarda en 0x78aba64 si 0x5ebbd0 lo deja (si no, el

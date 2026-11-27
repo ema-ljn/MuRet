@@ -21,7 +21,7 @@ struct ItemTooltipContext
     std::int32_t y = 0;
     // El ítem de 0x78abaa8: la casilla o el lugar del equipo. El tooltip de las mascotas le escribe la opción del
     // caballo (0x4225d0, desde 0x423b07); un dibujo intermedio pasa una copia.
-    World::ItemState& item;
+    Kernel::ItemState& item;
     // 0x78aba27: el último argumento de 0x5c4110, o 0 desde el equipo.
     std::uint8_t grid = 0;
 };

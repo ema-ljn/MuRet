@@ -107,7 +107,7 @@ void AdvanceRoutes(LoginRoutes& routes);
 // pantalones, los guantes y las botas del juego 29 (0x102e a 0x182e) en +7, la maza 0x620 en +13 en
 // la derecha, el cuervo 0x1c17 en la izquierda, la capa 0x1c30 y el caballo oscuro 0x1c16 de
 // mascota, sin cabeza (0x512930 la deja en −1).
-[[nodiscard]] GameLogic::CharacterAppearance LoginCharacter();
+[[nodiscard]] Kernel::CharacterAppearance LoginCharacter();
 
 // 0x6349a0 después de 0x517270: (10.603; 14.112; 580), girado 188° en z y con la escala 1,6.
 [[nodiscard]] Models::ObjectTransform LoginCharacterTransform();

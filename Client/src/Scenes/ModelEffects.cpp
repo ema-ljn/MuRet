@@ -72,7 +72,7 @@ const glm::vec3 NoOffset{0.0f, 0.0f, 0.0f};
 
 // 0x4ec110(modelo, +0x120 + hueso · 0x30, offset, salida, 1): los huesos propios con la escala (+0x68) y la posición
 // (+0x6c) que 0x505ec6 copió del personaje al modelo. Antes del primer dibujo, una matriz en cero (Q-C318).
-glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, actor.position);
@@ -192,7 +192,7 @@ Result RaiseTheDust(ModelEffectsPass& pass)
 // de la posición y el polvo 0x5f3/1.
 Result BurstTheDust(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const float frame = actor.animation.frame;
     if (actor.animation.action != 6 || !(frame >= 8.0f) || !(frame < 9.0f))
         return {};
@@ -243,7 +243,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     const auto speed = SpeedOf(pass, address);
     if (!speed.HasValue())
         return speed;
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const Models::Skeleton& skeleton = pass.skeleton;
     const Models::AnimationState animation{.action = actor.animation.action,
                                            .frame = F32(D(actor.animation.frame) - D(speed.Value())),
@@ -257,7 +257,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     const auto bones = std::span(carry.bones).first(skeleton.bones.size());
     if (!Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("{:#x}: la pose del modelo {:#x} falló", address, actor.type));
-    FaunaModels& models = pass.world.FaunaResources();
+    Assets::FaunaModels& models = pass.world.FaunaResources();
     if (auto published = PublishFaunaPoseRaw(carry, models, actor.type, bones, transform, true, false);
         !published.HasValue())
         return Core::Unexpected(published.Error());
@@ -336,16 +336,17 @@ Result StepThe182(ModelEffectsPass& pass)
 {
     if (Roll(pass, 5) != 0)
         return {};
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const double step = D(Bits(0x406a0ea1u)); // 3,657f (0x6ba1a8)
     const float x = F32(static_cast<double>(Roll(pass, 21) - 10) * step + D(actor.position.x));
     const float y = F32(static_cast<double>(Roll(pass, 21) - 10) * step + D(actor.position.y));
-    const World::GroundMarkRequest request{.type = 0x5e3,
-                                           .position = {x, y, 0.0f},
-                                           .angle = actor.angles.x,
-                                           .color = actor.light,
-                                           .size = Bits(0x3f266666u)};
-    if (auto marked = World::AddGroundMark(pass.world.Runtime().groundMarks, request, pass.random); !marked.HasValue())
+    const Terrain::GroundMarkRequest request{.type = 0x5e3,
+                                             .position = {x, y, 0.0f},
+                                             .angle = actor.angles.x,
+                                             .color = actor.light,
+                                             .size = Bits(0x3f266666u)};
+    if (auto marked = Terrain::AddGroundMark(pass.world.Runtime().groundMarks, request, pass.random);
+        !marked.HasValue())
         return Core::Unexpected(std::format("0x507486: {} (modelo {:#x})", marked.Error(), actor.type));
     return {};
 }
@@ -354,7 +355,7 @@ Result StepThe182(ModelEffectsPass& pass)
 // FCOMP mira la suma de la x87, no la guardada; con NaN, la 3 y la 4 la dejan y las demás la ponen en 0).
 void StepThe177(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint8_t action = actor.animation.action;
     if (action >= 3 && action <= 4)
     {
@@ -386,7 +387,7 @@ Result StepThe16f(ModelEffectsPass& pass)
 // rand() % la cantidad de huesos.
 Result StepThe172(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     struct Strike
     {
         std::uint8_t action;
@@ -435,7 +436,7 @@ Result StepThe172(ModelEffectsPass& pass)
 // rand() y la luz (s; s · 0,2; 0) de radio 2.
 Result StepThe15d(ModelEffectsPass& pass, float brightness)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     actor.blendMeshLight = F32(static_cast<double>(Roll(pass, 10)) * D(Tenth));
     if (actor.level != 2)
         return {};
@@ -458,7 +459,7 @@ Result StepThe15d(ModelEffectsPass& pass, float brightness)
 // 0x617/0 de ancho 10 con los ángulos (rand() % 60 + 150, 0, rand() % 30) y el 0x5c5/0 blanco.
 Result StepThe1ce(ModelEffectsPass& pass, float brightness)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     if ((actor.flags7c & 0x10000000u) != 0)
         return {};
     const bool resting = actor.animation.action == 0;
@@ -493,7 +494,7 @@ Result StepThe1ce(ModelEffectsPass& pass, float brightness)
 // con esa luz.
 Result StepThe1f5(ModelEffectsPass& pass, float brightness)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     if (actor.animation.action != 0)
         return {};
     const glm::vec3 glow{F32(D(brightness) * D(0.5f)), F32(D(brightness) * D(Bits(0x3e99999au))), 0.0f};
@@ -521,7 +522,7 @@ Result StepThe1f5(ModelEffectsPass& pass, float brightness)
 // rand() alrededor y, en Devias, el 0x5f2/0 o, si no, el 0x5f3/0 con esa luz.
 Result StepThe155(ModelEffectsPass& pass, float brightness)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     glm::vec3 light = White;
     if (actor.type == 0x166)
     {
@@ -545,7 +546,7 @@ Result StepThe155(ModelEffectsPass& pass, float brightness)
 // rand() % 32 + 32, 0); después, lo del 0x155.
 Result StepThe154(ModelEffectsPass& pass, float brightness)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     if (actor.animation.action == 3 && !(actor.animation.frame > 4.0f))
     {
         const glm::vec3 offset{0.0f, static_cast<float>(Roll(pass, 32) + 32), 0.0f};
@@ -561,7 +562,7 @@ Result StepThe154(ModelEffectsPass& pass, float brightness)
 // 0x5f3/0 blanco.
 Result StepThe173(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     if (actor.dying != 0 || actor.level != 1 || Roll(pass, 4) != 0)
         return {};
     const glm::vec3 position = Scatter(pass);
@@ -581,7 +582,7 @@ Result StepThe15e(ModelEffectsPass& pass)
 // rand() % 2 en 0, el 0x5f2/0 del hueso 24 en (0, −4, 0) con la luz propia.
 Result StepThe152(ModelEffectsPass& pass)
 {
-    const ActorState& actor = pass.actor;
+    const Kernel::ActorState& actor = pass.actor;
     const float frame = actor.animation.frame;
     bool breath = false;
     switch (actor.animation.action)
@@ -608,7 +609,7 @@ Result StepThe152(ModelEffectsPass& pass)
 // 3; si no, 0x505d50 y 0x505c50.
 Result StepThe17c(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     MarkTheBones(pass, 24, 25);
     if (actor.subtype != 1)
     {
@@ -713,7 +714,7 @@ Result FlameAlong(ModelEffectsPass& pass, std::uint32_t address, const std::arra
 // (0x54173c..0x541748, 0x5417a6..0x5417b2), así que MuRet las deja en 0.
 Result StepTheFlamingLimbs(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     std::array<glm::vec3, FlameBones.size()> points{};
     for (std::size_t index = 0; index < FlameBones.size(); ++index)
         points[index] = BonePoint(actor, FlameBones[index], NoOffset);
@@ -761,7 +762,7 @@ Result StepTheFlamingLimbs(ModelEffectsPass& pass)
 // 360,0f, cuya distancia se tira (fstp st(0)), y la 0x5de/1 en el segundo con 0,2f; después, 0x505d50 y 0x505c50.
 Result StepTheBurningHands(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const double rate = D(Bits(0x3b03126fu)); // 0,002f (0x6b89bc)
     const auto sine = Math::Detail::SineProductPC53(D(pass.worldClock) * rate, Bits(0x3e99999au));
     if (!sine)
@@ -913,7 +914,7 @@ CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
 // 0x43bdd0(c, modelo), la tabla 0x43c07c sobre 0x43c064 desde el 0xc5. Devuelve 1 con los suyos.
 CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const double clock = D(pass.worldClock);
     const double rate = D(Bits(0x3a83126fu)); // 0,001f (0x6b89c8)
     switch (actor.type)
@@ -989,7 +990,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
     if (pass.map != CastleMap)
         return false;
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     switch (actor.type)
     {
     case 0x19b:
@@ -1023,7 +1024,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     {
         // 0x42dec1..0x42dee4: +0x58 en −2; con el asedio (0x4294b0) y [0x7239e4] en 0x20000, en −1. Devuelve 0.
         actor.dword58 = -2;
-        const WorldRuntime& runtime = pass.world.Runtime();
+        const Kernel::WorldRuntime& runtime = pass.world.Runtime();
         constexpr std::uint32_t CrownOpen = 0x20000;
         if (runtime.castleSiege.siegeActive && runtime.castleSiege.castleFlags7239e4 == CrownOpen)
             actor.dword58 = -1;
@@ -1057,7 +1058,7 @@ Core::Expected<glm::vec3, std::string> CrywolfNamedPoint(ModelEffectsPass& pass,
                                                          std::uint32_t address)
 {
     const auto& bones = pass.world.Runtime().namedBones;
-    const auto found = std::ranges::find_if(bones, [&](const NamedBone& bone)
+    const auto found = std::ranges::find_if(bones, [&](const Kernel::NamedBone& bone)
                                             { return bone.actor == pass.slot && bone.name == name; });
     if (found == bones.end())
         return Core::Unexpected(
@@ -1136,7 +1137,7 @@ Result CrywolfHeadSprite(ModelEffectsPass& pass, std::uint32_t address)
 
 Result CrywolfNamedSprites(ModelEffectsPass& pass, std::uint32_t centerAddress)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const float rotation = static_cast<float>(Roll(pass, 360));
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3a9d4952u));
     const auto sine = Math::Detail::SineProductPC53(D(pass.worldClock) * Rate, 0.8f);
@@ -1178,7 +1179,7 @@ Result CrywolfPiercingStrike(ModelEffectsPass& pass)
 // 0x431470(c, c, modelo), la tabla 0x432488 desde el 0x1ab. Devuelve 0 salvo el 0x1b5 después de su efecto.
 Result StepTheCrywolfHelper(ModelEffectsPass& pass)
 {
-    ActorState& actor = pass.actor;
+    Kernel::ActorState& actor = pass.actor;
     const std::uint8_t action = actor.animation.action;
     const float frame = actor.animation.frame;
     const glm::vec3 ember{Bits(0x3f666666u), Bits(0x3e4ccccdu), Tenth};

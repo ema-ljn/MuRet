@@ -30,7 +30,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 Kernel::GameContext& WorldState::Context()
 {
@@ -62,12 +62,12 @@ const ActorState& WorldState::Hero() const
     return m_context.Hero();
 }
 
-std::span<CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
+std::span<Actors::Drawing::CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
 {
     return *m_actorCloths;
 }
 
-std::span<const CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
+std::span<const Actors::Drawing::CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
 {
     return *m_actorCloths;
 }
@@ -112,22 +112,22 @@ const WorldMap& WorldState::Map() const
     return m_context.Map();
 }
 
-ItemSetState& WorldState::ItemSets()
+Player::ItemSetState& WorldState::ItemSets()
 {
     return m_itemSets;
 }
 
-const ItemSetState& WorldState::ItemSets() const
+const Player::ItemSetState& WorldState::ItemSets() const
 {
     return m_itemSets;
 }
 
-HelperTable& WorldState::Helpers()
+Scenes::HelperTable& WorldState::Helpers()
 {
     return m_helpers;
 }
 
-const HelperTable& WorldState::Helpers() const
+const Scenes::HelperTable& WorldState::Helpers() const
 {
     return m_helpers;
 }
@@ -142,37 +142,37 @@ const World::Particles& WorldState::Particles() const
     return *m_particles;
 }
 
-DynamicWorldLight& WorldState::DynamicLighting()
+Terrain::DynamicWorldLight& WorldState::DynamicLighting()
 {
     return m_dynamicLighting;
 }
 
-const DynamicWorldLight& WorldState::DynamicLighting() const
+const Terrain::DynamicWorldLight& WorldState::DynamicLighting() const
 {
     return m_dynamicLighting;
 }
 
-PlayerActionSpeeds& WorldState::ActionSpeeds()
+Actors::PlayerActionSpeeds& WorldState::ActionSpeeds()
 {
     return m_actionSpeeds;
 }
-const PlayerActionSpeeds& WorldState::ActionSpeeds() const
+const Actors::PlayerActionSpeeds& WorldState::ActionSpeeds() const
 {
     return m_actionSpeeds;
 }
-FaunaState& WorldState::Fauna()
+Scenes::FaunaState& WorldState::Fauna()
 {
     return m_fauna;
 }
-const FaunaState& WorldState::Fauna() const
+const Scenes::FaunaState& WorldState::Fauna() const
 {
     return m_fauna;
 }
-FaunaModels& WorldState::FaunaResources()
+Assets::FaunaModels& WorldState::FaunaResources()
 {
     return m_faunaResources;
 }
-const FaunaModels& WorldState::FaunaResources() const
+const Assets::FaunaModels& WorldState::FaunaResources() const
 {
     return m_faunaResources;
 }
@@ -234,19 +234,19 @@ SharedModelPlacement WorldState::ModelPlacement(std::uint16_t type) const
     return found != m_modelPlacements.end() ? found->second : SharedModelPlacement{};
 }
 
-FaunaDrawCarry& WorldState::PoseCarry()
+Scenes::FaunaDrawCarry& WorldState::PoseCarry()
 {
     return m_poseCarry;
 }
-const FaunaDrawCarry& WorldState::PoseCarry() const
+const Scenes::FaunaDrawCarry& WorldState::PoseCarry() const
 {
     return m_poseCarry;
 }
-GameDrawTailState& WorldState::DrawTail()
+Scenes::GameDrawTailState& WorldState::DrawTail()
 {
     return *m_drawTail;
 }
-const GameDrawTailState& WorldState::DrawTail() const
+const Scenes::GameDrawTailState& WorldState::DrawTail() const
 {
     return *m_drawTail;
 }
@@ -283,4 +283,4 @@ void WorldState::PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& 
     }
     runtime.loadingOnceFlag = 0;
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

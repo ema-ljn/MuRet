@@ -79,7 +79,7 @@ Particle& Only(Particles& particles, std::size_t index)
 // 0x5446e0 con todos los servicios del juego menos la luz dinámica y los dueños.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random, float clock,
                                                  const Client::World::ParticleOwnerStates& owners = {},
-                                                 Client::World::TerrainLighting* lighting = nullptr)
+                                                 Client::Terrain::TerrainLighting* lighting = nullptr)
 {
     PortableParticleTrigonometry trigonometry;
     const std::int32_t map = 0;
@@ -425,7 +425,7 @@ TEST(Cl11Particles, TheFollowingLightningSticksEightyAboveItsOwner)
     EXPECT_EQ(bolt.light, glm::vec3(0.75f));
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto owners = [](const ParticleOwner& asked)
     { return asked.identity == 1 ? std::optional(ParticleOwnerState{true, {10, 20, 30}, {}}) : std::nullopt; };
     ASSERT_TRUE(Step(*particles, random, 0.0f, owners, lighting.get()).HasValue());

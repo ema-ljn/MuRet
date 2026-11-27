@@ -30,7 +30,7 @@ World::ModelEffect Flight(std::int16_t type)
 }
 struct Services
 {
-    std::unique_ptr<World::TerrainLighting> lighting = std::make_unique<World::TerrainLighting>();
+    std::unique_ptr<Terrain::TerrainLighting> lighting = std::make_unique<Terrain::TerrainLighting>();
     glm::vec3 camera{};
     float shake = 0;
     World::SiegeStoneStepServices services{

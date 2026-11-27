@@ -21,7 +21,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -369,4 +369,4 @@ Core::Expected<void, std::string> DrawGrassCell(Render::ModelBatch& batch, const
     return {};
 }
 
-} // namespace Client::World
+} // namespace Client::Terrain

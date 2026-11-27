@@ -16,7 +16,7 @@ namespace Client::Scenes
 {
 Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& batch,
                                                           std::span<World::ModelEffect> effects,
-                                                          const World::GroundEffectResources& resources,
+                                                          const Terrain::GroundEffectResources& resources,
                                                           bool originalFrame)
 {
     // El primer frame puede tener0 pasos. Conserva su entrada y proyecta sobre copias privadas.
@@ -34,16 +34,16 @@ Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& ba
     // con las mutaciones del dibujo anterior ni con el RNG o el reloj actuales del caller.
     std::copy(m_originalEffects.begin(), m_originalEffects.end(), m_replayEffects.begin());
     Crt::CrtRandom random(m_randomState);
-    const World::GroundEffectResources replay{.heights = resources.heights,
-                                              .random = random,
-                                              .worldClock = m_worldClock,
-                                              .map = *m_map,
-                                              .kalima = m_kalimaSnapshot.get(),
-                                              .ownerPosition = resources.ownerPosition};
+    const Terrain::GroundEffectResources replay{.heights = resources.heights,
+                                                .random = random,
+                                                .worldClock = m_worldClock,
+                                                .map = *m_map,
+                                                .kalima = m_kalimaSnapshot.get(),
+                                                .ownerPosition = resources.ownerPosition};
     return DrawGroundEffects(batch, m_replayEffects, replay);
 }
 
-void GroundEffectFrame::Capture(std::span<World::ModelEffect> effects, const World::GroundEffectResources& resources)
+void GroundEffectFrame::Capture(std::span<World::ModelEffect> effects, const Terrain::GroundEffectResources& resources)
 {
     m_originalEffects.resize(effects.size());
     std::copy(effects.begin(), effects.end(), m_originalEffects.begin());

@@ -23,10 +23,14 @@ namespace Client::Render::Frame
 {
 class ITextDrawer;
 } // namespace Client::Render::Frame
+namespace Client::Kernel
+{
+struct HudState;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 struct GameProjection;
-struct HudState;
 
 // 0x4381f0: el texto, copiado en 64 bytes, y la posición.
 inline constexpr std::size_t WorldTextSize = 64;
@@ -52,7 +56,7 @@ struct WorldTextDrawContext
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // La fuente del DC, 0x6c8e5c y 0x6c8e64 (quedan los del último texto) y 0x77f31b8 y 0x77f31bc (0x554180).
-    HudState& hud;
+    Kernel::HudState& hud;
     bool projecting = false;
 };
 

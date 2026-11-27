@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -162,4 +162,4 @@ Core::Expected<void, std::string> DrawWornParts(Render::ModelBatch& batch, const
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

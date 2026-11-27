@@ -39,7 +39,7 @@ Point MouseInPixels(const Input::InputState& input, Core::PixelSize screen)
     return Point{ClampToPixel(input.MouseX(), screen.width), ClampToPixel(input.MouseY(), screen.height)};
 }
 
-Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Scenes::TextureBufferSize buffer)
+Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Assets::TextureBufferSize buffer)
 {
     return Render::UiImage{.slot = slot,
                            .x = area.x,

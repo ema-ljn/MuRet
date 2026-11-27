@@ -28,14 +28,29 @@ class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class ModelEffects;
 class Particles;
-struct TerrainLighting;
-struct WorldTerrain;
 } // namespace Client::World
+
+namespace Client::Actors::Drawing
+{
+struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
+namespace Client::Kernel
+{
+struct ActorState;
+class WorldState;
+} // namespace Client::Kernel
 
 // La tabla de los ayudantes del juego: los 10 lugares de 0x1d4 bytes de 0x7d335d0, en la .bss, que crea
 // 0x443fa0 → 0x443d70, apaga 0x443d40, mueve 0x445230 → 0x444010 y dibuja 0x4453b0 → 0x445260. Es una sola
@@ -45,9 +60,6 @@ struct WorldTerrain;
 // caballo oscuro" y "Las mascotas".
 namespace Client::Scenes
 {
-struct ActorState;
-class WorldState;
-struct DrawnObject;
 
 inline constexpr std::size_t HelperCount = 10;
 
@@ -92,7 +104,7 @@ using HelperTable = std::array<HelperState, HelperCount>;
 // 0x1c12 con escala 0,7 y sus tres rand() de posición. Este último requiere `random`.
 // Devuelve el lugar, o nullopt si no creó. Los otros tipos cortan antes de 0x443d70.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider,
+CreateHelper(Kernel::WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider,
              Crt::CrtRandom* random = nullptr);
 
 // 0x443d70(tipo, posición, jinete, lugar, 0, 0) sobre un lugar: en los mapas 18 a 23 (`map`) o con el lugar vivo, nada
@@ -100,9 +112,9 @@ CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, s
 // ActorPoolSize para un objeto fuera del pool, como el retrato de las cartas) y devuelve true. Los tipos sin portar
 // cortan antes de tocarlo.
 [[nodiscard]] Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type,
-                                                                const glm::vec3& position, const ActorState& rider,
-                                                                std::size_t riderSlot, std::int32_t map,
-                                                                Crt::CrtRandom* random);
+                                                                const glm::vec3& position,
+                                                                const Kernel::ActorState& rider, std::size_t riderSlot,
+                                                                std::int32_t map, Crt::CrtRandom* random);
 
 // 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
 void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);
@@ -111,7 +123,7 @@ void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);
 // efectos (0x7491fd8) y el buffer global de la pose del dibujo anterior (0x68b181c, WorldState::PoseCarry).
 struct HelperStepContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // Los modelos (0x5769ad8 + tipo · 0xe0), por las acciones que leen 0x4ea030 y 0x4ec200: los de Skill\ que carga
     // 0x615700 y Player\Helper01.bmd (el 0x1c12) de 0x60ff50. nullptr, o sin el del tipo: corta con uno vivo.
     const Models::IModelLibrary* models = nullptr;
@@ -122,7 +134,7 @@ struct HelperStepContext
     // con el frame + 2 (0x4ec200, Q-C21).
     SceneId scene = SceneId::Game;
     // Los atributos (0x7d0d348) de la carga de la escena 4; vacío, los del mapa del juego.
-    const World::WorldTerrain* terrain = nullptr;
+    const Terrain::WorldTerrain* terrain = nullptr;
     // 0x7d3a0f0, la cuenta de los pasos lógicos que 0x4453e0 lee cruda para la onda 0x6eb/0 de la acción 3 del
     // caballo (P-C22 a: en el original es la cuenta cifrada, Q-C125).
     std::int32_t logicSteps = 0;
@@ -158,29 +170,29 @@ struct HelperStepContext
 // 0x444010(ayudante, 1) sobre un ayudante fuera de la tabla, con su jinete fuera del pool: el del retrato de las cartas
 // (0x495796, que lo llama siempre). Sin el byte vivo, nada (0x444021); si no, lo de StepHelpers con un lugar, con
 // `rider` de jinete y sin que la celda segura lo esconda.
-[[nodiscard]] Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, ActorState& rider,
-                                                                             const HelperStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string>
+StepTheHelperOutsideTheTable(HelperState& helper, Kernel::ActorState& rider, const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.
 struct HelperDrawContext
 {
     Render::ModelBatch& batch;
     const Models::IModelLibrary& models;
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     Core::Duration frameClock{};
     // Lo que va del último paso al próximo, para la animación (D-C4).
     float stepAlpha = 0.0f;
     // D-C4: dibujos intermedios proyectan sin publicar seen/frame ni consumir la CRT durable.
     bool originalFrame = true;
-    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
+    std::function<Core::Expected<void, std::string>(const Actors::Drawing::DrawnObject&)> onPose{};
     bool publishProjectedPose = false;
     std::function<std::span<const Models::SkinnedMesh>()> posedMeshes{};
     // DAT_006d5dc8, por la escala de 0x4452db..0x445309: 1,6 en la 2 y 1 en la 4; en la 5, la del lugar con los
     // Fenrir y 1 con los demás.
     SceneId scene = SceneId::Game;
     // El buffer dinámico de la luz del terreno (0x5ffce0): el color de los que no son el caballo.
-    const World::TerrainLighting* lighting = nullptr;
+    const Terrain::TerrainLighting* lighting = nullptr;
     // La tabla de los sprites del frame (0x5491e0): el brillo del 0x1c12 (0x445390) y los de los Fenrir.
     World::FrameSprites* sprites = nullptr;
     // Lo que el dibujo de los Fenrir (0x60277b) lee y crea además: el reloj del mundo (0x5767b88), los efectos con
@@ -219,5 +231,5 @@ struct HelperDrawContext
 // sin el trapecio (0x4452a4) y con la escala en 0x3f3ae148 (0x4452d2, Q-C1010), en un frame del original o entre
 // frames según `context` (sin la copia de DrawHelpers: el caller dibuja una copia entre frames).
 [[nodiscard]] Core::Expected<void, std::string>
-DrawTheHelperOutsideTheTable(HelperState& helper, const ActorState& rider, const HelperDrawContext& context);
+DrawTheHelperOutsideTheTable(HelperState& helper, const Kernel::ActorState& rider, const HelperDrawContext& context);
 } // namespace Client::Scenes

@@ -205,8 +205,8 @@ struct KalimaWorld::Storage
         normalCounts.fill(0);
         for (std::size_t triangle = 0; triangle < MeshIndexCount; triangle += 3)
         {
-            const glm::vec3 normal = FaceNormal(vertices[indices[triangle]], vertices[indices[triangle + 1]],
-                                                vertices[indices[triangle + 2]]);
+            const glm::vec3 normal = Terrain::FaceNormal(vertices[indices[triangle]], vertices[indices[triangle + 1]],
+                                                         vertices[indices[triangle + 2]]);
             for (std::size_t corner = 0; corner < 3; ++corner)
             {
                 const auto index = indices[triangle + corner];

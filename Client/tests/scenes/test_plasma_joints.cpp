@@ -32,7 +32,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x14fu;
@@ -71,7 +71,7 @@ struct PlasmaWorld
     glm::vec3 second{1000.0f, 1500.0f, 220.0f};
     std::vector<JointState> joints = std::vector<JointState>(2);
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
 };
 
@@ -81,7 +81,7 @@ constexpr std::array<std::uint32_t, 4> GlowBits{0x3d83126fu, 0x3da3d70au, 0x3dc4
 
 // Una vuelta del paso con `replay`: el giro hacia el destino, el sacudón y, si no llega, la luz (en `lighting`, si
 // está) y el avance. Devuelve si llegó.
-bool Turn(JointState& joint, CrtRandom& replay, Client::World::TerrainLighting* lighting = nullptr)
+bool Turn(JointState& joint, CrtRandom& replay, Client::Terrain::TerrainLighting* lighting = nullptr)
 {
     const float distance = F32(Client::Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
     joint.velocity.x = F32(static_cast<double>((replay.Next() & 0x3ff) - 0x200) / D(joint.width));
@@ -162,7 +162,7 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     for (int axis = 0; axis < 3; ++axis)
         expected.position[axis] = F32(D(expected.position[axis]) + D(first[axis]));
     expected.targetPosition = {1000.0f, 1500.0f, 300.0f};
-    auto lit = std::make_unique<Client::World::TerrainLighting>();
+    auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
     int turns = 0;
     for (; turns < 50; ++turns)
         if (Turn(expected, replay, lit.get()))
@@ -177,7 +177,7 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     EXPECT_EQ(joint.velocity, expected.velocity);
     // La luz dinámica de cada vuelta que no llega, en la posición de antes de avanzar.
     EXPECT_TRUE(lit->cells == tested.lighting->cells);
-    const auto dark = std::make_unique<Client::World::TerrainLighting>();
+    const auto dark = std::make_unique<Client::Terrain::TerrainLighting>();
     EXPECT_FALSE(lit->cells == dark->cells);
     // Un tramo por vuelta (también la de la llegada) y el de la cola común.
     EXPECT_EQ(joint.count, turns + 2);

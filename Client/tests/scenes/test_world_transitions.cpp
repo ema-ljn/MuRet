@@ -86,9 +86,9 @@ struct Transition
         Hero().alive = true;
         Hero().key = PlayerKey;
         Hero().type = Client::Tables::PlayerSkeletonModel;
-        Hero().pet.model = Client::Scenes::NoItemModel;
+        Hero().pet.model = Client::Kernel::NoItemModel;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
@@ -112,10 +112,10 @@ struct Transition
     Client::Tests::LetterMeasure letters;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
     std::filesystem::path dataRoot;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -246,7 +246,7 @@ TEST(WorldTransitionsTest, TeleportReturnsTheCursorToItsInventoryFootprintBefore
     tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
     auto& runtime = tested->world.Runtime();
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
     runtime.slot78a6758 = 12 + 18;
     runtime.cursorItem.id = 0x1c00;
     runtime.cursorItem.occupied = 1;
@@ -279,7 +279,7 @@ TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBefor
     tested->models = Client::Scenes::SingleModelLibrary{}; // Falta Player.bmd justo en el 512a30 del retorno.
     auto& runtime = tested->world.Runtime();
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
     runtime.slot78a6758 = 12 + 18;
     runtime.cursorItem.id = 0x1c00;
     runtime.cursorItem.occupied = 1;

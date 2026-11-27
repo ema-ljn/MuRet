@@ -22,7 +22,7 @@ namespace Client::Scenes
 namespace
 {
 using Frame = ItemTooltipFrame;
-using Own = OwnCharacterRecord;
+using Own = Kernel::OwnCharacterRecord;
 
 bool InRange(std::int32_t type, std::int32_t first, std::int32_t last)
 {
@@ -167,7 +167,7 @@ void WriteARequirement(Frame& frame, std::size_t text, std::uint16_t required, s
     lines.PrintText(text, static_cast<std::int32_t>(required));
     GameHudContext& context = frame.context;
     const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     std::uint16_t have = own.*stat;
     if (bonus != nullptr)
         have = static_cast<std::uint16_t>(have + own.*bonus);
@@ -187,7 +187,7 @@ void WriteARequirement(Frame& frame, std::size_t text, std::uint16_t required, s
 
 void WriteTheRequirementLines(Frame& frame)
 {
-    const World::ItemState& item = frame.item;
+    const Kernel::ItemState& item = frame.item;
     frame.lines.At("0x5b6d6d");
     if (item.word28 != 0 && item.id != MonarchCrest)
         WriteARequirement(frame, LevelText, item.word28, &Own::level, nullptr);

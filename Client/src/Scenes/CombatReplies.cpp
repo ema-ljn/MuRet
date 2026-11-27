@@ -89,8 +89,8 @@ Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, 
 // de la grilla (la celda 0xffff, o la 0 sin el bit en la 1) el original lee la memoria de al lado de TerrainWall
 // (0x7d0d348): MuRet saca los tres rand() de antes de esa lectura y descarta el empujón (+0x1a1 de nuevo en 0), sin
 // cortar el handler (07, Q-C1180).
-void PushOffTheBridge(ActorState& actor, std::size_t cell, const Data::Terrain::TerrainLayer<std::uint16_t>& cells,
-                      Crt::CrtRandom& random)
+void PushOffTheBridge(Kernel::ActorState& actor, std::size_t cell,
+                      const Data::Terrain::TerrainLayer<std::uint16_t>& cells, Crt::CrtRandom& random)
 {
     actor.byte1a1 = 1;
     actor.byte398 = 0;
@@ -127,9 +127,9 @@ void PushOffTheBridge(ActorState& actor, std::size_t cell, const Data::Terrain::
 }
 
 // 0x4d07c0 con los dos argumentos en el mismo personaje.
-Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorCombatContext& combat)
+Core::Expected<void, std::string> DieInTheCastle(Kernel::ActorState& actor, const ActorCombatContext& combat)
 {
-    WorldRuntime& runtime = combat.world.Runtime();
+    Kernel::WorldRuntime& runtime = combat.world.Runtime();
     const auto& attributes = combat.world.Map().terrain.attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4d07ff: faltan los atributos del mundo cargado"));
@@ -177,9 +177,9 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
 Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::KillExperience& reply,
                                                       const ActorCombatContext& combat, const ChatReceiveContext& chat)
 {
-    WorldState& world = combat.world;
+    Kernel::WorldState& world = combat.world;
     const std::size_t index = ActorWithKey(world, reply.key);
-    ActorState& dead = world.Actors()[index];
+    Kernel::ActorState& dead = world.Actors()[index];
     if (reply.shock)
     {
         if (auto died = SetActorDie(dead, combat); !died.HasValue())
@@ -187,7 +187,7 @@ Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::Ki
     }
     else
     {
-        ActorState& hero = world.Hero();
+        Kernel::ActorState& hero = world.Hero();
         hero.byte380 = KillerOnRecord;
         hero.word382 = reply.damage;
         hero.attackTarget = static_cast<std::uint16_t>(index);
@@ -206,8 +206,8 @@ Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::Ki
 
 Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& reply, const ActorCombatContext& combat)
 {
-    WorldState& world = combat.world;
-    ActorState& actor = world.Actors()[ActorWithKey(world, reply.key)];
+    Kernel::WorldState& world = combat.world;
+    Kernel::ActorState& actor = world.Actors()[ActorWithKey(world, reply.key)];
     actor.dying = 1;
     actor.movement = 0;
     actor.deathSkill = reply.skill;
@@ -230,7 +230,7 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.pushOrigin = actor.position;
     actor.floatD0 = Plus(second, 40.0f);
     // 0x4d0b49..0x4d0b98: el rumbo hacia el que lo mató (0x4e93f0) va a +0x24 y +0x30; la cabeza copia +0x1c y +0x20.
-    const ActorState& killer = world.Actors()[ActorWithKey(world, reply.killer)];
+    const Kernel::ActorState& killer = world.Actors()[ActorWithKey(world, reply.killer)];
     const auto angle =
         static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, killer.position.x, killer.position.y));
     actor.angles.z = angle;

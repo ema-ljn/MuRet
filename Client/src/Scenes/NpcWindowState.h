@@ -28,10 +28,10 @@ inline constexpr std::size_t TrainerBoxCellCount = 32;
 // 0x449c40: la caja del entrenador vacía, el tipo en 0xffff y +0x3c en 0. Así la dejan la entrada a la selección
 // (0x5bbe10, 0x5bc0db) y abrir el entrenador (0x449940): MuRet arranca así, porque no hay juego sin pasar por la
 // selección antes (*estático*).
-[[nodiscard]] constexpr std::array<World::ItemState, TrainerBoxCellCount> EmptyTrainerBox()
+[[nodiscard]] constexpr std::array<Kernel::ItemState, TrainerBoxCellCount> EmptyTrainerBox()
 {
-    std::array<World::ItemState, TrainerBoxCellCount> cells{};
-    for (World::ItemState& cell : cells)
+    std::array<Kernel::ItemState, TrainerBoxCellCount> cells{};
+    for (Kernel::ItemState& cell : cells)
     {
         cell.id = 0xffff;
         cell.occupied = 0;
@@ -144,9 +144,9 @@ inline constexpr std::size_t WarehouseKeyCount = 10;
 struct NpcWindowState
 {
     // 0x78a7070: la grilla de la tienda de NPC y del almacén.
-    std::array<World::ItemState, NpcGridCellCount> grid{};
+    std::array<Kernel::ItemState, NpcGridCellCount> grid{};
     // 0x7d2d380: la grilla de la caja del caos.
-    std::array<World::ItemState, ChaosBoxCellCount> chaosBox{};
+    std::array<Kernel::ItemState, ChaosBoxCellCount> chaosBox{};
     // 0x6c9da8 (.data): 75, 70, 65, 60, 55 y 50 hasta que el 30 con el resultado 3 las pisa.
     std::array<std::int32_t, ChaosRateCount> chaosRates{75, 70, 65, 60, 55, 50};
     // 0x7d2dc80: el estado de la mezcla. 1 la pide (0x5d9362), 2 la deja lista (0x4c5f60 y 0x4da280) y 0 la apaga
@@ -221,7 +221,7 @@ struct NpcWindowState
     // 0x723c80: la caja del entrenador (Scenes/PetTrainer.h). La llenan el 31 con la grilla 5 (0x4c5fde), el 86 con
     // 100 (0x4da373) y el 24 con 5 (0x4d1d55); la dibuja 0x44ad40 y sus ítems se levantan con 0x44ad10 y se sueltan
     // con 0x44aca9 (CursorGrid::TrainerBox).
-    std::array<World::ItemState, TrainerBoxCellCount> trainerBox = EmptyTrainerBox();
+    std::array<Kernel::ItemState, TrainerBoxCellCount> trainerBox = EmptyTrainerBox();
     // 0x724585: 0x44ae10 lo pone en 1 si el zen no alcanza para la mezcla que encontró en la caja. Nadie lo lee
     // (Q-C956).
     std::uint8_t trainerZenShort = 0;

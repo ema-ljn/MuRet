@@ -26,15 +26,15 @@
 
 TEST(ActorCooldownTest, FullLoopInterleavesBothCreatorsWithTheSharedRandom)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.movementCooldown = 2;
     actor.position = {100.0f, 200.0f, 300.0f};
     Client::Crt::CrtRandom random(2);
     std::vector<std::int32_t> events;
     glm::vec3 particlePosition{};
-    const Client::Scenes::ActorCooldownServices services{
+    const Client::Actors::ActorCooldownServices services{
         .particle = [&](const glm::vec3& position,
-                        const Client::Scenes::ActorState& live) -> Client::Core::Expected<void, std::string>
+                        const Client::Kernel::ActorState& live) -> Client::Core::Expected<void, std::string>
         {
             events.push_back(0x5f3);
             particlePosition = position;
@@ -44,14 +44,14 @@ TEST(ActorCooldownTest, FullLoopInterleavesBothCreatorsWithTheSharedRandom)
             return {};
         },
         .effect = [&](std::int32_t type,
-                      const Client::Scenes::ActorState& live) -> Client::Core::Expected<void, std::string>
+                      const Client::Kernel::ActorState& live) -> Client::Core::Expected<void, std::string>
         {
             events.push_back(type);
             EXPECT_EQ(live.position, actor.position);
             static_cast<void>(random.Next());
             return {};
         }};
-    const auto stepped = Client::Scenes::StepActorCooldown(actor, random, services);
+    const auto stepped = Client::Actors::StepActorCooldown(actor, random, services);
     ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
     EXPECT_EQ(events, (std::vector<std::int32_t>{0x5f3, 0xc8}));
     EXPECT_EQ(particlePosition, (glm::vec3{78.0f, 196.0f, 305.0f}));
@@ -61,17 +61,17 @@ TEST(ActorCooldownTest, FullLoopInterleavesBothCreatorsWithTheSharedRandom)
 
 TEST(ActorCooldownTest, MissingCreatorReturnsAfterTheDecrementLightAndFourRandomPrefix)
 {
-    Client::Scenes::ActorState actor;
+    Client::Kernel::ActorState actor;
     actor.movementCooldown = 60;
     Client::Crt::CrtRandom random(1);
-    const auto stepped = Client::Scenes::StepActorCooldown(actor, random);
+    const auto stepped = Client::Actors::StepActorCooldown(actor, random);
     EXPECT_FALSE(stepped.HasValue());
     EXPECT_EQ(actor.movementCooldown, 59);
     EXPECT_EQ(actor.light, glm::vec3(1.0f));
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 4).State());
 }
 
-// 0x5069ae..0x506ac6 con los creadores del paso (Scenes::CharacterCooldownServices): la 5f3/1 en el pool del contexto
+// 0x5069ae..0x506ac6 con los creadores del paso (Actors::CharacterCooldownServices): la 5f3/1 en el pool del contexto
 // (0x506a73, con los ángulos y la luz del personaje, escala 1 y sin dueño) y la piedrita 0xc8 + (rand() & 1) en la
 // tabla del mundo (0x506ab7, en la posición del personaje, sin dueño), cada uno con sus rand() en medio de las veinte
 // vueltas. Con los dos llenos, los creadores no sacan nada y el freno sigue con sus cinco o seis rand() por vuelta. Los
@@ -99,8 +99,8 @@ TEST(ActorCooldownTest, TheStepCreatorsInterleaveTheBrakeDustAndTheStoneChips)
     for (const BrakeSeed& expected : Seeds)
     {
         SCOPED_TRACE(testing::Message() << expected.full << ' ' << expected.seed);
-        auto world = std::make_unique<Client::Scenes::WorldState>();
-        Client::Scenes::ActorState actor;
+        auto world = std::make_unique<Client::Kernel::WorldState>();
+        Client::Kernel::ActorState actor;
         actor.movementCooldown = 1;
         actor.position = {12000.0f, 13000.0f, 250.5f};
         actor.angles = {0.0f, 0.0f, 135.0f};
@@ -113,10 +113,10 @@ TEST(ActorCooldownTest, TheStepCreatorsInterleaveTheBrakeDustAndTheStoneChips)
             for (auto& effect : world->Map().effects.Effects())
                 effect.alive = true;
         }
-        const Client::Scenes::CharacterStepContext context{
+        const Client::Actors::CharacterStepContext context{
             .world = *world, .random = random, .particles = &world->Particles()};
         const auto stepped =
-            Client::Scenes::StepActorCooldown(actor, random, Client::Scenes::CharacterCooldownServices(context));
+            Client::Actors::StepActorCooldown(actor, random, Client::Actors::CharacterCooldownServices(context));
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(actor.movementCooldown, 0);
         EXPECT_EQ(actor.light, glm::vec3(1.0f));
@@ -139,16 +139,16 @@ TEST(ActorCooldownTest, TheStepCreatorsInterleaveTheBrakeDustAndTheStoneChips)
 // girado por (0, 0, rand() % 360)) y los polvos 5f3/1 de las vueltas 12, 17 y 19 (cooldown.py).
 TEST(ActorCooldownTest, TheBrakeOfSeedThreeLeavesItsDustAndChipBitByBit)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::ActorState actor;
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::ActorState actor;
     actor.movementCooldown = 1;
     actor.position = {12000.0f, 13000.0f, 250.5f};
     actor.angles = {0.0f, 0.0f, 135.0f};
     actor.light = {0.25f, 0.5f, 0.75f};
     Client::Crt::CrtRandom random(3);
-    const Client::Scenes::CharacterStepContext context{
+    const Client::Actors::CharacterStepContext context{
         .world = *world, .random = random, .particles = &world->Particles()};
-    ASSERT_TRUE(Client::Scenes::StepActorCooldown(actor, random, Client::Scenes::CharacterCooldownServices(context))
+    ASSERT_TRUE(Client::Actors::StepActorCooldown(actor, random, Client::Actors::CharacterCooldownServices(context))
                     .HasValue());
     struct Dust
     {
@@ -194,11 +194,11 @@ TEST(ActorCooldownTest, TheBrakeOfSeedThreeLeavesItsDustAndChipBitByBit)
 // Sin el pool de partículas en el contexto, la 5f3/1 corta en 0x506a73 con lo de antes hecho.
 TEST(ActorCooldownTest, TheStepCreatorsCutWithoutTheParticlePool)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::ActorState actor;
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::ActorState actor;
     Client::Crt::CrtRandom random(1);
-    const Client::Scenes::CharacterStepContext context{.world = *world, .random = random};
-    const auto made = Client::Scenes::CharacterCooldownServices(context).particle({1.0f, 2.0f, 3.0f}, actor);
+    const Client::Actors::CharacterStepContext context{.world = *world, .random = random};
+    const auto made = Client::Actors::CharacterCooldownServices(context).particle({1.0f, 2.0f, 3.0f}, actor);
     ASSERT_FALSE(made.HasValue());
     EXPECT_NE(made.Error().find("0x506a73"), std::string::npos) << made.Error();
     EXPECT_EQ(random.State(), Client::Crt::CrtRandom(1).State());

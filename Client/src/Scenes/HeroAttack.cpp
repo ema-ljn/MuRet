@@ -85,7 +85,7 @@ bool HasSiegeMark(std::uint32_t flags)
 }
 
 // El nombre desde +0x1d9 como lo ve strcmp: los diez bytes, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
-std::string CNameOf(const ActorState& actor)
+std::string CNameOf(const Kernel::ActorState& actor)
 {
     std::string name;
     for (const std::byte letter : actor.name)
@@ -113,7 +113,7 @@ std::string CNameOf(const std::array<std::byte, DuelNameSize>& bytes)
 
 // 0x558c2a..0x558d6d: con el asedio, los puestos +0x360 enfrentados y las marcas de +0x78 deciden por el escudo
 // 0x4000 del elegido; si no decide, sigue como sin asedio.
-std::optional<bool> SiegeDecides(const ActorState& hero, const ActorState& target)
+std::optional<bool> SiegeDecides(const Kernel::ActorState& hero, const Kernel::ActorState& target)
 {
     const bool shielded = (target.flags78 & SiegeShield) == SiegeShield;
     if (IsSiegeAttacker(hero.byte360) && IsSiegeDefender(target.byte360))
@@ -149,9 +149,9 @@ std::string_view ArrivalCaseOf(std::int32_t type)
 
 // 0x565107..0x56526a: el alcance, en celdas, por las armas (los tipos del registro propio, +0xb6c la derecha y
 // +0xbb4 la izquierda) y +0x376.
-float AttackRange(const ActorState& hero, const HeroArrivalContext& context)
+float AttackRange(const Kernel::ActorState& hero, const HeroArrivalContext& context)
 {
-    WorldState& world = context.combat.world;
+    Kernel::WorldState& world = context.combat.world;
     std::int32_t right = 0;
     std::int32_t left = 0;
     {
@@ -187,10 +187,11 @@ Core::Expected<std::uint8_t, std::string> DirectionOf(float yaw, std::string_vie
 }
 
 // 0x5653bb..0x56601e: en alcance.
-Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t target, const HeroArrivalContext& context)
+Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::int32_t target,
+                                               const HeroArrivalContext& context)
 {
-    WorldState& world = context.combat.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.combat.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = context.combat.random;
     runtime.movement.mouseUpdateTime = runtime.movement.mouseUpdateTimeMax;
     if (auto attacked = SetActorAttack(hero, context.combat); !attacked.HasValue())
@@ -200,7 +201,7 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
     hero.angles.z = static_cast<float>(
         Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
     // 0x56544c..0x56548b: la celda del héroe publicado, X con 0x40b570/0x40b800 e Y con 0x4e7e40.
-    ActorState& published = world.Hero();
+    Kernel::ActorState& published = world.Hero();
     const std::uint8_t x = ReadTheCell(published.cellXAccesses, published.cellX, random);
     const std::uint8_t y = ReadTheCell(published.cellYAccesses, published.cellY, random);
     // 0x56548b..0x565954: C1 06 D3 X Y (rumbo << 4), el giro de un paso, por el socket.
@@ -233,7 +234,7 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
 // +0x3e8, 0) con el alcance de distancia (0x4eac00, donde la bandera del altar no cuenta): las celdas a menos del
 // alcance del blanco son la meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta
 // el D3 de girar al llegar (07). Sin camino, nada.
-Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
+Core::Expected<void, std::string> WalkIntoRange(Kernel::ActorState& hero, std::int32_t targetX, std::int32_t targetY,
                                                 float range, const HeroArrivalContext& context)
 {
     auto& random = context.combat.random;
@@ -243,7 +244,7 @@ Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t t
     // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (07, Q-C1179).
     if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
         return {};
-    World::WorldTerrain& terrain = context.combat.world.Map().terrain;
+    Terrain::WorldTerrain& terrain = context.combat.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para el camino hasta el alcance"));
     const Pathfinding::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
@@ -323,10 +324,10 @@ HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
 }
 
 // 0x56601f..0x566754: el caso 5.
-Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const HeroArrivalContext& context)
+Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero, const HeroArrivalContext& context)
 {
-    WorldState& world = context.combat.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.combat.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = context.combat.random;
     const WeaponSkillRequest request = runtime.movement.weaponSkill;
     // 0x56601f..0x566106: con el byte de 0x7758580, el lugar 0x7758584 del registro propio; si no, 0x7758584 entero. El
@@ -334,7 +335,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
     std::uint32_t skill = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        skill = (request.active & 0xffu) != 0 ? OwnSkillByte(world.OwnCharacter(), request.slot) : request.slot;
+        skill = (request.active & 0xffu) != 0 ? Kernel::OwnSkillByte(world.OwnCharacter(), request.slot) : request.slot;
     }
     if (skill > LastSkill)
         return Core::Unexpected(std::format("0x566108: la skill {:#x} de 0x7758584 está fuera de Skill.bmd", skill));
@@ -359,7 +360,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
     if (static_cast<std::size_t>(target) >= world.Actors().size())
         return Core::Unexpected(
             std::format("0x56615b: el blanco {} de la skill pendiente está fuera del pool", target));
-    const ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
+    const Kernel::ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
     if (victim.dying != 0)
         return {};
     // 0x566173..0x566194: la celda del blanco, ftol(· 0,01), en 0x77e1ba8 y 0x77e1bac.
@@ -388,7 +389,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
         // 0x56634c..0x5663a7: la línea de vista desde la celda lógica del héroe (la Y y la X).
         const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
         const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
-        const World::WorldTerrain& terrain = world.Map().terrain;
+        const Terrain::WorldTerrain& terrain = world.Map().terrain;
         if (!terrain.attributes)
             return Core::Unexpected(
                 std::string("0x558800: falta TerrainWall para ver el blanco de la skill pendiente"));
@@ -408,10 +409,10 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
     return WalkIntoRange(hero, *cellX, *cellY, reach, context);
 }
 
-Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroArrivalContext& context)
+Core::Expected<void, std::string> AttackOnArrival(Kernel::ActorState& hero, const HeroArrivalContext& context)
 {
-    WorldState& world = context.combat.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.combat.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const float range = AttackRange(hero, context);
     const std::int32_t target = runtime.movement.attackTarget;
     if (target == -1)
@@ -432,7 +433,7 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
         return {};
     if (static_cast<std::size_t>(target) >= world.Actors().size())
         return Core::Unexpected(std::format("0x5652b5: el blanco {} está fuera del pool", target));
-    const ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
+    const Kernel::ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
     // 0x5652b5..0x5652e8: la celda del blanco, ftol(x · 0,01f) entero, en 0x77e1ba8 y 0x77e1bac.
     constexpr double CellScale = static_cast<double>(0.01f);
     const auto cellX = Math::OriginalFtolLow(static_cast<double>(victim.position.x) * CellScale);
@@ -463,8 +464,8 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
 // el PK de 6 o más y gremio (+0x1f2 distinto de 0xffff) compara con strcmp el nombre de su gremio (0x787aa55 + i ·
 // 0x58, el +0xd de la tabla) con el del héroe. El índice del héroe no se mira: con −1 lee lo que está antes de la tabla
 // (GuildNameAt, Q-C1281). Un índice fuera de la tabla leería otra memoria: corta.
-Core::Expected<bool, std::string> SameGuildAsTheHero(const GuildState& guild, const ActorState& hero,
-                                                     const ActorState& target, std::string_view where)
+Core::Expected<bool, std::string> SameGuildAsTheHero(const GuildState& guild, const Kernel::ActorState& hero,
+                                                     const Kernel::ActorState& target, std::string_view where)
 {
     const auto theirs = GuildNameAt(guild, static_cast<std::int16_t>(target.word1f2));
     const auto ours = GuildNameAt(guild, static_cast<std::int16_t>(hero.word1f2));
@@ -475,11 +476,11 @@ Core::Expected<bool, std::string> SameGuildAsTheHero(const GuildState& guild, co
 
 // 0x558bb0 desde el chequeo del cursor con el elegido y 0x5588d0 con su argumento: el mismo código. `guildCompare` es
 // donde cada una compara los nombres de gremio (0x558da4 y 0x558aa9).
-Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, const ActorState& target, bool controlDown,
-                                                   std::string_view guildCompare)
+Core::Expected<bool, std::string> AttackableTarget(const Kernel::WorldState& world, const Kernel::ActorState& target,
+                                                   bool controlDown, std::string_view guildCompare)
 {
-    const WorldRuntime& runtime = world.Runtime();
-    const ActorState& hero = world.Hero();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
+    const Kernel::ActorState& hero = world.Hero();
     const bool isHero = &target == &hero;
     const GuildState& guild = runtime.guild;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && !isHero)
@@ -521,9 +522,9 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
 }
 } // namespace
 
-Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown)
+Core::Expected<bool, std::string> IsAttackable(const Kernel::WorldState& world, bool controlDown)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     if (runtime.cursorItemCount > 0)
         return false;
     const std::int32_t chosen = runtime.selectedTargets[2];
@@ -535,30 +536,32 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
     return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown, "0x558da4");
 }
 
-Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target, bool controlDown)
+Core::Expected<bool, std::string> IsAttackableActor(const Kernel::WorldState& world, const Kernel::ActorState& target,
+                                                    bool controlDown)
 {
     if (world.Runtime().cursorItemCount > 0)
         return false;
     return AttackableTarget(world, target, controlDown, "0x558aa9");
 }
 
-Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker, bool controlDown)
+Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker,
+                                                      bool controlDown)
 {
     return ChosenKeyOf(world, attacker, world.Runtime().selectedTargets[2], controlDown);
 }
 
-Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
+Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker,
                                                       std::int32_t chosen, bool controlDown)
 {
     constexpr std::int32_t NoKey = -1;
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     // 0x558eb3..0x558ed8: el cursor (JG, con signo), el elegido y el héroe publicado.
     if (runtime.cursorItemCount > 0 || chosen == -1 || attacker != runtime.hero)
         return NoKey;
     const auto actors = world.Actors();
     if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
         return Core::Unexpected(std::format("0x558ede: el elegido {} está fuera del pool", chosen));
-    const ActorState& target = actors[static_cast<std::size_t>(chosen)];
+    const Kernel::ActorState& target = actors[static_cast<std::size_t>(chosen)];
     const bool isHero = static_cast<std::size_t>(chosen) == runtime.hero;
     const auto key = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key));
     // 0x558ef0..0x558f08.
@@ -600,7 +603,7 @@ bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill, const std::fu
     return true;
 }
 
-Core::Expected<void, std::string> InteractOnArrival(ActorState& hero, const HeroArrivalContext& context)
+Core::Expected<void, std::string> InteractOnArrival(Kernel::ActorState& hero, const HeroArrivalContext& context)
 {
     const std::int32_t type = static_cast<std::int8_t>(hero.movementType);
     if (type == ArrivalAttack)

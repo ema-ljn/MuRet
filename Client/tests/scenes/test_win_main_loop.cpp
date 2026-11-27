@@ -23,6 +23,7 @@ namespace
 {
 using Client::Core::Duration;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Models::OriginalFramePace;
 using Client::Models::OriginalFrameTime;
 using Client::Scenes::CloseTheFrameCounter;
@@ -31,7 +32,6 @@ using Client::Scenes::InTheDeviasChurch;
 using Client::Scenes::StepTheWinMainLoop;
 using Client::Scenes::WinMainCounters;
 using Client::Scenes::WinMainLoopState;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x1234;
 
@@ -112,7 +112,7 @@ TEST(WinMainLoopTest, DeviasClosesEachReachedCoordinateRead)
          {Case{204, 13, 4, false}, Case{215, 13, 8, false}, Case{205, 12, 12, false}, Case{205, 13, 16, true},
           Case{214, 31, 16, true}, Case{214, 32, 16, false}})
     {
-        Client::Scenes::ActorState hero;
+        Client::Kernel::ActorState hero;
         hero.cellX = x;
         hero.cellY = y;
         CrtRandom random(Seed);
@@ -126,7 +126,7 @@ TEST(WinMainLoopTest, DeviasClosesEachReachedCoordinateRead)
             EXPECT_EQ(hero.cellYLeft, PackedAfter(draws - 4));
         }
     }
-    Client::Scenes::ActorState hero;
+    Client::Kernel::ActorState hero;
     hero.cellX = 205;
     hero.cellY = 13;
     hero.cellXAccesses = 1;

@@ -91,7 +91,7 @@ struct Quests
         world.OwnCharacter().level = 20;
         world.OwnCharacter().zen = 5000;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Hero();
     }
@@ -105,12 +105,12 @@ struct Quests
     }
     void GiveTheScroll(std::size_t cell, std::uint32_t level)
     {
-        Client::World::ItemState& item = world.Inventory().cells[cell];
+        Client::Kernel::ItemState& item = world.Inventory().cells[cell];
         item.id = static_cast<std::uint16_t>(ScrollType);
         item.occupied = 1;
         item.scalar1Low = level << 3;
     }
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Crt::CrtRandom random{Seed};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
 };
@@ -122,7 +122,7 @@ std::unique_ptr<Quests> MakeQuests()
 
 TEST(Quests, TheStateOfAQuestIsReadShiftedLikeTheOriginal)
 {
-    const auto runtime = std::make_unique<Client::Scenes::WorldRuntime>();
+    const auto runtime = std::make_unique<Client::Kernel::WorldRuntime>();
     QuestState& quest = runtime->quest;
     // Byte 0: las misiones 0 a 3 donde las escribe el GS (2 bits cada una, la 0 abajo).
     quest.states[0] = 0b10'01'11'00;
@@ -460,7 +460,7 @@ TEST(Quests, OpeningTheDialogShowsTheQuestWithItsAnswers)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     quest.characterClass = 0;
     quest.states[0] = Client::Scenes::QuestAvailable;
     runtime.panels.field78abb00 = 7;
@@ -478,7 +478,7 @@ TEST(Quests, ADialogWithoutAnswersShowsTheCloseText)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     quest.characterClass = 0;
     ASSERT_TRUE(Client::Scenes::OpenTheQuestDialog(tested->Context(), 0).HasValue());
     // Estado 0: ningún caso; +0x21384 queda como estaba (0), y el 0 no tiene texto ni respuestas.
@@ -491,7 +491,7 @@ TEST(Quests, TheListShowsTheHighestAndGoesBackToTheCurrent)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     quest.characterClass = 1;
     quest.reached = 1;
     quest.byte21380 = 4;

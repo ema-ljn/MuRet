@@ -412,9 +412,9 @@ private:
     // The state that FrameDigest hashes, in words.
     std::string WorldTrace()
     {
-        const Scenes::WorldState& world = m_client.World();
-        const Scenes::WorldRuntime& runtime = world.Runtime();
-        const Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        const Kernel::WorldState& world = m_client.World();
+        const Kernel::WorldRuntime& runtime = world.Runtime();
+        const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         const UI::PanelState& panels = runtime.panels;
         std::string trace =
             std::format("\n  map {} life {} mana {} zen {} panels inventory {} npc shop {} event {}", runtime.map,
@@ -422,7 +422,7 @@ private:
         const auto actors = world.Actors();
         for (std::size_t index = 0; index < actors.size(); ++index)
         {
-            const Scenes::ActorState& actor = actors[index];
+            const Kernel::ActorState& actor = actors[index];
             if (actor.alive)
             {
                 trace += std::format("\n  actor {}{} key {:04x} type {} cell ({}, {}) action {}", index,

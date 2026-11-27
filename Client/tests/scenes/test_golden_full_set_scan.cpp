@@ -72,19 +72,19 @@ TEST_F(GoldenFullSetScan, TheArmorsThatKeepTheBonusAreTheNamedOnesWithoutAHelm)
     {
         SCOPED_TRACE(index);
         // La clase 3 con el conjunto +13 de ese índice, sin casco, y su armadura en el registro.
-        Client::Scenes::ScannedCharacter character{.characterClass = MagicGladiator};
+        Client::Actors::ScannedCharacter character{.characterClass = MagicGladiator};
         character.body[0].model = 0xffff;
         for (std::size_t part = 1; part < character.body.size(); ++part)
         {
             character.body[part] = {.model = ItemModel(static_cast<std::uint8_t>(HelmGroup + part), index),
                                     .level = 13};
         }
-        Client::Scenes::OwnCharacterRecord own;
+        Client::Kernel::OwnCharacterRecord own;
         own.equipment[OwnArmorSlot].id = static_cast<std::uint16_t>(ItemModel(ArmorGroup, index) - FirstItemModel);
         std::uint8_t accesses = 0;
         Client::Crt::CrtRandom random(1);
 
-        const Client::Scenes::FullSetScan scan = Client::Scenes::ScanFullSet(character, own, accesses, random);
+        const Client::Actors::FullSetScan scan = Client::Actors::ScanFullSet(character, own, accesses, random);
 
         ASSERT_TRUE(scan.complete);
         const bool withoutAHelm = IsNamed(items->table, ArmorGroup, index) && !IsNamed(items->table, HelmGroup, index);

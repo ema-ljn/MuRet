@@ -51,7 +51,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .scaleSize = true,
                                       .scalePosition = true});
 }
-std::int32_t ReadCell(ActorState& actor, Crt::CrtRandom& random, bool x, std::uint8_t& depth)
+std::int32_t ReadCell(Kernel::ActorState& actor, Crt::CrtRandom& random, bool x, std::uint8_t& depth)
 {
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return x ? actor.cellX : actor.cellY;
@@ -73,8 +73,8 @@ bool InMap(float x, float y, float left, float top)
 // 0x40f850: los accesos de cada actor ocurren aunque su punto termine fuera del rectángulo.
 Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t kind)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Hero();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    Kernel::ActorState& hero = context.world.Hero();
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor({1.0f, 1.0f, 1.0f, panel.alpha});
     const std::int32_t heroX = ReadCell(hero, context.random, true, context.cellXDepth) / panel.page;
@@ -92,9 +92,9 @@ Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePan
          151.0f / 256.0f, 173.0f / 256.0f);
     sprites.SetBlend(Render::BlendMode::Opaque);
     const std::uint32_t side = SideOf(hero.flags78, panel.offsetY);
-    for (std::size_t index = 0; index + 1 < ActorPoolSize; ++index)
+    for (std::size_t index = 0; index + 1 < Kernel::ActorPoolSize; ++index)
     {
-        ActorState& actor = context.world.Actors()[index];
+        Kernel::ActorState& actor = context.world.Actors()[index];
         if (!actor.alive || index == runtime.hero || (actor.byte88 != 1 && actor.byte88 != 2 && actor.byte88 != 4))
             continue;
         const bool friendly = (actor.flags78 & side) == side;
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> DrawCommands(GameHudContext& context, UI::Sieg
 
 Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GamePanels panels(context.world, context.random);
     if (panels.Registry().IsOpen(UI::AnyPanel) || !runtime.castleSiege.siegePanelKind ||
         runtime.castleSiege.siegePanel.visible == 0)

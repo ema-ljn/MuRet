@@ -59,7 +59,7 @@ std::optional<std::size_t> CreateFaunaLightning(World::ModelEffects& effects, co
 }
 Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect, std::size_t physicalIndex,
                                                      const Models::Skeleton* skeleton, World::Particles& particles,
-                                                     World::FrameSprites& sprites, World::TerrainLighting& lighting,
+                                                     World::FrameSprites& sprites, Terrain::TerrainLighting& lighting,
                                                      Models::ClothWorld& cloth)
 {
     if (!effect.alive)
@@ -74,7 +74,7 @@ Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect,
     effect.objectState.hiddenMesh = 0;
     effect.objectState.light = 0;
     const std::array<float, 3> terrainLight{light, f32(static_cast<double>(light) * .1f), 0};
-    World::AddTerrainLight(lighting, effect.transform.position.x, effect.transform.position.y, terrainLight, 2);
+    Terrain::AddTerrainLight(lighting, effect.transform.position.x, effect.transform.position.y, terrainLight, 2);
     const auto steps = cloth.logicSteps;
     if (cloth.openCounterAccesses == 0)
         for (int byte = 0; byte < 4; ++byte)
@@ -102,8 +102,9 @@ Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect,
     World::StepModelEffect(effect, skeleton);
     return {};
 }
-FaunaStepEffects BindFaunaStepEffects(FaunaModels& models, FaunaModelLoadContext load, std::span<JointState> joints,
-                                      World::ModelEffects& effects, Crt::CrtRandom& random)
+FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
+                                      std::span<JointState> joints, World::ModelEffects& effects,
+                                      Crt::CrtRandom& random)
 {
     FaunaStepEffects result;
     result.effect = [joints, &random, &log = load.log](

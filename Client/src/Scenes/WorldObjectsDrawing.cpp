@@ -95,26 +95,26 @@ constexpr int LoginMeteorRiseSpan = 600;         // 0x604477
 constexpr double LoginMeteorRise = 3000.0;       // 0x6b8c10
 constexpr std::int32_t LoginMeteorSubtype = 9;   // 0x60448a
 
-bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY)
+bool SectorPasses(const Terrain::TerrainPolygon& polygon, int sectorX, int sectorY)
 {
-    return World::PolygonContains(polygon, (sectorX * CellsPerSector) + SectorCenter,
-                                  (sectorY * CellsPerSector) + SectorCenter, SectorMargin);
+    return Terrain::PolygonContains(polygon, (sectorX * CellsPerSector) + SectorCenter,
+                                    (sectorY * CellsPerSector) + SectorCenter, SectorMargin);
 }
 
 // 0x6046a0 pasa la posición por 0,01f (0x6b88d4) guardada en float y el margen individual (+0xdc), con
 // `extra` sumado en la x87 y guardado en float (0x604744..0x60474e).
-bool ObjectPasses(const World::TerrainPolygon& polygon, const World::WorldObject& object, float extra)
+bool ObjectPasses(const Terrain::TerrainPolygon& polygon, const World::WorldObject& object, float extra)
 {
     const auto cells = [](float coordinate)
     { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
-    return World::PolygonContains(polygon, cells(object.transform.position.x), cells(object.transform.position.y),
-                                  static_cast<double>(extra + object.cullingMargin));
+    return Terrain::PolygonContains(polygon, cells(object.transform.position.x), cells(object.transform.position.y),
+                                    static_cast<double>(extra + object.cullingMargin));
 }
 
-DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& draw, const Models::Skeleton* skeleton,
-                  float alpha)
+Actors::Drawing::DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& draw,
+                                   const Models::Skeleton* skeleton, float alpha)
 {
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     drawn.model = static_cast<std::uint16_t>(object.type);
     drawn.animation = object.animation;
     if (skeleton != nullptr && object.animation.action < skeleton->actions.size())
@@ -149,35 +149,36 @@ void CountTheObjectDraw(std::int32_t& counter)
 }
 
 // 0x60470b: el +8 del sector queda con lo que dio el trapecio, también para los objetos que no están vivos.
-void PassTheSector(const World::TerrainPolygon& polygon, World::WorldObject& object)
+void PassTheSector(const Terrain::TerrainPolygon& polygon, World::WorldObject& object)
 {
     object.sectorPassed = SectorPasses(polygon, World::SectorX(object), World::SectorY(object));
 }
 
-bool SeenInTheDraw(const World::TerrainPolygon& polygon, const World::WorldObject& object, float extraMargin = 0.0f)
+bool SeenInTheDraw(const Terrain::TerrainPolygon& polygon, const World::WorldObject& object, float extraMargin = 0.0f)
 {
     return object.sectorPassed && ObjectPasses(polygon, object, extraMargin);
 }
 
 // 0x5ffce0 con la luz del terreno en su lugar (0x5f99e0), o 0 sin ella, y lo que decide World::DrawOf.
-World::ObjectDraw ObjectDrawAt(const World::WorldObject& object, const World::TerrainLighting* lighting,
+World::ObjectDraw ObjectDrawAt(const World::WorldObject& object, const Terrain::TerrainLighting* lighting,
                                std::uint8_t map)
 {
     const glm::vec3 light = lighting != nullptr
-                                ? World::LightAt(*lighting, object.transform.position.x, object.transform.position.y)
+                                ? Terrain::LightAt(*lighting, object.transform.position.x, object.transform.position.y)
                                 : glm::vec3(0.0f);
     return World::DrawOf(object, light, map);
 }
 
 // 0x602e90 con `draw`: el modelo posado como 0x5ffdf0 y dibujado como 0x6002e0 sin casos por tipo, con su
 // animación `alpha` de un paso más. Devuelve lo que se posó.
-DrawnObject DrawTheObject(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                          const World::WorldObject& object, const World::ObjectDraw& draw, Core::Duration frameClock,
-                          float alpha, const World::ObjectModelStepState* modelState = nullptr,
-                          const FaunaDrawCarry* retainedPose = nullptr)
+Actors::Drawing::DrawnObject DrawTheObject(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                           const World::WorldObject& object, const World::ObjectDraw& draw,
+                                           Core::Duration frameClock, float alpha,
+                                           const World::ObjectModelStepState* modelState = nullptr,
+                                           const FaunaDrawCarry* retainedPose = nullptr)
 {
     const Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
-    DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
+    Actors::Drawing::DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
     if (modelState != nullptr)
     {
         const auto found = modelState->unlitMeshes.find(object.type);
@@ -191,16 +192,16 @@ DrawnObject DrawTheObject(Render::ModelBatch& batch, const Models::IModelLibrary
     case World::ObjectDrawKind::Hidden:
         break;
     case World::ObjectDrawKind::Body:
-        DrawObject(batch, models, drawn, frameClock);
+        Actors::Drawing::DrawObject(batch, models, drawn, frameClock);
         break;
     case World::ObjectDrawKind::SubtractiveMesh:
-        DrawSubtractiveMesh(batch, models, drawn, frameClock);
+        Actors::Drawing::DrawSubtractiveMesh(batch, models, drawn, frameClock);
         break;
     case World::ObjectDrawKind::Waterspout:
-        DrawWaterspout(batch, models, drawn, frameClock);
+        Actors::Drawing::DrawWaterspout(batch, models, drawn, frameClock);
         break;
     case World::ObjectDrawKind::TarkanChrome:
-        DrawTarkanChrome(batch, models, drawn, frameClock);
+        Actors::Drawing::DrawTarkanChrome(batch, models, drawn, frameClock);
         break;
     }
     return drawn;
@@ -380,15 +381,15 @@ void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, c
 }
 
 void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                      std::span<World::WorldObject> objects, const World::TerrainPolygon& polygon,
-                      const World::TerrainLighting* lighting, std::uint8_t map, Core::Duration frameClock, float alpha,
-                      const ObjectFrameEffects& effects)
+                      std::span<World::WorldObject> objects, const Terrain::TerrainPolygon& polygon,
+                      const Terrain::TerrainLighting* lighting, std::uint8_t map, Core::Duration frameClock,
+                      float alpha, const ObjectFrameEffects& effects)
 {
     // El buffer global de la pose, en el orden en que lo pisan: lo de antes de los objetos y cada objeto
     // que 0x5ffdf0 posa. Solo hace falta con los sprites del farol.
     const bool glows =
         effects.random != nullptr && effects.sprites != nullptr && effects.scene == World::ObjectScene::Login;
-    std::vector<PosedInTheBuffer> posed;
+    std::vector<Actors::Drawing::PosedInTheBuffer> posed;
     std::vector<SeenObjectEffects> seen;
     if (glows)
     {
@@ -419,10 +420,11 @@ void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& mo
                     return;
         }
         const auto* retained = (effects.frames > 0 || effects.publishProjectedPose) ? effects.retainedPose : nullptr;
-        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, alpha, nullptr, retained);
+        const Actors::Drawing::DrawnObject drawn =
+            DrawTheObject(batch, models, object, draw, frameClock, alpha, nullptr, retained);
         if (glows && draw.posed)
         {
-            posed.push_back(PosedInTheBuffer{&models, drawn});
+            posed.push_back(Actors::Drawing::PosedInTheBuffer{&models, drawn});
         }
         if (effects.random == nullptr)
         {
@@ -443,7 +445,8 @@ void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& mo
                     (*entry.glowPositions)[k] =
                         Math::OriginalVectorTransform({}, Math::OriginalMatrixOf(retained->bones[bone]));
                 else
-                    (*entry.glowPositions)[k] = LastPosedBonePoint(posed, bone, glm::vec3(0)).value_or(glm::vec3(0));
+                    (*entry.glowPositions)[k] =
+                        Actors::Drawing::LastPosedBonePoint(posed, bone, glm::vec3(0)).value_or(glm::vec3(0));
             }
         }
         seen.push_back(entry);
@@ -520,12 +523,13 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const Models::IModelLibrary&
     if (!chrome)
         return;
     constexpr glm::vec3 ChromeLight{1.0f, std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3dcccccdu)};
-    DrawnObject chromed = Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(type)), 0.0f);
+    Actors::Drawing::DrawnObject chromed =
+        Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(type)), 0.0f);
     if (retained != nullptr)
         chromed.retainedMeshes = retained->meshes;
     chromed.color = ChromeLight;
     chromed.unlitMesh = type == 0x13 || type == 0x14 ? std::int16_t{2} : std::int16_t{1};
-    DrawObjectWithTexture(batch, models, chromed, frameClock, ChromeTextureSlot);
+    Actors::Drawing::DrawObjectWithTexture(batch, models, chromed, frameClock, Actors::Drawing::ChromeTextureSlot);
 }
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb), 2
@@ -535,8 +539,8 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const Models::IModelLibrary&
 // gotas con el pool compartido. `posed`: si 0x602e90 llamó a 0x6002e0, cuyo marco queda en la pila que leen
 // los sprites del 0x38 del 0 y del 9 del 4, y si 0x5ffdf0 dejó el +0xa8 del modelo del 0x67 del 2.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
-                                              const Models::IModelLibrary& models, const DrawnObject& drawn,
-                                              int commonRandom, bool posed)
+                                              const Models::IModelLibrary& models,
+                                              const Actors::Drawing::DrawnObject& drawn, int commonRandom, bool posed)
 {
     const std::uint8_t map = pass.map;
     if (Maps::IsKalimaMap(map))
@@ -587,8 +591,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
 
 Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                        std::span<World::WorldObject> objects,
-                                                       const World::TerrainPolygon& polygon,
-                                                       const World::TerrainLighting* lighting,
+                                                       const Terrain::TerrainPolygon& polygon,
+                                                       const Terrain::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
     const bool bloodCastle = pass.map >= FirstBloodCastleMap && pass.map <= LastBloodCastleMap;
@@ -675,21 +679,23 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         {
             World::ObjectDraw posed = draw;
             posed.kind = World::ObjectDrawKind::Hidden;
-            const DrawnObject body =
+            const Actors::Drawing::DrawnObject body =
                 DrawTheObject(batch, models, object, posed, frameClock, 0.0f, pass.modelState, retained);
-            const auto drew = DrawCastleSiegeBody(
+            const auto drew = Actors::Drawing::DrawCastleSiegeBody(
                 batch, models, body,
-                CastleSiegeBodyPass{
+                Actors::Drawing::CastleSiegeBodyPass{
                     .type = object.type,
                     .field04 = object.field04,
                     .siegeActive = pass.siegeActive,
                     .worldClock = pass.worldClock,
-                    .emitGateVertices = [&](const DrawnObject& gate, std::span<const Models::SkinnedMesh> meshes)
-                        -> Core::Expected<void, std::string>
+                    .emitGateVertices =
+                        [&](const Actors::Drawing::DrawnObject& gate,
+                            std::span<const Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
                     {
                         if (pass.effects == nullptr || pass.random == nullptr)
                             return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT para los vértices12f"));
-                        return EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *pass.effects, *pass.random);
+                        return Actors::Drawing::EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *pass.effects,
+                                                                  *pass.random);
                     }},
                 frameClock);
             if (!drew.HasValue())
@@ -710,7 +716,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                 return body;
             if (activeAltar)
             {
-                DrawnObject altar = poseObject;
+                Actors::Drawing::DrawnObject altar = poseObject;
                 altar.color = draw.color;
                 if (retained != nullptr)
                     altar.retainedMeshes = retained->meshes;
@@ -720,7 +726,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                 draw.color = altar.color;
             }
         }
-        const DrawnObject drawn =
+        const Actors::Drawing::DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);
         // 0x600cf2..0x600db0: el 0x1c y el 0x1d de 11 a 17, después de su RenderBody, la sombra con la altura
         // del terreno; +0x58 queda en −1.
@@ -730,9 +736,9 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             if (!pass.terrainHeight)
                 return Core::Unexpected(std::string("0x600d80: falta la altura del terreno (0x5f93c0) para la sombra "
                                                     "del objeto"));
-            DrawBloodCastleShadow(batch, models, drawn,
-                                  pass.terrainHeight(object.transform.position.x, object.transform.position.y),
-                                  frameClock);
+            Actors::Drawing::DrawBloodCastleShadow(
+                batch, models, drawn, pass.terrainHeight(object.transform.position.x, object.transform.position.y),
+                frameClock);
             object.state.hiddenMesh = Models::NoHiddenMesh;
         }
         if (Maps::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
@@ -744,7 +750,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         // ni estado, van en cada dibujo de MuRet; el orden con el rand() común no cambia nada.
         if (pass.map == AidaMap || pass.map == SelectionWorldMap)
         {
-            if (auto meshPass = DrawAidaMeshPass(batch, models, drawn, object.type, pass.worldClock, frameClock);
+            if (auto meshPass =
+                    Actors::Drawing::DrawAidaMeshPass(batch, models, drawn, object.type, pass.worldClock, frameClock);
                 !meshPass.HasValue())
                 return meshPass;
         }
@@ -763,10 +770,10 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
 }
 
 Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, std::span<World::ModelEffect> effects,
-                                                    const World::GroundEffectResources& resources)
+                                                    const Terrain::GroundEffectResources& resources)
 {
     // Lo que el dibujo crea (0x52e04c, 0x52e0a2) va a la misma tabla que se recorre.
-    World::GroundEffectResources onTable = resources;
+    Terrain::GroundEffectResources onTable = resources;
     onTable.table = effects;
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
@@ -777,8 +784,8 @@ Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, s
             continue;
         }
         static_cast<void>(resources.random.Next()); // 0x52dc46, aun sin un caso de suelo.
-        World::ApplyGroundEffectAdditive(batch);    // 0x620a90, antes de despachar por tipo.
-        if (auto drawn = World::DrawGroundEffectCase(batch, effect, onTable); !drawn.HasValue())
+        Terrain::ApplyGroundEffectAdditive(batch);  // 0x620a90, antes de despachar por tipo.
+        if (auto drawn = Terrain::DrawGroundEffectCase(batch, effect, onTable); !drawn.HasValue())
         {
             return Core::Unexpected(drawn.Error() + std::format(", en el efecto {} (el {:#x})", slot, effect.type));
         }
@@ -798,17 +805,19 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const Models::IMode
 }
 
 void DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                      std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
-                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha)
+                      std::span<World::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
+                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha)
 {
     // Sin callback no existe una salida de error: preserva la API legacy de7argumentos.
     static_cast<void>(DrawModelEffects(batch, models, effects, frustum, lighting, frameClock, alpha, {}, {}));
 }
 
-Core::Expected<void, std::string>
-DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models, std::span<World::ModelEffect> effects,
-                 const World::SphereFrustum& frustum, const World::TerrainLighting* lighting, Core::Duration frameClock,
-                 float alpha, const TailPoseObserver& onPose, const TailMeshProvider& posedMeshes)
+Core::Expected<void, std::string> DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
+                                                   std::span<World::ModelEffect> effects,
+                                                   const Terrain::SphereFrustum& frustum,
+                                                   const Terrain::TerrainLighting* lighting, Core::Duration frameClock,
+                                                   float alpha, const Actors::Drawing::TailPoseObserver& onPose,
+                                                   const Actors::Drawing::TailMeshProvider& posedMeshes)
 {
     for (World::ModelEffect& effect : effects)
     {
@@ -819,7 +828,7 @@ DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
         // 0x52d63c..0x52d655: publica +0x16c antes del tipo, el modelo o el alpha. El pase del suelo
         // del próximo frame lo lee tal cual. La esfera usa +0x10 sin la extrapolación de MuRet.
         constexpr float Radius = 400.0f;
-        effect.seen = World::SphereVisible(frustum, effect.transform.position, Radius);
+        effect.seen = Terrain::SphereVisible(frustum, effect.transform.position, Radius);
         if (!effect.seen)
         {
             continue;
@@ -832,9 +841,9 @@ DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
             continue;
         }
         const glm::vec3 terrain =
-            lighting != nullptr ? World::LightAt(*lighting, effect.transform.position.x, effect.transform.position.y)
+            lighting != nullptr ? Terrain::LightAt(*lighting, effect.transform.position.x, effect.transform.position.y)
                                 : glm::vec3(0.0f);
-        DrawnObject drawn;
+        Actors::Drawing::DrawnObject drawn;
         drawn.model = static_cast<std::uint16_t>(effect.type);
         drawn.animation = effect.animation;
         drawn.transform = effect.transform;
@@ -860,12 +869,12 @@ DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
         {
             if (auto published = onPose(drawn); !published.HasValue())
                 return published;
-            if (auto rendered = DrawPublishedObject(batch, models, drawn, frameClock, posedMeshes);
+            if (auto rendered = Actors::Drawing::DrawPublishedObject(batch, models, drawn, frameClock, posedMeshes);
                 !rendered.HasValue())
                 return rendered;
         }
         else
-            DrawObject(batch, models, drawn, frameClock);
+            Actors::Drawing::DrawObject(batch, models, drawn, frameClock);
     }
     return {};
 }

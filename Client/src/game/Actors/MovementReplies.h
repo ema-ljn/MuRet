@@ -13,10 +13,15 @@ struct Damage;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Actors
+{
 // 06, «Lo que llega»: D3 y D7 conservan las coordenadas protegidas y el orden de la CRT.
-[[nodiscard]] Core::Expected<void, std::string>
-ApplyWalkReply(const Protocol::Movement::Walk& reply, Kernel::PlayerKey player, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply,
+                                                               Kernel::PlayerKey player,
+                                                               const Scenes::WorldEntryResources& resources);
 [[nodiscard]] Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Damage& reply,
                                                                  Kernel::PlayerKey player,
-                                                                 const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                                 const Scenes::WorldEntryResources& resources);
+} // namespace Client::Actors

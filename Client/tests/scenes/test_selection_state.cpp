@@ -40,14 +40,14 @@ using Client::App::CharacterCreated;
 using Client::App::CharacterDeleted;
 using Client::App::CharacterEvent;
 using Client::App::CharacterListReceived;
+using Client::Kernel::WorldState;
 using Client::Protocol::FrontEnd::CharacterEntry;
 using Client::Scenes::SelectionState;
-using Client::Scenes::WorldState;
-using Client::World::CullingScene;
+using Client::Terrain::CullingScene;
 
-Client::World::WorldTerrain TerrainOf(float height, std::uint16_t attribute = 0)
+Client::Terrain::WorldTerrain TerrainOf(float height, std::uint16_t attribute = 0)
 {
-    Client::World::WorldTerrain terrain;
+    Client::Terrain::WorldTerrain terrain;
     terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     terrain.heights->cells.fill(height);
@@ -89,8 +89,8 @@ protected:
 
     WorldState m_world;
     SelectionState m_state{m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_input;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_input;
 };
 
 // Atrapa consultas con XY finales: sólo las esquinas de (50,50) dan 100.
@@ -462,7 +462,7 @@ TEST_F(SelectionStateTest, EnteringLoginClearsOnlyTheSecondSceneActorPet)
 TEST_F(SelectionStateTest, TheFiveSlotsAreTheFirstRecordsOfTheDurablePool)
 {
     ASSERT_TRUE(Apply({List({Entry(0, true), Entry(4)})}).HasValue());
-    for (std::size_t slot = 0; slot < Client::Scenes::SelectionActorCount; ++slot)
+    for (std::size_t slot = 0; slot < Client::Kernel::SelectionActorCount; ++slot)
     {
         EXPECT_EQ(&m_state.Slots()[slot], &m_world.Actors()[slot]);
     }
@@ -470,7 +470,7 @@ TEST_F(SelectionStateTest, TheFiveSlotsAreTheFirstRecordsOfTheDurablePool)
     EXPECT_EQ(m_world.Actors()[0].revision, 1u);
     EXPECT_EQ(m_world.Actors()[4].revision, 1u);
     EXPECT_EQ(m_world.Actors()[4].position.x, 13349.6f);
-    for (const auto& actor : m_world.Actors().subspan<Client::Scenes::SelectionActorCount>())
+    for (const auto& actor : m_world.Actors().subspan<Client::Kernel::SelectionActorCount>())
     {
         EXPECT_EQ(actor.revision, 0u);
         EXPECT_EQ(actor.position.x, 0.0f);
@@ -645,8 +645,8 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
 {
     WorldState world;
     SelectionState state(world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     state.BeginSelection();
     state.RetainTerrain(55, TerrainOf(987.0f));
     const std::array<CharacterEvent, 1> events{List({Entry()})};
@@ -671,8 +671,8 @@ TEST_F(GoldenSelectionStateTest, AnEmptyListLoads54WithoutInventingHeroConstruct
 {
     WorldState world;
     SelectionState state(world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     input.hero = {7.0f, 8.0f, 9.0f};
     state.BeginSelection();
     state.RetainTerrain(55, TerrainOf(900.0f, 0x40));

@@ -16,8 +16,8 @@ namespace
 {
 TEST(WorldModelPoseTest, AnInvalidPublishedActionIsClampedInTheSharedModel)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::ActorState actor;
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::ActorState actor;
     actor.type = 0x1b3;
     actor.animation.action = 7;
     actor.scale = 2.0f;
@@ -37,8 +37,8 @@ TEST(WorldModelPoseTest, AnInvalidPublishedActionIsClampedInTheSharedModel)
 
 TEST(WorldModelPoseTest, AModelWithoutActionsLeavesTheGlobalPoseAndModelUntouched)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::ActorState actor;
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::ActorState actor;
     actor.type = 0x1b3;
     actor.animation.action = 7;
     actor.scale = 2.0f;

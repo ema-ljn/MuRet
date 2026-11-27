@@ -5,7 +5,7 @@
 #include <cmath>
 #include <limits>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -42,4 +42,4 @@ glm::vec3 FaceNormal(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& 
                                     (static_cast<double>(nx) * static_cast<double>(nx)));
     return {Spill(static_cast<double>(nx) / length), Spill(static_cast<double>(ny) / length), Spill(nz / length)};
 }
-} // namespace Client::World
+} // namespace Client::Terrain

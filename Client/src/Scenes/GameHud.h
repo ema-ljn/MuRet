@@ -30,18 +30,22 @@ namespace Client::UI
 struct OldWindowManager;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+struct CrywolfInterface;
+struct HudState;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 class IGuildMarks;
-class WorldState;
-struct CrywolfInterface;
 struct GameProjection;
-struct HudState;
 struct UiItemResources;
 
 struct GameHudContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() del frame y las cuentas de accesos del registro propio y de las celdas del héroe (+0x41c y +0x420):
     // las reales, o las copias de un dibujo intermedio de MuRet.
     Crt::CrtRandom& random;
@@ -50,11 +54,11 @@ struct GameHudContext
     std::uint8_t& cellYDepth;
     // Lo que el HUD escribe y dura de un frame al otro: los globales de HudState y 0x576353c (el humo de Crywolf, que
     // 0x5a7520 apaga después de dibujarlo una vez). En un dibujo intermedio, copias que nadie vuelve a leer.
-    HudState& hud;
+    Kernel::HudState& hud;
     std::uint8_t& crywolfSandOverlay;
     // Lo que escribe la interfaz de Crywolf (0x4365c0): en un dibujo intermedio, la copia que nadie vuelve a leer;
     // nullptr, la de WorldRuntime.
-    CrywolfInterface* crywolfInterface = nullptr;
+    Kernel::CrywolfInterface* crywolfInterface = nullptr;
     // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
     std::optional<std::int32_t>& sound;
     std::function<void(std::int32_t)> soundRequest{};

@@ -55,11 +55,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectContext;
 using Client::Scenes::HighEffectStepContext;
-using Client::Scenes::WorldState;
 using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
@@ -118,7 +118,7 @@ struct FamilyWorld
     }
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
     float clock = 1234.5f;
     Client::World::ModelEffectStepServices services{.effects = &world->Map().effects, .lighting = lighting.get()};
@@ -504,7 +504,7 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
         ASSERT_TRUE(wave.has_value());
         const glm::vec3 color{static_cast<float>(*wave), static_cast<float>(*wave),
                               static_cast<float>(*wave + 0.10000000149011612)};
-        auto lit = std::make_unique<Client::World::TerrainLighting>();
+        auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), origin, color, 10, "prueba").HasValue());
         EXPECT_TRUE(lit->cells == tested.lighting->cells);
         EXPECT_EQ(rock.life, 39);
@@ -1377,7 +1377,7 @@ TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
             ExpectSameParticle(particles[2], TwinParticle(replay, 0x5c6, 1, point, angles, glm::vec3(1.0f), 6.0f));
         EXPECT_FALSE(particles[near ? 3 : 2].alive);
         EXPECT_EQ(tested.random.State(), replay.State());
-        auto expected = std::make_unique<Client::World::TerrainLighting>();
+        auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
             Client::World::AddDynamicLight(expected.get(), point,
                                            {std::bit_cast<float>(0x3f2e147bu), std::bit_cast<float>(0x3fae147bu),
@@ -1434,7 +1434,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
     ExpectSameParticle(tested.world->Particles().All()[0],
                        TwinParticle(replay, 0x5da, 1, point, glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));
     EXPECT_EQ(tested.random.State(), replay.State());
-    auto expected = std::make_unique<Client::World::TerrainLighting>();
+    auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
     ASSERT_TRUE(Client::World::AddDynamicLight(
                     expected.get(), point,
                     {std::bit_cast<float>(light[0]), std::bit_cast<float>(light[1]), std::bit_cast<float>(light[2])}, 2,

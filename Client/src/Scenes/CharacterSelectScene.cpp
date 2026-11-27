@@ -159,12 +159,12 @@ bool SameEntry(const Protocol::FrontEnd::CharacterEntry& one, const Protocol::Fr
 // el mundo en curso (0x6c9dd0, el 54), el punto fijo de la selección, el yaw de la cámara (que en el 54 no se
 // usa: gira 45°), el héroe publicado como selector del mapa 30 (solo en la escena 5) y el ancho de 0x5bb8d0,
 // 640 sin las ventanas del juego (08 P-C41 e). El mapa 6 no llega a la selección.
-World::TerrainPolygonInput SelectionPolygonInput(const World::GameCameraInput& input, const Render::Camera3D& camera)
+Terrain::TerrainPolygonInput SelectionPolygonInput(const Camera::GameCameraInput& input, const Render::Camera3D& camera)
 {
-    World::TerrainPolygonInput polygon;
-    polygon.scene = static_cast<std::int32_t>(World::CullingScene::CharacterSelect);
+    Terrain::TerrainPolygonInput polygon;
+    polygon.scene = static_cast<std::int32_t>(Terrain::CullingScene::CharacterSelect);
     polygon.map = input.map;
-    polygon.translation = SelectionCullingPoint;
+    polygon.translation = Camera::SelectionCullingPoint;
     polygon.objectPosition = glm::vec2(input.hero.x, input.hero.y);
     polygon.cameraYaw = camera.angles.z;
     polygon.worldWidth = SelectionWorldWidth;
@@ -189,8 +189,8 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ta
                                            const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_texts(data.text ? &*data.text : nullptr),
       m_items(data.items ? &data.items->table : nullptr), m_models(models), m_session(session),
-      m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
-      m_world(context.textures, context.log),
+      m_textures(context.textures, Assets::SelectionTextureSet),
+      m_windowTextures(context.textures, Assets::WindowTextureSet), m_world(context.textures, context.log),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
       m_balloons([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
@@ -206,32 +206,33 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ta
 }
 
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Tables::GameData& data,
-                                           GameModels& models, App::ServerSession* session)
+                                           Assets::GameModels& models, App::ServerSession* session)
     : CharacterSelectScene(context, data, models, session, &models.TextureSlots())
 {
 }
 
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Tables::GameData& data,
-                                           GameModels& models, App::ServerSession* session,
+                                           Assets::GameModels& models, App::ServerSession* session,
                                            const Models::ModelTextureSlots* gameSlots)
     : CharacterSelectScene(context, data, static_cast<const Models::IModelLibrary&>(models), session, gameSlots)
 {
     m_startupModels = &models;
 }
 
-Scenes::TextureBufferSize CharacterSelectScene::BufferSize(Render::TextureSlot slot) const
+Assets::TextureBufferSize CharacterSelectScene::BufferSize(Render::TextureSlot slot) const
 {
-    const bool inTheWindows = std::ranges::any_of(WindowTextureSet, [slot](const Data::Textures::TextureSetEntry& entry)
-                                                  { return entry.slot == slot.value; });
+    const bool inTheWindows =
+        std::ranges::any_of(Assets::WindowTextureSet,
+                            [slot](const Data::Textures::TextureSetEntry& entry) { return entry.slot == slot.value; });
     return inTheWindows ? m_windowTextures.BufferSize(slot) : m_textures.BufferSize(slot);
 }
 
-World::GameCamera& CharacterSelectScene::CameraState()
+Camera::GameCamera& CharacterSelectScene::CameraState()
 {
     return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
 }
 
-World::GameCameraInput& CharacterSelectScene::CameraInputState()
+Camera::GameCameraInput& CharacterSelectScene::CameraInputState()
 {
     return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
 }
@@ -254,7 +255,7 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     m_previewCamera = PreviewCamera();
     m_steps = 0;
     m_charactersPrepared = false;
-    CameraInputState().scene = World::CullingScene::CharacterSelect;
+    CameraInputState().scene = Terrain::CullingScene::CharacterSelect;
     if (m_context.selection != nullptr)
     {
         // Desde el login, el reset precede al único RequestCharacterList del final de Enter.
@@ -262,7 +263,7 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
         if (m_session == nullptr || m_session->State() == App::SessionState::LoggedIn)
             m_context.selection->BeginSelection();
         else
-            m_context.selection->SetScene(World::CullingScene::CharacterSelect);
+            m_context.selection->SetScene(Terrain::CullingScene::CharacterSelect);
     }
     if (auto loaded = m_textures.Load(m_context.dataRoot); !loaded.HasValue())
     {
@@ -332,8 +333,8 @@ CharacterSelectScene::MakeCharacter(const Protocol::FrontEnd::CharacterEntry& en
     character.entry = entry;
     const std::uint8_t characterClass = Protocol::FrontEnd::CharacterClassOf(entry.classByte);
     // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
-    character.appearance = entry.withoutEquipment ? GameLogic::ClassAppearance(characterClass, 0)
-                                                  : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
+    character.appearance = entry.withoutEquipment ? Kernel::ClassAppearance(characterClass, 0)
+                                                  : Kernel::AppearanceOf(characterClass, 0, entry.equipment);
     if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel))
     {
         Models::SetAction(character.animation.body, *skeleton, StandingAction);
@@ -407,13 +408,13 @@ bool CharacterSelectScene::PrepareTheCharacters()
         m_failure = "0x633f65: falta el terreno 54 del constructor de la vista previa";
         return false;
     }
-    const ActorConstructionContext construction{.terrain = *terrain,
-                                                .map = m_context.world->Runtime().map,
-                                                .scene = World::CullingScene::CharacterSelect,
-                                                .fixedHeight = CameraState().fixedHeight};
+    const Actors::ActorConstructionContext construction{.terrain = *terrain,
+                                                        .map = m_context.world->Runtime().map,
+                                                        .scene = Terrain::CullingScene::CharacterSelect,
+                                                        .fixedHeight = CameraState().fixedHeight};
     constexpr std::uint8_t DefaultPreviewClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkKnight);
     constexpr std::uint16_t DefaultPreviewModel = FirstNewFaceModel + DefaultPreviewClass;
-    auto first = ConstructActor(Preview(), DefaultPreviewModel, {}, construction, *m_context.cloth);
+    auto first = Actors::ConstructActor(Preview(), DefaultPreviewModel, {}, construction, *m_context.cloth);
     if (!first.HasValue())
     {
         m_failure = first.Error();
@@ -459,7 +460,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
     // y, si alguno de los dos números de pkt[5] de la lista (0x5767958 y 0x576795c, 0x4c20a0) no es 0, el 1240 con
     // ellos, como sistema y sin nombre (el nombre de 0x7d3a17c nadie lo escribe). El vaciado de los campos (0x553570)
     // es de la entrada del chat.
-    WorldRuntime& runtime = m_context.world->Runtime();
+    Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     runtime.chat.input.dialogFieldOn = false;
     runtime.chat.input.otherInput = false;
     runtime.social.moneyField = 0;
@@ -497,7 +498,7 @@ Core::Expected<void, std::string> CharacterSelectScene::AddTheAccountNotice()
     return AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
 }
 
-CharacterStepContext CharacterSelectScene::CharacterContext()
+Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
 {
     const float clock =
         m_context.clock != nullptr
@@ -558,13 +559,13 @@ void CharacterSelectScene::StepCharacters()
             m_failure = "0x6342f4 → " + helpers.Error();
             return;
         }
-        const CharacterStepContext context = CharacterContext();
-        if (auto stepped = Scenes::StepCharacters(context); !stepped.HasValue())
+        const Actors::CharacterStepContext context = CharacterContext();
+        if (auto stepped = Actors::StepCharacters(context); !stepped.HasValue())
         {
             m_failure = stepped.Error();
             return;
         }
-        if (auto preview = StepCharacter(Preview(), context); !preview.HasValue())
+        if (auto preview = Actors::StepCharacter(Preview(), context); !preview.HasValue())
         {
             m_failure = preview.Error();
             return;
@@ -601,9 +602,9 @@ void CharacterSelectScene::StepCharacters()
         m_previewAdvanced = true;
         for (Character& character : m_characters)
         {
-            const ActorState& actor = m_context.world->Actors()[character.slot];
+            const Kernel::ActorState& actor = m_context.world->Actors()[character.slot];
             character.animation.body = actor.animation;
-            StepCharacterAttachments(character.animation, AppearanceOfActor(actor), m_models);
+            Actors::StepCharacterAttachments(character.animation, Actors::AppearanceOfActor(actor), m_models);
         }
         return;
     }
@@ -612,8 +613,8 @@ void CharacterSelectScene::StepCharacters()
     {
         // Lo que termina vuelve a la de parado (0x4fcb10), que en la selección es la 3: como la 3 repite,
         // es la de ahora, y SetAction no cambia nada.
-        static_cast<void>(StepCharacterAnimation(character.animation, character.appearance, m_models,
-                                                 Models::AnimationScene::CharacterSelect));
+        static_cast<void>(Actors::StepCharacterAnimation(character.animation, character.appearance, m_models,
+                                                         Models::AnimationScene::CharacterSelect));
     }
 }
 
@@ -715,7 +716,7 @@ void CharacterSelectScene::OnOptionsEvent(const UI::OptionsEvent& event)
     // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
     if (m_context.world != nullptr)
     {
-        WorldRuntime& runtime = m_context.world->Runtime();
+        Kernel::WorldRuntime& runtime = m_context.world->Runtime();
         ApplyOption(runtime, event);
         if (event.kind == UI::OptionsEvent::Kind::Volume)
             runtime.SetSoundVolume(static_cast<std::uint8_t>(event.value));
@@ -923,7 +924,7 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     }
     if (m_context.world != nullptr)
     {
-        const World::WorldTerrain* terrain =
+        const Terrain::WorldTerrain* terrain =
             m_context.selection != nullptr ? m_context.selection->Terrain() : &m_context.world->Map().terrain;
         if (terrain != nullptr && terrain->lighting != nullptr)
         {
@@ -1182,19 +1183,19 @@ Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& characte
     return Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
 }
 
-Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
+Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const Camera::GameCameraInput& input,
                                                                     Core::Duration clock)
 {
     // Como CameraForFrame: un dibujo intermedio solo consulta la cámara del último frame.
     const int frames = m_cameraFrames.FramesAt(clock, OriginalFramePaceOf(m_context.pacing));
     if (frames == 0)
     {
-        const Render::Camera3D camera = World::GameCameraOf(CameraState(), input);
+        const Render::Camera3D camera = Camera::GameCameraOf(CameraState(), input);
         if (m_context.world != nullptr)
         {
             // El trapecio del pase del terreno y de los objetos, con el nivel que hay, sin escribir nada.
             auto polygon =
-                TerrainPolygonBetweenFrames(m_context.world->Runtime(), SelectionPolygonInput(input, camera));
+                Camera::TerrainPolygonBetweenFrames(m_context.world->Runtime(), SelectionPolygonInput(input, camera));
             if (!polygon.HasValue())
             {
                 m_failure = polygon.Error();
@@ -1208,7 +1209,7 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World:
     for (int frame = 0; frame < frames; ++frame)
     {
         // 0x6346ca: 0x635ae0.
-        camera = World::StepGameCamera(CameraState(), input);
+        camera = Camera::StepGameCamera(CameraState(), input);
         // 0x634736..0x63475c, después de los fondos: 0x5fbb00(w · 0,0015625, &p) con 0x620db0(0, 0, w, 48), el
         // pase que no dibuja. El rango de bloques no lo lee nadie de MuRet en la selección (08 P-C41 b); el
         // trapecio y su nivel van a los globales (0x5fbeef → 0x5fb570). Nada de 0x634736..0x634769 llama a
@@ -1217,8 +1218,8 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World:
         {
             continue;
         }
-        auto polygon =
-            StepTheTerrainPolygon(m_context.world->Runtime(), SelectionPolygonInput(input, camera), CameraState());
+        auto polygon = Camera::StepTheTerrainPolygon(m_context.world->Runtime(), SelectionPolygonInput(input, camera),
+                                                     CameraState());
         if (!polygon.HasValue())
         {
             m_failure = polygon.Error();
@@ -1259,8 +1260,8 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
 
     // 0x6346ca calcula la cámara con el héroe compartido vigente antes de dibujar los personajes, y 0x63475c el
     // trapecio del terreno.
-    World::GameCameraInput& cameraInput = CameraInputState();
-    cameraInput.scene = World::CullingScene::CharacterSelect;
+    Camera::GameCameraInput& cameraInput = CameraInputState();
+    cameraInput.scene = Terrain::CullingScene::CharacterSelect;
     const std::optional<Render::Frame::SceneWorld> world = WorldOf(SceneId::CharacterSelect);
     const std::uint8_t map = world ? world->map : 0;
     cameraInput.map = map;
@@ -1269,8 +1270,8 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     {
         return;
     }
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
-    m_terrainRange = World::TerrainRangeOf(pass.view, camera);
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, Camera::WorldViewport, camera);
+    m_terrainRange = Terrain::TerrainRangeOf(pass.view, camera);
     if (m_context.world != nullptr)
     {
         m_context.world->DynamicLighting().PublishRange(m_terrainRange);
@@ -1345,7 +1346,7 @@ std::array<UI::BalloonRecord, UI::BalloonCount> CharacterSelectScene::BalloonRec
         m_session != nullptr && m_session->Characters() ? &*m_session->Characters() : nullptr;
     for (std::size_t slot = 0; slot < UI::BalloonCount; ++slot)
     {
-        const ActorState& actor = m_context.world->Actors()[slot];
+        const Kernel::ActorState& actor = m_context.world->Actors()[slot];
         const bool listed =
             m_session == nullptr ||
             (list != nullptr &&
@@ -1393,7 +1394,7 @@ void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, c
                 return;
             }
             // 0x63ca20: la x y la y del registro, y la z más 280 (0x6b8c78, un double) en el fstp de un float.
-            const ActorState& actor = m_context.world->Actors()[slot];
+            const Kernel::ActorState& actor = m_context.world->Actors()[slot];
             const glm::vec3 head{
                 actor.position.x, actor.position.y,
                 static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(UI::BalloonHeadHeight))};
@@ -1423,13 +1424,13 @@ bool CharacterSelectScene::HasTheWorld() const
 
 std::function<double(float, float)> CharacterSelectScene::TerrainHeight()
 {
-    const World::WorldTerrain* terrain = m_context.selection != nullptr ? m_context.selection->Terrain() : nullptr;
+    const Terrain::WorldTerrain* terrain = m_context.selection != nullptr ? m_context.selection->Terrain() : nullptr;
     if (terrain == nullptr || !terrain->heights || !terrain->attributes)
     {
         return {};
     }
     return [terrain, this](float x, float y)
-    { return World::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, CameraState().fixedHeight); };
+    { return Terrain::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, CameraState().fixedHeight); };
 }
 
 void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha,
@@ -1439,7 +1440,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 y la luz +0xf4 en 0 en los cinco primeros registros del
     // pool, sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
     // Hero apunta al registro0 incluso cuando la lista recibida está vacía.
-    World::GameCameraInput& cameraInput = CameraInputState();
+    Camera::GameCameraInput& cameraInput = CameraInputState();
     if (m_context.selection != nullptr)
     {
         m_context.selection->DrawSelection(cameraInput);
@@ -1453,7 +1454,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
         DrawTheCharacters(canvas, alpha, map, poseCarry, scanFrames);
         return;
     }
-    WorldState& world = *m_context.world;
+    Kernel::WorldState& world = *m_context.world;
     if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
     {
         m_failure = loaded.Error();
@@ -1471,8 +1472,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     // 0x6347e9..0x63483e: el elegido vivo lleva su luz a (1, 1, 1) y la suma al buffer dinámico en su lugar,
     // con radio 1 (0x5f9780), entre 0x620a90 y 0x620980.
     const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
-    ActorState* chosenActor =
-        chosen != nullptr && chosen->slot < SelectionActorCount ? &world.Actors()[chosen->slot] : nullptr;
+    Kernel::ActorState* chosenActor =
+        chosen != nullptr && chosen->slot < Kernel::SelectionActorCount ? &world.Actors()[chosen->slot] : nullptr;
     if (chosenActor != nullptr && !chosenActor->alive)
     {
         chosenActor = nullptr;
@@ -1480,10 +1481,10 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     if (chosenActor != nullptr)
     {
         chosenActor->light = glm::vec3(1.0f);
-        World::AddTerrainLight(m_world.FrameLighting(), chosenActor->position.x, chosenActor->position.y,
-                               Data::Terrain::TerrainLightColor{1.0f, 1.0f, 1.0f}, 1);
+        Terrain::AddTerrainLight(m_world.FrameLighting(), chosenActor->position.x, chosenActor->position.y,
+                                 Data::Terrain::TerrainLightColor{1.0f, 1.0f, 1.0f}, 1);
     }
-    const World::WorldTerrain& terrain = *m_context.selection->Terrain();
+    const Terrain::WorldTerrain& terrain = *m_context.selection->Terrain();
     // 0x634844: 0x5fc260(0), el terreno, el pasto y las marcas.
     if (auto drawn = m_world.DrawTerrain(world, terrain, frame); !drawn.HasValue())
     {
@@ -1515,7 +1516,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             .frameClock = canvas.frameClock,
             .stepAlpha = 0.0f,
             .originalFrame = frames > 0,
-            .onPose = [&](const DrawnObject& object) { return PublishFaunaPose(*poseCarry, m_models, object, true); },
+            .onPose = [&](const Actors::Drawing::DrawnObject& object)
+            { return PublishFaunaPose(*poseCarry, m_models, object, true); },
             .publishProjectedPose = true,
             .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry->meshes); },
             .scene = SceneId::CharacterSelect,
@@ -1578,25 +1580,26 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
     const std::size_t hero = m_context.world != nullptr ? m_context.world->Runtime().hero : 0;
     for (Character& character : m_characters)
     {
-        ActorState* actor = m_context.world != nullptr && m_context.selection != nullptr && m_context.cloth != nullptr
-                                ? &m_context.world->Actors()[character.slot]
-                                : nullptr;
+        Kernel::ActorState* actor =
+            m_context.world != nullptr && m_context.selection != nullptr && m_context.cloth != nullptr
+                ? &m_context.world->Actors()[character.slot]
+                : nullptr;
         if (actor != nullptr && (!actor->alive || !actor->seen))
         {
             continue;
         }
-        const GameLogic::CharacterAppearance appearance =
-            actor != nullptr ? AppearanceOfActor(*actor) : character.appearance;
-        const FullSetScan scan = ScanTheCharacter(appearance, scanFrames);
-        DrawnCharacter drawn;
+        const Kernel::CharacterAppearance appearance =
+            actor != nullptr ? Actors::AppearanceOfActor(*actor) : character.appearance;
+        const Actors::FullSetScan scan = ScanTheCharacter(appearance, scanFrames);
+        Actors::Drawing::DrawnCharacter drawn;
         drawn.appearance = appearance;
         if (actor != nullptr)
         {
             character.animation.body = actor->animation;
             drawn.headAngles = actor->headTurn.angles;
         }
-        drawn.body = BodyBetweenSteps(character.animation, m_models, alpha,
-                                      m_context.world != nullptr ? &m_context.world->ActionSpeeds() : nullptr);
+        drawn.body = Actors::BodyBetweenSteps(character.animation, m_models, alpha,
+                                              m_context.world != nullptr ? &m_context.world->ActionSpeeds() : nullptr);
         drawn.pet = character.animation.pet.state;
         drawn.wings = character.animation.wings.state;
         drawn.object = ObjectOf(character);
@@ -1608,7 +1611,7 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
             drawn.safeZone = actor->safeZone != 0;
             // 0x50bbff..0x50bc71: las guardas de la sombra del mismo 0x50ba30 (0x634851 → 0x510d00): el alpha desde
             // 0,5, sin +0x3e4 y fuera de los mapas sin sombra (el 54 no es ninguno).
-            drawn.castsShadow = CastsShadow(*actor, map);
+            drawn.castsShadow = Actors::Drawing::CastsShadow(*actor, map);
         }
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
         // 0x50ba30: la base del lugar más +0xf4, que el dibujo dejó en 1 para el elegido vivo y en 0 para los
@@ -1667,27 +1670,28 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
                 }
             }
             drawn.sprites = &m_world.FrameSprites();
-            DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock, CharacterDrawPass::Body);
+            Actors::Drawing::DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock,
+                                           Actors::Drawing::CharacterDrawPass::Body);
             // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel), sólo en un
             // frame del original.
-            if (scanFrames > 0 && DrawsTheShadow(drawn))
+            if (scanFrames > 0 && Actors::Drawing::DrawsTheShadow(drawn))
                 m_context.world->PlaceShadowModel(*actor);
             DrawTheTail(canvas, *actor, character.slot, drawn, *poseCarry, scan, scanFrames > 0);
             if (m_failure)
                 return;
             continue;
         }
-        DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
+        Actors::Drawing::DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
         // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
         // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
         // (Q-C412).
         if (actor != nullptr && poseCarry != nullptr && scanFrames > 0)
         {
-            actor->bodyPose = PoseCharacterBody(m_models, drawn);
-            if (actor->alpha >= PlayerModelAlpha)
+            actor->bodyPose = Actors::Drawing::PoseCharacterBody(m_models, drawn);
+            if (actor->alpha >= Kernel::PlayerModelAlpha)
                 m_context.world->PlacePlayerModel(*actor);
             // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
-            if (DrawsTheShadow(drawn))
+            if (Actors::Drawing::DrawsTheShadow(drawn))
                 m_context.world->PlaceShadowModel(*actor);
         }
     }
@@ -1704,15 +1708,16 @@ bool CharacterSelectScene::HasTheSkeleton() const
 // (0x50db94, [ebp−0x44] más +0xf4) es la de la escena 4, 0,4 fijo (0x50cc29), o 0,5 en el héroe publicado, que la
 // rama de su color pisa (0x50d231); con +0x375 desde 6, (1; 0,1; 0,1). El cuervo de un Dark Lord de la lista
 // (EquipSelectionActor) va con el trapecio de la selección.
-void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, std::size_t slot,
-                                       const DrawnCharacter& drawn, FaunaDrawCarry& poseCarry, const FullSetScan& scan,
-                                       bool originalFrame)
+void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor, std::size_t slot,
+                                       const Actors::Drawing::DrawnCharacter& drawn, FaunaDrawCarry& poseCarry,
+                                       const Actors::FullSetScan& scan, bool originalFrame)
 {
-    WorldState& world = *m_context.world;
-    ItemSpecialDrawContext special;
-    ItemDrawContext itemContext;
-    FillItemDrawContexts(special, itemContext,
-                         ItemDrawResources{.frameClock = canvas.frameClock,
+    Kernel::WorldState& world = *m_context.world;
+    Actors::Drawing::ItemSpecialDrawContext special;
+    Actors::Drawing::ItemDrawContext itemContext;
+    Actors::Drawing::FillItemDrawContexts(
+        special, itemContext,
+        Actors::Drawing::ItemDrawResources{.frameClock = canvas.frameClock,
                                            .random = m_world.FrameCloth().random,
                                            .itemRender = m_world.FrameItemRender(),
                                            .sprites = m_world.FrameSprites(),
@@ -1726,21 +1731,21 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Actor
     constexpr std::uint8_t RedPk = 6;
     const float base = slot == world.Runtime().hero ? HeroLight : CharacterLight;
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : glm::vec3(base) + actor.light;
-    const GameCharacterPass pass{.dynamicLighting = &m_world.FrameLighting(),
-                                 .clothWorld = &m_world.FrameCloth(),
-                                 .frameClock = canvas.frameClock,
-                                 .sprites = &m_world.FrameSprites(),
-                                 .poseCarry = &poseCarry,
-                                 .joints = m_world.FrameTail().joints,
-                                 .particles = &m_world.FrameParticles(),
-                                 .effects = &m_world.FrameEffects(),
-                                 .itemContext = &itemContext,
-                                 .pace = OriginalFramePaceOf(m_context.pacing),
-                                 .polygon = &m_polygon,
-                                 .fixedHeight = CameraState().fixedHeight,
-                                 .terrain = m_context.selection->Terrain()};
-    if (auto drawnTail =
-            DrawCharacterTail(canvas.models, m_models, world, actor, slot, drawn, pass, scan, originalFrame);
+    const Actors::Drawing::GameCharacterPass pass{.dynamicLighting = &m_world.FrameLighting(),
+                                                  .clothWorld = &m_world.FrameCloth(),
+                                                  .frameClock = canvas.frameClock,
+                                                  .sprites = &m_world.FrameSprites(),
+                                                  .poseCarry = &poseCarry,
+                                                  .joints = m_world.FrameTail().joints,
+                                                  .particles = &m_world.FrameParticles(),
+                                                  .effects = &m_world.FrameEffects(),
+                                                  .itemContext = &itemContext,
+                                                  .pace = OriginalFramePaceOf(m_context.pacing),
+                                                  .polygon = &m_polygon,
+                                                  .fixedHeight = CameraState().fixedHeight,
+                                                  .terrain = m_context.selection->Terrain()};
+    if (auto drawnTail = Actors::Drawing::DrawCharacterTail(canvas.models, m_models, world, actor, slot, drawn, pass,
+                                                            scan, originalFrame);
         !drawnTail.HasValue())
         m_failure = std::format("{}, en el personaje {} de la selección", drawnTail.Error(), slot);
 }
@@ -1748,14 +1753,15 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Actor
 // 0x50ba30 con cada uno de la lista, en 0x50c91e: son 0x20a con +0x7c y +0x3e4 en 0 (0x517270), y la vista
 // previa de la ventana de crear no lo es. Sin las acciones de Player.bmd sale antes (0x50ba87), como
 // DrawCharacter sin su esqueleto.
-FullSetScan CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
+Actors::FullSetScan CharacterSelectScene::ScanTheCharacter(const Kernel::CharacterAppearance& appearance, int frames)
 {
     if (m_context.world == nullptr || m_context.cloth == nullptr ||
         m_models.SkeletonOf(Tables::PlayerSkeletonModel) == nullptr)
     {
         return {};
     }
-    return ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
+    return Actors::ScanTheDrawnCharacter(*m_context.world, Actors::ScannedCharacterOf(appearance),
+                                         m_context.cloth->random, frames);
 }
 
 void CharacterSelectScene::DrawTheMessages(Render::Frame::SceneCanvas& canvas)
@@ -1763,8 +1769,8 @@ void CharacterSelectScene::DrawTheMessages(Render::Frame::SceneCanvas& canvas)
     if (m_context.world == nullptr)
         return;
     const int frames = m_messageFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
-    HudState projected;
-    HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
+    Kernel::HudState projected;
+    Kernel::HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
     const UI::Point mouse =
         m_context.input != nullptr ? UI::MouseIn640x480(*m_context.input, canvas.screen) : UI::Point{};
     Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
@@ -1789,7 +1795,7 @@ void CharacterSelectScene::Leave()
     // 0x61cc50 suelta los slots de 0x6f8 a 0x71d.
     m_selectionModels.Release();
     if (m_startupModels != nullptr && m_startupModels->TakeStartupSelectionTexture(m_context.textures))
-        m_context.textures.Release(Render::TextureSlot{StartupSelectionTextureSlot});
+        m_context.textures.Release(Render::TextureSlot{Assets::StartupSelectionTextureSlot});
 }
 
 void CharacterSelectScene::StepThePreview()
@@ -1805,10 +1811,10 @@ void CharacterSelectScene::StepThePreview()
     {
         if (m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr)
         {
-            const ActorConstructionContext construction{.terrain = *m_context.selection->Terrain(),
-                                                        .map = m_context.world->Runtime().map,
-                                                        .scene = World::CullingScene::CharacterSelect,
-                                                        .fixedHeight = CameraState().fixedHeight};
+            const Actors::ActorConstructionContext construction{.terrain = *m_context.selection->Terrain(),
+                                                                .map = m_context.world->Runtime().map,
+                                                                .scene = Terrain::CullingScene::CharacterSelect,
+                                                                .fixedHeight = CameraState().fixedHeight};
             if (auto rebuilt = RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels, construction,
                                               *m_context.cloth);
                 !rebuilt.HasValue())
@@ -1841,7 +1847,7 @@ void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canva
     const UI::Rect box = UI::LayoutCreateWindow(canvas.screen, m_create.ChosenClass()).box;
     const int frames = m_previewDrawFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     const float stepAlpha = m_previewAdvanced ? alpha : 0.0f;
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     for (int frame = 0; frame < frames; ++frame)
     {
         m_previewCamera = PreviewCamera(Preview());
@@ -1869,12 +1875,12 @@ void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canva
             m_failure = result.Error();
             return;
         }
-        DrawObjectFromMeshes(canvas.models, m_selectionModels, drawn, canvas.frameClock, own.meshes);
+        Actors::Drawing::DrawObjectFromMeshes(canvas.models, m_selectionModels, drawn, canvas.frameClock, own.meshes);
         if (frames > 0)
             Preview().bodyPose = std::move(own.bones);
     }
     else
-        DrawObject(canvas.models, m_selectionModels, drawn, canvas.frameClock);
+        Actors::Drawing::DrawObject(canvas.models, m_selectionModels, drawn, canvas.frameClock);
     canvas.flushModels();
     m_create.Draw(canvas.sprites, canvas.text, canvas.screen);
 }
@@ -1899,7 +1905,7 @@ std::optional<std::string> CharacterSelectScene::Failure() const
     return m_failure;
 }
 
-const ActorState& CharacterSelectScene::PreviewActor() const
+const Kernel::ActorState& CharacterSelectScene::PreviewActor() const
 {
     return Preview();
 }

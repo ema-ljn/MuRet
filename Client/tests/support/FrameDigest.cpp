@@ -286,15 +286,15 @@ std::uint64_t DrawOf(const RecordedFrame& frame)
     return writer.Hash();
 }
 
-std::uint64_t StateOf(const Scenes::WorldState& world)
+std::uint64_t StateOf(const Kernel::WorldState& world)
 {
     Fnv1aWriter writer;
-    const Scenes::WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     writer.Add(runtime.map);
     const auto actors = world.Actors();
     for (std::size_t index = 0; index < actors.size(); ++index)
     {
-        const Scenes::ActorState& actor = actors[index];
+        const Kernel::ActorState& actor = actors[index];
         if (!actor.alive)
         {
             continue;
@@ -305,7 +305,7 @@ std::uint64_t StateOf(const Scenes::WorldState& world)
         writer.Add(actor.position);
         writer.Add(actor.animation.action);
     }
-    const Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     writer.Add(own.life);
     writer.Add(own.mana);
     writer.Add(own.zen);
@@ -327,7 +327,7 @@ std::uint64_t StateOf(const Scenes::WorldState& world)
 } // namespace
 
 FrameDigest DigestOf(const RecordedFrame& frame, std::span<const std::byte> sentThisFrame, std::uint32_t randState,
-                     const Scenes::WorldState& world)
+                     const Kernel::WorldState& world)
 {
     return FrameDigest{
         .draw = DrawOf(frame), .sent = Fnv1a64(sentThisFrame), .randState = randState, .state = StateOf(world)};

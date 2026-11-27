@@ -19,12 +19,16 @@ namespace Client::Models
 class IModelLibrary;
 }
 
+namespace Client::Actors::Drawing
+{
+struct DrawnObject;
+} // namespace Client::Actors::Drawing
+
 // CL11, lote magos: lo que 0x6002e0 hace distinto del pase común (RenderBody(2)) con un efecto con modelo de 0x602e90,
 // después de posarlo y de mirar la malla oculta −2 (0x600328). Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Los efectos con modelo de los magos".
 namespace Client::Scenes
 {
-struct DrawnObject;
 
 // 0x6004aa..0x6004d7: con +0x74 en 0x80 (el 0xcc/1, el 0xd0 y las grietas de subtipo 1), RenderBody(0x82, +0x174,
 // +0x64, +0x68, +0x6c, +0x70, +0x58, −1) y sale: el pase de la textura de cada malla con la mezcla que oscurece
@@ -40,5 +44,6 @@ struct DrawnObject;
 [[nodiscard]] Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& batch,
                                                                         const Models::IModelLibrary& models,
                                                                         const World::ModelEffect& effect,
-                                                                        DrawnObject& object, Core::Duration frameClock);
+                                                                        Actors::Drawing::DrawnObject& object,
+                                                                        Core::Duration frameClock);
 } // namespace Client::Scenes

@@ -9,9 +9,9 @@
 #include <cstddef>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
-bool ActorNameContains(const ActorState& actor, std::string_view word)
+bool ActorNameContains(const Kernel::ActorState& actor, std::string_view word)
 {
     std::array<char, Protocol::FrontEnd::NameSize + 1> name{};
     for (std::size_t index = 0; index < actor.name.size(); ++index)
@@ -21,4 +21,4 @@ bool ActorNameContains(const ActorState& actor, std::string_view word)
     return UI::ContainsLikeTheOriginal(std::string_view(name.data(), static_cast<std::size_t>(end - name.begin())),
                                        word);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

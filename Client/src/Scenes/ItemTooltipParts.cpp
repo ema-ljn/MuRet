@@ -48,14 +48,14 @@ std::uint8_t RecordByte(const ItemTooltipFrame& frame, std::size_t offset)
     return std::to_integer<std::uint8_t>(frame.record[offset]);
 }
 
-bool IsExcellent(const World::ItemState& item)
+bool IsExcellent(const Kernel::ItemState& item)
 {
     return (item.flags1b & ExcellentBits) != 0;
 }
 
 std::uint8_t HeroClassOf(const GameHudContext& context)
 {
-    const WorldState& world = context.world;
+    const Kernel::WorldState& world = context.world;
     return world.Hero().characterClass;
 }
 
@@ -93,7 +93,7 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(ItemTooltipFrame
 }
 
 Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context,
-                                                                      const World::ItemState& item)
+                                                                      const Kernel::ItemState& item)
 {
     return ItemSetNameOf(context, item.id, static_cast<std::uint8_t>(item.flags1c & SetKindMask));
 }

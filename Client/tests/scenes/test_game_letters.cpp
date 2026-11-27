@@ -61,12 +61,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Protocol::Outgoing;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 using Client::Scenes::ChatReceiveContext;
-using Client::Scenes::WorldState;
 using Client::UI::FriendSend;
 using Client::UI::FriendSendKind;
 using Client::UI::OldPortraitPart;
@@ -356,7 +356,7 @@ protected:
         return false;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }

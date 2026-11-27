@@ -11,7 +11,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -26,7 +26,7 @@ float GrownScale(Crt::CrtRandom& random)
 }
 } // namespace
 
-void BeginColoredDecal(ModelEffect& effect, Crt::CrtRandom& random)
+void BeginColoredDecal(World::ModelEffect& effect, Crt::CrtRandom& random)
 {
     constexpr std::int32_t PlainLife = 20;                            // 0x51eebb
     constexpr std::int32_t PulsingLife = 40;                          // 0x51ef79
@@ -65,12 +65,12 @@ void BeginColoredDecal(ModelEffect& effect, Crt::CrtRandom& random)
     }
 }
 
-std::optional<std::size_t> CreateColoredDecal(std::span<ModelEffect> table, const ModelEffectArguments& arguments,
-                                              Crt::CrtRandom& random)
+std::optional<std::size_t> CreateColoredDecal(std::span<World::ModelEffect> table,
+                                              const World::ModelEffectArguments& arguments, Crt::CrtRandom& random)
 {
-    const auto slot = BeginModelEffect(table, arguments);
+    const auto slot = World::BeginModelEffect(table, arguments);
     if (slot.has_value())
         BeginColoredDecal(table[*slot], random);
     return slot;
 }
-} // namespace Client::World
+} // namespace Client::Terrain

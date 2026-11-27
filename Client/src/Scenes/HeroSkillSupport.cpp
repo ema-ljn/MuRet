@@ -25,10 +25,10 @@ namespace
 constexpr std::string_view SilentName = "webzen";
 } // namespace
 
-bool HasTheSilentName(const WorldState& world)
+bool HasTheSilentName(const Kernel::WorldState& world)
 {
     // El nombre como lo ve el strlen de 0x58a15d: los diez bytes de +0x1d9, +0x1e3 y, como MuRet no tiene +0x1e4, un 0.
-    const ActorState& published = world.Hero();
+    const Kernel::ActorState& published = world.Hero();
     std::string name;
     bool ended = false;
     for (const std::byte letter : published.name)
@@ -65,7 +65,7 @@ ActorCombatContext CombatContextOf(const HeroSkillContext& context)
                               .items = context.items};
 }
 
-std::size_t SlotOf(const WorldState& world, const ActorState& actor)
+std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& actor)
 {
     const auto actors = world.Actors();
     for (std::size_t slot = 0; slot < actors.size(); ++slot)

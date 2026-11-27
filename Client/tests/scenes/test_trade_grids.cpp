@@ -67,11 +67,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::EmptyOwnItemId;
+using Client::Kernel::ActorState;
+using Client::Kernel::EmptyOwnItemId;
+using Client::Kernel::ItemState;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
-using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x7ade;
 constexpr std::uint16_t HeroKey = 33;
@@ -180,10 +180,10 @@ struct Game
                 .log = log,
                 .texts = &texts};
     }
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items =
@@ -204,7 +204,7 @@ protected:
         GoldenDataTest::SetUp();
         game = std::make_unique<Game>();
         const std::uint8_t map = GetParam();
-        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, map);
+        auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
@@ -219,7 +219,7 @@ protected:
         };
         services.sendGamePacket = [this](Client::Protocol::Outgoing packet) { sent.push_back(PlainOf(packet)); };
         // El bastón del héroe, de nivel 2, en la casilla (1, 2) del inventario.
-        Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
         ASSERT_TRUE(Client::Scenes::PlaceMovedItem(Byte(12 + StaffCell), ItemBytes(StaffType, 2), game->Resources())
                         .HasValue());
         ASSERT_EQ(game->world.Inventory().cells[StaffCell].id, StaffType);
@@ -264,7 +264,7 @@ protected:
                                                             .targetY = y}}};
         auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
         ASSERT_TRUE(read.HasValue());
-        const auto applied = Client::Scenes::ApplyViewportPlayers(read.Value(), game->Resources());
+        const auto applied = Client::Actors::ApplyViewportPlayers(read.Value(), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ASSERT_EQ(game->world.Actors()[1].key, OtherKey);
     }
@@ -272,7 +272,7 @@ protected:
     // /trade al elegido y el 37 con el sí, que abre el comercio con el inventario.
     void TradeWithTheOther()
     {
-        Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+        Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
         runtime.selectedTargets[Chosen] = 1;
         std::vector<Client::Protocol::Outgoing> asked;
         const auto requested = Client::Scenes::RequestATrade(
@@ -321,7 +321,7 @@ protected:
 // OK, pone la espera del OK en 0x96. La respuesta (con 0) lo vuelve al inventario.
 TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
 {
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     Client::Scenes::TradeState& trade = runtime.social.trade;
     auto& inventory = game->world.Inventory().cells;
 
@@ -332,7 +332,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     EXPECT_EQ(Random().State(), expected.State());
     EXPECT_EQ(runtime.cursorItemCount, 1);
     EXPECT_EQ(runtime.cursorItem.id, StaffType);
-    EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::Inventory);
     EXPECT_EQ(runtime.slot78a6758, 12 + static_cast<std::int32_t>(StaffCell));
     EXPECT_EQ(inventory[StaffCell].id, EmptyOwnItemId);
     EXPECT_TRUE(sent.empty());
@@ -410,7 +410,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     EXPECT_EQ(sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x3c, 0x00}));
     EXPECT_EQ(trade.ownOk, 0);
     EXPECT_EQ(runtime.cursorItemCount, 1);
-    EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::OwnTrade);
+    EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::OwnTrade);
     EXPECT_EQ(runtime.slot78a6758, 2);
     for (const std::size_t cell : {2U, 10U, 18U})
         EXPECT_EQ(trade.ownGrid[cell].id, EmptyOwnItemId);
@@ -442,7 +442,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
 // casilla; el clic no la levanta y sigue a la grilla propia.
 TEST_P(TradeGridsTest, TheOtherGridIsOnlyLookedAt)
 {
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     Client::Scenes::TradeState& trade = runtime.social.trade;
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({9, ItemBytes(SwordType, 0)}, game->Resources()).HasValue());
     trade.otherGrid[17].warning = Client::Scenes::ChangedFromTheCopy;
@@ -468,7 +468,7 @@ TEST_P(TradeGridsTest, TheOtherGridIsOnlyLookedAt)
 // 0x78abb28 (0x5c8ef8) y, sin el almacén, el cursor vuelve a quedar en ceros.
 TEST_P(TradeGridsTest, TheRightClickOnTheOwnGridIsTheInventoryBranch)
 {
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     Client::Scenes::TradeState& trade = runtime.social.trade;
     std::vector<std::pair<std::size_t, std::int32_t>> notices;
     services.systemMessage = [&notices](std::size_t index, std::int32_t type)
@@ -500,7 +500,7 @@ TEST_P(TradeGridsTest, TheRightClickOnTheOwnGridIsTheInventoryBranch)
     stepped = Step(TradeGridLeft + 4 * Cell + 5, TradeGridTop + Cell + 5, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Random().State(), expected.State());
-    EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::OwnTrade);
+    EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::OwnTrade);
     EXPECT_EQ(runtime.ui.field78abb28, 0);
     EXPECT_EQ(runtime.cursorItem.id, 0);
     EXPECT_EQ(runtime.cursorItemCount, 0);
@@ -513,11 +513,11 @@ TEST_P(TradeGridsTest, TheRightClickOnTheOwnGridIsTheInventoryBranch)
 // la grilla. Lo que no entra se marca con 3.
 TEST_P(TradeGridsTest, WhatIsNotTradedStaysInTheCursor)
 {
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     runtime.cursorItem = ItemState{};
     runtime.cursorItem.id = 0x1a14;
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
     game->items = Client::Tests::ItemTableOf({{0x1a14, 1, 1, 0}, {StaffType, 1, 3, 0}});
     const auto stepped = Step(TradeGridLeft + 5, TradeGridTop + 5, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -554,7 +554,7 @@ protected:
 
 TEST_P(ItemMoveReplyTest, ThePriceFollowsTheItem)
 {
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     Client::Scenes::PersonalShopState& shops = runtime.social.personalShop;
     shops.pricesBuilt = true;
     shops.mode = Client::Scenes::OwnShopView;
@@ -580,7 +580,7 @@ TEST_P(ItemMoveReplyTest, ThePriceFollowsTheItem)
 
 TEST_P(ItemMoveReplyTest, TheDeferredTradeResultIsReplayed)
 {
-    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
     Client::Scenes::GamePanels panels(game->world, game->cloth.random);
     ASSERT_TRUE(panels.Registry().Open(Client::UI::TradePanel).HasValue());
     runtime.ui.field78abb39 = 1;

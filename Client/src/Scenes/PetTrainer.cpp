@@ -159,8 +159,8 @@ Core::Expected<void, std::string> WarnTheBoxIsNotEmpty(const InventoryServices* 
 Core::Expected<std::optional<RepairPrice>, std::string> PriceThePet(const PetQuoteContext& context, const Pet& pet,
                                                                     bool& found)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const World::ItemState& item = context.world.OwnCharacter().equipment[pet.slot];
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ItemState& item = context.world.OwnCharacter().equipment[pet.slot];
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     found = item.id == pet.type;
     if (!found)
@@ -174,8 +174,8 @@ Core::Expected<std::optional<RepairPrice>, std::string> PriceThePet(const PetQuo
     const std::uint16_t maximum = MaxDurability(item, *record, level);
     if (item.durability >= maximum)
         return std::optional<RepairPrice>{};
-    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
-                              .horse = runtime.pets[DarkHorsePetStats].level};
+    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto price = ItemPrice(item, *context.items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
@@ -184,20 +184,20 @@ Core::Expected<std::optional<RepairPrice>, std::string> PriceThePet(const PetQuo
 }
 } // namespace
 
-void OpenTheTrainer(WorldState& world, std::int32_t mode)
+void OpenTheTrainer(Kernel::WorldState& world, std::int32_t mode)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.panels.delegated.trainer = mode;
     runtime.npcWindows.trainerBox = EmptyTrainerBox();
 }
 
-bool TrainerBoxHasItems(const WorldState& world)
+bool TrainerBoxHasItems(const Kernel::WorldState& world)
 {
     return std::ranges::any_of(world.Runtime().npcWindows.trainerBox,
-                               [](const World::ItemState& cell) { return cell.id != EmptyCell; });
+                               [](const Kernel::ItemState& cell) { return cell.id != EmptyCell; });
 }
 
-Core::Expected<bool, std::string> CloseTheTrainer(WorldState& world, const InventoryServices* services,
+Core::Expected<bool, std::string> CloseTheTrainer(Kernel::WorldState& world, const InventoryServices* services,
                                                   const NpcWindowSender& send)
 {
     if (TrainerBoxHasItems(world))
@@ -219,9 +219,9 @@ std::uint32_t TrainerMixPrice(std::uint8_t kind)
     return kind < MixPrices.size() ? MixPrices[kind] : 0u;
 }
 
-void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random)
+void ScanTheTrainerBox(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     runtime.panels.delegated.field724584 = 0;
     npc.trainerZenShort = 0;
@@ -231,7 +231,7 @@ void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random)
     std::int32_t chaos = 0;
     std::int32_t horse = 0;
     std::int32_t raven = 0;
-    for (const World::ItemState& cell : npc.trainerBox)
+    for (const Kernel::ItemState& cell : npc.trainerBox)
     {
         if (cell.id == EmptyCell || cell.occupied == 0)
             continue;
@@ -267,10 +267,10 @@ void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random)
         npc.trainerZenShort = 1;
 }
 
-void ForgetThePetTooltipQuery(WorldState& world)
+void ForgetThePetTooltipQuery(Kernel::WorldState& world)
 {
     // 0x421d90: REP STOSD de 18 DWORD desde 0x723918. La clave 0x723914 y las estadísticas 0x723960 quedan fuera.
-    PetTooltipQuery& query = world.Runtime().petTooltipQuery;
+    Kernel::PetTooltipQuery& query = world.Runtime().petTooltipQuery;
     query.type = 0;
     query.scalar = 0;
 }
@@ -323,7 +323,7 @@ Core::Expected<void, std::string> StepTheTrainer(const GameUiContext& context, U
 
 Core::Expected<void, std::string> StepTheTrainerMenu(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (Inside(context, SmallWindow))
         runtime.ui.mouseOnUi = 1;
     const std::optional<std::size_t> pressed = PressedButton(context, MenuFirstTop, MenuStep);
@@ -356,7 +356,7 @@ Core::Expected<void, std::string> StepTheTrainerMenu(const GameUiContext& contex
 
 Core::Expected<void, std::string> StepThePetRecovery(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     if (Inside(context, SmallWindow))
         runtime.ui.mouseOnUi = 1;
@@ -403,7 +403,7 @@ Core::Expected<void, std::string> StepThePetRecovery(const GameUiContext& contex
 
 Core::Expected<void, std::string> StepTheTrainerBox(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     if (Inside(context, BoxWindow))
         runtime.ui.mouseOnUi = 1;

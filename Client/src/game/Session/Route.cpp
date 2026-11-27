@@ -41,7 +41,7 @@ Scenes::ActorCombatContext RoutedPart<const Scenes::ActorCombatContext&>::Of(con
     return Scenes::CombatContextOf(world);
 }
 
-Scenes::ActionSender RoutedPart<const Scenes::ActionSender&>::Of(const Scenes::WorldEntryResources&,
+Actors::ActionSender RoutedPart<const Actors::ActionSender&>::Of(const Scenes::WorldEntryResources&,
                                                                  App::ServerSession& session)
 {
     return [&session](std::uint8_t direction, std::uint8_t action) { session.SendAction(direction, action); };

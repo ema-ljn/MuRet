@@ -60,14 +60,15 @@ public:
 TEST(VertexEffectsTest, RepeatedCornersConsumeThreeDrawsEachEvenWithAFullEffectPool)
 {
     VertexModels models;
-    const Client::Scenes::DrawnObject object;
+    const Client::Actors::Drawing::DrawnObject object;
     const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     for (auto& effect : effects->Effects())
         effect.alive = true;
     Client::Crt::CrtRandom random(1), expected(1);
     expected.Discard(18);
-    const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random);
+    const auto result =
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(random.State(), expected.State());
 }
@@ -77,13 +78,14 @@ TEST(VertexEffectsTest, GateChildrenUseThePublishedScratchAndRunTheirConstructor
     VertexModels models;
     models.model.meshes[0].triangles.resize(1);
     models.model.meshes[0].triangles[0].polygon = 1;
-    const Client::Scenes::DrawnObject object;
+    const Client::Actors::Drawing::DrawnObject object;
     const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(2), expected(2);
     // CRT seed2:45%3=0; segundo sorteo elige12f/130; ocho del constructor.
     expected.Discard(10);
-    const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x12f, 0, *effects, random);
+    const auto result =
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x12f, 0, *effects, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(effects->Effects()[0].alive);
     EXPECT_EQ(effects->Effects()[0].transform.position, (glm::vec3{11, 22, 83}));
@@ -100,9 +102,11 @@ TEST(VertexEffectsTest, AnInvalidMeshAndSignedEmptyPolygonsDoNotConsumeRandom)
     const std::array meshes{Client::Models::SkinnedMesh{}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(1);
-    const Client::Scenes::DrawnObject object;
-    ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, -1, 0x131, 0, *effects, random).HasValue());
-    ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random).HasValue());
+    const Client::Actors::Drawing::DrawnObject object;
+    ASSERT_TRUE(
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, -1, 0x131, 0, *effects, random).HasValue());
+    ASSERT_TRUE(
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random).HasValue());
     EXPECT_EQ(random.State(), 1u);
 }
 
@@ -111,13 +115,14 @@ TEST(VertexEffectsTest, TheTwoProjectileFamiliesPreserveTheirDifferentChildSubty
     VertexModels models;
     models.model.meshes[0].triangles.resize(1);
     models.model.meshes[0].triangles[0].polygon = 1;
-    const Client::Scenes::DrawnObject object;
+    const Client::Actors::Drawing::DrawnObject object;
     const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     for (const std::int32_t family : {0x12d, 0x12e})
     {
         auto effects = std::make_unique<Client::World::ModelEffects>();
         Client::Crt::CrtRandom random(2), expected(2);
-        const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, family, 0, *effects, random);
+        const auto result =
+            Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, family, 0, *effects, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(effects->Effects()[0].alive);
         EXPECT_EQ(effects->Effects()[0].subtype, family == 0x12d ? 1 : 0);
@@ -133,7 +138,7 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
 {
     VertexModels models;
     models.model.meshes[0].triangles.assign(1500, {1, {0, 0, 0, 0}});
-    const Client::Scenes::DrawnObject object;
+    const Client::Actors::Drawing::DrawnObject object;
     const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     for (const std::int32_t subtype : {0, 1, 2})
     {
@@ -153,7 +158,7 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
         }
         ASSERT_EQ(counted, 20);
         const auto result =
-            Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x13c, subtype, *effects, random);
+            Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x13c, subtype, *effects, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(random.State(), expected.State());
         const auto live = static_cast<std::size_t>(
@@ -178,9 +183,9 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
     }
 }
 
+using Client::Actors::Drawing::EmitVertexEffectsOf;
 using Client::Crt::CrtRandom;
 using Client::Models::SkinnedMesh;
-using Client::Scenes::EmitVertexEffectsOf;
 
 // Un modelo con `count` triángulos de una esquina (el vértice 0) en la malla 0.
 Client::Data::Models::Model OneCornerModel(std::size_t count)
@@ -286,7 +291,7 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
 {
     VertexModels models;
     models.model.meshes[0].triangles.assign(40, {3, {0, 1, 2, 0}});
-    const Client::Scenes::DrawnObject object;
+    const Client::Actors::Drawing::DrawnObject object;
     const std::array meshes{
         Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}, glm::vec3{44, 55, 66}, glm::vec3{77, 88, 99}}, {}}};
     for (const std::int32_t subtype : {0, 1})
@@ -307,8 +312,8 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
                                                        *twin, expected)
                             .has_value());
         }
-        const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, Client::World::SkinShellEffect,
-                                                              subtype, *effects, random);
+        const auto result = Client::Actors::Drawing::EmitVertexEffects(
+            models, object, meshes, 0, Client::World::SkinShellEffect, subtype, *effects, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(random.State(), expected.State());
         std::size_t made = 0;
@@ -333,8 +338,8 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
             effect.alive = true;
         Client::Crt::CrtRandom full(4), corners(4);
         corners.Discard(static_cast<std::uint32_t>(3 * models.model.meshes[0].triangles.size()));
-        ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, 0, Client::World::SkinShellEffect,
-                                                      subtype, *effects, full)
+        ASSERT_TRUE(Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0,
+                                                               Client::World::SkinShellEffect, subtype, *effects, full)
                         .HasValue());
         EXPECT_EQ(full.State(), corners.State());
     }
@@ -360,7 +365,7 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
     EXPECT_EQ(sprites->Sprites()[0].light, glm::vec3(std::bit_cast<float>(0x3da3d70au)));
     EXPECT_EQ(sprites->Sprites()[0].position, (glm::vec3{11, 22, 33}));
 
-    Client::Scenes::ActorState target;
+    Client::Kernel::ActorState target;
     target.position = {100.0f, 200.0f, 300.0f};
     std::vector<Client::Scenes::JointState> joints(4);
     CrtRandom shout(9), expected(9);

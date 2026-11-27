@@ -150,8 +150,8 @@ struct SkillFrame
 {
     GameHudContext& context;
     TooltipWriter& lines;
-    const OwnCharacterRecord& own;
-    const ActorState& hero;
+    const Kernel::OwnCharacterRecord& own;
+    const Kernel::ActorState& hero;
     std::uint8_t skill = 0;
     CharacterClass heroClass = CharacterClass::DarkWizard;
     std::int32_t siegeSkill = 0;
@@ -161,7 +161,7 @@ struct SkillFrame
     std::uint32_t energy = 0;
     std::uint32_t leadership = 0;
     // [EBP−0x3c] y [EBP−0x38]: 0x5513d0.
-    OwnMagicDamage magic{};
+    Player::OwnMagicDamage magic{};
     // [EBP−0x1c] y [EBP−0x24]: 0x5516e0 más 0x5b8b80.
     std::int32_t damageMin = 0;
     std::int32_t damageMax = 0;
@@ -271,7 +271,7 @@ Core::Expected<void, std::string> WriteTheName(SkillFrame& frame)
     std::string_view name = frame.entry.name;
     if (frame.skill == ForceSkill && frame.hero.hands[0].model != NoModel)
     {
-        const World::ItemState& right = frame.own.equipment[0];
+        const Kernel::ItemState& right = frame.own.equipment[0];
         for (std::size_t i = 0; i < right.optionCount; ++i)
         {
             if (i >= right.optionBytes.size())
@@ -552,28 +552,29 @@ Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
 }
 
 // 0x5b91a1..0x5ba4d2, con el registro propio abierto: los daños, la entrada y los tramos.
-Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, TooltipWriter& lines, const ActorState& hero,
-                                                CharacterClass heroClass, std::int32_t slot, std::int32_t siegeSkill)
+Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, TooltipWriter& lines,
+                                                const Kernel::ActorState& hero, CharacterClass heroClass,
+                                                std::int32_t slot, std::int32_t siegeSkill)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
-    const OwnCharacterRecord& own = world.OwnCharacter();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     const std::optional<std::uint8_t> skill = slot < 0 ? std::nullopt : own.SkillAt(static_cast<std::size_t>(slot));
     if (!skill)
         return Core::Unexpected(std::format("0x5b91af: el byte +0x6c + {} del registro propio no está en MuRet", slot));
     std::uint8_t& depth = runtime.movement.skillDepths[*skill];
     // Un dibujo intermedio no deja las marcas de la lista de los conjuntos: trabaja sobre una copia.
-    ItemSetOptionList projected = world.ItemSets().list;
-    ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
-    auto magic = MagicDamageOf(own, *skill, context.skills, depth, context.random, setOptions);
+    Player::ItemSetOptionList projected = world.ItemSets().list;
+    Player::ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
+    auto magic = Player::MagicDamageOf(own, *skill, context.skills, depth, context.random, setOptions);
     if (!magic.HasValue())
         return Core::Unexpected(magic.Error());
-    auto damage = SkillDamageOf(*skill, context.skills, depth, context.random, setOptions);
+    auto damage = Player::SkillDamageOf(*skill, context.skills, depth, context.random, setOptions);
     if (!damage.HasValue())
         return Core::Unexpected(damage.Error());
     // 0x5b91ee: adentro del registro propio, su acceso no saca nada.
-    const OwnAttackDamage attack =
-        AttackDamageOf(own, heroClass, HeldItemOf(runtime), context.ownRecordDepth, context.random);
+    const Player::OwnAttackDamage attack =
+        Player::AttackDamageOf(own, heroClass, Player::HeldItemOf(runtime), context.ownRecordDepth, context.random);
     auto entry = ReadTheSkillEntry(context, *skill, "0x551c70");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
@@ -615,8 +616,8 @@ Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, Tooltip
 Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, std::int32_t x, std::int32_t y,
                                                       std::int32_t slot, std::int32_t siegeSkill)
 {
-    WorldState& world = context.world;
-    const ActorState& hero = world.Hero();
+    Kernel::WorldState& world = context.world;
+    const Kernel::ActorState& hero = world.Hero();
     const CharacterClass heroClass = BaseClassOf(hero.characterClass);
     auto command = DrawTheCommandTooltip(context, x, y, slot, heroClass);
     if (!command.HasValue())

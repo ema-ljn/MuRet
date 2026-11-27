@@ -21,7 +21,7 @@ TEST(CrywolfDeathSpiritTest, TheMainSpiritRetainsItsTargetOffsetAndCopiesTheInpu
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     Client::Crt::CrtRandom random(7);
     const Client::World::ModelEffectArguments args{
         .type = 0x147, .position = {100, 200, 300}, .angles = {11, 22, 33}, .light = {0, 0, 80}, .owner = &owner};
@@ -46,7 +46,7 @@ TEST(CrywolfDeathSpiritTest, TheEchoCopiesTheOwnersLifetimeAndEmitsItsBlueFire)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     owner.dword60 = 12;
     Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(3);
@@ -66,7 +66,7 @@ TEST(CrywolfDeathSpiritTest, TheEchoCopiesTheOwnersLifetimeAndEmitsItsBlueFire)
 }
 TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsTheSound)
 {
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     Client::World::ModelEffect e;
     e.type = 0x147;
     e.life = 30;
@@ -86,7 +86,7 @@ TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsT
 TEST(CrywolfDeathSpiritTest, AFreeLateDecalRequiresTheNativeStackPointWhileAFullPoolDoesNot)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     Client::World::ModelEffect e;
     e.type = 0x147;
     e.life = 8;
@@ -144,7 +144,7 @@ TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersType
     e.turnDirection = 1.1f;
     e.speed = 10;
     e.velocity = {0, -26, 0};
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     owner.position = {0, -100, 0};
     e.ownerContext = &owner;
     Client::Crt::CrtRandom random(7), expected(7);
@@ -178,7 +178,7 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     std::vector<Client::Scenes::JointState> joints(3);
     Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(13);
-    ASSERT_TRUE(Client::Scenes::StepPetSummon(decal, joints, random).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(decal, joints, random).HasValue());
     for (auto& joint : joints)
     {
         EXPECT_TRUE(joint.alive);

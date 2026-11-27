@@ -10,13 +10,13 @@
 #include <string>
 #include <vector>
 
-// Scenes::ActionDirection y SendTheAction: la dirección del C1 18 (0x576b44, 0x4f248a, 0x59b456) y quién lo manda.
+// Actors::ActionDirection y SendTheAction: la dirección del C1 18 (0x576b44, 0x4f248a, 0x59b456) y quién lo manda.
 // Los valores salen de la cuenta del ASM (0x6b87dc, 0x6b87d8, 0x6b87d4 y el _ftol 0x69fd3c), no de una corrida.
 namespace
 {
-using Client::Scenes::ActionDirection;
-using Client::Scenes::ActionSender;
-using Client::Scenes::SendTheAction;
+using Client::Actors::ActionDirection;
+using Client::Actors::ActionSender;
+using Client::Actors::SendTheAction;
 using Client::Tests::SentAction;
 
 struct Edge

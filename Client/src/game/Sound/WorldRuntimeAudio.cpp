@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 void WorldRuntime::RequestSound(std::int32_t id, std::optional<glm::vec3> origin, bool loop)
 {
@@ -34,4 +34,4 @@ void WorldRuntime::SetSoundVolume(std::uint8_t level)
     }
     audio->SetEffectsVolume(level);
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

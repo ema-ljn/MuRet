@@ -2,10 +2,14 @@
 
 #include "Kernel/CharacterAppearance.h"
 
-// La proyección del equipo del registro persistente que consume el dibujo del personaje.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
+} // namespace Client::Kernel
 
-[[nodiscard]] GameLogic::CharacterAppearance AppearanceOfActor(const ActorState& actor);
-} // namespace Client::Scenes
+// La proyección del equipo del registro persistente que consume el dibujo del personaje.
+namespace Client::Actors
+{
+
+[[nodiscard]] Kernel::CharacterAppearance AppearanceOfActor(const Kernel::ActorState& actor);
+} // namespace Client::Actors

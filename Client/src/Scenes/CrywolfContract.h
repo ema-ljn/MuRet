@@ -12,15 +12,19 @@ namespace Client::Tables
 class TextTable;
 }
 
+namespace Client::Kernel
+{
+struct ActorState;
+struct WorldRuntime;
+class WorldState;
+} // namespace Client::Kernel
+
 // CL9 hito 11, fase 4: el contrato de los altares de Crywolf (06 § La interfaz de Crywolf), *estático*. GS 0.97 no
 // tiene Crywolf: el oráculo es el ASM del cliente. Lo que llena la ventana (0x723a44, sus dos renglones y 0x723be0) es
 // 0x435b00, desde el BD 03 (0x4e1010, Scenes/EventPackets), el clic en un altar (0x567b00, dentro de 0x5650c0) y los
 // botones de la misma ventana; su dibujo es 0x436240 (Scenes/CrywolfInterfaceDrawing).
 namespace Client::Scenes
 {
-struct ActorState;
-struct WorldRuntime;
-class WorldState;
 
 // Los mensajes de 0x435b00: el texto 1950 + n de Text.bmd ([0x774bf04 + 300 · n]).
 inline constexpr std::int32_t ContractRefusedMessage = 2; // el No (0x435ca4)
@@ -48,7 +52,7 @@ struct ContractMessage
 };
 
 // 0x435a00 && 0x4303c0: the stage is the ready one or the started one, in Crywolf's map.
-[[nodiscard]] bool InTheCrywolfDefense(const WorldRuntime& runtime);
+[[nodiscard]] bool InTheCrywolfDefense(const Kernel::WorldRuntime& runtime);
 
 // 0x435b00: con la etapa en 3 o 4 (0x435a00), en el mapa 34 (0x4303c0) y sin la salida pedida (0x576793c). Con 0x38,
 // wsprintfA(renglón, texto 2006, altar & 0xf) y la ventana 1; con otro, strcpy(renglón, texto 1950 + n) y la ventana
@@ -56,16 +60,16 @@ struct ContractMessage
 // Corta sin el texto, con un renglón o un altar fuera de sus tablas o con un texto de 200 bytes o más, que pisaría lo
 // que sigue al renglón (el strcpy y wsprintfA no tienen tope).
 [[nodiscard]] Core::Expected<void, std::string>
-ShowTheContractMessage(WorldRuntime& runtime, const Tables::TextTable* texts, const ContractMessage& message);
+ShowTheContractMessage(Kernel::WorldRuntime& runtime, const Tables::TextTable* texts, const ContractMessage& message);
 
 // 0x435ad0(altar, valor): con la etapa en 3 o 4 en el mapa 34, el byte de 0x6c73cc + altar; no mira la salida pedida.
 // El altar sale de la clave del BD 03 − 0x13c sin tope (Q-C1347): dentro de la guarda y fuera de 0..4, el original
 // escribe en la .data de al lado; MuRet no escribe y devuelve false, y el BD 03 descarta lo que sigue.
-[[nodiscard]] bool SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value);
+[[nodiscard]] bool SetTheAltar(Kernel::WorldRuntime& runtime, std::int32_t altar, std::uint8_t value);
 
 struct ContractWindowContext
 {
-    WorldRuntime& runtime;
+    Kernel::WorldRuntime& runtime;
     const Tables::TextTable* texts = nullptr;
     // El word +0x318 del héroe (0x435cf7): con 0x1c14, 0x1c15 o 0x1c37 el Sí no manda nada.
     std::uint16_t heroPet = 0;
@@ -101,10 +105,10 @@ enum class AltarClick : std::uint8_t
 // en 0), 0x435b00(0x35); con contratos, 0x435b00(0x38, 0, clave, altar) y 0x435b00(0x39, 1, clave, −1), con la clave
 // +0x1f4 del blanco con signo. La llama la llegada a un NPC con Crywolf activo (0x5650c0 con +0x379 en 2,
 // Scenes::TalkToTheNpc), antes del C1 30.
-[[nodiscard]] Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime,
+[[nodiscard]] Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(Kernel::WorldRuntime& runtime,
                                                                            const Tables::TextTable* texts,
-                                                                           const ActorState& hero,
-                                                                           const ActorState& target);
+                                                                           const Kernel::ActorState& hero,
+                                                                           const Kernel::ActorState& target);
 
 // 0x4eac0a..0x4eac41, al entrar a 0x4eac00 (el camino, Pathfinding::PathFinder::Find): con la etapa en 3 o 4 (0x435a00)
 // en el mapa 34 (0x4303c0) y el word +2 del personaje de 0x6c8e54 (el tipo, con signo) en 0x204..0x208, un altar, la
@@ -112,5 +116,5 @@ enum class AltarClick : std::uint8_t
 // camino llega a la celda del altar. 0x4eac00 la calcula en cada llamada con lo que haya en 0x6c8e54, sin mirar quién
 // camina ni adónde: también el clic en el suelo, el D3 y los caminos de los otros personajes (Q-C1351). Con 0x6c8e54 en
 // −1 (sin NPC elegido) el original lee el registro −1, fuera de la tabla (Q-C1350): MuRet lo toma sin altar.
-[[nodiscard]] bool CrywolfAltarGoal(const WorldState& world);
+[[nodiscard]] bool CrywolfAltarGoal(const Kernel::WorldState& world);
 } // namespace Client::Scenes

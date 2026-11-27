@@ -39,6 +39,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
@@ -46,7 +47,6 @@ using Client::Render::Text::FontKind;
 using Client::Scenes::EventMapKind;
 using Client::Scenes::EventMapObject;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -128,8 +128,8 @@ protected:
 
     GameHudContext Context(bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = world->Runtime();
-        Client::Scenes::ActorState& hero = world->Hero();
+        Client::Kernel::WorldRuntime& runtime = world->Runtime();
+        Client::Kernel::ActorState& hero = world->Hero();
         return GameHudContext{.world = *world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -514,7 +514,7 @@ void PutRecord(EventMapObject& event, std::size_t record, std::string_view name,
 
 void NameTheHero(WorldState& world, std::string_view name)
 {
-    Client::Scenes::ActorState& hero = world.Hero();
+    Client::Kernel::ActorState& hero = world.Hero();
     hero.name = {};
     for (std::size_t at = 0; at < name.size(); ++at)
         hero.name[at] = static_cast<std::byte>(name[at]);

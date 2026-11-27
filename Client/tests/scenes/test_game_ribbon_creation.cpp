@@ -10,9 +10,9 @@ TEST(GameRibbonCreationTest, ExistingOwnerWithNonPositiveKeyReusesItsLifeAndShif
 {
     std::array<Client::Scenes::RibbonState, 2> ribbons{};
     std::uint16_t equipment = 0;
-    const Client::Scenes::RibbonCreateRequest request{&equipment,         &equipment, {1, 2, 3}, {4, 5, 6},
-                                                      {0.2f, 0.3f, 0.4f}, 3,          false,     7};
-    auto created = Client::Scenes::CreateRibbon(ribbons, request);
+    const Client::Actors::Drawing::RibbonCreateRequest request{&equipment,         &equipment, {1, 2, 3}, {4, 5, 6},
+                                                               {0.2f, 0.3f, 0.4f}, 3,          false,     7};
+    auto created = Client::Actors::Drawing::CreateRibbon(ribbons, request);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     EXPECT_EQ(*created.Value(), 0u);
@@ -23,7 +23,7 @@ TEST(GameRibbonCreationTest, ExistingOwnerWithNonPositiveKeyReusesItsLifeAndShif
     next.key = 0;
     next.first = {10, 20, 30};
     next.type = 1;
-    created = Client::Scenes::CreateRibbon(ribbons, next);
+    created = Client::Actors::Drawing::CreateRibbon(ribbons, next);
     ASSERT_TRUE(created.HasValue());
     EXPECT_EQ(*created.Value(), 0u);
     EXPECT_EQ(ribbons[0].life, 9);
@@ -39,16 +39,16 @@ TEST(GameRibbonCreationTest, PositiveKeysSplitAnOwnerAndAFullPoolDoesNotOverwrit
 {
     std::array<Client::Scenes::RibbonState, 2> ribbons{};
     std::uint16_t equipment = 1;
-    Client::Scenes::RibbonCreateRequest request{&equipment, &equipment, {}, {}, {}, 0, true, 1};
-    ASSERT_TRUE(Client::Scenes::CreateRibbon(ribbons, request).HasValue());
+    Client::Actors::Drawing::RibbonCreateRequest request{&equipment, &equipment, {}, {}, {}, 0, true, 1};
+    ASSERT_TRUE(Client::Actors::Drawing::CreateRibbon(ribbons, request).HasValue());
     request.key = 2;
-    const auto second = Client::Scenes::CreateRibbon(ribbons, request);
+    const auto second = Client::Actors::Drawing::CreateRibbon(ribbons, request);
     ASSERT_TRUE(second.HasValue());
     ASSERT_TRUE(second.Value().has_value());
     EXPECT_EQ(*second.Value(), 1u);
     EXPECT_EQ(ribbons[1].life, 15);
     request.key = 3;
-    const auto full = Client::Scenes::CreateRibbon(ribbons, request);
+    const auto full = Client::Actors::Drawing::CreateRibbon(ribbons, request);
     ASSERT_TRUE(full.HasValue());
     EXPECT_FALSE(full.Value().has_value());
     EXPECT_EQ(ribbons[1].key, 2);
@@ -63,13 +63,13 @@ TEST(GameRibbonCreationTest, StepDuplicatesTheHeadAndExpiresOnlyAfterItsExtraCou
     ribbon.count = 4;
     ribbon.first[0] = {1, 2, 3};
     ribbon.first[1] = {4, 5, 6};
-    ASSERT_TRUE(Client::Scenes::StepRibbons(ribbons).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepRibbons(ribbons).HasValue());
     EXPECT_EQ(ribbon.life, 0);
     EXPECT_EQ(ribbon.count, 2);
     EXPECT_TRUE(ribbon.alive);
     EXPECT_EQ(ribbon.first[1], ribbon.first[0]);
     EXPECT_EQ(ribbon.first[2], (glm::vec3{4, 5, 6}));
-    ASSERT_TRUE(Client::Scenes::StepRibbons(ribbons).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepRibbons(ribbons).HasValue());
     EXPECT_FALSE(ribbon.alive);
     EXPECT_EQ(ribbon.count, 0);
     EXPECT_EQ(ribbon.first[0], (glm::vec3{1, 2, 3}));
@@ -79,9 +79,9 @@ TEST(GameRibbonCreationTest, ReemissionAfterTwoTicksReplacesBothHeadsWithoutShif
 {
     std::array<Client::Scenes::RibbonState, 1> ribbons{};
     std::uint16_t equipment = 7;
-    const Client::Scenes::RibbonCreateRequest request{&equipment,         &equipment, {1, 2, 3}, {4, 5, 6},
-                                                      {0.2f, 0.3f, 0.4f}, 3,          false,     7};
-    ASSERT_TRUE(Client::Scenes::CreateRibbon(ribbons, request).HasValue());
+    const Client::Actors::Drawing::RibbonCreateRequest request{&equipment,         &equipment, {1, 2, 3}, {4, 5, 6},
+                                                               {0.2f, 0.3f, 0.4f}, 3,          false,     7};
+    ASSERT_TRUE(Client::Actors::Drawing::CreateRibbon(ribbons, request).HasValue());
     auto& ribbon = ribbons[0];
     for (std::size_t index = 1; index < Client::Scenes::RibbonPointCount; ++index)
     {
@@ -90,8 +90,8 @@ TEST(GameRibbonCreationTest, ReemissionAfterTwoTicksReplacesBothHeadsWithoutShif
     }
     const auto firstHistory = ribbon.first;
     const auto secondHistory = ribbon.second;
-    ASSERT_TRUE(Client::Scenes::StepRibbons(ribbons).HasValue());
-    ASSERT_TRUE(Client::Scenes::StepRibbons(ribbons).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepRibbons(ribbons).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepRibbons(ribbons).HasValue());
     ASSERT_EQ(ribbon.count, -1);
     ASSERT_TRUE(ribbon.alive);
     auto next = request;
@@ -101,7 +101,7 @@ TEST(GameRibbonCreationTest, ReemissionAfterTwoTicksReplacesBothHeadsWithoutShif
     next.second = {40, 50, 60};
     next.type = 1;
     next.light = {0.7f, 0.8f, 0.9f};
-    const auto created = Client::Scenes::CreateRibbon(ribbons, next);
+    const auto created = Client::Actors::Drawing::CreateRibbon(ribbons, next);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_TRUE(created.Value().has_value());
     EXPECT_EQ(*created.Value(), 0u);
@@ -126,8 +126,9 @@ TEST(GameRibbonCreationTest, OversizedPositiveHistoryFailsAfterTypeAndLightWitho
 {
     std::array<Client::Scenes::RibbonState, 1> ribbons{};
     std::uint16_t equipment = 7;
-    const Client::Scenes::RibbonCreateRequest request{&equipment, &equipment, {1, 2, 3}, {4, 5, 6}, {}, 3, false, 7};
-    ASSERT_TRUE(Client::Scenes::CreateRibbon(ribbons, request).HasValue());
+    const Client::Actors::Drawing::RibbonCreateRequest request{&equipment, &equipment, {1, 2, 3}, {4, 5, 6},
+                                                               {},         3,          false,     7};
+    ASSERT_TRUE(Client::Actors::Drawing::CreateRibbon(ribbons, request).HasValue());
     auto& ribbon = ribbons[0];
     ribbon.count = static_cast<std::int32_t>(Client::Scenes::RibbonPointCount);
     const auto first = ribbon.first;
@@ -135,7 +136,7 @@ TEST(GameRibbonCreationTest, OversizedPositiveHistoryFailsAfterTypeAndLightWitho
     auto next = request;
     next.type = 1;
     next.light = {0.7f, 0.8f, 0.9f};
-    const auto result = Client::Scenes::CreateRibbon(ribbons, next);
+    const auto result = Client::Actors::Drawing::CreateRibbon(ribbons, next);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x52e3d5"), std::string::npos);
     EXPECT_EQ(ribbon.first, first);

@@ -37,12 +37,21 @@ namespace Client::Tables
 class TextTable;
 }
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class Particles;
-struct WorldTerrain;
 } // namespace Client::World
+
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
 
 // El paso de los personajes (0x508f00, desde el juego en 0x63710f, la selección en 0x6342f9 y el login en
 // 0x634d13): el TerrainWall, si cada uno se ve y, por cada uno, 0x508ea0: 0x508ba0 con los que no son el
@@ -51,14 +60,13 @@ struct WorldTerrain;
 // Client/docs/research/06-render-escenas-y-ui.md, "El paso de los personajes", "El paso de los personajes en
 // la selección y el login", "El cuerpo de los personajes (0x4fd5f0)" y "Los efectos de los personajes
 // (0x505de0)".
-namespace Client::Scenes
+namespace Client::Actors
 {
-class WorldState;
 class PlayerActionSpeeds;
 
 // 0x5fba90 como lo llaman 0x508f00 (0x50916d..0x50918c) y 0x508ea0 (0x508eac..0x508ecb): el lugar del
 // personaje por 0,01f (0x6b88d4), guardado en float, con el margen de −20 (0xc1a00000).
-[[nodiscard]] bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& position);
+[[nodiscard]] bool CharacterSeen(const Terrain::TerrainPolygon& polygon, const glm::vec3& position);
 
 // La celda lógica de un personaje: la X de +0x41c y la Y de +0x420.
 struct LogicalCell
@@ -69,17 +77,17 @@ struct LogicalCell
 
 // La celda lógica por la tabla de protección, como la leen 0x508f00, 0x505de0 y la cámara (0x635ae0):
 // la Y y después la X, cada una en un acceso que se cierra y gasta 4 rand() si lo deja en 0.
-[[nodiscard]] LogicalCell ReadLogicalCell(ActorState& actor, Crt::CrtRandom& random);
+[[nodiscard]] LogicalCell ReadLogicalCell(Kernel::ActorState& actor, Crt::CrtRandom& random);
 
 struct CharacterStepContext
 {
     // Con el trapecio global que dejó el último 0x5fb570 (WorldRuntime::terrainPolygon): antes del primer
     // dibujo del juego, el del último dibujo de la selección (Q-C216).
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     // DAT_006d5dc8: la selección (4) decide el final de la animación con el frame + 2 (Q-C21), y el 0x607
     // del mapa 7 de 0x505de0 es solo de la 5 (0x506cf8).
-    SceneId scene = SceneId::Game;
+    Scenes::SceneId scene = Scenes::SceneId::Game;
     // Player.bmd, el modelo 0x5769ad8 + 0x20a · 0xe0 de las acciones que leen 0x4f9580 y 0x4ec200. Sin él,
     // el cuerpo corta en 0x4f9580.
     const Models::Skeleton* playerSkeleton = nullptr;
@@ -93,14 +101,14 @@ struct CharacterStepContext
     // 3). nullptr: un modelo que no es el 0x20a corta ahí.
     const Models::IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
-    const World::WorldTerrain* terrain = nullptr;
+    const Terrain::WorldTerrain* terrain = nullptr;
     const Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
     // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
     World::FrameSprites* sprites = nullptr;
     // Los joints del juego (0x74a8d78, GameDrawTailState::joints), para el 0x618/0 y /1 del que mató (0x505169). Vacío,
     // el paso del ataque corta ahí.
-    std::span<JointState> joints{};
+    std::span<Scenes::JointState> joints{};
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
@@ -136,17 +144,18 @@ struct CharacterStepContext
 // del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 
-// 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 (Scenes::StepActorCooldown) con el pool de partículas y la
+// 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 (Actors::StepActorCooldown) con el pool de partículas y la
 // tabla de efectos del contexto: la 5f3/1 (0x506a73) y la piedrita 0xc8/0xc9 /0 sin dueño (0x506ab7). Guardan
 // referencias a `context`.
 [[nodiscard]] ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& context);
 
 // 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
-[[nodiscard]] Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepCharacter(Kernel::ActorState& actor,
+                                                              const CharacterStepContext& context);
 
 // 0x4fd5f0(objeto, objeto) y 0x505de0(objeto, objeto) seguidos, sin 0x508ea0: no mira el byte vivo ni si se ve (+0x16c
 // queda como está) ni corre 0x508ba0. Lo llama el retrato de las cartas (0x495a20, 0x495dad..0x495db8, y su dibujo,
 // 0x495760), con un personaje fuera del pool que no es el héroe.
-[[nodiscard]] Core::Expected<void, std::string> StepTheBodyAndEffects(ActorState& actor,
+[[nodiscard]] Core::Expected<void, std::string> StepTheBodyAndEffects(Kernel::ActorState& actor,
                                                                       const CharacterStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Actors

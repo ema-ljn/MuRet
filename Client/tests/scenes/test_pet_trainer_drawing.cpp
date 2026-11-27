@@ -41,12 +41,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
-using Client::World::ItemState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x7a1e5u;
@@ -124,7 +124,7 @@ protected:
     {
         m_sprites.Begin(Screen640);
         m_world->OwnCharacter().ClearEquipmentForEntry();
-        Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 3;
+        Runtime().pets[Client::Kernel::DarkHorsePetStats].level = 3;
         Runtime().field78abb10 = 1;
         auto& name = m_world->Hero().name;
         const std::string_view hero = "Domador";
@@ -132,7 +132,7 @@ protected:
             name[i] = static_cast<std::byte>(hero[i]);
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -140,9 +140,9 @@ protected:
     Client::Core::Expected<void, std::string> Draw(std::int32_t mode, std::int32_t x = 0, std::int32_t y = 0,
                                                    bool leftDown = false, bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.panels.delegated.trainer = mode;
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

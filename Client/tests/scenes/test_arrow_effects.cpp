@@ -50,13 +50,13 @@
 // y 0x517850, por el paso del ataque (0x50377d y 0x504060). 06, "La flecha".
 namespace
 {
+using Client::Actors::CharacterStepContext;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::ArrowStepContext;
-using Client::Scenes::CharacterStepContext;
 using Client::Scenes::StepArrow;
 using Client::Scenes::StepTheAttack;
-using Client::Scenes::WorldState;
 using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
@@ -280,7 +280,7 @@ struct ArrowWorld
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::World::Particles particles;
     Client::World::FrameSprites sprites;
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> soundOrigins;
     std::vector<Client::Protocol::Outgoing> sent;

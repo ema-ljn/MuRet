@@ -67,12 +67,12 @@ inline void TypeText(Input::InputState& input, std::string text)
 
 // Los buffers de las texturas de un test: los de `sizes`, y 1 × 1 los demás, como BufferSize con
 // un slot que no se subió.
-inline UI::TextureSizes FakeTextureSizes(std::map<std::uint16_t, Scenes::TextureBufferSize> sizes)
+inline UI::TextureSizes FakeTextureSizes(std::map<std::uint16_t, Assets::TextureBufferSize> sizes)
 {
     return [sizes = std::move(sizes)](Render::TextureSlot slot)
     {
         const auto found = sizes.find(slot.value);
-        return found == sizes.end() ? Scenes::TextureBufferSize{} : found->second;
+        return found == sizes.end() ? Assets::TextureBufferSize{} : found->second;
     };
 }
 } // namespace Client::Tests

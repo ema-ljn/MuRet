@@ -52,6 +52,16 @@
 #include <string_view>
 #include <vector>
 
+namespace Client::Assets
+{
+class GameModels;
+} // namespace Client::Assets
+
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // La escena 4, la selección de personaje (0x633f20 al entrar, 0x6342c0 la lógica y 0x634680 el
 // dibujo): los personajes de la lista en sus lugares, animados, el clic que elige el que está bajo el
 // mouse, y Enter o el doble clic que entra al mundo con el elegido. Arriba, la barra de la selección
@@ -64,8 +74,6 @@
 namespace Client::Scenes
 {
 struct FaunaDrawCarry;
-struct ActorState;
-class GameModels;
 
 class CharacterSelectScene final : public IScene
 {
@@ -76,9 +84,9 @@ public:
     // de la ventana de crear sigue desde 0x6f8; nullptr, una tabla vacía. Tiene que vivir más.
     CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, const Models::IModelLibrary& models,
                          App::ServerSession* session, const Models::ModelTextureSlots* gameSlots = nullptr);
-    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, GameModels& models,
+    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, Assets::GameModels& models,
                          App::ServerSession* session);
-    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, GameModels& models,
+    CharacterSelectScene(const SceneContext& context, const Tables::GameData& data, Assets::GameModels& models,
                          App::ServerSession* session, const Models::ModelTextureSlots* gameSlots);
 
     // Como 0x633f20: su juego de texturas y sus modelos (0x61ca30: Logo05 y los NewFace de la vista
@@ -108,7 +116,7 @@ public:
     [[nodiscard]] bool HoldsTheLastFrame() const override;
     // El error de 0x5fb570 en el dibujo (ADR 0009), con la dirección; vacío mientras no corte.
     [[nodiscard]] std::optional<std::string> Failure() const override;
-    [[nodiscard]] const ActorState& PreviewActor() const;
+    [[nodiscard]] const Kernel::ActorState& PreviewActor() const;
 
 private:
     // Un personaje de la lista en su lugar, con la entrada de la que salió.
@@ -117,10 +125,10 @@ private:
         std::uint8_t slot = 0;
         std::uint64_t revision = 0;
         Protocol::FrontEnd::CharacterEntry entry;
-        GameLogic::CharacterAppearance appearance;
-        CharacterAnimation animation;
+        Kernel::CharacterAppearance appearance;
+        Actors::CharacterAnimation animation;
         // Su tela (0x50ba30 la arma desde el primer frame en que se dibuja).
-        CharacterCloth cloth;
+        Actors::Drawing::CharacterCloth cloth;
     };
 
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.
@@ -132,7 +140,7 @@ private:
     [[nodiscard]] bool PrepareTheCharacters();
     // 0x63420a: con alguno de los dos números de pkt[5] de la lista, el 1240 en el área de mensajes.
     [[nodiscard]] Core::Expected<void, std::string> AddTheAccountNotice();
-    [[nodiscard]] CharacterStepContext CharacterContext();
+    [[nodiscard]] Actors::CharacterStepContext CharacterContext();
     void StepCharacters();
     void StepTheScene(const Input::InputState& input);
     // Si abrió el aviso 0x70 en este paso.
@@ -168,10 +176,10 @@ private:
     void DrawTheCreateWindow(Render::Frame::SceneCanvas& canvas, float alpha);
     // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState: lo que
     // devuelve el último, que lee el conjunto completo de la cola de efectos.
-    FullSetScan ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
+    Actors::FullSetScan ScanTheCharacter(const Kernel::CharacterAppearance& appearance, int frames);
     // 0x635ae0 (0x6346ca) y 0x5fbb00 (0x63475c) en cada frame del original que cuenta el reloj, uno detrás
     // del otro; un dibujo intermedio solo consulta la cámara. Con un error del trapecio deja m_failure.
-    [[nodiscard]] Render::Camera3D StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
+    [[nodiscard]] Render::Camera3D StepTheCameraAndTheTrapezoid(const Camera::GameCameraInput& input,
                                                                 Core::Duration clock);
     // Si el mundo 54 corre: con WorldState, la tela, la selección inicializada y el mapa 54 en curso.
     [[nodiscard]] bool HasTheWorld() const;
@@ -187,9 +195,9 @@ private:
     // Si Player.bmd tiene su esqueleto con acciones: sin ellas, 0x50ba30 sale antes (0x50ba87).
     [[nodiscard]] bool HasTheSkeleton() const;
     // 0x50db57..0x510a7a con un personaje de la lista, después de su cuerpo; un error queda en m_failure.
-    void DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, std::size_t slot,
-                     const DrawnCharacter& drawn, FaunaDrawCarry& poseCarry, const FullSetScan& scan,
-                     bool originalFrame);
+    void DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor, std::size_t slot,
+                     const Actors::Drawing::DrawnCharacter& drawn, FaunaDrawCarry& poseCarry,
+                     const Actors::FullSetScan& scan, bool originalFrame);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(Render::Frame::SceneCanvas& canvas) const;
     // 0x634949..0x63495f: los avisos y el área vieja, antes de la UI.
@@ -221,17 +229,17 @@ private:
     void TryToEnter();
     [[nodiscard]] Models::ObjectTransform ObjectOf(const Character& character) const;
     // El buffer de un slot de las ventanas o de la escena.
-    [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
+    [[nodiscard]] Assets::TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
-    [[nodiscard]] World::GameCamera& CameraState();
-    [[nodiscard]] World::GameCameraInput& CameraInputState();
+    [[nodiscard]] Camera::GameCamera& CameraState();
+    [[nodiscard]] Camera::GameCameraInput& CameraInputState();
     [[nodiscard]] CreatePreview& Preview();
     [[nodiscard]] const CreatePreview& Preview() const;
 
     SceneContext m_context;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
-    World::GameCamera m_localCamera;
-    World::GameCameraInput m_localCameraInput;
+    Camera::GameCamera m_localCamera;
+    Camera::GameCameraInput m_localCameraInput;
     Models::OriginalFrameCarry m_cameraFrames;
     // Los frames del original de 0x505820 desde el dibujo (0x50c91e), como los de la cámara.
     Models::OriginalFrameCarry m_fullSetScanFrames;
@@ -245,14 +253,14 @@ private:
     const Tables::ItemTable* m_items;
     const Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
-    SceneTextures m_textures;
-    SceneTextures m_windowTextures;
+    Assets::SceneTextures m_textures;
+    Assets::SceneTextures m_windowTextures;
     // El mundo 54 (P-C50): los tiles, los modelos de Object55, los sprites y las copias de los dibujos
     // intermedios.
     SelectionWorld m_world;
     // El trapecio y el rango del último frame, los del pase del terreno y los objetos.
-    World::TerrainPolygon m_polygon{};
-    World::TerrainRange m_terrainRange{};
+    Terrain::TerrainPolygon m_polygon{};
+    Terrain::TerrainRange m_terrainRange{};
     UI::NoticeWindow m_notice;
     UI::SelectionBar m_bar;
     // Los globos de los cinco lugares (+0x8dc8 de la UI nueva, 06 § Los globos).
@@ -269,7 +277,7 @@ private:
     // Si ya se abrió la barra con la lista (0x65f4b0).
     bool m_openedTheBar = false;
     const Models::ModelTextureSlots* m_gameSlots;
-    GameModels* m_startupModels = nullptr;
+    Assets::GameModels* m_startupModels = nullptr;
     SelectionModels m_selectionModels;
     // Adaptador sin SelectionState: main conserva el NewFace en el estado durable de selección.
     CreatePreview m_preview;

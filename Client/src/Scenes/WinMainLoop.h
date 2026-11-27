@@ -10,6 +10,13 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+struct ActorState;
+struct WorldRuntime;
+class WorldState;
+} // namespace Client::Kernel
+
 // Los rand() de la vuelta de WinMain (P-C61, Q-C457, Q-C461), que no son de ninguna escena: cada vuelta sin
 // mensajes pendientes abre y cierra el contador protegido de 4 bytes 0x5763578 y el byte del foco 0x5763580 antes
 // del frame (0x63945d), y el frame, después de la escena (0x637700), vuelve a abrir y cerrar el contador. Con
@@ -17,9 +24,6 @@ class CrtRandom;
 // ShowWindow), que MuRet no modela; tampoco el rand() del foco que el WndProc saca por cada mensaje.
 namespace Client::Scenes
 {
-struct ActorState;
-struct WorldRuntime;
-class WorldState;
 // 0x5763578 y 0x5763574, en la .bss.
 struct WinMainCounters
 {
@@ -45,15 +49,15 @@ void StepTheWinMainLoop(WinMainCounters& counters, Crt::CrtRandom& random);
 void CloseTheFrameCounter(Crt::CrtRandom& random);
 
 // 0x638ae4..0x6391e4: en Devias, cada comparación del rectángulo abre y cierra la celda por su cuenta.
-[[nodiscard]] bool InTheDeviasChurch(ActorState& hero, Crt::CrtRandom& random);
+[[nodiscard]] bool InTheDeviasChurch(Kernel::ActorState& hero, Crt::CrtRandom& random);
 
 // 0x63869c..0x6388a8: el ambiente y las paradas de la escena del mundo preceden a la selección de música.
-void StepWorldAmbience(WorldRuntime& runtime, Crt::CrtRandom& random);
+void StepWorldAmbience(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random);
 
 // The end of a loop turn. 0x63b0b7: the tail of 0x63945d switches off the dialogs' Enter (0x5763588). Then, once per
 // frame of the original in this turn: in the game scene the ambience, the map's music and Crywolf's (0x430250); the
 // frame counter of 0x63945d; the Slide banner's WM_TIMER 0x3eb if it is due (P-C80; once, with the loop's time in ms
 // as timeGetTime); and the counters of the next turn (P-C61).
-void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Crt::CrtRandom& random, Core::Duration now,
+void FinishTheWinMainLoop(WinMainLoopState& loop, Kernel::WorldState& world, Crt::CrtRandom& random, Core::Duration now,
                           Models::OriginalFramePace pace, bool gameScene);
 } // namespace Client::Scenes

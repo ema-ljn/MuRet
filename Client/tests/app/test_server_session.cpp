@@ -4192,7 +4192,7 @@ TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     const auto world = std::make_unique<BareWorld>();
     tested.eventSink.routedWorld = &world->resources;
-    Client::Scenes::WorldRuntime& runtime = world->world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world->world.Runtime();
     runtime.floor.pendingPickUp = 5;
     runtime.floor.pendingDrop = 22;
     runtime.ui.field5767954 = 10;

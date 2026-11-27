@@ -117,7 +117,7 @@ MagicAttackSite SiteOf(std::uint8_t skill)
 class SharedTail
 {
 public:
-    SharedTail(ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
+    SharedTail(Kernel::ActorState& hero, std::uint8_t skill, const HeroSkillContext& context)
         : m_hero(hero), m_skill(skill), m_context(context), m_world(context.world), m_runtime(context.world.Runtime()),
           m_state(context.world.Runtime().movement)
     {
@@ -135,11 +135,11 @@ private:
     Core::Expected<void, std::string> SendTheMagicAttack(const MagicAttackSite& site);
     Core::Expected<void, std::string> ActByTheMount(std::uint8_t standing);
 
-    ActorState& m_hero;
+    Kernel::ActorState& m_hero;
     std::uint8_t m_skill;
     const HeroSkillContext& m_context;
-    WorldState& m_world;
-    WorldRuntime& m_runtime;
+    Kernel::WorldState& m_world;
+    Kernel::WorldRuntime& m_runtime;
     GameMovementState& m_state;
 };
 
@@ -175,7 +175,7 @@ Core::Expected<void, std::string> SharedTail::Use()
 // 0x580928..0x580975 y 0x593fbd..0x593fdd: todos los caminos siguen en 0x593fe0, sin mirar si alcanzó (Q-C1226).
 Core::Expected<void, std::string> SharedTail::PayForTheSkill(const SkillCost& cost)
 {
-    const OwnCharacterRecord& record = m_world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& record = m_world.OwnCharacter();
     // 0x580928..0x580938: JLE con signo contra +0x24 de [0x7681eb0].
     if (static_cast<std::int32_t>(cost.mana) > static_cast<std::int32_t>(record.mana))
     {
@@ -307,7 +307,7 @@ Core::Expected<void, std::string> SharedTail::ActByTheMount(std::uint8_t standin
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheSharedTail(ActorState& hero, std::uint8_t skill,
+Core::Expected<void, std::string> UseTheSharedTail(Kernel::ActorState& hero, std::uint8_t skill,
                                                    const HeroSkillContext& context)
 {
     // 0x5808da..0x5808e9.

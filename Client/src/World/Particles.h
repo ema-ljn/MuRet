@@ -19,6 +19,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 // Las partículas (CL7.6 B2): la tabla de 0x53fe70 (0x743a198, 3.000 lugares de 0x78 bytes) y su paso,
 // 0x5446e0, con el viento de 0x7609bb8. Su dibujo, 0x548550, tiene un solo contrato: el de
 // World/ParticleDrawing.h, que sigue la tabla de saltos del ASM y no este subconjunto de creación. De sus
@@ -33,7 +38,6 @@ namespace Client::World
 {
 class FrameSprites;
 class IParticleTrigonometry;
-struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
@@ -392,7 +396,7 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const std::int32_t* map, IParticleTrigonometry& trigonometry,
                      const ParticleTerrainHeight& terrainHeight = {}, const ParticleObjectOwners& owners = {},
                      const ParticleActorActions& actorActions = {}, const ParticleTextureHeight& textureHeight = {},
-                     TerrainLighting* lighting = nullptr, const ParticleActorHands& actorHands = {},
+                     Terrain::TerrainLighting* lighting = nullptr, const ParticleActorHands& actorHands = {},
                      const ParticleOwnerBones& ownerBones = {});
 
 // Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback. `ownerStates` da
@@ -404,7 +408,7 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const std::int32_t* map, IParticleTrigonometry& trigonometry,
                      const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                      const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
-                     TerrainLighting* lighting, const ParticleActorHands& actorHands,
+                     Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands,
                      const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
                      const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
 

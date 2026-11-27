@@ -11,7 +11,7 @@
 // 640 × 480 y con el estado de GL que dejan, como el original.
 namespace Client::UI
 {
-// Interface\FontTest.tga, el atlas de las cifras (Scenes::DamageTextureSet): 16 columnas de 16 píxeles en una fila
+// Interface\FontTest.tga, el atlas de las cifras (Assets::DamageTextureSet): 16 columnas de 16 píxeles en una fila
 // de 32 de las 64 de alto.
 inline constexpr Render::TextureSlot DigitsSlot{1};
 

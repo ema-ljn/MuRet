@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 struct WorldModelTextureRequests
 {
@@ -453,4 +453,4 @@ const Models::ModelTextureSlots* WorldModels::TextureSlots() const
 {
     return m_slots ? &*m_slots : m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : nullptr;
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

@@ -12,7 +12,7 @@
 #include <bit>
 #include <cstddef>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -90,4 +90,4 @@ bool SphereVisible(const SphereFrustum& frustum, const glm::vec3& center, float 
     }
     return true;
 }
-} // namespace Client::World
+} // namespace Client::Terrain

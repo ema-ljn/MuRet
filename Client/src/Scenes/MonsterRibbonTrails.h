@@ -9,14 +9,24 @@ namespace Client::Models
 struct Skeleton;
 }
 
-namespace Client::Scenes
+namespace Client::Actors
+{
+struct CharacterStepContext;
+} // namespace Client::Actors
+
+namespace Client::Kernel
 {
 struct ActorState;
-struct CharacterStepContext;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // 441260→42fa40 y 426d90: cintas de armas propias de los monstruos, sobre la pose compartida.
 [[nodiscard]] Core::Expected<void, std::string>
-EmitEarlyMonsterRibbonTrails(ActorState& actor, const Models::Skeleton* skeleton, const CharacterStepContext& context);
+EmitEarlyMonsterRibbonTrails(Kernel::ActorState& actor, const Models::Skeleton* skeleton,
+                             const Actors::CharacterStepContext& context);
 [[nodiscard]] Core::Expected<void, std::string>
-EmitLateMonsterRibbonTrails(ActorState& actor, const Models::Skeleton* skeleton, const CharacterStepContext& context);
+EmitLateMonsterRibbonTrails(Kernel::ActorState& actor, const Models::Skeleton* skeleton,
+                            const Actors::CharacterStepContext& context);
 } // namespace Client::Scenes

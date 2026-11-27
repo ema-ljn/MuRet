@@ -9,7 +9,7 @@
 // Lo que 0x612d90(n) y 0x612270(modelo) hacen con un modelo de monstruo o de NPC después de leerlo (CL9 hito 2, 08
 // P-C176): las tablas, leídas del listado caso por caso (*estático*). Quien carga es FaunaModels (LoadMonster y
 // LoadNpc); acá están solo los datos y las reglas sin estado. Contrato: 06, "Los modelos de los monstruos y los NPC".
-namespace Client::Scenes
+namespace Client::Assets
 {
 // 0x612d90(n) lee Monster\Monster{n + 1}.bmd en el modelo 0x152 + n.
 inline constexpr std::uint16_t FirstMonsterModel = 0x152;
@@ -113,4 +113,4 @@ struct NpcModelCase
 // (0x3e800000) y, con mallas, 0x60d5f0(modelo, "Npc\", …) otra vez.
 inline constexpr float NpcActionSpeed = 0.25f;
 inline constexpr std::string_view NpcTextureFolder = "Npc\\";
-} // namespace Client::Scenes
+} // namespace Client::Assets

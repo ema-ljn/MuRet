@@ -150,7 +150,7 @@ TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
         Client::World::PortableParticleTrigonometry trigonometry;
         const float clock = 123456.75f;
         const std::int32_t map = 0;
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {},
                                                         {}, {}, lighting.get())
                         .HasValue());
@@ -158,7 +158,7 @@ TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
                                      Bits(0x3a83126fu)));
         const double glow = static_cast<double>(bolt.life) * Bits(0x3dcccccdu);
         const glm::vec3 color{F32(glow * 0.5), F32(glow), F32(static_cast<double>(F32(glow)) * Bits(0x3f4ccccdu))};
-        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(Client::World::AddDynamicLight(expectedLighting.get(), bolt.position, color, 3, "test").HasValue());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
 

@@ -598,7 +598,7 @@ constexpr int NumberRowStep = 6;
 struct Frame
 {
     GameHudContext& context;
-    WorldRuntime& runtime;
+    Kernel::WorldRuntime& runtime;
 };
 
 bool MouseIn(const Frame& frame, int left, int top, int right, int bottom)
@@ -643,7 +643,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Frame& frame, std::si
 // dibuja, pero se mide igual y su tamaño en 640 × 480 queda en 0x77f31b8 y 0x77f31bc.
 void DrawText(Frame& frame, int x, int y, std::string_view text)
 {
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     if (!text.empty())
         frame.context.text.Draw(x, y, text, Render::Text::TextStyle{.font = hud.dcFont, .colors = hud.textColors});
     const Render::Text::TextExtent extent = frame.context.text.Measure(hud.dcFont, text);
@@ -927,7 +927,7 @@ void DrawTheFrame(Frame& frame, int top, int rows)
 Core::Expected<void, std::string> DrawTheMixModes(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     sprites.SetColor(White);
     DrawTheFrame(frame, MixModeTop, MixModeRows);
     int top = MixModeButtonTop;
@@ -963,7 +963,7 @@ Core::Expected<void, std::string> DrawTheMixModes(Frame& frame)
 // 1800 del 0xa4): el título en negrita con 0xff0080ff, centrado en y = 0x78 + 0xf, que deja la negrita y su color.
 Core::Expected<void, std::string> DrawTheHeadTitle(Frame& frame, std::size_t index)
 {
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     hud.dcFont = Render::Text::FontKind::Bold;
     hud.textColors.text = MixModeHeadColor;
     return DrawCenteredText(frame, MixModeTitleY, index);
@@ -1001,7 +1001,7 @@ Core::Expected<void, std::string> DrawTheNotes(Frame& frame, int x, std::span<co
 // normal después (el color queda).
 Core::Expected<void, std::string> DrawTheJewelButtonText(Frame& frame, int centerX, int y, std::size_t index)
 {
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     auto text = TextOf(frame, index);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
@@ -1016,7 +1016,7 @@ Core::Expected<void, std::string> DrawTheJewelButtonText(Frame& frame, int cente
 Core::Expected<void, std::string> DrawTheJewelMenu(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     sprites.SetColor(White);
     DrawTheFrame(frame, MixModeTop, JewelMenuRows);
     float y = JewelMenuButtonTop;
@@ -1057,7 +1057,7 @@ Core::Expected<void, std::string> DrawTheJewelMenu(Frame& frame)
 // fuente ni el color del texto vuelven entre las dos (Q-C950).
 void PaintTheJewelKind(Frame& frame, int kind, bool hovered)
 {
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     if (frame.runtime.npcWindows.jewels.kind == kind)
     {
         hud.dcFont = Render::Text::FontKind::Bold;
@@ -1078,7 +1078,7 @@ void PaintTheJewelKind(Frame& frame, int kind, bool hovered)
 Core::Expected<void, std::string> DrawTheJewelChoice(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     const std::uint8_t chosen = frame.runtime.npcWindows.jewels.kind;
     sprites.SetColor(White);
     DrawTheFrame(frame, MixModeTop, JewelChoiceRows);
@@ -1140,9 +1140,9 @@ Core::Expected<void, std::string> DrawTheJewelChoice(Frame& frame)
 }
 
 // 0x402de0: las casillas vacías (tipo −1) de las 64 del inventario.
-std::int32_t FreeCellsOf(const WorldState& world)
+std::int32_t FreeCellsOf(const Kernel::WorldState& world)
 {
-    return static_cast<std::int32_t>(std::ranges::count_if(world.Inventory().cells, [](const World::ItemState& cell)
+    return static_cast<std::int32_t>(std::ranges::count_if(world.Inventory().cells, [](const Kernel::ItemState& cell)
                                                            { return cell.id == EmptyCell; }));
 }
 
@@ -1151,7 +1151,7 @@ std::int32_t FreeCellsOf(const WorldState& world)
 Core::Expected<void, std::string> DrawTheJewelUnmix(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     const std::uint8_t chosen = frame.runtime.npcWindows.jewels.kind;
     sprites.SetColor(White);
     DrawTheFrame(frame, MixModeTop, chosen == NoDialogItem ? JewelUnmixShortRows : JewelUnmixRows);
@@ -1252,7 +1252,7 @@ Core::Expected<void, std::string> DrawTheJewelWait(Frame& frame)
 Core::Expected<void, std::string> DrawTheJewelResult(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     sprites.SetColor(White);
     DrawTheFrame(frame, MixModeTop, JewelNoteRows);
     auto title = TextOf(frame, frame.runtime.npcWindows.jewels.mode == 0 ? MixText : UnmixText);
@@ -1301,7 +1301,7 @@ int YesNoTopOf(std::int32_t id)
 void DrawTheLuckButton(Frame& frame, const UI::DialogButton& button, int top, std::string_view text)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    HudState& hud = frame.context.hud;
+    Kernel::HudState& hud = frame.context.hud;
     sprites.SetBlend(BlendMode::Alpha);
     hud.dcFont = Render::Text::FontKind::Bold;
     Quad(frame, LuckButtonSlot, static_cast<float>(button.x) + BoxLeft, static_cast<float>(button.y + top),
@@ -1708,12 +1708,12 @@ void DrawTheConfirmBox(Frame& frame)
 
 // 0x5110d0([0x78aba4c]): el primero de los 400 vivo cuyo +0x1f4 (MOVSX) es la clave guardada, que /party pone con
 // MOVSX y el 40 sin signo; sin ninguno, el 400.
-std::size_t InviterOf(const WorldState& world, std::int32_t key)
+std::size_t InviterOf(const Kernel::WorldState& world, std::int32_t key)
 {
     const auto actors = world.Actors();
     for (std::size_t index = 0; index < KeySearched; ++index)
     {
-        const ActorState& actor = actors[index];
+        const Kernel::ActorState& actor = actors[index];
         if (actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key)
             return index;
     }
@@ -1737,8 +1737,8 @@ Core::Expected<void, std::string> DrawTheInvitation(Frame& frame, std::int32_t i
         return Core::Unexpected(std::move(format).Error());
     if (id == PartyInviteDialog)
     {
-        const WorldState& world = frame.context.world;
-        const ActorState& inviter = world.Actors()[InviterOf(world, frame.runtime.social.party.requestKey)];
+        const Kernel::WorldState& world = frame.context.world;
+        const Kernel::ActorState& inviter = world.Actors()[InviterOf(world, frame.runtime.social.party.requestKey)];
         DrawCentered(frame, InvitationRowY - PartyRowStep, Crt::Sprintf(format.Value(), ChatNameOf(inviter)));
         auto question = TextOf(frame, PartyQuestionText);
         if (!question.HasValue())

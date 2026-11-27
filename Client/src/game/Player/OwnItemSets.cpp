@@ -21,8 +21,8 @@
 #include <string>
 
 // 0x40e1b0 (1.290 bytes), 0x40cfa0 (100), 0x40d010 (1.298) y 0x40de10 (898), cotejados con el PE
-// c32bbd5f: 06, "Los stats del registro propio". 0x40da20 es Scenes::AddItemSetOptionValues (0x40d690).
-namespace Client::Scenes
+// c32bbd5f: 06, "Los stats del registro propio". 0x40da20 es Player::AddItemSetOptionValues (0x40d690).
+namespace Client::Player
 {
 namespace
 {
@@ -124,7 +124,7 @@ std::uint8_t ByteAt(OptionRecord record, std::size_t offset)
     return std::to_integer<std::uint8_t>(record[offset]);
 }
 
-std::uint8_t SetIndexOf(const World::ItemState& item)
+std::uint8_t SetIndexOf(const Kernel::ItemState& item)
 {
     return static_cast<std::uint8_t>(item.flags1c & SetIndexMask);
 }
@@ -136,7 +136,7 @@ bool CountsSlot(std::size_t slot)
 }
 
 // 0x40e27a..0x40e2b3: el lugar 1 o el 11 con el mismo tipo y conjunto que el 0 o el 10.
-bool RepeatsItsPair(std::size_t slot, const World::ItemState& item, const PairedPiece& previous)
+bool RepeatsItsPair(std::size_t slot, const Kernel::ItemState& item, const PairedPiece& previous)
 {
     const bool second = slot == LeftHandSlot || slot == SecondRingSlot;
     return second && previous.type == item.id && previous.setIndex == SetIndexOf(item);
@@ -144,7 +144,7 @@ bool RepeatsItsPair(std::size_t slot, const World::ItemState& item, const Paired
 
 // 0x40e563..0x40e592: un requisito (+0x20 la agilidad, +0x22 la energía, +0x1e la fuerza) mayor que la
 // copia, sin signo.
-bool MeetsRequirements(const World::ItemState& item, const OwnStatCopies& copies)
+bool MeetsRequirements(const Kernel::ItemState& item, const OwnStatCopies& copies)
 {
     return item.word20 <= copies.agility && item.word22 <= copies.energy && item.word1e <= copies.strength;
 }
@@ -322,7 +322,7 @@ Core::Expected<void, std::string> CollectPieceOptions(CollectedOptions& collecte
 Core::Expected<void, std::string> CollectFullSetOptions(ItemSetState& state, CollectedOptions& collected,
                                                         std::size_t kind, const Tables::ItemSetOptionTable& options,
                                                         const SetBeingApplied& set, int optionPieces,
-                                                        ActorState& publishedHero)
+                                                        Kernel::ActorState& publishedHero)
 {
     if (optionPieces < ByteAt(set.record, FullSetPiecesOffset) - FullSetMargin)
     {
@@ -350,7 +350,7 @@ Core::Expected<void, std::string> CollectFullSetOptions(ItemSetState& state, Col
 // 0x40d087..0x40d45e: un conjunto de la lista.
 Core::Expected<void, std::string> ApplyPiece(ItemSetState& state, CollectedOptions& collected,
                                              const ItemSetPiece& piece, const Tables::ItemSetOptionTable& options,
-                                             ActorState& publishedHero)
+                                             Kernel::ActorState& publishedHero)
 {
     const auto record = options.Record(piece.setId);
     if (!record)
@@ -445,13 +445,13 @@ std::uint16_t* CopyOf(OwnStatCopies& copies, std::uint8_t kind)
 }
 
 // 0x40de23..0x40e132, un lugar: abre el registro, y con durabilidad 0x40dc50 y la suma; lo cierra.
-Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, const World::ItemState& item,
+Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, const Kernel::ItemState& item,
                                                        std::size_t slot, const OwnStatsContext& context)
 {
     const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
     // 0x40e038..0x40e075: la contribución de valor 0 es nula cualquiera sea el selector.
     // El acceso lógico queda alrededor, con su cierre y RNG nativos.
-    if (item.durability == 0 || (item.id == EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
+    if (item.durability == 0 || (item.id == Kernel::EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
     {
         return {};
     }
@@ -473,7 +473,7 @@ Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, co
 
 // 0x40e301..0x40e320: un tipo negativo (el −1 de un lugar vacío) no cuenta.
 Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Tables::ItemSetTypeTable& types,
-                                             const World::ItemState& item)
+                                             const Kernel::ItemState& item)
 {
     const auto type = static_cast<std::int16_t>(item.id);
     if (type < 0)
@@ -485,8 +485,9 @@ Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Tables
 
 // Una pasada de 0x40e1b0 (0x40e1e6..0x40e3a1 y 0x40e4cf..0x40e6a1): con `requirements`, la segunda.
 Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece& previous,
-                                              const OwnCharacterRecord& own, const Tables::ItemSetTypeTable& types,
-                                              const OwnStatsContext& context, const OwnStatCopies* requirements)
+                                              const Kernel::OwnCharacterRecord& own,
+                                              const Tables::ItemSetTypeTable& types, const OwnStatsContext& context,
+                                              const OwnStatCopies* requirements)
 {
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
@@ -495,7 +496,7 @@ Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece
             continue;
         }
         const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
-        const World::ItemState& item = own.equipment[slot];
+        const Kernel::ItemState& item = own.equipment[slot];
         if ((requirements != nullptr && !MeetsRequirements(item, *requirements)) ||
             RepeatsItsPair(slot, item, previous))
         {
@@ -515,7 +516,7 @@ Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece
 }
 
 // 0x40e3b3..0x40e494: abre el registro, copia sus cuatro stats y lo cierra.
-OwnStatCopies ReadStatCopies(const OwnCharacterRecord& own, const OwnStatsContext& context)
+OwnStatCopies ReadStatCopies(const Kernel::OwnCharacterRecord& own, const OwnStatsContext& context)
 {
     const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
     return {.strength = own.strength, .agility = own.agility, .vitality = own.vitality, .energy = own.energy};
@@ -555,7 +556,7 @@ Core::Expected<void, std::string> AddItemSetPiece(ItemSetPieces& pieces, const T
 
 Core::Expected<void, std::string> ApplyItemSetOptions(ItemSetState& state, const ItemSetPieces& pieces,
                                                       const Tables::ItemSetOptionTable& options,
-                                                      ActorState& publishedHero)
+                                                      Kernel::ActorState& publishedHero)
 {
     // 0x40d01d..0x40d07d.
     state.byte9307 = 0;
@@ -585,8 +586,8 @@ void ClearItemSetOptionMarks(ItemSetOptionList& list)
     list.used = {};
 }
 
-Core::Expected<void, std::string> AddOwnBonusesToStatCopies(OwnStatCopies& copies, const OwnCharacterRecord& own,
-                                                            const OwnStatsContext& context)
+Core::Expected<void, std::string>
+AddOwnBonusesToStatCopies(OwnStatCopies& copies, const Kernel::OwnCharacterRecord& own, const OwnStatsContext& context)
 {
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
@@ -620,7 +621,8 @@ Core::Expected<void, std::string> AddOwnBonusesToStatCopies(OwnStatCopies& copie
     return {};
 }
 
-Core::Expected<void, std::string> RecalculateOwnItemSets(const OwnCharacterRecord& own, const OwnStatsContext& context)
+Core::Expected<void, std::string> RecalculateOwnItemSets(const Kernel::OwnCharacterRecord& own,
+                                                         const OwnStatsContext& context)
 {
     if (context.itemSetTables == nullptr)
     {
@@ -662,4 +664,4 @@ Core::Expected<void, std::string> RecalculateOwnItemSets(const OwnCharacterRecor
     }
     return ApplyItemSetOptions(state, pieces, tables.options, context.publishedHero);
 }
-} // namespace Client::Scenes
+} // namespace Client::Player

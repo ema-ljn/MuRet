@@ -23,12 +23,16 @@ struct ClothWorld;
 class IModelLibrary;
 } // namespace Client::Models
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class FrameSprites;
 class ModelEffects;
 class Particles;
-struct TerrainLighting;
 } // namespace Client::World
 
 // 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
@@ -87,9 +91,10 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
-           World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
-           const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},
-           const JointKernels::EffectHit& effectHit = {}, World::ModelEffects* effects = nullptr,
-           const ActorState* hero = nullptr, WorldState* world = nullptr,
-           const JointKernels::VolleyServices* volley = nullptr, const Models::IModelLibrary* models = nullptr);
+           Terrain::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
+           const std::function<double(float, float)>& terrainHeight = {},
+           std::span<const Kernel::ActorState> actors = {}, const JointKernels::EffectHit& effectHit = {},
+           World::ModelEffects* effects = nullptr, const Kernel::ActorState* hero = nullptr,
+           Kernel::WorldState* world = nullptr, const JointKernels::VolleyServices* volley = nullptr,
+           const Models::IModelLibrary* models = nullptr);
 } // namespace Client::Scenes

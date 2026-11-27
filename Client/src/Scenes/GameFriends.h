@@ -19,12 +19,16 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // Los amigos del juego (CL9 hito 9; 04 § Los amigos y 06 § HUD y ventanas, "Los amigos"): abrir la ventana desde el
 // panel 1 (0x491080) y los paquetes C0..C4 (0x4dc010..0x4dc720) sobre el administrador de las ventanas viejas y el
 // modelo de [0x5763518].
 namespace Client::Scenes
 {
-class WorldState;
 class IGameUiRequests;
 struct ChatReceiveContext;
 
@@ -43,7 +47,7 @@ void SendAFriendPacket(IGameUiRequests& requests, Crt::CrtRandom& random, const 
 // Lo que 0x491080 lee del juego.
 struct FriendsOpenContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // El rand() de la CRT: lo saca el cierre del registro propio (3.848).
     Crt::CrtRandom& random;
     // Con qué se mide el mensaje del nivel; sin medidor, el mensaje corta.

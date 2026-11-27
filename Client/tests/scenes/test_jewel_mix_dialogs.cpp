@@ -41,12 +41,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::World::ItemState;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr std::uint16_t BlessJewel = 0x1c0d;
@@ -127,7 +127,7 @@ public:
         return errors;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return world->Runtime();
     }

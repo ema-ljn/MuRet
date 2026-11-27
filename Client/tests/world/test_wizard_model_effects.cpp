@@ -66,7 +66,7 @@ struct Harness
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     Client::World::FrameSprites sprites;
@@ -685,9 +685,9 @@ TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
     const glm::vec3 light = storm.light;
     const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const auto reference = std::make_unique<Client::World::TerrainLighting>();
-    Client::World::AddTerrainLight(*reference, storm.transform.position.x, storm.transform.position.y,
-                                   {light.x, light.y, light.z}, 5);
+    const auto reference = std::make_unique<Client::Terrain::TerrainLighting>();
+    Client::Terrain::AddTerrainLight(*reference, storm.transform.position.x, storm.transform.position.y,
+                                     {light.x, light.y, light.z}, 5);
     EXPECT_EQ(light, glm::vec3(0.5f, 0.6f, 0.7f));
     EXPECT_NE(world.lighting->cells[20 * 256 + 10], (Client::Data::Terrain::TerrainLightColor{}));
     for (std::size_t cell = 0; cell < reference->cells.size(); ++cell)

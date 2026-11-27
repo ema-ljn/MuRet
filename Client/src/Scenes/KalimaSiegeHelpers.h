@@ -39,6 +39,11 @@ class ModelEffects;
 class Particles;
 } // namespace Client::World
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // Los helpers de efectos por tipo de la cadena de 0x510a1e (0x43c150 y 0x42dfe0) y el lazo de los huesos del 0x16e
 // (0x5108b6), sobre el cuerpo ya dibujado de un monstruo (MonsterDrawing.h). Contrato: 06 § Los helpers de Kalima y del
 // asedio (0x43c150 y 0x42dfe0). Los efectos con modelo (0x518cf0), los joints (0x530860) y las partículas
@@ -46,13 +51,12 @@ class Particles;
 // nada y sigue.
 namespace Client::Scenes
 {
-struct ActorState;
 
 struct KalimaSiegeHelperPass
 {
     Render::ModelBatch& batch;
     // El personaje y el objeto (+0x8 y +0xc de 0x43c150): el mismo registro, o su copia entre frames del original.
-    ActorState& actor;
+    Kernel::ActorState& actor;
     // El rand() de la CRT del dibujo (o su copia entre frames).
     Crt::CrtRandom& random;
     World::FrameSprites* sprites = nullptr;

@@ -24,11 +24,11 @@
 
 namespace
 {
+using Client::Assets::TerrainTiles;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::Wrap;
 using Client::Render::TextureSlot;
-using Client::Scenes::TerrainTiles;
 using Client::Tests::FakeTextureStore;
 
 TEST(WeatherTexturesTest, NativeWeatherTableKeepsTheTwoAlternativesAndGlobalRainSources)
@@ -37,7 +37,7 @@ TEST(WeatherTexturesTest, NativeWeatherTableKeepsTheTwoAlternativesAndGlobalRain
          {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{3}, std::uint8_t{7}, std::uint8_t{9}, std::uint8_t{10},
           std::uint8_t{18}, std::uint8_t{30}, std::uint8_t{31}, std::uint8_t{33}, std::uint8_t{34}, std::uint8_t{54}})
     {
-        const auto weather = Client::World::WorldWeatherTextures(map);
+        const auto weather = Client::Terrain::WorldWeatherTextures(map);
         ASSERT_EQ(weather.size(), 6u) << static_cast<int>(map);
         const auto folder = "World" + std::to_string(static_cast<int>(map) + 1) + "\\";
         EXPECT_EQ(weather[0].path, folder + "leaf01.tga");
@@ -56,7 +56,7 @@ TEST(WeatherTexturesTest, NativeWeatherTableKeepsTheTwoAlternativesAndGlobalRain
         }
     }
     for (const std::uint8_t map : {std::uint8_t{24}, std::uint8_t{29}, std::uint8_t{36}})
-        EXPECT_TRUE(Client::World::WorldWeatherTextures(map).empty());
+        EXPECT_TRUE(Client::Terrain::WorldWeatherTextures(map).empty());
 }
 
 TEST(WeatherTexturesTest, ReferenceMapsUploadRealDecodedWeatherIntoThePhysicalSlots)
@@ -154,7 +154,7 @@ TEST_F(WeatherTextureUploadTest, AMissingOptionalJpegKeepsTheTgaLoaded)
 
 TEST_F(WeatherTextureUploadTest, TheSharedPhysicalRegistryPublishesWeatherMetadataAndOwnsOneReference)
 {
-    Client::Scenes::ModelTextureTable registry;
+    Client::Assets::ModelTextureTable registry;
     registry.Bind(m_store);
     m_tiles.BindTextureTable(registry);
     WriteFiles(true);
@@ -201,7 +201,7 @@ TEST_F(WeatherTextureUploadTest, CrywolfDoesNotSubstituteNormalRainWhenItsOption
 
 TEST_F(WeatherTextureUploadTest, ReloadingAMapWithoutLeafImagesRemovesThePreviousPhysicalLeafAndMetadata)
 {
-    Client::Scenes::ModelTextureTable registry;
+    Client::Assets::ModelTextureTable registry;
     m_tiles.BindTextureTable(registry);
     WriteFiles(true);
     const std::array<Client::Data::Textures::TextureSetEntry, 1> required{{{"World3\\TileGrass01.jpg", 0x23}}};

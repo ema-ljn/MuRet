@@ -25,18 +25,18 @@ TEST(ActorMotionStopTest, SwimmingMapReadsTheVisiblePositionAttributeWithoutLogi
     actor.position = {1050.0f, 2050.0f, 0.0f};
     actor.cellX = 11;
     actor.cellY = 21;
-    Client::Scenes::WorldRuntime runtime{};
+    Client::Kernel::WorldRuntime runtime{};
     runtime.map = 7;
     auto skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Crt::CrtRandom random(1);
-    const Client::Scenes::ActorStopContext context{runtime,    Client::Scenes::SceneId::Game, skeleton, nullptr, random,
+    const Client::Actors::ActorStopContext context{runtime,    Client::Scenes::SceneId::Game, skeleton, nullptr, random,
                                                    walls.get()};
-    const auto flying = Client::Scenes::SetActorStop(actor, context);
+    const auto flying = Client::Actors::SetActorStop(actor, context);
     ASSERT_TRUE(flying.HasValue()) << (flying.HasValue() ? "" : flying.Error());
     EXPECT_EQ(actor.animation.action, 9);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 1).State());
     (*walls)[Client::Data::Terrain::CellIndex(10, 20)] = Client::Pathfinding::SafeZoneWallBit;
-    const auto standing = Client::Scenes::SetActorStop(actor, context);
+    const auto standing = Client::Actors::SetActorStop(actor, context);
     ASSERT_TRUE(standing.HasValue()) << (standing.HasValue() ? "" : standing.Error());
     EXPECT_EQ(actor.animation.action, 1);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
@@ -54,18 +54,18 @@ TEST(ActorMotionStopTest, PlayerSubtype209CarriesItsModelSoundsThroughArrivalSto
     actor.path.progress = 3;
     actor.path.cells[0] = {10, 20};
     actor.path.cells[1] = {11, 20};
-    Client::Scenes::WorldRuntime runtime{};
+    Client::Kernel::WorldRuntime runtime{};
     runtime.map = 0;
     auto player = Client::Tests::PlayerActionsSkeleton();
     Client::Crt::CrtRandom random(1);
-    Client::Scenes::PlayerActionSpeeds speeds;
+    Client::Actors::PlayerActionSpeeds speeds;
     const std::array<std::int16_t, 10> sounds{};
-    const Client::Scenes::ActorWalkContext walk{
+    const Client::Actors::ActorWalkContext walk{
         {runtime, Client::Scenes::SceneId::Game, player, nullptr, random}, speeds, false, nullptr, sounds};
     auto walls = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
 
     const auto stepped =
-        Client::Scenes::StepOtherActorMotion(actor, walk, {runtime, random, [](float, float) { return 7.0; }}, *walls);
+        Client::Actors::StepOtherActorMotion(actor, walk, {runtime, random, [](float, float) { return 7.0; }}, *walls);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.movement, 0);

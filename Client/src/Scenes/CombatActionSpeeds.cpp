@@ -14,17 +14,17 @@ namespace Client::Scenes
 namespace
 {
 // Los offsets nativos de velocidad son 4 + 16·acción (0x4f444a..0x4f48c1).
-void SetOffsets(PlayerActionSpeeds& speeds, std::initializer_list<std::size_t> offsets, double value)
+void SetOffsets(Actors::PlayerActionSpeeds& speeds, std::initializer_list<std::size_t> offsets, double value)
 {
     for (const auto offset : offsets)
         speeds.Set((offset - 4) / 16, static_cast<float>(value));
 }
-void SetRange(PlayerActionSpeeds& speeds, std::size_t first, std::size_t last, double value)
+void SetRange(Actors::PlayerActionSpeeds& speeds, std::size_t first, std::size_t last, double value)
 {
     for (auto offset = first; offset <= last; offset += 16)
         speeds.Set((offset - 4) / 16, static_cast<float>(value));
 }
-void SetAttackSpeeds(PlayerActionSpeeds& speeds, float attack)
+void SetAttackSpeeds(Actors::PlayerActionSpeeds& speeds, float attack)
 {
     const double base = static_cast<double>(attack);
     const double quarter = base + 0.25;
@@ -48,7 +48,7 @@ void SetAttackSpeeds(PlayerActionSpeeds& speeds, float attack)
     SetRange(speeds, 0x7e4, 0x834, third);
     SetOffsets(speeds, {0x844}, base + static_cast<double>(0.4f));
 }
-void SetMagicSpeeds(PlayerActionSpeeds& speeds, float magic, float halfMagic)
+void SetMagicSpeeds(Actors::PlayerActionSpeeds& speeds, float magic, float halfMagic)
 {
     const double half = static_cast<double>(halfMagic);
     SetOffsets(speeds, {0x924}, static_cast<double>(magic) + 0.25);
@@ -64,7 +64,7 @@ void RefreshCombatActionSpeeds(const WorldEntryResources& resources)
 {
     RefreshCombatActionSpeeds(resources.world, resources.cloth.random);
 }
-void RefreshCombatActionSpeeds(WorldState& world, Crt::CrtRandom& random)
+void RefreshCombatActionSpeeds(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     float attack = 0.0f;
     float magic = 0.0f;

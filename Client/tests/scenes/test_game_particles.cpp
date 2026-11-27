@@ -422,7 +422,7 @@ TEST(GameParticlesTest, TheGameObjectPassEmitsFromThePosedBoneMatrixAfterItsComm
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn = Client::Scenes::DrawGameWorldObjects(
-        batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+        batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
         Client::Scenes::GameObjectPass{.map = 0, .random = &random, .worldClock = 1234.0f, .particles = &particles});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_TRUE(particles.All()[0].alive);
@@ -453,7 +453,7 @@ TEST(GameParticlesTest, AnUnwrittenBoneStopsWithoutInventingItsRetainedPose)
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto failed = Client::Scenes::DrawGameWorldObjects(
-        batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+        batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
         Client::Scenes::GameObjectPass{.map = 0, .random = &random, .particles = &particles});
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x603121"), std::string::npos);
@@ -476,7 +476,7 @@ TEST(GameParticlesTest, AnIntermediateObjectDrawDoesNotEmitOrConsumeRandom)
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Client::Scenes::DrawGameWorldObjects(
-                    batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+                    batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
                     Client::Scenes::GameObjectPass{
                         .map = 0, .originalFrame = false, .random = &random, .particles = &particles})
                     .HasValue());
@@ -491,7 +491,7 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
         SCOPED_TRACE(transparent);
         FountainModels models;
         Client::Scenes::FaunaDrawCarry carry;
-        Client::Scenes::DrawnObject previous;
+        Client::Actors::Drawing::DrawnObject previous;
         previous.model = 0x12;
         previous.transform.position = {100.0f, 200.0f, 300.0f};
         previous.transform.scale = 2.0f;
@@ -507,11 +507,11 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         const auto result = Client::Scenes::DrawGameWorldObjects(
-            batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+            batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
             Client::Scenes::GameObjectPass{.map = 0,
                                            .random = &random,
                                            .particles = &particles,
-                                           .onPose = [&](const Client::Scenes::DrawnObject& drawn)
+                                           .onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
                                            { return Client::Scenes::PublishFaunaPose(carry, models, drawn, true); },
                                            .retainedPose = &carry});
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -540,7 +540,7 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
         SCOPED_TRACE(missingSecondBone);
         FountainModels models;
         Client::Scenes::FaunaDrawCarry carry;
-        Client::Scenes::DrawnObject previous;
+        Client::Actors::Drawing::DrawnObject previous;
         previous.model = 0x12;
         previous.transform.position = {100.0f, 200.0f, 300.0f};
         ASSERT_TRUE(Client::Scenes::PublishFaunaPose(carry, models, previous, true).HasValue());
@@ -558,7 +558,7 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         const auto result = Client::Scenes::DrawGameWorldObjects(
-            batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+            batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
             Client::Scenes::GameObjectPass{
                 .map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
         if (missingSecondBone)
@@ -587,7 +587,7 @@ TEST(GameParticlesTest, AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInste
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto result = Client::Scenes::DrawGameWorldObjects(
-        batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+        batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
         Client::Scenes::GameObjectPass{.map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x6030a5"), std::string::npos);
@@ -639,16 +639,16 @@ TEST(GameParticlesTest, LaterAmbientSlotReadsTheCallerClockChangedByTerrainHeigh
 // el nombre, o con el de otro lugar, nullopt.
 TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::ActorState& actor = world->Actors()[7];
+    auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::ActorState& actor = world->Actors()[7];
     actor.alive = true;
     actor.position = {100, 200, 10};
     actor.scale = 2.0f;
     actor.animation.action = 3;
     actor.bodyPose.assign(40, Client::Math::BoneTransform(1.0f));
     actor.bodyPose[34][3] = glm::vec3(1, 2, 3);
-    Client::Scenes::NameABone(world->Runtime(), 7, "Monster82_LHand", 34);
-    Client::Scenes::NameABone(world->Runtime(), 8, "Monster82_RHand", 34);
+    Client::Actors::NameABone(world->Runtime(), 7, "Monster82_LHand", 34);
+    Client::Actors::NameABone(world->Runtime(), 8, "Monster82_RHand", 34);
     const auto states = Client::Scenes::ParticleOwnerStatesOf(*world);
     const auto state = states({Client::World::ParticleOwnerKind::Actor, 7});
     ASSERT_TRUE(state.has_value());
@@ -669,7 +669,7 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
 // muerto conserva lo que tenía, como la memoria que el original lee por el puntero; fuera de la tabla, nullopt.
 TEST(GameParticlesTest, TheOwnerStateOfAModelEffectReadsItsAction)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::World::ModelEffect& effect = world->Map().effects.Effects()[4];
     effect.alive = true;
     effect.transform.position = {300, 400, 50};

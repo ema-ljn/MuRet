@@ -52,7 +52,7 @@ struct RibbonLeg
     glm::vec3 light;
 };
 
-Math::BoneTransform BoneAt(const WorldState& world, std::size_t index)
+Math::BoneTransform BoneAt(const Kernel::WorldState& world, std::size_t index)
 {
     const auto& bones = world.PoseCarry().bones;
     return index < bones.size() ? bones[index] : Math::BoneTransform(0.0f);
@@ -61,8 +61,8 @@ Math::BoneTransform BoneAt(const WorldState& world, std::size_t index)
 using Math::F32;
 
 template <std::size_t LegCount>
-Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Models::Skeleton& skeleton,
-                                              const CharacterStepContext& context, std::uint8_t speedAction,
+Core::Expected<void, std::string> EmitSamples(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                              const Actors::CharacterStepContext& context, std::uint8_t speedAction,
                                               const std::array<RibbonLeg, LegCount>& legs)
 {
     if (static_cast<std::size_t>(speedAction) >= skeleton.actions.size())
@@ -81,7 +81,8 @@ Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Models::S
                 leg.firstOffset, Math::OriginalMatrixOf(BoneAt(context.world, leg.firstBone)));
             const glm::vec3 second = Math::OriginalVectorTransform(
                 leg.lastOffset, Math::OriginalMatrixOf(BoneAt(context.world, leg.lastBone)));
-            const auto created = CreateRibbon(context.world.DrawTail().ribbons, {.ownerContext = &actor,
+            const auto created =
+                Actors::Drawing::CreateRibbon(context.world.DrawTail().ribbons, {.ownerContext = &actor,
                                                                                  .ownerEquipment = &actor.level,
                                                                                  .first = first,
                                                                                  .second = second,
@@ -97,8 +98,8 @@ Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Models::S
     return {};
 }
 
-Core::Expected<void, std::string> EmitEarly1a7(ActorState& actor, const Models::Skeleton& skeleton,
-                                               const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitEarly1a7(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                               const Actors::CharacterStepContext& context)
 {
     constexpr std::array legs{
         RibbonLeg{23, 23, {0, -10, -80}, {30, -30, -230}, 23, White},
@@ -107,8 +108,8 @@ Core::Expected<void, std::string> EmitEarly1a7(ActorState& actor, const Models::
     return EmitSamples(actor, skeleton, context, actor.animation.action, legs);
 }
 
-Core::Expected<void, std::string> EmitEarly42fa40(ActorState& actor, const Models::Skeleton& skeleton,
-                                                  const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitEarly42fa40(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                                  const Actors::CharacterStepContext& context)
 {
     if (actor.type == Monster1b3 && actor.animation.action == ActionThree)
     {
@@ -126,16 +127,16 @@ Core::Expected<void, std::string> EmitEarly42fa40(ActorState& actor, const Model
     return {};
 }
 
-Core::Expected<void, std::string> EmitEarly(ActorState& actor, const Models::Skeleton& skeleton,
-                                            const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitEarly(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                            const Actors::CharacterStepContext& context)
 {
     if (actor.type == Monster1a7 && (actor.animation.action == ActionThree || actor.animation.action == ActionFour))
         return EmitEarly1a7(actor, skeleton, context);
     return EmitEarly42fa40(actor, skeleton, context);
 }
 
-Core::Expected<void, std::string> EmitLate(ActorState& actor, const Models::Skeleton& skeleton,
-                                           const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitLate(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                           const Actors::CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     const bool swing = action == ActionThree || action == ActionFour;
@@ -167,8 +168,9 @@ Core::Expected<void, std::string> EmitLate(ActorState& actor, const Models::Skel
 }
 } // namespace
 
-Core::Expected<void, std::string> EmitEarlyMonsterRibbonTrails(ActorState& actor, const Models::Skeleton* skeleton,
-                                                               const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitEarlyMonsterRibbonTrails(Kernel::ActorState& actor,
+                                                               const Models::Skeleton* skeleton,
+                                                               const Actors::CharacterStepContext& context)
 {
     const bool eligible =
         (actor.type == Monster1a7 && (actor.animation.action == ActionThree || actor.animation.action == ActionFour)) ||
@@ -181,8 +183,9 @@ Core::Expected<void, std::string> EmitEarlyMonsterRibbonTrails(ActorState& actor
     return EmitEarly(actor, *skeleton, context);
 }
 
-Core::Expected<void, std::string> EmitLateMonsterRibbonTrails(ActorState& actor, const Models::Skeleton* skeleton,
-                                                              const CharacterStepContext& context)
+Core::Expected<void, std::string> EmitLateMonsterRibbonTrails(Kernel::ActorState& actor,
+                                                              const Models::Skeleton* skeleton,
+                                                              const Actors::CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     const bool eligible = (actor.type == Monster1b8 && (action == ActionThree || action == ActionFour)) ||

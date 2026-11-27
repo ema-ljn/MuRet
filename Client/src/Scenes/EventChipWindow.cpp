@@ -222,7 +222,7 @@ Core::Expected<Protocol::Events::SerialPieces, std::string> SerialPiecesOf(const
 // 290)) de 120 × 22.
 Result StepTheSerialNumber(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t left = Truncate(F32(static_cast<double>(WindowLeft) + static_cast<double>(SerialShift)));
     const std::int32_t top =
         Truncate(F32(static_cast<double>(runtime.hud.inventoryY) + static_cast<double>(ConfirmStepTop)));
@@ -262,7 +262,7 @@ void ForgetTheMoneyField(SocialState& social)
 // 0x5e7255..0x5e74c6: el botón de cerrar.
 Result StepTheCloseButton(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& movement = runtime.movement;
     if (!InBox(context.mouseX, context.mouseY, runtime.hud.inventoryX + CloseLeft, runtime.hud.inventoryY + CloseTop,
                CloseSize, CloseSize) ||
@@ -302,7 +302,7 @@ void DrawTheSerialEdit(GameHudContext& context, UI::OldEdit& edit, bool focused)
 // 0x5f696d..0x5f69e3: con 0x6c7b8c en 1, el EDIT de [0x5763504] reconfigurado en cada frame y dibujado.
 void DrawTheSerialField(GameHudContext& context, std::int32_t left, std::int32_t top)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     UI::OldEdit copy = input.dialogEdit;
     UI::OldEdit& edit = context.projecting ? copy : input.dialogEdit;
@@ -516,7 +516,7 @@ Result DrawTheCount(GameHudContext& context, std::int32_t window, std::size_t re
 }
 } // namespace
 
-void OpenTheSerialEntry(WorldRuntime& runtime)
+void OpenTheSerialEntry(Kernel::WorldRuntime& runtime)
 {
     runtime.events.serial = {};
     UI::ResetTheTextBuffers(runtime.chat.input, false);
@@ -527,7 +527,7 @@ void OpenTheSerialEntry(WorldRuntime& runtime)
     runtime.events.serialEntry = true;
 }
 
-void CloseTheSerialEntry(WorldRuntime& runtime)
+void CloseTheSerialEntry(Kernel::WorldRuntime& runtime)
 {
     UI::ChatInputState& input = runtime.chat.input;
     input.field = UI::MessageField;
@@ -543,7 +543,7 @@ void CloseTheSerialEntry(WorldRuntime& runtime)
 
 Core::Expected<void, std::string> StepTheEventChipWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t window = runtime.panels.field78abb00;
     if (window == 0)
         return {};
@@ -593,7 +593,7 @@ Core::Expected<void, std::string> StepTheEventChipWindow(const GameUiContext& co
 
 Core::Expected<void, std::string> DrawTheEventChipWindow(GameHudContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t window = runtime.panels.field78abb00;
     if (window == 0)
         return {};

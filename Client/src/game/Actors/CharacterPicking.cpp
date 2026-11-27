@@ -19,25 +19,25 @@
 #include <optional>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
 constexpr std::size_t PickedActors = 400;
 constexpr std::int32_t NoPick = -1;
 
-bool Matches(const ActorState& actor, std::uint8_t mask)
+bool Matches(const Kernel::ActorState& actor, std::uint8_t mask)
 {
     return (actor.byte88 & mask) == actor.byte88;
 }
 
-bool Visible(const ActorState& actor)
+bool Visible(const Kernel::ActorState& actor)
 {
     return actor.alive && actor.seen && actor.alpha > 0.0f;
 }
 
 // 0x59e737..0x59e7e6: +0xe8 en 1 antes de la tabla de color por el WORD de +0x1d6 y el PK.
-void Tint(ActorState& actor)
+void Tint(Kernel::ActorState& actor)
 {
     actor.byteE8 = 1;
     constexpr float Gray = 0.2f;    // 0x3e4ccccd
@@ -72,9 +72,9 @@ void Tint(ActorState& actor)
 // 0x59e9ec..0x59ea6d: en Lorencia la capa 4 y en Devias la 3 (los techos y los pisos de arriba) solo con la capa de
 // la celda del héroe. La celda sale de la posición truncada (0x69fd3c) y dividida por 100, Y · 256 + X. Una celda
 // fuera de la capa, que el original leería de la memoria de al lado, MuRet la toma como de otra capa.
-bool OnTheHeroLayer(const ActorState& actor, const WorldState& world)
+bool OnTheHeroLayer(const Kernel::ActorState& actor, const Kernel::WorldState& world)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     constexpr std::int32_t Lorencia = 0;
     constexpr std::int32_t Devias = 2;
     if (runtime.map != Lorencia && runtime.map != Devias)
@@ -106,8 +106,8 @@ double DistanceSquared(const glm::vec3& position, const glm::vec3& distanceOrigi
 }
 } // namespace
 
-std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::vec3& distanceOrigin,
-                              const std::optional<World::TerrainPickingSegment>& ray,
+std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask, const glm::vec3& distanceOrigin,
+                              const std::optional<Terrain::TerrainPickingSegment>& ray,
                               std::span<const ActorPickingBox> pickingBoxes)
 {
     const auto actors = world.Actors();
@@ -115,7 +115,7 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::v
     // 0x59e737..0x59e7f6.
     for (std::size_t slot = 0; slot < PickedActors; ++slot)
     {
-        ActorState& actor = actors[slot];
+        Kernel::ActorState& actor = actors[slot];
         if (Matches(actor, mask) && Visible(actor))
             Tint(actor);
     }
@@ -126,12 +126,12 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::v
     constexpr std::uint8_t PlayerKind = 1;
     for (std::size_t slot = 0; slot < PickedActors; ++slot)
     {
-        const ActorState& actor = actors[slot];
+        const Kernel::ActorState& actor = actors[slot];
         if (!Visible(actor) || actor.dying != 0 || (actor.flags7c & Hidden) == Hidden)
             continue;
         // 0x59e86a..0x59e948: un jugador busca su lugar en la party antes de las demás condiciones (CL9 hito 7).
         if (actor.byte88 == PlayerKind)
-            MatchThePartyMembers(world, slot);
+            Scenes::MatchThePartyMembers(world, slot);
         // Sin segmento (antes del primer dibujo) no hay caja que tocar.
         if (!ray)
             continue;
@@ -147,7 +147,7 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::v
         picked = static_cast<std::int32_t>(slot);
     }
     // 0x59ea9b..0x59eb66.
-    MarkTheMissingMembers(world);
+    Scenes::MarkTheMissingMembers(world);
     return picked;
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

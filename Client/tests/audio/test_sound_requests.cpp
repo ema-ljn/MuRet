@@ -49,7 +49,7 @@ public:
 TEST(WorldRuntimeAudioTest, DispatchesEverySoundSynchronouslyInOrder)
 {
     RecordingPlayback playback;
-    WorldRuntime runtime;
+    Kernel::WorldRuntime runtime;
     runtime.audio = &playback;
 
     runtime.RequestSound(0x19);
@@ -67,7 +67,7 @@ TEST(WorldRuntimeAudioTest, DispatchesEverySoundSynchronouslyInOrder)
 
 TEST(WorldRuntimeAudioTest, UpdatesDiagnosticWithoutAnAudioSink)
 {
-    WorldRuntime runtime;
+    Kernel::WorldRuntime runtime;
 
     runtime.RequestSound(0x19);
     runtime.SetSoundVolume(0);
@@ -78,7 +78,7 @@ TEST(WorldRuntimeAudioTest, UpdatesDiagnosticWithoutAnAudioSink)
 TEST(WorldRuntimeAudioTest, ForwardsEffectsVolumeIndependently)
 {
     RecordingPlayback playback;
-    WorldRuntime runtime;
+    Kernel::WorldRuntime runtime;
     runtime.audio = &playback;
 
     runtime.SetSoundVolume(9);
@@ -89,7 +89,7 @@ TEST(WorldRuntimeAudioTest, ForwardsEffectsVolumeIndependently)
 TEST(WorldRuntimeAudioTest, TheInnStopsRainAndAtlantisStartsOnlyItsOwnAmbience)
 {
     RecordingPlayback playback;
-    WorldRuntime runtime;
+    Kernel::WorldRuntime runtime;
     runtime.audio = &playback;
     Crt::CrtRandom random(1);
     runtime.map = 0;
@@ -113,7 +113,7 @@ TEST(WorldRuntimeAudioTest, TheInnStopsRainAndAtlantisStartsOnlyItsOwnAmbience)
 
 TEST(WorldRuntimeAudioTest, AmbienceDrawsEvenWithoutAnAudioSink)
 {
-    WorldRuntime runtime;
+    Kernel::WorldRuntime runtime;
     Crt::CrtRandom random(1);
     Crt::CrtRandom expected(1);
     runtime.map = 3;
@@ -131,7 +131,7 @@ TEST(WorldRuntimeAudioTest, AmbienceDrawsEvenWithoutAnAudioSink)
 TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLocal)
 {
     RecordingPlayback playback;
-    WorldRuntime runtime;
+    Kernel::WorldRuntime runtime;
     runtime.audio = &playback;
     bool leftHeld = false;
     bool leftClick = false;

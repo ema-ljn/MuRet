@@ -59,11 +59,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 using Client::Scenes::GameChatContext;
-using Client::Scenes::WorldState;
 
 // 0x554a40: el registro propio, abierto y cerrado una vez.
 constexpr int WhisperRandoms = 3848;
@@ -1077,7 +1077,7 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Models::ModelTextureSlots slots{{0x41c}};
-    Client::Scenes::FaunaModelLoadContext load{folder.Path(), m_faunaStore, log, slots};
+    Client::Assets::FaunaModelLoadContext load{folder.Path(), m_faunaStore, log, slots};
     const auto loaded = world.FaunaResources().LoadMonster(9, 0, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     auto& hero = world.Hero();

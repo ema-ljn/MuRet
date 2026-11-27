@@ -19,6 +19,11 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // La ventana 2 del gremio, [0x7d536f4] (0x654900, vtable 0x6baa9c; CL9 hito 8, fase 3; 06 § El gremio): el alta de un
 // gremio en páginas. La abren el 54 (0x4e4279) y el 01 del Guild Master (0x4e3450); el registro la pasa con
 // 0x45aa80(0) (la vtable + 0x18, que llama a la + 0x20, 0x656df0) y la dibuja con la + 0x14 (0x656e70). La página es
@@ -28,12 +33,11 @@ class ITextMeasure;
 // el nombre en +0xd (0x78a597d) y la marca en +0x16 (0x78a5986).
 namespace Client::Scenes
 {
-class WorldState;
 struct GameHudContext;
 
 struct SecondGuildStepContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;

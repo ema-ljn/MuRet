@@ -128,7 +128,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     Client::Tests::FakeTextureStore m_store;
-    Client::Scenes::GameModels m_models;
+    Client::Assets::GameModels m_models;
 };
 
 TEST_F(GameTailTextureTest, DamageGlyphBindingsResolveToTheUploadedNativeFontTestAtlas)
@@ -236,7 +236,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
 TEST_F(GameTailTextureTest, ARejectedDamageAtlasNeverPublishesAHandleOrMetadata)
 {
     RejectDamageAtlas store;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
 
     const auto loaded = models.Load(m_dataRoot, store, m_log);
 

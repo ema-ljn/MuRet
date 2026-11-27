@@ -24,7 +24,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -96,7 +96,7 @@ constexpr std::array<TableAnimation, LastTableAction - FirstTableAction + 1> Ani
 }};
 
 // La animación que 0x4cb750 le pasa a 0x4ea030 (0x4cbcdb: cualquier otra, la acción misma).
-std::uint8_t AnimationOf(const ActorState& actor, std::uint8_t action)
+std::uint8_t AnimationOf(const Kernel::ActorState& actor, std::uint8_t action)
 {
     if (action == ShieldAction)
         return ShieldAnimation;
@@ -105,7 +105,7 @@ std::uint8_t AnimationOf(const ActorState& actor, std::uint8_t action)
     return TableAnimationOf(actor.characterClass, action);
 }
 
-Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEntryResources& resources,
+Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources,
                                                const ActionSender& sendAction)
 {
     const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
@@ -114,9 +114,9 @@ Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEnt
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
     const ActorStopContext context{.runtime = resources.world.Runtime(),
-                                   .scene = SceneId::Game,
+                                   .scene = Scenes::SceneId::Game,
                                    .playerSkeleton = *playerSkeleton,
                                    .items = resources.items,
                                    .random = resources.cloth.random,
@@ -134,11 +134,12 @@ Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEnt
 // 0x4cb820..0x4cb852: 0x4f4a10 (SetActorAttack, con sus rand() y su sonido) y, después, +0x381 en 1, el frame
 // (+0x114) en 0, el blanco (+0x3a4) con el WORD de abajo de [0x57678b0] (el lugar del héroe, heroSlot) y [0x5767964]
 // con el índice. Un corte de 0x4f4a10 deja lo de antes hecho y no escribe nada de esto.
-Core::Expected<void, std::string> Strike(ActorState& actor, std::size_t index, const WorldEntryResources& resources)
+Core::Expected<void, std::string> Strike(Kernel::ActorState& actor, std::size_t index,
+                                         const Scenes::WorldEntryResources& resources)
 {
-    if (auto attacked = SetActorAttack(actor, CombatContextOf(resources)); !attacked.HasValue())
+    if (auto attacked = Scenes::SetActorAttack(actor, Scenes::CombatContextOf(resources)); !attacked.HasValue())
         return attacked;
-    WorldRuntime& runtime = resources.world.Runtime();
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
     actor.byte381 = 1;
     actor.animation.frame = 0.0f;
     actor.attackTarget = static_cast<std::uint16_t>(runtime.heroSlot);
@@ -156,11 +157,12 @@ std::uint8_t TableAnimationOf(std::uint8_t characterClass, std::uint8_t action)
 }
 
 Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
-                                                   const WorldEntryResources& resources, const ActionSender& sendAction)
+                                                   const Scenes::WorldEntryResources& resources,
+                                                   const ActionSender& sendAction)
 {
     // 0x4cb769: sin nadie vivo con la clave, el original devuelve el lugar 400 y el 18 también le escribe (Q-C778).
-    const std::size_t index = ActorWithKey(resources.world, reply.key);
-    ActorState& actor = resources.world.Actors()[index];
+    const std::size_t index = Scenes::ActorWithKey(resources.world, reply.key);
+    Kernel::ActorState& actor = resources.world.Actors()[index];
     if (actor.pet.model == DarkHorsePet)
         return {};
     // 0x4cb7b2..0x4cb7fa: el Movement en 0, el ángulo y la posición en el centro de la celda blanco (Q-C779). Todo en
@@ -184,7 +186,8 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
             return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
         Models::SetAction(actor.animation, *player, AnimationOf(actor, action));
     }
-    else if (auto set = SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources); !set.HasValue())
+    else if (auto set = Scenes::SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources);
+             !set.HasValue())
     {
         return set;
     }
@@ -193,4 +196,4 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
         resources.world.Runtime().RequestSound(ShieldSound);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

@@ -131,14 +131,14 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-std::int32_t LevelOf(const World::ItemState& item)
+std::int32_t LevelOf(const Kernel::ItemState& item)
 {
     // 0x5fd612..0x5fd61b: SAR y AND 0xf.
     return static_cast<std::int32_t>((item.scalar1Low >> 3u) & 0xfu);
 }
 
 // D+0x2b + offset: las opciones desde +0x2b y sus valores desde +0x33. MuRet tiene hasta +0x3b.
-Core::Expected<std::uint8_t, std::string> OptionByte(const World::ItemState& item, std::size_t offset,
+Core::Expected<std::uint8_t, std::string> OptionByte(const Kernel::ItemState& item, std::size_t offset,
                                                      std::string_view address)
 {
     if (offset >= item.optionBytes.size())
@@ -148,14 +148,14 @@ Core::Expected<std::uint8_t, std::string> OptionByte(const World::ItemState& ite
     return item.optionBytes[offset];
 }
 
-Core::Expected<std::uint32_t, std::string> PriceOf(const World::ItemState& item, const Tables::ItemTable* items,
-                                                   std::int32_t mode, const WorldRuntime& runtime,
+Core::Expected<std::uint32_t, std::string> PriceOf(const Kernel::ItemState& item, const Tables::ItemTable* items,
+                                                   std::int32_t mode, const Kernel::WorldRuntime& runtime,
                                                    std::string_view address)
 {
     if (items == nullptr)
         return Core::Unexpected(std::format("{}: 0x54d0f0 sin Item.bmd ([0x7758550])", address));
-    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
-                              .horse = runtime.pets[DarkHorsePetStats].level};
+    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto price = ItemPrice(item, *items, mode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, price.Error()));
@@ -165,7 +165,7 @@ Core::Expected<std::uint32_t, std::string> PriceOf(const World::ItemState& item,
 // 0x5fd63c..0x5fd6b1 (y 0x5fd9eb..0x5fda2c): si alguna opción es excelente (0x50 a 0x53); `each` corre con la
 // primera.
 template <typename Found>
-Core::Expected<bool, std::string> WithTheFirstExcellent(const World::ItemState& item, std::string_view address,
+Core::Expected<bool, std::string> WithTheFirstExcellent(const Kernel::ItemState& item, std::string_view address,
                                                         Found&& each)
 {
     bool found = false;
@@ -184,9 +184,9 @@ Core::Expected<bool, std::string> WithTheFirstExcellent(const World::ItemState& 
 }
 
 // 0x5fd9c3..0x5fda7b: lo que no tiene un caso propio.
-Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc, const World::ItemState& item,
+Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc, const Kernel::ItemState& item,
                                                std::int32_t level, bool& checksLuck, const Tables::ItemTable* items,
-                                               const WorldRuntime& runtime)
+                                               const Kernel::WorldRuntime& runtime)
 {
     const std::int32_t type = Signed(item.id);
     bool found = false;
@@ -226,8 +226,8 @@ Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc
 
 // 0x5fd7f7..0x5fda99: las alas de primer nivel, con su precio y la opción de las alas. Después mira la suerte sin
 // mirar [EBP − 8], en la variable local [EBP − 0x11] (y en 0x7d2dc9c si el nivel la prendió).
-Core::Expected<void, std::string> CountTheWings(Tally& tally, NpcWindowState& npc, const World::ItemState& item,
-                                                const Tables::ItemTable* items, const WorldRuntime& runtime)
+Core::Expected<void, std::string> CountTheWings(Tally& tally, NpcWindowState& npc, const Kernel::ItemState& item,
+                                                const Tables::ItemTable* items, const Kernel::WorldRuntime& runtime)
 {
     ++tally.wings;
     npc.mixWingOption = 0;
@@ -244,7 +244,7 @@ Core::Expected<void, std::string> CountTheWings(Tally& tally, NpcWindowState& np
             continue;
         if (tag.Value() > LastWingValueOption && tag.Value() != WingTimesFourOption)
             continue;
-        auto value = OptionByte(item, World::ItemOptionValueOffset + i, "0x5fd84d");
+        auto value = OptionByte(item, Kernel::ItemOptionValueOffset + i, "0x5fd84d");
         if (!value.HasValue())
             return Core::Unexpected(value.Error());
         npc.mixWingOption =
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> CountTheWings(Tally& tally, NpcWindowState& np
 }
 
 // 0x5fd725..0x5fd9be: el caso de cada tipo. Devuelve falso para lo que sigue en 0x5fd9c3.
-bool CountByType(Tally& tally, const World::ItemState& item, std::int32_t level)
+bool CountByType(Tally& tally, const Kernel::ItemState& item, std::int32_t level)
 {
     const auto word = static_cast<std::uint16_t>(level);
     switch (Signed(item.id))
@@ -332,8 +332,8 @@ bool CountByType(Tally& tally, const World::ItemState& item, std::int32_t level)
 }
 
 // Una casilla con tipo y +0x3c (0x5fd5bd..0x5fd7b7).
-Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc, const World::ItemState& item,
-                                               const Tables::ItemTable* items, const WorldRuntime& runtime)
+Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc, const Kernel::ItemState& item,
+                                               const Tables::ItemTable* items, const Kernel::WorldRuntime& runtime)
 {
     ++tally.total;
     // 0x5fd5ca..0x5fd60d: el ancho y el alto más grandes.
@@ -524,12 +524,12 @@ std::int32_t KindOfTheRest(const Tally& t)
 }
 } // namespace
 
-Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const World::ItemState> grid,
+Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const Kernel::ItemState> grid,
                                                         const Tables::ItemTable* items, const PetPriceLevels& pets)
 {
     std::int32_t value = 0;
     bool chaos = false;
-    for (const World::ItemState& item : grid)
+    for (const Kernel::ItemState& item : grid)
     {
         if (item.id == NoItem || static_cast<std::int32_t>(item.occupied) <= 0)
             continue;
@@ -569,17 +569,17 @@ Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const World::I
     return chaos ? value : 0;
 }
 
-Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Crt::CrtRandom& random,
+Core::Expected<std::int32_t, std::string> ChaosMixKind(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                        const Tables::ItemTable* items)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     // 0x5fd4fc..0x5fd552.
     npc.mixExcellentValue = 0;
     npc.mixHeight = 1;
     npc.mixWidth = 1;
     Tally tally;
-    for (const World::ItemState& item : npc.chaosBox)
+    for (const Kernel::ItemState& item : npc.chaosBox)
     {
         if (item.id == NoItem || static_cast<std::int32_t>(item.occupied) <= 0)
             continue;
@@ -624,13 +624,13 @@ std::int32_t ChaosMixKindForMode(std::int32_t kind, std::int32_t mode)
     return kind;
 }
 
-Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Crt::CrtRandom& random,
+Core::Expected<void, std::string> ScanTheChaosBox(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                   const Tables::ItemTable* items)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
-                              .horse = runtime.pets[DarkHorsePetStats].level};
+    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto value = ChaosBoxValue(npc.chaosBox, items, pets);
     if (!value.HasValue())
         return Core::Unexpected(value.Error());
@@ -642,7 +642,7 @@ Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Crt::CrtRan
     return {};
 }
 
-bool HasRoomFor(std::span<const World::ItemState> grid, std::int32_t columns, std::int32_t rows, std::int32_t width,
+bool HasRoomFor(std::span<const Kernel::ItemState> grid, std::int32_t columns, std::int32_t rows, std::int32_t width,
                 std::int32_t height)
 {
     for (std::int32_t row = 0; row < rows - height + 1; ++row)

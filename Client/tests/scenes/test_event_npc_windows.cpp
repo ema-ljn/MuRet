@@ -48,13 +48,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -128,15 +128,15 @@ protected:
         sprites.Begin(Screen640);
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return world->Runtime();
     }
 
     Client::Core::Expected<void, std::string> Draw(Client::UI::Point mouse, bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = world->Hero();
         GameHudContext context{.world = *world,
                                .random = random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -183,7 +183,7 @@ protected:
 
     void PutItem(std::size_t cell, std::uint16_t type, std::uint32_t level)
     {
-        Client::World::ItemState& item = world->Inventory().cells[cell];
+        Client::Kernel::ItemState& item = world->Inventory().cells[cell];
         item.id = type;
         item.scalar1Low = level << 3;
         item.occupied = 1;
@@ -202,7 +202,7 @@ protected:
 // 0x5583a0: de la columna 7 a la 0 y, en cada una, de la fila 7 a la 0; con +0x3c en 0 o con otro nivel no vale.
 TEST_F(EventNpcWindowTest, FindsTheInventoryItemFromTheLastColumn)
 {
-    const Client::Scenes::OwnInventory& inventory = world->Inventory();
+    const Client::Kernel::OwnInventory& inventory = world->Inventory();
     EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1c13, 0), -1);
     PutItem(9, 0x1c13, 0);  // fila 1, columna 1
     PutItem(17, 0x1c13, 0); // fila 2, columna 1

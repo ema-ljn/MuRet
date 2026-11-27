@@ -64,23 +64,24 @@ using Protocol::Skills::SkillList;
 using Protocol::Skills::SkillTarget;
 using Protocol::Skills::SummonLife;
 
-bool Riding(const ActorState& actor, std::uint16_t mount)
+bool Riding(const Kernel::ActorState& actor, std::uint16_t mount)
 {
     return actor.pet.model == mount && actor.safeZone == 0;
 }
 
-bool RidingAPegasus(const ActorState& actor)
+bool RidingAPegasus(const Kernel::ActorState& actor)
 {
     return actor.pet.model >= UniriaModel && actor.pet.model <= DarkHorseModel && actor.safeZone == 0;
 }
 
-bool IsPlayer(const ActorState& actor)
+bool IsPlayer(const Kernel::ActorState& actor)
 {
     return actor.type == Tables::PlayerSkeletonModel;
 }
 
 // 0x4ea030 con el modelo del tipo del personaje (+2): sin él en MuRet, corta.
-Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, const WorldEntryResources& resources)
+Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t action,
+                                      const WorldEntryResources& resources)
 {
     const Models::Skeleton* skeleton = resources.models.SkeletonOf(actor.type);
     if (skeleton == nullptr)
@@ -90,13 +91,13 @@ Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, co
 }
 
 // 0x4f4a10, la acción de ataque (Scenes::SetActorAttack, CL9 hito 3).
-Core::Expected<void, std::string> AttackAction(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> AttackAction(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     return SetActorAttack(actor, CombatContextOf(resources));
 }
 
 // 0x4cd68e y 0x4cdd2e: 0x4f4a10, el frame en 0 y +0x381 en 1 (0x4cde62).
-Core::Expected<void, std::string> AttackAndSettle(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     if (auto attacked = AttackAction(actor, resources); !attacked.HasValue())
         return attacked;
@@ -113,7 +114,7 @@ void Sound(const WorldEntryResources& resources, std::int32_t id)
 
 // 0x4f5290: en un jugador, las velocidades (0x4f3f80) y la acción de golpe por la montura, la clase o un rand(); en
 // otro, 3 y 4 alternadas de a tres con +0x38f, que sube.
-Core::Expected<void, std::string> HitAction(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> HitAction(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     if (!IsPlayer(actor))
     {
@@ -146,14 +147,14 @@ struct HandActions
 constexpr HandActions StaffHands{0x2e, 0x30, 0x2f, 0x31};  // 0x4cc110
 constexpr HandActions RepeatHands{0x7e, 0x80, 0x7f, 0x81}; // 0x4cc1d0
 
-Core::Expected<void, std::string> ActByTheHands(ActorState& actor, const HandActions& actions,
+Core::Expected<void, std::string> ActByTheHands(Kernel::ActorState& actor, const HandActions& actions,
                                                 const WorldEntryResources& resources)
 {
     // Los CMP de WORD con signo: el 0xffff sin ítem es −1.
     const auto left = static_cast<std::int16_t>(actor.hands[1].model);
     const auto right = static_cast<std::int16_t>(actor.hands[0].model);
-    const bool winged =
-        Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf && actor.wings.model != NoItemModel;
+    const bool winged = Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf &&
+                        actor.wings.model != Kernel::NoItemModel;
     if ((left >= 0xa12 && left < 0xa19) || left == 0xa23 || left == 0xa26 || left == 0xa27)
         return Act(actor, winged ? actions.leftWinged : actions.left, resources);
     if ((right >= 0xa1a && right < 0xa21) || right == 0xa22 || (right >= 0xa24 && right < 0xc12))
@@ -163,11 +164,11 @@ Core::Expected<void, std::string> ActByTheHands(ActorState& actor, const HandAct
 
 // 0x4e9c50(con, en): la acción de `on` por las manos de `by`: las dos 0x63, la derecha 0x64, la izquierda 0x65 y
 // ninguna 0x62.
-Core::Expected<void, std::string> ActByBothHands(const ActorState& by, ActorState& on,
+Core::Expected<void, std::string> ActByBothHands(const Kernel::ActorState& by, Kernel::ActorState& on,
                                                  const WorldEntryResources& resources)
 {
-    const bool right = by.hands[0].model != NoItemModel;
-    const bool left = by.hands[1].model != NoItemModel;
+    const bool right = by.hands[0].model != Kernel::NoItemModel;
+    const bool left = by.hands[1].model != Kernel::NoItemModel;
     if (right && left)
         return Act(on, 0x63, resources);
     if (right)
@@ -179,7 +180,7 @@ Core::Expected<void, std::string> ActByBothHands(const ActorState& by, ActorStat
 
 // 0x53d8d0 y 0x53d930: el que se va (alpha a 0, +0x80 en 1) y el que llega (frame 5, +0x80 en 3, alpha a 1), con las
 // velocidades, la acción 0x93, el destello 0x5c6 y el sonido 0x76.
-Core::Expected<void, std::string> Vanish(ActorState& actor, bool arriving, const WorldEntryResources& resources)
+Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arriving, const WorldEntryResources& resources)
 {
     RefreshCombatActionSpeeds(resources);
     if (auto acted = Act(actor, 0x93, resources); !acted.HasValue())
@@ -202,12 +203,12 @@ Core::Expected<void, std::string> Vanish(ActorState& actor, bool arriving, const
 }
 
 // 0x4f2250 sobre `actor`, con el sonido de Fenrir que pida.
-Core::Expected<void, std::string> Stop(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> Stop(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     const auto context = TransitionStopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
-    const auto stopped = SetActorStop(actor, context.Value());
+    const auto stopped = Actors::SetActorStop(actor, context.Value());
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     return {};
@@ -215,7 +216,7 @@ Core::Expected<void, std::string> Stop(ActorState& actor, const WorldEntryResour
 
 // La acción por la montura de las ramas 0x43 a 0x48 de 0x4cc530: Dark Horse, Uniria, Dinorant y Fenrir, fuera de la
 // zona segura; si no, `otherwise`.
-std::uint8_t MountedAction(const ActorState& actor, std::uint8_t otherwise)
+std::uint8_t MountedAction(const Kernel::ActorState& actor, std::uint8_t otherwise)
 {
     if (Riding(actor, DarkHorseModel))
         return 0x52;
@@ -229,7 +230,7 @@ std::uint8_t MountedAction(const ActorState& actor, std::uint8_t otherwise)
 }
 
 // La de las ramas 0x4b y 0x40 (0x4cd81a y 0x4cd841): el Dark Horse, Fenrir o 0x8e.
-std::uint8_t ChargeAction(const ActorState& actor)
+std::uint8_t ChargeAction(const Kernel::ActorState& actor)
 {
     if (Riding(actor, DarkHorseModel))
         return 0x52;
@@ -240,7 +241,7 @@ std::uint8_t ChargeAction(const ActorState& actor)
 
 // La de las ramas 0x3c, 0x3d (0x4cd455) y 0x4a (0x4cd7b7): con un pegaso (en la 0x4a, solo el Dark Horse) 0x4e, con
 // Fenrir 0x58 y si no 0x4c.
-std::uint8_t ShoutAction(const ActorState& actor, bool onlyTheDarkHorse)
+std::uint8_t ShoutAction(const Kernel::ActorState& actor, bool onlyTheDarkHorse)
 {
     const bool pegasus = onlyTheDarkHorse ? Riding(actor, DarkHorseModel) : RidingAPegasus(actor);
     if (pegasus)
@@ -254,8 +255,8 @@ std::uint8_t ShoutAction(const ActorState& actor, bool onlyTheDarkHorse)
 struct Cast
 {
     const MagicAttack& attack;
-    ActorState& source;
-    ActorState& target;
+    Kernel::ActorState& source;
+    Kernel::ActorState& target;
     bool sourceIsHero;
     const WorldEntryResources& resources;
 };
@@ -312,10 +313,10 @@ Core::Expected<void, std::string> ActAndSettle(const Cast& cast, std::uint8_t ac
 
 Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
 {
-    ActorState& source = cast.source;
-    ActorState& target = cast.target;
+    Kernel::ActorState& source = cast.source;
+    Kernel::ActorState& target = cast.target;
     const WorldEntryResources& resources = cast.resources;
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     const std::uint8_t skill = cast.attack.skill;
     const bool succeeded = source.skillSucceeded != 0;
     switch (skill)
@@ -445,7 +446,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return {};
         return AttackAndSettle(source, resources);
     // 0x4cd6a5: con la skill salida, el hielo del blanco (0x4cd6bc..0x4cd730: apaga su 0xc1/1 y crea el 0xc1/1 y el
-    // /2, Scenes::WrapInIce; con la tabla llena, nada). Después (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250
+    // /2, Actors::WrapInIce; con la tabla llena, nada). Después (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250
     // sobre él y su 0x20.
     case 0x33:
     {
@@ -453,7 +454,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         if (!succeeded)
             return Settle(cast);
-        if (auto frozen = WrapInIce(target, resources, IceCalls{.first = 0x4cd6ff, .second = 0x4cd72b});
+        if (auto frozen = Actors::WrapInIce(target, resources, Actors::IceCalls{.first = 0x4cd6ff, .second = 0x4cd72b});
             !frozen.HasValue())
             return frozen;
         target.movement = 0;
@@ -494,7 +495,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (auto acted = Act(source, MountedAction(source, 0x87), resources); !acted.HasValue())
             return acted;
         if (succeeded)
-            RemoveActorFlag(0x1000, target, world);
+            Actors::RemoveActorFlag(0x1000, target, world);
         return Settle(cast);
     }
     case 0x46:
@@ -510,7 +511,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (auto acted = Act(source, MountedAction(source, 0x87), resources); !acted.HasValue())
             return acted;
         if (succeeded)
-            RemoveActorFlag(0x4000, target, world);
+            Actors::RemoveActorFlag(0x4000, target, world);
         return Settle(cast);
     }
     // 0x4cdad7..0x4cdb7a: con la skill salida, 0x2000 en la fuente y 0x518cf0(0x138, su posición, sus ángulos, su
@@ -534,7 +535,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (succeeded)
         {
             for (const std::uint32_t mask : {0x4u, 0x8u, 0x10u, 0x100u, 0x800u, 0x2000u})
-                RemoveActorFlag(mask, target, world);
+                Actors::RemoveActorFlag(mask, target, world);
         }
         return ActAndSettle(cast, MountedAction(source, 0x3f));
     // 0x4cdc37..0x4cdc9c: sin 0x400 en el blanco, apaga su 0x5ac/2 y sus joints 0x619/9 y crea otro 0x5ac/2 con él de
@@ -542,8 +543,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x35:
         if ((target.flags78 & 0x400u) != 0x400u)
         {
-            KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::GuardFlareSubtype);
-            KillJointsOf(world.DrawTail().joints, 0x619, &target, 9);
+            Actors::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target,
+                                       World::GuardFlareSubtype);
+            Actors::KillJointsOf(world.DrawTail().joints, 0x619, &target, 9);
             static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
                                                                    World::GuardFlareSubtype, &target));
         }
@@ -572,7 +574,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x30:
         if ((target.flags78 & 0x10u) != 0x10u)
         {
-            KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::SwellFlareSubtype);
+            Actors::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target,
+                                       World::SwellFlareSubtype);
             static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
                                                                    World::SwellFlareSubtype, &target));
         }
@@ -633,7 +636,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
 }
 
 // 0x4ce000: la acción de otro jugador por la skill con duración (la tabla de 0x4ced44).
-Core::Expected<void, std::string> DurationAction(ActorState& actor, std::uint8_t skill,
+Core::Expected<void, std::string> DurationAction(Kernel::ActorState& actor, std::uint8_t skill,
                                                  const WorldEntryResources& resources)
 {
     switch (skill)
@@ -679,7 +682,7 @@ Core::Expected<void, std::string> DurationAction(ActorState& actor, std::uint8_t
     }
 }
 
-Core::Expected<void, std::string> LevelUpEffect(ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> LevelUpEffect(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
     // 0x4dbfad..0x4dc004 y 0x4d319d..0x4d31f4: quince intentos, el calco /0 y el sonido aun con los pools llenos.
     constexpr int Sparkles = 15;
@@ -701,16 +704,16 @@ Core::Expected<void, std::string> LevelUpEffect(ActorState& actor, const WorldEn
 
 Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const std::size_t sourceIndex = ActorWithKey(world, attack.source);
     const std::size_t targetIndex = ActorWithKey(world, attack.target);
     if (targetIndex == NoActor)
         return {};
     runtime.lastAttacker = static_cast<std::int32_t>(sourceIndex);
     const auto actors = world.Actors();
-    ActorState& source = actors[sourceIndex];
-    ActorState& target = actors[targetIndex];
+    Kernel::ActorState& source = actors[sourceIndex];
+    Kernel::ActorState& target = actors[targetIndex];
     const bool sourceIsHero = sourceIndex == runtime.hero;
     // 0x4ccea1: la 0x3b va derecho a la tabla.
     if (attack.skill != 0x3b)
@@ -740,9 +743,9 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
 
 Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     const std::size_t index = ActorWithKey(world, magic.key);
-    ActorState& actor = world.Actors()[index];
+    Kernel::ActorState& actor = world.Actors()[index];
     {
         const Models::LogicalAccess access(actor.byte38eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         actor.byte38e = magic.skill;
@@ -782,8 +785,8 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
 
 void ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& actor = world.Actors()[ActorWithKey(world, cancel.key)];
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& actor = world.Actors()[ActorWithKey(world, cancel.key)];
     std::uint32_t mask = 0;
     switch (cancel.skill)
     {
@@ -833,49 +836,49 @@ void ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& reso
         break;
     // 0x4cbfc8 y 0x4cbfdd: 0x439d40 antes.
     case 0xc9:
-        SettleMonsterFlags(actor);
+        Actors::SettleMonsterFlags(actor);
         mask = 0x8;
         break;
     case 0xca:
-        SettleMonsterFlags(actor);
+        Actors::SettleMonsterFlags(actor);
         mask = 0x100;
         break;
     default:
         return;
     }
-    RemoveActorFlag(mask, actor, world);
+    Actors::RemoveActorFlag(mask, actor, world);
 }
 
 Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorState& state,
                                                   const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    ActorState& actor = world.Actors()[ActorWithKey(world, state.key)];
+    Kernel::WorldState& world = resources.world;
+    Kernel::ActorState& actor = world.Actors()[ActorWithKey(world, state.key)];
     const bool lit = (actor.flags78 & state.mask) == state.mask;
     if (state.type == 1)
     {
-        // 0x4cbe47: sin todas, 0x4e6380(máscara, personaje) (Scenes::ApplyEffectFlags, CL9 hito 1).
+        // 0x4cbe47: sin todas, 0x4e6380(máscara, personaje) (Actors::ApplyEffectFlags, CL9 hito 1).
         if (!lit)
-            return ApplyEffectFlags(actor, state.mask, &actor == &world.Hero(), resources);
+            return Actors::ApplyEffectFlags(actor, state.mask, &actor == &world.Hero(), resources);
         // 0x4cbe52..0x4cbe72: el NEG/SBB deja +0x7c entero en 0x200000 si lo tenía y en 0 si no (Q-C1202).
         constexpr std::uint32_t Sitting = 0x200000;
         actor.flags7c = (actor.flags7c & Sitting) == Sitting ? Sitting : 0u;
         return {};
     }
     if (lit)
-        RemoveActorFlag(state.mask, actor, world);
+        Actors::RemoveActorFlag(state.mask, actor, world);
     return {};
 }
 
 Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     const std::size_t sourceIndex = ActorWithKey(world, target.source);
     const std::size_t targetIndex = ActorWithKey(world, target.target);
     if (targetIndex == NoActor)
         return {};
     world.Runtime().lastAttacker = static_cast<std::int32_t>(sourceIndex);
-    ActorState& source = world.Actors()[sourceIndex];
+    Kernel::ActorState& source = world.Actors()[sourceIndex];
     {
         const Models::LogicalAccess access(source.byte42eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         source.byte42e = target.skill;
@@ -914,12 +917,12 @@ Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, co
 Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& reply,
                                                const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     {
         const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
                                            Models::OwnRecordCloseRandoms);
-        OwnCharacterRecord& own = world.OwnCharacter();
+        Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.level = reply.level;
         own.levelUpPoints = reply.levelUpPoints;
         own.life = reply.maxLife;
@@ -945,9 +948,9 @@ Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& 
 
 Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
-    WorldRuntime& runtime = world.Runtime();
-    OwnCharacterRecord& own = world.OwnCharacter();
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     Crt::CrtRandom& random = resources.cloth.random;
     {
         const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
@@ -985,7 +988,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
     constexpr std::size_t CountedSlots = 0x40;
     for (std::size_t slot = 0; slot < CountedSlots; ++slot)
     {
-        const std::uint8_t skill = OwnSkillByte(own, slot);
+        const std::uint8_t skill = Kernel::OwnSkillByte(own, slot);
         if (skill == 0)
             continue;
         ++own.byte6a;
@@ -1005,18 +1008,18 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
         if (hidden == 1)
             ++own.byte6b;
     }
-    ActorState& hero = world.Hero();
+    Kernel::ActorState& hero = world.Hero();
     if (hero.skillIndex >= own.byte6a)
         hero.skillIndex = 0;
     if (own.byte6a == 1)
         hero.skillIndex = 0;
-    if (OwnSkillByte(own, hero.skillIndex) == 0)
+    if (Kernel::OwnSkillByte(own, hero.skillIndex) == 0)
         hero.skillIndex = 0;
     // 0x4c5557..0x4c5588: saltea las 0x43 a 0x48, hasta 256 veces, con el byte que envuelve.
     constexpr int MaximumSkips = 0x100;
     for (int skipped = 0; skipped < MaximumSkips; ++skipped)
     {
-        const std::uint8_t skill = OwnSkillByte(own, hero.skillIndex);
+        const std::uint8_t skill = Kernel::OwnSkillByte(own, hero.skillIndex);
         if (skill < 0x43 || skill > 0x48)
             break;
         hero.skillIndex = static_cast<std::uint8_t>(hero.skillIndex + 1);

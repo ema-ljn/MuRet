@@ -47,9 +47,9 @@
 // más su índice), deja ver qué pase dibuja qué malla con qué textura, qué color y qué mezcla.
 namespace
 {
+using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 using Client::Render::ModelBlend;
-using Client::Scenes::ActorState;
 
 constexpr std::size_t MeshCount = 7;
 constexpr std::size_t Triangle = 3;
@@ -192,12 +192,12 @@ protected:
                                                    float worldClock = 0.0f, bool originalFrame = true)
     {
         m_actor->type = type;
-        Client::Scenes::DrawnObject object;
+        Client::Actors::Drawing::DrawnObject object;
         object.model = type;
         object.transform = m_transform;
         object.color = {0.2f, 0.4f, 0.6f};
         object.alpha = m_actor->alpha;
-        m_meshes = Client::Scenes::SkinObjectMeshes(m_models, object, m_bones, m_boneScale);
+        m_meshes = Client::Actors::Drawing::SkinObjectMeshes(m_models, object, m_bones, m_boneScale);
         Client::Scenes::MonsterBodyModel model{.batch = m_batch,
                                                .models = m_models,
                                                .object = object,
@@ -234,10 +234,10 @@ protected:
         auto effects = std::make_unique<Client::World::ModelEffects>();
         auto particles = std::make_unique<Client::World::Particles>();
         Client::Crt::CrtRandom random{state};
-        const auto emitted =
-            Client::Scenes::EmitVertexEffectsOf(*m_models.Find(m_actor->type), m_transform.scale, m_meshes,
-                                                {.mesh = mesh, .type = type, .subtype = subtype},
-                                                {.effects = effects.get(), .particles = particles.get()}, random);
+        const auto emitted = Client::Actors::Drawing::EmitVertexEffectsOf(
+            *m_models.Find(m_actor->type), m_transform.scale, m_meshes,
+            {.mesh = mesh, .type = type, .subtype = subtype}, {.effects = effects.get(), .particles = particles.get()},
+            random);
         EXPECT_TRUE(emitted.HasValue()) << emitted.Error();
         EXPECT_EQ(m_cloth.random.State(), random.State());
         std::size_t made = 0;
@@ -564,8 +564,8 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     };
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random{8};
-    const auto emitted = Client::Scenes::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
-                                                             {.effects = effects.get()}, random);
+    const auto emitted = Client::Actors::Drawing::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
+                                                                      {.effects = effects.get()}, random);
     ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
     EXPECT_EQ(random.State(), after(19));
     const auto made = effects->Effects();
@@ -585,8 +585,8 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     for (auto& effect : effects->Effects())
         effect.alive = true;
     Client::Crt::CrtRandom full{8};
-    ASSERT_TRUE(Client::Scenes::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
-                                                    {.effects = effects.get()}, full)
+    ASSERT_TRUE(Client::Actors::Drawing::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
+                                                             {.effects = effects.get()}, full)
                     .HasValue());
     EXPECT_EQ(full.State(), after(2));
 }

@@ -8,30 +8,31 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Camera
 {
 namespace
 {
-std::string DescribePolygonError(World::TerrainPolygonError error)
+std::string DescribePolygonError(Terrain::TerrainPolygonError error)
 {
     switch (error)
     {
-    case World::TerrainPolygonError::InvalidCameraDistance:
+    case Terrain::TerrainPolygonError::InvalidCameraDistance:
         return "0x5fb570: la distancia de la cámara no entra en un int64";
-    case World::TerrainPolygonError::InvalidEffectiveLevel:
+    case Terrain::TerrainPolygonError::InvalidEffectiveLevel:
         return "0x5fb570: el nivel del trapecio no es de 0 a 4";
     }
     return "0x5fb570: un error desconocido";
 }
 } // namespace
 
-Core::Expected<World::TerrainPolygon, std::string>
-StepTheTerrainPolygon(WorldRuntime& runtime, const World::TerrainPolygonInput& input, const World::GameCamera& camera)
+Core::Expected<Terrain::TerrainPolygon, std::string> StepTheTerrainPolygon(Kernel::WorldRuntime& runtime,
+                                                                           const Terrain::TerrainPolygonInput& input,
+                                                                           const Camera::GameCamera& camera)
 {
-    const World::TerrainPolygonCameraInput cameraInput{.requestedLevel = static_cast<std::int16_t>(camera.level),
-                                                       .distance = camera.distance,
-                                                       .targetDistance = camera.targetDistance};
-    const auto frame = World::TerrainPolygonFrameOf(runtime.terrainPolygonState, input, cameraInput);
+    const Terrain::TerrainPolygonCameraInput cameraInput{.requestedLevel = static_cast<std::int16_t>(camera.level),
+                                                         .distance = camera.distance,
+                                                         .targetDistance = camera.targetDistance};
+    const auto frame = Terrain::TerrainPolygonFrameOf(runtime.terrainPolygonState, input, cameraInput);
     if (!frame.HasValue())
     {
         return Core::Unexpected(DescribePolygonError(frame.Error()));
@@ -42,14 +43,14 @@ StepTheTerrainPolygon(WorldRuntime& runtime, const World::TerrainPolygonInput& i
     return frame.Value().polygon;
 }
 
-Core::Expected<World::TerrainPolygon, std::string> TerrainPolygonBetweenFrames(const WorldRuntime& runtime,
-                                                                               const World::TerrainPolygonInput& input)
+Core::Expected<Terrain::TerrainPolygon, std::string>
+TerrainPolygonBetweenFrames(const Kernel::WorldRuntime& runtime, const Terrain::TerrainPolygonInput& input)
 {
-    const auto polygon = World::TerrainPolygonOf(input, runtime.terrainPolygonState.effectiveLevel);
+    const auto polygon = Terrain::TerrainPolygonOf(input, runtime.terrainPolygonState.effectiveLevel);
     if (!polygon.HasValue())
     {
         return Core::Unexpected(DescribePolygonError(polygon.Error()));
     }
     return polygon.Value();
 }
-} // namespace Client::Scenes
+} // namespace Client::Camera

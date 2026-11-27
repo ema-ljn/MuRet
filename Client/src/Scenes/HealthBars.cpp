@@ -41,7 +41,7 @@ std::int32_t Wrapped(std::int32_t value, std::uint32_t added)
 }
 } // namespace
 
-void QueueTheHealthBar(const ActorState& actor, std::deque<QueuedHealthBar>& queue)
+void QueueTheHealthBar(const Kernel::ActorState& actor, std::deque<Kernel::QueuedHealthBar>& queue)
 {
     if (actor.type != HealthBarType || actor.byte93 >= HealthBarLimit)
         return;
@@ -49,16 +49,16 @@ void QueueTheHealthBar(const ActorState& actor, std::deque<QueuedHealthBar>& que
     const float top =
         static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(actor.boundsTop) + AboveTheTop);
     queue.push_back(
-        QueuedHealthBar{.position = glm::vec3(actor.position.x, actor.position.y, top), .fill = actor.byte93});
+        Kernel::QueuedHealthBar{.position = glm::vec3(actor.position.x, actor.position.y, top), .fill = actor.byte93});
 }
 
-Core::Expected<void, std::string> DrawTheHealthBars(std::deque<QueuedHealthBar>& queue,
+Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHealthBar>& queue,
                                                     const GameProjection* projection, Render::SpriteBatch& sprites)
 {
     // 0x42a4d6..0x42a4e0 y 0x42a645..0x42a64d: la cuenta se lee otra vez después de cada pop_front.
     for (std::size_t i = 0; i < queue.size(); ++i)
     {
-        const QueuedHealthBar bar = queue.front();
+        const Kernel::QueuedHealthBar bar = queue.front();
         if (projection == nullptr)
             return Core::Unexpected(
                 std::string("0x42a529: la barra de vida no tiene la proyección del pase del mundo"));

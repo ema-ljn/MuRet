@@ -1412,7 +1412,7 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
         {
             if (services.terrainAttributes == nullptr)
                 return Core::Unexpected(std::string("0x522f6d: faltan los atributos de las celdas (0x7d0d348)"));
-            const auto attribute = TerrainAttributeQueryAt(*services.terrainAttributes, at.x, at.y);
+            const auto attribute = Terrain::TerrainAttributeQueryAt(*services.terrainAttributes, at.x, at.y);
             if (!attribute.HasValue())
                 return Core::Unexpected(std::string("0x522f6d: la celda del 0xcf/0 cae fuera de la tabla"));
             constexpr std::uint32_t SiegeWall = 0x100;

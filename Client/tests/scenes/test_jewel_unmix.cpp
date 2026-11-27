@@ -40,13 +40,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::JewelBundleList;
 using Client::Scenes::JewelMixState;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::World::ItemState;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr std::uint16_t BlessBundle = 0x181e;
@@ -127,7 +127,7 @@ public:
         return errors;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime() const
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime() const
     {
         return world->Runtime();
     }

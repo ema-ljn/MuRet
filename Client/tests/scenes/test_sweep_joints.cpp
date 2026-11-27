@@ -41,7 +41,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x61cu;
@@ -133,8 +133,8 @@ struct HeroWorld
         return [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> ownedWorld = std::make_unique<Client::Scenes::WorldState>();
-    Client::Scenes::WorldState& world = *ownedWorld;
+    std::unique_ptr<Client::Kernel::WorldState> ownedWorld = std::make_unique<Client::Kernel::WorldState>();
+    Client::Kernel::WorldState& world = *ownedWorld;
     std::vector<Client::Protocol::Outgoing> sent;
 };
 

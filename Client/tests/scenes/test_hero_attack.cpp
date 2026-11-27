@@ -37,8 +37,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::WorldState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 
 constexpr std::uint32_t Seed = 99;
 constexpr std::uint32_t OwnRecordDraws = 0xf08;
@@ -101,7 +101,7 @@ protected:
         Runtime().movement.mouseUpdateTimeMax = 16;
     }
 
-    [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
+    [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }

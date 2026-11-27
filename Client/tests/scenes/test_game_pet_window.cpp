@@ -40,6 +40,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -47,7 +48,6 @@ using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
@@ -145,28 +145,28 @@ protected:
     {
         m_sprites.Begin(Screen640);
         Runtime().map = GetParam();
-        Own().equipment[0].id = Client::Scenes::EmptyOwnItemId;
+        Own().equipment[0].id = Client::Kernel::EmptyOwnItemId;
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
 
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return m_world->Hero();
     }
 
-    Client::Scenes::OwnCharacterRecord& Own()
+    Client::Kernel::OwnCharacterRecord& Own()
     {
         return m_world->OwnCharacter();
     }
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0, bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -196,7 +196,7 @@ protected:
     void GiveTheHorse()
     {
         Hero().pet.model = 0x1c16;
-        Client::Scenes::PetStats& horse = Runtime().pets[Client::Scenes::DarkHorsePetStats];
+        Client::Kernel::PetStats& horse = Runtime().pets[Client::Kernel::DarkHorsePetStats];
         horse.level = 3;
         horse.durability = 37;
         horse.experience = 1234;
@@ -631,8 +631,8 @@ TEST_P(GamePetWindowTest, MissingTablesCut)
     OpenTheWindow(0);
     GiveTheHorse();
     Runtime().hud.partyCount = 0;
-    Client::Scenes::WorldRuntime& runtime = Runtime();
-    Client::Scenes::ActorState& hero = Hero();
+    Client::Kernel::WorldRuntime& runtime = Runtime();
+    Client::Kernel::ActorState& hero = Hero();
     GameHudContext context{.world = *m_world,
                            .random = m_random,
                            .ownRecordDepth = runtime.ownRecordDepth,

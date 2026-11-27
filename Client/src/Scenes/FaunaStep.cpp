@@ -89,7 +89,7 @@ public:
     }
     std::error_code PrefixLight(float x, float y) override
     {
-        World::AddTerrainLight(m_context.lighting, x, y, Data::Terrain::TerrainLightColor{-.3f, -.3f, -.2f}, 16);
+        Terrain::AddTerrainLight(m_context.lighting, x, y, Data::Terrain::TerrainLightColor{-.3f, -.3f, -.2f}, 16);
         return {};
     }
     std::error_code Audio(std::int32_t id, std::byte* owner) override

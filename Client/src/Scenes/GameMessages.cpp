@@ -21,7 +21,7 @@
 
 namespace Client::Scenes
 {
-std::string_view HeroNameOf(const ActorState& hero)
+std::string_view HeroNameOf(const Kernel::ActorState& hero)
 {
     std::size_t size = 0;
     while (size < hero.name.size() && hero.name[size] != std::byte{0})
@@ -29,9 +29,10 @@ std::string_view HeroNameOf(const ActorState& hero)
     return {reinterpret_cast<const char*>(hero.name.data()), size};
 }
 
-UI::MessageSink MessageSinkOf(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, Core::PixelSize screen)
+UI::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
+                              Core::PixelSize screen)
 {
-    ChatRuntime& chat = runtime.chat;
+    Kernel::ChatRuntime& chat = runtime.chat;
     return UI::MessageSink{.log = chat.log,
                            .area = chat.area,
                            .modes = runtime.ui.chatModes,
@@ -40,9 +41,9 @@ UI::MessageSink MessageSinkOf(WorldRuntime& runtime, const Render::Text::ITextMe
                            .noticeSound = chat.noticeSound};
 }
 
-Core::Expected<void, std::string> AddGameMessage(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
-                                                 Core::PixelSize screen, std::string_view name, std::string_view text,
-                                                 std::int32_t type)
+Core::Expected<void, std::string> AddGameMessage(Kernel::WorldRuntime& runtime,
+                                                 const Render::Text::ITextMeasure& measure, Core::PixelSize screen,
+                                                 std::string_view name, std::string_view text, std::int32_t type)
 {
     auto sound = UI::AddMessage(MessageSinkOf(runtime, measure, screen), name, text, type);
     if (!sound.HasValue())
@@ -52,7 +53,8 @@ Core::Expected<void, std::string> AddGameMessage(WorldRuntime& runtime, const Re
     return {};
 }
 
-Core::Expected<void, std::string> AddTheEmptyMessages(WorldRuntime& runtime, const Render::Text::ITextMeasure* measure)
+Core::Expected<void, std::string> AddTheEmptyMessages(Kernel::WorldRuntime& runtime,
+                                                      const Render::Text::ITextMeasure* measure)
 {
     if (measure == nullptr)
         return {};
@@ -66,8 +68,8 @@ Core::Expected<void, std::string> AddTheEmptyMessages(WorldRuntime& runtime, con
     return {};
 }
 
-Core::Expected<void, std::string> StepTheMessageClocks(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
-                                                       Core::PixelSize screen)
+Core::Expected<void, std::string>
+StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, Core::PixelSize screen)
 {
     UI::StepTheNoticeClock(runtime.chat.area, measure, runtime.hud.dcFont);
     auto sound = UI::StepTheMessageClock(MessageSinkOf(runtime, measure, screen));
@@ -84,10 +86,10 @@ Core::Expected<void, std::string> StepTheMessageClocks(WorldRuntime& runtime, co
     return {};
 }
 
-void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch& sprites,
+void DrawTheMessages(const Kernel::WorldState& world, Kernel::HudState& hud, Render::SpriteBatch& sprites,
                      Render::Frame::ITextDrawer& text, UI::Point mouse, bool inTheGame)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    const Kernel::WorldRuntime& runtime = world.Runtime();
     const UI::MessageDrawContext context{.sprites = sprites,
                                          .text = text,
                                          .dcFont = hud.dcFont,
@@ -97,7 +99,7 @@ void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch
     UI::DrawTheNotices(runtime.chat.area, hud.messageFrame, context, runtime.ui.chatModes.placement);
     if (runtime.ui.chatModes.placement != 1 && inTheGame)
         return;
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     const UI::MessageAreaView view{.mouseX = mouse.x,
                                    .mouseY = mouse.y,
                                    .chatOpen = runtime.ui.chatOpen,

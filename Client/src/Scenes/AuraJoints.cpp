@@ -47,7 +47,7 @@ constexpr float Tenth8 = std::bit_cast<float>(0x3f4ccccdu);    // 0,8f
 
 // 0x535d4f..0x535db2: el 10f/4 pasa a /9 si el personaje de +0xa0c monta a Fenrir (0x1c37 en +0x318) fuera de la zona
 // segura (+0x3e2), y el /9 vuelve a /4 si no. Con +0xa0c en −1, nada.
-Core::Expected<void, std::string> SwapByFenrir(JointState& joint, std::span<const ActorState> actors)
+Core::Expected<void, std::string> SwapByFenrir(JointState& joint, std::span<const Kernel::ActorState> actors)
 {
     constexpr std::uint16_t FenrirModel = 0x1c37;
     if (joint.target == -1 || (joint.subtype != 4 && joint.subtype != 9))

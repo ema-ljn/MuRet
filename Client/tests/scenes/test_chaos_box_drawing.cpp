@@ -37,13 +37,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::NpcWindowState;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
-using Client::World::ItemState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x0c4a05u;
@@ -120,7 +120,7 @@ protected:
             cell = ItemState{.id = 0xffff};
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -132,8 +132,8 @@ protected:
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0, bool leftDown = false)
     {
-        Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Hero();
+        Client::Kernel::WorldRuntime& runtime = Runtime();
+        Client::Kernel::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

@@ -59,10 +59,10 @@
 // CRT con la semilla 1.
 namespace
 {
+using Client::Actors::Drawing::GameCharacterEffectsPass;
+using Client::Actors::Drawing::GameRavenPass;
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
-using Client::Scenes::GameCharacterEffectsPass;
-using Client::Scenes::GameRavenPass;
+using Client::Kernel::ActorState;
 using Client::Scenes::PartySlot;
 
 float Float(std::uint32_t bits)
@@ -206,7 +206,7 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinPutsTheSparkAndTheShinyOnBoneNinetee
 {
     m_actor.skin = 8;
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
@@ -241,7 +241,7 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinNeedsClassZeroTheSkinBitsAndTheVisib
         m_actor.skin = probe.skin;
         m_actor.flags78 = probe.flags;
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         // La clase 8 tiene (8 & 7) en 0: también es del mago.
@@ -257,7 +257,7 @@ TEST_F(GameCharacterEffectsTest, TheLightningActionOutsideTheDarkLordPutsThreeSp
     GameCharacterEffectsPass pass = Pass();
     pass.worldClock = 1234.5f;
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
@@ -316,12 +316,12 @@ TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideThe
         m_actor.characterClass = probe.characterClass;
         m_actor.animation.action = probe.action;
         m_actor.animation.frame = probe.frame;
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         GameCharacterEffectsPass pass = Pass();
         pass.originalFrame = probe.originalFrame;
         pass.world = world.get();
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(LiveSprites(m_sprites).empty());
@@ -368,7 +368,7 @@ TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideThe
         // Sin el mundo, las ventanas cortan con su dirección; fuera de ellas, nada.
         pass.world = nullptr;
         m_random = CrtRandom{1};
-        const auto alone = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto alone = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
         if (probe.window == Window::None)
         {
             EXPECT_TRUE(alone.HasValue()) << alone.Error();
@@ -401,7 +401,7 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsLightTheHandsWithTheExactConditionO
         GameCharacterEffectsPass pass = Pass();
         pass.originalFrame = false;
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(LiveSprites(m_sprites).size(), probe.glows ? 6u : 0u);
@@ -420,7 +420,7 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
     m_actor.angles = {0.0f, 0.0f, 90.0f};
     m_actor.attackTarget = 0xfffe;
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
@@ -460,14 +460,14 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
     m_joints[7].ownerContext = &m_actor;
     m_sprites = {};
     m_random = CrtRandom{1};
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
     EXPECT_EQ(LiveJoints(m_joints).size(), 1u);
     EXPECT_EQ(LiveSprites(m_sprites).size(), 6u);
     EXPECT_EQ(m_random.State(), AfterRandoms(2));
 
     // El de otro dueño o con otro subtipo no cuenta.
     m_joints[7].subtype = 2;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
     EXPECT_EQ(LiveJoints(m_joints).size(), 6u);
 }
 
@@ -528,7 +528,7 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
 
         m_sprites = {};
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto joints = LiveJoints(m_joints);
@@ -556,17 +556,17 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     m_actor.counter35c = 0;
     m_actor.angles = {0.0f, 0.0f, 45.0f};
 
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
     EXPECT_EQ(m_actor.counter35c, 1);
 
     m_actor.counter35c = 100;
     m_actor.animation.action = 0xd;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
     EXPECT_EQ(m_actor.counter35c, 101);
     EXPECT_FALSE(m_effects.Effects()[0].alive);
 
     m_actor.animation.action = 0xc;
-    const auto created = Client::Scenes::DrawGameCharacterEffects(m_actor, Pass());
+    const auto created = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass());
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(m_actor.counter35c, 1);
     const Client::World::ModelEffect& flare = m_effects.Effects()[0];
@@ -589,7 +589,7 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     m_actor.counter35c = 100;
     GameCharacterEffectsPass projected = Pass();
     projected.originalFrame = false;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, projected).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, projected).HasValue());
     EXPECT_EQ(m_actor.counter35c, 1);
     EXPECT_FALSE(m_effects.Effects()[1].alive);
     EXPECT_EQ(m_random.State(), 1u);
@@ -598,7 +598,7 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     m_actor.counter35c = 100;
     GameCharacterEffectsPass missing = Pass();
     missing.effects = nullptr;
-    const auto cut = Client::Scenes::DrawGameCharacterEffects(m_actor, missing);
+    const auto cut = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, missing);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x50fdc3"), std::string::npos) << cut.Error();
 }
@@ -623,7 +623,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenSteps
         const float yaw = flare.transform.angles.z;
         if (step == 16)
             m_actor.position = {130.0f, 170.0f, 290.0f};
-        const auto stepped = Client::Scenes::StepFullSetFlare(flare, m_joints, m_random);
+        const auto stepped = Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
         EXPECT_EQ(flare.speed, static_cast<float>(step));
@@ -675,7 +675,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     Client::World::ModelEffect& flare = m_effects.Effects()[0];
     EXPECT_FALSE(flare.hasOwner);
 
-    ASSERT_TRUE(Client::Scenes::StepFullSetFlare(flare, m_joints, m_random).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, m_random).HasValue());
 
     EXPECT_EQ(flare.transform.position, m_actor.position);
     EXPECT_EQ(flare.transform.angles.z, 0.0f);
@@ -683,7 +683,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     EXPECT_EQ(m_random.State(), AfterRandoms(1));
 
     flare.subtype = 0;
-    const auto refused = Client::Scenes::StepFullSetFlare(flare, m_joints, m_random);
+    const auto refused = Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52a9ad"), std::string::npos) << refused.Error();
 }
@@ -699,7 +699,7 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, m_actor.angles, glm::vec3(0.5f), &m_actor).has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+    const auto stepped = Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
@@ -735,7 +735,7 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     {
         for (auto& joint : m_joints)
             joint.alive = false;
-        ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, m_random).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random).HasValue());
     }
     EXPECT_FALSE(summon.alive);
     EXPECT_EQ(m_random.State(), AfterRandoms(7 * 20));
@@ -748,7 +748,7 @@ TEST_F(GameCharacterEffectsTest, TheLevelUpDecalExpiresWithoutAJointTable)
     Client::World::ModelEffect& decal = m_effects.Effects()[0];
     for (int step = 1; step <= 20; ++step)
     {
-        const auto stepped = Client::Scenes::StepPetSummon(decal, {}, m_random);
+        const auto stepped = Client::Actors::Drawing::StepPetSummon(decal, {}, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(decal.life, 20 - step);
         EXPECT_EQ(decal.alive, step < 20);
@@ -763,14 +763,14 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor).has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto tableless = Client::Scenes::StepPetSummon(summon, {}, m_random);
+    const auto tableless = Client::Actors::Drawing::StepPetSummon(summon, {}, m_random);
     ASSERT_FALSE(tableless.HasValue());
     EXPECT_NE(tableless.Error().find("0x5189cc"), std::string::npos) << tableless.Error();
     EXPECT_EQ(m_random.State(), 1u);
     EXPECT_EQ(summon.life, 20);
 
     summon.subtype = 4;
-    const auto refused = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+    const auto refused = Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
@@ -785,7 +785,7 @@ TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
             .has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+    const auto stepped = Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
@@ -809,7 +809,7 @@ TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
     for (auto& joint : m_joints)
         joint.alive = true;
     CrtRandom full{1};
-    ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, full).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(summon, m_joints, full).HasValue());
     EXPECT_EQ(full.State(), AfterRandoms(7));
     EXPECT_EQ(summon.life, 18);
 }
@@ -836,7 +836,7 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
         SCOPED_TRACE(step);
         const glm::vec3 before = flare.transform.position;
         const float yaw = flare.transform.angles.z;
-        const auto stepped = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
+        const auto stepped = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
         EXPECT_EQ(flare.speed, static_cast<float>(step));
@@ -872,7 +872,7 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     // Sin 0x400 la vida queda en 0 y muere en la cola; con 0x4000 en el dueño, no cuenta ni se corre.
     m_actor.flags78 = 0x4000;
     const float counted = flare.speed;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random).HasValue());
     EXPECT_EQ(flare.speed, counted);
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(flare.life, -1);
@@ -898,7 +898,7 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
         auto& flare = m_effects.Effects()[0];
         const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, Slot};
 
-        const auto stepped = Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles, owner);
+        const auto stepped = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles, owner);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(2));
@@ -919,13 +919,13 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
     m_particles.Clear();
     auto& flare = m_effects.Effects()[0];
     m_actor.flags78 = 0x4010;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
     EXPECT_EQ(flare.life, 9);
     EXPECT_TRUE(LiveParticles(m_particles).empty());
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
     m_actor.flags78 = 0x10;
     m_actor.alive = false;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
@@ -934,14 +934,14 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
     flare.alive = true;
     m_actor.alive = true;
     m_actor.flags78 = 0;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
 
     flare.alive = true;
     flare.ownerContext = nullptr;
-    const auto ownerless = Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles);
+    const auto ownerless = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles);
     ASSERT_FALSE(ownerless.HasValue());
     EXPECT_NE(ownerless.Error().find("0x52a7ec"), std::string::npos);
     EXPECT_EQ(flare.life, 0);
@@ -962,8 +962,8 @@ TEST_F(GameCharacterEffectsTest, TheSwellBoneTableCoversAllSevenMirroredPairs)
         for (std::size_t draw = 0; draw < skipped; ++draw)
             (void)m_random.Next();
         ASSERT_TRUE(m_effects.CreateSkillFlare({}, {}, {}, Client::World::SwellFlareSubtype, &m_actor).has_value());
-        const auto stepped = Client::Scenes::StepSkillFlare(m_effects.Effects()[0], m_joints, m_random, &m_particles,
-                                                            {Client::World::ParticleOwnerKind::Actor, Slot});
+        const auto stepped = Client::Actors::Drawing::StepSkillFlare(
+            m_effects.Effects()[0], m_joints, m_random, &m_particles, {Client::World::ParticleOwnerKind::Actor, Slot});
         ASSERT_TRUE(stepped.HasValue());
         ASSERT_EQ(LiveParticles(m_particles).size(), 2u);
         EXPECT_EQ(m_particles.All()[0].rotation, Bones[index]);
@@ -974,7 +974,7 @@ TEST_F(GameCharacterEffectsTest, TheSwellBoneTableCoversAllSevenMirroredPairs)
 
 TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDraw)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     auto& actor = world->Actors()[3];
     actor.type = 0x20a;
     actor.alive = true;
@@ -991,8 +991,8 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
         effects.CreateSkillFlare({1, 2, 3}, {}, glm::vec3(1), Client::World::SwellFlareSubtype, &actor).has_value());
     CrtRandom random(7);
     const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 3};
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, random,
-                                               &world->Particles(), owner)
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, random,
+                                                        &world->Particles(), owner)
                     .HasValue());
     const auto resolver = Client::Scenes::ParticleOwnerBonesOf(*world);
     ASSERT_TRUE(
@@ -1046,7 +1046,7 @@ TEST_F(GameCharacterEffectsTest, ChaosCastleSkipsTheCounterAndTheFullSet)
     pass.map = 18;
     pass.scan = {.complete = true, .globals = {.dword743a178 = 13}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_actor.counter35c, 100);
@@ -1061,7 +1061,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetPutsThreeFlaresOnEachHandWithTheShine
     GameCharacterEffectsPass pass = Pass();
     pass.scan = {.complete = true, .globals = {.dword743a178 = 9}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
@@ -1087,7 +1087,7 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheFullSetFlares)
     GameCharacterEffectsPass pass = Pass();
     pass.scan = {.complete = true, .globals = {.dword743a178 = 9}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
@@ -1105,7 +1105,7 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheHandOfTheActions)
     const glm::vec3 hand = At(0x21, {-4.0f, 11.0f, 0.0f});
     m_actor.animation.action = 0x94;
     m_actor.animation.frame = 3.0f;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
     const auto sprites = LiveSprites(m_sprites);
     ASSERT_EQ(sprites.size(), 5u);
     for (std::size_t index = 2; index < sprites.size(); ++index)
@@ -1119,10 +1119,10 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheHandOfTheActions)
         m_sprites = {};
         m_actor.animation.action = action;
         m_actor.animation.frame = 7.5f;
-        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto world = std::make_unique<Client::Kernel::WorldState>();
         GameCharacterEffectsPass pass = Pass();
         pass.world = world.get();
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto& effects = world->Map().effects.Effects();
         for (std::size_t index = 0; index < 2; ++index)
@@ -1140,7 +1140,7 @@ TEST_F(GameCharacterEffectsTest, HiddenAttachmentsDropTheFlaresButKeepTheRandomO
     GameCharacterEffectsPass pass = Pass();
     pass.scan = {.complete = true, .globals = {.dword743a178 = 15}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(LiveSprites(m_sprites).empty());
@@ -1191,7 +1191,7 @@ TEST_F(GameCharacterEffectsTest, TheGlowingBootsDrawTheirRandomByLevelAndThePlus
         GameCharacterEffectsPass pass = Pass();
         pass.scan = {.complete = true, .globals = {.dword743a178 = probe.level}};
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(probe.draws));
@@ -1242,7 +1242,7 @@ TEST_F(GameCharacterEffectsTest, TheBootsMistsOfEachLevelAndTheirProjectedFrame)
             pass.originalFrame = original;
             pass.scan = {.complete = true, .globals = {.dword743a178 = probe.level}};
 
-            const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+            const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
             ASSERT_TRUE(result.HasValue()) << result.Error();
             const auto mists = LiveParticles(m_particles);
@@ -1274,7 +1274,7 @@ TEST_F(GameCharacterEffectsTest, TheBootsMistNeedsTheParticlePool)
     pass.particles = nullptr;
     pass.scan = {.complete = true, .globals = {.dword743a178 = 13}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x51020c"), std::string::npos) << result.Error();
@@ -1314,7 +1314,7 @@ TEST_F(GameCharacterEffectsTest, TheSparklesOfEachLevelCreateTheirOrbitsAndJoint
         pass.logicSteps = probe.steps;
         pass.scan = {.complete = true, .globals = {.dword743a178 = probe.level}};
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(skipped + 1 + probe.draws));
@@ -1366,7 +1366,7 @@ TEST_F(GameCharacterEffectsTest, ThePlusElevenSparkleJointTakesTheWhiteLightOfIt
     GameCharacterEffectsPass pass = Pass();
     pass.scan = {.complete = true, .globals = {.dword743a178 = 11}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(LiveParticles(m_particles).empty());
@@ -1401,7 +1401,7 @@ TEST_F(GameCharacterEffectsTest, BetweenOriginalFramesTheSparklesOnlyDrawTheirCh
         pass.logicSteps = 12;
         pass.scan = {.complete = true, .globals = {.dword743a178 = level}};
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(skipped + 1 + (level == 11 ? 1 : 0)));
@@ -1421,7 +1421,7 @@ TEST_F(GameCharacterEffectsTest, TheWideSparklesNeedTheJoints)
     pass.logicSteps = 6;
     pass.scan = {.complete = true, .globals = {.dword743a178 = 13}};
 
-    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x510435"), std::string::npos) << result.Error();
@@ -1461,7 +1461,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
         pass.map = probe.map;
         pass.originalFrame = probe.originalFrame;
 
-        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const Client::World::ModelEffect& mark = m_effects.Effects()[0];
@@ -1495,11 +1495,11 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
     m_actor.dword36c = std::bit_cast<std::uint32_t>(1000.0f);
     GameCharacterEffectsPass soon = Pass();
     soon.worldClock = 6000.0f;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, soon).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, soon).HasValue());
     EXPECT_FALSE(m_effects.Effects()[0].alive);
     GameCharacterEffectsPass later = Pass();
     later.worldClock = 6001.0f;
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, later).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, later).HasValue());
     EXPECT_TRUE(m_effects.Effects()[0].alive);
     EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(6001.0f));
 }
@@ -1571,7 +1571,7 @@ protected:
         m_terrain.heights->cells.fill(0.0f);
         m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         m_terrain.attributes->cells.fill(0);
-        m_lighting = std::make_unique<Client::World::TerrainLighting>();
+        m_lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         m_lighting->cells.fill({0.2f, 0.4f, 0.6f});
         m_polygon.everything = true;
         m_owner.position = {1000.0f, 1000.0f, 0.0f};
@@ -1599,11 +1599,11 @@ protected:
 
     ActorState m_owner;
     Client::Crt::CrtRandom m_random;
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     RavenModels m_models;
-    Client::World::WorldTerrain m_terrain;
-    std::unique_ptr<Client::World::TerrainLighting> m_lighting;
-    Client::World::TerrainPolygon m_polygon;
+    Client::Terrain::WorldTerrain m_terrain;
+    std::unique_ptr<Client::Terrain::TerrainLighting> m_lighting;
+    Client::Terrain::TerrainPolygon m_polygon;
     Client::Render::ModelBatch m_batch;
 };
 
@@ -1614,7 +1614,7 @@ TEST_F(GameRavenTest, OutOfTheTrapeziumTheRavenSlowsDownAndForgetsItsStateWithou
     m_owner.darkSpirit->state = 1;
     m_owner.darkSpirit->speed = 1.0f;
 
-    const auto result = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_owner.darkSpirit->speed, 3.0f);
@@ -1628,7 +1628,7 @@ TEST_F(GameRavenTest, ASeenRavenDrawsMeshesThreeAndTwoAndTheShadowOfAllAndKeepsI
     GameRavenPass pass = Pass();
     pass.carry = &carry;
 
-    const auto result = Client::Scenes::DrawGameRaven(m_owner, pass);
+    const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), (2u + 5u) * 3u);
@@ -1651,7 +1651,7 @@ TEST_F(GameRavenTest, TheShadowFollowsTheMapRulesOf0x6002e0)
         SCOPED_TRACE(probe.map);
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameRaven(m_owner, Pass(probe.map));
+        const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass(probe.map));
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), probe.vertices);
@@ -1671,7 +1671,7 @@ TEST_F(GameRavenTest, InCastleSiegeTheShadowFansOutWith2500)
         SCOPED_TRACE(map);
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameRaven(m_owner, Pass(map));
+        const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass(map));
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto& vertices = m_batch.Vertices();
@@ -1693,7 +1693,7 @@ TEST_F(GameRavenTest, BetweenOriginalFramesTheRavenIsDrawnWithoutTouchingItsStat
     pass.originalFrame = false;
     pass.heroByte1a1 = 1;
 
-    const auto result = Client::Scenes::DrawGameRaven(m_owner, pass);
+    const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 21u);
@@ -1707,7 +1707,7 @@ TEST_F(GameRavenTest, InChaosCastleTheHeroByteFadesTheRavenUntilItIsNoLongerDraw
     pass.heroByte1a1 = 1;
     m_owner.darkSpirit->alpha = 0.155f;
 
-    const auto first = Client::Scenes::DrawGameRaven(m_owner, pass);
+    const auto first = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
 
     ASSERT_TRUE(first.HasValue()) << first.Error();
     // 0,155f − 0,15f queda por debajo de 0,01f: 0x5ffdf0 sale sin posar.
@@ -1732,7 +1732,7 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
     GameRavenPass pass = Pass(30);
     pass.carry = &carry;
 
-    const auto result = Client::Scenes::DrawGameRaven(m_owner, pass);
+    const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Commands().size(), 1u);
@@ -1772,7 +1772,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
         {
             SCOPED_TRACE(flags);
             SCOPED_TRACE(counter);
-            m_world = std::make_unique<Client::Scenes::WorldState>();
+            m_world = std::make_unique<Client::Kernel::WorldState>();
             m_owner.flags78 = flags;
             Client::Scenes::DarkSpirit& spirit = *m_owner.darkSpirit;
             spirit.state = 5;
@@ -1802,7 +1802,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             }
             const auto turn = counter == 1 ? static_cast<std::int32_t>(oracle.Next() % 180) : 0;
 
-            const auto attacked = Client::Scenes::DrawGameRaven(m_owner, Pass());
+            const auto attacked = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
 
             ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
             EXPECT_EQ(m_batch.Vertices().size(), flags == 0 ? 21u : 15u);
@@ -1843,7 +1843,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
     bare.world = nullptr;
     m_owner.darkSpirit->byte38d = 0;
     CrtRandom before = m_random;
-    const auto cut = Client::Scenes::DrawGameRaven(m_owner, bare);
+    const auto cut = Client::Actors::Drawing::DrawGameRaven(m_owner, bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x418aff"), std::string::npos) << cut.Error();
     static_cast<void>(before.Next());
@@ -1862,12 +1862,12 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     for (const std::uint8_t counter : {std::uint8_t{3}, std::uint8_t{4}, std::uint8_t{6}})
     {
         m_owner.darkSpirit->byte38d = counter;
-        const auto quiet = Client::Scenes::DrawGameRaven(m_owner, Pass());
+        const auto quiet = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
         ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
     }
     EXPECT_FALSE(m_world->Map().effects.Effects()[0].alive);
     m_owner.darkSpirit->byte38d = 5;
-    const auto high = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    const auto high = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
     ASSERT_TRUE(high.HasValue()) << high.Error();
     const Client::Scenes::DarkSpirit& spirit = *m_owner.darkSpirit;
     ASSERT_EQ(spirit.pose.size(), 7u);
@@ -1886,14 +1886,14 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
     // 300 no pasa de 200 + 100.
     m_owner.position.z = 200.0f;
-    const auto low = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    const auto low = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
     EXPECT_TRUE(low.HasValue()) << low.Error();
     EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
     EXPECT_EQ(m_random.State(), Client::Crt::CrtRandom{}.State());
 
     m_owner.position.z = 0.0f;
     m_models.GrowBones(6);
-    const auto shortPose = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    const auto shortPose = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
     ASSERT_FALSE(shortPose.HasValue());
     EXPECT_NE(shortPose.Error().find("0x418be4"), std::string::npos) << shortPose.Error();
 }
@@ -1918,7 +1918,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
         Client::Crt::CrtRandom expected = m_random;
         const int first = expected.Next() & 1;
 
-        const auto shout = Client::Scenes::DrawGameRaven(m_owner, pass);
+        const auto shout = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
 
         ASSERT_TRUE(shout.HasValue()) << shout.Error();
         ASSERT_EQ(m_owner.darkSpirit->pose.size(), 1u);
@@ -1960,10 +1960,10 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
         particle.alive = true;
     GameRavenPass crowded = Pass();
     crowded.particles = full.get();
-    ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, crowded).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameRaven(m_owner, crowded).HasValue());
     EXPECT_EQ(m_random.State(), afterOne.State());
     m_random = Client::Crt::CrtRandom(BoneZero);
-    const auto missing = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    const auto missing = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x418a26"), std::string::npos) << missing.Error();
 }
@@ -1981,7 +1981,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->state = 6;
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->target3b0 = 0xffff;
-    ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, Pass()).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameRaven(m_owner, Pass()).HasValue());
     EXPECT_EQ(m_owner.darkSpirit->byte38d, 0);
     EXPECT_EQ(m_owner.darkSpirit->state, 6);
 
@@ -1992,18 +1992,18 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->scale = std::bit_cast<float>(0x3f333333u); // 0,7f
     GameRavenPass projected = Pass();
     projected.originalFrame = false;
-    ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, projected).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::DrawGameRaven(m_owner, projected).HasValue());
     EXPECT_EQ(m_owner.darkSpirit->byte38d, 15);
 
     Client::Scenes::FaunaDrawCarry carry;
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     const auto actors = world->Actors();
     actors[3].position = {1200.0f, 1300.0f, 40.0f};
     const auto& joints = world->DrawTail().joints;
     GameRavenPass pass = Pass();
     pass.carry = &carry;
     pass.world = world.get();
-    const auto end = Client::Scenes::DrawGameRaven(m_owner, pass);
+    const auto end = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
     ASSERT_TRUE(end.HasValue()) << end.Error();
     EXPECT_EQ(m_owner.darkSpirit->byte38d, 0);
     EXPECT_EQ(m_owner.darkSpirit->state, 0);
@@ -2060,7 +2060,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->state = 6;
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->alpha = 0.0f;
-    const auto stale = Client::Scenes::DrawGameRaven(m_owner, pass);
+    const auto stale = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
     ASSERT_FALSE(stale.HasValue());
     EXPECT_NE(stale.Error().find("0x418a8c"), std::string::npos) << stale.Error();
 }
@@ -2069,7 +2069,7 @@ TEST_F(GameRavenTest, AnOwnerWithoutRavenDrawsNothing)
 {
     m_owner.darkSpirit.reset();
 
-    const auto result = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());

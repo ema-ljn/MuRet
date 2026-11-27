@@ -106,6 +106,10 @@ using Client::App::SessionFailure;
 using Client::App::SessionSettings;
 using Client::App::SessionState;
 using Client::App::TickCountMs;
+using Client::Assets::CreditIllustrationSets;
+using Client::Assets::LoginTextureSet;
+using Client::Assets::TextureBufferSize;
+using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::PixelSize;
@@ -121,13 +125,9 @@ using Client::Protocol::Session::ServerEntry;
 using Client::Protocol::Session::WriteLoginRequest;
 using Client::Render::BlendMode;
 using Client::Render::TextureSlot;
-using Client::Scenes::CreditIllustrationSets;
 using Client::Scenes::LoginScene;
-using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
-using Client::Scenes::TextureBufferSize;
-using Client::Scenes::WindowTextureSet;
 using Client::Tables::GameData;
 using Client::Tables::LoadGameData;
 using Client::Tests::AddressReply;
@@ -270,7 +270,7 @@ struct Harness
     // Con `withTheCloth`, lo global de la tela en el contexto (el viento, el contador de pasos y el rand()).
     // Con `world`, el chat del mundo y un medidor de seis píxeles por byte. Con `credits`, ese credit.bmd;
     // sin él, la tabla de los créditos queda vacía.
-    explicit Harness(bool withTheCloth = false, Client::Scenes::WorldState* world = nullptr,
+    explicit Harness(bool withTheCloth = false, Client::Kernel::WorldState* world = nullptr,
                      std::span<const std::byte> credits = {})
         : log(sink, LogLevel::Debug), connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
           session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}},
@@ -768,7 +768,7 @@ TEST(LoginSceneSessionTest, TheLoginWindowShowsWithTheGameServer)
 // 0x6427ea), todos como sistema y sin nombre.
 TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Harness tested(false, &world);
     // El mundo 56 del login con un terreno plano, para que su personaje tenga dónde pararse (0x511b9f).
     const std::filesystem::path& root = tested.folder.Path();

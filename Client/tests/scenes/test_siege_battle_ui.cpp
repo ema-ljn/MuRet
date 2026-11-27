@@ -137,7 +137,7 @@ protected:
             packet = Client::Network::Xor32Decode(std::move(packet));
         EXPECT_TRUE(SameBytes(packet.Bytes(), bytes));
     }
-    std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> world = std::make_unique<Client::Kernel::WorldState>();
     CrtRandom random{314159};
     Client::Input::InputState input{};
     Requests requests{};

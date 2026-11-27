@@ -138,8 +138,8 @@ public:
     [[nodiscard]] bool WantsTextInput() const;
     [[nodiscard]] std::optional<GameExit> Exit() const;
 
-    [[nodiscard]] Scenes::WorldState& World();
-    [[nodiscard]] const Scenes::WorldState& World() const;
+    [[nodiscard]] Kernel::WorldState& World();
+    [[nodiscard]] const Kernel::WorldState& World() const;
     // The CRT rand() state.
     [[nodiscard]] std::uint32_t RandomState() const;
     // nullptr without a host.
@@ -164,14 +164,14 @@ private:
     GameClientDevices m_devices;
     GameClientOptions m_options;
     Models::ClothWorld m_cloth;
-    World::GameCamera m_camera;
+    Camera::GameCamera m_camera;
     // 0x4bafa6..0x4bafc2: WinMain zeroes the pool of 401 characters and the own record; 0x4bafad..0x4bafdf: the hero
     // is character 0.
-    Scenes::WorldState m_world;
-    World::GameCameraInput m_cameraInput;
+    Kernel::WorldState m_world;
+    Camera::GameCameraInput m_cameraInput;
     Scenes::SelectionState m_selection;
     // 0x61ccb0: the loading scene reads them.
-    Scenes::GameModels m_models;
+    Assets::GameModels m_models;
     Scenes::WorldEntryResources m_worldEntry;
     Scenes::SessionEventApplier m_eventApplier;
     std::unique_ptr<Online> m_online;

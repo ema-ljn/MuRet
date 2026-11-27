@@ -34,11 +34,19 @@ struct ModelEffectArguments;
 struct ModelEffectStepServices;
 } // namespace Client::World
 
-namespace Client::Scenes
+namespace Client::Actors
+{
+struct CharacterStepContext;
+} // namespace Client::Actors
+
+namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
-struct CharacterStepContext;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 
 // Lo que las altas de estos tipos leen y escriben fuera de su lugar: la tabla de efectos (World::ModelEffects), los
 // joints (0x530860, GameDrawTailState::joints), las partículas (0x53fe70), el sonido (0x41ed10, que queda en
@@ -47,7 +55,7 @@ struct CharacterStepContext;
 // BMD que 0x4ea030 no encuentra en world.FaunaResources() (los modelos del mapa), como MonsterSkeletonOf.
 struct HighEffectContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     float worldClock = 0.0f;
     std::function<void(Protocol::Outgoing)> send{};
@@ -55,17 +63,17 @@ struct HighEffectContext
 };
 
 // El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
-[[nodiscard]] HighEffectContext HighContextOf(const CharacterStepContext& context);
+[[nodiscard]] HighEffectContext HighContextOf(const Actors::CharacterStepContext& context);
 
 // 0x4f5b10(personaje, x, y, z, punto): `offset` girado por los ángulos del personaje (+0x1c) más su posición, un fstp
 // por eje.
-[[nodiscard]] glm::vec3 PointAround(const ActorState& actor, const glm::vec3& offset);
+[[nodiscard]] glm::vec3 PointAround(const Kernel::ActorState& actor, const glm::vec3& offset);
 
 // 0x4ec110(modelo del tipo, huesos propios (+0x120) + hueso · 0x30, offset, punto, 1): el punto de un hueso del
 // personaje en el mundo, con la escala y el origen de su modelo (los que 0x4fd69b le copia antes del paso). Sin huesos
 // propios (antes del primer dibujo), la matriz en cero (Q-C318), como OwnBonePoint de CharacterStep.cpp.
-[[nodiscard]] glm::vec3 ActorBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
-                                       const WorldState& world);
+[[nodiscard]] glm::vec3 ActorBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
+                                       const Kernel::WorldState& world);
 
 // Los tipos cuya alta pasa por CreateHighModelEffect (la del 0x114/2..6, la del 0x115 y la del 0x621/0 son de World).
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);
@@ -82,7 +90,7 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
 // que world.FaunaResources() no tiene (el de un jugador dueño del 0x61e/6).
 struct HighEffectStepContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     const World::ModelEffectStepServices& services;
     float worldClock = 0.0f;
@@ -101,5 +109,5 @@ StepHighModelEffect(World::ModelEffect& effect, const Models::Skeleton* skeleton
 
 // La posición (+0x10) de un personaje de `world` que es el dueño (+0x108) de un efecto, para el pase del suelo (el
 // 0x61e/7, 0x52ded0); nullopt si el dueño no es uno de sus personajes. `world` tiene que vivir más que la función.
-[[nodiscard]] std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const WorldState& world);
+[[nodiscard]] std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const Kernel::WorldState& world);
 } // namespace Client::Scenes

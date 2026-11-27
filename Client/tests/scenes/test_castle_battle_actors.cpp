@@ -15,7 +15,7 @@ namespace
 class CastleBattleActorsTest : public ::testing::Test
 {
 protected:
-    using Actors = std::array<Client::Scenes::ActorState, Client::Scenes::CastleBattleActorCount + 1>;
+    using Actors = std::array<Client::Kernel::ActorState, Client::Scenes::CastleBattleActorCount + 1>;
     std::unique_ptr<Actors> m_actors = std::make_unique<Actors>();
     std::unique_ptr<Client::Scenes::GuildState> m_guild = std::make_unique<Client::Scenes::GuildState>();
 

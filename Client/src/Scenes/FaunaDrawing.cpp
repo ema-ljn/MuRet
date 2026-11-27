@@ -56,15 +56,15 @@ Models::AnimationState AnimationOf(const FaunaObject& object)
     return {object.action, object.frame, object.previousAction,
             static_cast<std::int16_t>(Math::FtolLow(object.previousFrame))};
 }
-DrawnObject Drawn(const FaunaObject& object, const World::TerrainLighting& lighting)
+Actors::Drawing::DrawnObject Drawn(const FaunaObject& object, const Terrain::TerrainLighting& lighting)
 {
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     drawn.model = static_cast<std::uint16_t>(object.model);
     drawn.animation = AnimationOf(object);
     drawn.transform = {object.position, object.angles, object.bodyScale};
     drawn.state = {
         static_cast<std::int16_t>(object.blendMesh), object.ceiling, {}, static_cast<std::int16_t>(object.hiddenMesh)};
-    const auto light = World::LightAt(lighting, object.position.x, object.position.y);
+    const auto light = Terrain::LightAt(lighting, object.position.x, object.position.y);
     const double factor = object.vertexLight != 0 ? 1 : static_cast<double>(.1f);
     for (int k = 0; k < 3; ++k)
         drawn.color[k] = F32(static_cast<double>(light[k]) * factor + object.light[k]);
@@ -72,10 +72,10 @@ DrawnObject Drawn(const FaunaObject& object, const World::TerrainLighting& light
     drawn.vertexLight = object.vertexLight != 0;
     return drawn;
 }
-bool Seen(const FaunaObject& object, const World::TerrainPolygon& polygon)
+bool Seen(const FaunaObject& object, const Terrain::TerrainPolygon& polygon)
 {
-    return World::PolygonContains(polygon, F32(static_cast<double>(object.position.x) * .01f),
-                                  F32(static_cast<double>(object.position.y) * .01f), -20);
+    return Terrain::PolygonContains(polygon, F32(static_cast<double>(object.position.x) * .01f),
+                                    F32(static_cast<double>(object.position.y) * .01f), -20);
 }
 glm::vec3 Flatten(const glm::vec3& world, const glm::vec3& origin, std::int32_t map)
 {
@@ -100,8 +100,8 @@ Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaO
     if (context.terrain.heights == nullptr || context.terrain.attributes == nullptr)
         return Core::Unexpected(std::string("4eff40: altura del terreno ausente"));
     glm::vec3 origin = object.position;
-    origin.z = F32(World::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, origin.x, origin.y,
-                                          context.fixedHeight));
+    origin.z = F32(Terrain::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, origin.x, origin.y,
+                                            context.fixedHeight));
     // 446e9d..446eb3: sólo XYZ; la escala del último cuerpo permanece retenida.
     context.carry.models[static_cast<std::uint16_t>(object.model)].position = origin;
     const auto* model = context.models.Find(static_cast<std::uint16_t>(object.model));
@@ -213,14 +213,14 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, FaunaObject
         if (!pose.HasValue())
             return pose;
     }
-    DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes);
+    Actors::Drawing::DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes);
     // 446c35..446c80 son draws puros, también visibles en la proyección entre pasos nativos.
     if (bird && object.model == StormBird && object.counter == 1)
     {
-        DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
-                             Models::ShinePass::Shiny);
-        DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
-                             Models::ShinePass::Chrome);
+        Actors::Drawing::DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
+                                              Models::ShinePass::Shiny);
+        Actors::Drawing::DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
+                                              Models::ShinePass::Chrome);
     }
     if (bird && context.originalFrame)
     {
@@ -311,7 +311,7 @@ void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model, std
 }
 } // namespace
 Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                   const DrawnObject& object, bool translated)
+                                                   const Actors::Drawing::DrawnObject& object, bool translated)
 {
     if (object.alpha < VisibleAlpha)
         return {};
@@ -339,7 +339,7 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, translated);
 }
 Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                        const DrawnObject& object)
+                                                        const Actors::Drawing::DrawnObject& object)
 {
     const auto* skeleton = models.SkeletonOf(object.model);
     if (skeleton == nullptr)
@@ -354,7 +354,7 @@ Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, c
                                object.alpha > VisibleAlpha);
 }
 Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                     const DrawnObject& object)
+                                                     const Actors::Drawing::DrawnObject& object)
 {
     return PublishFaunaPoseRaw(carry, models, object.model, carry.bones, object.transform, false);
 }

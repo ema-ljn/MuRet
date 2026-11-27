@@ -8,7 +8,7 @@ struct TerrainHeights;
 
 // La altura del terreno en un punto del mundo (CL7.6 B3): 0x5f93c0, que piden las brasas del login al
 // caer. Verificado contra el código real emulado (tests/vectors/world55/leaves.txt).
-namespace Client::World
+namespace Client::Terrain
 {
 // La altura inicial de 0x6c9d5c; la cámara compartida la deja en 1.201 con el primer 0x40.
 inline constexpr float FixedTerrainHeight = 1200.0f;
@@ -23,4 +23,4 @@ inline constexpr float FixedTerrainHeight = 1200.0f;
 [[nodiscard]] double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights,
                                      const Data::Terrain::TerrainAttributes& attributes, float x, float y,
                                      float fixedHeight = FixedTerrainHeight);
-} // namespace Client::World
+} // namespace Client::Terrain

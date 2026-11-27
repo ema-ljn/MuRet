@@ -84,7 +84,7 @@ public:
     Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
 };
-class AttributeSource final : public Client::World::ITerrainAttributeQuerySource
+class AttributeSource final : public Client::Terrain::ITerrainAttributeQuerySource
 {
 public:
     float ReadScale() override
@@ -183,7 +183,7 @@ void ExpectItemInitialization(const Client::World::ModelEffect& effect, float sc
     EXPECT_EQ(effect.animation.previousKey, 0);
 }
 
-void ExpectItemPose(const Client::Scenes::DrawnObject& object, float scale)
+void ExpectItemPose(const Client::Actors::Drawing::DrawnObject& object, float scale)
 {
     EXPECT_TRUE(object.vertexLight);
     EXPECT_FLOAT_EQ(object.alpha, 1);
@@ -222,7 +222,7 @@ TEST(GameSpecialModelEffectsTest, TwentySpriteSamplesAccumulateRealDynamicLightW
     NoModels models;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    auto light = std::make_unique<Client::World::TerrainLighting>();
+    auto light = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites sprites;
     Client::World::ModelEffect effect;
     effect.alive = true;
@@ -254,7 +254,7 @@ TEST(GameSpecialModelEffectsTest, SubtypeOneMutatesTwentyTimesEvenWhenSpritesAre
     NoModels models;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    auto light = std::make_unique<Client::World::TerrainLighting>();
+    auto light = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites sprites;
     for (auto& sprite : sprites.Sprites())
         sprite.alive = true;
@@ -281,7 +281,7 @@ TEST(GameSpecialModelEffectsTest, SiegeBarrierReturnsTheEntirePassAfterItsFirstS
     NoModels models;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    auto light = std::make_unique<Client::World::TerrainLighting>();
+    auto light = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites sprites;
     AttributeSource attributes;
     attributes.table->cells[10 * 256 + 11] = 0x100;
@@ -397,7 +397,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.random = &random;
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         EXPECT_EQ(object.model, 0x212);
         EXPECT_EQ(object.transform.position, (glm::vec3{100, 200, 400}));
@@ -431,7 +431,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditive
     effect.alpha = 0;
     effect.objectState.light = 0.3f;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         EXPECT_FLOAT_EQ(effect.objectState.light, 0.3f);
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
@@ -452,7 +452,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPo
     Client::Scenes::FaunaDrawCarry carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    auto light = std::make_unique<Client::World::TerrainLighting>();
+    auto light = std::make_unique<Client::Terrain::TerrainLighting>();
     std::int16_t itemType = 0;
     std::uint8_t itemLevel = 0;
     Client::World::ModelEffect effect;
@@ -463,7 +463,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPo
     effect.itemType = &itemType;
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         light->cells.fill({1, 1, 1});
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
@@ -483,12 +483,12 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
     Client::Scenes::FaunaDrawCarry carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    auto light = std::make_unique<Client::World::TerrainLighting>();
+    auto light = std::make_unique<Client::Terrain::TerrainLighting>();
     std::int16_t itemType = 0;
     std::uint8_t itemLevel = 0;
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
@@ -523,11 +523,11 @@ TEST(GameSpecialModelEffectsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfAnEffe
         std::int16_t itemType = 0;
         std::uint8_t itemLevel = 13;
         auto effect = ItemEffect(0xfa, itemType, itemLevel);
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.glowDetail = detail;
         Client::Scenes::ModelEffectDrawResources resources{*heights};
         resources.itemContext = &items;
-        resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+        resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
         { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
         resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
 
@@ -559,7 +559,7 @@ TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaCon
             const float direction = type == 0xfa ? -1.0f : 0.0f;
             int poses = 0;
             Client::Scenes::ModelEffectDrawResources resources{*heights};
-            resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+            resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
             {
                 ++poses;
                 ExpectItemInitialization(effect, 0.8f, direction);
@@ -610,7 +610,7 @@ TEST(GameSpecialModelEffectsTest, PoseFailureRetainsInitializationAndCallerSpeci
             const float direction = type == 0xfa ? -1.0f : 0.0f;
             Client::Scenes::ModelEffectDrawResources resources{*heights};
             resources.onUntranslatedPose =
-                [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+                [&](const Client::Actors::Drawing::DrawnObject& object) -> Client::Core::Expected<void, std::string>
             {
                 ExpectItemInitialization(effect, Scales[index], direction);
                 ExpectItemPose(object, Scales[index]);
@@ -670,7 +670,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowStoresItsNativeAlphaWhileDrawingWith
     std::uint8_t itemLevel = 0;
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
@@ -700,7 +700,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowRetainsItsNativeAlphaWhenTheSecondMe
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     effect.alpha = 0.3f;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
@@ -741,7 +741,7 @@ TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToThe
     effect.itemType = &itemType;
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -770,13 +770,13 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     std::uint8_t itemLevel = 0;
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     effect.transform.position = {1000.3f, 2000.7f, 300.1f};
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext item;
+    Client::Actors::Drawing::ItemDrawContext item;
     item.special = &special;
     item.poseBones = [&] { return std::span<const Client::Math::BoneTransform>(carry.bones); };
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     resources.itemContext = &item;
@@ -820,13 +820,13 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndIt
     effect.velocity.z = 60;
     effect.itemType = &itemType;
     effect.itemLevel = &itemLevel;
-    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
-    Client::Scenes::ItemDrawContext item;
+    Client::Actors::Drawing::ItemDrawContext item;
     item.special = &special;
     item.poseBones = [&] { return std::span<const Client::Math::BoneTransform>(carry.bones); };
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         EXPECT_EQ(object.transform.angles, (glm::vec3{0, 90, 30}));
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
@@ -872,7 +872,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAn
     effect.transform.scale = 1.3f;
     effect.light = {0.5f, 0.6f, 0.7f};
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
 

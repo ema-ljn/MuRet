@@ -21,7 +21,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -38,7 +38,7 @@ constexpr std::string_view MurdererFormat = "%s %d%s";
 // [EBP − 0x20]: el buffer de la pila del sprintf del 5 y del 6.
 constexpr std::size_t MurdererBuffer = 0x20;
 
-Core::Expected<std::string_view, std::string> TextOf(const WorldEntryResources& resources, std::size_t index)
+Core::Expected<std::string_view, std::string> TextOf(const Scenes::WorldEntryResources& resources, std::size_t index)
 {
     const std::optional<std::string_view> text = UI::TextAt(resources.texts, index);
     if (!text)
@@ -47,7 +47,7 @@ Core::Expected<std::string_view, std::string> TextOf(const WorldEntryResources& 
 }
 
 // 0x4d3c04..0x4d3c19 y 0x4d3c55..0x4d3c6a: sprintf(buffer, "%s %d%s", el 490, 1 o 2, el 491).
-Core::Expected<std::string, std::string> MurdererLine(const WorldEntryResources& resources, std::int32_t count,
+Core::Expected<std::string, std::string> MurdererLine(const Scenes::WorldEntryResources& resources, std::int32_t count,
                                                       std::string_view where)
 {
     const auto head = TextOf(resources, MurdererText);
@@ -66,11 +66,11 @@ Core::Expected<std::string, std::string> MurdererLine(const WorldEntryResources&
 } // namespace
 
 Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& packet,
-                                               const WorldEntryResources& resources)
+                                               const Scenes::WorldEntryResources& resources)
 {
-    WorldState& world = resources.world;
+    Kernel::WorldState& world = resources.world;
     // 0x4d3b6c..0x4d3ba7: 0x5110d0(clave) sin mirar el resultado.
-    ActorState& actor = world.Actors()[ActorWithKey(world, packet.key)];
+    Kernel::ActorState& actor = world.Actors()[Scenes::ActorWithKey(world, packet.key)];
     actor.pk = packet.level;
     actor.level = packet.level < MurdererLevel ? 0 : 1;
     // 0x4d3ba7..0x4d3bb6: la tabla 0x4d3ca8 del 1 al 6; el 0 y desde el 7, nada más.
@@ -113,8 +113,8 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::string("0x4d3bf6: 0x555190 sin el medidor de los textos"));
     // 0x4d3bd7..0x4d3bf6: otra vez 0x5110d0(clave), y 0x555190(+0x1d9 de ese personaje, texto, tipo).
-    const std::string name = ChatNameOf(world.Actors()[ActorWithKey(world, packet.key)]);
+    const std::string name = Scenes::ChatNameOf(world.Actors()[Scenes::ActorWithKey(world, packet.key)]);
     const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-    return AddGameMessage(world.Runtime(), *resources.textMeasure, screen, name, text, type);
+    return Scenes::AddGameMessage(world.Runtime(), *resources.textMeasure, screen, name, text, type);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

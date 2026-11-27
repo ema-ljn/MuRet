@@ -46,8 +46,8 @@ using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Kernel::WorldState;
 using Client::Scenes::GameUiContext;
-using Client::Scenes::WorldState;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // El paso con todo cerrado (test_game_ui.cpp): la barra de skills, la cadena de Q, W y E y la cola IsOpen(0).
@@ -186,7 +186,7 @@ TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySel
         EXPECT_FALSE(world.Runtime().movement.pendingClick);
 
         Client::Scenes::ClearSelectionInventory(world, random);
-        EXPECT_EQ(item.id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(item.id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(item.scalar1Low, 0x1234u);
         Click();
         stepped = Step(WindowX + 0x14, 0x18b);
@@ -301,7 +301,7 @@ protected:
             return Client::Core::Expected<void, std::string>{};
         };
         // Una poción en la casilla (1, 2), con su columna y su fila.
-        Client::World::ItemState& potion = world.Inventory().cells[PotionCell];
+        Client::Kernel::ItemState& potion = world.Inventory().cells[PotionCell];
         potion.id = Potion;
         potion.gridColumn = 1;
         potion.gridRow = 2;
@@ -354,7 +354,7 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(world.Runtime().cursorItemCount, 1);
     EXPECT_EQ(world.Runtime().cursorItem.id, Potion);
     EXPECT_EQ(world.Runtime().slot78a6758, static_cast<std::int32_t>(PotionCell) + 12);
-    EXPECT_EQ(world.Inventory().cells[PotionCell].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(world.Inventory().cells[PotionCell].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(world.Runtime().lastSoundId, 0x1d);
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     EXPECT_EQ(random.State(), expected.State());
@@ -380,7 +380,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
 {
     for (std::size_t row = 4; row < 7; ++row)
     {
-        Client::World::ItemState& part = world.Inventory().cells[row * 8 + 5];
+        Client::Kernel::ItemState& part = world.Inventory().cells[row * 8 + 5];
         part.id = Sword;
         part.gridColumn = 5;
         part.gridRow = 4;
@@ -394,7 +394,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
     EXPECT_FALSE(world.Runtime().ui.rightClick);
     EXPECT_EQ(world.Runtime().cursorItemCount, 0);
     EXPECT_EQ(world.Runtime().cursorItem.id, 0);
-    EXPECT_EQ(world.Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(world.Runtime().cursorGrid, Client::Kernel::CursorGrid::Inventory);
     EXPECT_EQ(world.Inventory().cells[4 * 8 + 5].id, Sword);
     EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
 }
@@ -406,7 +406,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsThe
 {
     std::vector<Client::Protocol::Outgoing> sent;
     services.sendGamePacket = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
-    Client::World::ItemState& ticket = world.Inventory().cells[PotionCell];
+    Client::Kernel::ItemState& ticket = world.Inventory().cells[PotionCell];
     ticket.id = EventTicket;
     ticket.scalar1Low = 0x12345678u;
     auto& runtime = world.Runtime();

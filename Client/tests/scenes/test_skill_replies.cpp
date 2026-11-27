@@ -56,6 +56,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Protocol::Skills::ActorEffect;
 using Client::Protocol::Skills::DurationMagic;
 using Client::Protocol::Skills::MagicAttack;
@@ -64,7 +65,6 @@ using Client::Protocol::Skills::SkillList;
 using Client::Protocol::Skills::SkillListEntry;
 using Client::Protocol::Skills::SkillTarget;
 using Client::Protocol::Skills::SummonLife;
-using Client::Scenes::ActorState;
 
 constexpr std::uint16_t HeroKey = 0x21;
 constexpr std::uint16_t CasterKey = 0x1234;
@@ -163,10 +163,10 @@ struct Replies
         return count;
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     SkillModels models;
     Client::Tests::RecordingSink sink;
@@ -378,7 +378,7 @@ TEST(SkillRepliesTest, TheMountChoosesTheActionOfTheLordSkills)
     for (const auto& [model, safe, action] :
          {std::tuple{std::uint16_t{0x1c16}, 0, 0x52}, std::tuple{std::uint16_t{0x1c14}, 0, 0x40},
           std::tuple{std::uint16_t{0x1c15}, 0, 0x41}, std::tuple{std::uint16_t{0x1c37}, 0, 0x5d},
-          std::tuple{std::uint16_t{0x1c16}, 1, 0x3f}, std::tuple{Client::Scenes::NoItemModel, 0, 0x3f}})
+          std::tuple{std::uint16_t{0x1c16}, 1, 0x3f}, std::tuple{Client::Kernel::NoItemModel, 0, 0x3f}})
     {
         auto tested = std::make_unique<Replies>();
         tested->Actor(CasterIndex).pet.model = model;
@@ -505,11 +505,11 @@ TEST(SkillRepliesTest, TheSkill33FreezesTheTarget)
         replies->Actor(TargetIndex).angles = {0.0f, 0.0f, 90.0f};
     reference->cloth.random = Advanced(reference->cloth.random, ActorByteRandoms);
     ActorState& wrapped = reference->Actor(TargetIndex);
-    ASSERT_TRUE(Client::Scenes::WrapInIce(wrapped, reference->Resources(), {}).HasValue());
+    ASSERT_TRUE(Client::Actors::WrapInIce(wrapped, reference->Resources(), {}).HasValue());
     wrapped.movement = 0;
     const auto context = Client::Scenes::TransitionStopContext(wrapped, reference->Resources());
     ASSERT_TRUE(context.HasValue()) << context.Error();
-    ASSERT_TRUE(Client::Scenes::SetActorStop(wrapped, context.Value()).HasValue());
+    ASSERT_TRUE(Client::Actors::SetActorStop(wrapped, context.Value()).HasValue());
 
     const auto applied = tested->Attack(0x33);
 
@@ -589,7 +589,7 @@ TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
     EXPECT_EQ(effects[0].transform.position, caster.position);
 
     tested->world.Runtime().lastSoundId.reset();
-    ASSERT_TRUE(Client::Scenes::ApplyEffectFlags(caster, 0x40, false, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Actors::ApplyEffectFlags(caster, 0x40, false, tested->Resources()).HasValue());
     EXPECT_EQ(skulls(), 1);
     EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
 }
@@ -690,7 +690,7 @@ TEST(SkillRepliesTest, TheSkill33WithAFullPoolStillStopsTheTarget)
     stopped.movement = 0;
     const auto context = Client::Scenes::TransitionStopContext(stopped, reference->Resources());
     ASSERT_TRUE(context.HasValue()) << context.Error();
-    const auto stop = Client::Scenes::SetActorStop(stopped, context.Value());
+    const auto stop = Client::Actors::SetActorStop(stopped, context.Value());
     ASSERT_TRUE(stop.HasValue()) << stop.Error();
     ASSERT_NE(stopped.animation.action, BusyAction);
 
@@ -993,13 +993,13 @@ TEST(SkillRepliesTest, TheDurationMagicWithoutTheKeyWritesTheLastActor)
 
 TEST(SkillRepliesTest, TheDurationTableChoosesTheActionOfTheOtherPlayer)
 {
-    for (const auto& [skill, model, action] : {std::tuple{std::uint8_t{0xa}, Client::Scenes::NoItemModel, 0x96},
+    for (const auto& [skill, model, action] : {std::tuple{std::uint8_t{0xa}, Client::Kernel::NoItemModel, 0x96},
                                                std::tuple{std::uint8_t{0x41}, std::uint16_t{0x1c37}, 0x5b},
-                                               std::tuple{std::uint8_t{0x41}, Client::Scenes::NoItemModel, 0x94},
-                                               std::tuple{std::uint8_t{0x2a}, Client::Scenes::NoItemModel, 0x3e},
-                                               std::tuple{std::uint8_t{0x37}, Client::Scenes::NoItemModel, 0x3d},
-                                               std::tuple{std::uint8_t{0x46}, Client::Scenes::NoItemModel, 0x3f},
-                                               std::tuple{std::uint8_t{0x4c}, Client::Scenes::NoItemModel, 0x62}})
+                                               std::tuple{std::uint8_t{0x41}, Client::Kernel::NoItemModel, 0x94},
+                                               std::tuple{std::uint8_t{0x2a}, Client::Kernel::NoItemModel, 0x3e},
+                                               std::tuple{std::uint8_t{0x37}, Client::Kernel::NoItemModel, 0x3d},
+                                               std::tuple{std::uint8_t{0x46}, Client::Kernel::NoItemModel, 0x3f},
+                                               std::tuple{std::uint8_t{0x4c}, Client::Kernel::NoItemModel, 0x62}})
     {
         auto tested = std::make_unique<Replies>();
         tested->Actor(CasterIndex).pet.model = model;
@@ -1219,7 +1219,7 @@ TEST(SkillRepliesTest, TheBigClearLowersEverything)
     joints[1].type = 0x10f;
     joints[1].subtype = 9;
     joints[1].ownerContext = &tested->Actor(TargetIndex);
-    Client::Scenes::RemoveActorFlag(0x100000, actor, tested->world);
+    Client::Actors::RemoveActorFlag(0x100000, actor, tested->world);
     EXPECT_EQ(actor.flags7c, 1u);
     EXPECT_EQ(actor.flags78, 0xffffffffu & ~0x5f7fu);
     EXPECT_FALSE(joints[0].alive);
@@ -1233,7 +1233,7 @@ TEST(SkillRepliesTest, SomeTypesLowerTheFlag10000FromTheSecondFlags)
     ActorState& actor = tested->Actor(CasterIndex);
     actor.type = 0x205;
     actor.flags78 = 0x10000;
-    Client::Scenes::RemoveActorFlag(0x10000, actor, tested->world);
+    Client::Actors::RemoveActorFlag(0x10000, actor, tested->world);
     EXPECT_EQ(actor.flags78, 0x10000u);
     EXPECT_EQ(actor.flags7c, 0u - 0x10000u);
 }

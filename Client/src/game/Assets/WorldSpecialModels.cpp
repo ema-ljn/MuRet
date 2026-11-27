@@ -6,7 +6,7 @@
 #include <array>
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 namespace
 {
@@ -131,4 +131,4 @@ WorldSpecialModelSet SpecialWorldModelsOf(std::uint8_t map)
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

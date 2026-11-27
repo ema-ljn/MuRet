@@ -27,11 +27,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectStepContext;
 using Client::Scenes::StepHighModelEffect;
-using Client::Scenes::WorldState;
 using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;

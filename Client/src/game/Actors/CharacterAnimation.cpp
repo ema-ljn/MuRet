@@ -11,7 +11,7 @@
 
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -26,7 +26,7 @@ float WingKeysPerOriginalFrame(std::uint8_t characterAction)
     return characterAction == FastWingAction || characterAction == OtherFastWingAction ? FastWingKeys : WingKeys;
 }
 
-bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
+bool StepCharacterAnimation(CharacterAnimation& animation, const Kernel::CharacterAppearance& appearance,
                             const Models::IModelLibrary& models, Models::AnimationScene scene)
 {
     bool finished = false;
@@ -40,7 +40,7 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
     return finished;
 }
 
-void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
+void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::CharacterAppearance& appearance,
                               const Models::IModelLibrary& models)
 {
     if (appearance.pet)
@@ -74,4 +74,4 @@ Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, con
     const float speed = speeds != nullptr ? speeds->Speed(animation.body.action, action.speed) : action.speed;
     return Models::Interpolated(animation.body, action, speed, alpha);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

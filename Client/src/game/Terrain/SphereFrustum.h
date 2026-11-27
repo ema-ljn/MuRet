@@ -8,7 +8,7 @@
 #include <array>
 
 // Los cinco planos de 0x5fbb00 y la prueba de esfera de 0x5fbf00 (06, "El frustum del juego").
-namespace Client::World
+namespace Client::Terrain
 {
 using FrustumPoints = std::array<glm::vec3, 5>;
 
@@ -27,4 +27,4 @@ struct SphereFrustum
                                             float widthFactor = 1.0f);
 // ((nx*x + nz*z) + ny*y) + d >= -radius en 53 bits. La igualdad pasa; sin orden corta.
 [[nodiscard]] bool SphereVisible(const SphereFrustum& frustum, const glm::vec3& center, float radius);
-} // namespace Client::World
+} // namespace Client::Terrain

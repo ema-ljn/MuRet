@@ -53,7 +53,7 @@ constexpr int DustSpreadY = 20;
 constexpr double DustBackY = 600.0;
 constexpr float DustScale = 1.0f;
 // 0x5ffb48..0x5ffb54: 0x5f8750(13, 70, 3, 6, 8, 0), el paso de la puerta de Blood Castle sin el atributo 8.
-constexpr TerrainArea GatePassage{.x = 0xd, .y = 0x46, .width = 3, .height = 6};
+constexpr Terrain::TerrainArea GatePassage{.x = 0xd, .y = 0x46, .width = 3, .height = 6};
 constexpr std::uint8_t GateAttribute = 8;
 
 // 0x405630: la tabla de 0x40592c por el tipo (0 a 0x23) a los cuatro casos de 0x40591c: el área de 0x6c634c que
@@ -97,7 +97,7 @@ Result CreateParticle(const ObjectCollapseContext& context, std::int32_t type, c
 // 0x405630 en los mapas 18 a 23: devuelve 1 siempre, así que 0x5ff960 no sigue con ningún objeto.
 Result StepChaosCastleCollapse(World::WorldObject& object, const ObjectCollapseContext& context)
 {
-    WorldRuntime& runtime = context.runtime;
+    Kernel::WorldRuntime& runtime = context.runtime;
     ObjectCollapse& collapse = runtime.events.objectCollapse;
     if (object.type < 0 || object.type > LastChaosCastleType)
         return {};
@@ -188,11 +188,11 @@ Result FellTheObject(World::WorldObject& object, const ObjectCollapseContext& co
     object.state.hiddenMesh = World::HiddenObject;
     angle = FallenAngle;
     ResetTheObjectCollapse(collapse);
-    return MarkTheTerrainArea(context.attributes, GatePassage, GateAttribute, false, "0x5ffb54");
+    return Terrain::MarkTheTerrainArea(context.attributes, GatePassage, GateAttribute, false, "0x5ffb54");
 }
 } // namespace
 
-bool ObjectCollapseActive(const WorldRuntime& runtime)
+bool ObjectCollapseActive(const Kernel::WorldRuntime& runtime)
 {
     const ObjectCollapse& collapse = runtime.events.objectCollapse;
     return collapse.map >= 0 && collapse.type >= 0 && collapse.counter >= 0 && runtime.map == collapse.map;
@@ -203,7 +203,7 @@ void ResetTheObjectCollapse(ObjectCollapse& collapse)
     collapse = ObjectCollapse{};
 }
 
-void CountDownTheObjectCollapse(WorldRuntime& runtime)
+void CountDownTheObjectCollapse(Kernel::WorldRuntime& runtime)
 {
     std::int32_t& counter = runtime.events.objectCollapse.counter;
     counter = static_cast<std::int32_t>(static_cast<std::uint32_t>(counter) - 1U);

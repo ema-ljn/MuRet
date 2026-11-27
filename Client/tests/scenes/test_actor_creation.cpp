@@ -11,9 +11,9 @@
 
 namespace
 {
-using Client::Scenes::ActorState;
-using Client::Scenes::RemoveActorAtSlot;
-using Client::Scenes::WorldState;
+using Client::Actors::RemoveActorAtSlot;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 
 TEST(ActorCreationTest, RemovesTheRequestedSlotWithoutResettingItsOtherState)
 {
@@ -66,14 +66,14 @@ TEST(ActorCreationTest, LeavesTheLayerByteAloneWhenTheSlotHasNoLayer)
 TEST(ActorCreationTest, CleansTheDirectReferenceWithoutIndexingWorldResourcesAtTheSentinel)
 {
     WorldState world;
-    ActorState& sentinel = world.Actors()[Client::Scenes::CreatedActorSearch];
+    ActorState& sentinel = world.Actors()[Client::Actors::CreatedActorSearch];
     sentinel.alive = true;
     sentinel.darkSpirit.emplace();
     sentinel.layer.emplace();
-    world.Helpers()[0] = {.alive = true, .type = 0xbf, .rider = Client::Scenes::CreatedActorSearch};
-    world.Runtime().namedBones = {{Client::Scenes::CreatedActorSearch, "RightHand", 3}};
+    world.Helpers()[0] = {.alive = true, .type = 0xbf, .rider = Client::Actors::CreatedActorSearch};
+    world.Runtime().namedBones = {{Client::Actors::CreatedActorSearch, "RightHand", 3}};
 
-    RemoveActorAtSlot(world, sentinel, Client::Scenes::CreatedActorSearch);
+    RemoveActorAtSlot(world, sentinel, Client::Actors::CreatedActorSearch);
 
     EXPECT_FALSE(sentinel.alive);
     EXPECT_FALSE(sentinel.darkSpirit.has_value());

@@ -63,7 +63,7 @@ struct Spirals
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 
-    Client::Core::Expected<void, std::string> Step(Client::Scenes::WorldState* world = nullptr,
+    Client::Core::Expected<void, std::string> Step(Client::Kernel::WorldState* world = nullptr,
                                                    Client::World::FrameSprites* sprites = nullptr)
     {
         return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, sprites, nullptr, {}, {}, {}, {},
@@ -180,13 +180,13 @@ TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
 {
     using Client::Math::OriginalMatrixOf;
     using Client::Math::OriginalTransformPosition;
-    Client::Scenes::ActorState owner;
+    Client::Kernel::ActorState owner;
     owner.type = 0x1a5;
     owner.position = {100.0f, 200.0f, 300.0f};
     owner.bodyPose.assign(3, Client::Math::BoneTransform(0.0f));
     owner.bodyPose[2] = Client::Math::BoneTransform(glm::vec3{0.6f, 0.8f, 0.0f}, glm::vec3{-0.8f, 0.6f, 0.0f},
                                                     glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{10.0f, 20.0f, 30.0f});
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     world->PlaceModel(owner.type, {.scale = 1.25f, .origin = {9.0f, 9.0f, 9.0f}, .action = 4});
     Client::World::FrameSprites sprites;
 

@@ -89,7 +89,7 @@ Core::Expected<void, std::string> StepTheColumn(JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return {};
-    const ActorState* owner = JointKernels::ActorOwner(joint);
+    const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(
             std::format("0x53a5d2: el dueño del joint {:#x}/0x10 no es un personaje (ActorState)", joint.type));

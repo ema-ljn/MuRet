@@ -55,8 +55,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::WorldState;
-using Client::World::ItemState;
+using Client::Kernel::ItemState;
+using Client::Kernel::WorldState;
 namespace Shop = Client::Protocol::PersonalShop;
 
 constexpr std::int32_t Lorencia = 0;
@@ -130,16 +130,16 @@ protected:
         // El inventario abierto (0x7d53717), como lo pide Open(0x800) (0x6598a0).
         world.Runtime().panels.inventory = 1;
         for (ItemState& cell : world.Inventory().cells)
-            cell.id = Client::Scenes::EmptyOwnItemId;
+            cell.id = Client::Kernel::EmptyOwnItemId;
         for (ItemState& cell : world.Inventory().secondCells)
-            cell.id = Client::Scenes::EmptyOwnItemId;
+            cell.id = Client::Kernel::EmptyOwnItemId;
         // 0x78a6758 fuera del equipo: 0x5bc740 no abre el registro por las velocidades.
         world.Runtime().slot78a6758 = FirstShopSlot;
     }
 
     void Place(std::size_t index, std::uint16_t key, std::string_view name)
     {
-        Client::Scenes::ActorState& actor = m_world->Actors()[index];
+        Client::Kernel::ActorState& actor = m_world->Actors()[index];
         actor.alive = true;
         actor.seen = true;
         actor.key = key;
@@ -200,8 +200,8 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_input;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tests::RecordingSink m_sink;
@@ -219,7 +219,7 @@ protected:
 TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
 {
     WorldState& world = *m_world;
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     Client::Scenes::PersonalShopState& shops = Shops();
     // Un ítem propio en la primera casilla de la tienda (el lugar 0x4c) y el cartel del héroe (3F 02).
     ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(FirstShopSlot, ItemBytes(SmallType), Resources()).HasValue());
@@ -280,7 +280,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(shops.ownGridBackup[0].id, SmallType);
     EXPECT_EQ(shops.ownGridBackup[0].occupied, 1u);
     const auto& grid = world.Inventory().secondCells;
-    EXPECT_EQ(grid[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(grid[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(grid[9].id, TallType);
     EXPECT_EQ(grid[9].occupied, 1u);
     EXPECT_EQ(grid[17].id, TallType);
@@ -300,7 +300,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
                                                           Resources(), Sender());
     ASSERT_TRUE(bought.HasValue()) << bought.Error();
     ExpectDraws(before, 0);
-    EXPECT_EQ(grid[3].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(grid[3].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(world.Inventory().cells[5].id, SmallType);
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 9, 1500}}));
 
@@ -308,7 +308,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
                                     .entries = {{.slot = FirstShopSlot + 1, .item = ItemBytes(SmallType), .price = 0}}};
     ASSERT_TRUE(Client::Scenes::ApplyShopRefresh(refresh, Resources()).HasValue());
-    EXPECT_EQ(grid[9].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(grid[9].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(grid[1].id, SmallType);
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 1, 0}}));
 
@@ -320,7 +320,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(runtime.panels.personalShop, 0);
     EXPECT_EQ(shops.mode, Client::Scenes::NoShopView);
     EXPECT_EQ(grid[0].id, SmallType);
-    EXPECT_EQ(grid[1].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(grid[1].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(shops.ownTitle, "Mi puesto");
     EXPECT_EQ(shops.ownerKey, 0);
     ASSERT_EQ(m_sent.size(), 2u);
@@ -344,7 +344,7 @@ TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     // Lo puesto antes del precio en 0 se va con la grilla de la copia.
     const auto& grid = m_world->Inventory().secondCells;
-    EXPECT_EQ(grid[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(grid[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(grid[5].id, SmallType);
     EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot, 100}}));
     EXPECT_EQ(m_world->Runtime().panels.personalShop, 0);
@@ -397,7 +397,7 @@ TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
     const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
                                     .entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 50}}};
     ASSERT_TRUE(Client::Scenes::ApplyShopRefresh(refresh, Resources()).HasValue());
-    EXPECT_EQ(m_world->Inventory().secondCells[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(m_world->Inventory().secondCells[0].id, Client::Kernel::EmptyOwnItemId);
     ASSERT_TRUE(Client::Scenes::ApplyPriceResult({.result = 0, .slot = FirstShopSlot}, Resources(), {}).HasValue());
 
     m_world->Runtime().panels.trade = 1;
@@ -421,7 +421,7 @@ TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
 TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
 {
     WorldState& world = *m_world;
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     Client::Scenes::PersonalShopState& shops = Shops();
     shops.ownGridBackup[10].id = TallType;
     shops.ownGridBackup[10].gridColumn = 2;
@@ -432,8 +432,8 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
     ASSERT_TRUE(Client::Scenes::ApplyItemDelete(Inventory::ItemDelete{.slot = FirstShopSlot + 10, .endsTheWait = 0},
                                                 Resources())
                     .HasValue());
-    EXPECT_EQ(shops.ownGridBackup[10].id, Client::Scenes::EmptyOwnItemId);
-    EXPECT_EQ(shops.ownGridBackup[18].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(shops.ownGridBackup[10].id, Client::Kernel::EmptyOwnItemId);
+    EXPECT_EQ(shops.ownGridBackup[18].id, Client::Kernel::EmptyOwnItemId);
 
     // Levantado de la casilla 4 de la tienda: vuelve (0x5be3eb) y el 28 la vacía.
     shops.mode = Client::Scenes::NoShopView;
@@ -441,13 +441,13 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
     runtime.cursorItem.gridColumn = 4;
     runtime.cursorItem.gridRow = 0;
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::PersonalShop;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::PersonalShop;
     runtime.slot78a6758 = FirstShopSlot + 4;
     const auto deleted = Client::Scenes::ApplyItemDelete(
         Inventory::ItemDelete{.slot = FirstShopSlot + 4, .endsTheWait = 1}, Resources());
     ASSERT_TRUE(deleted.HasValue()) << deleted.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
-    EXPECT_EQ(world.Inventory().secondCells[4].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(world.Inventory().secondCells[4].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(runtime.lastSoundId, 0x1d);
 }
 
@@ -455,7 +455,7 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
 TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
 {
     WorldState& world = *m_world;
-    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = world.Runtime();
     // Los servicios guardan referencias a los recursos: que vivan toda la prueba.
     const Client::Scenes::WorldEntryResources resources = Resources();
     const auto services = Client::Scenes::InventoryServicesOf(resources);
@@ -464,7 +464,7 @@ TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
     runtime.cursorItem.gridColumn = 5;
     runtime.cursorItem.gridRow = 2;
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::PersonalShop;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::PersonalShop;
     runtime.slot78a6758 = FirstShopSlot + 21;
     ASSERT_TRUE(Client::Scenes::ReturnTheCursorItem(context).HasValue());
     EXPECT_EQ(world.Inventory().secondCells[21].id, TallType);
@@ -474,11 +474,11 @@ TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
 
     Client::Scenes::TradeState& trade = runtime.social.trade;
     for (ItemState& cell : trade.ownGrid)
-        cell.id = Client::Scenes::EmptyOwnItemId;
+        cell.id = Client::Kernel::EmptyOwnItemId;
     runtime.cursorItem.gridColumn = 1;
     runtime.cursorItem.gridRow = 0;
     runtime.cursorItemCount = 1;
-    runtime.cursorGrid = Client::Scenes::CursorGrid::OwnTrade;
+    runtime.cursorGrid = Client::Kernel::CursorGrid::OwnTrade;
     runtime.slot78a6758 = 1;
     ASSERT_TRUE(Client::Scenes::ReturnTheCursorItem(context).HasValue());
     EXPECT_EQ(trade.ownGrid[1].id, TallType);
@@ -508,7 +508,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     EXPECT_EQ(world.Runtime().panels.inventory, 1);
     EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
     EXPECT_TRUE(Shops().ownTitle.empty());
-    EXPECT_EQ(world.Inventory().secondCells[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(world.Inventory().secondCells[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_TRUE(m_sent.empty());
     ASSERT_FALSE(m_sink.lines.empty());
     EXPECT_NE(m_sink.lines.back().find("3F 05"), std::string::npos) << m_sink.lines.back();
@@ -533,7 +533,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
                                                           Resources(), Sender());
     ASSERT_TRUE(bought.HasValue()) << bought.Error();
     ExpectDraws(before, 0);
-    EXPECT_EQ(world.Inventory().cells[60].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(world.Inventory().cells[60].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 3, 5}}));
     EXPECT_NE(m_sink.lines.back().find("3F 06"), std::string::npos) << m_sink.lines.back();
     EXPECT_NE(m_sink.lines.back().find("0x78a9bb0"), std::string::npos) << m_sink.lines.back();

@@ -8,12 +8,16 @@ namespace Client::Render
 {
 class ModelBatch;
 }
+namespace Client::Terrain
+{
+struct TerrainDecal;
+} // namespace Client::Terrain
+
 namespace Client::World
 {
 class KalimaWorld;
-struct TerrainDecal;
 
 // 437940→41dd00→41df90: calco sobre el plano0 de ondas, independiente del pase de agua.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawKalimaSurfaceDecal(Render::ModelBatch& batch, const KalimaWorld& world, const TerrainDecal& decal);
+DrawKalimaSurfaceDecal(Render::ModelBatch& batch, const KalimaWorld& world, const Terrain::TerrainDecal& decal);
 } // namespace Client::World

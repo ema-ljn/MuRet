@@ -83,7 +83,7 @@ Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protoco
 // 0x5ece4c..0x5eceae.
 void PressTheMoneyButton(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     SocialState& social = runtime.social;
     runtime.movement.pendingClick = false;
     UI::PushDialog(runtime.dialogs, MoneyDialog);
@@ -100,7 +100,7 @@ void PressTheMoneyButton(const GameUiContext& context)
 // 0x5ecf2d..0x5ed476.
 Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     runtime.movement.pendingClick = false;
     runtime.RequestSound(ButtonSound);
@@ -121,7 +121,7 @@ Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
 // 0x5ed4cc..0x5ed936.
 Core::Expected<void, std::string> PressTheCancelButton(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.movement.pendingClick = false;
     runtime.RequestSound(ButtonSound);
     if (runtime.cursorItemCount != 0)
@@ -146,7 +146,7 @@ Core::Expected<void, std::string> StepTheTradeWindow(const GameUiContext& contex
 {
     if (!panels.IsOpen(UI::TradePanel))
         return {};
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     const std::int32_t x = runtime.hud.tradeX;
     const std::int32_t y = runtime.hud.tradeY;
@@ -167,7 +167,7 @@ Core::Expected<void, std::string> StepTheTradeWindow(const GameUiContext& contex
 
 Core::Expected<void, std::string> StepTheDuelRequest(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abad9 == 0)
         return {};
     if (InRange(context, DuelBoxLeft, DuelBoxRight, DuelBoxTop, DuelBoxBottom))

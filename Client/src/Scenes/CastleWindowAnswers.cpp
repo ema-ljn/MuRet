@@ -16,7 +16,7 @@
 
 namespace Client::Scenes
 {
-Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(WorldState& world, const CastleSender& send,
+Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState& world, const CastleSender& send,
                                                               UI::PanelDialogOwner owner, std::uint32_t reason)
 {
     if (owner == UI::PanelDialogOwner::CastleGiveUp)

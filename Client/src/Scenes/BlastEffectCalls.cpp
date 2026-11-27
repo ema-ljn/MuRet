@@ -20,7 +20,7 @@
 
 namespace Client::Scenes
 {
-World::ModelEffectOwner BlastOwnerOf(const ActorState& actor)
+World::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor)
 {
     return {.type = &actor.type,
             .effect = nullptr,
@@ -34,8 +34,8 @@ namespace
 {
 // El alta con el dueño en +0x108 (lo que el paso lee en vivo) y sus +0x8c y +0x8e.
 Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const World::ModelEffectArguments& arguments,
-                                                                      ActorState* owner, WorldState& world,
-                                                                      Crt::CrtRandom& random,
+                                                                      Kernel::ActorState* owner,
+                                                                      Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                       const World::BlastEffectServices& services)
 {
     World::ModelEffectArguments placed = arguments;
@@ -52,10 +52,11 @@ Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const Worl
 }
 } // namespace
 
-Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastEffect(const World::ModelEffectArguments& arguments, ActorState* owner, const CharacterStepContext& context)
+Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const World::ModelEffectArguments& arguments,
+                                                                          Kernel::ActorState* owner,
+                                                                          const Actors::CharacterStepContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const World::BlastEffectServices services{
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
         .ownRecordCount = &world.OwnCharacter().bytef04,
@@ -94,8 +95,8 @@ CreateBlastEffect(const World::ModelEffectArguments& arguments, ActorState* owne
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, ActorState* owner, WorldState& world,
-                                Crt::CrtRandom& random)
+CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, Kernel::ActorState* owner,
+                                Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).
     const World::BlastEffectServices services{

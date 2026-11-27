@@ -21,7 +21,7 @@
 #include <limits>
 #include <string>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -404,4 +404,4 @@ Core::Expected<bool, std::string> PickTerrainTarget(TerrainPickingState& state, 
     state = next;
     return retry.Value();
 }
-} // namespace Client::World
+} // namespace Client::Terrain

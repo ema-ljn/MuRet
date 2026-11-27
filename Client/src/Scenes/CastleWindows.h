@@ -22,11 +22,15 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 // Las tres ventanas del castillo: 0x64d350, 0x6691c0 y 0x648a30, llamadas por 0x657930, y sus dibujos desde
 // 0x6579e0. Los flags abiertos y la pestaña de Senior siguen en DelegatedPanels, sin copias paralelas.
 namespace Client::Scenes
 {
-class WorldState;
 class GamePanels;
 struct GameUiContext;
 struct GameHudContext;
@@ -39,21 +43,23 @@ struct CastleWindowServices
     std::uint32_t now = 0;
 };
 
-[[nodiscard]] bool CastleSeniorBusy(const WorldState& world);
-[[nodiscard]] bool HeroCanCraftAtTheCastle(const WorldState& world);
-void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Crt::CrtRandom& random,
+[[nodiscard]] bool CastleSeniorBusy(const Kernel::WorldState& world);
+[[nodiscard]] bool HeroCanCraftAtTheCastle(const Kernel::WorldState& world);
+void LendTheCastleLifecycleTo(UI::PanelContext& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
                               const CastleSender& send, CastleWindowServices services = {});
 void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context);
 // El mismo préstamo para callers que no reciben un paquete Castle ni tienen un log propio.
-void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Crt::CrtRandom& random, const CastleSender& send,
-                                const WorldEntryResources* entryResources, CastleWindowServices services = {});
+void LendTheCastlePanelServices(GamePanels& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
+                                const CastleSender& send, const WorldEntryResources* entryResources,
+                                CastleWindowServices services = {});
 void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context);
 // Para los cierres de entrada, teleport, misiones, comercio y tiendas: conserva también sus transportes específicos.
 void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& resources,
                                 const CastleSender& send = {});
 [[nodiscard]] Core::Expected<void, std::string> StepTheCastleWindow(const GameUiContext& context, UI::PanelId id);
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCastleWindows(GameHudContext& context);
-[[nodiscard]] Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(WorldState& world, const CastleSender& send,
+[[nodiscard]] Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState& world,
+                                                                            const CastleSender& send,
                                                                             UI::PanelDialogOwner owner,
                                                                             std::uint32_t reason);
 

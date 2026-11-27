@@ -43,8 +43,8 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::Key;
+using Client::Kernel::WorldState;
 using Client::Scenes::JewelBundleList;
-using Client::Scenes::WorldState;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 // 0x62f734: la esquina que pone el dibujo del 0xa4, (0xe4, 0x6d + 0xf0).
@@ -394,7 +394,7 @@ public:
 
     Client::Core::Expected<void, std::string> Draw(bool projecting = false, bool withTexts = true)
     {
-        Client::Scenes::WorldRuntime& runtime = world->Runtime();
+        Client::Kernel::WorldRuntime& runtime = world->Runtime();
         Client::Scenes::GameHudContext context{.world = *world,
                                                .random = random,
                                                .ownRecordDepth = runtime.ownRecordDepth,

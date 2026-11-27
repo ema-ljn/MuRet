@@ -123,7 +123,7 @@ Core::Expected<void, std::string> StepTheSpiral(JointState& joint)
 // cola de esa matriz, y suma uno a +0x6c, que crece así de a uno hasta la tanda (30).
 Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const JointKernels::StepServices& services)
 {
-    const ActorState* owner = JointKernels::ActorOwner(joint);
+    const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(
             std::format("0x53bc27: el dueño del joint 0x62c/{} no es un personaje (CL11)", joint.subtype));
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const Jo
         return Core::Unexpected(
             std::format("0x53bc42: faltan los modelos compartidos del joint 0x62c/{}", joint.subtype));
     // 0x53bc21..0x53bc57.
-    SharedModelPlacement placement = services.world->ModelPlacement(owner->type);
+    Kernel::SharedModelPlacement placement = services.world->ModelPlacement(owner->type);
     placement.origin = owner->position;
     services.world->PlaceModel(owner->type, placement);
     // Sin huesos propios (antes del primer dibujo) o fuera de ellos, la matriz en cero (Q-C318), como BonePoint de

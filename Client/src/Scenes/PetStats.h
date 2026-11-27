@@ -25,28 +25,33 @@ namespace Client::Kernel
 struct DarkSpirit;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 class WorldState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
 
 // 0x420cd0, desde 0x657670 en la vuelta a la selección: 0x723910 (la pestaña), 0x723911 (UI::DelegatedPanels::pet)
 // y los quince dwords de las tres mascotas en 0. Sin rand().
-void ResetThePets(WorldRuntime& runtime);
+void ResetThePets(Kernel::WorldRuntime& runtime);
 
 // 0x4221d0(tipo): con el registro propio abierto y cerrado, el liderazgo (+0x36 + +0x20) y, para el caballo, la fuerza
 // (+0x18) y +0x2a; después, con el tipo 0 o 1, la experiencia que sigue y +0xc..+0x12 de esa mascota. Con otro tipo,
 // solo el acceso.
-void UpdatePetStats(std::uint8_t pet, WorldState& world, Crt::CrtRandom& random);
+void UpdatePetStats(std::uint8_t pet, Kernel::WorldState& world, Crt::CrtRandom& random);
 // Lo mismo sobre `pets` (WorldRuntime::pets o una copia) y con la cuenta de accesos del registro propio dada: el
 // tooltip de las mascotas (0x422a35) lo llama con el registro abierto alrededor (0x5f7bc0), o con las copias de un
 // dibujo intermedio.
-void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetStats, PetStatsCount>& pets,
-                    std::uint8_t& ownRecordDepth, Crt::CrtRandom& random);
+void UpdatePetStats(std::uint8_t pet, const Kernel::WorldState& world,
+                    std::array<Kernel::PetStats, Kernel::PetStatsCount>& pets, std::uint8_t& ownRecordDepth,
+                    Crt::CrtRandom& random);
 
 // 0x417f30(nivel, experiencia), la vtable + 8 del cuervo: dos accesos al registro propio (el liderazgo y la
 // durabilidad del lugar 1, +0xbce) y lo que sale de ellos en el cuervo (DarkSpirit::word1e2 a word45a).
-void ApplyRavenInfo(Kernel::DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, WorldState& world,
+void ApplyRavenInfo(Kernel::DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, Kernel::WorldState& world,
                     Crt::CrtRandom& random);
 
 // 0x4e4ca1: 0x421db0(tipo, clase, casilla, nivel, experiencia) y, con el registro propio abierto, 0x550d10. Con la

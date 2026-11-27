@@ -40,9 +40,9 @@ constexpr double ThreeTenths = static_cast<double>(std::bit_cast<float>(0x3e9999
 constexpr std::int32_t BurstLightRadius = 2; // el cuarto argumento de 0x5f9780 en 0x52ac4b y 0x52acff
 
 // El personaje de `world` que es el dueño opaco (+0x108) de un efecto, o nullptr si no es uno de ellos.
-const ActorState* ActorOwnerOf(const WorldState& world, const void* owner)
+const Kernel::ActorState* ActorOwnerOf(const Kernel::WorldState& world, const void* owner)
 {
-    for (const ActorState& actor : world.Actors())
+    for (const Kernel::ActorState& actor : world.Actors())
     {
         if (&actor == owner)
             return &actor;
@@ -58,7 +58,7 @@ Core::Expected<void, std::string> HitTheEnergyBallOwner(World::ModelEffect& effe
 {
     if (effect.ownerContext == nullptr)
         return {};
-    const ActorState* owner = ActorOwnerOf(context.world, effect.ownerContext);
+    const Kernel::ActorState* owner = ActorOwnerOf(context.world, effect.ownerContext);
     if (owner == nullptr)
         return Core::Unexpected(
             std::string("0x518b7a: el dueño (+0x108) del efecto 0x5ca no es un personaje del mundo (CL11)"));
@@ -205,7 +205,7 @@ Core::Expected<void, std::string> StepTheArrowBlast(World::ModelEffect& effect, 
         constexpr float Upright = std::bit_cast<float>(0x42b40000u); // 90
         effect.transform.angles.x = Upright;
         effect.subtype = FiredSubtype;
-        const ActorState* owner = ActorOwnerOf(context.world, effect.ownerContext);
+        const Kernel::ActorState* owner = ActorOwnerOf(context.world, effect.ownerContext);
         if (owner == nullptr)
             return Core::Unexpected(
                 std::string("0x529e3e: el dueño (+0x108) del efecto 0x13a no es un personaje del mundo (CL11)"));

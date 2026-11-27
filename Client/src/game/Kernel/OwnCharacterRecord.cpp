@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 void OwnCharacterRecord::ResetForSelection()
 {
@@ -88,7 +88,7 @@ void OwnCharacterRecord::ClearEquipmentForEntry()
 {
     // 0x4c47c8..0x4c47da, de a 0x48 desde +0xb70: [eax−4] = bx (−1 desde 0x4c47a8), [eax] = 0 y
     // [eax+0x17] = 0.
-    for (World::ItemState& item : equipment)
+    for (Kernel::ItemState& item : equipment)
     {
         item.id = EmptyOwnItemId;
         item.scalar1Low = 0;
@@ -100,7 +100,7 @@ void OwnCharacterRecord::ClearEquipmentForInventory()
 {
     // 0x4c564d..0x4c565f, de a 0x48 desde +0xba8: [eax−0x3c] = di (−1 desde 0x4c55d6), [eax] = 0 y
     // [eax−0x21] = 0.
-    for (World::ItemState& item : equipment)
+    for (Kernel::ItemState& item : equipment)
     {
         item.id = EmptyOwnItemId;
         item.occupied = 0;
@@ -112,4 +112,4 @@ std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index)
 {
     return own.SkillAt(index).value_or(std::uint8_t{0});
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

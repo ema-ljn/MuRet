@@ -83,8 +83,9 @@ Core::Expected<std::string, std::string> TextOf(const Tables::TextTable* texts, 
 
 // 0x555190("", texto, 1): el nombre vacío es la cadena 0x6e57a4 en 0x491080 y los de la .bss 0x5767a94 y 0x5767a98 en
 // 0x4dc010 y 0x4dc3d0 (*estático*).
-Core::Expected<void, std::string> SystemMessage(WorldRuntime& runtime, const Render::Text::ITextMeasure* measure,
-                                                Core::PixelSize screen, std::string_view text, std::string_view where)
+Core::Expected<void, std::string> SystemMessage(Kernel::WorldRuntime& runtime,
+                                                const Render::Text::ITextMeasure* measure, Core::PixelSize screen,
+                                                std::string_view text, std::string_view where)
 {
     if (measure == nullptr)
         return Core::Unexpected(std::string(where) + ": no hay con qué medir el mensaje");
@@ -97,7 +98,7 @@ Core::Expected<std::int32_t, std::string> OpenABox(const ChatReceiveContext& con
 {
     if (context.measure == nullptr)
         return Core::Unexpected(std::string(where) + ": la caja sin con qué medir su texto");
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const UI::OldWindowTexts texts = OldWindowTextsOf(context.texts);
     // 0x48f700 destruye los botones si la cascada aborta: también las cajas recibidas prestan la pulsación real.
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
@@ -192,7 +193,7 @@ void SendAFriendPacket(IGameUiRequests& requests, Crt::CrtRandom& random, const 
 Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& context, const UI::OldWindowGlobals& globals,
                                                  const UI::OldWindowStepView& view)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ForgetTheHiddenWindows(runtime.oldWindows);
     // 0x491096: con 0x6c7b8c en 0, el texto 992 y nada más; está en 1.
     std::uint16_t level = 0;
@@ -228,7 +229,7 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
 Core::Expected<void, std::string> ApplyFriendList(const Protocol::Messenger::FriendList& list,
                                                   const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     UI::ClearTheFriends(manager.friendModel);
     for (const Protocol::Messenger::FriendRow& row : list.friends)
@@ -253,7 +254,7 @@ Core::Expected<void, std::string> ApplyFriendList(const Protocol::Messenger::Fri
 Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger::FriendAddResult& result,
                                                        const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     const std::string name = UI::FriendName(result.name);
     std::size_t index = 0;
@@ -304,7 +305,7 @@ Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger
 Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Messenger::FriendRequest& request,
                                                      const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::string name = UI::FriendName(request.name);
     auto text = NoticeText(context, AsksToBeAFriendText, &name);
     if (!text.HasValue())
@@ -321,7 +322,7 @@ Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Messenger::
 Core::Expected<void, std::string> ApplyFriendDeleteResult(const Protocol::Messenger::FriendDeleteResult& result,
                                                           const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (result.result == 0)
     {
         auto text = TextOf(context.texts, CannotDeleteText);
@@ -339,7 +340,7 @@ Core::Expected<void, std::string> ApplyFriendDeleteResult(const Protocol::Messen
 Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::FriendState& state,
                                                    const ChatReceiveContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     const UI::OldWindowTexts texts = OldWindowTextsOf(context.texts);
     if (state.state == UI::AllOfflineState)

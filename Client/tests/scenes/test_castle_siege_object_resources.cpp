@@ -27,10 +27,10 @@ class CastleSiegeObjectResourcesTest : public Client::Tests::GoldenDataTest,
 TEST_P(CastleSiegeObjectResourcesTest, TheWorldFindsAllThirtyTwoRealCausticsInTheNativeSharedSlots)
 {
     const auto map = GetParam();
-    ASSERT_EQ(Client::World::CausticTextures(map).size(), 32u);
+    ASSERT_EQ(Client::Terrain::CausticTextures(map).size(), 32u);
     auto store = std::make_unique<Client::Tests::FakeTextureStore>();
-    Client::Scenes::ModelTextureTable table;
-    Client::Scenes::TerrainTiles tiles(*store);
+    Client::Assets::ModelTextureTable table;
+    Client::Assets::TerrainTiles tiles(*store);
     tiles.BindTextureTable(table);
     std::vector<std::string> skipped;
     const auto loaded = tiles.Load(m_dataRoot, map, skipped);
@@ -88,7 +88,7 @@ TEST(CausticTexturesTest, EveryByteMapUsesTheSameNativeThirtyTwoFrameRequestOrde
 {
     for (std::uint16_t map = 0; map < 256; ++map)
     {
-        const auto frames = Client::World::CausticTextures(static_cast<std::uint8_t>(map));
+        const auto frames = Client::Terrain::CausticTextures(static_cast<std::uint8_t>(map));
         ASSERT_EQ(frames.size(), 32u) << map;
         EXPECT_EQ(frames.front().path, "Object8\\wt00.jpg");
         EXPECT_EQ(frames.back().path, "Object8\\wt31.jpg");

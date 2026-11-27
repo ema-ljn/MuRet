@@ -16,17 +16,17 @@
 #include <string>
 #include <vector>
 
-// Client::Scenes::SceneTextures: el juego de texturas de una escena, subido en su Enter y soltado
+// Client::Assets::SceneTextures: el juego de texturas de una escena, subido en su Enter y soltado
 // en su Leave, como lo hacen la carga (0x622e40 y 0x63c150) y el login (0x61c7c0).
 namespace
 {
+using Client::Assets::SceneTextures;
+using Client::Assets::TextureBufferSize;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::Sampling;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Render::TextureSlot;
-using Client::Scenes::SceneTextures;
-using Client::Scenes::TextureBufferSize;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::SceneOztSide;
 using Client::Tests::TemporaryFolder;

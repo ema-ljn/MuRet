@@ -82,14 +82,14 @@ struct WeatherHarness
     }
 
     std::unique_ptr<Client::Tests::BareWorld> bare = std::make_unique<Client::Tests::BareWorld>();
-    Client::Scenes::WorldState& world = bare->world;
+    Client::Kernel::WorldState& world = bare->world;
     Client::Tests::LoggedInSession online;
     std::vector<std::int32_t> targets;
 };
 
 TEST(WeatherApplierTest, StartsWithTheStaticTargetAndCounterAndTheDataLeafCount)
 {
-    const Client::Scenes::WorldRuntime runtime;
+    const Client::Kernel::WorldRuntime runtime;
     EXPECT_EQ(runtime.leafWeather.target, 0);
     EXPECT_EQ(runtime.leafWeather.current, 0);
     EXPECT_EQ(runtime.leafWeather.firstWave, 30); // .data[6c8c5c] = 1e 00 00 00.

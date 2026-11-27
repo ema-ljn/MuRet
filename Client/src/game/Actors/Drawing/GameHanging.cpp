@@ -44,7 +44,7 @@
 #include <tuple>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -128,7 +128,7 @@ double SinePlus(double argument, double addend)
 // El estado del lugar que cuelga y de su modelo de un frame de 0x50ba30.
 struct Frame
 {
-    ActorState& actor;
+    Kernel::ActorState& actor;
     const GameHangingPass& pass;
     // [ebp+0xc] de 0x50ba30: (rand() % 30 + 70) · 0,01 del rand de 0x50db57.
     float lum = 0.0f;
@@ -178,7 +178,7 @@ struct Frame
     {
         if (pass.joints.empty())
             return Core::Unexpected(std::format("{}: faltan los joints del frame (0x530860)", address));
-        auto created = CreateFaunaJoint(pass.joints, request, pass.random);
+        auto created = Scenes::CreateFaunaJoint(pass.joints, request, pass.random);
         if (!created.HasValue())
             return Core::Unexpected(created.Error());
         return {};
@@ -201,7 +201,7 @@ struct Frame
 };
 
 // El lugar de lo que cuelga por el camino de la bandera (0x5093d2..0x5095e2). El 0 de los ángulos es el de 0x6b86a0.
-Core::Expected<Models::HangingPlacement, std::string> PlacementOf(const ActorState& actor, std::int32_t model)
+Core::Expected<Actors::HangingPlacement, std::string> PlacementOf(const Kernel::ActorState& actor, std::int32_t model)
 {
     // 0x5093f3..0x50947c: con el +0x376 de 0x84 a 0x86 (las estatuas de Blood Castle, 0x50c83b), el 0xc1c y el 0x225
     // en (90, 0, 90) y (0, 80, 120), y el 0xa24 en (10, 0, 0) y (0, 110, 80). Con otro modelo (0x5095e0), la matriz
@@ -210,27 +210,27 @@ Core::Expected<Models::HangingPlacement, std::string> PlacementOf(const ActorSta
     if (actor.word376 >= 0x84 && actor.word376 <= 0x86)
     {
         if (model == 0xc1c || model == 0x225)
-            return Models::HangingPlacement{{90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}};
+            return Actors::HangingPlacement{{90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}};
         if (model == 0xa24)
-            return Models::HangingPlacement{{10.0f, 0.0f, 0.0f}, {0.0f, 110.0f, 80.0f}};
+            return Actors::HangingPlacement{{10.0f, 0.0f, 0.0f}, {0.0f, 110.0f, 80.0f}};
         return Core::Unexpected(std::format("0x5095e0: el lugar del modelo {:#x} con el +0x376 {:#x} es la matriz sin "
                                             "iniciar de la pila de 0x509340",
                                             model, actor.word376));
     }
     const bool crossbow = (model >= 0xa1a && model < Arrows) || model == 0xa22 || (model >= 0xa24 && model < 0xa26);
     if (crossbow)
-        return Models::HangingPlacement{{0.0f, 20.0f, 180.0f}, {-10.0f, 8.0f, 40.0f}};
+        return Actors::HangingPlacement{{0.0f, 20.0f, 180.0f}, {-10.0f, 8.0f, 40.0f}};
     if (model == 0xc1b)
-        return Models::HangingPlacement{{110.0f, 180.0f, 90.0f}, {-10.0f, 5.0f, -10.0f}};
+        return Actors::HangingPlacement{{110.0f, 180.0f, 90.0f}, {-10.0f, 5.0f, -10.0f}};
     if (model == 0xa26)
-        return Models::HangingPlacement{{-60.0f, 0.0f, -80.0f}, {-5.0f, 20.0f, 0.0f}};
+        return Actors::HangingPlacement{{-60.0f, 0.0f, -80.0f}, {-5.0f, 20.0f, 0.0f}};
     if ((model >= 0xa12 && model < 0xc12) || model == 0xc1a)
-        return Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
-    return Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-20.0f, 5.0f, 40.0f}};
+        return Actors::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
+    return Actors::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-20.0f, 5.0f, 40.0f}};
 }
 
 // 0x4ec190 y 0x50966b: el origen de lo que cuelga sin la bandera, con la escala `scale` del modelo del tipo.
-glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const ActorState& actor, float scale)
+glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const Kernel::ActorState& actor, float scale)
 {
     const glm::vec3 turned = Math::OriginalVectorRotate(offset, Math::OriginalMatrixOf(parent));
     glm::vec3 origin{};
@@ -242,7 +242,7 @@ glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const A
 // 0x509a92..0x50b801: los sprites por el modelo, después de dibujarlo, con su pose en el buffer global.
 Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& origin)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     Crt::CrtRandom& random = frame.pass.random;
     const double clock = D(frame.pass.worldClock);
     // [ebp+0x28]: (rand() % 30 + 70) · 0,005, aun en los modelos sin caso.
@@ -605,12 +605,12 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
 }
 
 // 0x509340: lo que cuelga de `part`, con el modelo `model`, desde su hueso del cuerpo.
-Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part, std::int32_t model,
+Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPart& part, std::int32_t model,
                 std::uint8_t level, std::uint8_t excellent, bool placed)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const GameHangingPass& pass = frame.pass;
-    if (!Models::HangsAsAModel(static_cast<std::uint16_t>(model)) ||
+    if (!Actors::HangsAsAModel(static_cast<std::uint16_t>(model)) ||
         (actor.flags78 & HiddenAttachmentFlag) == HiddenAttachmentFlag)
         return {};
     const auto type = static_cast<std::uint16_t>(model);
@@ -630,7 +630,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
         const auto placement = PlacementOf(actor, model);
         if (!placement.HasValue())
             return Core::Unexpected(placement.Error());
-        root = Models::PlacedRoot(parent, placement.Value());
+        root = Actors::PlacedRoot(parent, placement.Value());
     }
     else
     {
@@ -692,7 +692,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
         part.animation.previousKey = animation.previousKey;
     }
     // 0x509a1a: 0x4eb860 en el buffer global con la raíz de 0x68c4a1c; los dummy quedan como estaban.
-    FaunaDrawCarry& carry = *pass.carry;
+    Scenes::FaunaDrawCarry& carry = *pass.carry;
     if (carry.bones.size() < skeleton->bones.size())
         carry.bones.resize(skeleton->bones.size(), BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton->bones.size());
@@ -705,7 +705,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     object.state = state;
     object.color = actor.drawnLight;
     object.alpha = actor.alpha;
-    if (auto published = PublishFaunaPoseRaw(carry, pass.models, type, bones, object.transform, false, true);
+    if (auto published = Scenes::PublishFaunaPoseRaw(carry, pass.models, type, bones, object.transform, false, true);
         !published.HasValue())
         return published;
     // 0x509a8a: 0x60b3d0 con el nivel · 8, el excelente, sin set, y 2 (0x102 con +0x376 en 0x43 o 0x89).
@@ -737,7 +737,7 @@ struct BackItem
     std::size_t hand = 0;
 };
 
-BackItem BackItemOf(const ActorState& actor, bool back)
+BackItem BackItemOf(const Kernel::ActorState& actor, bool back)
 {
     const std::int32_t left = static_cast<std::int16_t>(actor.hands[1].model);
     const std::int32_t right = static_cast<std::int16_t>(actor.hands[0].model);
@@ -764,9 +764,9 @@ float PlayerActionSpeed(const GameHangingPass& pass, std::size_t action)
 // 0x50ddde..0x50de60: el arma o el carcaj a la espalda, del lugar de las alas.
 Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const BackItem selected = BackItemOf(actor, back);
-    const ActorItemPart& hand = actor.hands[selected.hand];
+    const Kernel::ActorItemPart& hand = actor.hands[selected.hand];
     std::int32_t model = static_cast<std::int16_t>(hand.model);
     std::uint8_t level = hand.level;
     petExcellent = hand.flags1b;
@@ -781,7 +781,7 @@ Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
     {
         return {};
     }
-    ActorItemPart& wings = actor.wings;
+    Kernel::ActorItemPart& wings = actor.wings;
     const float savedFrame = wings.animation.frame;
     wings.bone = WingsBone;
     wings.speed = WingKeysPerOriginalFrame(actor.animation.action);
@@ -803,9 +803,9 @@ Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
 Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
 {
     constexpr std::array<std::int32_t, 3> EventWeapons{0xc1c, 0x225, 0xa24};
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     petExcellent = 0;
-    ActorItemPart& wings = actor.wings;
+    Kernel::ActorItemPart& wings = actor.wings;
     wings.bone = WingsBone;
     wings.speed = WingKeysPerOriginalFrame(actor.animation.action);
     std::int32_t model = static_cast<std::int16_t>(actor.hands[BackItemOf(actor, back).hand].model);
@@ -824,9 +824,9 @@ Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
 // 0x50df22..0x50e05d: las alas y Helper02 con su chispa.
 Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
 {
-    ActorState& actor = frame.actor;
-    ActorItemPart& wings = actor.wings;
-    if (wings.model != NoItemModel)
+    Kernel::ActorState& actor = frame.actor;
+    Kernel::ActorItemPart& wings = actor.wings;
+    if (wings.model != Kernel::NoItemModel)
     {
         wings.bone = WingsBone;
         wings.speed = WingKeysPerOriginalFrame(actor.animation.action);
@@ -835,7 +835,7 @@ Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
             !hung.HasValue())
             return hung;
     }
-    ActorItemPart& pet = actor.pet;
+    Kernel::ActorItemPart& pet = actor.pet;
     if (static_cast<std::int16_t>(pet.model) != Helper02)
         return {};
     pet.bone = PetBone;
@@ -850,7 +850,7 @@ Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
 }
 
 // 0x50e76e..0x50e86a: la acción y lo que avanza el arma de la mano, por la acción del personaje.
-void SetTheHandPace(const Frame& frame, ActorItemPart& part, std::int32_t model)
+void SetTheHandPace(const Frame& frame, Kernel::ActorItemPart& part, std::int32_t model)
 {
     const std::uint8_t action = frame.actor.animation.action;
     const float one = PlayerActionSpeed(frame.pass, 1);
@@ -902,7 +902,7 @@ glm::vec3 LevelLight(float lum, std::uint8_t level)
 }
 
 // 0x50e921..0x50f828: los sprites de las armas en la mano, con el cuerpo y el buffer global.
-Result HandSprites(const Frame& frame, const ActorItemPart& part, glm::vec3 light)
+Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::vec3 light)
 {
     const double clock = D(frame.pass.worldClock);
     const float lum = frame.lum;
@@ -1101,7 +1101,7 @@ Result HandSprites(const Frame& frame, const ActorItemPart& part, glm::vec3 ligh
 // 0x50e298..0x50e9ea: una mano, con +0x38e abierto y cerrado antes de mirarla.
 Result HangTheHand(Frame& frame, std::size_t index)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     std::uint8_t value = 0;
     {
         const Models::LogicalAccess access(actor.byte38eAccesses, frame.pass.random, Byte38eCloseRandoms);
@@ -1113,7 +1113,7 @@ Result HangTheHand(Frame& frame, std::size_t index)
         return {};
     if (value == ')' && action == 0x3d && right)
         return {};
-    ActorItemPart& part = actor.hands[index];
+    Kernel::ActorItemPart& part = actor.hands[index];
     const std::int32_t model = static_cast<std::int16_t>(part.model);
     if (model == NoItem || model == Bolts || model == Arrows || model == Helper06)
         return {};
@@ -1127,13 +1127,14 @@ Result HangTheHand(Frame& frame, std::size_t index)
     return HandSprites(frame, part, light);
 }
 
-bool SomethingHangs(const ActorState& actor)
+bool SomethingHangs(const Kernel::ActorState& actor)
 {
-    return actor.wings.model != NoItemModel || static_cast<std::int16_t>(actor.pet.model) == Helper02 ||
-           std::ranges::any_of(actor.hands, [](const ActorItemPart& hand) { return hand.model != NoItemModel; });
+    return actor.wings.model != Kernel::NoItemModel || static_cast<std::int16_t>(actor.pet.model) == Helper02 ||
+           std::ranges::any_of(actor.hands,
+                               [](const Kernel::ActorItemPart& hand) { return hand.model != Kernel::NoItemModel; });
 }
 
-bool WeaponsOnTheBack(const ActorState& actor, std::int32_t map)
+bool WeaponsOnTheBack(const Kernel::ActorState& actor, std::int32_t map)
 {
     constexpr std::uint8_t FirstBackAction = 0x99;
     constexpr std::uint8_t LastBackAction = 0xb8;
@@ -1145,7 +1146,7 @@ bool WeaponsOnTheBack(const ActorState& actor, std::int32_t map)
 }
 
 // 0x413fe0: 0x576960 busca "webzen" (0x6c64ac) en el nombre de +0x1d9.
-bool NamedLikeAGameMaster(const ActorState& actor)
+bool NamedLikeAGameMaster(const Kernel::ActorState& actor)
 {
     return ActorNameContains(actor, "webzen");
 }
@@ -1157,7 +1158,7 @@ bool NamedLikeAGameMaster(const ActorState& actor)
 // (ApplyCastleSiegeFlags), 0x42ad50 y 0x42ae60 (CL9.5) lo eligen por las banderas 0x40000, 0x80000, 0x400000 y
 // 0x800000 de +0x78 (0x42ab40, en el mapa 30); el dibujo de esas capas (0x414820) lee +0x360 y +0x368. +0x360 no lo
 // vuelve a 0 nadie más que 0x414340: el 5 queda en el registro.
-Result StepTheLayer(ActorState& actor)
+Result StepTheLayer(Kernel::ActorState& actor)
 {
     const bool gameMaster = NamedLikeAGameMaster(actor) || (actor.flags78 & GameMasterFlag) == GameMasterFlag ||
                             actor.controlCode == GameMasterControlCode ||
@@ -1165,12 +1166,12 @@ Result StepTheLayer(ActorState& actor)
     if (gameMaster)
     {
         if (actor.layer.has_value() && actor.byte360 != GameMasterLayerKind)
-            ReleaseTheLayer(actor);
+            Kernel::ReleaseTheLayer(actor);
         actor.byte360 = GameMasterLayerKind;
     }
     if (actor.layer.has_value() || actor.byte360 < GameMasterLayerKind || actor.byte360 > LastLayerKind)
         return {};
-    actor.layer = GameMasterLayer{};
+    actor.layer = Kernel::GameMasterLayer{};
     if (actor.byte360 != GameMasterLayerKind)
     {
         // El objeto de4147c0 no tiene animación: su +8 es la variante0..7. Se comparte el byte de acción del
@@ -1184,7 +1185,7 @@ Result StepTheLayer(ActorState& actor)
 // 0x414470, el dibujo de la capa 5: MuSign en el hueso 20 del dueño, con 0x4ec200 a 0,5 y 0x602e90(objeto, 1,
 // 0, 0). Con el alpha de la capa (+0x178) por debajo de 0,01 (o sin orden) no hace nada (0x414496); 0x414370 lo
 // deja en 1 y solo 0x5ffdf0 lo baja, en Chaos Castle con +0x1a1 del héroe.
-Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
+Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
 {
     const GameHangingPass& pass = frame.pass;
     if (!(layer.alpha >= DrawnLayerAlpha))
@@ -1221,8 +1222,8 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
         return {};
     object.alpha = layer.alpha;
     // 0x5ffdf0 con el segundo argumento en 1: la pose en el buffer global, sin llevar los huesos al mundo.
-    FaunaDrawCarry& carry = *pass.carry;
-    if (auto posed = PublishFaunaPose(carry, pass.models, object, false); !posed.HasValue())
+    Scenes::FaunaDrawCarry& carry = *pass.carry;
+    if (auto posed = Scenes::PublishFaunaPose(carry, pass.models, object, false); !posed.HasValue())
         return posed;
     if (auto drawn = DrawItemMeshPass(pass.batch, pass.models, object, pass.frameClock, carry.meshes, -1, BasePass);
         !drawn.HasValue())
@@ -1236,7 +1237,7 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
 Result DrawTheSiegeLayer(const Frame& frame)
 {
     constexpr glm::vec3 Offset{120.0f, 0.0f, 0.0f};
-    const ActorState& actor = frame.actor;
+    const Kernel::ActorState& actor = frame.actor;
     const GameHangingPass& pass = frame.pass;
     if (pass.sprites == nullptr)
         return Core::Unexpected(std::string("0x41494d: falta la tabla de sprites del asedio"));
@@ -1250,8 +1251,8 @@ Result DrawTheSiegeLayer(const Frame& frame)
         if (pass.guild == nullptr)
             return Core::Unexpected(std::string("0x41489c: falta la tabla del gremio para la capa del maestro"));
         const auto index = static_cast<std::int16_t>(actor.word1f2);
-        const auto unionName = UnionNameAt(*pass.guild, index);
-        const auto guildName = GuildNameAt(*pass.guild, index);
+        const auto unionName = Scenes::UnionNameAt(*pass.guild, index);
+        const auto guildName = Scenes::GuildNameAt(*pass.guild, index);
         if (!unionName || !guildName)
             return Core::Unexpected(std::string("0x4148aa: el índice de la capa sale de la tabla del gremio"));
         if (unionName->empty() || *unionName == *guildName)
@@ -1267,7 +1268,7 @@ Result DrawTheSiegeLayer(const Frame& frame)
 // asedio): sin él no dibuja nada.
 Result DrawTheLayer(const Frame& frame)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     if (!actor.layer.has_value() || (actor.flags78 & HiddenAttachmentFlag) == HiddenAttachmentFlag)
         return {};
     if (actor.byte360 > GameMasterLayerKind && actor.byte360 <= LastLayerKind)
@@ -1283,7 +1284,7 @@ Result DrawTheLayer(const Frame& frame)
 // Chaos Castle, las alas y Helper02.
 Result HangThePlayer(Frame& frame, bool back)
 {
-    ActorState& actor = frame.actor;
+    Kernel::ActorState& actor = frame.actor;
     const GameHangingPass& pass = frame.pass;
     std::uint8_t petExcellent = 0;
     if (auto hung = HangTheBack(frame, back, petExcellent); !hung.HasValue())
@@ -1309,7 +1310,7 @@ Result HangThePlayer(Frame& frame, bool back)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass)
+Core::Expected<void, std::string> DrawGameHanging(Kernel::ActorState& actor, const GameHangingPass& pass)
 {
     // 0x50db57: el rand() de la luz de lo que cuelga, aun sin ningún ítem.
     Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f)), actor.scale};
@@ -1356,7 +1357,7 @@ Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameH
     return {};
 }
 
-Core::Expected<void, std::string> HangFromTheWingsSlot(ActorState& actor, const GameHangingPass& pass,
+Core::Expected<void, std::string> HangFromTheWingsSlot(Kernel::ActorState& actor, const GameHangingPass& pass,
                                                        const glm::vec3& offset, bool placed, float bodyScale)
 {
     if (pass.carry == nullptr || pass.sprites == nullptr)
@@ -1369,4 +1370,4 @@ Core::Expected<void, std::string> HangFromTheWingsSlot(ActorState& actor, const 
     // undécimo argumento en 0 y el décimo en 1, como en las otras llamadas de 0x50ba30.
     return HangItem(frame, offset, actor.wings, static_cast<std::int16_t>(actor.wings.model), 0, 0, placed);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

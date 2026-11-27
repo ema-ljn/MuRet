@@ -47,9 +47,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Scenes::HeroMovementContext;
 using Client::Scenes::StepHeroMovement;
-using Client::Scenes::WorldState;
 
 constexpr std::uint16_t TransformedModel = 0x154;
 
@@ -91,7 +91,7 @@ public:
         hero.cellX = hero.targetX = 182;
         hero.cellY = hero.targetY = 115;
         hero.position = {18250.0f, 11550.0f, 0.0f};
-        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Scenes::NoItemModel;
+        hero.hands[0].model = hero.hands[1].model = hero.wings.model = hero.pet.model = Client::Kernel::NoItemModel;
         hero.alpha = 1.0f;
         hero.byte88 = 1;
         hero.baseMovementSpeed = 10;
@@ -322,7 +322,7 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         Walk serial;
         const auto closed = walk(map, 3, serial);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
-        const Client::Scenes::WorldRuntime& runtime = serial.tested->world.Runtime();
+        const Client::Kernel::WorldRuntime& runtime = serial.tested->world.Runtime();
         EXPECT_EQ(serial.sent, (std::vector<std::string>{"D3", "97"}));
         EXPECT_EQ(runtime.panels.field78abb00, 0);
         EXPECT_TRUE(runtime.movement.cursorWarpRequest.has_value());
@@ -634,7 +634,7 @@ TEST(GameMovementTest, ASittingHeroWithACharacterUnderTheMouseSkipsTheWaitCounte
 }
 
 // Un nombre inventado para el personaje elegido y otro para el lugar del historial.
-void NameTheActor(Client::Scenes::ActorState& actor, std::string_view name)
+void NameTheActor(Client::Kernel::ActorState& actor, std::string_view name)
 {
     actor.name.fill(std::byte{0});
     for (std::size_t i = 0; i < name.size(); ++i)
@@ -734,7 +734,7 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
 constexpr std::int32_t AddBoxId = 0x77;
 constexpr std::int32_t AddBoxEditId = 0x78;
 
-void OpenTheAddFriendBox(Client::Scenes::WorldRuntime& runtime, Client::UI::OldWindowKind kind)
+void OpenTheAddFriendBox(Client::Kernel::WorldRuntime& runtime, Client::UI::OldWindowKind kind)
 {
     Client::UI::OldWindow box;
     box.kind = kind;

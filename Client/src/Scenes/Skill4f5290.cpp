@@ -23,13 +23,13 @@ constexpr std::uint16_t DinorantModel = 0x1c15;
 constexpr std::uint16_t FenrirModel = 0x1c37;
 
 // 0x4f52b5..0x4f52c3: la montura de +0x318 fuera de la zona segura (+0x3e2).
-bool Riding(const ActorState& actor, std::uint16_t mount)
+bool Riding(const Kernel::ActorState& actor, std::uint16_t mount)
 {
     return actor.pet.model == mount && actor.safeZone == 0;
 }
 } // namespace
 
-Core::Expected<void, std::string> SetTheActorAction(ActorState& actor, std::uint8_t action,
+Core::Expected<void, std::string> SetTheActorAction(Kernel::ActorState& actor, std::uint8_t action,
                                                     const ActorCombatContext& context)
 {
     const Models::Skeleton* skeleton = nullptr;
@@ -43,7 +43,7 @@ Core::Expected<void, std::string> SetTheActorAction(ActorState& actor, std::uint
     return {};
 }
 
-Core::Expected<void, std::string> SetTheHitAction(ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, const ActorCombatContext& context)
 {
     if (actor.type != Tables::PlayerSkeletonModel)
     {

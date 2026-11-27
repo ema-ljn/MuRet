@@ -28,6 +28,12 @@ class FrameSprites;
 class Particles;
 } // namespace Client::World
 
+namespace Client::Kernel
+{
+struct ActorState;
+class WorldState;
+} // namespace Client::Kernel
+
 // Los helpers por tipo del dibujo de los monstruos (0x441400, 0x434180 y 0x4271d0, de la cadena de 0x510a1e) y del
 // paso desde el frame 3 (0x432bd0, de 0x4fcee0), CL9 hito 2, fase 6d. Contrato: 06 § El dibujo del juego, "Los
 // helpers de los monstruos".
@@ -42,8 +48,6 @@ class Particles;
 // corta: el original dejaría el punto sin escribir, con lo que hubiera en la pila.
 namespace Client::Scenes
 {
-struct ActorState;
-class WorldState;
 
 // Lo que leen los helpers del dibujo: el personaje (el registro o su copia entre frames del original), su lugar en el
 // pool (la clave de 0x4016c0), el rand() del dibujo, los sprites (0x5491e0) y las partículas (0x53fe70) del frame y el
@@ -52,9 +56,9 @@ class WorldState;
 // 0x204 al 0x208.
 struct MonsterHelperPass
 {
-    ActorState& actor;
+    Kernel::ActorState& actor;
     std::size_t slot = 0;
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     World::FrameSprites* sprites = nullptr;
     World::Particles* particles = nullptr;
@@ -64,8 +68,8 @@ struct MonsterHelperPass
     Render::ModelBatch* batch = nullptr;
     const Data::Terrain::TerrainHeights* heights = nullptr;
     // 0x4ee770(0, tipo, subtipo, 0, 0) con el modelo del monstruo sobre las mallas de 0x5786f9c (las del cuerpo que
-    // acaba de dibujar, Q-C1581): los efectos por vértice de la muerte del 0x1a4 y el 0x1a6 (Scenes::EmitVertexEffects
-    // en los efectos del mundo). Sin él, esas muertes cortan.
+    // acaba de dibujar, Q-C1581): los efectos por vértice de la muerte del 0x1a4 y el 0x1a6
+    // (Actors::Drawing::EmitVertexEffects en los efectos del mundo). Sin él, esas muertes cortan.
     std::function<Core::Expected<void, std::string>(std::int32_t type, std::int32_t subtype)> vertexEffects{};
 };
 
@@ -97,7 +101,8 @@ struct MonsterHelperPass
 // reales; el 0x1ab suma 640/0 antes de cada muestra en (3.5,4.5), y el 0x1ae en 8 no posa: crea 5f2/27 y dos 5ad/2.
 // Las reservas de145/2 y147/0/1 respetan el orden y los límites de sus tablas. La acción, la escala y la posición del
 // modelo (+0xa0, +0x68 y +0x6c, de su último 0x5ffdf0) son las del personaje (Q-C1102, *inferido*).
-[[nodiscard]] Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std::size_t slot,
-                                                                        WorldState& world, Crt::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
+                                                                        Kernel::WorldState& world,
+                                                                        Crt::CrtRandom& random,
                                                                         World::Particles* particles, float worldClock);
 } // namespace Client::Scenes

@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Assets
 {
 SceneTextures::SceneTextures(Render::ITextureStore& store, std::span<const Data::Textures::TextureSetEntry> set)
     : m_store(store), m_set(set)
@@ -77,4 +77,4 @@ std::optional<Models::TextureMetadata> SceneTextures::MetadataOf(std::uint32_t s
     const auto found = m_metadata.find(selector);
     return found == m_metadata.end() ? std::nullopt : std::optional(found->second);
 }
-} // namespace Client::Scenes
+} // namespace Client::Assets

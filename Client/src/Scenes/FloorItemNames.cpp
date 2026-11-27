@@ -439,7 +439,7 @@ Core::Expected<void, std::string> DrawTheFloorItemName(GameHudContext& context, 
                                                        bool atTheItem)
 {
     // 0x5ba7a7..0x5ba7c7: SelectObject con la fuente normal (0x5763554) y los colores.
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     hud.dcFont = FontKind::Normal;
     hud.textColors = StartColors;
     const NameFrame frame{.context = context, .item = item, .level = (item.value >> LevelShift) & LevelMask};

@@ -55,7 +55,7 @@
 
 namespace
 {
-bool DrawsPart(const Client::Tests::RecordedFrame& frame, const Client::Scenes::GameModels& models, std::uint16_t part)
+bool DrawsPart(const Client::Tests::RecordedFrame& frame, const Client::Assets::GameModels& models, std::uint16_t part)
 {
     const auto textures = models.MeshTextures(part);
     for (const auto& event : frame.events)
@@ -216,11 +216,11 @@ protected:
         }
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::Models::ClothWorld m_cloth;
-    Client::World::GameCamera m_camera;
-    Client::World::GameCameraInput m_cameraInput;
+    Client::Camera::GameCamera m_camera;
+    Client::Camera::GameCameraInput m_cameraInput;
     Client::Input::InputState m_input;
     Client::Tests::FakeTextureStore m_textures;
     Client::Tests::RecordingSink m_sink;
@@ -230,7 +230,7 @@ protected:
     Client::Render::SpriteBatch m_textBatch;
     Client::Tests::RecordingTextDrawer m_letters{m_textBatch};
     Client::Tables::GameData m_data;
-    Client::Scenes::GameModels m_models;
+    Client::Assets::GameModels m_models;
     std::optional<Client::Scenes::SessionEventApplier> m_applier;
     std::optional<Client::Scenes::GameScene> m_game;
     Client::Network::PacketSerials m_serverSends;
@@ -275,7 +275,7 @@ TEST_F(CharacterFirstWorldEntryTest, ASecondCreatedWizardEntersAfterAnEquippedKn
         Client::Tests::Bytes({0xc2, 0, 14, 0xf3, 0x10, 1, 0, 1, 0, 25, 0, 0, 0, 0}), m_serverSends)};
     ASSERT_TRUE(m_online.session.Poll().HasValue());
     ASSERT_EQ(m_online.session.State(), Client::App::SessionState::InWorld);
-    const Client::World::ItemState& weapon = m_world->OwnCharacter().equipment[0];
+    const Client::Kernel::ItemState& weapon = m_world->OwnCharacter().equipment[0];
     ASSERT_EQ(weapon.id, 1);
     ASSERT_EQ(weapon.durability, 25);
     ASSERT_NO_FATAL_FAILURE(DrawFrames());

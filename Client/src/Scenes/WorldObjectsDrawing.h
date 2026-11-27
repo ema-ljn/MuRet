@@ -35,10 +35,14 @@ struct FishEffectRequest;
 struct ObjectModelStepState;
 } // namespace Client::World
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
 struct CrywolfGlobals;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct FaunaDrawCarry;
 // El paso de un objeto que tiene el suyo (el logo del login): devuelve true si lo avanzó, y entonces
 // StepWorldObject no lo toca.
@@ -83,7 +87,7 @@ struct ObjectFrameEffects
     World::Particles* particles = nullptr;
     // Lo que el frame posó en el buffer global de la pose antes de los objetos, en su orden: el caballo
     // (0x4453b0).
-    std::span<const PosedInTheBuffer> posedBefore{};
+    std::span<const Actors::Drawing::PosedInTheBuffer> posedBefore{};
     // El caso del farol es de la escena 2 (0x602f09).
     World::ObjectScene scene = World::ObjectScene::Other;
     // Los frames originales que pasaron: el dibujo puro corre incluso con cero.
@@ -91,7 +95,7 @@ struct ObjectFrameEffects
     // El rand común del último frame original por índice; los no vistos en él pierden su muestra.
     // Sin una muestra previa no hay brillo que repetir.
     std::span<std::optional<int>> lastRandoms{};
-    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
+    std::function<Core::Expected<void, std::string>(const Actors::Drawing::DrawnObject&)> onPose{};
     const FaunaDrawCarry* retainedPose = nullptr;
     bool publishProjectedPose = false;
     // 0x5763538 (WorldRuntime::objectDrawCounter): 0x6046a0 la cuenta una vez por frame original, como en el juego.
@@ -115,9 +119,9 @@ struct ObjectFrameEffects
 // objetos anteriores posados o `posedBefore`; sin ninguno, (0, 0, 0). Con cero frames se dibuja y se
 // repite la luz de los faroles que tengan muestra del último frame original, sin consumir RNG.
 void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                      std::span<World::WorldObject> objects, const World::TerrainPolygon& polygon,
-                      const World::TerrainLighting* lighting, std::uint8_t map, Core::Duration frameClock, float alpha,
-                      const ObjectFrameEffects& effects = {});
+                      std::span<World::WorldObject> objects, const Terrain::TerrainPolygon& polygon,
+                      const Terrain::TerrainLighting* lighting, std::uint8_t map, Core::Duration frameClock,
+                      float alpha, const ObjectFrameEffects& effects = {});
 
 // Lo que 0x6046a0 lee afuera de los objetos en el juego.
 struct GameObjectPass
@@ -138,7 +142,7 @@ struct GameObjectPass
     // La tabla global compartida de 0x743a198. Sin ella queda el corte histórico de la primera gota.
     World::Particles* particles = nullptr;
     // 5ffdf0 publica el scratch de la pose antes de 602ed0 y antes de las aves.
-    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
+    std::function<Core::Expected<void, std::string>(const Actors::Drawing::DrawnObject&)> onPose{};
     World::FrameSprites* sprites = nullptr;
     const FaunaDrawCarry* retainedPose = nullptr;
     std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
@@ -147,7 +151,7 @@ struct GameObjectPass
     bool publishProjectedPose = false;
     // DAT_07d2d360, prestado por el pulso global637700: sin productor no se inventa un frame0.
     std::optional<std::uint32_t> waterTextureFrame{};
-    const ActorState* hero = nullptr;
+    const Kernel::ActorState* hero = nullptr;
     const World::KalimaWorld* kalima = nullptr;
     std::function<void(std::int32_t)> requestSound{};
     // 0x518cf0: los efectos de modelo, para la mariposa 0xae del 0x3c del 54 (0x4257d5).
@@ -167,7 +171,7 @@ struct GameObjectPass
     // le suma 1 antes de mirar un objeto (0x6046be..0x6046ce). Sin él no se cuenta.
     std::int32_t* objectDrawCounter = nullptr;
     // Los globales de Crywolf (WorldRuntime::crywolf), que leen y escriben 0x430510 y 0x4306a0 en el 34.
-    CrywolfGlobals* crywolf = nullptr;
+    Kernel::CrywolfGlobals* crywolf = nullptr;
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 6 a 23, 30, 31, 33, 34 y Kalima (06 § Los objetos del juego):
@@ -189,15 +193,15 @@ struct GameObjectPass
 // aún ausentes de438c10 conservan su dirección y prefijo. Los demás mapas cortan antes de mirar un objeto.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                     std::span<World::WorldObject> objects, const World::TerrainPolygon& polygon,
-                     const World::TerrainLighting* lighting, Core::Duration frameClock, const GameObjectPass& pass);
+                     std::span<World::WorldObject> objects, const Terrain::TerrainPolygon& polygon,
+                     const Terrain::TerrainLighting* lighting, Core::Duration frameClock, const GameObjectPass& pass);
 
 // 0x52dc20 (0x6374d3): por cada lugar vivo y con el +0x16c retenido, un rand() común, la mezcla
 // aditiva y el caso del tipo. Conserva los efectos de los lugares anteriores si uno corta. Un pase del
 // original; GroundEffectFrame conserva la geometría entre frames de MuRet (D-C4).
 [[nodiscard]] Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch,
                                                                   std::span<World::ModelEffect> effects,
-                                                                  const World::GroundEffectResources& resources);
+                                                                  const Terrain::GroundEffectResources& resources);
 
 // 0x52d220: World::StepModelEffect sobre cada efecto vivo, con el esqueleto de su modelo.
 void StepModelEffects(std::span<World::ModelEffect> effects, const Models::IModelLibrary& models);
@@ -209,13 +213,14 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const Models::IMode
 // con la esfera de 400, sobre la posición lógica, aun si el modelo no se encuentra. Un lugar muerto
 // conserva su marca; uno vivo fuera de la esfera no consulta el modelo.
 void DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                      std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
-                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha);
+                      std::span<World::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
+                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha);
 // Mismo recorrido legacy, publicando la pose y consumiendo ese scratch sin volver a posar.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models, std::span<World::ModelEffect> effects,
-                 const World::SphereFrustum& frustum, const World::TerrainLighting* lighting, Core::Duration frameClock,
-                 float alpha, const TailPoseObserver& onPose, const TailMeshProvider& posedMeshes);
+                 const Terrain::SphereFrustum& frustum, const Terrain::TerrainLighting* lighting,
+                 Core::Duration frameClock, float alpha, const Actors::Drawing::TailPoseObserver& onPose,
+                 const Actors::Drawing::TailMeshProvider& posedMeshes);
 
 // 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite
 // vivo, con la mezcla de su +4 (0 aditiva, 1 la de 0x620b10, 2 la normal, 3 la de 0x620b90:

@@ -34,19 +34,19 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::ItemState;
+using Client::Kernel::OwnCharacterRecord;
 using Client::Models::OwnRecordCloseRandoms;
-using Client::Scenes::ActorState;
-using Client::Scenes::ItemSetPiece;
-using Client::Scenes::ItemSetPieces;
-using Client::Scenes::ItemSetState;
-using Client::Scenes::OwnCharacterRecord;
-using Client::Scenes::OwnStatCopies;
+using Client::Player::ItemSetPiece;
+using Client::Player::ItemSetPieces;
+using Client::Player::ItemSetState;
+using Client::Player::OwnStatCopies;
 using Client::Tables::ItemSetOptionRecordSize;
 using Client::Tables::ItemSetOptionTableSize;
 using Client::Tables::ItemSetTables;
 using Client::Tables::ItemSetTypeRecordSize;
 using Client::Tables::ItemSetTypeTableSize;
-using Client::World::ItemState;
 
 constexpr std::uint8_t None = 0xff;
 constexpr std::uint16_t EmptyType = 0xffff;
@@ -139,7 +139,7 @@ ItemSetTables TablesOf(const SetTypes& types, const SetOptions& options)
     return Client::Tests::ItemSetTablesFrom(types.Plain(), options.Plain());
 }
 
-std::string NameIn(const std::array<char, Client::Scenes::ItemSetNameSize>& slot)
+std::string NameIn(const std::array<char, Client::Player::ItemSetNameSize>& slot)
 {
     return std::string(slot.data());
 }
@@ -192,7 +192,7 @@ TEST(OwnItemSetsTest, APieceIsTheSetOfItsTypeByTheLowBitsOfByte1c)
     for (const std::uint8_t flags1c : {std::uint8_t{0x00}, std::uint8_t{0xfc}, std::uint8_t{0xfd}, std::uint8_t{0x02},
                                        std::uint8_t{0x03}, std::uint8_t{0x01}})
     {
-        ASSERT_TRUE(Client::Scenes::AddItemSetPiece(pieces, tables.types, 0x40, flags1c).HasValue());
+        ASSERT_TRUE(Client::Player::AddItemSetPiece(pieces, tables.types, 0x40, flags1c).HasValue());
     }
     EXPECT_EQ(pieces[0].setId, 5);
     EXPECT_EQ(pieces[0].count, 2);
@@ -225,7 +225,7 @@ TEST(OwnItemSetsTest, PiecesFillFourSetsAndATypeOutsideIsAnError)
     for (const Worn& worn :
          {Worn{1, 1}, Worn{7, 1}, Worn{2, 1}, Worn{2, 2}, Worn{3, 1}, Worn{4, 1}, Worn{5, 1}, Worn{6, 1}})
     {
-        ASSERT_TRUE(Client::Scenes::AddItemSetPiece(pieces, tables.types, worn.type, worn.flags1c).HasValue());
+        ASSERT_TRUE(Client::Player::AddItemSetPiece(pieces, tables.types, worn.type, worn.flags1c).HasValue());
     }
     const ItemSetPieces expected = {ItemSetPiece{.setId = 3, .count = 2, .kind = 1}, ItemSetPiece{4, 1, 0},
                                     ItemSetPiece{6, 1, 0}, ItemSetPiece{8, 1, 0}};
@@ -238,14 +238,14 @@ TEST(OwnItemSetsTest, PiecesFillFourSetsAndATypeOutsideIsAnError)
     }
 
     ItemSetPieces last{};
-    ASSERT_TRUE(Client::Scenes::AddItemSetPiece(last, tables.types, 0x1fff, 1).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetPiece(last, tables.types, 0x1fff, 1).HasValue());
     EXPECT_EQ(last[0].setId, 12);
-    const auto outside = Client::Scenes::AddItemSetPiece(last, tables.types, 0x2000, 1);
+    const auto outside = Client::Player::AddItemSetPiece(last, tables.types, 0x2000, 1);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("Q-C187"), std::string::npos);
     EXPECT_NE(outside.Error().find("8192"), std::string::npos);
     // Sin conjunto (& 3 en 0) no lee la tabla.
-    EXPECT_TRUE(Client::Scenes::AddItemSetPiece(last, tables.types, 0x2000, 4).HasValue());
+    EXPECT_TRUE(Client::Player::AddItemSetPiece(last, tables.types, 0x2000, 4).HasValue());
 }
 
 // 0x40d010 con n = piezas − 1: los primeros min(n, 6) pares, con las dos opciones de cada uno y sin las
@@ -275,7 +275,7 @@ TEST(OwnItemSetsTest, EachPieceAfterTheFirstAddsAPairOfOptions)
         SCOPED_TRACE(int{expected.pieces});
         ItemSetState state;
         ASSERT_TRUE(
-            Client::Scenes::ApplyItemSetOptions(state, OnePiece(5, expected.pieces), tables.options, hero).HasValue());
+            Client::Player::ApplyItemSetOptions(state, OnePiece(5, expected.pieces), tables.options, hero).HasValue());
         EXPECT_EQ(OptionsIn(state), expected.listed);
         EXPECT_EQ(state.list.count9349, 0);
         EXPECT_EQ(hero.byte358, 0);
@@ -293,12 +293,12 @@ TEST(OwnItemSetsTest, TheExtraOptionsOnlyComeWithMoreThanThirteenPieces)
     ActorState hero;
     ItemSetState state;
 
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(5, 13), tables.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(5, 13), tables.options, hero).HasValue());
     EXPECT_EQ(OptionsIn(state), Listed{});
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(5, 14), tables.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(5, 14), tables.options, hero).HasValue());
     EXPECT_EQ(OptionsIn(state), (Listed{{7, 9}}));
 
-    const auto outside = Client::Scenes::ApplyItemSetOptions(state, OnePiece(5, 31), tables.options, hero);
+    const auto outside = Client::Player::ApplyItemSetOptions(state, OnePiece(5, 31), tables.options, hero);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("31 piezas"), std::string::npos);
     EXPECT_NE(outside.Error().find("Q-C187"), std::string::npos);
@@ -315,11 +315,11 @@ TEST(OwnItemSetsTest, AFullSetAddsItsOptionsAndMarksThePublishedHero)
     hero.byte358 = 7;
     ItemSetState state;
 
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(3, 2), tables.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(3, 2), tables.options, hero).HasValue());
     EXPECT_EQ(OptionsIn(state), (Listed{{2, 15}}));
     EXPECT_EQ(hero.byte358, 0);
 
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(3, 3), tables.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(3, 3), tables.options, hero).HasValue());
     EXPECT_EQ(OptionsIn(state), (Listed{{2, 15}, {1, 15}, {0x13, 20}, {0x0c, 30}}));
     EXPECT_EQ(hero.byte358, 1);
     EXPECT_EQ(NameIn(state.names[0]), "Tres");
@@ -329,7 +329,7 @@ TEST(OwnItemSetsTest, AFullSetAddsItsOptionsAndMarksThePublishedHero)
     // +0x3c en 0: −2, completo desde dos piezas.
     options.Byte(3, 0x3c, 0);
     const ItemSetTables anyCount = TablesOf(SetTypes{}, options);
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(3, 2), anyCount.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(3, 2), anyCount.options, hero).HasValue());
     EXPECT_EQ(OptionsIn(state), (Listed{{2, 15}, {0x13, 20}, {0x0c, 30}}));
     EXPECT_EQ(hero.byte358, 1);
 }
@@ -363,7 +363,7 @@ TEST(OwnItemSetsTest, ClassMarksGateTheHighOptionsAndSetTheFlag)
         ActorState hero;
         hero.characterClass = expected.heroClass;
         ItemSetState state;
-        ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(9, 2), tables.options, hero).HasValue());
+        ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(9, 2), tables.options, hero).HasValue());
         EXPECT_EQ(OptionsIn(state), (expected.allowed ? Listed{{0x30, 40}, {4, 41}} : Listed{{4, 41}}));
         EXPECT_EQ(state.list.entries[0][1], expected.flag);
     }
@@ -380,7 +380,7 @@ TEST(OwnItemSetsTest, ClassMarksGateTheHighOptionsAndSetTheFlag)
         ActorState hero;
         hero.characterClass = static_cast<std::uint8_t>(heroClass | (0x1f << 3));
         ItemSetState state;
-        ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(9, 2), tables.options, hero).HasValue());
+        ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(9, 2), tables.options, hero).HasValue());
         EXPECT_EQ(OptionsIn(state), (heroClass == 7 ? Listed{} : Listed{{0x30, 40}}));
         if (heroClass != 7)
         {
@@ -399,8 +399,8 @@ TEST(OwnItemSetsTest, TheMarkPastTheLastSetIsAnError)
     ActorState hero;
     hero.characterClass = 5;
     ItemSetState state;
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, OnePiece(63, 2), tables.options, hero).HasValue());
-    const auto outside = Client::Scenes::ApplyItemSetOptions(state, OnePiece(63, 3), tables.options, hero);
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(63, 2), tables.options, hero).HasValue());
+    const auto outside = Client::Player::ApplyItemSetOptions(state, OnePiece(63, 3), tables.options, hero);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("Q-C187"), std::string::npos);
     EXPECT_EQ(state.list.count9348, 0);
@@ -421,7 +421,7 @@ TEST(OwnItemSetsTest, NamesGoToTheirKindAndAnotherSetToTheSecondName)
     const ItemSetPieces pieces = {ItemSetPiece{.setId = 4, .count = 2, .kind = 1}, ItemSetPiece{1, 2, 0},
                                   ItemSetPiece{2, 3, 0}, ItemSetPiece{}};
 
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, pieces, tables.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, pieces, tables.options, hero).HasValue());
 
     // "Cuatro" en el de la clase 1; "Uno" en el de la 0; "Dos", de la 0 con otro nombre ahí, al segundo.
     EXPECT_EQ(NameIn(state.names[0]), "Uno");
@@ -441,7 +441,7 @@ TEST(OwnItemSetsTest, NamesGoToTheirKindAndAnotherSetToTheSecondName)
     // El mismo conjunto otra vez se queda en su nombre y no toca +0x9307.
     const ItemSetPieces again = {ItemSetPiece{.setId = 1, .count = 2, .kind = 0}, ItemSetPiece{1, 2, 0}, ItemSetPiece{},
                                  ItemSetPiece{}};
-    ASSERT_TRUE(Client::Scenes::ApplyItemSetOptions(state, again, tables.options, hero).HasValue());
+    ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, again, tables.options, hero).HasValue());
     EXPECT_EQ(NameIn(state.names[0]), "Uno");
     EXPECT_EQ(NameIn(state.names[1]), "");
     EXPECT_EQ(state.byte9307, 0);
@@ -484,7 +484,7 @@ TEST(OwnItemSetsTest, WhatFallsOutsideTheTablesAndListsIsAnError)
         ItemSetState state;
         state.list.count9348 = 9;
         state.list.count9349 = 9;
-        const auto applied = Client::Scenes::ApplyItemSetOptions(state, outside.pieces, tables.options, hero);
+        const auto applied = Client::Player::ApplyItemSetOptions(state, outside.pieces, tables.options, hero);
         ASSERT_FALSE(applied.HasValue());
         EXPECT_NE(applied.Error().find("Q-C187"), std::string::npos);
         EXPECT_NE(applied.Error().find(outside.shown), std::string::npos);
@@ -504,18 +504,18 @@ TEST(OwnItemSetsTest, ClearingTheMarksLetsTheOptionsAddAgain)
     state.list.values[0] = 10;
     state.list.values[1] = 20;
     std::uint16_t word = 0;
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(state.list, word, 0x8d).HasValue());
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(state.list, word, 0x8d).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(state.list, word, 0x8d).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(state.list, word, 0x8d).HasValue());
     EXPECT_EQ(word, 30);
     EXPECT_EQ(state.list.used, (std::array<std::uint8_t, 16>{1, 1}));
 
-    Client::Scenes::ClearItemSetOptionMarks(state.list);
+    Client::Player::ClearItemSetOptionMarks(state.list);
 
     EXPECT_EQ(state.list.used, (std::array<std::uint8_t, 16>{}));
     EXPECT_EQ(state.list.count9348, 2);
     EXPECT_EQ(state.list.entries[0][1], 1);
     EXPECT_EQ(state.list.values[1], 20);
-    ASSERT_TRUE(Client::Scenes::AddItemSetOptionValues(state.list, word, 0x8d).HasValue());
+    ASSERT_TRUE(Client::Player::AddItemSetOptionValues(state.list, word, 0x8d).HasValue());
     EXPECT_EQ(word, 60);
 }
 
@@ -542,7 +542,7 @@ ItemState Piece(std::uint16_t type, std::uint8_t setIndex)
 class OwnItemSetsFixture : public ::testing::Test
 {
 protected:
-    Client::Scenes::OwnStatsContext Context(const ItemSetTables* tables)
+    Client::Player::OwnStatsContext Context(const ItemSetTables* tables)
     {
         return {.itemSetTables = tables,
                 .itemSets = &m_state,
@@ -598,7 +598,7 @@ TEST_F(OwnItemSetsFixture, StatCopiesTakeTheItemBonusesAndTheSetOptions)
     m_accesses = 0;
     OwnStatCopies copies{.strength = 1, .agility = 2, .vitality = 3, .energy = 4};
 
-    ASSERT_TRUE(Client::Scenes::AddOwnBonusesToStatCopies(copies, own, Context(nullptr)).HasValue());
+    ASSERT_TRUE(Client::Player::AddOwnBonusesToStatCopies(copies, own, Context(nullptr)).HasValue());
 
     EXPECT_EQ(copies.strength, 1 + 15 + 5 + 100);
     EXPECT_EQ(copies.agility, 2 + 10 + 200);
@@ -616,7 +616,7 @@ TEST_F(OwnItemSetsFixture, AnEmptySlotWithDurabilityStopsTheStatCopies)
     own.equipment[4].durability = 1;
     own.equipment[4].flags1c = 4; // Valor 1: el byte desconocido sí puede cambiar las copias.
     OwnStatCopies copies;
-    const auto added = Client::Scenes::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
+    const auto added = Client::Player::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
     ASSERT_FALSE(added.HasValue());
     EXPECT_NE(added.Error().find("0x40de10, lugar 4"), std::string::npos);
     EXPECT_NE(added.Error().find("Q-C184"), std::string::npos);
@@ -636,7 +636,7 @@ TEST_F(OwnItemSetsFixture, AnEmptySlotWithZeroBonusPreservesCopiesAndBothLogical
         m_random = CrtRandom(3);
         OwnStatCopies copies{.strength = 11, .agility = 22, .vitality = 44, .energy = 33};
 
-        const auto added = Client::Scenes::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
+        const auto added = Client::Player::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
 
         ASSERT_TRUE(added.HasValue()) << added.Error();
         EXPECT_EQ(copies.strength, 11);
@@ -658,7 +658,7 @@ TEST_F(OwnItemSetsFixture, WithoutTheTablesNothingIsTouched)
     m_state.list.entries[0][0] = 0x42;
     m_hero.byte358 = 3;
     m_accesses = 0;
-    const auto recalculated = Client::Scenes::RecalculateOwnItemSets(Unequipped(), Context(nullptr));
+    const auto recalculated = Client::Player::RecalculateOwnItemSets(Unequipped(), Context(nullptr));
     ASSERT_FALSE(recalculated.HasValue());
     EXPECT_NE(recalculated.Error().find("0x40c600"), std::string::npos);
     EXPECT_EQ(m_state.list.entries[0][0], 0x42);
@@ -667,9 +667,9 @@ TEST_F(OwnItemSetsFixture, WithoutTheTablesNothingIsTouched)
 
     // Con las tablas y sin dónde escribir, igual.
     const ItemSetTables tables = TablesOf(SetTypes{}, SetOptions{});
-    Client::Scenes::OwnStatsContext withoutState = Context(&tables);
+    Client::Player::OwnStatsContext withoutState = Context(&tables);
     withoutState.itemSets = nullptr;
-    const auto stateless = Client::Scenes::RecalculateOwnItemSets(Unequipped(), withoutState);
+    const auto stateless = Client::Player::RecalculateOwnItemSets(Unequipped(), withoutState);
     ASSERT_FALSE(stateless.HasValue());
     EXPECT_NE(stateless.Error().find("WorldState::ItemSets"), std::string::npos);
     EXPECT_EQ(m_hero.byte358, 3);
@@ -699,7 +699,7 @@ TEST_F(OwnItemSetsFixture, TheTwoPassesCountEachPieceOnce)
     own.equipment[11] = Piece(0x20, 2); // otro conjunto del mismo tipo: cuenta
     m_accesses = 0;
 
-    ASSERT_TRUE(Client::Scenes::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
+    ASSERT_TRUE(Client::Player::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
 
     // Uno con dos piezas (0x10 y 0x11); Dos con dos (la de la clase 1 al final); Tres con una, sin opciones.
     EXPECT_EQ(OptionsIn(m_state), (Listed{{0, 1}, {3, 4}}));
@@ -733,7 +733,7 @@ TEST_F(OwnItemSetsFixture, TheSecondPassChecksRequirementsAgainstTheBoostedCopie
     own.equipment[4] = Piece(0x12, 1);
     own.equipment[4].word22 = 51; // no entra: la energía llega a 50 en la primera pasada
 
-    ASSERT_TRUE(Client::Scenes::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
+    ASSERT_TRUE(Client::Player::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
 
     EXPECT_EQ(OptionsIn(m_state), (Listed{{1, 10}}));
     // De la primera pasada quedan las marcas de 0x40de10; el 0xff de la segunda, en lo que no escribió.
@@ -764,7 +764,7 @@ TEST_F(OwnItemSetsFixture, ThePairCheckKeepsTheFirstPassRingForTheHands)
     own.equipment[10] = Piece(0x10, 1);
     own.equipment[11] = Piece(0x10, 1);
 
-    ASSERT_TRUE(Client::Scenes::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
+    ASSERT_TRUE(Client::Player::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
 
     // Primera pasada: Uno con 2 (el 1 y el 10; el 11 repite el 10) y Dos con 2 (el 0 y el 9). Segunda:
     // el 1 repite el 10 de la primera, así que Uno queda con 1 (el 10), y Dos con 1 (el 9).

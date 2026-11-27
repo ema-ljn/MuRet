@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-// Client::World::DrawGrassCell y DrawGrass con un terreno armado a mano: el pase del pasto de 0x5fac90
+// Client::Terrain::DrawGrassCell y DrawGrass con un terreno armado a mano: el pase del pasto de 0x5fac90
 // con 0x5fa830 y 0x7d0d31c en 2 (0x5fa9f6..0x5fac7b), recorrido como el terreno por 0x5fc190
 // (06 § El pasto).
 namespace
@@ -40,14 +40,14 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawCommand;
 using Client::Render::TextureSlot;
-using Client::World::DrawGrass;
-using Client::World::DrawGrassCell;
-using Client::World::TerrainGrass;
-using Client::World::TerrainLighting;
-using Client::World::TerrainPolygon;
-using Client::World::TerrainRange;
-using Client::World::TerrainView;
-using Client::World::TerrainWater;
+using Client::Terrain::DrawGrass;
+using Client::Terrain::DrawGrassCell;
+using Client::Terrain::TerrainGrass;
+using Client::Terrain::TerrainLighting;
+using Client::Terrain::TerrainPolygon;
+using Client::Terrain::TerrainRange;
+using Client::Terrain::TerrainView;
+using Client::Terrain::TerrainWater;
 
 constexpr std::uint8_t CellX = 7;
 constexpr std::uint8_t CellY = 9;

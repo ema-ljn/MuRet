@@ -12,7 +12,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -29,7 +29,7 @@ bool IsStanding(std::uint8_t action)
     return (action >= FirstStandAction && action <= LastStandAction) || action == MarkedSpecialStand;
 }
 
-std::uint8_t AnimationFor(const ActorState& actor, std::uint8_t animation)
+std::uint8_t AnimationFor(const Kernel::ActorState& actor, std::uint8_t animation)
 {
     const bool elf = Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf;
     const bool shared = animation >= FirstSharedAnimation && animation <= LastSharedAnimation;
@@ -37,7 +37,8 @@ std::uint8_t AnimationFor(const ActorState& actor, std::uint8_t animation)
 }
 } // namespace
 
-Core::Expected<bool, std::string> PlayTheEmote(ActorState& actor, UI::EmoteCase emote, const EmoteContext& context)
+Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
+                                               const EmoteContext& context)
 {
     if (!IsStanding(actor.animation.action))
         return false;
@@ -60,4 +61,4 @@ Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteCon
     // El C1 05 18 del caso (0x5777aa..0x577b75 en el 0x577796, igual en los otros 21), con el ESI de 0x576ed4.
     return SendTheAction(context.hero.angles.z, emote.action, context.send, "0x577823");
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

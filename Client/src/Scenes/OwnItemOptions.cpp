@@ -32,7 +32,7 @@ void AddOwnItemOptionValues(std::span<std::byte, 2> destination, std::uint32_t s
     {
         if (options.optionBytes[index] != selector || options.durability == 0)
             continue;
-        const std::uint32_t increment = options.optionBytes[World::ItemOptionValueOffset + index];
+        const std::uint32_t increment = options.optionBytes[Kernel::ItemOptionValueOffset + index];
         WriteOptionDestination(destination, ReadOptionDestination(destination) + increment);
     }
 }

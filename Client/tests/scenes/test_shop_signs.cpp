@@ -41,6 +41,7 @@ namespace
 {
 using Client::Core::PixelSize;
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::BoxShape;
 using Client::Render::Text::FontKind;
@@ -50,7 +51,6 @@ using Client::Scenes::ShopSignBox;
 using Client::Scenes::ShopSignColors;
 using Client::Scenes::ShopTitle;
 using Client::Scenes::ShopTitleLines;
-using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -132,7 +132,7 @@ protected:
         Actor(Buyer, glm::vec3(100.0f, 7.0f, 10.0f));
     }
 
-    Client::Scenes::WorldRuntime& Runtime()
+    Client::Kernel::WorldRuntime& Runtime()
     {
         return m_world->Runtime();
     }
@@ -148,9 +148,9 @@ protected:
         m_projection = FlatProjection(screen);
     }
 
-    Client::Scenes::ActorState& Actor(std::size_t slot, glm::vec3 position)
+    Client::Kernel::ActorState& Actor(std::size_t slot, glm::vec3 position)
     {
-        Client::Scenes::ActorState& actor = m_world->Actors()[slot];
+        Client::Kernel::ActorState& actor = m_world->Actors()[slot];
         actor.alive = true;
         actor.seen = true;
         actor.position = position;
@@ -484,7 +484,7 @@ TEST_P(ShopSignsTest, TheBubbleColorsFollowTheSign)
     EXPECT_TRUE(Client::Scenes::ShopSignHovered(Shops(), Seller));
     EXPECT_FALSE(Client::Scenes::ShopSignHovered(Shops(), Buyer));
 
-    Client::Scenes::ActorState& owner = m_world->Actors()[Seller];
+    Client::Kernel::ActorState& owner = m_world->Actors()[Seller];
     EXPECT_EQ(ShopBubbleColorsOf(owner, false), Plain);
     owner.byte370 = 2;
     EXPECT_EQ(ShopBubbleColorsOf(owner, true),

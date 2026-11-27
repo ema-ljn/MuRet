@@ -81,7 +81,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ActorState;
+using Client::Kernel::ActorState;
 using Client::Scenes::ApplyWorldEntry;
 using Client::Scenes::SettleWorldEntry;
 using Client::Scenes::WorldEntryResources;
@@ -94,7 +94,7 @@ constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
 // 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
 // alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
 // se consulta además la espera: estos fixtures conservan el contador positivo.
-int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Scenes::ActorState& hero)
+int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Kernel::ActorState& hero)
 {
     int draws = 0;
     for (std::size_t slot = 0; slot < gates.Count(); ++slot)
@@ -122,8 +122,8 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // Oráculo de composición: ejecuta los kernels ya contrastados de 637082/6370ea/6370ef en
 // dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
-Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Scenes::WorldState& world,
-                                                                   const Client::Scenes::ActorState& hero,
+Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world,
+                                                                   const Client::Kernel::ActorState& hero,
                                                                    Client::World::LeafWeather weather,
                                                                    std::int32_t heroCellLayer,
                                                                    Client::Models::ClothWorld& reference)
@@ -227,7 +227,7 @@ class Entry
 {
 private:
     // Los escenarios simultáneos conservan mundos durables sin agotar la pila de Windows.
-    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+    std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
 
 public:
     Entry(std::filesystem::path root, std::uint32_t seed) : dataRoot(std::move(root)), cloth{.random = CrtRandom(seed)}
@@ -282,10 +282,10 @@ public:
     }
 
     std::filesystem::path dataRoot;
-    Client::Scenes::WorldState& world = *m_world;
+    Client::Kernel::WorldState& world = *m_world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -311,7 +311,7 @@ struct CompleteFrameResources
         return models.Load(root, textures, log);
     }
     Client::Tests::FakeTextureStore textures;
-    Client::Scenes::GameModels models;
+    Client::Assets::GameModels models;
     Client::Tables::GameData data;
 };
 
@@ -386,7 +386,7 @@ TEST_F(WorldEntryTest, TheOldRecordDressesTheHeroBeforeItIsEmptied)
     EXPECT_EQ(tested.Hero().hands[0].model, Sword);
     for (const auto& item : tested.world.OwnCharacter().equipment)
     {
-        EXPECT_EQ(item.id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(item.id, Client::Kernel::EmptyOwnItemId);
     }
 }
 
@@ -415,7 +415,7 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
     Client::Scenes::SessionEventApplier applier(tested.Resources());
     Client::Tests::LoggedInSession online(&applier);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    tested.world.Runtime().warpCounter = Client::Scenes::WorldLoadingWait;
+    tested.world.Runtime().warpCounter = Client::Kernel::WorldLoadingWait;
     Client::Network::PacketSerials serials;
     online.socket.reads = {EntryPacket(133, 127, serials)};
 
@@ -423,7 +423,7 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
 
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Failed);
     EXPECT_EQ(tested.world.Runtime().hero, 0u);
-    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     EXPECT_EQ(tested.AliveArrivals(), 0u);
     EXPECT_EQ(tested.Hero().key, PlayerKey);
     EXPECT_EQ(tested.Hero().name, ActorState{}.name);
@@ -466,7 +466,7 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     EXPECT_EQ(publisher.calls, 1);
     EXPECT_EQ(tested.world.Runtime().hero, HeroSlotOfSeed());
-    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
     ASSERT_TRUE(tested.world.Runtime().fullSetScan.has_value());
     EXPECT_EQ(tested.world.Runtime().fullSetScan->dword743a178, 0);
@@ -491,7 +491,7 @@ TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
     const auto entered = ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher);
 
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    const Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    const Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     const Client::Scenes::MapBanner& banner = runtime.hud.mapBanner;
     EXPECT_EQ(banner.state, Client::Scenes::MapBannerState::FadingIn);
     EXPECT_EQ(banner.shownMap, 0);
@@ -580,7 +580,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 TEST_F(WorldEntryTest, TheEntryReadsWhatTheSelectionDrawingLeft)
 {
     Entry tested(m_dataRoot, Seed);
-    tested.world.Runtime().fullSetScan = Client::Scenes::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
+    tested.world.Runtime().fullSetScan = Client::Actors::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
     const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
@@ -676,7 +676,7 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
 {
     Entry tested(m_dataRoot, Seed);
     tested.world.Runtime().map = 0;
-    tested.world.Runtime().warpCounter = Client::Scenes::WorldLoadingWait;
+    tested.world.Runtime().warpCounter = Client::Kernel::WorldLoadingWait;
     tested.world.OwnCharacter().name[0] = std::byte{'h'};
     tested.world.OwnCharacter().equipment[3].id = 7;
     ActorState& hero = tested.DressedHero(PublishedSlot);
@@ -687,9 +687,9 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
         checked = true;
         EXPECT_EQ(tested.world.Runtime().hero, PublishedSlot);
         EXPECT_EQ(hero.name[0], std::byte{'h'});
-        EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(tested.AliveArrivals(), 1u);
-        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
         EXPECT_EQ(hero.alpha, 1.0f);
         EXPECT_EQ(tested.cameraInput.hero, hero.position);
     };
@@ -699,7 +699,7 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
     ASSERT_TRUE(settled.HasValue()) << settled.Error();
     EXPECT_TRUE(checked);
     EXPECT_EQ(publisher.calls, 1);
-    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
     EXPECT_EQ(tested.AliveArrivals(), 2u);
     EXPECT_EQ(hero.alpha, 0.0f);
     EXPECT_EQ(hero.movement, 0);
@@ -724,7 +724,7 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
 TEST_F(WorldEntryTest, AStopFailureKeepsCounterThirtyAndTwoArrivals)
 {
     Entry tested(m_dataRoot, Seed);
-    tested.world.Runtime().warpCounter = Client::Scenes::WorldLoadingWait;
+    tested.world.Runtime().warpCounter = Client::Kernel::WorldLoadingWait;
     ActorState& hero = tested.DressedHero(PublishedSlot);
     constexpr std::uint32_t Sitting = 0x200000;
     hero.flags7c |= Sitting;
@@ -735,7 +735,7 @@ TEST_F(WorldEntryTest, AStopFailureKeepsCounterThirtyAndTwoArrivals)
     ASSERT_FALSE(settled.HasValue());
     EXPECT_NE(settled.Error().find("0x4f2416"), std::string::npos) << settled.Error();
     EXPECT_EQ(publisher.calls, 1);
-    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
     EXPECT_EQ(tested.AliveArrivals(), 2u);
     EXPECT_EQ(tested.world.Runtime().hero, PublishedSlot);
     EXPECT_EQ(hero.alpha, 0.0f);
@@ -783,7 +783,7 @@ TEST_F(WorldEntryTest, ARavenIsCreatedAt420d60AfterTheWait)
     ASSERT_TRUE(hero.darkSpirit.has_value());
     EXPECT_EQ(hero.darkSpirit->state, 0);
     EXPECT_EQ(hero.darkSpirit->position, glm::vec3(13350.0f, 12750.0f, 300.0f));
-    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
     EXPECT_EQ(tested.AliveArrivals(), 2u);
     EXPECT_EQ(tested.cloth.random.State(),
               AfterDraws(Seed, OwnRecordClose + WaitClose + WindowRandoms + RavenRandoms + StopRandom).State());
@@ -975,7 +975,7 @@ TEST_F(WorldEntryTest, ASecondEntryReloadsAndRedrawsTheHeroSlot)
         EXPECT_EQ(tested.AliveArrivals(), 2u);
         CrtRandom grass = Advanced(afterFirst, OwnRecordClose);
         EXPECT_EQ(tested.world.Map().grassOffsets.front(), static_cast<float>(grass.Next() % 4) * 0.25f);
-        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
         EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
         EXPECT_EQ(tested.cloth.random.State(), Advanced(afterFirst, WholeEntryRandoms).State());
     }
@@ -1015,7 +1015,7 @@ TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePrevi
         ASSERT_TRUE(second.HasValue()) << second.Error();
         EXPECT_EQ(tested.world.Runtime().map, to.map);
         EXPECT_EQ(tested.cameraInput.map, to.map);
-        const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, to.map);
+        const auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, to.map);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
         ASSERT_TRUE(tested.world.Map().terrain.attributes);
         EXPECT_EQ(tested.world.Map().terrain.attributes->cells, terrain.Value().attributes->cells);
@@ -1151,7 +1151,7 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
     EXPECT_EQ(tested.world.Runtime().hero, secondSlot);
     EXPECT_EQ(tested.Hero().cellX, 143);
     EXPECT_TRUE(tested.world.Actors()[firstSlot].alive);
-    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
 }
 
 // T11b, de punta a punta: el dibujo de la selección (0x63475c) deja en los globales el trapecio de su punto fijo;
@@ -1165,9 +1165,9 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 // el frame completo. El prefijo nuevo incluye hojas/fauna, Gate.bmd, own/Skill y dos Arrival vivos.
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
-    const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
-        Client::World::CullingScene::CharacterSelect, 54, Client::Scenes::SelectionCullingPoint,
-        Client::Scenes::SelectionCamera().angles.z);
+    const Client::Terrain::TerrainPolygon selected = Client::Terrain::TerrainPolygonOf(
+        Client::Terrain::CullingScene::CharacterSelect, 54, Client::Camera::SelectionCullingPoint,
+        Client::Camera::SelectionCamera().angles.z);
     for (const ReferenceMap& probe : {Lorencia, Devias})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
@@ -1236,7 +1236,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
             reference.random, (seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body) + OwnRecordClose + 60 + 2 + 2 +
                                   GateProbeRandoms(*frameResources.data.gates, tested.world.Runtime().map, heroBefore));
         Client::Models::StepTheClothWorld(reference);
-        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold - 1);
+        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold - 1);
         EXPECT_EQ(tested.Hero().seen, seen);
         EXPECT_EQ(tested.cloth.random.State(), reference.random.State());
 

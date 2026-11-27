@@ -108,7 +108,7 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& ra
 }
 
 // El nombre (+0x1d9) hasta su '\0', como lo recorre la búsqueda en línea de "webzen".
-bool NamedWebzen(const ActorState& actor)
+bool NamedWebzen(const Kernel::ActorState& actor)
 {
     std::string name;
     for (const std::byte letter : actor.name)
@@ -120,7 +120,8 @@ bool NamedWebzen(const ActorState& actor)
     return name.find(NoAttackName) != std::string::npos;
 }
 
-Core::Expected<ActorState*, std::string> ActorAt(WorldState& world, std::int32_t index, std::string_view where)
+Core::Expected<Kernel::ActorState*, std::string> ActorAt(Kernel::WorldState& world, std::int32_t index,
+                                                         std::string_view where)
 {
     if (index < 0 || static_cast<std::size_t>(index) >= world.Actors().size())
         return Core::Unexpected(std::format("{}: el personaje {} está fuera de la tabla", where, index));
@@ -128,7 +129,7 @@ Core::Expected<ActorState*, std::string> ActorAt(WorldState& world, std::int32_t
 }
 
 // El lugar de `actor` en el pool, para 0x558eb0, que compara el puntero con [0x743a170]. Fuera del pool, ninguno.
-std::size_t SlotOf(const WorldState& world, const ActorState& actor)
+std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& actor)
 {
     const auto actors = world.Actors();
     for (std::size_t slot = 0; slot < actors.size(); ++slot)
@@ -150,7 +151,7 @@ Core::Expected<std::uint8_t, std::string> FtolByte(double value, std::string_vie
 
 // 0x562934..0x56298f y 0x563e0b..0x563e66: la distancia de c al centro de la celda de 0x77e1ba8/0x77e1bac, en la x87,
 // contra el alcance (0x5526f0, en float) · 100. Fuera (sin C0 ni C3), no; desordenado, sí.
-bool TheChosenCellIsInReach(const ActorState& caster, const GameMovementState& state, float range)
+bool TheChosenCellIsInReach(const Kernel::ActorState& caster, const GameMovementState& state, float range)
 {
     const auto cellX = static_cast<double>(std::bit_cast<std::int32_t>(state.targetX));
     const auto cellY = static_cast<double>(std::bit_cast<std::int32_t>(state.targetY));
@@ -172,7 +173,7 @@ std::uint8_t TowardsTheChosen(const GameMovementState& state, std::uint8_t x, st
 }
 
 // 0x4ea030(personaje, acción) con las acciones de Player.bmd.
-Core::Expected<void, std::string> SetPlayerAction(ActorState& actor, std::uint8_t action,
+Core::Expected<void, std::string> SetPlayerAction(Kernel::ActorState& actor, std::uint8_t action,
                                                   const HeroSkillContext& context, std::string_view where)
 {
     if (context.playerSkeleton == nullptr)
@@ -182,7 +183,7 @@ Core::Expected<void, std::string> SetPlayerAction(ActorState& actor, std::uint8_
 }
 
 // 0x4f4a10 con el contexto de las skills.
-Core::Expected<void, std::string> AttackWith(ActorState& actor, const HeroSkillContext& context)
+Core::Expected<void, std::string> AttackWith(Kernel::ActorState& actor, const HeroSkillContext& context)
 {
     return SetActorAttack(actor, ActorCombatContext{.world = context.world,
                                                     .random = context.random,
@@ -195,7 +196,7 @@ Core::Expected<void, std::string> AttackWith(ActorState& actor, const HeroSkillC
 // no, +0x38e (un rand() al cerrarlo), su lugar en las skills del registro propio (abierto por quien llama) y la
 // flecha de 0x53e2b0(c, c, 0, lugar, `count`, 0) (Scenes::FireTheArrow): 1 en la 0x18 (0x564f28) y 0x36 − 0x34 en la
 // 0x36 (0x563df1).
-Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t skill, std::uint8_t count,
+Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std::uint8_t skill, std::uint8_t count,
                                                 const HeroSkillContext& context)
 {
     if (auto attacked = AttackWith(caster, context); !attacked.HasValue())
@@ -212,7 +213,7 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
         const auto own = OwnAccess(context);
         for (std::size_t index = 0; index < OwnSkillCount; ++index)
         {
-            if (OwnSkillByte(context.world.OwnCharacter(), index) == carried)
+            if (Kernel::OwnSkillByte(context.world.OwnCharacter(), index) == carried)
             {
                 slot = index;
                 break;
@@ -220,21 +221,22 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
         }
     }
     // 0x564f2f (P-C269 c): 0x53e2b0(c, c, 0, lugar, `count`, 0), con los sonidos en WorldRuntime::lastSoundId (CL10).
-    WorldState& world = context.world;
-    const CharacterStepContext shot{.world = world,
-                                    .random = context.random,
-                                    .playerSkeleton = context.playerSkeleton,
-                                    .items = context.items,
-                                    .soundRequest = [&world](std::int32_t sound)
-                                    { world.Runtime().RequestSound(sound); },
-                                    .soundAt = [&world](std::int32_t sound, const glm::vec3& origin)
-                                    { world.Runtime().RequestSound(sound, origin); },
-                                    .controlDown = context.controlDown};
+    Kernel::WorldState& world = context.world;
+    const Actors::CharacterStepContext shot{.world = world,
+                                            .random = context.random,
+                                            .playerSkeleton = context.playerSkeleton,
+                                            .items = context.items,
+                                            .soundRequest = [&world](std::int32_t sound)
+                                            { world.Runtime().RequestSound(sound); },
+                                            .soundAt = [&world](std::int32_t sound, const glm::vec3& origin)
+                                            { world.Runtime().RequestSound(sound, origin); },
+                                            .controlDown = context.controlDown};
     return FireTheArrow(caster, nullptr, SlotOf(world, caster), static_cast<std::int32_t>(slot), count, 0, shot);
 }
 
 // 0x55bd12..0x55bdd8: la acción de un jugador por la skill (la tabla 0x55cb78 por skill − 0x2b, a 0x55cb60).
-std::optional<std::uint8_t> PlayerActionOf(std::uint8_t skill, const ActorState& caster, const WorldRuntime& runtime)
+std::optional<std::uint8_t> PlayerActionOf(std::uint8_t skill, const Kernel::ActorState& caster,
+                                           const Kernel::WorldRuntime& runtime)
 {
     switch (skill)
     {
@@ -303,10 +305,10 @@ void StepTheCellByTheRumbo(std::uint8_t& x, std::uint8_t& y, std::int32_t rumbo)
 // 0x53fdb0 pone el brillo en un hueso con la escala del modelo compartido del tipo del dueño (+0x68 de 0x5769ad8 +
 // tipo · 0xe0), que MuRet solo tiene para Player.bmd (WorldState::PlayerModel): con otro tipo, el héroe de un anillo de
 // transformación, corta antes de crearlo (08, P-C358).
-Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const HeroSkillContext& context)
+Core::Expected<void, std::string> ShineOnTheHero(const Kernel::ActorState& hero, const HeroSkillContext& context)
 {
     constexpr std::int32_t FirstShineSound = 0x3c;
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const std::size_t slot = SlotOf(world, hero);
     if (slot >= world.Actors().size())
         return Core::Unexpected(std::string("0x55be23: el dueño del brillo 0x5fe no está en el pool de personajes"));
@@ -342,8 +344,8 @@ Core::Expected<SkillCost, std::string> SkillCostOf(std::uint8_t skill, const Her
 
 Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context, std::string_view where)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    const std::span<const World::ItemState, InventoryCellCount> cells(context.world.Inventory().cells);
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(context.world.Inventory().cells);
     const auto found =
         FindQuickSlotItem(runtime.hud.quickSlots, cells, ManaPotionSlot, runtime.movement.gateRequestBlocked != 0);
     if (!found.HasValue())
@@ -370,7 +372,7 @@ Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context
     return {};
 }
 
-Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorState& caster,
+Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const Kernel::ActorState& caster,
                                                 const HeroSkillContext& context)
 {
     auto range = SkillRangeOf(skill, context);
@@ -406,11 +408,11 @@ Core::Expected<bool, std::string> PassesTheSkillBrake(std::int32_t skill, const 
     return PassesTheActionBrake(context.world.Runtime().movement.lastActionTick, skill, context.tickCount);
 }
 
-Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill,
-                                                         const HeroSkillContext& context)
+Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& caster, Kernel::ActorState& hero,
+                                                         std::uint8_t skill, const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GameMovementState& state = runtime.movement;
     const std::int32_t chosen = runtime.selectedTargets[2];
     if (chosen <= -1)
@@ -453,7 +455,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
     // 0x559725..0x559822: fuera de alcance, el camino desde las celdas lógicas de c.
     const std::uint8_t y = ReadCell(caster.cellYAccesses, caster.cellY, context.random);
     const std::uint8_t x = ReadCell(caster.cellXAccesses, caster.cellX, context.random);
-    const World::WorldTerrain& terrain = world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55980f: falta TerrainWall para el camino de la skill"));
     constexpr std::int32_t LastCell = 0xff;
@@ -474,23 +476,23 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
     return true;
 }
 
-Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, ActorState& hero,
+Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& caster, Kernel::ActorState& hero,
                                                           const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     const WeaponSkillRequest request = runtime.movement.weaponSkill;
     // 0x55b714..0x55b7fe: con 0x7758580, la skill del lugar 0x7758584 en el registro propio; si no, 0x7758584 es la
     // skill.
     std::uint8_t skill = 0;
     {
         const auto own = OwnAccess(context);
-        skill = request.active != 0 ? OwnSkillByte(world.OwnCharacter(), request.slot)
+        skill = request.active != 0 ? Kernel::OwnSkillByte(world.OwnCharacter(), request.slot)
                                     : static_cast<std::uint8_t>(request.slot & 0xffu);
     }
     // 0x55b803..0x55bc0c: C1 06 D3 X Y (rumbo << 4) con la celda lógica del héroe publicado, X antes que Y, por el
     // socket.
-    ActorState& published = world.Hero();
+    Kernel::ActorState& published = world.Hero();
     const std::uint8_t x = ReadCell(published.cellXAccesses, published.cellX, context.random);
     const std::uint8_t y = ReadCell(published.cellYAccesses, published.cellY, context.random);
     const std::array<Protocol::Movement::Cell, 1> cell{{{x, y}}};
@@ -557,7 +559,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
         StepTheCellByTheRumbo(dfX, dfY, std::abs(*rumbo));
     }
     // 0x55c72d..0x55c79b: 0x5f8290 (y · 256 + x) en los atributos de TerrainWall.
-    const World::WorldTerrain& terrain = world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55c745: falta TerrainWall para la celda del DF"));
     const std::uint16_t attribute = terrain.attributes->cells[std::size_t{dfY} * 256u + dfX];
@@ -570,14 +572,14 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     return {};
 }
 
-Core::Expected<bool, std::string> UseTheListedWeaponSkill(ActorState& hero, const World::ItemState& item,
+Core::Expected<bool, std::string> UseTheListedWeaponSkill(Kernel::ActorState& hero, const Kernel::ItemState& item,
                                                           std::uint8_t skill, const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const auto cost = SkillCostOf(skill, context, "0x559b0b");
     if (!cost.HasValue())
         return Core::Unexpected(cost.Error());
-    const OwnCharacterRecord& own = world.OwnCharacter();
+    const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     if (own.mana < cost.Value().mana)
     {
         if (auto potion = UseAManaPotion(context, "0x559b41"); !potion.HasValue())
@@ -602,17 +604,17 @@ Core::Expected<bool, std::string> UseTheListedWeaponSkill(ActorState& hero, cons
     return UseTheSkillOnTheChosen(hero, hero, skill, context);
 }
 
-Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const World::ItemState& item,
+Core::Expected<bool, std::string> UseTheWeaponOptions(Kernel::ActorState& hero, const Kernel::ItemState& item,
                                                       const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
+    Kernel::WorldState& world = context.world;
     const auto own = OwnAccess(context);
     bool used = false;
     for (std::uint8_t option = 0; option < item.optionCount; ++option)
     {
         const std::uint8_t skill = item.OptionTag(option);
-        const ActorState& published = world.Hero();
-        if (OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
+        const Kernel::ActorState& published = world.Hero();
+        if (Kernel::OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
             continue;
         // 0x55a368..0x55a3b0: el costo y, sin maná, la poción o la opción que sigue.
         const auto cost = SkillCostOf(skill, context, "0x55a37a");
@@ -645,7 +647,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const Wo
             {
                 return Core::Unexpected(attacked.Error());
             }
-            const ActorState& self = world.Hero();
+            const Kernel::ActorState& self = world.Hero();
             if (!NamedWebzen(self))
             {
                 const auto passes = PassesTheSkillBrake(skill, context, "0x55ac98");
@@ -673,19 +675,19 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const Wo
     return used;
 }
 
-Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const World::ItemState& item,
+Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& hero, const Kernel::ItemState& item,
                                                          const HeroSkillContext& context)
 {
-    WorldState& world = context.world;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldState& world = context.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
     GameMovementState& state = runtime.movement;
     const auto own = OwnAccess(context);
     bool used = false;
     for (std::uint8_t option = 0; option < item.optionCount; ++option)
     {
         const std::uint8_t skill = item.OptionTag(option);
-        const ActorState& published = world.Hero();
-        if (OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
+        const Kernel::ActorState& published = world.Hero();
+        if (Kernel::OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
             continue;
         // 0x562024..0x562092: el costo y, sin maná, la poción o la opción que sigue.
         const auto cost = SkillCostOf(skill, context, "0x56203e");

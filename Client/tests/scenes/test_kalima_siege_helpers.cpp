@@ -37,9 +37,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
-using Client::Scenes::ActorState;
 using Client::Scenes::KalimaSiegeHelperPass;
 
 constexpr std::uint32_t Seed = 1;
@@ -488,7 +488,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
         ActorState cells = roaring;
         if (kalima)
         {
-            const auto cell = Client::Scenes::ReadLogicalCell(cells, expected);
+            const auto cell = Client::Actors::ReadLogicalCell(cells, expected);
             ASSERT_TRUE(kalimaCopy->Disturb(cell.x, cell.y, 2, 2000, expected).HasValue());
         }
         const float shake = F32(static_cast<double>((expected.Next() & 7) - 8) * D(0.2f));
@@ -642,7 +642,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
             ActorState cells = striking;
             for (int disturb = 0; disturb < 2; ++disturb)
             {
-                const auto cell = Client::Scenes::ReadLogicalCell(cells, expected);
+                const auto cell = Client::Actors::ReadLogicalCell(cells, expected);
                 ASSERT_TRUE(copy->Disturb(cell.x, cell.y, 2, 2000, expected).HasValue());
             }
         }

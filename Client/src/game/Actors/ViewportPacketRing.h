@@ -15,7 +15,7 @@
 // vez con cada registro de estado 1 del 0x12 (0x4c8a43..0x4c8ad4, Q-C801). Su único lector es 0x557830, un volcado en
 // hexadecimal que nadie llama, y 0x4c12a0, otra copia del alta, tampoco tiene llamadores (*estático*): nada la lee. En
 // la .bss: todo en 0, y nadie la vacía.
-namespace Client::Scenes
+namespace Client::Actors
 {
 inline constexpr std::size_t ViewportPacketSlots = 10;
 inline constexpr std::size_t ViewportPacketSlotSize = 0x100;
@@ -31,4 +31,4 @@ struct ViewportPacketRing
 // `sizes[i]` bytes); después, si el paquete mide hasta 0x100 (con signo), lo copia en la ranura de la cuenta, guarda
 // su tamaño y suma 1. Un paquete más largo no entra, pero el corrimiento ya se hizo.
 void StoreViewportPacket(ViewportPacketRing& ring, std::span<const std::byte> packet);
-} // namespace Client::Scenes
+} // namespace Client::Actors

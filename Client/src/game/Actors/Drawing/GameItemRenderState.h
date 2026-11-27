@@ -10,7 +10,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 // Globales de WinMain/639470/609640; sobreviven a las cargas de mapas y a las escenas.
 struct GameItemRenderState
@@ -23,4 +23,4 @@ struct GameItemRenderState
 };
 void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& random);
 void UpdateGameItemGlowPulse(GameItemRenderState& state, float worldClock);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

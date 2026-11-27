@@ -15,8 +15,8 @@ namespace Client::Models
 {
 // The level passes (ItemGlow), with their 0x4ecc30 draw flag: the three the trace shows, with their texture in it,
 // and the two of levels 11 and 12 and of a set item, *static*. 0x4000 is requested by the 10 path of 0x6002e0
-// (Scenes::DrawChromeShell), *static*; the other two modes of 06's table (0x8000 and 0x10000) come in when something
-// requests them.
+// (Actors::Drawing::DrawChromeShell), *static*; the other two modes of 06's table (0x8000 and 0x10000) come in when
+// something requests them.
 enum class ShinePass : std::uint8_t
 {
     Shiny,   // 0x8, GL texture 115 (slot 0x5fc): u = 0.5·nz + 0.2, v = 0.5·(ny + 1)

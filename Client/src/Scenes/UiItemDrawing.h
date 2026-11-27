@@ -36,11 +36,15 @@ namespace Client::Models
 class IModelLibrary;
 } // namespace Client::Models
 
+namespace Client::Actors::Drawing
+{
+struct ItemDrawContext;
+} // namespace Client::Actors::Drawing
+
 namespace Client::Scenes
 {
 struct GameDrawTailState;
 struct FaunaDrawCarry;
-struct ItemDrawContext;
 
 // La caja de un ítem de la UI en 640 × 480: los cuatro floats que reciben 0x5e1480 y 0x5e2d00.
 struct UiItemBox
@@ -122,7 +126,7 @@ struct UiItemResources
     Render::ModelBatch& batch;
     const Models::IModelLibrary& models;
     FaunaDrawCarry& poseCarry;
-    const ItemDrawContext& itemContext;
+    const Actors::Drawing::ItemDrawContext& itemContext;
     Core::Duration frameClock{};
     std::function<void()> flushSprites{};
     std::function<void()> flushModels{};

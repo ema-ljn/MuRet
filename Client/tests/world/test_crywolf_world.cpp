@@ -42,11 +42,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Terrain::TerrainLighting;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particle;
 using Client::World::Particles;
 using Client::World::StepWorldObjectChecked;
-using Client::World::TerrainLighting;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t CrywolfMap = 34;
@@ -167,11 +167,11 @@ TEST(CrywolfObjectsTest, TheGlowLightsTheDynamicBufferWithoutADraw)
     CrtRandom random(7);
     ASSERT_TRUE(StepWorldObjectChecked(object, CrywolfMap, nullptr, random, step.globals).HasValue());
     auto expected = std::make_unique<TerrainLighting>();
-    Client::World::AddTerrainLight(*expected, 1000.0f, 1500.0f,
-                                   Client::Data::Terrain::TerrainLightColor{std::bit_cast<float>(0x3e4ccccdu),
-                                                                            std::bit_cast<float>(0x3f333333u),
-                                                                            std::bit_cast<float>(0x3f000000u)},
-                                   2);
+    Client::Terrain::AddTerrainLight(*expected, 1000.0f, 1500.0f,
+                                     Client::Data::Terrain::TerrainLightColor{std::bit_cast<float>(0x3e4ccccdu),
+                                                                              std::bit_cast<float>(0x3f333333u),
+                                                                              std::bit_cast<float>(0x3f000000u)},
+                                     2);
     EXPECT_EQ(step.lighting->cells, expected->cells);
     EXPECT_EQ(random.State(), CrtRandom(7).State());
     EXPECT_EQ(object.state.hiddenMesh, Shown);
@@ -198,7 +198,7 @@ TEST(CrywolfObjectsTest, TheTorchesLightTheDynamicBufferWithOneDraw)
         ASSERT_TRUE(StepWorldObjectChecked(object, CrywolfMap, nullptr, random, step.globals).HasValue());
         const double level = static_cast<double>((draws.Next() & 3) + 3) * D(std::bit_cast<float>(0x3dcccccdu));
         auto expected = std::make_unique<TerrainLighting>();
-        Client::World::AddTerrainLight(
+        Client::Terrain::AddTerrainLight(
             *expected, 1000.0f, 1500.0f,
             Client::Data::Terrain::TerrainLightColor{F32(level), F32(level * D(std::bit_cast<float>(0x3f19999au))),
                                                      F32(level * D(std::bit_cast<float>(0x3e4ccccdu)))},
@@ -695,7 +695,7 @@ struct Water
     std::unique_ptr<Client::Data::Terrain::TerrainMapping> mapping =
         std::make_unique<Client::Data::Terrain::TerrainMapping>();
     std::unique_ptr<Particles> particles = std::make_unique<Particles>();
-    Client::World::TerrainView view;
+    Client::Terrain::TerrainView view;
     float clock = 2500.0f;
     CrtRandom random{1};
     Client::World::CrywolfWaterContext context{.heroZ = 245.5f,
@@ -712,7 +712,7 @@ struct Water
         context.particles = particles.get();
     }
 
-    // Las cuatro esquinas de (x, y), en el orden de World::DrawTerrainCell.
+    // Las cuatro esquinas de (x, y), en el orden de Terrain::DrawTerrainCell.
     void Cell(std::uint8_t x, std::uint8_t y, std::uint8_t layer1, std::uint8_t layer2, float alpha)
     {
         const std::size_t first = Client::Data::Terrain::CellIndex(x, y);

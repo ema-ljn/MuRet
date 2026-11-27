@@ -15,14 +15,14 @@ using Client::Scenes::AddOwnItemOptionValues;
 using Client::Scenes::ApplyOwnItemOptionPercent;
 using Client::Scenes::OwnItemOptionsView;
 
-OwnItemOptionsView Options(const Client::World::ItemState& item)
+OwnItemOptionsView Options(const Client::Kernel::ItemState& item)
 {
     return {item.id, item.durability, item.optionCount, item.optionBytes};
 }
 
 TEST(OwnItemOptionsTest, AddsAllUnsignedValuesWithWrapAndFullSelector)
 {
-    Client::World::ItemState item;
+    Client::Kernel::ItemState item;
     item.id = 0xfffe;
     item.durability = 0x80;
     item.optionCount = 4;
@@ -37,7 +37,7 @@ TEST(OwnItemOptionsTest, AddsAllUnsignedValuesWithWrapAndFullSelector)
 
 TEST(OwnItemOptionsTest, PreservesResidualsOnSentinelEmptyMissAndDisabledAdd)
 {
-    Client::World::ItemState item;
+    Client::Kernel::ItemState item;
     item.id = 0xffff;
     item.durability = 1;
     item.optionCount = 1;
@@ -59,7 +59,7 @@ TEST(OwnItemOptionsTest, PreservesResidualsOnSentinelEmptyMissAndDisabledAdd)
 
 TEST(OwnItemOptionsTest, AppliesSequentialPercentWithoutDurabilityOrValueReads)
 {
-    Client::World::ItemState item;
+    Client::Kernel::ItemState item;
     item.optionCount = 4;
     item.optionBytes = {0x90, 0x91, 0x90, 0x90}; // durability=0, values=0
     std::array destination{std::byte{101}, std::byte{0}};
@@ -70,7 +70,7 @@ TEST(OwnItemOptionsTest, AppliesSequentialPercentWithoutDurabilityOrValueReads)
 
 TEST(OwnItemOptionsTest, UsesSignedLow32ProductAndTruncatesNegativeTowardZero)
 {
-    Client::World::ItemState item;
+    Client::Kernel::ItemState item;
     item.optionCount = 1;
     item.optionBytes[0] = 0x90;
     std::array destination{std::byte{0xff}, std::byte{0xff}};
@@ -137,7 +137,7 @@ TEST(OwnItemOptionsTest, DoesNotClampHighUnsignedCountsOrSeparateOverlappingTagV
     EXPECT_EQ(destination[0], std::byte{204});
     ApplyOwnItemOptionPercent(destination, 0x90, {id, durability, count, bytes}, 50);
     EXPECT_EQ(destination, (std::array{std::byte{50}, std::byte{1}})); // 204 + 102
-    Client::World::ItemState item;
+    Client::Kernel::ItemState item;
     item.durability = 1;
     item.optionCount = 9;
     item.optionBytes[0] = 0x90;

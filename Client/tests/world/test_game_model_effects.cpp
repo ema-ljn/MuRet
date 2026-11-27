@@ -220,7 +220,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
     trail.type = 0x105;
     trail.objectState.blendMesh = 0;
     trail.alpha = 1;
-    const Client::World::SphereFrustum frustum;
+    const Client::Terrain::SphereFrustum frustum;
     for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
     {
         SCOPED_TRACE(mode);
@@ -971,7 +971,7 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
         Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, 30);
         Client::World::Particles particles;
         Client::World::ModelEffects effects;
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         Client::World::ModelEffectStepServices services;
         services.effects = &effects;
         services.lighting = lighting.get();
@@ -1012,7 +1012,7 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
         EXPECT_EQ(effects.Effects()[0].type, expectedEffects.Effects()[0].type);
         EXPECT_EQ(effects.Effects()[0].velocity, expectedEffects.Effects()[0].velocity);
         EXPECT_EQ(random.State(), draws.State());
-        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
             Client::World::AddDynamicLight(expectedLighting.get(), {1000.0f, 1000.0f, 100.0f},
                                            {luminosity,
@@ -1044,7 +1044,7 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
         if (!room)
             for (auto& effect : effects->Effects())
                 effect.alive = true;
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         Client::World::ModelEffectStepServices services;
         services.effects = effects.get();
         services.lighting = lighting.get();
@@ -1118,7 +1118,7 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
         EXPECT_FALSE(particles->All()[7].alive);
         EXPECT_EQ(random.State(), draws.State());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
             Client::World::AddDynamicLight(expectedLighting.get(), {1000.0f, 1000.0f, 100.0f},
                                            {luminosity,
@@ -1157,7 +1157,7 @@ TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
         Client::World::Particles particles;
         Client::World::Particles plainParticles;
         Client::World::ModelEffects effects;
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         Client::World::ModelEffectStepServices services;
         services.effects = &effects;
         services.lighting = lighting.get();
@@ -1190,7 +1190,7 @@ TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
     jet.hasOwner = true;
     Client::World::Particles particles;
     Client::World::ModelEffects effects;
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::ModelEffectStepServices services;
     services.effects = &effects;
     services.lighting = lighting.get();
@@ -1208,7 +1208,7 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     Client::World::ModelEffect fading = DungeonEffect(Client::World::FlameJetEffect, 1);
     Client::World::Particles particles;
     Client::World::ModelEffects effects;
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::ModelEffectStepServices services;
     services.effects = &effects;
     services.lighting = lighting.get();
@@ -1217,7 +1217,7 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     ASSERT_TRUE(
         Client::World::StepGameModelEffect(fading, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
     EXPECT_FALSE(fading.alive);
-    EXPECT_EQ(lighting->cells, std::make_unique<Client::World::TerrainLighting>()->cells)
+    EXPECT_EQ(lighting->cells, std::make_unique<Client::Terrain::TerrainLighting>()->cells)
         << "con la vida en 1, L − 0,8: el primer rand() de la semilla 3 deja L en 0,7 u 0,8 y la luz negra";
 
     const std::uint32_t chips = SeedWhereDraw(25, [](int value) { return (value & 7) == 0; });
@@ -1675,7 +1675,7 @@ struct QuakeScene
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::int32_t map = 0;
     float shake = 0.0f;
     std::vector<std::int32_t> sounds;
@@ -2477,7 +2477,7 @@ const double CrackThird = Wide(std::bit_cast<float>(0x3eaaaaabu));
 // La luz dinámica de radio 1 que deja una grieta con la luz local del primer rand().
 void ExpectCrackLight(const QuakeScene& scene, const ModelEffect& crack, const glm::vec3& color)
 {
-    auto expected = std::make_unique<Client::World::TerrainLighting>();
+    auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
     ASSERT_TRUE(Client::World::AddDynamicLight(expected.get(), crack.transform.position, color, 1, "test").HasValue());
     EXPECT_EQ(scene.lighting->cells, expected->cells);
 }
@@ -2519,7 +2519,7 @@ TEST(GameModelEffectsTest, TheFirstCrackGlowsSinksAndShakesTheCamera)
             EXPECT_EQ(scene.shake, 7.0f);
         }
         EXPECT_EQ(random.State(), draws.State());
-        EXPECT_EQ(scene.lighting->cells, std::make_unique<Client::World::TerrainLighting>()->cells);
+        EXPECT_EQ(scene.lighting->cells, std::make_unique<Client::Terrain::TerrainLighting>()->cells);
         EXPECT_EQ(crack.life, life - 1);
         EXPECT_EQ(crack.previousPosition, (glm::vec3{5000.5f, 6000.25f, 300.0f}));
     }
@@ -2865,7 +2865,7 @@ TEST(PiercingShotTest, BirthUsesTheFirstFreePhysicalSlotAndLeavesRetainedFields)
 TEST(PiercingShotTest, ParentResolverReadsTheSamePhysicalSlotAfterReuse)
 {
     using namespace Client;
-    auto world = std::make_unique<Scenes::WorldState>();
+    auto world = std::make_unique<Kernel::WorldState>();
     World::Particle particle;
     particle.type = World::SparkParticle;
     particle.subtype = World::PiercingSparkSubtype;

@@ -51,9 +51,9 @@ constexpr std::array<LoadingImage, 5> Images = {{
 // La barra (0x6402d0 y 0x6404b0), que 0x6407e0 dibuja después de las cinco.
 constexpr LoadingImage Bar{.slot = 0x723, .x = 72, .y = 482, .width = 656, .height = 15};
 
-Render::UiImage ImageOf(const LoadingImage& image, const SceneTextures& textures, Core::PixelSize screen)
+Render::UiImage ImageOf(const LoadingImage& image, const Assets::SceneTextures& textures, Core::PixelSize screen)
 {
-    const TextureBufferSize buffer = textures.BufferSize(Render::TextureSlot{image.slot});
+    const Assets::TextureBufferSize buffer = textures.BufferSize(Render::TextureSlot{image.slot});
     return Render::UiImage{.slot = Render::TextureSlot{image.slot},
                            .x = image.x,
                            .y = image.y,
@@ -66,8 +66,8 @@ Render::UiImage ImageOf(const LoadingImage& image, const SceneTextures& textures
 }
 } // namespace
 
-LoadingScene::LoadingScene(const SceneContext& context, GameModels* models)
-    : m_context(context), m_models(models), m_textures(context.textures, LoadingTextureSet)
+LoadingScene::LoadingScene(const SceneContext& context, Assets::GameModels* models)
+    : m_context(context), m_models(models), m_textures(context.textures, Assets::LoadingTextureSet)
 {
 }
 

@@ -6,11 +6,15 @@
 #include <cstdint>
 #include <string>
 
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 // CL9 hito 4, fase 2c: la rama del elfo de 0x57cfc0 (0x57d790..0x58187c; 06, "La rama del elfo"). La usa el elfo
 // (+0x1d4 & 7 en 2); sigue en 0x5808da (las skills 0x43 a 0x48, de todas las clases: HeroSkillsTail.h).
 namespace Client::Scenes
 {
-struct ActorState;
 
 // 0x57d790..0x58187c con `skill`, la del lugar, y el alcance de GameMovementState::selectedSkillRange ([ebp−0x50]).
 // - La cabeza, con el registro propio abierto: el maná y la stamina (0x551c70; sin el maná, la poción de maná de
@@ -28,6 +32,6 @@ struct ActorState;
 //   0x4e9920 y la clave mágica, como la del Wizard; las demás, a 0x5808da.
 // Los envíos van por HeroSkillContext::send; los C3 sacan sus dos rand() antes. Lo que es de otro hito corta con su
 // dirección: la poción (0x57d837, hito 5).
-[[nodiscard]] Core::Expected<void, std::string> UseTheElfSkill(ActorState& hero, std::uint8_t skill,
+[[nodiscard]] Core::Expected<void, std::string> UseTheElfSkill(Kernel::ActorState& hero, std::uint8_t skill,
                                                                const HeroSkillContext& context);
 } // namespace Client::Scenes

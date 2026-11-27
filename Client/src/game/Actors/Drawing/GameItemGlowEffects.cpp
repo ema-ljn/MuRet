@@ -25,7 +25,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 // 69fd3c: FISTP qword con truncación; los callers conservan EAX, no una conversión int32 del host.
 std::int32_t ItemClockWord(float time)
@@ -316,4 +316,4 @@ Core::Expected<void, std::string> PrepareItemGlowEffects(DrawnObject& object, Co
     }
     return StateLight(object, time, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

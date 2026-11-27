@@ -157,7 +157,7 @@ int BarWidth(std::uint8_t load)
 }
 } // namespace
 
-int DescriptionHeight(Scenes::TextureBufferSize lineTexture)
+int DescriptionHeight(Assets::TextureBufferSize lineTexture)
 {
     return BoxLines * lineTexture.height + DescriptionPadding;
 }

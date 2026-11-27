@@ -32,7 +32,7 @@ constexpr std::array<std::int32_t, 2> HandShineSubtypes{0, World::HandShineSecon
 constexpr std::size_t RightHand = 0;
 
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, (0, 0, 0), punto, 1) con la escala y la posición del personaje.
-glm::vec3 BoneOrigin(const ActorState& actor, std::uint8_t bone)
+glm::vec3 BoneOrigin(const Kernel::ActorState& actor, std::uint8_t bone)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), glm::vec3(0.0f), actor.scale,
@@ -40,7 +40,8 @@ glm::vec3 BoneOrigin(const ActorState& actor, std::uint8_t bone)
 }
 } // namespace
 
-glm::vec3 HandShinePoint(std::span<const ActorState> actors, std::size_t hero, std::size_t owner, std::int32_t subtype)
+glm::vec3 HandShinePoint(std::span<const Kernel::ActorState> actors, std::size_t hero, std::size_t owner,
+                         std::int32_t subtype)
 {
     // 0x53fe20..0x53fe42: el idiom de and 0x80000001 sobre el subtipo, que es 0 o 2.
     const auto hand = static_cast<std::size_t>(subtype % 2);
@@ -48,7 +49,7 @@ glm::vec3 HandShinePoint(std::span<const ActorState> actors, std::size_t hero, s
 }
 
 std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>
-ParticleActorHandsAmong(std::span<const ActorState> actors, std::size_t hero)
+ParticleActorHandsAmong(std::span<const Kernel::ActorState> actors, std::size_t hero)
 {
     return [actors, hero](std::uint64_t slot, std::int32_t subtype) -> std::optional<glm::vec3>
     {
@@ -58,11 +59,11 @@ ParticleActorHandsAmong(std::span<const ActorState> actors, std::size_t hero)
     };
 }
 
-Core::Expected<void, std::string> RaiseTheHandShine(std::span<const ActorState> actors, std::size_t hero,
+Core::Expected<void, std::string> RaiseTheHandShine(std::span<const Kernel::ActorState> actors, std::size_t hero,
                                                     std::size_t slot, World::Particles& particles,
                                                     Crt::CrtRandom& random)
 {
-    const ActorState& actor = actors[slot];
+    const Kernel::ActorState& actor = actors[slot];
     const glm::vec3 point = BoneOrigin(actor, actor.hands[RightHand].bone);
     const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, slot};
     for (const std::int32_t subtype : HandShineSubtypes)

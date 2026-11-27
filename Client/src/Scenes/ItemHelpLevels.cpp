@@ -126,7 +126,7 @@ std::int32_t WithBonus(std::uint16_t stat, std::uint16_t bonus)
 }
 
 // 0x5b0251..0x5b02d8: con el registro propio abierto, 1 si cumple cada requisito (comparado con signo) y el nivel.
-std::int32_t UsableBy(const OwnCharacterRecord& own, const ItemHelpRow& row)
+std::int32_t UsableBy(const Kernel::OwnCharacterRecord& own, const ItemHelpRow& row)
 {
     const bool usable = row[ItemHelpStrength] <= WithBonus(own.strength, own.word2a) &&
                         row[ItemHelpAgility] <= WithBonus(own.agility, own.word2c) &&

@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Actors
 {
 namespace
 {
@@ -43,4 +43,4 @@ Core::Expected<void, std::string> SendTheAction(float angle, std::uint8_t action
     send(*direction, action);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors

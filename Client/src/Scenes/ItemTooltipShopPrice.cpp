@@ -65,9 +65,9 @@ std::optional<std::int32_t> PriceAt(const PersonalShopState& shops, std::int32_t
 } // namespace
 
 Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& context, TooltipWriter& lines,
-                                                            const World::ItemState& item)
+                                                            const Kernel::ItemState& item)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x5b2f7f: solo con el ítem de la grilla de la tienda personal bajo el mouse (0x78abaa4, 0x5c4110).
     if (runtime.ui.shopGridHovered == 0)
         return {};

@@ -464,7 +464,7 @@ Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
     return {};
 }
 
-bool HasCraftSpace(const WorldState& world)
+bool HasCraftSpace(const Kernel::WorldState& world)
 {
     // 0x5fd200: el rectángulo 4×5 en 8×8; type==−1 define cada celda libre, no occupied.
     const auto& cells = world.Inventory().cells;

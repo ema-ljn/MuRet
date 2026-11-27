@@ -164,33 +164,33 @@ template <std::size_t N> const KindCase* CaseOf(const std::array<KindCase, N>& c
 }
 
 // 0x517630 (thiscall sobre 0x57630c8) y sus copias en línea: abre +0x38e, lo lee y lo cierra.
-std::uint8_t ReadTheSkill(ActorState& actor, CrtRandom& random)
+std::uint8_t ReadTheSkill(Kernel::ActorState& actor, CrtRandom& random)
 {
     const LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
     return actor.byte38e;
 }
 
 // 0x41ed10(sonido, 0, 0): la CL10 decide cómo suena.
-void RequestTheSound(const CharacterStepContext& context, std::int32_t sound)
+void RequestTheSound(const Actors::CharacterStepContext& context, std::int32_t sound)
 {
     if (context.soundRequest)
         context.soundRequest(sound);
 }
 
-bool HasFreeModelEffect(const CharacterStepContext& context)
+bool HasFreeModelEffect(const Actors::CharacterStepContext& context)
 {
     const auto effects = context.world.Map().effects.Effects();
     return std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; });
 }
 
-bool IsJointPoolFull(const CharacterStepContext& context)
+bool IsJointPoolFull(const Actors::CharacterStepContext& context)
 {
     return !context.joints.empty() &&
            std::ranges::none_of(context.joints, [](const JointState& joint) { return !joint.alive; });
 }
 
-std::optional<std::size_t> CreateKalimaEarthquake(ActorState& actor, std::uint8_t state,
-                                                  const CharacterStepContext& context)
+std::optional<std::size_t> CreateKalimaEarthquake(Kernel::ActorState& actor, std::uint8_t state,
+                                                  const Actors::CharacterStepContext& context)
 {
     const auto created = context.world.Map().effects.CreateEarthquake(
         actor.position, actor.angles, actor.light, state,
@@ -210,8 +210,8 @@ std::optional<std::size_t> CreateKalimaEarthquake(ActorState& actor, std::uint8_
 // el subtipo, `owner` en +0x108 (o nadie), +0x8a en −1, los bytes en 0 y la escala 0.
 Core::Expected<void, std::string> CreateTheBlastEffect(std::int16_t type, std::int32_t subtype,
                                                        const glm::vec3& position, const glm::vec3& angles,
-                                                       const glm::vec3& light, ActorState* owner,
-                                                       const CharacterStepContext& context)
+                                                       const glm::vec3& light, Kernel::ActorState* owner,
+                                                       const Actors::CharacterStepContext& context)
 {
     const World::ModelEffectArguments arguments{.type = type,
                                                 .position = position,
@@ -231,15 +231,16 @@ Core::Expected<void, std::string> CreateTheBlastEffect(std::int16_t type, std::i
 }
 
 // 0x518cf0 sobre c, con sus ángulos y su luz (los argumentos de 0x43b21d..0x43b25e, 0x4f6129..0x4f6145, …).
-Core::Expected<void, std::string> CreateOnTheActor(std::int16_t type, std::int32_t subtype, ActorState& actor,
-                                                   ActorState* owner, const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateOnTheActor(std::int16_t type, std::int32_t subtype, Kernel::ActorState& actor,
+                                                   Kernel::ActorState* owner,
+                                                   const Actors::CharacterStepContext& context)
 {
     return CreateTheBlastEffect(type, subtype, actor.position, actor.angles, actor.light, owner, context);
 }
 
 // Un efecto, joint o partícula sin portar en un caso de 0x4f5b70 o de sus ayudantes, con lo que hizo antes y sus
 // rand().
-Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what, const ActorState& actor,
+Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what, const Kernel::ActorState& actor,
                                     std::size_t slot)
 {
     return Core::Unexpected(
@@ -253,8 +254,8 @@ constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bi
 // El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
 // efecto pide y MuRet no tiene corta con la dirección de la llamada.
 Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
-                                               const ActorState& actor, std::size_t slot,
-                                               const CharacterStepContext& context)
+                                               const Kernel::ActorState& actor, std::size_t slot,
+                                               const Actors::CharacterStepContext& context)
 {
     const auto created = CreateWizardEffect(context, arguments);
     if (!created.HasValue())
@@ -269,32 +270,33 @@ Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Worl
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x4fd69b copió
 // del monstruo al modelo antes del paso. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318),
 // como OwnBonePoint de CharacterStep.cpp.
-glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
-                    const CharacterStepContext& context)
+glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
+                    const Actors::CharacterStepContext& context)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
-    const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
+    const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 // 0x4ec110(modelo, matriz, offset, punto, 1) con una matriz que no es un hueso del actor: las del fénix que guardó el
 // último dibujo (WorldRuntime::phoenixBones, 0x743748c..0x74374ec), con la escala y la posición del modelo del tipo.
-glm::vec3 MatrixPoint(const ActorState& actor, const Math::BoneTransform& matrix, const glm::vec3& offset,
-                      const CharacterStepContext& context)
+glm::vec3 MatrixPoint(const Kernel::ActorState& actor, const Math::BoneTransform& matrix, const glm::vec3& offset,
+                      const Actors::CharacterStepContext& context)
 {
-    const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
+    const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 // Lo que el alta de un joint le pide al paso: el hueso 33 del jugador, el sonido de la CL10 y el registro propio.
-JointKernels::CreationServices JointServices(const CharacterStepContext& context)
+JointKernels::CreationServices JointServices(const Actors::CharacterStepContext& context)
 {
     return {.playerBonePoint =
-                [&context](const ActorState& bones, std::size_t bone, const glm::vec3& offset)
+                [&context](const Kernel::ActorState& bones, std::size_t bone, const glm::vec3& offset)
             {
                 const Math::BoneTransform matrix =
                     bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Math::BoneTransform(0.0f);
-                const SharedModelPlacement placement = context.world.ModelPlacement(Tables::PlayerSkeletonModel);
+                const Kernel::SharedModelPlacement placement =
+                    context.world.ModelPlacement(Tables::PlayerSkeletonModel);
                 return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale,
                                                        placement.origin);
             },
@@ -306,8 +308,9 @@ JointKernels::CreationServices JointServices(const CharacterStepContext& context
 // 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: un joint 0x613 sin dueño desde 100 más arriba del monstruo, con los
 // ángulos (rand() % 360, rand() % 360, rand() % 360) y la key, la skill y el serial en 0. Con el pool lleno, los
 // rand() de los ángulos y nada más.
-Core::Expected<void, std::string> ThrowTheSpirit(const ActorState& actor, const CharacterStepContext& context,
-                                                 std::uint32_t address, std::int32_t subtype, float width)
+Core::Expected<void, std::string> ThrowTheSpirit(const Kernel::ActorState& actor,
+                                                 const Actors::CharacterStepContext& context, std::uint32_t address,
+                                                 std::int32_t subtype, float width)
 {
     using Math::FullTurn;
     glm::vec3 angles{};
@@ -339,7 +342,7 @@ Core::Expected<void, std::string> ThrowTheSpirit(const ActorState& actor, const 
 // 0x530860(tipo, desde, hasta, ángulos, subtipo, dueño, ancho, key, 0, 0, −1) desde la cola de 0x4f5b70 (key −1) y
 // desde 0x43b0ed (key 50): el dueño es el blanco (ESI). El 0x614/2 lee el hueso 33 del blanco con el modelo del jugador
 // (0x5313fe: 0x5769ad8 + 0x20a · 0xe0). Con el pool lleno, nada y sin rand().
-Core::Expected<void, std::string> CreateTheJoint(ActorState& owner, const CharacterStepContext& context,
+Core::Expected<void, std::string> CreateTheJoint(Kernel::ActorState& owner, const Actors::CharacterStepContext& context,
                                                  std::uint32_t address, std::int32_t type, std::int32_t subtype,
                                                  glm::vec3 from, glm::vec3 to, glm::vec3 angles, float width,
                                                  std::int32_t key = -1)
@@ -371,8 +374,8 @@ glm::vec3 RandomTurn(CrtRandom& random)
     return {0.0f, 0.0f, static_cast<float>(random.Next() % FullTurn)};
 }
 
-Core::Expected<void, std::string> CreateTailParticle(ActorState& actor, std::size_t slot,
-                                                     const CharacterStepContext& context, std::int32_t type,
+Core::Expected<void, std::string> CreateTailParticle(Kernel::ActorState& actor, std::size_t slot,
+                                                     const Actors::CharacterStepContext& context, std::int32_t type,
                                                      const glm::vec3& position, const glm::vec3& light,
                                                      std::uint32_t address)
 {
@@ -393,9 +396,9 @@ Core::Expected<void, std::string> CreateTailParticle(ActorState& actor, std::siz
 
 // 0x4f8c0d, 0x4f8837 y 0x4f86a6..0x4f8761: cuatro veces, con la mano 0 en las dos primeras, el punto del hueso,
 // rand() % 360, el joint 0x61b/0 de ancho 50 hacia el blanco y la partícula 0x5d9/0 con los ángulos y la luz del actor.
-Core::Expected<void, std::string> ThrowTheHandBolts(ActorState& actor, ActorState& target, std::size_t slot,
-                                                    const CharacterStepContext& context, std::uint32_t jointAddress,
-                                                    std::uint32_t particleAddress)
+Core::Expected<void, std::string> ThrowTheHandBolts(Kernel::ActorState& actor, Kernel::ActorState& target,
+                                                    std::size_t slot, const Actors::CharacterStepContext& context,
+                                                    std::uint32_t jointAddress, std::uint32_t particleAddress)
 {
     constexpr int Bolts = 4;
     constexpr int FirstHandBolts = 2;
@@ -419,9 +422,10 @@ Core::Expected<void, std::string> ThrowTheHandBolts(ActorState& actor, ActorStat
 // 0x4f8a5d y 0x4f890b: el giro sale del reloj, (45 − (ftol(reloj) / 10 + +0x381 · 3) % 90) + 180 (0x6b8848 y
 // 0x6b86bc) y suma 270 (0x6ba10c) por joint; cuatro veces, alternando manos, el joint 0x61b/1 de ancho 50 y la
 // partícula 0x5d9/0, sin rand() propio.
-Core::Expected<void, std::string> TurnTheHandBolts(ActorState& actor, ActorState& target, std::size_t slot,
-                                                   const CharacterStepContext& context, std::uint32_t clockAddress,
-                                                   std::uint32_t jointAddress, std::uint32_t particleAddress)
+Core::Expected<void, std::string> TurnTheHandBolts(Kernel::ActorState& actor, Kernel::ActorState& target,
+                                                   std::size_t slot, const Actors::CharacterStepContext& context,
+                                                   std::uint32_t clockAddress, std::uint32_t jointAddress,
+                                                   std::uint32_t particleAddress)
 {
     constexpr std::int32_t ClockDivisor = 10;
     constexpr std::int32_t StepTurn = 3;
@@ -464,9 +468,9 @@ struct HandLightning
     std::uint32_t thunderAddress = 0; // 0: sin la partícula.
 };
 
-Core::Expected<void, std::string> ThrowTheHandLightning(ActorState& actor, ActorState& target, std::size_t slot,
-                                                        const CharacterStepContext& context, const HandLightning& cast,
-                                                        const glm::vec3& localLight)
+Core::Expected<void, std::string> ThrowTheHandLightning(Kernel::ActorState& actor, Kernel::ActorState& target,
+                                                        std::size_t slot, const Actors::CharacterStepContext& context,
+                                                        const HandLightning& cast, const glm::vec3& localLight)
 {
     constexpr float WideWidth = 50.0f; // 0x42480000
     constexpr float ThinWidth = 10.0f; // 0x41200000
@@ -495,9 +499,9 @@ Core::Expected<void, std::string> ThrowTheHandLightning(ActorState& actor, Actor
 
 // 0x4f8e85 y 0x4f8f5b: el punto de la mano 0 (con (0, −130, 0) salvo el modelo 0x20a), los ángulos (−60, 0, z del
 // actor), dos joints 0x614/0 de ancho 50 y 10 y la partícula 0x5ca/0 con la luz local, sin rand() propio.
-Core::Expected<void, std::string> CastTheHandLightning(ActorState& actor, ActorState& target, std::size_t slot,
-                                                       const CharacterStepContext& context, const glm::vec3& localLight,
-                                                       std::uint32_t wideAddress)
+Core::Expected<void, std::string> CastTheHandLightning(Kernel::ActorState& actor, Kernel::ActorState& target,
+                                                       std::size_t slot, const Actors::CharacterStepContext& context,
+                                                       const glm::vec3& localLight, std::uint32_t wideAddress)
 {
     constexpr glm::vec3 Offset20A(0.0f);
     constexpr glm::vec3 OtherOffset(0.0f, -130.0f, 0.0f); // 0xc3020000
@@ -524,7 +528,8 @@ Core::Expected<void, std::string> CastTheHandLightning(ActorState& actor, ActorS
 // 0x4f79db..0x4f7aae: cinco veces, un punto desde la posición de c con dos rand() % 1001 − 500 y 500 más arriba, que
 // queda también en +0x17c..+0x184, y 0x518cf0(0x106/1) ahí, con los ángulos de c y 45 más en x (0x6b8848), la luz
 // (1; 0,5; 0) y c de dueño.
-Core::Expected<void, std::string> LaunchTheFiveStabs(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> LaunchTheFiveStabs(Kernel::ActorState& actor,
+                                                     const Actors::CharacterStepContext& context)
 {
     constexpr int Iterations = 5;
     constexpr int OffsetSpan = 1001;
@@ -553,8 +558,8 @@ Core::Expected<void, std::string> LaunchTheFiveStabs(ActorState& actor, const Ch
 // 0x439bd0(c, +0x381, 13), la habilidad 1 de Kalima: rand() % 360 en la z de un giro (fild, guardado en float); cinco
 // veces, la z 72 más (fadd y fstp), el punto (0, 300, 0) girado por él (0x5fc8f0 y 0x5fcbd0) más la posición de c,
 // cada eje en la x87, y 0x518cf0(0xc2, punto, c+0x1c, (0,8f; 0,5; 0,1f), 8, sin dueño, 0, …); después el sonido 0x1e0.
-Core::Expected<void, std::string> ThrowTheFireRing(const ActorState& actor, std::size_t slot,
-                                                   const CharacterStepContext& context)
+Core::Expected<void, std::string> ThrowTheFireRing(const Kernel::ActorState& actor, std::size_t slot,
+                                                   const Actors::CharacterStepContext& context)
 {
     constexpr int Fires = 5;
     constexpr double FireTurn = 72.0; // 0x6b8ba0
@@ -586,8 +591,8 @@ Core::Expected<void, std::string> ThrowTheFireRing(const ActorState& actor, std:
 // 0x439b20(c, +0x381, 13, 200,0f), la habilidad 0x37 de Kalima: el punto de c con la z 200 más (fadd del float y su
 // fstp); tres veces 0x518cf0(0x11b, punto, (0, 0, i · 120), luz 0, 1, c, −1, 0, 0, 0, 0) (0x439ba5), sin rand() antes
 // (los del alta, sus joints 0x618/0xa y /0xb), y después el sonido 0x1df.
-Core::Expected<void, std::string> RaiseTheRings(ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context)
+Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::size_t slot,
+                                                const Actors::CharacterStepContext& context)
 {
     constexpr float Hover = 200.0f;    // el cuarto argumento de 0x439b20
     constexpr float RingTurn = 120.0f; // 0x6b86c8
@@ -616,8 +621,8 @@ Core::Expected<void, std::string> RaiseTheRings(ActorState& actor, std::size_t s
 
 // 0x43aa46..0x43ab01 y sus copias de 0x43b47c y 0x43b7e7: el switch por la habilidad leída (las tablas de bytes de
 // 0x43b9a0, 0x43ba84 y 0x43bb68; los demás no hacen nada), todos con +0x381 desde 13 (JL o JC, el byte sin signo).
-Core::Expected<void, std::string> StepTheKalimaSkill(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                     const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheKalimaSkill(Kernel::ActorState& actor, std::uint8_t skill, std::size_t slot,
+                                                     const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t BurstSkill = 1;
     constexpr std::uint8_t RingSkill = 0x37;
@@ -679,8 +684,8 @@ Core::Expected<void, std::string> StepTheKalimaSkill(ActorState& actor, std::uin
 
 // 0x43a7a0(c, blanco, c, blanco, modelo), con el blanco de +0x3a4 en [0, 400) o 0 (0x4f5bdc..0x4f5c08): los monstruos
 // de Kalima. Todos sus casos devuelven 1.
-Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase& found, std::size_t slot,
-                                               const CharacterStepContext& context)
+Core::Expected<Helped, std::string> StepKalima(Kernel::ActorState& actor, const KindCase& found, std::size_t slot,
+                                               const Actors::CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     switch (found.address)
@@ -699,7 +704,7 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
                 return Core::Unexpected(std::format("{:#x}: falta el pool de partículas para 0x600/1", address));
             const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
             const auto actors = context.world.Actors();
-            const ActorState& ringed =
+            const Kernel::ActorState& ringed =
                 target >= 0 && target < PoolSlots ? actors[static_cast<std::size_t>(target)] : context.world.Hero();
             const glm::vec3 position{ringed.position.x, ringed.position.y,
                                      static_cast<float>(static_cast<double>(ringed.position.z) + RingHeight)};
@@ -798,7 +803,7 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
                     const int offset = context.random.Next() % Spread - Centre;
                     return static_cast<float>(static_cast<double>(offset) + static_cast<double>(axis));
                 };
-                const ActorState& hero = context.world.Hero();
+                const Kernel::ActorState& hero = context.world.Hero();
                 glm::vec3 point{};
                 point.x = around(hero.position.x);
                 point.y = around(hero.position.y);
@@ -825,7 +830,7 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
             constexpr std::array<double, 3> Turns{0.0, -30.0, 15.0}; // 0x6b8858 y 0x6b87bc
             constexpr std::array<std::uint32_t, 3> Sites{0x43b0ed, 0x43b11c, 0x43b14e};
             const glm::vec3 from = BonePoint(actor, BoltBone, glm::vec3(0.0f), context);
-            ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
+            Kernel::ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
             glm::vec3 angles = actor.angles;
             for (std::size_t bolt = 0; bolt < Sites.size(); ++bolt)
             {
@@ -860,8 +865,8 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
 // 0x42dcf0 en el 30: el 0x120 (0x42dd23) suelta el pulso 0x61c/0 en cada paso y el 0x68 (0x42dd56), en el 5, el
 // lancero 0x19f/0 con la z 500 más arriba; los dos sin dueño y con la clave en −1. Sale con AL en 1 también con la
 // tabla llena.
-Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const KindCase& found,
-                                                 const CharacterStepContext& context)
+Core::Expected<Helped, std::string> StepTheSiege(const Kernel::ActorState& actor, const KindCase& found,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t PulseEffect = 0x61c, SpearmanEffect = 0x19f;
     const bool pulse = found.address == 0x42dd23;
@@ -883,8 +888,8 @@ Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const 
 }
 
 // 0x429110 en el 33 y el 54: en 10, el 0x135 en la 3 y el 0x134 y el 0x130 en la 4 sueltan su efecto; todos salen.
-Core::Expected<Helped, std::string> StepTheDoppelganger(const ActorState& actor, const KindCase& found,
-                                                        std::size_t slot, const CharacterStepContext& context)
+Core::Expected<Helped, std::string> StepTheDoppelganger(const Kernel::ActorState& actor, const KindCase& found,
+                                                        std::size_t slot, const Actors::CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     if (actor.byte381 != TenthStep)
@@ -928,11 +933,12 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const ActorState& actor,
     }
 }
 
-Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::size_t slot,
-                                                  const CharacterStepContext& context);
+Core::Expected<void, std::string> ScatterTheBurst(const Kernel::ActorState& actor, std::size_t slot,
+                                                  const Actors::CharacterStepContext& context);
 
 // 0x43257a y 0x42fd76 comparten los argumentos y salen incluso si el pool está lleno.
-Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(ActorState& actor, const CharacterStepContext& context)
+Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(Kernel::ActorState& actor,
+                                                          const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t CelestialArrow = 0xf8;
     constexpr std::int32_t CelestialSubtype = 1;
@@ -951,7 +957,8 @@ Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(ActorState& actor, con
 
 // 0x4329a4..0x4329ea y 0x4f6749..0x4f678f: dieciocho 0xc1a/0 desde el actor, sin dueño y con la clave en −1; la z de
 // los ángulos es la del actor más i · 20 (FILD, FMUL y FADD).
-Core::Expected<void, std::string> LaunchTheRadialVolley(const ActorState& actor, const CharacterStepContext& context)
+Core::Expected<void, std::string> LaunchTheRadialVolley(const Kernel::ActorState& actor,
+                                                        const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t ShardEffect = 0xc1a;
     constexpr int Shards = 18;
@@ -970,8 +977,8 @@ Core::Expected<void, std::string> LaunchTheRadialVolley(const ActorState& actor,
 }
 
 // 0x4324c0 en Crywolf (el 34), por el tipo. Salvo los efectos de los que pegan en 14 y 15, devuelve 0.
-Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCase& found, std::size_t slot,
-                                                const CharacterStepContext& context)
+Core::Expected<Helped, std::string> StepCrywolf(Kernel::ActorState& actor, const KindCase& found, std::size_t slot,
+                                                const Actors::CharacterStepContext& context)
 {
     switch (found.address)
     {
@@ -1060,8 +1067,8 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
 }
 
 // 0x4f5ba3..0x4f5c78: los seis ayudantes, cada uno en sus mapas (excluyentes); el que devuelve 1 hace salir.
-Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::size_t slot,
-                                                      const CharacterStepContext& context)
+Core::Expected<Helped, std::string> StepTheMapHelpers(Kernel::ActorState& actor, std::size_t slot,
+                                                      const Actors::CharacterStepContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
     // 0x4f5ba3..0x4f5c0f: 0x43a7a0, solo en los mapas 24 a 29 y 36.
@@ -1121,8 +1128,8 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::si
 // 0x4f6f53..0x4f6fc5 (y 0x4f70ee, 0x4f78be y 0x4f8063): dos rand() & 0x3ff (con signo, 0x800003ff), el punto
 // (rand + x − 512, rand + y − 512, z) de c, cada eje con fild, fadd y fsub en la x87, y 0x518cf0(0xc2, punto, c+0x1c,
 // c+0xf4, 0, sin dueño, −1, …). El sonido 0x42 de después lo pide el caso.
-Core::Expected<void, std::string> ScatterTheFire(std::uint32_t address, const ActorState& actor, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> ScatterTheFire(std::uint32_t address, const Kernel::ActorState& actor,
+                                                 std::size_t slot, const Actors::CharacterStepContext& context)
 {
     constexpr int Spread = 0x3ff;
     constexpr double Centre = 512.0; // 0x6ba16c
@@ -1142,8 +1149,8 @@ Core::Expected<void, std::string> ScatterTheFire(std::uint32_t address, const Ac
 // 0x4f6e51..0x4f6f40: el punto del hueso 11 (0x4ec110 con (0, 0, 0)) y tres 0x518cf0(0xc2, punto, ángulos, c+0xf4, 2,
 // sin dueño, −1, …), con los ángulos de c corridos (x − 20, z − 30), (x − 30) y (x − 20, z + 30), cada uno con fld,
 // fsub o fadd y fstp.
-Core::Expected<void, std::string> SpreadTheFires(const ActorState& actor, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> SpreadTheFires(const Kernel::ActorState& actor, std::size_t slot,
+                                                 const Actors::CharacterStepContext& context)
 {
     constexpr std::size_t FireBone = 11;
     constexpr std::int32_t FallingSubtype = 2;
@@ -1168,8 +1175,8 @@ Core::Expected<void, std::string> SpreadTheFires(const ActorState& actor, std::s
 }
 
 // 0x51fff0: ocho estallidos alrededor del monstruo, cada uno con dos intentos de piedra.
-Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::size_t slot,
-                                                  const CharacterStepContext& context)
+Core::Expected<void, std::string> ScatterTheBurst(const Kernel::ActorState& actor, std::size_t slot,
+                                                  const Actors::CharacterStepContext& context)
 {
     const auto burst = ScatterCombatBurstAt(actor.position, context);
     if (!burst.HasValue())
@@ -1180,8 +1187,8 @@ Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::
 // 0x4f715a..0x4f721e (+0x376 0x2d): cuatro veces, tres rand() & 31 − 16 (el offset, con el FILD exacto), 0x4ec110
 // con el hueso 2 (+0x60) de los huesos propios y 0x53fe70(0x607 y después 0x5e4, punto, o + 0x1c, (1, 1, 1) de
 // 0x4f5bbb, 0, 1,0f, 0). Con el pool lleno las partículas no sacan sus rand() y las del offset salen igual.
-Core::Expected<void, std::string> DripTheBlood(const ActorState& actor, std::size_t slot,
-                                               const CharacterStepContext& context)
+Core::Expected<void, std::string> DripTheBlood(const Kernel::ActorState& actor, std::size_t slot,
+                                               const Actors::CharacterStepContext& context)
 {
     constexpr int Drips = 4;
     constexpr std::size_t DripBone = 2;
@@ -1216,8 +1223,8 @@ Core::Expected<void, std::string> DripTheBlood(const ActorState& actor, std::siz
 }
 
 // 0x4f5c7e..0x4f80dd: el switch por +0x376. Todos siguen a la cola (0x4f80e0) salvo los que cortan.
-Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindCase& found, std::size_t slot,
-                                                  const CharacterStepContext& context, glm::vec3& localLight)
+Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, const KindCase& found, std::size_t slot,
+                                                  const Actors::CharacterStepContext& context, glm::vec3& localLight)
 {
     const std::uint8_t step = actor.byte381;
     const std::uint8_t action = actor.animation.action;
@@ -1234,7 +1241,7 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         if (target < 0 || target >= PoolSlots)
             return Core::Unexpected(
                 std::format("0x4f5cd4: el blanco {} del lugar {} está fuera de la tabla de personajes", target, slot));
-        const ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
+        const Kernel::ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
         constexpr int FallingStars = 20;
         constexpr std::int16_t FallingStar = 0x625;
         for (int star = 0; star < FallingStars; ++star)
@@ -1524,8 +1531,9 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
 }
 
 // 0x4f8147: con 0x11 en +0x38e, el switch por +0x376 − 0x25. Todos sus casos salen (RET o 0x4f903c).
-Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState& target, const KindCase& found,
-                                                   std::size_t slot, const CharacterStepContext& context,
+Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Kernel::ActorState& target,
+                                                   const KindCase& found, std::size_t slot,
+                                                   const Actors::CharacterStepContext& context,
                                                    const glm::vec3& localLight)
 {
     const std::uint8_t step = actor.byte381;
@@ -1568,7 +1576,7 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
             if ((context.random.Next() & 1) == 0)
             {
                 // 0x4f8227 y 0x4f8244: en la posición del blanco (+0x3a4, ya en [0, 400)), con c de dueño.
-                ActorState& blasted =
+                Kernel::ActorState& blasted =
                     context.world.Actors()[static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget))];
                 for (int blast = 0; blast < 2; ++blast)
                 {
@@ -1581,7 +1589,7 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
             }
             constexpr std::int32_t MeteorSubtype = 6;
             const auto targetSlot = static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget));
-            const ActorState& victim = context.world.Actors()[targetSlot];
+            const Kernel::ActorState& victim = context.world.Actors()[targetSlot];
             for (const std::uint32_t address : {0x4f8287u, 0x4f82a5u})
             {
                 if (auto created = CreateWizard(
@@ -1716,8 +1724,9 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
 }
 
 // 0x4f8a56: con 3 en +0x38e, el switch por +0x376 − 0x22. Todos sus casos salen.
-Core::Expected<void, std::string> StepTheBoneSkill(ActorState& actor, ActorState& target, const KindCase& found,
-                                                   std::size_t slot, const CharacterStepContext& context,
+Core::Expected<void, std::string> StepTheBoneSkill(Kernel::ActorState& actor, Kernel::ActorState& target,
+                                                   const KindCase& found, std::size_t slot,
+                                                   const Actors::CharacterStepContext& context,
                                                    const glm::vec3& localLight)
 {
     const std::uint8_t step = actor.byte381;
@@ -1774,14 +1783,14 @@ Core::Expected<void, std::string> StepTheBoneSkill(ActorState& actor, ActorState
 }
 
 // 0x4f80e0..0x4f903c: la cola, con el blanco de +0x3a4 (MOVSX) en [0, 400).
-Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slot, const CharacterStepContext& context,
-                                              const glm::vec3& localLight)
+Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::size_t slot,
+                                              const Actors::CharacterStepContext& context, const glm::vec3& localLight)
 {
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     if (target < 0 || target >= PoolSlots)
         return {};
     // ESI: el blanco, del que cuelgan los joints de la cola.
-    ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
+    Kernel::ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
     // 0x4f811b: con 0x11, el switch por +0x376 − 0x25 (0x4f8147); los que no tienen caso, y el 0xffff, salen.
     if (ReadTheSkill(actor, context.random) == KindSkill)
     {
@@ -1812,8 +1821,8 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheAttackCases(ActorState& actor, std::size_t slot,
-                                                     const CharacterStepContext& context)
+Core::Expected<void, std::string> StepTheAttackCases(Kernel::ActorState& actor, std::size_t slot,
+                                                     const Actors::CharacterStepContext& context)
 {
     auto helped = StepTheMapHelpers(actor, slot, context);
     if (!helped.HasValue())

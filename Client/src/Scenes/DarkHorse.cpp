@@ -94,10 +94,10 @@ void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint
     StepDarkHorse(horse, skeleton, riderAction, false);
 }
 
-DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Models::Skeleton* skeleton,
-                           const Models::ObjectTransform& place, float scale, float stepAlpha)
+Actors::Drawing::DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Models::Skeleton* skeleton,
+                                            const Models::ObjectTransform& place, float scale, float stepAlpha)
 {
-    DrawnObject drawn;
+    Actors::Drawing::DrawnObject drawn;
     drawn.model = DarkHorseModel;
     drawn.animation = horse.animation;
     if (skeleton != nullptr && horse.animation.action < skeleton->actions.size())

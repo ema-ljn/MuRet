@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -408,4 +408,4 @@ Core::Expected<void, std::string> DrawGrass(Render::ModelBatch& batch, const Ter
     return VisitTheRange(range, polygon, [&](std::uint8_t x, std::uint8_t y)
                          { return DrawGrassCell(batch, view, water, grass, x, y); });
 }
-} // namespace Client::World
+} // namespace Client::Terrain

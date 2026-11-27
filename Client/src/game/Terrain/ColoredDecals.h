@@ -16,6 +16,10 @@ namespace Client::World
 {
 struct ModelEffect;
 struct ModelEffectArguments;
+} // namespace Client::World
+
+namespace Client::Terrain
+{
 
 // Los subtipos del 0x61e con caso propio en el alta (0x51eebb), además de los de ModelEffects.h.
 inline constexpr std::int32_t PulsingDecalSubtype = 4; // el de la 0x30, entre los joints 0x613/2 (0x4fe127)
@@ -28,10 +32,11 @@ inline constexpr std::int32_t CoolPulsingDecalSubtype = 0xa; // el de la 0x45, e
 // 0x51eebb..0x51efa4, el caso del 0x61e después del prefijo: vida 20; el /4 y el /0xa, vida 40 y la escala
 // (rand() % 50 + 50) · 0,04f; el /6, vida 60, esa escala y la partida en la posición; el /7, vida 40 y el ángulo z en
 // rand() % 360; el /8, vida 20; el /9, vida 10 y la escala en 0,1f. Los demás, solo la vida.
-void BeginColoredDecal(ModelEffect& effect, Crt::CrtRandom& random);
+void BeginColoredDecal(World::ModelEffect& effect, Crt::CrtRandom& random);
 
 // 0x518cf0(0x61e, …) sobre `table`: el prefijo (BeginModelEffect) y BeginColoredDecal. Con la tabla llena, nada y sin
 // rand().
-[[nodiscard]] std::optional<std::size_t>
-CreateColoredDecal(std::span<ModelEffect> table, const ModelEffectArguments& arguments, Crt::CrtRandom& random);
-} // namespace Client::World
+[[nodiscard]] std::optional<std::size_t> CreateColoredDecal(std::span<World::ModelEffect> table,
+                                                            const World::ModelEffectArguments& arguments,
+                                                            Crt::CrtRandom& random);
+} // namespace Client::Terrain

@@ -21,20 +21,24 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
-// Las acciones de un personaje: la de parado, 0x4f2250 (el SetPlayerStop de MuMain).
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Caminar" (SetPlayerStop) y P-C14 c.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct ActorState;
 struct WorldRuntime;
+} // namespace Client::Kernel
+
+// Las acciones de un personaje: la de parado, 0x4f2250 (el SetPlayerStop de MuMain).
+// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Caminar" (SetPlayerStop) y P-C14 c.
+namespace Client::Actors
+{
 
 // Lo que 0x4f2250 lee y escribe fuera del personaje. Quien llama lo presta durante la llamada.
 struct ActorStopContext
 {
     // El mundo en curso (DAT_006c9dd0) y el latch de Fenrir (0x7d3a0d0, movementSpeed.itemLatch).
-    WorldRuntime& runtime;
+    Kernel::WorldRuntime& runtime;
     // DAT_006d5dc8: los mapas de vuelo miran la celda solo en la escena 5 (0x4f23a2).
-    SceneId scene;
+    Scenes::SceneId scene;
     // Las acciones de Player.bmd: 0x4ea030 no pone una que el modelo no tiene.
     const Models::Skeleton& playerSkeleton;
     // *[0x7758550], Item.bmd en memoria: la matriz de armas lee el byte +0x1e del registro del arma
@@ -64,6 +68,6 @@ struct ActorStopResult
 // corre el sufijo de rand(). Sentado (+0x7c con 0x200000), el jugador pide la 0xca y el C1 05 18 con su dirección y la
 // acción 0x82 (CL9 hito 1), o nada si ya la tiene; después corre el sufijo. Error si falta una dependencia consultada:
 // TerrainWall para los casos que lo leen, sendAction al sentarse o la tabla de sonidos al abrirse el gate del sufijo.
-[[nodiscard]] Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor,
+[[nodiscard]] Core::Expected<ActorStopResult, std::string> SetActorStop(Kernel::ActorState& actor,
                                                                         const ActorStopContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Actors

@@ -47,15 +47,15 @@
 // del ataque".
 namespace
 {
+using Client::Actors::CharacterStepContext;
+using Client::Actors::StepCharacters;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ActorState;
+using Client::Kernel::WorldState;
 using Client::Models::ActionInfo;
-using Client::Scenes::ActorState;
-using Client::Scenes::CharacterStepContext;
 using Client::Scenes::ChosenKeyOf;
 using Client::Scenes::JointState;
-using Client::Scenes::StepCharacters;
 using Client::Scenes::StepTheAttack;
-using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;
@@ -461,7 +461,7 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
         {
             auto& runtime = tested.world.Runtime();
             runtime.cursorItemCount = 1;
-            runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+            runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
             runtime.slot78a6758 = probe.slot;
             runtime.cursorItem.id = *probe.cursor;
         }
@@ -1076,7 +1076,7 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
             tested.Victim().position = {hero.position.x + 300.0f, hero.position.y, hero.position.z};
             tested.Victim().damage = 12;
             Client::World::PortableParticleTrigonometry trigonometry;
-            auto lighting = std::make_unique<Client::World::TerrainLighting>();
+            auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
             const float clock = 0.0f;
             const auto sound = [&tested](std::int32_t played) { tested.sounds.push_back(played); };
             int step = 0;
@@ -1219,7 +1219,7 @@ TEST(AttackStepTest, FullSparkParticlesDoNotPreventTheVisibleSpearTrail)
         auto& hero = tested.Striker(HeroSlot, SpearAttack, VictimSlot);
         hero.animation.frame = 5.0f;
         hero.byte381 = 14;
-        hero.hands[0].model = visible ? SpearModel : Client::Scenes::NoItemModel;
+        hero.hands[0].model = visible ? SpearModel : Client::Kernel::NoItemModel;
         hero.hands[0].level = 13;
         hero.hands[0].bone = HandBone;
         tested.Victim().alive = true;

@@ -51,7 +51,7 @@ namespace
 {
 TEST(FaunaStateTest, PoseScratchBelongsToTheDurableWorldAndSurvivesFaunaClear)
 {
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     auto& pose = world.PoseCarry();
     pose.bones.resize(3, Client::Math::BoneTransform(0));
     pose.bones[2][3] = {7, 8, 9};

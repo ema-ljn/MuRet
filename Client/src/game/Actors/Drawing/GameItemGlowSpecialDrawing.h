@@ -17,7 +17,7 @@ class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Models
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 struct ItemDrawContext;
@@ -26,4 +26,4 @@ struct ItemDrawContext;
 DrawEarlyItemGlow(Render::ModelBatch& batch, const Models::IModelLibrary& models, DrawnObject& object,
                   Core::Duration clock, std::span<const Models::SkinnedMesh> meshes, int level,
                   std::uint8_t packedLevel, const ItemDrawContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

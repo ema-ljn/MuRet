@@ -118,13 +118,13 @@ std::optional<glm::vec2> SelectionTextureLibrary::TextureSize(Render::TextureSlo
 // Un único dueño por dibujo intermedio: todos los servicios prestan estas mismas copias.
 struct SelectionWorld::Projection
 {
-    World::TerrainLighting lighting{};
+    Terrain::TerrainLighting lighting{};
     Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     World::Particles particles{};
     World::ModelEffects effects{};
     std::vector<World::WorldObject> objects{};
     GameDrawTailState tail{};
-    GameItemRenderState items{};
+    Actors::Drawing::GameItemRenderState items{};
     World::ObjectModelStepState modelState{};
 };
 
@@ -142,7 +142,7 @@ Core::Expected<void, std::string> SelectionWorld::Load(const std::filesystem::pa
     if (m_tiles.LoadedMap() != map)
     {
         std::vector<std::string> skipped;
-        if (auto loaded = m_tiles.Load(dataRoot, map, skipped, GrassTextures::Upload); !loaded.HasValue())
+        if (auto loaded = m_tiles.Load(dataRoot, map, skipped, Assets::GrassTextures::Upload); !loaded.HasValue())
         {
             return Core::Unexpected("0x61a560: los tiles del terreno del mapa " + std::to_string(map) + ": " +
                                     loaded.Error());
@@ -183,17 +183,17 @@ bool SelectionWorld::IsLoaded() const
     return m_modelsMap.has_value() && m_tiles.LoadedMap().has_value();
 }
 
-const WorldModels& SelectionWorld::Models() const
+const Assets::WorldModels& SelectionWorld::Models() const
 {
     return m_models;
 }
 
-void SelectionWorld::StepWaves(Core::Duration clock, const World::TerrainRange& range, std::uint8_t map)
+void SelectionWorld::StepWaves(Core::Duration clock, const Terrain::TerrainRange& range, std::uint8_t map)
 {
-    World::UpdateWaves(m_water, clock, range, map);
+    Terrain::UpdateWaves(m_water, clock, range, map);
 }
 
-Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world, Crt::CrtRandom& random,
+Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                               float worldClock)
 {
     std::span<World::WorldObject> objects = world.Map().objects;
@@ -233,7 +233,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
     return {};
 }
 
-Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world, Models::ClothWorld& cloth,
+Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState& world, Models::ClothWorld& cloth,
                                                               float worldClock,
                                                               const std::function<double(float, float)>& height,
                                                               std::uint32_t systemTime)
@@ -280,7 +280,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
     // de ancho 80, el 0x61c/0 y la 0x632/0 y /1) los crean skills que la selección no corre; si llegaran, cortan.
     const auto actors = world.Actors();
     const std::size_t heroSlot = world.Runtime().hero;
-    const ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
+    const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
     if (auto stepped = StepJoints(
             world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites,
             &world.DynamicLighting().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
     return {};
 }
 
-void SelectionWorld::BeginFrame(WorldState& world, Models::ClothWorld& cloth, int frames)
+void SelectionWorld::BeginFrame(Kernel::WorldState& world, Models::ClothWorld& cloth, int frames)
 {
     m_world = &world;
     m_cloth = &cloth;
@@ -317,7 +317,7 @@ void SelectionWorld::BeginFrame(WorldState& world, Models::ClothWorld& cloth, in
     m_projectedSprites.Clear();
 }
 
-World::TerrainLighting& SelectionWorld::FrameLighting()
+Terrain::TerrainLighting& SelectionWorld::FrameLighting()
 {
     return m_projecting ? m_projection->lighting : m_world->DynamicLighting().Lighting();
 }
@@ -332,7 +332,7 @@ Models::ClothWorld& SelectionWorld::FrameCloth()
     return m_projecting ? m_projection->cloth : *m_cloth;
 }
 
-GameItemRenderState& SelectionWorld::FrameItemRender()
+Actors::Drawing::GameItemRenderState& SelectionWorld::FrameItemRender()
 {
     return m_projecting ? m_projection->items : m_world->Runtime().itemRender;
 }
@@ -367,7 +367,8 @@ World::FrameSprites& SelectionWorld::FrameSprites()
     return m_projecting ? m_projectedSprites : m_sprites;
 }
 
-Core::Expected<void, std::string> SelectionWorld::DrawTerrain(WorldState& world, const World::WorldTerrain& terrain,
+Core::Expected<void, std::string> SelectionWorld::DrawTerrain(Kernel::WorldState& world,
+                                                              const Terrain::WorldTerrain& terrain,
                                                               const SelectionWorldFrame& frame)
 {
     if (!terrain.mapping || !terrain.heights || !terrain.attributes)
@@ -375,7 +376,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawTerrain(WorldState& world,
         return Core::Unexpected(std::string("0x5fc260: el terreno 54 de la selección no está cargado (0x61a560)"));
     }
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
-    World::TerrainView view;
+    Terrain::TerrainView view;
     view.mapping = terrain.mapping.get();
     view.heights = terrain.heights.get();
     view.attributes = terrain.attributes.get();
@@ -384,11 +385,12 @@ Core::Expected<void, std::string> SelectionWorld::DrawTerrain(WorldState& world,
     view.map = map;
     view.fixedHeight = frame.fixedHeight;
     // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: el pase del terreno.
-    m_water.offset = World::WaterOffsetAt(frame.frameClock, map);
-    World::DrawTerrain(frame.batch, view, frame.range, frame.polygon, m_water);
+    m_water.offset = Terrain::WaterOffsetAt(frame.frameClock, map);
+    Terrain::DrawTerrain(frame.batch, view, frame.range, frame.polygon, m_water);
     // 0x5fc32b..0x5fc353: el pase del pasto (0x6c9d58 prendido fuera de los mapas 18 a 23 y 30).
-    const World::TerrainGrass grass{.heights = m_tiles.GrassHeights(), .offsets = world.Map().grassOffsets};
-    if (auto grown = World::DrawGrass(frame.batch, view, frame.range, frame.polygon, m_water, grass); !grown.HasValue())
+    const Terrain::TerrainGrass grass{.heights = m_tiles.GrassHeights(), .offsets = world.Map().grassOffsets};
+    if (auto grown = Terrain::DrawGrass(frame.batch, view, frame.range, frame.polygon, m_water, grass);
+        !grown.HasValue())
     {
         return Core::Unexpected(grown.Error() + ", en el pase del pasto de la selección");
     }
@@ -398,7 +400,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawTerrain(WorldState& world,
     marksState.cullEnabled = true;
     frame.batch.SetState(marksState);
     if (auto marked =
-            World::DrawGroundMarks(frame.batch, world.Runtime().groundMarks, *terrain.heights, NoSlotComponents);
+            Terrain::DrawGroundMarks(frame.batch, world.Runtime().groundMarks, *terrain.heights, NoSlotComponents);
         !marked.HasValue())
     {
         return Core::Unexpected(marked.Error() + ", en la selección");
@@ -409,8 +411,8 @@ Core::Expected<void, std::string> SelectionWorld::DrawTerrain(WorldState& world,
     return {};
 }
 
-Core::Expected<void, std::string> SelectionWorld::DrawObjects(WorldState& world, const SelectionWorldFrame& frame,
-                                                              FaunaDrawCarry& poseCarry)
+Core::Expected<void, std::string>
+SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, FaunaDrawCarry& poseCarry)
 {
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
     const float clock = Milliseconds(frame.frameClock);
@@ -421,7 +423,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawObjects(WorldState& world,
                               .random = &FrameRandom(),
                               .worldClock = clock,
                               .particles = &FrameParticles(),
-                              .onPose = [&](const DrawnObject& drawn)
+                              .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
                               { return PublishFaunaPose(poseCarry, m_models, drawn, true); },
                               .sprites = &FrameSprites(),
                               .retainedPose = &poseCarry,
@@ -442,8 +444,8 @@ Core::Expected<void, std::string> SelectionWorld::DrawObjects(WorldState& world,
     return {};
 }
 
-Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(WorldState& world,
-                                                                      const World::WorldTerrain& terrain,
+Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::WorldState& world,
+                                                                      const Terrain::WorldTerrain& terrain,
                                                                       const SelectionWorldFrame& frame,
                                                                       const Render::Camera3D& camera,
                                                                       FaunaDrawCarry& poseCarry)
@@ -463,14 +465,15 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(WorldState
         return Core::Unexpected(std::string("0x52d620: faltan las alturas del terreno 54"));
     }
     ModelEffectDrawResources resources{*terrain.heights, clock};
-    resources.onPose = [&](const DrawnObject& object) { return PublishFaunaPose(poseCarry, m_models, object, true); };
-    resources.onUntranslatedPose = [&](const DrawnObject& object)
+    resources.onPose = [&](const Actors::Drawing::DrawnObject& object)
+    { return PublishFaunaPose(poseCarry, m_models, object, true); };
+    resources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
     { return PublishFaunaPose(poseCarry, m_models, object, false); };
     resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry.meshes); };
     resources.sprites = &FrameSprites();
     resources.dynamicLighting = &FrameLighting();
     resources.random = &FrameRandom();
-    const World::SphereFrustum frustum = World::SphereFrustumOf(frame.batch.Pass().view, camera);
+    const Terrain::SphereFrustum frustum = Terrain::SphereFrustumOf(frame.batch.Pass().view, camera);
     if (auto drawn = DrawGameModelEffects(frame.batch, m_models, FrameEffects().Effects(), frustum, &FrameLighting(),
                                           frame.frameClock, 0, resources, 0);
         !drawn.HasValue())
@@ -494,7 +497,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(WorldState
 }
 
 Core::Expected<void, std::string> SelectionWorld::DrawEye(const Render::Pass3D& pass, const SelectionWorldFrame& frame,
-                                                          const SceneTextures& sceneTextures,
+                                                          const Assets::SceneTextures& sceneTextures,
                                                           std::span<const DamageNumberState> damage)
 {
     // 0x6213e0: la modelview en la identidad para el pase de ojo.

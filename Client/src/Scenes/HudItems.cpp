@@ -74,14 +74,14 @@ Core::Expected<SlotRange, std::string> RangeOf(const QuickSlots& slots, int slot
     }
 }
 
-std::int32_t LevelOf(const World::ItemState& item)
+std::int32_t LevelOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int32_t>((item.scalar1Low >> 3) & 0xfu);
 }
 
 // 0x5582fd..0x558350 y 0x558650..0x5586a3: el tipo con signo, +0x3c mayor que 0 y el nivel de la ranura en los que
 // lo piden.
-bool Matches(const World::ItemState& item, std::int32_t type, std::int32_t level)
+bool Matches(const Kernel::ItemState& item, std::int32_t type, std::int32_t level)
 {
     const auto id = static_cast<std::int16_t>(item.id);
     if (id != type || static_cast<std::int32_t>(item.occupied) <= 0)
@@ -92,7 +92,7 @@ bool Matches(const World::ItemState& item, std::int32_t type, std::int32_t level
 }
 
 // 0x5582e5..0x55838e: los tipos de arriba abajo, las columnas de la 7 a la 0 y, en cada una, las filas de la 7 a la 0.
-std::optional<std::size_t> FindInTheGrid(std::span<const World::ItemState, InventoryCellCount> cells,
+std::optional<std::size_t> FindInTheGrid(std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
                                          const SlotRange& range, std::int32_t level)
 {
     for (std::int32_t type = range.last; type >= range.first; --type)
@@ -112,8 +112,8 @@ std::optional<std::size_t> FindInTheGrid(std::span<const World::ItemState, Inven
 } // namespace
 
 Core::Expected<std::optional<std::size_t>, std::string>
-FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot,
-                  bool requestBlocked)
+FindQuickSlotItem(const QuickSlots& slots, std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
+                  int slot, bool requestBlocked)
 {
     // 0x558119..0x558141: las pociones de las skills, sin mirar la ranura; 0x55815d las lleva a 0x5582c1.
     if (slot == ManaPotionSlot || slot == LifePotionSlot)
@@ -132,7 +132,8 @@ FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, Inv
 }
 
 Core::Expected<std::int32_t, std::string>
-CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot)
+CountQuickSlotItems(const QuickSlots& slots, std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
+                    int slot)
 {
     auto range = RangeOf(slots, slot, "0x558490");
     if (!range.HasValue())
@@ -141,7 +142,7 @@ CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, I
     std::int32_t count = 0;
     for (std::int32_t type = range.Value().last; type >= range.Value().first; --type)
     {
-        for (const World::ItemState& item : cells)
+        for (const Kernel::ItemState& item : cells)
         {
             if (!Matches(item, type, level))
                 continue;
@@ -152,7 +153,7 @@ CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, I
 }
 
 std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandType, std::uint16_t leftHandType,
-                          std::span<const World::ItemState, InventoryCellCount> cells)
+                          std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells)
 {
     constexpr std::int32_t Arrows = 0x80f;
     constexpr std::int32_t Bolts = 0x807;
@@ -169,7 +170,7 @@ std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandTy
     if (!ammo)
         return 0;
     std::int32_t count = 0;
-    for (const World::ItemState& item : cells)
+    for (const Kernel::ItemState& item : cells)
     {
         if (static_cast<std::int16_t>(item.id) == *ammo && static_cast<std::int32_t>(item.occupied) > 0)
             ++count;
@@ -177,7 +178,7 @@ std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandTy
     return count;
 }
 
-std::uint16_t MaxDurability(const World::ItemState& item, std::span<const std::byte, Tables::ItemRecordSize> record,
+std::uint16_t MaxDurability(const Kernel::ItemState& item, std::span<const std::byte, Tables::ItemRecordSize> record,
                             int level)
 {
     constexpr std::size_t DurabilityAt = 0x2d;

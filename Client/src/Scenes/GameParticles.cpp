@@ -90,9 +90,9 @@ Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Wor
     return {};
 }
 
-Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrary& models, const DrawnObject& drawn,
-                                                      std::size_t bone, const glm::vec3& offset,
-                                                      const FaunaDrawCarry* retainedPose)
+Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrary& models,
+                                                      const Actors::Drawing::DrawnObject& drawn, std::size_t bone,
+                                                      const glm::vec3& offset, const FaunaDrawCarry* retainedPose)
 {
     if (retainedPose != nullptr)
     {
@@ -109,7 +109,7 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
     {
         return Core::Unexpected(std::format("el hueso {} quedó de una pose anterior que MuRet no conserva", bone));
     }
-    const std::vector<Math::OriginalMatrix> world = PosedWorldBones(models, drawn);
+    const std::vector<Math::OriginalMatrix> world = Actors::Drawing::PosedWorldBones(models, drawn);
     if (bone >= world.size())
     {
         return Core::Unexpected(std::format("no se pudo posar el hueso {} de la fuente", bone));
@@ -149,7 +149,8 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 
 Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
                                                           Crt::CrtRandom& random, const float& worldClock,
-                                                          const Models::IModelLibrary& models, const DrawnObject& drawn,
+                                                          const Models::IModelLibrary& models,
+                                                          const Actors::Drawing::DrawnObject& drawn,
                                                           const FaunaDrawCarry* retainedPose)
 {
     const auto point = [&models, &drawn, retainedPose](std::size_t bone, const glm::vec3& offset)
@@ -163,7 +164,7 @@ StepGameParticles(World::Particles& particles, Crt::CrtRandom& random, const std
                   const std::function<World::WorldObject*(std::uint64_t)>& owners,
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight,
-                  World::TerrainLighting* lighting,
+                  Terrain::TerrainLighting* lighting,
                   const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
                   const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones)
 {
@@ -184,7 +185,7 @@ Core::Expected<void, std::string> StepGameParticles(
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
     const std::function<World::WorldObject*(std::uint64_t)>& owners,
     const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
-    const std::function<std::optional<float>(std::int32_t)>& textureHeight, World::TerrainLighting* lighting,
+    const std::function<std::optional<float>(std::int32_t)>& textureHeight, Terrain::TerrainLighting* lighting,
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
     const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
     const std::function<void(std::int32_t)>& sound,
@@ -225,7 +226,8 @@ std::function<World::WorldObject*(std::uint64_t)> ParticleOwnersAmong(std::span<
     };
 }
 
-std::function<std::optional<std::uint8_t>(std::uint64_t)> ParticleActorActionsAmong(std::span<const ActorState> actors)
+std::function<std::optional<std::uint8_t>(std::uint64_t)>
+ParticleActorActionsAmong(std::span<const Kernel::ActorState> actors)
 {
     return [actors](std::uint64_t slot) -> std::optional<std::uint8_t>
     {
@@ -236,7 +238,7 @@ std::function<std::optional<std::uint8_t>(std::uint64_t)> ParticleActorActionsAm
 }
 
 std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>
-ParticleOwnerStatesOf(WorldState& world)
+ParticleOwnerStatesOf(Kernel::WorldState& world)
 {
     return [&world](const World::ParticleOwner& owner) -> std::optional<World::ParticleOwnerState>
     {
@@ -253,17 +255,17 @@ ParticleOwnerStatesOf(WorldState& world)
         if (owner.kind != World::ParticleOwnerKind::Actor || owner.identity >= actors.size())
             return std::nullopt;
         const auto slot = static_cast<std::size_t>(owner.identity);
-        const ActorState& actor = actors[slot];
+        const Kernel::ActorState& actor = actors[slot];
         // 0x4010b0 → 0x4016c0 (el lugar y el nombre exacto en la lista de 0x401000) y 0x401550: 0x4ec110 sin
         // trasladar con los huesos propios (+0x120), por la escala (+0xc) y más la posición (+0x10).
         auto namedBone = [&world, slot](std::string_view name) -> std::optional<glm::vec3>
         {
             const auto& bones = world.Runtime().namedBones;
-            const auto found = std::ranges::find_if(bones, [slot, name](const NamedBone& bone)
+            const auto found = std::ranges::find_if(bones, [slot, name](const Kernel::NamedBone& bone)
                                                     { return bone.actor == slot && bone.name == name; });
             if (found == bones.end())
                 return std::nullopt;
-            const ActorState& named = world.Actors()[slot];
+            const Kernel::ActorState& named = world.Actors()[slot];
             const Math::BoneTransform matrix =
                 found->bone < named.bodyPose.size() ? named.bodyPose[found->bone] : Math::BoneTransform(0.0f);
             return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), {}, named.scale, named.position);
@@ -273,7 +275,7 @@ ParticleOwnerStatesOf(WorldState& world)
     };
 }
 
-std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Particle& particle)
+std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World::Particle& particle)
 {
     constexpr std::int32_t ShineOwnerType = 0x62d;
     constexpr glm::vec3 ShineOffset{0.0f, -120.0f, 0.0f}; // 0x53fdfd: 0xc2f00000
@@ -289,7 +291,7 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
     const auto actors = world.Actors();
     if (particle.typedOwner.kind != World::ParticleOwnerKind::Actor || particle.typedOwner.identity >= actors.size())
         return std::nullopt;
-    const ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
+    const Kernel::ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
     if (particle.type == World::SwellLifeParticle && particle.subtype == World::SwellLifeParticleSubtype)
     {
         // 0x544a9d..0x544b09: dirección retenida, sin leer alive ni flags. No usa la escala del modelo ni 53fdb0.
@@ -308,7 +310,7 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
         return point;
     }
     // 0x53fe20..0x53fe42: el subtipo and 0x80000001 con la corrección del signo.
-    const ActorState& hero = world.Hero();
+    const Kernel::ActorState& hero = world.Hero();
     std::uint8_t bone = 0;
     switch (particle.subtype % 2)
     {
@@ -325,14 +327,14 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
     const glm::vec3 offset =
         particle.type == World::SkillShineParticle || particle.type == ShineOwnerType ? ShineOffset : glm::vec3(0.0f);
     // 0x53fe0b..0x53fe1a: el origen del modelo.
-    SharedModelPlacement model = world.ModelPlacement(owner.type);
+    Kernel::SharedModelPlacement model = world.ModelPlacement(owner.type);
     model.origin = owner.position;
     world.PlaceModel(owner.type, model);
     const Math::BoneTransform matrix = bone < owner.bodyPose.size() ? owner.bodyPose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, model.scale, model.origin);
 }
 
-std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(WorldState& world)
+std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(Kernel::WorldState& world)
 {
     return [&world](const World::Particle& particle) { return OwnerBonePointOf(world, particle); };
 }

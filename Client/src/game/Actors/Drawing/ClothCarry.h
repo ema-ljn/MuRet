@@ -15,7 +15,7 @@
 // seguido: en un dibujo intermedio, la tela va llevada con el hueso del que cuelga, del lugar que tenía
 // en su última simulación al de ahora, como un sólido. La fila anclada cae sobre el hueso de ahora y el
 // resto conserva la forma que le dio la simulación. Sin moverse el hueso, no se lleva nada.
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 // El cuerpo con que se simuló la tela por última vez: sus huesos, copiados, porque los del ClothBody
 // cambian con la pose de cada frame.
@@ -47,4 +47,4 @@ struct ClothCarry
 // giro no se puede invertir.
 [[nodiscard]] std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then, const Models::ClothBody& now,
                                                      std::int32_t bone);
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

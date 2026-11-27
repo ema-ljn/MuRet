@@ -33,15 +33,15 @@
 
 namespace Client::Scenes
 {
-World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRandom& random,
+World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                    const WizardSceneParts& parts)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     std::function<double(float, float)> terrainHeight;
-    const World::WorldTerrain* terrain = parts.terrain;
+    const Terrain::WorldTerrain* terrain = parts.terrain;
     if (terrain != nullptr && terrain->heights && terrain->attributes)
         terrainHeight = [terrain, fixed = parts.fixedHeight](float x, float y)
-        { return World::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, fixed); };
+        { return Terrain::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, fixed); };
     return World::WizardEffectServices{
         .particles = parts.particles,
         .worldClock = parts.worldClock,
@@ -65,7 +65,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
         },
         .ownerOf = [&world](const void* owner) -> std::optional<World::WizardOwnerView>
         {
-            for (const ActorState& actor : world.Actors())
+            for (const Kernel::ActorState& actor : world.Actors())
             {
                 if (&actor != owner)
                     continue;
@@ -116,7 +116,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
                 return Core::Unexpected(
                     std::format("0x518cf0: el dueño del efecto {:#x}/{} no es un efecto de la tabla", arguments.type,
                                 arguments.subtype));
-            WorldRuntime& state = world.Runtime();
+            Kernel::WorldRuntime& state = world.Runtime();
             const World::BlastEffectServices services{.ownRecordDepth = &state.ownRecordDepth,
                                                       .ownRecordCount = &world.OwnCharacter().bytef04,
                                                       .hero = &world.Hero(),
@@ -138,7 +138,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
             const auto actors = world.Actors().first<PooledActors>();
             for (std::size_t index = 0; index < actors.size(); ++index)
             {
-                ActorState& actor = actors[index];
+                Kernel::ActorState& actor = actors[index];
                 // 0x524a93..0x524aa9: dx y dy se guardan en float antes de mirar al personaje.
                 const auto dx = static_cast<float>(static_cast<double>(x) - static_cast<double>(actor.position.x));
                 const auto dy = static_cast<float>(static_cast<double>(y) - static_cast<double>(actor.position.y));
@@ -165,13 +165,13 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
                                                         "0xc2/4"));
                 // 0x524afa: 0x4e9cd0(personaje, personaje), la acción de golpe de Fenrir por las manos; si no, 0xc2.
                 Models::SetAction(actor.animation, *skeleton,
-                                  actor.pet.model == FenrirPet ? FenrirHitActionOf(actor) : PlayerPushAction);
+                                  actor.pet.model == FenrirPet ? Actors::FenrirHitActionOf(actor) : PlayerPushAction);
             }
             return {};
         }};
 }
 
-World::WizardEffectServices WizardEffectServicesOf(const CharacterStepContext& context)
+World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context)
 {
     return WizardEffectServicesOf(
         context.world, context.random,
@@ -200,7 +200,7 @@ World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& 
                                        .key = key};
 }
 
-Core::Expected<std::optional<std::size_t>, std::string> CreateWizardEffect(const CharacterStepContext& context,
+Core::Expected<std::optional<std::size_t>, std::string> CreateWizardEffect(const Actors::CharacterStepContext& context,
                                                                            const World::ModelEffectArguments& arguments,
                                                                            glm::vec3* callerLight)
 {

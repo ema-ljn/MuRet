@@ -75,7 +75,7 @@ protected:
         Client::Tests::GoldenDataTest::SetUp();
         if (HasFatalFailure())
             return;
-        Client::Scenes::InitializeGameItemRenderState(m_world->Runtime().itemRender, m_cloth->random);
+        Client::Actors::Drawing::InitializeGameItemRenderState(m_world->Runtime().itemRender, m_cloth->random);
         Client::Scenes::LoadingScene loading({.dataRoot = m_dataRoot,
                                               .textures = m_textures,
                                               .log = m_log,
@@ -319,12 +319,12 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     const auto map = static_cast<std::uint8_t>(GetParam());
     Teleport(map, 64, 64);
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::ModelTextureTable table;
-    Client::Scenes::TerrainTiles tiles(store);
+    Client::Assets::ModelTextureTable table;
+    Client::Assets::TerrainTiles tiles(store);
     tiles.BindTextureTable(table);
     std::vector<std::string> skipped;
     ASSERT_TRUE(tiles.Load(m_dataRoot, map, skipped).HasValue());
-    Client::Scenes::WorldModels models;
+    Client::Assets::WorldModels models;
     ASSERT_TRUE(
         models.Load(m_dataRoot, map, store, m_log, &m_models->TextureSlots(), m_models.get(), &table).HasValue());
     auto effects = std::make_unique<Client::World::ModelEffects>();
@@ -335,13 +335,13 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
         .map = map, .originalFrame = false, .retainedPose = &pose, .waterTextureFrame = 0u};
     Client::Scenes::ModelEffectDrawResources resources{*m_world->Map().terrain.heights};
     resources.kalimaPass = &pass;
-    resources.onPose = [&](const Client::Scenes::DrawnObject& drawn)
+    resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     { return Client::Scenes::PublishFaunaPose(pose, models, drawn, true); };
     resources.posedMeshes = [&]() { return std::span<const Client::Models::SkinnedMesh>(pose.meshes); };
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, effects->Effects(),
-                                                            Client::World::SphereFrustum{}, nullptr, {}, 0, resources);
+    const auto drawn = Client::Scenes::DrawGameModelEffects(
+        batch, models, effects->Effects(), Client::Terrain::SphereFrustum{}, nullptr, {}, 0, resources);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(batch.Vertices().size(), 204u); // 34 triángulos del cuerpo y34 de cáusticas.
     ASSERT_EQ(batch.Commands().size(), 2u);
@@ -352,7 +352,7 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     table.Release(Client::Render::TextureSlot{65});
     batch.Begin(Client::Render::Pass3D{});
     const auto missing = Client::Scenes::DrawGameModelEffects(
-        batch, models, effects->Effects(), Client::World::SphereFrustum{}, nullptr, {}, 0, resources);
+        batch, models, effects->Effects(), Client::Terrain::SphereFrustum{}, nullptr, {}, 0, resources);
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x4395ba"), std::string::npos);
     EXPECT_EQ(batch.Vertices().size(), 102u);

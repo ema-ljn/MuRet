@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::World
+namespace Client::Terrain
 {
 namespace
 {
@@ -397,4 +397,4 @@ std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map)
     constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
     return {{"World31\\Map1.jpg", 0x69d, Clamp, true}, {"World31\\Map2.jpg", 0x69e, Clamp, true}};
 }
-} // namespace Client::World
+} // namespace Client::Terrain

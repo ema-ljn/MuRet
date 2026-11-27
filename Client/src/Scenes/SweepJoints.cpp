@@ -105,7 +105,7 @@ Core::Expected<bool, std::string> HitAroundTheHero(JointState& joint, const Join
     {
         if (volley.attributes == nullptr)
             return Core::Unexpected(std::string("0x53b57a: faltan los atributos de las celdas (0x7d0d348)"));
-        const auto cell = World::TerrainAttributeQueryAt(*volley.attributes, joint.position.x, joint.position.y);
+        const auto cell = Terrain::TerrainAttributeQueryAt(*volley.attributes, joint.position.x, joint.position.y);
         if (!cell.HasValue())
             return Core::Unexpected(std::string("0x53b57a: 0x5f82c0 lee fuera de la tabla de atributos"));
         constexpr std::uint32_t Blocked = 0x100;

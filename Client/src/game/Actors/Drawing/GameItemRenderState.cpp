@@ -4,7 +4,7 @@
 #include "Math/Angles.h"
 #include "Math/RoundedMath.h"
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& random)
 {
@@ -26,4 +26,4 @@ void UpdateGameItemGlowPulse(GameItemRenderState& state, float worldClock)
     state.glowPulse =
         static_cast<float>(Math::RoundedSin(static_cast<double>(worldClock) * Frequency) * Amplitude + Base);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

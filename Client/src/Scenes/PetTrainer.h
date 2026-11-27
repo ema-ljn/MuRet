@@ -23,11 +23,15 @@ namespace Client::UI
 class PanelRegistry;
 }
 
+namespace Client::Kernel
+{
+class WorldState;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 struct GameUiContext;
 struct InventoryServices;
-class WorldState;
 
 // 0x724580: los modos.
 inline constexpr std::int32_t TrainerMenuMode = 1;
@@ -35,22 +39,22 @@ inline constexpr std::int32_t TrainerRecoveryMode = 2;
 inline constexpr std::int32_t TrainerBoxMode = 3;
 
 // 0x449940(modo): el modo en 0x724580 y la caja vacía (0x449c40). El 0x6599a0(0x8000) la llama con 1 (0x65be8b).
-void OpenTheTrainer(WorldState& world, std::int32_t mode);
+void OpenTheTrainer(Kernel::WorldState& world, std::int32_t mode);
 
 // 0x449c10: si alguna casilla de la caja tiene un tipo (distinto de 0xffff), sin mirar +0x3c.
-[[nodiscard]] bool TrainerBoxHasItems(const WorldState& world);
+[[nodiscard]] bool TrainerBoxHasItems(const Kernel::WorldState& world);
 
 // 0x4499b0: con algo en la caja, el texto 1211 de error (0x555190(0x6e57a4, .., 2)) y false; si no, 0x724584 y
 // 0x724580 en 0 y el C1 03 31 en claro por `send`, y true. Sin `services` o sin su mensaje, el aviso corta.
-[[nodiscard]] Core::Expected<bool, std::string> CloseTheTrainer(WorldState& world, const InventoryServices* services,
-                                                                const NpcWindowSender& send);
+[[nodiscard]] Core::Expected<bool, std::string>
+CloseTheTrainer(Kernel::WorldState& world, const InventoryServices* services, const NpcWindowSender& send);
 
 // 0x44ae10: 0x724584 y 0x724585 en 0 y la mezcla de la caja (las casillas con un tipo y +0x3c distinto de 0): el
 // espíritu del caballo (0x1a1f de nivel 0) con 5 joyas de bendición (0x1c0d), 5 del alma (0x1c0e), una de la creación
 // (0x1c16) y una del caos (0x180f) es la 1, y el del cuervo (nivel 1) con 2, 2, 1 y 1 la 2. Con una de las dos, el
 // registro propio abierto (3.848 rand() al cerrarlo sin otros accesos) y 0x724585 en 1 si el zen (+0xecc, sin signo)
 // no alcanza para su precio (0x6b8c68: 5.000.000 y 1.000.000).
-void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random);
+void ScanTheTrainerBox(Kernel::WorldState& world, Crt::CrtRandom& random);
 
 // 0x6b8c68: el precio de la mezcla `kind` de la caja (0, 1 o 2).
 [[nodiscard]] std::uint32_t TrainerMixPrice(std::uint8_t kind);
@@ -58,7 +62,7 @@ void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random);
 // 0x421d90 (desde 0x44c633): pone en 0 los 0x48 bytes de 0x723918..0x72395f, lo último que pidió el tooltip de las
 // mascotas (0x422990, P-C126): el tipo y D+4 de WorldRuntime::petTooltipQuery. Conserva su clave 0x723914 y las
 // estadísticas de mascotas que empiezan en 0x723960.
-void ForgetThePetTooltipQuery(WorldState& world);
+void ForgetThePetTooltipQuery(Kernel::WorldState& world);
 
 // Lo que 0x44b190 deja en el buffer de quien llama: el texto de Text.bmd y lo que el sprintf le pasa.
 enum class PetQuoteLine : std::uint8_t
@@ -82,7 +86,7 @@ struct PetRecoveryQuote
 // hubiera hecho.
 struct PetQuoteContext
 {
-    WorldState& world;
+    Kernel::WorldState& world;
     Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
     const Tables::ItemTable* items = nullptr;

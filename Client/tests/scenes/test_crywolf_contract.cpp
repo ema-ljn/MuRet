@@ -32,13 +32,13 @@
 // 0.97 no tiene Crywolf). Text.bmd es inventado. Nada de esto saca rand().
 namespace
 {
+using Client::Kernel::ActorState;
+using Client::Kernel::CrywolfInterface;
+using Client::Kernel::WorldRuntime;
+using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
-using Client::Scenes::ActorState;
 using Client::Scenes::AltarClick;
 using Client::Scenes::ContractMessage;
-using Client::Scenes::CrywolfInterface;
-using Client::Scenes::WorldRuntime;
-using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 

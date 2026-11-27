@@ -24,19 +24,19 @@ constexpr std::int32_t StoredKeyMask = 0x7fff;
 // 0x451348..0x451351 y 0x4512ef..0x4512fe: el lugar que el alta y la actualización le dan a 0x4527d0.
 constexpr std::int32_t Unplaced = -1;
 
-std::int32_t KeyOf(const ActorState& actor)
+std::int32_t KeyOf(const Kernel::ActorState& actor)
 {
     return static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key));
 }
 } // namespace
 
-void AddShopTitle(WorldState& world, std::int32_t key, std::size_t index, std::string_view title)
+void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index, std::string_view title)
 {
-    const ActorState& actor = world.Actors()[index];
+    const Kernel::ActorState& actor = world.Actors()[index];
     // 0x45122a: "AddShopTitle: there is NOT player" al log, nada más.
     if (actor.byte88 != PlayerKind)
         return;
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     PersonalShopState& shops = runtime.social.personalShop;
     const auto found = shops.titles.find(index);
     if (found == shops.titles.end())
@@ -104,13 +104,13 @@ std::optional<std::size_t> ShopTitleWithKey(const PersonalShopState& shops, std:
     return std::nullopt;
 }
 
-void CheckTheShopKeys(WorldState& world)
+void CheckTheShopKeys(Kernel::WorldState& world)
 {
     PersonalShopState& shops = world.Runtime().social.personalShop;
     const auto actors = world.Actors();
     for (auto shop = shops.titles.begin(); shop != shops.titles.end();)
     {
-        const ActorState& actor = actors[shop->first];
+        const Kernel::ActorState& actor = actors[shop->first];
         if (KeyOf(actor) == shop->second.key && actor.byte88 == PlayerKind)
             ++shop;
         else
@@ -118,7 +118,7 @@ void CheckTheShopKeys(WorldState& world)
     }
 }
 
-void KeepTheHeroShopTitle(WorldState& world)
+void KeepTheHeroShopTitle(Kernel::WorldState& world)
 {
     const std::int32_t heroKey = KeyOf(world.Hero());
     PersonalShopState& shops = world.Runtime().social.personalShop;

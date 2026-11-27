@@ -10,7 +10,7 @@
 // El pase del mundo de las escenas sin terreno todavía y sus cámaras fijas (06 § Cámara, CL6.R).
 // Las rutas de 0x633920 corren en la lógica y escriben otra posición, otros ángulos y un fov de 45,
 // pero 0x635ae0 las pisa antes de que lleguen a 0x620db0: lo que dibuja es esto.
-namespace Client::Scenes
+namespace Client::Camera
 {
 // 0x620db0(0, 25, 640, 430), en 0x6350b0 (el login) y en 0x634680 (la selección).
 inline constexpr Render::ViewportRect WorldViewport{0, 25, 640, 430};
@@ -26,7 +26,7 @@ inline constexpr Render::ViewportRect WorldViewport{0, 25, 640, 430};
 
 // 0x635ae0 una vez por frame original; los dibujos intermedios de la misma entrada solo consultan.
 // ADR0005: cada Enter empieza un carry local; su primer dibujo cuenta un frame incluso al mismo reloj.
-[[nodiscard]] Render::Camera3D CameraForFrame(World::GameCamera& state, const World::GameCameraInput& input,
+[[nodiscard]] Render::Camera3D CameraForFrame(Camera::GameCamera& state, const Camera::GameCameraInput& input,
                                               Models::OriginalFrameCarry& frames, Core::Duration clock,
                                               Models::OriginalFramePace pace);
 
@@ -37,4 +37,4 @@ inline constexpr glm::vec3 LoginHeroPosition{11679.0f, 14191.0f, 333.0f};
 // El punto que 0x634680 le pasa a 0x5fbb00 (0x63475c), un local fijo (0x6346b5..0x6346c3): el centro del
 // trapecio de la selección, que no es ningún personaje. Es el que lee el primer paso del juego (Q-C216).
 inline constexpr glm::vec3 SelectionCullingPoint{12975.0f, 15423.0f, 333.0f};
-} // namespace Client::Scenes
+} // namespace Client::Camera

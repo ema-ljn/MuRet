@@ -51,7 +51,7 @@ struct Stage
 {
     Stage()
     {
-        Client::Scenes::ActorState& actor = world.Actors()[ChosenSlot];
+        Client::Kernel::ActorState& actor = world.Actors()[ChosenSlot];
         actor.alive = true;
         actor.key = ChosenKey;
         actor.level = 77;
@@ -76,10 +76,10 @@ struct Stage
                                    .texts = &texts};
     }
 
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
+    Client::Camera::GameCamera camera;
+    Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(0x1357)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf({});
@@ -121,9 +121,9 @@ TEST(PkLevelReplyTest, EachLevelKeepsItsStateAndNamesItInTheChat)
         SCOPED_TRACE(int{tested.level});
         auto stage = std::make_unique<Stage>();
         const auto applied =
-            Client::Scenes::ApplyPkLevel(PkLevel{.key = ChosenKey, .level = tested.level}, stage->Resources());
+            Client::Actors::ApplyPkLevel(PkLevel{.key = ChosenKey, .level = tested.level}, stage->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        const Client::Scenes::ActorState& actor = stage->world.Actors()[ChosenSlot];
+        const Client::Kernel::ActorState& actor = stage->world.Actors()[ChosenSlot];
         EXPECT_EQ(actor.pk, tested.level);
         EXPECT_EQ(actor.level, tested.word1d6);
         const auto& entries = stage->world.Runtime().chat.log.entries;
@@ -143,7 +143,7 @@ TEST(PkLevelReplyTest, EachLevelKeepsItsStateAndNamesItInTheChat)
 TEST(PkLevelReplyTest, AnUnknownKeyWritesThePhantomRecord)
 {
     auto stage = std::make_unique<Stage>();
-    const auto applied = Client::Scenes::ApplyPkLevel(PkLevel{.key = 0x0456, .level = 3}, stage->Resources());
+    const auto applied = Client::Actors::ApplyPkLevel(PkLevel{.key = 0x0456, .level = 3}, stage->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(stage->world.Actors()[ChosenSlot].pk, 0);
     EXPECT_EQ(stage->world.Actors()[400].pk, 3);
@@ -157,7 +157,7 @@ TEST(PkLevelReplyTest, AMurdererTextThatOverflowsTheStackBufferIsCut)
 {
     auto stage = std::make_unique<Stage>();
     stage->texts = Client::Tests::MakeTextTable({{490, std::string(30, 'a')}, {491, "!"}});
-    const auto applied = Client::Scenes::ApplyPkLevel(PkLevel{.key = ChosenKey, .level = 5}, stage->Resources());
+    const auto applied = Client::Actors::ApplyPkLevel(PkLevel{.key = ChosenKey, .level = 5}, stage->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("0x4d3c19"), std::string::npos) << applied.Error();
 }

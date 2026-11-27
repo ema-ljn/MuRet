@@ -54,8 +54,8 @@
 // sin ejecutar el original. Una bota y una sombra sintéticas vuelven observable el color y el contorno.
 namespace
 {
-using Client::Scenes::ActorState;
-using Client::Scenes::GameCharacterPass;
+using Client::Actors::Drawing::GameCharacterPass;
+using Client::Kernel::ActorState;
 
 constexpr std::uint16_t BootsModel = 0x1800;
 constexpr std::uint16_t AngelModel = 0x1f7;
@@ -226,11 +226,11 @@ class GameCharacterRenderTest : public testing::Test
 protected:
     void SetUp() override
     {
-        m_world = std::make_unique<Client::Scenes::WorldState>();
+        m_world = std::make_unique<Client::Kernel::WorldState>();
         m_world->Runtime().map = 0;
         m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         m_world->Map().terrain.attributes->cells.fill(0);
-        m_light = std::make_unique<Client::World::TerrainLighting>();
+        m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         m_batch.Begin(Client::Render::Pass3D{});
     }
@@ -278,8 +278,8 @@ protected:
                 .worldModels = &m_models};
     }
 
-    std::unique_ptr<Client::Scenes::WorldState> m_world;
-    std::unique_ptr<Client::World::TerrainLighting> m_light;
+    std::unique_ptr<Client::Kernel::WorldState> m_world;
+    std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
@@ -292,7 +292,7 @@ TEST_F(GameCharacterRenderTest, OtherPlayersUseTheSuppliedDynamicTerrainLightAnd
     ActorState& actor = Player(7);
     m_world->Runtime().hero = 42;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 6u);
@@ -323,7 +323,7 @@ TEST_F(GameCharacterRenderTest, TheHeroBodyAppliesEveryAdjustmentBitInAssemblyOr
         SCOPED_TRACE(static_cast<int>(value.bits));
         m_world->OwnCharacter().speedAdjustBits = value.bits;
         m_batch.Begin(Client::Render::Pass3D{});
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), 6u);
         const auto color = m_batch.Vertices()[3].color;
@@ -341,7 +341,7 @@ TEST_F(GameCharacterRenderTest, TheHeroClosesItsOwnRecordBeforeTheUnconditionalA
 {
     Player(0);
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_world->Runtime().ownRecordDepth, 0);
@@ -354,7 +354,7 @@ TEST_F(GameCharacterRenderTest, AnOuterOwnRecordAccessSuppressesOnlyThe3848Close
     Player(0);
     m_world->Runtime().ownRecordDepth = 1;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_world->Runtime().ownRecordDepth, 1);
@@ -371,7 +371,7 @@ TEST_F(GameCharacterRenderTest, EitherPickingSlotPassesTheOutlineFlagToTheBodyPa
         pass.hovered = target ? -1 : 7;
         pass.targeted = target ? 7 : -1;
         m_batch.Begin(Client::Render::Pass3D{});
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Commands().size(), 3u);
         EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Shadow);
@@ -385,7 +385,7 @@ TEST_F(GameCharacterRenderTest, AGamePlayerWithLessThanHalfAlphaHasNoShadowAndFa
 {
     Player(0).alpha = 0.25f;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 3u);
@@ -403,7 +403,7 @@ TEST_F(GameCharacterRenderTest, ABackSwordHangsFromTheWingsBoneWithTheFlagPlacem
     ActorState& actor = Player(0);
     actor.hands[0].model = 0x212;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 9u);
@@ -419,14 +419,14 @@ TEST_F(GameCharacterRenderTest, ABackSwordHangsFromTheWingsBoneWithTheFlagPlacem
 
 TEST_F(GameCharacterRenderTest, HangingModelsUseTheirSecondColorAndTheSharedRandom)
 {
-    Client::Scenes::DrawnCharacter character;
+    Client::Actors::Drawing::DrawnCharacter character;
     character.appearance.bodyParts.back().model = BootsModel;
-    character.appearance.rightHand = Client::GameLogic::WornItem{0xc17, 0, false, false};
+    character.appearance.rightHand = Client::Kernel::WornItem{0xc17, 0, false, false};
     character.light = {0.1f, 0.2f, 0.3f};
     character.hangingLight = glm::vec3{0.8f, 0.7f, 0.6f};
     character.originalRandom = &m_clothWorld.random;
 
-    Client::Scenes::DrawCharacter(m_batch, m_models, character, {});
+    Client::Actors::Drawing::DrawCharacter(m_batch, m_models, character, {});
 
     ASSERT_EQ(m_batch.Vertices().size(), 9u);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[3].color.red, 0.1f);
@@ -444,7 +444,7 @@ TEST_F(GameCharacterRenderTest, BetweenOriginalFramesTheDrawDoesNotRepeatTheReco
     GameCharacterPass pass = Pass();
     pass.originalFrames = 0;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
@@ -457,7 +457,7 @@ TEST_F(GameCharacterRenderTest, MultipleOriginalFramesKeepOnlyTheLastGeometryBut
     GameCharacterPass pass = Pass();
     pass.originalFrames = 2;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_clothWorld.random.State(), 0x5fc9f4d3u); // semilla 1, dos veces 3848 + 1
@@ -468,7 +468,7 @@ TEST_F(GameCharacterRenderTest, The401stPoolRecordIsNotPartOfThe400CharacterDraw
 {
     Player(400);
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
@@ -484,7 +484,7 @@ TEST_F(GameCharacterRenderTest, OutsideTheSafeZoneTheSwordHangsFromTheRightHandB
     actor.safeZone = 0;
     actor.hands[0].model = 0x212;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 9u);
@@ -502,7 +502,7 @@ TEST_F(GameCharacterRenderTest, BetweenOriginalFramesTheHangingIsDrawnWithoutCha
     GameCharacterPass pass = Pass();
     pass.originalFrames = 0;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 9u);
@@ -518,7 +518,7 @@ TEST_F(GameCharacterRenderTest, AHangingItemWithoutThePoseBufferStopsAfterTheBod
     GameCharacterPass pass = Pass();
     pass.poseCarry = nullptr;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x509340"), std::string::npos) << result.Error();
@@ -530,7 +530,7 @@ TEST_F(GameCharacterRenderTest, AHiddenHeroReturnsBeforeTheRecordAndTheUnconditi
 {
     Player(0).flags7c = 0x10000000;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
@@ -542,7 +542,7 @@ TEST_F(GameCharacterRenderTest, ACalledHeroWithControlBitFourKeepsTheOriginalUnd
     ActorState& hero = Player(0);
     hero.controlCode = 4;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
@@ -557,7 +557,7 @@ TEST_F(GameCharacterRenderTest, TheRavenNeedsTheTrapeziumOfTheDrawAfterTheEffect
 {
     Player(0).darkSpirit.emplace();
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x418320"), std::string::npos) << result.Error();
@@ -577,13 +577,13 @@ TEST_F(GameCharacterRenderTest, TheSharedRandomAdvancesOnlyForThe607b60CasesThat
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.model);
-        Client::Scenes::DrawnCharacter character;
-        character.appearance.rightHand = Client::GameLogic::WornItem{value.model, 0, false, false};
+        Client::Actors::Drawing::DrawnCharacter character;
+        character.appearance.rightHand = Client::Kernel::WornItem{value.model, 0, false, false};
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         character.originalRandom = &m_clothWorld.random;
         m_batch.Begin(Client::Render::Pass3D{});
 
-        Client::Scenes::DrawCharacter(m_batch, m_models, character, {});
+        Client::Actors::Drawing::DrawCharacter(m_batch, m_models, character, {});
 
         EXPECT_EQ(m_clothWorld.random.State(), value.state);
     }
@@ -593,7 +593,7 @@ TEST_F(GameCharacterRenderTest, TheClothOnTheMeshStopsBeforeThePlayerRecordAndIt
 {
     Player(0).word376 = 0x59;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x50bae7"), std::string::npos) << result.Error();
@@ -611,12 +611,12 @@ TEST_F(GameCharacterRenderTest, TheMonster55WearsTheClothOfThe0x37)
         m_world->Runtime().map = map;
         Player(0).word376 = 0x37;
         m_clothWorld.random = Client::Crt::CrtRandom{1};
-        std::array<Client::Scenes::CharacterCloth, 401> cloths;
+        std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         if (map == 0x12)
@@ -637,11 +637,11 @@ TEST_F(GameCharacterRenderTest, TheHiddenClothFlagDoesNotRunTheClothSimulationBe
     ActorState& hero = Player(0);
     hero.characterClass = 4;
     hero.flags78 = 0x4000;
-    std::array<Client::Scenes::CharacterCloth, 401> cloths;
+    std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
     GameCharacterPass pass = Pass();
     pass.cloths = cloths;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     // Con 0x4000 y sin 4 ni 0x2000000, 0x50fba4 no corre: el dibujo termina sin la tela.
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -653,20 +653,20 @@ TEST_F(GameCharacterRenderTest, TheOverloadWithoutDrawingResourcesAlsoExcludesTh
 {
     Player(400);
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_world->Actors(), m_world->Runtime().hero,
-                                                           m_world->Map().terrain.attributes->cells);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_world->Actors(), m_world->Runtime().hero,
+                                                                    m_world->Map().terrain.attributes->cells);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
 }
 
 TEST_F(GameCharacterRenderTest, TheAttachmentInitializerConsumesItsRandomBeforeAMissingItemPose)
 {
-    Client::Scenes::DrawnCharacter character;
-    character.appearance.rightHand = Client::GameLogic::WornItem{0xc17, 0, false, false};
+    Client::Actors::Drawing::DrawnCharacter character;
+    character.appearance.rightHand = Client::Kernel::WornItem{0xc17, 0, false, false};
     character.originalRandom = &m_clothWorld.random;
     m_models.handSkeletons = false;
 
-    Client::Scenes::DrawCharacter(m_batch, m_models, character, {});
+    Client::Actors::Drawing::DrawCharacter(m_batch, m_models, character, {});
 
     EXPECT_EQ(m_clothWorld.random.State(), 0xc823f683u);
     EXPECT_EQ(m_batch.Vertices().size(), 3u);
@@ -674,12 +674,12 @@ TEST_F(GameCharacterRenderTest, TheAttachmentInitializerConsumesItsRandomBeforeA
 
 TEST_F(GameCharacterRenderTest, HiddenAttachmentsReturnBeforeTheInitializerAndItsRandoms)
 {
-    Client::Scenes::DrawnCharacter character;
-    character.appearance.rightHand = Client::GameLogic::WornItem{0xc17, 0, false, false};
+    Client::Actors::Drawing::DrawnCharacter character;
+    character.appearance.rightHand = Client::Kernel::WornItem{0xc17, 0, false, false};
     character.originalRandom = &m_clothWorld.random;
     character.objectFlags = 0x4000;
 
-    Client::Scenes::DrawCharacter(m_batch, m_models, character, {});
+    Client::Actors::Drawing::DrawCharacter(m_batch, m_models, character, {});
 
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
     EXPECT_EQ(m_batch.Vertices().size(), 3u);
@@ -689,7 +689,7 @@ TEST_F(GameCharacterRenderTest, AnUnselectedLeftSwordIsNotDrawnInTheSafeZone)
 {
     Player(0).hands[1].model = 0x212;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
@@ -730,17 +730,17 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         m_world->Actors()[5].key = 0x0021;
         Client::Scenes::DuelState& duel = m_world->Runtime().social.duel;
         duel = {};
-        auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+        auto cloths = std::make_unique<std::array<Client::Actors::Drawing::CharacterCloth, 401>>();
         GameCharacterPass pass = Pass();
         pass.cloths = *cloths;
         m_batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         EXPECT_TRUE((*cloths)[0].Cloths().empty());
 
         player.characterClass = 3;
         player.byte3e3 = 1;
         m_batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         EXPECT_TRUE((*cloths)[0].Cloths().empty());
 
         player.characterClass = 1;
@@ -750,7 +750,7 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         for (std::size_t at = 0; at < 6; ++at)
             duel.rivalName[at] = static_cast<std::byte>("Brezal"[at]);
         m_batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         ASSERT_EQ((*cloths)[0].Cloths().size(), 1u);
         EXPECT_GT(ClothVerticesIn(m_batch, Rival), 0u);
         EXPECT_EQ(ClothVerticesIn(m_batch, Hero), 0u);
@@ -758,7 +758,7 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         // El mismo, publicado: la segunda comparación gana.
         m_world->Runtime().hero = 0;
         m_batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         EXPECT_EQ(ClothVerticesIn(m_batch, Rival), 0u);
         EXPECT_GT(ClothVerticesIn(m_batch, Hero), 0u);
 
@@ -766,7 +766,7 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         m_world->Runtime().hero = 5;
         duel.rivalName[0] = std::byte{'Z'};
         m_batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         EXPECT_EQ(ClothVerticesIn(m_batch, Rival), 0u);
     }
 }
@@ -784,7 +784,7 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
     for (const std::int32_t map : {0, 2, 0x12})
     {
         SCOPED_TRACE(map);
-        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
+        Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
         runtime.map = map;
         Client::Scenes::GuildState& guild = runtime.guild;
         guild.table[3].guildName = {'T', 'a', 'l', 'a', 's'};
@@ -802,7 +802,7 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         runtime.hero = 5;
         m_world->Actors()[5].key = 0x0021;
         m_world->Actors()[5].word1f2 = 3;
-        auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+        auto cloths = std::make_unique<std::array<Client::Actors::Drawing::CharacterCloth, 401>>();
         GameCharacterPass pass = Pass();
         pass.cloths = *cloths;
         // Con +0x1f2 en 3 y las claves en −1, 0x50d533 también pide la marca (0x447b00 encuentra la entrada 0).
@@ -812,7 +812,7 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         const auto draw = [&]()
         {
             m_batch.Begin(Client::Render::Pass3D{});
-            return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+            return Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
         };
         ASSERT_TRUE(draw().HasValue());
         EXPECT_TRUE((*cloths)[0].Cloths().empty());
@@ -879,7 +879,7 @@ TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTea
     soccer.active = true;
     soccer.firstName = {'T', 'a', 'l', 'a', 's'};
     soccer.secondName = {'O', 'm', 'b', 'u'};
-    auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+    auto cloths = std::make_unique<std::array<Client::Actors::Drawing::CharacterCloth, 401>>();
     auto store = std::make_unique<Client::Tests::FakeTextureStore>();
     auto marks = std::make_unique<Client::Scenes::GuildMarkTextures>(*store);
     GameCharacterPass pass = Pass();
@@ -888,7 +888,7 @@ TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTea
     const auto draw = [&]()
     {
         m_batch.Begin(Client::Render::Pass3D{});
-        return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        return Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     };
     ASSERT_TRUE(draw().HasValue());
     EXPECT_GT(ClothVerticesIn(m_batch, {1, 0.2f, 0}), 0u);
@@ -923,7 +923,7 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeO
             SCOPED_TRACE(static_cast<int>(pace));
             Player(0).characterClass = characterClass;
             m_clothWorld.random = Client::Crt::CrtRandom{1};
-            std::array<Client::Scenes::CharacterCloth, 401> cloths;
+            std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
             Client::World::FrameSprites sprites;
             GameCharacterPass pass = Pass();
             pass.originalFrames = 0;
@@ -932,7 +932,7 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeO
             pass.sprites = &sprites;
             m_batch.Begin(Client::Render::Pass3D{});
 
-            const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+            const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(cloths[0].Count(), 0);
@@ -951,11 +951,11 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDrawExistingClothsWithoutChang
     {
         SCOPED_TRACE(static_cast<int>(characterClass));
         Player(0).characterClass = characterClass;
-        std::array<Client::Scenes::CharacterCloth, 401> cloths;
+        std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
         pass.pace = Client::Models::OriginalFramePace::OncePerDraw;
-        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         const auto initial = cloths[0].Cloths();
         ASSERT_FALSE(initial.empty());
         const std::vector<Client::Models::Cloth> before(initial.begin(), initial.end());
@@ -965,7 +965,7 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDrawExistingClothsWithoutChang
         pass.frameClock = std::chrono::seconds{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(cloths[0].Count(), count);
@@ -978,14 +978,14 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDrawExistingClothsWithoutChang
 TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPreservesSimulation)
 {
     Player(0).characterClass = 4;
-    auto referenceWorld = std::make_unique<Client::Scenes::WorldState>();
+    auto referenceWorld = std::make_unique<Client::Kernel::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = m_world->Actors()[0];
     referenceWorld->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     referenceWorld->Map().terrain.attributes->cells.fill(0);
     Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
-    std::array<Client::Scenes::CharacterCloth, 401> cloths;
-    std::array<Client::Scenes::CharacterCloth, 401> referenceCloths;
+    std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
+    std::array<Client::Actors::Drawing::CharacterCloth, 401> referenceCloths;
     Client::World::FrameSprites sprites;
     Client::World::FrameSprites referenceSprites;
     GameCharacterPass pass = Pass();
@@ -1006,12 +1006,12 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
         ASSERT_TRUE(referenceSprites.Create(0x777, {9.0f, 8.0f, 7.0f}, 1.0f, {1.0f, 0.5f, 0.25f}, 0.0f, 0));
         referencePass.frameClock = Client::Models::OriginalFrameTime * frame;
         const auto result =
-            Client::Scenes::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
+            Client::Actors::Drawing::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
         ASSERT_TRUE(result.HasValue()) << result.Error();
     }
     ASSERT_TRUE(sprites.Create(0x777, {9.0f, 8.0f, 7.0f}, 1.0f, {1.0f, 0.5f, 0.25f}, 0.0f, 0));
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto expectedSprites = LiveSprites(referenceSprites);
@@ -1031,14 +1031,14 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     // 414470: la librería sintética no tiene MuSign. La capa5 falla después de sombra/partes/tela/arma;
     // las capas de asedio6..13 ya están portadas y no son un punto de fallo válido para esta regresión.
     actor.byte360 = 5;
-    auto referenceWorld = std::make_unique<Client::Scenes::WorldState>();
+    auto referenceWorld = std::make_unique<Client::Kernel::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = actor;
     referenceWorld->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     referenceWorld->Map().terrain.attributes->cells.fill(0);
     Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
-    std::array<Client::Scenes::CharacterCloth, 401> cloths;
-    std::array<Client::Scenes::CharacterCloth, 401> referenceCloths;
+    std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
+    std::array<Client::Actors::Drawing::CharacterCloth, 401> referenceCloths;
     Client::World::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x777, {9.0f, 8.0f, 7.0f}, 1.0f, {1.0f, 0.5f, 0.25f}, 0.0f, 0));
     Client::World::FrameSprites referenceSprites = sprites;
@@ -1060,13 +1060,14 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referencePass.sprites = &referenceSprites;
     Client::Scenes::FaunaDrawCarry referenceCarry;
     referencePass.poseCarry = &referenceCarry;
-    const auto reference = Client::Scenes::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
+    const auto reference =
+        Client::Actors::Drawing::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
     ASSERT_FALSE(reference.HasValue());
     ASSERT_NE(reference.Error().find("0x414470"), std::string::npos) << reference.Error();
     ASSERT_GT(referenceBatch.Vertices().size(), 6u); // sombra, partes, tela y el arma a la espalda
     ASSERT_EQ(LiveSprites(referenceSprites).size(), 31u);
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), reference.Error());
@@ -1087,11 +1088,11 @@ TEST_F(GameCharacterRenderTest, MissingClothKeepsTheShadowPartsScanAndHeroLightP
         ActorState& actor = Player(0);
         actor.characterClass = characterClass;
         m_world->OwnCharacter().speedAdjustBits = 1;
-        m_world->Runtime().fullSetScan = Client::Scenes::Scan505820{123, 42};
+        m_world->Runtime().fullSetScan = Client::Actors::Scan505820{123, 42};
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("0x50d58b"), std::string::npos) << result.Error();
@@ -1115,11 +1116,11 @@ TEST_F(GameCharacterRenderTest, MissingDynamicLightKeepsTheShadowAndRunsThePrece
 {
     ActorState& actor = Player(0);
     actor.drawnLight = {7.0f, 8.0f, 9.0f};
-    m_world->Runtime().fullSetScan = Client::Scenes::Scan505820{123, 42};
+    m_world->Runtime().fullSetScan = Client::Actors::Scan505820{123, 42};
     GameCharacterPass pass = Pass();
     pass.dynamicLighting = nullptr;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x50cc55"), std::string::npos) << result.Error();
@@ -1134,11 +1135,11 @@ TEST_F(GameCharacterRenderTest, MissingDynamicLightKeepsTheShadowAndRunsThePrece
 TEST_F(GameCharacterRenderTest, MissingGlobalRandomKeepsTheShadowAndStopsAtTheScan)
 {
     Player(0);
-    m_world->Runtime().fullSetScan = Client::Scenes::Scan505820{123, 42};
+    m_world->Runtime().fullSetScan = Client::Actors::Scan505820{123, 42};
     GameCharacterPass pass = Pass();
     pass.clothWorld = nullptr;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x50c91e"), std::string::npos) << result.Error();
@@ -1153,7 +1154,7 @@ TEST_F(GameCharacterRenderTest, WithPlus3e3ThePlayerDrawsNoPartsAndGoesOnToTheCl
     Player(7).byte3e3 = 1;
     m_world->Runtime().hero = 42;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Commands().size(), 1u);
@@ -1170,7 +1171,7 @@ TEST_F(GameCharacterRenderTest, TheSkeletonSubtypesWearTheirWholeBodyInsteadOfTh
     actor.subtype = SkeletonBodyModel;
     m_world->Runtime().hero = 42;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto commands = m_batch.Commands();
@@ -1205,7 +1206,7 @@ TEST_F(GameCharacterRenderTest, TheSkeletonNpcOfLorenciaGlowsWithItsWordOf1d6)
             m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_batch.Begin(Client::Render::Pass3D{});
 
-            const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+            const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
             ASSERT_TRUE(result.HasValue()) << result.Error();
             const bool glows = kind == 4 && map == 0;
@@ -1239,12 +1240,12 @@ TEST_F(GameCharacterRenderTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfTheSkele
         actor.subtype = SkeletonBodyModel;
         actor.level = 13;
         m_batch.Begin(Client::Render::Pass3D{});
-        Client::Scenes::ItemDrawContext items;
+        Client::Actors::Drawing::ItemDrawContext items;
         items.glowDetail = detail;
         GameCharacterPass pass = Pass();
         pass.itemContext = &items;
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         // The shadow, the body and its passes.
@@ -1260,7 +1261,7 @@ TEST_F(GameCharacterRenderTest, WithPlus3e3TheSkeletonStillWearsItsWholeBody)
     actor.byte3e3 = 1;
     m_world->Runtime().hero = 42;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Commands().size(), 2u);
@@ -1275,7 +1276,7 @@ TEST_F(GameCharacterRenderTest, AnUnloadedSkeletonBodyOnlyPublishesThePickingBox
     actor.subtype = UnloadedSkeletonBody;
     m_world->Runtime().hero = 42;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Commands().size(), 1u);
@@ -1298,7 +1299,7 @@ TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroA
         m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(actor.field13c, actor.position.x + actor.boundsMin.x);
@@ -1351,7 +1352,7 @@ TEST_F(GameCharacterRenderTest, ChaosCastleAngelPartsSkipDrawingAtTheAlphaBounda
         actor.alpha = alpha;
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(m_batch.Commands().empty());
@@ -1369,7 +1370,7 @@ TEST_F(GameCharacterRenderTest, TheChaosCastleOutlineScalesWithTheObjectAndHasIt
     GameCharacterPass pass = Pass();
     pass.hovered = 7;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto commands = m_batch.Commands();
@@ -1399,7 +1400,7 @@ TEST_F(GameCharacterRenderTest, AnNpcKindOutlinesItsPartsWithTheGreenOfTheNpcs)
     GameCharacterPass pass = Pass();
     pass.hovered = 7;
 
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto vertices = m_batch.Vertices();
@@ -1427,7 +1428,7 @@ TEST_F(GameCharacterRenderTest, AGuildIndexStopsAfterThePartsExceptInChaosCastle
         m_world->Runtime().hero = 42;
         m_batch.Begin(Client::Render::Pass3D{});
 
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+        const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         if (map == 18)
         {

@@ -9,7 +9,7 @@
 #include <span>
 
 // Estado de ítem de 0x54bf40 y campos previos de 0x5bc740. No es un layout C ni un decoder wire.
-namespace Client::World
+namespace Client::Kernel
 {
 // Máximo propio, con metadata estable y frontera 0x4225d0 válida: nueve opciones.
 inline constexpr std::size_t MaxItemOptions = 9;
@@ -84,4 +84,4 @@ void InitializeItemState(ItemState& item, std::span<const std::byte, Tables::Ite
 // original es el nivel del registro propio, [0x7681eb0] + 0xe (0x54cd97 y 0x54cdec), y quien llama
 // sabe si lo tiene abierto (06, "El F3 10, el inventario").
 [[nodiscard]] bool ReadsTheContextWord(std::uint16_t id, std::uint32_t b3);
-} // namespace Client::World
+} // namespace Client::Kernel

@@ -15,7 +15,7 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::World
+namespace Client::Terrain
 {
 struct GroundEffectResources;
 }
@@ -30,14 +30,14 @@ class GroundEffectFrame
 public:
     [[nodiscard]] Core::Expected<void, std::string> Draw(Render::ModelBatch& batch,
                                                          std::span<World::ModelEffect> effects,
-                                                         const World::GroundEffectResources& resources,
+                                                         const Terrain::GroundEffectResources& resources,
                                                          bool originalFrame);
 
     // Al entrar a la escena o reemplazar su mundo; conserva la capacidad de los buffers.
     void Reset();
 
 private:
-    void Capture(std::span<World::ModelEffect> effects, const World::GroundEffectResources& resources);
+    void Capture(std::span<World::ModelEffect> effects, const Terrain::GroundEffectResources& resources);
     std::unique_ptr<World::KalimaWorld> m_kalimaSnapshot;
     std::vector<World::ModelEffect> m_originalEffects;
     std::vector<World::ModelEffect> m_replayEffects;

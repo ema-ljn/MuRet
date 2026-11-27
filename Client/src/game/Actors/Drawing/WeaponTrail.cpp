@@ -26,7 +26,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -49,7 +49,7 @@ struct Trail
 
 using Math::F32;
 
-Trail PlayerTrail(const ActorState& actor, Trail trail)
+Trail PlayerTrail(const Kernel::ActorState& actor, Trail trail)
 {
     const std::uint8_t action = actor.animation.action;
     const int model = trail.model;
@@ -74,7 +74,7 @@ Trail PlayerTrail(const ActorState& actor, Trail trail)
     return trail;
 }
 
-Trail MonsterTrail(const ActorState& actor, Trail trail)
+Trail MonsterTrail(const Kernel::ActorState& actor, Trail trail)
 {
     const bool swing = actor.animation.action == 3 || actor.animation.action == 4;
     if (!swing)
@@ -114,7 +114,7 @@ Trail MonsterTrail(const ActorState& actor, Trail trail)
     return trail;
 }
 
-Trail TrailOf(const ActorState& actor)
+Trail TrailOf(const Kernel::ActorState& actor)
 {
     const bool left = actor.animation.action == 0x25 || actor.animation.action == 0x26;
     const std::size_t hand = actor.type == Tables::PlayerSkeletonModel && left ? 1 : 0;
@@ -164,8 +164,8 @@ Math::BoneTransform BoneOf(std::span<const Math::BoneTransform> bones, std::size
     return index < bones.size() ? bones[index] : Math::BoneTransform(0.0f);
 }
 
-Result Append(ActorState& actor, const Trail& trail, const glm::vec3& first, const glm::vec3& second, WorldState& world,
-              bool shortTrail)
+Result Append(Kernel::ActorState& actor, const Trail& trail, const glm::vec3& first, const glm::vec3& second,
+              Kernel::WorldState& world, bool shortTrail)
 {
     const auto created = CreateRibbon(world.DrawTail().ribbons, {.ownerContext = &actor,
                                                                  .ownerEquipment = &actor.level,
@@ -180,14 +180,14 @@ Result Append(ActorState& actor, const Trail& trail, const glm::vec3& first, con
     return {};
 }
 
-bool SingleSample(const ActorState& actor, int model)
+bool SingleSample(const Kernel::ActorState& actor, int model)
 {
     if (actor.type != Tables::PlayerSkeletonModel)
         return actor.type != 0x194 && actor.type != 0x195 && actor.type != 0x197;
     return model == 0x215 || model == 0x218 || model == 0x21b || model == 0x21d || model == 0x816;
 }
 
-Result SampleParticles(ActorState& actor, const Trail& trail, const glm::vec3& point,
+Result SampleParticles(Kernel::ActorState& actor, const Trail& trail, const glm::vec3& point,
                        const CharacterStepContext& context, int sample)
 {
     if (actor.type != 0x194 || sample % 2 == 0)
@@ -202,10 +202,10 @@ Result SampleParticles(ActorState& actor, const Trail& trail, const glm::vec3& p
     return {};
 }
 
-Result SampleRibbon(ActorState& actor, const Trail& trail, const Models::Skeleton& skeleton,
+Result SampleRibbon(Kernel::ActorState& actor, const Trail& trail, const Models::Skeleton& skeleton,
                     const CharacterStepContext& context)
 {
-    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
     if (placement.action >= skeleton.actions.size())
         return Core::Unexpected(std::string("0x4fd487: la acción compartida de la estela pasa su tabla"));
     const auto& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
@@ -216,7 +216,7 @@ Result SampleRibbon(ActorState& actor, const Trail& trail, const Models::Skeleto
     const auto offsets = OffsetsOf(trail.mode);
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
-        if (auto posed = PoseWorldModel(context.world, actor, skeleton, frame, actor.angles); !posed.HasValue())
+        if (auto posed = Scenes::PoseWorldModel(context.world, actor, skeleton, frame, actor.angles); !posed.HasValue())
             return posed;
         const auto& bones = context.world.PoseCarry().bones;
         const auto first = Math::OriginalVectorTransform(
@@ -233,7 +233,7 @@ Result SampleRibbon(ActorState& actor, const Trail& trail, const Models::Skeleto
 }
 } // namespace
 
-Core::Expected<void, std::string> EmitWeaponTrail(ActorState& actor, const Models::Skeleton* skeleton,
+Core::Expected<void, std::string> EmitWeaponTrail(Kernel::ActorState& actor, const Models::Skeleton* skeleton,
                                                   const CharacterStepContext& context)
 {
     const Trail trail = TrailOf(actor);
@@ -245,7 +245,7 @@ Core::Expected<void, std::string> EmitWeaponTrail(ActorState& actor, const Model
             return Core::Unexpected(std::string("0x4fd482: falta el modelo de la estela"));
         return SampleRibbon(actor, trail, *skeleton, context);
     }
-    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
     const auto offsets = OffsetsOf(trail.mode);
     const auto first = Math::OriginalTransformPosition(
         Math::OriginalMatrixOf(BoneOf(actor.bodyPose, actor.hands[trail.firstHand].bone)), offsets[0], placement.scale,
@@ -255,4 +255,4 @@ Core::Expected<void, std::string> EmitWeaponTrail(ActorState& actor, const Model
         placement.origin);
     return Append(actor, trail, first, second, context.world, false);
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

@@ -14,11 +14,11 @@
 // Client::UI: el mouse de la UI y los rectángulos (CL5.5, la pregunta 12 del plan de la CL5).
 namespace
 {
+using Client::Assets::TextureBufferSize;
 using Client::Core::PixelSize;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Render::TextureSlot;
-using Client::Scenes::TextureBufferSize;
 using Client::UI::MouseInPixels;
 using Client::UI::PixelImage;
 using Client::UI::Point;

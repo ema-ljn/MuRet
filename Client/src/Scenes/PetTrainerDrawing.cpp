@@ -444,7 +444,7 @@ Core::Expected<float, std::string> DrawTheMixName(GameHudContext& context, std::
 Core::Expected<void, std::string> DrawTheBox(GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    HudState& hud = context.hud;
+    Kernel::HudState& hud = context.hud;
     const NpcWindowState& npc = context.world.Runtime().npcWindows;
     const std::uint8_t kind = context.world.Runtime().panels.delegated.field724584;
     // 0x44d913: con otra mezcla no hay nombre, y el precio lee 0x6b8c68 de más y [EBP − 0x88] sin escribir.

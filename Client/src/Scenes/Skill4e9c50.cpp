@@ -14,11 +14,11 @@ constexpr std::uint8_t LeftHandAction = 0x65;
 constexpr std::uint8_t NoHandAction = 0x62;
 } // namespace
 
-std::uint8_t ActionByTheHands(const ActorState& by)
+std::uint8_t ActionByTheHands(const Kernel::ActorState& by)
 {
     // 0x4e9c56..0x4e9cbd: los dos WORD contra −1.
-    const bool right = by.hands[0].model != NoItemModel;
-    const bool left = by.hands[1].model != NoItemModel;
+    const bool right = by.hands[0].model != Kernel::NoItemModel;
+    const bool left = by.hands[1].model != Kernel::NoItemModel;
     if (right && left)
         return BothHandsAction;
     if (right)

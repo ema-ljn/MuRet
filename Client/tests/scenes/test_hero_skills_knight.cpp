@@ -119,7 +119,7 @@ Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skill
     return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
-void Rename(Client::Scenes::ActorState& actor, std::string_view name)
+void Rename(Client::Kernel::ActorState& actor, std::string_view name)
 {
     actor.name.fill(std::byte{0});
     for (std::size_t index = 0; index < name.size() && index + 1 < actor.name.size(); ++index)
@@ -163,7 +163,7 @@ struct KnightHero
         movement.weaponSkill = {.active = 1, .slot = 0, .target = static_cast<std::int32_t>(ChosenSlot)};
         movement.lastActionTick = 0;
     }
-    Client::Scenes::ActorState& Hero()
+    Client::Kernel::ActorState& Hero()
     {
         return world.Actors()[0];
     }
@@ -196,7 +196,7 @@ struct KnightHero
     }
 
     std::uint8_t skill;
-    Client::Scenes::WorldState world;
+    Client::Kernel::WorldState world;
     CrtRandom random;
     std::uint32_t ticks = 10'000;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
@@ -420,7 +420,7 @@ TEST(HeroSkillsKnightTest, Skill41ActsByTheMount)
         std::uint8_t safeZone;
         std::uint8_t action;
     };
-    for (const Case& tried : {Case{Client::Scenes::NoItemModel, 0, 0x94}, Case{0x1c16, 0, 0x51}, Case{0x1c37, 0, 0x5b},
+    for (const Case& tried : {Case{Client::Kernel::NoItemModel, 0, 0x94}, Case{0x1c16, 0, 0x51}, Case{0x1c37, 0, 0x5b},
                               Case{0x1c16, 1, 0x94}, Case{0x1c37, 1, 0x94}, Case{0x1c14, 0, 0x94}})
     {
         SCOPED_TRACE(tried.pet);
@@ -533,7 +533,7 @@ TEST(HeroSkillsKnightTest, TheLordSkillsSendThe19)
             SCOPED_TRACE(skill);
             SCOPED_TRACE(map);
             const auto tested = AKnight(skill, Lord, map);
-            tested->Hero().hands[0].model = Client::Scenes::NoItemModel;
+            tested->Hero().hands[0].model = Client::Kernel::NoItemModel;
             tested->world.Runtime().hud.partyCount = 2;
             tested->Hero().movement = 1;
             const CrtRandom expected = Advanced(tested->random, PaidDraws + EntryDraws + C3Draws);
@@ -671,7 +671,7 @@ TEST(HeroSkillsKnightTest, TheHandsAndTheTypeGateTheSkill)
         SCOPED_TRACE(variant);
         const auto tested = AKnight(0x29);
         if (variant == 0)
-            tested->Hero().hands[0].model = Client::Scenes::NoItemModel;
+            tested->Hero().hands[0].model = Client::Kernel::NoItemModel;
         else if (variant == 1)
             tested->Hero().hands[1].model = 0xd00;
         else if (variant == 2)
@@ -799,13 +799,13 @@ TEST(HeroSkillsKnightHelpersTest, TheRelativeCellBleedsIntoTheHighNibble)
 // 0x4e9c50: las dos manos 0x63, la derecha 0x64, la izquierda 0x65 y ninguna 0x62.
 TEST(HeroSkillsKnightHelpersTest, TheHandsChooseTheAction)
 {
-    Client::Scenes::ActorState actor = Client::Tests::UnarmedPlayer(1);
+    Client::Kernel::ActorState actor = Client::Tests::UnarmedPlayer(1);
     EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x62);
     actor.hands[1].model = 0xc12;
     EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x65);
     actor.hands[0].model = Sword;
     EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x63);
-    actor.hands[1].model = Client::Scenes::NoItemModel;
+    actor.hands[1].model = Client::Kernel::NoItemModel;
     EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x64);
 }
 
@@ -825,7 +825,7 @@ TEST(HeroSkillsKnightHelpersTest, TheMagicKeyWrapsAfter32)
 // 0x551f40: la energía, 0 con +0x2c en 0 y si no (+0x20 · +0x2c · 4) / 100 + 20. Abre y cierra la entrada: 60 rand().
 TEST(HeroSkillsKnightHelpersTest, TheEnergyComesFromSkillBmd)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto world = std::make_unique<Client::Kernel::WorldState>();
     CrtRandom random;
     const auto skills = SkillsWith(
         {{.skill = 0x29, .range = 3, .mana = 0x123, .stamina = 0x45, .level = 7, .energy = 9}, {.skill = 0x2a}});

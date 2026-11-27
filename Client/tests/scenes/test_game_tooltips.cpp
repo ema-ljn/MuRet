@@ -35,12 +35,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
-using Client::Scenes::WorldState;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint8_t None = 0xff;
@@ -103,8 +103,8 @@ public:
 
     GameHudContext Context(bool projecting = false)
     {
-        Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        Client::Scenes::ActorState& hero = world.Hero();
+        Client::Kernel::WorldRuntime& runtime = world.Runtime();
+        Client::Kernel::ActorState& hero = world.Hero();
         return GameHudContext{.world = world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -394,10 +394,10 @@ TEST(GameTooltipsTest, ASetOptionPicksItsFormatText)
 TEST(GameTooltipsTest, TheSetWindowListsTheWornSetAndTurnsItselfOff)
 {
     Tooltips tested;
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     runtime.panels.inventory = 1;
     runtime.hud.inventoryX = 0x1c2;
-    Client::Scenes::ItemSetState& sets = tested.world.ItemSets();
+    Client::Player::ItemSetState& sets = tested.world.ItemSets();
     sets.byte9304 = 1;
     sets.names[0] = {'A', 'l', 'f', 'a'};
     sets.list.count9348 = 2;
@@ -430,7 +430,7 @@ TEST(GameTooltipsTest, AProjectedFrameKeepsTheSetWindowOn)
 {
     Tooltips tested;
     tested.world.Runtime().panels.inventory = 1;
-    Client::Scenes::ItemSetState& sets = tested.world.ItemSets();
+    Client::Player::ItemSetState& sets = tested.world.ItemSets();
     sets.byte9304 = 1;
     sets.list.count9349 = 1;
     sets.names[1] = {'B'};
@@ -519,7 +519,7 @@ TEST(GameTooltipsTest, AnUnusedSetTurnsTheLabelOff)
 TEST(GameTooltipsTest, TheTooltipsResetTheRepairModeAndTheDurabilityWarning)
 {
     Tooltips tested;
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     runtime.panels.repairMode = 2;
     runtime.hud.durabilityWarning = 1;
     GameHudContext projected = tested.Context(true);

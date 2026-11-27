@@ -134,7 +134,7 @@ bool WithinFloat(const GameUiContext& context, float left, float right, float to
     return x >= left && x <= right && y >= top && y <= bottom;
 }
 
-void LeaveTheMouseTime(WorldRuntime& runtime)
+void LeaveTheMouseTime(Kernel::WorldRuntime& runtime)
 {
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
@@ -169,9 +169,9 @@ Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::O
 }
 
 // 0x402eb0: 0x402e10, el diálogo cerrado y el C1 03 31 en claro.
-Core::Expected<void, std::string> CloseTheJewelMix(WorldState& world, const JewelMixSender& send)
+Core::Expected<void, std::string> CloseTheJewelMix(Kernel::WorldState& world, const JewelMixSender& send)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     ResetTheJewelMix(runtime.npcWindows);
     UI::PushDialog(runtime.dialogs, 0);
     return Send(send, Protocol::Session::WriteWindowClose(), "0x402f91: el C1 03 31");
@@ -198,7 +198,7 @@ void PriceTheMix(JewelMixState& jewels)
 
 // 0x402bc0: si alcanza para mezclar. Al juntar cuenta las joyas del tipo en las 64 casillas, fila por fila, y alcanza
 // en cuanto la cuenta (un byte) llega a 0x6c62e1 con signo; al deshacer mira el paquete de la casilla 0x6c62d8.
-Core::Expected<bool, std::string> CheckTheJewels(WorldState& world)
+Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
 {
     JewelMixState& jewels = world.Runtime().npcWindows.jewels;
     const auto& cells = world.Inventory().cells;
@@ -213,7 +213,7 @@ Core::Expected<bool, std::string> CheckTheJewels(WorldState& world)
     if (jewels.mode == MixMode)
     {
         const std::int32_t needed = static_cast<std::int8_t>(jewels.count);
-        for (const World::ItemState& cell : cells)
+        for (const Kernel::ItemState& cell : cells)
         {
             if ((cell.id == SoulJewel && jewels.kind == SoulKind) ||
                 (cell.id == BlessJewel && jewels.kind == BlessKind))
@@ -258,7 +258,7 @@ Core::Expected<bool, std::string> AskForTheJewels(const GameUiContext& context)
     auto enough = CheckTheJewels(context.world);
     if (!enough.HasValue() || enough.Value())
         return enough;
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::uint8_t refusal = runtime.npcWindows.jewels.refusal;
     if (refusal == MissingJewels || refusal == NoBundle)
     {
@@ -303,7 +303,7 @@ Core::Expected<void, std::string> SendTheJewelMix(const GameUiContext& context)
 // 0x625cbc..0x625ce5: cierra y abre el 0xa3 con su texto.
 Core::Expected<void, std::string> AskTheQuestion(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     const JewelMixState& jewels = runtime.npcWindows.jewels;
     CloseTheDialog(runtime.dialogs);
     const UI::DialogTextArguments arguments{.jewelMode = jewels.mode,
@@ -321,7 +321,7 @@ Core::Expected<void, std::string> AskTheQuestion(const GameUiContext& context)
 
 // 0x402a10 y 0x402a20: la lista de 0x6e5660 vacía (0x482f80) y llena, casilla por casilla, con los paquetes de la
 // joya elegida (0x181e con 0, 0x181f con 1) y su nivel (0x46e940).
-void FillTheBundles(WorldState& world)
+void FillTheBundles(Kernel::WorldState& world)
 {
     JewelMixState& jewels = world.Runtime().npcWindows.jewels;
     ClearTheBundles(jewels.bundles);
@@ -368,9 +368,9 @@ void ResetTheJewelMix(NpcWindowState& windows)
     jewels.level = -1;
 }
 
-Core::Expected<void, std::string> ReturnToTheJewelChoice(WorldState& world, const JewelMixSender& send)
+Core::Expected<void, std::string> ReturnToTheJewelChoice(Kernel::WorldState& world, const JewelMixSender& send)
 {
-    WorldRuntime& runtime = world.Runtime();
+    Kernel::WorldRuntime& runtime = world.Runtime();
     NpcWindowState& windows = runtime.npcWindows;
     if (windows.field6e5798 == 1)
         windows.field6e5798 = 0;
@@ -388,7 +388,7 @@ Core::Expected<void, std::string> ReturnToTheJewelChoice(WorldState& world, cons
 
 Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
     if (!click)
         return {};
@@ -413,7 +413,7 @@ Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context)
 
 Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     JewelMixState& jewels = runtime.npcWindows.jewels;
     bool& click = runtime.movement.pendingClick;
     if (!click)
@@ -465,7 +465,7 @@ Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& contex
 
 Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     JewelMixState& jewels = runtime.npcWindows.jewels;
     bool& click = runtime.movement.pendingClick;
     // 0x625d0c: el clic, leído antes de las joyas (DL).
@@ -531,7 +531,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
 
 Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
     if (!click)
         return {};
@@ -543,7 +543,7 @@ Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& contex
 
 Core::Expected<void, std::string> AnswerTheJewelMix(const GameUiContext& context, bool yes)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.social.trade.warningByte = yes ? YesAnswer : NoAnswer;
     LeaveTheMouseTime(runtime);
     runtime.RequestSound(DialogSound); // (CL10)

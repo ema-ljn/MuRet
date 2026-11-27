@@ -123,7 +123,7 @@ TEST(TerrainMappingFileTest, TheClientsLoaderReadsAnEdit)
 {
     const std::size_t last = CellIndex(255, 255);
     const std::size_t first = CellIndex(0, 0);
-    const auto read = ReadTerrainMappingFile(DeviasFile());
+    auto read = ReadTerrainMappingFile(DeviasFile());
     ASSERT_TRUE(read.HasValue());
     TerrainMappingFile& mapping = *read.Value();
     mapping.layer2[last] = 0x11;

@@ -87,7 +87,7 @@ TEST(TerrainAttributesFileTest, ReadsBothBytesOfEachWord)
     }
 }
 
-TEST(TerrainAttributesFileTest, WritesTheLayoutOf0x5f8690)
+TEST(TerrainAttributesFileTest, WritesTheLayoutTheLoaderReads)
 {
     EXPECT_TRUE(
         SameBytes(WriteTerrainAttributesFile(*NoriaModel(AttributeCells::Bytes)), NoriaFile(AttributeCells::Bytes)));
@@ -104,7 +104,9 @@ TEST(TerrainAttributesFileTest, KeepsAnAttributeTheLoaderRefuses)
     std::vector<std::byte> plain = PlainTerrainAttributes(Noria, AttributeCells::Bytes);
     plain[TerrainAttributesHeaderSize] = std::byte{0x80};
     const std::vector<std::byte> file = EncryptTerrainAttributes(plain);
-    ASSERT_EQ(LoadTerrainAttributes(file, Noria).Error(), DataError::InvalidData);
+    const auto loaded = LoadTerrainAttributes(file, Noria);
+    ASSERT_FALSE(loaded.HasValue());
+    ASSERT_EQ(loaded.Error(), DataError::InvalidData);
 
     const auto read = ReadTerrainAttributesFile(file);
 
@@ -155,7 +157,7 @@ TEST(TerrainAttributesFileTest, DoesNotCheckTheWorld)
 TEST(TerrainAttributesFileTest, TheClientsLoaderReadsAnEdit)
 {
     const std::size_t last = CellIndex(255, 255);
-    const auto read = ReadTerrainAttributesFile(NoriaFile(AttributeCells::Words));
+    auto read = ReadTerrainAttributesFile(NoriaFile(AttributeCells::Words));
     ASSERT_TRUE(read.HasValue());
     read.Value()->cells[last] = 0x7F;
     const std::vector<std::byte> written = WriteTerrainAttributesFile(*read.Value());

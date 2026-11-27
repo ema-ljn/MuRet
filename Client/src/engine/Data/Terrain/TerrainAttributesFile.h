@@ -13,8 +13,9 @@
 #include <vector>
 
 // EncTerrain<N>.att whole, for writing it back (Client/docs/research/05-formatos-de-datos.md, "Terreno de un mundo";
-// read by 0x5f8390). 0x5f8690 lays out the header 00 N FF FF and one byte per cell, unencrypted; the client's file is
-// that under XOR3 and then K16. LoadTerrainAttributes makes the game's view.
+// read by 0x5f8390). Written in the layout the loader reads, the header 00 N FF FF and the cells, under XOR3 and then
+// K16: 0x5f8690 writes the header and the first 0x10000 bytes of its WORD table, unencrypted (Q-C1831).
+// LoadTerrainAttributes makes the game's view.
 namespace Client::Data::Terrain
 {
 struct TerrainAttributesFile

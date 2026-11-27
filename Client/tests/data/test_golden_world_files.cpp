@@ -24,6 +24,7 @@
 namespace
 {
 using Client::Core::EqualsIgnoringAsciiCase;
+using Client::Core::ToLowerAscii;
 using Client::Data::Terrain::ReadTerrainAttributesFile;
 using Client::Data::Terrain::ReadTerrainHeightsFile;
 using Client::Data::Terrain::ReadTerrainMappingFile;
@@ -59,6 +60,12 @@ std::vector<std::filesystem::path> WorldFiles(const std::filesystem::path& root,
     std::ranges::sort(files, {}, [&root](const std::filesystem::path& file)
                       { return file.lexically_relative(root).generic_string(); });
     return files;
+}
+
+std::string LowerAscii(std::string text)
+{
+    std::ranges::transform(text, text.begin(), ToLowerAscii);
+    return text;
 }
 
 std::vector<std::byte> FileBytes(const std::filesystem::path& file)
@@ -107,9 +114,9 @@ TEST_F(GoldenWorldFiles, EveryAttributesFileIsWrittenBackTheSame)
 TEST_F(GoldenWorldFiles, TheWordFilesKeepTheirHighBytes)
 {
     const std::map<std::string, std::size_t> expected = {
-        {"world31/EncTerrain31.att", 348},      {"world31/EncTerrain312.att", 348},
-        {"world31/EncTerrainTest312.att", 348}, {"world31/EncTerraintest31.att", 348},
-        {"world56/EncTerrain56.att", 337},
+        {"world31/encterrain31.att", 348},      {"world31/encterrain312.att", 348},
+        {"world31/encterraintest312.att", 348}, {"world31/encterraintest31.att", 348},
+        {"world56/encterrain56.att", 337},
     };
     std::size_t wordFiles = 0;
     for (const std::filesystem::path& file : WorldFiles(m_dataRoot, "EncTerrain", ".att"))
@@ -124,11 +131,12 @@ TEST_F(GoldenWorldFiles, TheWordFilesKeepTheirHighBytes)
         ++wordFiles;
         const auto notZero = static_cast<std::size_t>(
             std::ranges::count_if(*read.Value()->highBytes, [](std::uint8_t high) { return high != 0; }));
-        const auto known = expected.find(name);
+        const auto known = expected.find(LowerAscii(name));
         EXPECT_EQ(notZero, known == expected.end() ? std::size_t{0} : known->second) << name;
     }
     EXPECT_EQ(wordFiles, 16U);
 }
+
 TEST_F(GoldenWorldFiles, EveryObjectsFileIsWrittenBackTheSame)
 {
     const std::vector<std::filesystem::path> files = WorldFiles(m_dataRoot, "EncTerrain", ".obj");

@@ -117,6 +117,21 @@ TEST(TerrainObjectsFileTest, KeepsTheBytesAfterTheLastObject)
     EXPECT_TRUE(SameBytes(written.Value(), file));
 }
 
+TEST(TerrainObjectsFileTest, KeepsTheFirstByte)
+{
+    std::vector<std::byte> plain = PlainTerrainObjects(Dungeon, 1, SampleTerrainObjects(1));
+    plain[0] = std::byte{0x2A};
+    const std::vector<std::byte> file = EncryptK16(plain);
+
+    const auto read = ReadTerrainObjectsFile(file);
+
+    ASSERT_TRUE(read.HasValue());
+    EXPECT_EQ(read.Value().version, 0x2A);
+    const auto written = WriteTerrainObjectsFile(read.Value());
+    ASSERT_TRUE(written.HasValue());
+    EXPECT_TRUE(SameBytes(written.Value(), file));
+}
+
 TEST(TerrainObjectsFileTest, KeepsTheWorldByte)
 {
     constexpr std::uint8_t sharedByTwoFiles = 31;

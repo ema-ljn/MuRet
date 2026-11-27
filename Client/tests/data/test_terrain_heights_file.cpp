@@ -115,7 +115,7 @@ TEST(TerrainHeightsFileTest, AShortFileIsAnError)
 TEST(TerrainHeightsFileTest, TheClientsLoaderReadsAnEdit)
 {
     const std::size_t last = CellIndex(255, 255);
-    const auto read = ReadTerrainHeightsFile(HeightsFile());
+    auto read = ReadTerrainHeightsFile(HeightsFile());
     ASSERT_TRUE(read.HasValue());
     read.Value()->heights[last] = 200;
 

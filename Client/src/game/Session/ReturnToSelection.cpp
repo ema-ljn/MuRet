@@ -28,6 +28,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/WhisperSenders.h"
 #include "Camera/GameCamera.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <string>
@@ -138,7 +139,7 @@ void StopAudioForSceneReturn(Kernel::WorldRuntime& runtime)
         return;
     runtime.music.StopWorld(runtime.audio);
     for (std::int32_t sound = 0; sound < 0x27e; ++sound)
-        runtime.audio->StopSound(sound, true);
+        runtime.StopSound(Audio::SoundId{sound}, true);
 }
 } // namespace
 

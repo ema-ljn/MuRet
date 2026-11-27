@@ -35,6 +35,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "Audio/SoundId.h"
+#include "Sound/SoundRequests.h"
 
 #include "support/SceneDataFiles.h"
 
@@ -426,6 +427,8 @@ TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialo
             EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
         };
         runtime.audio = &playback;
+        Client::Sound::SoundRequests playbackRequests(&playback);
+        runtime.sounds = &playbackRequests;
         ASSERT_TRUE(tested.Click(options ? 0x110 : 0x161, options ? 0xe8 : 0x76).HasValue());
         EXPECT_EQ(sounds, 1);
         EXPECT_EQ(runtime.dialogs.current, 0x8b);
@@ -448,6 +451,8 @@ TEST(GameDialogStepsTest, QuittingOkDialogsKeepTheCloseStateWithoutAnAudibleClic
         int sounds = 0;
         playback.onSound = [&](Client::Audio::SoundId) { ++sounds; };
         runtime.audio = &playback;
+        Client::Sound::SoundRequests playbackRequests(&playback);
+        runtime.sounds = &playbackRequests;
         runtime.ui.enterPressed = true;
         runtime.movement.mouseUpdateTime = 20;
         ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());

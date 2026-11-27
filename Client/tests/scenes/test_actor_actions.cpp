@@ -11,6 +11,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
+#include "Sound/SoundRequests.h"
 #include "support/PlayerActors.h"
 #include "support/SentActions.h"
 
@@ -441,6 +442,8 @@ TEST_F(ActorStopTest, FenrirSuffixRequestsItsSoundOnceAtTheActorPosition)
     fenrir.position = {123.0f, 456.0f, 7.0f};
     RecordingPlayback playback;
     m_runtime.audio = &playback;
+    Client::Sound::SoundRequests playbackRequests(&playback);
+    m_runtime.sounds = &playbackRequests;
 
     const auto stopped = Stop(fenrir);
 

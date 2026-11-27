@@ -5,6 +5,7 @@
 #include "UI/ChatInput.h"
 #include "UI/OldWindows.h"
 #include "Audio/SoundId.h"
+#include "Sound/SoundRequests.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -47,11 +48,27 @@ public:
     std::optional<std::uint8_t> volume{};
 };
 
+TEST(SoundRequestsTest, EachRequestReachesTheDeviceWithTheCatalogsId)
+{
+    RecordingPlayback playback;
+    Sound::SoundRequests requests(&playback);
+
+    requests.Request(Audio::SoundId{0x8b}, glm::vec3{4.0f, 5.0f, 6.0f}, true);
+    requests.Stop(Audio::SoundId{0x8b}, false);
+    requests.SetEffectsVolume(3);
+
+    EXPECT_EQ(playback.sounds, std::vector<std::int32_t>{0x8b});
+    EXPECT_EQ(playback.loops, std::vector<bool>{true});
+    EXPECT_EQ(playback.stops, (std::vector<std::pair<std::int32_t, bool>>{{0x8b, false}}));
+    EXPECT_EQ(playback.volume, 3);
+}
+
 TEST(WorldRuntimeAudioTest, DispatchesEverySoundSynchronouslyInOrder)
 {
     RecordingPlayback playback;
     Kernel::WorldRuntime runtime;
-    runtime.audio = &playback;
+    Sound::SoundRequests requests(&playback);
+    runtime.sounds = &requests;
 
     runtime.RequestSound(Client::Audio::SoundId{0x19});
     runtime.RequestSound(Client::Audio::SoundId{0x86}, glm::vec3{1.0f, 2.0f, 3.0f}, true);
@@ -80,7 +97,8 @@ TEST(WorldRuntimeAudioTest, ForwardsEffectsVolumeIndependently)
 {
     RecordingPlayback playback;
     Kernel::WorldRuntime runtime;
-    runtime.audio = &playback;
+    Sound::SoundRequests requests(&playback);
+    runtime.sounds = &requests;
 
     runtime.SetSoundVolume(9);
 
@@ -91,7 +109,8 @@ TEST(WorldRuntimeAudioTest, TheInnStopsRainAndAtlantisStartsOnlyItsOwnAmbience)
 {
     RecordingPlayback playback;
     Kernel::WorldRuntime runtime;
-    runtime.audio = &playback;
+    Sound::SoundRequests requests(&playback);
+    runtime.sounds = &requests;
     Crt::CrtRandom random(1);
     runtime.map = 0;
     runtime.heroCellLayer = 4;
@@ -133,7 +152,8 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
 {
     RecordingPlayback playback;
     Kernel::WorldRuntime runtime;
-    runtime.audio = &playback;
+    Sound::SoundRequests requests(&playback);
+    runtime.sounds = &requests;
     bool leftHeld = false;
     bool leftClick = false;
     bool releasedClick = false;

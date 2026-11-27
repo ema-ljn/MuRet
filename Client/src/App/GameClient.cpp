@@ -94,7 +94,7 @@ struct GameClient::Online
 
 GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& devices, GameClientOptions options,
                        std::optional<GameClientServer> server)
-    : m_data(data), m_devices(devices), m_options(std::move(options)),
+    : m_data(data), m_devices(devices), m_sounds(devices.playback), m_options(std::move(options)),
       m_cloth{.random = Crt::CrtRandom(m_options.crtSeed)}, m_selection(m_world),
       m_worldEntry{.world = m_world,
                    .selection = m_selection,
@@ -142,6 +142,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
     if (m_devices.playback != nullptr)
     {
         runtime.audio = m_devices.playback;
+        runtime.sounds = &m_sounds;
         runtime.SetSoundVolume(static_cast<std::uint8_t>(runtime.ui.volume));
     }
     // 0x61ee30 → 0x61c1c0: Data\Macro.txt in 0x77f1db0.

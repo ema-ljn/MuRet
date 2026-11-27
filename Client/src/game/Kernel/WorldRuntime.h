@@ -3,6 +3,7 @@
 #include "Audio/Music.h"
 #include "Audio/Playback.h"
 #include "Audio/SoundId.h"
+#include "Kernel/ISoundRequests.h"
 #include "Tables/MonsterSkillTable.h"
 #include "Tables/DialogTable.h"
 #include "Tables/MoveRequirements.h"
@@ -353,9 +354,23 @@ struct FloorItemGlobals
 
 struct WorldRuntime
 {
-    void RequestSound(Audio::SoundId id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false);
-    void StopSound(Audio::SoundId id, bool rewind);
-    void SetSoundVolume(std::uint8_t level);
+    // 0x41ed10: the request goes to Sound through the port, and lastSoundId keeps it (CL10).
+    void RequestSound(Audio::SoundId id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false)
+    {
+        lastSoundId = id;
+        if (sounds != nullptr)
+            sounds->Request(id, origin, loop);
+    }
+    void StopSound(Audio::SoundId id, bool rewind)
+    {
+        if (sounds != nullptr)
+            sounds->Stop(id, rewind);
+    }
+    void SetSoundVolume(std::uint8_t level)
+    {
+        if (sounds != nullptr)
+            sounds->SetEffectsVolume(level);
+    }
     // Q-C180/Q-C27: the first data notice that asked for WM_DESTROY. It lasts even if Poll fails; main shows the modal
     // before closing. Unsupported-map and errors without a notice do not write it.
     std::optional<std::string> fatalDataMessage{};
@@ -558,7 +573,9 @@ struct WorldRuntime
     std::vector<NamedBone> namedBones{};
     // What the creations wrote in the model table (ModelBytePatch), in order.
     std::vector<ModelBytePatch> modelPatches{};
+    // The music and the WAVs a map or a model registers; the requests go through `sounds`.
     Audio::IPlayback* audio = nullptr;
+    Kernel::ISoundRequests* sounds = nullptr;
     Audio::Music music{};
 };
 

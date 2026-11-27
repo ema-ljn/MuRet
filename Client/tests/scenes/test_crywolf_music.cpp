@@ -3,6 +3,7 @@
 #include "Audio/Playback.h"
 #include "Kernel/WorldRuntime.h"
 #include "Audio/SoundId.h"
+#include "Sound/SoundRequests.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -82,6 +83,7 @@ struct Frame
     explicit Frame(std::int32_t map = CrywolfMap)
     {
         runtime.audio = &playback;
+        runtime.sounds = &sounds;
         runtime.map = map;
     }
 
@@ -97,6 +99,7 @@ struct Frame
     }
 
     RecordingPlayback playback{};
+    Client::Sound::SoundRequests sounds{&playback};
     std::unique_ptr<WorldRuntime> owned = std::make_unique<WorldRuntime>();
     WorldRuntime& runtime = *owned;
 };
@@ -291,6 +294,7 @@ TEST(CrywolfMusicTest, WithoutAPlaybackDeviceTheResultIsStillRecorded)
 {
     Frame frame;
     frame.runtime.audio = nullptr;
+    frame.runtime.sounds = nullptr;
 
     frame.StepAt(3);
     EXPECT_TRUE(frame.runtime.music.Current().empty());

@@ -2,6 +2,7 @@
 
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
+#include "Tables/PlayerModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -12,13 +13,13 @@ Attachment AttachmentOf(AttachmentSlot slot)
     switch (slot)
     {
     case AttachmentSlot::RightHand:
-        return {33, {}};
+        return {Tables::PlayerRightHandBone, {}};
     case AttachmentSlot::LeftHand:
-        return {42, {}};
+        return {Tables::PlayerLeftHandBone, {}};
     case AttachmentSlot::Wings:
-        return {47, {0.0f, 0.0f, 15.0f}};
+        return {Tables::PlayerWingsBone, {0.0f, 0.0f, 15.0f}};
     case AttachmentSlot::Pet:
-        return {34, {20.0f, 0.0f, 0.0f}};
+        return {Tables::PlayerPetBone, {20.0f, 0.0f, 0.0f}};
     }
     return {};
 }

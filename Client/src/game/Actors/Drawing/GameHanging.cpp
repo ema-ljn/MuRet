@@ -70,13 +70,13 @@ constexpr std::uint32_t HiddenAttachmentFlag = 0x4000;
 constexpr std::uint32_t FrozenAnimationFlag = 0x1000;
 // One rand() for each byte of +0x38e when it closes (0x5098e5 and the loop of 0x50e298).
 constexpr std::uint16_t Byte38eCloseRandoms = 1;
-constexpr std::uint8_t WingsBone = 0x2f;
+constexpr std::uint8_t WingsBone = static_cast<std::uint8_t>(Tables::PlayerWingsBone);
 // 0x5096ac: the model whose origin 0x509340 shifts and whose z it turns (BossHead01, from map 5).
 constexpr std::int32_t CarriedHead = 0xef;
 // 0x743a160..0x743a168: what 0x5096ac adds to the origin of 0xef. No code writes them and they are in the .bss (the
 // initialized image ends at 0x6e6000): 0 (*inferred*, P-C353).
 constexpr glm::vec3 CarriedHeadShift{0.0f, 0.0f, 0.0f};
-constexpr std::uint8_t PetBone = 0x22;
+constexpr std::uint8_t PetBone = static_cast<std::uint8_t>(Tables::PlayerPetBone);
 // 0x6b8a44: in action 0x3e the right hand hangs nothing until frame 4 passes.
 constexpr float LateSwingFrame = 4.0f;
 // 0x50de63: Blood Castle, where +0x360 from 1 to 3 hangs the event's weapon.

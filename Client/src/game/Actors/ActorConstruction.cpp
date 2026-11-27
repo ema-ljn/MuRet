@@ -38,8 +38,8 @@ constexpr std::uint8_t ConstructedPk = 3;
 constexpr std::uint16_t NoWord376 = 0xffff;
 constexpr std::uint8_t PlayerStartAction = 1;
 constexpr std::uint16_t ConstructedMovementSpeed = 10;
-constexpr std::uint8_t RightHandBone = 0x21;
-constexpr std::uint8_t LeftHandBone = 0x2a;
+constexpr std::uint8_t RightHandBone = static_cast<std::uint8_t>(Tables::PlayerRightHandBone);
+constexpr std::uint8_t LeftHandBone = static_cast<std::uint8_t>(Tables::PlayerLeftHandBone);
 
 // The box of 0x511290 (+0x124..+0x138), relative to the position.
 struct ConstructionBox

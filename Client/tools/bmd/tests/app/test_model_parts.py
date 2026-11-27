@@ -2,7 +2,16 @@ from pathlib import Path
 
 import pytest
 
-from mubmd.app.model_parts import Part, is_model, model_parts, part_facts, part_fields, part_of, part_title
+from mubmd.app.model_parts import (
+    Part,
+    is_model,
+    model_parts,
+    part_facts,
+    part_fields,
+    part_of,
+    part_title,
+    tree_parents,
+)
 from mubmd.core.json_types import JsonObject
 from tests.models import put, view_of
 
@@ -87,6 +96,20 @@ def test_bones_in_a_cycle_sit_under_the_group(reference_data: Path) -> None:
     assert under[:6] == ["/bones/0", "/bones/1", "/bones/2", "/bones/3", "/bones/4", "/bones/5"]
     assert {"/bones/10", "/bones/11"} <= set(under)
     assert pointers_under(view, "/bones/0") == []
+
+
+def test_tree_parents_of_a_real_model(reference_data: Path) -> None:
+    bones = view_of(reference_data, "Monster/Monster01.bmd")["bones"]
+    assert isinstance(bones, list)
+    own = [bone.get("parent", -1) if isinstance(bone, dict) else -1 for bone in bones]
+    assert tree_parents(bones) == own
+    assert [index for index, bone in enumerate(bones) if isinstance(bone, dict) and "dummy" in bone] == [
+        9,
+        16,
+        21,
+        32,
+        41,
+    ]
 
 
 def test_a_part_has_the_fields_the_ui_edits(reference_data: Path) -> None:

@@ -100,12 +100,18 @@ def _reach_the_root(parents: Sequence[int | None]) -> list[bool]:
     return [known[index] for index in range(len(parents))]
 
 
-def _bone_parts(bones: Sequence[JsonValue]) -> tuple[Part, ...]:
+def tree_parents(bones: Sequence[JsonValue]) -> list[int]:
     parents = _parents(bones)
     rooted = _reach_the_root(parents)
+    return [
+        parent if parent is not None and 0 <= parent < len(bones) and rooted[parent] else NO_PARENT
+        for parent in parents
+    ]
+
+
+def _bone_parts(bones: Sequence[JsonValue]) -> tuple[Part, ...]:
     under: dict[int, list[int]] = {NO_PARENT: []}
-    for index, parent in enumerate(parents):
-        holder = parent if parent is not None and 0 <= parent < len(bones) and rooted[parent] else NO_PARENT
+    for index, holder in enumerate(tree_parents(bones)):
         under.setdefault(holder, []).append(index)
     order: list[int] = []
     pending = list(reversed(under[NO_PARENT]))

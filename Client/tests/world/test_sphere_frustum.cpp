@@ -15,8 +15,8 @@
 #include <cstddef>
 #include <limits>
 
-// P-C55(b), lectura estática de 0x5fbb00 y 0x5fbf00: cinco planos, sin plano cercano. Estos tests
-// prueban la reimplementación; no son vectores de una ejecución del original.
+// P-C55(b), static reading of 0x5fbb00 and 0x5fbf00: five planes, no near plane. These tests check the
+// reimplementation; they are not vectors from a run of the original.
 namespace
 {
 using Client::Terrain::SphereFrustum;
@@ -42,9 +42,9 @@ TEST(SphereFrustumTest, TheDistanceKeepsTheRegisterPrecisionAndTheSumOrder)
     SphereFrustum frustum;
     frustum.normals[0] = {1.0f, 1.0f, 1.0f};
     frustum.offsets[0] = -0.5f;
-    // (nx*x + nz*z) + ny*y, sin store f32 intermedio: da 1, no 0.
+    // (nx*x + nz*z) + ny*y, without an intermediate f32 store: gives 1, not 0.
     EXPECT_TRUE(SphereVisible(frustum, {16777216.0f, -16777216.0f, 1.0f}, 0.0f));
-    // En 53 bits, 2^53 + 1 redondea a 2^53. Sumar x+y primero daría 1 y lo dejaría pasar.
+    // In 53 bits, 2^53 + 1 rounds to 2^53. Adding x+y first would give 1 and let it through.
     EXPECT_FALSE(SphereVisible(frustum, {9007199254740992.0f, -9007199254740992.0f, 1.0f}, 0.0f));
 }
 
@@ -65,7 +65,7 @@ TEST(SphereFrustumTest, TheCameraBuildsFourSidesAndTheFarPlane)
     camera.position = {1000.0f, 2000.0f, 3000.0f};
     camera.farPlane = 1000.0f;
     camera.fieldOfView = 0.0f;
-    // Con fov 0, w=100 y h=75; lejos=R32(1000*0.9f)=900. La vista identidad mira hacia -z.
+    // With fov 0, w=100 and h=75; far=R32(1000*0.9f)=900. The identity view looks down -z.
     const SphereFrustum frustum = SphereFrustumOf(glm::mat4(1.0f), camera);
     EXPECT_TRUE(SphereVisible(frustum, {1000.0f, 2000.0f, 2550.0f}, 0.0f));
     EXPECT_FALSE(SphereVisible(frustum, {1100.0f, 2000.0f, 2550.0f}, 0.0f));
@@ -74,7 +74,7 @@ TEST(SphereFrustumTest, TheCameraBuildsFourSidesAndTheFarPlane)
     EXPECT_FALSE(SphereVisible(frustum, {1000.0f, 1925.0f, 2550.0f}, 0.0f));
     EXPECT_TRUE(SphereVisible(frustum, {1000.0f, 2000.0f, 1700.0f}, 400.0f));
     EXPECT_FALSE(SphereVisible(frustum, {1000.0f, 2000.0f, 1699.0f}, 400.0f));
-    // Sin near plane: una esfera en la cámara sigue pasando.
+    // No near plane: a sphere at the camera still passes.
     EXPECT_TRUE(SphereVisible(frustum, camera.position, 1.0f));
 }
 
@@ -91,7 +91,7 @@ TEST(SphereFrustumTest, TheLoginCameraSeesTheDragonButNotAnEffectBehindIt)
 TEST(SphereFrustumTest, RotatedPointsUseTheTransposedViewAndThenTheCameraTranslation)
 {
     glm::mat4 view(1.0f);
-    // La inversa de este giro lleva (x,y,z) a (y,z,x).
+    // The inverse of this turn takes (x,y,z) to (y,z,x).
     view[0][0] = 0.0f;
     view[0][1] = 1.0f;
     view[1][1] = 0.0f;
@@ -109,8 +109,8 @@ TEST(SphereFrustumTest, RotatedPointsUseTheTransposedViewAndThenTheCameraTransla
     EXPECT_EQ(points[3], glm::vec3(-65.0f, -880.0f, 130.0f));
     EXPECT_EQ(points[4], glm::vec3(-65.0f, -880.0f, -70.0f));
     camera.fieldOfView = 35.0f;
-    // A mitad de profundidad, el semiancho es ~192 con k=1 y ~121 con k=0,5. El punto local x=150
-    // queda dentro solo en el primero; en el mundo, el x local se convirtió en z.
+    // At half depth, the half width is ~192 with k=1 and ~121 with k=0.5. The local point x=150
+    // is inside only in the first; in the world, the local x became z.
     EXPECT_TRUE(SphereVisible(SphereFrustumOf(view, camera, 1.0f), {10.0f, -430.0f, 180.0f}, 0.0f));
     EXPECT_FALSE(SphereVisible(SphereFrustumOf(view, camera, 0.5f), {10.0f, -430.0f, 180.0f}, 0.0f));
 }

@@ -16,7 +16,7 @@ namespace Client::Terrain
 {
 namespace
 {
-// 0x5fbb00: far por 0,9, medio fov, margen y proporción del alto, con sus bits del original.
+// 0x5fbb00: far times 0.9, half fov, margin and height ratio, with the original's bits.
 constexpr float FarFactor = std::bit_cast<float>(0x3F666666u);
 constexpr float HalfFieldOfView = std::bit_cast<float>(0x3C0EFA33u);
 constexpr float WidthMargin = 100.0f;
@@ -35,7 +35,7 @@ FrustumPoints FrustumPointsOf(const glm::mat4& view, const Render::Camera3D& cam
     const float h = F32(halfWidth * HeightFactor);
     const FrustumPoints local{glm::vec3(0.0f), glm::vec3(-w, h, -depth), glm::vec3(w, h, -depth),
                               glm::vec3(w, -h, -depth), glm::vec3(-w, -h, -depth)};
-    // 0x5fcc30 guarda el giro transpuesto en f32; 0x5fbbdb suma después la posición de cámara.
+    // 0x5fcc30 stores the transposed rotation in f32; 0x5fbbdb then adds the camera position.
     const auto m = [&view](int row, int column) { return static_cast<double>(view[column][row]); };
     FrustumPoints points{};
     for (std::size_t k = 0; k < points.size(); ++k)
@@ -55,7 +55,7 @@ FrustumPoints FrustumPointsOf(const glm::mat4& view, const Render::Camera3D& cam
 SphereFrustum SphereFrustumOf(const glm::mat4& view, const Render::Camera3D& camera, float widthFactor)
 {
     const FrustumPoints points = FrustumPointsOf(view, camera, widthFactor);
-    // Argumentos de 0x5fd000 en 0x5fbd7b..0x5fbdf6; los offsets eligen su origen aparte.
+    // Arguments of 0x5fd000 at 0x5fbd7b..0x5fbdf6; the offsets choose their origin separately.
     constexpr std::array<std::array<std::size_t, 3>, 5> Faces{{{0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 1}, {3, 2, 1}}};
     constexpr std::array<std::size_t, 5> OffsetOrigins{0, 0, 0, 0, 1};
     SphereFrustum frustum;
@@ -66,7 +66,7 @@ SphereFrustum SphereFrustumOf(const glm::mat4& view, const Render::Camera3D& cam
         frustum.normals[k] = FaceNormal(point, points[face[1]], points[face[2]]);
         const glm::vec3& normal = frustum.normals[k];
         const glm::vec3& origin = points[OffsetOrigins[k]];
-        // 0x5fbdfb..0x5fbee5: z+y, después x, negado y guardado en f32; el consumidor usa otro orden.
+        // 0x5fbdfb..0x5fbee5: z+y, then x, negated and stored in f32; the consumer uses another order.
         frustum.offsets[k] =
             F32(-(((static_cast<double>(normal.z) * origin.z) + (static_cast<double>(normal.y) * origin.y)) +
                   (static_cast<double>(normal.x) * origin.x)));

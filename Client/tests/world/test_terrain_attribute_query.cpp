@@ -39,7 +39,7 @@ public:
 TEST(TerrainAttributeQueryTest, ReturnsFullWordInAddressHighHalf)
 {
     Source source;
-    // Y=350 -> -3, X=250 -> -2: word 770, dirección nativa 0x07d0d94c.
+    // Y=350 -> -3, X=250 -> -2: word 770, native address 0x07d0d94c.
     source.table->cells[770] = 0xab08;
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, 250.0f, 350.0f);
     ASSERT_TRUE(result.HasValue());
@@ -66,7 +66,7 @@ TEST(TerrainAttributeQueryTest, TruncatesExactBinary32ProductWithoutFloatStore)
     Source source;
     source.table->cells[0] = 0x1111;
     source.table->cells[1] = 0x2222;
-    // 100 * K es mayor que -1; un store float intermedio lo redondearía a -1.
+    // 100 * K is greater than -1; an intermediate float store would round it to -1.
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, 100.0f, 0.0f);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(result.Value(), 0x07d01111U);
@@ -88,7 +88,7 @@ TEST(TerrainAttributeQueryTest, CombinesSignedCoordinatesBeforeCheckingAddress)
     Source source;
     source.scales = {1.0f, 1.0f};
     source.table->cells[0] = 0x78ab;
-    // X=256 compensa una fila negativa; no hay módulo por eje ni guarda signed.
+    // X=256 makes up for a negative row; there is no per-axis modulo and no signed guard.
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, 256.0f, -1.0f);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(result.Value(), 0x07d078abU);
@@ -99,7 +99,7 @@ TEST(TerrainAttributeQueryTest, UsesLow32OfSigned64AndWrapsByteOffset)
     Source source;
     source.scales = {1.0f, 1.0f};
     source.table->cells[0] = 0x4567;
-    // +/-2^32 pierden el dword alto; -2^31 duplica a cero con wrap uint32.
+    // +/-2^32 lose the high dword; -2^31 doubles to zero with uint32 wrap.
     const std::array<float, 4> coordinates{0x1p32f, -0x1p32f, -0x1p31f, -0x1p63f};
     for (const float x : coordinates)
     {
@@ -157,8 +157,8 @@ TEST(TerrainAttributeQueryTest, TruncatesYProductWithoutFloatStore)
     Source source;
     source.table->cells[0] = 0x1357;
     source.table->cells[256] = 0x2468;
-    // K=0xbc23d70a: 100*K=-0.999999977648258209228515625, trunca a cero.
-    // Un store binary32 antes de FTOL daría -1 y seleccionaría la celda 256.
+    // K=0xbc23d70a: 100*K=-0.999999977648258209228515625, truncates to zero.
+    // A binary32 store before FTOL would give -1 and select cell 256.
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, 0.0f, 100.0f);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(result.Value(), 0x07d01357U);
@@ -171,7 +171,7 @@ TEST(TerrainAttributeQueryTest, KeepsNonzeroLow32FromLargeX)
     source.scales = {1.0f, 1.0f};
     source.table->cells[0] = 0x1111;
     source.table->cells[512] = 0x5a08;
-    // -(2^32+512) es binary32 exacto: low32=0xfffffe00, offset=1024 bytes.
+    // -(2^32+512) is exact in binary32: low32=0xfffffe00, offset=1024 bytes.
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, -4294967808.0f, 0.0f);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(result.Value(), 0x07d05a08U);
@@ -184,7 +184,7 @@ TEST(TerrainAttributeQueryTest, WrapsLargeRowShiftToNonzeroOffset)
     source.scales = {1.0f, 1.0f};
     source.table->cells[0] = 0x2222;
     source.table->cells[512] = 0x6b19;
-    // Y=-(2^24+2): low32=0xfefffffe; shift8 con wrap=0xfffffe00.
+    // Y=-(2^24+2): low32=0xfefffffe; shift8 with wrap=0xfffffe00.
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, 0.0f, -16777218.0f);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(result.Value(), 0x07d06b19U);
@@ -198,7 +198,7 @@ TEST(TerrainAttributeQueryTest, KeepsNonzeroLow32FromLargeYBeforeCombiningX)
     source.table->cells[0] = 0x3333;
     source.table->cells[512] = 0x7c2a;
     // Y=-(2^32+512): low32=0xfffffe00, shift8=0xfffe0000 (-131072).
-    // X=130560 compensa hasta índice -512; no descartar Y por estar fuera de signed32.
+    // X=130560 makes up for it down to index -512; do not drop Y for being outside signed32.
     const auto result = Client::Terrain::TerrainAttributeQueryAt(source, 130560.0f, -4294967808.0f);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(result.Value(), 0x07d07c2aU);
@@ -216,8 +216,8 @@ TEST(TerrainAttributeQueryTest, ContinuesAfterMaskedInvalidYConversion)
         source.scales = {1.0f, 1.0f};
         source.table->cells[0] = 0x4444;
         source.table->cells[1] = 0x8d3b;
-        // Invalid enmascarada da lowY=0; -2^63 válido también tiene low32 cero.
-        // X=-1 selecciona celda 1: la segunda lectura/conversión debe completarse.
+        // A masked invalid gives lowY=0; a valid -2^63 also has a zero low32.
+        // X=-1 selects cell 1: the second read and conversion must complete.
         const auto result = Client::Terrain::TerrainAttributeQueryAt(source, -1.0f, y);
         ASSERT_TRUE(result.HasValue());
         EXPECT_EQ(result.Value(), 0x07d08d3bU);

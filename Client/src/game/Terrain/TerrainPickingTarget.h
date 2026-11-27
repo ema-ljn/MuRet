@@ -4,8 +4,8 @@
 
 namespace Client::Terrain
 {
-// Stores DWORD TargetX/Y y salida del cursor de la rama 0x59ddf3..0x59deb3 de MoveHero. DontMove
-// no impide calcular el camino. Un retry fallido conserva los tres campos anteriores.
+// The DWORD stores TargetX/Y and the cursor output of MoveHero's 0x59ddf3..0x59deb3 branch. DontMove does not prevent
+// computing the path. A failed retry keeps the three previous fields.
 struct TerrainPickingTarget
 {
     std::uint32_t x = 0;

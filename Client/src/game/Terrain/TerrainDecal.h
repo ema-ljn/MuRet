@@ -9,38 +9,37 @@
 #include <cstdint>
 #include <string>
 
-// Un calco en el suelo (0x5fb2f0): una textura girada y apoyada sobre las celdas del terreno alrededor de un
-// punto, cada celda un fan de cuatro vértices con las alturas del .OZB (0x5faec0). Lo llaman las marcas del
-// suelo (0x549130) y otros catorce lugares sin portar, entre ellos los efectos del suelo (0x52dc20). Contrato:
+// A decal on the ground (0x5fb2f0): a turned texture laid over the terrain cells around a point, each cell a
+// four-vertex fan with the .OZB heights (0x5faec0). The ground marks call it (0x549130), and so do fourteen other
+// unported places, among them the ground effects (0x52dc20). Contract:
 // Client/docs/research/06-render-escenas-y-ui.md, "Las marcas del suelo".
 namespace Client::Terrain
 {
-// Lo que recibe 0x5fb2f0, en el orden de sus argumentos.
+// The arguments of 0x5fb2f0, in their order.
 struct TerrainDecal
 {
-    // El slot de la textura, que liga 0x620780.
+    // The texture slot, which 0x620780 binds.
     std::int32_t slot = 0;
-    // El centro, en el mundo.
+    // The center, in the world.
     float x = 0.0f;
     float y = 0.0f;
-    // Los lados, en celdas: el mayor fija cuántas celdas cubre y el cociente estira la u.
+    // The sides, in cells: the larger one sets how many cells it covers and the ratio stretches u.
     float width = 0.0f;
     float height = 0.0f;
-    // El color: glColor3fv con el alfa en 1 y glColor4f con otro, que dan lo mismo.
+    // glColor3fv with the alpha at 1 and glColor4f with another give the same.
     glm::vec3 color{};
-    // El giro alrededor de z, en grados (0x5fc8f0 con (0, 0, giro)).
+    // The turn around z, in degrees (0x5fc8f0 with (0, 0, angle)).
     float angle = 0.0f;
     float alpha = 0.0f;
-    // Lo que sube cada vértice sobre la altura de su esquina.
+    // How much each vertex rises above its corner's height.
     float lift = 0.0f;
 };
 
-// 0x5fb2f0, con la mezcla y la profundidad que dejó quien lo llama: liga el slot y, con n = ftol(lado mayor)
-// + 1, dibuja las (2n + 1)² celdas de (cx − n, cy − n) a (cx + n, cy + n) alrededor de la celda del centro,
-// cada una con las UV de su lugar en el calco giradas alrededor de (0,5; 0,5). Las celdas con x o y fuera de
-// 0..254 no se dibujan (0x5faec0). Las cuentas van como en la x87: en 53 bits, guardadas en float donde el
-// binario las guarda. Corta con error con un slot fuera de la tabla o con un ftol que no da un entero de 64
-// bits.
+// 0x5fb2f0, with the blend and depth the caller left: binds the slot and, with n = ftol(larger side) + 1, draws the (2n
+// + 1)² cells from (cx − n, cy − n) to (cx + n, cy + n) around the center's cell, each with the UVs of its place in the
+// decal turned around (0.5, 0.5). Cells with x or y outside 0..254 are not drawn (0x5faec0). The arithmetic goes as in
+// the x87: in 53 bits, stored as float where the binary stores it. Fails with a slot outside the table or with an ftol
+// that does not give a 64-bit integer.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawTerrainDecal(Render::ModelBatch& batch, const Data::Terrain::TerrainHeights& heights, const TerrainDecal& decal);
 } // namespace Client::Terrain

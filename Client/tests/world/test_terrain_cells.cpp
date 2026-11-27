@@ -27,9 +27,9 @@
 #include <set>
 #include <vector>
 
-// Client::Terrain::DrawTerrainCell con un terreno armado a mano: los vértices de 0x5fac90, las capas
-// que elige 0x5fa830 por el alfa de las cuatro esquinas, las UV de 0x5fa5c0 y la luz y el alfa de
-// cada esquina que mandan 0x5fa260 y 0x5fa350 (06 § Terreno).
+// Client::Terrain::DrawTerrainCell with a hand-built terrain: the vertices of 0x5fac90, the layers 0x5fa830 picks by
+// the alpha of the four corners, the UVs of 0x5fa5c0 and the light and alpha of each corner that 0x5fa260 and
+// 0x5fa350 send (06 § Terreno).
 namespace
 {
 using Client::Data::Terrain::CellIndex;
@@ -54,8 +54,8 @@ using Client::Math::RoundedSin;
 constexpr std::uint8_t CellX = 7;
 constexpr std::uint8_t CellY = 9;
 
-// Un terreno de tiles de 256 × 128, con la capa 1 en el tile 2 y la 2 en el 3, el alfa en 0, alturas
-// y luces distintas en cada celda y ningún atributo.
+// A terrain of 256 × 128 tiles, with layer 1 on tile 2 and layer 2 on tile 3, alpha at 0, different heights and
+// lights on each cell and no attribute.
 struct Terrain
 {
     std::unique_ptr<TerrainMapping> mapping = std::make_unique<TerrainMapping>();
@@ -83,8 +83,7 @@ struct Terrain
         view.tiles.fill({256.0f, 128.0f});
     }
 
-    // Las cuatro esquinas de la celda, en el orden de 0x5fac90: (x, y), (x + 1, y), (x + 1, y + 1) y
-    // (x, y + 1).
+    // The four corners of the cell, in the order of 0x5fac90: (x, y), (x + 1, y), (x + 1, y + 1) and (x, y + 1).
     static std::array<std::size_t, 4> Corners(std::uint8_t x, std::uint8_t y)
     {
         const std::size_t first = CellIndex(x, y);
@@ -110,7 +109,7 @@ ModelBatch Draw(const Terrain& terrain, std::uint8_t x = CellX, std::uint8_t y =
     return batch;
 }
 
-// Los seis vértices de un pase, de su fan de cuatro: (0, 1, 2) y (0, 2, 3).
+// The six vertices of a pass, from its fan of four: (0, 1, 2) and (0, 2, 3).
 constexpr std::array<std::size_t, 6> FanCorners{0, 1, 2, 0, 2, 3};
 
 void ExpectThePass(const ModelBatch& batch, const ModelDrawCommand& command, const Terrain& terrain, std::uint8_t tile,
@@ -124,7 +123,7 @@ void ExpectThePass(const ModelBatch& batch, const ModelDrawCommand& command, con
     const auto cells = Terrain::Corners(CellX, CellY);
     const std::array<glm::vec2, 4> places{glm::vec2(700.0f, 900.0f), glm::vec2(800.0f, 900.0f),
                                           glm::vec2(800.0f, 1000.0f), glm::vec2(700.0f, 1000.0f)};
-    // u = 64 / 256 por celda y v = 64 / 128 por celda (0x5fa5c0).
+    // u = 64 / 256 per cell and v = 64 / 128 per cell (0x5fa5c0).
     const std::array<glm::vec2, 4> uvs{glm::vec2(1.75f, 4.5f), glm::vec2(2.0f, 4.5f), glm::vec2(2.0f, 5.0f),
                                        glm::vec2(1.75f, 5.0f)};
     for (std::size_t v = 0; v < 6; ++v)
@@ -140,8 +139,8 @@ void ExpectThePass(const ModelBatch& batch, const ModelDrawCommand& command, con
     }
 }
 
-// Con las cuatro esquinas en alfa 255, una sola vez, opaca y con la capa 2 (la rama de 0x5fa830
-// sin ninguna esquina por debajo de 1).
+// With all four corners at alpha 255, drawn once, opaque and with layer 2 (the branch of 0x5fa830 with no corner
+// below 1).
 TEST(TerrainCellsTest, AnOpaqueCellIsDrawnOnceWithTheSecondLayer)
 {
     Terrain terrain;
@@ -151,7 +150,7 @@ TEST(TerrainCellsTest, AnOpaqueCellIsDrawnOnceWithTheSecondLayer)
     ExpectThePass(batch, batch.Commands()[0], terrain, 3, ModelBlend::Opaque, false);
 }
 
-// Sin alfa en ninguna esquina, una vez con la capa 1, y ningún pase de alfa.
+// With no alpha on any corner, drawn once with layer 1 and no alpha pass.
 TEST(TerrainCellsTest, ACellWithoutAlphaIsDrawnOnceWithTheFirstLayer)
 {
     Terrain terrain;
@@ -160,8 +159,8 @@ TEST(TerrainCellsTest, ACellWithoutAlphaIsDrawnOnceWithTheFirstLayer)
     ExpectThePass(batch, batch.Commands()[0], terrain, 2, ModelBlend::Opaque, false);
 }
 
-// Con alguna esquina en alfa y alguna por debajo de 1, la capa 1 opaca y enseguida la 2 con la
-// mezcla normal y el alfa de cada esquina.
+// With some corner in alpha and some below 1, layer 1 opaque and right after it layer 2 with the normal blend and
+// the alpha of each corner.
 TEST(TerrainCellsTest, ACellWithAlphaIsDrawnTwice)
 {
     Terrain terrain;
@@ -172,11 +171,11 @@ TEST(TerrainCellsTest, ACellWithAlphaIsDrawnTwice)
     ExpectThePass(batch, batch.Commands()[1], terrain, 3, ModelBlend::Alpha, true);
 }
 
-// 0x5fa973..0x5fa9b1 y 0x5fa4b0: en el mapa 7, con alguna esquina en alfa y la capa 2 de la primera en 5, después
-// de la base va el agua: el tile 0x1e + el cuadro (DAT_07d2d360) en su slot, aditiva, con las UV de 16 / ancho y
-// 16 / alto por celda, sin corrimiento ni olas, y el gris del alfa de cada esquina con alfa 1, sin la luz; no va
-// el pase de alfa de la capa 2. Con las cuatro esquinas en 1 la base es la capa 2 y el agua va igual; sin alfa,
-// sola la base; en otro mapa o con otra capa 2, el pase de alfa de siempre.
+// 0x5fa973..0x5fa9b1 and 0x5fa4b0: on map 7, with some corner in alpha and the first one's layer 2 at 5, the water
+// goes after the base: tile 0x1e + the frame (DAT_07d2d360) in its slot, additive, with UVs of 16 / width and
+// 16 / height per cell, without offset or waves, and the gray of each corner's alpha with alpha 1, without the
+// light; the alpha pass of layer 2 does not go. With all four corners at 1 the base is layer 2 and the water goes
+// the same; without alpha, only the base; on another map or with another layer 2, the usual alpha pass.
 TEST(TerrainCellsTest, AtlansDrawsItsCausticWaterInsteadOfTheAlphaLayer)
 {
     constexpr std::uint32_t Frame = 5;
@@ -188,7 +187,7 @@ TEST(TerrainCellsTest, AtlansDrawsItsCausticWaterInsteadOfTheAlphaLayer)
         EXPECT_EQ(*command.state.texture, (TextureSlot{static_cast<std::uint16_t>(Caustic + 0x23)}));
         EXPECT_EQ(command.state.blend, ModelBlend::Additive);
         const auto cells = Terrain::Corners(CellX, CellY);
-        // 16 / 128 = 0,125 por celda en u y 16 / 64 = 0,25 en v (0x6b8f00).
+        // 16 / 128 = 0.125 per cell in u and 16 / 64 = 0.25 in v (0x6b8f00).
         const std::array<glm::vec2, 4> uvs{glm::vec2(0.875f, 2.25f), glm::vec2(1.0f, 2.25f), glm::vec2(1.0f, 2.5f),
                                            glm::vec2(0.875f, 2.5f)};
         const std::array<glm::vec2, 4> places{glm::vec2(700.0f, 900.0f), glm::vec2(800.0f, 900.0f),
@@ -239,7 +238,7 @@ TEST(TerrainCellsTest, AtlansDrawsItsCausticWaterInsteadOfTheAlphaLayer)
     ExpectThePass(batch, batch.Commands()[1], terrain, 3, ModelBlend::Alpha, true);
 }
 
-// Q-C19: una capa 2 de 255 no se trata como vacía: es el slot 0x122.
+// Q-C19: a layer 2 of 255 is not treated as empty: it is the slot 0x122.
 TEST(TerrainCellsTest, ALayerOf255IsTheSlot0x122)
 {
     Terrain terrain;
@@ -251,7 +250,7 @@ TEST(TerrainCellsTest, ALayerOf255IsTheSlot0x122)
     EXPECT_EQ(*batch.Commands()[1].state.texture, TextureSlot{0x122});
 }
 
-// El bit 0x08 de la celda (no la de las otras esquinas) la deja sin dibujar.
+// The bit 0x08 of the cell (not of the other corners) leaves it undrawn.
 TEST(TerrainCellsTest, TheBit0x08HidesTheCell)
 {
     Terrain terrain;
@@ -262,7 +261,7 @@ TEST(TerrainCellsTest, TheBit0x08HidesTheCell)
     EXPECT_EQ(Draw(terrain).Commands().size(), 1u);
 }
 
-// Una esquina con el bit 0x40 va a la altura fija de DAT_006c9d5c, 1.200; las otras, a la suya.
+// A corner with the bit 0x40 goes to the fixed height of DAT_006c9d5c, 1,200; the others, to their own.
 TEST(TerrainCellsTest, TheBit0x40FixesTheHeightOfACorner)
 {
     Terrain terrain;
@@ -273,8 +272,8 @@ TEST(TerrainCellsTest, TheBit0x40FixesTheHeightOfACorner)
     EXPECT_EQ(batch.Vertices()[0].position.z, terrain.heights->cells[CellIndex(CellX, CellY)]);
 }
 
-// Las esquinas van por índice, sin dar la vuelta en la fila: la última celda de una fila toma como
-// esquinas de la derecha las primeras de la fila siguiente (0x5fac90).
+// The corners go by index, without wrapping on the row: the last cell of a row takes the first ones of the next
+// row as its right corners (0x5fac90).
 TEST(TerrainCellsTest, TheLastCellOfARowTakesTheNextRow)
 {
     Terrain terrain;
@@ -284,7 +283,7 @@ TEST(TerrainCellsTest, TheLastCellOfARowTakesTheNextRow)
               glm::vec3(25600.0f, 900.0f, terrain.heights->cells[CellIndex(0, CellY + 1)]));
 }
 
-// Los tiles con su textura: la u avanza 64 / ancho por celda y la v, 64 / alto.
+// The tiles with their texture: u advances 64 / width per cell and v, 64 / height.
 TEST(TerrainCellsTest, TheUvFollowTheSizeOfTheTile)
 {
     Terrain terrain;
@@ -294,8 +293,8 @@ TEST(TerrainCellsTest, TheUvFollowTheSizeOfTheTile)
     EXPECT_EQ(batch.Vertices()[0].uv, glm::vec2(7.0f, 18.0f));
     EXPECT_EQ(batch.Vertices()[2].uv, glm::vec2(8.0f, 20.0f));
 }
-// 0x5fc260: el corrimiento de la u del agua es (ftol(T) % 20000) · 5e-5 (0x6b8a28), con T el reloj en
-// ms; en el mapa 8, (ftol(T) % 40000) · 2,5e-5 (0x6ba710).
+// 0x5fc260: the water's u offset is (ftol(T) % 20000) · 5e-5 (0x6b8a28), with T the clock in ms; on map 8,
+// (ftol(T) % 40000) · 2.5e-5 (0x6ba710).
 TEST(TerrainCellsTest, TheWaterMovesWithTheClock)
 {
     constexpr float Step = std::bit_cast<float>(0x3851B717u);
@@ -306,8 +305,8 @@ TEST(TerrainCellsTest, TheWaterMovesWithTheClock)
     EXPECT_EQ(WaterOffsetAt(10'000ms, 8), 10000.0f * std::bit_cast<float>(0x37D1B717u));
 }
 
-// 0x5fbf60: la ola de cada celda de la ventana (el rango y 3 más) es sin(x · 5 + (ftol(T) % 720000) ·
-// 0,002) · 10, con la x de la celda y la cuenta en la x87.
+// 0x5fbf60: the wave of each cell of the window (the range and 3 more) is sin(x · 5 + (ftol(T) % 720000) · 0.002) ·
+// 10, with the cell's x and the arithmetic on the x87.
 TEST(TerrainCellsTest, TheWavesFollowTheColumn)
 {
     TerrainWater water;
@@ -320,15 +319,15 @@ TEST(TerrainCellsTest, TheWavesFollowTheColumn)
         EXPECT_EQ(water.waves[CellIndex(x, 13)], expected) << static_cast<int>(x);
         EXPECT_EQ(water.waves[CellIndex(x, 19)], expected) << static_cast<int>(x);
     }
-    // Fuera de la ventana no se escribe.
+    // Nothing is written outside the window.
     EXPECT_EQ(water.waves[CellIndex(3, 13)], 0.0f);
     EXPECT_EQ(water.waves[CellIndex(12, 13)], 0.0f);
     EXPECT_EQ(water.waves[CellIndex(5, 20)], 0.0f);
 }
 
-// 0x5fa830 y 0x5fa5c0: con alguna esquina por debajo de 1 y la capa 1 en el agua (5), la de abajo
-// corre la u y lleva la ola en la v: la de la esquina (x, y) en las dos de la izquierda y la de
-// (x + 1, y) en las dos de la derecha, por 0,002.
+// 0x5fa830 and 0x5fa5c0: with some corner below 1 and layer 1 on the water (5), the bottom one shifts the u and
+// carries the wave in the v: that of corner (x, y) on the two left ones and that of (x + 1, y) on the two right
+// ones, times 0.002.
 TEST(TerrainCellsTest, TheWaterCellCarriesTheOffsetAndTheWaves)
 {
     Terrain terrain;
@@ -352,9 +351,9 @@ TEST(TerrainCellsTest, TheWaterCellCarriesTheOffsetAndTheWaves)
     EXPECT_EQ(uv(5), glm::vec2(1.75f + 0.375f, left + 0.5f));
 }
 
-// 0x5fa7ab..0x5fa7c9: la ola de la esquina 1 pasa por un float antes de sumarse a la v, y la de la 0 se
-// suma desde la x87 sin redondear el producto. Con la ola −9,7147… (0xc11b6f81) en la v de 4,5, las dos
-// cuentas difieren en el último bit: la esquina 0 da 0x408f60d5 y la 1, 0x408f60d6.
+// 0x5fa7ab..0x5fa7c9: the wave of corner 1 goes through a float before it is added to the v, and that of corner 0 is
+// added from the x87 without rounding the product. With the wave −9.7147… (0xc11b6f81) on a v of 4.5, the two
+// results differ in the last bit: corner 0 gives 0x408f60d5 and corner 1, 0x408f60d6.
 TEST(TerrainCellsTest, TheWaveOfTheLeftCornerIsNotRoundedFirst)
 {
     Terrain terrain;
@@ -370,9 +369,8 @@ TEST(TerrainCellsTest, TheWaveOfTheLeftCornerIsNotRoundedFirst)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(batch.Vertices()[1].uv.y), 0x408F60D6u);
 }
 
-// Solo es agua lo que 0x5fa830 marca: la capa 1 en 5 con alguna esquina por debajo de 1. Con las cuatro
-// en 1 la de abajo es la capa 2, quieta aunque sea agua; el pase de alfa va con agua solo si las dos
-// capas son 5.
+// Only what 0x5fa830 marks is water: layer 1 at 5 with some corner below 1. With all four at 1 the bottom one is
+// layer 2, still even if it is water; the alpha pass goes with water only if both layers are 5.
 TEST(TerrainCellsTest, OnlyLayer5BelowIsWater)
 {
     TerrainWater water;
@@ -403,8 +401,8 @@ TEST(TerrainCellsTest, OnlyLayer5BelowIsWater)
         EXPECT_EQ(batch.Vertices()[batch.Commands()[1].firstVertex].uv.x, 1.75f + 0.375f);
     }
 }
-// 0x5fc190 y 0x5fc0e0: los bloques de 4 × 4 por fila de bloques y después por columna, y en cada uno
-// las 16 celdas por fila y después por columna, cada una con su pase de alfa enseguida.
+// 0x5fc190 and 0x5fc0e0: the 4 × 4 blocks by block row and then by column, and in each one the 16 cells by row and
+// then by column, each one with its alpha pass right after.
 TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
 {
     Terrain terrain;
@@ -413,9 +411,9 @@ TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
     batch.Begin(Client::Render::Pass3D{});
     DrawTerrain(batch, terrain.view, TerrainRange{.firstX = 4, .lastX = 8, .firstY = 12, .lastY = 16},
                 Client::Terrain::TerrainPolygon{.everything = true}, TerrainWater{});
-    // Cuatro bloques (12 y 16 en y, 4 y 8 en x), de 16 celdas. El alfa de la esquina (10, 13) lo
-    // comparten las cuatro celdas de alrededor, que llevan pase de alfa. Cada pase son seis vértices, y
-    // el lote junta en un tramo los seguidos con el mismo estado.
+    // Four blocks (12 and 16 in y, 4 and 8 in x), of 16 cells. The alpha of corner (10, 13) is shared by the four
+    // cells around it, which carry an alpha pass. Each pass is six vertices, and the batch joins consecutive ones with
+    // the same state into one span.
     std::vector<std::pair<int, int>> cells;
     std::size_t alphaPasses = 0;
     for (const ModelDrawCommand& command : batch.Commands())
@@ -445,9 +443,9 @@ TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
     EXPECT_EQ(cells[32], std::make_pair(4, 16));
     EXPECT_EQ(cells[63], std::make_pair(11, 19));
 }
-// El trapecio del juego (0x5fb570 a 45° alrededor del héroe de la traza de Lorencia) recorta por bloque
-// con el margen de −40 en su centro y después por celda con 0 (0x5fc190 y 0x5fc0e0): deja afuera la
-// mayor parte del rango, y hay celdas que se dibujan aunque el centro de su bloque no pase con margen 0.
+// The game's trapezoid (0x5fb570 at 45° around the hero of the Lorencia trace) cuts by block with the margin of −40
+// at its center and then by cell with 0 (0x5fc190 and 0x5fc0e0): it leaves out most of the range, and some cells
+// are drawn even though the center of their block does not pass with margin 0.
 TEST(TerrainCellsTest, TheGamePolygonCutsByBlockWithItsMarginAndThenByCell)
 {
     Terrain terrain;

@@ -12,74 +12,70 @@
 #include <memory>
 #include <string>
 
-// La luz del terreno de un mundo con la sombra de sus alturas, y la luz en un punto del mundo, como
-// la usan los modelos que no van por la luz de cada vértice (Client/docs/research/
-// 06-render-escenas-y-ui.md, "La luz del terreno en un punto"). Nace en la CL6.4, porque el logo y
-// el personaje del login la toman de su lugar en el mapa 55; la CL7 la usa para el terreno.
+// A world's terrain light with the shade of its heights, and the light at a point of the world, as the models that do
+// not use per-vertex light use it (Client/docs/research/06-render-escenas-y-ui.md, "La luz del terreno en un
+// punto"). The login's logo and character take it from their place on map 55, and the terrain uses it too.
 namespace Client::Terrain
 {
-// El mapa 30 (0x1e) sombrea con −1 y 1 (0x6b8b9c y 0x6b87d4) donde los demás usan −0,5 y 0,5.
+// Map 30 (0x1e) shades with −1 and 1 (0x6b8b9c and 0x6b87d4) where the others use −0.5 and 0.5.
 inline constexpr std::uint8_t BrightShadingMap = 30;
 
-// Una tabla RGB de 256 × 256: la base sombreada de 0x7c0ccc4 o un destino explícito para la
-// ventana y las sumas de 0x7b4ccc4. El tipo no decide cuándo se inicializa o se actualiza.
+// A 256 × 256 RGB table: the shaded base of 0x7c0ccc4 or an explicit destination for the window and the sums of
+// 0x7b4ccc4. The type does not decide when it is initialized or updated.
 struct TerrainLighting
 {
     Data::Terrain::TerrainLayer<Data::Terrain::TerrainLightColor> cells;
 };
 
-// 0x5f8b10 y 0x5f8d90, al cargar un mundo (0x5f8f40):
-//   - la normal de cada celda (x, y) es la de 0x5fd000 (Terrain::FaceNormal) con el triángulo (x + 1, y),
-//     (x + 1, y + 1), (x, y + 1), con las celdas a 100 unidades y las alturas de `heights`. Las
-//     alturas se buscan con x + 1 e y + 1 en un byte (la columna 255 toma la altura de la 0, y la fila
-//     255 la de la 0), y las posiciones no;
-//   - la sombra es (b · n.z + a · n.y) + n.x · 0,5 + 0,5, con a = −0,5 y b = 0,5 (−1 y 1 en el mapa
-//     30), de 0 a 1, y multiplica cada canal de la luz.
-// Perfil PC53/nearest del ASM y sin FMA, como el picking: la sombra queda en 53 bits hasta cada
-// producto, y sólo el producto se guarda en float. No fija la CW del original.
-// `map` es el número del mapa (el de SceneWorld), no el de su carpeta.
+// 0x5f8b10 and 0x5f8d90, when a world loads (0x5f8f40):
+//   - each cell's (x, y) normal is that of 0x5fd000 (Terrain::FaceNormal) with the triangle (x + 1, y),
+//     (x + 1, y + 1), (x, y + 1), with the cells 100 units apart and the heights of `heights`. The heights are
+//     looked up with x + 1 and y + 1 in a byte (column 255 takes the height of column 0, and row 255 that of row 0),
+//     and the positions are not;
+//   - the shade is (b · n.z + a · n.y) + n.x · 0.5 + 0.5, with a = −0.5 and b = 0.5 (−1 and 1 on map 30), from 0
+//     to 1, and it multiplies each light channel.
+// The ASM's PC53/nearest profile and no FMA, as in the picking: the shade stays in 53 bits up to each product, and
+// only the product is stored as float. It does not set the original's CW.
+// `map` is the map number (SceneWorld's), not its folder's.
 [[nodiscard]] std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainLight& light,
                                                                  const Data::Terrain::TerrainHeights& heights,
                                                                  std::uint8_t map);
 
-// 5f8c10→5f8e40: ventana8×8, centro restringido4..252, normales nuevas y sombra0.5 inclusoen30.
+// 0x5f8c10 → 0x5f8e40: an 8 × 8 window, the center clamped to 4..252, new normals and shade 0.5 even on map 30.
 void ReshadeTerrainLightWindow(TerrainLighting& lighting, const Data::Terrain::TerrainLight& raw,
                                const Data::Terrain::TerrainHeights& heights, std::int32_t centerX,
                                std::int32_t centerY);
 
-// 0x5f8f40 con el mundo de `map`: lee TerrainHeight.OZB y TerrainLight.OZJ de su carpeta
-// (Maps::WorldFolder) en `dataRoot` y los sombrea con ShadeTerrainLight. Un archivo que falta o que no
-// se lee es un error que lo nombra.
+// 0x5f8f40 with the world of `map`: reads TerrainHeight.OZB and TerrainLight.OZJ from its folder (Maps::WorldFolder)
+// in `dataRoot` and shades them with ShadeTerrainLight. A file that is missing or unreadable is an error that names
+// it.
 [[nodiscard]] Core::Expected<std::unique_ptr<TerrainLighting>, std::string>
 LoadTerrainLighting(const std::filesystem::path& dataRoot, std::uint8_t map);
 
-// Primer bloque RGB de 0x5fbf60: copia por bits la ventana inclusiva hasta lastX/lastY + 3,
-// con ambas coordenadas envueltas a un byte. Las demás celdas del destino quedan intactas.
-// Source y destination deben ser tablas disjuntas o la misma tabla (autocopia estable).
-// Los límites + 3 y el incremento posterior al último índice deben caber en int32.
-// No incluye el segundo bloque escalar de olas, ni establece el estado inicial o la cadencia.
+// The first RGB block of 0x5fbf60: copies by bits the inclusive window up to lastX/lastY + 3, with both coordinates
+// wrapped to a byte. The destination's other cells stay intact. Source and destination must be disjoint tables or the
+// same table (a stable self-copy). The + 3 limits and the increment after the last index must fit in int32. It does
+// not include the second, scalar block of waves, or set the initial state or the cadence.
 void CopyTerrainLightWindow(const TerrainLighting& source, TerrainLighting& destination, std::int32_t firstX,
                             std::int32_t lastX, std::int32_t firstY, std::int32_t lastY);
 
-// 0x5f9780: suma radial en orden filas, columnas, canales, con wrap en ambos ejes y piso en +0;
-// no hay techo en 1. color puede referenciar una celda de destination: se relee en cada canal.
-// El centro truncado sólo delimita el barrido: la distancia conserva las coordenadas escaladas
-// float32 con su fracción. Un peso no positivo no toca la celda; un -0 exacto se conserva.
-// Modelo numérico PC53/RN: operaciones double separadas, stores float y sin contracción FMA;
-// no afirma el CW efectivo de todas las ejecuciones del original. Requiere radio positivo,
-// coordenadas finitas cuyo producto almacenado en float por 0,01 trunque a int32, límites
-// centro ± radio e incremento posterior representables en int32, colores y actualizaciones finitos.
+// 0x5f9780: a radial sum in row, column, channel order, wrapping on both axes with a floor at +0; there is no ceiling
+// at 1. color may reference a cell of destination: it is read again for each channel. The truncated center only bounds
+// the sweep: the distance keeps the scaled float32 coordinates with their fraction. A non-positive weight does not
+// touch the cell; an exact -0 is kept. Numeric model PC53/RN: separate double operations, float stores and no FMA
+// contraction; it does not claim the effective CW of every run of the original. Requires a positive radius, finite
+// coordinates whose product stored as float times 0.01 truncates to int32, center ± radius limits and a later increment
+// representable in int32, and finite colors and updates.
 void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
                      const Data::Terrain::TerrainLightColor& color, std::int32_t radius);
 
-// 0x5f99e0, núcleo sobre una tabla explícita y estable: escala x/y por 0,01f y guarda F32;
-// convierte ambos a signed64 truncado y conserva low32 firmado, en orden X/Y. Un low32 fuera
-// de [0,254] provoca rechazo con RGB +0; en la banda ordinaria acepta −1 < coordenada escalada < 255, y también
-// coordenadas grandes cuyo low32 pasa. Invalid enmascarada proyecta 0 y sigue interpolando.
-// Perfil portable elegido: binary32/binary64, PC53/RN, sin FMA; pesos y columnas quedan en double,
-// primero Y y después X, hasta el store F32 por canal. No fija el CW nativo ni reproduce flags,
-// traps o payloads NaN de x87, ni promete equivalencia para otros PC/RC o su stack anidado.
-// Devuelve un valor: no modela out3 aliasando tabla/stack ni interferencias entre canales. Los
-// guards de globals del original pertenecen al binding; esta API no recibe esos globals.
+// 0x5f99e0, the core over an explicit, stable table: scales x/y by 0.01f and stores F32; converts both to a truncated
+// signed64 and keeps the signed low32, in X/Y order. A low32 outside [0, 254] is rejected with RGB +0; in the ordinary
+// band it accepts −1 < scaled coordinate < 255, and also large coordinates whose low32 passes. Masked invalid projects
+// 0 and keeps interpolating. The chosen portable profile: binary32/binary64, PC53/RN, no FMA; weights and columns stay
+// in double, first Y and then X, up to the F32 store per channel. It does not set the native CW or reproduce x87 flags,
+// traps or NaN payloads, and promises no equivalence for other PC/RC or its nested stack. Returns a value: it does not
+// model out3 aliasing the table or stack, or interference between channels. The original's global guards belong to the
+// binding; this API does not receive those globals.
 [[nodiscard]] glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y);
 } // namespace Client::Terrain

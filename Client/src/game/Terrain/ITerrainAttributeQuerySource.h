@@ -7,9 +7,9 @@ struct TerrainAttributes;
 
 namespace Client::Terrain
 {
-// Proveedor obligatorio del factor vigente y la tabla canónica del mundo actual.
-// El dueño mantiene vivos los datos durante la consulta y serializa sus mutaciones.
-// ReadScale se llama para Y y luego X; Attributes se pide después de ambas conversiones.
+// The required provider of the current factor and the current world's canonical table. The owner keeps the data
+// alive during the query and serializes its mutations. ReadScale is called for Y and then X; Attributes is asked for
+// after both conversions.
 class ITerrainAttributeQuerySource
 {
 public:

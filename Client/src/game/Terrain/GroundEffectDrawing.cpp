@@ -30,13 +30,13 @@ namespace Client::Terrain
 {
 namespace
 {
-// Floats del build c32bbd5f: 0x6b87b8, 0x6b8854, 0x6b8a48, 0x6b8ae8 y 0x6ba2ac.
+// Floats of the c32bbd5f build: 0x6b87b8, 0x6b8854, 0x6b8a48, 0x6b8ae8 and 0x6ba2ac.
 using Math::Fifth;
 using Math::Tenth;
 constexpr float SmallGrowth = 0.05f;
 constexpr float ArrivalGrowth = 0.15f;
 constexpr float SecondArrivalGrowth = 0.55f;
-// 0x6b87b4, 0x6b8a20, 0x6b8a1c, 0x6b882c y 0x6ba26c.
+// 0x6b87b4, 0x6b8a20, 0x6b8a1c, 0x6b882c and 0x6ba26c.
 constexpr float TwoFifths = 0.4f;
 constexpr float ThreeFifths = 0.6f;
 constexpr float NineTenths = 0.9f;
@@ -54,7 +54,7 @@ constexpr float DecalLift = 5.0f;
 constexpr float RandomDecalSide = 2.0f;
 constexpr int RandomLightCount = 4;
 constexpr int RandomLightBase = 8;
-// Argumentos de 0x52e224/0x52e24e y datos de 0x53d2c0 (0x6b8858, 0x6ba324, 0x6b8864).
+// Arguments of 0x52e224/0x52e24e and data of 0x53d2c0 (0x6b8858, 0x6ba324, 0x6b8864).
 constexpr float RingBottomRadius = 90.0f;
 constexpr float RingTopRadius = 130.0f;
 constexpr float RingHeight = 200.0f;
@@ -65,7 +65,7 @@ constexpr int RingSegments = 12;
 using Math::D;
 using Math::F32;
 
-// SUB de 32 bits, incluso en los bordes del entero con signo.
+// A 32-bit SUB, even at the edges of the signed integer.
 std::int32_t Difference(std::int32_t left, std::int32_t right)
 {
     return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(left) - std::bit_cast<std::uint32_t>(right));
@@ -79,7 +79,7 @@ void SetBlend(Render::ModelBatch& batch, Render::ModelBlend blend)
     state.depthWrite = blend == Render::ModelBlend::Alpha;
     state.alphaTest = blend == Render::ModelBlend::Alpha;
     state.texture2d = true;
-    // El perfil es observable aun sin vértices. Estas operaciones no ligan una textura ajena.
+    // The profile is observable even without vertices. These operations do not bind another texture.
     constexpr std::array Operations{Render::ModelStateOperation::Blend, Render::ModelStateOperation::Cull,
                                     Render::ModelStateOperation::DepthWrite, Render::ModelStateOperation::AlphaTest,
                                     Render::ModelStateOperation::Texture2d};
@@ -105,7 +105,7 @@ Core::Expected<void, std::string> DrawDecal(Render::ModelBatch& batch, const Wor
                                          .lift = DecalLift});
 }
 
-// 0x5fc9c0 guarda los mismos elementos de 0x5fc8f0 transpuestos, con los mismos redondeos.
+// 0x5fc9c0 stores the same elements of 0x5fc8f0 transposed, with the same roundings.
 Math::OriginalMatrix RingRotation(float angle)
 {
     const auto rotation = Math::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, angle));
@@ -128,8 +128,8 @@ glm::vec3 RingPoint(const glm::vec3& position, float radius, float height, const
     return {F32(D(rotated.x) + D(position.x)), F32(D(rotated.y) + D(position.y)), F32(D(rotated.z) + D(position.z))};
 }
 
-// 0x53d2c0 con los argumentos de 0x52e224/0x52e24e: doce quads, blancos abajo y negros arriba.
-// Los anillos no dependen de la vida; se atenúa solo el calco posterior.
+// 0x53d2c0 with the arguments of 0x52e224/0x52e24e: twelve quads, white below and black above. The rings do not depend
+// on the life; only the later decal fades.
 void DrawArrivalRing(Render::ModelBatch& batch, const glm::vec3& position, float angle)
 {
     Render::ModelDrawState state = batch.State();
@@ -173,7 +173,7 @@ float ArrivalSide(std::int32_t life)
 Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const World::ModelEffect& effect,
                                               const GroundEffectResources& resources)
 {
-    SetBlend(batch, Render::ModelBlend::Additive); // 0x52e1c2, antes del ftol del reloj.
+    SetBlend(batch, Render::ModelBlend::Additive); // 0x52e1c2, before the clock's ftol.
     const std::optional<std::int32_t> clock = Math::OriginalFtolLow(D(resources.worldClock));
     if (!clock)
     {
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const W
     float side = 0.0f;
     if (effect.subtype == 2)
     {
-        // 0x52e2ba no escribe el lado (ebp-4): conserva basura o el lado de otro efecto.
+        // 0x52e2ba does not write the side (ebp-4): it keeps garbage or another effect's side.
         if (effect.life <= SecondArrivalHalfLife)
         {
             return Core::Unexpected(std::string("0x52e312: el 0x61f/2 lee un lado local previo sin reconstruir"));
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const W
         brightness = ArrivalBrightness(effect.life);
         side = ArrivalSide(effect.life);
     }
-    // 0x52e2d5..0x52e303: R se guarda sin sacar el valor extendido usado por G y B.
+    // 0x52e2d5..0x52e303: R is stored without popping the extended value G and B use.
     const glm::vec3 color(F32(brightness), F32(brightness * D(TwoFifths)), F32(brightness * D(Fifth)));
     return DrawDecal(batch, effect, resources, ArrivalDecal, side, side, color, -effect.transform.angles.z);
 }
@@ -216,7 +216,7 @@ Core::Expected<void, std::string> DrawFadingDecal(Render::ModelBatch& batch, Wor
     {
         return drawn;
     }
-    // 0x52dccf..0x52dcfe: el dibujo ocurre antes de estas cuatro escrituras persistentes.
+    // 0x52dccf..0x52dcfe: the drawing happens before these four persistent writes.
     effect.light.x = F32(D(effect.light.x) * D(LightDecay));
     effect.light.y = F32(D(effect.light.y) * D(LightDecay));
     effect.light.z = F32(D(effect.light.z) * D(LightDecay));
@@ -240,7 +240,7 @@ Core::Expected<void, std::string> DrawRandomDecal(Render::ModelBatch& batch, con
 Core::Expected<void, std::string> DrawGrowingDecal(Render::ModelBatch& batch, World::ModelEffect& effect,
                                                    const GroundEffectResources& resources)
 {
-    // 0x52dd7b..0x52dd98: el lado cambia antes de entrar en 0x5fb2f0.
+    // 0x52dd7b..0x52dd98: the side changes before entering 0x5fb2f0.
     effect.transform.scale = F32(D(effect.transform.scale) + D(Fifth));
     const float light = F32(static_cast<double>(effect.life) * D(Tenth));
     return DrawDecal(batch, effect, resources, effect.type, effect.transform.scale, effect.transform.scale,
@@ -270,8 +270,8 @@ Core::Expected<glm::vec3, std::string> ColoredDecalLight(std::int32_t subtype, d
     }
 }
 
-// 0x52e010..0x52e0a2: el /6 cada 25 vidas y el /8 en las vidas pares sueltan un 0x61e/7 o /9 en la tabla del pase, con
-// su posición, sus ángulos, su luz y su dueño (0x518cf0 con la clave −1; el /7 saca su rand() % 360).
+// 0x52e010..0x52e0a2: /6 every 25 lives and /8 on even lives shed a 0x61e/7 or /9 into the pass's table, with their
+// position, angles, light and owner (0x518cf0 with key −1; /7 draws its rand() % 360).
 void SpawnColoredDecal(const World::ModelEffect& effect, const GroundEffectResources& resources, std::int32_t subtype)
 {
     const World::ModelEffectArguments child{.type = ArrivalDecal,
@@ -286,14 +286,14 @@ void SpawnColoredDecal(const World::ModelEffect& effect, const GroundEffectResou
 Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, World::ModelEffect& effect,
                                                    const GroundEffectResources& resources)
 {
-    // 0x52dddc..0x52de2a: la luz 1, la de las cinco últimas vidas y, en el /7 con más de 30, (40 − vida) · 0,1f.
+    // 0x52dddc..0x52de2a: light 1, that of the last five lives and, in /7 above 30, (40 − life) · 0.1f.
     constexpr std::int32_t ChildFadeInLife = 30, ChildFullLife = 40;
     double brightness = ArrivalBrightness(effect.life);
     if (effect.life >= FadeLife && effect.subtype == BindingChildSubtype && effect.life > ChildFadeInLife)
         brightness = static_cast<double>(Difference(ChildFullLife, effect.life)) * D(Tenth);
-    // 0x52de30..0x52de96: el lado. El /4 y el /0xa, la escala (y, con la luz en 1, el pulso); el /7, vida · 0,07f; el
-    // /9, la escala; los demás, (20 − vida) · 0,15f (el /6 calcula el suyo y no se dibuja).
-    constexpr float ChildGrowth = std::bit_cast<float>(0x3d8f5c29u); // 0x6ba190, 0,07f
+    // 0x52de30..0x52de96: the side. /4 and /0xa, the scale (and, with the light at 1, the pulse); /7, life · 0.07f; /9,
+    // the scale; the rest, (20 − life) · 0.15f (/6 computes its own and is not drawn).
+    constexpr float ChildGrowth = std::bit_cast<float>(0x3d8f5c29u); // 0x6ba190, 0.07f
     const bool pulse = effect.subtype == PulsingDecalSubtype || effect.subtype == CoolPulsingDecalSubtype;
     float side = ArrivalSide(effect.life);
     if (pulse || effect.subtype == GrowingDecalSubtype)
@@ -307,7 +307,7 @@ Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, Wo
     }
     if (effect.subtype == BindingChildSubtype)
     {
-        // 0x52ded0..0x52df00: la posición del dueño (+0x108 → +0x10), leída en cada dibujo, y el ángulo z 10 más.
+        // 0x52ded0..0x52df00: the owner's position (+0x108 → +0x10), read on each drawing, and the z angle 10 more.
         constexpr double ChildTurn = 10.0; // 0x6b87a8
         const auto owner = resources.ownerPosition ? resources.ownerPosition(effect.ownerContext) : std::nullopt;
         if (!owner.has_value())
@@ -342,7 +342,7 @@ Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const 
         (resources.map >= FirstSpecialMap && resources.map <= LastSpecialMap) || resources.map == LastMap;
     if (specialMap && effect.subtype != 6)
     {
-        // 0x52e0f0: 0x6208b0 apaga la escritura de profundidad antes del wrapper437940.
+        // 0x52e0f0: 0x6208b0 turns off depth writes before the 0x437940 wrapper.
         Render::ModelDrawState state = batch.State();
         state.depthWrite = false;
         batch.ApplyOperation(state, Render::ModelStateOperation::DepthWrite);
@@ -360,7 +360,7 @@ Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const 
             if (const auto drawn = World::DrawKalimaSurfaceDecal(batch, *resources.kalima, decal); !drawn.HasValue())
                 return drawn;
         }
-        // 52e137→620890: lo escribe en1 aun cuando437940 no encontró dueño.
+        // 0x52e137 → 0x620890: writes it as 1 even when 0x437940 found no owner.
         state = batch.State();
         state.depthWrite = true;
         batch.ApplyOperation(state, Render::ModelStateOperation::DepthWrite);
@@ -393,7 +393,7 @@ Core::Expected<void, std::string> DrawGroundEffectCase(Render::ModelBatch& batch
         return DrawArrival(batch, effect, resources);
     case 0x636:
         SetBlend(batch, Render::ModelBlend::Alpha);
-        // +0x17c/+0x180: los dos lados, donde el dragón guarda su posición de partida.
+        // +0x17c/+0x180: the two sides, where the dragon keeps its start position.
         return DrawDecal(batch, effect, resources, effect.type, effect.start.x, effect.start.y, effect.light, 0.0f);
     case 0x6eb:
         return DrawMapDecal(batch, effect, resources);

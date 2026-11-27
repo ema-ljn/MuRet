@@ -28,18 +28,18 @@ namespace Client::Terrain
 {
 namespace
 {
-// Las unidades del mundo por celda (0x6b86b4) y su inversa, la de 0x5f99e0 (0x6b86c0, 0,01 en float).
+// The world units per cell (0x6b86b4) and their inverse, that of 0x5f99e0 (0x6b86c0, 0.01 as float).
 constexpr float CellSize = 100.0f;
 constexpr float CellsPerUnit = 0.01f;
-// La última celda que 0x5f99e0 acepta, en x y en y: la 254, porque toma la de al lado.
+// The last cell 0x5f99e0 accepts, in x and in y: 254, because it takes the next one.
 constexpr std::int32_t LastSampledCell = 254;
-// La ventana RGB de 0x5fbf60 incluye las cuatro celdas del último bloque.
+// The RGB window of 0x5fbf60 includes the four cells of the last block.
 constexpr std::int32_t LightWindowTail = 3;
 static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24);
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53);
 
-// Los coeficientes de n.y y n.z en 0x5f8d90, floats en memoria: −0,5 (0x6ba298) y 0,5 (0x6b882c), o
-// −1 (0x6b8b9c) y 1 (0x6b87d4) en el mapa 30.
+// The coefficients of n.y and n.z in 0x5f8d90, floats in memory: −0.5 (0x6ba298) and 0.5 (0x6b882c), or −1
+// (0x6b8b9c) and 1 (0x6b87d4) on map 30.
 struct Shading
 {
     float y = -0.5f;
@@ -47,17 +47,17 @@ struct Shading
 };
 constexpr Shading NormalShading{};
 constexpr Shading BrightShading{-1.0f, 1.0f};
-// 0x6b882c: el peso de n.x y lo que 0x5f8d90 suma al final.
+// 0x6b882c: the weight of n.x and what 0x5f8d90 adds at the end.
 constexpr double ShadeHalf = 0.5;
 
 float HeightAt(const Data::Terrain::TerrainHeights& heights, std::size_t x, std::size_t y)
 {
-    // La x + 1 y la y + 1 de 0x5f8b10 van en un byte (& 0xff).
+    // The x + 1 and y + 1 of 0x5f8b10 go in a byte (& 0xff).
     return heights.cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y))];
 }
 
-// 0x5f8b10 en la celda (x, y): 0x5fd000 con el triángulo (x + 1, y), (x + 1, y + 1), (x, y + 1). Los
-// anchos son 100 en x y en y, así que nz vale 10.000 y el largo nunca es 0.
+// 0x5f8b10 at cell (x, y): 0x5fd000 with the triangle (x + 1, y), (x + 1, y + 1), (x, y + 1). The widths are 100 in x
+// and in y, so nz is 10,000 and the length is never 0.
 glm::vec3 CellNormal(const Data::Terrain::TerrainHeights& heights, std::size_t x, std::size_t y)
 {
     const float left = static_cast<float>(x) * CellSize;
@@ -68,9 +68,8 @@ glm::vec3 CellNormal(const Data::Terrain::TerrainHeights& heights, std::size_t x
                       {left, top, HeightAt(heights, x, y + 1)});
 }
 
-// 0x5f8d90 en una celda, en el orden del ASM y en el registro (53 bits): (b · n.z + a · n.y) +
-// n.x · 0,5, y después + 0,5. Menor que 0 o NaN da 0 (FCOM con C0); mayor que 1 da 1. La sombra sigue
-// en el registro para los tres canales.
+// 0x5f8d90 at a cell, in ASM order and in the register (53 bits): (b · n.z + a · n.y) + n.x · 0.5, then + 0.5. Below
+// 0 or NaN gives 0 (FCOM with C0); above 1 gives 1. The shade stays in the register for the three channels.
 double ShadeOf(const glm::vec3& normal, const Shading& shading)
 {
     const double slope = (static_cast<double>(shading.z) * static_cast<double>(normal.z)) +
@@ -87,7 +86,7 @@ const Data::Terrain::TerrainLightColor& CellLight(const TerrainLighting& lightin
 {
     return lighting.cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y))];
 }
-// 0x5f9780 almacena cada canal en F32, pero decide el piso usando la suma ancha aún viva.
+// 0x5f9780 stores each channel in F32, but decides the floor with the wide sum still live.
 void AddWeightedLight(Data::Terrain::TerrainLightColor& destination, const Data::Terrain::TerrainLightColor& color,
                       float weight)
 {
@@ -117,7 +116,7 @@ std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainL
             const std::size_t cell = (y * Data::Terrain::TerrainSide) + x;
             for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
             {
-                // FMUL float y FSTP float: el producto se redondea a 53 bits y después a float.
+                // FMUL float and FSTP float: the product is rounded to 53 bits and then to float.
                 lighting->cells[cell][channel] =
                     static_cast<float>(shade * static_cast<double>(light.cells[cell][channel]));
             }
@@ -135,7 +134,7 @@ void ReshadeTerrainLightWindow(TerrainLighting& lighting, const Data::Terrain::T
         for (int x = centerX - 4; x < centerX + 4; ++x)
         {
             const auto normal = CellNormal(heights, static_cast<std::size_t>(x), static_cast<std::size_t>(y));
-            // 5f8e82..5f8ea8: sumaX+Z antes delproducto, restaY ystorefloatantesdelclamp.
+            // 0x5f8e82..0x5f8ea8: adds X + Z before the product, subtracts Y and stores a float before the clamp.
             const float shade = static_cast<float>((static_cast<double>(normal.x) + normal.z) * .5 -
                                                    static_cast<double>(normal.y) * .5 + .5);
             const float clamped = !(shade >= 0) ? 0.0f : std::min(shade, 1.0f);
@@ -193,7 +192,7 @@ void CopyTerrainLightWindow(const TerrainLighting& source, TerrainLighting& dest
                 Data::Terrain::CellIndex(static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row));
             for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
             {
-                // MOV dword conserva los bits, sin operar en FP ni aquietar un NaN señalizante.
+                // MOV dword keeps the bits, without FP operations or quieting a signaling NaN.
                 std::memcpy(&destination.cells[index][channel], &source.cells[index][channel], sizeof(float));
             }
         }
@@ -204,15 +203,15 @@ void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
                      const Data::Terrain::TerrainLightColor& color, std::int32_t radius)
 {
     const float radiusFloat = static_cast<float>(radius);
-    // Los FSTP materializan cellX/Y antes de __ftol y de la distancia: 100 * float(0,01) redondea a 1.
-    // dx/dy usan esos valores float32 con su fracción, no el producto ancho ni el centro truncado.
+    // The FSTP calls materialize cellX/Y before __ftol and the distance: 100 * float(0.01) rounds to 1. dx/dy use those
+    // float32 values with their fraction, not the wide product or the truncated center.
     const float cellX = static_cast<float>(static_cast<double>(worldX) * static_cast<double>(CellsPerUnit));
     const float cellY = static_cast<float>(static_cast<double>(worldY) * static_cast<double>(CellsPerUnit));
     const auto centerX = static_cast<std::int32_t>(cellX);
     const auto centerY = static_cast<std::int32_t>(cellY);
     for (std::int32_t row = centerY - radius; row <= centerY + radius; ++row)
     {
-        // 005f97ed..005f97f4 conserva el Y escalado float32, no el centro truncado del barrido.
+        // 0x5f97ed..0x5f97f4 keeps the scaled float32 Y, not the sweep's truncated center.
         const double dy = static_cast<double>(cellY) - static_cast<double>(row);
         const double dySquared = dy * dy;
         for (std::int32_t column = centerX - radius; column <= centerX + radius; ++column)
@@ -238,7 +237,7 @@ glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)
 {
     const float cellX = x * CellsPerUnit;
     const float cellY = y * CellsPerUnit;
-    // Ambos stores F32 y conversiones FTOL64→low32 preceden a las guardas, en orden X/Y.
+    // Both F32 stores and FTOL64 → low32 conversions come before the guards, in X/Y order.
     const std::int32_t left = Math::FtolLow(static_cast<double>(cellX));
     const std::int32_t bottom = Math::FtolLow(static_cast<double>(cellY));
     if (left < 0 || bottom < 0 || left > LastSampledCell || bottom > LastSampledCell)
@@ -254,8 +253,8 @@ glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)
     Data::Terrain::TerrainLightColor light{};
     for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
     {
-        // 0x5f99e0: Y por columna y luego X, reteniendo pesos/columnas en PC53/RN.
-        // ClientLib ya desactiva FMA; sólo el resultado de cada canal vuelve a F32.
+        // 0x5f99e0: Y per column and then X, keeping weights and columns in PC53/RN. ClientLib already turns FMA off;
+        // only each channel's result goes back to F32.
         const double leftColumn =
             ((static_cast<double>(topLeft[channel]) - static_cast<double>(bottomLeft[channel])) * alongY) +
             static_cast<double>(bottomLeft[channel]);

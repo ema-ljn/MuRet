@@ -17,39 +17,38 @@
 #include <string>
 #include <vector>
 
-// El terreno de un mundo como triángulos del ModelBatch (CL7.1): lo que dibuja la cadena de 0x5fc260,
-// verificada celda por celda contra la traza de Lorencia (06 § Terreno). Cada celda es el fan de
-// cuatro vértices de 0x5fac90 en dos triángulos, con las capas que elige 0x5fa830 por el alfa de sus
-// esquinas, las UV de 0x5fa5c0 y la luz y el alfa de cada esquina de 0x5fa260 y 0x5fa350. El pase del
-// pasto es la misma celda con 0x7d0d31c en 2 (06 § El pasto): solo lo dibuja el juego (en el mapa 55
-// no dibuja nada, 06 § El terreno del login). Está el agua del mapa 7 (0x5fa4b0, con el 5.º argumento de
-// 0x5fa5c0 en 1) y el corrimiento al revés del 0x1e; no, las burbujas 0x698 del 0x22 (0x5fa5c0, con rand()).
+// A world's terrain as ModelBatch triangles: what the 0x5fc260 chain draws, checked cell by cell against the Lorencia
+// trace (06 § Terreno). Each cell is the four-vertex fan of 0x5fac90 as two triangles, with the layers 0x5fa830 picks
+// by its corners' alpha, the UVs of 0x5fa5c0 and the light and alpha of each corner from 0x5fa260 and 0x5fa350. The
+// grass pass is the same cell with 0x7d0d31c at 2 (06 § El pasto): only the game draws it (on map 55 it draws nothing,
+// 06 § El terreno del login). The water of map 7 (0x5fa4b0, with the 5th argument of 0x5fa5c0 at 1) and the backwards
+// shift of 0x1e are here; the 0x698 bubbles of 0x22 (0x5fa5c0, with rand()) are not.
 namespace Client::Terrain
 {
-// El tile i es el slot i + 0x23 (0x5fa260 y 0x5fa350).
+// Tile i is slot i + 0x23 (0x5fa260 and 0x5fa350).
 inline constexpr std::uint16_t FirstTileSlot = 0x23;
-// Lo que mide una celda (0x6b86b4).
+// 0x6b86b4
 inline constexpr float TerrainCellSize = 100.0f;
 static_assert(std::bit_cast<std::uint32_t>(TerrainCellSize) == 0x42C80000, "la constante de 0x6b86b4");
-// La altura de una esquina con el bit 0x40 del atributo (DAT_006c9d5c en la .data).
+// A corner's height with bit 0x40 of the attribute (DAT_006c9d5c in the .data).
 inline constexpr float FixedCornerHeight = 1200.0f;
 static_assert(std::bit_cast<std::uint32_t>(FixedCornerHeight) == 0x44960000, "el valor de DAT_006c9d5c");
-// Cuántas veces se repite un tile cada 64 celdas: la u avanza 64 / ancho por celda (0x6ba6b0).
+// How many times a tile repeats every 64 cells: u advances 64 / width per cell (0x6ba6b0).
 inline constexpr float TileSpan = 64.0f;
 static_assert(std::bit_cast<std::uint32_t>(TileSpan) == 0x42800000, "la constante de 0x6ba6b0");
-// Los bits del atributo de una celda que mira el terreno (0x5fac90).
+// The bits of a cell's attribute the terrain checks (0x5fac90).
 inline constexpr std::uint16_t HiddenCellBit = 0x08;
 inline constexpr std::uint16_t FixedHeightBit = 0x40;
 
-// El ancho y el alto del buffer de la textura de un tile (+0x20 y +0x24 de su slot): la potencia de 2.
+// The width and height of a tile texture's buffer (+0x20 and +0x24 of its slot): the power of 2.
 struct TileSize
 {
     float width = 1.0f;
     float height = 1.0f;
 };
 
-// Lo que el terreno lee de un mundo. La luz es la sombreada (0x7b4ccc4, la que 0x5fbf60 copia de
-// 0x7c0ccc4 en cada paso, 06 § Terreno), sin luces dinámicas.
+// What the terrain reads from a world. The light is the shaded one (0x7b4ccc4, which 0x5fbf60 copies from 0x7c0ccc4
+// on each step, 06 § Terreno), without dynamic lights.
 struct TerrainView
 {
     const Data::Terrain::TerrainMapping* mapping = nullptr;
@@ -57,17 +56,17 @@ struct TerrainView
     const Data::Terrain::TerrainAttributes* attributes = nullptr;
     const TerrainLighting* lighting = nullptr;
     std::array<TileSize, 256> tiles{};
-    // El mapa (DAT_006c9dd0): en el 0x1e el agua corre al revés.
+    // DAT_006c9dd0: on 0x1e the water runs backwards.
     std::uint8_t map = 0;
-    // DAT_006c9d5c compartida con la cámara: 1.200, o 1.201 después del primer 0x40.
+    // DAT_006c9d5c, shared with the camera: 1,200, or 1,201 after the first 0x40.
     float fixedHeight = FixedCornerHeight;
-    // DAT_07d2d360, el cuadro del agua de 0 a 31 que avanza el paso (ClothWorld::waterTextureFrame): en el
-    // mapa 7, el agua va con la cáustica 0x41 + cuadro.
+    // DAT_07d2d360, the water frame from 0 to 31 that the step advances (ClothWorld::waterTextureFrame): on map 7 the
+    // water goes with caustic 0x41 + frame.
     std::uint32_t waterFrame = 0;
 };
 
-// Las celdas de los bloques que ve la cámara (0x5fbb00): de firstX a lastX y de firstY a lastY, los
-// comienzos de los bloques de 4 × 4 (DAT_07d2d364, DAT_006c9d68, DAT_07d2d368 y DAT_006c9d6c).
+// The cells of the blocks the camera sees (0x5fbb00): from firstX to lastX and from firstY to lastY, the starts of the
+// 4 × 4 blocks (DAT_07d2d364, DAT_006c9d68, DAT_07d2d368 and DAT_006c9d6c).
 struct TerrainRange
 {
     int firstX = 0;
@@ -76,60 +75,57 @@ struct TerrainRange
     int lastY = 0;
 };
 
-// El agua: el corrimiento de la u de este frame (0x78ecbec) y la ola de cada celda del último paso
-// (0x78acbd8, por índice de la grilla). Sin olas, el agua va quieta.
+// The water: this frame's u offset (0x78ecbec) and each cell's wave from the last step (0x78acbd8, by grid index).
+// Without waves, the water stays still.
 struct TerrainWater
 {
     float offset = 0.0f;
     std::vector<float> waves;
 };
 
-// 0x5fc260, en cada frame: (ftol(T) % 20000) · 5e-5, con T el reloj en ms; en el mapa 8,
-// (ftol(T) % 40000) · 2,5e-5.
+// 0x5fc260, on each frame: (ftol(T) % 20000) · 5e-5, with T the clock in ms; on map 8, (ftol(T) % 40000) · 2.5e-5.
 [[nodiscard]] float WaterOffsetAt(Core::Duration clock, std::uint8_t map);
 
-// 0x5fbf60, en cada paso: la ola de cada celda de la ventana (de firstX a lastX + 3 y de firstY a
-// lastY + 3) es sin(x · 5 + (ftol(T) % 720000) · 0,002) · 10, con la x de la celda (x · 50 en el mapa
-// 8); las demás quedan como estaban. Las olas nacen en 0.
+// 0x5fbf60, on each step: the wave of each cell of the window (firstX to lastX + 3 and firstY to lastY + 3) is
+// sin(x · 5 + (ftol(T) % 720000) · 0.002) · 10, with the cell's x (x · 50 on map 8); the rest stay as they were. The
+// waves start at 0.
 void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& range, std::uint8_t map);
 
-// La celda (x, y), como 0x5fac90 con 0x5fa830: nada con el bit 0x08; si no, la capa de abajo opaca
-// (la 2 si las cuatro esquinas van en alfa 1, la 1 si no) y, con alguna esquina por encima de 0: en el
-// mapa 7 con la capa 2 en 5, el agua de 0x5fa4b0 (la cáustica 0x41 + cuadro, aditiva, con las UV de 16 /
-// ancho por celda y el gris del alfa de cada esquina, sin luz); si no, con alguna esquina por debajo de 1,
-// la capa 2 con la mezcla normal y el alfa de cada esquina. Es agua (el corrimiento y la ola) la de abajo
-// cuando es la capa 1 en 5, y la de alfa cuando además la capa 2 es 5. Las esquinas van por índice, (x, y), (x + 1, y),
-// (x + 1, y + 1) y (x, y + 1) en la grilla de 256: la última celda de una fila toma las de la fila siguiente, como el
-// original.
+// Cell (x, y), as 0x5fac90 with 0x5fa830: nothing with bit 0x08; otherwise the opaque lower layer (layer 2 if all four
+// corners are at alpha 1, layer 1 if not) and, with some corner above 0: on map 7 with layer 2 at 5, the water of
+// 0x5fa4b0 (caustic 0x41 + frame, additive, with UVs of 16 / width per cell and the gray of each corner's alpha,
+// without light); otherwise, with some corner below 1, layer 2 with the normal blend and each corner's alpha. The lower
+// one is water (the shift and the wave) when it is layer 1 at 5, and the alpha one when layer 2 is 5 too. The corners
+// go by index, (x, y), (x + 1, y), (x + 1, y + 1) and (x, y + 1) in the 256 grid: the last cell of a row takes those of
+// the next row, as the original does.
 void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water, std::uint8_t x,
                      std::uint8_t y);
 
-// El pasto de la capa 1 en k va en el slot 0x32 + k (0x5faa8c). 0x61a560 sube en 0x32..0x34
-// TileGrass01..03.tga de World<N>\ (0x63bd00, GL_NEAREST y repitiendo, sin avisar si falta).
+// The grass of layer 1 at k goes in slot 0x32 + k (0x5faa8c). 0x61a560 uploads TileGrass01..03.tga of World<N>\ into
+// 0x32..0x34 (0x63bd00, GL_NEAREST and repeating, without warning if missing).
 inline constexpr std::uint16_t FirstGrassSlot = 0x32;
 inline constexpr std::size_t GrassTextureCount = 3;
-// Las filas del corrimiento del pasto que lee el pase: 0x5faabf toma la fila & 0xff (Q-C146).
+// The rows of the grass offset the pass reads: 0x5faabf takes the row & 0xff (Q-C146).
 inline constexpr std::size_t GrassOffsetRows = 256;
 
-// Lo que el pase del pasto lee además del terreno (0x5fa830 con 0x7d0d31c en 2).
+// What the grass pass reads besides the terrain (0x5fa830 with 0x7d0d31c at 2).
 struct TerrainGrass
 {
-    // El alto del buffer (+0x24 del slot) de cada textura del pasto subida, de 0x32 a 0x34; sin valor,
-    // la que no está (+0x34 en 0): 0x6070a0 suelta los slots 0x23..0x67 en cada carga y 0x63bd00 no
-    // sube la que falta o no se lee.
+    // The buffer height (+0x24 of the slot) of each uploaded grass texture, from 0x32 to 0x34; no value for one that is
+    // not there (+0x34 at 0): 0x6070a0 releases slots 0x23..0x67 on each load and 0x63bd00 does not upload one that is
+    // missing or unreadable.
     std::array<std::optional<float>, GrassTextureCount> heights{};
-    // El corrimiento de la u de cada fila (0x7b0cca4, que llena 0x5f8300 al cargar el mapa).
+    // Each row's u offset (0x7b0cca4, which 0x5f8300 fills when the map loads).
     std::span<const float> offsets{};
 };
 
-// La celda (x, y) en el pase del pasto, como 0x5fac90 con 0x5fa830 y 0x7d0d31c en 2: nada con el bit
-// 0x08, con alguna esquina en alfa por encima de 0, en los mapas 11 a 17 o con el slot 0x32 + capa 1 sin
-// textura. Si no, un GL_QUADS con la mezcla de 0x620a00(1) parado sobre la diagonal de la celda: abajo
-// las esquinas (x + 1, y + 1) y (x, y) con su altura; arriba las mismas, 50 menos en x y el doble del
-// alto del buffer de la textura más en z, con la ola de la esquina (x, y) y la de (x + 1, y) en y (Q-C227). La u
-// es x · 0,25 más el corrimiento de la fila y el color, la luz de cada esquina en orden, con alfa 1
-// (glColor3fv). Corta con error si el corrimiento no tiene las 256 filas o si el slot es 0x41 o más, que
-// MuRet no sube (0x5faaa3: las wt de 0x616ec0, las hojas…); del 0x35 al 0x40 no los sube nadie.
+// Cell (x, y) in the grass pass, as 0x5fac90 with 0x5fa830 and 0x7d0d31c at 2: nothing with bit 0x08, with some corner
+// at alpha above 0, on maps 11 to 17 or with slot 0x32 + layer 1 without a texture. Otherwise a GL_QUADS with the blend
+// of 0x620a00(1) standing on the cell's diagonal: below, corners (x + 1, y + 1) and (x, y) with their height; above,
+// the same, 50 less in x and twice the texture buffer's height more in z, with the wave of corner (x, y) and that of (x
+// + 1, y) in y (Q-C227). The u is x · 0.25 plus the row's offset and the color is each corner's light in order, with
+// alpha 1 (glColor3fv). It fails if the offset does not have the 256 rows or if the slot is 0x41 or more, which MuRet
+// does not upload (0x5faaa3: the wt of 0x616ec0, the leaves…); nobody uploads 0x35 to 0x40.
 [[nodiscard]] Core::Expected<void, std::string> DrawGrassCell(Render::ModelBatch& batch, const TerrainView& view,
                                                               const TerrainWater& water, const TerrainGrass& grass,
                                                               std::uint8_t x, std::uint8_t y);

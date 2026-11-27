@@ -8,9 +8,9 @@
 #include <bit>
 #include <cstdint>
 
-// Client::Terrain::FaceNormal, 0x5fd000 con el perfil PC53 del ASM, la normal que usan la luz del terreno
-// y el picking. Los bits esperados salen de Client/docs/research/scripts/game/maps/terrain_light.py, un
-// cálculo aparte del mismo ASM.
+// Client::Terrain::FaceNormal, 0x5fd000 with the ASM's PC53 profile, the normal the terrain light and the picking use.
+// The expected bits come from Client/docs/research/scripts/game/maps/terrain_light.py, a separate computation of the
+// same ASM.
 namespace
 {
 using Client::Terrain::FaceNormal;
@@ -23,7 +23,7 @@ ComponentBits BitsOf(const glm::vec3& normal)
             std::bit_cast<std::uint32_t>(normal.z)};
 }
 
-// (p2 − p1) × (p3 − p1): con los dos últimos puntos cambiados, la normal se da vuelta.
+// (p2 − p1) × (p3 − p1): with the last two points swapped, the normal flips.
 TEST(FaceNormalTest, TheNormalIsTheCrossProductOfTheTwoEdgesFromTheFirstPoint)
 {
     const glm::vec3 origin{0.0f, 0.0f, 0.0f};
@@ -33,9 +33,9 @@ TEST(FaceNormalTest, TheNormalIsTheCrossProductOfTheTwoEdgesFromTheFirstPoint)
     EXPECT_EQ(FaceNormal(origin, alongY, alongX), glm::vec3(0.0f, 0.0f, -1.0f));
 }
 
-// La celda (10, 20) de la luz, como la arma 0x5f8b10: nz y el largo quedan en 53 bits, y cada componente
-// se divide en 53 bits. Con glm::cross, glm::length y la división en float, los tres darían un ULP más
-// (0x3f3487c1, 0xbecb18b9 y 0x3f167121).
+// Cell (10, 20) of the light, as 0x5f8b10 builds it: nz and the length stay in 53 bits, and each component is divided
+// in 53 bits. With glm::cross, glm::length and the division in float, all three would be one ULP more (0x3f3487c1,
+// 0xbecb18b9 and 0x3f167121).
 TEST(FaceNormalTest, ACellOfTheLightKeepsNzAndTheLengthInTheRegister)
 {
     const glm::vec3 normal =
@@ -43,9 +43,9 @@ TEST(FaceNormalTest, ACellOfTheLightKeepsNzAndTheLengthInTheRegister)
     EXPECT_EQ(BitsOf(normal), (ComponentBits{0x3f3487c0U, 0xbecb18b8U, 0x3f167120U}));
 }
 
-// Con coordenadas con fracción, las restas y los productos no entran en un float, y los spills de vy,
-// nx, vx, ux y ny cambian el resultado. Todo en float daría 0x3f008dc7, 0x3f49b0ae y 0x3eb68c6e; todo
-// en 53 bits, sin los spills, 0x3f008dc8, 0x3f49b0ae y 0x3eb68c6e.
+// With fractional coordinates the differences and products do not fit a float, and the spills of vy, nx, vx, ux and
+// ny change the result. All in float would give 0x3f008dc7, 0x3f49b0ae and 0x3eb68c6e; all in 53 bits, without the
+// spills, 0x3f008dc8, 0x3f49b0ae and 0x3eb68c6e.
 TEST(FaceNormalTest, TheFloatSpillsOfTheAsmChangeTheResult)
 {
     const glm::vec3 normal = FaceNormal({-822.3125f, 829.9375f, -389.8125f}, {599.0625f, -460.6875f, 460.1875f},

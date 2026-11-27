@@ -13,8 +13,8 @@
 #include <cstdint>
 #include <memory>
 
-// Primer bloque RGB de 0x5fbf60: historia compartida y rango del último dibujo, no una copia
-// completa de la base en cada frame. Los valores iniciales se leyeron del PE c32bbd5f, sin ejecutarlo.
+// The first RGB block of 0x5fbf60: shared history and the last drawing's range, not a full copy of the base on every
+// frame. The initial values were read from the PE c32bbd5f, without running it.
 namespace
 {
 using Client::Data::Terrain::CellIndex;
@@ -61,7 +61,7 @@ TEST(DynamicWorldLightTest, AnUpdateCopiesOnlyThePublishedWindowAndItsThreeCellT
     light.Lighting().cells.fill(Retained);
     const auto base = BaseLight();
     light.PublishRange({.firstX = 10, .lastX = 12, .firstY = 20, .lastY = 22});
-    // El dibujo solo publica: todavía conserva la luz de antes, también adentro de la ventana.
+    // The drawing only publishes: it still keeps the earlier light, inside the window too.
     EXPECT_EQ(light.Lighting().cells[CellIndex(10, 20)], Retained);
     EXPECT_EQ(light.Range().firstX, 10);
     EXPECT_EQ(light.Range().lastX, 12);
@@ -101,7 +101,7 @@ TEST(DynamicWorldLightTest, ANewSceneBaseUsesTheRangeAndDynamicHistoryLeftByTheP
     DynamicWorldLight shared;
     const auto loginBase = BaseLight();
     const auto gameBase = BaseLight({4.0f, 5.0f, 6.0f});
-    // Un consumidor copia la ventana del login. El siguiente dibujo publica otra, sin resetear tabla.
+    // A consumer copies the login's window. The next drawing publishes another, without resetting the table.
     shared.PublishRange({.firstX = 10, .lastX = 10, .firstY = 20, .lastY = 20});
     shared.Update(*loginBase);
     shared.Lighting().cells[CellIndex(100, 100)] = Retained;

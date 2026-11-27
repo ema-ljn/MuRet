@@ -8,7 +8,7 @@ from mutools.adapters.web.models import Models
 from mutools.app.model_scene import action_poses, model_scene, rest_bounds
 from mutools.app.textures import mesh_texture
 from mutools.core.errors import ErrorCode, MutoolsError
-from mutools.core.formats.texture_images import RgbaImage
+from mutools.core.formats.texture_images import RgbaImage, png_of
 
 OWN: Final = "own"
 DONOR: Final = "donor"
@@ -61,4 +61,12 @@ def add_api(app: FastAPI, models: Models) -> None:
         if isinstance(content, RgbaImage):
             size = {"X-Width": str(content.width), "X-Height": str(content.height)}
             return Response(content.pixels, media_type="application/octet-stream", headers=NO_STORE | size)
+        return Response(content, media_type="image/jpeg", headers=NO_STORE)
+
+    @app.get("/api/swatch")
+    def swatch(file: str = "", mesh: int = 0) -> Response:
+        session = models.session(file)
+        content = mesh_texture(models.store, session.path, session.view, mesh).content
+        if isinstance(content, RgbaImage):
+            return Response(png_of(content), media_type="image/png", headers=NO_STORE)
         return Response(content, media_type="image/jpeg", headers=NO_STORE)

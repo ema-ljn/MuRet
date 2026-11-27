@@ -14,15 +14,15 @@ MONSTER = "Monster/Monster01.bmd"
 READY = "window.mutoolsViewer && window.mutoolsViewer.ready"
 READY_MS = 30_000
 NEAR = 0.01
-FLOOR = """() => {
-  const scene = getElement(document.querySelector(".mutools-scene")).scene;
-  const found = { ground: false, grid: false };
-  scene.traverse((object) => {
-    found.ground ||= object.object_id === "ground";
-    found.grid ||= object.type === "GridHelper";
-  });
-  return found;
-}"""
+PLAYING_FPS = 30
+COUNT_CONTEXTS = """
+window.webglCanvases = new Set();
+const getContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+  if (String(kind).startsWith("webgl")) window.webglCanvases.add(this);
+  return getContext.call(this, kind, ...rest);
+};
+"""
 
 
 def state(page: Page) -> dict[str, Any]:
@@ -36,8 +36,16 @@ def opened(page: Page, served: str, file: str) -> dict[str, Any]:
     return state(page)
 
 
-def open_group(page: Page, label: str) -> None:
-    page.locator(".q-tree__node-header", has_text=label).first.locator(".q-tree__arrow").click()
+def frames_in_a_second(page: Page) -> int:
+    first: int = page.evaluate("window.mutoolsStudio.frames()")
+    page.wait_for_timeout(1000)
+    last: int = page.evaluate("window.mutoolsStudio.frames()")
+    return last - first
+
+
+def play(page: Page, name: str, action: int) -> None:
+    page.locator(".mt-segment", has_text=name).click()
+    page.wait_for_function(f"window.mutoolsViewer.action === {action} && window.mutoolsViewer.playing")
 
 
 def test_a_model_is_drawn_with_its_textures(page: Page, served: str, collected: Collected) -> None:
@@ -54,10 +62,18 @@ def test_the_browser_poses_the_model_where_python_does(page: Page, served: str) 
     assert bounds["high"] == pytest.approx([84.139, 51.869, 214.797], abs=NEAR)
 
 
-def test_the_grid_has_no_floor_to_hide_what_is_under_it(page: Page, served: str) -> None:
-    opened(page, served, "Item/Sword01.bmd")
+def test_nothing_is_drawn_while_the_model_is_still(page: Page, served: str) -> None:
+    opened(page, served, MONSTER)
+    page.wait_for_timeout(500)
 
-    assert page.evaluate(FLOOR) == {"ground": False, "grid": True}
+    assert frames_in_a_second(page) == 0
+
+
+def test_an_action_draws_at_most_thirty_frames_a_second(page: Page, served: str) -> None:
+    opened(page, served, MONSTER)
+    play(page, "Stop 2", 1)
+
+    assert 0 < frames_in_a_second(page) <= PLAYING_FPS + 1
 
 
 def test_a_tga_texture_is_drawn(page: Page, served: str) -> None:
@@ -70,49 +86,86 @@ def test_a_missing_texture_leaves_the_mesh_flat(page: Page, served: str, collect
     viewer = opened(page, served, "Item/waterring.bmd")
 
     assert viewer["textures"] == {"shown": 1, "flat": 1}
-    assert [(status, url.rpartition("/api/")[2]) for status, url in collected.answers] == [
+    assert {(status, url.rpartition("/api/")[2]) for status, url in collected.answers} == {
         (404, "texture?file=Item%2Fwaterring.bmd&mesh=1")
-    ]
+    }
     assert collected.page_errors == []
 
 
 def test_an_action_plays_and_pauses(page: Page, served: str) -> None:
     opened(page, served, MONSTER)
-    open_group(page, "actions (7)")
 
-    page.get_by_text("30 keys").click()
-    page.wait_for_function("window.mutoolsViewer.action === 1 && window.mutoolsViewer.playing")
+    play(page, "Stop 2", 1)
     started = state(page)
     page.wait_for_function(f"window.mutoolsViewer.key > {started['key']}")
-    page.get_by_role("button").filter(has_text="pause").click()
+    page.locator(".mt-play").click()
     page.wait_for_function("!window.mutoolsViewer.playing")
     stopped = state(page)["key"]
     page.wait_for_timeout(500)
 
     assert (started["action"], started["keys"]) == (1, 30)
     assert state(page)["key"] == stopped
-    expect(page.get_by_role("slider")).to_have_attribute("aria-valuenow", str(stopped))
+    expect(page.get_by_role("slider", name="Key")).to_have_attribute("aria-valuenow", str(stopped))
 
 
 def test_an_action_loops_as_the_clients_does(page: Page, served: str) -> None:
     opened(page, served, MONSTER)
-    open_group(page, "actions (7)")
 
-    page.get_by_text("30 keys").click()
-    page.wait_for_function("window.mutoolsViewer.action === 1")
+    play(page, "Stop 2", 1)
     unlocked = state(page)["duration"]
-    page.get_by_text("7 keys").click()
-    page.wait_for_function("window.mutoolsViewer.action === 2")
+    play(page, "Walk", 2)
 
     assert (unlocked, state(page)["duration"]) == (30, 6)
+
+
+def test_dying_plays_once_and_stays_on_its_last_key(page: Page, served: str) -> None:
+    opened(page, served, MONSTER)
+
+    play(page, "Die", 6)
+    page.wait_for_function("!window.mutoolsViewer.playing")
+
+    assert (state(page)["key"], state(page)["duration"]) == (8, 8)
+
+
+def test_space_plays_and_pauses(page: Page, served: str) -> None:
+    opened(page, served, MONSTER)
+
+    page.keyboard.press("Space")
+    page.wait_for_function("window.mutoolsViewer.playing")
+    page.keyboard.press("Space")
+
+    page.wait_for_function("!window.mutoolsViewer.playing")
+
+
+def test_the_finder_opens_a_model_without_a_reload(page: Page, served: str) -> None:
+    opened(page, served, MONSTER)
+    page.evaluate("window.sameDocument = true")
+
+    page.keyboard.press("Control+k")
+    page.get_by_role("textbox", name="Find a model or run a command").fill("Sword")
+    page.keyboard.press("Enter")
+    page.wait_for_function(f"window.mutoolsViewer.file === 'Item/Sword01.bmd' && {READY}", timeout=READY_MS)
+
+    assert page.evaluate("window.sameDocument") is True
+    assert page.url.endswith("/?file=Item%2FSword01.bmd")
+
+
+def test_the_plates_share_one_webgl_context(page: Page, served: str) -> None:
+    page.add_init_script(COUNT_CONTEXTS)
+    opened(page, served, "player/Player.bmd")
+
+    plates = page.locator(".mt-plate-image")
+    expect(plates).to_have_count(3, timeout=READY_MS)
+
+    assert page.evaluate("window.webglCanvases.size") == 2
 
 
 def test_a_part_moves_with_the_players_actions(page: Page, served: str) -> None:
     opened(page, served, "player/HelmMale01.bmd")
 
-    page.get_by_role("switch", name="On Player.bmd's skeleton").click()
+    page.get_by_role("button", name="On Player.bmd's skeleton").click()
     page.wait_for_url("**on=donor**")
-    page.wait_for_function(READY, timeout=READY_MS)
+    page.wait_for_function(f"window.mutoolsViewer.skeleton === 'player/Player.bmd' && {READY}", timeout=READY_MS)
 
     viewer = state(page)
     assert (viewer["skeleton"], viewer["bones"]) == ("player/Player.bmd", 60)
@@ -134,7 +187,7 @@ def test_odd_models_load_without_errors(
     viewer = opened(page, served, file)
 
     assert (viewer["meshes"], viewer["bones"], viewer["corners"]) == (meshes, bones, corners)
-    expect(page.get_by_role("switch", name="skeleton", exact=True)).to_have_attribute("aria-checked", skeleton_shown)
+    expect(page.get_by_role("button", name="Bones", exact=True)).to_have_attribute("aria-pressed", skeleton_shown)
     assert collected.nothing, collected
 
 

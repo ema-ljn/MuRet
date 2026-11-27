@@ -62,6 +62,8 @@ def test_a_scene_has_a_corner_per_triangle_corner(reference_data: Path) -> None:
     assert (len(mesh.bones), len(mesh.positions), len(mesh.uvs), mesh.skipped) == (204, 612, 408, 0)
     assert mesh.positions[:3] == pytest.approx((-1.417384, -1.0287832, -10.2511), abs=CLOSE)
     assert mesh.uvs[:2] == pytest.approx((0.9868, 0.4574), abs=CLOSE)
+    assert len(mesh.normals) == 612
+    assert mesh.normals[:3] == pytest.approx((0.0, 0.0, -1.0), abs=CLOSE)
     assert mesh.bones[0] == 0
 
 
@@ -113,6 +115,20 @@ def test_a_vertex_on_a_dummy_bone_is_skipped() -> None:
     (mesh,) = model_scene(view).meshes
 
     assert (len(mesh.bones), mesh.skipped) == (0, 1)
+
+
+def test_a_corner_without_a_normal_points_up() -> None:
+    corner: JsonObject = {"bone": 0, "position": [0.0, 0.0, 0.0]}
+    triangle: JsonObject = {"polygon": 3, "vertices": [0, 0, 0, 0], "uvs": [0, 0, 0, 0]}
+    view: JsonObject = {
+        "bones": [{"name": "Root", "parent": -1, "actions": []}],
+        "actions": [],
+        "meshes": [{"vertices": [corner], "uvs": [[0.0, 0.0]], "triangles": [triangle]}],
+    }
+
+    (mesh,) = model_scene(view).meshes
+
+    assert mesh.normals == (0.0, 0.0, 1.0) * 3
 
 
 def test_a_parent_that_loops_hangs_from_the_root(reference_data: Path) -> None:

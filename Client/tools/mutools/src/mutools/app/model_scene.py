@@ -12,7 +12,7 @@ from mutools.core.ports import FileStore
 
 type Quaternion = tuple[float, float, float, float]
 type _Point = tuple[float, float, float]
-type _Corner = tuple[int, tuple[float, ...], tuple[float, ...]]
+type _Corner = tuple[int, tuple[float, ...], tuple[float, ...], tuple[float, ...]]
 type _Placed = tuple[Quaternion, _Point]
 
 DONOR_NAME: Final = "player.bmd"
@@ -23,6 +23,7 @@ POSITION_WIDTH: Final = 3
 UV_WIDTH: Final = 2
 UNTURNED: Final[Quaternion] = (0.0, 0.0, 0.0, 1.0)
 ORIGIN: Final[_Point] = (0.0, 0.0, 0.0)
+UP: Final[_Point] = (0.0, 0.0, 1.0)
 BOUNDS_DIGITS: Final = 3
 
 
@@ -41,6 +42,7 @@ class SceneAction:
 @dataclass(frozen=True, slots=True)
 class SceneMesh:
     positions: tuple[float, ...]
+    normals: tuple[float, ...]
     uvs: tuple[float, ...]
     bones: tuple[int, ...]
     skipped: int
@@ -132,10 +134,12 @@ def _slots(triangle: JsonObject) -> tuple[int, ...]:
 def _corner(triangle: JsonObject, slot: int, mesh: JsonObject, drawn: Sequence[bool]) -> _Corner | None:
     vertex = _at(_items(mesh.get("vertices")), _at(_items(triangle.get("vertices")), slot))
     uv = _at(_items(mesh.get("uvs")), _at(_items(triangle.get("uvs")), slot))
+    normal = _object(_at(_items(mesh.get("normals")), _at(_items(triangle.get("normals")), slot))).get("normal")
     bone = _object(vertex).get("bone")
     if uv is None or not isinstance(bone, int) or not 0 <= bone < len(drawn) or not drawn[bone]:
         return None
-    return bone, _numbers(_object(vertex).get("position"), POSITION_WIDTH), _numbers(uv, UV_WIDTH)
+    position = _numbers(_object(vertex).get("position"), POSITION_WIDTH)
+    return bone, position, _numbers(normal, POSITION_WIDTH) if normal is not None else UP, _numbers(uv, UV_WIDTH)
 
 
 def _drawn_corners(triangle: JsonObject, mesh: JsonObject, drawn: Sequence[bool]) -> list[_Corner] | None:
@@ -146,6 +150,7 @@ def _drawn_corners(triangle: JsonObject, mesh: JsonObject, drawn: Sequence[bool]
 
 def _scene_mesh(mesh: JsonObject, drawn: Sequence[bool]) -> SceneMesh:
     positions: list[float] = []
+    normals: list[float] = []
     uvs: list[float] = []
     bones: list[int] = []
     skipped = 0
@@ -154,11 +159,12 @@ def _scene_mesh(mesh: JsonObject, drawn: Sequence[bool]) -> SceneMesh:
         if corners is None:
             skipped += 1
             continue
-        for bone, position, uv in corners:
+        for bone, position, normal, uv in corners:
             bones.append(bone)
             positions += position
+            normals += normal
             uvs += uv
-    return SceneMesh(tuple(positions), tuple(uvs), tuple(bones), skipped)
+    return SceneMesh(tuple(positions), tuple(normals), tuple(uvs), tuple(bones), skipped)
 
 
 def model_scene(view: JsonObject, skeleton: JsonObject | None = None) -> Scene:

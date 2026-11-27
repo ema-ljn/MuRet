@@ -19,6 +19,27 @@ def test_the_models_of_the_folder(web_copy: Path) -> None:
     assert list(listed) == sorted(listed)
 
 
+def test_the_folders_count_their_models(web_copy: Path) -> None:
+    models = Models(LocalFileStore(), web_copy)
+
+    folders = dict(models.folders(models.listed()))
+
+    assert (folders["Item"], folders["player"]) == (2, 4)
+    assert [folder for folder, _ in models.folders(models.listed())] == sorted(folders, key=str.lower)
+
+
+def test_an_entry_sums_up_a_model_until_it_changes(web_copy: Path) -> None:
+    models = Models(LocalFileStore(), web_copy)
+
+    entry = models.entry(SWORD)
+    (web_copy / SWORD).write_bytes((web_copy / "player" / "HelmMale01.bmd").read_bytes())
+    changed = models.entry(SWORD)
+
+    assert (entry.folder, entry.name, entry.meshes, entry.actions, len(entry.stamp)) == ("Item", "Sword01", 1, 1, 16)
+    assert models.entry(SWORD) is changed
+    assert (changed.meshes, changed.stamp != entry.stamp) == (2, True)
+
+
 def test_a_model_is_opened_once_while_it_does_not_change(web_copy: Path) -> None:
     models = Models(LocalFileStore(), web_copy)
 

@@ -414,6 +414,28 @@ Its plan, with every decision and what was measured on the real files, is
   `IO_ERROR` for a port in use. NiceGUI is an optional extra, `mutools[web]`, that the CLI and the console UI do not
   need.
 
+### The studio
+
+Stage 6 turns the web viewer into a studio, on Emanuel's asks of 2026-11-27 ("improve its design, surprise me", "the
+site looks dull", "light, but without losing render quality") and with his two corrections of the same day: the first
+look was generic, and the page is dark. What the viewer section above says about safety, the server's routes and what
+is drawn still holds; this replaces its layout. The plan, with every decision, is
+[`2026-11-27-mutools-studio.md`](../plans/2026-11-27-mutools-studio.md).
+
+- **A library with pictures:** one folder at a time, each model on a plate with its picture, drawn in the browser by
+  one shared renderer and kept in IndexedDB by file and content. An index of folders and a search through every name.
+- **The vitrine:** the model alone on a dark stage whose glow takes the hue of its textures, with `Textured`, `Lit`
+  and `Wire`, the bones, additive drawing and the player's skeleton for character parts.
+- **The actions at the client's speed:** the client's speed tables (the player's, the monsters', the NPCs') are
+  copied into `core/client_speeds.py`, and a test reads the client's C++ so the copy cannot drift. The actions are laid
+  end to end at their real lengths; one the client plays once plays once.
+- **The inspector:** meshes with texture swatches, the parts tree, the findings.
+- **Drawn on demand:** nothing is drawn while nothing changes; a playing action draws 30 frames a second at most, at
+  a pixel ratio of 1 while the camera moves and 2 at rest; the loop stops when the page is hidden. A browser test
+  counts the frames.
+- **Two project skills** guide it: `frontend-design` (Anthropic's, with MuRet's decisions about the look) and
+  `threejs` (five of CloudAI-X's, with MuRet's rules over their continuous loops).
+
 ### AI friendliness
 
 Three parts: the CLI above, a skill that teaches it, and tests that keep both honest.
@@ -487,6 +509,9 @@ leaves its own checks green, and the workflow lands with the first code PR.
 5. **The web viewer of models:** `mutools web`, a page served from the same machine that shows a model with its
    textures, actions and skeleton. It took the place of the wireframe preview. Its plan is
    [`2026-11-27-bmd-editor-web-viewer.md`](../plans/2026-11-27-bmd-editor-web-viewer.md).
+6. **The studio:** the web viewer's new look and what makes it light; see "The studio" above. The stages after it
+   (editing in the browser, the Blender bridge, animation, new models, the character room) are listed in its plan and
+   each waits for Emanuel's yes.
 
 Each stage ends with the round trip over its files passing.
 

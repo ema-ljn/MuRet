@@ -5,7 +5,7 @@ identical, and an edited file is read by the client as the tool showed it.
 
 - **For agents:** a CLI that prints JSON, with stable error and exit codes and a JSON description of itself. The
   project skill [`muret-bmd`](../../../.claude/skills/muret-bmd/SKILL.md) teaches it.
-- **For people:** the same operations in a console UI (`mutools tui`), and a viewer of the 3D models in the browser
+- **For people:** the same operations in a console UI (`mutools tui`), and a studio for the 3D models in the browser
   (`mutools web`).
 
 This version reads every `.bmd` of the game: its tables, 29 files in 14 formats ([the list](#the-tables)), and its
@@ -23,7 +23,7 @@ mutools --version
 ```
 
 `[dev]` brings everything. To use the tool and not change it, `pip install -e Client/tools/mutools` has the commands and
-the console UI, and `pip install -e "Client/tools/mutools[web]"` adds the web viewer (NiceGUI: 39 packages, about 89 MB).
+the console UI, and `pip install -e "Client/tools/mutools[web]"` adds the studio (NiceGUI: 39 packages, about 89 MB).
 
 ## The working copy
 
@@ -111,7 +111,7 @@ is `PARENT_AFTER_CHILD`. The skill has the rules in full.
 | `mutools build <json> --output <file>` | The reverse: a table to its own file name, a model to any `.bmd` name |
 | `mutools roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mutools tui [<folder or file>]` | The console UI |
-| `mutools web [<folder or model>] [--port N] [--no-browser]` | The web viewer of models |
+| `mutools web [<folder or model>] [--port N] [--no-browser]` | The studio of models, in the browser |
 
 `set`, `apply`, `build`, `dump` and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
 Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
@@ -259,26 +259,35 @@ there: use `mutools set`. In a model the UI edits the names, a mesh's `texture` 
 them are shown, and geometry and keys are edited with `mutools set`, `mutools apply` or a dump. A file inside the
 reference folder opens read-only: it can be searched, not edited.
 
-## The web viewer
+## The studio
 
-`mutools web ~/mu/Data` serves a page from this machine and opens it in the browser: the folder's models on the left,
-the chosen model in the middle, drawn with its textures, and its parts, facts and findings on the right. It needs the
-`web` extra. A model instead of a folder opens its folder with that model chosen.
+`mutools web ~/mu/Data` serves a page from this machine and opens it in the browser: the studio. It needs the `web`
+extra. A model instead of a folder opens its folder with that model chosen.
 
-- **The model** turns, moves and zooms with the mouse. Above it are play and pause, the key slider, the speed (2, 4, 8
-  or 16 keys per second: the file does not say how fast an action plays) and two switches: `skeleton` draws the bones,
-  and `additive` draws the model as light on black, for the effects.
-- **A part** chosen in the tree shows its facts and fields: a mesh is tinted in the scene, an action is played and a
-  bone is marked on the skeleton. A finding chooses its part.
-- **A piece of a character** (a helm, an armor, pants, gloves, boots) has one more switch, `On Player.bmd's skeleton`:
-  with it on, the piece moves with the 205 actions of the `Player.bmd` of its folder.
-- **A mesh whose texture is not shown** stays in a flat color, and its facts say why: no folder has the file, or it
-  is one the client refuses. Triangles that hang from a bone the model does not have are not drawn, and the facts
-  count them.
+- **The library**, on the left, shows one folder at a time as plates with a picture of each model. `Folders` opens the
+  index of folders with their counts; the search finds a model by name in every folder.
+- **The vitrine**, in the middle, holds the chosen model: it turns, moves and zooms with the mouse, and its glow takes
+  the color of the model's textures. Above it are the views (`Textured`, `Lit`, `Wire`) and the switches: `Bones`
+  draws the skeleton, `Additive` draws the model as light on black, for the effects, and a piece of a character (a
+  helm, an armor, pants, gloves, boots) has `On Player.bmd's skeleton`, which moves it with the 205 actions of the
+  `Player.bmd` of its folder. The two round buttons frame the model and save a picture of it.
+- **The actions**, below, are laid end to end, each as wide as it lasts. They play at the client's own speed when the
+  client gives one (the player, every `Monster/MonsterNN.bmd`, the NPCs), at half or double that speed, or at 8 keys
+  a second when the client's speed is not known, and the line under the ruler says which. Actions the client plays
+  once, like a monster's `Die`, stop on their last key.
+- **The inspector**, on the right, lists the meshes with their texture and triangles; a mesh chosen there is tinted in
+  the vitrine, and its card says where its texture is or why it is not shown, and how many of its triangles are not
+  drawn. `Model` has the parts tree with each part's facts and fields; `Findings` has the checks' findings, and one
+  chosen leads to its part. A chosen bone is marked on the skeleton.
+- **`Ctrl K`** finds a model or runs a command; `Space` plays and pauses; `F` frames the model. The address keeps the
+  model and the action, so a link opens the same view.
 
-It is a viewer, not the client's renderer: textures are drawn unlit and on both sides, with none of the client's
-blend rules per model. It writes nothing, so it can open the reference folder as it is (`mutools web
-Client/assets/Data`), and it reads a model again each time it is opened, so a working copy is shown as it is on disk.
+It draws only when something changes: a still model costs no frames, an action plays at 30 frames a second at most,
+and the pictures of the library are drawn once by a single hidden renderer and kept by the browser until the file
+changes. It is a viewer, not the client's renderer: textures are drawn unlit and on both sides (or lit, in `Lit`),
+with none of the client's blend rules per model. It writes nothing, so it can open the reference folder as it is
+(`mutools web Client/assets/Data`), and it reads a model again each time it is opened, so a working copy is shown as
+it is on disk.
 
 The server listens on 127.0.0.1 only, and refuses a request that reaches it under another host name. `--port` picks
 the port (8765 by default, `0` for a free one) and `--no-browser` leaves the browser closed: the address is on
@@ -292,13 +301,13 @@ ruff check . && ruff format --check . && mypy src tests && pytest
 ```
 
 The layers are `core` (formats, documents, checks; standard library only), `app` (use cases) and `adapters` (file
-system, CLI, console UI, web viewer); `tests/test_layers.py` keeps them apart, and keeps NiceGUI inside
+system, CLI, console UI, studio); `tests/test_layers.py` keeps them apart, and keeps NiceGUI inside
 `adapters/web`. The snapshot tests compare the console UI against `tests/adapters/tui/__snapshots__/`; after a change
 that is meant to be seen, look at `snapshot_report.html` and run `pytest --snapshot-update`.
 
-The web viewer's page is tested without a browser, through NiceGUI's test user. Its JavaScript
-(`adapters/web/bmd_model.js`) runs only in a browser, so the tests marked `browser` drive a headless Chromium with
-Playwright, and `pytest` alone leaves them out:
+The studio's page is tested without a browser, through NiceGUI's test user. Its JavaScript (the Vue components in
+`adapters/web/*.js` and the modules in `adapters/web/studio/`) runs only in a browser, so the tests marked `browser`
+drive a headless Chromium with Playwright, and `pytest` alone leaves them out:
 
 ```bash
 python -m playwright install chromium     # once
@@ -309,7 +318,7 @@ pytest -m browser
 
 ## Stages
 
-Stages 1 to 5 are done.
+Stages 1 to 6 are done.
 
 1. Design and skills.
 2. Texts end to end.
@@ -317,3 +326,5 @@ Stages 1 to 5 are done.
    dialogs and quests.
 4. Models, with the K16 cipher.
 5. The web viewer of models.
+6. The studio: the library with pictures, the vitrine, the actions at the client's speed, and a page that draws
+   only when something changes.

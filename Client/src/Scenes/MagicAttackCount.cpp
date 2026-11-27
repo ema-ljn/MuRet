@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/PlayerKey.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorShock.h"
@@ -54,7 +55,7 @@ void HitTheHero(WorldState& world, std::uint16_t damage, Crt::CrtRandom& random)
 } // namespace
 
 Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::MagicAttackCount& attack,
-                                                        std::uint16_t playerKey, const WorldEntryResources& resources)
+                                                        Kernel::PlayerKey player, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
@@ -95,7 +96,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
         if (target.damage == 0)
             continue;
         CreateDamageNumber(world, target.position, target.damage, DamageLight, DamageScale, DamageRises);
-        if (key == playerKey)
+        if (key == player.Value())
             HitTheHero(world, target.damage, random);
     }
     return {};

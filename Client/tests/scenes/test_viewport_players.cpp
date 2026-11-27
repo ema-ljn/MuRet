@@ -1097,7 +1097,7 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
         EXPECT_EQ(actor.movement, 1);
 
         applied = Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{0x0456, true, 25, 0, false},
-                                                   HeroKey, game->Resources());
+                                                   Client::Kernel::PlayerKey{HeroKey}, game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(actor.damage, 25);
         EXPECT_EQ(actor.movement, 0);

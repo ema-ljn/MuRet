@@ -3,6 +3,7 @@
 #include "Session/CharacterEvent.h"
 #include "App/FaithfulPacer.h"
 #include "Session/ServerSession.h"
+#include "Session/SessionContexts.h"
 #include "Session/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -14,8 +15,6 @@
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Player/PkLevel.h"
-#include "Protocol/Combat/Combat.h"
 #include "Protocol/Social/Duel.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
@@ -24,10 +23,7 @@
 #include "Protocol/Guild/Guild.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Messenger/Letters.h"
-#include "Protocol/Chat/Messages.h"
-#include "Protocol/Movement/Movement.h"
 #include "Protocol/Npc/NpcWindows.h"
-#include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party/Party.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
@@ -36,8 +32,6 @@
 #include "Protocol/Quests/Quest.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Social/Trade.h"
-#include "Protocol/Actors/Viewport.h"
-#include "Protocol/Movement/World.h"
 #include "Protocol/Weather/Weather.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
@@ -48,29 +42,22 @@
 #include "Scenes/LevelUpPointReply.h"
 #include "Session/MapServerMoveApply.h"
 #include "Scenes/ChatReceive.h"
-#include "Scenes/CombatReplies.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/FloorItemPackets.h"
 #include "Scenes/GuildReceive.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameLetters.h"
-#include "Session/IWorldEntryPublisher.h"
-#include "Session/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
-#include "Session/IWorldEntryPublisher.h"
-#include "Session/IWorldTransitionPublisher.h"
 #include "Scenes/MagicAttackCount.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetOrders.h"
 #include "Scenes/PetStats.h"
-#include "Scenes/PkLevelReply.h"
 #include "Scenes/QuestReplies.h"
 #include "Session/ReturnToSelection.h"
-#include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SkillReplies.h"
 #include "Scenes/SocialEvents.h"
@@ -96,6 +83,10 @@ namespace Client::Scenes
 {
 namespace
 {
+using Session::ChatContextOf;
+using Session::SessionPublisher;
+using Session::WithTheSession;
+
 void ApplyWeather(const Protocol::Weather::Weather& received, World::LeafWeather& weather)
 {
     // 0x4e36c4/0x4e36ed: sólo target; el default de 0x4e5b4a no escribe nada ni pide rand().
@@ -107,21 +98,6 @@ void ApplyWeather(const Protocol::Weather::Weather& received, World::LeafWeather
         weather.target = 0;
     else if (mode == 1)
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
-}
-
-// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
-// al cerrar las misiones, y 0x657a90, al cerrar un NPC de evento, el C1 03 31 por la misma sesión, como el 3D del
-// comercio (0x657fe1) y el 3F 07 de la tienda de otro (0x5eb17f) que mandan los mismos cierres, y las ventanas de los
-// NPC los suyos (cerrarlas al cambiar de mapa, CL9 hito 6).
-WorldEntryResources WithTheSession(const WorldEntryResources& resources, App::ServerSession& session)
-{
-    WorldEntryResources bound = resources;
-    bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
-    bound.sendNpcWindowPacket = [&session](Protocol::Outgoing packet)
-    { return session.SendNpcWindowPacket(std::move(packet)); };
-    bound.sendWindowClose = [&session] { session.SendWindowClose(); };
-    bound.sendGamePacket = [&session](Protocol::Outgoing outgoing) { session.SendGamePacket(std::move(outgoing)); };
-    return bound;
 }
 
 // 04 § Las ventanas de los NPC (Scenes/NpcWindows.h).
@@ -163,22 +139,6 @@ ApplyNpcWindowEvent(const App::WorldEvent& event, const WorldEntryResources& unb
     return std::nullopt;
 }
 
-// Lo que el chat que llega lee del juego y de la sesión: 0x6d5edc es el elegido de la lista.
-ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, App::ServerSession& session)
-{
-    const Protocol::FrontEnd::CharacterEntry* chosen = session.ChosenCharacter();
-    return ChatReceiveContext{.world = resources.world,
-                              .random = resources.cloth.random,
-                              .measure = resources.textMeasure,
-                              .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
-                              .scene = resources.scene ? resources.scene() : std::nullopt,
-                              .texts = resources.texts,
-                              .chosenSlot =
-                                  chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt,
-                              .rooms = &session,
-                              .worldEntry = &resources};
-}
-
 // Lo que los paquetes del gremio leen del juego y de la sesión (CL9 hito 8): lo que mandan va por el GameServer de la
 // sesión, también los C1 18 del gesto de la guerra (0x576a60, el emote del hito 1, con los modelos de la escena).
 GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::ServerSession& session)
@@ -217,29 +177,6 @@ CastleReceiveContext CastleContextOf(const WorldEntryResources& resources, App::
                                 .entryResources = &resources};
 }
 
-// El 0x3d de la respuesta va a la sesión que la está aplicando.
-class SessionPublisher final : public IWorldEntryPublisher, public IWorldTransitionPublisher
-{
-public:
-    explicit SessionPublisher(App::ServerSession& session) : m_session(session) {}
-
-    void PublishWorldEntry() override
-    {
-        m_session.PublishWorldEntry();
-    }
-
-    void ConfirmTeleport() override
-    {
-        m_session.ConfirmTeleport();
-    }
-    void RequestCrywolfState() override
-    {
-        m_session.RequestCrywolfState();
-    }
-
-private:
-    App::ServerSession& m_session;
-};
 } // namespace
 
 SessionEventApplier::SessionEventApplier(const WorldEntryResources& resources) : m_resources(resources) {}
@@ -272,50 +209,6 @@ void SessionEventApplier::AfterWorldReception(App::ServerSession& session)
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App::WorldEvent& event,
                                                                        App::ServerSession& session)
 {
-    if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
-        return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
-    if (const auto* attack = std::get_if<Protocol::Actors::MagicAttackCount>(&event))
-        return ApplyMagicAttackCount(*attack, session.PlayerIndex(), m_resources);
-    // CL9 hito 3: el 0x16 y el 0x9C (0x4cf200, 0x4cfce0) y el 0x17 (0x4d0a30).
-    if (const auto* experience = std::get_if<Protocol::Combat::KillExperience>(&event))
-        return ApplyKillExperience(*experience, CombatContextOf(m_resources), ChatContextOf(m_resources, session));
-    if (const auto* death = std::get_if<Protocol::Combat::Death>(&event))
-        return ApplyDeath(*death, CombatContextOf(m_resources));
-    if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
-        return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
-                                { session.SendAction(direction, sent); });
-    if (const auto* teleport = std::get_if<Protocol::Movement::Teleport>(&event))
-    {
-        SessionPublisher publisher(session);
-        return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
-    }
-    if (const auto* regen = std::get_if<Protocol::Movement::Regen>(&event))
-        return ApplyRegen(*regen, session.PlayerIndex(), WithTheSession(m_resources, session));
-    if (const auto* chat = std::get_if<Protocol::Chat::Chat>(&event))
-    {
-        // 0x4c6095: en el login, el 00 es el saludo del CS y pide la lista por el socket abierto.
-        if (m_resources.scene && m_resources.scene() == SceneId::Login)
-        {
-            session.ResendServerListRequest();
-            return {};
-        }
-        return ApplyChat(*chat, ChatContextOf(m_resources, session));
-    }
-    if (const auto* chat = std::get_if<Protocol::Chat::KeyChat>(&event))
-    {
-        // 0x4e345c: el 01 del Guild Master abre la ventana 2 del gremio, y lo que eso cierra manda por el GameServer.
-        ChatReceiveContext context = ChatContextOf(m_resources, session);
-        context.guildSend = [&session](Protocol::Outgoing packet) { session.SendGuildPacket(std::move(packet)); };
-        return ApplyKeyChat(*chat, context);
-    }
-    if (const auto* whisper = std::get_if<Protocol::Chat::Whisper>(&event))
-        return ApplyWhisper(*whisper, ChatContextOf(m_resources, session));
-    if (const auto* result = std::get_if<Protocol::Chat::WhisperResult>(&event))
-        return ApplyWhisperResult(*result, ChatContextOf(m_resources, session));
-    if (const auto* notice = std::get_if<Protocol::Chat::Notice>(&event))
-        return ApplyNotice(*notice, ChatContextOf(m_resources, session));
-    if (const auto* options = std::get_if<Protocol::Player::OptionData>(&event))
-        return ApplyOptionData(*options, ChatContextOf(m_resources, session));
     if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
         return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
     if (auto skill = ApplySkillEvent(event); skill)
@@ -490,12 +383,6 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkill
         return ApplySkillTarget(*target, m_resources);
     if (const auto* list = std::get_if<Protocol::Skills::SkillList>(&event))
         return ApplySkillList(*list, m_resources);
-    if (const auto* level = std::get_if<Protocol::Skills::LevelUp>(&event))
-        return ApplyLevelUp(*level, m_resources);
-    if (const auto* point = std::get_if<Protocol::Player::LevelUpPointResult>(&event))
-        return ApplyLevelUpPointResult(*point, m_resources);
-    if (const auto* pk = std::get_if<Protocol::Player::PkLevel>(&event))
-        return ApplyPkLevel(*pk, m_resources);
     if (const auto* summon = std::get_if<Protocol::Skills::SummonLife>(&event))
     {
         ApplySummonLife(*summon, m_resources);

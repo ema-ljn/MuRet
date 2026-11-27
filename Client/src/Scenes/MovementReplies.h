@@ -3,7 +3,6 @@
 #include "Core/Expected.h"
 #include "Kernel/PlayerKey.h"
 
-#include <cstdint>
 #include <string>
 
 namespace Client::Protocol::Movement
@@ -18,6 +17,6 @@ struct WorldEntryResources;
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyWalkReply(const Protocol::Movement::Walk& reply, Kernel::PlayerKey player, const WorldEntryResources& resources);
 [[nodiscard]] Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Damage& reply,
-                                                                 std::uint16_t playerKey,
+                                                                 Kernel::PlayerKey player,
                                                                  const WorldEntryResources& resources);
 } // namespace Client::Scenes

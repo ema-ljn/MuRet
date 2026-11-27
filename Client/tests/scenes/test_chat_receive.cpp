@@ -161,6 +161,22 @@ TEST_F(ChatReceiveTest, AChatGoesToABubbleAndToTheChat)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
+// 0x4c6098: at the login scene the 00 only asks for the list again; it reaches no bubble and no measure.
+TEST_F(ChatReceiveTest, AtTheLoginTheChatOnlyAsksForTheListAgain)
+{
+    Player(7, "Zorzal");
+    int requests = 0;
+    ChatReceiveContext context = Context(SceneId::Login);
+    context.measure = nullptr;
+    context.requestServerList = [&requests] { ++requests; };
+    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Zorzal", "buen dia"), context).HasValue());
+
+    EXPECT_EQ(requests, 1);
+    EXPECT_TRUE(Runtime().chat.bubbles[0].name.empty());
+    EXPECT_TRUE(Runtime().chat.log.entries.empty());
+    EXPECT_EQ(m_random.State(), After(0));
+}
+
 // 0x4c62ef..0x4c6380: ~ al chat de la party, @@ al aviso del gremio, @ al gremio; sin la marca.
 TEST_F(ChatReceiveTest, TheMarksPickTheChannel)
 {

@@ -246,13 +246,13 @@ Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk&
     actor->targetY = reply.cell.y;
     return actor->type == JumpingActor ? ApplyJumpingWalk(*actor, resources) : ApplyOtherWalk(*actor, resources);
 }
-Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Damage& reply, std::uint16_t playerKey,
+Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Damage& reply, Kernel::PlayerKey player,
                                                    const WorldEntryResources& resources)
 {
     ActorState* actor = FindActor(resources.world, reply.characterId);
     if (actor == nullptr)
         return {};
-    const bool hero = reply.characterId == playerKey;
+    const bool hero = reply.characterId == player.Value();
     if (reply.shock)
     {
         if (auto shocked = SetActorShock(*actor, reply.amount, resources); !shocked.HasValue())

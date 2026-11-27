@@ -24,15 +24,12 @@
 #include "Protocol/Session/BuildConstants.h"
 #include "Protocol/CastleSiege/CastleBattle.h"
 #include "Protocol/CastleSiege/CastleSiege.h"
-#include "Protocol/Player/PkLevel.h"
-#include "Protocol/Combat/Combat.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Messenger/FriendChat.h"
 #include "Protocol/Guild/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Items/Inventory.h"
-#include "Protocol/Chat/Messages.h"
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Player/OptionData.h"
@@ -40,14 +37,12 @@
 #include "Protocol/Pets/PetOrders.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Quests/Quest.h"
-#include "Protocol/Movement/World.h"
 #include "Protocol/FrontEnd/CharacterCreate.h"
 #include "Protocol/FrontEnd/CharacterDelete.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/FrontEnd/CharacterSelect.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Player/LevelUpPoint.h"
 #include "Protocol/Session/Keepalive.h"
 #include "Protocol/Session/Login.h"
 #include "Protocol/Session/ServerList.h"
@@ -727,18 +722,15 @@ TEST(ServerSessionTest, LevelUpReceptionsPreserveRepeatedEventsAndRejectTruncati
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    world->world.Runtime().hero = 7;
     const auto wire = Bytes({0xc1, 18, 0xf3, 5, 9, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0});
     tested.socket.reads = {Join({wire, Bytes({0xc1, 5, 0xf3, 5, 9}), wire})};
-    static_cast<void>(tested.session.Poll());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 2u);
-    for (const auto& event : events)
-    {
-        const auto* level = std::get_if<Client::Protocol::Skills::LevelUp>(&event);
-        ASSERT_NE(level, nullptr);
-        EXPECT_EQ(level->level, 9);
-        EXPECT_EQ(level->maxBp, 5);
-    }
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0, 0}));
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora la subida de nivel (F3 05): no se puede leer"), 1u);
+    EXPECT_EQ(world->world.OwnCharacter().level, 9);
 }
 
 // 0x4e4c0a y 0x4e4c42: las órdenes del cuervo entran al mundo sin mirar el cifrado.
@@ -1253,15 +1245,16 @@ TEST(ServerSessionTest, WithTheGameServerThe00IsTheChat)
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameServer());
     const ByteVector sentToTheConnectServer = tested.socket.sent;
 
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+
     tested.socket.reads = {Hello()};
     static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_TRUE(SameBytes(tested.socket.sent, sentToTheConnectServer));
     EXPECT_EQ(tested.Warnings(), Lines{});
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
-    EXPECT_NE(std::get_if<Client::Protocol::Chat::Chat>(&events[0]), nullptr);
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0}));
 
     tested.session.ResendServerListRequest();
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({sentToTheConnectServer, ListRequest()})));
@@ -3944,45 +3937,31 @@ TEST(ServerSessionTest, TheLogDoesNotHaveTheCharacterNames)
                                      { return line.find("char000") != std::string::npos; }));
 }
 
-// 04 § Caminar y pegar y cambios de mapa: el reparto nuevo no pierde los mensajes de un lote. The D3 goes through its
-// row to the world, before the others.
+// 04 § Caminar y pegar y cambios de mapa: the rows of a batch run in wire order. The hero's cell after each reception
+// shows it: the walks, the warp and the regen move it, the damage does not.
 TEST(ServerSessionTest, WalkDamageTeleportAndRegenArriveInWireOrder)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     const auto world = std::make_unique<BareWorld>();
     tested.eventSink.routedWorld = &world->resources;
-    const auto walk = Bytes({0xc1, 8, 0xd3, 0x12, 0x34, 7, 9, 0xf0});
-    const auto damage = Bytes({0xc1, 8, 0xd7, 0x92, 0x34, 0x13, 0x57, 0xc1});
-    const auto teleport = Bytes({0xc1, 8, 0x1c, 0x17, 3, 11, 12, 0});
+    world->ReadyForTransitions();
+    auto& hero = world->world.Hero();
+    hero.alive = true;
+    hero.key = tested.session.PlayerIndex();
+    std::vector<int> cells;
+    tested.eventSink.onRoutedReception = [&hero, &cells](ServerSession&) { cells.push_back(hero.cellX); };
+    const auto walk = Bytes({0xc1, 8, 0xd3, 0, 5, 2, 3, 0xf0});
+    const auto damage = Bytes({0xc1, 8, 0xd7, 0, 5, 0, 1, 0});
+    const auto teleport = Bytes({0xc1, 8, 0x1c, 0, 0, 30, 31, 0});
     const auto regen =
-        Bytes({0xc1, 24, 0xf3, 4, 21, 22, 2, 0, 0x34, 0x12, 0x78, 0x56, 0xbc, 0x9a, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8});
-    tested.socket.reads = {Join({walk, damage, FromTheGameServer(teleport, tested.gameServerSends), regen})};
-    EXPECT_TRUE(tested.session.Poll().HasValue());
-    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0}));
-    ASSERT_EQ(tested.eventSink.world.size(), 3u);
-    const auto* hit = std::get_if<Client::Protocol::Movement::Damage>(&tested.eventSink.world[0]);
-    ASSERT_NE(hit, nullptr);
-    EXPECT_EQ(hit->characterId, 0x1234);
-    EXPECT_EQ(hit->amount, 0x1357);
-    EXPECT_TRUE(hit->shock);
-    EXPECT_TRUE(hit->flag);
-    EXPECT_TRUE(hit->doubleHit);
-    EXPECT_EQ(hit->type, 1);
-    const auto* warped = std::get_if<Client::Protocol::Movement::Teleport>(&tested.eventSink.world[1]);
-    ASSERT_NE(warped, nullptr);
-    EXPECT_EQ(warped->gate, 23);
-    EXPECT_EQ(warped->map, 3);
-    EXPECT_EQ(warped->direction, 0);
-    const auto* revived = std::get_if<Client::Protocol::Movement::Regen>(&tested.eventSink.world[2]);
-    ASSERT_NE(revived, nullptr);
-    EXPECT_EQ(revived->x, 21);
-    EXPECT_EQ(revived->map, 2);
-    EXPECT_EQ(revived->life, 0x1234);
-    EXPECT_EQ(revived->mana, 0x5678);
-    EXPECT_EQ(revived->bp, 0x9abc);
-    EXPECT_EQ(revived->experience, 0x04030201u);
-    EXPECT_EQ(revived->zen, 0x08070605u);
+        Bytes({0xc1, 24, 0xf3, 4, 21, 22, 0, 0, 0x34, 0x12, 0x78, 0x56, 0xbc, 0x9a, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8});
+    const auto back = Bytes({0xc1, 8, 0xd3, 0, 5, 4, 5, 0x70});
+    tested.socket.reads = {Join({walk, damage, FromTheGameServer(teleport, tested.gameServerSends), regen, back})};
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(cells, (std::vector<int>{2, 2, 30, 21, 4}));
+    EXPECT_TRUE(tested.eventSink.world.empty());
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
@@ -4171,11 +4150,10 @@ TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
 }
 
 // 04 § Pegar, el daño y la muerte (CL9 hito 3): el 16 y el 9C cifrados (como los arma la GS: GCKillPlayerExpSend y
-// la recompensa de Blood Castle) y el 17 de 5 bytes llegan al mundo en orden; el 15 de la GS (GCDamageSend) no tiene
+// la recompensa de Blood Castle) y el 17 de 5 bytes los leen sus filas; el 15 de la GS (GCDamageSend) no tiene
 // caso; el 16 y el 9C sin cifrar se contestan con el F1 03 y su opcode, sin leerlos. Las claves son inventadas.
-TEST(ServerSessionTest, TheKillsAndTheDeathReachTheWorldAndTheClearOnesAreReported)
+TEST(ServerSessionTest, TheKillsAndTheDeathAreReadAndTheClearOnesAreReported)
 {
-    namespace Combat = Client::Protocol::Combat;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     const auto kill = Bytes({0xc1, 9, 0x16, 0x81, 0x2c, 0x03, 0xe8, 0x00, 0x2a});
@@ -4183,24 +4161,8 @@ TEST(ServerSessionTest, TheKillsAndTheDeathReachTheWorldAndTheClearOnesAreReport
     tested.socket.reads = {Join({FromTheGameServer(kill, tested.gameServerSends), Bytes({0xc1, 7, 0x15, 0, 1, 0, 9}),
                                  FromTheGameServer(reward, tested.gameServerSends), Bytes({0xc1, 5, 0x17, 0, 7})})};
     ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 3u);
-    const auto* killed = std::get_if<Combat::KillExperience>(&events[0]);
-    ASSERT_NE(killed, nullptr);
-    EXPECT_EQ(killed->key, 0x012c);
-    EXPECT_TRUE(killed->shock);
-    EXPECT_EQ(killed->amount, 1000u);
-    EXPECT_EQ(killed->damage, 42);
-    const auto* rewarded = std::get_if<Combat::KillExperience>(&events[1]);
-    ASSERT_NE(rewarded, nullptr);
-    EXPECT_EQ(rewarded->key, 0x7fff);
-    EXPECT_TRUE(rewarded->shock);
-    EXPECT_EQ(rewarded->amount, 0x10000u + 20000u);
-    const auto* died = std::get_if<Combat::Death>(&events[2]);
-    ASSERT_NE(died, nullptr);
-    EXPECT_EQ(died->key, 7);
-    EXPECT_EQ(died->skill, 0);
-    EXPECT_EQ(died->killer, 0);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no llegó cifrada"), 0u);
 
     for (const Client::Network::Opcode opcode :
          {Client::Protocol::KillExperienceOpcode, Client::Protocol::ExtendedKillExperienceOpcode})
@@ -4260,41 +4222,34 @@ TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
     EXPECT_EQ(zen->zen, 100000u);
 }
 
-// La respuesta del F3 06 (0x4d3200, 0x4e30cd en el sub-dispatcher del F3) llega al mundo: sin su handler se
-// descartaba y el punto sumado no se veía.
-TEST(ServerSessionTest, TheLevelUpPointReplyReachesTheWorld)
+// La respuesta del F3 06 (0x4d3200, 0x4e30cd en el sub-dispatcher del F3) la lee su fila; una corta, un aviso.
+TEST(ServerSessionTest, TheLevelUpPointReplyIsReadByItsRow)
 {
-    namespace Player = Client::Protocol::Player;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    tested.socket.reads = {
-        FromTheGameServer(Bytes({0xc1, 0x0a, 0xf3, 0x06, 0x12, 0x00, 0x34, 0x12, 0x78, 0x56}), tested.gameServerSends)};
+    tested.socket.reads = {Join(
+        {FromTheGameServer(Bytes({0xc1, 0x0a, 0xf3, 0x06, 0x12, 0x00, 0x34, 0x12, 0x78, 0x56}), tested.gameServerSends),
+         Bytes({0xc1, 0x05, 0xf3, 0x06, 0x12})})};
     ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
-    const auto* point = std::get_if<Player::LevelUpPointResult>(&events[0]);
-    ASSERT_NE(point, nullptr);
-    EXPECT_EQ(point->result, 0x12);
-    EXPECT_EQ(point->maxLifeOrMana, 0x1234);
-    EXPECT_EQ(point->maxBp, 0x5678);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el punto de subir de nivel (F3 06): no se puede leer"),
+              1u);
+    EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
 // El F3 08 (0x4d3b50, 0x4e30cd en el sub-dispatcher del F3), el estado de PK que el servidor manda al entrar al mundo,
-// llega al mundo: sin su handler se descartaba con un aviso.
-TEST(ServerSessionTest, ThePkLevelReachesTheWorld)
+// lo lee su fila; uno corto, un aviso.
+TEST(ServerSessionTest, ThePkLevelIsReadByItsRow)
 {
-    namespace Player = Client::Protocol::Player;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
-        FromTheGameServer(Bytes({0xc1, 0x07, 0xf3, 0x08, 0x12, 0x34, 0x03}), tested.gameServerSends)};
+        Join({FromTheGameServer(Bytes({0xc1, 0x07, 0xf3, 0x08, 0x12, 0x34, 0x03}), tested.gameServerSends),
+              Bytes({0xc1, 0x06, 0xf3, 0x08, 0x12, 0x34})})};
     ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
-    const auto* level = std::get_if<Player::PkLevel>(&events[0]);
-    ASSERT_NE(level, nullptr);
-    EXPECT_EQ(level->key, 0x1234);
-    EXPECT_EQ(level->level, 3);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el estado de PK (F3 08): no se puede leer"), 1u);
+    EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.
@@ -4352,50 +4307,50 @@ TEST(ServerSessionTest, TheTeleportCopyPrecedesAdmissionAndRemainsAnOwnedRecepti
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    world->ReadyForTransitions();
+    world->world.Hero().alive = true;
     auto clear = Bytes({0xc1, 3, 0x1c});
-    const auto accepted = Bytes({0xc1, 8, 0x1c, 23, 3, 11, 12, 0});
+    const auto accepted = Bytes({0xc1, 8, 0x1c, 0, 0, 30, 31, 0});
     tested.socket.reads = {Join({clear, FromTheGameServer(accepted, tested.gameServerSends)})};
-    tested.eventSink.onWorld = [&tested, &accepted](const WorldEvent&,
-                                                    ServerSession&) -> Client::Core::Expected<void, std::string>
+    tested.eventSink.onRoutedReception = [&tested, &accepted](ServerSession&)
     {
         EXPECT_EQ(tested.eventSink.packetCopies.size(), 2u);
         EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies.back(), accepted));
-        return {};
     };
-    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
     ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
     clear[2] = std::byte{0xff};
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies.front(), Bytes({0xc1, 3, 0x1c})));
-    EXPECT_EQ(tested.eventSink.world.size(), 1u);
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 1u);
 }
 
-// CheckApplication también corta el lote para las alternativas nuevas.
+// CheckApplication también corta el lote para las filas ruteadas: el warp con un ítem en el cursor falla en 0x5be150,
+// y la vuelta que sigue no llega.
 TEST(ServerSessionTest, AWorldApplicationFailureStopsTheMovementBatchAtTheSecondEvent)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    tested.eventSink.onWorld = [](const WorldEvent& event, ServerSession&) -> Client::Core::Expected<void, std::string>
-    {
-        if (std::holds_alternative<Client::Protocol::Movement::Damage>(event))
-        {
-            return Client::Core::Unexpected(std::string("falló el daño después del movimiento"));
-        }
-        return {};
-    };
     const auto world = std::make_unique<BareWorld>();
     tested.eventSink.routedWorld = &world->resources;
-    tested.socket.reads = {Join({Bytes({0xc1, 8, 0xd3, 0, 1, 2, 3, 0x70}), Bytes({0xc1, 8, 0xd7, 0, 1, 0, 2, 0}),
-                                 FromTheGameServer(Bytes({0xc1, 8, 0x1c, 1, 2, 3, 4, 5}), tested.gameServerSends)})};
+    auto& hero = world->world.Hero();
+    hero.alive = true;
+    hero.key = tested.session.PlayerIndex();
+    world->world.Runtime().cursorItemCount = 1;
+    tested.socket.reads = {Join({Bytes({0xc1, 8, 0xd3, 0, 5, 2, 3, 0x70}),
+                                 FromTheGameServer(Bytes({0xc1, 8, 0x1c, 0, 0, 30, 31, 0}), tested.gameServerSends),
+                                 Bytes({0xc1, 8, 0xd3, 0, 5, 4, 5, 0x70})})};
     const auto result = tested.session.Poll();
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), "falló el daño después del movimiento");
-    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0}));
-    ASSERT_EQ(tested.eventSink.world.size(), 1u);
-    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[0]));
-    EXPECT_TRUE(tested.eventSink.packetCopies.empty());
+    EXPECT_NE(result.Error().find("0x5be150"), std::string::npos) << result.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0, 0}));
+    EXPECT_EQ(hero.cellX, 2);
+    EXPECT_EQ(tested.eventSink.packetCopies.size(), 1u);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
     EXPECT_FALSE(tested.session.Poll().HasValue());
-    EXPECT_EQ(tested.eventSink.world.size(), 1u);
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 2u);
 }
 
 TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
@@ -4404,15 +4359,18 @@ TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-        // The walks are the player's (the F1 00 gave key 5): they write its cell and its direction.
+        // The walks are the player's (the F1 00 gave key 5) and the warp is in its map: they write its cell.
         const auto world = std::make_unique<BareWorld>();
         tested.eventSink.routedWorld = &world->resources;
+        world->ReadyForTransitions();
         auto& hero = world->world.Hero();
         hero.alive = true;
         hero.key = tested.session.PlayerIndex();
+        std::vector<int> cells;
+        tested.eventSink.onRoutedReception = [&hero, &cells](ServerSession&) { cells.push_back(hero.cellX); };
         const auto sequence =
             Join({Bytes({0xc1, 8, 0xd3, 0, 5, 2, 3, 0xf0}),
-                  FromTheGameServer(Bytes({0xc1, 8, 0x1c, 1, 2, 3, 4, 5}), tested.gameServerSends),
+                  FromTheGameServer(Bytes({0xc1, 8, 0x1c, 0, 0, 30, 31, 0}), tested.gameServerSends),
                   Bytes({0xc1, 8, 0xd7, 0, 1, 0, 2, 0x40}), Bytes({0xc1, 8, 0xd3, 0, 5, 4, 5, 0x70})});
         if (split >= sequence.size())
         {
@@ -4421,11 +4379,10 @@ TEST(ServerSessionTest, MovementAndWarpPreserveTheirOrderAcrossEveryReadSplit)
         tested.socket.reads = {ByteVector(sequence.begin(), sequence.begin() + static_cast<std::ptrdiff_t>(split))};
         ASSERT_TRUE(tested.session.Poll().HasValue());
         tested.socket.reads = {ByteVector(sequence.begin() + static_cast<std::ptrdiff_t>(split), sequence.end())};
-        ASSERT_TRUE(tested.session.Poll().HasValue());
-        EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0, 2})) << split;
-        ASSERT_EQ(tested.eventSink.world.size(), 2u) << split;
-        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Teleport>(tested.eventSink.world[0]));
-        EXPECT_TRUE(std::holds_alternative<Client::Protocol::Movement::Damage>(tested.eventSink.world[1]));
+        const auto polled = tested.session.Poll();
+        ASSERT_TRUE(polled.HasValue()) << polled.Error();
+        EXPECT_EQ(cells, (std::vector<int>{2, 30, 30, 4})) << split;
+        EXPECT_TRUE(tested.eventSink.world.empty()) << split;
         EXPECT_EQ(hero.cellX, 4) << split;
         EXPECT_EQ(hero.cellY, 5) << split;
         EXPECT_EQ(hero.direction, 7) << split;
@@ -4436,6 +4393,8 @@ TEST(ServerSessionTest, TruncatedMovementAndWarpDoNotReachTheSink)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     for (const int head : {0xd3, 0xd7, 0x1c})
     {
         for (int size = 3; size < 8; ++size)
@@ -4453,7 +4412,7 @@ TEST(ServerSessionTest, TruncatedMovementAndWarpDoNotReachTheSink)
         tested.socket.reads = {packet};
         ASSERT_TRUE(tested.session.Poll().HasValue());
     }
-    EXPECT_TRUE(tested.eventSink.world.empty());
+    EXPECT_TRUE(tested.eventSink.routedAfter.empty());
     EXPECT_EQ(tested.eventSink.packetCopies.size(), 5u);
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
@@ -4606,19 +4565,16 @@ TEST(ServerSessionTest, TheActionUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// 0x4e39ab: el 18 va a 0x4cb750 sin guarda; la sesión lo lee y lo pasa al sink. Corto, un aviso y nada.
-TEST(ServerSessionTest, TheActionOfAnotherReachesTheSink)
+// 0x4e39ab: el 18 va a 0x4cb750 sin guarda; su fila lo lee. Corto, un aviso y nada.
+TEST(ServerSessionTest, TheActionOfAnotherIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {Join({Bytes({0xc1, 6, 0x18, 0x12, 0x34, 3}), Bytes({0xc1, 7, 0x18, 0x92, 0x34, 3, 0x83})})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
-    ASSERT_EQ(tested.eventSink.world.size(), 1u);
-    const auto* action = std::get_if<Client::Protocol::Movement::Action>(&tested.eventSink.world[0]);
-    ASSERT_NE(action, nullptr);
-    EXPECT_EQ(action->key, 0x9234);
-    EXPECT_EQ(action->direction, 3);
-    EXPECT_EQ(action->action, 0x83);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora la acción (18): no se puede leer"), 1u);
+    EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
 // 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.

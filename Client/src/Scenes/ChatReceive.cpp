@@ -181,6 +181,12 @@ std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
 
 Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, const ChatReceiveContext& context)
 {
+    if (context.scene == SceneId::Login)
+    {
+        if (context.requestServerList)
+            context.requestServerList();
+        return {};
+    }
     auto measure = MeasureOf(context, "0x4c6070");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());

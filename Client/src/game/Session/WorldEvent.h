@@ -5,9 +5,6 @@
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Player/LevelUpPoint.h"
-#include "Protocol/Player/PkLevel.h"
-#include "Protocol/Combat/Combat.h"
 #include "Protocol/Social/Duel.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
@@ -16,10 +13,7 @@
 #include "Protocol/Guild/Guild.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Messenger/Letters.h"
-#include "Protocol/Chat/Messages.h"
 #include "Protocol/Npc/NpcWindows.h"
-#include "Protocol/Movement/Movement.h"
-#include "Protocol/Player/OptionData.h"
 #include "Protocol/Party/Party.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Protocol/Pets/PetInfo.h"
@@ -27,8 +21,6 @@
 #include "Protocol/Quests/Quest.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Social/Trade.h"
-#include "Protocol/Actors/Viewport.h"
-#include "Protocol/Movement/World.h"
 #include "Protocol/Weather/Weather.h"
 
 #include <cstdint>
@@ -114,9 +106,7 @@ struct ChatRoomPingDue
 using WorldEvent = std::variant<
     Protocol::FrontEnd::CharacterSelectResult, Protocol::Items::InventoryList, ClearInventoryReceived,
     ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
-    Protocol::Weather::Weather, Protocol::Movement::Damage, Protocol::Movement::Teleport, Protocol::Movement::Regen,
-    Protocol::Chat::Chat, Protocol::Chat::KeyChat, Protocol::Chat::Whisper, Protocol::Chat::WhisperResult,
-    Protocol::Chat::Notice, Protocol::Player::OptionData, Protocol::Items::ItemMoveResult, Protocol::Items::ItemDelete,
+    Protocol::Weather::Weather, Protocol::Items::ItemMoveResult, Protocol::Items::ItemDelete,
     Protocol::Items::Durability, Protocol::Items::EquipmentChange, Protocol::Items::ItemPut,
     Protocol::Items::LifeRefill, Protocol::Items::ManaRefill, Protocol::Npc::TalkResult, Protocol::Npc::ItemList,
     Protocol::Npc::BuyResult, Protocol::Npc::SellResult, Protocol::Npc::RepairResult, Protocol::Npc::WarehouseMoney,
@@ -135,16 +125,14 @@ using WorldEvent = std::variant<
     Protocol::PersonalShop::ShopItemList, Protocol::PersonalShop::ShopPurchase, Protocol::PersonalShop::ShopRefresh,
     Protocol::Skills::MagicAttack, Protocol::Skills::DurationMagic, Protocol::Skills::MagicCancel,
     Protocol::Skills::ActorState, Protocol::Skills::ActorEffect, Protocol::Skills::SkillTarget,
-    Protocol::Skills::SkillList, Protocol::Skills::LevelUp, Protocol::Player::LevelUpPointResult,
-    Protocol::Player::PkLevel, Protocol::Skills::SummonLife, Protocol::Pets::PetOrder, Protocol::Pets::PetAttack,
+    Protocol::Skills::SkillList, Protocol::Skills::SummonLife, Protocol::Pets::PetOrder, Protocol::Pets::PetAttack,
     Protocol::Pets::PetInfoReply, Protocol::Quests::QuestFlag, Protocol::Quests::QuestList,
     Protocol::Quests::QuestStateChange, Protocol::Quests::SetQuestResult, Protocol::Quests::QuestResult,
-    Protocol::Movement::Action, Protocol::Actors::MagicAttackCount, Protocol::Messenger::FriendList,
-    Protocol::Messenger::FriendAddResult, Protocol::Messenger::FriendRequest, Protocol::Messenger::FriendDeleteResult,
-    Protocol::Messenger::FriendState, Protocol::Combat::KillExperience, Protocol::Combat::Death,
-    Protocol::Events::EventPacket, Protocol::Guild::GuildPacket, Protocol::Messenger::LetterSendResult,
-    Protocol::Messenger::LetterRow, Protocol::Messenger::LetterRead, Protocol::Messenger::LetterDeleteResult,
-    Protocol::Messenger::RoomAnswer, Protocol::Messenger::InviteResult, ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue,
+    Protocol::Messenger::FriendList, Protocol::Messenger::FriendAddResult, Protocol::Messenger::FriendRequest,
+    Protocol::Messenger::FriendDeleteResult, Protocol::Messenger::FriendState, Protocol::Events::EventPacket,
+    Protocol::Guild::GuildPacket, Protocol::Messenger::LetterSendResult, Protocol::Messenger::LetterRow,
+    Protocol::Messenger::LetterRead, Protocol::Messenger::LetterDeleteResult, Protocol::Messenger::RoomAnswer,
+    Protocol::Messenger::InviteResult, ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue,
     Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleSiege::CastleBattlePacket, MapServerLeft, MapServerJoined,
     MapServerAuthenticationPrepared, GuildTableReset>;
 } // namespace Client::App

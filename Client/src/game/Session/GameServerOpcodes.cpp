@@ -2,13 +2,28 @@
 
 #include "Network/Packet.h"
 #include "Protocol/Actors/Viewport.h"
+#include "Protocol/Chat/Messages.h"
+#include "Protocol/Combat/Combat.h"
 #include "Protocol/Movement/Movement.h"
+#include "Protocol/Movement/World.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Player/LevelUpPoint.h"
+#include "Protocol/Player/OptionData.h"
+#include "Protocol/Player/PkLevel.h"
+#include "Protocol/Skills/Skill.h"
+#include "Scenes/ActionReply.h"
+#include "Scenes/ChatReceive.h"
+#include "Scenes/CombatReplies.h"
+#include "Scenes/LevelUpPointReply.h"
+#include "Scenes/MagicAttackCount.h"
 #include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/PkLevelReply.h"
+#include "Scenes/SkillReplies.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Session/Route.h"
 #include "Session/ServerSession.h"
+#include "Session/SessionHandlers.h"
 
 #include <array>
 #include <optional>
@@ -23,14 +38,22 @@ std::span<const OpcodeRow> GameServerOpcodes()
     using namespace Protocol;
     using App::ServerSession;
     static constexpr std::array<OpcodeRow, 218> Rows{
-        Row(ChatOpcode, std::nullopt, 0x4e33e4, "Chat", &Call<&ServerSession::OnChat>),
-        Row(KeyChatOpcode, std::nullopt, 0x4e33fc, "KeyChat", &Call<&ServerSession::OnKeyChat>),
-        Row(WhisperOpcode, std::nullopt, 0x4e34ea, "Whisper", &Call<&ServerSession::OnWhisper>),
+        // 04 § El chat que llega: no case looks at the session's state or the encryption flag. The 00 and the 0D look
+        // at the scene (Scenes::ApplyChat, Scenes::ApplyNotice).
+        Row(ChatOpcode, std::nullopt, 0x4e33e4, "Chat",
+            &Route<"se ignora el chat (00)", &Protocol::Chat::ReadChat, &Scenes::ApplyChat>),
+        Row(KeyChatOpcode, std::nullopt, 0x4e33fc, "KeyChat",
+            &Route<"se ignora el chat por clave (01)", &Protocol::Chat::ReadKeyChat, &Scenes::ApplyKeyChat>),
+        Row(WhisperOpcode, std::nullopt, 0x4e34ea, "Whisper",
+            &Route<"se ignora el susurro (02)", &Protocol::Chat::ReadWhisper, &Scenes::ApplyWhisper>),
         Row(MainCheckOpcode, std::nullopt, 0x4e357c, "MainCheck", &Call<&ServerSession::OnMainCheck>),
         Row(ActorStateOpcode, std::nullopt, 0x4e3a5c, "ActorState", &Call<&ServerSession::OnActorState>),
         Row(EventStateOpcode, std::nullopt, 0x4e3594, "EventState", &Call<&ServerSession::OnEventPacket>, CopiedToRing),
-        Row(WhisperResultOpcode, std::nullopt, 0x4e366f, "WhisperResult", &Call<&ServerSession::OnWhisperResult>),
-        Row(NoticeOpcode, std::nullopt, 0x4e369d, "Notice", &Call<&ServerSession::OnNotice>),
+        Row(WhisperResultOpcode, std::nullopt, 0x4e366f, "WhisperResult",
+            &Route<"se ignora el resultado del susurro (0C)", &Protocol::Chat::ReadWhisperResult,
+                   &Scenes::ApplyWhisperResult>),
+        Row(NoticeOpcode, std::nullopt, 0x4e369d, "Notice",
+            &Route<"se ignora el aviso (0D)", &Protocol::Chat::ReadNotice, &Scenes::ApplyNotice>),
         Row(KeepaliveOpcode, std::nullopt, 0, "Keepalive", SentOnly{}),
         Row(WeatherOpcode, std::nullopt, 0x4e36b5, "Weather", &Call<&ServerSession::OnWeather>),
         Row(SkillHitsOpcode, std::nullopt, 0, "SkillHits", SentOnly{}),
@@ -47,15 +70,27 @@ std::span<const OpcodeRow> GameServerOpcodes()
             &Route<"se ignoran las bajas del viewport (14)", &Protocol::Actors::ReadLeave,
                    &Scenes::ApplyViewportLeave>),
         // The 0.97 GameServer's 15 (GCDamageSend) has no case.
-        Row(KillExperienceOpcode, std::nullopt, 0x4e3a74, "KillExperience", &Call<&ServerSession::OnKillExperience>),
-        Row(DeathOpcode, std::nullopt, 0x4e3ab2, "Death", &Call<&ServerSession::OnDeath>),
-        Row(ActionOpcode, std::nullopt, 0x4e39a3, "Action", &Call<&ServerSession::OnAction>),
+        // 0x4cf200 (16) and 0x4cfce0 (9C) look at the flag before reading; 0x4d0a30 (17) does not.
+        Row(KillExperienceOpcode, std::nullopt, 0x4e3a74, "KillExperience",
+            &Route<"se ignora la experiencia (16)", &Protocol::Combat::ReadKillExperience, &Scenes::ApplyKillExperience,
+                   InClear<"la experiencia (16) no llegó cifrada",
+                           &Written<&Protocol::Combat::WriteClearKillReport, KillExperienceOpcode>>>),
+        Row(DeathOpcode, std::nullopt, 0x4e3ab2, "Death",
+            &Route<"se ignora la muerte (17)", &Protocol::Combat::ReadDeath, &Scenes::ApplyDeath>),
+        // 0x4cb750 (from 0x4e39ab), the 1A (0x4cedd0) and the D7: no scene or flag guard.
+        Row(ActionOpcode, std::nullopt, 0x4e39a3, "Action",
+            &Route<"se ignora la acción (18)", &Protocol::Movement::ReadAction, &Scenes::ApplyActionReply>),
         // The C3 19 and 1E arrive decrypted with the table's opcode (0xa5 to 0x19, 0xa6 to 0x1e).
         Row(MagicAttackOpcode, std::nullopt, 0x4e39bf, "MagicAttack", &Call<&ServerSession::OnMagicAttack>),
         Row(MagicAttackCountOpcode, std::nullopt, 0x4e3a05, "MagicAttackCount",
-            &Call<&ServerSession::OnMagicAttackCount>),
+            &Route<"se ignora la skill que pega a varios (1A)", &Protocol::Actors::ReadMagicAttackCount,
+                   &Scenes::ApplyMagicAttackCount>),
         Row(MagicCancelOpcode, std::nullopt, 0x4e3a44, "MagicCancel", &Call<&ServerSession::OnMagicCancel>),
-        Row(TeleportOpcode, std::nullopt, 0x4e3e98, "Teleport", &Call<&ServerSession::OnTeleport>, CopiedToRing),
+        // P-C33: 0x4c6e32 tests the flag before reading the fields.
+        Row(TeleportOpcode, std::nullopt, 0x4e3e98, "Teleport",
+            &Route<"se ignora el warp (1C)", &Protocol::Movement::ReadTeleport, &ReceiveTeleport,
+                   InClear<"el warp (1C) no llegó cifrado", &Protocol::Movement::WriteRejectedTeleport>>,
+            CopiedToRing),
         Row(DurationMagicOpcode, std::nullopt, 0x4e3a21, "DurationMagic", &Call<&ServerSession::OnDurationMagic>),
         Row(ViewportSummonsOpcode, std::nullopt, 0x4e37e9, "ViewportSummons",
             &Route<"se ignoran los invocados del viewport (1F)", &Protocol::Actors::ReadSummons,
@@ -163,7 +198,10 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(BloodCastleEntryOpcode, std::nullopt, 0x4e4981, "BloodCastleEntry", &Call<&ServerSession::OnEventPacket>),
         Row(EventPlayStateOpcode, std::nullopt, 0x4e4999, "EventPlayState", &Call<&ServerSession::OnEventPacket>),
         Row(ExtendedKillExperienceOpcode, std::nullopt, 0x4e3a93, "ExtendedKillExperience",
-            &Call<&ServerSession::OnExtendedKillExperience>),
+            &Route<"se ignora la experiencia (9C)", &Protocol::Combat::ReadExtendedKillExperience,
+                   &Scenes::ApplyKillExperience,
+                   InClear<"la experiencia (9C) no llegó cifrada",
+                           &Written<&Protocol::Combat::WriteClearKillReport, ExtendedKillExperienceOpcode>>>),
         Row(SerialResultOpcode, std::nullopt, 0x4e4a86, "SerialResult", &Call<&ServerSession::OnEventPacket>),
         Row(EventSoundOpcode, std::nullopt, 0x4e4ad4, "EventSound", &Call<&ServerSession::OnEventPacket>),
         Row(QuestFlagOpcode, std::nullopt, 0x4e4b3a, "QuestFlag", &Call<&ServerSession::OnQuestFlag>),
@@ -268,7 +306,8 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(NoticeAnswerOpcode, std::nullopt, 0, "NoticeAnswer", SentOnly{}),
         Row(WalkOpcode, std::nullopt, 0x4e36fa, "Walk",
             &Route<"se ignora el movimiento (D3)", &Protocol::Movement::ReadWalk, &Scenes::ApplyWalkReply>),
-        Row(AttackOpcode, std::nullopt, 0x4e398b, "Attack", &Call<&ServerSession::OnDamage>),
+        Row(AttackOpcode, std::nullopt, 0x4e398b, "Attack",
+            &Route<"se ignora el daño (D7)", &Protocol::Movement::ReadDamage, &Scenes::ApplyDamageReply>),
         Row(PositionOpcode, std::nullopt, 0x4e3716, "Position",
             &Route<"se ignora la posición de otro (DF)", &Protocol::Actors::ReadPosition,
                    &Scenes::ApplyViewportPosition>),
@@ -292,13 +331,16 @@ std::span<const OpcodeRow> GameServerOpcodes()
             &Call<&ServerSession::OnDeleteResult>),
         Row(CharacterOpcode, Character::SelectSubcode, 0x4e2f93, "Character Select",
             &Call<&ServerSession::OnWorldEntryReply>),
-        Row(CharacterOpcode, Character::RegenSubcode, 0x4e2f93, "Character Regen", &Call<&ServerSession::OnRegen>),
+        // 0x4c4b80 takes only the packet: it does not look at the flag.
+        Row(CharacterOpcode, Character::RegenSubcode, 0x4e2f93, "Character Regen",
+            &Route<"se ignora la reaparición (F3 04)", &Protocol::Movement::ReadRegen, &ReceiveRegen>),
         Row(CharacterOpcode, Character::LevelUpSubcode, 0x4e2f93, "Character LevelUp",
-            &Call<&ServerSession::OnLevelUp>),
+            &Route<"se ignora la subida de nivel (F3 05)", &Protocol::Skills::ReadLevelUp, &Scenes::ApplyLevelUp>),
         Row(CharacterOpcode, Character::LevelUpPointSubcode, 0x4e2f93, "Character LevelUpPoint",
-            &Call<&ServerSession::OnLevelUpPointResult>),
+            &Route<"se ignora el punto de subir de nivel (F3 06)", &Protocol::Player::ReadLevelUpPointResult,
+                   &Scenes::ApplyLevelUpPointResult>),
         Row(CharacterOpcode, Character::PkLevelSubcode, 0x4e2f93, "Character PkLevel",
-            &Call<&ServerSession::OnPkLevel>),
+            &Route<"se ignora el estado de PK (F3 08)", &Protocol::Player::ReadPkLevel, &Scenes::ApplyPkLevel>),
         Row(CharacterOpcode, Character::InventoryListSubcode, 0x4e2f93, "Character InventoryList",
             &Call<&ServerSession::OnInventoryReply>),
         Row(CharacterOpcode, Character::SkillListSubcode, 0x4e2f93, "Character SkillList",
@@ -316,7 +358,7 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(CharacterOpcode, Character::GuildWarOutcomeSubcode, 0x4e2f93, "Character GuildWarOutcome",
             &Call<&ServerSession::OnEventPacket>),
         Row(CharacterOpcode, Character::OptionDataSubcode, 0x4e2f93, "Character OptionData",
-            &Call<&ServerSession::OnOptionData>),
+            &Route<"se ignoran las opciones (F3 30)", &Protocol::Player::ReadOptionData, &Scenes::ApplyOptionData>),
         Row(CharacterOpcode, Character::ServerCommandSubcode, 0x4e2f93, "Character ServerCommand",
             &Call<&ServerSession::OnEventPacket>),
     };

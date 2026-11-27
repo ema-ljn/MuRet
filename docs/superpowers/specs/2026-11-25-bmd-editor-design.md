@@ -423,7 +423,8 @@ is drawn still holds; this replaces its layout. The plan, with every decision, i
 [`2026-11-27-mutools-studio.md`](../plans/2026-11-27-mutools-studio.md).
 
 - **A library with pictures:** one folder at a time, each model on a plate with its picture, drawn in the browser by
-  one shared renderer and kept in IndexedDB by file and content. An index of folders and a search through every name.
+  one shared renderer and kept in IndexedDB by file and content, eight plates to a page so a folder of 246 models
+  keeps the page its height. An index of folders and a search through every name.
 - **The vitrine:** the model alone on a dark stage whose glow takes the hue of its textures, with `Textured`, `Lit`
   and `Wire`, the bones, additive drawing and the player's skeleton for character parts.
 - **The actions at the client's speed:** the client's speed tables (the player's, the monsters', the NPCs') are

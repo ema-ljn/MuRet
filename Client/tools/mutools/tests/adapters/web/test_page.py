@@ -8,6 +8,7 @@ from nicegui import ui
 from nicegui.testing import User, UserInteraction
 
 from mutools.adapters.web.elements import Transport
+from mutools.adapters.web.library import PAGE_SIZE
 from mutools.adapters.web.page import address
 from mutools.adapters.web.widgets import ON, Press
 from mutools.app.model_parts import model_parts
@@ -17,6 +18,7 @@ SWORD = "Item/Sword01.bmd"
 SPIDER_WEB = "object35/Object36.bmd"
 MONSTER = "Monster/Monster01.bmd"
 HELM_SWITCH = "On Player.bmd's skeleton"
+MANY_MODELS = PAGE_SIZE + 3
 SETTLING_STEPS = 5
 SWORD_FACTS = "1 mesh, 1 bone, 1 action and 68 triangles. Version 10, not encrypted, 7 KB."
 
@@ -68,6 +70,14 @@ def with_monster(web_copy: Path, reference_data: Path) -> None:
     shutil.copyfile(reference_data / MONSTER, web_copy / MONSTER)
 
 
+def with_many(web_copy: Path) -> list[str]:
+    (web_copy / "Many").mkdir()
+    names = [f"Sword{number:02}" for number in range(MANY_MODELS)]
+    for name in names:
+        shutil.copyfile(web_copy / SWORD, web_copy / "Many" / f"{name}.bmd")
+    return names
+
+
 async def test_the_studio_opens_on_a_folder_of_the_library(viewer: User) -> None:
     await viewer.open("/")
 
@@ -103,6 +113,49 @@ async def test_a_plate_opens_its_model_in_the_vitrine(viewer: User) -> None:
     await viewer.should_see(SWORD_FACTS)
     await viewer.should_see("Sword01.bmd")
     assert chosen(viewer, "mt-plate") == ["Sword01"]
+
+
+async def test_a_big_folder_shows_one_page_of_plates(viewer: User, web_copy: Path) -> None:
+    names = with_many(web_copy)
+
+    await viewer.open(f"/?file=Many/{names[0]}.bmd")
+
+    assert texts(viewer, "mt-plate") == names[:PAGE_SIZE]
+    assert (texts(viewer, "mt-page"), chosen(viewer, "mt-page")) == (["1", "2"], ["1"])
+
+
+async def test_a_page_turns_to_the_next_plates(viewer: User, web_copy: Path) -> None:
+    names = with_many(web_copy)
+    await viewer.open(f"/?file=Many/{names[0]}.bmd")
+
+    await press(viewer, "mt-page", "2")
+
+    assert texts(viewer, "mt-plate") == names[PAGE_SIZE:]
+    assert chosen(viewer, "mt-page") == ["2"]
+
+
+async def test_a_model_opens_on_the_page_of_its_plate(viewer: User, web_copy: Path) -> None:
+    names = with_many(web_copy)
+
+    await viewer.open(f"/?file=Many/{names[-1]}.bmd")
+
+    assert (chosen(viewer, "mt-plate"), chosen(viewer, "mt-page")) == ([names[-1]], ["2"])
+
+
+async def test_a_search_starts_on_its_first_page(viewer: User, web_copy: Path) -> None:
+    names = with_many(web_copy)
+    await viewer.open(f"/?file=Many/{names[-1]}.bmd")
+
+    await type_into(viewer, "find-model", "Sword")
+
+    assert texts(viewer, "mt-plate") == ["Sword01", *names[: PAGE_SIZE - 1]]
+    assert chosen(viewer, "mt-page") == ["1"]
+
+
+async def test_a_small_folder_has_no_pages(viewer: User) -> None:
+    await viewer.open("/")
+
+    assert presses(viewer, "mt-page") == []
 
 
 async def test_a_model_from_another_folder_brings_its_folder(viewer: User) -> None:

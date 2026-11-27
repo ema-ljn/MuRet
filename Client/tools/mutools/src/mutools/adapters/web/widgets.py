@@ -12,6 +12,8 @@ ICONS: Final = {
     "frame": '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/>',
     "picture": '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     "open": '<path d="m9 6 6 6-6 6"/>',
+    "previous": '<path d="m15 6-6 6 6 6"/>',
+    "next": '<path d="m9 6 6 6-6 6"/>',
 }
 AXES: Final = (
     '<svg width="54" height="54" viewBox="0 0 56 56" role="img" aria-label="Axes: x, y, and z pointing up">'

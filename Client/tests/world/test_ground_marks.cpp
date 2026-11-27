@@ -18,8 +18,8 @@
 #include <optional>
 #include <string>
 
-// Client::Terrain::AddGroundMark, StepGroundMarks y DrawGroundMarks: la tabla de 0x760cab0 que llenan 0x548fe0,
-// envejece 0x549090 y dibuja 0x549130 (06 § Las marcas del suelo).
+// Client::Terrain::AddGroundMark, StepGroundMarks and DrawGroundMarks: the table at 0x760cab0 that 0x548fe0 fills,
+// 0x549090 ages and 0x549130 draws (06 § Las marcas del suelo).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -39,7 +39,7 @@ using Client::Terrain::TerrainDecal;
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr std::int32_t BloodType = 0x5e3;
 
-// Lo que pide 0x52e810: un 0x5e3 con la luz del objeto y un giro de rand() % 360.
+// What 0x52e810 asks for: a 0x5e3 with the object's light and a turn of rand() % 360.
 GroundMarkRequest Blood()
 {
     return GroundMarkRequest{.type = BloodType,
@@ -49,7 +49,7 @@ GroundMarkRequest Blood()
                              .size = 0.65f};
 }
 
-// Una marca prendida, como la deja 0x548fe0 con `life`.
+// A live mark, as 0x548fe0 leaves it with `life`.
 GroundMark LiveMark(std::int32_t type, std::int32_t life)
 {
     return GroundMark{.live = true,
@@ -62,7 +62,7 @@ GroundMark LiveMark(std::int32_t type, std::int32_t life)
                       .life = life};
 }
 
-// Los componentes de Effect\blood01.tga (un TGA de 32 bits) y de un JPEG.
+// The components of Effect\blood01.tga (a 32-bit TGA) and of a JPEG.
 SlotComponents Components(std::uint8_t components)
 {
     return [components](std::int32_t) { return std::optional<std::uint8_t>(components); };
@@ -78,7 +78,7 @@ std::unique_ptr<Client::Data::Terrain::TerrainHeights> Heights()
     return heights;
 }
 
-// Un lote con lo que deja 0x5fc260 antes de 0x549130: la mezcla normal del pasto, sin depth test y con culling.
+// A batch with what 0x5fc260 leaves before 0x549130: the grass's normal blend, without depth test and with culling.
 ModelBatch BatchBeforeTheMarks()
 {
     ModelBatch batch;
@@ -89,7 +89,7 @@ ModelBatch BatchBeforeTheMarks()
 }
 } // namespace
 
-// En la .bss: las 100 apagadas al arrancar, y así llegan a WorldRuntime.
+// In the .bss: all 100 off at startup, and that is how they reach WorldRuntime.
 TEST(GroundMarksTest, TheTableStartsWithEveryMarkOff)
 {
     const Client::Kernel::WorldRuntime runtime{};
@@ -102,8 +102,8 @@ TEST(GroundMarksTest, TheTableStartsWithEveryMarkOff)
     }
 }
 
-// 0x549012..0x549087: el primer lugar apagado, con todo lo que pide, el alfa en 1 y la vida en rand() % 32 + 50,
-// un solo rand().
+// 0x549012..0x549087: the first place that is off, with everything it asks for, the alpha at 1 and the life at
+// rand() % 32 + 50, a single rand().
 TEST(GroundMarksTest, AddingPutsTheMarkInTheFirstFreePlaceWithARandomLife)
 {
     GroundMarkTable marks{};
@@ -126,8 +126,7 @@ TEST(GroundMarksTest, AddingPutsTheMarkInTheFirstFreePlaceWithARandomLife)
     EXPECT_FALSE(marks[2].live);
 }
 
-// 0x54905c..0x54906c: la vida solo la sortean el 0x5e3, el 0x5e4 y el 0x606; otro tipo deja la del lugar, sin
-// rand().
+// 0x54905c..0x54906c: only 0x5e3, 0x5e4 and 0x606 draw a life; another type keeps the place's, without rand().
 TEST(GroundMarksTest, OnlyTheFadingTypesDrawALife)
 {
     for (const std::int32_t type : {0x5e4, 0x606, 7, 0x5e2, 0x5e5})
@@ -156,8 +155,8 @@ TEST(GroundMarksTest, OnlyTheFadingTypesDrawALife)
     }
 }
 
-// Q-C231: sin lugar apagado, 0x548fe0 apaga el de menos vida (con signo, el primero si empatan) y no pone la nueva,
-// sin rand().
+// Q-C231: without a place that is off, 0x548fe0 turns off the one with the least life (signed, the first on a tie)
+// and does not place the new one, without rand().
 TEST(GroundMarksTest, AFullTableTurnsOffTheWeakestAndDropsTheNewMark)
 {
     GroundMarkTable marks{};
@@ -186,8 +185,8 @@ TEST(GroundMarksTest, AFullTableTurnsOffTheWeakestAndDropsTheNewMark)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// Q-C231: llena y sin ninguna vida debajo de 9.999, el original escribe un 0 en la dirección del tipo; MuRet corta
-// sin tocar la tabla.
+// Q-C231: full and without any life below 9,999, the original writes a 0 at the type's address; MuRet fails without
+// touching the table.
 TEST(GroundMarksTest, AFullTableWithoutALifeBelow9999Stops)
 {
     GroundMarkTable marks{};
@@ -205,8 +204,8 @@ TEST(GroundMarksTest, AFullTableWithoutALifeBelow9999Stops)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// 0x5490a1..0x549119 con el 0x5e3: la vida baja 1, el lado crece 0,004 (guardado en float) y el color pasa a
-// (0,1; 0; 0). Con 50 o más de vida el alfa queda; con menos es vida · 0,02; sin vida se apaga.
+// 0x5490a1..0x549119 with 0x5e3: the life drops by 1, the side grows 0.004 (stored as float) and the color becomes
+// (0.1, 0, 0). With 50 or more life the alpha stays; with less it is life · 0.02; without life it turns off.
 TEST(GroundMarksTest, ABloodMarkGrowsReddensAndFades)
 {
     GroundMarkTable marks{};
@@ -233,8 +232,8 @@ TEST(GroundMarksTest, ABloodMarkGrowsReddensAndFades)
     EXPECT_EQ(marks[3].color, glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
-// 0x5490b0..0x5490eb: el 0x5e4 y el 0x606 se borran como el 0x5e3 pero no crecen; el 7 achica 0,05 y se apaga
-// debajo de 0,1; los demás solo pierden vida, aunque baje de 0.
+// 0x5490b0..0x5490eb: 0x5e4 and 0x606 fade like 0x5e3 but do not grow; 7 shrinks by 0.05 and turns off below 0.1;
+// the rest only lose life, even below 0.
 TEST(GroundMarksTest, EachTypeAgesItsOwnWay)
 {
     GroundMarkTable marks{};
@@ -271,7 +270,7 @@ TEST(GroundMarksTest, EachTypeAgesItsOwnWay)
     EXPECT_EQ(marks[5].size, 1.0f);
 }
 
-// 0x549135 con la tabla vacía: la mezcla aditiva y nada más, sin un vértice ni un tramo.
+// 0x549135 with the table empty: the additive blend and nothing else, not a vertex or a span.
 TEST(GroundMarksTest, AnEmptyTableDrawsNothing)
 {
     const auto heights = Heights();
@@ -287,9 +286,9 @@ TEST(GroundMarksTest, AnEmptyTableDrawsNothing)
     EXPECT_FALSE(batch.State().cullEnabled.has_value()) << "0x620a90 apaga el culling de 0x6208d0";
 }
 
-// 0x54913f..0x5491a9: cada marca prendida, en el orden de la tabla, es el calco de 0x5fb2f0 con su tipo, su lugar,
-// su lado en los dos lados, su color, el giro cambiado de signo, su alfa y 5 de alto; la textura de 4 componentes
-// (blood01.tga) va con la mezcla normal y una de 3, con la aditiva. Sin depth test, como lo dejó 0x5fc260.
+// 0x54913f..0x5491a9: each live mark, in table order, is the decal of 0x5fb2f0 with its type, its place, its side on
+// both sides, its color, the turn with its sign flipped, its alpha and a lift of 5; a 4-component texture
+// (blood01.tga) goes with the normal blend and a 3-component one with the additive. No depth test, as 0x5fc260 left it.
 TEST(GroundMarksTest, EachLiveMarkIsADecalWithTheBlendOfItsTexture)
 {
     const auto heights = Heights();
@@ -340,13 +339,13 @@ TEST(GroundMarksTest, EachLiveMarkIsADecalWithTheBlendOfItsTexture)
             EXPECT_EQ(batch.Vertices()[vertex].uv, expected.Vertices()[vertex].uv) << vertex;
             EXPECT_EQ(batch.Vertices()[vertex].color, expected.Vertices()[vertex].color) << vertex;
         }
-        // n = 1 con 0,654 (9 celdas) y n = 2 con 1,5 en la fila 128 desde la columna 252 (3 · 5 = 15).
+        // n = 1 with 0.654 (9 cells) and n = 2 with 1.5 on row 128 from column 252 (3 · 5 = 15).
         EXPECT_EQ(batch.Vertices().size(), (9u + 15u) * 6u);
     }
 }
 
-// 0x549152: el byte +0x28 del slot de un tipo que MuRet no subió no se sabe: corta en esa marca, con lo de antes ya
-// dibujado.
+// 0x549152: the +0x28 byte of the slot of a type MuRet did not upload is unknown: it stops at that mark, with the
+// earlier ones already drawn.
 TEST(GroundMarksTest, AMarkWhoseSlotIsUnknownStops)
 {
     const auto heights = Heights();

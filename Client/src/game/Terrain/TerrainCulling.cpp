@@ -27,13 +27,13 @@ namespace
 {
 using Math::F32;
 
-// 0x5fbb00: el −0,01 de los ftol (0x6ba110).
+// 0x5fbb00: the −0.01 of the ftol calls (0x6ba110).
 constexpr float ToCells = std::bit_cast<float>(0xBC23D70Au);
 constexpr int LastBlock = 0xfb;
 
-// 0x5fb570, nivel 0: el ancho por k (0x6ba6d8 en el login, 0x6ba6d4 en la selección, 0x6ba070 en el
-// juego), lo lejos K (0x6ba6d0, 0x6ba6cc, 0x6ba6c8), cerca y el objetivo por 0,19 y 0,47 (0x6ba364 y
-// 0x6ba6c4) y los anchos lejos y cerca por 1.190 y 540 (0x6ba6c0 y 0x6ba000).
+// 0x5fb570, level 0: the width times k (0x6ba6d8 in the login, 0x6ba6d4 in the selection, 0x6ba070 in the game), the
+// far K (0x6ba6d0, 0x6ba6cc, 0x6ba6c8), near and the target times 0.19 and 0.47 (0x6ba364 and 0x6ba6c4) and the far and
+// near widths times 1,190 and 540 (0x6ba6c0 and 0x6ba000).
 constexpr float LoginWidthFactor = std::bit_cast<float>(0x3E233333u);
 constexpr float LoginFar = std::bit_cast<float>(0x486F1000u);
 constexpr float SelectionWidthFactor = std::bit_cast<float>(0x3C137469u);
@@ -44,8 +44,8 @@ constexpr float NearFactor = std::bit_cast<float>(0x3E428F5Cu);
 constexpr float TargetFactor = std::bit_cast<float>(0x3EF0A3D7u);
 constexpr float FarWidth = std::bit_cast<float>(0x4494C000u);
 constexpr float NearWidth = std::bit_cast<float>(0x44070000u);
-// 0x5fb570: 45° fijos (0x5fb9e8), o −yaw en mapa55 y mapa6/webzenYaw.
-// Las celdas por 0,01 (0x6b88d4); OriginalRotation conserva el contrato angular existente.
+// 0x5fb570: a fixed 45° (0x5fb9e8), or −yaw on map 55 and map 6/webzenYaw. The cells times 0.01 (0x6b88d4);
+// OriginalRotation keeps the existing angular contract.
 constexpr float DefaultAngle = 45.0f;
 using Maps::LoginMap;
 constexpr std::int32_t WebzenMap = 6;
@@ -56,7 +56,7 @@ constexpr std::int32_t GameScene = 5;
 constexpr float LevelWidthAddition = std::bit_cast<float>(0x3DCCCCCDu);
 constexpr float CellsPerUnit = std::bit_cast<float>(0x3C23D70Au);
 
-// 06 § El trapecio completo: los especiales omiten la conversión y el dispatch por nivel.
+// 06 § El trapecio completo: the specials skip the conversion and the dispatch by level.
 enum class SpecialProfile : std::uint8_t
 {
     Normal,
@@ -107,7 +107,7 @@ PolygonProfile SpecialDimensions(SpecialProfile profile)
     case SpecialProfile::CastleSmall:
         return {3300.0f, 1551.0f, 627.0f, 1300.0f, 580.0f};
     case SpecialProfile::Normal:
-        break; // DimensionsOf ya separó el dispatch normal.
+        break; // DimensionsOf already split off the normal dispatch.
     }
     return {};
 }
@@ -142,7 +142,7 @@ Core::Expected<PolygonProfile, TerrainPolygonError> DimensionsOf(const TerrainPo
     {
         return LevelZeroDimensions(input.scene, input.worldWidth);
     }
-    // F/T/N inmediatos; q guarda DESPUÉS de sumar 0,1f al producto aún en 53 bits.
+    // Immediate F/T/N; q stores AFTER adding 0.1f to the product, still in 53 bits.
     constexpr std::array<PolygonProfile, LastLevel> Levels{{{2700.0f, 1269.0f, 513.0f, 1200.0f, 540.0f},
                                                             {3000.0f, 1410.0f, 570.0f, 1300.0f, 540.0f},
                                                             {3300.0f, 1551.0f, 627.0f, 1500.0f, 580.0f},
@@ -169,7 +169,7 @@ TerrainPolygon PolygonOf(const TerrainPolygonInput& input, const PolygonProfile&
     for (std::size_t i = 0; i < corners.size(); ++i)
     {
         const auto rotated = Math::OriginalVectorRotate(corners[i], matrix);
-        // 0x5fba22..49 guarda XYZ antes de volver a cargar y escalar XY (0x5fba4d..68).
+        // 0x5fba22..0x5fba49 stores XYZ before loading and scaling XY again (0x5fba4d..0x5fba68).
         const glm::vec3 translated{F32(static_cast<double>(rotated.x) + input.translation.x),
                                    F32(static_cast<double>(rotated.y) + input.translation.y),
                                    F32(static_cast<double>(rotated.z) + input.translation.z)};
@@ -181,7 +181,7 @@ TerrainPolygon PolygonOf(const TerrainPolygonInput& input, const PolygonProfile&
 
 bool IsCameraDistanceValid(float distance)
 {
-    // +2^63 no cabe: INT64_MAX convertido a float/double redondea a ese mismo límite.
+    // +2^63 does not fit: INT64_MAX converted to float/double rounds to that same limit.
     constexpr double Int64Limit = 0x1p63;
     return std::isfinite(distance) && static_cast<double>(distance) >= -Int64Limit &&
            static_cast<double>(distance) < Int64Limit;
@@ -189,19 +189,19 @@ bool IsCameraDistanceValid(float distance)
 
 std::int32_t LowDwordOf(float distance)
 {
-    // Precondición: IsCameraDistanceValid. __ftol trunca a int64; CMP consume sólo EAX con signo.
+    // Precondition: IsCameraDistanceValid. __ftol truncates to int64; CMP uses only EAX, signed.
     const auto converted = static_cast<std::int64_t>(distance);
     const auto low = static_cast<std::uint32_t>(converted);
     return std::bit_cast<std::int32_t>(low);
 }
 
-// `cdq; and edx, 3; add eax, edx; sar eax, 2`: la división por 4 de C, que trunca hacia el 0.
+// `cdq; and edx, 3; add eax, edx; sar eax, 2`: C's division by 4, which truncates toward 0.
 int DivideBy4(int value)
 {
     return value / 4;
 }
 
-// ftol(v · −0,01), con el producto en 53 bits.
+// ftol(v · −0.01), with the product in 53 bits.
 int CellsOf(float value)
 {
     return static_cast<int>(static_cast<double>(value) * static_cast<double>(ToCells));
@@ -313,8 +313,8 @@ bool PolygonContains(const TerrainPolygon& polygon, double x, double y, double m
 
 namespace
 {
-// Las 16 celdas de un bloque que pasa (0x5fc0e0), por fila y después por columna: la que pasa el
-// trapecio en su centro va a `cell`. Corta en el primer error.
+// The 16 cells of a block that passes (0x5fc0e0), by row and then by column: the one whose center passes the
+// trapezoid goes to `cell`. Stops at the first error.
 template <typename Cell>
 Core::Expected<void, std::string> VisitTheBlock(const TerrainPolygon& polygon, int blockX, int blockY, Cell& cell)
 {
@@ -338,14 +338,14 @@ Core::Expected<void, std::string> VisitTheBlock(const TerrainPolygon& polygon, i
     return {};
 }
 
-// 0x5fc190, el mismo en los dos pases (no mira 0x7d0d31c): los bloques de 4 × 4 del rango por fila de
-// bloques y después por columna, y los del que pasa el trapecio en su centro.
+// 0x5fc190, the same in both passes (it does not check 0x7d0d31c): the range's 4 × 4 blocks by block row and then by
+// column, and the cells of the one whose center passes the trapezoid.
 template <typename Cell>
 Core::Expected<void, std::string> VisitTheRange(const TerrainRange& range, const TerrainPolygon& polygon, Cell cell)
 {
     constexpr int Block = 4;
     constexpr double BlockCenter = 2.0;
-    // TerrainRangeOf ya los deja entre 0 y 0xfb; uno de afuera haría dar la vuelta a las celdas.
+    // TerrainRangeOf already leaves them between 0 and 0xfb; one outside would make the cells wrap around.
     const int firstY = std::clamp(range.firstY, 0, LastBlock);
     const int lastY = std::clamp(range.lastY, 0, LastBlock);
     const int firstX = std::clamp(range.firstX, 0, LastBlock);
@@ -372,7 +372,7 @@ Core::Expected<void, std::string> VisitTheRange(const TerrainRange& range, const
 void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
                  const TerrainPolygon& polygon, const TerrainWater& water)
 {
-    // El pase con 0x7d0d31c en 0 no corta: cada celda que pasa se dibuja.
+    // The pass with 0x7d0d31c at 0 does not fail: each cell that passes is drawn.
     static_cast<void>(VisitTheRange(range, polygon,
                                     [&](std::uint8_t x, std::uint8_t y) -> Core::Expected<void, std::string>
                                     {
@@ -388,7 +388,7 @@ Core::Expected<void, std::string> DrawTerrain(Render::ModelBatch& batch, const T
     return VisitTheRange(range, polygon,
                          [&](std::uint8_t x, std::uint8_t y) -> Core::Expected<void, std::string>
                          {
-                             // 0x5facb6..0x5facce: la celda con el bit 0x08 sale sin llamar a 0x5fa830.
+                             // 0x5facb6..0x5facce: a cell with bit 0x08 leaves without calling 0x5fa830.
                              if ((view.attributes->cells[Data::Terrain::CellIndex(x, y)] & HiddenCellBit) != 0)
                                  return {};
                              if (beforeCell)

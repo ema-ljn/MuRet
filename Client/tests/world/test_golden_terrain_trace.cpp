@@ -51,9 +51,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Terrain::DrawTerrainCell contra el terreno de la traza de Lorencia (MU_CLIENT_GL_TRACE_DIR,
-// 06 § Terreno): cada fan de cuatro vértices del pase del terreno, con su geometría, sus UV, su
-// textura, su alfa y su luz, contra lo que MuRet arma para esa celda con el Data\ de World1.
+// Client::Terrain::DrawTerrainCell against the terrain of the Lorencia trace (MU_CLIENT_GL_TRACE_DIR, 06 § Terreno):
+// each four-vertex fan of the terrain pass, with its geometry, UVs, texture, alpha and light, against what MuRet
+// builds for that cell with the Data\ of World1.
 namespace
 {
 using Client::Render::ModelBatch;
@@ -66,19 +66,17 @@ using Client::Tests::GlTraceBlock;
 
 constexpr std::string_view LorenciaTrace = "lorencia-Frame_016215.txt";
 constexpr std::uint8_t Lorencia = 0;
-// En esa sesión, el tile i es la textura de GL 1351 + i (06 § Terreno); lo que no es un tile, en el
-// pase de alfa, es el slot 0x122 (Q-C19).
+// In that session tile i is GL texture 1351 + i (06 § Terreno); what is not a tile, in the alpha pass, is slot 0x122
+// (Q-C19).
 constexpr std::uint32_t FirstTileName = 1351;
 constexpr std::uint32_t TileCount = 14;
-// La traza escribe seis decimales.
+// The trace writes six decimals.
 constexpr float Tolerance = 0.001f;
-// La luz de un vértice coincide si cada canal está a menos del 1 % (06 § Terreno), donde el rojo pasa
-// de 8 / 255.
+// A vertex's light matches if each channel is within 1 % (06 § Terreno), where red is above 8 / 255.
 constexpr float LightTolerance = 0.01f;
 constexpr float MeasurableRed = 8.0f / 255.0f;
 
-// Un fan del terreno: cuatro vértices en las esquinas de una celda de 100 × 100, con el estado de uno
-// de los dos pases.
+// A terrain fan: four vertices at the corners of a 100 × 100 cell, with the state of one of the two passes.
 bool IsTerrainFan(const GlTraceBlock& block)
 {
     if (block.mode != "GL_TRIANGLE_FAN" || block.vertices.size() != 4 || !block.state.depthTest)
@@ -109,14 +107,14 @@ bool IsTerrainFan(const GlTraceBlock& block)
     return true;
 }
 
-// Los cuatro vértices de un tramo del lote: los del fan (0, 1, 2) y (0, 2, 3).
+// The four vertices of a span of the batch: those of the fan (0, 1, 2) and (0, 2, 3).
 std::array<Client::Render::ModelVertex, 4> FanOf(const ModelBatch& batch, const ModelDrawCommand& command)
 {
     const auto vertices = batch.Vertices().subspan(command.firstVertex, command.vertexCount);
     return {vertices[0], vertices[1], vertices[2], vertices[5]};
 }
 
-// Las celdas opacas de un frame de la traza, en su orden.
+// The opaque cells of a trace frame, in their order.
 std::vector<std::pair<int, int>> TracedCells(const Client::Tests::GlTraceFrame& frame)
 {
     std::vector<std::pair<int, int>> cells;
@@ -131,7 +129,7 @@ std::vector<std::pair<int, int>> TracedCells(const Client::Tests::GlTraceFrame& 
     return cells;
 }
 
-// Las celdas que MuRet dibuja, en su orden: el primer pase de cada una.
+// The cells MuRet draws, in their order: the first pass of each.
 std::vector<std::pair<int, int>> DrawnCells(const ModelBatch& batch)
 {
     std::vector<std::pair<int, int>> cells;
@@ -150,8 +148,8 @@ std::vector<std::pair<int, int>> DrawnCells(const ModelBatch& batch)
     return cells;
 }
 
-// La primera vista de Lorencia usa esta cámara antes de los pases del terreno.
-// Así el golden de cada celda también observa la cámara calculada.
+// The first view of Lorencia uses this camera before the terrain passes, so each cell's golden also checks the
+// computed camera.
 void ExpectCameraInTrace(const Client::Tests::GlTraceFrame& frame, const Client::Render::Camera3D& camera)
 {
     std::array<const Client::Tests::GlTraceMatrixCall*, 4> calls{};
@@ -236,7 +234,7 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
         {
             continue;
         }
-        // Un pase opaco, y el de alfa de su celda si viene enseguida.
+        // An opaque pass, and its cell's alpha pass if it comes right after.
         std::vector<const GlTraceBlock*> traced{&blocks[b]};
         if (b + 1 < blocks.size() && IsTerrainFan(blocks[b + 1]) && blocks[b + 1].state.blend &&
             blocks[b + 1].vertices[0].position == blocks[b].vertices[0].position)
@@ -303,8 +301,8 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
             }
         }
     }
-    // 06 § Terreno: 329 pases opacos y 141 de alfa, 3 con el slot 0x122; la luz coincide en 1.746 de los
-    // 1.875 vértices con el rojo por encima de 8 / 255, y los otros 129 tienen luces dinámicas encima.
+    // 06 § Terreno: 329 opaque passes and 141 alpha passes, 3 with slot 0x122; the light matches on 1,746 of the 1,875
+    // vertices with red above 8 / 255, and the other 129 have dynamic lights on top.
     EXPECT_EQ(opaque, 329u);
     EXPECT_EQ(alpha, 141u);
     EXPECT_EQ(acceptBox, 3u);
@@ -312,9 +310,8 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
     EXPECT_EQ(brighter, 129u);
     EXPECT_EQ(darker, 0u);
 }
-// El recorte (CL7.3 A): con la cámara calculada desde el héroe en (14.350; 12.050;
-// 165), el rango de 0x5fbb00, el trapecio de 0x5fb570 y el bit 0x08 dejan las 329 celdas de la traza,
-// en su orden.
+// The culling: with the camera computed from the hero at (14350, 12050, 165), the range of 0x5fbb00, the trapezoid of
+// 0x5fb570 and bit 0x08 leave the trace's 329 cells, in its order.
 TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
 {
     const auto path = TraceFile(LorenciaTrace);
@@ -348,14 +345,14 @@ TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
     EXPECT_EQ(DrawnCells(batch), traced);
 }
 
-// Una celda del terreno, por su esquina.
+// A terrain cell, by its corner.
 struct TerrainCell
 {
     int x = 0;
     int y = 0;
 };
 
-// Las celdas del pase opaco del fin del pase de los modelos de un frame grabado, en su orden.
+// The cells of the opaque pass at the end of a recorded frame's model pass, in their order.
 std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
 {
     std::vector<TerrainCell> cells;
@@ -374,13 +371,12 @@ std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
     return cells;
 }
 
-// Lo mismo desde la escena del juego (T8): Lorencia cargado en el WorldState, el héroe publicado en la
-// celda (143, 120) con la posición de la traza y el contador en 30. Su primer frame lee la celda por la
-// tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden y los 25 quads del
-// pasto de la traza (06 § El pasto). Las marcas, los objetos, los efectos y la fauna están vacíos; el héroe,
-// sin un paso que lo vea, no se dibuja (0x510d00). La cola vacía continúa hasta el HUD, con sus tablas reales;
-// el terreno está en el primer lote, antes de los pases de la cola. Los 120 bloques de los objetos de la
-// traza no se comparan todavía (08 P-C53).
+// The same from the game scene: Lorencia loaded in the WorldState, the hero published at cell (143, 120) with the
+// trace's position and the counter at 30. Its first frame reads the cell through the protection table, builds the
+// trace's camera and draws the 329 cells in their order and the trace's 25 grass quads (06 § El pasto). The marks,
+// objects, effects and fauna are empty; the hero, without a step that sees it, is not drawn (0x510d00). The empty tail
+// goes on to the HUD, with its real tables; the terrain is in the first batch, before the tail's passes. The trace's
+// 120 object blocks are not compared yet (08 P-C53).
 TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
 {
     const auto path = TraceFile(LorenciaTrace);
@@ -413,7 +409,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     const auto worldOwner = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& world = *worldOwner;
     world.Map().terrain = std::move(terrain).Value();
-    // El corrimiento del pasto que llena 0x5f8300 al cargar: la u no cambia qué celdas lo llevan.
+    // The grass offset 0x5f8300 fills on load: the u does not change which cells carry it.
     world.Map().grassOffsets.assign(Client::Data::Terrain::TerrainCellCount, 0.0f);
     constexpr std::size_t HeroSlot = 7;
     Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
@@ -479,8 +475,8 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     EXPECT_EQ(grassVertices, 25u * 6u);
 }
 
-// Y la selección (el mapa 54, World55), donde el trapecio sí recorta: con SelectionCamera y el héroe
-// en (12.975; 15.423; 333), las 5.109 celdas de su traza.
+// And the selection (map 54, World55), where the trapezoid does cull: with SelectionCamera and the hero at (12975,
+// 15423, 333), the 5,109 cells of its trace.
 TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
 {
     const auto path = TraceFile("character-selection-Frame_003207.txt");
@@ -512,13 +508,12 @@ TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
     EXPECT_EQ(DrawnCells(batch), traced);
 }
 
-// El login no tiene traza: va con los datos solos (los del repo en CI) y no pide la carpeta de las trazas.
+// The login has no trace: it goes with the data alone (the repo's in CI) and does not ask for the traces folder.
 using GoldenTerrainLogin = Client::Tests::GoldenDataTest;
 
-// Y el login (el mapa 55, World56), que no tiene traza: con LoginCamera y el héroe en (11.679;
-// 14.191; 333), los bloques de x 0..128 e y 120..248 pasan todos y dibujan 3.244 celdas sin el bit
-// 0x08, de la (90; 153) a la (104; 251), en el orden del código real emulado (la suma de control es
-// la de scripts/login: s = s · 31 + x · 256 + y, módulo 2³²).
+// And the login (map 55, World56), which has no trace: with LoginCamera and the hero at (11679, 14191, 333), the
+// blocks of x 0..128 and y 120..248 all pass and draw 3,244 cells without bit 0x08, from (90, 153) to (104, 251), in
+// the order of the emulated real code (the checksum is that of scripts/login: s = s · 31 + x · 256 + y, modulo 2³²).
 TEST_F(GoldenTerrainLogin, TheLoginDrawsTheCellsOfTheEmulatedCode)
 {
     constexpr std::uint8_t Login = 55;

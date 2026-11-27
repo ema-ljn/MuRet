@@ -13,7 +13,7 @@ namespace Client::Terrain
 {
 namespace
 {
-// 0x5f82c0: base nativa de la misma capa WORD que TerrainAttributes::cells.
+// 0x5f82c0: the native base of the same WORD layer as TerrainAttributes::cells.
 constexpr std::uint32_t AttributeBase = 0x07d0d348;
 constexpr unsigned RowShift = 8;
 constexpr unsigned WordShift = 1;
@@ -31,7 +31,7 @@ Core::Expected<std::uint32_t, TerrainAttributeQueryError> TerrainAttributeQueryA
     const std::uint32_t index = (row << RowShift) + column;
     const std::uint32_t address = AttributeBase - (index << WordShift);
     const auto& attributes = source.Attributes();
-    // Primero el wrap nativo; sólo después se comprueba lo representable por el port.
+    // The native wrap first; only then is what the port can represent checked.
     const std::uint32_t offset = address - AttributeBase;
     if (offset >= AttributeBytes)
     {

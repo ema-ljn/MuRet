@@ -11,11 +11,11 @@ namespace Client::Data::Terrain
 struct TerrainAttributes;
 }
 
-// Las marcas que los eventos ponen y sacan en el .att del mapa cargado (0x7d0d348, un WORD por celda): los paquetes
-// 46 (04 § Los eventos) y los derrumbes de Blood Castle y Chaos Castle (06 § Los dibujos de los eventos).
+// The marks the events set and clear in the loaded map's .att (0x7d0d348, one WORD per cell): packets 46 (04 § Los
+// eventos) and the Blood Castle and Chaos Castle collapses (06 § Los dibujos de los eventos).
 namespace Client::Terrain
 {
-// Un rectángulo de celdas de 0x5f8750: desde (x, y), `width` columnas y `height` filas.
+// A rectangle of cells of 0x5f8750: from (x, y), `width` columns and `height` rows.
 struct TerrainArea
 {
     std::int32_t x = 0;
@@ -24,15 +24,16 @@ struct TerrainArea
     std::int32_t height = 0;
 };
 
-// 0x5f8710 (OR, con `add`) y 0x5f8730 (AND con el complemento) sobre el WORD (y << 8) + x. Sin el .att, o con la
-// celda fuera de los 0x10000 WORD, corta en `where` sin tocar nada.
+// 0x5f8710 (OR, with `add`) and 0x5f8730 (AND with the complement) on WORD (y << 8) + x. Without the .att, or with the
+// cell outside the 0x10000 WORDs, fails at `where` without touching anything.
 [[nodiscard]] Core::Expected<void, std::string> MarkTheTerrainCell(Data::Terrain::TerrainAttributes* attributes,
                                                                    std::int32_t x, std::int32_t y,
                                                                    std::uint8_t attribute, bool add,
                                                                    std::string_view where);
 
-// 0x5f8750(x, y, ancho, alto, atributo, agregar): fila por fila, de y a y + alto − 1, y en cada una de x a x + ancho −
-// 1; con alto o ancho en 0 o menos, nada. Corta en la primera celda que no puede marcar, con las anteriores hechas.
+// 0x5f8750(x, y, width, height, attribute, add): row by row, from y to y + height − 1, and in each from x to
+// x + width − 1; with height or width at 0 or less, nothing. Stops at the first cell it cannot mark, with the earlier
+// ones done.
 [[nodiscard]] Core::Expected<void, std::string> MarkTheTerrainArea(Data::Terrain::TerrainAttributes* attributes,
                                                                    const TerrainArea& area, std::uint8_t attribute,
                                                                    bool add, std::string_view where);

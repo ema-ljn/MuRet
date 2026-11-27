@@ -14,15 +14,15 @@
 #include <filesystem>
 #include <initializer_list>
 
-// LoadTerrainLighting con el Data\ del laboratorio (Client/tests/support/GoldenDir.h): el mundo del
-// login, el 55 (World56), y la luz donde 0x6349a0 pone el logo y el personaje; y la luz sombreada de
-// Lorencia, Devias y el mapa 30 en celdas con pendiente.
+// LoadTerrainLighting with the lab's Data\ (Client/tests/support/GoldenDir.h): the login's world, 55 (World56), and the
+// light where 0x6349a0 places the logo and the character; and the shaded light of Lorencia, Devias and map 30 on sloped
+// cells.
 //
-// Los bits esperados salen de Client/docs/research/scripts/game/maps/terrain_light.py, un cálculo aparte
-// del perfil PC53 del ASM (0x5fd000, 0x5f8b10, 0x5f8d90 y 0x5f99e0) sobre los mismos archivos, que no
-// comparte código con MuRet. No son del original: la luz sombreada (0x7c0ccc4) no se volcó. Los volcados
-// de 0x078ecc10 (lor_light.bin y s31_light.bin) son la luz sin sombrear, la que 0x5f8d90 lee, y esa es
-// la de MuRet bit a bit (MemoryTerrainLight).
+// The expected bits come from Client/docs/research/scripts/game/maps/terrain_light.py, a separate computation of the
+// ASM's PC53 profile (0x5fd000, 0x5f8b10, 0x5f8d90 and 0x5f99e0) over the same files, sharing no code with MuRet. They
+// are not the original's: the shaded light (0x7c0ccc4) was not dumped. The dumps of 0x078ecc10 (lor_light.bin and
+// s31_light.bin) are the unshaded light, the one 0x5f8d90 reads, and that one matches MuRet's bit for bit
+// (MemoryTerrainLight).
 namespace
 {
 using Client::Data::Terrain::CellIndex;
@@ -83,14 +83,14 @@ TEST_F(GoldenTerrainLighting, TheLoginWorldHasLightWhereItsModelsGo)
 {
     const auto lighting = LoadTerrainLighting(m_dataRoot, LoginMap);
     ASSERT_TRUE(lighting.HasValue()) << lighting.Error();
-    // El personaje y el logo (06 § El login, al entrar).
+    // The character and the logo (06 § El login, al entrar).
     ExpectALight(LightAt(*lighting.Value(), 10603.0f, 14112.0f));
     ExpectALight(LightAt(*lighting.Value(), 10680.0f, 15550.0f));
 }
 
-// Donde va el personaje las alturas no son planas (579, 546 y 555), la sombra da 0,989 y la luz 0,988;
-// donde va el logo son 0, y la luz es la del OZJ (0,698; 0,678 y 0,655). Con la escala de las alturas
-// en 1,5 en vez de 3, o sin la sombra, el personaje daría 0,9996 o 1.
+// Where the character goes the heights are not flat (579, 546 and 555), the shade gives 0.989 and the light 0.988;
+// where the logo goes they are 0, and the light is the OZJ's (0.698, 0.678 and 0.655). With the height scale at 1.5
+// instead of 3, or without the shade, the character would give 0.9996 or 1.
 TEST_F(GoldenTerrainLighting, TheLightOfTheLoginMatchesAnIndependentComputation)
 {
     const auto lighting = LoadTerrainLighting(m_dataRoot, LoginMap);
@@ -101,9 +101,9 @@ TEST_F(GoldenTerrainLighting, TheLightOfTheLoginMatchesAnIndependentComputation)
               (ChannelBits{0x3f32b2b3U, 0x3f2dadaeU, 0x3f27a7a8U}));
 }
 
-// En estas celdas cada parte del perfil cambia los bits: con la normal en float (glm::cross y
-// glm::length), con la sombra en float, o con la sombra guardada en float antes de los productos,
-// alguno de los tres canales daría otro valor.
+// On these cells each part of the profile changes the bits: with the normal in float (glm::cross and glm::length),
+// with the shade in float, or with the shade stored as float before the products, one of the three channels would
+// give another value.
 TEST_F(GoldenTerrainLighting, TheShadedLightOfLorenciaKeepsTheBitsOfTheAsmProfile)
 {
     ExpectTheShadedCells(m_dataRoot, LorenciaMap,
@@ -120,7 +120,7 @@ TEST_F(GoldenTerrainLighting, TheShadedLightOfDeviasKeepsTheBitsOfTheAsmProfile)
                           {136, 25, {0x3f1516c9U, 0x3f31889bU, 0x3f7a1dceU}}});
 }
 
-// El mapa 30 sombrea con −1 y 1; en la celda (146, 58) la cuenta da menos de 0 y la luz queda en +0.
+// Map 30 shades with −1 and 1; at cell (146, 58) the computation gives less than 0 and the light stays at +0.
 TEST_F(GoldenTerrainLighting, TheShadedLightOfMapThirtyKeepsTheBitsOfTheAsmProfile)
 {
     ExpectTheShadedCells(m_dataRoot, BrightMap,

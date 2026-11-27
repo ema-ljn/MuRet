@@ -21,8 +21,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Tests del componente con Data real y Pass3D. Las expectativas son geométricas, no capturas del
-// picking nativo. La cámara/héroe de Lorencia proceden de 06 § La cámara del juego y su traza.
+// Tests of the component with real Data and Pass3D. The expectations are geometric, not captures of the native
+// picking. The Lorencia camera and hero come from 06 § La cámara del juego and its trace.
 namespace
 {
 using GoldenTerrainPicking = Client::Tests::GoldenDataTest;
@@ -34,8 +34,8 @@ using Client::Terrain::TerrainPickingTarget;
 
 TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights)
 {
-    // Lorencia, Devias, el plano World19 y World56 (byte×3). Cámara cenital: el rayo central toca
-    // (1375,1325), interior de 012 en celda(13,13), pesos(1/4,1/2,1/4) independientes del picker.
+    // Lorencia, Devias, the flat World19 and World56 (byte × 3). A top-down camera: the central ray hits (1375, 1325),
+    // inside 012 at cell (13, 13), weights (1/4, 1/2, 1/4) independent of the picker.
     constexpr std::array<std::uint8_t, 4> Maps{0, 2, 18, 55};
     for (const std::uint8_t map : Maps)
     {

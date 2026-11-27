@@ -14,16 +14,15 @@
 #include <functional>
 #include <string>
 
-// Qué celdas del terreno pasan el recorte del original (CL7.1, tarea 3): el rango de bloques de
-// 0x5fbb00 (los cinco puntos del frustum, la cámara y las cuatro esquinas lejanas) y el trapecio de
-// 0x5fb570 alrededor del héroe, que 0x5fba90 prueba en el centro de cada bloque (con un margen de −40,
-// DAT_006c9d60) y de cada celda. Verificado: en Lorencia y en la selección da las celdas de sus trazas,
-// en su orden (06 § Terreno). Todo en double donde la x87 no redondea y en float donde guarda un float,
-// con las constantes por sus bits.
+// Which terrain cells pass the original's culling: the block range of 0x5fbb00 (the frustum's five points, the camera
+// and the four far corners) and the trapezoid of 0x5fb570 around the hero, which 0x5fba90 tests at the center of each
+// block (with a margin of −40, DAT_006c9d60) and of each cell. Checked: in Lorencia and in the selection it gives the
+// cells of their traces, in their order (06 § Terreno). All in double where the x87 does not round and in float where
+// it stores a float, with the constants by their bits.
 namespace Client::Terrain
 {
-// La escena de DAT_006d5dc8, que elige el trapecio: el login (2), la selección (4) y el juego (5).
-// En las otras, 0x5fba90 deja pasar todo.
+// The scene of DAT_006d5dc8, which picks the trapezoid: the login (2), the selection (4) and the game (5). In the
+// others, 0x5fba90 lets everything pass.
 enum class CullingScene : std::uint8_t
 {
     Login = 2,
@@ -32,34 +31,32 @@ enum class CullingScene : std::uint8_t
     Other = 0,
 };
 
-// 0x5fbb00 con la cámara de `pass` (su modelview, la de 0x620db0, que 0x620370 lee de GL) y
-// `camera`: el far sin el × 1,4 (DAT_006d5d44) y el fov (DAT_006d5d48). `widthFactor` es el primer
-// argumento, el ancho del mundo de 0x5bb8d0 (640 sin ventanas) por 0,0015625.
+// 0x5fbb00 with the camera of `pass` (its modelview, that of 0x620db0, which 0x620370 reads from GL) and `camera`: the
+// far without the × 1.4 (DAT_006d5d44) and the fov (DAT_006d5d48). `widthFactor` is the first argument, the world
+// width of 0x5bb8d0 (640 without windows) times 0.0015625.
 [[nodiscard]] TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camera,
                                           float widthFactor = 1.0f);
 
-// El trapecio de 0x5fb570 en celdas: izquierda lejana, derecha lejana, derecha cercana, izquierda cercana.
-// El global del original (0x78ecbf0 y 0x78ecc00) es Scenes::WorldRuntime::terrainPolygon; el valor por
-// defecto, los ceros de la .bss.
+// The trapezoid of 0x5fb570 in cells: far left, far right, near right, near left. The original's global (0x78ecbf0
+// and 0x78ecc00) is Kernel::WorldRuntime::terrainPolygon; the default value, the zeros of the .bss.
 struct TerrainPolygon
 {
     std::array<float, 4> x{};
     std::array<float, 4> y{};
-    // En las escenas que no son 2, 4 ni 5, 0x5fba90 deja pasar todo.
+    // In scenes other than 2, 4 and 5, 0x5fba90 lets everything pass.
     bool everything = false;
 };
 
-// Nivel efectivo persistente (0x7b4ccb8), distinto del solicitado de la cámara. Su dueño es
-// Scenes::WorldRuntime, uno para todas las escenas; el 0 del DTO es el de la .bss (*estático*).
+// The persistent effective level (0x7b4ccb8), distinct from the camera's requested one. Its owner is
+// Kernel::WorldRuntime, one for every scene; the DTO's 0 is the .bss's (*static*).
 struct TerrainPolygonState
 {
     std::int32_t effectiveLevel = 0;
 };
 
-// Snapshot sin alias: translation es el argumento3, objectPosition es el selector XY de mapa30.
-// Los booleanos son los resultados completos de dos consultas independientes de nombre en mapa6.
-// Geometría finita representable; yaw usado dentro del dominio de OriginalRotation. El selector30
-// permite quiet NaN/inf y elige el perfil pequeño (06 § El trapecio completo).
+// A snapshot without aliases: translation is argument 3, objectPosition is map 30's XY selector. The booleans are the
+// full results of two independent name queries on map 6. Representable finite geometry; yaw used within
+// OriginalRotation's domain. Selector 30 allows quiet NaN/inf and picks the small profile (06 § El trapecio completo).
 struct TerrainPolygonInput
 {
     std::int32_t scene = 5;
@@ -91,52 +88,51 @@ struct TerrainPolygonFrame
     TerrainPolygon polygon;
 };
 
-// Un frame original: especiales6/30 retienen sin consumir cámara. En normal, valida D/meta en
-// [-2^63,2^63), trunca a int64 y compara los bajos32 con signo; luego valida el nivel elegido0..4.
-// Un error no publica estado ni geometría (ADR0009); la función no altera previous.
+// One original frame: specials 6/30 hold without consuming the camera. In the normal case it validates D/meta in
+// [-2^63, 2^63), truncates to int64 and compares the low 32 bits, signed; then it validates the chosen level 0..4. An
+// error publishes no state or geometry (ADR 0009); the function does not change previous.
 [[nodiscard]] Core::Expected<TerrainPolygonFrame, TerrainPolygonError>
 TerrainPolygonFrameOf(const TerrainPolygonState& previous, const TerrainPolygonInput& input,
                       const TerrainPolygonCameraInput& camera);
 
-// Consulta sin transición. Other calcula arrays y solo desactiva el recorte del consumidor.
+// A query without a transition. Other computes arrays and only turns off the consumer's culling.
 [[nodiscard]] Core::Expected<TerrainPolygon, TerrainPolygonError> TerrainPolygonOf(const TerrainPolygonInput& input,
                                                                                    std::int32_t effectiveLevel);
 
-// 0x5fb570 alrededor de `hero` (DAT_0743a170: en el login, el (11.679; 14.191; 333) que 0x6350b0 le
-// escribe en cada frame): el trapecio de la escena, girado −yaw de la cámara en el mapa 0x37 y 45° en
-// los demás. `screenWidth` es el de 0x5bb8d0. Wrapper de nivel0 y ambos predicados false: usa
-// hero también como selector30/5. Other conserva el sentinel legacy de arrays+0; sin estado oculto.
+// 0x5fb570 around `hero` (DAT_0743a170: in the login, the (11679, 14191, 333) that 0x6350b0 writes on each frame): the
+// scene's trapezoid, turned by the camera's −yaw on map 0x37 and 45° on the others. `screenWidth` is that of
+// 0x5bb8d0. A wrapper of level 0 with both predicates false: it also uses hero as selector 30/5. Other keeps the
+// legacy sentinel of arrays+0; no hidden state.
 [[nodiscard]] TerrainPolygon TerrainPolygonOf(CullingScene scene, std::uint8_t map, const glm::vec3& hero,
                                               float cameraYaw, int screenWidth = 640);
 
-// 0x5fba90(x, y, margen): pasa si los cuatro lados dan más que `margin`.
+// 0x5fba90(x, y, margin): passes if all four sides give more than `margin`.
 [[nodiscard]] bool PolygonContains(const TerrainPolygon& polygon, double x, double y, double margin);
 
-// El margen de cada bloque (DAT_006c9d60, −40 en la .data, que nadie escribe) y el de cada celda.
+// The margin of each block (DAT_006c9d60, −40 in the .data, which nobody writes) and of each cell.
 inline constexpr double BlockMargin = -40.0;
 inline constexpr double CellMargin = 0.0;
 
-// El pase del terreno de 0x5fc190 y 0x5fc0e0 en el rango: los bloques de 4 × 4 por fila de bloques
-// (de firstY a lastY, de a 4) y después por columna (de firstX a lastX); el que pasa el trapecio en su
-// centro (x + 2, y + 2) con BlockMargin, sus 16 celdas por fila y después por columna, y la que lo
-// pasa en su centro (x + 0,5, y + 0,5), con DrawTerrainCell. DAT_07d36899, la vista de arriba que deja
-// pasar todo, no se prende nunca.
+// The terrain pass of 0x5fc190 and 0x5fc0e0 over the range: the 4 × 4 blocks by block row (firstY to lastY, by 4) and
+// then by column (firstX to lastX); the one whose center (x + 2, y + 2) passes the trapezoid with BlockMargin, its 16
+// cells by row and then by column, and the one whose center (x + 0.5, y + 0.5) passes, with DrawTerrainCell.
+// DAT_07d36899, the top view that lets everything pass, is never turned on.
 void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
                  const TerrainPolygon& polygon, const TerrainWater& water);
 
-// Lo que 0x5fa830 hace al empezar, antes de mirar el pase (0x5fa83f: 0x405e00(x, y)), con cada celda que
-// 0x5fac90 no saltea por el bit 0x08 del .att.
+// What 0x5fa830 does on starting, before checking the pass (0x5fa83f: 0x405e00(x, y)), with each cell 0x5fac90 does
+// not skip for bit 0x08 of the .att.
 using TerrainCellHook = std::function<Core::Expected<void, std::string>(std::uint8_t x, std::uint8_t y)>;
 
-// DrawTerrain con `beforeCell` en cada celda que se dibuja, antes de dibujarla. Corta con su error, sin dibujar
-// esa celda ni las siguientes.
+// DrawTerrain with `beforeCell` on each cell that is drawn, before drawing it. Stops with its error, without drawing
+// that cell or the next ones.
 [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(Render::ModelBatch& batch, const TerrainView& view,
                                                             const TerrainRange& range, const TerrainPolygon& polygon,
                                                             const TerrainWater& water,
                                                             const TerrainCellHook& beforeCell);
 
-// El pase del pasto (0x5fc353: 0x5fc190 con 0x7d0d31c en 2): el mismo recorrido de bloques y celdas que
-// DrawTerrain, con DrawGrassCell en cada celda que pasa. Corta con el error de la primera celda que corta.
+// The grass pass (0x5fc353: 0x5fc190 with 0x7d0d31c at 2): the same walk of blocks and cells as DrawTerrain, with
+// DrawGrassCell on each cell that passes. Stops with the error of the first cell that fails.
 [[nodiscard]] Core::Expected<void, std::string> DrawGrass(Render::ModelBatch& batch, const TerrainView& view,
                                                           const TerrainRange& range, const TerrainPolygon& polygon,
                                                           const TerrainWater& water, const TerrainGrass& grass);

@@ -12,6 +12,7 @@
 #include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 #include "App/ServerAddress.h"
+#include "Session/CharacterStepHooks.h"
 #include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
@@ -873,6 +874,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
+    const Session::CharacterStepHooks hooks{};
     return Actors::StepCharacters(
         {.world = CharacterWorld(),
          .random = cloth.random,
@@ -888,7 +890,8 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          { CharacterWorld().Runtime().RequestSound(sound, origin); },
          .trapezoid = &SharedTerrainPolygon(),
          .dynamicLighting = &DynamicLight().Lighting(),
-         .faunaModels = &States().assets.fauna});
+         .faunaModels = &States().assets.fauna,
+         .hooks = &hooks});
 }
 
 void LoginScene::StepTheWorld()

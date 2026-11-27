@@ -8,6 +8,7 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
+#include "Session/CharacterStepHooks.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -50,6 +51,7 @@
 // del ataque".
 namespace
 {
+const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Actors::CharacterStepContext;
 using Client::Actors::StepCharacters;
 using Client::Crt::CrtRandom;
@@ -184,7 +186,8 @@ struct AttackWorld
                                         soundOrigins.push_back(origin);
                                     },
                                     .controlDown = controlDown,
-                                    .faunaModels = &faunaModels};
+                                    .faunaModels = &faunaModels,
+                                    .hooks = &StepHooks};
     }
 
     Client::Core::Expected<void, std::string> Attack(ActorState& striker, std::size_t slot)

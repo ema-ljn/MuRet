@@ -14,6 +14,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/CharacterHead.h"
 #include "Actors/CharacterStep.h"
+#include "Session/CharacterStepHooks.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
@@ -45,6 +46,7 @@
 // cortes de 0x4fcee0 y 0x505de0 por tipo.
 namespace
 {
+const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Models::ActionInfo;
@@ -327,7 +329,8 @@ protected:
                                                        .particles = &m_world->Particles(),
                                                        .groundMarks = &m_marks,
                                                        .dynamicLighting = &m_lighting,
-                                                       .faunaModels = &m_faunaModels});
+                                                       .faunaModels = &m_faunaModels,
+                                                       .hooks = &StepHooks});
     }
 
     const Skeleton& Model() const

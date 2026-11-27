@@ -415,7 +415,8 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .trapezoid = resources.states != nullptr ? &resources.states->camera.trapezoid : nullptr,
         .dynamicLighting = DynamicLightingOf(resources),
         .faunaModels = FaunaModelsOf(resources),
-        .reportedCell = resources.states != nullptr ? &resources.states->actors.reportedCell : nullptr};
+        .reportedCell = resources.states != nullptr ? &resources.states->actors.reportedCell : nullptr,
+        .hooks = resources.characterStepHooks};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.

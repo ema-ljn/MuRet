@@ -109,3 +109,4 @@ Numbers 0023 to 0025 are taken by open branches (the refactor's module architect
 | --- | --- | --- |
 | [0023](0023-client-module-architecture.md) | The client in modules: three roots, layers and one handler per packet | proposed in AR0.1 (2026-11-21); accepted when the refactor closes (AR7) |
 | [0028](0028-shared-library-modules.md) | The engine ships as four shared libraries | accepted, the shape decided by Emanuel (2026-11-25); AR1 Task 8 builds it |
+| [0029](0029-game-module-boundaries.md) | The game's module boundaries: who may use whom, the state, the rows, the library | accepted with the AR4 plan's seven recommendations (2026-11-27); AR4 Task 1 applies the rows |

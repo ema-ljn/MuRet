@@ -1,6 +1,6 @@
 import shlex
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +44,8 @@ from mubmd.core.json_types import JsonObject
 from mubmd.core.patch import Change, outlined, parse_patch
 
 STORE: Final = LocalFileStore()
+DEFAULT_WEB_PORT: Final = 8765
+HIGHEST_PORT: Final = 65535
 REFERENCE_DATA: Final = Path("Client") / "assets" / "Data"
 
 
@@ -70,6 +72,12 @@ class VersionData:
 @dataclass(frozen=True, slots=True)
 class TuiData:
     path: Path
+
+
+@dataclass(frozen=True, slots=True)
+class WebData:
+    path: Path
+    url: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +112,7 @@ OUTPUT_TYPES: Final[dict[str, Any]] = {
     "build": EditData,
     "roundtrip": RoundtripResult,
     "tui": TuiData,
+    "web": WebData,
 }
 
 EXAMPLES: Final = {
@@ -122,6 +131,7 @@ EXAMPLES: Final = {
     "build": "mubmd build text.json --output ~/mu/Data/Local/Text.bmd --dry-run",
     "roundtrip": "mubmd roundtrip ~/mu/Data",
     "tui": "mubmd tui ~/mu/Data",
+    "web": "mubmd web ~/mu/Data",
 }
 
 FileArgument = Annotated[Path, typer.Argument(help="A .bmd file", show_default=False)]
@@ -437,6 +447,41 @@ def tui_command(
     if ui.return_code:
         raise MubmdError(ErrorCode.INTERNAL_ERROR, "The console UI stopped with an error; its report is above")
     return Outcome("tui", TuiData(target), TuiData)
+
+
+def load_web() -> Callable[..., str]:
+    from mubmd.adapters.web.server import serve  # noqa: PLC0415  NiceGUI is an extra and slow to import; only web pays it.
+
+    return serve
+
+
+@app.command(
+    "web",
+    help="Serve the web viewer of models, for people, on 127.0.0.1; it writes nothing and runs until Ctrl+C",
+)
+def web_command(
+    path: Annotated[
+        Path, typer.Argument(help="A Data folder or a model .bmd file (default: the current folder)")
+    ] = Path(),
+    port: Annotated[
+        int, typer.Option("--port", min=0, max=HIGHEST_PORT, help="The port on 127.0.0.1; 0 takes a free one")
+    ] = DEFAULT_WEB_PORT,
+    no_browser: Annotated[bool, typer.Option("--no-browser", help="Do not open the page in the browser")] = False,
+) -> Outcome:
+    target = expanded(path)
+    if not target.exists():
+        raise MubmdError(ErrorCode.FILE_NOT_FOUND, f"{target} does not exist")
+    try:
+        serve = load_web()
+    except ModuleNotFoundError as error:
+        if (error.name or "").startswith("mubmd"):
+            raise
+        raise MubmdError(
+            ErrorCode.USAGE,
+            f"mubmd web needs the web extra, and {error.name} is not installed",
+            suggestion="pip install 'mubmd[web]'",
+        ) from error
+    return Outcome("web", WebData(target, serve(STORE, target, port=port, open_browser=not no_browser)), WebData)
 
 
 def version_outcome() -> Outcome:

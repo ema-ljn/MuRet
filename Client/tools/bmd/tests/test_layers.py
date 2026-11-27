@@ -54,3 +54,13 @@ def test_the_web_adapter_does_not_import_the_other_adapters() -> None:
         if module.startswith(OTHER_ADAPTERS) or module.split(".")[0] in OTHER_ADAPTERS
     ]
     assert offenders == []
+
+
+def test_the_cli_imports_the_web_adapter_only_inside_a_command() -> None:
+    offenders = [
+        f"{path.name}: {node.module}"
+        for path in sorted((PACKAGE / "adapters" / "cli").rglob("*.py"))
+        for node in ast.parse(path.read_text(encoding="utf-8")).body
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("mubmd.adapters.web")
+    ]
+    assert offenders == []

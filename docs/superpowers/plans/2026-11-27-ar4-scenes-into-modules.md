@@ -246,7 +246,8 @@ the session routes with points at it, so `Route` hands a handler the member it n
 
 - [ ] **Step 1: Write the failing tests.** A fake of each port records its calls. `Route` hands a handler that names
   `const Kernel::IPacketSender&` the session's sender. The test that `Route` hands a member of `ModuleStates` comes
-  with its first member (Task 6).
+  with the first routed handler that names one (Task 8's viewport handlers, most likely): Task 6's members are read by
+  the scenes and the character step, not by a row.
 - [ ] **Step 2: Implement the ports and the owner.** `Scenes::GamePacketSender` and `Scenes::ActionSender`, two
   `std::function` aliases today, give way to `Kernel::IPacketSender` one module at a time, as each design reaches them;
   `UI::MessageSink` and `MessageSinkOf` give way to `IOnScreenMessages` the same way.
@@ -265,7 +266,9 @@ PR `refactor(AR4.1): one record per model slot and the terrain's state`. Skills:
   functions over every model id.
 - `ModelId` (named-values Task 8) as `Core::Id<ModelIdTag, std::uint16_t>` in `Assets/ModelIds.h`, with `0x20a` once
   as `PlayerSkeletonModel`; item vocabulary Task 12 in the moved files.
-- `CellSize` in `Terrain`. `terrainPolygonState` goes to `Camera`'s state and `groundMarks` to `Terrain`'s.
+- `CellSize` in `Terrain`. `terrainPolygonState` goes to `Camera`'s state and `groundMarks` to `Terrain`'s. The scenes
+  reach them through `SceneContext::states`, which the selection and the game need as they need `world`; the character
+  step gets the marks as `CharacterStepContext::groundMarks` (nullptr: whoever adds one stops there).
 - `Terrain`'s 4 upward rows and `Assets`' one.
 - The aggregate's rows into this milestone: `WorldMap.h` and `LoadedWorld.h` stop including `Terrain` and `Assets` (9
   rows), and what a loaded world holds of the terrain and the models goes to their states. The other rows of the

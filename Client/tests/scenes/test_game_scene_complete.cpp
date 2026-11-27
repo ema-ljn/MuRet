@@ -21,6 +21,7 @@
 #include "Render/TextureSlot.h"
 #include "Core/Log.h"
 #include "Core/ILogSink.h"
+#include "Session/ModuleStates.h"
 #include "support/GoldenDir.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
@@ -76,6 +77,7 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
         Client::Tests::FakeClock clock;
         Client::Models::ClothWorld cloth;
         Client::Kernel::WorldState world;
+        Client::Session::ModuleStates states;
         Client::Camera::GameCamera camera;
         Client::Camera::GameCameraInput cameraInput;
         auto data = Client::Tables::LoadGameData(m_dataRoot);
@@ -110,7 +112,8 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
                                                    .cloth = &cloth,
                                                    .camera = &camera,
                                                    .cameraInput = &cameraInput,
-                                                   .world = &world};
+                                                   .world = &world,
+                                                   .states = &states};
         Client::Scenes::GameScene scene(context, nullptr, &models, &data.Value().items->table, &models.TextureSlots(),
                                         &*data.Value().gates, &*data.Value().skills);
         ASSERT_TRUE(scene.Enter().HasValue());
@@ -178,6 +181,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     Client::Tests::FakeClock clock;
     Client::Models::ClothWorld cloth;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection(world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
@@ -221,7 +225,8 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
                                                .camera = &camera,
                                                .cameraInput = &cameraInput,
                                                .selection = &selection,
-                                               .world = &world};
+                                               .world = &world,
+                                               .states = &states};
     Client::Scenes::GameScene scene(context, nullptr, &models, &data.Value().items->table, &models.TextureSlots(),
                                     &*data.Value().gates, &*data.Value().skills);
     ASSERT_TRUE(scene.Enter().HasValue());

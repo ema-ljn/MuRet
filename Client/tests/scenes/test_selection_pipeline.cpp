@@ -40,6 +40,7 @@
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/ModuleStates.h"
 #include "support/TestGameServer.h"
 
 #include "support/Bytes.h"
@@ -156,7 +157,8 @@ protected:
                                                    .camera = &m_camera,
                                                    .cameraInput = &m_cameraInput,
                                                    .selection = &m_state,
-                                                   .world = &m_world};
+                                                   .world = &m_world,
+                                                   .states = &m_states};
         if (id == SceneId::CharacterSelect)
         {
             return std::make_unique<Client::Scenes::CharacterSelectScene>(context, m_data, m_library,
@@ -198,6 +200,7 @@ protected:
     Client::Camera::GameCameraInput m_cameraInput;
     Client::Models::ClothWorld m_cloth;
     Client::Kernel::WorldState m_world;
+    Client::Session::ModuleStates m_states;
     Client::Scenes::SelectionState m_state{m_world};
     Client::Tests::RecordingSink m_entrySink;
     Client::Core::Log m_entryLog{m_entrySink, Client::Core::LogLevel::Debug};

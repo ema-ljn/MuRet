@@ -97,7 +97,9 @@ Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor, con
         const auto angle = static_cast<float>(context.random.Next() % Degrees);
         const Terrain::GroundMarkRequest request{
             .type = BloodMark, .position = point, .angle = angle, .color = actor.light, .size = size};
-        if (auto added = Terrain::AddGroundMark(context.marks, request, context.random); !added.HasValue())
+        if (context.marks == nullptr)
+            return Core::Unexpected(std::string("0x52e96c: no ground marks table"));
+        if (auto added = Terrain::AddGroundMark(*context.marks, request, context.random); !added.HasValue())
             return Core::Unexpected(std::format("0x52e96c: {}", added.Error()));
     }
     return {};

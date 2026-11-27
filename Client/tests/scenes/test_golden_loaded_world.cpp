@@ -37,12 +37,12 @@
 #include <system_error>
 #include <vector>
 
-// Client::Kernel::LoadedWorld with a copy of the lab's World56 (and Interface\accept_box01 and Object8\drop01), from
+// Client::Assets::LoadedWorld with a copy of the lab's World56 (and Interface\accept_box01 and Object8\drop01), from
 // which each test removes or breaks a file (06 § El terreno del login, Review Focus 2 of the CL7 plan: what is
 // missing is skipped with a notice and the login goes on).
 namespace
 {
-using Client::Kernel::LoadedWorld;
+using Client::Assets::LoadedWorld;
 using Client::Render::TextureSlot;
 using Client::Tests::FakeTextureStore;
 

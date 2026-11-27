@@ -5,6 +5,7 @@
 #include <span>
 
 #include "App/LoopTiming.h"
+#include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
@@ -517,7 +518,9 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .newFaceSkeleton = m_selectionModels.SkeletonOf(Preview().type),
             .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); },
             .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
-            { m_context.world->Runtime().RequestSound(sound, origin); }};
+            { m_context.world->Runtime().RequestSound(sound, origin); },
+            .groundMarks = m_context.states != nullptr ? &m_context.states->terrain.groundMarks : nullptr,
+            .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -1191,11 +1194,11 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const Camera
     if (frames == 0)
     {
         const Render::Camera3D camera = Camera::GameCameraOf(CameraState(), input);
-        if (m_context.world != nullptr)
+        if (m_context.world != nullptr && m_context.states != nullptr)
         {
             // El trapecio del pase del terreno y de los objetos, con el nivel que hay, sin escribir nada.
             auto polygon =
-                Camera::TerrainPolygonBetweenFrames(m_context.world->Runtime(), SelectionPolygonInput(input, camera));
+                Camera::TerrainPolygonBetweenFrames(m_context.states->camera, SelectionPolygonInput(input, camera));
             if (!polygon.HasValue())
             {
                 m_failure = polygon.Error();
@@ -1214,11 +1217,11 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const Camera
         // pase que no dibuja. El rango de bloques no lo lee nadie de MuRet en la selección (08 P-C41 b); el
         // trapecio y su nivel van a los globales (0x5fbeef → 0x5fb570). Nada de 0x634736..0x634769 llama a
         // rand() (*estático*). Sin WorldState no hay dónde dejarlos: son los tests que no lo miran.
-        if (m_context.world == nullptr)
+        if (m_context.world == nullptr || m_context.states == nullptr)
         {
             continue;
         }
-        auto polygon = Camera::StepTheTerrainPolygon(m_context.world->Runtime(), SelectionPolygonInput(input, camera),
+        auto polygon = Camera::StepTheTerrainPolygon(m_context.states->camera, SelectionPolygonInput(input, camera),
                                                      CameraState());
         if (!polygon.HasValue())
         {
@@ -1418,8 +1421,8 @@ bool CharacterSelectScene::HasTheWorld() const
 {
     constexpr int SelectionWorldMap = Maps::CharacterSelectMap;
     return m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr &&
-           m_context.selection->IsInitialized() && m_context.selection->Terrain() != nullptr &&
-           m_context.world->Runtime().map == SelectionWorldMap;
+           m_context.states != nullptr && m_context.selection->IsInitialized() &&
+           m_context.selection->Terrain() != nullptr && m_context.world->Runtime().map == SelectionWorldMap;
 }
 
 std::function<double(float, float)> CharacterSelectScene::TerrainHeight()
@@ -1486,7 +1489,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     }
     const Terrain::WorldTerrain& terrain = *m_context.selection->Terrain();
     // 0x634844: 0x5fc260(0), el terreno, el pasto y las marcas.
-    if (auto drawn = m_world.DrawTerrain(world, terrain, frame); !drawn.HasValue())
+    if (auto drawn = m_world.DrawTerrain(world, terrain, m_context.states->terrain.groundMarks, frame);
+        !drawn.HasValue())
     {
         m_failure = drawn.Error();
         return;
@@ -1530,7 +1534,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             .systemTime = [systemTime = static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
             { return systemTime; },
-            .globalPose = [&]() { return std::span<const Math::BoneTransform>(poseCarry->bones); }});
+            .globalPose = [&]() { return std::span<const Math::BoneTransform>(poseCarry->bones); },
+            .trapezoid = &m_context.states->camera.trapezoid});
         !drawn.HasValue())
     {
         m_failure = "0x63486a → " + drawn.Error();

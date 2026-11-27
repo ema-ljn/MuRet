@@ -31,6 +31,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WeaponSparkKernels.h"
 #include "Terrain/WorldTerrain.h"
@@ -768,7 +769,9 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const Kernel::
 {
     Kernel::WorldState& world = context.world;
     const Kernel::WorldRuntime& runtime = world.Runtime();
-    helper.seen = always || Actors::CharacterSeen(runtime.terrainPolygon, helper.position);
+    constexpr Terrain::TerrainPolygon BssTrapezoid{};
+    helper.seen = always || Actors::CharacterSeen(context.trapezoid != nullptr ? *context.trapezoid : BssTrapezoid,
+                                                  helper.position);
     if (!helper.seen)
     {
         return {};
@@ -971,7 +974,8 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
                                       context.effects,
                                       context.particles,
                                       context.systemTime,
-                                      context.globalPose};
+                                      context.globalPose,
+                                      context.trapezoid};
     for (HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)

@@ -22,6 +22,7 @@
 #include "Scenes/HelperTable.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneId.h"
+#include "Session/ModuleStates.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -172,7 +173,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
                          [systemTime = static_cast<std::uint32_t>(
                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
                          { return systemTime; },
-                         [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); }});
+                         [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
+                         &m_context.states->camera.trapezoid});
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);

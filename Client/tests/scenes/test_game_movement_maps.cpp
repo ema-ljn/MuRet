@@ -143,7 +143,7 @@ protected:
         m_skills = std::move(skills).Value();
         m_world.Runtime().map = GetParam().map;
         m_world.Runtime().hero = 0;
-        m_world.Runtime().terrainPolygon.everything = true;
+        m_trapezoid.everything = true;
         m_world.OwnCharacter().ClearEquipmentForEntry();
         auto& terrain = m_world.Map().terrain;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -232,6 +232,7 @@ protected:
 
     Client::Kernel::WorldState m_world;
     Client::Crt::CrtRandom m_random{Seed};
+    Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Models::Skeleton m_skeleton;
     std::optional<Client::Tables::SkillTable> m_skills;
     std::optional<PathCell> m_target;
@@ -398,8 +399,11 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     // Con el pool: la burbuja de Atlans (0x506d0a, con el reloj en 0), la lluvia de Devil Square (0x506d7f) y los
     // pasos de Kalima (0x5087fc) lo piden.
     auto particles = std::make_unique<Client::World::Particles>();
-    const auto stepped = Client::Actors::StepCharacters(
-        {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .particles = particles.get()});
+    const auto stepped = Client::Actors::StepCharacters({.world = m_world,
+                                                         .random = m_random,
+                                                         .playerSkeleton = &m_skeleton,
+                                                         .particles = particles.get(),
+                                                         .trapezoid = &m_trapezoid});
     // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Hero().safeZone, 1);

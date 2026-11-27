@@ -19,6 +19,7 @@
 #include "UI/CreateCharacterWindow.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/ModuleStates.h"
 
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
@@ -69,7 +70,8 @@ protected:
                                                    .camera = &m_camera,
                                                    .cameraInput = &m_cameraInput,
                                                    .selection = &m_selection,
-                                                   .world = &m_world};
+                                                   .world = &m_world,
+                                                   .states = &m_states};
         m_scene = std::make_unique<Client::Scenes::CharacterSelectScene>(context, m_data, m_models, nullptr);
         const auto entered = m_scene->Enter();
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
@@ -153,6 +155,7 @@ protected:
     Client::Input::InputState m_input;
     Client::Models::ClothWorld m_cloth;
     Client::Kernel::WorldState m_world;
+    Client::Session::ModuleStates m_states;
     Client::Scenes::SelectionState m_selection{m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;

@@ -40,11 +40,9 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
-#include "Terrain/GroundMarks.h"
 #include "Kernel/ItemState.h"
 #include "World/LeafWeather.h"
 #include "World/ObjectModelStepState.h"
-#include "Terrain/TerrainCulling.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -520,22 +518,6 @@ struct WorldRuntime
     // the inventory's: picking up from the grid (0x5c5301) and from the equipment (0x5c2d5c) and MoveHero (0x59bf3c),
     // the place the cursor item came from.
     std::int32_t slot78a6758 = 0;
-    // The trapezoid of the last 0x5fb570, in cells: the Ys at 0x78ecbf0 and the Xs at 0x78ecc00, which only 0x5fba55
-    // and 0x5fba68 write (by their address, in .text). Only 0x5fbb00 calls 0x5fb570 (0x5fbeef), and the drawings of
-    // the login (0x6351b7), the selection (0x63475c) and the game (0x637366) call 0x5fbb00: one for the three scenes.
-    // Only 0x5fba90 reads it, with the scene of the moment (0x6d5dc8): the game's first step after the wait (0x508f00)
-    // reads the selection's last drawing's, and the login's first step, whatever is there. In the .bss (past the
-    // file's 0x20000 bytes of .data, from 0x6c6000): zeros, a trapezoid with no area at (0, 0) for which 0x5fba90
-    // gives 0 on the four sides (*static*, 06 § El paso de los personajes and Q-C217).
-    Terrain::TerrainPolygon terrainPolygon{};
-    // 0x7b4ccb8, the trapezoid's effective level from one 0x5fb570 to the next, in the three scenes: only 0x5fb570
-    // writes it (0x5fb731). In the .bss: 0.
-    Terrain::TerrainPolygonState terrainPolygonState{};
-    // The ground marks, 0x760cab0..0x760f990, in the .bss: all off at start. Only 0x548fe0, 0x549090 and 0x549130
-    // touch them, and no load clears them: 0x6070a0 turns off the tables next to them, not this one (Q-C228). 0x505de0
-    // fills them with model 0x182 (0x507486), which MuRet cuts off before (0x507414, 08 P-C241 a), and so does
-    // 0x52e810 (0x52e96c, Actors::LeaveTheRemains, CL9 milestone 3), from the body's step (0x4fd5f0 → 0x4fcd00).
-    Terrain::GroundMarkTable groundMarks{};
     // 0x77f36d0, layer 1 of the hero's cell, in the .bss: 0 at start. MoveHero writes it (0x59e2ba), after the
     // counter. The objects' step (the roofs of 0x604ab0, 0x604bc4 and 0x604c06) and the leaves' (0x637082..0x6370e5)
     // read it, among others.

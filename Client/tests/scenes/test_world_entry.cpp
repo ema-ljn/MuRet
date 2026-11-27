@@ -51,6 +51,7 @@
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/ModuleStates.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -253,7 +254,8 @@ public:
                                    .items = &items,
                                    .log = log,
                                    .textMeasure = &letters,
-                                   .texts = &texts};
+                                   .texts = &texts,
+                                   .states = &states};
     }
 
     [[nodiscard]] ActorState& Hero()
@@ -284,6 +286,7 @@ public:
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState& world = *m_world;
     Client::Scenes::SelectionState selection{world};
+    Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
@@ -528,7 +531,8 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
                                                                  .cloth = &tested.cloth,
                                                                  .camera = &tested.camera,
                                                                  .cameraInput = &tested.cameraInput,
-                                                                 .world = &tested.world},
+                                                                 .world = &tested.world,
+                                                                 .states = &tested.states},
                                     nullptr, &frameResources.models, &frameResources.data.items->table,
                                     &frameResources.models.TextureSlots(), &*frameResources.data.gates,
                                     &*frameResources.data.skills);
@@ -899,7 +903,8 @@ void DrawAGameFrame(Entry& tested)
                                                                  .cloth = &tested.cloth,
                                                                  .camera = &tested.camera,
                                                                  .cameraInput = &tested.cameraInput,
-                                                                 .world = &tested.world},
+                                                                 .world = &tested.world,
+                                                                 .states = &tested.states},
                                     nullptr, &frameResources.models, &frameResources.data.items->table,
                                     &frameResources.models.TextureSlots(), &*frameResources.data.gates,
                                     &*frameResources.data.skills);
@@ -1180,7 +1185,8 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                                    .cloth = &tested.cloth,
                                                    .camera = &tested.camera,
                                                    .cameraInput = &tested.cameraInput,
-                                                   .world = &tested.world};
+                                                   .world = &tested.world,
+                                                   .states = &tested.states};
         const Client::Tables::GameData data;
         Client::Scenes::CharacterSelectScene selection(context, data, tested.models, nullptr);
         ASSERT_TRUE(selection.Enter().HasValue());
@@ -1189,8 +1195,8 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         target.Present();
         ASSERT_EQ(selection.Failure(), std::nullopt);
         selection.Leave();
-        ASSERT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x);
-        ASSERT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
+        ASSERT_EQ(tested.states.camera.trapezoid.x, selected.x);
+        ASSERT_EQ(tested.states.camera.trapezoid.y, selected.y);
         const Client::Tables::ItemSetTables sets = NoSets();
         WorldEntryResources resources = tested.Resources();
         resources.itemSetTables = &sets;
@@ -1198,8 +1204,8 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         const auto entered =
             ApplyWorldEntry(ReplyAt(probe.map, probe.firstX, probe.firstY, 0), PlayerKey, resources, publisher);
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
-        EXPECT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x) << "la entrada no toca el trapecio";
-        EXPECT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
+        EXPECT_EQ(tested.states.camera.trapezoid.x, selected.x) << "la entrada no toca el trapecio";
+        EXPECT_EQ(tested.states.camera.trapezoid.y, selected.y);
         // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
         tested.world.Runtime().drawingEnabled = true;
         CompleteFrameResources frameResources;
@@ -1211,7 +1217,8 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                                        .cloth = &tested.cloth,
                                                        .camera = &tested.camera,
                                                        .cameraInput = &tested.cameraInput,
-                                                       .world = &tested.world};
+                                                       .world = &tested.world,
+                                                       .states = &tested.states};
         Client::Scenes::GameScene game(gameContext, nullptr, &frameResources.models, &frameResources.data.items->table,
                                        &frameResources.models.TextureSlots(), &*frameResources.data.gates,
                                        &*frameResources.data.skills);

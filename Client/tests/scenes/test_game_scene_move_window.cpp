@@ -20,6 +20,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/PanelRegistry.h"
+#include "Session/ModuleStates.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
@@ -68,6 +69,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
 
     Client::Tests::FakeTextureStore store;
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth;
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
     const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
@@ -86,7 +88,8 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
                                                                  .log = online.log,
                                                                  .cloth = &cloth,
                                                                  .world = world.get(),
-                                                                 .textMeasure = &letters},
+                                                                 .textMeasure = &letters,
+                                                                 .states = &states},
                                     &online.session, &models, nullptr, nullptr, nullptr, nullptr, &texts);
     const auto entered = scene.Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();

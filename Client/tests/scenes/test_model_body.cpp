@@ -18,6 +18,7 @@
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Terrain/GroundMarks.h"
 #include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
@@ -320,7 +321,8 @@ protected:
         return Client::Actors::StepCharacter(m_actor, {.world = *m_world,
                                                        .random = random,
                                                        .scene = Client::Scenes::SceneId::Game,
-                                                       .particles = &m_world->Particles()});
+                                                       .particles = &m_world->Particles(),
+                                                       .groundMarks = &m_marks});
     }
 
     const Skeleton& Model() const
@@ -333,6 +335,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Terrain::GroundMarkTable m_marks{};
     ActorState m_actor;
 };
 
@@ -419,7 +422,7 @@ TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceAtItsPublishedPosition)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(m_actor.alive);
     EXPECT_EQ(m_actor.byte38a, 1);
-    const auto& marks = m_world->Runtime().groundMarks;
+    const auto& marks = m_marks;
     CrtRandom draws = Client::Tests::AfterDraws(Seed, 8);
     for (std::size_t slot = 0; slot < 2; ++slot)
     {
@@ -493,7 +496,7 @@ TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
             EXPECT_EQ(effect.transform.position.z, 170.0f);
         }
     EXPECT_EQ(shards, 10u);
-    for (const auto& mark : m_world->Runtime().groundMarks)
+    for (const auto& mark : m_marks)
         EXPECT_FALSE(mark.live);
     CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 50 + 1 + 8);
     DrawTheHeadAndTheEffects(expected);

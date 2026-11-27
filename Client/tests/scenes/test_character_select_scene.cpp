@@ -47,6 +47,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Protocol/Outgoing.h"
 #include "Models/TextureMetadata.h"
@@ -335,7 +336,8 @@ struct Harness
                          .selection = selection,
                          .world = worldState,
                          .textMeasure = &letters,
-                         .worldEntry = worldEntry},
+                         .worldEntry = worldEntry,
+                         .states = &states},
             data, models, withSession ? &online.session : nullptr);
     }
 
@@ -487,6 +489,7 @@ struct Harness
     RecordingFrameTarget target;
     InputState input;
     std::int64_t steps = 0;
+    Client::Session::ModuleStates states;
     std::optional<CharacterSelectScene> scene;
 };
 
@@ -1177,21 +1180,21 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
-    world.Runtime().terrainPolygonState.effectiveLevel = 3;
+    tested.states.camera.trapezoidLevel.effectiveLevel = 3;
 
     static_cast<void>(tested.Frame());
 
     const Client::Terrain::TerrainPolygon expected = SelectionPolygon();
-    EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 0);
-    EXPECT_EQ(world.Runtime().terrainPolygon.x, expected.x);
-    EXPECT_EQ(world.Runtime().terrainPolygon.y, expected.y);
-    EXPECT_FALSE(world.Runtime().terrainPolygon.everything);
+    EXPECT_EQ(tested.states.camera.trapezoidLevel.effectiveLevel, 0);
+    EXPECT_EQ(tested.states.camera.trapezoid.x, expected.x);
+    EXPECT_EQ(tested.states.camera.trapezoid.y, expected.y);
+    EXPECT_FALSE(tested.states.camera.trapezoid.everything);
 
-    world.Runtime().terrainPolygon = {};
-    world.Runtime().terrainPolygonState.effectiveLevel = 3;
+    tested.states.camera.trapezoid = {};
+    tested.states.camera.trapezoidLevel.effectiveLevel = 3;
     static_cast<void>(tested.Frame());
-    EXPECT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{})) << "un dibujo intermedio no escribe";
-    EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 3);
+    EXPECT_EQ(tested.states.camera.trapezoid.x, (std::array<float, 4>{})) << "un dibujo intermedio no escribe";
+    EXPECT_EQ(tested.states.camera.trapezoidLevel.effectiveLevel, 3);
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
@@ -1680,15 +1683,15 @@ TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
     Harness tested(true, false, false, &selection, &world);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
     tested.camera.distance = std::numeric_limits<float>::quiet_NaN();
-    world.Runtime().terrainPolygonState.effectiveLevel = 3;
+    tested.states.camera.trapezoidLevel.effectiveLevel = 3;
 
     const std::vector<FrameEvent> events = tested.Frame();
 
     ASSERT_TRUE(tested.scene->Failure().has_value());
     EXPECT_NE(tested.scene->Failure()->find("0x5fb570"), std::string::npos) << *tested.scene->Failure();
     EXPECT_EQ(std::ranges::find(events, Kind::Models, &FrameEvent::kind), events.end());
-    EXPECT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{}));
-    EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 3);
+    EXPECT_EQ(tested.states.camera.trapezoid.x, (std::array<float, 4>{}));
+    EXPECT_EQ(tested.states.camera.trapezoidLevel.effectiveLevel, 3);
     EXPECT_TRUE(tested.Frame().empty()) << "cortada, no vuelve a dibujar";
 }
 

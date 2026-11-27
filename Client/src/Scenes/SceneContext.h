@@ -27,6 +27,11 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Session
+{
+struct ModuleStates;
+} // namespace Client::Session
+
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
 // GameData.h.
@@ -80,6 +85,9 @@ struct SceneContext
     const WorldEntryResources* worldEntry = nullptr;
     // Portapapeles del hilo principal para los EDIT; nullptr en tests que no editan texto.
     Platform::IClipboard* clipboard = nullptr;
+    // What each module owns of the original's globals, beside `world` (ADR 0029). nullptr in the tests that do not
+    // look at it: the selection and the game do not enter, as without `world`.
+    Session::ModuleStates* states = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

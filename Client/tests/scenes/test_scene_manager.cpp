@@ -32,6 +32,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
+#include "Session/ModuleStates.h"
 #include "support/FakeClock.h"
 #include "support/GoldenDir.h"
 #include "support/FakeTextureStore.h"
@@ -1110,13 +1111,18 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     FakeClock clock;
     Client::Models::ClothWorld cloth;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     ManagerGameResources gameResources;
     const auto loaded = gameResources.Load(world, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     // 0x633f30: la selección ya marcó el mundo cargado.
     world.Runtime().drawingEnabled = true;
-    const Client::Scenes::SceneContext context{
-        .dataRoot = gameResources.dataRoot, .textures = textures, .log = log, .cloth = &cloth, .world = &world};
+    const Client::Scenes::SceneContext context{.dataRoot = gameResources.dataRoot,
+                                               .textures = textures,
+                                               .log = log,
+                                               .cloth = &cloth,
+                                               .world = &world,
+                                               .states = &states};
     RecordingFrameTarget target({800, 600});
     SceneManager manager(
         [&](SceneId id) -> std::unique_ptr<IScene>
@@ -1302,6 +1308,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     FakeClock clock;
     Client::Models::ClothWorld cloth;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection(world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
@@ -1318,7 +1325,8 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
                                                .camera = &camera,
                                                .cameraInput = &cameraInput,
                                                .selection = &selection,
-                                               .world = &world};
+                                               .world = &world,
+                                               .states = &states};
     const Client::Tests::LetterMeasure letters;
     const Client::Scenes::WorldEntryResources resources{.world = world,
                                                         .selection = selection,

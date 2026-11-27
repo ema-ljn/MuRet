@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "Network/Xor32Packet.h"
 #include "Kernel/ActorState.h"
@@ -108,6 +109,7 @@ protected:
         // El renglón de bienvenida del F3 03 y del 1C que cambia de mapa (0x4c4b60 y 0x4c7c4e).
         resources.textMeasure = &m_letters;
         resources.texts = &*m_data->text;
+        resources.states = m_states.get();
         return resources;
     }
 
@@ -170,7 +172,8 @@ protected:
                 .camera = &m_camera,
                 .cameraInput = &m_cameraInput,
                 .selection = m_selection.get(),
-                .world = m_world.get()};
+                .world = m_world.get(),
+                .states = m_states.get()};
     }
 
     std::unique_ptr<Scenes::GameScene> MakeGame()
@@ -300,6 +303,7 @@ protected:
     FakeClock m_clock;
     std::unique_ptr<Models::ClothWorld> m_cloth = std::make_unique<Models::ClothWorld>();
     std::unique_ptr<Kernel::WorldState> m_world = std::make_unique<Kernel::WorldState>();
+    std::unique_ptr<Session::ModuleStates> m_states = std::make_unique<Session::ModuleStates>();
     std::unique_ptr<Scenes::SelectionState> m_selection = std::make_unique<Scenes::SelectionState>(*m_world);
     std::unique_ptr<Assets::GameModels> m_models = std::make_unique<Assets::GameModels>();
     Camera::GameCamera m_camera;

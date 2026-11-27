@@ -369,6 +369,7 @@ World::FrameSprites& SelectionWorld::FrameSprites()
 
 Core::Expected<void, std::string> SelectionWorld::DrawTerrain(Kernel::WorldState& world,
                                                               const Terrain::WorldTerrain& terrain,
+                                                              const Terrain::GroundMarkTable& groundMarks,
                                                               const SelectionWorldFrame& frame)
 {
     if (!terrain.mapping || !terrain.heights || !terrain.attributes)
@@ -399,8 +400,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawTerrain(Kernel::WorldState
     marksState.depthTest = false;
     marksState.cullEnabled = true;
     frame.batch.SetState(marksState);
-    if (auto marked =
-            Terrain::DrawGroundMarks(frame.batch, world.Runtime().groundMarks, *terrain.heights, NoSlotComponents);
+    if (auto marked = Terrain::DrawGroundMarks(frame.batch, groundMarks, *terrain.heights, NoSlotComponents);
         !marked.HasValue())
     {
         return Core::Unexpected(marked.Error() + ", en la selección");

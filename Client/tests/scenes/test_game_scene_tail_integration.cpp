@@ -31,6 +31,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
+#include "Session/ModuleStates.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -82,6 +83,7 @@ struct FrameFixture
     Client::Models::ClothWorld cloth;
     Client::Models::OriginalFrameCarry itemFrames;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Assets::GameModels models;
     // El paso del héroe lee su habilidad de Skill.bmd (0x5526f0); estos tests no miran habilidades.
     Client::Tables::SkillTable skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
@@ -114,7 +116,8 @@ protected:
                                          .log = frame.log,
                                          .clock = &frame.clock,
                                          .cloth = &frame.cloth,
-                                         .world = &frame.world},
+                                         .world = &frame.world,
+                                         .states = &frame.states},
             nullptr, &frame.models, nullptr, &frame.models.TextureSlots(), nullptr, &frame.skills);
         ASSERT_TRUE(frame.scene->Enter().HasValue());
     }
@@ -142,7 +145,8 @@ protected:
                 .log = frame.log,
                 .clock = &frame.clock,
                 .cloth = &frame.cloth,
-                .world = &frame.world};
+                .world = &frame.world,
+                .states = &frame.states};
     }
     std::unique_ptr<Client::Scenes::SceneManager> MakeManager(Client::Scenes::SceneId first)
     {

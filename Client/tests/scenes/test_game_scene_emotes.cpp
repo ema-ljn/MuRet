@@ -22,6 +22,7 @@
 #include "Scenes/SceneContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Session/ModuleStates.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
@@ -74,6 +75,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     // Fauna conserva el backend: store vive más que world, también si un ASSERT termina el test antes.
     Client::Tests::FakeTextureStore store;
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
@@ -85,7 +87,8 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
                                                                  .log = online.log,
                                                                  .cloth = &cloth,
                                                                  .world = world.get(),
-                                                                 .textMeasure = &letters},
+                                                                 .textMeasure = &letters,
+                                                                 .states = &states},
                                     &online.session, &models, nullptr, nullptr, nullptr, nullptr, &texts);
     const auto entered = scene.Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();

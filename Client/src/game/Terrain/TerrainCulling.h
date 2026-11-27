@@ -38,7 +38,7 @@ enum class CullingScene : std::uint8_t
                                           float widthFactor = 1.0f);
 
 // The trapezoid of 0x5fb570 in cells: far left, far right, near right, near left. The original's global (0x78ecbf0
-// and 0x78ecc00) is Kernel::WorldRuntime::terrainPolygon; the default value, the zeros of the .bss.
+// and 0x78ecc00) is Camera::CameraState::trapezoid; the default value, the zeros of the .bss.
 struct TerrainPolygon
 {
     std::array<float, 4> x{};
@@ -48,7 +48,7 @@ struct TerrainPolygon
 };
 
 // The persistent effective level (0x7b4ccb8), distinct from the camera's requested one. Its owner is
-// Kernel::WorldRuntime, one for every scene; the DTO's 0 is the .bss's (*static*).
+// Camera::CameraState, one for every scene; the DTO's 0 is the .bss's (*static*).
 struct TerrainPolygonState
 {
     std::int32_t effectiveLevel = 0;

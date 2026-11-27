@@ -23,6 +23,7 @@
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -136,7 +137,7 @@ TEST_F(ActorShockTest, AMonsterTakesTheActionAndTheSoundOfItsLoadedModel)
             EXPECT_EQ(Monster().animation.action, 5);
             const std::int32_t first = type == 0x152 ? 2 : 7;
             const std::int32_t drawn = CrtRandom(Seed).Next() & 1;
-            EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{first + drawn + 0xd2});
+            EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{first + drawn + 0xd2});
             EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 1).State());
         }
     }
@@ -151,7 +152,7 @@ TEST_F(ActorShockTest, TheNinthSubtypeShiftsTheSoundAndTheAttackKeepsItsAction)
     ASSERT_TRUE(Shock(random).HasValue());
     EXPECT_EQ(Monster().animation.action, 3);
     const std::int32_t drawn = CrtRandom(Seed).Next() & 1;
-    EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{2 + drawn + 5 + 0xd2});
+    EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{2 + drawn + 5 + 0xd2});
 }
 
 // A model not loaded is the original's zeroed record: 0x4ea030 sets nothing (0x4ea056) and its table, at 0 (0x60dbe0),
@@ -169,7 +170,7 @@ TEST_F(ActorShockTest, AMonsterWithoutItsModelKeepsItsActionAndSoundsFromTheZero
         const auto shocked = Shock(random);
         ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
         EXPECT_EQ(Monster().animation.action, 0);
-        EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{0xd2});
+        EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 1).State());
     }
 }

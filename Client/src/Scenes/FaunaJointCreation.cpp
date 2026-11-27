@@ -16,6 +16,7 @@
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 #include <cmath>
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
@@ -2151,7 +2152,7 @@ Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family fami
 Core::Expected<void, std::string>
 StepJointsChecked(std::span<JointState> joints, Crt::CrtRandom* random, Models::ClothWorld* cloth,
                   World::Particles* particles, float worldClock, World::FrameSprites* sprites,
-                  Terrain::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
+                  Terrain::TerrainLighting* lighting, const std::function<void(Audio::SoundId)>& soundRequest,
                   const std::function<double(float, float)>& terrainHeight, std::span<const Kernel::ActorState> actors,
                   const JointKernels::EffectHit& effectHit, World::ModelEffects* effects,
                   const Kernel::ActorState* hero, Kernel::WorldState* world, const JointKernels::VolleyServices* volley,
@@ -2372,7 +2373,7 @@ Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth, World::Particles* particles,
            float worldClock, World::FrameSprites* sprites, Terrain::TerrainLighting* lighting,
-           const std::function<void(std::int32_t)>& soundRequest,
+           const std::function<void(Audio::SoundId)>& soundRequest,
            const std::function<double(float, float)>& terrainHeight, std::span<const Kernel::ActorState> actors,
            const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const Kernel::ActorState* hero,
            Kernel::WorldState* world, const JointKernels::VolleyServices* volley, const Models::IModelLibrary* models)

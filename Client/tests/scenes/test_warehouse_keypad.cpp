@@ -23,6 +23,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 #include "support/Bytes.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
@@ -235,7 +236,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(KeypadTexts());
@@ -456,7 +457,7 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
 
     PressDigits("90");
     EXPECT_EQ(Typed(), "90");
-    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_EQ(Runtime().npcWindows.keypadPressed, 1);
     EXPECT_FALSE(Runtime().movement.pendingClick);
     EXPECT_FALSE(Runtime().movement.leftHeld);

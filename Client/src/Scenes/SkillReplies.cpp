@@ -30,6 +30,8 @@
 #include "Session/WorldTransitionSupport.h"
 #include "UI/GameUiState.h"
 #include "World/ModelEffects.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -107,7 +109,7 @@ Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor, con
 }
 
 // 0x41ed10(id, …): el caller despacha el sonido tras comprobar el optional.
-void Sound(const WorldEntryResources& resources, std::int32_t id)
+void Sound(const WorldEntryResources& resources, Audio::SoundId id)
 {
     resources.world.Runtime().RequestSound(id);
 }
@@ -198,7 +200,7 @@ Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arrivin
     }
     static_cast<void>(
         resources.world.Map().effects.Create(SparkEffect, actor.position, actor.angles, actor.light, 0.0f));
-    Sound(resources, 0x76);
+    Sound(resources, Sound::MagicSound);
     return {};
 }
 
@@ -299,7 +301,7 @@ Core::Expected<void, std::string> ActAndSound(const Cast& cast, std::uint8_t act
     if (auto acted = Act(cast.source, action, cast.resources); !acted.HasValue())
         return acted;
     cast.source.byte381 = 1;
-    Sound(cast.resources, sound);
+    Sound(cast.resources, Audio::SoundId{sound});
     return {};
 }
 
@@ -344,7 +346,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x23:
     case 0x24:
         if (source.word376 != SilentWord376)
-            Sound(resources, 0x6f);
+            Sound(resources, Audio::SoundId{0x6f});
         return HitUnlessHero(cast);
     case 0x10:
         return HitUnlessHero(cast);
@@ -352,7 +354,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x3:
     {
         if (source.type != SilentSkill3Type)
-            Sound(resources, 0x50);
+            Sound(resources, Audio::SoundId{0x50});
         const std::uint8_t action = target.animation.action;
         if (action == 0xcb || action == 0xcc || action == 0xc5 || action == 0xc7)
         {
@@ -378,7 +380,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return came;
         if (cast.sourceIsHero)
             world.Runtime().movement.gateRequestBlocked = 0;
-        world.Runtime().RequestSound(0x83, source.position); // 0x4cd43a
+        world.Runtime().RequestSound(Audio::SoundId{0x83}, source.position); // 0x4cd43a
         return {};
     }
     case 0x6:
@@ -405,7 +407,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         ++source.attackCount;
         source.byte381 = 1;
-        Sound(resources, 0x73);
+        Sound(resources, Audio::SoundId{0x73});
         return {};
     }
     case 0x38:
@@ -439,7 +441,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         {
             if (auto skull = PutTheSkullOn(target, world, resources.cloth.random, 0x4cd664); !skull.HasValue())
                 return skull;
-            world.Runtime().RequestSound(0x85, target.position);
+            world.Runtime().RequestSound(Audio::SoundId{0x85}, target.position);
             target.flags78 |= 0x40;
         }
         if (IsPlayer(source))
@@ -601,14 +603,14 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
                                                           nullptr, world, resources.cloth.random);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x4cddf5: {}", made.Error()));
-        Sound(resources, 0x94);
+        Sound(resources, Audio::SoundId{0x94});
         return {};
     }
     case 0x3a:
     {
         if (auto acted = Act(source, 0x44, resources); !acted.HasValue())
             return acted;
-        Sound(resources, 0x92);
+        Sound(resources, Audio::SoundId{0x92});
         source.byte1bc = 0;
         return {};
     }
@@ -658,7 +660,7 @@ Core::Expected<void, std::string> DurationAction(Kernel::ActorState& actor, std:
     {
         if (auto acted = Act(actor, 0x53, resources); !acted.HasValue())
             return acted;
-        Sound(resources, 0x1ce);
+        Sound(resources, Audio::SoundId{0x1ce});
         return {};
     }
     case 0x2a:
@@ -697,7 +699,7 @@ Core::Expected<void, std::string> LevelUpEffect(Kernel::ActorState& actor, const
     }
     static_cast<void>(resources.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
                                                                     World::LevelUpDecalSubtype));
-    Sound(resources, 0x98);
+    Sound(resources, Audio::SoundId{0x98});
     return {};
 }
 } // namespace

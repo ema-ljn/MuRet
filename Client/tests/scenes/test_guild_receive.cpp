@@ -32,6 +32,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
@@ -361,7 +362,7 @@ TEST_F(GuildReceiveTest, CreatingAGuildOpensTheSecondWindowAndTheResultClosesIt)
         EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
         EXPECT_EQ(m_world->Actors()[0].word1f2, 0xffff);
         EXPECT_EQ(GuildOf().createKind, 0);
-        EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_EQ(Runtime().chat.input.messageBuffer[0], '\0');
         EXPECT_EQ(Runtime().chat.input.messageLength, 0);
         EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
@@ -546,7 +547,7 @@ TEST_F(GuildReceiveTest, LeavingTheGuildClosesTheWindow)
         EXPECT_EQ(GuildOf().memberCount, -1);
         EXPECT_EQ(Runtime().panels.delegated.guild, 0);
         EXPECT_EQ(GuildOf().window.tab, 1);
-        EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_EQ(DrawsSince(), 0);
 
         ASSERT_TRUE(Apply(Guild::LeaveResult{5}).HasValue());

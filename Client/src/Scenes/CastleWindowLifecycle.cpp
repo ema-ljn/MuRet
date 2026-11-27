@@ -23,6 +23,8 @@
 #include "UI/GameText.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -35,7 +37,7 @@ namespace Client::Scenes
 namespace
 {
 constexpr std::uint8_t GuildMaster = 0x80;
-constexpr std::int32_t WindowCloseSound = 0x1c;
+constexpr Audio::SoundId WindowCloseSound = Sound::CreateWindowSound;
 constexpr std::size_t BusySeniorText = (0x77354e8 - 0x76bd1dc) / 300;
 
 Core::Expected<void, std::string> Warn(Kernel::WorldRuntime& runtime, CastleWindowServices services, std::size_t id)

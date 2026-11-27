@@ -33,6 +33,8 @@
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 #include "Terrain/WorldTerrain.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -178,7 +180,7 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
         if (!made.HasValue())
             return Core::Unexpected("0x51a08a/aa/cd/ed: " + made.Error());
     }
-    constexpr std::int32_t TrailSound = 0x7a;
+    constexpr Audio::SoundId TrailSound = Sound::AquaFlashSound;
     world.Runtime().RequestSound(TrailSound);
     trail.transform.scale = 1.0f; // 51a101, después de los cuatro intentos, incluso con la tabla llena.
     return {};
@@ -575,8 +577,8 @@ Core::Expected<void, std::string> ShootTheArrows(Kernel::ActorState& actor, Kern
     // 0x53de8d..0x53def9: el subtipo de las flechas y los sonidos de las skills (0x41ed10(sonido, o, 0), CL10).
     constexpr std::uint8_t PiercingSkill = 0x34;
     constexpr std::uint8_t ArrowRainSkill = 0x33;
-    constexpr std::int32_t PiercingSound = 0x55;
-    constexpr std::int32_t ArrowRainSound = 0x82;
+    constexpr Audio::SoundId PiercingSound{0x55};
+    constexpr Audio::SoundId ArrowRainSound{0x82};
     std::int32_t subtype = 0;
     if (skill == PiercingSkill)
     {
@@ -653,7 +655,7 @@ bool HitsSomeone(const World::ModelEffect& effect, Kernel::WorldState& world, co
 // 2, 1,0f, 0) y la 0x5ed/0 con la luz en 0,7f.
 Core::Expected<void, std::string> BurstAt(const glm::vec3& position, const ArrowStepContext& context)
 {
-    constexpr std::int32_t BurstSound = 0x40;
+    constexpr Audio::SoundId BurstSound = Sound::ExplosionSound;
     if (context.particles == nullptr)
     {
         static_cast<void>(context.random.Next());
@@ -778,7 +780,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
     effect.alive = false;
     const auto sound = static_cast<std::int32_t>(context.random.Next() & 3) + FirstHitSound;
     if (context.soundRequest)
-        context.soundRequest(sound);
+        context.soundRequest(Audio::SoundId{sound});
     return bursts ? BurstAt(effect.transform.position, context) : Core::Expected<void, std::string>{};
 }
 
@@ -1398,7 +1400,7 @@ Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
                                             static_cast<unsigned>(created.Error())));
     if (!created.Value())
         return {};
-    constexpr std::int32_t BurstSound = 0x40;
+    constexpr Audio::SoundId BurstSound = Sound::ExplosionSound;
     context.world.Runtime().RequestSound(BurstSound);
     if (context.soundRequest)
         context.soundRequest(BurstSound);

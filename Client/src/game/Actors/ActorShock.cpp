@@ -13,6 +13,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/Particles.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -50,31 +51,31 @@ std::uint8_t FenrirAction(const Kernel::ActorState& actor)
 void PlayerHitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     auto& random = resources.cloth.random;
-    const auto requestSound = [&actor, &resources](std::int32_t id)
+    const auto requestSound = [&actor, &resources](Audio::SoundId id)
     { resources.world.Runtime().RequestSound(id, actor.position); };
     const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(actor.characterClass);
     if (characterClass == Kernel::CharacterClass::Elf)
     {
-        requestSound(0x6d + (random.Next() & 1));
+        requestSound(Audio::SoundId{0x6d + (random.Next() & 1)});
         return;
     }
     if (characterClass == Kernel::CharacterClass::DarkLord && random.Next() % 5 != 0)
     {
-        requestSound(0x1c6);
+        requestSound(Audio::SoundId{0x1c6});
         return;
     }
-    requestSound(0x69 + random.Next() % 3);
+    requestSound(Audio::SoundId{0x69 + random.Next() % 3});
 }
 void HitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     // 0x4f5496 looks at C3: unordered also goes into the sound.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
         return;
-    const auto requestSound = [&actor, &resources](std::int32_t id)
+    const auto requestSound = [&actor, &resources](Audio::SoundId id)
     { resources.world.Runtime().RequestSound(id, actor.position); };
     if (actor.subtype >= 209 && actor.subtype <= 211)
     {
-        requestSound(0x7b);
+        requestSound(Audio::SoundId{0x7b});
         return;
     }
     if (actor.type == Tables::PlayerSkeletonModel)
@@ -92,7 +93,7 @@ void HitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources
     if (const auto drawn =
             Sound::DrawModelSound(Sound::WrittenSounds(resources.world.Runtime().modelSounds, actor.type), HitSoundWord,
                                   actor.subtype, resources.cloth.random))
-        requestSound(*drawn);
+        requestSound(Audio::SoundId{*drawn});
 }
 // 0x4f55bb..0x4f5649: five attempts, even with the pool full, and the sound after all of them.
 Core::Expected<void, std::string> CreateShockDust(const Kernel::ActorState& actor,
@@ -104,7 +105,7 @@ Core::Expected<void, std::string> CreateShockDust(const Kernel::ActorState& acto
     constexpr int HorizontalCenter = 64;
     constexpr int VerticalSpan = 50;
     constexpr double Rise = 200.0;
-    constexpr std::int32_t DustSound = 0x86;
+    constexpr Audio::SoundId DustSound{0x86};
     auto& random = resources.cloth.random;
     for (int attempt = 0; attempt < Attempts; ++attempt)
     {
@@ -152,7 +153,8 @@ Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::
         const bool fenrir = actor.pet.model == Fenrir;
         Models::SetAction(actor.animation, *skeleton, fenrir ? FenrirAction(actor) : PlayerShockAction);
         if (fenrir && resources.cloth.random.Next() % 3 == 0)
-            resources.world.Runtime().RequestSound(0x27b + (resources.cloth.random.Next() & 1), actor.position);
+            resources.world.Runtime().RequestSound(Audio::SoundId{0x27b + (resources.cloth.random.Next() & 1)},
+                                                   actor.position);
         actor.movement = 0;
     }
     HitSound(actor, resources);

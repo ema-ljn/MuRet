@@ -4,6 +4,7 @@
 #include "Kernel/CharacterClass.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelDialog.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -194,7 +195,7 @@ struct PanelContext
     // antes de poner 0x7d53712 en 0. Sin él, cerrarlos corta.
     std::function<void()> eventNpcClosed{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
     // 0x659c8c..0x659e3c: lo que abrir el gremio hace si cerró lo demás, antes de abrirlo: el pedido de la lista, C1 03
     // 52 (Protocol::Guild::WriteMemberListRequest). Sin él, abrir el gremio corta.
     std::function<void()> guildOpened{};

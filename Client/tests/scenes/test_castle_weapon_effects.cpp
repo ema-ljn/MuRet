@@ -23,6 +23,7 @@
 #include "Camera/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/SiegeStoneEffects.h"
+#include "Audio/SoundId.h"
 #include "support/Bytes.h"
 #include "support/Packets.h"
 #include "support/RecordingSink.h"
@@ -101,7 +102,7 @@ TEST_F(CastleWeaponEffectsTest, ARemoteWeaponStillGivesItsProjectileToHeroAndCon
     EXPECT_EQ(effect.state, 1);
     EXPECT_EQ(effect.byte89, 1);
     EXPECT_EQ(source.animation.action, 1);
-    EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
+    EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x1ea});
     Client::Crt::CrtRandom expected(1);
     expected.Discard(1);
     EXPECT_EQ(cloth.random.State(), expected.State());
@@ -111,7 +112,7 @@ TEST_F(CastleWeaponEffectsTest, AFullPoolStillPlaysTheFiringSoundWithoutConstruc
     for (auto& effect : world->Map().effects.Effects())
         effect.alive = true;
     ASSERT_TRUE(Client::Scenes::ApplyTheSiegeWeaponFire(0, 2, 0, 0, 0, Resources()).HasValue());
-    EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
+    EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x1ea});
     EXPECT_EQ(cloth.random.State(), 1u);
 }
 TEST_F(CastleWeaponEffectsTest, ThePacketAimsTheIceProjectileAndKeepsBothKeyBytes)
@@ -137,7 +138,7 @@ TEST_F(CastleWeaponEffectsTest, ThePacketAimsTheIceProjectileAndKeepsBothKeyByte
     EXPECT_EQ(projectile.byte89, 0x34);
     EXPECT_EQ(projectile.siegeTarget, (glm::vec3{2000, 3000, 100}));
     EXPECT_EQ(source.animation.action, 1);
-    EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
+    EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x1ea});
 }
 TEST_F(CastleWeaponEffectsTest, AnUnknownImpactKindStillCreatesItsWaveBeforeTheSound)
 {
@@ -148,7 +149,7 @@ TEST_F(CastleWeaponEffectsTest, AnUnknownImpactKindStillCreatesItsWaveBeforeTheS
     EXPECT_EQ(effect.life, 50);
     EXPECT_EQ(effect.transform.position, (glm::vec3{2000, 3000, 100}));
     EXPECT_EQ(effect.ownerContext, nullptr);
-    EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
+    EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x1ea});
     EXPECT_EQ(cloth.random.State(), 1u);
 }
 TEST_F(CastleWeaponEffectsTest, FenrirChoosesItsHandActionButSendsNativeAction5d)

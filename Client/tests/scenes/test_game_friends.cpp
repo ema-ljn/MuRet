@@ -19,6 +19,7 @@
 #include "UI/MessageArea.h"
 #include "UI/OldWindows.h"
 #include "UI/SlideBanner.h"
+#include "Audio/SoundId.h"
 
 #include "support/SceneDataFiles.h"
 
@@ -391,7 +392,7 @@ TEST_F(GameFriendsTest, ARequestAsksAndTheYesGoesBackWithTheName)
     const auto applied = Client::Scenes::ApplyFriendRequest(FriendRequest{.name = "Calandria"}, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(BoxLines(), std::vector<std::string>{"Calandria quiere ser amigo"});
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x2a));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x2a});
     const std::int32_t box = Manager().order.back();
     EXPECT_EQ(Manager().windows.at(box).box.owner, -1);
     EXPECT_EQ(Manager().windows.at(box).box.friendName, "Calandria");

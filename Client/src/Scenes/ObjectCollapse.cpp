@@ -11,6 +11,7 @@
 #include "World/ChaosCastle.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -38,7 +39,7 @@ constexpr std::int16_t OpenedMark = 4;
 // 0x5ffa2c..0x5ffa4c: con la cuenta en 20, +0x1c en 35 y el sonido 0x89.
 constexpr std::int32_t FallStartCounter = 0x14;
 constexpr float FallStartAngle = 35.0f;
-constexpr std::int32_t FallSound = 0x89;
+constexpr Audio::SoundId FallSound{0x89};
 // 0x6b8b94, 0x6b8948 y 0x42a00000: lo que suma la demora en cada objeto, el giro que termina y el giro del polvo.
 constexpr double DelayStep = 1.5;
 constexpr float FallenAngle = 90.0f;

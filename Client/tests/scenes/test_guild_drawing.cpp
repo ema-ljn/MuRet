@@ -19,6 +19,7 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/RecordingTextDrawer.h"
@@ -248,7 +249,7 @@ protected:
     CrtRandom m_random{Seed};
     Client::Tables::TextTable m_texts = ButtonTexts();
     std::vector<std::string> m_lines;
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     Client::Tests::FakeTextureStore m_store;

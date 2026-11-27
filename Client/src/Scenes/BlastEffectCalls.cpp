@@ -13,6 +13,7 @@
 #include "World/BlastModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -88,7 +89,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
         },
         // 0x41ed10(id, 0, 0): el pedido de sonido del paso (WorldRuntime::RequestSound en el juego).
         .sound =
-            [&](std::int32_t id)
+            [&](Audio::SoundId id)
         {
             if (context.soundRequest)
                 context.soundRequest(id);

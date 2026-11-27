@@ -73,6 +73,8 @@
 #include "UI/SlideBanner.h"
 #include "Kernel/ItemState.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <algorithm>
 #include <array>
@@ -128,7 +130,7 @@ constexpr GameKey Digit(int digit)
 }
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones y de Esc.
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 // 0x5a10f0: el diálogo del zen, con el campo en el EDIT de [0x5763504].
 constexpr std::int32_t MoneyDialog = 0x73;
 // 0x5e455a y 0x5e4573: la ventana del personaje, 0xbe × 0x1b1 desde 0x78aba14 y 0x78aba18.
@@ -267,7 +269,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
                                    .measure = context.measure,
                                    .dcFont = runtime.hud.dcFont};
     const UI::ChatLogStepResult result = UI::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
-    for (const std::int32_t sound : result.sounds)
+    for (const Audio::SoundId sound : result.sounds)
         runtime.RequestSound(sound);
     // 0x4694c0(0, 0, 1, nombre): el nombre al EDIT del susurro (SetText), sin tocar su buffer.
     if (result.whisperTo)
@@ -492,7 +494,7 @@ constexpr std::int32_t TrainerBoxTop = 0x6e;
 constexpr std::uint16_t RepairButtonLevel = 0x32;
 constexpr std::uint16_t PersonalShopLevel = 6;
 // 0x41ed10(0x1d, 0, 0): el sonido de levantar de la grilla (0x5c587a).
-constexpr std::int32_t ItemMoveSound = 0x1d;
+constexpr Audio::SoundId ItemMoveSound = Sound::GetItemSound;
 // El rand() del relleno (0x69fd70) y el del número de serie (0x40b0a0) de un C3.
 constexpr std::size_t C3SendRandoms = 2;
 // 0x5c4298..0x5c42a9 y 0x5aed6c..0x5aed7d: el lugar del ítem del cartel es la casilla + 12; con una tienda personal
@@ -2399,7 +2401,7 @@ UI::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
                                 .doubleClick = ui.doubleClick,
                                 .mouseUpdateTime = &movement.mouseUpdateTime,
                                 .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax,
-                                .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
+                                .soundRequest = [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); }};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)

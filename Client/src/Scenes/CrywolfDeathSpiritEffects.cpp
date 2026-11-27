@@ -8,6 +8,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "Audio/SoundId.h"
 #include <glm/ext/vector_float3.hpp>
 #include <algorithm>
 #include <bit>
@@ -130,7 +131,7 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
     }
     e.turnDirection = F32(static_cast<double>(e.turnDirection) + static_cast<double>(.1f));
     if (services.sound)
-        services.sound(0x1ca);
+        services.sound(Audio::SoundId{0x1ca});
     return {};
 }
 } // namespace Client::Scenes

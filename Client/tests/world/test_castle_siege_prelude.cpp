@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Models/LogicalAccess.h"
 #include "World/ModelEffects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -30,7 +31,7 @@ protected:
         return {.siegeActive = true,
                 .musicTime = &m_music,
                 .systemTime = [] { return 7000u; },
-                .sound = [this](std::int32_t sound) { m_sounds.push_back(sound); },
+                .sound = [this](Client::Audio::SoundId sound) { m_sounds.push_back(sound.Value()); },
                 .random = &m_random,
                 .logicSteps = frame,
                 .heroPosition = {10000.0f, 10000.0f, 270.0f},

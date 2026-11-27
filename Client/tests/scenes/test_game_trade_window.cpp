@@ -40,6 +40,7 @@
 #include "UI/Widget.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/ChatTexts.h"
 #include "support/FakeTextureStore.h"
@@ -361,7 +362,7 @@ protected:
 
     std::unique_ptr<Game> game;
     CrtRandom random{Seed};
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;

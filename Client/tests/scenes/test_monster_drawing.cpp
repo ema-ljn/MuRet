@@ -40,6 +40,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
@@ -720,7 +721,7 @@ TEST_F(MonsterDrawingTest, The1a4DiesInStonesOverItsPosedBody)
     const auto drawn = Draw(Pass());
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(golem.alive);
-    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x209);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x209});
     Client::Crt::CrtRandom expected{seed};
     for (int draw = 0; draw < 3; ++draw)
         static_cast<void>(expected.Next());
@@ -1743,7 +1744,7 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
         const auto drawn = Draw(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(glow.byte110, 0);
-        EXPECT_EQ(m_world->Runtime().lastSoundId, 0x88);
+        EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x88});
         const auto& first = m_world->Map().effects.Effects()[0];
         EXPECT_TRUE(first.alive);
         EXPECT_EQ(first.type, 0x10b);

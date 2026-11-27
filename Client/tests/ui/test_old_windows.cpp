@@ -11,6 +11,7 @@
 #include "UI/ChatLog.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
+#include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>
@@ -155,7 +156,7 @@ protected:
     std::int32_t m_capture = 0;
     std::int32_t m_pressedButton = 0;
     ChatFocus m_focus = ChatFocus::Game;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;
     bool m_rightClick = false;
@@ -330,7 +331,7 @@ TEST_F(OldWindowsTest, TheGhostButtonTakesTheMouseAtTheTopLeft)
 
     Release();
     ASSERT_TRUE(Step(10, 10).HasValue());
-    EXPECT_EQ(m_sound, ButtonSound);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
     EXPECT_EQ(m_pressedButton, 0);
     EXPECT_FALSE(m_released);
     ASSERT_TRUE(Step(10, 10).HasValue());
@@ -358,7 +359,7 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
 
     Release();
     ASSERT_TRUE(Step(x, y).HasValue());
-    EXPECT_EQ(m_sound, ButtonSound);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
     EXPECT_EQ(Window(id).base.queue.front(), (OldMessage{.type = 10, .a = 1, .b = 0, .text = {}}));
 
     m_sound.reset();
@@ -366,7 +367,7 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
     EXPECT_FALSE(m_manager.windows.contains(id));
     EXPECT_EQ(m_manager.order, (std::list<std::int32_t>{owner}));
     EXPECT_TRUE(m_manager.boxes.empty());
-    EXPECT_EQ(m_sound, ButtonSound);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
     // El dueño, más abajo en la lista, corre su paso después de la caja: atiende el 12 en el mismo paso.
     EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 1, .text = {}}));
     // 0x490b70 con el 4: la nueva del final de la lista recibe el 6.
@@ -524,7 +525,7 @@ TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
 
     EXPECT_FALSE(m_manager.windows.contains(top));
     EXPECT_EQ(m_manager.order, (std::list<std::int32_t>{below}));
-    EXPECT_EQ(m_sound, ButtonSound);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
     EXPECT_EQ(Window(below).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0, .text = {}}));
 }
 
@@ -846,7 +847,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(list.list.cursor, 1u);
     Release();
     ASSERT_TRUE(Step(0x250, 0x1b3 - 5).HasValue());
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>(ButtonSound));
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
     EXPECT_EQ(m_mouseOnUi, 1);
     EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
     EXPECT_EQ(Window(first).base.state, Client::UI::HiddenWindow);

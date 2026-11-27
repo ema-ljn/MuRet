@@ -15,6 +15,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -267,7 +268,7 @@ Core::Expected<void, std::string> Return(JointState& joint, const JointKernels::
     }
     constexpr double Hit = 35.0, Near = 70.0, Swerve = 20.0; // 0x6b8974, 0x6ba1b0, 0x6ba2f8
     constexpr double SlowSpeed = 20.0, Brake = 10.0;         // 0x6b86d0, 0x6b87a8
-    constexpr std::int32_t HitSound = 0x23;
+    constexpr Audio::SoundId HitSound{0x23};
     if (!(distance > Hit))
     {
         joint.alive = false;

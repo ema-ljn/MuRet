@@ -14,6 +14,8 @@
 #include "UI/OldWindows.h"
 #include "Crt/SprintfFormat.h"
 #include "UI/TextField.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <algorithm>
 #include <array>
@@ -52,7 +54,7 @@ constexpr std::int32_t ToTheEndType = 14;
 // Los estados de 0x45a9b0.
 constexpr std::int32_t HiddenState = 3;
 // 0x41ed10.
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 
 // Text.bmd.
 constexpr std::size_t InviteButtonText = 993;
@@ -1739,8 +1741,8 @@ void AddTheChatToTheList(OldWindowManager& manager, std::int32_t id)
     manager.windowList.list.chats.push_back(id);
 }
 
-void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<std::int32_t>& sound,
-                        std::function<void(std::int32_t)> soundRequest)
+void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<Audio::SoundId>& sound,
+                        std::function<void(Audio::SoundId)> soundRequest)
 {
     if (soundRequest)
         soundRequest(ChatWaitingSound);

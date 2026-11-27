@@ -22,6 +22,7 @@
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
 #include "Tables/PlayerModels.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -189,7 +190,7 @@ Core::Expected<void, std::string> StepGameParticles(
     const std::function<std::optional<float>(std::int32_t)>& textureHeight, Terrain::TerrainLighting* lighting,
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
     const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
-    const std::function<void(std::int32_t)>& sound,
+    const std::function<void(Audio::SoundId)>& sound,
     const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates,
     World::FrameSprites* sprites)
 {

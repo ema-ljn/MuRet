@@ -32,6 +32,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
@@ -436,7 +437,7 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_EQ(runtime.dialogBox.buttons[0].state, 2);
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_FALSE(runtime.movement.leftHeld);
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 
     const CrtRandom sold = Advanced(random, QuietStepRandoms + C3);
     ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
@@ -605,7 +606,7 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
         EXPECT_EQ(runtime.slot78a6758, 73);
         for (const std::size_t cell : {73u, 81u, 89u})
             EXPECT_EQ(Npc().grid[cell].id, EmptyOwnItemId) << cell;
-        EXPECT_EQ(runtime.lastSoundId, 0x1d);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 
         const CrtRandom beforeTheDrop = random;
         CrtRandom keys = Advanced(random, InventoryWindowRandoms);
@@ -682,7 +683,7 @@ TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
         EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::TrainerBox);
         EXPECT_EQ(runtime.slot78a6758, 17);
         EXPECT_EQ(Npc().trainerBox[17].id, EmptyOwnItemId);
-        EXPECT_EQ(runtime.lastSoundId, 0x1d);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 
         Click();
         const auto dropped = Step(InventoryX + 15 + 4 * 20 + 5, 200 + 3 * 20 + 5);
@@ -761,7 +762,7 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 8);
     EXPECT_EQ(world.Runtime().social.moneyField, 1);
     EXPECT_EQ(runtime.chat.input.fieldCount, 1);
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FALSE(runtime.movement.pendingClick);
 
     world.Runtime().social.typedMoney = 1000;
@@ -1041,7 +1042,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         runtime.map = map;
         runtime.panels.chaosBox = 1;
         runtime.dialogs.current = 0;
-        runtime.lastSoundId = 0;
+        runtime.lastSoundId = Client::Audio::SoundId{0};
         Npc().chaosMixMode = 0;
         Npc().chaosMixState = 0;
         Npc().mixLuck = 0;
@@ -1071,7 +1072,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         EXPECT_EQ(Trade().warningKind, 2);
         EXPECT_EQ(Trade().warningByte, 0xff);
         EXPECT_FALSE(runtime.movement.pendingClick);
-        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
         EXPECT_TRUE(Errors().empty());
 
         Click();
@@ -1107,13 +1108,13 @@ TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
     ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
     ASSERT_EQ(Npc().mixKind, 3);
     Npc().mixPrice = UpgradePrice;
-    runtime.lastSoundId = 0;
+    runtime.lastSoundId = Client::Audio::SoundId{0};
     const CrtRandom poor = Advanced(random, ChaosBoxStepRandoms + Own);
     Click();
     ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
     EXPECT_EQ(random.State(), poor.State());
     EXPECT_EQ(Errors(), std::vector<std::string>{"sin zen"});
-    EXPECT_EQ(runtime.lastSoundId, 0);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0});
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_EQ(runtime.dialogs.current, 0);
 
@@ -1129,7 +1130,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
     Click();
     ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
     EXPECT_EQ(Errors().back(), "no son iguales");
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 
     for (ItemState& cell : Npc().chaosBox)
         cell = ItemState{.id = EmptyOwnItemId};
@@ -1285,7 +1286,7 @@ TEST_F(NpcWindowStepsTest, TheFruitAndJewelConfirmationsSendTheOriginal26)
         EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
         EXPECT_EQ(runtime.ui.field5767954, 10);
         EXPECT_EQ(runtime.dialogs.current, 0);
-        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
         EXPECT_EQ(random.State(), Advanced(before, 3).State());
     }
 }

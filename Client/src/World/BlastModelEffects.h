@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -43,7 +44,7 @@ struct BlastEffectServices
     const void* hero = nullptr;
     std::function<Core::Expected<void, std::string>(const ModelEffect&, float)> skillHits{};
     std::function<Core::Expected<void, std::string>(const FishEffectRequest&, bool effectOwner)> joint{};
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
 };
 
 // Los tipos cuya alta da CreateBlastModelEffect: 0xe4, 0xe5/0xe6 con el subtipo 5, 0xe7..0xe9, 0xec, 0xf2..0xf6,

@@ -6,6 +6,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -56,7 +57,7 @@ struct Step
         globals.dynamicLighting = lighting.get();
         globals.heroPosition = &hero;
         globals.worldClock = clock;
-        globals.loopedSound = [this](std::int32_t sound) { looped.push_back(sound); };
+        globals.loopedSound = [this](Client::Audio::SoundId sound) { looped.push_back(sound.Value()); };
     }
 };
 

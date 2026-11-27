@@ -19,6 +19,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/Widget.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/ItemFiles.h"
 #include "support/RecordingTextDrawer.h"
@@ -275,7 +276,7 @@ protected:
 
     std::unique_ptr<ShopWorld> shop;
     CrtRandom random{Seed};
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;

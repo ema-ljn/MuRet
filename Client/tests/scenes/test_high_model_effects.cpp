@@ -26,6 +26,7 @@
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Assets/FaunaModels.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -644,7 +645,7 @@ TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
     const auto chips = std::ranges::count_if(tested.world->Map().effects.Effects(), [](const ModelEffect& effect)
                                              { return effect.alive && (effect.type == 0xc8 || effect.type == 0xc9); });
     EXPECT_EQ(chips, 6);
-    EXPECT_EQ(tested.world->Runtime().lastSoundId, 0x40);
+    EXPECT_EQ(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
     EXPECT_TRUE(std::ranges::any_of(tested.world->Particles().All(), [](const auto& particle)
                                     { return particle.alive && particle.type == Client::World::ExplosionParticle; }));
 
@@ -662,7 +663,7 @@ TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(lone.alive);
     EXPECT_EQ(full.Draws(), 1 + 6);
-    EXPECT_NE(full.world->Runtime().lastSoundId, 0x40);
+    EXPECT_NE(full.world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
 
     HighWorld blind;
     ModelEffect& unseen = blind.Effect(0);
@@ -1059,7 +1060,7 @@ TEST(HighModelEffectsTest, TheFallingStarSpreadsAboveItsTarget)
         EXPECT_EQ(star.transform.position, position);
         EXPECT_EQ(star.start, position);
         EXPECT_EQ(tested.Draws(), subtype == 1 ? 5 : 4);
-        EXPECT_EQ(tested.world->Runtime().lastSoundId, 0x42);
+        EXPECT_EQ(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x42});
     }
     HighWorld full;
     full.FillTheEffects();
@@ -1067,7 +1068,7 @@ TEST(HighModelEffectsTest, TheFallingStarSpreadsAboveItsTarget)
     ASSERT_TRUE(none.HasValue()) << none.Error();
     EXPECT_FALSE(none.Value().has_value());
     EXPECT_EQ(full.Draws(), 0);
-    EXPECT_NE(full.world->Runtime().lastSoundId, 0x42);
+    EXPECT_NE(full.world->Runtime().lastSoundId, Client::Audio::SoundId{0x42});
 }
 
 // Un 0x625 vivo en el lugar 0, con todo lo demás como recién construido.
@@ -1295,7 +1296,7 @@ TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
     EXPECT_EQ(part.speed, static_cast<float>(10.0 + static_cast<double>(std::bit_cast<float>(0x3ecccccdu))));
     EXPECT_EQ(part.turnDirection, static_cast<float>(2.0 + static_cast<double>(std::bit_cast<float>(0x3dcccccdu))));
     EXPECT_EQ(part.life, 19);
-    EXPECT_EQ(tested.world->Runtime().lastSoundId, 0x1ca);
+    EXPECT_EQ(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x1ca});
     const ModelEffect& trail = tested.Effect(1);
     ASSERT_TRUE(trail.alive);
     EXPECT_EQ(trail.subtype, 1);
@@ -1693,7 +1694,7 @@ TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
         EXPECT_FALSE(breath.alive);
         if (full)
         {
-            EXPECT_NE(tested.world->Runtime().lastSoundId, std::optional<std::int32_t>{0x40});
+            EXPECT_NE(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
             continue;
         }
         EXPECT_EQ(AliveParticles(*tested.world, Client::World::FairySparkParticle, 2), 20);
@@ -1710,7 +1711,7 @@ TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
         EXPECT_EQ(blaze->light, glm::vec3(1.0f));
         EXPECT_EQ(blaze->scale, 4.0f);
         EXPECT_EQ(blaze->life, 12);
-        EXPECT_EQ(tested.world->Runtime().lastSoundId, std::optional<std::int32_t>{0x40});
+        EXPECT_EQ(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
     }
 }
 

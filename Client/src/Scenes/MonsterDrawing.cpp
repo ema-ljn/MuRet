@@ -50,6 +50,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -427,7 +428,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
                           .random = frame.random,
                           .cloth = *frame.pass.clothWorld,
                           .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
-                          .soundRequest = [&runtime = frame.world.Runtime()](std::int32_t sound)
+                          .soundRequest = [&runtime = frame.world.Runtime()](Audio::SoundId sound)
                           { runtime.RequestSound(sound); },
                           .originalFrame = frame.originalFrame,
                           .cameraShake = frame.pass.cameraShake,
@@ -1220,9 +1221,9 @@ KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
             .heights = terrain.heights.get(),
             .soundRequest =
                 frame.originalFrame
-                    ? std::function<void(std::int32_t)>{[&runtime = frame.world.Runtime()](std::int32_t sound)
-                                                        { runtime.RequestSound(sound); }}
-                    : std::function<void(std::int32_t)>{},
+                    ? std::function<void(Audio::SoundId)>{[&runtime = frame.world.Runtime()](Audio::SoundId sound)
+                                                          { runtime.RequestSound(sound); }}
+                    : std::function<void(Audio::SoundId)>{},
             .worldClock = frame.worldClock,
             .map = frame.map,
             .siegeActive = frame.world.Runtime().castleSiege.siegeActive,

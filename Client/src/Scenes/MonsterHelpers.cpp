@@ -38,6 +38,7 @@
 #include "World/SmokeParticleKernels.h"
 #include "Terrain/TerrainDecal.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -254,7 +255,7 @@ Core::Expected<double, std::string> ClockSine(const MonsterHelperPass& pass, flo
 }
 
 // 0x41ed10(sonido, 0, 0) (CL10): solo se despacha en un frame del original.
-void Sound(const MonsterHelperPass& pass, std::int32_t sound)
+void Sound(const MonsterHelperPass& pass, Audio::SoundId sound)
 {
     if (pass.originalFrame)
         pass.world.Runtime().RequestSound(sound);
@@ -266,7 +267,7 @@ void SoundOnce(const MonsterHelperPass& pass, std::int32_t sound, bool pair)
     if (pass.actor.subtype != 0)
         return;
     pass.actor.subtype = 1;
-    Sound(pass, pair ? sound + Coin(pass.random) : sound);
+    Sound(pass, Audio::SoundId{pair ? sound + Coin(pass.random) : sound});
 }
 
 struct ActionSound
@@ -283,7 +284,7 @@ void PlayTheSounds(const MonsterHelperPass& pass, std::int32_t idle, std::span<c
     if (Idling(actor))
     {
         if (pass.random.Next() % 15 == 0)
-            Sound(pass, idle + Coin(pass.random));
+            Sound(pass, Audio::SoundId{idle + Coin(pass.random)});
         return;
     }
     const auto found = std::ranges::find_if(sounds, [&actor](const ActionSound& entry)
@@ -316,7 +317,7 @@ Result DrawThe1a3(MonsterHelperPass& pass)
     }
     const std::uint8_t action = pass.actor.animation.action;
     if (Idling(pass.actor) && pass.random.Next() % 15 == 0)
-        Sound(pass, 0x1f5 + Coin(pass.random));
+        Sound(pass, Audio::SoundId{0x1f5 + Coin(pass.random)});
     if (action == 3 || action == 4)
         SoundOnce(pass, 0x1f7, true);
     if (action == 6)
@@ -465,7 +466,7 @@ Result DrawThe1a4(MonsterHelperPass& pass)
         constexpr std::int32_t Stones = 0, DeathSound = 0x209;
         if (auto died = DieInStones(pass, Stones, 0x441696); !died.HasValue())
             return died;
-        Sound(pass, DeathSound);
+        Sound(pass, Audio::SoundId{DeathSound});
         // 0x441a34 → 0x441a3c: las ramas de la 3 y la 4 no corren.
         return {};
     }
@@ -473,7 +474,7 @@ Result DrawThe1a4(MonsterHelperPass& pass)
         return smoked;
     // 0x441a0a..0x441a34.
     if (pass.random.Next() % 20 == 0)
-        Sound(pass, 0x205 + Coin(pass.random));
+        Sound(pass, Audio::SoundId{0x205 + Coin(pass.random)});
     const std::uint8_t action = actor.animation.action;
     const float frame = actor.animation.frame;
     // 0x441a3c..0x441a8a: 8,4 (0x6b8be4) y 10,2 (0x6b8be0).
@@ -482,7 +483,7 @@ Result DrawThe1a4(MonsterHelperPass& pass)
         actor.subtype = 1;
         if (auto struck = StrikeTheGroundOf1a4(pass); !struck.HasValue())
             return struck;
-        Sound(pass, 0x207); // 0x441c75
+        Sound(pass, Audio::SoundId{0x207}); // 0x441c75
     }
     // 0x441c7d..0x441cd4: 5 (0x6b87f8) y 5,7 (0x6b8bd8).
     if (action == 4 && frame >= 5.0f && frame <= 5.7f && actor.subtype == 0)
@@ -496,7 +497,7 @@ Result DrawThe1a4(MonsterHelperPass& pass)
         if (!burst.HasValue())
             return Core::Unexpected(std::format("0x441d7d: falla la ráfaga del tipo 0x1a4 con el error {}",
                                                 static_cast<unsigned>(burst.Error())));
-        Sound(pass, 0x208);
+        Sound(pass, Audio::SoundId{0x208});
     }
     return {};
 }
@@ -569,7 +570,7 @@ Result DrawThe1a6(MonsterHelperPass& pass)
         constexpr std::int32_t Shower = 1, DeathSound = 0x1ff;
         if (auto died = DieInStones(pass, Shower, 0x442165); !died.HasValue())
             return died;
-        Sound(pass, DeathSound);
+        Sound(pass, Audio::SoundId{DeathSound});
     }
     // [ebp−0x18] (0x442107): la luz de las partículas, (0,4; 1; 0,7).
     constexpr glm::vec3 PoisonLight{0.4f, 1.0f, 0.7f};
@@ -695,7 +696,7 @@ Result DrawThe1a7(MonsterHelperPass& pass)
         if (auto made = Particle(pass, Dust, 0, actor.position, actor.angles, RedEyes, 1.0f, 0x4429d8);
             !made.HasValue())
             return made;
-        Sound(pass, 0x1f0 + Coin(pass.random));
+        Sound(pass, Audio::SoundId{0x1f0 + Coin(pass.random)});
     }
     if (action == 3 || action == 4)
         SoundOnce(pass, 0x1f2, true);
@@ -749,7 +750,7 @@ Result DrawThe1a9(MonsterHelperPass& pass)
                 !made.HasValue())
                 return Core::Unexpected(std::format("0x442cb9: {}", made.Error()));
         }
-        Sound(pass, 0x20d);
+        Sound(pass, Audio::SoundId{0x20d});
     }
     // 0x442d4c..0x442dbc: la fanta 0x6ec/3 de 3 con él de dueño y la 0x5f2/21 de 2, con la luz de los ojos.
     const auto hand = PointOf(pass, "Monster87_LeftHand", 0x442d4c, {0.0f, 0.0f, -10.0f});
@@ -1115,7 +1116,7 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     if (Idling(actor))
     {
         if (pass.random.Next() % 15 == 0)
-            Sound(pass, 0x261 + Coin(pass.random));
+            Sound(pass, Audio::SoundId{0x261 + Coin(pass.random)});
     }
     else if (action == 3)
         SoundOnce(pass, 0x264, false);
@@ -1124,8 +1125,8 @@ Result DrawThe1b6(MonsterHelperPass& pass)
         if (actor.subtype == 0)
         {
             actor.subtype = 1;
-            Sound(pass, 0x9c + Coin(pass.random));
-            Sound(pass, 0x263);
+            Sound(pass, Audio::SoundId{0x9c + Coin(pass.random)});
+            Sound(pass, Audio::SoundId{0x263});
         }
     }
     else if (action == 6)

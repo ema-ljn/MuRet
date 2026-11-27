@@ -42,6 +42,8 @@
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainHeight.h"
 #include "Protocol/Opcodes.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <bit>
@@ -112,7 +114,7 @@ constexpr std::uint8_t SerialAlreadyRegistered = 5;
 constexpr std::size_t SerialAlreadyRegisteredText = 899; // 0x76fef60
 
 // 0x4e4ad4: los sonidos del 9E con la palabra de pkt[4] en 0, 1 y 2.
-constexpr std::array<std::int32_t, 3> EventSounds{0x5b, 0x5c, 0x5d};
+constexpr std::array<Audio::SoundId, 3> EventSounds{Audio::SoundId{0x5b}, Audio::SoundId{0x5c}, Audio::SoundId{0x5d}};
 
 // 0x4e4a40: los diálogos del 99 con pkt[3] en 0 y 1.
 constexpr std::array<std::int32_t, 2> EventDialogs{0x8f, 0x90};
@@ -160,7 +162,7 @@ constexpr std::int32_t PlayTime = 0x384;
 // 0x5111a0(0xc0) y 0x41ed10(0x8b, 0, 1): la entrada a Blood Castle.
 constexpr std::uint8_t GateAction = 0xc0;
 constexpr float GateAngle = 180.0f;
-constexpr std::int32_t BloodCastleMusic = 0x8b;
+constexpr Audio::SoundId BloodCastleMusic = Sound::BloodCastleSound;
 // 0x40c1ab..0x40c1c3: sin dueño (0xffff) o sin arma (0 o 0xff), nada.
 constexpr std::uint16_t NoWeaponOwner = 0xffff;
 constexpr std::uint8_t NoWeapon = 0xff;
@@ -176,10 +178,10 @@ constexpr std::uint8_t ChaosCastleEnd = 7;
 constexpr std::uint8_t ChaosCastleFirstCollapse = 8;
 constexpr std::uint8_t ChaosCastleSecondCollapse = 9;
 constexpr std::uint8_t ChaosCastleThirdCollapse = 10;
-constexpr std::int32_t ChaosCastleMusic = 0x99;
-constexpr std::int32_t ChaosCastleWaitMusic = 0x9e;
-constexpr std::int32_t ChaosCastleEndSound = 0x9f;
-constexpr std::int32_t ChaosCastleCollapseSound = 0x61;
+constexpr Audio::SoundId ChaosCastleMusic = Sound::ChaosCastleSound;
+constexpr Audio::SoundId ChaosCastleWaitMusic = Sound::ChaosSound;
+constexpr Audio::SoundId ChaosCastleEndSound{0x9f};
+constexpr Audio::SoundId ChaosCastleCollapseSound = Sound::WallFallSound;
 // 0x404e5a..0x404e75: el campo del chat abierto se cierra, y con los EDIT (0x6c7b8c en 1, como en MuRet) los
 // oculta 0x469450(3).
 constexpr std::int32_t HideTheChatFields = 3;
@@ -268,7 +270,7 @@ constexpr std::uint8_t CommandCastleNotice = 7;
 constexpr std::uint8_t CommandGuildNotice = 0xd;
 constexpr std::uint8_t FirstCommandText = 0x2f;
 constexpr std::uint8_t LastCommandText = 0x31;
-constexpr std::int32_t CommandSoundId = 0x5a;
+constexpr Audio::SoundId CommandSoundId{0x5a};
 constexpr std::uint8_t HighNoticeFrom = 0x14;
 constexpr std::size_t LowNoticeBase = 0x28a;    // 650
 constexpr std::size_t HighNoticeBase = 0x32a;   // 810
@@ -424,14 +426,14 @@ private:
     }
 
     // 0x41ed10: el tercer argumento de la llamada nativa pide la repetición.
-    void Play(std::int32_t sound, bool loop = false)
+    void Play(Audio::SoundId sound, bool loop = false)
     {
         m_result.sounds.push_back(sound);
         m_runtime.RequestSound(sound, std::nullopt, loop);
     }
 
     // 0x41ee00: los eventos detienen la pista y la rebobinan.
-    void Stop(std::int32_t sound)
+    void Stop(Audio::SoundId sound)
     {
         m_result.stoppedSounds.push_back(sound);
         m_runtime.StopSound(sound, true);

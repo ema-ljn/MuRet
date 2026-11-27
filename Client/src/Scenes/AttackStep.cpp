@@ -24,6 +24,8 @@
 #include "Kernel/ItemState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -194,9 +196,9 @@ void PlayTheStrikeSound(const Kernel::ActorState& actor, const Actors::Character
     const auto sound = static_cast<std::int32_t>(context.random.Next() & 3) + base;
     // 0x505312/0x505337: el origen es o, aunque las manos sean del registro propio.
     if (context.soundAt)
-        context.soundAt(sound, actor.position);
+        context.soundAt(Audio::SoundId{sound}, actor.position);
     else if (context.soundRequest)
-        context.soundRequest(sound);
+        context.soundRequest(Audio::SoundId{sound});
 }
 
 // 0x5040df..0x5041a4: diez veces, tres rand() & 63 (la x y la y del blanco − 32 y su z + 0x5a, cada suma del fild en la
@@ -289,7 +291,7 @@ Core::Expected<void, std::string> StrikeTheTarget(Kernel::ActorState& actor, std
                                                                            actor.light, context.random));
             }
             // 0x50427d: 0x41ed10(0x88, 0, 0).
-            constexpr std::int32_t SmokeSound = 0x88;
+            constexpr Audio::SoundId SmokeSound = Sound::HitCristalSound;
             if (context.soundRequest)
                 context.soundRequest(SmokeSound);
         }

@@ -28,6 +28,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -1041,7 +1042,7 @@ TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
         const auto result = tested->Use();
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
-        EXPECT_EQ(tested->world.Runtime().lastSoundId, sound);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{sound});
         const auto& shine = tested->world.Particles().All()[0];
         EXPECT_TRUE(shine.alive);
         EXPECT_EQ(shine.type, 0x5fe);
@@ -1080,7 +1081,8 @@ TEST(HeroSkillsTest, TheShineOfATransformedHeroUsesItsSharedModel)
         ASSERT_TRUE(used.HasValue()) << used.Error();
         ASSERT_EQ(tested->sent.size(), 2u);
         EXPECT_EQ(ClearBytesOf(tested->sent[1])[2], 0x19);
-        EXPECT_TRUE(tested->world.Runtime().lastSoundId == 0x3c || tested->world.Runtime().lastSoundId == 0x3d);
+        EXPECT_TRUE(tested->world.Runtime().lastSoundId == Client::Audio::SoundId{0x3c} ||
+                    tested->world.Runtime().lastSoundId == Client::Audio::SoundId{0x3d});
         if (!full)
         {
             const auto& shine = tested->world.Particles().All()[0];
@@ -1335,7 +1337,7 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
             EXPECT_EQ(tested->random.State(), expected.State());
             ASSERT_EQ(tested->sent.size(), 1u);
             EXPECT_EQ(tested->Hero().animation.action, 1);
-            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0xd2);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
             EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
             EXPECT_EQ(tested->world.OwnCharacter().bytef04, probe.volleys);
             // Los tres tiros de la bandera en 1 giran el rumbo 15, −30 y 15: vuelve al de 0x5629b6.
@@ -1408,7 +1410,7 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     const auto used = Client::Scenes::StepHeroMovement(context);
     ASSERT_TRUE(used.HasValue()) << used.Error();
     EXPECT_EQ(tested->Hero().animation.action, 1);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0xd2);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
     EXPECT_EQ(tested->world.OwnCharacter().bytef04, 1);
     ASSERT_EQ(tested->sent.size(), 1u);
     EXPECT_EQ(tested->sent[0].packet.Opcode(), Client::Network::Opcode{0x1e});

@@ -12,6 +12,7 @@
 #include "UI/MessageArea.h"
 #include "UI/MessageLog.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -49,7 +50,7 @@ Core::Expected<void, std::string> AddGameMessage(Kernel::WorldRuntime& runtime,
     if (!sound.HasValue())
         return Core::Unexpected(sound.Error());
     if (sound.Value())
-        runtime.RequestSound(*sound.Value());
+        runtime.RequestSound(Audio::SoundId{*sound.Value()});
     return {};
 }
 
@@ -76,7 +77,7 @@ StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMea
     if (!sound.HasValue())
         return Core::Unexpected(sound.Error());
     if (sound.Value())
-        runtime.RequestSound(*sound.Value());
+        runtime.RequestSound(Audio::SoundId{*sound.Value()});
     // 0x637d2c y 0x637d44: el freno del chat y el de las macros, de a uno por paso (el 0x637cfd de PrintScreen, entre
     // los relojes y los frenos, no los mira).
     if (runtime.chat.input.brake > 0)

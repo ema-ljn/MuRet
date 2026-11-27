@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Audio/SoundId.h"
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -20,7 +20,7 @@ struct WorldEntryResources;
 // Los sonidos de Fenrir que pide cada 0x4f2250 dentro de 0x512a30, en el orden en que los pide.
 struct InventoryReplyResult
 {
-    std::vector<std::int32_t> sounds;
+    std::vector<Audio::SoundId> sounds;
 };
 
 // La inicialización común de 0x4c55a0 (0x4c55c4..0x4c56e0), que corre antes de mirar si llegó cifrado y

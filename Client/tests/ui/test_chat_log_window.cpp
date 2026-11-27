@@ -3,6 +3,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/ChatLog.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -115,7 +116,7 @@ TEST_F(ChatLogWindowTest, TheUpArrowScrollsOnceAndRepeatsAfter16Steps)
 
     const ChatLogStepResult first = Step(435, 180);
     EXPECT_EQ(m_log.scroll, 1);
-    EXPECT_EQ(first.sounds, std::vector<std::int32_t>{Client::UI::ChatButtonSound});
+    EXPECT_EQ(first.sounds, std::vector<Client::Audio::SoundId>{Client::UI::ChatButtonSound});
     EXPECT_EQ(m_focused, ChatLogId);
 
     for (int step = 0; step < 15; ++step)
@@ -244,7 +245,7 @@ TEST_F(ChatLogWindowTest, TheButtonsToggleF2AndCycleTheTransparency)
     ChatLogStepResult result = Step(335, 425);
     EXPECT_FLOAT_EQ(m_log.alpha, 0.6f);
     EXPECT_FALSE(m_leftClick);
-    EXPECT_EQ(result.sounds, std::vector<std::int32_t>{Client::UI::ChatButtonSound});
+    EXPECT_EQ(result.sounds, std::vector<Client::Audio::SoundId>{Client::UI::ChatButtonSound});
 
     m_leftClick = true;
     static_cast<void>(Step(335, 425));

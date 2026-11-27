@@ -24,6 +24,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Assets/FaunaModels.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 
@@ -174,11 +175,12 @@ struct AttackWorld
                                     .terrain = &terrain,
                                     .particles = withParticles ? &particles : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
-                                    .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+                                    .soundRequest = [this](Client::Audio::SoundId sound)
+                                    { sounds.push_back(sound.Value()); },
                                     .soundAt =
-                                        [this](std::int32_t sound, const glm::vec3& origin)
+                                        [this](Client::Audio::SoundId sound, const glm::vec3& origin)
                                     {
-                                        sounds.push_back(sound);
+                                        sounds.push_back(sound.Value());
                                         soundOrigins.push_back(origin);
                                     },
                                     .controlDown = controlDown,
@@ -1084,7 +1086,7 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
             Client::World::PortableParticleTrigonometry trigonometry;
             auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
             const float clock = 0.0f;
-            const auto sound = [&tested](std::int32_t played) { tested.sounds.push_back(played); };
+            const auto sound = [&tested](Client::Audio::SoundId played) { tested.sounds.push_back(played.Value()); };
             int step = 0;
             for (; step < Steps; ++step)
             {

@@ -44,6 +44,7 @@
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -431,7 +432,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     EXPECT_EQ(actor.byte80, 3);
     EXPECT_EQ(actor.alphaTarget, 1.0f);
     EXPECT_EQ(actor.alpha, 0.0f);
-    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x76);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x76});
     const auto effects = game->world.Map().effects.Effects();
     EXPECT_EQ(effects[0].type, Client::World::TeleportEffect);
     EXPECT_EQ(effects[1].type, Client::World::ArrivalEffect);
@@ -1020,7 +1021,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
     EXPECT_EQ(Other().floatE4, 20.0f);
     EXPECT_EQ(Other().floatD0, 800.0f);
     EXPECT_EQ(Other().floatCC, 800.0f);
-    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x1b);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1b});
     EXPECT_EQ(Other().cellX, 138);
     EXPECT_EQ(Other().cellY, 143);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws + 20 * 7).State());
@@ -1147,7 +1148,7 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         EXPECT_EQ(actor.hands[1].model, 0x1211);
         auto encoded = AfterDraws(created, OwnRecordDraws);
         const std::int32_t encodedSound = (encoded.Next() & 1) + 0x3c;
-        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(encodedSound));
+        EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{encodedSound});
         EXPECT_EQ(game->cloth.random.State(), encoded.State());
 
         // 0x4f5181/0x4f5186: only both WORDs at 0xffff skip the rand() and the sound.
@@ -1172,7 +1173,7 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         // +0x38f at 2 after the two attacks: (2 & 1) + 0x23.
         EXPECT_EQ(actor.animation.action, 0x23);
         EXPECT_EQ(actor.attackCount, 3);
-        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+        EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{sound});
         EXPECT_EQ(game->cloth.random.State(), expected.State());
     }
 }

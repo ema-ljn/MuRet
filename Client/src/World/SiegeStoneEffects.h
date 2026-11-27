@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -51,7 +52,7 @@ struct SiegeStoneStepServices
     std::function<Core::Expected<void, std::string>(const glm::vec3&, float)> actorsAction{};
     std::function<void(std::uint8_t, std::uint8_t)> notify{};
     std::function<Core::Expected<void, std::string>(float, float, std::int32_t, std::int32_t)> deform{};
-    std::function<void(std::int32_t, const glm::vec3&)> sound{};
+    std::function<void(Audio::SoundId, const glm::vec3&)> sound{};
 };
 // 5208a0, 527c62..5290: vuelo/contacto nativo y epílogo, sin51fc80 genérico.
 [[nodiscard]] Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Models::Skeleton* skeleton,

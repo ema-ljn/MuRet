@@ -8,6 +8,7 @@
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -59,7 +60,7 @@ struct BeamWorld
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepJoints(joints, random, nullptr, &particles, 0.0f, nullptr, lighting.get(),
-                                          [this](std::int32_t sound) { sounds.push_back(sound); });
+                                          [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); });
     }
 
     ActorState killer;

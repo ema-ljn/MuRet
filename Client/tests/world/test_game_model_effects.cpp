@@ -29,6 +29,7 @@
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 
@@ -1690,7 +1691,7 @@ struct QuakeScene
         services.terrainAttributes = attributes.get();
         services.map = &map;
         services.cameraShake = &shake;
-        services.sound = [this](std::int32_t sound) { sounds.push_back(sound); };
+        services.sound = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
         return services;
     }
 };
@@ -2012,10 +2013,10 @@ TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoun
         Client::World::Particles particles;
         Client::Crt::CrtRandom random(Seed);
         auto services = scene.Services();
-        services.sound = [&](std::int32_t sound)
+        services.sound = [&](Client::Audio::SoundId sound)
         {
-            scene.sounds.push_back(sound);
-            EXPECT_EQ(sound, 0x96);
+            scene.sounds.push_back(sound.Value());
+            EXPECT_EQ(sound, Client::Audio::SoundId{0x96});
             EXPECT_EQ(random.State(), draws.State());
             EXPECT_EQ(quake.life, 13);
             EXPECT_EQ(quake.transform.position, before);

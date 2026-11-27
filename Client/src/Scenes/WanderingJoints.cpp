@@ -14,6 +14,8 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -213,7 +215,8 @@ Core::Expected<void, std::string> StepWanderingJoint(JointState& joint, const Jo
             std::format("0x53a9f8: la dirección del joint 0x60f/{:#x} excede el perfil PC53", subtype));
     const Reach reach = ReachOf(joint);
     // 0x53abe2..0x53abef: el sonido 0x42 con la vida en 30 (0x41ed10(0x42, 0, 0)).
-    constexpr std::int32_t ChimeLife = 0x1e, Chime = 0x42;
+    constexpr std::int32_t ChimeLife = 0x1e;
+    constexpr Audio::SoundId Chime = Sound::MeteoriteSound;
     if (joint.life == ChimeLife && services.soundRequest != nullptr && *services.soundRequest)
         (*services.soundRequest)(Chime);
     // 0x53acaf..0x53acd7: el destino más la dirección por el radio.

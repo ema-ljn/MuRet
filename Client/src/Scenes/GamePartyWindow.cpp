@@ -20,6 +20,8 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -59,7 +61,7 @@ constexpr std::int32_t KickTop = 0x37;
 constexpr std::int32_t KickStep = 0x23;
 constexpr std::int32_t KickSize = 0x18;
 // 0x5e3ddc.
-constexpr std::int32_t KickSound = 0x19;
+constexpr Audio::SoundId KickSound = Sound::ButtonClickSound;
 
 // Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300): el título, los siete renglones de la party vacía
 // (0x76cb1b0..0x76cb8b8) y la ayuda del botón de cerrar (0x76cd4d8).

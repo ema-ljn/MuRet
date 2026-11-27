@@ -19,6 +19,7 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
@@ -97,7 +98,7 @@ public:
         runtime.map = map;
         runtime.dialogs.current = id;
         runtime.dialogs.pending = 0x8a;
-        runtime.lastSoundId = Silent;
+        runtime.lastSoundId = Client::Audio::SoundId{Silent};
         runtime.movement.mouseUpdateTime = 3;
         runtime.movement.mouseUpdateTimeMax = 1;
         services.systemMessage = [this](std::size_t index, std::int32_t type)
@@ -191,7 +192,7 @@ void ExpectClosedWithTheSound(const AnsweringDialogs& tested, std::int32_t sound
     EXPECT_EQ(runtime.dialogs.pending, 0);
     EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
     EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
-    EXPECT_EQ(runtime.lastSoundId, sound);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{sound});
 }
 
 // 0x628582..0x628aaf: el sí del 0x9a con el ítem de los diálogos (+8 en 0x78a59cc: el nivel 5) manda C1 06 AF 01 con
@@ -229,7 +230,7 @@ TEST(DialogAnswerStepsTest, TheChaosCastleWithoutItemStaysAndItsNoCloses)
         ASSERT_TRUE(tested.Click(YesX, ChaosCastleY).HasValue());
         EXPECT_TRUE(tested.sent.empty());
         EXPECT_EQ(tested.Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
-        EXPECT_EQ(tested.Runtime().lastSoundId, Silent);
+        EXPECT_EQ(tested.Runtime().lastSoundId, Client::Audio::SoundId{Silent});
         EXPECT_FALSE(tested.Runtime().movement.pendingClick);
 
         ASSERT_TRUE(tested.Click(NoX, ChaosCastleY).HasValue());

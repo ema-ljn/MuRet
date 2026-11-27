@@ -24,7 +24,7 @@ game/Assets	game	8	Assets/**	*layer<8;game/Sound;game/Terrain	game models and te
 game/Terrain	game	8		*layer<8	the terrain; does not know actors
 game/Sound	game	8	game/Sound/**	*layer<8	sound catalog, per-map sounds, per-model sound table, the sound request
 game/Camera	game	8		*layer<8;game/Terrain	the camera
-game/Ui	game	8		*layer<8;game/Assets	the widget kit
+game/Ui	game	8		*layer<8;game/Assets;game/Sound	the widget kit
 game/Actors	game	9		*layer<9;game/Particles	actors and character drawing
 game/Player	game	9		*layer<9	the player state
 game/Hero	game	9		*layer<9;game/Actors;game/Events;game/Events/Crywolf;game/Guild;game/Player;game/Social	the hero's attack and facing

@@ -31,6 +31,7 @@
 #include "UI/Widget.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
@@ -285,7 +286,7 @@ protected:
 
     std::unique_ptr<Game> game;
     CrtRandom m_random{Seed};
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     std::optional<Client::Scenes::GameProjection> m_projection = TestProjection();
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text{m_sprites};

@@ -5,6 +5,7 @@
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"
 #include "Kernel/WorldRuntime.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <string_view>
@@ -70,7 +71,8 @@ void StepTheCrywolfMusic(Kernel::WorldRuntime& runtime)
     {
         StepTheStageTrack(runtime.music, runtime.audio, runtime.crywolf.stage);
         if (runtime.crywolf.stage == Events::CrywolfEndStage)
-            runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == FailureBanner ? LoseSound : WinSound);
+            runtime.RequestSound(
+                Audio::SoundId{runtime.crywolf.ui.dword6c73dc == FailureBanner ? LoseSound : WinSound});
     }
     else
     {

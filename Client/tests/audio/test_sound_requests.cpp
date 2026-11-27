@@ -4,6 +4,7 @@
 #include "Scenes/WinMainLoop.h"
 #include "UI/ChatInput.h"
 #include "UI/OldWindows.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -52,8 +53,8 @@ TEST(WorldRuntimeAudioTest, DispatchesEverySoundSynchronouslyInOrder)
     Kernel::WorldRuntime runtime;
     runtime.audio = &playback;
 
-    runtime.RequestSound(0x19);
-    runtime.RequestSound(0x86, glm::vec3{1.0f, 2.0f, 3.0f}, true);
+    runtime.RequestSound(Client::Audio::SoundId{0x19});
+    runtime.RequestSound(Client::Audio::SoundId{0x86}, glm::vec3{1.0f, 2.0f, 3.0f}, true);
 
     EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x19, 0x86}));
     EXPECT_FALSE(playback.origins[0].has_value());
@@ -62,17 +63,17 @@ TEST(WorldRuntimeAudioTest, DispatchesEverySoundSynchronouslyInOrder)
     EXPECT_EQ(playback.origins[1]->y, 2.0f);
     EXPECT_EQ(playback.origins[1]->z, 3.0f);
     EXPECT_EQ(playback.loops, (std::vector<bool>{false, true}));
-    EXPECT_EQ(runtime.lastSoundId, 0x86);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x86});
 }
 
 TEST(WorldRuntimeAudioTest, UpdatesDiagnosticWithoutAnAudioSink)
 {
     Kernel::WorldRuntime runtime;
 
-    runtime.RequestSound(0x19);
+    runtime.RequestSound(Client::Audio::SoundId{0x19});
     runtime.SetSoundVolume(0);
 
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
 TEST(WorldRuntimeAudioTest, ForwardsEffectsVolumeIndependently)
@@ -158,15 +159,16 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
                                  .wheel = wheel,
                                  .rightClick = rightClick,
                                  .doubleClick = doubleClick,
-                                 .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
+                                 .soundRequest = [&runtime](Client::Audio::SoundId sound)
+                                 { runtime.RequestSound(sound); }};
 
-    globals.RequestSound(0x19);
-    globals.RequestSound(0x1c);
+    globals.RequestSound(Client::Audio::SoundId{0x19});
+    globals.RequestSound(Client::Audio::SoundId{0x1c});
 
     EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
-    EXPECT_EQ(runtime.lastSoundId, 0x1c);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
 
-    std::optional<std::int32_t> projectedSound{};
+    std::optional<Client::Audio::SoundId> projectedSound{};
     UI::OldWindowGlobals projected{.leftHeld = leftHeld,
                                    .leftClick = leftClick,
                                    .releasedClick = releasedClick,
@@ -180,10 +182,10 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
                                    .wheel = wheel,
                                    .rightClick = rightClick,
                                    .doubleClick = doubleClick};
-    projected.RequestSound(0x86);
+    projected.RequestSound(Client::Audio::SoundId{0x86});
 
     EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
-    EXPECT_EQ(projectedSound, 0x86);
+    EXPECT_EQ(projectedSound, Client::Audio::SoundId{0x86});
 }
 
 } // namespace

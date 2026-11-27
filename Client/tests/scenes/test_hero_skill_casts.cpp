@@ -10,6 +10,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Audio/SoundId.h"
 
 #include "support/TableFiles.h"
 
@@ -115,7 +116,7 @@ TEST(HeroSkillCastsTest, WithoutManaTheSkillLooksForAPotion)
     EXPECT_EQ(bytes[4], std::byte{0});
     EXPECT_EQ(bytes[5], std::byte{7});
     EXPECT_EQ(tested->world.Runtime().ui.field5767954, 10);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x20);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x20});
     EXPECT_EQ(cells[20].id, 0x1c06);
     EXPECT_EQ(tested->random.State(), Advanced(before, 3).State());
     // Con la espera activa, solo se consulta el comercio protegido: ni otro envío ni otro sonido.

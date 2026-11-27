@@ -5,6 +5,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "World/Particles.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -188,9 +189,9 @@ TEST(ActorDyingTest, ChaosCastleSparksOnTheOddSteps)
         Client::World::Particles particles;
         std::int32_t sound = 0;
         int soundRequests = 0;
-        const auto requestSound = [&](std::int32_t requested)
+        const auto requestSound = [&](Client::Audio::SoundId requested)
         {
-            sound = requested;
+            sound = requested.Value();
             ++soundRequests;
         };
         const auto stepped = StepActorDying(
@@ -256,11 +257,12 @@ TEST(ActorDyingTest, AFullChaosCastlePoolSkipsTheExplosionAndItsSound)
     CrtRandom random(Seed);
     int soundRequests = 0;
 
-    const auto stepped = StepActorDying(
-        actor, Slot,
-        {.map = 18, .random = random, .particles = &particles, .soundRequest = [&soundRequests](std::int32_t) {
-             ++soundRequests;
-         }});
+    const auto stepped =
+        StepActorDying(actor, Slot,
+                       {.map = 18,
+                        .random = random,
+                        .particles = &particles,
+                        .soundRequest = [&soundRequests](Client::Audio::SoundId) { ++soundRequests; }});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), After(Seed, 43).State());

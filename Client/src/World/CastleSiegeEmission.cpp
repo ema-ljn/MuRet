@@ -5,6 +5,7 @@
 #include "World/CastleSiegeObjectStep.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainDefines.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -137,7 +138,7 @@ Core::Expected<void, std::string> EmitTheCastleBattle(const CastleSiegePrelude& 
     {
         for (std::int32_t sound = FirstBattleSound; sound <= LastBattleSound; ++sound)
             if (random.Next() % 100 == 0)
-                prelude.sound(sound);
+                prelude.sound(Audio::SoundId{sound});
     }
     if (!prelude.heroY)
         return Core::Unexpected(std::string("0x42b6d6/0x42bd09: falta la lectura protegida de la Y del héroe"));

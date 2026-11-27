@@ -65,6 +65,7 @@
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -685,7 +686,7 @@ Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::s
 // 0x4fd5f0(c, c) from 0x508edf, through the path of the still 0x20a (06, "El cuerpo de los personajes
 // (0x4fd5f0)"). `hero` is c == [0x743a170].
 // 0x417e62: the raven's shout.
-constexpr std::int32_t RavenShoutSound = 0x1d1;
+constexpr Audio::SoundId RavenShoutSound{0x1d1};
 
 // What the raven's step reads from the pool (DarkSpiritTargets): the character of +8 and that of +0x3b0, signed.
 // Between 0 and 399 it looks at their flags (0x416a8b..0x416ab9); 6 reads its position with any value other than
@@ -1315,7 +1316,7 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
         {
             if (sound && context.soundRequest)
             {
-                context.soundRequest(*sound);
+                context.soundRequest(Audio::SoundId{*sound});
             }
         }
     }

@@ -12,6 +12,8 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjectStepServices.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -63,7 +65,7 @@ Core::Expected<void, std::string> SparkAndBlast(const glm::vec3& position, const
             return Core::Unexpected(made.Error());
     }
     // 0x542aa7: el alta de la 0x5ee pide el sonido 0x40 cuando encuentra lugar.
-    constexpr std::int32_t BlastSound = 0x40;
+    constexpr Audio::SoundId BlastSound = Sound::ExplosionSound;
     const auto made = CreateHighParticle(context.world, context.random, context.worldClock, Blast, point,
                                          glm::vec3(0.0f), glm::vec3(1.0f), 0, BlastScale, 0x51ffd5);
     if (!made.HasValue())

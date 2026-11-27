@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Scenes/SceneId.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -39,7 +40,7 @@ struct ActorDyingContext
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
     Kernel::WorldState* world = nullptr;
-    std::function<void(std::int32_t)> soundRequest{};
+    std::function<void(Audio::SoundId)> soundRequest{};
 };
 
 // 0x4fb9e0: turns off 0x1000, 0x4000 and 0x20 of +0x78; +0x3c8 rises 0.02 per step (0.05 for 0x172 on map 7 and 0.01

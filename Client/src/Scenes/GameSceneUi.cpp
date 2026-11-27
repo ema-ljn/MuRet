@@ -55,6 +55,7 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <chrono>
@@ -427,9 +428,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .crywolfInterface = m_projectingFrame ? &m_projection->crywolfInterface : &runtime.crywolf.ui,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
-        .soundRequest = !m_projectingFrame ? std::function<void(std::int32_t)>{[&runtime](std::int32_t sound)
-                                                                               { runtime.RequestSound(sound); }}
-                                           : std::function<void(std::int32_t)>{},
+        .soundRequest = !m_projectingFrame ? std::function<void(Audio::SoundId)>{[&runtime](Audio::SoundId sound)
+                                                                                 { runtime.RequestSound(sound); }}
+                                           : std::function<void(Audio::SoundId)>{},
         .oldWindows = m_projectingFrame ? &m_projection->oldWindows : &runtime.oldWindows,
         .projecting = m_projectingFrame,
         .projection = projection,
@@ -611,9 +612,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         .doubleClick = drawUi.doubleClick,
         .mouseUpdateTime = &drawMovement.mouseUpdateTime,
         .mouseUpdateTimeMax = &drawMovement.mouseUpdateTimeMax,
-        .soundRequest = !m_projectingFrame ? std::function<void(std::int32_t)>{[&runtime](std::int32_t sound)
-                                                                               { runtime.RequestSound(sound); }}
-                                           : std::function<void(std::int32_t)>{}};
+        .soundRequest = !m_projectingFrame ? std::function<void(Audio::SoundId)>{[&runtime](Audio::SoundId sound)
+                                                                                 { runtime.RequestSound(sound); }}
+                                           : std::function<void(Audio::SoundId)>{}};
     const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
     SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
     UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,

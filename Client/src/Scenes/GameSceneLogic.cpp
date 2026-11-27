@@ -50,6 +50,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -116,8 +117,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .counter = m_context.cloth->logicSteps,
             .actionSpeeds = &m_context.world->ActionSpeeds(),
             .fixedHeight = CameraState().fixedHeight,
-            .soundRequest = [&](std::int32_t sound) { runtime.RequestSound(sound); },
-            .soundAt = [&](std::int32_t sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
+            .soundRequest = [&](Audio::SoundId sound) { runtime.RequestSound(sound); },
+            .soundAt = [&](Audio::SoundId sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
             .send = m_session != nullptr
                         ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                   { session->SendChat(std::move(packet)); })
@@ -170,7 +171,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // 0x5227ca: la grieta 0xfb escribe el temblor de la cámara del paso lógico.
         .cameraShake = &CameraInputState().shake,
         // 0x41ed10(id, 0, 0): RequestSound lo despacha sin sacar rand().
-        .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+        .sound = [this](Audio::SoundId id) { m_context.world->Runtime().RequestSound(id); },
         .joint = [this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = CreateFaunaJoint(m_context.world->DrawTail().joints, request, m_context.cloth->random);
@@ -185,7 +186,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             placement.action = action;
             m_context.world->PlaceModel(type, placement);
         },
-        .soundAt = [this](std::int32_t id, const glm::vec3& origin)
+        .soundAt = [this](Audio::SoundId id, const glm::vec3& origin)
         { m_context.world->Runtime().RequestSound(id, origin); },
         // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
         // posición, 150, el byte +0x8c, +0x8a, 0), como el choque de las flechas de skill.
@@ -220,7 +221,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                          .terrain = &StepTerrain(),
                          .fixedHeight = CameraState().fixedHeight,
                          .cameraShake = &CameraInputState().shake,
-                         .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+                         .sound = [this](Audio::SoundId id) { m_context.world->Runtime().RequestSound(id); },
                          .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
                                                             [session = m_session](Protocol::Outgoing packet)
                                                             { session->SendChat(std::move(packet)); })
@@ -369,7 +370,7 @@ ArrowStepContext GameScene::ArrowContext(float worldClock, const std::function<d
                             .worldClock = worldClock,
                             .terrain = &StepTerrain(),
                             .terrainHeight = terrainHeight,
-                            .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+                            .soundRequest = [this](Audio::SoundId id) { m_context.world->Runtime().RequestSound(id); },
                             .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
                                                                [session = m_session](Protocol::Outgoing packet)
                                                                { session->SendChat(std::move(packet)); })
@@ -413,7 +414,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto stepped = StepJoints(
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
             worldClock, &m_sprites, &DynamicLight().Lighting(),
-            [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
+            [&](Audio::SoundId sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
             &m_context.world->Map().effects, hero, m_context.world, &volley, m_models);
         !stepped.HasValue())
         return stepped;
@@ -424,7 +425,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &DynamicLight().Lighting(),
             ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
-            [&](std::int32_t sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world),
+            [&](Audio::SoundId sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world),
             &m_sprites);
         !particles.HasValue())
     {

@@ -20,6 +20,7 @@
 #include "UI/MessageArea.h"
 #include "Crt/SprintfFormat.h"
 #include "Math/Ftol.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -50,7 +51,7 @@ using Maps::LastChaosCastleMap;
 // hacia dónde.
 constexpr std::uint16_t FallWall = 0x08;
 constexpr std::uint16_t PushWall = 0x20;
-constexpr std::int32_t ChaosCastleFallSound = 0x60;
+constexpr Audio::SoundId ChaosCastleFallSound{0x60};
 constexpr std::size_t TerrainCells = 0x10000;
 
 std::string_view CString(std::string_view text)

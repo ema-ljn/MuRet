@@ -10,6 +10,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/ChatInput.h"
+#include "Audio/SoundId.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -334,7 +335,7 @@ TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
     EXPECT_EQ(runtime.chat.input.whisperLength, 5);
     EXPECT_EQ(runtime.chat.input.whisper.text.Value(), "Tordo");
     EXPECT_FALSE(runtime.ui.rightClick);
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
 // Con las 100 ocupadas, un personaje nuevo no tiene globo.

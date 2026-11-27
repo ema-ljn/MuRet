@@ -11,6 +11,7 @@
 #include "Scenes/SceneId.h"
 #include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainCulling.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -122,8 +123,8 @@ struct CharacterStepContext
     PlayerActionSpeeds* actionSpeeds = nullptr;
     float fixedHeight = 1200.0f;
     // Sound requests: the consumer decides how to play them.
-    std::function<void(std::int32_t)> soundRequest{};
-    std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
+    std::function<void(Audio::SoundId)> soundRequest{};
+    std::function<void(Audio::SoundId, const glm::vec3&)> soundAt{};
     // What the step sends through send() (the raven's A7, 0x416a20). Empty, without the session: it does not go out.
     std::function<void(Protocol::Outgoing)> send{};
     // GetAsyncKeyState(0x11) with 0x80 in the high byte: Ctrl down, which 0x558eb0 reads in the hero's skill

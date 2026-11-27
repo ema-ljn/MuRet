@@ -34,6 +34,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindows.h"
+#include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
@@ -914,7 +915,7 @@ TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
                 .index = 7, .name = "Tordo", .date = "2026/11/13", .time = "10:20", .subject = "Saludos", .type = 2},
             Context())
             .HasValue());
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x29));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x29});
     EXPECT_EQ(Manager().windowList.list.newLetter, 1);
     EXPECT_EQ(Runtime().chat.log.entries.back().text, "carta nueva");
     ASSERT_EQ(Manager().letterModel.letters.size(), 1u);

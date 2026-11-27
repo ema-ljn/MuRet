@@ -22,6 +22,7 @@
 #include "UI/OldWindows.h"
 #include "UI/SlideBanner.h"
 #include "Crt/SprintfFormat.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +55,7 @@ constexpr std::uint8_t OtherLevelTooLow = 6;
 // 0x4dc690.
 constexpr std::uint8_t Deleted = 1;
 // 0x41ed10(0x2a, 0, 0): el pedido de amistad.
-constexpr std::int32_t RequestSound = 0x2a;
+constexpr Audio::SoundId RequestSound{0x2a};
 // 0x491080: 0x46b720(1, 0, 1244, 2, 2,5, 0xffc8dce6).
 constexpr std::int32_t HelpRepeats = 1;
 constexpr std::uint16_t HelpGap = 0;

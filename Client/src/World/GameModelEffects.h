@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -57,12 +58,12 @@ struct ModelEffectStepServices
     const Data::Terrain::TerrainAttributes* terrainAttributes = nullptr;
     const std::int32_t* map = nullptr;
     float* cameraShake = nullptr;
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
     std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> joint{};
     // 0x52cc21: el paso del pulso 0x103 publica su acción en la tabla compartida antes de animar.
     std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
     // 0x51ed6a y 0x52b349 piden sonido para el destello 0x60d en su posición.
-    std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
+    std::function<void(Audio::SoundId, const glm::vec3&)> soundAt{};
     // 0x52ae2a: el héroe publicado ([0x743a170]), que el chorro 0x5de/0 de la Flame compara con su dueño (+0x108), y
     // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0) sobre ese chorro (Scenes/SkillHits, que lee el
     // pool de personajes y el registro propio y manda el C1 10; CL9 hito 4). Sin `skillHits`, el chorro del héroe corta

@@ -18,6 +18,7 @@
 #include "Math/OriginalRotation.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <functional>
@@ -153,7 +154,7 @@ struct GameObjectPass
     std::optional<std::uint32_t> waterTextureFrame{};
     const Kernel::ActorState* hero = nullptr;
     const World::KalimaWorld* kalima = nullptr;
-    std::function<void(std::int32_t)> requestSound{};
+    std::function<void(Audio::SoundId)> requestSound{};
     // 0x518cf0: los efectos de modelo, para la mariposa 0xae del 0x3c del 54 (0x4257d5).
     World::ModelEffects* effects = nullptr;
     // 0x6b8544 (timeGetTime), que el 0x3c del 54 y el 0x46 del 33 leen en el dibujo (Q-C304).

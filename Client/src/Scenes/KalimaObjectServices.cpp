@@ -21,6 +21,7 @@
 #include "World/ParticleOwner.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -159,7 +160,7 @@ Core::Expected<void, std::string> WaterfallSound(const GameObjectPass& pass, std
 {
     if (!pass.requestSound)
         return Core::Unexpected(std::format("{}: falta el servicio de sonido0x1d6 de Kalima", callSite));
-    constexpr std::int32_t Sound = 0x1d6;
+    constexpr Audio::SoundId Sound{0x1d6};
     pass.requestSound(Sound);
     return {};
 }

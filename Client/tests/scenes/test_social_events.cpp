@@ -31,6 +31,7 @@
 #include "UI/PanelRegistry.h"
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/ItemFiles.h"
 #include "support/RecordingSink.h"
@@ -380,7 +381,7 @@ TEST_P(SocialEventsTest, AWholeTradeRound)
     EXPECT_EQ(trade.otherGrid[9].gridColumn, 1);
     EXPECT_EQ(trade.otherGrid[9].gridRow, 1);
     EXPECT_EQ((trade.otherGrid[9].scalar1Low >> 3) & 0xf, 3u);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(trade.changed, 0);
 
     stage->Trade().sentMoney = 1000;
@@ -390,7 +391,7 @@ TEST_P(SocialEventsTest, AWholeTradeRound)
     EXPECT_EQ(trade.otherMoney, 2500u);
     Client::Scenes::ApplyTradeOkState({1}, *stage->world);
     EXPECT_EQ(trade.otherOk, 1);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     stage->Trade().ownOk = 1;
     Client::Scenes::ApplyTradeOkState({2}, *stage->world);
     EXPECT_EQ(trade.ownOk, 0);
@@ -471,7 +472,7 @@ TEST_P(SocialEventsTest, ElevenItemsLikeTheirCopiesLoseTheEleventh)
     EXPECT_EQ(trade.otherGrid[16].warning, 99);
     EXPECT_EQ(trade.otherGrid[24].warning, 99);
 
-    stage->Runtime().lastSoundId = 0;
+    stage->Runtime().lastSoundId = Client::Audio::SoundId{0};
     const auto eleventh = Client::Scenes::ApplyTradeItemAdded({10, ItemBytes(SmallType, 5)}, stage->Resources());
     ASSERT_TRUE(eleventh.HasValue()) << eleventh.Error();
     EXPECT_EQ(trade.otherGrid[10].id, SmallType);
@@ -479,7 +480,7 @@ TEST_P(SocialEventsTest, ElevenItemsLikeTheirCopiesLoseTheEleventh)
     EXPECT_EQ(trade.otherGrid[16].warning, 1);
     EXPECT_EQ(trade.otherGrid[24].warning, 1);
     EXPECT_EQ(trade.changed, 0);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_FALSE(WarnedWith(*stage, "0x5bc545"));
 }
 
@@ -498,7 +499,7 @@ TEST_P(SocialEventsTest, TwelveItemsLikeTheirCopiesDiscardTheTwelfth)
         ASSERT_TRUE(added.HasValue()) << added.Error();
     }
     EXPECT_FALSE(WarnedWith(*stage, "0x5bc545"));
-    stage->Runtime().lastSoundId = 0;
+    stage->Runtime().lastSoundId = Client::Audio::SoundId{0};
     const TradeGrids before = GridsOf(stage->Trade());
     const CrtRandom random = stage->cloth.random;
     const auto twelfth = Client::Scenes::ApplyTradeItemAdded({11, ItemBytes(SmallType, 5)}, stage->Resources());
@@ -506,7 +507,7 @@ TEST_P(SocialEventsTest, TwelveItemsLikeTheirCopiesDiscardTheTwelfth)
     EXPECT_EQ(stage->Trade().otherGrid[11].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(GridsOf(stage->Trade()), before);
     EXPECT_EQ(stage->cloth.random.State(), random.State());
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_TRUE(WarnedWith(*stage, "0x5bc545"));
 }
 
@@ -522,14 +523,14 @@ TEST_P(SocialEventsTest, ARemovalThatLeavesTwelveLikeTheirCopyIsDiscarded)
         const auto added = Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources());
         ASSERT_TRUE(added.HasValue()) << added.Error();
     }
-    stage->Runtime().lastSoundId = 0;
+    stage->Runtime().lastSoundId = Client::Audio::SoundId{0};
     const TradeGrids before = GridsOf(stage->Trade());
     const auto removed = Client::Scenes::ApplyTradeItemRemoved({12}, stage->Resources());
     ASSERT_TRUE(removed.HasValue()) << removed.Error();
     EXPECT_EQ(stage->Trade().otherGrid[12].id, SmallType);
     EXPECT_EQ(stage->Trade().backup[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(GridsOf(stage->Trade()), before);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_TRUE(WarnedWith(*stage, "0x5bc545"));
 
     auto other = MakeStage();
@@ -550,17 +551,17 @@ TEST_P(SocialEventsTest, ARemovalPastTheGridIsDiscarded)
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({31, ItemBytes(SmallType, 5)}, stage->Resources()).HasValue());
-    stage->Runtime().lastSoundId = 0;
+    stage->Runtime().lastSoundId = Client::Audio::SoundId{0};
     const TradeGrids before = GridsOf(stage->Trade());
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({32}, stage->Resources()).HasValue());
     EXPECT_EQ(GridsOf(stage->Trade()), before);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_TRUE(WarnedWith(*stage, "0x5bd750"));
 
     const std::size_t lines = stage->sink.lines.size();
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({0xff}, stage->Resources()).HasValue());
     EXPECT_EQ(GridsOf(stage->Trade()), before);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(stage->sink.lines.size(), lines);
 }
 
@@ -570,20 +571,20 @@ TEST_P(SocialEventsTest, AnItemPastTheGridIsDiscarded)
 {
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
-    stage->Runtime().lastSoundId = 0;
+    stage->Runtime().lastSoundId = Client::Audio::SoundId{0};
     const TradeGrids before = GridsOf(stage->Trade());
     const CrtRandom random = stage->cloth.random;
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({28, ItemBytes(TallType, 3)}, stage->Resources()).HasValue());
     EXPECT_EQ(GridsOf(stage->Trade()), before);
     EXPECT_EQ(stage->cloth.random.State(), random.State());
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_TRUE(WarnedWith(*stage, "casilla 36"));
     EXPECT_TRUE(WarnedWith(*stage, "Q-C200"));
 
     ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({23, ItemBytes(TallType, 3)}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->Trade().otherGrid[23].id, TallType);
     EXPECT_EQ(stage->Trade().otherGrid[31].id, TallType);
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 }
 
 // Del lado que pidió, el 37 llega con un nombre nuevo y 0x5bbdf0 vacía la copia (tipo −1).
@@ -805,12 +806,12 @@ TEST_P(SocialEventsTest, ADuelFromRequestToEnd)
     EXPECT_EQ(stage->Runtime().ui.field78abad9, 1);
     EXPECT_EQ(duel.rivalKey, 0x0102);
     EXPECT_EQ(TextOf(duel.rivalName), "Brezal");
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x8c);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x8c});
 
     ASSERT_TRUE(Client::Scenes::ApplyDuelStart({1, 0x0102, NameOf<10>("Brezal")}, stage->Resources()).HasValue());
     EXPECT_EQ(duel.active, 1);
     EXPECT_EQ(stage->LastMessage().text, "duelo con Brezal");
-    EXPECT_EQ(stage->Runtime().lastSoundId, 0x8d);
+    EXPECT_EQ(stage->Runtime().lastSoundId, Client::Audio::SoundId{0x8d});
 
     Client::Scenes::ApplyDuelScore({0x0033, 0x0102, 2, 5}, *stage->world);
     EXPECT_EQ(duel.rivalScore, 5);

@@ -52,6 +52,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -706,7 +707,9 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
     EXPECT_EQ(tested.AliveArrivals(), 2u);
     EXPECT_EQ(hero.alpha, 0.0f);
     EXPECT_EQ(hero.movement, 0);
-    EXPECT_EQ(settled.Value().sounds, (std::vector<std::int32_t>{0x8b, 0x99, 0x9e}));
+    EXPECT_EQ(settled.Value().sounds,
+              (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x8b}, Client::Audio::SoundId{0x99},
+                                                   Client::Audio::SoundId{0x9e}}));
     EXPECT_EQ(tested.cloth.random.State(),
               AfterDraws(Seed, OwnRecordClose + WaitClose + WindowRandoms + StopRandom).State());
     for (const auto& effect : tested.world.Map().effects.Effects())
@@ -759,8 +762,9 @@ TEST_F(WorldEntryTest, TheSoundsSkipTheEventMaps)
 
     ASSERT_TRUE(bloodCastle.HasValue()) << bloodCastle.Error();
     ASSERT_TRUE(chaosCastle.HasValue()) << chaosCastle.Error();
-    EXPECT_EQ(bloodCastle.Value().sounds, (std::vector<std::int32_t>{0x99, 0x9e}));
-    EXPECT_EQ(chaosCastle.Value().sounds, (std::vector<std::int32_t>{0x8b}));
+    EXPECT_EQ(bloodCastle.Value().sounds,
+              (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x99}, Client::Audio::SoundId{0x9e}}));
+    EXPECT_EQ(chaosCastle.Value().sounds, (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x8b}}));
 }
 
 // 0x4c4954: 0x420d60 con el héroe publicado, entre la espera y el segundo efecto de llegada. Con el 0x1c17 en

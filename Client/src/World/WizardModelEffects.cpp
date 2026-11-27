@@ -23,6 +23,7 @@
 #include "Terrain/TerrainAttributeQuery.h"
 #include "World/WorldObjectStepServices.h"
 #include "Tables/PlayerModels.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -774,7 +775,7 @@ Core::Expected<void, std::string> HitTheOwner(ModelEffect& effect, CrtRandom& ra
             return smoke;
     }
     if (services.sound)
-        services.sound(0x44);
+        services.sound(Audio::SoundId{0x44});
     return {};
 }
 
@@ -972,7 +973,7 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
                     !created.HasValue())
                     return created;
         if (services.sound)
-            services.sound(0x8f);
+            services.sound(Audio::SoundId{0x8f});
     }
     if (auto burst =
             Emit(services, random, "0x524e8a", ExplosionParticle, point, effect.transform.angles, local, 0, 1.0f);

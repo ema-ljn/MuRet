@@ -13,6 +13,7 @@
 #include "Kernel/WorldState.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <format>
@@ -29,7 +30,7 @@ constexpr std::uint32_t FirstAttacker = 0x80000;
 constexpr std::uint32_t SecondAttacker = 0x400000;
 constexpr std::uint32_t ThirdAttacker = 0x800000;
 constexpr std::uint32_t OpenGate = 0x20000;
-constexpr std::int32_t GateSound = 0x1ed;
+constexpr Audio::SoundId GateSound{0x1ed};
 
 Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, bool open,
                                                     const WorldEntryResources& resources)

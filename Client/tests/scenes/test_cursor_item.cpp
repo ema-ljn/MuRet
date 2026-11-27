@@ -15,6 +15,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
@@ -291,7 +292,7 @@ TEST_F(CursorItemTest, PickingUpFromTheGridAndReturningItRestoresTheFootprint)
     ASSERT_TRUE(returned.HasValue()) << returned.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(outside.dressed, 1);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     for (const std::int32_t row : {1, 2, 3})
     {
         EXPECT_EQ(Cell(2, row).id, Sword) << row;
@@ -795,7 +796,7 @@ TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)
     EXPECT_EQ(helm.id, EmptyOwnItemId);
     EXPECT_EQ(helm.occupied, 1u);
     EXPECT_EQ(outside.dressed, 1);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_FALSE(runtime.movement.pendingClick);
 
     world.Runtime().cursorItemCount = 0;

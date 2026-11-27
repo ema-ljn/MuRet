@@ -25,6 +25,7 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Terrain/TerrainDefines.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -67,7 +68,7 @@ constexpr float LastActionFrame = 8.0f;
 // 0x403a82..0x403a9c y 0x403d40: el tope de +0x150.
 constexpr std::int32_t LastLevel = 4;
 // 0x403ad0: el sonido del alta con las chispas.
-constexpr std::int32_t ArrivalSound = 0x243;
+constexpr Audio::SoundId ArrivalSound{0x243};
 // 0x4038b9, 0x403856 y 0x4039f0: las acciones de 0x4ea030 (quieto, caminar) y la que toma la velocidad.
 constexpr std::uint8_t StandAction = 0;
 constexpr std::uint8_t WalkAction = 2;

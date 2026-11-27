@@ -2,6 +2,7 @@
 
 #include "Audio/Playback.h"
 #include "Kernel/WorldRuntime.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -296,6 +297,6 @@ TEST(CrywolfMusicTest, WithoutAPlaybackDeviceTheResultIsStillRecorded)
 
     frame.runtime.crywolf.ui.dword6c73dc = SuccessBanner;
     frame.StepAt(5);
-    EXPECT_EQ(frame.runtime.lastSoundId, std::optional<std::int32_t>(0x244));
+    EXPECT_EQ(frame.runtime.lastSoundId, Client::Audio::SoundId{0x244});
 }
 } // namespace

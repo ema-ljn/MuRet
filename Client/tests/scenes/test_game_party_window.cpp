@@ -29,6 +29,7 @@
 
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -299,7 +300,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
     Client::Input::InputState m_input;
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(PartyTexts());
@@ -319,7 +320,7 @@ TEST_P(GamePartyWindowTest, ThePLetterOpensThePartyAndAsksForItsList)
     EXPECT_EQ(Runtime().panels.party, 1);
     EXPECT_EQ(Runtime().hud.partyCount, 0);
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"42"}));
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
 
     // 0x5e3cb5: el paso siguiente mira el mouse desde la esquina de 0x78a7068, que sin un dibujo sigue en (0, 0).
@@ -394,7 +395,7 @@ TEST_P(GamePartyWindowTest, TheCloseButtonClosesTheParty)
     EXPECT_TRUE(movement.leftHeld);
     EXPECT_EQ(movement.mouseUpdateTime, 0);
     EXPECT_EQ(movement.mouseUpdateTimeMax, 6);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Seed);
 }
 
@@ -438,7 +439,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     ASSERT_TRUE(step(Left + 0x8c, Top + 0x37 + 0x23).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"C1 04 43 07 "}));
     EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     EXPECT_EQ(m_random.State(), Seed);
 

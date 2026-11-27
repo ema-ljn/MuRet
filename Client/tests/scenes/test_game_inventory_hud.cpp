@@ -34,6 +34,7 @@
 #include "UI/Widget.h"
 #include "Kernel/ItemState.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 
@@ -309,7 +310,7 @@ protected:
 
     WorldState world;
     CrtRandom random{Seed};
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;

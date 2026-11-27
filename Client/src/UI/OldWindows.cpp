@@ -10,6 +10,8 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -26,7 +28,7 @@ namespace
 // 0x459f00: el rectángulo desde arriba a la izquierda.
 constexpr std::int32_t TopLeftRect = 1;
 // 0x41ed10(0x19, 0, 0): el sonido de los botones.
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 // 0x553520: Esc, F5, F6 y Enter.
 constexpr std::uint8_t EscapeKey = 0x1b;
 constexpr std::uint8_t F5Key = 0x74;

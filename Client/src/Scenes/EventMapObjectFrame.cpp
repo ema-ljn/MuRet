@@ -15,6 +15,7 @@
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -284,7 +285,7 @@ Core::Expected<void, std::string> ChaosCastleTrap(World::WorldObject& object, co
             return created;
         if (!pass.requestSound)
             return Core::Unexpected(std::string("0x405d69: falta el sonido 0x9c de la trampa de Chaos Castle"));
-        pass.requestSound(TrapSound + (pass.random->Next() & 1));
+        pass.requestSound(Audio::SoundId{TrapSound + (pass.random->Next() & 1)});
     }
     if (object.field60 < TrapEnd)
         object.field8a = 0;

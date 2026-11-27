@@ -28,6 +28,8 @@
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -100,7 +102,7 @@ std::size_t HandOf(const Kernel::ActorState& actor)
 }
 
 // 0x41ed10(sonido, ...): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
-void RequestTheSound(const Actors::CharacterStepContext& context, std::int32_t sound)
+void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId sound)
 {
     if (context.soundRequest)
         context.soundRequest(sound);
@@ -154,7 +156,7 @@ Core::Expected<void, std::string> StepTheSkill2b(Kernel::ActorState& actor, std:
         return {};
     // 0x4f98fe..0x4f9915: en 8, 0x41ed10(0x71, 0, 0).
     constexpr std::uint8_t SoundStep = 8;
-    constexpr std::int32_t ChargeSound = 0x71;
+    constexpr Audio::SoundId ChargeSound{0x71};
     const std::uint8_t step = actor.byte381;
     if (step == SoundStep)
         RequestTheSound(context, ChargeSound);
@@ -333,7 +335,7 @@ Core::Expected<void, std::string> StepTheSkill2f(Kernel::ActorState& actor, std:
     constexpr std::uint8_t SoundStep = 10;
     constexpr std::uint8_t HandStep = 4;
     constexpr std::uint8_t SparkStep = 8;
-    constexpr std::int32_t SwingSound = 0x7d;
+    constexpr Audio::SoundId SwingSound{0x7d};
     const std::uint8_t step = actor.byte381;
     if (step == SoundStep)
     {
@@ -455,9 +457,9 @@ Core::Expected<void, std::string> StepTheSkill34(Kernel::ActorState& actor, std:
                                                                           .light = actor.light,
                                                                           .owner = &actor}));
         if (context.soundAt)
-            context.soundAt(0x81, actor.position);
+            context.soundAt(Audio::SoundId{0x81}, actor.position);
         else
-            RequestTheSound(context, 0x81);
+            RequestTheSound(context, Audio::SoundId{0x81});
     }
     // 0x4f9ee2.
     context.world.Runtime().skillThreshold = ShortThreshold;
@@ -503,7 +505,7 @@ Core::Expected<void, std::string> StepTheSkill37(Kernel::ActorState& actor, std:
         return Core::Unexpected(key.Error());
     actor.word8a = static_cast<std::int16_t>(key.Value());
     // 0x4f9f7a: 0x41ed10(0x72, 0, 0).
-    constexpr std::int32_t ThrowSound = 0x72;
+    constexpr Audio::SoundId ThrowSound = Sound::KnightSkill3Sound;
     RequestTheSound(context, ThrowSound);
     // 0x4f9f87: 0x59fb80(0x37, 0, 0, 0), el lugar de la skill en el registro propio.
     constexpr std::uint8_t ThrowSkill = 0x37;
@@ -550,7 +552,7 @@ Core::Expected<void, std::string> StepTheSkill38(Kernel::ActorState& actor, std:
         constexpr double FirstTurn = 40.0; // 0x6b8bf4
         constexpr double NextTurn = 20.0;  // 0x6b86d0
         constexpr std::int32_t WaveSubtype = 2;
-        constexpr std::int32_t SpinSound = 0x72;
+        constexpr Audio::SoundId SpinSound = Sound::KnightSkill3Sound;
         constexpr std::array<std::uint32_t, Waves> Calls{0x4fa4fa, 0x4fa523, 0x4fa54f, 0x4fa578, 0x4fa5a4};
         glm::vec3 angles = actor.angles;
         angles.z = static_cast<float>(static_cast<double>(angles.z) - FirstTurn);
@@ -595,7 +597,7 @@ Core::Expected<void, std::string> CreateSkill39Bolts(Kernel::ActorState& actor,
 // 0x4fa994..0x4faaca: la 0x39, de cualquier tipo.
 Core::Expected<void, std::string> StepTheSkill39(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
-    constexpr std::int32_t BoltSound = 0x270;
+    constexpr Audio::SoundId BoltSound{0x270};
     const float frame = FrameOf(actor);
     if (frame > FifthFrame)
     {

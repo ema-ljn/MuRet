@@ -27,6 +27,7 @@
 #include "support/RecordingSink.h"
 #include "support/SentActions.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -197,7 +198,7 @@ TEST_F(ActionReplyTest, EveryActionWithEveryClass)
             EXPECT_EQ(Other().movement, 0);
             EXPECT_EQ(Other().angles.z, 45.0f);
             EXPECT_EQ(m_world->Runtime().lastSoundId,
-                      action == 0x12 ? std::optional<std::int32_t>{0x6f} : std::nullopt);
+                      action == 0x12 ? std::optional{Client::Audio::SoundId{0x6f}} : std::nullopt);
         }
     }
     EXPECT_EQ(m_cloth.random.State(), seed);
@@ -448,7 +449,7 @@ TEST_F(ActionReplyTest, DarkHorseInTheSpareSlotStopsTheReplyBeforeAnyStores)
     spare.animation.action = 0x20;
     spare.animation.frame = 9.5f;
     spare.pet.model = 0x1c16;
-    m_world->Runtime().lastSoundId = 0x44;
+    m_world->Runtime().lastSoundId = Client::Audio::SoundId{0x44};
     const auto random = m_cloth.random.State();
 
     const auto applied = Apply(0xff, 0x78, 0x4321);
@@ -460,7 +461,7 @@ TEST_F(ActionReplyTest, DarkHorseInTheSpareSlotStopsTheReplyBeforeAnyStores)
     EXPECT_EQ(spare.movement, 7);
     EXPECT_EQ(spare.animation.action, 0x20);
     EXPECT_EQ(spare.animation.frame, 9.5f);
-    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x44);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x44});
     EXPECT_EQ(m_cloth.random.State(), random);
 }
 
@@ -531,13 +532,13 @@ TEST_F(ActionReplyTest, ShieldSetsItsSoundWhenTheModelLacksItsAnimation)
     m_models.player.actions.resize(0x98);
     Other().animation.action = 3;
     Other().animation.frame = 7.5f;
-    m_world->Runtime().lastSoundId = 0x44;
+    m_world->Runtime().lastSoundId = Client::Audio::SoundId{0x44};
 
     ASSERT_TRUE(Apply(3, 0x12).HasValue());
 
     EXPECT_EQ(Other().animation.action, 3);
     EXPECT_EQ(Other().animation.frame, 7.5f);
-    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x6f);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x6f});
 }
 
 // 0x4ea030 no reinicia el frame si la respuesta vuelve a pedir la acción actual, pero sí corre los stores previos.

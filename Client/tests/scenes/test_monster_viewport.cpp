@@ -43,6 +43,7 @@
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
@@ -937,7 +938,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(1).type, 0x180);
     EXPECT_EQ(Actor(1).hands[1].model, 0xa15);
-    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x173);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x173});
     EXPECT_EQ(Actor(1).alpha, 1.0f);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ArrivingRecordDraws).State());
 
@@ -949,7 +950,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     EXPECT_EQ(Actor(2).animation.action, 1);
     EXPECT_EQ(Actor(2).animation.previousAction, 1);
     EXPECT_EQ(Actor(2).alpha, 1.0f);
-    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x13);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x13});
     // Cargar no saca rand(): el alta y las celdas, como el 85.
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
 
@@ -1239,7 +1240,7 @@ TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
         EXPECT_TRUE(summon.alive);
         EXPECT_EQ(summon.level, 3);
         EXPECT_EQ(summon.animation.frame, 0.0f);
-        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>{0x61});
+        EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x61});
         const auto effects = std::as_const(game->world.Map().effects).Effects();
         const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
                                                  { return effect.alive && effect.type == 0xec; });
@@ -1318,7 +1319,7 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(spilled.key, 0x0c00);
 
     records[0] = {.key = 0x0c01, .isNew = true, .type = 3, .x = cell.x, .y = cell.y, .owner = "Carpincho"};
-    const std::optional<std::int32_t> lastSound = game->world.Runtime().lastSoundId;
+    const std::optional<Client::Audio::SoundId> lastSound = game->world.Runtime().lastSoundId;
     CrtRandom expected = game->cloth.random;
     expected.Discard(ArrivingRecordDraws);
     applied = Summons(records);

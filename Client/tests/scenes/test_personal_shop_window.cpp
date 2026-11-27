@@ -34,6 +34,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/ItemFiles.h"
 #include "support/SceneDataFiles.h"
@@ -662,7 +663,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     OpenTheShop(Client::UI::PersonalShopPanel);
     Place(InventoryCells(), StaffCell, StaffType, 2, 3);
     Place(ShopCells(), PotionCell, PotionType, 0, 1);
-    Runtime().lastSoundId = 0;
+    Runtime().lastSoundId = Client::Audio::SoundId{0};
 
     // El mouse sobre la poción de la tienda, sin el clic: 0x78abaa4 en 1 y 0x5aed40 con 0 y el lugar.
     const std::int32_t potionX = CenterOf(ShopGridLeft, PotionCell);
@@ -691,7 +692,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
         EXPECT_EQ(InventoryCells()[cell].id, EmptyOwnItemId);
     EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::None);
     EXPECT_EQ(Runtime().hoveredItemCopy.id, StaffType);
-    EXPECT_EQ(Runtime().lastSoundId, 0);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_FALSE(Runtime().movement.pendingClick);
     EXPECT_TRUE(sent.empty());
 
@@ -894,7 +895,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().cursorItemCount, 0);
     EXPECT_EQ(InventoryCells()[StaffCell].id, StaffType);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(Shops().dialogMode, 0);
     EXPECT_TRUE(sent.empty());
 }
@@ -947,7 +948,7 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms + CursorQueryRandoms);
     EXPECT_EQ(Runtime().cursorItemCount, 0);
     EXPECT_EQ(ShopCells()[PotionCell].id, PotionType);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_TRUE(sent.empty());
 
     // A la casilla (6, 1) de la tienda.

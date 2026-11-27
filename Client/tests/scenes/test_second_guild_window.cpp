@@ -29,6 +29,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/RecordingTextDrawer.h"
@@ -302,7 +303,7 @@ protected:
     std::vector<std::string> m_filterName{"Malo"};
     std::vector<std::string> m_filter{"feo"};
     std::vector<Client::Protocol::Outgoing> m_sent;
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     std::int32_t m_mouseX = 0;
     std::int32_t m_mouseY = 300;
     SpriteBatch m_sprites;
@@ -399,7 +400,7 @@ TEST_P(SecondGuildWindowTest, CreateGoesToTheNamePageAndAnswersYes)
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x04, 0x54, 0x01}));
     // 0x45b200: el sonido del botón, 0x19.
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x19));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 }
 
 // 0x6560b3: la marca abre el diálogo de los paneles con el 1269 y Aceptar, y lo guarda en +0x2a0.
@@ -465,7 +466,7 @@ TEST_P(SecondGuildWindowTest, TheCloseButtonAnswersNoTwiceAndClosesTheWindow)
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x04, 0x54, 0x00}));
     EXPECT_EQ(PlainOf(m_sent[1]), BytesOf({0xc1, 0x04, 0x54, 0x00}));
     // 0x41ed10(0x19) y después el 0x1c de 0x6570b0.
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x1c));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
 }
 
 // 0x45aa80(0): con el mouse sobre la ventana y otra que agarró el mouse, no da su paso; sin nadie, la toma y, con el
@@ -496,7 +497,7 @@ TEST_P(SecondGuildWindowTest, TheEditorPaintsErasesAndChoosesColors)
     Choose(1, 3);
     EXPECT_EQ(Guild().markColor, 11);
     EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x19));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FLOAT_EQ(Hero().angles.z, 112.5f);
     Paint(2, 5);
     EXPECT_EQ(Guild().table[Creating].mark[2 * 8 + 5], 11);

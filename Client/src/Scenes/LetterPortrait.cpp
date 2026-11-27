@@ -42,6 +42,7 @@
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
 #include "Terrain/TerrainCulling.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -404,8 +405,8 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .counter = resources.cloth.logicSteps,
         .actionSpeeds = &world.ActionSpeeds(),
         .fixedHeight = resources.camera.fixedHeight,
-        .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); },
-        .soundAt = [&runtime](std::int32_t sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
+        .soundRequest = [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); },
+        .soundAt = [&runtime](Audio::SoundId sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
         .groundMarks = resources.states != nullptr ? &resources.states->terrain.groundMarks : nullptr,
         .trapezoid = resources.states != nullptr ? &resources.states->camera.trapezoid : nullptr,
         .dynamicLighting = DynamicLightingOf(resources),

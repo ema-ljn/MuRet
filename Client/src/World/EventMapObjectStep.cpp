@@ -10,6 +10,7 @@
 #include "World/PortableParticleTrigonometry.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -45,7 +46,7 @@ constexpr double FlashCenter = 600.0;
 // 0x604b0f: el radio, el 12 que quedó en ecx del idiv.
 constexpr std::int32_t FlashRadius = 12;
 // 0x604b96..0x604b9b: 0x41ed10(1, 0, 1).
-constexpr std::int32_t DevilSquareAmbient = 1;
+constexpr Audio::SoundId DevilSquareAmbient{1};
 
 // 0x606328..0x60638e: rand() % 900 (0x384) − 300 (0x12c) en x e y, rand() % 50 (0x32) + 250 (0x6b8920) en z.
 constexpr int OrbSpread = 900;

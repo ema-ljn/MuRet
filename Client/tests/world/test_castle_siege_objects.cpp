@@ -9,6 +9,7 @@
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -112,7 +113,8 @@ TEST(CastleSiegeObjectsTest, ThePreludeRefreshesTheMusicTimeAndAlwaysAsksForTheA
         std::vector<std::int32_t> sounds;
         const CastleSiegePrelude prelude{.musicTime = &music,
                                          .systemTime = [&c] { return c.now; },
-                                         .sound = [&sounds](std::int32_t sound) { sounds.push_back(sound); },
+                                         .sound = [&sounds](Client::Audio::SoundId sound)
+                                         { sounds.push_back(sound.Value()); },
                                          .updateMusic =
                                              [&sounds](bool siege)
                                          {
@@ -133,7 +135,7 @@ TEST(CastleSiegeObjectsTest, ThePreludeStopsWithTheSiegeOnOrAMissingBinding)
     CastleSiegePrelude prelude{.siegeActive = true,
                                .musicTime = &music,
                                .systemTime = [] { return 7000u; },
-                               .sound = [&sounds](std::int32_t sound) { sounds.push_back(sound); }};
+                               .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }};
     const auto siege = Client::World::StepCastleSiegePrelude(prelude);
     ASSERT_FALSE(siege.HasValue());
     EXPECT_NE(siege.Error().find("0x42b5fe"), std::string::npos) << siege.Error();

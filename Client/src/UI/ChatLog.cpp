@@ -6,6 +6,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/NameChecks.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -288,14 +289,13 @@ Core::Expected<WrappedText, std::string> WrapByWidth(std::string_view text, cons
     }
 }
 
-Core::Expected<std::optional<std::int32_t>, std::string> AddToTheLog(ChatLogState& log, ChatModes modes,
-                                                                     const ChatMeasure& measure, std::string_view name,
-                                                                     std::string_view text, std::int32_t type,
-                                                                     std::int32_t param, bool noticeSound)
+Core::Expected<std::optional<Audio::SoundId>, std::string>
+AddToTheLog(ChatLogState& log, ChatModes modes, const ChatMeasure& measure, std::string_view name,
+            std::string_view text, std::int32_t type, std::int32_t param, bool noticeSound)
 {
     name = CString(name);
     text = CString(text);
-    std::optional<std::int32_t> sound;
+    std::optional<Audio::SoundId> sound;
     if (name.empty() && text.empty())
     {
         if (modes.placement != 0 || log.scroll != 0)

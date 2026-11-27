@@ -41,6 +41,7 @@
 #include "World/ModelEffects.h"
 
 #include "Tables/TextTable.h"
+#include "Audio/SoundId.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
@@ -909,7 +910,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     EXPECT_EQ(runtime.ui.field78abb39, 0);
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(tested.Cell(9).id, Apple);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 
     Stage refused = Fresh();
     refused.PublishedHero();
@@ -1111,7 +1112,7 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
     ASSERT_TRUE(put.HasValue()) << put.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(tested.Cell(4).id, Apple);
-    EXPECT_EQ(runtime.lastSoundId, 0x45);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x45});
 
     hero.key = 0x1234;
     const auto nobody = Client::Scenes::ApplyEquipmentChange(

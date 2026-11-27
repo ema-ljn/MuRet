@@ -3,6 +3,7 @@
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -232,7 +233,7 @@ TEST(ObjectStepServicesTest, NearSlidingDoorsMoveFromTheCopiedPositionAndSoundEv
     std::vector<std::int32_t> sounds;
     ObjectStepGlobals globals;
     globals.heroPosition = &hero;
-    globals.sound = [&](std::int32_t id) { sounds.push_back(id); };
+    globals.sound = [&](Client::Audio::SoundId id) { sounds.push_back(id.Value()); };
     auto object = Object(0x56);
     object.transform.angles.z = 90.0f;
     CrtRandom random(7);
@@ -256,9 +257,9 @@ TEST(ObjectStepServicesTest, HingedDoorsUseTheirCopiedYawAndSoundAfterTheMutatio
         ObjectStepGlobals globals;
         globals.heroPosition = &hero;
         int calls = 0;
-        globals.sound = [&](std::int32_t id)
+        globals.sound = [&](Client::Audio::SoundId id)
         {
-            EXPECT_EQ(id, 0x11);
+            EXPECT_EQ(id, Client::Audio::SoundId{0x11});
             EXPECT_EQ(object.transform.angles.z, 380.0f);
             ++calls;
         };
@@ -369,7 +370,7 @@ TEST(ObjectStepServicesTest, AllDoorOrientationsKeepTheirNativeOpeningFormulas)
         ObjectStepGlobals globals;
         globals.heroPosition = &hero;
         int sounds = 0;
-        globals.sound = [&](std::int32_t) { ++sounds; };
+        globals.sound = [&](Client::Audio::SoundId) { ++sounds; };
         auto sliding = Object(0x56);
         auto hinged = Object(0x14);
         sliding.transform.angles.z = probe.yaw;
@@ -389,7 +390,7 @@ TEST(ObjectStepServicesTest, TheDoorDistanceBranchUsesTheRetainedValueBeforeItsF
     ObjectStepGlobals globals;
     globals.heroPosition = &hero;
     int sounds = 0;
-    globals.sound = [&](std::int32_t) { ++sounds; };
+    globals.sound = [&](Client::Audio::SoundId) { ++sounds; };
     auto object = Object(0x56);
     object.copiedPosition = glm::vec3(0.0f);
     CrtRandom random(7);
@@ -403,7 +404,7 @@ TEST(ObjectStepServicesTest, UnorderedDoorComparisonsKeepTheirNativeBranches)
     const glm::vec3 hero{1100.0f, 1000.0f, 0.0f};
     ObjectStepGlobals globals;
     globals.heroPosition = &hero;
-    globals.sound = [](std::int32_t) {};
+    globals.sound = [](Client::Audio::SoundId) {};
     auto object = Object(0x56);
     object.transform.angles.z = std::numeric_limits<float>::quiet_NaN();
     CrtRandom random(7);

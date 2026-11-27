@@ -3,6 +3,7 @@
 #include "Kernel/ISoundRequests.h"
 
 #include "Protocol/Movement/Movement.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeKernelPorts.h"
 #include "support/SameBytes.h"
@@ -44,12 +45,13 @@ TEST(KernelPortsTest, AFakeSoundRequestsKeepsTheIdTheOriginAndTheLoop)
     FakeSoundRequests fake;
     Client::Kernel::ISoundRequests& sounds = fake;
 
-    sounds.Request(0x19, std::nullopt, false);
-    sounds.Request(0x8b, glm::vec3(1.0f, 2.0f, 3.0f), true);
+    sounds.Request(Client::Audio::SoundId{0x19}, std::nullopt, false);
+    sounds.Request(Client::Audio::SoundId{0x8b}, glm::vec3(1.0f, 2.0f, 3.0f), true);
 
     EXPECT_EQ(fake.Requests(),
-              (std::vector<SoundRequest>{{.id = 0x19, .origin = std::nullopt, .loop = false},
-                                         {.id = 0x8b, .origin = glm::vec3(1.0f, 2.0f, 3.0f), .loop = true}}));
+              (std::vector<SoundRequest>{
+                  {.id = Client::Audio::SoundId{0x19}, .origin = std::nullopt, .loop = false},
+                  {.id = Client::Audio::SoundId{0x8b}, .origin = glm::vec3(1.0f, 2.0f, 3.0f), .loop = true}}));
 }
 
 TEST(KernelPortsTest, AFakeOnScreenMessagesKeepsEachMessageAndAnswersWithItsFailure)

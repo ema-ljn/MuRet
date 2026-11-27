@@ -4,6 +4,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -79,8 +80,9 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
         const auto stepped = Client::World::StepGameModelEffect(
             emitter, nullptr, *particles, 0, random, nullptr,
             {.effects = effects.get(),
-             .sound = [&sounds](int sound) { sounds.push_back(sound); },
-             .soundAt = [&soundsAt](int sound, const glm::vec3& origin) { soundsAt.emplace_back(sound, origin); }});
+             .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
+             .soundAt = [&soundsAt](Client::Audio::SoundId sound, const glm::vec3& origin)
+             { soundsAt.emplace_back(sound.Value(), origin); }});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(emitter.life, 74);
         EXPECT_EQ(random.State(), full ? 0x1e278e7au : 0x098520c4u);
@@ -118,8 +120,9 @@ TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
     const auto stepped = Client::World::StepGameModelEffect(
         firework, nullptr, *particles, 0, random, nullptr,
         {.lighting = lighting.get(),
-         .sound = [&sounds](int sound) { sounds.push_back(sound); },
-         .soundAt = [&soundsAt](int sound, const glm::vec3& origin) { soundsAt.emplace_back(sound, origin); }});
+         .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
+         .soundAt = [&soundsAt](Client::Audio::SoundId sound, const glm::vec3& origin)
+         { soundsAt.emplace_back(sound.Value(), origin); }});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), 0x098520c4u);
     EXPECT_FALSE(firework.alive);
@@ -147,7 +150,8 @@ TEST(CrywolfEffectsTest, TheLastFireworkFillsTheOnlyParticleRoomAndKeepsTheRemai
     std::vector<int> sounds;
     const auto stepped = Client::World::StepGameModelEffect(
         firework, nullptr, *particles, 0, random, nullptr,
-        {.lighting = lighting.get(), .sound = [&sounds](int sound) { sounds.push_back(sound); }});
+        {.lighting = lighting.get(),
+         .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), 0x7e1dbec8u);
     EXPECT_EQ(sounds, (std::vector<int>{0x59}));

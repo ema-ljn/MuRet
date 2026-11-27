@@ -2,6 +2,8 @@
 #include "Models/IModelLibrary.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Math/HalfLifeMath.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 #include <span>
 
 #include "App/LoopTiming.h"
@@ -122,7 +124,7 @@ namespace Client::Scenes
 namespace
 {
 
-constexpr std::int32_t ButtonClickSound = 0x19;
+constexpr Audio::SoundId ButtonClickSound = Sound::ButtonClickSound;
 
 // La acción de parado de la selección. La elige 0x4f2250 por la mascota, las alas y el arma; la de
 // la traza es la 3, con un arma de una mano. Las otras, sin leer (P-C14 c): hasta entonces, la 3.
@@ -523,8 +525,8 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .worldClock = clock,
             .counter = m_context.cloth->logicSteps,
             .newFaceSkeleton = m_selectionModels.SkeletonOf(Models::ModelId{Preview().type}),
-            .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); },
-            .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
+            .soundRequest = [this](Audio::SoundId sound) { m_context.world->Runtime().RequestSound(sound); },
+            .soundAt = [this](Audio::SoundId sound, const glm::vec3& origin)
             { m_context.world->Runtime().RequestSound(sound, origin); },
             .groundMarks = m_context.states != nullptr ? &m_context.states->terrain.groundMarks : nullptr,
             .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr,

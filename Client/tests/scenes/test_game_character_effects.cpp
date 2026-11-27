@@ -37,6 +37,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -340,7 +341,7 @@ TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideThe
             EXPECT_EQ(effects[0].transform.angles, m_actor.angles);
             EXPECT_EQ(effects[0].light, m_actor.light);
             EXPECT_EQ(effects[0].ownerContext, &m_actor);
-            EXPECT_EQ(world->Runtime().lastSoundId, 0x1cc);
+            EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x1cc});
         }
         else if (probe.window == Window::Skills)
         {

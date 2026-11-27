@@ -18,6 +18,7 @@
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -542,7 +543,8 @@ TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
                               .random = &random,
                               .retainedPose = &pose,
                               .createJoint = Recorder(calls),
-                              .requestSound = [&sounds](std::int32_t sound) { sounds.push_back(sound); },
+                              .requestSound = [&sounds](Client::Audio::SoundId sound)
+                              { sounds.push_back(sound.Value()); },
                               .chaosCastleArea = 2};
     const auto fired = Client::Scenes::StepChaosCastleObjectFrame(object, pass);
     ASSERT_TRUE(fired.HasValue()) << fired.Error();
@@ -596,7 +598,7 @@ TEST(ChaosCastleTest, TheTrapNeedsItsFlagItsPoseItsJointAndItsSound)
                               .random = &random,
                               .retainedPose = &pose,
                               .createJoint = Recorder(calls),
-                              .requestSound = [](std::int32_t) {}};
+                              .requestSound = [](Client::Audio::SoundId) {}};
     ASSERT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(hidden, full).HasValue());
     EXPECT_EQ(hidden.field60, 10);
     EXPECT_TRUE(calls.empty());

@@ -37,6 +37,8 @@
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -74,7 +76,7 @@ constexpr std::int32_t CloseLeft = 0x19;
 constexpr std::int32_t CloseTop = 0x18b;
 constexpr std::int32_t CloseSize = 0x18;
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
-constexpr std::int32_t ClickSound = 0x19;
+constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
 // +0x368 del héroe sin gremio (0x511290).
 constexpr std::uint8_t NoGuildStatus = 0xff;
 // Las pestañas: el paso las mira de a 0x34 desde x + 0xf (0x651913..0x65199d) y el dibujo las pone de a 0x36.

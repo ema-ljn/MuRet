@@ -6,6 +6,7 @@
 #include "Tables/TextTable.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Outgoing.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -91,8 +92,8 @@ struct EventPacketContext
 // queda además en WorldRuntime::lastSoundId, el gancho de la CL10.
 struct EventPacketResult
 {
-    std::vector<std::int32_t> sounds;
-    std::vector<std::int32_t> stoppedSounds;
+    std::vector<Audio::SoundId> sounds;
+    std::vector<Audio::SoundId> stoppedSounds;
     // Dónde y por qué MuRet descartó el resto del paquete: donde el original lee o escribe fuera de sus tablas y sigue
     // (el 93 y el 94 cortos, Q-C1324, Q-C1325, Q-C1328, Q-C1341 y Q-C1347, y el strcat del 91 de Chaos Castle,
     // Q-C1109). Lo de antes, con sus rand(), queda hecho;

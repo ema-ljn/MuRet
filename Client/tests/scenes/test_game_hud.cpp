@@ -33,6 +33,7 @@
 #include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/TableFiles.h"
@@ -556,7 +557,7 @@ protected:
 
     WorldState world;
     CrtRandom random{Seed};
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
@@ -588,7 +589,7 @@ TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(world.Runtime().movement.skillDepths[0x2c], 0);
     // La vida por debajo del 20 %: el sonido 0x22 de 0x5a97c3.
-    EXPECT_EQ(sound, 0x22);
+    EXPECT_EQ(sound, Client::Audio::SoundId{0x22});
     // El único texto es el nombre del ayudante, que termina en x = 575 + 50.
     ASSERT_EQ(text.texts.size(), 1u);
     const auto record = data.items->table.Record(0x1a00);

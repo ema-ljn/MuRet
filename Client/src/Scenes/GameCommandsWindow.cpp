@@ -36,6 +36,8 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -90,8 +92,8 @@ constexpr std::int32_t CloseSize = 0x18;
 // 0x40a573..0x40a57d.
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
 // 0x40a553..0x40a56b: los dos sonidos del botón de cerrar.
-constexpr std::int32_t FirstCloseSound = 0x19;
-constexpr std::int32_t SecondCloseSound = 0x1c;
+constexpr Audio::SoundId FirstCloseSound = Sound::ButtonClickSound;
+constexpr Audio::SoundId SecondCloseSound = Sound::CreateWindowSound;
 
 // Los botones: x + 95 (0x6b87e4) − 50 (0x6b86b0) e y + 53 (0x6b87e0), de 28 en 28 (0x6b880c). El paso los toca entre
 // los bordes, con 108 (0x6c) × 20 (0x14); el dibujo los pinta de 100 × 25 y les mira el mouse con 108 (0x6b87fc) ×

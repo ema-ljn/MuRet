@@ -11,6 +11,7 @@
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -236,7 +237,7 @@ Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, cons
         {
             return Core::Unexpected(std::string("0x41ed10: falta el emisor sonoro de la puerta del mapa 2"));
         }
-        globals.sound(sliding ? SlidingDoorSound : HingedDoorSound);
+        globals.sound(Audio::SoundId{sliding ? SlidingDoorSound : HingedDoorSound});
         return {};
     }
     object.transform.angles.z =
@@ -264,7 +265,7 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRa
     constexpr float SlowSpeed = std::bit_cast<float>(0x3d4ccccdu);
     constexpr std::int32_t AidaRadius = 2;
     constexpr std::int32_t LightSpan = 5;
-    constexpr std::int32_t AmbientSound = 0x246;
+    constexpr Audio::SoundId AmbientSound{0x246};
     switch (object.type)
     {
     case 0x19:
@@ -322,7 +323,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
     constexpr std::uint32_t TimeMask = 0x3ff;
     constexpr std::uint32_t ButterflyWindow = 10;
     constexpr std::uint32_t AmbientPeriod = 300000; // 0x440159: 0x493e0, sin signo (jbe).
-    constexpr std::int32_t AmbientSound = 0x1ef;
+    constexpr Audio::SoundId AmbientSound{0x1ef};
     // 0x6b8bbc (0,0024f) y 0x6b89dc (0,3f): el vaivén del 0x1b.
     constexpr double SwayRate = static_cast<double>(std::bit_cast<float>(0x3b1d4952u));
     constexpr float SwayHeight = std::bit_cast<float>(0x3e99999au);

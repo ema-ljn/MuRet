@@ -7,6 +7,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -345,7 +346,7 @@ struct Kick
     {
         globals.heroPosition = &hero;
         globals.heroAction = &action;
-        globals.sound = [this](std::int32_t sound) { sounds.push_back(sound); };
+        globals.sound = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
     }
 };
 

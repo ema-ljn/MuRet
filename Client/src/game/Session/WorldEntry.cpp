@@ -30,6 +30,8 @@
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -53,9 +55,9 @@ using Maps::FirstBloodCastleMap;
 using Maps::FirstChaosCastleMap;
 using Maps::LastBloodCastleMap;
 using Maps::LastChaosCastleMap;
-constexpr std::int32_t OutsideBloodCastleSound = 0x8b;
-constexpr std::int32_t FirstOutsideChaosCastleSound = 0x99;
-constexpr std::int32_t SecondOutsideChaosCastleSound = 0x9e;
+constexpr Audio::SoundId OutsideBloodCastleSound = Sound::BloodCastleSound;
+constexpr Audio::SoundId FirstOutsideChaosCastleSound = Sound::ChaosCastleSound;
+constexpr Audio::SoundId SecondOutsideChaosCastleSound = Sound::ChaosSound;
 
 Kernel::ActorState& HeroOf(const WorldEntryResources& resources)
 {

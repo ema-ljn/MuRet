@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Scenes/GameDrawTail.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -70,8 +71,8 @@ struct KalimaSiegeHelperPass
     // Las alturas del .OZB de 0x5fb2f0, para los calcos de 0x42a1b0.
     const Data::Terrain::TerrainHeights* heights = nullptr;
     // 0x41ed10 (CL10): WorldRuntime::lastSoundId en el frame del original; entre frames, nullptr.
-    std::optional<std::int32_t>* sound = nullptr;
-    std::function<void(std::int32_t)> soundRequest{};
+    std::optional<Audio::SoundId>* sound = nullptr;
+    std::function<void(Audio::SoundId)> soundRequest{};
     // 0x5767b88, en ms.
     float worldClock = 0.0f;
     std::int32_t map = 0;

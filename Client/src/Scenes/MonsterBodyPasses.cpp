@@ -5,6 +5,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <format>
@@ -78,7 +79,7 @@ Result DrawMeshPass(MonsterBodyModel& model, std::int16_t mesh, std::uint32_t fl
                                              flags, texture.Value(), &model.object.color, model.worldClock);
 }
 
-void RequestBodySound(MonsterBodyFrame& frame, std::int32_t sound)
+void RequestBodySound(MonsterBodyFrame& frame, Audio::SoundId sound)
 {
     // 0x41ed10 (CL10): el sonido queda anotado; entre frames del original no se pide.
     if (!frame.originalFrame)

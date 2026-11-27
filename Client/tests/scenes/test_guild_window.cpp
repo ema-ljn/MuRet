@@ -28,6 +28,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/RecordingTextDrawer.h"
@@ -457,7 +458,7 @@ protected:
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
     Client::Tables::TextTable m_texts = WindowTexts();
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     Client::Tests::FakeTextureStore m_store;
@@ -563,7 +564,7 @@ TEST_P(GuildWindowTest, TheCloseButtonClosesTheWindow)
     EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
     EXPECT_EQ(Runtime().panels.delegated.guild, 0);
     EXPECT_EQ(Guild().window.tab, 1);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
 }
 
@@ -707,7 +708,7 @@ TEST_P(GuildWindowTest, TheMasterDismissesTheChosenMember)
     EXPECT_EQ(dialog.lines[1], "pierde el cargo");
     EXPECT_EQ(Guild().window.dialog, Now);
     EXPECT_EQ(Client::Scenes::GuildTextOf(Guild().chosenName), "Sauce");
-    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_TRUE(m_sent.empty());
 
     auto answered =
@@ -960,7 +961,7 @@ TEST_P(GuildWindowTest, ThePositionsWindowAppointsAMember)
     const auto list = m_sent[1].packet.Bytes();
     EXPECT_EQ(std::vector<std::byte>(list.begin(), list.end()), BytesOf({0xc1, 0x03, 0x52}));
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
-    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_EQ(Draws(m_random), 0);
 }
 

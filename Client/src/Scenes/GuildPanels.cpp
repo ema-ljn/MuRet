@@ -19,6 +19,8 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,7 +32,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x6522f0 y 0x6570b0: 0x41ed10(0x1c, 0, 0). Queda en WorldRuntime::lastSoundId (CL10).
-constexpr std::int32_t GuildCloseSound = 0x1c;
+constexpr Audio::SoundId GuildCloseSound = Sound::CreateWindowSound;
 // 0x6522f0: la pestaña a la que vuelve.
 constexpr std::int32_t FirstGuildTab = 1;
 // 0x6570b0: C1 04 54 00.

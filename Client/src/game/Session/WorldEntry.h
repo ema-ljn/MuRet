@@ -8,6 +8,7 @@
 #include "Scenes/SceneId.h"
 #include "Session/ModuleStates.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -143,7 +144,7 @@ struct WorldEntryResources
 // diagnóstico y fixtures.
 struct WorldEntryResult
 {
-    std::vector<std::int32_t> sounds;
+    std::vector<Audio::SoundId> sounds;
 };
 
 // 0x4c3940 con el paquete cifrado, en el orden nativo de la tabla de 06: los stats en el registro

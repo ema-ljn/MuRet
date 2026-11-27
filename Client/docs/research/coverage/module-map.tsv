@@ -55,8 +55,10 @@ engine/Audio/ISoundCatalog.h	19	engine/Audio	engine/Audio	high	the sound lookup 
 engine/Audio/Music.cpp	185	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/Music.h	41	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/Playback.h	28	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
+engine/Audio/SoundId.h	11	engine/Audio	engine/Audio	high	the id of the sound catalog a sound request names, its own type (AR4.1)
 game/Sound/SoundCatalog.cpp	657	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 game/Sound/SoundCatalog.h	22	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
+game/Sound/SoundIds.h	26	game/Sound	game/Sound	high	the sounds of the catalog more than one module asks for, each named after its WAV (AR4.1)
 engine/Audio/SoundDefinition.h	15	engine/Audio	engine/Audio	high	what the platform audio needs to know of one sound (AR1.1)
 engine/Core/Ascii.cpp	28	engine/Core	engine/Core	high	engine or protocol layer, no game state
 engine/Core/Ascii.h	22	engine/Core	engine/Core	high	engine or protocol layer, no game state
@@ -1200,7 +1202,7 @@ game/Assets/WorldModels.h	115	game/Assets	game/Assets	high	models and textures, 
 Scenes/WorldObjectsDrawing.cpp	1030	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldObjectsDrawing.h	241	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 game/Kernel/WorldRuntime.h	623	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
-game/Sound/WorldRuntimeAudio.cpp	37	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
+game/Sound/WorldRuntimeAudio.cpp	39	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Kernel/WorldState.cpp	266	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 

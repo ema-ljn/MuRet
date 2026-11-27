@@ -22,6 +22,8 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -156,7 +158,7 @@ Core::Expected<void, std::string> WrapInIce(Kernel::ActorState& actor, const Sce
 Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, std::uint32_t flags, bool publishedHero,
                                                    const Scenes::WorldEntryResources& resources)
 {
-    const auto requestSound = [&resources](std::int32_t id) { resources.world.Runtime().RequestSound(id); };
+    const auto requestSound = [&resources](Audio::SoundId id) { resources.world.Runtime().RequestSound(id); };
     auto& effects = resources.world.Map().effects;
     // 0x4e6390..0x4e63b7.
     if (Has(flags, Bit800000))
@@ -176,7 +178,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
     {
         if (!Has(actor.flags78, Bit100) && actor.type == Tables::PlayerSkeletonModel)
         {
-            constexpr std::int32_t Bit100Sound = 0x84;
+            constexpr Audio::SoundId Bit100Sound = Sound::SoulBarrierSound;
             requestSound(Bit100Sound);
             // 0x4e6447..0x4e6483: turns off its 0x10f/0 (0x534f90) and creates five, 50 wide, that turn around it.
             auto& joints = resources.world.DrawTail().joints;
@@ -288,7 +290,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         if (!Has(actor.flags78, Bit40))
         {
             // 0x4e6842..0x4e6899: the skull 0x628/0 over the character (the previous one, off) and sound 0x85 on it.
-            constexpr std::int32_t SkullSound = 0x85;
+            constexpr Audio::SoundId SkullSound{0x85};
             if (auto skull = Scenes::PutTheSkullOn(actor, resources.world, resources.cloth.random, 0x4e688c);
                 !skull.HasValue())
                 return skull;

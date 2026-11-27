@@ -7,6 +7,7 @@
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -47,7 +48,7 @@ Core::Expected<void, std::string> StepCastleSiegePrelude(const CastleSiegePrelud
     // 0x6b8a88 y 0x6b8a80, dos double: 0,001 y 1.800.
     constexpr double Milliseconds = 0.001;
     constexpr double Period = 1800.0;
-    constexpr std::int32_t AmbientSound = 0x1e2;
+    constexpr Audio::SoundId AmbientSound{0x1e2};
     if (!prelude.systemTime)
         return Core::Unexpected(std::string("0x42b557: falta timeGetTime() (0x6b8544) para la música del 30"));
     if (prelude.musicTime == nullptr)
@@ -175,7 +176,7 @@ Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObject& object,
                 if (auto emitted = services.emit(effect); !emitted.HasValue())
                     return emitted;
                 if (services.sound)
-                    services.sound(0x1ec);
+                    services.sound(Audio::SoundId{0x1ec});
             }
             // 42c667: cero oculta sólo la malla0; HiddenObject(−2) ocultaría el objeto entero.
             object.state.hiddenMesh = 0;

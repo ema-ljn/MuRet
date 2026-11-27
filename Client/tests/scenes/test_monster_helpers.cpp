@@ -2,6 +2,7 @@
 #include "Scenes/MonsterHelpers.h"
 
 #include "Scenes/GameDrawTail.h"
+#include "Audio/SoundId.h"
 #include <algorithm>
 
 #include "Core/Expected.h"
@@ -168,7 +169,7 @@ protected:
         return live;
     }
 
-    std::optional<std::int32_t> Sound() const
+    std::optional<Client::Audio::SoundId> Sound() const
     {
         return m_world->Runtime().lastSoundId;
     }
@@ -324,7 +325,7 @@ TEST_F(MonsterHelpersTest, The1a3LightsItsEyesAndGrowlsWhenIdle)
     EXPECT_EQ(sprites[1].blend, 0);
     CrtRandom expected(seed);
     static_cast<void>(expected.Next());
-    EXPECT_EQ(Sound(), 0x1f5 + (expected.Next() & 1));
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1f5 + (expected.Next() & 1)});
     EXPECT_EQ(random.State(), AfterDraws(seed, 2).State());
     EXPECT_EQ(actor.subtype, 0);
 }
@@ -340,7 +341,7 @@ TEST_F(MonsterHelpersTest, The1a3AttackSoundsOnceUntilItRests)
     MonsterHelperPass pass = Pass(Devias, random);
     ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass).HasValue());
     EXPECT_EQ(actor.subtype, 1);
-    EXPECT_EQ(Sound(), 0x1f7 + (CrtRandom(5).Next() & 1));
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1f7 + (CrtRandom(5).Next() & 1)});
     EXPECT_EQ(random.State(), AfterDraws(5, 1).State());
 
     m_world->Runtime().lastSoundId.reset();
@@ -414,7 +415,7 @@ TEST_F(MonsterHelpersTest, The1a4AndThe1a6DieInStones)
             {
                 ASSERT_EQ(asked.size(), 1u);
                 EXPECT_EQ(asked[0], std::make_pair(std::int32_t{0x13c}, death.subtype));
-                EXPECT_EQ(Sound(), death.sound);
+                EXPECT_EQ(Sound(), Client::Audio::SoundId{death.sound});
             }
             else
             {
@@ -522,7 +523,7 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom expected(growl);
         static_cast<void>(expected.Next());
-        EXPECT_EQ(Sound(), 0x205 + (expected.Next() & 1));
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x205 + (expected.Next() & 1)});
         EXPECT_EQ(full.State(), expected.State());
     }
     const std::uint32_t quiet = FirstSeedWhere([](CrtRandom& draw) { return draw.Next() % 20 != 0; });
@@ -533,7 +534,7 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
     const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(attacking);
     ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(actor.subtype, 1);
-    EXPECT_EQ(Sound(), 0x207);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x207});
     EXPECT_EQ(m_world->Map().effects.Effects()[0].type, 0x636);
 }
 
@@ -593,7 +594,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
 
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
         EXPECT_EQ(actor.subtype, 1);
-        EXPECT_EQ(Sound(), 0x207);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x207});
         const std::array<glm::vec3, 3> points{hand, victim.position, edge.position};
         CrtRandom replay = AfterDraws(quiet, 1);
         std::vector<Client::Scenes::JointState> twin(m_world->DrawTail().joints.size());
@@ -678,7 +679,7 @@ TEST_F(MonsterHelpersTest, The1a4AttackBurstKeepsItsRandomsAndSoundWithThePartic
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const bool bursts = frame >= 5.0f && frame <= 5.7f;
         EXPECT_EQ(actor.subtype, bursts ? 1 : 0);
-        EXPECT_EQ(Sound(), bursts ? std::optional<std::int32_t>(0x208) : std::nullopt);
+        EXPECT_EQ(Sound(), bursts ? std::optional{Client::Audio::SoundId{0x208}} : std::nullopt);
         EXPECT_EQ(random.State(), AfterDraws(quiet, bursts ? 41 : 1).State());
         if (bursts)
         {
@@ -716,7 +717,7 @@ TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom expected(77);
-        EXPECT_EQ(Sound(), 0x202 + (expected.Next() & 1));
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x202 + (expected.Next() & 1)});
         glm::vec3 offset{};
         for (int axis = 0; axis < 3; ++axis)
             offset[axis] = static_cast<float>(expected.Next() % 12 - 6);
@@ -780,7 +781,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     MonsterHelperPass pass = Pass(Lorencia, first);
     EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x442397"));
     EXPECT_EQ(first.State(), AfterDraws(odd, 1).State());
-    EXPECT_EQ(Sound(), 0x1fe);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1fe});
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_TRUE(LiveParticles().empty());
 
@@ -846,7 +847,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
         const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(attack);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom hands(dry);
-        EXPECT_EQ(Sound(), 0x1fc + (hands.Next() & 1));
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1fc + (hands.Next() & 1)});
         for (const glm::vec3& floor : {Origin, Origin + glm::vec3(7.0f, 0.0f, 0.0f)})
         {
             const auto scale =
@@ -963,7 +964,7 @@ TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
         CrtRandom expected(seed);
         static_cast<void>(expected.Next());
         Expect(expected, 0x5f3, 0, Origin, actor.angles, RedEyes);
-        EXPECT_EQ(Sound(), 0x1f0 + (expected.Next() & 1));
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1f0 + (expected.Next() & 1)});
         EXPECT_EQ(random.State(), expected.State());
         ExpectTheParticles();
         EXPECT_EQ(LiveParticles().size(), 1u);
@@ -975,7 +976,7 @@ TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
     ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
     CrtRandom expected(seed);
     static_cast<void>(expected.Next());
-    EXPECT_EQ(Sound(), 0x1f0 + (expected.Next() & 1));
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1f0 + (expected.Next() & 1)});
     EXPECT_EQ(full.State(), expected.State());
 }
 
@@ -995,7 +996,7 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     const auto first = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_EQ(actor.subtype, 1);
-    EXPECT_EQ(Sound(), 0x20d);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x20d});
     const auto& call = m_world->Map().effects.Effects()[0];
     ASSERT_TRUE(call.alive);
     EXPECT_EQ(call.type, 0x13f);
@@ -1062,7 +1063,7 @@ TEST_F(MonsterHelpersTest, The1a9FullEffectPoolStillPlaysItsAttackSound)
     const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(actor.subtype, 1);
-    EXPECT_EQ(Sound(), 0x20d);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x20d});
     EXPECT_EQ(random.State(), 1u);
 }
 
@@ -1076,7 +1077,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     const auto first = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_FALSE(first.Value());
-    EXPECT_EQ(Sound(), 0x233);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x233});
     EXPECT_EQ(actor.subtype, 1);
 
     Monster(0x1b0, 2);
@@ -1088,7 +1089,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     EXPECT_TRUE(second.Value());
     CrtRandom expected(seed);
     static_cast<void>(expected.Next());
-    EXPECT_EQ(Sound(), 0x224 + (expected.Next() & 1));
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x224 + (expected.Next() & 1)});
     EXPECT_EQ(idle.State(), expected.State());
 
     actor.type = 0x1b5;
@@ -1096,7 +1097,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     actor.subtype = 0;
     m_world->Runtime().lastSoundId.reset();
     ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
-    EXPECT_EQ(Sound(), 0x241);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x241});
     EXPECT_EQ(actor.subtype, 0);
     actor.animation.action = 3;
     ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
@@ -1401,7 +1402,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     const auto died = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass);
     ASSERT_TRUE(died.HasValue()) << died.Error();
     EXPECT_TRUE(LiveSprites().empty());
-    EXPECT_EQ(Sound(), 0x214);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x214});
 
     Name("Monster96_Center", 28);
     Name("Monster96_Top", 27);
@@ -1424,7 +1425,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     EXPECT_FLOAT_EQ(sprites[4].scale, 0.25f);
     EXPECT_FLOAT_EQ(sprites[3].rotation, spin);
     EXPECT_FLOAT_EQ(sprites[4].rotation, static_cast<float>(360.0 - static_cast<double>(spin)));
-    EXPECT_EQ(Sound(), 0x221);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x221});
     EXPECT_EQ(spinning.State(), AfterDraws(3, 1).State());
 }
 
@@ -1513,10 +1514,10 @@ TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSoundi
     EXPECT_EQ(effect.start, actor.position);
     EXPECT_EQ(effect.transform.position.z, actor.position.z + 130);
     EXPECT_EQ(effect.light, (glm::vec3{1, 0, 0.5f}));
-    EXPECT_EQ(Sound(), 0x21d);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x21d});
     actor.animation.frame = 6.5f;
     ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
-    EXPECT_EQ(Sound(), 0x21d);
+    EXPECT_EQ(Sound(), Client::Audio::SoundId{0x21d});
 }
 
 // 0x42720d..0x42769f: el 0x1b6 saca rand() % 30 para la luz de sus cinco 0x5ad y suelta en el punto (0, 0, −65) del
@@ -1620,7 +1621,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         victim.position = {300.0f, 400.0f, 50.0f};
         actor.angles = {1.0f, 2.0f, 3.0f};
         ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
-        EXPECT_EQ(Sound(), 0x263);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x263});
         EXPECT_EQ(actor.subtype, 1);
         CrtRandom expected = AfterDraws(11, 2);
         const float speed = static_cast<float>(static_cast<double>(expected.Next() % 10) + 20.0);
@@ -1661,7 +1662,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         CrtRandom swing(11);
         MonsterHelperPass third = Pass(map, swing);
         ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(third).HasValue());
-        EXPECT_EQ(Sound(), 0x264);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x264});
         EXPECT_EQ(swing.State(), AfterDraws(11, 1).State());
         m_sprites.Clear();
     }
@@ -1677,7 +1678,7 @@ TEST_F(MonsterHelpersTest, The1b9OnlySounds)
         CrtRandom random(1);
         MonsterHelperPass pass = Pass(map, random);
         ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
-        EXPECT_EQ(Sound(), 0x258);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x258});
         EXPECT_EQ(actor.subtype, 1);
         actor.animation.action = 1;
         ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
@@ -1728,7 +1729,7 @@ TEST_F(MonsterHelpersTest, The1b7MistsItsArmsAndHeadAndWavesItsArm)
             ExpectTheBoneParticles(*m_particles, std::span(all).first(value.made), {}, CrtRandom(21));
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_TRUE(LiveSprites().empty());
-        EXPECT_EQ(Sound(), value.sound);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{value.sound});
         EXPECT_EQ(actor.subtype, 1);
     }
 }
@@ -1761,7 +1762,7 @@ TEST_F(MonsterHelpersTest, The1b8SparksGreenAtItsHead)
         EXPECT_EQ(LiveSprites()[0].light, glm::vec3(0.0f, green, 0.0f));
         EXPECT_EQ(LiveSprites()[0].position, head);
         EXPECT_FLOAT_EQ(LiveSprites()[0].scale, 3.0f);
-        EXPECT_EQ(Sound(), 0x24e);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{0x24e});
         EXPECT_EQ(actor.subtype, 1);
     }
 }
@@ -1802,7 +1803,7 @@ TEST_F(MonsterHelpersTest, The1baSparksAtItsHornsAndSmokesAtItsFoot)
         ExpectTheParticles();
         EXPECT_EQ(LiveParticles().size(), action == 4 ? 7u : 6u);
         EXPECT_EQ(LiveSprites().size(), 6u);
-        EXPECT_EQ(Sound(), action == 4 ? 0x254 : 0x253);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{action == 4 ? 0x254 : 0x253});
     }
 }
 
@@ -1856,7 +1857,7 @@ TEST_F(MonsterHelpersTest, The1bbLightsAFantaInEachHand)
         ExpectTheParticles();
         EXPECT_EQ(LiveParticles().size(), 2u);
         EXPECT_EQ(LiveSprites().size(), 5u);
-        EXPECT_EQ(Sound(), value.sound);
+        EXPECT_EQ(Sound(), Client::Audio::SoundId{value.sound});
         auto& ray = m_world->Map().effects.Effects()[0];
         EXPECT_EQ(ray.alive, value.action == 4 && value.frame >= 9.0f);
         if (ray.alive)
@@ -1922,7 +1923,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
             }
             EXPECT_EQ(LiveSprites().size(), value.sprites);
             EXPECT_EQ(random.State(), AfterDraws(21, value.draws).State());
-            EXPECT_EQ(Sound(), value.sound);
+            EXPECT_EQ(Sound(), Client::Audio::SoundId{value.sound});
             if (value.type == 0x1bb && value.action == 4 && value.frame <= 10.0f)
             {
                 const auto& ray = m_world->Map().effects.Effects()[0];

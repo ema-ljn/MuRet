@@ -31,6 +31,7 @@
 #include "UI/ChatInput.h"
 #include "UI/MessageArea.h"
 #include "UI/WhisperSenders.h"
+#include "Audio/SoundId.h"
 
 #include "support/SceneDataFiles.h"
 
@@ -236,7 +237,7 @@ TEST_F(ChatReceiveTest, AWhisperClosesTheOwnRecordAndRemembersTheSender)
 
     EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
     EXPECT_EQ(Client::UI::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "Benteveo");
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x26));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x26});
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::WhisperMessage);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "psst");

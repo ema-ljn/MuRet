@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "UI/LetterModel.h"
 #include "UI/OldWindows.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -23,7 +24,7 @@ inline constexpr std::size_t ChatClosedText = 995;
 inline constexpr std::size_t ChatLeftText = 402;
 inline constexpr std::size_t LetterReadTitleText = 1054;
 // 0x41ed10: un mensaje en un chat que no está a la vista (0x4a5e50).
-inline constexpr std::int32_t ChatWaitingSound = 0x28;
+inline constexpr Audio::SoundId ChatWaitingSound{0x28};
 // El primer estado fuera de línea de un amigo para el chat (0x4942d0 y 0x4dc81e miran desde 0xfd; 0xfc es el de todos).
 inline constexpr std::uint8_t FirstOfflineFriendState = 0xfd;
 
@@ -37,8 +38,8 @@ void ForgetAPendingChat(OldWindowManager& manager, std::string_view name);
 // 0x4a4990: el chat al final de +0xb4.
 void AddTheChatToTheList(OldWindowManager& manager, std::int32_t id);
 // 0x4a5e50: el sonido 0x28 y, si no estaba, el chat al final de +0x118.
-void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<std::int32_t>& sound,
-                        std::function<void(std::int32_t)> soundRequest = {});
+void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<Audio::SoundId>& sound,
+                        std::function<void(Audio::SoundId)> soundRequest = {});
 // 0x495530: el amigo del chat (el primer miembro que no es el héroe con menos de 3; tipo 1), ninguno (tipo 0) o la sala
 // de 3 o más (tipo 2).
 [[nodiscard]] std::string ChatFriend(const OldWindow& chat, std::string_view hero, std::int32_t& kind);

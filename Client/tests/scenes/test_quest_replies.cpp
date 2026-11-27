@@ -20,6 +20,7 @@
 #include "UI/GameDialogs.h"
 #include "Camera/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
@@ -275,7 +276,7 @@ TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndSparkles)
         Quest::QuestResult{Replies::HeroKey, Quest::PointsPrize, 0xfe}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 7 + 0xfe);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x65);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x65});
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose + 15 * 3).State());
     ExpectThePrizeSparkles(*tested, tested->Hero(), false);
     ExpectTheDecal(*tested, tested->Hero());
@@ -291,7 +292,7 @@ TEST(QuestRepliesTest, ThePointsOfAnotherCharacterLeaveTheRecord)
         Quest::QuestResult{Replies::OtherKey, Quest::ClassPointsPrize, 5}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 0);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x66});
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
     ExpectThePrizeSparkles(*tested, tested->Other(), true);
     ExpectTheDecal(*tested, tested->Other());
@@ -366,7 +367,7 @@ TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
     EXPECT_EQ(hero.body[1].model, 0x221b);
     EXPECT_EQ(hero.animation.action, 0xb8);
     EXPECT_EQ(hero.animation.previousAction, 0x22);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x66});
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose + 30 * 3).State());
     ExpectThePrizeSparkles(*tested, hero, true);
     ExpectTheDecal(*tested, hero);
@@ -403,7 +404,7 @@ TEST(QuestRepliesTest, AFullJointPoolSkipsOnlyTheSparkles)
                                                           tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->cloth.random.State(), Client::Crt::CrtRandom(Seed).State());
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x65);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x65});
     ExpectTheDecal(*tested, tested->Other());
 }
 
@@ -419,7 +420,7 @@ TEST(QuestRepliesTest, TheEffectPrizeSparklesAndAnotherKindOnlySounds)
     tested->world.Runtime().lastSoundId.reset();
     EXPECT_TRUE(Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, 0xcc, 0}, tested->Resources())
                     .HasValue());
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x66});
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
 }
 } // namespace

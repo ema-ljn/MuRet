@@ -50,6 +50,7 @@
 #include "Kernel/OwnInventory.h"
 #include "Kernel/ItemState.h"
 #include "World/ModelEffects.h"
+#include "Audio/SoundId.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -653,7 +654,7 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEqui
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x9e);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x9e});
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(publisher.confirmations, 0);
     EXPECT_EQ(tested.world.Runtime().warpCounter, 9999999);
@@ -756,7 +757,7 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
                                           Transition::PlayerKey, tested.Resources(), publisher);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(runtime.map, pass.to);
-        EXPECT_EQ(runtime.lastSoundId, 0x9e);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x9e});
         const bool fromChaos = pass.from >= 18 && pass.from <= 23;
         const bool toChaos = pass.to >= 18 && pass.to <= 23;
         const bool crossesChaos = fromChaos || toChaos;

@@ -25,6 +25,7 @@
 #include "Camera/GameCamera.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainDefines.h"
+#include "Sound/SoundIds.h"
 
 #include <chrono>
 #include <cstddef>
@@ -78,7 +79,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         // 4c7af1..4c7b2f: el mismo prefijo corre al entrar y al salir, antes de 512a30: el sonido, las ventanas viejas
         // escondidas sin anotarlas (0x4906a0 con 1 y 0, Q-C572) y la de amigos suelta (0x4914e0).
         Kernel::WorldRuntime& runtime = resources.world.Runtime();
-        runtime.RequestSound(0x9e, std::nullopt, true);
+        runtime.RequestSound(Sound::ChaosSound, std::nullopt, true);
         if (auto hidden = UI::HideTheOldWindows(runtime.oldWindows, 1, 0, OldWindowGlobalsOf(runtime));
             !hidden.HasValue())
             return hidden;
@@ -94,9 +95,9 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
     if (!IsChaosCastle(loadedMap))
     {
         Kernel::WorldRuntime& runtime = resources.world.Runtime();
-        runtime.StopSound(0x99, true);
-        runtime.StopSound(0x9e, true);
-        runtime.lastSoundId = 0x9e;
+        runtime.StopSound(Sound::ChaosCastleSound, true);
+        runtime.StopSound(Sound::ChaosSound, true);
+        runtime.lastSoundId = Sound::ChaosSound;
     }
     ArmEventMapObject(loadedMap, resources.world.Runtime());
     if (auto height = RefreshTransitionHeight(PublishedHero(resources), resources); !height.HasValue())
@@ -202,9 +203,9 @@ Core::Expected<void, std::string> ChangeRegenMap(const Protocol::Movement::Regen
     if (!IsChaosCastle(resources.world.Runtime().map))
     {
         Kernel::WorldRuntime& runtime = resources.world.Runtime();
-        runtime.StopSound(0x99, true);
-        runtime.StopSound(0x9e, true);
-        runtime.lastSoundId = 0x9e;
+        runtime.StopSound(Sound::ChaosCastleSound, true);
+        runtime.StopSound(Sound::ChaosSound, true);
+        runtime.lastSoundId = Sound::ChaosSound;
     }
     return RefreshTransitionHeight(hero, resources);
 }

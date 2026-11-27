@@ -41,6 +41,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 #include "support/TestGameServer.h"
 
 #include "support/Bytes.h"
@@ -269,7 +270,7 @@ TEST_F(SelectionPipelineTest, SelectionForwardsTheLastFireworkSound)
 
     m_manager->Step(Client::Input::InputState{});
 
-    EXPECT_EQ(m_world.Runtime().lastSoundId, 0x59);
+    EXPECT_EQ(m_world.Runtime().lastSoundId, Client::Audio::SoundId{0x59});
     EXPECT_FALSE(firework.alive);
 }
 

@@ -40,6 +40,7 @@
 #include "Camera/GameCamera.h"
 #include "World/Particles.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
@@ -269,14 +270,14 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     EXPECT_EQ(monster.byte381, 1);
     EXPECT_EQ(monster.attackTarget, static_cast<std::uint16_t>(HeroSlot));
     EXPECT_EQ(game->world.Runtime().lastAttacker, static_cast<std::int32_t>(slot));
-    EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0xd + 0xd2));
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd + 0xd2});
     EXPECT_EQ(DrawsSince(created, game->cloth.random), 1);
 
     monster.attackTarget = 0;
     const std::uint32_t before = game->cloth.random.State();
     std::vector<std::int32_t> sounds;
     Client::Actors::CharacterStepContext context = game->Step();
-    context.soundRequest = [&sounds](std::int32_t sound) { sounds.push_back(sound); };
+    context.soundRequest = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
     for (int step = 1; step < 4; ++step)
     {
         const auto stepped = Client::Scenes::StepTheAttack(monster, slot, context);
@@ -310,7 +311,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     ASSERT_TRUE(damaged.HasValue()) << damaged.Error();
     // 0x4f53a0: la acción 5 y, con el frame en 0, el golpe de la WORD 2 o la 3 de su tabla (0x4f553d..0x4f55ac).
     EXPECT_EQ(monster.animation.action, 5);
-    EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0xd + 0xd2));
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd + 0xd2});
     EXPECT_GE(DrawsSince(created, game->cloth.random), 1);
     game->world.Runtime().lastSoundId.reset();
 
@@ -319,7 +320,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     const auto killed =
         Client::Scenes::ApplyKillExperience(kill, Client::Scenes::CombatContextOf(game->Resources()), chat);
     ASSERT_TRUE(killed.HasValue()) << killed.Error();
-    EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0xd + 0xd2));
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd + 0xd2});
 
     const Client::Protocol::Combat::Death death{.key = MonsterKey, .skill = 0, .killer = HeroKey};
     const auto died = Client::Scenes::ApplyDeath(death, Client::Scenes::CombatContextOf(game->Resources()));
@@ -478,7 +479,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
         const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
         EXPECT_TRUE(shocked.HasValue()) << (shocked.HasValue() ? "" : shocked.Error());
         EXPECT_EQ(monster.animation.action, 3);
-        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0x86));
+        EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x86});
         EXPECT_EQ(game->cloth.random.State(), expectedRandom.State());
         EXPECT_EQ(expectedSparkCount, probe.expectedSparks);
 
@@ -521,7 +522,7 @@ TEST_F(MonsterCombatTest, AMonsterHitUsesTheCanonicalRuntimeSoundRecord)
     const std::size_t word = 2 + static_cast<std::size_t>(expected.Next() & 1);
     const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
     ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
-    EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sounds[word] + 0xd2));
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{sounds[word] + 0xd2});
     EXPECT_EQ(game->cloth.random.State(), expected.State());
 }
 
@@ -563,7 +564,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsFinalSoundWhenEverySparkGateMisse
         else
             EXPECT_EQ(monster.animation.frame, probe.frame);
         EXPECT_FALSE(game->world.Particles().Any());
-        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0x86));
+        EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x86});
         EXPECT_EQ(game->cloth.random.State(), expected.State());
     }
 }
@@ -594,7 +595,7 @@ TEST_F(MonsterCombatTest, TheTwoDeviasModelsUseTheirOwnCanonicalHitSoundPairs)
 
         const auto shocked = Client::Actors::SetActorShock(monster, 30, game->Resources());
         ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
-        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sounds[word] + 0xd2));
+        EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{sounds[word] + 0xd2});
         EXPECT_EQ(game->cloth.random.State(), expected.State());
     }
 }

@@ -8,6 +8,7 @@
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 #include "support/Bytes.h"
 #include "support/Packets.h"
 #include "support/PlayerActors.h"
@@ -132,12 +133,13 @@ TEST(CrywolfMissilesTest, TheNormalImpactBuildsAllEightBurstsSixteenStonesAndThe
     float shake = 0;
     std::vector<int> sounds;
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
-                                                            {.terrainHeight = [](float, float) { return 0.0; },
-                                                             .effects = effects.get(),
-                                                             .lighting = lighting.get(),
-                                                             .cameraShake = &shake,
-                                                             .sound = [&](int sound) { sounds.push_back(sound); }});
+    const auto stepped = Client::World::StepGameModelEffect(
+        effect, nullptr, *particles, 0, random, nullptr,
+        {.terrainHeight = [](float, float) { return 0.0; },
+         .effects = effects.get(),
+         .lighting = lighting.get(),
+         .cameraShake = &shake,
+         .sound = [&](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 1227).State());
     EXPECT_EQ(std::ranges::count_if(particles->All(), [](const auto& p) { return p.alive; }), 169);

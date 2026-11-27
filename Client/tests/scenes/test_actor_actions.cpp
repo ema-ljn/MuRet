@@ -424,7 +424,7 @@ TEST_F(ActorStopTest, TheSuffixDrawsOneRandAndFenrirMaySound)
     m_random = CrtRandom(loud);
     const auto withSound = Stop(fenrir);
     ASSERT_TRUE(withSound.HasValue());
-    EXPECT_EQ(withSound.Value().sound, 0x279 + variant);
+    EXPECT_EQ(withSound.Value().sound, Client::Audio::SoundId{0x279 + variant});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
@@ -445,7 +445,7 @@ TEST_F(ActorStopTest, FenrirSuffixRequestsItsSoundOnceAtTheActorPosition)
     const auto stopped = Stop(fenrir);
 
     ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
-    ASSERT_EQ(stopped.Value().sound, soundId);
+    ASSERT_EQ(stopped.Value().sound, Client::Audio::SoundId{soundId});
     ASSERT_EQ(playback.requests.size(), 1u);
     EXPECT_EQ(playback.requests[0].id, soundId);
     ASSERT_TRUE(playback.requests[0].origin.has_value());
@@ -626,7 +626,7 @@ TEST_F(ActorStopTest, ModelSoundSubtypesUseTheirTableWhenTheSuffixGateOpens)
         m_random = CrtRandom(seed);
         const auto stopped = Stop(player);
         ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
-        EXPECT_EQ(stopped.Value().sound, 0xd2 + sounds[static_cast<std::size_t>(variant)]);
+        EXPECT_EQ(stopped.Value().sound, Client::Audio::SoundId{0xd2 + sounds[static_cast<std::size_t>(variant)]});
         EXPECT_EQ(m_random.State(), expected.State());
     }
     for (const std::int32_t subtype : {208, 212})
@@ -655,7 +655,7 @@ TEST_F(ActorStopTest, ModelSoundSentinelAndZeroFallbackHaveDifferentRandomPaths)
     m_random = CrtRandom(seed);
     const auto zeroFallback = Stop(monster);
     ASSERT_TRUE(zeroFallback.HasValue()) << zeroFallback.Error();
-    EXPECT_EQ(zeroFallback.Value().sound, 0xd2);
+    EXPECT_EQ(zeroFallback.Value().sound, Client::Audio::SoundId{0xd2});
     EXPECT_EQ(m_random.State(), AfterDraws(seed, 10).State());
 
     const std::array<std::int16_t, 10> noSound{-1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -685,7 +685,7 @@ TEST_F(ActorStopTest, NonPlayerSuffixUsesItsModelTableInsteadOfFenrirSounds)
     const auto stopped = Stop(monster);
 
     ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
-    EXPECT_EQ(stopped.Value().sound, 0xd2 + sounds[static_cast<std::size_t>(variant)] + 5);
+    EXPECT_EQ(stopped.Value().sound, Client::Audio::SoundId{0xd2 + sounds[static_cast<std::size_t>(variant)] + 5});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
@@ -709,7 +709,7 @@ TEST_F(ActorStopTest, TheSecondModelSoundWordIsSignedAndStillAddsTheSubtypeOffse
     const auto stopped = Stop(monster);
 
     ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
-    EXPECT_EQ(stopped.Value().sound, 0xd2 - 1 + 5);
+    EXPECT_EQ(stopped.Value().sound, Client::Audio::SoundId{0xd2 - 1 + 5});
     EXPECT_EQ(m_random.State(), AfterDraws(seed, 10).State());
 }
 
@@ -752,7 +752,7 @@ TEST_F(ActorStopTest, PlayerSoundSubtypesUseTheBorrowedModelTable)
     const auto stopped = Stop(player);
 
     ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
-    EXPECT_EQ(stopped.Value().sound, 0xd2 + sounds[static_cast<std::size_t>(variant)]);
+    EXPECT_EQ(stopped.Value().sound, Client::Audio::SoundId{0xd2 + sounds[static_cast<std::size_t>(variant)]});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 } // namespace

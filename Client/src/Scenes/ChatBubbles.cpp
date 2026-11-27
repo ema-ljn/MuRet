@@ -16,6 +16,7 @@
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/MessageLog.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -283,7 +284,7 @@ Core::Expected<void, std::string> AddChatBubble(Kernel::WorldState& world, const
         if (!sound.HasValue())
             return Core::Unexpected(sound.Error());
         if (sound.Value())
-            runtime.RequestSound(*sound.Value());
+            runtime.RequestSound(Audio::SoundId{*sound.Value()});
     }
     PutTheLine(*bubble, text, steps);
     return {};

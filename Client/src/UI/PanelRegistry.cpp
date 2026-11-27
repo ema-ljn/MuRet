@@ -7,6 +7,8 @@
 #include "Models/LogicalAccess.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelDialog.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstdint>
@@ -46,8 +48,8 @@ constexpr std::uint8_t BlockingQuestState = 1;
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
 // 0x65ca72..0x65ca88 y 0x65cc2c..0x65cc3a: los dos sonidos de abrir y cerrar.
-constexpr std::int32_t FirstPanelSound = 0x19;
-constexpr std::int32_t SecondPanelSound = 0x1c;
+constexpr Audio::SoundId FirstPanelSound = Sound::ButtonClickSound;
+constexpr Audio::SoundId SecondPanelSound = Sound::CreateWindowSound;
 // 0x420cc0: el valor de 0x723911 con el panel de la mascota abierto.
 constexpr std::uint8_t PetPanelOpen = 2;
 // 0x657880: la tecla Esc.

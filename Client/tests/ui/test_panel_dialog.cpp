@@ -6,6 +6,7 @@
 #include "UI/ChatInput.h"
 #include "UI/OldWindows.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -91,7 +92,7 @@ protected:
     std::int32_t m_capture = 0;
     std::int32_t m_pressedButton = 0;
     Client::UI::ChatFocus m_focus{};
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;
     bool m_rightClick = false;
@@ -239,7 +240,7 @@ TEST_F(PanelDialogTest, TheStepClicksTheConfirmButton)
     ASSERT_TRUE(Client::UI::StepThePanelDialog(m_dialog, Globals(), x, y, OpenedAt + 20, Recorder()).HasValue());
     ASSERT_EQ(m_answers.size(), 1u);
     EXPECT_EQ(m_answers[0].second, 8u);
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>(0x19));
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x19});
     EXPECT_EQ(m_dialog.opened, 0u);
 }
 

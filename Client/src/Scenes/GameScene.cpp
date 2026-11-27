@@ -107,6 +107,7 @@
 #include "Terrain/TerrainPickingSegment.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -564,7 +565,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         World::CastleSiegePrelude prelude{
             .siegeActive = world.Runtime().castleSiege.siegeActive,
             .musicTime = &world.Runtime().castleSiege.siegeMusicTime,
-            .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+            .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
             .random = &m_context.cloth->random,
             .logicSteps = m_context.cloth->logicSteps,
             .heroPosition = world.Hero().position,
@@ -650,9 +651,9 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         .dynamicLighting = &DynamicLight().Lighting(),
         .particles = &world.Particles(),
         .heroPosition = &hero.position,
-        .sound = [&](std::int32_t id) { world.Runtime().RequestSound(id); },
+        .sound = [&](Audio::SoundId id) { world.Runtime().RequestSound(id); },
         // El ambiente del 9 suena en bucle (0x41ed10(1, 0, 1)).
-        .loopedSound = [&](std::int32_t id) { world.Runtime().RequestSound(id, std::nullopt, true); },
+        .loopedSound = [&](Audio::SoundId id) { world.Runtime().RequestSound(id, std::nullopt, true); },
         .modelState = &world.Runtime().objectModelState,
         .effects = &world.Map().effects,
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
@@ -694,7 +695,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                             return Core::Unexpected(created.Error());
                         return {};
                     },
-                    .sound = [&world](std::int32_t sound) { world.Runtime().RequestSound(sound); }});
+                    .sound = [&world](Audio::SoundId sound) { world.Runtime().RequestSound(sound); }});
         };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals, after, collapse);
@@ -1149,11 +1150,11 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                     .waterTextureFrame = FrameCloth().waterTextureFrame,
                     .hero = &hero,
                     .kalima = FrameKalima(),
-                    .requestSound = [&](std::int32_t sound)
+                    .requestSound = [&](Audio::SoundId sound)
                     {
                         if (frames > 0 && !m_projectingFrame)
                         {
-                            world.Fauna().Sound(sound, nullptr);
+                            world.Fauna().Sound(sound.Value(), nullptr);
                             world.Runtime().RequestSound(sound);
                         }
                     },

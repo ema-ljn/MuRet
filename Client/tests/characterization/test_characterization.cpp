@@ -4,6 +4,7 @@
 #include "App/GameClient.h"
 #include "App/ILoopClient.h"
 #include "App/ServerAddress.h"
+#include "Audio/Playback.h"
 #include "Session/ServerSession.h"
 #include "Core/Environment.h"
 #include "Core/Expected.h"
@@ -39,6 +40,8 @@
 #include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <array>
@@ -245,9 +248,71 @@ std::string HexOf(std::span<const std::byte> bytes)
     return hex;
 }
 
-// The client of App::GameClient, with doubles for what needs a device (the socket, the clock, GL, the fonts and the
-// screen reader), fixed seeds and a fixed local time, and AutoLogin choosing the first server and sending the
-// account, as with --auto-login. No audio device, clipboard or friend chat rooms.
+std::string PositionOf(glm::vec3 position)
+{
+    return std::format("{} {} {}", position.x, position.y, position.z);
+}
+
+// The audio device of the harness: one row per call, with the frame that made it ("start" before the first frame).
+class RecordingPlayback final : public Audio::IPlayback
+{
+public:
+    void PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override
+    {
+        Note("play-sound", std::format("{:#04x}{}{}", id, loop ? " loop" : "",
+                                       origin ? " at " + PositionOf(*origin) : std::string()));
+    }
+    void StopSound(std::int32_t id, bool rewind) override
+    {
+        Note("stop-sound", std::format("{:#04x}{}", id, rewind ? " rewind" : ""));
+    }
+    void PlayMusic(std::string_view relativePath, bool loop) override
+    {
+        Note("play-music", std::format("{}{}", relativePath, loop ? " loop" : ""));
+    }
+    void StopMusic() override
+    {
+        Note("stop-music", "");
+    }
+    void SetEffectsVolume(std::uint8_t level) override
+    {
+        Note("volume", std::to_string(level));
+    }
+    void SetListener(glm::vec3 position) override
+    {
+        Note("listener", PositionOf(position));
+    }
+    void RegisterSound(std::int32_t id, std::string_view path) override
+    {
+        Note("register", std::format("{:#04x} {}", id, path));
+    }
+    void ReleaseWorldSounds() override
+    {
+        Note("release", "");
+    }
+
+    void SetFrame(int frame)
+    {
+        m_frame = std::to_string(frame);
+    }
+    [[nodiscard]] const std::vector<std::string>& Rows() const
+    {
+        return m_rows;
+    }
+
+private:
+    void Note(std::string_view event, std::string_view value)
+    {
+        m_rows.push_back(std::format("{}\t{}\t{}", m_frame, event, value));
+    }
+
+    std::string m_frame = "start";
+    std::vector<std::string> m_rows;
+};
+
+// The client of App::GameClient, with doubles for what needs a device (the socket, the clock, GL, the fonts, the
+// screen reader and the audio), fixed seeds and a fixed local time, and AutoLogin choosing the first server and
+// sending the account, as with --auto-login. No clipboard or friend chat rooms.
 class ScriptedClient
 {
 public:
@@ -263,7 +328,8 @@ public:
                                           .input = m_input,
                                           .screen = [] { return Screen; },
                                           .localTime = []() -> Core::Expected<Core::LocalTime, std::string>
-                                          { return FixedLocalTime; }},
+                                          { return FixedLocalTime; },
+                                          .playback = &m_audio},
                    App::GameClientOptions{.dataRoot = dataRoot,
                                           .version = std::string(Version),
                                           .crtSeed = CrtSeed,
@@ -351,6 +417,8 @@ public:
     // frame, and the end of the loop. Then the clock moves one step.
     FrameDigest RunFrame()
     {
+        m_audio.SetFrame(m_frame++);
+        m_audioBefore = m_audio.Rows().size();
         const std::size_t sentBefore = m_socket.sent.size();
         m_target.frames.clear();
         App::ILoopClient& loop = m_client.Loop();
@@ -392,6 +460,11 @@ public:
         return m_screenReader.reads;
     }
 
+    [[nodiscard]] const std::vector<std::string>& AudioRows() const
+    {
+        return m_audio.Rows();
+    }
+
     // The last frame's scene, session state and the packets the server read from it, to write a scene.
     std::string Trace()
     {
@@ -400,6 +473,11 @@ public:
         for (const Network::Packet& packet : AsTheGameServerReceives(m_sentThisFrame, m_traceSerials).packets)
         {
             trace += "\n  sent " + HexOf(packet.Bytes());
+        }
+        for (const std::string& row : std::span(m_audio.Rows()).subspan(m_audioBefore))
+        {
+            const std::vector<std::string> fields = SplitTabs(row);
+            trace += "\n  audio " + fields[1] + (fields.size() > 2 ? " " + fields[2] : "");
         }
         if (m_client.CurrentScene() == Scenes::SceneId::Game)
         {
@@ -449,10 +527,13 @@ private:
     BlackScreenReader m_screenReader;
     Input::InputState m_input;
     FakeSocket m_socket;
+    RecordingPlayback m_audio;
     App::GameClient m_client;
     Network::PacketSerials m_serverSerials;
     Network::PacketSerials m_traceSerials;
     std::span<const std::byte> m_sentThisFrame;
+    std::size_t m_audioBefore = 0;
+    int m_frame = 0;
 };
 
 std::string GoldenText(const std::vector<FrameDigest>& digests)
@@ -493,6 +574,51 @@ Core::Expected<std::vector<FrameDigest>, std::string> ReadGolden(const std::file
     return digests;
 }
 
+std::string AudioText(const std::vector<std::string>& rows)
+{
+    std::string text = "frame\tevent\tvalue\n";
+    for (const std::string& row : rows)
+    {
+        text += row + "\n";
+    }
+    return text;
+}
+
+Core::Expected<std::vector<std::string>, std::string> ReadAudioGolden(const std::filesystem::path& path)
+{
+    std::ifstream file(path);
+    if (!file)
+    {
+        return Core::Unexpected(
+            std::format("{} does not open: write it with MU_CHARACTERIZATION_WRITE=1", path.string()));
+    }
+    std::vector<std::string> rows;
+    std::string line;
+    std::getline(file, line);
+    while (std::getline(file, line))
+    {
+        rows.push_back(line);
+    }
+    return rows;
+}
+
+std::optional<std::string> FirstAudioDifference(const std::vector<std::string>& expected,
+                                                const std::vector<std::string>& actual)
+{
+    for (std::size_t row = 0; row < std::min(expected.size(), actual.size()); ++row)
+    {
+        if (expected[row] != actual[row])
+        {
+            return std::format("audio row {} is \"{}\" instead of \"{}\"", row + 1, actual[row], expected[row]);
+        }
+    }
+    if (expected.size() != actual.size())
+    {
+        return std::format("{} audio rows instead of {}", actual.size(), expected.size());
+    }
+    return std::nullopt;
+}
+
 // The first frame that differs and which of its fields, or nothing if both lists are the same.
 std::optional<std::string> FirstDifference(const std::vector<FrameDigest>& expected,
                                            const std::vector<FrameDigest>& actual)
@@ -525,6 +651,12 @@ std::optional<std::string> FirstDifference(const std::vector<FrameDigest>& expec
     return std::nullopt;
 }
 
+struct SceneRun
+{
+    std::vector<FrameDigest> digests;
+    std::vector<std::string> audio;
+};
+
 class CharacterizationTest : public GoldenDataTest
 {
 protected:
@@ -536,8 +668,8 @@ protected:
         m_data = std::make_unique<Tables::GameData>(std::move(data).Value());
     }
 
-    // The digest of every frame of `scene`, from 0 to its end row.
-    std::vector<FrameDigest> Run(std::string_view scene)
+    // The digest of every frame of `scene`, from 0 to its end row, and every call to the audio device.
+    SceneRun Run(std::string_view scene)
     {
         const auto script = ReadScript(CharacterizationDir() / "scenes" / std::format("{}.tsv", scene));
         EXPECT_TRUE(script.HasValue()) << script.Error();
@@ -549,7 +681,7 @@ protected:
         auto client = std::make_unique<ScriptedClient>(m_dataRoot, *m_data);
         const auto started = client->Start();
         EXPECT_TRUE(started.HasValue()) << started.Error();
-        std::vector<FrameDigest> digests;
+        SceneRun run;
         auto row = script.Value().rows.begin();
         for (int frame = 0; frame <= script.Value().frames && started.HasValue(); ++frame)
         {
@@ -558,7 +690,7 @@ protected:
                 const auto applied = client->Apply(*row);
                 EXPECT_TRUE(applied.HasValue()) << "frame " << frame << ": " << applied.Error();
             }
-            digests.push_back(client->RunFrame());
+            run.digests.push_back(client->RunFrame());
             if (trace)
             {
                 std::printf("frame %d: %s\n", frame, client->Trace().c_str());
@@ -569,24 +701,31 @@ protected:
                 break;
             }
         }
-        return digests;
+        run.audio = client->AudioRows();
+        return run;
     }
 
-    // Compares `scene` with its golden, or writes it with MU_CHARACTERIZATION_WRITE=1.
+    // Compares `scene` with its goldens, or writes them with MU_CHARACTERIZATION_WRITE=1.
     void ExpectTheGolden(std::string_view scene)
     {
-        const std::vector<FrameDigest> digests = Run(scene);
+        const SceneRun run = Run(scene);
         const std::filesystem::path golden = CharacterizationDir() / "golden" / std::format("{}.tsv", scene);
+        const std::filesystem::path audioGolden = CharacterizationDir() / "golden" / std::format("{}.audio.tsv", scene);
         if (EnvironmentFlag("MU_CHARACTERIZATION_WRITE"))
         {
-            std::ofstream(golden, std::ios::binary) << GoldenText(digests);
-            std::printf("wrote %s\n", golden.string().c_str());
+            std::ofstream(golden, std::ios::binary) << GoldenText(run.digests);
+            std::ofstream(audioGolden, std::ios::binary) << AudioText(run.audio);
+            std::printf("wrote %s and %s\n", golden.string().c_str(), audioGolden.string().c_str());
             return;
         }
         const auto expected = ReadGolden(golden);
         ASSERT_TRUE(expected.HasValue()) << expected.Error();
-        const std::optional<std::string> difference = FirstDifference(expected.Value(), digests);
+        const std::optional<std::string> difference = FirstDifference(expected.Value(), run.digests);
         EXPECT_FALSE(difference.has_value()) << scene << ": " << difference.value_or("");
+        const auto expectedAudio = ReadAudioGolden(audioGolden);
+        ASSERT_TRUE(expectedAudio.HasValue()) << expectedAudio.Error();
+        const std::optional<std::string> audioDifference = FirstAudioDifference(expectedAudio.Value(), run.audio);
+        EXPECT_FALSE(audioDifference.has_value()) << scene << ": " << audioDifference.value_or("");
     }
 
     std::unique_ptr<Tables::GameData> m_data;
@@ -642,11 +781,14 @@ TEST_F(CharacterizationTest, PrintScreenReadsTheScreenOnce)
 
 TEST_F(CharacterizationTest, IsDeterministic)
 {
-    const std::vector<FrameDigest> first = Run("LoginToLorencia");
-    const std::vector<FrameDigest> second = Run("LoginToLorencia");
-    ASSERT_FALSE(first.empty());
-    const std::optional<std::string> difference = FirstDifference(first, second);
+    const SceneRun first = Run("LoginToLorencia");
+    const SceneRun second = Run("LoginToLorencia");
+    ASSERT_FALSE(first.digests.empty());
+    ASSERT_FALSE(first.audio.empty());
+    const std::optional<std::string> difference = FirstDifference(first.digests, second.digests);
     EXPECT_FALSE(difference.has_value()) << difference.value_or("");
+    const std::optional<std::string> audioDifference = FirstAudioDifference(first.audio, second.audio);
+    EXPECT_FALSE(audioDifference.has_value()) << audioDifference.value_or("");
 }
 } // namespace
 } // namespace Client::Tests

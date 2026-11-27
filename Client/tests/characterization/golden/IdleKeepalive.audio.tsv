@@ -1,0 +1,5477 @@
+frame	event	value
+start	volume	5
+10	release	
+10	play-music	Music\main_theme.mp3
+22	release	
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+23	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+24	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+25	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+26	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+27	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+28	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+29	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+30	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+31	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+32	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+33	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x246
+34	play-sound	0x19
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	play-sound	0x246
+36	stop-sound	0x00 rewind
+36	stop-sound	0x01 rewind
+36	stop-sound	0x03 rewind
+36	stop-sound	0x02 rewind
+36	stop-sound	0x05 rewind
+36	stop-sound	0x06 rewind
+36	stop-sound	0x07 rewind
+36	stop-sound	0x14 rewind
+36	stop-music	
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	play-sound	0x246
+37	stop-sound	0x00 rewind
+37	stop-sound	0x01 rewind
+37	stop-sound	0x03 rewind
+37	stop-sound	0x02 rewind
+37	stop-sound	0x05 rewind
+37	stop-sound	0x06 rewind
+37	stop-sound	0x07 rewind
+37	stop-sound	0x14 rewind
+38	release	
+38	stop-sound	0x8b rewind
+38	stop-sound	0x99 rewind
+38	stop-sound	0x9e rewind
+38	play-sound	0x00 loop
+38	stop-sound	0x03 rewind
+38	stop-sound	0x02 rewind
+38	stop-sound	0x05 rewind
+38	stop-sound	0x06 rewind
+38	stop-sound	0x07 rewind
+38	stop-sound	0x14 rewind
+38	play-music	Music\main_theme.mp3
+39	play-sound	0x00 loop
+39	stop-sound	0x03 rewind
+39	stop-sound	0x02 rewind
+39	stop-sound	0x05 rewind
+39	stop-sound	0x06 rewind
+39	stop-sound	0x07 rewind
+39	stop-sound	0x14 rewind
+40	play-sound	0x00 loop
+40	stop-sound	0x03 rewind
+40	stop-sound	0x02 rewind
+40	stop-sound	0x05 rewind
+40	stop-sound	0x06 rewind
+40	stop-sound	0x07 rewind
+40	stop-sound	0x14 rewind
+42	play-sound	0x00 loop
+42	stop-sound	0x03 rewind
+42	stop-sound	0x02 rewind
+42	stop-sound	0x05 rewind
+42	stop-sound	0x06 rewind
+42	stop-sound	0x07 rewind
+42	stop-sound	0x14 rewind
+43	play-sound	0x00 loop
+43	stop-sound	0x03 rewind
+43	stop-sound	0x02 rewind
+43	stop-sound	0x05 rewind
+43	stop-sound	0x06 rewind
+43	stop-sound	0x07 rewind
+43	stop-sound	0x14 rewind
+44	play-sound	0x00 loop
+44	stop-sound	0x03 rewind
+44	stop-sound	0x02 rewind
+44	stop-sound	0x05 rewind
+44	stop-sound	0x06 rewind
+44	stop-sound	0x07 rewind
+44	stop-sound	0x14 rewind
+45	play-sound	0x00 loop
+45	stop-sound	0x03 rewind
+45	stop-sound	0x02 rewind
+45	stop-sound	0x05 rewind
+45	stop-sound	0x06 rewind
+45	stop-sound	0x07 rewind
+45	stop-sound	0x14 rewind
+46	play-sound	0x00 loop
+46	stop-sound	0x03 rewind
+46	stop-sound	0x02 rewind
+46	stop-sound	0x05 rewind
+46	stop-sound	0x06 rewind
+46	stop-sound	0x07 rewind
+46	stop-sound	0x14 rewind
+47	play-sound	0x00 loop
+47	stop-sound	0x03 rewind
+47	stop-sound	0x02 rewind
+47	stop-sound	0x05 rewind
+47	stop-sound	0x06 rewind
+47	stop-sound	0x07 rewind
+47	stop-sound	0x14 rewind
+49	play-sound	0x00 loop
+49	stop-sound	0x03 rewind
+49	stop-sound	0x02 rewind
+49	stop-sound	0x05 rewind
+49	stop-sound	0x06 rewind
+49	stop-sound	0x07 rewind
+49	stop-sound	0x14 rewind
+50	play-sound	0x00 loop
+50	stop-sound	0x03 rewind
+50	stop-sound	0x02 rewind
+50	stop-sound	0x05 rewind
+50	stop-sound	0x06 rewind
+50	stop-sound	0x07 rewind
+50	stop-sound	0x14 rewind
+51	play-sound	0x00 loop
+51	stop-sound	0x03 rewind
+51	stop-sound	0x02 rewind
+51	stop-sound	0x05 rewind
+51	stop-sound	0x06 rewind
+51	stop-sound	0x07 rewind
+51	stop-sound	0x14 rewind
+52	play-sound	0x00 loop
+52	stop-sound	0x03 rewind
+52	stop-sound	0x02 rewind
+52	stop-sound	0x05 rewind
+52	stop-sound	0x06 rewind
+52	stop-sound	0x07 rewind
+52	stop-sound	0x14 rewind
+53	play-sound	0x00 loop
+53	stop-sound	0x03 rewind
+53	stop-sound	0x02 rewind
+53	stop-sound	0x05 rewind
+53	stop-sound	0x06 rewind
+53	stop-sound	0x07 rewind
+53	stop-sound	0x14 rewind
+54	play-sound	0x00 loop
+54	stop-sound	0x03 rewind
+54	stop-sound	0x02 rewind
+54	stop-sound	0x05 rewind
+54	stop-sound	0x06 rewind
+54	stop-sound	0x07 rewind
+54	stop-sound	0x14 rewind
+56	play-sound	0x00 loop
+56	stop-sound	0x03 rewind
+56	stop-sound	0x02 rewind
+56	stop-sound	0x05 rewind
+56	stop-sound	0x06 rewind
+56	stop-sound	0x07 rewind
+56	stop-sound	0x14 rewind
+57	play-sound	0x00 loop
+57	stop-sound	0x03 rewind
+57	stop-sound	0x02 rewind
+57	stop-sound	0x05 rewind
+57	stop-sound	0x06 rewind
+57	stop-sound	0x07 rewind
+57	stop-sound	0x14 rewind
+58	play-sound	0x00 loop
+58	stop-sound	0x03 rewind
+58	stop-sound	0x02 rewind
+58	stop-sound	0x05 rewind
+58	stop-sound	0x06 rewind
+58	stop-sound	0x07 rewind
+58	stop-sound	0x14 rewind
+59	play-sound	0x00 loop
+59	stop-sound	0x03 rewind
+59	stop-sound	0x02 rewind
+59	stop-sound	0x05 rewind
+59	stop-sound	0x06 rewind
+59	stop-sound	0x07 rewind
+59	stop-sound	0x14 rewind
+60	play-sound	0x00 loop
+60	stop-sound	0x03 rewind
+60	stop-sound	0x02 rewind
+60	stop-sound	0x05 rewind
+60	stop-sound	0x06 rewind
+60	stop-sound	0x07 rewind
+60	stop-sound	0x14 rewind
+61	play-sound	0x00 loop
+61	stop-sound	0x03 rewind
+61	stop-sound	0x02 rewind
+61	stop-sound	0x05 rewind
+61	stop-sound	0x06 rewind
+61	stop-sound	0x07 rewind
+61	stop-sound	0x14 rewind
+63	play-sound	0x00 loop
+63	stop-sound	0x03 rewind
+63	stop-sound	0x02 rewind
+63	stop-sound	0x05 rewind
+63	stop-sound	0x06 rewind
+63	stop-sound	0x07 rewind
+63	stop-sound	0x14 rewind
+64	play-sound	0x00 loop
+64	stop-sound	0x03 rewind
+64	stop-sound	0x02 rewind
+64	stop-sound	0x05 rewind
+64	stop-sound	0x06 rewind
+64	stop-sound	0x07 rewind
+64	stop-sound	0x14 rewind
+65	play-sound	0x00 loop
+65	stop-sound	0x03 rewind
+65	stop-sound	0x02 rewind
+65	stop-sound	0x05 rewind
+65	stop-sound	0x06 rewind
+65	stop-sound	0x07 rewind
+65	stop-sound	0x14 rewind
+66	play-sound	0x00 loop
+66	stop-sound	0x03 rewind
+66	stop-sound	0x02 rewind
+66	stop-sound	0x05 rewind
+66	stop-sound	0x06 rewind
+66	stop-sound	0x07 rewind
+66	stop-sound	0x14 rewind
+67	play-sound	0x00 loop
+67	stop-sound	0x03 rewind
+67	stop-sound	0x02 rewind
+67	stop-sound	0x05 rewind
+67	stop-sound	0x06 rewind
+67	stop-sound	0x07 rewind
+67	stop-sound	0x14 rewind
+68	play-sound	0x00 loop
+68	stop-sound	0x03 rewind
+68	stop-sound	0x02 rewind
+68	stop-sound	0x05 rewind
+68	stop-sound	0x06 rewind
+68	stop-sound	0x07 rewind
+68	stop-sound	0x14 rewind
+70	play-sound	0x00 loop
+70	stop-sound	0x03 rewind
+70	stop-sound	0x02 rewind
+70	stop-sound	0x05 rewind
+70	stop-sound	0x06 rewind
+70	stop-sound	0x07 rewind
+70	stop-sound	0x14 rewind
+71	play-sound	0x00 loop
+71	stop-sound	0x03 rewind
+71	stop-sound	0x02 rewind
+71	stop-sound	0x05 rewind
+71	stop-sound	0x06 rewind
+71	stop-sound	0x07 rewind
+71	stop-sound	0x14 rewind
+72	play-sound	0x00 loop
+72	stop-sound	0x03 rewind
+72	stop-sound	0x02 rewind
+72	stop-sound	0x05 rewind
+72	stop-sound	0x06 rewind
+72	stop-sound	0x07 rewind
+72	stop-sound	0x14 rewind
+73	play-sound	0x00 loop
+73	stop-sound	0x03 rewind
+73	stop-sound	0x02 rewind
+73	stop-sound	0x05 rewind
+73	stop-sound	0x06 rewind
+73	stop-sound	0x07 rewind
+73	stop-sound	0x14 rewind
+74	play-sound	0x00 loop
+74	stop-sound	0x03 rewind
+74	stop-sound	0x02 rewind
+74	stop-sound	0x05 rewind
+74	stop-sound	0x06 rewind
+74	stop-sound	0x07 rewind
+74	stop-sound	0x14 rewind
+75	play-sound	0x00 loop
+75	stop-sound	0x03 rewind
+75	stop-sound	0x02 rewind
+75	stop-sound	0x05 rewind
+75	stop-sound	0x06 rewind
+75	stop-sound	0x07 rewind
+75	stop-sound	0x14 rewind
+77	play-sound	0x00 loop
+77	stop-sound	0x03 rewind
+77	stop-sound	0x02 rewind
+77	stop-sound	0x05 rewind
+77	stop-sound	0x06 rewind
+77	stop-sound	0x07 rewind
+77	stop-sound	0x14 rewind
+78	play-sound	0x00 loop
+78	stop-sound	0x03 rewind
+78	stop-sound	0x02 rewind
+78	stop-sound	0x05 rewind
+78	stop-sound	0x06 rewind
+78	stop-sound	0x07 rewind
+78	stop-sound	0x14 rewind
+79	play-sound	0x00 loop
+79	stop-sound	0x03 rewind
+79	stop-sound	0x02 rewind
+79	stop-sound	0x05 rewind
+79	stop-sound	0x06 rewind
+79	stop-sound	0x07 rewind
+79	stop-sound	0x14 rewind
+80	play-sound	0x00 loop
+80	stop-sound	0x03 rewind
+80	stop-sound	0x02 rewind
+80	stop-sound	0x05 rewind
+80	stop-sound	0x06 rewind
+80	stop-sound	0x07 rewind
+80	stop-sound	0x14 rewind
+81	play-sound	0x00 loop
+81	stop-sound	0x03 rewind
+81	stop-sound	0x02 rewind
+81	stop-sound	0x05 rewind
+81	stop-sound	0x06 rewind
+81	stop-sound	0x07 rewind
+81	stop-sound	0x14 rewind
+83	play-sound	0x00 loop
+83	stop-sound	0x03 rewind
+83	stop-sound	0x02 rewind
+83	stop-sound	0x05 rewind
+83	stop-sound	0x06 rewind
+83	stop-sound	0x07 rewind
+83	stop-sound	0x14 rewind
+84	play-sound	0x00 loop
+84	stop-sound	0x03 rewind
+84	stop-sound	0x02 rewind
+84	stop-sound	0x05 rewind
+84	stop-sound	0x06 rewind
+84	stop-sound	0x07 rewind
+84	stop-sound	0x14 rewind
+85	play-sound	0x00 loop
+85	stop-sound	0x03 rewind
+85	stop-sound	0x02 rewind
+85	stop-sound	0x05 rewind
+85	stop-sound	0x06 rewind
+85	stop-sound	0x07 rewind
+85	stop-sound	0x14 rewind
+86	play-sound	0x00 loop
+86	stop-sound	0x03 rewind
+86	stop-sound	0x02 rewind
+86	stop-sound	0x05 rewind
+86	stop-sound	0x06 rewind
+86	stop-sound	0x07 rewind
+86	stop-sound	0x14 rewind
+87	play-sound	0x00 loop
+87	stop-sound	0x03 rewind
+87	stop-sound	0x02 rewind
+87	stop-sound	0x05 rewind
+87	stop-sound	0x06 rewind
+87	stop-sound	0x07 rewind
+87	stop-sound	0x14 rewind
+88	play-sound	0x00 loop
+88	stop-sound	0x03 rewind
+88	stop-sound	0x02 rewind
+88	stop-sound	0x05 rewind
+88	stop-sound	0x06 rewind
+88	stop-sound	0x07 rewind
+88	stop-sound	0x14 rewind
+90	play-sound	0x00 loop
+90	stop-sound	0x03 rewind
+90	stop-sound	0x02 rewind
+90	stop-sound	0x05 rewind
+90	stop-sound	0x06 rewind
+90	stop-sound	0x07 rewind
+90	stop-sound	0x14 rewind
+91	play-sound	0x00 loop
+91	stop-sound	0x03 rewind
+91	stop-sound	0x02 rewind
+91	stop-sound	0x05 rewind
+91	stop-sound	0x06 rewind
+91	stop-sound	0x07 rewind
+91	stop-sound	0x14 rewind
+92	play-sound	0x00 loop
+92	stop-sound	0x03 rewind
+92	stop-sound	0x02 rewind
+92	stop-sound	0x05 rewind
+92	stop-sound	0x06 rewind
+92	stop-sound	0x07 rewind
+92	stop-sound	0x14 rewind
+93	play-sound	0x00 loop
+93	stop-sound	0x03 rewind
+93	stop-sound	0x02 rewind
+93	stop-sound	0x05 rewind
+93	stop-sound	0x06 rewind
+93	stop-sound	0x07 rewind
+93	stop-sound	0x14 rewind
+94	play-sound	0x00 loop
+94	stop-sound	0x03 rewind
+94	stop-sound	0x02 rewind
+94	stop-sound	0x05 rewind
+94	stop-sound	0x06 rewind
+94	stop-sound	0x07 rewind
+94	stop-sound	0x14 rewind
+95	play-sound	0x00 loop
+95	stop-sound	0x03 rewind
+95	stop-sound	0x02 rewind
+95	stop-sound	0x05 rewind
+95	stop-sound	0x06 rewind
+95	stop-sound	0x07 rewind
+95	stop-sound	0x14 rewind
+97	play-sound	0x00 loop
+97	stop-sound	0x03 rewind
+97	stop-sound	0x02 rewind
+97	stop-sound	0x05 rewind
+97	stop-sound	0x06 rewind
+97	stop-sound	0x07 rewind
+97	stop-sound	0x14 rewind
+98	play-sound	0x00 loop
+98	stop-sound	0x03 rewind
+98	stop-sound	0x02 rewind
+98	stop-sound	0x05 rewind
+98	stop-sound	0x06 rewind
+98	stop-sound	0x07 rewind
+98	stop-sound	0x14 rewind
+99	play-sound	0x00 loop
+99	stop-sound	0x03 rewind
+99	stop-sound	0x02 rewind
+99	stop-sound	0x05 rewind
+99	stop-sound	0x06 rewind
+99	stop-sound	0x07 rewind
+99	stop-sound	0x14 rewind
+100	play-sound	0x00 loop
+100	stop-sound	0x03 rewind
+100	stop-sound	0x02 rewind
+100	stop-sound	0x05 rewind
+100	stop-sound	0x06 rewind
+100	stop-sound	0x07 rewind
+100	stop-sound	0x14 rewind
+101	play-sound	0x00 loop
+101	stop-sound	0x03 rewind
+101	stop-sound	0x02 rewind
+101	stop-sound	0x05 rewind
+101	stop-sound	0x06 rewind
+101	stop-sound	0x07 rewind
+101	stop-sound	0x14 rewind
+102	play-sound	0x00 loop
+102	stop-sound	0x03 rewind
+102	stop-sound	0x02 rewind
+102	stop-sound	0x05 rewind
+102	stop-sound	0x06 rewind
+102	stop-sound	0x07 rewind
+102	stop-sound	0x14 rewind
+104	play-sound	0x00 loop
+104	stop-sound	0x03 rewind
+104	stop-sound	0x02 rewind
+104	stop-sound	0x05 rewind
+104	stop-sound	0x06 rewind
+104	stop-sound	0x07 rewind
+104	stop-sound	0x14 rewind
+105	play-sound	0x00 loop
+105	stop-sound	0x03 rewind
+105	stop-sound	0x02 rewind
+105	stop-sound	0x05 rewind
+105	stop-sound	0x06 rewind
+105	stop-sound	0x07 rewind
+105	stop-sound	0x14 rewind
+106	play-sound	0x00 loop
+106	stop-sound	0x03 rewind
+106	stop-sound	0x02 rewind
+106	stop-sound	0x05 rewind
+106	stop-sound	0x06 rewind
+106	stop-sound	0x07 rewind
+106	stop-sound	0x14 rewind
+107	play-sound	0x00 loop
+107	stop-sound	0x03 rewind
+107	stop-sound	0x02 rewind
+107	stop-sound	0x05 rewind
+107	stop-sound	0x06 rewind
+107	stop-sound	0x07 rewind
+107	stop-sound	0x14 rewind
+108	play-sound	0x00 loop
+108	stop-sound	0x03 rewind
+108	stop-sound	0x02 rewind
+108	stop-sound	0x05 rewind
+108	stop-sound	0x06 rewind
+108	stop-sound	0x07 rewind
+108	stop-sound	0x14 rewind
+109	play-sound	0x00 loop
+109	stop-sound	0x03 rewind
+109	stop-sound	0x02 rewind
+109	stop-sound	0x05 rewind
+109	stop-sound	0x06 rewind
+109	stop-sound	0x07 rewind
+109	stop-sound	0x14 rewind
+111	play-sound	0x00 loop
+111	stop-sound	0x03 rewind
+111	stop-sound	0x02 rewind
+111	stop-sound	0x05 rewind
+111	stop-sound	0x06 rewind
+111	stop-sound	0x07 rewind
+111	stop-sound	0x14 rewind
+112	play-sound	0x00 loop
+112	stop-sound	0x03 rewind
+112	stop-sound	0x02 rewind
+112	stop-sound	0x05 rewind
+112	stop-sound	0x06 rewind
+112	stop-sound	0x07 rewind
+112	stop-sound	0x14 rewind
+113	play-sound	0x00 loop
+113	stop-sound	0x03 rewind
+113	stop-sound	0x02 rewind
+113	stop-sound	0x05 rewind
+113	stop-sound	0x06 rewind
+113	stop-sound	0x07 rewind
+113	stop-sound	0x14 rewind
+114	play-sound	0x00 loop
+114	stop-sound	0x03 rewind
+114	stop-sound	0x02 rewind
+114	stop-sound	0x05 rewind
+114	stop-sound	0x06 rewind
+114	stop-sound	0x07 rewind
+114	stop-sound	0x14 rewind
+115	play-sound	0x00 loop
+115	stop-sound	0x03 rewind
+115	stop-sound	0x02 rewind
+115	stop-sound	0x05 rewind
+115	stop-sound	0x06 rewind
+115	stop-sound	0x07 rewind
+115	stop-sound	0x14 rewind
+117	play-sound	0x00 loop
+117	stop-sound	0x03 rewind
+117	stop-sound	0x02 rewind
+117	stop-sound	0x05 rewind
+117	stop-sound	0x06 rewind
+117	stop-sound	0x07 rewind
+117	stop-sound	0x14 rewind
+118	play-sound	0x00 loop
+118	stop-sound	0x03 rewind
+118	stop-sound	0x02 rewind
+118	stop-sound	0x05 rewind
+118	stop-sound	0x06 rewind
+118	stop-sound	0x07 rewind
+118	stop-sound	0x14 rewind
+119	play-sound	0x00 loop
+119	stop-sound	0x03 rewind
+119	stop-sound	0x02 rewind
+119	stop-sound	0x05 rewind
+119	stop-sound	0x06 rewind
+119	stop-sound	0x07 rewind
+119	stop-sound	0x14 rewind
+120	play-sound	0x00 loop
+120	stop-sound	0x03 rewind
+120	stop-sound	0x02 rewind
+120	stop-sound	0x05 rewind
+120	stop-sound	0x06 rewind
+120	stop-sound	0x07 rewind
+120	stop-sound	0x14 rewind
+121	play-sound	0x00 loop
+121	stop-sound	0x03 rewind
+121	stop-sound	0x02 rewind
+121	stop-sound	0x05 rewind
+121	stop-sound	0x06 rewind
+121	stop-sound	0x07 rewind
+121	stop-sound	0x14 rewind
+122	play-sound	0x00 loop
+122	stop-sound	0x03 rewind
+122	stop-sound	0x02 rewind
+122	stop-sound	0x05 rewind
+122	stop-sound	0x06 rewind
+122	stop-sound	0x07 rewind
+122	stop-sound	0x14 rewind
+124	play-sound	0x00 loop
+124	stop-sound	0x03 rewind
+124	stop-sound	0x02 rewind
+124	stop-sound	0x05 rewind
+124	stop-sound	0x06 rewind
+124	stop-sound	0x07 rewind
+124	stop-sound	0x14 rewind
+125	play-sound	0x00 loop
+125	stop-sound	0x03 rewind
+125	stop-sound	0x02 rewind
+125	stop-sound	0x05 rewind
+125	stop-sound	0x06 rewind
+125	stop-sound	0x07 rewind
+125	stop-sound	0x14 rewind
+126	play-sound	0x00 loop
+126	stop-sound	0x03 rewind
+126	stop-sound	0x02 rewind
+126	stop-sound	0x05 rewind
+126	stop-sound	0x06 rewind
+126	stop-sound	0x07 rewind
+126	stop-sound	0x14 rewind
+127	play-sound	0x00 loop
+127	stop-sound	0x03 rewind
+127	stop-sound	0x02 rewind
+127	stop-sound	0x05 rewind
+127	stop-sound	0x06 rewind
+127	stop-sound	0x07 rewind
+127	stop-sound	0x14 rewind
+128	play-sound	0x00 loop
+128	stop-sound	0x03 rewind
+128	stop-sound	0x02 rewind
+128	stop-sound	0x05 rewind
+128	stop-sound	0x06 rewind
+128	stop-sound	0x07 rewind
+128	stop-sound	0x14 rewind
+129	play-sound	0x00 loop
+129	stop-sound	0x03 rewind
+129	stop-sound	0x02 rewind
+129	stop-sound	0x05 rewind
+129	stop-sound	0x06 rewind
+129	stop-sound	0x07 rewind
+129	stop-sound	0x14 rewind
+131	play-sound	0x00 loop
+131	stop-sound	0x03 rewind
+131	stop-sound	0x02 rewind
+131	stop-sound	0x05 rewind
+131	stop-sound	0x06 rewind
+131	stop-sound	0x07 rewind
+131	stop-sound	0x14 rewind
+132	play-sound	0x00 loop
+132	stop-sound	0x03 rewind
+132	stop-sound	0x02 rewind
+132	stop-sound	0x05 rewind
+132	stop-sound	0x06 rewind
+132	stop-sound	0x07 rewind
+132	stop-sound	0x14 rewind
+133	play-sound	0x00 loop
+133	stop-sound	0x03 rewind
+133	stop-sound	0x02 rewind
+133	stop-sound	0x05 rewind
+133	stop-sound	0x06 rewind
+133	stop-sound	0x07 rewind
+133	stop-sound	0x14 rewind
+134	play-sound	0x00 loop
+134	stop-sound	0x03 rewind
+134	stop-sound	0x02 rewind
+134	stop-sound	0x05 rewind
+134	stop-sound	0x06 rewind
+134	stop-sound	0x07 rewind
+134	stop-sound	0x14 rewind
+135	play-sound	0x00 loop
+135	stop-sound	0x03 rewind
+135	stop-sound	0x02 rewind
+135	stop-sound	0x05 rewind
+135	stop-sound	0x06 rewind
+135	stop-sound	0x07 rewind
+135	stop-sound	0x14 rewind
+136	play-sound	0x00 loop
+136	stop-sound	0x03 rewind
+136	stop-sound	0x02 rewind
+136	stop-sound	0x05 rewind
+136	stop-sound	0x06 rewind
+136	stop-sound	0x07 rewind
+136	stop-sound	0x14 rewind
+138	play-sound	0x00 loop
+138	stop-sound	0x03 rewind
+138	stop-sound	0x02 rewind
+138	stop-sound	0x05 rewind
+138	stop-sound	0x06 rewind
+138	stop-sound	0x07 rewind
+138	stop-sound	0x14 rewind
+139	play-sound	0x00 loop
+139	stop-sound	0x03 rewind
+139	stop-sound	0x02 rewind
+139	stop-sound	0x05 rewind
+139	stop-sound	0x06 rewind
+139	stop-sound	0x07 rewind
+139	stop-sound	0x14 rewind
+140	play-sound	0x00 loop
+140	stop-sound	0x03 rewind
+140	stop-sound	0x02 rewind
+140	stop-sound	0x05 rewind
+140	stop-sound	0x06 rewind
+140	stop-sound	0x07 rewind
+140	stop-sound	0x14 rewind
+141	play-sound	0x00 loop
+141	stop-sound	0x03 rewind
+141	stop-sound	0x02 rewind
+141	stop-sound	0x05 rewind
+141	stop-sound	0x06 rewind
+141	stop-sound	0x07 rewind
+141	stop-sound	0x14 rewind
+142	play-sound	0x00 loop
+142	stop-sound	0x03 rewind
+142	stop-sound	0x02 rewind
+142	stop-sound	0x05 rewind
+142	stop-sound	0x06 rewind
+142	stop-sound	0x07 rewind
+142	stop-sound	0x14 rewind
+143	play-sound	0x00 loop
+143	stop-sound	0x03 rewind
+143	stop-sound	0x02 rewind
+143	stop-sound	0x05 rewind
+143	stop-sound	0x06 rewind
+143	stop-sound	0x07 rewind
+143	stop-sound	0x14 rewind
+145	play-sound	0x00 loop
+145	stop-sound	0x03 rewind
+145	stop-sound	0x02 rewind
+145	stop-sound	0x05 rewind
+145	stop-sound	0x06 rewind
+145	stop-sound	0x07 rewind
+145	stop-sound	0x14 rewind
+146	play-sound	0x00 loop
+146	stop-sound	0x03 rewind
+146	stop-sound	0x02 rewind
+146	stop-sound	0x05 rewind
+146	stop-sound	0x06 rewind
+146	stop-sound	0x07 rewind
+146	stop-sound	0x14 rewind
+147	play-sound	0x00 loop
+147	stop-sound	0x03 rewind
+147	stop-sound	0x02 rewind
+147	stop-sound	0x05 rewind
+147	stop-sound	0x06 rewind
+147	stop-sound	0x07 rewind
+147	stop-sound	0x14 rewind
+148	play-sound	0x00 loop
+148	stop-sound	0x03 rewind
+148	stop-sound	0x02 rewind
+148	stop-sound	0x05 rewind
+148	stop-sound	0x06 rewind
+148	stop-sound	0x07 rewind
+148	stop-sound	0x14 rewind
+149	play-sound	0x00 loop
+149	stop-sound	0x03 rewind
+149	stop-sound	0x02 rewind
+149	stop-sound	0x05 rewind
+149	stop-sound	0x06 rewind
+149	stop-sound	0x07 rewind
+149	stop-sound	0x14 rewind
+150	play-sound	0x00 loop
+150	stop-sound	0x03 rewind
+150	stop-sound	0x02 rewind
+150	stop-sound	0x05 rewind
+150	stop-sound	0x06 rewind
+150	stop-sound	0x07 rewind
+150	stop-sound	0x14 rewind
+152	play-sound	0x00 loop
+152	stop-sound	0x03 rewind
+152	stop-sound	0x02 rewind
+152	stop-sound	0x05 rewind
+152	stop-sound	0x06 rewind
+152	stop-sound	0x07 rewind
+152	stop-sound	0x14 rewind
+153	play-sound	0x00 loop
+153	stop-sound	0x03 rewind
+153	stop-sound	0x02 rewind
+153	stop-sound	0x05 rewind
+153	stop-sound	0x06 rewind
+153	stop-sound	0x07 rewind
+153	stop-sound	0x14 rewind
+154	play-sound	0x00 loop
+154	stop-sound	0x03 rewind
+154	stop-sound	0x02 rewind
+154	stop-sound	0x05 rewind
+154	stop-sound	0x06 rewind
+154	stop-sound	0x07 rewind
+154	stop-sound	0x14 rewind
+155	play-sound	0x00 loop
+155	stop-sound	0x03 rewind
+155	stop-sound	0x02 rewind
+155	stop-sound	0x05 rewind
+155	stop-sound	0x06 rewind
+155	stop-sound	0x07 rewind
+155	stop-sound	0x14 rewind
+156	play-sound	0x00 loop
+156	stop-sound	0x03 rewind
+156	stop-sound	0x02 rewind
+156	stop-sound	0x05 rewind
+156	stop-sound	0x06 rewind
+156	stop-sound	0x07 rewind
+156	stop-sound	0x14 rewind
+158	play-sound	0x00 loop
+158	stop-sound	0x03 rewind
+158	stop-sound	0x02 rewind
+158	stop-sound	0x05 rewind
+158	stop-sound	0x06 rewind
+158	stop-sound	0x07 rewind
+158	stop-sound	0x14 rewind
+159	play-sound	0x00 loop
+159	stop-sound	0x03 rewind
+159	stop-sound	0x02 rewind
+159	stop-sound	0x05 rewind
+159	stop-sound	0x06 rewind
+159	stop-sound	0x07 rewind
+159	stop-sound	0x14 rewind
+160	play-sound	0x00 loop
+160	stop-sound	0x03 rewind
+160	stop-sound	0x02 rewind
+160	stop-sound	0x05 rewind
+160	stop-sound	0x06 rewind
+160	stop-sound	0x07 rewind
+160	stop-sound	0x14 rewind
+161	play-sound	0x00 loop
+161	stop-sound	0x03 rewind
+161	stop-sound	0x02 rewind
+161	stop-sound	0x05 rewind
+161	stop-sound	0x06 rewind
+161	stop-sound	0x07 rewind
+161	stop-sound	0x14 rewind
+162	play-sound	0x00 loop
+162	stop-sound	0x03 rewind
+162	stop-sound	0x02 rewind
+162	stop-sound	0x05 rewind
+162	stop-sound	0x06 rewind
+162	stop-sound	0x07 rewind
+162	stop-sound	0x14 rewind
+163	play-sound	0x00 loop
+163	stop-sound	0x03 rewind
+163	stop-sound	0x02 rewind
+163	stop-sound	0x05 rewind
+163	stop-sound	0x06 rewind
+163	stop-sound	0x07 rewind
+163	stop-sound	0x14 rewind
+165	play-sound	0x00 loop
+165	stop-sound	0x03 rewind
+165	stop-sound	0x02 rewind
+165	stop-sound	0x05 rewind
+165	stop-sound	0x06 rewind
+165	stop-sound	0x07 rewind
+165	stop-sound	0x14 rewind
+166	play-sound	0x00 loop
+166	stop-sound	0x03 rewind
+166	stop-sound	0x02 rewind
+166	stop-sound	0x05 rewind
+166	stop-sound	0x06 rewind
+166	stop-sound	0x07 rewind
+166	stop-sound	0x14 rewind
+167	play-sound	0x00 loop
+167	stop-sound	0x03 rewind
+167	stop-sound	0x02 rewind
+167	stop-sound	0x05 rewind
+167	stop-sound	0x06 rewind
+167	stop-sound	0x07 rewind
+167	stop-sound	0x14 rewind
+168	play-sound	0x00 loop
+168	stop-sound	0x03 rewind
+168	stop-sound	0x02 rewind
+168	stop-sound	0x05 rewind
+168	stop-sound	0x06 rewind
+168	stop-sound	0x07 rewind
+168	stop-sound	0x14 rewind
+169	play-sound	0x00 loop
+169	stop-sound	0x03 rewind
+169	stop-sound	0x02 rewind
+169	stop-sound	0x05 rewind
+169	stop-sound	0x06 rewind
+169	stop-sound	0x07 rewind
+169	stop-sound	0x14 rewind
+170	play-sound	0x00 loop
+170	stop-sound	0x03 rewind
+170	stop-sound	0x02 rewind
+170	stop-sound	0x05 rewind
+170	stop-sound	0x06 rewind
+170	stop-sound	0x07 rewind
+170	stop-sound	0x14 rewind
+172	play-sound	0x00 loop
+172	stop-sound	0x03 rewind
+172	stop-sound	0x02 rewind
+172	stop-sound	0x05 rewind
+172	stop-sound	0x06 rewind
+172	stop-sound	0x07 rewind
+172	stop-sound	0x14 rewind
+173	play-sound	0x00 loop
+173	stop-sound	0x03 rewind
+173	stop-sound	0x02 rewind
+173	stop-sound	0x05 rewind
+173	stop-sound	0x06 rewind
+173	stop-sound	0x07 rewind
+173	stop-sound	0x14 rewind
+174	play-sound	0x00 loop
+174	stop-sound	0x03 rewind
+174	stop-sound	0x02 rewind
+174	stop-sound	0x05 rewind
+174	stop-sound	0x06 rewind
+174	stop-sound	0x07 rewind
+174	stop-sound	0x14 rewind
+175	play-sound	0x00 loop
+175	stop-sound	0x03 rewind
+175	stop-sound	0x02 rewind
+175	stop-sound	0x05 rewind
+175	stop-sound	0x06 rewind
+175	stop-sound	0x07 rewind
+175	stop-sound	0x14 rewind
+176	play-sound	0x00 loop
+176	stop-sound	0x03 rewind
+176	stop-sound	0x02 rewind
+176	stop-sound	0x05 rewind
+176	stop-sound	0x06 rewind
+176	stop-sound	0x07 rewind
+176	stop-sound	0x14 rewind
+177	play-sound	0x00 loop
+177	stop-sound	0x03 rewind
+177	stop-sound	0x02 rewind
+177	stop-sound	0x05 rewind
+177	stop-sound	0x06 rewind
+177	stop-sound	0x07 rewind
+177	stop-sound	0x14 rewind
+179	play-sound	0x00 loop
+179	stop-sound	0x03 rewind
+179	stop-sound	0x02 rewind
+179	stop-sound	0x05 rewind
+179	stop-sound	0x06 rewind
+179	stop-sound	0x07 rewind
+179	stop-sound	0x14 rewind
+180	play-sound	0x00 loop
+180	stop-sound	0x03 rewind
+180	stop-sound	0x02 rewind
+180	stop-sound	0x05 rewind
+180	stop-sound	0x06 rewind
+180	stop-sound	0x07 rewind
+180	stop-sound	0x14 rewind
+181	play-sound	0x00 loop
+181	stop-sound	0x03 rewind
+181	stop-sound	0x02 rewind
+181	stop-sound	0x05 rewind
+181	stop-sound	0x06 rewind
+181	stop-sound	0x07 rewind
+181	stop-sound	0x14 rewind
+182	play-sound	0x00 loop
+182	stop-sound	0x03 rewind
+182	stop-sound	0x02 rewind
+182	stop-sound	0x05 rewind
+182	stop-sound	0x06 rewind
+182	stop-sound	0x07 rewind
+182	stop-sound	0x14 rewind
+183	play-sound	0x00 loop
+183	stop-sound	0x03 rewind
+183	stop-sound	0x02 rewind
+183	stop-sound	0x05 rewind
+183	stop-sound	0x06 rewind
+183	stop-sound	0x07 rewind
+183	stop-sound	0x14 rewind
+184	play-sound	0x00 loop
+184	stop-sound	0x03 rewind
+184	stop-sound	0x02 rewind
+184	stop-sound	0x05 rewind
+184	stop-sound	0x06 rewind
+184	stop-sound	0x07 rewind
+184	stop-sound	0x14 rewind
+186	play-sound	0x00 loop
+186	stop-sound	0x03 rewind
+186	stop-sound	0x02 rewind
+186	stop-sound	0x05 rewind
+186	stop-sound	0x06 rewind
+186	stop-sound	0x07 rewind
+186	stop-sound	0x14 rewind
+187	play-sound	0x00 loop
+187	stop-sound	0x03 rewind
+187	stop-sound	0x02 rewind
+187	stop-sound	0x05 rewind
+187	stop-sound	0x06 rewind
+187	stop-sound	0x07 rewind
+187	stop-sound	0x14 rewind
+188	play-sound	0x00 loop
+188	stop-sound	0x03 rewind
+188	stop-sound	0x02 rewind
+188	stop-sound	0x05 rewind
+188	stop-sound	0x06 rewind
+188	stop-sound	0x07 rewind
+188	stop-sound	0x14 rewind
+189	play-sound	0x00 loop
+189	stop-sound	0x03 rewind
+189	stop-sound	0x02 rewind
+189	stop-sound	0x05 rewind
+189	stop-sound	0x06 rewind
+189	stop-sound	0x07 rewind
+189	stop-sound	0x14 rewind
+190	play-sound	0x00 loop
+190	stop-sound	0x03 rewind
+190	stop-sound	0x02 rewind
+190	stop-sound	0x05 rewind
+190	stop-sound	0x06 rewind
+190	stop-sound	0x07 rewind
+190	stop-sound	0x14 rewind
+192	play-sound	0x00 loop
+192	stop-sound	0x03 rewind
+192	stop-sound	0x02 rewind
+192	stop-sound	0x05 rewind
+192	stop-sound	0x06 rewind
+192	stop-sound	0x07 rewind
+192	stop-sound	0x14 rewind
+193	play-sound	0x00 loop
+193	stop-sound	0x03 rewind
+193	stop-sound	0x02 rewind
+193	stop-sound	0x05 rewind
+193	stop-sound	0x06 rewind
+193	stop-sound	0x07 rewind
+193	stop-sound	0x14 rewind
+194	play-sound	0x00 loop
+194	stop-sound	0x03 rewind
+194	stop-sound	0x02 rewind
+194	stop-sound	0x05 rewind
+194	stop-sound	0x06 rewind
+194	stop-sound	0x07 rewind
+194	stop-sound	0x14 rewind
+195	play-sound	0x00 loop
+195	stop-sound	0x03 rewind
+195	stop-sound	0x02 rewind
+195	stop-sound	0x05 rewind
+195	stop-sound	0x06 rewind
+195	stop-sound	0x07 rewind
+195	stop-sound	0x14 rewind
+196	play-sound	0x00 loop
+196	stop-sound	0x03 rewind
+196	stop-sound	0x02 rewind
+196	stop-sound	0x05 rewind
+196	stop-sound	0x06 rewind
+196	stop-sound	0x07 rewind
+196	stop-sound	0x14 rewind
+197	play-sound	0x00 loop
+197	stop-sound	0x03 rewind
+197	stop-sound	0x02 rewind
+197	stop-sound	0x05 rewind
+197	stop-sound	0x06 rewind
+197	stop-sound	0x07 rewind
+197	stop-sound	0x14 rewind
+199	play-sound	0x00 loop
+199	stop-sound	0x03 rewind
+199	stop-sound	0x02 rewind
+199	stop-sound	0x05 rewind
+199	stop-sound	0x06 rewind
+199	stop-sound	0x07 rewind
+199	stop-sound	0x14 rewind
+200	play-sound	0x00 loop
+200	stop-sound	0x03 rewind
+200	stop-sound	0x02 rewind
+200	stop-sound	0x05 rewind
+200	stop-sound	0x06 rewind
+200	stop-sound	0x07 rewind
+200	stop-sound	0x14 rewind
+201	play-sound	0x00 loop
+201	stop-sound	0x03 rewind
+201	stop-sound	0x02 rewind
+201	stop-sound	0x05 rewind
+201	stop-sound	0x06 rewind
+201	stop-sound	0x07 rewind
+201	stop-sound	0x14 rewind
+202	play-sound	0x00 loop
+202	stop-sound	0x03 rewind
+202	stop-sound	0x02 rewind
+202	stop-sound	0x05 rewind
+202	stop-sound	0x06 rewind
+202	stop-sound	0x07 rewind
+202	stop-sound	0x14 rewind
+203	play-sound	0x00 loop
+203	stop-sound	0x03 rewind
+203	stop-sound	0x02 rewind
+203	stop-sound	0x05 rewind
+203	stop-sound	0x06 rewind
+203	stop-sound	0x07 rewind
+203	stop-sound	0x14 rewind
+204	play-sound	0x00 loop
+204	stop-sound	0x03 rewind
+204	stop-sound	0x02 rewind
+204	stop-sound	0x05 rewind
+204	stop-sound	0x06 rewind
+204	stop-sound	0x07 rewind
+204	stop-sound	0x14 rewind
+206	play-sound	0x00 loop
+206	stop-sound	0x03 rewind
+206	stop-sound	0x02 rewind
+206	stop-sound	0x05 rewind
+206	stop-sound	0x06 rewind
+206	stop-sound	0x07 rewind
+206	stop-sound	0x14 rewind
+207	play-sound	0x00 loop
+207	stop-sound	0x03 rewind
+207	stop-sound	0x02 rewind
+207	stop-sound	0x05 rewind
+207	stop-sound	0x06 rewind
+207	stop-sound	0x07 rewind
+207	stop-sound	0x14 rewind
+208	play-sound	0x00 loop
+208	stop-sound	0x03 rewind
+208	stop-sound	0x02 rewind
+208	stop-sound	0x05 rewind
+208	stop-sound	0x06 rewind
+208	stop-sound	0x07 rewind
+208	stop-sound	0x14 rewind
+209	play-sound	0x00 loop
+209	stop-sound	0x03 rewind
+209	stop-sound	0x02 rewind
+209	stop-sound	0x05 rewind
+209	stop-sound	0x06 rewind
+209	stop-sound	0x07 rewind
+209	stop-sound	0x14 rewind
+210	play-sound	0x00 loop
+210	stop-sound	0x03 rewind
+210	stop-sound	0x02 rewind
+210	stop-sound	0x05 rewind
+210	stop-sound	0x06 rewind
+210	stop-sound	0x07 rewind
+210	stop-sound	0x14 rewind
+211	play-sound	0x00 loop
+211	stop-sound	0x03 rewind
+211	stop-sound	0x02 rewind
+211	stop-sound	0x05 rewind
+211	stop-sound	0x06 rewind
+211	stop-sound	0x07 rewind
+211	stop-sound	0x14 rewind
+213	play-sound	0x00 loop
+213	stop-sound	0x03 rewind
+213	stop-sound	0x02 rewind
+213	stop-sound	0x05 rewind
+213	stop-sound	0x06 rewind
+213	stop-sound	0x07 rewind
+213	stop-sound	0x14 rewind
+214	play-sound	0x00 loop
+214	stop-sound	0x03 rewind
+214	stop-sound	0x02 rewind
+214	stop-sound	0x05 rewind
+214	stop-sound	0x06 rewind
+214	stop-sound	0x07 rewind
+214	stop-sound	0x14 rewind
+215	play-sound	0x00 loop
+215	stop-sound	0x03 rewind
+215	stop-sound	0x02 rewind
+215	stop-sound	0x05 rewind
+215	stop-sound	0x06 rewind
+215	stop-sound	0x07 rewind
+215	stop-sound	0x14 rewind
+216	play-sound	0x00 loop
+216	stop-sound	0x03 rewind
+216	stop-sound	0x02 rewind
+216	stop-sound	0x05 rewind
+216	stop-sound	0x06 rewind
+216	stop-sound	0x07 rewind
+216	stop-sound	0x14 rewind
+217	play-sound	0x00 loop
+217	stop-sound	0x03 rewind
+217	stop-sound	0x02 rewind
+217	stop-sound	0x05 rewind
+217	stop-sound	0x06 rewind
+217	stop-sound	0x07 rewind
+217	stop-sound	0x14 rewind
+218	play-sound	0x00 loop
+218	stop-sound	0x03 rewind
+218	stop-sound	0x02 rewind
+218	stop-sound	0x05 rewind
+218	stop-sound	0x06 rewind
+218	stop-sound	0x07 rewind
+218	stop-sound	0x14 rewind
+220	play-sound	0x00 loop
+220	stop-sound	0x03 rewind
+220	stop-sound	0x02 rewind
+220	stop-sound	0x05 rewind
+220	stop-sound	0x06 rewind
+220	stop-sound	0x07 rewind
+220	stop-sound	0x14 rewind
+221	play-sound	0x00 loop
+221	stop-sound	0x03 rewind
+221	stop-sound	0x02 rewind
+221	stop-sound	0x05 rewind
+221	stop-sound	0x06 rewind
+221	stop-sound	0x07 rewind
+221	stop-sound	0x14 rewind
+222	play-sound	0x00 loop
+222	stop-sound	0x03 rewind
+222	stop-sound	0x02 rewind
+222	stop-sound	0x05 rewind
+222	stop-sound	0x06 rewind
+222	stop-sound	0x07 rewind
+222	stop-sound	0x14 rewind
+223	play-sound	0x00 loop
+223	stop-sound	0x03 rewind
+223	stop-sound	0x02 rewind
+223	stop-sound	0x05 rewind
+223	stop-sound	0x06 rewind
+223	stop-sound	0x07 rewind
+223	stop-sound	0x14 rewind
+224	play-sound	0x00 loop
+224	stop-sound	0x03 rewind
+224	stop-sound	0x02 rewind
+224	stop-sound	0x05 rewind
+224	stop-sound	0x06 rewind
+224	stop-sound	0x07 rewind
+224	stop-sound	0x14 rewind
+225	play-sound	0x00 loop
+225	stop-sound	0x03 rewind
+225	stop-sound	0x02 rewind
+225	stop-sound	0x05 rewind
+225	stop-sound	0x06 rewind
+225	stop-sound	0x07 rewind
+225	stop-sound	0x14 rewind
+227	play-sound	0x00 loop
+227	stop-sound	0x03 rewind
+227	stop-sound	0x02 rewind
+227	stop-sound	0x05 rewind
+227	stop-sound	0x06 rewind
+227	stop-sound	0x07 rewind
+227	stop-sound	0x14 rewind
+228	play-sound	0x00 loop
+228	stop-sound	0x03 rewind
+228	stop-sound	0x02 rewind
+228	stop-sound	0x05 rewind
+228	stop-sound	0x06 rewind
+228	stop-sound	0x07 rewind
+228	stop-sound	0x14 rewind
+229	play-sound	0x00 loop
+229	stop-sound	0x03 rewind
+229	stop-sound	0x02 rewind
+229	stop-sound	0x05 rewind
+229	stop-sound	0x06 rewind
+229	stop-sound	0x07 rewind
+229	stop-sound	0x14 rewind
+230	play-sound	0x00 loop
+230	stop-sound	0x03 rewind
+230	stop-sound	0x02 rewind
+230	stop-sound	0x05 rewind
+230	stop-sound	0x06 rewind
+230	stop-sound	0x07 rewind
+230	stop-sound	0x14 rewind
+231	play-sound	0x00 loop
+231	stop-sound	0x03 rewind
+231	stop-sound	0x02 rewind
+231	stop-sound	0x05 rewind
+231	stop-sound	0x06 rewind
+231	stop-sound	0x07 rewind
+231	stop-sound	0x14 rewind
+233	play-sound	0x00 loop
+233	stop-sound	0x03 rewind
+233	stop-sound	0x02 rewind
+233	stop-sound	0x05 rewind
+233	stop-sound	0x06 rewind
+233	stop-sound	0x07 rewind
+233	stop-sound	0x14 rewind
+234	play-sound	0x00 loop
+234	stop-sound	0x03 rewind
+234	stop-sound	0x02 rewind
+234	stop-sound	0x05 rewind
+234	stop-sound	0x06 rewind
+234	stop-sound	0x07 rewind
+234	stop-sound	0x14 rewind
+235	play-sound	0x00 loop
+235	stop-sound	0x03 rewind
+235	stop-sound	0x02 rewind
+235	stop-sound	0x05 rewind
+235	stop-sound	0x06 rewind
+235	stop-sound	0x07 rewind
+235	stop-sound	0x14 rewind
+236	play-sound	0x00 loop
+236	stop-sound	0x03 rewind
+236	stop-sound	0x02 rewind
+236	stop-sound	0x05 rewind
+236	stop-sound	0x06 rewind
+236	stop-sound	0x07 rewind
+236	stop-sound	0x14 rewind
+237	play-sound	0x00 loop
+237	stop-sound	0x03 rewind
+237	stop-sound	0x02 rewind
+237	stop-sound	0x05 rewind
+237	stop-sound	0x06 rewind
+237	stop-sound	0x07 rewind
+237	stop-sound	0x14 rewind
+238	play-sound	0x00 loop
+238	stop-sound	0x03 rewind
+238	stop-sound	0x02 rewind
+238	stop-sound	0x05 rewind
+238	stop-sound	0x06 rewind
+238	stop-sound	0x07 rewind
+238	stop-sound	0x14 rewind
+240	play-sound	0x00 loop
+240	stop-sound	0x03 rewind
+240	stop-sound	0x02 rewind
+240	stop-sound	0x05 rewind
+240	stop-sound	0x06 rewind
+240	stop-sound	0x07 rewind
+240	stop-sound	0x14 rewind
+241	play-sound	0x00 loop
+241	stop-sound	0x03 rewind
+241	stop-sound	0x02 rewind
+241	stop-sound	0x05 rewind
+241	stop-sound	0x06 rewind
+241	stop-sound	0x07 rewind
+241	stop-sound	0x14 rewind
+242	play-sound	0x00 loop
+242	stop-sound	0x03 rewind
+242	stop-sound	0x02 rewind
+242	stop-sound	0x05 rewind
+242	stop-sound	0x06 rewind
+242	stop-sound	0x07 rewind
+242	stop-sound	0x14 rewind
+243	play-sound	0x00 loop
+243	stop-sound	0x03 rewind
+243	stop-sound	0x02 rewind
+243	stop-sound	0x05 rewind
+243	stop-sound	0x06 rewind
+243	stop-sound	0x07 rewind
+243	stop-sound	0x14 rewind
+244	play-sound	0x00 loop
+244	stop-sound	0x03 rewind
+244	stop-sound	0x02 rewind
+244	stop-sound	0x05 rewind
+244	stop-sound	0x06 rewind
+244	stop-sound	0x07 rewind
+244	stop-sound	0x14 rewind
+245	play-sound	0x00 loop
+245	stop-sound	0x03 rewind
+245	stop-sound	0x02 rewind
+245	stop-sound	0x05 rewind
+245	stop-sound	0x06 rewind
+245	stop-sound	0x07 rewind
+245	stop-sound	0x14 rewind
+247	play-sound	0x00 loop
+247	stop-sound	0x03 rewind
+247	stop-sound	0x02 rewind
+247	stop-sound	0x05 rewind
+247	stop-sound	0x06 rewind
+247	stop-sound	0x07 rewind
+247	stop-sound	0x14 rewind
+248	play-sound	0x00 loop
+248	stop-sound	0x03 rewind
+248	stop-sound	0x02 rewind
+248	stop-sound	0x05 rewind
+248	stop-sound	0x06 rewind
+248	stop-sound	0x07 rewind
+248	stop-sound	0x14 rewind
+249	play-sound	0x00 loop
+249	stop-sound	0x03 rewind
+249	stop-sound	0x02 rewind
+249	stop-sound	0x05 rewind
+249	stop-sound	0x06 rewind
+249	stop-sound	0x07 rewind
+249	stop-sound	0x14 rewind
+250	play-sound	0x00 loop
+250	stop-sound	0x03 rewind
+250	stop-sound	0x02 rewind
+250	stop-sound	0x05 rewind
+250	stop-sound	0x06 rewind
+250	stop-sound	0x07 rewind
+250	stop-sound	0x14 rewind
+251	play-sound	0x00 loop
+251	stop-sound	0x03 rewind
+251	stop-sound	0x02 rewind
+251	stop-sound	0x05 rewind
+251	stop-sound	0x06 rewind
+251	stop-sound	0x07 rewind
+251	stop-sound	0x14 rewind
+252	play-sound	0x00 loop
+252	stop-sound	0x03 rewind
+252	stop-sound	0x02 rewind
+252	stop-sound	0x05 rewind
+252	stop-sound	0x06 rewind
+252	stop-sound	0x07 rewind
+252	stop-sound	0x14 rewind
+254	play-sound	0x00 loop
+254	stop-sound	0x03 rewind
+254	stop-sound	0x02 rewind
+254	stop-sound	0x05 rewind
+254	stop-sound	0x06 rewind
+254	stop-sound	0x07 rewind
+254	stop-sound	0x14 rewind
+255	play-sound	0x00 loop
+255	stop-sound	0x03 rewind
+255	stop-sound	0x02 rewind
+255	stop-sound	0x05 rewind
+255	stop-sound	0x06 rewind
+255	stop-sound	0x07 rewind
+255	stop-sound	0x14 rewind
+256	play-sound	0x00 loop
+256	stop-sound	0x03 rewind
+256	stop-sound	0x02 rewind
+256	stop-sound	0x05 rewind
+256	stop-sound	0x06 rewind
+256	stop-sound	0x07 rewind
+256	stop-sound	0x14 rewind
+257	play-sound	0x00 loop
+257	stop-sound	0x03 rewind
+257	stop-sound	0x02 rewind
+257	stop-sound	0x05 rewind
+257	stop-sound	0x06 rewind
+257	stop-sound	0x07 rewind
+257	stop-sound	0x14 rewind
+258	play-sound	0x00 loop
+258	stop-sound	0x03 rewind
+258	stop-sound	0x02 rewind
+258	stop-sound	0x05 rewind
+258	stop-sound	0x06 rewind
+258	stop-sound	0x07 rewind
+258	stop-sound	0x14 rewind
+259	play-sound	0x00 loop
+259	stop-sound	0x03 rewind
+259	stop-sound	0x02 rewind
+259	stop-sound	0x05 rewind
+259	stop-sound	0x06 rewind
+259	stop-sound	0x07 rewind
+259	stop-sound	0x14 rewind
+261	play-sound	0x00 loop
+261	stop-sound	0x03 rewind
+261	stop-sound	0x02 rewind
+261	stop-sound	0x05 rewind
+261	stop-sound	0x06 rewind
+261	stop-sound	0x07 rewind
+261	stop-sound	0x14 rewind
+262	play-sound	0x00 loop
+262	stop-sound	0x03 rewind
+262	stop-sound	0x02 rewind
+262	stop-sound	0x05 rewind
+262	stop-sound	0x06 rewind
+262	stop-sound	0x07 rewind
+262	stop-sound	0x14 rewind
+263	play-sound	0x00 loop
+263	stop-sound	0x03 rewind
+263	stop-sound	0x02 rewind
+263	stop-sound	0x05 rewind
+263	stop-sound	0x06 rewind
+263	stop-sound	0x07 rewind
+263	stop-sound	0x14 rewind
+264	play-sound	0x00 loop
+264	stop-sound	0x03 rewind
+264	stop-sound	0x02 rewind
+264	stop-sound	0x05 rewind
+264	stop-sound	0x06 rewind
+264	stop-sound	0x07 rewind
+264	stop-sound	0x14 rewind
+265	play-sound	0x00 loop
+265	stop-sound	0x03 rewind
+265	stop-sound	0x02 rewind
+265	stop-sound	0x05 rewind
+265	stop-sound	0x06 rewind
+265	stop-sound	0x07 rewind
+265	stop-sound	0x14 rewind
+267	play-sound	0x00 loop
+267	stop-sound	0x03 rewind
+267	stop-sound	0x02 rewind
+267	stop-sound	0x05 rewind
+267	stop-sound	0x06 rewind
+267	stop-sound	0x07 rewind
+267	stop-sound	0x14 rewind
+268	play-sound	0x00 loop
+268	stop-sound	0x03 rewind
+268	stop-sound	0x02 rewind
+268	stop-sound	0x05 rewind
+268	stop-sound	0x06 rewind
+268	stop-sound	0x07 rewind
+268	stop-sound	0x14 rewind
+269	play-sound	0x00 loop
+269	stop-sound	0x03 rewind
+269	stop-sound	0x02 rewind
+269	stop-sound	0x05 rewind
+269	stop-sound	0x06 rewind
+269	stop-sound	0x07 rewind
+269	stop-sound	0x14 rewind
+270	play-sound	0x00 loop
+270	stop-sound	0x03 rewind
+270	stop-sound	0x02 rewind
+270	stop-sound	0x05 rewind
+270	stop-sound	0x06 rewind
+270	stop-sound	0x07 rewind
+270	stop-sound	0x14 rewind
+271	play-sound	0x00 loop
+271	stop-sound	0x03 rewind
+271	stop-sound	0x02 rewind
+271	stop-sound	0x05 rewind
+271	stop-sound	0x06 rewind
+271	stop-sound	0x07 rewind
+271	stop-sound	0x14 rewind
+272	play-sound	0x00 loop
+272	stop-sound	0x03 rewind
+272	stop-sound	0x02 rewind
+272	stop-sound	0x05 rewind
+272	stop-sound	0x06 rewind
+272	stop-sound	0x07 rewind
+272	stop-sound	0x14 rewind
+274	play-sound	0x00 loop
+274	stop-sound	0x03 rewind
+274	stop-sound	0x02 rewind
+274	stop-sound	0x05 rewind
+274	stop-sound	0x06 rewind
+274	stop-sound	0x07 rewind
+274	stop-sound	0x14 rewind
+275	play-sound	0x00 loop
+275	stop-sound	0x03 rewind
+275	stop-sound	0x02 rewind
+275	stop-sound	0x05 rewind
+275	stop-sound	0x06 rewind
+275	stop-sound	0x07 rewind
+275	stop-sound	0x14 rewind
+276	play-sound	0x00 loop
+276	stop-sound	0x03 rewind
+276	stop-sound	0x02 rewind
+276	stop-sound	0x05 rewind
+276	stop-sound	0x06 rewind
+276	stop-sound	0x07 rewind
+276	stop-sound	0x14 rewind
+277	play-sound	0x00 loop
+277	stop-sound	0x03 rewind
+277	stop-sound	0x02 rewind
+277	stop-sound	0x05 rewind
+277	stop-sound	0x06 rewind
+277	stop-sound	0x07 rewind
+277	stop-sound	0x14 rewind
+278	play-sound	0x00 loop
+278	stop-sound	0x03 rewind
+278	stop-sound	0x02 rewind
+278	stop-sound	0x05 rewind
+278	stop-sound	0x06 rewind
+278	stop-sound	0x07 rewind
+278	stop-sound	0x14 rewind
+279	play-sound	0x00 loop
+279	stop-sound	0x03 rewind
+279	stop-sound	0x02 rewind
+279	stop-sound	0x05 rewind
+279	stop-sound	0x06 rewind
+279	stop-sound	0x07 rewind
+279	stop-sound	0x14 rewind
+281	play-sound	0x00 loop
+281	stop-sound	0x03 rewind
+281	stop-sound	0x02 rewind
+281	stop-sound	0x05 rewind
+281	stop-sound	0x06 rewind
+281	stop-sound	0x07 rewind
+281	stop-sound	0x14 rewind
+282	play-sound	0x00 loop
+282	stop-sound	0x03 rewind
+282	stop-sound	0x02 rewind
+282	stop-sound	0x05 rewind
+282	stop-sound	0x06 rewind
+282	stop-sound	0x07 rewind
+282	stop-sound	0x14 rewind
+283	play-sound	0x00 loop
+283	stop-sound	0x03 rewind
+283	stop-sound	0x02 rewind
+283	stop-sound	0x05 rewind
+283	stop-sound	0x06 rewind
+283	stop-sound	0x07 rewind
+283	stop-sound	0x14 rewind
+284	play-sound	0x00 loop
+284	stop-sound	0x03 rewind
+284	stop-sound	0x02 rewind
+284	stop-sound	0x05 rewind
+284	stop-sound	0x06 rewind
+284	stop-sound	0x07 rewind
+284	stop-sound	0x14 rewind
+285	play-sound	0x00 loop
+285	stop-sound	0x03 rewind
+285	stop-sound	0x02 rewind
+285	stop-sound	0x05 rewind
+285	stop-sound	0x06 rewind
+285	stop-sound	0x07 rewind
+285	stop-sound	0x14 rewind
+286	play-sound	0x00 loop
+286	stop-sound	0x03 rewind
+286	stop-sound	0x02 rewind
+286	stop-sound	0x05 rewind
+286	stop-sound	0x06 rewind
+286	stop-sound	0x07 rewind
+286	stop-sound	0x14 rewind
+288	play-sound	0x00 loop
+288	stop-sound	0x03 rewind
+288	stop-sound	0x02 rewind
+288	stop-sound	0x05 rewind
+288	stop-sound	0x06 rewind
+288	stop-sound	0x07 rewind
+288	stop-sound	0x14 rewind
+289	play-sound	0x00 loop
+289	stop-sound	0x03 rewind
+289	stop-sound	0x02 rewind
+289	stop-sound	0x05 rewind
+289	stop-sound	0x06 rewind
+289	stop-sound	0x07 rewind
+289	stop-sound	0x14 rewind
+290	play-sound	0x00 loop
+290	stop-sound	0x03 rewind
+290	stop-sound	0x02 rewind
+290	stop-sound	0x05 rewind
+290	stop-sound	0x06 rewind
+290	stop-sound	0x07 rewind
+290	stop-sound	0x14 rewind
+291	play-sound	0x00 loop
+291	stop-sound	0x03 rewind
+291	stop-sound	0x02 rewind
+291	stop-sound	0x05 rewind
+291	stop-sound	0x06 rewind
+291	stop-sound	0x07 rewind
+291	stop-sound	0x14 rewind
+292	play-sound	0x00 loop
+292	stop-sound	0x03 rewind
+292	stop-sound	0x02 rewind
+292	stop-sound	0x05 rewind
+292	stop-sound	0x06 rewind
+292	stop-sound	0x07 rewind
+292	stop-sound	0x14 rewind
+293	play-sound	0x00 loop
+293	stop-sound	0x03 rewind
+293	stop-sound	0x02 rewind
+293	stop-sound	0x05 rewind
+293	stop-sound	0x06 rewind
+293	stop-sound	0x07 rewind
+293	stop-sound	0x14 rewind
+295	play-sound	0x00 loop
+295	stop-sound	0x03 rewind
+295	stop-sound	0x02 rewind
+295	stop-sound	0x05 rewind
+295	stop-sound	0x06 rewind
+295	stop-sound	0x07 rewind
+295	stop-sound	0x14 rewind
+296	play-sound	0x00 loop
+296	stop-sound	0x03 rewind
+296	stop-sound	0x02 rewind
+296	stop-sound	0x05 rewind
+296	stop-sound	0x06 rewind
+296	stop-sound	0x07 rewind
+296	stop-sound	0x14 rewind
+297	play-sound	0x00 loop
+297	stop-sound	0x03 rewind
+297	stop-sound	0x02 rewind
+297	stop-sound	0x05 rewind
+297	stop-sound	0x06 rewind
+297	stop-sound	0x07 rewind
+297	stop-sound	0x14 rewind
+298	play-sound	0x00 loop
+298	stop-sound	0x03 rewind
+298	stop-sound	0x02 rewind
+298	stop-sound	0x05 rewind
+298	stop-sound	0x06 rewind
+298	stop-sound	0x07 rewind
+298	stop-sound	0x14 rewind
+299	play-sound	0x00 loop
+299	stop-sound	0x03 rewind
+299	stop-sound	0x02 rewind
+299	stop-sound	0x05 rewind
+299	stop-sound	0x06 rewind
+299	stop-sound	0x07 rewind
+299	stop-sound	0x14 rewind
+300	play-sound	0x00 loop
+300	stop-sound	0x03 rewind
+300	stop-sound	0x02 rewind
+300	stop-sound	0x05 rewind
+300	stop-sound	0x06 rewind
+300	stop-sound	0x07 rewind
+300	stop-sound	0x14 rewind
+302	play-sound	0x0d at 13204.956 13033.07 449
+302	play-sound	0x00 loop
+302	stop-sound	0x03 rewind
+302	stop-sound	0x02 rewind
+302	stop-sound	0x05 rewind
+302	stop-sound	0x06 rewind
+302	stop-sound	0x07 rewind
+302	stop-sound	0x14 rewind
+303	play-sound	0x00 loop
+303	stop-sound	0x03 rewind
+303	stop-sound	0x02 rewind
+303	stop-sound	0x05 rewind
+303	stop-sound	0x06 rewind
+303	stop-sound	0x07 rewind
+303	stop-sound	0x14 rewind
+304	play-sound	0x00 loop
+304	stop-sound	0x03 rewind
+304	stop-sound	0x02 rewind
+304	stop-sound	0x05 rewind
+304	stop-sound	0x06 rewind
+304	stop-sound	0x07 rewind
+304	stop-sound	0x14 rewind
+305	play-sound	0x00 loop
+305	stop-sound	0x03 rewind
+305	stop-sound	0x02 rewind
+305	stop-sound	0x05 rewind
+305	stop-sound	0x06 rewind
+305	stop-sound	0x07 rewind
+305	stop-sound	0x14 rewind
+306	play-sound	0x00 loop
+306	stop-sound	0x03 rewind
+306	stop-sound	0x02 rewind
+306	stop-sound	0x05 rewind
+306	stop-sound	0x06 rewind
+306	stop-sound	0x07 rewind
+306	stop-sound	0x14 rewind
+308	play-sound	0x00 loop
+308	stop-sound	0x03 rewind
+308	stop-sound	0x02 rewind
+308	stop-sound	0x05 rewind
+308	stop-sound	0x06 rewind
+308	stop-sound	0x07 rewind
+308	stop-sound	0x14 rewind
+309	play-sound	0x00 loop
+309	stop-sound	0x03 rewind
+309	stop-sound	0x02 rewind
+309	stop-sound	0x05 rewind
+309	stop-sound	0x06 rewind
+309	stop-sound	0x07 rewind
+309	stop-sound	0x14 rewind
+310	play-sound	0x00 loop
+310	stop-sound	0x03 rewind
+310	stop-sound	0x02 rewind
+310	stop-sound	0x05 rewind
+310	stop-sound	0x06 rewind
+310	stop-sound	0x07 rewind
+310	stop-sound	0x14 rewind
+311	play-sound	0x00 loop
+311	stop-sound	0x03 rewind
+311	stop-sound	0x02 rewind
+311	stop-sound	0x05 rewind
+311	stop-sound	0x06 rewind
+311	stop-sound	0x07 rewind
+311	stop-sound	0x14 rewind
+312	play-sound	0x00 loop
+312	stop-sound	0x03 rewind
+312	stop-sound	0x02 rewind
+312	stop-sound	0x05 rewind
+312	stop-sound	0x06 rewind
+312	stop-sound	0x07 rewind
+312	stop-sound	0x14 rewind
+313	play-sound	0x00 loop
+313	stop-sound	0x03 rewind
+313	stop-sound	0x02 rewind
+313	stop-sound	0x05 rewind
+313	stop-sound	0x06 rewind
+313	stop-sound	0x07 rewind
+313	stop-sound	0x14 rewind
+315	play-sound	0x00 loop
+315	stop-sound	0x03 rewind
+315	stop-sound	0x02 rewind
+315	stop-sound	0x05 rewind
+315	stop-sound	0x06 rewind
+315	stop-sound	0x07 rewind
+315	stop-sound	0x14 rewind
+316	play-sound	0x00 loop
+316	stop-sound	0x03 rewind
+316	stop-sound	0x02 rewind
+316	stop-sound	0x05 rewind
+316	stop-sound	0x06 rewind
+316	stop-sound	0x07 rewind
+316	stop-sound	0x14 rewind
+317	play-sound	0x00 loop
+317	stop-sound	0x03 rewind
+317	stop-sound	0x02 rewind
+317	stop-sound	0x05 rewind
+317	stop-sound	0x06 rewind
+317	stop-sound	0x07 rewind
+317	stop-sound	0x14 rewind
+318	play-sound	0x00 loop
+318	stop-sound	0x03 rewind
+318	stop-sound	0x02 rewind
+318	stop-sound	0x05 rewind
+318	stop-sound	0x06 rewind
+318	stop-sound	0x07 rewind
+318	stop-sound	0x14 rewind
+319	play-sound	0x00 loop
+319	stop-sound	0x03 rewind
+319	stop-sound	0x02 rewind
+319	stop-sound	0x05 rewind
+319	stop-sound	0x06 rewind
+319	stop-sound	0x07 rewind
+319	stop-sound	0x14 rewind
+320	play-sound	0x00 loop
+320	stop-sound	0x03 rewind
+320	stop-sound	0x02 rewind
+320	stop-sound	0x05 rewind
+320	stop-sound	0x06 rewind
+320	stop-sound	0x07 rewind
+320	stop-sound	0x14 rewind
+322	play-sound	0x00 loop
+322	stop-sound	0x03 rewind
+322	stop-sound	0x02 rewind
+322	stop-sound	0x05 rewind
+322	stop-sound	0x06 rewind
+322	stop-sound	0x07 rewind
+322	stop-sound	0x14 rewind
+323	play-sound	0x00 loop
+323	stop-sound	0x03 rewind
+323	stop-sound	0x02 rewind
+323	stop-sound	0x05 rewind
+323	stop-sound	0x06 rewind
+323	stop-sound	0x07 rewind
+323	stop-sound	0x14 rewind
+324	play-sound	0x00 loop
+324	stop-sound	0x03 rewind
+324	stop-sound	0x02 rewind
+324	stop-sound	0x05 rewind
+324	stop-sound	0x06 rewind
+324	stop-sound	0x07 rewind
+324	stop-sound	0x14 rewind
+325	play-sound	0x00 loop
+325	stop-sound	0x03 rewind
+325	stop-sound	0x02 rewind
+325	stop-sound	0x05 rewind
+325	stop-sound	0x06 rewind
+325	stop-sound	0x07 rewind
+325	stop-sound	0x14 rewind
+326	play-sound	0x00 loop
+326	stop-sound	0x03 rewind
+326	stop-sound	0x02 rewind
+326	stop-sound	0x05 rewind
+326	stop-sound	0x06 rewind
+326	stop-sound	0x07 rewind
+326	stop-sound	0x14 rewind
+327	play-sound	0x00 loop
+327	stop-sound	0x03 rewind
+327	stop-sound	0x02 rewind
+327	stop-sound	0x05 rewind
+327	stop-sound	0x06 rewind
+327	stop-sound	0x07 rewind
+327	stop-sound	0x14 rewind
+329	play-sound	0x00 loop
+329	stop-sound	0x03 rewind
+329	stop-sound	0x02 rewind
+329	stop-sound	0x05 rewind
+329	stop-sound	0x06 rewind
+329	stop-sound	0x07 rewind
+329	stop-sound	0x14 rewind
+330	play-sound	0x00 loop
+330	stop-sound	0x03 rewind
+330	stop-sound	0x02 rewind
+330	stop-sound	0x05 rewind
+330	stop-sound	0x06 rewind
+330	stop-sound	0x07 rewind
+330	stop-sound	0x14 rewind
+331	play-sound	0x00 loop
+331	stop-sound	0x03 rewind
+331	stop-sound	0x02 rewind
+331	stop-sound	0x05 rewind
+331	stop-sound	0x06 rewind
+331	stop-sound	0x07 rewind
+331	stop-sound	0x14 rewind
+332	play-sound	0x00 loop
+332	stop-sound	0x03 rewind
+332	stop-sound	0x02 rewind
+332	stop-sound	0x05 rewind
+332	stop-sound	0x06 rewind
+332	stop-sound	0x07 rewind
+332	stop-sound	0x14 rewind
+333	play-sound	0x00 loop
+333	stop-sound	0x03 rewind
+333	stop-sound	0x02 rewind
+333	stop-sound	0x05 rewind
+333	stop-sound	0x06 rewind
+333	stop-sound	0x07 rewind
+333	stop-sound	0x14 rewind
+334	play-sound	0x00 loop
+334	stop-sound	0x03 rewind
+334	stop-sound	0x02 rewind
+334	stop-sound	0x05 rewind
+334	stop-sound	0x06 rewind
+334	stop-sound	0x07 rewind
+334	stop-sound	0x14 rewind
+336	play-sound	0x00 loop
+336	stop-sound	0x03 rewind
+336	stop-sound	0x02 rewind
+336	stop-sound	0x05 rewind
+336	stop-sound	0x06 rewind
+336	stop-sound	0x07 rewind
+336	stop-sound	0x14 rewind
+337	play-sound	0x00 loop
+337	stop-sound	0x03 rewind
+337	stop-sound	0x02 rewind
+337	stop-sound	0x05 rewind
+337	stop-sound	0x06 rewind
+337	stop-sound	0x07 rewind
+337	stop-sound	0x14 rewind
+338	play-sound	0x00 loop
+338	stop-sound	0x03 rewind
+338	stop-sound	0x02 rewind
+338	stop-sound	0x05 rewind
+338	stop-sound	0x06 rewind
+338	stop-sound	0x07 rewind
+338	stop-sound	0x14 rewind
+339	play-sound	0x00 loop
+339	stop-sound	0x03 rewind
+339	stop-sound	0x02 rewind
+339	stop-sound	0x05 rewind
+339	stop-sound	0x06 rewind
+339	stop-sound	0x07 rewind
+339	stop-sound	0x14 rewind
+340	play-sound	0x00 loop
+340	stop-sound	0x03 rewind
+340	stop-sound	0x02 rewind
+340	stop-sound	0x05 rewind
+340	stop-sound	0x06 rewind
+340	stop-sound	0x07 rewind
+340	stop-sound	0x14 rewind
+342	play-sound	0x00 loop
+342	stop-sound	0x03 rewind
+342	stop-sound	0x02 rewind
+342	stop-sound	0x05 rewind
+342	stop-sound	0x06 rewind
+342	stop-sound	0x07 rewind
+342	stop-sound	0x14 rewind
+343	play-sound	0x00 loop
+343	stop-sound	0x03 rewind
+343	stop-sound	0x02 rewind
+343	stop-sound	0x05 rewind
+343	stop-sound	0x06 rewind
+343	stop-sound	0x07 rewind
+343	stop-sound	0x14 rewind
+344	play-sound	0x00 loop
+344	stop-sound	0x03 rewind
+344	stop-sound	0x02 rewind
+344	stop-sound	0x05 rewind
+344	stop-sound	0x06 rewind
+344	stop-sound	0x07 rewind
+344	stop-sound	0x14 rewind
+345	play-sound	0x00 loop
+345	stop-sound	0x03 rewind
+345	stop-sound	0x02 rewind
+345	stop-sound	0x05 rewind
+345	stop-sound	0x06 rewind
+345	stop-sound	0x07 rewind
+345	stop-sound	0x14 rewind
+346	play-sound	0x00 loop
+346	stop-sound	0x03 rewind
+346	stop-sound	0x02 rewind
+346	stop-sound	0x05 rewind
+346	stop-sound	0x06 rewind
+346	stop-sound	0x07 rewind
+346	stop-sound	0x14 rewind
+347	play-sound	0x00 loop
+347	stop-sound	0x03 rewind
+347	stop-sound	0x02 rewind
+347	stop-sound	0x05 rewind
+347	stop-sound	0x06 rewind
+347	stop-sound	0x07 rewind
+347	stop-sound	0x14 rewind
+349	play-sound	0x00 loop
+349	stop-sound	0x03 rewind
+349	stop-sound	0x02 rewind
+349	stop-sound	0x05 rewind
+349	stop-sound	0x06 rewind
+349	stop-sound	0x07 rewind
+349	stop-sound	0x14 rewind
+350	play-sound	0x00 loop
+350	stop-sound	0x03 rewind
+350	stop-sound	0x02 rewind
+350	stop-sound	0x05 rewind
+350	stop-sound	0x06 rewind
+350	stop-sound	0x07 rewind
+350	stop-sound	0x14 rewind
+351	play-sound	0x00 loop
+351	stop-sound	0x03 rewind
+351	stop-sound	0x02 rewind
+351	stop-sound	0x05 rewind
+351	stop-sound	0x06 rewind
+351	stop-sound	0x07 rewind
+351	stop-sound	0x14 rewind
+352	play-sound	0x00 loop
+352	stop-sound	0x03 rewind
+352	stop-sound	0x02 rewind
+352	stop-sound	0x05 rewind
+352	stop-sound	0x06 rewind
+352	stop-sound	0x07 rewind
+352	stop-sound	0x14 rewind
+353	play-sound	0x00 loop
+353	stop-sound	0x03 rewind
+353	stop-sound	0x02 rewind
+353	stop-sound	0x05 rewind
+353	stop-sound	0x06 rewind
+353	stop-sound	0x07 rewind
+353	stop-sound	0x14 rewind
+354	play-sound	0x00 loop
+354	stop-sound	0x03 rewind
+354	stop-sound	0x02 rewind
+354	stop-sound	0x05 rewind
+354	stop-sound	0x06 rewind
+354	stop-sound	0x07 rewind
+354	stop-sound	0x14 rewind
+356	play-sound	0x00 loop
+356	stop-sound	0x03 rewind
+356	stop-sound	0x02 rewind
+356	stop-sound	0x05 rewind
+356	stop-sound	0x06 rewind
+356	stop-sound	0x07 rewind
+356	stop-sound	0x14 rewind
+357	play-sound	0x00 loop
+357	stop-sound	0x03 rewind
+357	stop-sound	0x02 rewind
+357	stop-sound	0x05 rewind
+357	stop-sound	0x06 rewind
+357	stop-sound	0x07 rewind
+357	stop-sound	0x14 rewind
+358	play-sound	0x00 loop
+358	stop-sound	0x03 rewind
+358	stop-sound	0x02 rewind
+358	stop-sound	0x05 rewind
+358	stop-sound	0x06 rewind
+358	stop-sound	0x07 rewind
+358	stop-sound	0x14 rewind
+359	play-sound	0x00 loop
+359	stop-sound	0x03 rewind
+359	stop-sound	0x02 rewind
+359	stop-sound	0x05 rewind
+359	stop-sound	0x06 rewind
+359	stop-sound	0x07 rewind
+359	stop-sound	0x14 rewind
+360	play-sound	0x00 loop
+360	stop-sound	0x03 rewind
+360	stop-sound	0x02 rewind
+360	stop-sound	0x05 rewind
+360	stop-sound	0x06 rewind
+360	stop-sound	0x07 rewind
+360	stop-sound	0x14 rewind
+361	play-sound	0x00 loop
+361	stop-sound	0x03 rewind
+361	stop-sound	0x02 rewind
+361	stop-sound	0x05 rewind
+361	stop-sound	0x06 rewind
+361	stop-sound	0x07 rewind
+361	stop-sound	0x14 rewind
+363	play-sound	0x00 loop
+363	stop-sound	0x03 rewind
+363	stop-sound	0x02 rewind
+363	stop-sound	0x05 rewind
+363	stop-sound	0x06 rewind
+363	stop-sound	0x07 rewind
+363	stop-sound	0x14 rewind
+364	play-sound	0x00 loop
+364	stop-sound	0x03 rewind
+364	stop-sound	0x02 rewind
+364	stop-sound	0x05 rewind
+364	stop-sound	0x06 rewind
+364	stop-sound	0x07 rewind
+364	stop-sound	0x14 rewind
+365	play-sound	0x00 loop
+365	stop-sound	0x03 rewind
+365	stop-sound	0x02 rewind
+365	stop-sound	0x05 rewind
+365	stop-sound	0x06 rewind
+365	stop-sound	0x07 rewind
+365	stop-sound	0x14 rewind
+366	play-sound	0x00 loop
+366	stop-sound	0x03 rewind
+366	stop-sound	0x02 rewind
+366	stop-sound	0x05 rewind
+366	stop-sound	0x06 rewind
+366	stop-sound	0x07 rewind
+366	stop-sound	0x14 rewind
+367	play-sound	0x00 loop
+367	stop-sound	0x03 rewind
+367	stop-sound	0x02 rewind
+367	stop-sound	0x05 rewind
+367	stop-sound	0x06 rewind
+367	stop-sound	0x07 rewind
+367	stop-sound	0x14 rewind
+368	play-sound	0x00 loop
+368	stop-sound	0x03 rewind
+368	stop-sound	0x02 rewind
+368	stop-sound	0x05 rewind
+368	stop-sound	0x06 rewind
+368	stop-sound	0x07 rewind
+368	stop-sound	0x14 rewind
+370	play-sound	0x00 loop
+370	stop-sound	0x03 rewind
+370	stop-sound	0x02 rewind
+370	stop-sound	0x05 rewind
+370	stop-sound	0x06 rewind
+370	stop-sound	0x07 rewind
+370	stop-sound	0x14 rewind
+371	play-sound	0x00 loop
+371	stop-sound	0x03 rewind
+371	stop-sound	0x02 rewind
+371	stop-sound	0x05 rewind
+371	stop-sound	0x06 rewind
+371	stop-sound	0x07 rewind
+371	stop-sound	0x14 rewind
+372	play-sound	0x00 loop
+372	stop-sound	0x03 rewind
+372	stop-sound	0x02 rewind
+372	stop-sound	0x05 rewind
+372	stop-sound	0x06 rewind
+372	stop-sound	0x07 rewind
+372	stop-sound	0x14 rewind
+373	play-sound	0x00 loop
+373	stop-sound	0x03 rewind
+373	stop-sound	0x02 rewind
+373	stop-sound	0x05 rewind
+373	stop-sound	0x06 rewind
+373	stop-sound	0x07 rewind
+373	stop-sound	0x14 rewind
+374	play-sound	0x00 loop
+374	stop-sound	0x03 rewind
+374	stop-sound	0x02 rewind
+374	stop-sound	0x05 rewind
+374	stop-sound	0x06 rewind
+374	stop-sound	0x07 rewind
+374	stop-sound	0x14 rewind
+375	play-sound	0x00 loop
+375	stop-sound	0x03 rewind
+375	stop-sound	0x02 rewind
+375	stop-sound	0x05 rewind
+375	stop-sound	0x06 rewind
+375	stop-sound	0x07 rewind
+375	stop-sound	0x14 rewind
+377	play-sound	0x00 loop
+377	stop-sound	0x03 rewind
+377	stop-sound	0x02 rewind
+377	stop-sound	0x05 rewind
+377	stop-sound	0x06 rewind
+377	stop-sound	0x07 rewind
+377	stop-sound	0x14 rewind
+378	play-sound	0x00 loop
+378	stop-sound	0x03 rewind
+378	stop-sound	0x02 rewind
+378	stop-sound	0x05 rewind
+378	stop-sound	0x06 rewind
+378	stop-sound	0x07 rewind
+378	stop-sound	0x14 rewind
+379	play-sound	0x00 loop
+379	stop-sound	0x03 rewind
+379	stop-sound	0x02 rewind
+379	stop-sound	0x05 rewind
+379	stop-sound	0x06 rewind
+379	stop-sound	0x07 rewind
+379	stop-sound	0x14 rewind
+380	play-sound	0x00 loop
+380	stop-sound	0x03 rewind
+380	stop-sound	0x02 rewind
+380	stop-sound	0x05 rewind
+380	stop-sound	0x06 rewind
+380	stop-sound	0x07 rewind
+380	stop-sound	0x14 rewind
+381	play-sound	0x00 loop
+381	stop-sound	0x03 rewind
+381	stop-sound	0x02 rewind
+381	stop-sound	0x05 rewind
+381	stop-sound	0x06 rewind
+381	stop-sound	0x07 rewind
+381	stop-sound	0x14 rewind
+383	play-sound	0x00 loop
+383	stop-sound	0x03 rewind
+383	stop-sound	0x02 rewind
+383	stop-sound	0x05 rewind
+383	stop-sound	0x06 rewind
+383	stop-sound	0x07 rewind
+383	stop-sound	0x14 rewind
+384	play-sound	0x00 loop
+384	stop-sound	0x03 rewind
+384	stop-sound	0x02 rewind
+384	stop-sound	0x05 rewind
+384	stop-sound	0x06 rewind
+384	stop-sound	0x07 rewind
+384	stop-sound	0x14 rewind
+385	play-sound	0x00 loop
+385	stop-sound	0x03 rewind
+385	stop-sound	0x02 rewind
+385	stop-sound	0x05 rewind
+385	stop-sound	0x06 rewind
+385	stop-sound	0x07 rewind
+385	stop-sound	0x14 rewind
+386	play-sound	0x00 loop
+386	stop-sound	0x03 rewind
+386	stop-sound	0x02 rewind
+386	stop-sound	0x05 rewind
+386	stop-sound	0x06 rewind
+386	stop-sound	0x07 rewind
+386	stop-sound	0x14 rewind
+387	play-sound	0x00 loop
+387	stop-sound	0x03 rewind
+387	stop-sound	0x02 rewind
+387	stop-sound	0x05 rewind
+387	stop-sound	0x06 rewind
+387	stop-sound	0x07 rewind
+387	stop-sound	0x14 rewind
+388	play-sound	0x00 loop
+388	stop-sound	0x03 rewind
+388	stop-sound	0x02 rewind
+388	stop-sound	0x05 rewind
+388	stop-sound	0x06 rewind
+388	stop-sound	0x07 rewind
+388	stop-sound	0x14 rewind
+390	play-sound	0x00 loop
+390	stop-sound	0x03 rewind
+390	stop-sound	0x02 rewind
+390	stop-sound	0x05 rewind
+390	stop-sound	0x06 rewind
+390	stop-sound	0x07 rewind
+390	stop-sound	0x14 rewind
+391	play-sound	0x00 loop
+391	stop-sound	0x03 rewind
+391	stop-sound	0x02 rewind
+391	stop-sound	0x05 rewind
+391	stop-sound	0x06 rewind
+391	stop-sound	0x07 rewind
+391	stop-sound	0x14 rewind
+392	play-sound	0x00 loop
+392	stop-sound	0x03 rewind
+392	stop-sound	0x02 rewind
+392	stop-sound	0x05 rewind
+392	stop-sound	0x06 rewind
+392	stop-sound	0x07 rewind
+392	stop-sound	0x14 rewind
+393	play-sound	0x00 loop
+393	stop-sound	0x03 rewind
+393	stop-sound	0x02 rewind
+393	stop-sound	0x05 rewind
+393	stop-sound	0x06 rewind
+393	stop-sound	0x07 rewind
+393	stop-sound	0x14 rewind
+394	play-sound	0x00 loop
+394	stop-sound	0x03 rewind
+394	stop-sound	0x02 rewind
+394	stop-sound	0x05 rewind
+394	stop-sound	0x06 rewind
+394	stop-sound	0x07 rewind
+394	stop-sound	0x14 rewind
+395	play-sound	0x00 loop
+395	stop-sound	0x03 rewind
+395	stop-sound	0x02 rewind
+395	stop-sound	0x05 rewind
+395	stop-sound	0x06 rewind
+395	stop-sound	0x07 rewind
+395	stop-sound	0x14 rewind
+397	play-sound	0x00 loop
+397	stop-sound	0x03 rewind
+397	stop-sound	0x02 rewind
+397	stop-sound	0x05 rewind
+397	stop-sound	0x06 rewind
+397	stop-sound	0x07 rewind
+397	stop-sound	0x14 rewind
+398	play-sound	0x00 loop
+398	stop-sound	0x03 rewind
+398	stop-sound	0x02 rewind
+398	stop-sound	0x05 rewind
+398	stop-sound	0x06 rewind
+398	stop-sound	0x07 rewind
+398	stop-sound	0x14 rewind
+399	play-sound	0x00 loop
+399	stop-sound	0x03 rewind
+399	stop-sound	0x02 rewind
+399	stop-sound	0x05 rewind
+399	stop-sound	0x06 rewind
+399	stop-sound	0x07 rewind
+399	stop-sound	0x14 rewind
+400	play-sound	0x0d at 13356.9795 12995.406 520
+400	play-sound	0x00 loop
+400	stop-sound	0x03 rewind
+400	stop-sound	0x02 rewind
+400	stop-sound	0x05 rewind
+400	stop-sound	0x06 rewind
+400	stop-sound	0x07 rewind
+400	stop-sound	0x14 rewind
+401	play-sound	0x00 loop
+401	stop-sound	0x03 rewind
+401	stop-sound	0x02 rewind
+401	stop-sound	0x05 rewind
+401	stop-sound	0x06 rewind
+401	stop-sound	0x07 rewind
+401	stop-sound	0x14 rewind
+402	play-sound	0x00 loop
+402	stop-sound	0x03 rewind
+402	stop-sound	0x02 rewind
+402	stop-sound	0x05 rewind
+402	stop-sound	0x06 rewind
+402	stop-sound	0x07 rewind
+402	stop-sound	0x14 rewind
+404	play-sound	0x0c at 13273.564 13044.541 561
+404	play-sound	0x00 loop
+404	stop-sound	0x03 rewind
+404	stop-sound	0x02 rewind
+404	stop-sound	0x05 rewind
+404	stop-sound	0x06 rewind
+404	stop-sound	0x07 rewind
+404	stop-sound	0x14 rewind
+405	play-sound	0x00 loop
+405	stop-sound	0x03 rewind
+405	stop-sound	0x02 rewind
+405	stop-sound	0x05 rewind
+405	stop-sound	0x06 rewind
+405	stop-sound	0x07 rewind
+405	stop-sound	0x14 rewind
+406	play-sound	0x00 loop
+406	stop-sound	0x03 rewind
+406	stop-sound	0x02 rewind
+406	stop-sound	0x05 rewind
+406	stop-sound	0x06 rewind
+406	stop-sound	0x07 rewind
+406	stop-sound	0x14 rewind
+407	play-sound	0x00 loop
+407	stop-sound	0x03 rewind
+407	stop-sound	0x02 rewind
+407	stop-sound	0x05 rewind
+407	stop-sound	0x06 rewind
+407	stop-sound	0x07 rewind
+407	stop-sound	0x14 rewind
+408	play-sound	0x00 loop
+408	stop-sound	0x03 rewind
+408	stop-sound	0x02 rewind
+408	stop-sound	0x05 rewind
+408	stop-sound	0x06 rewind
+408	stop-sound	0x07 rewind
+408	stop-sound	0x14 rewind
+409	play-sound	0x00 loop
+409	stop-sound	0x03 rewind
+409	stop-sound	0x02 rewind
+409	stop-sound	0x05 rewind
+409	stop-sound	0x06 rewind
+409	stop-sound	0x07 rewind
+409	stop-sound	0x14 rewind
+411	play-sound	0x00 loop
+411	stop-sound	0x03 rewind
+411	stop-sound	0x02 rewind
+411	stop-sound	0x05 rewind
+411	stop-sound	0x06 rewind
+411	stop-sound	0x07 rewind
+411	stop-sound	0x14 rewind
+412	play-sound	0x00 loop
+412	stop-sound	0x03 rewind
+412	stop-sound	0x02 rewind
+412	stop-sound	0x05 rewind
+412	stop-sound	0x06 rewind
+412	stop-sound	0x07 rewind
+412	stop-sound	0x14 rewind
+413	play-sound	0x00 loop
+413	stop-sound	0x03 rewind
+413	stop-sound	0x02 rewind
+413	stop-sound	0x05 rewind
+413	stop-sound	0x06 rewind
+413	stop-sound	0x07 rewind
+413	stop-sound	0x14 rewind
+414	play-sound	0x00 loop
+414	stop-sound	0x03 rewind
+414	stop-sound	0x02 rewind
+414	stop-sound	0x05 rewind
+414	stop-sound	0x06 rewind
+414	stop-sound	0x07 rewind
+414	stop-sound	0x14 rewind
+415	play-sound	0x00 loop
+415	stop-sound	0x03 rewind
+415	stop-sound	0x02 rewind
+415	stop-sound	0x05 rewind
+415	stop-sound	0x06 rewind
+415	stop-sound	0x07 rewind
+415	stop-sound	0x14 rewind
+417	play-sound	0x00 loop
+417	stop-sound	0x03 rewind
+417	stop-sound	0x02 rewind
+417	stop-sound	0x05 rewind
+417	stop-sound	0x06 rewind
+417	stop-sound	0x07 rewind
+417	stop-sound	0x14 rewind
+418	play-sound	0x00 loop
+418	stop-sound	0x03 rewind
+418	stop-sound	0x02 rewind
+418	stop-sound	0x05 rewind
+418	stop-sound	0x06 rewind
+418	stop-sound	0x07 rewind
+418	stop-sound	0x14 rewind
+419	play-sound	0x00 loop
+419	stop-sound	0x03 rewind
+419	stop-sound	0x02 rewind
+419	stop-sound	0x05 rewind
+419	stop-sound	0x06 rewind
+419	stop-sound	0x07 rewind
+419	stop-sound	0x14 rewind
+420	play-sound	0x00 loop
+420	stop-sound	0x03 rewind
+420	stop-sound	0x02 rewind
+420	stop-sound	0x05 rewind
+420	stop-sound	0x06 rewind
+420	stop-sound	0x07 rewind
+420	stop-sound	0x14 rewind
+421	play-sound	0x00 loop
+421	stop-sound	0x03 rewind
+421	stop-sound	0x02 rewind
+421	stop-sound	0x05 rewind
+421	stop-sound	0x06 rewind
+421	stop-sound	0x07 rewind
+421	stop-sound	0x14 rewind
+422	play-sound	0x00 loop
+422	stop-sound	0x03 rewind
+422	stop-sound	0x02 rewind
+422	stop-sound	0x05 rewind
+422	stop-sound	0x06 rewind
+422	stop-sound	0x07 rewind
+422	stop-sound	0x14 rewind
+424	play-sound	0x00 loop
+424	stop-sound	0x03 rewind
+424	stop-sound	0x02 rewind
+424	stop-sound	0x05 rewind
+424	stop-sound	0x06 rewind
+424	stop-sound	0x07 rewind
+424	stop-sound	0x14 rewind
+425	play-sound	0x00 loop
+425	stop-sound	0x03 rewind
+425	stop-sound	0x02 rewind
+425	stop-sound	0x05 rewind
+425	stop-sound	0x06 rewind
+425	stop-sound	0x07 rewind
+425	stop-sound	0x14 rewind
+426	play-sound	0x00 loop
+426	stop-sound	0x03 rewind
+426	stop-sound	0x02 rewind
+426	stop-sound	0x05 rewind
+426	stop-sound	0x06 rewind
+426	stop-sound	0x07 rewind
+426	stop-sound	0x14 rewind
+427	play-sound	0x00 loop
+427	stop-sound	0x03 rewind
+427	stop-sound	0x02 rewind
+427	stop-sound	0x05 rewind
+427	stop-sound	0x06 rewind
+427	stop-sound	0x07 rewind
+427	stop-sound	0x14 rewind
+428	play-sound	0x00 loop
+428	stop-sound	0x03 rewind
+428	stop-sound	0x02 rewind
+428	stop-sound	0x05 rewind
+428	stop-sound	0x06 rewind
+428	stop-sound	0x07 rewind
+428	stop-sound	0x14 rewind
+429	play-sound	0x00 loop
+429	stop-sound	0x03 rewind
+429	stop-sound	0x02 rewind
+429	stop-sound	0x05 rewind
+429	stop-sound	0x06 rewind
+429	stop-sound	0x07 rewind
+429	stop-sound	0x14 rewind
+431	play-sound	0x00 loop
+431	stop-sound	0x03 rewind
+431	stop-sound	0x02 rewind
+431	stop-sound	0x05 rewind
+431	stop-sound	0x06 rewind
+431	stop-sound	0x07 rewind
+431	stop-sound	0x14 rewind
+432	play-sound	0x00 loop
+432	stop-sound	0x03 rewind
+432	stop-sound	0x02 rewind
+432	stop-sound	0x05 rewind
+432	stop-sound	0x06 rewind
+432	stop-sound	0x07 rewind
+432	stop-sound	0x14 rewind
+433	play-sound	0x00 loop
+433	stop-sound	0x03 rewind
+433	stop-sound	0x02 rewind
+433	stop-sound	0x05 rewind
+433	stop-sound	0x06 rewind
+433	stop-sound	0x07 rewind
+433	stop-sound	0x14 rewind
+434	play-sound	0x00 loop
+434	stop-sound	0x03 rewind
+434	stop-sound	0x02 rewind
+434	stop-sound	0x05 rewind
+434	stop-sound	0x06 rewind
+434	stop-sound	0x07 rewind
+434	stop-sound	0x14 rewind
+435	play-sound	0x00 loop
+435	stop-sound	0x03 rewind
+435	stop-sound	0x02 rewind
+435	stop-sound	0x05 rewind
+435	stop-sound	0x06 rewind
+435	stop-sound	0x07 rewind
+435	stop-sound	0x14 rewind
+436	play-sound	0x00 loop
+436	stop-sound	0x03 rewind
+436	stop-sound	0x02 rewind
+436	stop-sound	0x05 rewind
+436	stop-sound	0x06 rewind
+436	stop-sound	0x07 rewind
+436	stop-sound	0x14 rewind
+438	play-sound	0x00 loop
+438	stop-sound	0x03 rewind
+438	stop-sound	0x02 rewind
+438	stop-sound	0x05 rewind
+438	stop-sound	0x06 rewind
+438	stop-sound	0x07 rewind
+438	stop-sound	0x14 rewind
+439	play-sound	0x00 loop
+439	stop-sound	0x03 rewind
+439	stop-sound	0x02 rewind
+439	stop-sound	0x05 rewind
+439	stop-sound	0x06 rewind
+439	stop-sound	0x07 rewind
+439	stop-sound	0x14 rewind
+440	play-sound	0x00 loop
+440	stop-sound	0x03 rewind
+440	stop-sound	0x02 rewind
+440	stop-sound	0x05 rewind
+440	stop-sound	0x06 rewind
+440	stop-sound	0x07 rewind
+440	stop-sound	0x14 rewind
+441	play-sound	0x00 loop
+441	stop-sound	0x03 rewind
+441	stop-sound	0x02 rewind
+441	stop-sound	0x05 rewind
+441	stop-sound	0x06 rewind
+441	stop-sound	0x07 rewind
+441	stop-sound	0x14 rewind
+442	play-sound	0x00 loop
+442	stop-sound	0x03 rewind
+442	stop-sound	0x02 rewind
+442	stop-sound	0x05 rewind
+442	stop-sound	0x06 rewind
+442	stop-sound	0x07 rewind
+442	stop-sound	0x14 rewind
+443	play-sound	0x00 loop
+443	stop-sound	0x03 rewind
+443	stop-sound	0x02 rewind
+443	stop-sound	0x05 rewind
+443	stop-sound	0x06 rewind
+443	stop-sound	0x07 rewind
+443	stop-sound	0x14 rewind
+445	play-sound	0x00 loop
+445	stop-sound	0x03 rewind
+445	stop-sound	0x02 rewind
+445	stop-sound	0x05 rewind
+445	stop-sound	0x06 rewind
+445	stop-sound	0x07 rewind
+445	stop-sound	0x14 rewind
+446	play-sound	0x00 loop
+446	stop-sound	0x03 rewind
+446	stop-sound	0x02 rewind
+446	stop-sound	0x05 rewind
+446	stop-sound	0x06 rewind
+446	stop-sound	0x07 rewind
+446	stop-sound	0x14 rewind
+447	play-sound	0x00 loop
+447	stop-sound	0x03 rewind
+447	stop-sound	0x02 rewind
+447	stop-sound	0x05 rewind
+447	stop-sound	0x06 rewind
+447	stop-sound	0x07 rewind
+447	stop-sound	0x14 rewind
+448	play-sound	0x00 loop
+448	stop-sound	0x03 rewind
+448	stop-sound	0x02 rewind
+448	stop-sound	0x05 rewind
+448	stop-sound	0x06 rewind
+448	stop-sound	0x07 rewind
+448	stop-sound	0x14 rewind
+449	play-sound	0x00 loop
+449	stop-sound	0x03 rewind
+449	stop-sound	0x02 rewind
+449	stop-sound	0x05 rewind
+449	stop-sound	0x06 rewind
+449	stop-sound	0x07 rewind
+449	stop-sound	0x14 rewind
+450	play-sound	0x00 loop
+450	stop-sound	0x03 rewind
+450	stop-sound	0x02 rewind
+450	stop-sound	0x05 rewind
+450	stop-sound	0x06 rewind
+450	stop-sound	0x07 rewind
+450	stop-sound	0x14 rewind
+452	play-sound	0x00 loop
+452	stop-sound	0x03 rewind
+452	stop-sound	0x02 rewind
+452	stop-sound	0x05 rewind
+452	stop-sound	0x06 rewind
+452	stop-sound	0x07 rewind
+452	stop-sound	0x14 rewind
+453	play-sound	0x00 loop
+453	stop-sound	0x03 rewind
+453	stop-sound	0x02 rewind
+453	stop-sound	0x05 rewind
+453	stop-sound	0x06 rewind
+453	stop-sound	0x07 rewind
+453	stop-sound	0x14 rewind
+454	play-sound	0x00 loop
+454	stop-sound	0x03 rewind
+454	stop-sound	0x02 rewind
+454	stop-sound	0x05 rewind
+454	stop-sound	0x06 rewind
+454	stop-sound	0x07 rewind
+454	stop-sound	0x14 rewind
+455	play-sound	0x00 loop
+455	stop-sound	0x03 rewind
+455	stop-sound	0x02 rewind
+455	stop-sound	0x05 rewind
+455	stop-sound	0x06 rewind
+455	stop-sound	0x07 rewind
+455	stop-sound	0x14 rewind
+456	play-sound	0x00 loop
+456	stop-sound	0x03 rewind
+456	stop-sound	0x02 rewind
+456	stop-sound	0x05 rewind
+456	stop-sound	0x06 rewind
+456	stop-sound	0x07 rewind
+456	stop-sound	0x14 rewind
+458	play-sound	0x00 loop
+458	stop-sound	0x03 rewind
+458	stop-sound	0x02 rewind
+458	stop-sound	0x05 rewind
+458	stop-sound	0x06 rewind
+458	stop-sound	0x07 rewind
+458	stop-sound	0x14 rewind
+459	play-sound	0x00 loop
+459	stop-sound	0x03 rewind
+459	stop-sound	0x02 rewind
+459	stop-sound	0x05 rewind
+459	stop-sound	0x06 rewind
+459	stop-sound	0x07 rewind
+459	stop-sound	0x14 rewind
+460	play-sound	0x00 loop
+460	stop-sound	0x03 rewind
+460	stop-sound	0x02 rewind
+460	stop-sound	0x05 rewind
+460	stop-sound	0x06 rewind
+460	stop-sound	0x07 rewind
+460	stop-sound	0x14 rewind
+461	play-sound	0x00 loop
+461	stop-sound	0x03 rewind
+461	stop-sound	0x02 rewind
+461	stop-sound	0x05 rewind
+461	stop-sound	0x06 rewind
+461	stop-sound	0x07 rewind
+461	stop-sound	0x14 rewind
+462	play-sound	0x00 loop
+462	stop-sound	0x03 rewind
+462	stop-sound	0x02 rewind
+462	stop-sound	0x05 rewind
+462	stop-sound	0x06 rewind
+462	stop-sound	0x07 rewind
+462	stop-sound	0x14 rewind
+463	play-sound	0x00 loop
+463	stop-sound	0x03 rewind
+463	stop-sound	0x02 rewind
+463	stop-sound	0x05 rewind
+463	stop-sound	0x06 rewind
+463	stop-sound	0x07 rewind
+463	stop-sound	0x14 rewind
+465	play-sound	0x00 loop
+465	stop-sound	0x03 rewind
+465	stop-sound	0x02 rewind
+465	stop-sound	0x05 rewind
+465	stop-sound	0x06 rewind
+465	stop-sound	0x07 rewind
+465	stop-sound	0x14 rewind
+466	play-sound	0x00 loop
+466	stop-sound	0x03 rewind
+466	stop-sound	0x02 rewind
+466	stop-sound	0x05 rewind
+466	stop-sound	0x06 rewind
+466	stop-sound	0x07 rewind
+466	stop-sound	0x14 rewind
+467	play-sound	0x00 loop
+467	stop-sound	0x03 rewind
+467	stop-sound	0x02 rewind
+467	stop-sound	0x05 rewind
+467	stop-sound	0x06 rewind
+467	stop-sound	0x07 rewind
+467	stop-sound	0x14 rewind
+468	play-sound	0x00 loop
+468	stop-sound	0x03 rewind
+468	stop-sound	0x02 rewind
+468	stop-sound	0x05 rewind
+468	stop-sound	0x06 rewind
+468	stop-sound	0x07 rewind
+468	stop-sound	0x14 rewind
+469	play-sound	0x00 loop
+469	stop-sound	0x03 rewind
+469	stop-sound	0x02 rewind
+469	stop-sound	0x05 rewind
+469	stop-sound	0x06 rewind
+469	stop-sound	0x07 rewind
+469	stop-sound	0x14 rewind
+470	play-sound	0x00 loop
+470	stop-sound	0x03 rewind
+470	stop-sound	0x02 rewind
+470	stop-sound	0x05 rewind
+470	stop-sound	0x06 rewind
+470	stop-sound	0x07 rewind
+470	stop-sound	0x14 rewind
+472	play-sound	0x00 loop
+472	stop-sound	0x03 rewind
+472	stop-sound	0x02 rewind
+472	stop-sound	0x05 rewind
+472	stop-sound	0x06 rewind
+472	stop-sound	0x07 rewind
+472	stop-sound	0x14 rewind
+473	play-sound	0x00 loop
+473	stop-sound	0x03 rewind
+473	stop-sound	0x02 rewind
+473	stop-sound	0x05 rewind
+473	stop-sound	0x06 rewind
+473	stop-sound	0x07 rewind
+473	stop-sound	0x14 rewind
+474	play-sound	0x00 loop
+474	stop-sound	0x03 rewind
+474	stop-sound	0x02 rewind
+474	stop-sound	0x05 rewind
+474	stop-sound	0x06 rewind
+474	stop-sound	0x07 rewind
+474	stop-sound	0x14 rewind
+475	play-sound	0x00 loop
+475	stop-sound	0x03 rewind
+475	stop-sound	0x02 rewind
+475	stop-sound	0x05 rewind
+475	stop-sound	0x06 rewind
+475	stop-sound	0x07 rewind
+475	stop-sound	0x14 rewind
+476	play-sound	0x00 loop
+476	stop-sound	0x03 rewind
+476	stop-sound	0x02 rewind
+476	stop-sound	0x05 rewind
+476	stop-sound	0x06 rewind
+476	stop-sound	0x07 rewind
+476	stop-sound	0x14 rewind
+477	play-sound	0x00 loop
+477	stop-sound	0x03 rewind
+477	stop-sound	0x02 rewind
+477	stop-sound	0x05 rewind
+477	stop-sound	0x06 rewind
+477	stop-sound	0x07 rewind
+477	stop-sound	0x14 rewind
+479	play-sound	0x00 loop
+479	stop-sound	0x03 rewind
+479	stop-sound	0x02 rewind
+479	stop-sound	0x05 rewind
+479	stop-sound	0x06 rewind
+479	stop-sound	0x07 rewind
+479	stop-sound	0x14 rewind
+480	play-sound	0x00 loop
+480	stop-sound	0x03 rewind
+480	stop-sound	0x02 rewind
+480	stop-sound	0x05 rewind
+480	stop-sound	0x06 rewind
+480	stop-sound	0x07 rewind
+480	stop-sound	0x14 rewind
+481	play-sound	0x00 loop
+481	stop-sound	0x03 rewind
+481	stop-sound	0x02 rewind
+481	stop-sound	0x05 rewind
+481	stop-sound	0x06 rewind
+481	stop-sound	0x07 rewind
+481	stop-sound	0x14 rewind
+482	play-sound	0x00 loop
+482	stop-sound	0x03 rewind
+482	stop-sound	0x02 rewind
+482	stop-sound	0x05 rewind
+482	stop-sound	0x06 rewind
+482	stop-sound	0x07 rewind
+482	stop-sound	0x14 rewind
+483	play-sound	0x00 loop
+483	stop-sound	0x03 rewind
+483	stop-sound	0x02 rewind
+483	stop-sound	0x05 rewind
+483	stop-sound	0x06 rewind
+483	stop-sound	0x07 rewind
+483	stop-sound	0x14 rewind
+484	play-sound	0x00 loop
+484	stop-sound	0x03 rewind
+484	stop-sound	0x02 rewind
+484	stop-sound	0x05 rewind
+484	stop-sound	0x06 rewind
+484	stop-sound	0x07 rewind
+484	stop-sound	0x14 rewind
+486	play-sound	0x00 loop
+486	stop-sound	0x03 rewind
+486	stop-sound	0x02 rewind
+486	stop-sound	0x05 rewind
+486	stop-sound	0x06 rewind
+486	stop-sound	0x07 rewind
+486	stop-sound	0x14 rewind
+487	play-sound	0x00 loop
+487	stop-sound	0x03 rewind
+487	stop-sound	0x02 rewind
+487	stop-sound	0x05 rewind
+487	stop-sound	0x06 rewind
+487	stop-sound	0x07 rewind
+487	stop-sound	0x14 rewind
+488	play-sound	0x00 loop
+488	stop-sound	0x03 rewind
+488	stop-sound	0x02 rewind
+488	stop-sound	0x05 rewind
+488	stop-sound	0x06 rewind
+488	stop-sound	0x07 rewind
+488	stop-sound	0x14 rewind
+489	play-sound	0x00 loop
+489	stop-sound	0x03 rewind
+489	stop-sound	0x02 rewind
+489	stop-sound	0x05 rewind
+489	stop-sound	0x06 rewind
+489	stop-sound	0x07 rewind
+489	stop-sound	0x14 rewind
+490	play-sound	0x00 loop
+490	stop-sound	0x03 rewind
+490	stop-sound	0x02 rewind
+490	stop-sound	0x05 rewind
+490	stop-sound	0x06 rewind
+490	stop-sound	0x07 rewind
+490	stop-sound	0x14 rewind
+492	play-sound	0x00 loop
+492	stop-sound	0x03 rewind
+492	stop-sound	0x02 rewind
+492	stop-sound	0x05 rewind
+492	stop-sound	0x06 rewind
+492	stop-sound	0x07 rewind
+492	stop-sound	0x14 rewind
+493	play-sound	0x00 loop
+493	stop-sound	0x03 rewind
+493	stop-sound	0x02 rewind
+493	stop-sound	0x05 rewind
+493	stop-sound	0x06 rewind
+493	stop-sound	0x07 rewind
+493	stop-sound	0x14 rewind
+494	play-sound	0x00 loop
+494	stop-sound	0x03 rewind
+494	stop-sound	0x02 rewind
+494	stop-sound	0x05 rewind
+494	stop-sound	0x06 rewind
+494	stop-sound	0x07 rewind
+494	stop-sound	0x14 rewind
+495	play-sound	0x00 loop
+495	stop-sound	0x03 rewind
+495	stop-sound	0x02 rewind
+495	stop-sound	0x05 rewind
+495	stop-sound	0x06 rewind
+495	stop-sound	0x07 rewind
+495	stop-sound	0x14 rewind
+496	play-sound	0x00 loop
+496	stop-sound	0x03 rewind
+496	stop-sound	0x02 rewind
+496	stop-sound	0x05 rewind
+496	stop-sound	0x06 rewind
+496	stop-sound	0x07 rewind
+496	stop-sound	0x14 rewind
+497	play-sound	0x00 loop
+497	stop-sound	0x03 rewind
+497	stop-sound	0x02 rewind
+497	stop-sound	0x05 rewind
+497	stop-sound	0x06 rewind
+497	stop-sound	0x07 rewind
+497	stop-sound	0x14 rewind
+499	play-sound	0x00 loop
+499	stop-sound	0x03 rewind
+499	stop-sound	0x02 rewind
+499	stop-sound	0x05 rewind
+499	stop-sound	0x06 rewind
+499	stop-sound	0x07 rewind
+499	stop-sound	0x14 rewind
+500	play-sound	0x00 loop
+500	stop-sound	0x03 rewind
+500	stop-sound	0x02 rewind
+500	stop-sound	0x05 rewind
+500	stop-sound	0x06 rewind
+500	stop-sound	0x07 rewind
+500	stop-sound	0x14 rewind
+501	play-sound	0x00 loop
+501	stop-sound	0x03 rewind
+501	stop-sound	0x02 rewind
+501	stop-sound	0x05 rewind
+501	stop-sound	0x06 rewind
+501	stop-sound	0x07 rewind
+501	stop-sound	0x14 rewind

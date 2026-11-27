@@ -270,9 +270,13 @@ Not part of the refactor tasks. Each needs its own yes.
 
 ## Tasks
 
-Task 1 is this document. Tasks 2 and 3 depend on nothing. Task 4 needs Task 3. Task 5 needs Task 4 and PRs 456 and
-457. Tasks 3 to 5 are AR1.1 work and go before AR1.2's move, interleaved with AR1 Tasks 5e and 5c as
-Emanuel says. Task 6 needs Task 5, Task 7 needs Task 6, Task 8 needs Task 6.
+Task 1 is this document. Tasks 2 and 3 depend on nothing. Task 4 needs Task 3. Task 5 needs Task 4 (PRs 456 and
+457 are merged). Task 6 needs Task 5, Task 7 needs Task 6, Task 8 needs Task 6.
+
+AR1.2 moved the engine to `Client/src/engine` (PR 466) before Tasks 3 to 5 began, and AR4.1 has been moving the game
+modules to `Client/src/game` since. The paths in the tasks below are from before those moves: the player is now in
+`engine/Audio`, and each task takes its files from `main` when it starts. Task 5 lands next to AR4.1's work on
+`game/Sound` (layer 8, as `game/Music` will be).
 
 | Task | What | Needs |
 | ---: | --- | --- |
@@ -305,22 +309,23 @@ Title: `test(characterization): let the behavior golden hear the music and the s
 
 **Files:**
 - Modify: `Client/tests/characterization/test_characterization.cpp`, `Client/tests/characterization/README.md`
-- Create: `Client/tests/characterization/golden/<Scene>.audio.tsv` for the four scenes
+- Create: `Client/tests/characterization/golden/<Scene>.audio.tsv` for the five scenes (`IdleKeepalive` came after
+  this plan)
 
 **Interfaces:**
 - A recording device in the harness implements `Audio::IPlayback` and notes one row per call of the interface:
   `frame`, `event` (`play-music`, `stop-music`, `play-sound`, `stop-sound`, `volume`, `listener`, `register`,
   `release`), `value` (the path, or the id in hex with its flags). `runtime.audio` points at it.
-- The four existing goldens must not change: with a device the client takes the branches that call it, and none of
-  them draws, sends, calls `rand()` or changes the world summary. The PR shows the four comparisons passing before the
+- The five existing goldens must not change: with a device the client takes the branches that call it, and none of
+  them draws, sends, calls `rand()` or changes the world summary. The PR shows the five comparisons passing before the
   new files are written; a difference stops the task and is reported.
 - `MU_CHARACTERIZATION_WRITE=1` also writes the audio files; `MU_CHARACTERIZATION_TRACE=1` prints the audio rows.
 
-- [ ] **Step 1:** add the device and the comparison, with the new golden files missing; run and see the test fail
+- [x] **Step 1:** add the device and the comparison, with the new golden files missing; run and see the test fail
   on the missing file.
-- [ ] **Step 2:** write the files with `MU_CHARACTERIZATION_WRITE=1`; check by hand that `LoginToLorencia` has
+- [x] **Step 2:** write the files with `MU_CHARACTERIZATION_WRITE=1`; check by hand that `LoginToLorencia` has
   `main_theme` at the login and that `EventEntry` stops it on map 9 (`map != 0` stops `Pub` and `main_theme`).
-- [ ] **Step 3:** run the whole suite; the four `.tsv` digests unchanged.
+- [x] **Step 3:** run `test_characterization` (CI runs the rest); the five `.tsv` digests unchanged.
 
 ### Task 3: rename the music files to `MusicPlayer`
 

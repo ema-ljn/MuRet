@@ -33,6 +33,20 @@ TABLE_FILES: tuple[str, ...] = (
     "Local/quest.bmd",
     "Local/questtest.bmd",
 )
+MODEL_FILES: tuple[str, ...] = (
+    "Object3/Object25.bmd",
+    "object35/Object70.bmd",
+    "Object12/Shine01.bmd",
+    "skill/WaveForce.bmd",
+    "skill/m_waves.bmd",
+    "Item/Sword01.bmd",
+    "Item/waterring.bmd",
+    "player/Helper03.bmd",
+    "player/HelmMale01.bmd",
+    "object35/Object36.bmd",
+    "NPC/BloodCastle01.bmd",
+    "player/MaskHelmMale09.bmd",
+)
 
 
 @pytest.fixture(scope="session")

@@ -1,3 +1,4 @@
+#include "Network/PacketSerials.h"
 #include "Network/Xor32Packet.h"
 #include "Session/SessionEventApplier.h"
 
@@ -15,8 +16,6 @@
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
-#include "Protocol/Pets/PetOrders.h"
-#include "Protocol/Skills/Skill.h"
 #include "Protocol/Movement/World.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -44,6 +43,7 @@
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"
+#include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
 
@@ -269,26 +269,29 @@ TEST(SessionEventApplierTest, TheLeaveWireLetsGoOfAnotherThroughTheRealSession)
 // 07 Q-C1240: el 22, el 23 y el 2C cortos llegan a lo que sueltan (0x4d10b9, 0x4d13e5 y 0x4deb0e), sin caer en el
 // F3 03.
 
+// The skills reach their appliers through the real session, in wire order: the F3 11 without Skill.bmd stops at the
+// count and fails the session.
 TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
 {
     auto tested = std::make_unique<Applier>();
-    Client::Tests::LoggedInSession online;
-    const Client::App::WorldEvent summon = Client::Protocol::Skills::SummonLife{0x42};
-    const Client::App::WorldEvent cancel = Client::Protocol::Skills::MagicCancel{0x1b, 0x0777};
-    const Client::App::WorldEvent attack = Client::Protocol::Skills::MagicAttack{0x13, 0x0777, 0x0888, false};
-    EXPECT_TRUE(tested->applier.ApplyWorld(summon, online.session).HasValue());
+    Client::Tests::LoggedInSession online(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Network::PacketSerials serverSerials;
+    online.socket.reads = {Client::Tests::Join(
+        {Client::Tests::Bytes({0xc1, 5, 0xf3, 0x20, 0x42}), Client::Tests::Bytes({0xc1, 6, 0x1b, 0x1b, 0x07, 0x77}),
+         Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x19, 0x13, 0x07, 0x77, 0x08, 0x88}),
+                                          serverSerials),
+         // El A8 sin el cuervo del dueño no hace nada.
+         Client::Tests::Bytes({0xc1, 9, 0xa8, 0, 1, 0x07, 0x77, 0x08, 0x88}),
+         Client::Tests::Bytes({0xc1, 8, 0xf3, 0x11, 0xfe, 0, 0, 0x11})})};
+
+    const auto polled = online.session.Poll();
+
+    ASSERT_FALSE(polled.HasValue());
+    EXPECT_NE(polled.Error().find("0x4c54ed"), std::string::npos) << polled.Error();
     EXPECT_EQ(tested->world.Runtime().hud.summonLife, 0x42);
-    EXPECT_TRUE(tested->applier.ApplyWorld(cancel, online.session).HasValue());
-    EXPECT_TRUE(tested->applier.ApplyWorld(attack, online.session).HasValue());
-    // El A8 sin el cuervo del dueño no hace nada.
-    const Client::App::WorldEvent raven = Client::Protocol::Pets::PetAttack{1, 0x0777, 0x0888};
-    EXPECT_TRUE(tested->applier.ApplyWorld(raven, online.session).HasValue());
-    // F3 11 sin Skill.bmd corta en la cuenta.
-    const Client::App::WorldEvent list =
-        Client::Protocol::Skills::SkillList{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};
-    const auto counted = tested->applier.ApplyWorld(list, online.session);
-    ASSERT_FALSE(counted.HasValue());
-    EXPECT_NE(counted.Error().find("0x4c54ed"), std::string::npos) << counted.Error();
+    EXPECT_TRUE(std::ranges::none_of(online.sink.lines, [](const std::string& line)
+                                     { return line.find("no llegó cifrada") != std::string::npos; }));
 }
 
 // 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.

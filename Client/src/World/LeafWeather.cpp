@@ -1,6 +1,7 @@
 #include "World/LeafWeather.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Weather/Weather.h"
 #include "World/ILeafWaveEvaluator.h"
 
 #include <bit>
@@ -17,6 +18,10 @@ constexpr std::uint32_t FirstWaveScale = 10;
 constexpr std::uint32_t SecondWaveScale = 20;
 constexpr std::uint32_t PhaseStep = 20;
 constexpr std::int32_t PhasePeriod = 2000;
+
+constexpr std::uint8_t WeatherModeShift = 4;
+constexpr std::uint8_t WeatherIntensityMask = 0x0f;
+constexpr std::int32_t TargetPerIntensity = 6;
 
 void AdvancePhase(LeafWeather& weather)
 {
@@ -60,5 +65,14 @@ Core::Expected<void, std::error_code> StepLeafWeatherWaves(LeafWeather& weather,
     weather.secondWave = std::bit_cast<std::int32_t>(secondBits);
     AdvancePhase(weather);
     return {};
+}
+
+void ApplyWeather(const Protocol::Weather::Weather& received, LeafWeather& weather)
+{
+    const auto mode = received.code >> WeatherModeShift;
+    if (mode == 0)
+        weather.target = 0;
+    else if (mode == 1)
+        weather.target = static_cast<std::int32_t>(received.code & WeatherIntensityMask) * TargetPerIntensity;
 }
 } // namespace Client::World

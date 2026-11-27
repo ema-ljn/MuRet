@@ -1,30 +1,24 @@
 #include "Session/ServerSession.h"
 
 #include "App/SessionState.h"
-#include "Session/WorldEvent.h"
 #include "Core/Expected.h"
-#include "Core/ILogSink.h"
-#include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Network/LinkState.h"
 #include "Network/PacketSerials.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Weather/Weather.h"
 #include "Models/Cloth.h"
-#include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
-#include "Session/SessionEventApplier.h"
 #include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/GameCamera.h"
 #include "World/LeafWeather.h"
 
+#include "support/BareWorld.h"
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
 #include "support/MinimumSize.h"
 #include "support/Packets.h"
-#include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
 #include "support/TestGameServer.h"
@@ -32,11 +26,11 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <memory>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
-#include <variant>
 #include <vector>
 
 namespace
@@ -77,34 +71,18 @@ TEST(WeatherProtocolTest, IgnoresTrailingBytes)
     EXPECT_EQ(weather.Value().code, 0x1f);
 }
 
+// The session with the weather's row routed to a world without Data, and the target after each routed reception.
 struct WeatherHarness
 {
     WeatherHarness()
     {
-        online.eventSink.onWorld = [this](const Client::App::WorldEvent& event, Client::App::ServerSession& session)
-        {
-            auto applied = applier.ApplyWorld(event, session);
-            targets.push_back(world.Runtime().leafWeather.target);
-            return applied;
-        };
+        online.eventSink.routedWorld = &bare->resources;
+        online.eventSink.onRoutedReception = [this](Client::App::ServerSession&)
+        { targets.push_back(world.Runtime().leafWeather.target); };
     }
 
-    Client::Scenes::WorldState world;
-    Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
-    Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
-    Client::Tests::RecordingSink sink;
-    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Scenes::SessionEventApplier applier{Client::Scenes::WorldEntryResources{.world = world,
-                                                                                    .selection = selection,
-                                                                                    .dataRoot = {},
-                                                                                    .cloth = cloth,
-                                                                                    .camera = camera,
-                                                                                    .cameraInput = input,
-                                                                                    .models = models,
-                                                                                    .log = log}};
+    std::unique_ptr<Client::Tests::BareWorld> bare = std::make_unique<Client::Tests::BareWorld>();
+    Client::Scenes::WorldState& world = bare->world;
     Client::Tests::LoggedInSession online;
     std::vector<std::int32_t> targets;
 };
@@ -120,56 +98,62 @@ TEST(WeatherApplierTest, StartsWithTheStaticTargetAndCounterAndTheDataLeafCount)
 }
 
 // 4e36c4/4e36ed escriben un solo DWORD; 4e36dd salta al default para los otros 224 bytes.
-TEST(WeatherApplierTest, AllThreeBranchesChangeOnlyTheTargetAndConsumeNoRandom)
+TEST(WeatherApplierTest, AllThreeBranchesChangeOnlyTheTarget)
 {
-    WeatherHarness tested;
     const Client::World::LeafWeather before{
         .target = 777, .current = -123, .firstWave = 45, .secondWave = -67, .phase = 890};
     constexpr std::array<std::int32_t, 16> RainTargets{0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90};
-    constexpr std::uint32_t Seed = 0x5eed;
-    tested.cloth.random = Client::Crt::CrtRandom{Seed};
     for (int code = 0; code <= 0xff; ++code)
     {
         SCOPED_TRACE(code);
-        tested.world.Runtime().leafWeather = before;
-        const Client::App::WorldEvent event = Client::Protocol::Weather::Weather{static_cast<std::uint8_t>(code)};
+        Client::World::LeafWeather after = before;
 
-        ASSERT_TRUE(tested.applier.ApplyWorld(event, tested.online.session).HasValue());
+        Client::World::ApplyWeather(Client::Protocol::Weather::Weather{static_cast<std::uint8_t>(code)}, after);
 
-        const auto& after = tested.world.Runtime().leafWeather;
         const auto expected = code < 16 ? 0 : code < 32 ? RainTargets[static_cast<std::size_t>(code - 16)] : 777;
         EXPECT_EQ(after.target, expected);
         EXPECT_EQ(after.current, before.current);
         EXPECT_EQ(after.firstWave, before.firstWave);
         EXPECT_EQ(after.secondWave, before.secondWave);
         EXPECT_EQ(after.phase, before.phase);
-        EXPECT_EQ(tested.cloth.random.State(), Seed);
     }
-    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::Idle);
+}
+
+// Each of the 256 codes through the row: the world's CRT draws nothing and the session stays logged in.
+TEST(WeatherSessionTest, NoCodeConsumesARandom)
+{
+    WeatherHarness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.online.LogIn());
+    constexpr std::uint32_t Seed = 0x5eed;
+    tested.bare->cloth.random = Client::Crt::CrtRandom{Seed};
+    for (int code = 0; code <= 0xff; ++code)
+    {
+        SCOPED_TRACE(code);
+        tested.online.socket.reads = {Bytes({0xc1, 4, 0x0f, static_cast<std::uint8_t>(code)})};
+
+        ASSERT_TRUE(tested.online.session.Poll().HasValue());
+
+        EXPECT_EQ(tested.bare->cloth.random.State(), Seed);
+    }
+    EXPECT_EQ(tested.targets.size(), 256u);
+    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
     EXPECT_EQ(tested.world.Runtime().map, -1);
-    EXPECT_FALSE(tested.selection.HasReceivedList());
+    EXPECT_FALSE(tested.bare->selection.HasReceivedList());
 }
 
 TEST(WeatherSessionTest, DeliversEveryWeatherReceptionBeforeTheNextPacket)
 {
-    Client::Tests::LoggedInSession tested;
-    ASSERT_NO_FATAL_FAILURE(tested.LogIn());
-    std::size_t applied = 0;
-    tested.eventSink.onWorld = [&applied](const Client::App::WorldEvent&,
-                                          Client::App::ServerSession&) -> Client::Core::Expected<void, std::string>
-    {
-        ++applied;
-        return {};
-    };
-    tested.socket.reads = {
+    WeatherHarness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.online.LogIn());
+    tested.online.socket.reads = {
         Client::Tests::Join({Client::Tests::Bytes({0xc1, 4, 0x0f, 0x17}), Client::Tests::Bytes({0xc1, 4, 0x0f, 0x00}),
                              Client::Tests::Bytes({0xc1, 4, 0x0f, 0x27})})};
 
-    ASSERT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_TRUE(tested.online.session.Poll().HasValue());
 
-    EXPECT_EQ(applied, 3u);
-    EXPECT_EQ(tested.eventSink.world.size(), 3u);
-    EXPECT_EQ(tested.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42, 0, 0}));
+    EXPECT_TRUE(tested.online.eventSink.world.empty());
+    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
 }
 
 TEST(WeatherSessionTest, AppliesTheThreeBranchesInWireOrderWithoutAdvancingTheRainCounter)
@@ -188,15 +172,6 @@ TEST(WeatherSessionTest, AppliesTheThreeBranchesInWireOrderWithoutAdvancingTheRa
     EXPECT_EQ(tested.world.Runtime().leafWeather.current, 19);
     EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
     EXPECT_EQ(tested.online.socket.sent.size(), sentBefore);
-    const auto& events = tested.online.eventSink.world;
-    ASSERT_EQ(events.size(), 4u);
-    constexpr std::array<std::uint8_t, 4> NativeCodes{0x17, 0x27, 0x1f, 0x0f};
-    for (std::size_t index = 0; index < NativeCodes.size(); ++index)
-    {
-        const auto* weather = std::get_if<Client::Protocol::Weather::Weather>(&events[index]);
-        ASSERT_NE(weather, nullptr);
-        EXPECT_EQ(weather->code, NativeCodes[index]);
-    }
 }
 
 TEST(WeatherSessionTest, DiscardsMalformedWeatherAndContinuesTheSameBatch)
@@ -210,7 +185,6 @@ TEST(WeatherSessionTest, DiscardsMalformedWeatherAndContinuesTheSameBatch)
     ASSERT_TRUE(tested.online.session.Poll().HasValue());
 
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{6}));
-    EXPECT_EQ(tested.online.eventSink.world.size(), 1u);
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 6);
     EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
 }
@@ -225,7 +199,6 @@ TEST(WeatherSessionTest, AcceptsTheNormalizedEncryptedPacketWithoutASeparateEncr
     ASSERT_TRUE(tested.online.session.Poll().HasValue());
 
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{90}));
-    EXPECT_EQ(tested.online.eventSink.world.size(), 1u);
 }
 
 TEST(WeatherSessionTest, AppliesBeforeTheGameHelloWithoutChangingTheSessionState)
@@ -260,41 +233,35 @@ TEST(WeatherSessionTest, DoesNotRegisterWeatherWithTheConnectServer)
     ASSERT_TRUE(tested.online.session.Poll().HasValue());
 
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 77);
-    EXPECT_TRUE(tested.online.eventSink.world.empty());
+    EXPECT_TRUE(tested.targets.empty());
     EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::WaitingServerList);
 }
 
-TEST(WeatherSessionTest, KeepsTheAppliedPrefixAndStopsAtTheFirstSinkFailure)
+// A failing reception between the weathers (the warp with an item on the cursor, 0x5be150): the weathers before it
+// stay applied and the one after it never arrives.
+TEST(WeatherSessionTest, KeepsTheAppliedPrefixAndStopsAtTheFirstFailure)
 {
     WeatherHarness tested;
     ASSERT_NO_FATAL_FAILURE(tested.online.LogIn());
-    std::size_t calls = 0;
-    tested.online.eventSink.onWorld =
-        [&tested, &calls](const Client::App::WorldEvent& event,
-                          Client::App::ServerSession& session) -> Client::Core::Expected<void, std::string>
-    {
-        auto applied = tested.applier.ApplyWorld(event, session);
-        ++calls;
-        if (calls == 2)
-            return Client::Core::Unexpected(std::string("corte de prueba después de aplicar 0F"));
-        return applied;
-    };
-    tested.online.socket.reads = {Client::Tests::Join(
-        {Bytes({0xc1, 4, 0x0f, 0x17}), Bytes({0xc1, 4, 0x0f, 0x1f}), Bytes({0xc1, 4, 0x0f, 0x00})})};
+    tested.world.Runtime().cursorItemCount = 1;
+    Client::Network::PacketSerials serverSerials;
+    tested.online.socket.reads = {
+        Client::Tests::Join({Bytes({0xc1, 4, 0x0f, 0x17}), Bytes({0xc1, 4, 0x0f, 0x1f}),
+                             Client::Tests::FromTheGameServer(Bytes({0xc1, 8, 0x1c, 0, 0, 30, 31, 0}), serverSerials),
+                             Bytes({0xc1, 4, 0x0f, 0x00})})};
 
     const auto polled = tested.online.session.Poll();
 
     ASSERT_FALSE(polled.HasValue());
-    EXPECT_EQ(polled.Error(), "corte de prueba después de aplicar 0F");
-    EXPECT_EQ(calls, 2u);
-    EXPECT_EQ(tested.online.eventSink.world.size(), 2u);
+    EXPECT_NE(polled.Error().find("0x5be150"), std::string::npos) << polled.Error();
+    EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42, 90, 90}));
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 90);
     EXPECT_EQ(tested.online.session.Failure(), Client::App::SessionFailure::ApplicationFailed);
     EXPECT_EQ(tested.online.connection.State(), Client::Network::LinkState::Closed);
     const auto again = tested.online.session.Poll();
     ASSERT_FALSE(again.HasValue());
     EXPECT_EQ(again.Error(), polled.Error());
-    EXPECT_EQ(calls, 2u);
+    EXPECT_EQ(tested.targets.size(), 3u);
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 90);
 }
 

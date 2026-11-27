@@ -446,7 +446,6 @@ private:
     void OnDeleteResult(const Network::Packet& packet);
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
-    void OnWeather(const Network::Packet& packet);
     // CL9 hito 11, los eventos (04 § Los eventos): los lee con Protocol::Events::ReadEventPacket.
     void OnEventPacket(const Network::Packet& packet);
     // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
@@ -465,39 +464,7 @@ private:
     void OnMainCheck(const Network::Packet& packet);
     // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
     void OnGuild(const Network::Packet& packet);
-    // CL9 hito 4: las skills (04 § Las skills).
-    void OnMagicAttack(const Network::Packet& packet);
-    void OnDurationMagic(const Network::Packet& packet);
-    void OnMagicCancel(const Network::Packet& packet);
-    void OnActorState(const Network::Packet& packet);
-    void OnActorEffect(const Network::Packet& packet);
-    void OnSkillTarget(const Network::Packet& packet);
     void OnReport73(const Network::Packet& packet);
-    void OnSkillList(const Network::Packet& packet);
-    void OnSummonLife(const Network::Packet& packet);
-    void OnPetOrder(const Network::Packet& packet);
-    void OnPetAttack(const Network::Packet& packet);
-    void OnPetInfo(const Network::Packet& packet);
-    // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
-    void OnQuestFlag(const Network::Packet& packet);
-    void OnQuestList(const Network::Packet& packet);
-    void OnQuestState(const Network::Packet& packet);
-    void OnSetQuestResult(const Network::Packet& packet);
-    void OnQuestResult(const Network::Packet& packet);
-    // CL9 hito 9: los amigos (C0..C4, 0x4e5a4e..0x4e5aae), sin guarda de escena ni del flag de cifrado.
-    void OnFriendList(const Network::Packet& packet);
-    void OnFriendAddResult(const Network::Packet& packet);
-    void OnFriendRequest(const Network::Packet& packet);
-    void OnFriendDeleteResult(const Network::Packet& packet);
-    void OnFriendState(const Network::Packet& packet);
-    // CL9 hito 10: las cartas y el chat con un amigo (C5..C8, CA y CB, 0x4e5ac6..0x4e5b42), sin guarda de escena ni
-    // del flag de cifrado, como los de los amigos.
-    void OnLetterSendResult(const Network::Packet& packet);
-    void OnLetterRow(const Network::Packet& packet);
-    void OnLetterRead(const Network::Packet& packet);
-    void OnLetterDeleteResult(const Network::Packet& packet);
-    void OnRoomAnswer(const Network::Packet& packet);
-    void OnInviteResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

@@ -55,8 +55,8 @@ def test_the_skill_has_recipes() -> None:
 
 
 @pytest.mark.parametrize("name", sorted(recipes()) if SKILL.exists() else [])
-def test_every_recipe_runs(name: str, working_copy: Path, reference_data: Path, tmp_path: Path) -> None:
-    variables = {"WORK": str(working_copy), "REF": str(reference_data), "TMP": str(tmp_path)}
+def test_every_recipe_runs(name: str, model_copy: Path, reference_data: Path, tmp_path: Path) -> None:
+    variables = {"WORK": str(model_copy), "REF": str(reference_data), "TMP": str(tmp_path)}
     for line, stdin in commands(recipes()[name]):
         run_line(line, variables, stdin)
 

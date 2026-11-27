@@ -29,10 +29,11 @@ can look inside one, change a text or an item, and get a file the client reads, 
 
 ## Constraints
 
-- **Byte-exact.** Every byte read is kept: padding, the bytes after a name's first `0`, the 28 bytes of each 64-byte
-  triangle that the client ignores, trailing bytes after the last part (`item.bmd` has 80), the `"BMD"` prefix, the
-  encrypted block's size. An unedited document writes back identical bytes. This is the project's fidelity rule, and the
-  round trip over every file of `Client/assets/Data` is its test.
+- **Byte-exact.** Every byte read is kept: padding, the bytes after a name's first `0`, the 38 bytes at the end of
+  each 64-byte triangle that the client never reads (28 it does not copy and 10 it copies and nothing uses), trailing
+  bytes after the last part (`item.bmd` has 80), the `"BMD"` prefix, the encrypted block's size. An unedited document
+  writes back identical bytes. This is the project's fidelity rule, and the round trip over every file of
+  `Client/assets/Data` is its test.
 - **The client's C++ model is not enough.** `Client::Data::Models::Model` drops what the client does not use
   (`Client/src/Data/Models/Bmd.cpp`), so the tool has its own lossless model. The formats themselves come from
   `Client/docs/research/05-formatos-de-datos.md`, the C++ readers in `Client/src/Data/`, and the research repo's
@@ -163,7 +164,9 @@ answer `UNKNOWN_FORMAT`, in any letter case, for reads and writes.
 
 What the writer recomputes after an edit: counts (from list lengths), the encrypted block's size, and the checksum of
 a table whose records changed. An unedited table keeps its stored checksum, even a wrong one (Q-C01: the lab's
-`item.bmd` fails its own). The version, the cipher and the trailing bytes stay as read.
+`item.bmd` fails its own). The version, the cipher and the trailing bytes stay as read: `set` and `apply` refuse a
+model's `version`, and only `build` writes the one its view says (12 is K16, any other is plain), which is how a model
+is decrypted or encrypted.
 
 **Edits go to a working copy; the reference folder is read-only** (Emanuel's pick, 2026-11-25, over editing
 `Client/assets/Data` in place and over an overlay of only the changed files). A folder with a `Data.sha256` beside it
@@ -206,10 +209,15 @@ passes some texts to `sprintf`.
 }
 ```
 
-- Stable key order and indentation, so a diff in git is readable.
-- Bytes as lowercase hex strings. Finite floats as JSON numbers (a float32 goes to float64 and back exactly); NaN and
-  infinities as `{"f32": "<8 hex digits>"}`, keeping their bits.
-- Dense: every record is there, also the empty ones, so an array index is a record index.
+- Stable key order and layout, so a diff in git is readable: two spaces per level, and a list or an object on one
+  line when it fits in 120 columns (a gate or a vertex per line; `Player.bmd`'s dump is 9 MB instead of 25).
+  `build` reads any layout.
+- Bytes as lowercase hex strings. Finite floats as JSON numbers, the shortest that reads back to the same float32
+  (`0.1`, not `0.10000000149011612`); NaN and infinities as `{"f32": "<8 hex digits>"}`, keeping their bits.
+- Bytes the client does not use are `raw_0xNN` members. In a model they show only when they are not zero, and a part
+  written without them gets zeros.
+- Dense: every record is there, also the empty ones, so an array index is a record index. A model's counts are the
+  lengths of its lists.
 - `format_version` versions this layout; a later change bumps it and `build` rejects versions it does not know.
 
 ### The CLI: an API for agents first
@@ -221,10 +229,10 @@ follows the core and recommended levels of the vendored `ai-native-cli` skill (s
 
 ```text
 mubmd                                       the self-description below
-mubmd formats                               the catalog: every format, its files, whether the client reads them
+mubmd formats                               the catalog: every format, its files, known by name or by content
 mubmd schema <format>                       the fields of a format: JSON pointer, offset, type, limits, research reference
 mubmd workspace init <dest>                 copy the reference Data folder to a working copy and check it
-mubmd info <file>                           format, version, cipher, counts, checksum state, findings count
+mubmd info <file>                           format, cipher, a table's records or a model's parts, findings count
 mubmd find <file> <query>                   records whose text or name matches; --field, --regex
 mubmd get <file> <pointer>                  one value or subtree: /texts/500, /records/12/name, /meshes/0/texture_name
 mubmd set <file> <pointer> <value>          one edit, saved as in Saving
@@ -232,7 +240,7 @@ mubmd apply <file> <patch.json>             several edits at once, all or none (
 mubmd validate <file|folder>                findings
 mubmd diff <a> <b>                          field by field, between two files or a file and a JSON
 mubmd dump <file> --output <out.json>       the whole document as JSON, to a file
-mubmd build <in.json> --output <file>       the reverse
+mubmd build <in.json> --output <file>       the reverse: a table to its own name, a model to any .bmd name
 mubmd roundtrip <folder>                    decode and encode every .bmd; reports any byte that differs
 mubmd tui [<folder|file>]                   the console UI
 ```
@@ -243,13 +251,19 @@ mubmd tui [<folder|file>]                   the console UI
 - stdout carries exactly one JSON object and nothing else; logs, progress and warnings go to stderr.
 - Every success has the same envelope: `{"ok": true, "schema": 1, "command": "set", "data": {...}, "warnings": [...]}`.
   `schema` versions the output: within one, no field is renamed, retyped or removed, and CI checks every command's
-  output against its JSON Schema.
+  output against its JSON Schema. Stage 4 widened three of `info`'s fields within schema 1: `records`, `used_records`
+  and `read_by_client` are `null` for a model, a kind of file that answered `UNKNOWN_FORMAT` until then, and nothing
+  changed for the files schema 1 could already open. `info` also gained `version`, `meshes`, `bones` and `actions`
+  (`null` for a table), and `formats` gained `matches` (`"name"` for a table, `"content"` for the model).
 - The same names, types and units everywhere: a record is always `index`, a place is always `pointer`, sizes are
   always bytes.
 - Token economy: lists are paged (`--limit`, default 50, and `--offset`, with `total` and `next_offset` in the result),
   `--fields` keeps only the named keys, `get` on a large subtree cuts its arrays at `--limit` and says so
-  (`"truncated": true`), `info` summarizes, and `dump` writes to a file and returns only its path and size. A whole
-  model never lands on stdout. `validate` and `roundtrip` over a folder take `--ndjson` to stream one finding per line.
+  (`"truncated": true`), `info` summarizes, and `dump` writes to a file and returns only its path and size. `get`
+  shows the value asked for and the lists directly inside it; a list of objects further in prints as `{"count": n}`,
+  so `get <model> ''` is the header and the first parts with their counts, and a page of quest records does not spell
+  out each record's entries. A whole model never lands on stdout. `validate` and `roundtrip` over a folder take
+  `--ndjson` to stream one finding per line.
 
 **Errors.**
 
@@ -282,9 +296,14 @@ mubmd tui [<folder|file>]                   the console UI
 - Writing is idempotent: setting a value it already has returns `"changed": false` and touches no file, and
   `workspace init` on a copy that already checks against `Data.sha256` does nothing.
 - What is valid but unusual is a warning, not an error, so the agent keeps its work: changing a text's `printf`
-  specifiers, a parent bone after its child, a texture name that no file in the folder has.
+  specifiers (`PRINTF_CHANGED`), a parent bone after its child (`PARENT_AFTER_CHILD`), a texture name whose file
+  neither the model's folder nor a folder beside it has (`TEXTURE_NOT_FOUND`), one that only a folder beside it has
+  (`TEXTURE_ELSEWHERE`), and a new texture name that changes what the client reads from it: the file's kind, the
+  mesh's slot or its effect (`TEXTURE_ROLE_CHANGED`). A number that points outside its list is `OUT_OF_RANGE`, an
+  error that is still written.
 - The reference folder is never written (`REFERENCE_READ_ONLY`, with the `workspace init` suggestion).
-- Writes go only to files the catalog knows, after write-verify, with the original kept as `.orig`.
+- Writes go only to files the catalog knows (a table by its name, a model to any `.bmd` name), after write-verify,
+  with the original kept as `.orig`.
 - `workspace init` into a folder that is not empty needs `--yes`.
 
 **Self-description.**
@@ -323,8 +342,9 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
 - **Right:** the document. Text and record tables are data tables with search, filters (non-empty, changed, with
   findings) and an editor below that counts bytes as you type and flags characters CP1252 cannot hold. A record table
   lists the fields of the selected record under the table, and item rows show their section. Models show a tree of
-  meshes, actions and bones with their counts and names; names, texture names, a mesh's texture and a bone's parent
-  are editable there, the rest through JSON.
+  meshes, actions and bones with their counts and names, each bone under its parent, and the fields of the selected
+  part below; names, texture names, a mesh's texture and a bone's parent are editable there, the rest through JSON.
+  Search and the row filter are for tables.
 - **The surprise:** a model's wireframe in the terminal, drawn with braille characters and slowly turning, posed with
   the first key of its first action (Half-Life's angle-to-quaternion order, as research 05 describes). Character parts
   borrow `player/Player.bmd`'s skeleton. It is a preview in float64, not the client's x87 math.
@@ -396,7 +416,8 @@ leaves its own checks green, and the workflow lands with the first code PR.
 3. **Every table:** K16-free formats first, then the checksummed ones; schemas with the research's field names. Its
    plan, with the decisions the real files forced, is
    [`2026-11-26-bmd-editor-tables.md`](../plans/2026-11-26-bmd-editor-tables.md).
-4. **Models:** the lossless model codec with K16, validation, the model view in the TUI.
+4. **Models:** the lossless model codec with K16, validation, the model view in the TUI. Its plan, with the decisions
+   the 1,962 real files forced, is [`2026-11-27-bmd-editor-models.md`](../plans/2026-11-27-bmd-editor-models.md).
 5. **The wireframe preview.**
 
 Each stage ends with the round trip over its files passing.

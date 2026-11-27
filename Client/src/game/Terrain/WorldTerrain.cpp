@@ -10,6 +10,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
+#include "Data/Textures/TextureSet.h"
 #include "Maps/WorldFolder.h"
 #include "Maps/MapId.h"
 #include "Terrain/TerrainCells.h"
@@ -401,6 +402,15 @@ std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map)
     constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
     return {{"Effect\\cloudLight.jpg", 0x623, Clamp, true}};
 }
+std::span<const Data::Textures::TextureSetEntry> KalimaWaterTextureSet()
+{
+    static constexpr std::array<Data::Textures::TextureSetEntry, 2> Textures{{
+        {"Object25\\water1.tga", 0x23, {Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat}},
+        {"Object25\\water2.jpg", 0x24, {Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp}},
+    }};
+    return Textures;
+}
+
 std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map)
 {
     constexpr std::uint8_t CastleMap = Maps::CastleSiegeMap;

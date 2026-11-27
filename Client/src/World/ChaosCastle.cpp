@@ -7,6 +7,7 @@
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -30,7 +31,7 @@ constexpr std::uint8_t ThirdArea = 6;
 // 0x405eb0..0x405f0e: rand() % 30 (0x1e), menos 15 (0x6b87bc), más la celda por 100 (0x6b86b4).
 constexpr int StoneSpread = 30;
 constexpr double StoneBack = 15.0;
-constexpr double CellSize = 100.0;
+constexpr double CellSize = Terrain::CellSizeAsDouble;
 // 0x405ee6: la escala 1,5 (0x3fc00000).
 constexpr float StoneScale = 1.5f;
 // 0x405f2c..0x405f58: rand() % 5 y (rand() % 3 − 3) por 0,1f (0x6b87b8).

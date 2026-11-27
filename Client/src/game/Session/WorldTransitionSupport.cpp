@@ -37,6 +37,7 @@
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
 #include "Assets/FaunaModels.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -143,7 +144,7 @@ Core::Expected<void, std::string> CreateTheRaven(Kernel::ActorState& actor, cons
     const auto& terrain = TerrainOf(resources);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::format("{}: faltan alturas o atributos para el cuervo", where));
-    constexpr float CellSize = 100.0f;
+    using Terrain::CellSize;
     constexpr float Center = 50.0f;
     const double height = Terrain::TerrainHeightAt(
         *terrain.heights, *terrain.attributes, static_cast<float>(actor.cellX) * CellSize + Center,

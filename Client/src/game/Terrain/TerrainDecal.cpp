@@ -11,7 +11,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Math/Ftol.h"
-#include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -78,9 +78,9 @@ Core::Expected<void, std::string> DrawDecalCell(Render::ModelBatch& batch, const
         return {};
     }
     // 0x5faf00..0x5faf26: the side times 100, stored; x and y times 100, in the register.
-    const float side = F32(D(DecalCellSide) * D(TerrainCellSize));
-    const double left = D(x) * D(TerrainCellSize);
-    const double top = D(y) * D(TerrainCellSize);
+    const float side = F32(D(DecalCellSide) * D(CellSize));
+    const double left = D(x) * D(CellSize);
+    const double top = D(y) * D(CellSize);
     const float right = F32(left + D(side));
     const float bottom = F32(top + D(side));
     const std::size_t first =

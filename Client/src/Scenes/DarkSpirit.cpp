@@ -13,6 +13,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -28,7 +29,7 @@ namespace
 {
 // 0x4167b0: los rand() de los cierres de las celdas protegidas (0x4128e7, ocho) y del contador (0x40b9a1,
 // cuatro), y la altura sobre el terreno (0x6b8900).
-constexpr int CellSize = 100;
+constexpr int CellSize = static_cast<int>(Terrain::CellSize);
 constexpr int CellCenter = 50;
 constexpr int CellMask = 0xff;
 constexpr double BirthHeight = 300.0;

@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "World/ModelEffects.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -27,7 +28,7 @@ void ChooseTheTarget(ModelEffect& effect, const ModelEffectArguments& arguments,
         effect.siegeTarget = arguments.angles;
         return;
     }
-    constexpr float CellScale = 100.0f;
+    constexpr float CellScale = Terrain::CellSize;
     const int x = (random.Next() & 15) - 8;
     effect.siegeTarget.x = F32(static_cast<double>(x) * CellScale + hero.x);
     if (effect.type == SiegeStoneEffect)

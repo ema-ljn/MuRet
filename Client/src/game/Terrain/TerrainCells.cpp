@@ -8,6 +8,7 @@
 #include "Math/RoundedMath.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -231,10 +232,10 @@ void DrawGrassQuad(Render::ModelBatch& batch, const TerrainView& view, const Ter
                                       static_cast<double>(grass.offsets[y]));
     const float u1 = StoredSum(u, GrassStep);
     // 0x5fac90 leaves the corners at 0x79ecc30..0x79ecc5c; 0x5fab27..0x5fabbc raises the top ones.
-    const float left = static_cast<float>(x) * TerrainCellSize;
-    const float top = static_cast<float>(y) * TerrainCellSize;
-    const float right = left + TerrainCellSize;
-    const float bottom = top + TerrainCellSize;
+    const float left = static_cast<float>(x) * CellSize;
+    const float top = static_cast<float>(y) * CellSize;
+    const float right = left + CellSize;
+    const float bottom = top + CellSize;
     const float below = CornerHeight(view, corners[0]);
     const float across = CornerHeight(view, corners[2]);
     const std::array<glm::vec3, 4> positions{
@@ -300,10 +301,10 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
     }
     // 0x5fac90: x · 100 and y · 100, the right and bottom ones 100 more, and each corner's height (the fixed one with
     // bit 0x40).
-    const float left = static_cast<float>(x) * TerrainCellSize;
-    const float top = static_cast<float>(y) * TerrainCellSize;
-    const float right = left + TerrainCellSize;
-    const float bottom = top + TerrainCellSize;
+    const float left = static_cast<float>(x) * CellSize;
+    const float top = static_cast<float>(y) * CellSize;
+    const float right = left + CellSize;
+    const float bottom = top + CellSize;
     std::array<float, 4> heights{};
     for (std::size_t k = 0; k < 4; ++k)
     {

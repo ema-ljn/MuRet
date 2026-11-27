@@ -18,6 +18,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/TerrainPickingSegment.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -38,7 +39,7 @@ namespace
 constexpr float SeenLight = 0.2f;
 constexpr float PickedLight = 1.5f;
 // 0x566767..0x56679b: el centro de la celda (· 100 + 50, 0x6b86b4 y 0x6b86b0) y los 150 de 0x6b87ac.
-constexpr float CellSize = 100.0f;
+using Terrain::CellSize;
 constexpr float CellHalf = 50.0f;
 constexpr double ArrivalDistance = 150.0;
 // 0x5667ac: la espera del mouse.

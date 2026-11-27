@@ -24,6 +24,7 @@
 #include "UI/PanelRegistry.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <chrono>
 #include <cstddef>
@@ -35,7 +36,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr float CellSize = 100.0f;
+using Terrain::CellSize;
 constexpr float CellCenter = 50.0f;
 constexpr float DirectionDegrees = 45.0f;
 using Maps::IsChaosCastle;

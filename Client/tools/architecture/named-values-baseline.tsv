@@ -1,4 +1,6 @@
 space	file	name	value
+cell-size	Scenes/GameUi.cpp	CellSize	0x14
+cell-size	Scenes/GridItemUse.cpp	CellSize	0x14
 character-class	Scenes/LightningJoints.cpp	MonsterClass	0x2
 character-class	Scenes/MonsterHelpers.cpp	PlayerClass	0x1
 item-code	GameLogic/CharacterPosition.cpp	FloatingItem	0x1c15

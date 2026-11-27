@@ -24,6 +24,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -52,7 +53,7 @@ constexpr std::int32_t FirstTourActor = 10000;
 // 0x403912..0x403931 y 0x403770..0x403790: sin la clave entre los 400, queda el último registro mirado.
 constexpr std::size_t LastRecord = 399;
 // 0x6b86b4 y 0x6b86b0: el centro de una celda.
-constexpr double CellSize = 100.0;
+constexpr double CellSize = Terrain::CellSizeAsDouble;
 constexpr double CellCenter = 50.0;
 // 0x6b86c0 (0,01f), con el que 0x403760 vuelve a la celda.
 constexpr double Hundredth = Math::HundredthAsDouble;

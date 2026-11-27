@@ -27,9 +27,6 @@ namespace Client::Terrain
 {
 // Tile i is slot i + 0x23 (0x5fa260 and 0x5fa350).
 inline constexpr std::uint16_t FirstTileSlot = 0x23;
-// 0x6b86b4
-inline constexpr float TerrainCellSize = 100.0f;
-static_assert(std::bit_cast<std::uint32_t>(TerrainCellSize) == 0x42C80000, "la constante de 0x6b86b4");
 // A corner's height with bit 0x40 of the attribute (DAT_006c9d5c in the .data).
 inline constexpr float FixedCornerHeight = 1200.0f;
 static_assert(std::bit_cast<std::uint32_t>(FixedCornerHeight) == 0x44960000, "el valor de DAT_006c9d5c");

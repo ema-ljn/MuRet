@@ -39,6 +39,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -73,7 +74,7 @@ constexpr float RumboFactor = std::bit_cast<float>(std::uint32_t{0x3cb60b61});  
 constexpr std::string_view NoAttackName = "webzen";                                  // 0x6c8fa0 y 0x6c8fa8
 constexpr std::uint32_t HiddenFlag20 = 0x20;
 constexpr std::uint16_t WallAttribute = 4;
-constexpr float CellSize = std::bit_cast<float>(std::uint32_t{0x42c80000});   // [0x6b86b4], 100
+using Terrain::CellSize;                                                      // [0x6b86b4], 100
 constexpr float HalfCell = std::bit_cast<float>(std::uint32_t{0x42480000});   // [0x6b86b0], 50
 constexpr float HalfTurn = Math::HalfTurnAsFloat;                             // [0x6b86bc], 180
 constexpr float OneOver360 = std::bit_cast<float>(std::uint32_t{0x3b360b61}); // [0x6ba444], 1/360

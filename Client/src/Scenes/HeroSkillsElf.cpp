@@ -32,6 +32,7 @@
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <bit>
 #include <cmath>
@@ -54,7 +55,7 @@ using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
-constexpr float CellSize = std::bit_cast<float>(std::uint32_t{0x42c80000});       // [0x6b86b4], 100
+using Terrain::CellSize;                                                          // [0x6b86b4], 100
 constexpr float HalfCell = std::bit_cast<float>(std::uint32_t{0x42480000});       // [0x6b86b0], 50
 constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2
 

@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -26,9 +27,9 @@ using Data::Terrain::TerrainSide;
 constexpr std::uint8_t WaterTile = 5;
 constexpr int BubbleOdds = 50;
 constexpr int BubbleSpread = 100;
-constexpr double CellSize = 100.0;  // 0x6b86b4.
-constexpr double BubbleLift = 10.0; // 0x6b87a8.
-constexpr float BubbleScale = 1.0f; // 0x5fa6f2.
+constexpr double CellSize = Terrain::CellSizeAsDouble; // 0x6b86b4.
+constexpr double BubbleLift = 10.0;                    // 0x6b87a8.
+constexpr float BubbleScale = 1.0f;                    // 0x5fa6f2.
 constexpr std::int32_t BubbleSubtype = 0;
 
 // Las esquinas como Terrain::DrawTerrainCell: (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1), con la vuelta de la

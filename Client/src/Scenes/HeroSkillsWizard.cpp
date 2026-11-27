@@ -35,6 +35,7 @@
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <bit>
 #include <cmath>
@@ -56,7 +57,7 @@ constexpr std::uint32_t FrozenHeroFlag = 0x1000;
 using Maps::CastleSiegeMap;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
-constexpr float CellSize = 100.0f;                                                // [0x6b86b4]
+using Terrain::CellSize;                                                          // [0x6b86b4]
 constexpr float HalfCell = 50.0f;                                                 // [0x6b86b0]
 constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2
 constexpr float VisibleAlpha = std::bit_cast<float>(std::uint32_t{0x3f333333});   // [0x6b8a5c], 0,7

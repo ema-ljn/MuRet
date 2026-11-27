@@ -8,7 +8,6 @@
 #include "Render/TextureSlot.h"
 #include "Assets/ModelTextureTable.h"
 #include "Terrain/TerrainCells.h"
-#include "World/KalimaResources.h"
 #include "Terrain/WorldTerrain.h"
 
 #include <array>
@@ -33,7 +32,7 @@ std::vector<Terrain::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTex
     if (Maps::IsKalimaMap(map))
     {
         // 0x6189e9: the real water lives in Object25, before the jump of 0x61a92a over the ordinary tiles.
-        for (const auto& texture : World::KalimaTextureSet())
+        for (const auto& texture : Terrain::KalimaWaterTextureSet())
         {
             // 0x6189e9 passes 0 as the sixth argument, so water1 does not warn; 0x618a03 passes 1, so water2 is
             // required.

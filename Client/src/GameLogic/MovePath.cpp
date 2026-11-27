@@ -2,6 +2,7 @@
 
 #include "Pathfinding/Path.h"
 #include "Math/OriginalAngles.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -17,7 +18,7 @@ namespace Client::GameLogic
 namespace
 {
 // 0x4ea270: centros y cuatro subpuntos literales, no polinomio continuo.
-constexpr double CellScale = 100.0;
+constexpr double CellScale = Terrain::CellSizeAsDouble;
 constexpr double CellCenter = 0.5;
 constexpr double NearDistance = 20.0;
 constexpr double SnapAngle = 45.0;

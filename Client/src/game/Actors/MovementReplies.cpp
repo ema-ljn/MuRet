@@ -24,6 +24,7 @@
 #include "Kernel/WorldState.h"
 #include "World/ModelEffects.h"
 #include "Assets/FaunaModels.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -40,7 +41,7 @@ namespace
 constexpr std::size_t SearchActorCount = 400;
 constexpr std::uint16_t JumpingActor = 0x186;
 constexpr std::uint16_t NoRandomShock = 0x113;
-constexpr float CellSize = 100.0f;
+using Terrain::CellSize;
 constexpr float NormalDamageScale = 15.0f;
 constexpr float HighlightDamageScale = 50.0f;
 constexpr float DuplicateHeight = 10.0f;

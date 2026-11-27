@@ -4,14 +4,12 @@
 #include "Data/Textures/TextureSet.h"
 
 #include <filesystem>
-#include <span>
 #include <string>
 #include <vector>
 
-// 6189e9..618a18: recursos físicos de agua; el owner los publica en ModelTextureTable.
+// 0x6189e9..0x618a18: Kalima's water textures (Terrain::KalimaWaterTextureSet), read from `dataRoot`.
 namespace Client::World
 {
-[[nodiscard]] std::span<const Data::Textures::TextureSetEntry> KalimaTextureSet();
 [[nodiscard]] Core::Expected<std::vector<Data::Textures::LoadedTexture>, std::string>
 LoadKalimaTextures(const std::filesystem::path& dataRoot);
 } // namespace Client::World

@@ -9,6 +9,7 @@
 #include "Terrain/FaceNormal.h"
 #include "Math/Ftol.h"
 #include "Terrain/WorldFiles.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -29,7 +30,6 @@ namespace Client::Terrain
 namespace
 {
 // The world units per cell (0x6b86b4) and their inverse, that of 0x5f99e0 (0x6b86c0, 0.01 as float).
-constexpr float CellSize = 100.0f;
 constexpr float CellsPerUnit = 0.01f;
 // The last cell 0x5f99e0 accepts, in x and in y: 254, because it takes the next one.
 constexpr std::int32_t LastSampledCell = 254;

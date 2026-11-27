@@ -28,6 +28,7 @@
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <array>
 #include <bit>
@@ -58,7 +59,7 @@ constexpr std::uint8_t ArrivalSkill = 5;
 constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint32_t LastSkill = 0xff;
 constexpr std::int32_t LastCell = 0xff;
-constexpr float CellSize = std::bit_cast<float>(std::uint32_t{0x42c80000});       // [0x6b86b4], 100
+using Terrain::CellSize;                                                          // [0x6b86b4], 100
 constexpr float HalfCell = std::bit_cast<float>(std::uint32_t{0x42480000});       // [0x6b86b0], 50
 constexpr float CastReach = std::bit_cast<float>(std::uint32_t{0x42f00001});      // [0x6ba448], 120,0000076
 constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2

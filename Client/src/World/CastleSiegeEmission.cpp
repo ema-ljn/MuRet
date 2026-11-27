@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "World/CastleSiegeObjectStep.h"
 #include "World/ModelEffects.h"
+#include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -23,7 +24,7 @@ constexpr std::int16_t FarStone = 0x12c;
 constexpr std::int16_t BattleArrow = 0xdb;
 constexpr float RockZ = 500.0f;
 constexpr float ArrowZ = 350.0f;
-constexpr float CellScale = 100.0f;
+constexpr float CellScale = Terrain::CellSize;
 constexpr std::int32_t ArrowSpacing = 60;
 
 // El negativo pequeño se corre otros100+rand; no se reemplaza como el positivo (42bb5c/42bc73/42c22f).

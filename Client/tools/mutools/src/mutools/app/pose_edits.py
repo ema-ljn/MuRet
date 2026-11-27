@@ -1,7 +1,8 @@
+import math
 from collections.abc import Sequence
 from typing import Final
 
-from mutools.app.model_scene import POSITION_WIDTH, quaternion_angles
+from mutools.app.model_scene import POSITION_WIDTH, Quaternion, angle_quaternion, quaternion_angles
 from mutools.app.session import EditSession
 from mutools.core.errors import ErrorCode, MutoolsError
 from mutools.core.formats.action_file import action_file, with_action
@@ -11,6 +12,7 @@ from mutools.core.json_types import JsonObject, JsonValue
 
 HELD_BONE: Final = 0
 QUATERNION_WIDTH: Final = 4
+SAME_TURN: Final = 1e-12
 
 
 def _object(value: JsonValue) -> JsonObject:
@@ -50,9 +52,19 @@ def _stored_position(view: JsonObject, action: int, bone: int, key: int, shown: 
     return stored[0] + shown[0] - held[0], stored[1] + shown[1] - held[1], shown[2]
 
 
+def _same_turn(stored: Quaternion, turn: Sequence[float]) -> bool:
+    size = math.sqrt(sum(number * number for number in turn)) or 1.0
+    return 1 - abs(sum(a * b for a, b in zip(stored, turn, strict=True))) / size < SAME_TURN
+
+
 def turn_bone(session: EditSession, action: int, bone: int, key: int, quaternion: Sequence[float]) -> bool:
+    """A turn the browser's float32 quaternion gives back as the stored one keeps the stored angles."""
+    view = _model(session)
     x, y, z, w = _vector(quaternion, QUATERNION_WIDTH, "quaternion")
-    return session.change(with_pose(_model(session), action, bone, key, rotation=quaternion_angles(x, y, z, w)))
+    turn_x, turn_y, turn_z = pose_vector(view, action, bone, key, "rotations")
+    if _same_turn(angle_quaternion(turn_x, turn_y, turn_z), (x, y, z, w)):
+        return False
+    return session.change(with_pose(view, action, bone, key, rotation=quaternion_angles(x, y, z, w)))
 
 
 def move_bone(session: EditSession, action: int, bone: int, key: int, position: Sequence[float]) -> bool:

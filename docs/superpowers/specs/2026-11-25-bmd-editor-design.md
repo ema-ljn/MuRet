@@ -395,8 +395,8 @@ Its plan, with every decision and what was measured on the real files, is
   findings. Choosing a mesh tints it in the scene, choosing an action plays it, and choosing a bone turns the skeleton
   on and marks that bone. Choosing a finding chooses its part.
 - **It views; it does not edit.** With no write, the reference folder can be opened as it is. Editing from the browser
-  is a later stage and brings its own protection (a token, so that another page open in the browser cannot ask this
-  server to write).
+  is a later stage (stage 8, `--edit`, below) and brings its own protection, so that another page open in the browser
+  cannot ask this server to write.
 - **Local only.** The server listens on 127.0.0.1, with no flag to change that, and refuses a request whose `Host` is
   not `127.0.0.1` or `localhost`, so a site on the internet cannot reach it through a DNS name that points at
   127.0.0.1. A model outside the served folder is refused, and a name that could leave it (`..`, a drive, a network
@@ -441,6 +441,34 @@ is drawn still holds; this replaces its layout. The plan, with every decision, i
   counts the frames.
 - **Two project skills** guide it: `frontend-design` (Anthropic's, with MuRet's decisions about the look) and
   `threejs` (five of CloudAI-X's, with MuRet's rules over their continuous loops).
+
+### Editing actions in the studio
+
+Stage 8, stage B of the action editor: `mutools web --edit` lets a person change a model's actions by hand. Emanuel
+chose three.js's `TransformControls` for it on 2026-11-27 over a gizmo of our own. The plan, with every decision, is
+[`2026-11-27-mutools-action-editing.md`](../plans/2026-11-27-mutools-action-editing.md).
+
+- **Only a working copy.** `--edit` on the reference is `REFERENCE_READ_ONLY`. Without `--edit` the studio writes
+  nothing, as before; the JSON object `web` prints gains a boolean `edit`.
+- **The page's own connection carries the edits.** No route writes. NiceGUI's socket takes any origin, so the server
+  refuses (403, or a closed socket) every request whose `Origin` is not its own address; a page names itself by a
+  random client id written into the page, which another site cannot read either.
+- **What is edited:** the model's own actions. A bone is picked in the inspector; the gizmo turns it in its own space
+  or moves it at the key under the playhead. The browser sends the bone's local quaternion after a turn or its
+  position after a move, never both, and Python writes the angles (the inverse of `angle_quaternion`, 0x5fcd20)
+  rounded to float32. A turn the browser's float32 quaternion gives back as the stored one changes nothing. The first
+  bone of a locked action is shown at the x and y of key 0, as the client shows it, so a move of it at another key
+  adds what it moved to that key's own x and y.
+- **Keys and actions:** a key is copied after itself or removed (never an action's last), with the lock positions in
+  step; an action is copied after the last one through stage 7's `with_action`.
+- **One history:** every edit is one step of the `EditSession`'s undo and redo, kept on the server, so a reload keeps
+  it; a session with changes is never dropped from the four the studio keeps open. Saving is `EditSession.save`, with
+  write-verify, the stale check and the `.orig` copy.
+- **The math stays in Python** (`core/formats/action_keys.py`, `app/pose_edits.py`); the browser only drags the bone
+  and plays the clip that Python's poses rebuild.
+- **`TransformControls.js` is vendored**, three 0.187.0's file byte for byte, with three's license, and reaches the
+  three inside NiceGUI through a module of ours named `three` in the import map. A test pins its SHA-256 and another
+  checks that the module gives every name the file imports.
 
 ### AI friendliness
 
@@ -522,6 +550,9 @@ leaves its own checks green, and the workflow lands with the first code PR.
    stage A of the action editor Emanuel asked for on 2026-11-27 (new movements, for emotes among other things). Its
    plan, with the later stages B to D (the studio edits actions, the Blender bridge, new emotes in our client), is
    [`2026-11-27-mutools-actions.md`](../plans/2026-11-27-mutools-actions.md).
+8. **Editing actions in the studio:** `mutools web --edit`, stage B of the action editor; see "Editing actions in the
+   studio" above. Its plan is
+   [`2026-11-27-mutools-action-editing.md`](../plans/2026-11-27-mutools-action-editing.md).
 
 Each stage ends with the round trip over its files passing.
 

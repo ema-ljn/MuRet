@@ -80,7 +80,8 @@ and the `.orig` copy hold.
 - Modify `src/mutools/app/session.py`: `EditSession.change(view)`.
 - Modify `src/mutools/adapters/web/`: `server.py` (`edit`, the origin guard), `models.py` (keep changed sessions,
   `save`), `page.py` and a new `editor.py` (the edit panel), `elements.py`, `viewport.js`, `shortcuts.js`,
-  `theme.py`, `studio/rig.js` (rebuild one action's clip), `three/index.js`, `studio/vendor/three/`.
+  `theme.py`, `studio/rig.js` (rebuild one action's clip), a new `studio/gizmo.js` (the TransformControls around a
+  bone), `three/index.js`, `studio/vendor/three/`.
 - Modify `src/mutools/adapters/cli/commands.py`: `web --edit`.
 - Tests beside each, the browser tests, the README, the spec and the threejs skill's rule on what the bundle lacks.
 
@@ -88,30 +89,30 @@ and the `.orig` copy hold.
 
 ### Task 1: The pose math and the key edits
 
-- [ ] `quaternion_angles`, tested against `angle_quaternion` both ways.
-- [ ] `action_keys.py`: a pose set at one key, a key copied and removed, the lock positions kept in step, the last key
+- [x] `quaternion_angles`, tested against `angle_quaternion` both ways.
+- [x] `action_keys.py`: a pose set at one key, a key copied and removed, the lock positions kept in step, the last key
   refused, every list it does not change shared with the view it was given.
-- [ ] `EditSession.change` and `pose_edits.py`, with undo and redo.
+- [x] `EditSession.change` and `pose_edits.py`, with undo and redo.
 
 ### Task 2: The server in edit mode
 
-- [ ] `mutools web --edit`, refused on the reference; `serve(..., edit=True)`.
-- [ ] The origin guard; changed sessions kept; `Models.save`.
+- [x] `mutools web --edit`, refused on the reference; `serve(..., edit=True)`.
+- [x] The origin guard; changed sessions kept; `Models.save`.
 
 ### Task 3: The editor in the page
 
-- [ ] The vendored TransformControls and the `three` module, with their two tests.
-- [ ] The viewport attaches the gizmo to the picked bone, pauses on the key, sends `posed`, and rebuilds the edited
+- [x] The vendored TransformControls and the `three` module, with their two tests.
+- [x] The viewport attaches the gizmo to the picked bone, pauses on the key, sends `posed`, and rebuilds the edited
   action's clip on `reposed`.
-- [ ] The edit panel under the actions: the bone and key, `Turn` and `Move`, `Copy key`, `Remove key`, `Copy action`,
+- [x] The edit panel under the actions: the bone and key, `Turn` and `Move`, `Copy key`, `Remove key`, `Copy action`,
   `Undo`, `Redo`, `Save` with the count of changes, the answer of the save and its warnings.
-- [ ] Page tests through the test user; browser tests: the gizmo is on the bone, a turn reaches the session, a save
+- [x] Page tests through the test user; browser tests: the gizmo is on the bone, a turn reaches the session, a save
   writes the file.
 
 ### Task 4: The README, the spec, the skill
 
-- [ ] README and spec: the edit mode; threejs skill: TransformControls is vendored, by Emanuel's decision.
-- [ ] `ruff check`, `ruff format --check`, `mypy src tests`, `pytest`, the browser tests, `roundtrip`.
+- [x] README and spec: the edit mode; threejs skill: TransformControls is vendored, by Emanuel's decision.
+- [x] `ruff check`, `ruff format --check`, `mypy src tests`, `pytest`, the browser tests, `roundtrip`.
 
 ## Later stages, not in this plan
 

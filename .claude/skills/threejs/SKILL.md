@@ -25,8 +25,12 @@ Emanuel asked for a WebGL studio that is light without losing quality, and for s
 ## Rules the references do not have
 
 - **Which three.js**: the one NiceGUI bundles (`import { THREE, OrbitControls } from "nicegui-scene"`, r187 in NiceGUI
-  4.1). No CDN, no npm, no second copy. What the bundle lacks (`TransformControls`, `GLTFExporter`) is a decision for
-  Emanuel before it is added.
+  4.1). No CDN, no npm, no second copy. What the bundle lacks is a decision for Emanuel before it is added. He chose
+  `TransformControls` (2026-11-27): it is vendored byte for byte from three 0.187.0 in
+  `adapters/web/studio/vendor/three/`, with three's license, and its `import ... from 'three'` reaches the bundled
+  three through `adapters/web/three/index.js`, which re-exports those names from `nicegui-scene`; `test_vendored.py`
+  pins its SHA-256 and checks the names. A new three in NiceGUI means vendoring the same release's file again.
+  `GLTFExporter` still waits for his decision.
 - **Render on demand, never a running loop**: `renderer.setAnimationLoop(animate)` in the references is replaced by
   `studio/frame_loop.js`, which draws only when something asks (`request()`), caps a playing action at 30 frames a
   second, uses a pixel ratio of 2 at rest and 1 while the camera moves, and stops when the page is hidden or the

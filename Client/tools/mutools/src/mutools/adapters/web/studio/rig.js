@@ -236,6 +236,21 @@ export class Rig {
     this.changed();
   }
 
+  async replay(action, actions) {
+    this.scene.actions = actions;
+    const names = [...this.clips.keys()].filter((name) => action === null || name.split(" ")[0] === `${action}`);
+    const forgotten = names.map((name) => this.clips.get(name));
+    names.forEach((name) => this.clips.delete(name));
+    const shown = this.state.action;
+    if (shown !== null && (action === null || shown === action) && actions[shown]) {
+      const key = this.state.key;
+      await this.play(shown, this.current?.loop !== THREE.LoopOnce);
+      this.pause();
+      this.seek(Math.min(key, Math.max(this.state.keys - 1, 0)));
+    }
+    for (const clip of await Promise.all(forgotten)) this.mixer.uncacheClip(clip.clip);
+  }
+
   get playing() {
     return Boolean(this.current) && !this.current.paused;
   }

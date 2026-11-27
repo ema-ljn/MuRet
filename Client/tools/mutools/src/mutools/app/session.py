@@ -28,6 +28,7 @@ class EditSession:
         self._history: list[JsonObject] = [opened.view]
         self._position = 0
         self._checked: tuple[JsonObject, Any, tuple[Finding, ...]] | None = None
+        self._decoded: tuple[JsonObject, Any] | None = None
 
     @classmethod
     def open(cls, store: FileStore, path: Path) -> "EditSession":
@@ -61,11 +62,17 @@ class EditSession:
     def fields(self) -> tuple[FieldInfo, ...]:
         return self._opened.identified.format.codec.describe_fields()
 
+    def _document(self, view: JsonObject) -> Any:
+        decoded = self._decoded
+        if decoded is None or decoded[0] is not view:
+            decoded = self._decoded = (view, self._opened.identified.format.codec.from_view(view))
+        return decoded[1]
+
     def _check(self) -> tuple[Any, tuple[Finding, ...]]:
         view = self.view
         if self._checked is None or self._checked[0] is not view:
             opened = self._opened
-            document = opened.identified.format.codec.from_view(view)
+            document = self._document(view)
             findings = findings_of(self._store, opened.path, opened.identified, document, opened.document)
             self._checked = (view, document, findings)
         return self._checked[1], self._checked[2]
@@ -81,6 +88,18 @@ class EditSession:
     @property
     def dirty(self) -> bool:
         return bool(self.changes)
+
+    @property
+    def edits(self) -> int:
+        return self._position
+
+    @property
+    def can_undo(self) -> bool:
+        return self._position > 0
+
+    @property
+    def can_redo(self) -> bool:
+        return self._position < len(self._history) - 1
 
     @property
     def findings(self) -> tuple[Finding, ...]:
@@ -131,7 +150,7 @@ class EditSession:
     def change(self, view: JsonObject) -> bool:
         if not diff_views(self.view, view):
             return False
-        self._opened.identified.format.codec.from_view(view)
+        self._document(view)
         self._push(view)
         return True
 

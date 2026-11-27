@@ -9,6 +9,7 @@ from nicegui.events import GenericEventArguments
 
 from mutools import __version__
 from mutools.adapters.web.api import DONOR, OWN
+from mutools.adapters.web.editor import Editor
 from mutools.adapters.web.elements import RenderState, Shortcuts, Viewport
 from mutools.adapters.web.finder import Command, Finder
 from mutools.adapters.web.inspector import FINDINGS, MODEL, PARTS, Inspector, numbered
@@ -29,6 +30,7 @@ NOTHING_TO_DRAW: Final = "This model has no meshes and no bones: there is nothin
 CANNOT_OPEN: Final = "This model cannot be opened."
 REFERENCE_NOTE: Final = "Reference copy, read-only"
 WORKING_NOTE: Final = "Working copy"
+EDITING_NOTE: Final = "Working copy, editing"
 PIXELS_NOTE: Final = "Twice the pixels at rest, one to one while the model moves."
 STUDIO_MARK: Final = "studio"
 VIEWPORT_MARK: Final = "viewport"
@@ -50,6 +52,8 @@ class Studio:
         self._rate = 1.0
         self._tab = PARTS
         self._part = ""
+        self._bone: int | None = None
+        self._editor: Editor | None = None
         self._view = VIEWS[0][0]
         self._bones = False
         self._additive = False
@@ -60,7 +64,7 @@ class Studio:
 
     def build(self, file: str, on: str, action: int) -> None:
         self._finder = Finder(self._listed, self.open, self._commands())
-        Shortcuts().on("find", self._find)
+        shortcuts = Shortcuts(edit=self._models.edit).on("find", self._find)
         with ui.element("div").classes("mt-studio").mark(STUDIO_MARK):
             self._header()
             with ui.element("div").classes("mt-body"):
@@ -71,8 +75,13 @@ class Studio:
                     with self._viewport:
                         self._overlays()
                     self._timeline.build(None, 0, self._rate)
+                    if self._models.edit:
+                        self._editor = Editor(self._models, self._viewport, self._edited, self._play, self.open)
+                        self._editor.build()
                 self._inspector.build(None, self._tab, "")
             self._footer()
+        if self._editor is not None:
+            shortcuts.on("undo", self._editor.undo).on("redo", self._editor.redo).on("save", self._editor.save)
         if file:
             self.open(file, on, action, keep_address=True)
 
@@ -100,7 +109,7 @@ class Studio:
                 with ui.element("span").classes("mt-note"):
                     reference = self._models.store.is_reference(self._models.root)
                     icon("lock" if reference else "open", 13)
-                    words(REFERENCE_NOTE if reference else WORKING_NOTE)
+                    words(REFERENCE_NOTE if reference else EDITING_NOTE if self._models.edit else WORKING_NOTE)
                 find = Press("Find or run", label="Find a model or run a command", on_click=self._find)
                 with find.classes("mt-find"):
                     icon("search", 15)
@@ -172,7 +181,7 @@ class Studio:
         self._toggles[name] = Press(label, on_click=flip).classes("mt-toggle").chosen(on)
 
     def open(self, file: str, on: str = OWN, action: int = 0, *, keep_address: bool = False) -> None:
-        self._file, self._trouble, self._part = file, "", ""
+        self._file, self._trouble, self._part, self._bone = file, "", "", None
         try:
             self._opened = open_model(self._models, file, on)
         except MutoolsError as error:
@@ -190,8 +199,30 @@ class Studio:
         self._overlays.refresh()
         self._timeline.build.refresh(opened, self._action, self._rate)
         self._inspector.build.refresh(opened, self._tab, "")
+        self._show_editor()
         if not keep_address:
             self._remember()
+
+    def _show_editor(self) -> None:
+        if self._editor is not None:
+            self._editor.show(self._opened, self._action, self._bone)
+
+    def _edited(self, action: int | None, *, replay: bool = True) -> None:
+        if self._opened is None:
+            return
+        opened = open_model(self._models, self._file, self._opened.on)
+        self._opened = opened
+        shown = min(self._action, max(len(opened.actions) - 1, 0))
+        if replay:
+            self._viewport.reposed(action, opened.scene.actions)
+        if shown != self._action and opened.actions:
+            self._action = shown
+            self._viewport.play(shown, repeats=opened.actions[shown].repeats, start=False)
+            self._remember()
+        self._overlays.refresh()
+        self._timeline.build.refresh(opened, self._action, self._rate)
+        self._inspector.build.refresh(opened, self._tab, self._part)
+        self._show_editor()
 
     def _remember(self) -> None:
         if self._opened is not None:
@@ -214,6 +245,7 @@ class Studio:
         self._action = action
         self._send_action(start=True)
         self._timeline.build.refresh(self._opened, action, self._rate)
+        self._show_editor()
         self._remember()
 
     def _set_rate(self, rate: float) -> None:
@@ -270,7 +302,7 @@ class Studio:
         mesh, bone, action = numbered(part, "meshes"), numbered(part, "bones"), numbered(part, "actions")
         if mesh is not None and part == self._part and self._tab == PARTS:
             part, mesh = "", None
-        self._part = part
+        self._part, self._bone = part, bone
         self._viewport.highlight(mesh)
         self._viewport.mark_bone(bone)
         if bone is not None and not self._bones:
@@ -280,6 +312,7 @@ class Studio:
         if self._tab == FINDINGS:
             self._tab = PARTS if mesh is not None or bone is not None else MODEL
         self._inspector.build.refresh(opened, self._tab, part)
+        self._show_editor()
 
 
 def add_page(models: Models) -> None:

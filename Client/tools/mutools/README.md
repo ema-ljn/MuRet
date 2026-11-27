@@ -120,7 +120,7 @@ is `PARENT_AFTER_CHILD`. The skill has the rules in full.
 | `mutools action remove <model> <N> [--yes]` | Take an action out; any but the last needs `--yes` |
 | `mutools roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mutools tui [<folder or file>]` | The console UI |
-| `mutools web [<folder or model>] [--port N] [--no-browser]` | The studio of models, in the browser |
+| `mutools web [<folder or model>] [--port N] [--no-browser] [--edit]` | The studio of models, in the browser; `--edit` lets it change a working copy's actions |
 
 `set`, `apply`, `build`, `dump`, the three `action` commands and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
 Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
@@ -295,9 +295,33 @@ extra. A model instead of a folder opens its folder with that model chosen.
 It draws only when something changes: a still model costs no frames, an action plays at 30 frames a second at most,
 and the pictures of the library are drawn once by a single hidden renderer and kept by the browser until the file
 changes. It is a viewer, not the client's renderer: textures are drawn unlit and on both sides (or lit, in `Lit`),
-with none of the client's blend rules per model. It writes nothing, so it can open the reference folder as it is
-(`mutools web Client/assets/Data`), and it reads a model again each time it is opened, so a working copy is shown as
-it is on disk.
+with none of the client's blend rules per model. Without `--edit` it writes nothing, so it can open the reference
+folder as it is (`mutools web Client/assets/Data`), and it reads a model again each time it is opened, so a working
+copy is shown as it is on disk.
+
+### Editing actions
+
+`mutools web ~/mu/Data --edit` opens the studio on a working copy and lets it change the model's own actions; on the
+reference folder it is `REFERENCE_READ_ONLY`, as every other write there. The header says `Working copy, editing`, and
+an `Edit` panel sits under the actions:
+
+- **A bone** is picked in the inspector's list of bones, and a gizmo sits on it in the vitrine. `Turn` turns it in its
+  own space and `Move` moves it. A drag pauses the action on the key under the playhead and changes that key only; the
+  turn is written as the file's three angles (Rz · Ry · Rx, as the client reads them), rounded to float32, and a move
+  as the bone's position. A dummy bone has no pose. A locked action holds its first bone at the x and y of key 0, as
+  the client does, so a move of that bone at another key shows only in z.
+- **`Copy key`** puts a copy of the key under the playhead after it, and **`Remove key`** takes it out (an action
+  keeps at least one). **`Copy action`** adds a copy of the action after the last one and plays it: that is where a
+  new movement starts.
+- **`Undo`** and **`Redo`** (`Ctrl+Z`, `Ctrl+Shift+Z` or `Ctrl+Y`) walk the edits, and **`Save`** (`Ctrl+S`) writes
+  the model with the checks of every other write: it is encoded and read back, a file that changed on disk since it
+  was opened is not overwritten, and the first save keeps the file as it was in `<name>.orig`. The edits live in the
+  server until they are saved, so a reload keeps them, and a model with edits stays open. `Ctrl+C` on the server
+  drops what was not saved.
+- A part shown on `Player.bmd`'s skeleton shows the player's actions, which are edited in `Player.bmd` itself.
+
+The server answers only its own pages: a request that carries another site's `Origin` is refused, so a page of
+another site open in the same browser cannot edit through it.
 
 The server listens on 127.0.0.1 only, and refuses a request that reaches it under another host name. `--port` picks
 the port (8765 by default, `0` for a free one) and `--no-browser` leaves the browser closed: the address is on
@@ -326,9 +350,13 @@ pytest -m browser
 
 `MUTOOLS_CHROMIUM=/path/to/chromium` makes them use a Chromium that is already installed.
 
+`adapters/web/studio/vendor/three/TransformControls.js` is three 0.187.0's, byte for byte, with three's MIT license
+beside it; `tests/adapters/web/test_vendored.py` pins both. It is the one piece of three.js not inside NiceGUI's
+wheel.
+
 ## Stages
 
-Stages 1 to 6 are done, and stage 7 is this version.
+Stages 1 to 7 are done, and stage 8 is this version.
 
 1. Design and skills.
 2. Texts end to end.
@@ -339,3 +367,5 @@ Stages 1 to 6 are done, and stage 7 is this version.
 6. The studio: the library with pictures, the vitrine, the actions at the client's speed, and a page that draws
    only when something changes.
 7. Actions as files: `mutools action export`, `import` and `remove`, the base of the action editor.
+8. Editing actions in the studio: `mutools web --edit`, a gizmo on a bone, keys and actions copied and removed, undo
+   and save.

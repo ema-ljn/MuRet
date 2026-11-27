@@ -1,12 +1,17 @@
+from collections.abc import Sequence
+from dataclasses import asdict
 from typing import Final
 
 from nicegui import ui
 from nicegui.awaitable_response import AwaitableResponse
 
+from mutools.app.model_scene import SceneAction
+
 STUDIO: Final = {"mutools-studio": "studio"}
+THREE: Final = {"three": "three"}
 
 
-class Viewport(ui.element, component="viewport.js", esm=STUDIO):
+class Viewport(ui.element, component="viewport.js", esm=STUDIO | THREE):
     def open(self, file: str, on: str) -> None:
         self.run_method("open", file, on)
 
@@ -36,6 +41,15 @@ class Viewport(ui.element, component="viewport.js", esm=STUDIO):
 
     def mark_bone(self, bone: int | None) -> None:
         self.run_method("mark_bone", bone)
+
+    def edit(self, on: bool) -> None:
+        self.run_method("edit", on)
+
+    def pose_bone(self, bone: int | None, tool: str) -> None:
+        self.run_method("pose_bone", bone, tool)
+
+    def reposed(self, action: int | None, actions: Sequence[SceneAction]) -> None:
+        self.run_method("reposed", action, [asdict(shown) for shown in actions])
 
     def toggle(self) -> None:
         self.run_method("command", {"name": "toggle"})
@@ -67,4 +81,6 @@ class Thumbnail(ui.element, component="thumbnail.js", esm=STUDIO):
 
 
 class Shortcuts(ui.element, component="shortcuts.js", esm=STUDIO):
-    pass
+    def __init__(self, *, edit: bool = False) -> None:
+        super().__init__()
+        self._props["edit"] = edit

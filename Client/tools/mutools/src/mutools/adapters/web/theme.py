@@ -197,6 +197,24 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {{ outline: 
 .mt-readout-key {{ font-size: 18px; font-weight: 500; }}
 .mt-readout-speed {{ font-size: 13px; color: var(--muted); }}
 
+.mt-editor {{ display: flex; flex-direction: column; gap: 10px; margin: 0 4px 8px; padding: 12px 16px 14px;
+  background: var(--raised); border: 1px solid var(--line); border-radius: 16px; }}
+.mt-editor-head {{ display: flex; align-items: baseline; gap: 8px 12px; flex-wrap: wrap; }}
+.mt-editor-save {{ display: flex; align-items: center; gap: 6px; margin-left: auto; }}
+.mt-editor-tools {{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }}
+.mt-tools {{ display: flex; gap: 2px; padding: 2px; margin-right: 8px; border-radius: 17px; background: var(--well); }}
+.mt-tool {{ height: 30px; padding: 0 16px; border-radius: 15px; color: var(--muted); }}
+.mt-tool.mt-on {{ background: var(--fill); color: var(--on-fill); font-weight: 700; }}
+.mt-edit-press {{ height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid var(--line-strong); }}
+.mt-edit-press:hover {{ border-color: var(--ink); }}
+.mt-save {{ height: 32px; padding: 0 16px; border-radius: 16px; background: var(--fill); color: var(--on-fill);
+  font-weight: 700; }}
+.mt-save:hover {{ background: var(--fill-hover); }}
+.mt-edit-press[disabled], .mt-save[disabled] {{ color: var(--faint); background: transparent;
+  border: 1px solid var(--line); cursor: default; }}
+.mt-editor-note {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
+.mt-editor-answer {{ display: flex; flex-direction: column; gap: 2px; }}
+
 .mt-tabs {{ display: flex; gap: 22px; border-bottom: 1px solid rgba(228, 227, 221, 0.11); }}
 .mt-tab {{ height: 38px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }}
 .mt-tab.mt-on {{ color: var(--ink); font-weight: 700; border-bottom-color: var(--accent); }}

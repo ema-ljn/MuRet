@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
+from struct import Struct
 
 import pytest
 
@@ -17,6 +18,7 @@ LOCKED_ACTION = 2
 LOCKED_KEYS = 7
 FREE_ACTION = 0
 BONE = 4
+FLOAT32 = Struct("<f")
 
 
 @pytest.fixture
@@ -51,6 +53,14 @@ def test_a_turn_that_comes_back_the_same_changes_nothing(session: EditSession) -
     assert not session.dirty
 
 
+def test_a_turn_the_browser_gives_back_in_float32_changes_nothing(session: EditSession) -> None:
+    x, y, z = at(session.view, f"/bones/{BONE}/actions/{LOCKED_ACTION}/rotations/3")
+    shown = [FLOAT32.unpack(FLOAT32.pack(number))[0] for number in angle_quaternion(x, y, z)]
+
+    assert not turn_bone(session, LOCKED_ACTION, BONE, 3, shown)
+    assert not session.dirty
+
+
 def test_a_move_writes_the_position_it_is_given(session: EditSession) -> None:
     move_bone(session, FREE_ACTION, BONE, 2, (1.0, 2.0, 3.0))
 
@@ -76,11 +86,13 @@ def test_every_edit_is_one_step_to_undo(session: EditSession) -> None:
     original = session.view
     turn_bone(session, LOCKED_ACTION, BONE, 3, angle_quaternion(0.5, -0.25, 1.0))
     copy_key(session, LOCKED_ACTION, 3)
+    assert (session.edits, session.can_undo, session.can_redo) == (2, True, False)
 
     assert session.undo()
     assert at(session.view, f"/actions/{LOCKED_ACTION}/keys") == LOCKED_KEYS
     assert session.undo()
     assert session.view is original
+    assert (session.edits, session.can_undo, session.can_redo) == (0, False, True)
     assert session.redo()
     assert session.redo()
     assert at(session.view, f"/actions/{LOCKED_ACTION}/keys") == LOCKED_KEYS + 1

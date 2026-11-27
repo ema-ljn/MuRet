@@ -3,6 +3,7 @@ from pathlib import Path
 
 from mubmd.core.documents.model import MODEL_MAGIC, NORMAL_SIZE, TRIANGLE_SIZE
 from mubmd.core.formats.model_format import ModelFormat
+from mubmd.core.formats.model_view import model_from_view, model_view
 from mubmd.core.ports import CatalogFile
 
 
@@ -40,3 +41,13 @@ def test_every_model_round_trips(reference_data: Path) -> None:
         "real bones": 25_526,
         "dummy bones": 2720,
     }
+
+
+def test_every_model_view_builds_the_same_model(reference_data: Path) -> None:
+    codec = ModelFormat()
+    differing = []
+    for path in model_paths(reference_data):
+        model = codec.decode(path.read_bytes(), CatalogFile(path.name, None, read_by_client=False))
+        if model_from_view(model_view(model)) != model:
+            differing.append(path.name)
+    assert differing == []

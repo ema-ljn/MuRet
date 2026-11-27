@@ -18,7 +18,9 @@ from mubmd.core.documents.model import (
     Model,
 )
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.ports import CatalogFile
+from mubmd.core.formats.model_view import MODEL_FIELDS, MODEL_FORMAT_NAME, model_from_view, model_view
+from mubmd.core.json_types import JsonObject
+from mubmd.core.ports import CatalogFile, FieldInfo, Summary
 
 MODEL_ENCODING: Final = "cp949"
 HEADER_SIZE: Final = len(MODEL_MAGIC) + 1
@@ -154,7 +156,7 @@ def _content_bytes(model: Model) -> bytes:
 
 
 class ModelFormat:
-    name = "model"
+    name = MODEL_FORMAT_NAME
 
     def decode(self, data: bytes, file: CatalogFile) -> Model:
         if len(data) < HEADER_SIZE or not data.startswith(MODEL_MAGIC):
@@ -179,3 +181,23 @@ class ModelFormat:
         if document.version != ENCRYPTED_VERSION:
             return header + content
         return header + SIZE_WORD.pack(len(content)) + encrypt_k16(content) + document.after_block
+
+    def to_view(self, document: Model) -> JsonObject:
+        return model_view(document)
+
+    def from_view(self, view: JsonObject) -> Model:
+        return model_from_view(view)
+
+    def describe_fields(self) -> tuple[FieldInfo, ...]:
+        return MODEL_FIELDS
+
+    def summarize(self, document: Model) -> Summary:
+        return Summary(
+            "K16" if document.version == ENCRYPTED_VERSION else "none",
+            None,
+            None,
+            version=document.version,
+            meshes=len(document.meshes),
+            bones=len(document.bones),
+            actions=len(document.actions),
+        )

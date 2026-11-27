@@ -36,7 +36,7 @@ from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonValue
 from mubmd.core.leaves import is_leaf
 from mubmd.core.pointer import parse_pointer
-from mubmd.core.ports import FileStore
+from mubmd.core.ports import FileStore, Summary
 
 USED_BAR_CELLS = 9
 READ_ONLY_HINT = f"read-only reference folder: make a working copy with `{WORKSPACE_SUGGESTION}`"
@@ -58,6 +58,12 @@ def shown_path(path: Path) -> str:
 def used_bar(used: int, records: int) -> str:
     filled = round(USED_BAR_CELLS * used / records) if records else 0
     return "▰" * filled + "▱" * (USED_BAR_CELLS - filled)
+
+
+def contents(summary: Summary) -> str:
+    if summary.records is None or summary.used_records is None:
+        return f"{summary.meshes} meshes · {summary.bones} bones · {summary.actions} actions"
+    return f"{summary.used_records}/{summary.records} used {used_bar(summary.used_records, summary.records)}"
 
 
 def warned(warnings: tuple[Finding, ...]) -> str:
@@ -149,7 +155,7 @@ class MubmdApp(App[None]):
             summary = self.session.summary
             self.query_one(RecordTableView).border_title = Text(
                 f"{self.label_of(self.session.path)} ─ {self.session.format_name} · {summary.cipher} · "
-                f"{summary.used_records}/{summary.records} used {used_bar(summary.used_records, summary.records)}"
+                f"{contents(summary)}"
             )
 
     def row_texts(self, values: list[JsonValue]) -> list[str]:

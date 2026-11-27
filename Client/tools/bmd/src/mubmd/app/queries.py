@@ -22,8 +22,8 @@ class InfoResult:
     read_only: bool
     size: int
     cipher: str
-    records: int
-    used_records: int
+    records: int | None
+    used_records: int | None
     findings: int
 
 

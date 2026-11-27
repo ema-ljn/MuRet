@@ -25,9 +25,13 @@ class FieldInfo:
 @dataclass(frozen=True, slots=True)
 class Summary:
     cipher: str
-    records: int
-    used_records: int
+    records: int | None
+    used_records: int | None
     section_size: int | None = None
+    version: int | None = None
+    meshes: int | None = None
+    bones: int | None = None
+    actions: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

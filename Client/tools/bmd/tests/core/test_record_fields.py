@@ -1,3 +1,5 @@
+from random import Random
+
 import pytest
 
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -7,6 +9,8 @@ from mubmd.core.formats.record_fields import (
     describe,
     fields_bytes,
     fields_view,
+    float_bytes,
+    float_view,
     leaf_at,
     out_of_range,
     span,
@@ -58,6 +62,33 @@ def test_a_float_keeps_its_bits() -> None:
     assert fields_bytes(fields, {"speed": 2.5}, "cp1252", "") == bytes.fromhex("00002040")
     assert fields_view(fields, bytes.fromhex("0000c07f"), "cp1252") == {"speed": {"f32": "0000c07f"}}
     assert fields_bytes(fields, {"speed": {"f32": "0000c07f"}}, "cp1252", "") == bytes.fromhex("0000c07f")
+
+
+@pytest.mark.parametrize(
+    ("data", "number"),
+    [
+        ("cdcccc3d", "0.1"),
+        ("00002040", "2.5"),
+        ("00000080", "-0.0"),
+        ("01000000", "1e-45"),
+        ("ffff7f7f", "3.4028235e+38"),
+    ],
+)
+def test_a_float_prints_as_the_shortest_number_that_keeps_its_bits(data: str, number: str) -> None:
+    view = float_view(bytes.fromhex(data))
+    assert repr(view) == number
+    assert float_bytes(view, "") == bytes.fromhex(data)
+
+
+def test_no_finite_float_changes_a_bit() -> None:
+    random = Random(4)
+    for _ in range(20_000):
+        data = random.randbytes(4)
+        view = float_view(data)
+        if isinstance(view, float):
+            assert float_bytes(view, "") == data
+        else:
+            assert view == {"f32": data.hex()}
 
 
 @pytest.mark.parametrize(

@@ -7,7 +7,6 @@ from typing import Final
 from mubmd.core.ciphers.table_checksum import CHECKSUM_WORD, WORD_MASK, table_checksum
 from mubmd.core.ciphers.xor3 import xor3
 from mubmd.core.documents.record_table import RecordTable
-from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
 from mubmd.core.formats.record_fields import (
@@ -23,6 +22,7 @@ from mubmd.core.formats.record_fields import (
     read_hex,
     span,
     value_out_of_range,
+    view_encoding,
 )
 from mubmd.core.json_types import VIEW_VERSION, JsonObject, JsonValue
 from mubmd.core.pointer import list_index, parse_pointer
@@ -43,17 +43,6 @@ class RecordTableSchema:
     reference: str
     xor_odd_words: bool = True
     section_size: int | None = None
-
-
-def _view_encoding(view: JsonObject, name: str) -> str:
-    if type(view.get("format_version")) is not int or view["format_version"] != VIEW_VERSION:
-        raise invalid(f"This tool reads format_version {VIEW_VERSION} views", "/format_version")
-    if view.get("format") != name:
-        raise invalid(f"Not a {name} view", "/format")
-    encoding = view.get("encoding")
-    if not isinstance(encoding, str) or not is_text_encoding(encoding):
-        raise invalid("The view needs a text encoding", "/encoding")
-    return encoding
 
 
 class RecordTableFormat:
@@ -117,7 +106,7 @@ class RecordTableFormat:
         return view
 
     def from_view(self, view: JsonObject) -> RecordTable:
-        encoding = _view_encoding(view, self.name)
+        encoding = view_encoding(view, self.name)
         values = view.get("records")
         count = self.schema.count
         if not isinstance(values, list) or (count is not None and len(values) != count):

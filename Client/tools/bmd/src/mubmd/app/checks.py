@@ -12,13 +12,13 @@ from mubmd.core.ports import FileStore
 class TextureFiles:
     def __init__(self, store: FileStore) -> None:
         self._store = store
-        self._names: dict[Path, frozenset[str]] = {}
+        self._files: dict[Path, dict[str, Path]] = {}
         self._beside: dict[Path, tuple[Path, ...]] = {}
 
-    def _names_in(self, folder: Path) -> frozenset[str]:
-        if folder not in self._names:
-            self._names[folder] = frozenset(path.name.casefold() for path in self._store.files_in(folder))
-        return self._names[folder]
+    def _files_in(self, folder: Path) -> dict[str, Path]:
+        if folder not in self._files:
+            self._files[folder] = {path.name.casefold(): path for path in self._store.files_in(folder)}
+        return self._files[folder]
 
     def _folders_beside(self, folder: Path) -> tuple[Path, ...]:
         if folder not in self._beside:
@@ -26,12 +26,24 @@ class TextureFiles:
             self._beside[folder] = tuple(other for other in others if other != folder)
         return self._beside[folder]
 
-    def place(self, model: Path, file: str) -> str | None:
+    def _folders_from(self, folder: Path) -> Iterator[Path]:
+        yield folder
+        yield from self._folders_beside(folder)
+
+    def find(self, model: Path, file: str) -> Path | None:
         wanted = file.casefold()
-        folder = model.absolute().parent
-        if wanted in self._names_in(folder):
-            return ""
-        return next((other.name for other in self._folders_beside(folder) if wanted in self._names_in(other)), None)
+        found = (self._files_in(folder).get(wanted) for folder in self._folders_from(model.absolute().parent))
+        return next((path for path in found if path is not None), None)
+
+    def place(self, model: Path, file: str) -> str | None:
+        found = self.find(model, file)
+        if found is None:
+            return None
+        return "" if found.parent == model.absolute().parent else found.parent.name
+
+
+def texture_not_found(model: Path, file: str) -> str:
+    return f"No {file} in {model.absolute().parent.name} or in the folders beside it"
 
 
 def _texture_findings(textures: TextureFiles, path: Path, model: Model, original: Model | None) -> Iterator[Finding]:
@@ -44,8 +56,7 @@ def _texture_findings(textures: TextureFiles, path: Path, model: Model, original
         place = textures.place(path, file)
         pointer = f"/meshes/{index}/texture_name"
         if place is None:
-            message = f"No {file} in {folder} or in the folders beside it"
-            yield Finding("TEXTURE_NOT_FOUND", Severity.WARNING, pointer, message)
+            yield Finding("TEXTURE_NOT_FOUND", Severity.WARNING, pointer, texture_not_found(path, file))
         elif place and original is not None:
             before = original.meshes[index].texture_name if index < len(original.meshes) else None
             if mesh.texture_name != before:

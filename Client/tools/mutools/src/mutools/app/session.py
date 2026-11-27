@@ -120,11 +120,20 @@ class EditSession:
             return Measure(size, limit, error)
         return Measure(size, limit, None, warnings)
 
-    def set(self, pointer: str, value: JsonValue) -> None:
-        view = self._edited(pointer, value)
+    def _push(self, view: JsonObject) -> None:
         del self._history[self._position + 1 :]
         self._history.append(view)
         self._position += 1
+
+    def set(self, pointer: str, value: JsonValue) -> None:
+        self._push(self._edited(pointer, value))
+
+    def change(self, view: JsonObject) -> bool:
+        if not diff_views(self.view, view):
+            return False
+        self._opened.identified.format.codec.from_view(view)
+        self._push(view)
+        return True
 
     def undo(self) -> bool:
         if self._position == 0:

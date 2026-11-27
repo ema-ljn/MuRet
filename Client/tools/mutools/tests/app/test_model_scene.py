@@ -14,6 +14,7 @@ from mutools.app.model_scene import (
     borrows_skeleton,
     donor_of,
     model_scene,
+    quaternion_angles,
     rest_bounds,
 )
 from mutools.core.errors import ErrorCode, MutoolsError
@@ -51,6 +52,26 @@ def assert_box(bounds: Bounds | None, low: Corner, high: Corner) -> None:
 )
 def test_the_angles_turn_in_half_lifes_order(angles: tuple[float, float, float], quaternion: Quaternion) -> None:
     assert angle_quaternion(*angles) == pytest.approx(quaternion, abs=CLOSE)
+
+
+@pytest.mark.parametrize(
+    "angles",
+    [(0.0, 0.0, 0.0), (QUARTER, 0.0, 0.0), (0.3, -0.7, 2.9), (-3.0, 1.2, -0.4), (1.570796, 0.811578, 0.0)],
+)
+def test_a_quaternion_gives_back_its_angles(angles: tuple[float, float, float]) -> None:
+    assert quaternion_angles(*angle_quaternion(*angles)) == pytest.approx(angles, abs=CLOSE)
+
+
+@pytest.mark.parametrize("angles", [(0.4, 2.0, -1.0), (math.pi, 0.0, 0.0), (0.2, QUARTER, 0.5), (0.2, -QUARTER, -0.5)])
+def test_any_angles_come_back_as_the_same_turn(angles: tuple[float, float, float]) -> None:
+    turn = angle_quaternion(*angles)
+    back = angle_quaternion(*quaternion_angles(*turn))
+
+    assert abs(sum(a * b for a, b in zip(turn, back, strict=True))) == pytest.approx(1.0, abs=CLOSE)
+
+
+def test_a_quaternion_that_is_not_unit_is_the_same_turn() -> None:
+    assert quaternion_angles(0.0, 0.0, 2 * ROOT_HALF, 2 * ROOT_HALF) == pytest.approx((0.0, 0.0, QUARTER), abs=CLOSE)
 
 
 def test_a_scene_has_a_corner_per_triangle_corner(reference_data: Path) -> None:

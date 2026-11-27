@@ -166,3 +166,32 @@ def test_findings_include_those_the_file_already_had(store: FakeStore) -> None:
     session = EditSession.open(store, TEXT)
     assert [(finding.code, finding.pointer) for finding in session.findings] == [("TEXT_FILLS_RECORD", "/texts/7")]
     assert session.warnings == ()
+
+
+def test_a_changed_view_is_one_step_of_the_history(store: FakeStore) -> None:
+    session = EditSession.open(store, TEXT)
+    texts = session.view["texts"]
+    assert isinstance(texts, list)
+
+    assert session.change({**session.view, "texts": ["Te fuiste", *texts[1:]]})
+    assert session.value("/texts/0") == "Te fuiste"
+    assert session.undo()
+    assert not session.dirty
+
+
+def test_a_view_with_no_difference_is_no_change(store: FakeStore) -> None:
+    session = EditSession.open(store, TEXT)
+
+    assert not session.change(dict(session.view))
+    assert not session.undo()
+
+
+def test_a_changed_view_the_file_cannot_hold_is_refused(store: FakeStore) -> None:
+    session = EditSession.open(store, TEXT)
+    texts = session.view["texts"]
+    assert isinstance(texts, list)
+
+    with pytest.raises(MutoolsError) as caught:
+        session.change({**session.view, "texts": ["😀", *texts[1:]]})
+    assert caught.value.code is ErrorCode.NOT_ENCODABLE
+    assert not session.dirty

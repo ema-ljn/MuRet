@@ -25,6 +25,7 @@ UNTURNED: Final[Quaternion] = (0.0, 0.0, 0.0, 1.0)
 ORIGIN: Final[_Point] = (0.0, 0.0, 0.0)
 UP: Final[_Point] = (0.0, 0.0, 1.0)
 BOUNDS_DIGITS: Final = 3
+STRAIGHT_UP: Final = 1e-12
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +84,24 @@ def angle_quaternion(x: float, y: float, z: float) -> Quaternion:
         cos_x * sin_y * cos_z + sin_x * cos_y * sin_z,
         cos_x * cos_y * sin_z - sin_x * sin_y * cos_z,
         cos_x * cos_y * cos_z + sin_x * sin_y * sin_z,
+    )
+
+
+def quaternion_angles(x: float, y: float, z: float, w: float) -> tuple[float, float, float]:
+    """The inverse of angle_quaternion: three angles in radians, the middle one from -pi/2 to pi/2.
+
+    Straight up or down only the first and the last angle's difference counts, so the last one is 0 there.
+    """
+    size = math.sqrt(x * x + y * y + z * z + w * w) or 1.0
+    x, y, z, w = x / size, y / size, z / size, w / size
+    sine = max(-1.0, min(1.0, 2 * (w * y - x * z)))
+    if 1 - sine * sine < STRAIGHT_UP:
+        side = math.copysign(1.0, sine)
+        return math.atan2(side * 2 * (x * y - w * z), 1 - 2 * (x * x + z * z)), side * math.pi / 2, 0.0
+    return (
+        math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)),
+        math.asin(sine),
+        math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)),
     )
 
 

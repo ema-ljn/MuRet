@@ -124,9 +124,9 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
     const Assets::FaunaModels& faunaModels = Assets::FaunaModelsOrEmpty(context.faunaModels);
     if (!player)
     {
-        actorSkeleton = faunaModels.SkeletonOf(hero.type);
+        actorSkeleton = faunaModels.SkeletonOf(Models::ModelId{hero.type});
         if (actorSkeleton == nullptr && context.models != nullptr)
-            actorSkeleton = context.models->SkeletonOf(hero.type);
+            actorSkeleton = context.models->SkeletonOf(Models::ModelId{hero.type});
     }
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),

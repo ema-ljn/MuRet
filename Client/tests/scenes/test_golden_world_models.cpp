@@ -69,8 +69,8 @@ TEST_F(GoldenWorldModels, LorenciaLoadsTheNamedObjects)
     constexpr std::array<std::uint16_t, 10> Named{0x00, 0x37, 0x5a, 0x5b, 0x5c, 0x5d, 0x5f, 0x60, 0x85, 0x99};
     for (const std::uint16_t model : Named)
     {
-        EXPECT_NE(models.Find(model), nullptr) << std::hex << model;
-        EXPECT_NE(models.SkeletonOf(model), nullptr) << std::hex << model;
+        EXPECT_NE(models.Find(Client::Models::ModelId{model}), nullptr) << std::hex << model;
+        EXPECT_NE(models.SkeletonOf(Client::Models::ModelId{model}), nullptr) << std::hex << model;
     }
     // Without an earlier GameModels: Bird/Fish plus 102 object textures. The three global ones the composite case
     // reuses get their own Object1 slots here.
@@ -102,8 +102,8 @@ TEST_F(GoldenWorldModels, EveryLorenciaObjectTypeHasItsNamedModelAndSkeleton)
     {
         ASSERT_GE(type, 0);
         const auto model = static_cast<std::uint16_t>(type);
-        ASSERT_NE(models.Find(model), nullptr) << model;
-        EXPECT_NE(models.SkeletonOf(model), nullptr) << model;
+        ASSERT_NE(models.Find(Client::Models::ModelId{model}), nullptr) << model;
+        EXPECT_NE(models.SkeletonOf(Client::Models::ModelId{model}), nullptr) << model;
     }
 }
 
@@ -122,20 +122,20 @@ TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x2b4}), "apple.jpg");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x6a}), "skR.jpg");
-    ASSERT_EQ(game.MeshTextures(0x10a).front(), TextureSlot{0x6a});
-    ASSERT_EQ(game.MeshTextures(0x10b).front(), TextureSlot{0x6a});
+    ASSERT_EQ(game.MeshTextures(Client::Models::ModelId{0x10a}).front(), TextureSlot{0x6a});
+    ASSERT_EQ(game.MeshTextures(Client::Models::ModelId{0x10b}).front(), TextureSlot{0x6a});
     ASSERT_TRUE(store.Find(TextureSlot{0x69}).has_value());
     ASSERT_TRUE(store.Find(TextureSlot{0x6a}).has_value());
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Lorencia, store, log, &game.TextureSlots()).HasValue());
 
-    const auto bird = models.MeshTextures(0xad);
-    const auto fish = models.MeshTextures(0xb2);
+    const auto bird = models.MeshTextures(Client::Models::ModelId{0xad});
+    const auto fish = models.MeshTextures(Client::Models::ModelId{0xb2});
     ASSERT_EQ(bird.size(), 1u);
     ASSERT_EQ(fish.size(), 1u);
     EXPECT_EQ(bird.front(), TextureSlot{0x69});
     EXPECT_EQ(fish.front(), TextureSlot{0x6a});
-    const auto tree = models.MeshTextures(0);
+    const auto tree = models.MeshTextures(Client::Models::ModelId{0});
     ASSERT_FALSE(tree.empty());
     EXPECT_EQ(tree.front(), TextureSlot{0x41c});
     ASSERT_NE(models.TextureSlots(), nullptr);
@@ -172,9 +172,9 @@ TEST_F(GoldenWorldModels, DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects)
     for (const std::uint16_t special : {std::uint16_t{0x201}, std::uint16_t{0x202}})
     {
         SCOPED_TRACE(special);
-        ASSERT_NE(models.Find(special), nullptr);
-        ASSERT_NE(models.SkeletonOf(special), nullptr);
-        const auto textures = models.MeshTextures(special);
+        ASSERT_NE(models.Find(Client::Models::ModelId{special}), nullptr);
+        ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{special}), nullptr);
+        const auto textures = models.MeshTextures(Client::Models::ModelId{special});
         ASSERT_FALSE(textures.empty());
         for (const TextureSlot slot : textures)
         {
@@ -182,11 +182,11 @@ TEST_F(GoldenWorldModels, DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects)
             EXPECT_LT(slot.value, 0x41c);
         }
     }
-    EXPECT_EQ(models.MeshTextures(0x201).front(), TextureSlot{0x69});
-    EXPECT_NE(models.Find(0), nullptr);
-    ASSERT_FALSE(models.MeshTextures(0).empty());
-    EXPECT_EQ(models.MeshTextures(0).front(), TextureSlot{0x41c});
-    EXPECT_EQ(models.Find(0xad), nullptr);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0x201}).front(), TextureSlot{0x69});
+    EXPECT_NE(models.Find(Client::Models::ModelId{0}), nullptr);
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{0}).empty());
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), TextureSlot{0x41c});
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0xad}), nullptr);
     models.Release();
     EXPECT_EQ(store.Size(), 0u);
 }
@@ -200,11 +200,11 @@ TEST_F(GoldenWorldModels, World55KeepsTheGenericObjects)
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, 54, store, log, nullptr).HasValue());
     EXPECT_EQ(models.Count(), 77u);
-    EXPECT_NE(models.Find(0), nullptr);
-    EXPECT_NE(models.Find(1), nullptr);
-    EXPECT_EQ(models.Find(0xad), nullptr);
-    EXPECT_EQ(models.Find(0xb2), nullptr);
-    EXPECT_EQ(models.Find(Client::Assets::DragonModel), nullptr);
+    EXPECT_NE(models.Find(Client::Models::ModelId{0}), nullptr);
+    EXPECT_NE(models.Find(Client::Models::ModelId{1}), nullptr);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0xad}), nullptr);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0xb2}), nullptr);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{Client::Assets::DragonModel}), nullptr);
 }
 
 using GoldenLorenciaModelTextureSlots = Client::Tests::MemoryDumpTest;
@@ -253,13 +253,13 @@ TEST_F(GoldenWorldModels, World56LoadsObjectKPlusOne)
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
 
     EXPECT_EQ(models.Count(), 80u) << "79 objetos y el dragón";
-    EXPECT_EQ(models.Find(0), nullptr) << "Object01.bmd no está";
-    EXPECT_NE(models.Find(1), nullptr) << "Object02.bmd";
-    EXPECT_NE(models.Find(33), nullptr) << "Object34.bmd, el dragón de piedra";
-    EXPECT_NE(models.Find(90), nullptr) << "Object91.bmd, el remolino 90";
-    EXPECT_EQ(models.Find(91), nullptr) << "Object92.bmd no está";
-    ASSERT_NE(models.SkeletonOf(83), nullptr) << "las hojas, con su acción de 13 keys";
-    EXPECT_EQ(models.SkeletonOf(83)->actions.front().keyCount, 13);
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0}), nullptr) << "Object01.bmd no está";
+    EXPECT_NE(models.Find(Client::Models::ModelId{1}), nullptr) << "Object02.bmd";
+    EXPECT_NE(models.Find(Client::Models::ModelId{33}), nullptr) << "Object34.bmd, el dragón de piedra";
+    EXPECT_NE(models.Find(Client::Models::ModelId{90}), nullptr) << "Object91.bmd, el remolino 90";
+    EXPECT_EQ(models.Find(Client::Models::ModelId{91}), nullptr) << "Object92.bmd no está";
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{83}), nullptr) << "las hojas, con su acción de 13 keys";
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{83})->actions.front().keyCount, 13);
 }
 
 // A missing one is skipped silently (Q-C23): type 82, which asks for the .obj, stays without a model.
@@ -270,9 +270,9 @@ TEST_F(GoldenWorldModels, AMissingModelIsSkipped)
     Log log(sink, LogLevel::Debug);
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Login, store, log, nullptr).HasValue());
-    EXPECT_EQ(models.Find(82), nullptr) << "Object83.bmd no está";
-    EXPECT_EQ(models.SkeletonOf(82), nullptr);
-    EXPECT_TRUE(models.MeshTextures(82).empty());
+    EXPECT_EQ(models.Find(Client::Models::ModelId{82}), nullptr) << "Object83.bmd no está";
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{82}), nullptr);
+    EXPECT_TRUE(models.MeshTextures(Client::Models::ModelId{82}).empty());
     for (std::size_t k = 0; k < sink.lines.size(); ++k)
     {
         if (sink.levels[k] == LogLevel::Warning)
@@ -291,14 +291,14 @@ TEST_F(GoldenWorldModels, TheDragonIsModel0xb4)
     Log log(sink, LogLevel::Debug);
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Login, store, log, nullptr).HasValue());
-    const auto* dragon = models.Find(Client::Assets::DragonModel);
+    const auto* dragon = models.Find(Client::Models::ModelId{Client::Assets::DragonModel});
     ASSERT_NE(dragon, nullptr);
     EXPECT_EQ(dragon->meshes.size(), 3u);
     EXPECT_EQ(dragon->bones.size(), 93u);
-    ASSERT_NE(models.SkeletonOf(Client::Assets::DragonModel), nullptr);
-    ASSERT_EQ(models.SkeletonOf(Client::Assets::DragonModel)->actions.size(), 1u);
-    EXPECT_EQ(models.SkeletonOf(Client::Assets::DragonModel)->actions.front().keyCount, 41);
-    const auto slots = models.MeshTextures(Client::Assets::DragonModel);
+    ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{Client::Assets::DragonModel}), nullptr);
+    ASSERT_EQ(models.SkeletonOf(Client::Models::ModelId{Client::Assets::DragonModel})->actions.size(), 1u);
+    EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{Client::Assets::DragonModel})->actions.front().keyCount, 41);
+    const auto slots = models.MeshTextures(Client::Models::ModelId{Client::Assets::DragonModel});
     ASSERT_EQ(slots.size(), 3u);
     EXPECT_EQ(slots[0], TextureSlot{0x69});
     EXPECT_EQ(slots[1], TextureSlot{0x6a});
@@ -306,7 +306,7 @@ TEST_F(GoldenWorldModels, TheDragonIsModel0xb4)
     // No other map has it.
     WorldModels lorencia;
     ASSERT_TRUE(lorencia.Load(m_dataRoot, 0, store, log, nullptr).HasValue());
-    EXPECT_EQ(lorencia.Find(Client::Assets::DragonModel), nullptr);
+    EXPECT_EQ(lorencia.Find(Client::Models::ModelId{Client::Assets::DragonModel}), nullptr);
 }
 
 // 0x60d530(0x41c) and each model's textures in k order, with GL_NEAREST and repeating (0x60d5f0(k, "Object56\\",
@@ -348,8 +348,8 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
     }
     EXPECT_FALSE(store.Find(TextureSlot{0x455}).has_value());
     // Mesh 0 of Object02 is the first new texture.
-    ASSERT_FALSE(models.MeshTextures(1).empty());
-    EXPECT_EQ(models.MeshTextures(1).front(), TextureSlot{0x41c});
+    ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{1}).empty());
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{1}).front(), TextureSlot{0x41c});
 
     models.Release();
     EXPECT_FALSE(store.Find(TextureSlot{0x41c}).has_value());
@@ -390,9 +390,9 @@ TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingThe
         EXPECT_EQ(image->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
     }
     // Fire01.bmd brings fire02.jpg on mesh 0 and fire01.jpg on mesh 1; Object90 reuses that same pair.
-    ASSERT_EQ(game.MeshTextures(0xc2).size(), 2u);
-    EXPECT_EQ(game.MeshTextures(0xc2)[0], cached[3]);
-    EXPECT_EQ(game.MeshTextures(0xc2)[1], cached[4]);
+    ASSERT_EQ(game.MeshTextures(Client::Models::ModelId{0xc2}).size(), 2u);
+    EXPECT_EQ(game.MeshTextures(Client::Models::ModelId{0xc2})[0], cached[3]);
+    EXPECT_EQ(game.MeshTextures(Client::Models::ModelId{0xc2})[1], cached[4]);
     const auto prefix = store.loaded.size();
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Login, store, log, &game.TextureSlots()).HasValue());
@@ -403,13 +403,13 @@ TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingThe
             EXPECT_NE(entry.path.substr(entry.path.find('\\') + 1), global.path.substr(global.path.find('\\') + 1));
     for (const std::uint16_t id : {std::uint16_t{8}, std::uint16_t{9}, std::uint16_t{21}, std::uint16_t{22}})
     {
-        ASSERT_FALSE(models.MeshTextures(id).empty());
-        EXPECT_EQ(models.MeshTextures(id).front(), cached[0]);
+        ASSERT_FALSE(models.MeshTextures(Client::Models::ModelId{id}).empty());
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{id}).front(), cached[0]);
     }
     // Object24.bmd: column2.JPG on mesh 0; cswalltop.JPG on mesh 1.
-    ASSERT_EQ(models.MeshTextures(23).size(), 2u);
-    EXPECT_EQ(models.MeshTextures(23)[1], cached[1]);
-    const auto fire = models.MeshTextures(89);
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{23}).size(), 2u);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{23})[1], cached[1]);
+    const auto fire = models.MeshTextures(Client::Models::ModelId{89});
     ASSERT_EQ(fire.size(), 2u);
     EXPECT_EQ(fire[0], cached[3]);
     EXPECT_EQ(fire[1], cached[4]);
@@ -461,7 +461,7 @@ TEST(WorldModelsTest, LorenciaAssignsNamedTexturesByIdAfterLoadingTheSpecials)
     ASSERT_TRUE(models.Load(folder.Path(), Lorencia, store, log, nullptr).HasValue());
     const auto expectSlot = [&](std::uint16_t model, TextureSlot expected)
     {
-        const auto slots = models.MeshTextures(model);
+        const auto slots = models.MeshTextures(Client::Models::ModelId{model});
         ASSERT_EQ(slots.size(), 1u) << model;
         EXPECT_EQ(slots.front(), expected) << model;
     };

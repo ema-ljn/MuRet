@@ -32,6 +32,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Models/Animation.h"
+#include "Models/ModelId.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -148,21 +149,21 @@ public:
         m_part.meshes = {Client::Tests::TriangleMesh(0, "part.jpg")};
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        return model == 0x20b ? nullptr : &m_part;
+        return model.Value() == 0x20b ? nullptr : &m_part;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == Client::Scenes::DarkHorseModel)
+        if (model.Value() == Client::Scenes::DarkHorseModel)
         {
             return &m_horse;
         }
-        return model == 0x20a ? &m_body : nullptr;
+        return model.Value() == 0x20a ? &m_body : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        return model == Client::Scenes::DarkHorseModel ? m_horseSlots : m_slots;
+        return model.Value() == Client::Scenes::DarkHorseModel ? m_horseSlots : m_slots;
     }
 
     // El hueso 0 del cuerpo, dummy: 0x4eb973 no lo escribe y queda el del buffer donde se posa.

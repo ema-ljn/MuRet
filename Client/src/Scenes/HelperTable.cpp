@@ -481,7 +481,8 @@ Core::Expected<void, std::string> StepHelper(HelperState& helper, Kernel::ActorS
     {
         return Core::Unexpected(std::format("0x444083: el paso del ayudante {:#x} no está portado", helper.type));
     }
-    const Models::Skeleton* skeleton = context.models != nullptr ? context.models->SkeletonOf(helper.type) : nullptr;
+    const Models::Skeleton* skeleton =
+        context.models != nullptr ? context.models->SkeletonOf(Models::ModelId{helper.type}) : nullptr;
     if (skeleton == nullptr)
     {
         return Core::Unexpected(
@@ -592,7 +593,8 @@ Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const Helpe
         return Core::Unexpected(std::string("0x60278a: el seno del reloj del Fenrir no cabe en el perfil PC53"));
     const double pulse = static_cast<double>(F32(*sine));
     const std::int32_t map = context.world.Runtime().map;
-    auto drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), glm::vec3(0.0f), context.stepAlpha);
+    auto drawn = DrawnHelper(helper, context.models.SkeletonOf(Models::ModelId{helper.type}), glm::vec3(0.0f),
+                             context.stepAlpha);
     if (context.onPose)
         if (const auto published = context.onPose(drawn); !published.HasValue())
             return published;
@@ -685,8 +687,8 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
     if (helper.type == DarkHorseModel)
     {
         const Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
-        auto drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
-                                    context.stepAlpha);
+        auto drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(Models::ModelId{DarkHorseModel}), place,
+                                    helper.scale, context.stepAlpha);
         if (context.onPose)
             if (const auto published = context.onPose(drawn); !published.HasValue())
                 return published;
@@ -704,7 +706,8 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
             "0x5ffce0: falta el buffer dinámico de la luz del terreno para el ayudante {:#x}", helper.type));
     }
     const glm::vec3 terrainLight = Terrain::LightAt(*context.lighting, helper.position.x, helper.position.y);
-    auto drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), terrainLight, context.stepAlpha);
+    auto drawn =
+        DrawnHelper(helper, context.models.SkeletonOf(Models::ModelId{helper.type}), terrainLight, context.stepAlpha);
     if (context.onPose)
         if (const auto published = context.onPose(drawn); !published.HasValue())
             return published;
@@ -742,12 +745,13 @@ Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const Helper
     if (helper.type == DarkHorseModel)
     {
         const Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
-        drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
-                               context.stepAlpha);
+        drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(Models::ModelId{DarkHorseModel}), place,
+                               helper.scale, context.stepAlpha);
     }
     else
     {
-        drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), glm::vec3(0.0f), context.stepAlpha);
+        drawn = DrawnHelper(helper, context.models.SkeletonOf(Models::ModelId{helper.type}), glm::vec3(0.0f),
+                            context.stepAlpha);
     }
     if (context.onPose)
         if (const auto published = context.onPose(drawn); !published.HasValue())

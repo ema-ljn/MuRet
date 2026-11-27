@@ -530,7 +530,7 @@ TEST_F(CameraTourActorsTest, TheGuardsCompleteTheirArrivalInCrywolf)
         if (map != CrywolfMap)
             continue;
         EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x243);
-        const auto* skeleton = tested->states.assets.fauna.SkeletonOf(0x1ae);
+        const auto* skeleton = tested->states.assets.fauna.SkeletonOf(Client::Models::ModelId{0x1ae});
         ASSERT_NE(skeleton, nullptr);
         ASSERT_GT(skeleton->actions.size(), 2u);
         EXPECT_EQ(skeleton->actions[2].speed, std::bit_cast<float>(0x3e6872b0u));

@@ -70,7 +70,8 @@ Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemSta
     object.transform.lockedRootHeight = BodyPartRootHeight(item.type);
     if (context.onSkin || !context.onPose)
         object.alpha = 0;
-    if (!context.models.Find(object.model) || !context.models.SkeletonOf(object.model))
+    if (!context.models.Find(Models::ModelId{object.model}) ||
+        !context.models.SkeletonOf(Models::ModelId{object.model}))
         return Core::Unexpected(std::format("0x608a98: faltan modelo o pose del ítem {:#x}", object.model));
     if (context.onPose)
         return context.onPose(object);
@@ -106,7 +107,7 @@ Core::Expected<void, std::string> Body(FaunaDrawCarry& local, FloorItemState& it
     // 0x60cf70 → 0x4ebc80: la caja del picking (+0x13c) desde la posición de este cuerpo, que en el último (el del
     // ítem, después del agua) es la que lee 0x59e2e0.
     item.pickBox = {item.position + item.boundingMin, item.position + item.boundingMax};
-    const auto* model = context.models.Find(object.model);
+    const auto* model = context.models.Find(Models::ModelId{object.model});
     if (!model)
         return Core::Unexpected(std::format("0x60cfc8: falta el modelo del ítem {:#x}", object.model));
     const bool separateSkin = (item.type >= FirstArmor && item.type < EndArmor) || item.type == Money ||

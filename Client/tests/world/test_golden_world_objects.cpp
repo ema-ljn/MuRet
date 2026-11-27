@@ -91,7 +91,8 @@ protected:
     void StepOnce(WorldObject& object) const
     {
         object.seen = true;
-        Client::World::StepWorldObject(object, Login, m_models.SkeletonOf(static_cast<std::uint16_t>(object.type)));
+        Client::World::StepWorldObject(
+            object, Login, m_models.SkeletonOf(Client::Models::ModelId{static_cast<std::uint16_t>(object.type)}));
     }
 
     WorldObjectVectors m_vectors;

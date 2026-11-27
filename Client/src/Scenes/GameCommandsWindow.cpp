@@ -494,7 +494,7 @@ Core::Expected<void, std::string> PlayTheEndOfAHostility(const GameChatContext& 
         return Core::Unexpected(std::format("{}: el C1 18 sin el cable", action));
     if (chat.models == nullptr)
         return Core::Unexpected(std::format("{}: la animación del héroe sin los modelos (0x4ea030)", animation));
-    const auto* skeleton = chat.models->SkeletonOf(hero.type);
+    const auto* skeleton = chat.models->SkeletonOf(Models::ModelId{hero.type});
     if (skeleton == nullptr)
         return Core::Unexpected(
             std::format("{}: sin las acciones del modelo {:#x} del héroe (0x4ea030)", animation, hero.type));

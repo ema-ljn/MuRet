@@ -70,8 +70,8 @@ TEST(ConstructedBmdPrefixTest, TheProductionFaunaOwnerKeepsTheLoanAcrossRebindin
     const auto* borrowed = resources.PrefixModel();
     ASSERT_NE(borrowed, nullptr);
     EXPECT_EQ(resources.PrefixOffset(), 9);
-    EXPECT_EQ(resources.SkeletonOf(0xffff), nullptr);
-    EXPECT_EQ(resources.Find(0xffff), nullptr);
+    EXPECT_EQ(resources.SkeletonOf(Client::Models::ModelId{0xffff}), nullptr);
+    EXPECT_EQ(resources.Find(Client::Models::ModelId{0xffff}), nullptr);
     resources.Bind(nullptr);
     resources.Release();
     EXPECT_EQ(resources.PrefixModel(), borrowed);

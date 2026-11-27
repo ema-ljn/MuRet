@@ -26,6 +26,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Models/Skinning.h"
+#include "Models/ModelId.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/ModelEffects.h"
 #include "Terrain/GroundEffectDrawing.h"
@@ -102,15 +103,15 @@ public:
             Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId) const override
     {
         return &m_model;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }
@@ -149,15 +150,15 @@ public:
             Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId) const override
     {
         return &m_model;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }
@@ -934,15 +935,15 @@ public:
         m_skeleton.actions = {action, action};
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId) const override
     {
         return &m_model;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }
@@ -1255,19 +1256,19 @@ public:
         m_lantern = skeletonOf(1, 0.0f, std::nullopt);
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId) const override
     {
         return &m_model;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == Lantern)
+        if (model.Value() == Lantern)
         {
             return &m_lantern;
         }
-        return model == SecondRock ? &m_rock : &m_horse;
+        return model.Value() == SecondRock ? &m_rock : &m_horse;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }
@@ -1620,17 +1621,17 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
 struct MissingEffectModels final : Client::Models::IModelLibrary
 {
     mutable int lookups = 0;
-    const Model* Find(std::uint16_t) const override
+    const Model* Find(Client::Models::ModelId) const override
     {
         ++lookups;
         return nullptr;
     }
-    const Skeleton* SkeletonOf(std::uint16_t) const override
+    const Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         ++lookups;
         return nullptr;
     }
-    std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         ++lookups;
         return {};
@@ -1689,15 +1690,15 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 class SpriteTextures : public Client::Models::IModelLibrary
 {
 public:
-    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }
@@ -1977,15 +1978,15 @@ TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
 class NoEffectTextures final : public Client::Models::IModelLibrary
 {
 public:
-    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

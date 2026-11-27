@@ -13,6 +13,7 @@
 #include "Render/ModelBatch.h"
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "World/Sprites.h"
@@ -46,15 +47,15 @@ public:
             meshes.push_back({{{static_cast<float>(index), 0, 0}, {1, 0, 0}, {0, 1, 0}}, {{0, 0, 1}}});
         }
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return available ? &model : nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return std::span(textures).first(textureCount);
     }

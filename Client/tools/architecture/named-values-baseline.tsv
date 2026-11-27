@@ -157,13 +157,11 @@ map	game/Terrain/TerrainCulling.cpp	WebzenMap	0x6
 map	game/Terrain/TerrainLighting.h	BrightShadingMap	0x1e
 model	Scenes/ModelBody.cpp	DungeonModel	0x28
 model	Scenes/ModelBody.cpp	FirstMonsterModel	0x152
-model	Scenes/UiItemDrawing.cpp	PlayerModel	0x20a
 model	World/BlastModelEffects.cpp	FirstAnimatedModel	0xad
 model	World/BlastModelEffects.cpp	LastAnimatedModel	0x151
 model	World/GameModelEffects.cpp	FirstAnimatedModel	0xad
 model	World/GameModelEffects.cpp	LastAnimatedModel	0x151
 model	game/Session/MapLoad.cpp	SpearmanModel	0x19f
-model	game/Tables/PlayerModels.h	PlayerSkeletonModel	0x20a
 number	Scenes/AttackSkillCases.cpp	Half	2.0
 number	Scenes/DarkSpirit.cpp	MinusTenth	f64-from-f32:-0.1f
 number	Scenes/KalimaObjectStep.cpp	Half	0x7

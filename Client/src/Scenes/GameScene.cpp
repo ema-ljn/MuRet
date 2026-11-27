@@ -899,7 +899,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) reserva sus .wav antes de publicar la tabla
     // (0x6151fc, 0x61520f y 0x615232), si cargó con mallas.
     constexpr std::int32_t SpearmanMonster = 0x4d;
-    if (const auto* spearman = m_worldModels.Find(Assets::SpearmanModel);
+    if (const auto* spearman = m_worldModels.Find(Models::ModelId{Assets::SpearmanModel});
         spearman != nullptr && !spearman->meshes.empty())
     {
         if (Audio::IPlayback* audio = m_context.world->Runtime().audio)

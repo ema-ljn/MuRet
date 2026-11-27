@@ -9,6 +9,7 @@
 #include "Kernel/CharacterAppearance.h"
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
+#include "Models/ModelId.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
@@ -65,10 +66,10 @@ public:
              std::vector<Render::TextureSlot> meshTextures);
     void Clear();
 
-    [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
-    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
-    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
+    [[nodiscard]] const Data::Models::Model* Find(Models::ModelId model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(Models::ModelId model) const override;
+    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(Models::ModelId model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(Models::ModelId model) const override;
 
 private:
     std::optional<std::uint16_t> m_model;

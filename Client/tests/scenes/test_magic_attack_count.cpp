@@ -12,6 +12,7 @@
 #include "Models/Cloth.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
@@ -69,15 +70,15 @@ constexpr std::uint32_t OwnRecordCloseRandoms = 0xf08;
 class PlayerModels final : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == Client::Tables::PlayerSkeletonModel ? &player : nullptr;
+        return model.Value() == Client::Tables::PlayerSkeletonModel ? &player : nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }
@@ -92,15 +93,15 @@ public:
     {
         monster.actions.resize(MonsterActionCount);
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == MonsterModel ? &monster : nullptr;
+        return model.Value() == MonsterModel ? &monster : nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

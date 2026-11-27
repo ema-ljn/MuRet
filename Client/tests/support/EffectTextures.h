@@ -4,6 +4,7 @@
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Models/IModelLibrary.h"
+#include "Models/ModelId.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Models/TextureMetadata.h"
@@ -51,15 +52,15 @@ class WithEffectTextures final : public Models::IModelLibrary
 public:
     explicit WithEffectTextures(const Models::IModelLibrary& base) : m_base(base) {}
 
-    [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
         return m_base.get().Find(model);
     }
-    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
         return m_base.get().SkeletonOf(model);
     }
-    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
         return m_base.get().MeshTextures(model);
     }

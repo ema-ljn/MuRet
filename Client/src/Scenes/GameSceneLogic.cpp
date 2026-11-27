@@ -97,7 +97,8 @@ Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
 Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock, bool controlDown)
 {
     auto& runtime = m_context.world->Runtime();
-    const Models::Skeleton* player = m_models != nullptr ? m_models->SkeletonOf(Tables::PlayerSkeletonModel) : nullptr;
+    const Models::Skeleton* player =
+        m_models != nullptr ? m_models->SkeletonOf(Tables::PlayerSkeletonModelId) : nullptr;
     if (auto stepped = Actors::StepCharacters(Actors::CharacterStepContext{
             .world = *m_context.world,
             .random = m_context.cloth->random,
@@ -107,7 +108,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .skills = m_skills,
             .models = m_models,
             .terrain = &StepTerrain(),
-            .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
+            .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(Models::ModelId{DarkSpiritModel}) : nullptr,
             .particles = &m_context.world->Particles(),
             .sprites = &m_sprites,
             .joints = m_context.world->DrawTail().joints,
@@ -237,7 +238,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             continue;
         const auto* skeleton = effect.type == World::EarthquakeBurstEffect
                                    ? nullptr
-                                   : m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+                                   : m_worldModels.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)});
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {

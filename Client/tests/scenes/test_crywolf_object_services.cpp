@@ -10,6 +10,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -142,15 +143,15 @@ using Client::Math::F32;
 // Una biblioteca sin modelos: el dibujo de 0x6046a0 solo cuenta y no dibuja.
 struct NoModels final : Client::Models::IModelLibrary
 {
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }
@@ -172,18 +173,18 @@ struct AltarModels final : Client::Models::IModelLibrary
         skeleton.bones = {bone};
         skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         const auto selected = shared.unlitMeshes.at(0x51);
         if (selected == 0 || selected == 1)
             selections.push_back(selected);
         return &model;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return textures;
     }

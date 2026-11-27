@@ -6,6 +6,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/IModelLibrary.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 
@@ -35,15 +36,15 @@ public:
         mesh.textureName = "item.jpg";
         m_model.meshes = {mesh};
     }
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return &m_model;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }

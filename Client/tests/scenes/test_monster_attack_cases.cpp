@@ -12,6 +12,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
@@ -120,15 +121,16 @@ std::uint32_t SeedForSecondRandomParity(bool odd)
 class AnyModels final : public Client::Models::IModelLibrary
 {
 public:
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId /*model*/) const override
     {
         return &skeleton;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }
@@ -318,7 +320,8 @@ protected:
     {
         SCOPED_TRACE(probe.name);
         ActorState& monster = Prepare(probe);
-        ASSERT_NE(game->states.assets.fauna.Find(static_cast<std::uint16_t>(monster.type)), nullptr);
+        ASSERT_NE(game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(monster.type)}),
+                  nullptr);
         SetPoolAvailability(true, false, false);
         EXPECT_TRUE(std::all_of(game->world.Map().effects.Effects().begin(), game->world.Map().effects.Effects().end(),
                                 [](const auto& effect) { return effect.alive; }));
@@ -336,7 +339,8 @@ protected:
     {
         SCOPED_TRACE(probe.name);
         ActorState& monster = Prepare(probe);
-        ASSERT_NE(game->states.assets.fauna.Find(static_cast<std::uint16_t>(monster.type)), nullptr);
+        ASSERT_NE(game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(monster.type)}),
+                  nullptr);
         SetPoolAvailability(false, false, true);
         EXPECT_TRUE(std::any_of(game->world.Map().effects.Effects().begin(), game->world.Map().effects.Effects().end(),
                                 [](const auto& effect) { return !effect.alive; }));
@@ -354,7 +358,8 @@ protected:
     {
         SCOPED_TRACE(probe.name);
         ActorState& monster = Prepare(probe);
-        ASSERT_NE(game->states.assets.fauna.Find(static_cast<std::uint16_t>(monster.type)), nullptr);
+        ASSERT_NE(game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(monster.type)}),
+                  nullptr);
         SaturatePools();
 
         const auto stepped = Step(monster);
@@ -2596,7 +2601,8 @@ TEST_F(MonsterAttackCasesTest, Saturated49AttackKeepsTheFifthTrailPointAndActorP
         Load(0);
         const Probe probe{.name = "ataque con rastro", .type = 3, .step = 11, .action = 3, .draws = 348, .kind = kind};
         ActorState& monster = Prepare(probe);
-        ASSERT_NE(game->states.assets.fauna.Find(static_cast<std::uint16_t>(monster.type)), nullptr);
+        ASSERT_NE(game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(monster.type)}),
+                  nullptr);
         const glm::vec3 actorPosition = monster.position;
         CrtRandom expected(game->cloth.random.State());
         expected.Discard(336);
@@ -3080,8 +3086,11 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
                                              .target = 0,
                                              .kind = std::uint16_t{0x2345},
                                              .bone = std::uint8_t{0}});
-        ASSERT_NE(game->states.assets.fauna.Find(static_cast<std::uint16_t>(fallback.type)), nullptr);
-        ASSERT_NE(game->states.assets.fauna.SkeletonOf(static_cast<std::uint16_t>(fallback.type)), nullptr);
+        ASSERT_NE(game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(fallback.type)}),
+                  nullptr);
+        ASSERT_NE(
+            game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{static_cast<std::uint16_t>(fallback.type)}),
+            nullptr);
         game->joints.assign(1, Client::Scenes::JointState{});
         const auto stepped = Step(fallback);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -3103,9 +3112,11 @@ TEST_F(MonsterAttackCasesTest, TheSkill3FallbackUsesLoadedSkeletonMetadataBefore
 {
     Load(0);
     ActorState& monster = Prepare(Probe{.type = 3, .step = 2, .skill = 3, .target = 0, .kind = std::uint16_t{0x2345}});
-    const auto* model = game->states.assets.fauna.Find(static_cast<std::uint16_t>(monster.type));
+    const auto* model =
+        game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(monster.type)});
     ASSERT_NE(model, nullptr);
-    const auto* skeleton = game->states.assets.fauna.SkeletonOf(static_cast<std::uint16_t>(monster.type));
+    const auto* skeleton =
+        game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{static_cast<std::uint16_t>(monster.type)});
     ASSERT_NE(skeleton, nullptr);
     ASSERT_LT(skeleton->bones.size() + 1, 256u);
     monster.bodyPose.clear();
@@ -3123,8 +3134,10 @@ TEST_F(MonsterAttackCasesTest, SaturatedSkill3FallbackPreservesLogicalDepthAndLe
     Load(0);
     ActorState& loaded =
         Prepare(Probe{.name = "skill 3 sin caso", .type = 3, .step = 2, .skill = 3, .kind = std::uint16_t{0x2345}});
-    ASSERT_NE(game->states.assets.fauna.Find(static_cast<std::uint16_t>(loaded.type)), nullptr);
-    const auto* skeleton = game->states.assets.fauna.SkeletonOf(static_cast<std::uint16_t>(loaded.type));
+    ASSERT_NE(game->states.assets.fauna.Find(Client::Models::ModelId{static_cast<std::uint16_t>(loaded.type)}),
+              nullptr);
+    const auto* skeleton =
+        game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{static_cast<std::uint16_t>(loaded.type)});
     ASSERT_NE(skeleton, nullptr);
     ASSERT_GT(skeleton->bones.size(), 0u);
     for (const std::uint8_t logicalDepth : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{255}})

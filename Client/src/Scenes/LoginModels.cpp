@@ -12,6 +12,7 @@
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -80,26 +81,26 @@ void SingleModelLibrary::Clear()
     m_loaded = {};
 }
 
-const Data::Models::Model* SingleModelLibrary::Find(std::uint16_t model) const
+const Data::Models::Model* SingleModelLibrary::Find(Models::ModelId model) const
 {
-    return m_model == model ? &m_loaded.model : nullptr;
+    return m_model == model.Value() ? &m_loaded.model : nullptr;
 }
 
-const Models::Skeleton* SingleModelLibrary::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* SingleModelLibrary::SkeletonOf(Models::ModelId model) const
 {
-    return m_model == model && m_loaded.skeleton.has_value() ? &*m_loaded.skeleton : nullptr;
+    return m_model == model.Value() && m_loaded.skeleton.has_value() ? &*m_loaded.skeleton : nullptr;
 }
 
-std::span<const Render::TextureSlot> SingleModelLibrary::MeshTextures(std::uint16_t model) const
+std::span<const Render::TextureSlot> SingleModelLibrary::MeshTextures(Models::ModelId model) const
 {
-    return m_model == model ? std::span<const Render::TextureSlot>(m_loaded.meshTextures)
-                            : std::span<const Render::TextureSlot>{};
+    return m_model == model.Value() ? std::span<const Render::TextureSlot>(m_loaded.meshTextures)
+                                    : std::span<const Render::TextureSlot>{};
 }
 
-std::span<const Models::MeshTraits> SingleModelLibrary::MeshTraitsOf(std::uint16_t model) const
+std::span<const Models::MeshTraits> SingleModelLibrary::MeshTraitsOf(Models::ModelId model) const
 {
-    return m_model == model ? std::span<const Models::MeshTraits>(m_loaded.meshes)
-                            : std::span<const Models::MeshTraits>{};
+    return m_model == model.Value() ? std::span<const Models::MeshTraits>(m_loaded.meshes)
+                                    : std::span<const Models::MeshTraits>{};
 }
 
 ModelObject LoginLogo()

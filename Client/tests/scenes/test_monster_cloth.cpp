@@ -11,6 +11,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
@@ -107,15 +108,15 @@ public:
         m_model.meshes = {Triangle(), Triangle(), Robe()};
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        return model == 0x20a ? nullptr : &m_model;
+        return model.Value() == 0x20a ? nullptr : &m_model;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }

@@ -112,9 +112,9 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForActor(const 
     const std::span<const std::int16_t> modelSounds = faunaModels.SoundActions(actor.type);
     if (actor.type != Tables::PlayerSkeletonModel)
     {
-        actorSkeleton = faunaModels.SkeletonOf(actor.type);
+        actorSkeleton = faunaModels.SkeletonOf(Models::ModelId{actor.type});
         if (actorSkeleton == nullptr && context.models != nullptr)
-            actorSkeleton = context.models->SkeletonOf(actor.type);
+            actorSkeleton = context.models->SkeletonOf(Models::ModelId{actor.type});
     }
 
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),

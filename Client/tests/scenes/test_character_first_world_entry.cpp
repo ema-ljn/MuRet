@@ -58,7 +58,7 @@ namespace
 {
 bool DrawsPart(const Client::Tests::RecordedFrame& frame, const Client::Assets::GameModels& models, std::uint16_t part)
 {
-    const auto textures = models.MeshTextures(part);
+    const auto textures = models.MeshTextures(Client::Models::ModelId{part});
     for (const auto& event : frame.events)
         for (const auto& command : event.modelCommands)
             if (command.vertexCount > 0 && std::ranges::find(textures, command.state.texture) != textures.end())

@@ -11,6 +11,7 @@
 #include "Render/TextureEnvMode.h"
 #include "Render/TextureSlot.h"
 #include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
 
 #include <gtest/gtest.h>
 
@@ -31,15 +32,15 @@ namespace
 class MaterialModels : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

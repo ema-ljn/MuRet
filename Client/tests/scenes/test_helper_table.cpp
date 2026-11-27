@@ -15,6 +15,7 @@
 #include "Math/OriginalRotation.h"
 #include "Math/RoundedMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
@@ -188,22 +189,22 @@ public:
         m_model.meshes = {mesh};
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        return model == DarkHorseModel || IsPet(model) ? &m_model : nullptr;
+        return model.Value() == DarkHorseModel || IsPet(model.Value()) ? &m_model : nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == DarkHorseModel)
+        if (model.Value() == DarkHorseModel)
         {
             return &m_skeleton;
         }
-        return IsPet(model) ? &m_petSkeleton : nullptr;
+        return IsPet(model.Value()) ? &m_petSkeleton : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        return model == DarkHorseModel || IsPet(model) ? std::span<const TextureSlot>(m_slots)
-                                                       : std::span<const TextureSlot>{};
+        return model.Value() == DarkHorseModel || IsPet(model.Value()) ? std::span<const TextureSlot>(m_slots)
+                                                                       : std::span<const TextureSlot>{};
     }
 
 private:

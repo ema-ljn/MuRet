@@ -11,6 +11,7 @@
 #include "Models/Cloth.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
@@ -45,15 +46,15 @@ public:
         if (loaded.HasValue())
             skeleton = loaded.Value();
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return &model;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

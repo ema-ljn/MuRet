@@ -1807,11 +1807,12 @@ Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::si
             return StepTheBoneSkill(actor, victim, *found, slot, context, localLight);
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
-        const Models::Skeleton* skeleton = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(model);
+        const Models::Skeleton* skeleton =
+            Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(Models::ModelId{model});
         if (model == Tables::PlayerSkeletonModel && context.playerSkeleton != nullptr)
             skeleton = context.playerSkeleton;
         if (skeleton == nullptr && context.models != nullptr)
-            skeleton = context.models->SkeletonOf(model);
+            skeleton = context.models->SkeletonOf(Models::ModelId{model});
         if (skeleton != nullptr)
             boneCount = skeleton->bones.size();
         if (boneCount < actor.hands[0].bone)

@@ -382,7 +382,7 @@ Core::Expected<void, std::string> EmitVertexEffects(const Models::IModelLibrary&
                                                     std::int32_t type, std::int32_t subtype,
                                                     World::ModelEffects& effects, Crt::CrtRandom& random)
 {
-    const auto* model = models.Find(object.model);
+    const auto* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr)
         return {};
     return EmitVertexEffectsOf(*model, object.transform.scale, meshes, {.mesh = mesh, .type = type, .subtype = subtype},

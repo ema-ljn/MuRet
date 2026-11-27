@@ -13,6 +13,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/ActorCreation.h"
@@ -91,15 +92,15 @@ public:
             key.position = position;
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

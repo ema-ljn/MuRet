@@ -60,12 +60,13 @@ std::error_code Prepare(FaunaStepContext& c, std::int32_t model)
 {
     if (c.effects.prepare)
         return c.effects.prepare(model);
-    return c.models.SkeletonOf(static_cast<std::uint16_t>(model + 0x152)) != nullptr ? std::error_code{}
-                                                                                     : Unsupported();
+    return c.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(model + 0x152)}) != nullptr
+               ? std::error_code{}
+               : Unsupported();
 }
 void Select(FaunaStepContext& c, FaunaObject& b, std::uint8_t action)
 {
-    if (const auto* model = c.models.SkeletonOf(static_cast<std::uint16_t>(b.model)))
+    if (const auto* model = c.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(b.model)}))
         SetFaunaAction(b, *model, action);
 }
 std::error_code Effect(FaunaStepContext& c, FaunaObject& b, std::int32_t type, std::int32_t subtype, float scale)

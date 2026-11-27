@@ -204,7 +204,8 @@ const Models::Skeleton* ModelSkeletonOf(const Kernel::ActorState& actor, const C
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
-    const Models::Skeleton* loaded = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(actor.type);
+    const Models::Skeleton* loaded =
+        Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(Models::ModelId{actor.type});
     return loaded != nullptr ? loaded : &ZeroRecord;
 }
 
@@ -734,7 +735,7 @@ const Models::Skeleton* BoneEmitterSkeleton(const Kernel::ActorState& actor, con
 {
     if (actor.type != Tables::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
     {
-        if (const auto* loaded = context.models->SkeletonOf(actor.type); loaded != nullptr)
+        if (const auto* loaded = context.models->SkeletonOf(Models::ModelId{actor.type}); loaded != nullptr)
             return loaded;
     }
     return ModelSkeletonOf(actor, context);

@@ -10,6 +10,7 @@
 #include "Render/TextureSlot.h"
 #include "Render/TextureEnvMode.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
 #include "Core/Expected.h"
@@ -69,15 +70,15 @@ struct Library final : Client::Models::IModelLibrary
         value.components = flag;
         rows.insert_or_assign(static_cast<std::uint32_t>(selector), value);
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

@@ -17,6 +17,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/RoundedMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
@@ -143,15 +144,15 @@ public:
         m_texture.push_back(Client::Render::TextureSlot{0x301});
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        return model == 0x20a ? nullptr : &m_model;
+        return model.Value() == 0x20a ? nullptr : &m_model;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_texture;
     }
@@ -1845,26 +1846,27 @@ public:
     {
         for (std::uint16_t model = 0x1da; model <= 0x1f0; ++model)
         {
-            Client::Data::Models::Model part = *body.Find(Spider);
+            Client::Data::Models::Model part = *body.Find(Client::Models::ModelId{Spider});
             for (auto& vertex : part.meshes.front().vertices)
                 vertex.position[0] += static_cast<float>(model - 0x1d0);
             m_parts.push_back(part);
         }
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        if (model == missing)
+        if (model.Value() == missing)
             return nullptr;
-        if (model >= 0x1da && model <= 0x1f0)
-            return &m_parts[static_cast<std::size_t>(model - 0x1da)];
+        if (model.Value() >= 0x1da && model.Value() <= 0x1f0)
+            return &m_parts[static_cast<std::size_t>(model.Value() - 0x1da)];
         return m_body.Find(model);
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
         return m_body.SkeletonOf(model);
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId model) const override
     {
         return m_body.MeshTextures(model);
     }

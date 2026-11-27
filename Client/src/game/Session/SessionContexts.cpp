@@ -104,7 +104,7 @@ Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& res
         .measure = resources.textMeasure,
         .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
         .tickCount = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
-        .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
+        .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId),
         .models = &resources.models,
         .sendWindowClose = [&session] { session.SendWindowClose(); },
         // SendChat sends any world packet.

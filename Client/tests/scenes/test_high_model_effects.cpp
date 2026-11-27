@@ -11,6 +11,7 @@
 #include "Math/OriginalRotation.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
@@ -80,15 +81,15 @@ public:
     {
         skeleton.actions.assign(actions, Client::Models::ActionInfo{.repeats = true, .keyCount = 10});
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

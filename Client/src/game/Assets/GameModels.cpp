@@ -19,6 +19,7 @@
 #include "Render/TextureSlot.h"
 #include "Assets/TextureSets.h"
 #include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -204,24 +205,24 @@ void GameModels::AssignTextures(std::span<const Tables::ModelTextureCall> calls)
     }
 }
 
-const Data::Models::Model* GameModels::Find(std::uint16_t model) const
+const Data::Models::Model* GameModels::Find(Models::ModelId model) const
 {
-    return m_models.ModelOf(model);
+    return m_models.ModelOf(model.Value());
 }
 
-const Models::Skeleton* GameModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* GameModels::SkeletonOf(Models::ModelId model) const
 {
-    return m_models.SkeletonOf(model);
+    return m_models.SkeletonOf(model.Value());
 }
 
-std::span<const Render::TextureSlot> GameModels::MeshTextures(std::uint16_t model) const
+std::span<const Render::TextureSlot> GameModels::MeshTextures(Models::ModelId model) const
 {
-    return m_models.MeshTextures(model);
+    return m_models.MeshTextures(model.Value());
 }
 
-std::span<const Models::MeshTraits> GameModels::MeshTraitsOf(std::uint16_t model) const
+std::span<const Models::MeshTraits> GameModels::MeshTraitsOf(Models::ModelId model) const
 {
-    return m_models.MeshTraitsOf(model);
+    return m_models.MeshTraitsOf(model.Value());
 }
 
 std::optional<Models::TextureMetadata> GameModels::TextureMetadataOf(std::uint32_t selector) const

@@ -50,7 +50,7 @@ public:
     }
     bool ModelHasMeshes() const
     {
-        return !m_models.Find(object.model)->meshes.empty();
+        return !m_models.Find(Models::ModelId{object.model})->meshes.empty();
     }
     void Store()
     {
@@ -597,7 +597,7 @@ Core::Expected<void, std::string> DrawSpecialItemMeshes(Render::ModelBatch& batc
                                                         std::span<const Models::SkinnedMesh> meshes,
                                                         const ItemSpecialDrawContext& context)
 {
-    const auto* model = models.Find(object.model);
+    const auto* model = models.Find(Models::ModelId{object.model});
     if (!model)
         return Core::Unexpected(std::format("609640: falta el modelo {:#x}", object.model));
     const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(frameClock).count();

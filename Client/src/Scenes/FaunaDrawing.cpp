@@ -104,7 +104,7 @@ Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaO
                                             context.fixedHeight));
     // 446e9d..446eb3: sólo XYZ; la escala del último cuerpo permanece retenida.
     context.carry.models[static_cast<std::uint16_t>(object.model)].position = origin;
-    const auto* model = context.models.Find(static_cast<std::uint16_t>(object.model));
+    const auto* model = context.models.Find(Models::ModelId{static_cast<std::uint16_t>(object.model)});
     if (model == nullptr || model->meshes.empty())
         return {};
     state.blend = Render::ModelBlend::BlendedShadow;
@@ -194,7 +194,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, FaunaObject
     if (object.seen == 0 || (bird ? object.model == InvisibleBird : object.model == -1))
         return {};
     const auto drawn = Drawn(object, context.lighting);
-    if (const auto* model = context.models.Find(drawn.model))
+    if (const auto* model = context.models.Find(Models::ModelId{drawn.model}))
     {
         if (context.carry.meshes.size() < model->meshes.size())
             context.carry.meshes.resize(model->meshes.size());
@@ -315,8 +315,8 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
 {
     if (object.alpha < VisibleAlpha)
         return {};
-    const auto* model = models.Find(object.model);
-    const auto* skeleton = models.SkeletonOf(object.model);
+    const auto* model = models.Find(Models::ModelId{object.model});
+    const auto* skeleton = models.SkeletonOf(Models::ModelId{object.model});
     if (model == nullptr || skeleton == nullptr)
         return {};
     carry.models[object.model] = object.transform;
@@ -341,7 +341,7 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
 Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
                                                         const Actors::Drawing::DrawnObject& object)
 {
-    const auto* skeleton = models.SkeletonOf(object.model);
+    const auto* skeleton = models.SkeletonOf(Models::ModelId{object.model});
     if (skeleton == nullptr)
         return {};
     const auto count = skeleton->bones.size();
@@ -363,8 +363,8 @@ Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, con
                                                       const Models::ObjectTransform& transform, bool translated,
                                                       bool skin)
 {
-    const auto* model = models.Find(modelId);
-    const auto* skeleton = models.SkeletonOf(modelId);
+    const auto* model = models.Find(Models::ModelId{modelId});
+    const auto* skeleton = models.SkeletonOf(Models::ModelId{modelId});
     const auto count = bones.size();
     carry.models[modelId] = transform;
     if (carry.bones.size() < count)

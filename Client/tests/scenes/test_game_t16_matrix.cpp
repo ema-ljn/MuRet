@@ -111,7 +111,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
         if (chaosCastle)
         {
             // 618970 y609640: el Angel deWorld19 y su cromo5c0 se dibujan en el frame real, no un mapa vacío.
-            ASSERT_NE(m_states->assets.fauna.Find(0x1f7), nullptr);
+            ASSERT_NE(m_states->assets.fauna.Find(Client::Models::ModelId{0x1f7}), nullptr);
             EXPECT_EQ(Hero().byte88, 1);
             EXPECT_FALSE(m_world->Map().objects.empty());
             bool chrome = false;

@@ -11,6 +11,7 @@
 #include "Render/IParticleDrawBackend.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureEnvMode.h"
@@ -467,15 +468,15 @@ class Library final : public Models::IModelLibrary
 public:
     mutable std::vector<std::uint32_t> queries;
     std::uint8_t colorFlag = 3;
-    const Data::Models::Model* Find(std::uint16_t) const override
+    const Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    std::span<const Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

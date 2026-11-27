@@ -1322,7 +1322,8 @@ private:
                                        altar, packet.key));
         hero.flags7c |= SittingFlag;
         // 0x4ea036..0x4ea054: las acciones del modelo del tipo del héroe (+2), Player.bmd o el del transformado.
-        const auto* skeleton = m_context.models != nullptr ? m_context.models->SkeletonOf(hero.type) : nullptr;
+        const auto* skeleton =
+            m_context.models != nullptr ? m_context.models->SkeletonOf(Models::ModelId{hero.type}) : nullptr;
         if (skeleton == nullptr)
             return Core::Unexpected(std::format("0x4e11d9: 0x4ea030 sienta al héroe (0xca) con las acciones del modelo "
                                                 "{:#x}, que no está cargado",

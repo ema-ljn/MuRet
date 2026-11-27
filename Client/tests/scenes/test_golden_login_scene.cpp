@@ -401,7 +401,7 @@ TEST_F(GoldenLoginWorld, TheObjectsGoAfterTheHorse)
                      &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
     const FrameEvent frame = Frame(scene, 3);
-    const auto horse = m_models.MeshTextures(Client::Scenes::DarkHorseModel);
+    const auto horse = m_models.MeshTextures(Client::Models::ModelId{Client::Scenes::DarkHorseModel});
     ASSERT_FALSE(horse.empty());
     std::optional<std::size_t> lastHorse;
     std::optional<std::size_t> firstObject;
@@ -1319,7 +1319,8 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    const Client::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    const Client::Models::Skeleton* horseSkeleton =
+        m_models.SkeletonOf(Client::Models::ModelId{Client::Scenes::DarkHorseModel});
     ASSERT_NE(horseSkeleton, nullptr);
     const glm::dvec3 rise{0.0, 0.0, 0.2};
     Client::Scenes::DarkHorse horse;
@@ -1403,7 +1404,7 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 {
     Client::Assets::WorldModels world;
     ASSERT_TRUE(world.Load(m_dataRoot, 0x37, m_store, m_log, nullptr).HasValue());
-    const Client::Models::Skeleton* dragon = world.SkeletonOf(Client::Assets::DragonModel);
+    const Client::Models::Skeleton* dragon = world.SkeletonOf(Client::Models::ModelId{Client::Assets::DragonModel});
     ASSERT_NE(dragon, nullptr);
     Client::Data::Terrain::TerrainObject record;
     record.type = static_cast<std::int16_t>(Client::Assets::DragonModel);
@@ -1412,7 +1413,8 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     Client::World::WorldObject owner =
         Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), 0x37, Client::World::ObjectScene::Login)
             .front();
-    const Client::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    const Client::Models::Skeleton* horseSkeleton =
+        m_models.SkeletonOf(Client::Models::ModelId{Client::Scenes::DarkHorseModel});
     ASSERT_NE(horseSkeleton, nullptr);
     Client::Scenes::DarkHorse horse;
 

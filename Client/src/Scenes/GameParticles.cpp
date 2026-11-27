@@ -104,8 +104,8 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
     }
     // 0x5ffdf0 sale antes de posar con alpha<0,01; los dummy tampoco escriben el buffer global.
     constexpr float VisibleAlpha = 0.01f;
-    const Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
-    if (drawn.alpha < VisibleAlpha || models.Find(drawn.model) == nullptr || skeleton == nullptr ||
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{drawn.model});
+    if (drawn.alpha < VisibleAlpha || models.Find(Models::ModelId{drawn.model}) == nullptr || skeleton == nullptr ||
         bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
     {
         return Core::Unexpected(std::format("el hueso {} quedó de una pose anterior que MuRet no conserva", bone));

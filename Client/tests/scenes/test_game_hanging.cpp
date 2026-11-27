@@ -9,6 +9,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
@@ -185,15 +186,15 @@ public:
         m_model.meshes = {mesh};
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        return m_items.contains(model) ? &m_model : nullptr;
+        return m_items.contains(model.Value()) ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == Player || m_items.contains(model) ? &m_skeleton : nullptr;
+        return model.Value() == Player || m_items.contains(model.Value()) ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_texture;
     }

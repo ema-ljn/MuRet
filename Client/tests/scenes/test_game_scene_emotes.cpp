@@ -102,8 +102,8 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     Client::Assets::FaunaModelLoadContext load{dataRoot, store, online.log, slots};
     const auto loaded = states.assets.fauna.LoadMonster(Monster32Resource, LorenciaMap, load);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    ASSERT_EQ(models.SkeletonOf(TransformedModel), nullptr);
-    const auto* skeleton = states.assets.fauna.SkeletonOf(TransformedModel);
+    ASSERT_EQ(models.SkeletonOf(Client::Models::ModelId{TransformedModel}), nullptr);
+    const auto* skeleton = states.assets.fauna.SkeletonOf(Client::Models::ModelId{TransformedModel});
     ASSERT_NE(skeleton, nullptr);
     ASSERT_EQ(skeleton->actions.size(), 8u);
     auto& hero = world->Hero();

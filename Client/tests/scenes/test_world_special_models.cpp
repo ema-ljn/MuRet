@@ -109,9 +109,9 @@ TEST(WorldSpecialModelsTest, TheFirstFamiliesAssignTheirSpecialsBeforeTheGeneric
         for (const Request& request : probe.specials)
         {
             SCOPED_TRACE(request.model);
-            ASSERT_NE(models.Find(request.model), nullptr);
-            ASSERT_NE(models.SkeletonOf(request.model), nullptr);
-            const auto slots = models.MeshTextures(request.model);
+            ASSERT_NE(models.Find(Client::Models::ModelId{request.model}), nullptr);
+            ASSERT_NE(models.SkeletonOf(Client::Models::ModelId{request.model}), nullptr);
+            const auto slots = models.MeshTextures(Client::Models::ModelId{request.model});
             ASSERT_EQ(slots.size(), 1u);
             EXPECT_EQ(slots.front(), request.slot);
             const auto texture = store.Find(request.slot);
@@ -119,9 +119,9 @@ TEST(WorldSpecialModelsTest, TheFirstFamiliesAssignTheirSpecialsBeforeTheGeneric
             EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Nearest);
             EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
         }
-        ASSERT_NE(models.Find(0), nullptr);
-        ASSERT_EQ(models.MeshTextures(0).size(), 1u);
-        EXPECT_EQ(models.MeshTextures(0).front(), TextureSlot{0x41c});
+        ASSERT_NE(models.Find(Client::Models::ModelId{0}), nullptr);
+        ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0}).size(), 1u);
+        EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0}).front(), TextureSlot{0x41c});
         models.Release();
         EXPECT_EQ(store.Size(), 0u);
     }
@@ -137,17 +137,17 @@ TEST(WorldSpecialModelsTest, ReloadingAnotherFamilyReleasesThePreviousSpecials)
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     WorldModels models;
     ASSERT_TRUE(models.Load(folder.Path(), 4, store, log, nullptr).HasValue());
-    ASSERT_NE(models.Find(0xda), nullptr);
+    ASSERT_NE(models.Find(Client::Models::ModelId{0xda}), nullptr);
 
     ASSERT_TRUE(models.Load(folder.Path(), 6, store, log, nullptr).HasValue());
 
     EXPECT_EQ(models.Count(), 2u);
-    EXPECT_NE(models.Find(0xb1), nullptr);
+    EXPECT_NE(models.Find(Client::Models::ModelId{0xb1}), nullptr);
     for (const Request& previous : Dungeon)
     {
-        EXPECT_EQ(models.Find(previous.model), nullptr);
-        EXPECT_EQ(models.SkeletonOf(previous.model), nullptr);
-        EXPECT_TRUE(models.MeshTextures(previous.model).empty());
+        EXPECT_EQ(models.Find(Client::Models::ModelId{previous.model}), nullptr);
+        EXPECT_EQ(models.SkeletonOf(Client::Models::ModelId{previous.model}), nullptr);
+        EXPECT_TRUE(models.MeshTextures(Client::Models::ModelId{previous.model}).empty());
     }
     EXPECT_EQ(store.Size(), 2u);
     EXPECT_FALSE(store.Find(TextureSlot{0x6a}).has_value());
@@ -168,11 +168,11 @@ TEST(WorldSpecialModelsTest, AMissingSpecialDoesNotConsumeATextureSlot)
 
     ASSERT_TRUE(models.Load(folder.Path(), 1, store, log, nullptr).HasValue());
 
-    EXPECT_EQ(models.Find(0xda), nullptr);
-    ASSERT_EQ(models.MeshTextures(0xaf).size(), 1u);
-    ASSERT_EQ(models.MeshTextures(0xb0).size(), 1u);
-    EXPECT_EQ(models.MeshTextures(0xaf).front(), TextureSlot{0x69});
-    EXPECT_EQ(models.MeshTextures(0xb0).front(), TextureSlot{0x6a});
+    EXPECT_EQ(models.Find(Client::Models::ModelId{0xda}), nullptr);
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0xaf}).size(), 1u);
+    ASSERT_EQ(models.MeshTextures(Client::Models::ModelId{0xb0}).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0xaf}).front(), TextureSlot{0x69});
+    EXPECT_EQ(models.MeshTextures(Client::Models::ModelId{0xb0}).front(), TextureSlot{0x6a});
 }
 
 TEST(WorldSpecialModelsTest, BloodCastleNeedsTheGlobalLibraryBeforeItLoadsModels)
@@ -214,9 +214,9 @@ TEST_F(GoldenWorldSpecialModels, TheFirstFamiliesFindTheSpecialsInTheRealData)
         for (const Request& request : probe.specials)
         {
             SCOPED_TRACE(request.model);
-            EXPECT_NE(models.Find(request.model), nullptr);
-            EXPECT_NE(models.SkeletonOf(request.model), nullptr);
-            EXPECT_FALSE(models.MeshTextures(request.model).empty());
+            EXPECT_NE(models.Find(Client::Models::ModelId{request.model}), nullptr);
+            EXPECT_NE(models.SkeletonOf(Client::Models::ModelId{request.model}), nullptr);
+            EXPECT_FALSE(models.MeshTextures(Client::Models::ModelId{request.model}).empty());
         }
         models.Release();
         EXPECT_EQ(store.Size(), 0u);

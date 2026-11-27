@@ -106,13 +106,13 @@ Core::Expected<void, std::string> FaunaModels::Prepare(std::int32_t monster, Fau
 
 bool FaunaModels::HasActions(std::uint16_t model) const
 {
-    const auto* skeleton = SkeletonOf(model);
+    const auto* skeleton = SkeletonOf(Models::ModelId{model});
     return skeleton != nullptr && !skeleton->actions.empty();
 }
 
 bool FaunaModels::HasMeshes(std::uint16_t model) const
 {
-    const auto* found = Find(model);
+    const auto* found = Find(Models::ModelId{model});
     return found != nullptr && !found->meshes.empty();
 }
 
@@ -442,9 +442,9 @@ ModelTextureTable& FaunaModels::TextureTable()
 {
     return m_textureTable;
 }
-const Data::Models::Model* FaunaModels::Find(std::uint16_t model) const
+const Data::Models::Model* FaunaModels::Find(Models::ModelId model) const
 {
-    const auto found = m_models.find(model);
+    const auto found = m_models.find(model.Value());
     return found != m_models.end() ? &found->second.model : m_base != nullptr ? m_base->Find(model) : nullptr;
 }
 Core::Expected<void, std::string> FaunaModels::SetActionSpeed(std::uint16_t model, std::uint8_t action, float speed,
@@ -467,22 +467,22 @@ Core::Expected<void, std::string> FaunaModels::SetActionSpeed(std::uint16_t mode
     return {};
 }
 
-const Models::Skeleton* FaunaModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* FaunaModels::SkeletonOf(Models::ModelId model) const
 {
-    const auto found = m_models.find(model);
+    const auto found = m_models.find(model.Value());
     return found != m_models.end() ? &found->second.skeleton : m_base != nullptr ? m_base->SkeletonOf(model) : nullptr;
 }
-std::span<const Render::TextureSlot> FaunaModels::MeshTextures(std::uint16_t model) const
+std::span<const Render::TextureSlot> FaunaModels::MeshTextures(Models::ModelId model) const
 {
-    const auto found = m_models.find(model);
+    const auto found = m_models.find(model.Value());
     if (found != m_models.end())
         return found->second.textures;
     return m_base != nullptr ? m_base->MeshTextures(model) : std::span<const Render::TextureSlot>{};
 }
 
-std::span<const Models::MeshTraits> FaunaModels::MeshTraitsOf(std::uint16_t model) const
+std::span<const Models::MeshTraits> FaunaModels::MeshTraitsOf(Models::ModelId model) const
 {
-    const auto found = m_models.find(model);
+    const auto found = m_models.find(model.Value());
     if (found != m_models.end())
         return found->second.meshes;
     return m_base != nullptr ? m_base->MeshTraitsOf(model) : std::span<const Models::MeshTraits>{};

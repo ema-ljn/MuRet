@@ -12,6 +12,7 @@
 #include "Protocol/Combat/Combat.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
@@ -79,15 +80,17 @@ public:
 class CombatModels final : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId /*model*/) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == Monster || model == 0x172 || model == 0x19e || model == 0 ? &skeleton : nullptr;
+        return model.Value() == Monster || model.Value() == 0x172 || model.Value() == 0x19e || model.Value() == 0
+                   ? &skeleton
+                   : nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }

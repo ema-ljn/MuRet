@@ -15,6 +15,7 @@
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
@@ -115,15 +116,16 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
 class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == PlayerSkeletonModel ? &skeleton : nullptr;
+        return model.Value() == PlayerSkeletonModel ? &skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const Client::Render::TextureSlot>
+    MeshTextures(Client::Models::ModelId /*model*/) const override
     {
         return {};
     }
@@ -255,8 +257,8 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     Load(0);
     const std::size_t slot = Create(LorenciaType);
     ActorState& monster = game->world.Actors()[slot];
-    ASSERT_NE(game->states.assets.fauna.SkeletonOf(LorenciaModel), nullptr);
-    EXPECT_EQ(game->models.SkeletonOf(LorenciaModel), nullptr);
+    ASSERT_NE(game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{LorenciaModel}), nullptr);
+    EXPECT_EQ(game->models.SkeletonOf(Client::Models::ModelId{LorenciaModel}), nullptr);
     const std::uint32_t created = game->cloth.random.State();
 
     const Client::Protocol::Movement::Action attack{.key = MonsterKey, .direction = 0, .action = 0x78};

@@ -107,9 +107,9 @@ glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 const Models::Skeleton* ModelSkeletonOf(const Assets::FaunaModels* faunaModels, const Models::IModelLibrary* models,
                                         std::uint16_t model)
 {
-    const auto* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(model);
+    const auto* skeleton = Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(Models::ModelId{model});
     if (skeleton == nullptr && models != nullptr)
-        skeleton = models->SkeletonOf(model);
+        skeleton = models->SkeletonOf(Models::ModelId{model});
     return skeleton;
 }
 

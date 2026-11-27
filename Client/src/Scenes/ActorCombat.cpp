@@ -102,9 +102,9 @@ Core::Expected<void, std::string> SetTheAction(Kernel::ActorState& actor, const 
         skeleton = context.playerSkeleton;
     else
     {
-        skeleton = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(actor.type);
+        skeleton = Assets::FaunaModelsOrEmpty(context.faunaModels).SkeletonOf(Models::ModelId{actor.type});
         if (skeleton == nullptr && context.models != nullptr)
-            skeleton = context.models->SkeletonOf(actor.type);
+            skeleton = context.models->SkeletonOf(Models::ModelId{actor.type});
     }
     if (skeleton != nullptr)
         Models::SetAction(actor.animation, *skeleton, action);
@@ -493,7 +493,7 @@ ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
 {
     return ActorCombatContext{.world = resources.world,
                               .random = resources.cloth.random,
-                              .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
+                              .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId),
                               .models = &resources.models,
                               .items = resources.items,
                               .terrain = &TerrainOf(resources),

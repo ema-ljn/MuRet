@@ -106,7 +106,8 @@ public:
     {
         if (m_context.effects.prepare)
             return m_context.effects.prepare(0x1f);
-        return m_context.models.SkeletonOf(Assets::Monster32Model) != nullptr ? std::error_code{} : Unsupported();
+        return m_context.models.SkeletonOf(Models::ModelId{Assets::Monster32Model}) != nullptr ? std::error_code{}
+                                                                                               : Unsupported();
     }
     World::BirdCallResult Call(World::BirdHandler handler, World::BirdRecord bird, std::int32_t index) override
     {
@@ -115,7 +116,7 @@ public:
     World::BirdModelBorrow BorrowModel(std::int16_t model) override
     {
         auto& borrowed = m_models[model];
-        borrowed.skeleton = m_context.models.SkeletonOf(static_cast<std::uint16_t>(model));
+        borrowed.skeleton = m_context.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(model)});
         return borrowed.skeleton ? World::BirdModelBorrow{&borrowed, &borrowed.action}
                                  : World::BirdModelBorrow{nullptr, nullptr};
     }
@@ -186,7 +187,7 @@ public:
     Core::Expected<World::FishModelStepView, std::error_code> LookupModel(std::int16_t model) override
     {
         auto& borrowed = m_models[model];
-        borrowed.skeleton = m_context.models.SkeletonOf(static_cast<std::uint16_t>(model));
+        borrowed.skeleton = m_context.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(model)});
         if (!borrowed.skeleton)
             return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));
         return World::FishModelStepView{borrowed.action, &borrowed};
@@ -201,8 +202,9 @@ public:
     Core::Expected<void, std::error_code> Move(World::FishStepView& fish, std::int32_t mode) override
     {
         auto& object = *static_cast<FaunaObject*>(fish.context);
-        const auto* model = object.model == -1 ? m_context.prefixModel
-                                               : m_context.models.SkeletonOf(static_cast<std::uint16_t>(object.model));
+        const auto* model =
+            object.model == -1 ? m_context.prefixModel
+                               : m_context.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.model)});
         // 4ea030 conserva su índice firmado: el prefijo de la tabla necesita préstamo explícito.
         if (!model)
             return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));

@@ -7,6 +7,7 @@
 #include "Render/ModelBatch.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
@@ -56,15 +57,15 @@ public:
         m_skeleton.bones = {bone};
         m_skeleton.actions = {{.repeats = true, .speed = 0, .keyCount = 1, .lockPositions = false}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return &m_model;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &m_skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return m_textures;
     }

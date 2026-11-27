@@ -10,6 +10,7 @@
 #include "Math/RoundedMath.h"
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
@@ -403,17 +404,17 @@ public:
         }
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        return model == SiegeModel ? &m_model : nullptr;
+        return model.Value() == SiegeModel ? &m_model : nullptr;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model == SiegeModel ? &m_skeleton : nullptr;
+        return model.Value() == SiegeModel ? &m_skeleton : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        return model == SiegeModel ? std::span<const TextureSlot>(m_slots) : std::span<const TextureSlot>{};
+        return model.Value() == SiegeModel ? std::span<const TextureSlot>(m_slots) : std::span<const TextureSlot>{};
     }
 
 private:

@@ -9,6 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -55,17 +56,17 @@ constexpr std::uint16_t TransformedModel = 0x154;
 class MovementModels final : public Client::Models::IModelLibrary
 {
 public:
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == Client::Tables::PlayerSkeletonModel)
+        if (model.Value() == Client::Tables::PlayerSkeletonModel)
             return &player;
-        return model == TransformedModel ? &transformed : nullptr;
+        return model.Value() == TransformedModel ? &transformed : nullptr;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

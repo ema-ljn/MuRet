@@ -697,8 +697,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
                                                   const UiItemPlacement& placement, std::uint8_t excellent,
                                                   std::uint8_t set)
 {
-    if (resources.models.Find(placement.model) == nullptr ||
-        resources.models.SkeletonOf(placement.poseModel) == nullptr)
+    if (resources.models.Find(Models::ModelId{placement.model}) == nullptr ||
+        resources.models.SkeletonOf(Models::ModelId{placement.poseModel}) == nullptr)
         return Core::Unexpected(std::format("0x5e13d9: falta el modelo {:#x} o el esqueleto de {:#x} del ítem de la UI",
                                             placement.model, placement.poseModel));
     if (!resources.open)

@@ -51,6 +51,7 @@
 #include "Session/WorldEntry.h"
 #include "Protocol/Outgoing.h"
 #include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
 #include "Assets/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/EscapeWindow.h"
@@ -184,30 +185,31 @@ public:
     }
 
     // Sin la sombra (0x20b), que tiene sus tests en CharacterDrawingTest: así se cuentan las partes.
-    [[nodiscard]] const Model* Find(std::uint16_t model) const override
+    [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
-        return model == 0x20b ? nullptr : &m_part;
+        return model.Value() == 0x20b ? nullptr : &m_part;
     }
-    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model == 0x20a)
+        if (model.Value() == 0x20a)
         {
             return &m_body;
         }
-        if (m_withRaven && model == Client::Scenes::DarkSpiritModel)
+        if (m_withRaven && model.Value() == Client::Scenes::DarkSpiritModel)
         {
             return &m_body;
         }
-        if (m_withHelpers && (model == Client::Scenes::UniriaModel || model == Client::Scenes::DinorantModel))
+        if (m_withHelpers &&
+            (model.Value() == Client::Scenes::UniriaModel || model.Value() == Client::Scenes::DinorantModel))
         {
             return &m_body;
         }
-        return m_withWings && model == 0x1a12 ? &m_wings : nullptr;
+        return m_withWings && model.Value() == 0x1a12 ? &m_wings : nullptr;
     }
     // Las alas, que cuelgan, van con su textura: 0x60b3d0 (DrawGameHanging) la pide. El cuerpo, sin.
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        if (m_withWings && model == 0x1a12)
+        if (m_withWings && model.Value() == 0x1a12)
             return m_wingTextures;
         return {};
     }
@@ -435,7 +437,7 @@ struct Harness
         if (selection != nullptr)
         {
             const auto applied = selection->Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput,
-                                                  sharedRandom, models.SkeletonOf(0x20a));
+                                                  sharedRandom, models.SkeletonOf(Client::Models::ModelId{0x20a}));
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
         }
     }

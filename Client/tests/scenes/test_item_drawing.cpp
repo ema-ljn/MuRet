@@ -8,6 +8,7 @@
 #include "Models/IModelLibrary.h"
 #include "Math/RoundedMath.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -79,18 +80,18 @@ public:
         entry.slots = {slot};
     }
 
-    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t id) const override
+    [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId id) const override
     {
-        const auto found = m_models.find(id);
+        const auto found = m_models.find(id.Value());
         return found == m_models.end() ? nullptr : &found->second.model;
     }
-    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t id) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId id) const override
     {
-        const auto found = m_models.find(id);
+        const auto found = m_models.find(id.Value());
         if (found == m_models.end())
             return {};
         return found->second.slots;

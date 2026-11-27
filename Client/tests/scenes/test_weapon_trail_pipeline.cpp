@@ -5,6 +5,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Models/Skeleton.h"
+#include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
@@ -38,15 +39,15 @@ public:
         bone.actions.assign(8, std::vector<Client::Models::BoneKey>(10));
         skeleton.bones.assign(90, bone);
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
     {
         return nullptr;
     }
-    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId) const override
     {
         return &skeleton;
     }
-    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
         return {};
     }

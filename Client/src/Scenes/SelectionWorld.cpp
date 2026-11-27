@@ -26,6 +26,7 @@
 #include "Assets/SceneTextures.h"
 #include "Assets/TerrainTiles.h"
 #include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
 #include "Kernel/WorldMap.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Kernel/WorldRuntime.h"
@@ -78,22 +79,22 @@ std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
 }
 } // namespace
 
-const Data::Models::Model* SelectionTextureLibrary::Find(std::uint16_t model) const
+const Data::Models::Model* SelectionTextureLibrary::Find(Models::ModelId model) const
 {
     return m_world.Find(model);
 }
 
-const Models::Skeleton* SelectionTextureLibrary::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* SelectionTextureLibrary::SkeletonOf(Models::ModelId model) const
 {
     return m_world.SkeletonOf(model);
 }
 
-std::span<const Render::TextureSlot> SelectionTextureLibrary::MeshTextures(std::uint16_t model) const
+std::span<const Render::TextureSlot> SelectionTextureLibrary::MeshTextures(Models::ModelId model) const
 {
     return m_world.MeshTextures(model);
 }
 
-std::span<const Models::MeshTraits> SelectionTextureLibrary::MeshTraitsOf(std::uint16_t model) const
+std::span<const Models::MeshTraits> SelectionTextureLibrary::MeshTraitsOf(Models::ModelId model) const
 {
     return m_world.MeshTraitsOf(model);
 }
@@ -272,7 +273,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
     {
         const auto* skeleton = effect.type == World::EarthquakeBurstEffect
                                    ? nullptr
-                                   : m_models.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+                                   : m_models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)});
         if (auto stepped = World::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock, cloth.random,
                                                       world.Map().kalima.get(), services);
             !stepped.HasValue())

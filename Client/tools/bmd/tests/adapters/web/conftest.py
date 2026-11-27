@@ -2,12 +2,10 @@ import shutil
 from pathlib import Path
 
 import pytest
-from nicegui import app
 from nicegui.testing import User
 
 from mubmd.adapters.storage import LocalFileStore
-from mubmd.adapters.web.api import add_api
-from mubmd.adapters.web.models import Models
+from mubmd.adapters.web.server import build
 
 REAL_FILES = ("Item/sword02.OZJ", "Item/unicon.OZJ", "Item/unicon01.OZT", "player/Player.bmd")
 
@@ -21,5 +19,5 @@ def web_copy(model_copy: Path, reference_data: Path) -> Path:
 
 @pytest.fixture
 def viewer(user: User, web_copy: Path) -> User:
-    add_api(app, Models(LocalFileStore(), web_copy))
+    build(LocalFileStore(), web_copy)
     return user

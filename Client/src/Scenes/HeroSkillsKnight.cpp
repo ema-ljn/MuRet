@@ -25,7 +25,6 @@
 #include "Scenes/Skill551f40.h"
 #include "Scenes/Skill57cf90.h"
 #include "Scenes/SkillDelays.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
@@ -589,7 +588,7 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(Kernel::ActorState& hero,
         static_cast<float>(static_cast<double>(context.world.Runtime().movement.selectedSkillRange) * WalkReach);
     if (!InRange(targetX, 0, 0xff) || !InRange(targetY, 0, 0xff))
         return {};
-    Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x58975f: falta TerrainWall para acercarse con la 0x4c"));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con el alcance distinto de 0 no cuenta (0x4eadd4).

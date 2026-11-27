@@ -75,7 +75,8 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     // Lorencia cargada: el paso sigue después de la UI (las hojas leen el terreno).
     world->Runtime().map = 0;
-    const auto map = Client::Scenes::LoadMap(0, {dataRoot, *world, Client::Scenes::SceneId::Game, 0, cloth.random});
+    const auto map =
+        Client::Scenes::LoadMap(0, {dataRoot, *world, states.terrain, Client::Scenes::SceneId::Game, 0, cloth.random});
     ASSERT_TRUE(map.HasValue()) << map.Error();
     world->Actors()[0].position = {13550.0f, 12550.0f, 0.0f};
     world->OwnCharacter().ClearEquipmentForEntry();

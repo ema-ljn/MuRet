@@ -24,7 +24,6 @@
 #include "Scenes/Skill55faa0.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"
@@ -244,7 +243,7 @@ Core::Expected<void, std::string> WalkIntoRange(Kernel::ActorState& hero, std::i
     // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (07, Q-C1179).
     if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
         return {};
-    Terrain::WorldTerrain& terrain = context.combat.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.combat.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para el camino hasta el alcance"));
     const Pathfinding::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
@@ -320,7 +319,8 @@ HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
                             .tickCount = context.tickCount,
                             .inventory = context.inventory,
                             .controlDown = context.controlDown,
-                            .send = context.sendSkill};
+                            .send = context.sendSkill,
+                            .terrain = context.combat.terrain};
 }
 
 // 0x56601f..0x566754: el caso 5.
@@ -389,7 +389,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
         // 0x56634c..0x5663a7: la línea de vista desde la celda lógica del héroe (la Y y la X).
         const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
         const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
-        const Terrain::WorldTerrain& terrain = world.Map().terrain;
+        const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.combat.terrain);
         if (!terrain.attributes)
             return Core::Unexpected(
                 std::string("0x558800: falta TerrainWall para ver el blanco de la skill pendiente"));

@@ -23,6 +23,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -98,11 +99,13 @@ struct Replies
                 .camera = camera,
                 .cameraInput = input,
                 .models = models,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
     static constexpr std::uint16_t PlayerKey = 33;
     Client::Kernel::WorldState world;
     Client::Scenes::SelectionState selection{world};
+    Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
@@ -181,7 +184,7 @@ TEST(MovementRepliesTest, ShockStopsTheHeroBeforeLifeClosesTheOwnRecord)
 TEST(MovementRepliesTest, OtherActorUsesTheLiveWallsAndKeepsLogicalPositionUntilTheNextStep)
 {
     Replies tested;
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     auto& other = tested.world.Actors()[8];
     other = Client::Tests::UnarmedPlayer();
     other.alive = true;
@@ -189,7 +192,7 @@ TEST(MovementRepliesTest, OtherActorUsesTheLiveWallsAndKeepsLogicalPositionUntil
     other.cellX = 20;
     other.cellY = 21;
     other.position = {2050.0f, 2150.0f, 33.0f};
-    tested.world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(21, 21)] = 4;
+    tested.states.terrain.current.attributes->cells[Client::Data::Terrain::CellIndex(21, 21)] = 4;
     const auto applied =
         Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {23, 21}, 15},
                                        Client::Kernel::PlayerKey{Replies::PlayerKey}, tested.Resources());
@@ -214,7 +217,7 @@ TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
     {
         SCOPED_TRACE(map);
         const auto tested = std::make_unique<Replies>();
-        tested->world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        tested->states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         tested->world.Runtime().map = map;
         tested->world.Runtime().crywolf.stage = 4;
         tested->world.Runtime().movement.chosenNpc = 9;
@@ -226,7 +229,7 @@ TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
         other.cellX = 20;
         other.cellY = 21;
         other.position = {2050.0f, 2150.0f, 33.0f};
-        auto& goal = tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(24, 21)];
+        auto& goal = tested->states.terrain.current.attributes->cells[Client::Data::Terrain::CellIndex(24, 21)];
         goal = 0x02;
         const auto applied =
             Client::Actors::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {24, 21}, 15},
@@ -543,7 +546,7 @@ TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
 TEST(MovementRepliesTest, AFailedOtherPathRunsStopAfterClosingItsLogicalCoordinates)
 {
     Replies tested;
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     auto& other = tested.world.Actors()[8];
     other = Client::Tests::UnarmedPlayer();
     other.alive = true;
@@ -566,7 +569,7 @@ TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
     Replies tested;
     MovementModels fauna;
     tested.world.FaunaResources().Bind(&fauna);
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     auto& other = tested.world.Actors()[8];
     other = Client::Tests::UnarmedPlayer();
     other.alive = true;

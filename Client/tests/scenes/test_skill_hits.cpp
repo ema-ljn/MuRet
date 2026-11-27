@@ -88,13 +88,14 @@ struct HitsWorld
 
     Client::Core::Expected<bool, std::string> Hit(const SkillHitsRequest& request)
     {
-        return HitTheTargetsAround(request, world, random,
+        return HitTheTargetsAround(request, world, terrain, random,
                                    [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); });
     }
 
     static constexpr glm::vec3 Point{12345.0f, 6789.0f, 150.0f};
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
     std::vector<Client::Protocol::Outgoing> sent;
 };
@@ -208,8 +209,8 @@ TEST(SkillHitsTest, WithoutTheSessionTheDeliveryStillDraws)
 {
     HitsWorld tested(0, 0x18);
     tested.Put(5, 2, 0x1005, 5000.0f);
-    const auto hit =
-        HitTheTargetsAround(Request(std::numeric_limits<float>::quiet_NaN()), tested.world, tested.random, nullptr);
+    const auto hit = HitTheTargetsAround(Request(std::numeric_limits<float>::quiet_NaN()), tested.world, tested.terrain,
+                                         tested.random, nullptr);
     ASSERT_TRUE(hit.HasValue()) << hit.Error();
     EXPECT_TRUE(hit.Value());
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + Delivery);
@@ -266,14 +267,14 @@ TEST(SkillHitsTest, WarIncludesOtherPlayersAndAttribute100StopsBeforeCollectingT
 {
     HitsWorld tested(30, 0x18);
     tested.world.Runtime().castleSiege.siegeActive = true;
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     tested.Put(5, 1, 0x1005, 1.0f);
     const auto hit = tested.Hit(Request(100.0f));
     ASSERT_TRUE(hit.HasValue());
     EXPECT_TRUE(hit.Value());
     EXPECT_EQ(tested.sent.size(), 1u);
     // 12345/6789 por−.01f sinstore: índicenativo123+67*256.
-    tested.world.Map().terrain.attributes->cells[123 + 67 * 256] = 0x100;
+    tested.terrain.attributes->cells[123 + 67 * 256] = 0x100;
     const auto blocked = tested.Hit(Request(100.0f));
     ASSERT_TRUE(blocked.HasValue());
     EXPECT_FALSE(blocked.Value());

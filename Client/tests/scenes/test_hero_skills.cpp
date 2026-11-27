@@ -20,13 +20,13 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameMovementState.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
 #include "Kernel/ItemState.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -140,7 +140,7 @@ struct SkillHero
     {
         auto& runtime = world.Runtime();
         runtime.map = map;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
         hero.type = Client::Tables::PlayerSkeletonModel;
@@ -180,7 +180,8 @@ struct SkillHero
                                 .tickCount = [this] { return ticks; },
                                 .worldTime = worldTime,
                                 .send = [this](Client::Protocol::Outgoing outgoing)
-                                { sent.push_back(std::move(outgoing)); }};
+                                { sent.push_back(std::move(outgoing)); },
+                                .terrain = &terrain};
     }
     Client::Core::Expected<void, std::string> Use()
     {
@@ -188,6 +189,7 @@ struct SkillHero
     }
 
     Client::Kernel::WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     float worldTime = 5000.0f;
     std::uint32_t ticks = 100000;
@@ -803,7 +805,7 @@ TEST(HeroSkillsTest, AnElfLooksAtBothHandsAndGoesToItsBranch)
 TEST(HeroSkillsTest, AWallBeforeTheTargetClearsTheWeaponSkill)
 {
     const auto tested = AHeroClicking(0x13, Knight);
-    tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(183, 116)] = 4;
+    tested->terrain.attributes->cells[Client::Data::Terrain::CellIndex(183, 116)] = 4;
     tested->Movement().weaponSkill = {.active = 1, .slot = 3, .target = 7};
     const CrtRandom expected = Advanced(tested->random, AimDraws + KnightBranchDraws);
     const auto result = tested->Use();
@@ -1400,6 +1402,7 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     context.skills = &tested->skills;
     context.sendSkill = [&tested](Client::Protocol::Outgoing packet) { tested->sent.push_back(std::move(packet)); };
     context.models = &models;
+    context.terrain = &tested->terrain;
     const auto used = Client::Scenes::StepHeroMovement(context);
     ASSERT_TRUE(used.HasValue()) << used.Error();
     EXPECT_EQ(tested->Hero().animation.action, 1);

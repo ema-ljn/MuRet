@@ -18,11 +18,11 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/Skill55cbc0.h"
 #include "Scenes/SocialState.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
 #include "Math/Ftol.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -132,7 +132,7 @@ struct WizardHero
     {
         auto& runtime = world.Runtime();
         runtime.map = map;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
         hero.type = Client::Tables::PlayerSkeletonModel;
@@ -209,7 +209,8 @@ struct WizardHero
                                  .worldTime = 5000.0f,
                                  .send = [this](Client::Protocol::Outgoing outgoing)
                                  { sent.push_back(std::move(outgoing)); },
-                                 .playerKey = PlayerKey};
+                                 .playerKey = PlayerKey,
+                                 .terrain = &terrain};
         if (terrainPoint)
             context.pickTerrainPoint = [this]() -> Client::Core::Expected<std::optional<glm::vec3>, std::string>
             { return terrainPoint; };
@@ -228,6 +229,7 @@ struct WizardHero
 
     std::uint8_t skill;
     Client::Kernel::WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     bool withTicks = true;
@@ -888,7 +890,7 @@ TEST(HeroSkillsWizardTest, TeleportSendsTheTargetCell)
         const auto tested = AWizard(6, Wizard, map);
         tested->AimAtTheTerrain();
         tested->Movement().selectedSkillRange = 6.0f;
-        tested->world.Map().terrain.attributes->cells[(119u << 8) + 186u] = 0x60;
+        tested->terrain.attributes->cells[(119u << 8) + 186u] = 0x60;
         const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws + SendDraws);
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
@@ -908,7 +910,7 @@ TEST(HeroSkillsWizardTest, TeleportSendsTheTargetCell)
         {"action", [](WizardHero& hero) { hero.Hero().animation.action = 0x93; }},
         {"0x80", [](WizardHero& hero) { hero.Hero().byte80 = 2; }},
         {"alpha", [](WizardHero& hero) { hero.Hero().alpha = 0.5f; }},
-        {"wall", [](WizardHero& hero) { hero.world.Map().terrain.attributes->cells[(119u << 8) + 186u] = 4; }},
+        {"wall", [](WizardHero& hero) { hero.terrain.attributes->cells[(119u << 8) + 186u] = 4; }},
         {"gate", [](WizardHero& hero) { hero.Movement().gateRequestBlocked = 1; }},
         {"warp", [](WizardHero& hero) { hero.Movement().warpPending = true; }},
         {"wait", [](WizardHero& hero) { hero.Movement().lastTeleportMs = Ticks - 2999; }},
@@ -1041,7 +1043,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
         const auto tested = AWizard(0xf, Wizard, 30);
         tested->world.Runtime().castleSiege.siegeActive = true;
         tested->ChooseAnAlly();
-        auto& cells = tested->world.Map().terrain.attributes->cells;
+        auto& cells = tested->terrain.attributes->cells;
         for (std::uint32_t y = 114; y <= 116; ++y)
             for (std::uint32_t x = 181; x <= 183; ++x)
                 cells[(y << 8) + x] = 4;

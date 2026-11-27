@@ -32,6 +32,11 @@ struct WorldTerrain
     std::unique_ptr<Data::Terrain::TerrainLight> rawLight;
 };
 
+// A terrain with no table, as before any load: whoever needs one stops where it reads it.
+[[nodiscard]] const WorldTerrain& EmptyTerrain();
+// The terrain a context carries, or EmptyTerrain() without one.
+[[nodiscard]] const WorldTerrain& TerrainOrEmpty(const WorldTerrain* terrain);
+
 // The three files and the light of map `map` (the folder number, Maps::WorldFolderNumber). The error names the file as
 // the original asks for it. Maps 30 and 34, with another .att, do not go here.
 [[nodiscard]] Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot,

@@ -36,6 +36,7 @@
 #include "Kernel/WorldState.h"
 #include "World/GameModelEffects.h"
 #include "Terrain/ColoredDecals.h"
+#include "Terrain/WorldTerrain.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/SiegeStoneEffects.h"
@@ -290,7 +291,9 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
                                        .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                        .key = effect.disturbanceState,
                                        .extra = 0};
-        if (auto hits = HitTheTargetsAround(request, world, context.random, context.send); !hits.HasValue())
+        if (auto hits = HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain), context.random,
+                                            context.send);
+            !hits.HasValue())
             return Core::Unexpected(std::format("0x51e75b: {}", hits.Error()));
     }
     return {};
@@ -863,7 +866,8 @@ Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, 
     constexpr double LateBoost = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8, 0,1f
     constexpr std::int32_t LateLife = 10;
     constexpr std::int32_t TrailSubtype = 1;
-    const HighEffectContext created{.world = context.world, .random = context.random, .worldClock = context.worldClock};
+    const HighEffectContext created{
+        .world = context.world, .random = context.random, .worldClock = context.worldClock, .terrain = context.terrain};
     for (int count = 1; static_cast<double>(count) < D(effect.turnDirection); ++count)
     {
         if ((context.random.Next() & 1) == 0)
@@ -1008,8 +1012,10 @@ Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, co
         effect.turnDirection = SettledGrowth;
         constexpr std::int16_t ManaRune = 0x138;
         constexpr std::int32_t FlashSubtype = 1;
-        const HighEffectContext created{
-            .world = context.world, .random = context.random, .worldClock = context.worldClock};
+        const HighEffectContext created{.world = context.world,
+                                        .random = context.random,
+                                        .worldClock = context.worldClock,
+                                        .terrain = context.terrain};
         if (auto flash = CreateHighModelEffect({.type = ManaRune,
                                                 .position = effect.transform.position,
                                                 .angles = effect.transform.angles,
@@ -1207,7 +1213,8 @@ HighEffectContext HighContextOf(const Actors::CharacterStepContext& context)
             .random = context.random,
             .worldClock = context.worldClock,
             .send = context.send,
-            .models = context.models};
+            .models = context.models,
+            .terrain = context.terrain};
 }
 
 glm::vec3 ActorBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,

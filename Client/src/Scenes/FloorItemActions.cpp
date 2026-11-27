@@ -9,7 +9,6 @@
 #include "Scenes/InventoryMoves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameText.h"
@@ -118,7 +117,7 @@ Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items, std
 }
 
 Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext& context, const glm::vec3& actor,
-                                                     float fixedHeight)
+                                                     const Terrain::WorldTerrain& terrain, float fixedHeight)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -155,7 +154,6 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
     if (auto said = context.services.chatLine(Crt::Sprintf(*format), UI::SystemMessage); !said.HasValue())
         return Core::Unexpected(std::format("0x566e42, 0x555190: {}", said.Error()));
     // 0x566e47..0x566e76.
-    const Terrain::WorldTerrain& terrain = world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x566e64: 0x5f93c0 sin el terreno del mapa"));
     const double ground =
@@ -165,7 +163,8 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
     return {};
 }
 
-Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveContext& context, float fixedHeight)
+Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveContext& context,
+                                                            const Terrain::WorldTerrain& terrain, float fixedHeight)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -187,7 +186,7 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
         world.Hero().movementType = PickUpMovement;
         runtime.floor.chosen = static_cast<std::int32_t>(index);
         runtime.floor.fromSpace = 1;
-        auto picked = PickUpTheFloorItem(context, item.position, fixedHeight);
+        auto picked = PickUpTheFloorItem(context, item.position, terrain, fixedHeight);
         runtime.floor.fromSpace = 0;
         world.Hero().movementType = 0;
         return picked;

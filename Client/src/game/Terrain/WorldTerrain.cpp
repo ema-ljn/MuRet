@@ -238,6 +238,17 @@ Core::Expected<void, std::string> ReloadWorldTerrainAttributes(const std::filesy
     return {};
 }
 
+const WorldTerrain& EmptyTerrain()
+{
+    static const WorldTerrain Empty{};
+    return Empty;
+}
+
+const WorldTerrain& TerrainOrEmpty(const WorldTerrain* terrain)
+{
+    return terrain != nullptr ? *terrain : EmptyTerrain();
+}
+
 Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot, std::uint8_t map)
 {
     WorldTerrain terrain;

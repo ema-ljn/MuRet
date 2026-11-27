@@ -10,7 +10,8 @@
 namespace Client::Terrain
 {
 struct TerrainPickingSegment;
-}
+struct WorldTerrain;
+} // namespace Client::Terrain
 
 namespace Client::Kernel
 {
@@ -37,8 +38,8 @@ namespace Client::Actors
 // 1) that passes the first conditions looks for its place in the party first (MatchThePartyMembers) and, at the end,
 // the places without a character stay at −1 or −3 (MarkTheMissingMembers). Without a segment (before the first
 // drawing), it tints and looks for the party, without picking. No rand().
-[[nodiscard]] std::int32_t PickTheCharacter(Kernel::WorldState& world, std::uint8_t mask,
-                                            const glm::vec3& distanceOrigin,
+[[nodiscard]] std::int32_t PickTheCharacter(Kernel::WorldState& world, const Terrain::WorldTerrain& terrain,
+                                            std::uint8_t mask, const glm::vec3& distanceOrigin,
                                             const std::optional<Terrain::TerrainPickingSegment>& ray,
                                             std::span<const ActorPickingBox> pickingBoxes = {});
 } // namespace Client::Actors

@@ -26,7 +26,6 @@
 #include "Scenes/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SocialState.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainLighting.h"
@@ -228,8 +227,8 @@ protected:
     {
         m_world = std::make_unique<Client::Kernel::WorldState>();
         m_world->Runtime().map = 0;
-        m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        m_world->Map().terrain.attributes->cells.fill(0);
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.attributes->cells.fill(0);
         m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         m_batch.Begin(Client::Render::Pass3D{});
@@ -275,10 +274,12 @@ protected:
                 .originalFrames = 1,
                 .sprites = &m_sprites,
                 .poseCarry = &m_carry,
-                .worldModels = &m_models};
+                .worldModels = &m_models,
+                .terrain = &m_terrain};
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world;
+    Client::Terrain::WorldTerrain m_terrain;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
@@ -654,7 +655,7 @@ TEST_F(GameCharacterRenderTest, TheOverloadWithoutDrawingResourcesAlsoExcludesTh
     Player(400);
 
     const auto result = Client::Actors::Drawing::DrawGameCharacters(m_world->Actors(), m_world->Runtime().hero,
-                                                                    m_world->Map().terrain.attributes->cells);
+                                                                    m_terrain.attributes->cells);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
 }
@@ -981,8 +982,9 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
     auto referenceWorld = std::make_unique<Client::Kernel::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = m_world->Actors()[0];
-    referenceWorld->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    referenceWorld->Map().terrain.attributes->cells.fill(0);
+    Client::Terrain::WorldTerrain referenceTerrain;
+    referenceTerrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    referenceTerrain.attributes->cells.fill(0);
     Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> referenceCloths;
@@ -995,6 +997,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
     pass.sprites = &sprites;
     GameCharacterPass referencePass = pass;
     referencePass.originalFrames = 1;
+    referencePass.terrain = &referenceTerrain;
     referencePass.clothWorld = &referenceClothWorld;
     referencePass.cloths = referenceCloths;
     referencePass.sprites = &referenceSprites;
@@ -1034,8 +1037,9 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     auto referenceWorld = std::make_unique<Client::Kernel::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = actor;
-    referenceWorld->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    referenceWorld->Map().terrain.attributes->cells.fill(0);
+    Client::Terrain::WorldTerrain referenceTerrain;
+    referenceTerrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    referenceTerrain.attributes->cells.fill(0);
     Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> referenceCloths;
@@ -1055,6 +1059,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     pass.sprites = &sprites;
     GameCharacterPass referencePass = pass;
     referencePass.originalFrames = 1;
+    referencePass.terrain = &referenceTerrain;
     referencePass.clothWorld = &referenceClothWorld;
     referencePass.cloths = referenceCloths;
     referencePass.sprites = &referenceSprites;

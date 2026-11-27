@@ -1186,7 +1186,7 @@ game/Session/WorldEntry.cpp	349	game/Session	game/Session	medium	top-level packe
 game/Session/WorldEntry.h	145	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/WorldLoadingScene.cpp	130	Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 Scenes/WorldLoadingScene.h	50	Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
-game/Kernel/WorldMap.h	37	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
+game/Kernel/WorldMap.h	34	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
 Scenes/WorldModelPose.cpp	60	Scenes	game/WorldObjects	medium	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
 Scenes/WorldModelPose.h	23	Scenes	game/WorldObjects	medium	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
 game/Assets/WorldModels.cpp	456	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
@@ -1466,8 +1466,8 @@ World/WorldObjectStepServices.cpp	466	World	game/WorldObjects	medium	rule ^(Bird
 World/WorldObjectStepServices.h	71	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjects.cpp	971	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjects.h	300	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-game/Terrain/WorldTerrain.cpp	400	game/Terrain	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
-game/Terrain/WorldTerrain.h	133	game/Terrain	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
+game/Terrain/WorldTerrain.cpp	412	game/Terrain	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
+game/Terrain/WorldTerrain.h	137	game/Terrain	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 main.cpp	974	main.cpp	app	high	composition root
 game/Kernel/ActorSpirit.h	51	game/Kernel	game/Kernel	high	the raven's per-actor fields, which the actor holds; its logic is game/Pets (AR3.1)
 game/Kernel/CharacterClass.h	31	game/Kernel	game/Kernel	high	the character class: its five base classes and the original's & 7 (AR3.1)
@@ -1487,4 +1487,4 @@ game/Session/ModuleStates.h	15	game/Session	game/Session	high	each module's stat
 game/Session/SessionPacketSender.h	23	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)
 game/Session/SessionPacketSender.cpp	16	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)
 game/Camera/CameraState.h	21	game/Camera	game/Camera	high	what the camera owns of the original's globals: the trapezoid's effective level (AR4.1)
-game/Terrain/TerrainState.h	16	game/Terrain	game/Terrain	high	what the terrain owns of the original's globals: the ground marks (AR4.1)
+game/Terrain/TerrainState.h	21	game/Terrain	game/Terrain	high	what the terrain owns of the original's globals: the ground marks (AR4.1)

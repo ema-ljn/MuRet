@@ -42,6 +42,7 @@
 #include "Terrain/TerrainPickingSegment.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/ModuleStates.h"
 
 #include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
@@ -125,11 +126,13 @@ struct Game
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log,
-                .texts = texts};
+                .texts = texts,
+                .states = &states};
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
@@ -190,7 +193,7 @@ protected:
         game = std::make_unique<Game>();
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        game->world.Map().terrain = std::move(loaded).Value();
+        game->states.terrain.current = std::move(loaded).Value();
         game->world.Runtime().map = map;
         game->dataRoot = m_dataRoot;
     }
@@ -198,7 +201,7 @@ protected:
     // La primera celda, desde (100, 100), con las cuatro de su derecha libres: sin paredes ni zona segura.
     [[nodiscard]] Cell FreeRow() const
     {
-        const auto& cells = game->world.Map().terrain.attributes->cells;
+        const auto& cells = game->states.terrain.current.attributes->cells;
         for (int y = 100; y < 200; ++y)
         {
             for (int x = 100; x < 200; ++x)
@@ -244,7 +247,8 @@ protected:
              .random = game->cloth.random,
              .ownRecordDepth = runtime.ownRecordDepth,
              .targets = runtime.selectedTargets,
-             .ray = Client::Terrain::TerrainPickingSegment{npc.position + offset, npc.position - offset}});
+             .ray = Client::Terrain::TerrainPickingSegment{npc.position + offset, npc.position - offset},
+             .terrain = &game->states.terrain.current});
         ASSERT_TRUE(picked.HasValue()) << picked.Error();
         ASSERT_EQ(runtime.selectedTargets[1], 1);
         ASSERT_EQ(runtime.selectedTargets[3], -1);
@@ -257,7 +261,8 @@ protected:
                                               .items = &game->items,
                                               .skills = &skills,
                                               .input = {.leftPressed = true, .leftDown = true},
-                                              .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); }});
+                                              .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); },
+                                              .terrain = &game->states.terrain.current});
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
         ASSERT_EQ(talkKeys, (std::vector<std::int16_t>{key}));
     }
@@ -352,7 +357,8 @@ TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
         Actor(9).type = 0x205;
         const Cell cell = FreeRow();
         const Cell target{Byte(cell.x + 4), cell.y};
-        auto& goal = game->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(target.x, target.y)];
+        auto& goal =
+            game->states.terrain.current.attributes->cells[Client::Data::Terrain::CellIndex(target.x, target.y)];
         goal = Client::Pathfinding::BlockedWallBit;
         const std::array<MonsterRecordBytes, 1> records{{{.key = 0x0123,
                                                           .typeHigh = 0xb0,

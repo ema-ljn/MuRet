@@ -171,8 +171,8 @@ protected:
         m_world->FaunaResources().Bind(&m_models);
         m_world->Runtime().map = 0;
         m_world->Runtime().hero = 42;
-        m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        m_world->Map().terrain.attributes->cells.fill(0);
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.attributes->cells.fill(0);
         m_light = std::make_unique<Client::Terrain::TerrainLighting>();
         m_light->cells.fill({0.2f, 0.4f, 0.6f});
         m_joints.resize(16);
@@ -222,7 +222,8 @@ protected:
                 .originalFrames = 1,
                 .sprites = &m_sprites,
                 .poseCarry = &m_carry,
-                .joints = m_joints};
+                .joints = m_joints,
+                .terrain = &m_terrain};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -243,6 +244,7 @@ protected:
 
     MonsterModels m_models;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
+    Client::Terrain::WorldTerrain m_terrain;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
@@ -297,7 +299,7 @@ TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAtt
 // cuerpo.
 TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 {
-    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     struct Case
     {
         std::int32_t map;
@@ -317,7 +319,7 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x1a1 " << int{probe.byte1a1} << ", +0x389 "
                                           << int{probe.dying} << ", z " << probe.z << ", terreno " << probe.height);
-        m_world->Map().terrain.heights->cells.fill(probe.height);
+        m_terrain.heights->cells.fill(probe.height);
         m_world->Runtime().map = probe.map;
         ActorState& spider = Monster(5, Spider, 3);
         spider.byte1a1 = probe.byte1a1;
@@ -355,7 +357,7 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
     const float shadowAlpha = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
     const std::array guards{Guard{0.29f, 2, 3, 10.0f}, Guard{shadowAlpha, 2, 3, 4.0f}, Guard{1.0f, 8, 3, 10.0f},
                             Guard{1.0f, 2, 0x19, 10.0f}};
-    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
     for (const Guard& guard : guards)
     {
@@ -375,7 +377,7 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
         EXPECT_EQ(m_batch.Vertices().size(), guard.grounded == 4.0f ? 6u : 3u);
     }
 
-    m_world->Map().terrain.heights.reset();
+    m_terrain.heights.reset();
     ActorState& blind = Monster(5, Spider, 3);
     blind.byte1a1 = 1;
     blind.dying = 1;
@@ -395,8 +397,8 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 // el 0x18f, además, 60 más en y (0x5ffea7..0x5ffeef). Entre frames del original, lo mismo, sobre la copia.
 TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromTheRegisterOfTheirShadow)
 {
-    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
     struct Case
     {
@@ -443,8 +445,8 @@ TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromTheRegisterOfT
 // debajo del cuerpo en 10); el 0x18f no la llama y repite las del cuerpo de 0x5ffdf0, 60 más en y y en la z de antes.
 TEST_F(MonsterDrawingTest, TheShinesOfTheDyingOfBloodCastleRepeatTheMeshesOfTheLastPose)
 {
-    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
     struct Case
     {
@@ -546,7 +548,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
         m_world = std::make_unique<Client::Kernel::WorldState>();
         SetUp();
         m_clothWorld.random = Client::Crt::CrtRandom{1};
-        m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_world->Runtime().map = value.map;
         ActorState& archangel = Monster(6, Spider, value.monster);
         archangel.position = {12850.0f, 12850.0f, 10.0f};
@@ -1572,7 +1574,7 @@ TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
     m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     m_clothWorld.random = Client::Crt::CrtRandom{1};
-    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Monster(3, Spider, 3).darkSpirit.emplace();
     const Client::Terrain::TerrainPolygon everything{.everything = true};
     GameCharacterPass pass = Pass();

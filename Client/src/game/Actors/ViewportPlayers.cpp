@@ -173,7 +173,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
             kept = KeepFrom(world.Actors()[previous]);
     }
     // 0x4c8968..0x4c8992.
-    const ActorConstructionContext construction{world.Map().terrain, runtime.map, Terrain::CullingScene::Game,
+    const ActorConstructionContext construction{Scenes::TerrainOf(resources), runtime.map, Terrain::CullingScene::Game,
                                                 resources.camera.fixedHeight};
     const auto created = CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
                                      construction, resources.cloth);
@@ -415,7 +415,7 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
     auto& random = resources.cloth.random;
     const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
     const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
-    auto& attributes = resources.world.Map().terrain.attributes;
+    const auto& attributes = Scenes::TerrainOf(resources).attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
     Pathfinding::PathFinder finder(attributes->cells);

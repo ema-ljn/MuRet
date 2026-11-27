@@ -15,6 +15,7 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameMessages.h"
 #include "Kernel/WorldState.h"
+#include "Terrain/WorldTerrain.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "Crt/SprintfFormat.h"
@@ -130,7 +131,7 @@ void PushOffTheBridge(Kernel::ActorState& actor, std::size_t cell,
 Core::Expected<void, std::string> DieInTheCastle(Kernel::ActorState& actor, const ActorCombatContext& combat)
 {
     Kernel::WorldRuntime& runtime = combat.world.Runtime();
-    const auto& attributes = combat.world.Map().terrain.attributes;
+    const auto& attributes = Terrain::TerrainOrEmpty(combat.terrain).attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4d07ff: faltan los atributos del mundo cargado"));
     // 0x4d07ca..0x4d07ff: la celda de ftol(x · 0,01f) y ftol(y · 0,01f), de a un byte.

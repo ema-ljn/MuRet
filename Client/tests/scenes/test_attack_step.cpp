@@ -22,6 +22,7 @@
 #include "World/WizardModelEffects.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 
@@ -112,7 +113,7 @@ struct AttackWorld
         world.OwnCharacter().word3e = FarTimer;
         world.OwnCharacter().word40 = FarTimer;
         world.OwnCharacter().word42 = FarTimer;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         Hero() = Player(1);
         Victim() = Player(2);
         Victim().alive = false;
@@ -169,6 +170,7 @@ struct AttackWorld
         return CharacterStepContext{.world = world,
                                     .random = random,
                                     .playerSkeleton = &skeleton,
+                                    .terrain = &terrain,
                                     .particles = withParticles ? &particles : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
@@ -188,6 +190,7 @@ struct AttackWorld
 
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<std::int32_t> sounds;

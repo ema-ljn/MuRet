@@ -15,6 +15,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/Widget.h"
 #include "Terrain/TerrainPickingSegment.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -77,6 +78,7 @@ struct Picking
         Place(*world, 0, 500.0f, Players);
     }
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
+    Client::Terrain::WorldTerrain terrain;
 };
 
 // 0x59e737..0x59e7f6: those of the mask, alive, in view and with alpha are tinted by +0x1d6 and by the PK.
@@ -97,7 +99,7 @@ TEST(CharacterPickingTest, TheMaskedOnesAreTintedByLevelAndPk)
     world.Actors()[9] = world.Actors()[1];
     world.Actors()[9].alpha = 0.0f;
 
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, std::nullopt), NoPick);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, std::nullopt), NoPick);
     const auto light = [&world](std::size_t slot) { return world.Actors()[slot].light; };
     EXPECT_EQ(light(1), glm::vec3(0.2f));
     EXPECT_EQ(light(2), glm::vec3(-0.4f));
@@ -125,7 +127,7 @@ TEST(CharacterPickingTest, EligibleTintingSetsThePersistentEffectFlag)
     world.Actors()[0].byteE8 = 0;
     world.Actors()[0].light = glm::vec3(9.0f);
 
-    ASSERT_EQ(PickTheCharacter(world, Players, Ray.origin, std::nullopt), NoPick);
+    ASSERT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, std::nullopt), NoPick);
 
     EXPECT_EQ(world.Actors()[1].byteE8, 1);
     EXPECT_EQ(world.Actors()[2].byteE8, 1);
@@ -156,12 +158,12 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     Client::Actors::PublishPickingBox(
         world.Actors()[7], world.Actors()[7].position, world.Actors()[7].boundsMin,
         {world.Actors()[7].boundsMaxX, world.Actors()[7].boundsMaxY, world.Actors()[7].boundsTop});
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
-    EXPECT_EQ(PickTheCharacter(world, Monsters, Ray.origin, Ray), 6);
-    EXPECT_EQ(PickTheCharacter(world, Npcs, Ray.origin, Ray), NoPick);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Monsters, Ray.origin, Ray), 6);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Npcs, Ray.origin, Ray), NoPick);
     // On a tie, the first one wins.
     Place(world, 8, 2000.0f, Players);
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 2);
 }
 
 TEST(CharacterPickingTest, DistanceUsesTheCameraPositionRatherThanTheRayOrigin)
@@ -172,8 +174,8 @@ TEST(CharacterPickingTest, DistanceUsesTheCameraPositionRatherThanTheRayOrigin)
     Place(world, 2, 9000.0f, Players);
     const glm::vec3 camera{10000.0f, 1000.0f, 60.0f};
 
-    EXPECT_EQ(PickTheCharacter(world, Players, camera, Ray), 2);
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, camera, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 1);
 }
 
 TEST(CharacterPickingTest, FloatRoundedBestCanLetTheLaterSlightlyFartherCandidateWin)
@@ -187,7 +189,7 @@ TEST(CharacterPickingTest, FloatRoundedBestCanLetTheLaterSlightlyFartherCandidat
         world.Actors()[2], world.Actors()[2].position, world.Actors()[2].boundsMin,
         {world.Actors()[2].boundsMaxX, world.Actors()[2].boundsMaxY, world.Actors()[2].boundsTop});
 
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 2);
 }
 
 TEST(CharacterPickingTest, UnorderedDistanceComparisonAcceptsTheLaterCandidate)
@@ -198,7 +200,7 @@ TEST(CharacterPickingTest, UnorderedDistanceComparisonAcceptsTheLaterCandidate)
     Place(world, 2, 2000.0f, Players);
     world.Actors()[2].position.x = std::numeric_limits<float>::quiet_NaN();
 
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 2);
 }
 
 // Each type's box: at height 150, the segment passes above 0x20a (top 120) and touches that of 0x18e (0x51236f, from
@@ -217,8 +219,8 @@ TEST(CharacterPickingTest, TheBoxComesFromTheConstructedType)
     Client::Actors::PublishPickingBox(tall, tall.position, tall.boundsMin,
                                       {tall.boundsMaxX, tall.boundsMaxY, tall.boundsTop});
     const TerrainPickingSegment high{.origin = {0.0f, 1000.0f, 150.0f}, .end = {20000.0f, 1000.0f, 150.0f}};
-    EXPECT_EQ(PickTheCharacter(world, Monsters, high.origin, high), 2);
-    EXPECT_EQ(PickTheCharacter(world, Monsters, Ray.origin, Ray), 1);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Monsters, high.origin, high), 2);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Monsters, Ray.origin, Ray), 1);
 }
 
 TEST(CharacterPickingTest, PickingUsesTheLastPublishedBoxAfterTheActorMoves)
@@ -242,7 +244,7 @@ TEST(CharacterPickingTest, PickingUsesTheLastPublishedBoxAfterTheActorMoves)
     actor.position.x = 9000.0f;
     const TerrainPickingSegment shortRay{.origin = {0.0f, 1000.0f, 60.0f}, .end = {2500.0f, 1000.0f, 60.0f}};
 
-    EXPECT_EQ(PickTheCharacter(world, Players, shortRay.origin, shortRay), 1);
+    EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, shortRay.origin, shortRay), 1);
 }
 
 // 0x59e9ec..0x59ea6d: in Lorencia layer 4 and in Devias layer 3 count only with the layer of the hero's cell; on the
@@ -260,19 +262,19 @@ TEST(CharacterPickingTest, TheUpperFloorsCountOnlyOnTheHerosLayer)
         Picking tested;
         WorldState& world = *tested.world;
         world.Runtime().map = tried.map;
-        auto& mapping = world.Map().terrain.mapping;
+        auto& mapping = tested.terrain.mapping;
         mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
         Place(world, 1, 1250.0f, Players);
         Place(world, 2, 3000.0f, Players);
         // The first one's cell (12, 10).
         mapping->layer1[Client::Data::Terrain::CellIndex(12, 10)] = tried.upper;
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+        EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 2);
         world.Runtime().heroCellLayer = tried.upper;
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
+        EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 1);
         // On another map the layer does not count.
         world.Runtime().heroCellLayer = 0;
         world.Runtime().map = 1;
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
+        EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 1);
     }
 }
 
@@ -353,20 +355,20 @@ TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
         Place(world, 4, 2500.0f, 2);
         Name(world.Actors()[4].name, "Zorzal");
         Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
-        EXPECT_EQ(PickTheCharacter(world, Npcs, Ray.origin, std::nullopt), NoPick);
+        EXPECT_EQ(PickTheCharacter(world, tested.terrain, Npcs, Ray.origin, std::nullopt), NoPick);
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
         const auto& slots = world.Runtime().social.party.slots;
         EXPECT_EQ(slots[0].actorFlags, 0x48U);
         EXPECT_EQ(slots[2].actorFlags, 0U);
         // What was found stays: only −2 is searched.
         Name(world.Actors()[3].name, "Otro");
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 3);
+        EXPECT_EQ(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray), 3);
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
 
         // The unseen hero.
         Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
         world.Actors()[0].seen = false;
-        static_cast<void>(PickTheCharacter(world, Players, Ray.origin, Ray));
+        static_cast<void>(PickTheCharacter(world, tested.terrain, Players, Ray.origin, Ray));
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-1, -3, -1, -1}));
         EXPECT_EQ(slots[1].actorFlags, 0U);
     }

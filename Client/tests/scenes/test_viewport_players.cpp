@@ -43,6 +43,7 @@
 #include "Terrain/WorldTerrain.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
+#include "Session/ModuleStates.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -113,11 +114,13 @@ struct Game
                 .models = models,
                 .items = &items,
                 .itemSetTables = &sets,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
     // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     // The lab's Data folder, for the Monster*.bmd that the creation of 0x5141e0 looks at; empty outside the tests with
     // data.
     std::filesystem::path dataRoot;
@@ -162,7 +165,7 @@ protected:
         game = std::make_unique<Game>();
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        game->world.Map().terrain = std::move(loaded).Value();
+        game->states.terrain.current = std::move(loaded).Value();
         game->world.Runtime().map = map;
         game->dataRoot = m_dataRoot;
     }
@@ -170,7 +173,7 @@ protected:
     // The first cell, from (100, 100), with the four to its right free: no walls and no safe zone.
     [[nodiscard]] Cell FreeRow() const
     {
-        const auto& cells = game->world.Map().terrain.attributes->cells;
+        const auto& cells = game->states.terrain.current.attributes->cells;
         for (int y = 100; y < 200; ++y)
         {
             for (int x = 100; x < 200; ++x)
@@ -733,7 +736,7 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     Load(0);
     const Cell cell = FreeRow();
     const Client::Actors::ActorConstructionContext construction{
-        game->world.Map().terrain, 0, Client::Terrain::CullingScene::Game, game->camera.fixedHeight};
+        game->states.terrain.current, 0, Client::Terrain::CullingScene::Game, game->camera.fixedHeight};
     auto created = Client::Actors::CreateActor(game->world, 0x0456, PlayerSkeletonModel, {cell.x, cell.y, 0.0f},
                                                construction, game->cloth);
     ASSERT_TRUE(created.HasValue()) << created.Error();

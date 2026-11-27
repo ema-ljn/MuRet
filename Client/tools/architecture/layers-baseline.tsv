@@ -988,7 +988,6 @@ game/Kernel/WorldMap.h	World/KalimaWorld.h	game/Kernel	game/Events
 game/Kernel/WorldMap.h	World/ModelEffects.h	game/Kernel	game/Effects
 game/Kernel/WorldMap.h	World/WorldObjectRegistrations.h	game/Kernel	game/WorldObjects
 game/Kernel/WorldMap.h	World/WorldObjects.h	game/Kernel	game/WorldObjects
-game/Kernel/WorldMap.h	game/Terrain/WorldTerrain.h	game/Kernel	game/Terrain
 Scenes/WorldObjectsDrawing.cpp	Scenes/AidaObjectServices.h	game/WorldObjects	game/MapScripts/Aida
 Scenes/WorldObjectsDrawing.cpp	Scenes/CastleSiegeObjectServices.h	game/WorldObjects	game/MapScripts/CastleSiege
 Scenes/WorldObjectsDrawing.cpp	game/Actors/Drawing/CharacterDrawing.h	game/WorldObjects	game/Actors

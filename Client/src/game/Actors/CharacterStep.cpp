@@ -213,7 +213,7 @@ const Models::Skeleton* ModelSkeletonOf(const Kernel::ActorState& actor, const C
 // the TerrainWall.
 std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& context)
 {
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.heights || !terrain.attributes)
         return {};
     return [&terrain, fixedHeight = context.fixedHeight](float x, float y)
@@ -230,7 +230,7 @@ Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, 
     {
         return Core::Unexpected(std::format("0x4f37c0: falta el esqueleto del personaje del lugar {}", slot));
     }
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
     {
         return Core::Unexpected(std::string("0x508ba0: falta el TerrainWall para reintentar el camino"));
@@ -445,7 +445,7 @@ Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const 
                        (action >= FirstCombatStop && action <= LastCombatStop) || !kept;
     if (stops)
     {
-        const auto& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        const auto& terrain = Terrain::TerrainOrEmpty(context.terrain);
         static const Models::Skeleton emptyPlayerSkeleton;
         const Models::Skeleton* playerSkeleton = context.playerSkeleton;
         if (playerSkeleton == nullptr)
@@ -616,8 +616,7 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
             (static_cast<double>(context.worldClock) - static_cast<double>(runtime.reportedCellTime)) * Thousandth;
         if (!(waited >= ReportDelay))
             return {};
-        const Terrain::WorldTerrain& terrain =
-            context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
         if (terrain.attributes == nullptr)
             return Core::Unexpected(std::string("0x4fbed9: falta el .att del mapa (0x7d0d348)"));
         constexpr std::uint16_t ReportedCellBit = 8;
@@ -657,7 +656,8 @@ Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const Char
                                             .random = context.random,
                                             .playerSkeleton = context.playerSkeleton,
                                             .models = context.models,
-                                            .items = context.items};
+                                            .items = context.items,
+                                            .terrain = context.terrain};
     constexpr std::uint8_t DyingAgain = 15;
     actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
     if (actor.dying >= DyingAgain)
@@ -1359,7 +1359,7 @@ Core::Expected<void, std::string> StepACharacter(Kernel::ActorState& actor, std:
     {
         return body;
     }
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (auto effects =
             StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
         !effects.HasValue())
@@ -1412,7 +1412,7 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         return panel;
     }
     const Kernel::WorldRuntime& runtime = world.Runtime();
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
     {
         return Core::Unexpected("0x508f14: el TerrainWall (0x7d0d348) del " + MapText(runtime.map) +
@@ -1489,7 +1489,7 @@ Core::Expected<void, std::string> StepTheBodyAndEffects(Kernel::ActorState& acto
     {
         return body;
     }
-    const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     return StepTheEffects(actor, Kernel::ActorPoolSize, false, context,
                           terrain.attributes ? &terrain.attributes->cells : nullptr);
 }

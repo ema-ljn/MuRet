@@ -8,6 +8,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
 #include "Kernel/WorldState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -39,8 +40,8 @@ struct BareWorld
     void ReadyForTransitions()
     {
         world.Runtime().map = 0;
-        world.Map().terrain.attributes = std::make_unique<Data::Terrain::TerrainAttributes>();
-        world.Map().terrain.heights = std::make_unique<Data::Terrain::TerrainHeights>();
+        states.terrain.current.attributes = std::make_unique<Data::Terrain::TerrainAttributes>();
+        states.terrain.current.heights = std::make_unique<Data::Terrain::TerrainHeights>();
         items = std::make_unique<Tables::ItemTable>(ItemsMarking({}));
         itemSets = std::make_unique<Tables::ItemSetTables>(
             ItemSetTablesFrom(std::vector<std::byte>(Tables::ItemSetTypeTableSize),
@@ -50,6 +51,7 @@ struct BareWorld
     }
 
     Kernel::WorldState world;
+    Session::ModuleStates states;
     Scenes::SelectionState selection{world};
     Camera::GameCamera camera;
     Camera::GameCameraInput input;
@@ -68,6 +70,7 @@ struct BareWorld
                                           .cameraInput = input,
                                           .models = models,
                                           .log = log,
-                                          .textMeasure = &measure};
+                                          .textMeasure = &measure,
+                                          .states = &states};
 };
 } // namespace Client::Tests

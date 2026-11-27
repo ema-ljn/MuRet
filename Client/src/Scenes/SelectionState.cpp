@@ -16,12 +16,12 @@
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionActor.h"
 #include "Kernel/WorldState.h"
-#include "Kernel/WorldMap.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -132,6 +132,7 @@ void SelectionState::RefreshCameraAttribute(Camera::GameCameraInput& input) cons
 }
 
 Core::Expected<void, std::string> SelectionState::InitializeSelection(const std::filesystem::path& dataRoot,
+                                                                      Terrain::TerrainState& terrain,
                                                                       Camera::GameCameraInput& input,
                                                                       Crt::CrtRandom* random)
 {
@@ -152,6 +153,7 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     // archivos (conserva +0x16c y el viento); sin 0x510f70 en la escena 4.
     const MapLoadContext context{.dataRoot = dataRoot,
                                  .world = m_world,
+                                 .terrain = terrain,
                                  .scene = SceneId::CharacterSelect,
                                  .playerKey = 0,
                                  .random = random != nullptr ? *random : m_localCloth.random};
@@ -159,7 +161,7 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     {
         return Fail(loaded.Error());
     }
-    BorrowTerrain(SelectionMap, &m_world.Map().terrain);
+    BorrowTerrain(SelectionMap, &terrain.current);
     input.map = SelectionMap;
     RefreshCameraAttribute(input);
     m_initialized = true;

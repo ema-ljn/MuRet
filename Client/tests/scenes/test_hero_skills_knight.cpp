@@ -20,10 +20,10 @@
 #include "Scenes/Skill551f40.h"
 #include "Scenes/Skill57cf90.h"
 #include "Scenes/SkillDelays.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -134,7 +134,7 @@ struct KnightHero
     {
         auto& runtime = world.Runtime();
         runtime.map = map;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero = Client::Tests::UnarmedPlayer(heroClass);
         hero.alive = true;
@@ -180,7 +180,8 @@ struct KnightHero
                                 .tickCount = [this] { return ticks; },
                                 .send = [this](Client::Protocol::Outgoing outgoing)
                                 { sent.push_back(std::move(outgoing)); },
-                                .playerKey = PlayerKey};
+                                .playerKey = PlayerKey,
+                                .terrain = &terrain};
     }
     Client::Core::Expected<void, std::string> Use()
     {
@@ -197,6 +198,7 @@ struct KnightHero
 
     std::uint8_t skill;
     Client::Kernel::WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     std::uint32_t ticks = 10'000;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();

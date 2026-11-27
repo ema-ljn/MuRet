@@ -13,6 +13,7 @@
 #include "World/Particles.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainState.h"
 #include "Terrain/WorldTerrain.h"
 #include "support/GoldenDir.h"
 #include "support/TemporaryFolder.h"
@@ -88,6 +89,7 @@ protected:
     }
 
     WorldState m_world;
+    Client::Terrain::TerrainState m_terrain;
     SelectionState m_state{m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_input;
@@ -576,11 +578,11 @@ TEST_F(SelectionStateTest, RefreshReadsBorrowedAttributeChangesAndPreservesInput
 TEST_F(SelectionStateTest, InitializationWaitsForAListAndReturnsLoadFailures)
 {
     const Client::Tests::TemporaryFolder empty("selection-state");
-    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
     EXPECT_FALSE(m_state.IsInitialized());
     EXPECT_EQ(m_state.Map(), 55);
     ASSERT_TRUE(Apply({List({})}).HasValue());
-    const auto initialized = m_state.InitializeSelection(empty.Path(), m_input);
+    const auto initialized = m_state.InitializeSelection(empty.Path(), m_terrain, m_input);
     ASSERT_FALSE(initialized.HasValue());
     EXPECT_FALSE(initialized.Error().empty());
     EXPECT_FALSE(m_state.IsInitialized());
@@ -599,12 +601,12 @@ TEST_F(SelectionStateTest, TheWorld54LoadMarksTheLoadedWorld)
 {
     EXPECT_FALSE(m_world.Runtime().drawingEnabled);
     const Client::Tests::TemporaryFolder empty("selection-state-drawing");
-    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
     EXPECT_FALSE(m_world.Runtime().drawingEnabled);
     ASSERT_TRUE(Apply({List({})}).HasValue());
 
     // La carpeta vacía hace fallar la carga, que va después de la marca.
-    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
 
     EXPECT_TRUE(m_world.Runtime().drawingEnabled);
 }
@@ -615,10 +617,10 @@ TEST_F(SelectionStateTest, TheWorld54LoadClearsLiveEffectsBeforeAFileFailure)
     effects[0].alive = true;
     effects[0].seen = true;
     const Client::Tests::TemporaryFolder empty("selection-effects-history");
-    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
     EXPECT_TRUE(effects[0].alive);
     ASSERT_TRUE(Apply({List({})}).HasValue());
-    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
     EXPECT_FALSE(effects[0].alive);
     EXPECT_TRUE(effects[0].seen);
 }
@@ -629,10 +631,10 @@ TEST_F(SelectionStateTest, TheWorld54LoadClearsParticlesBeforeAFileFailureAndRet
     particles.All()[0].alive = true;
     particles.Wind().wind = {3.0f, 4.0f};
     const Client::Tests::TemporaryFolder empty("selection-particle-history");
-    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
     EXPECT_TRUE(particles.Any());
     ASSERT_TRUE(Apply({List({})}).HasValue());
-    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
     EXPECT_FALSE(particles.Any());
     EXPECT_EQ(particles.Wind().wind, glm::vec2(3.0f, 4.0f));
 }
@@ -644,6 +646,7 @@ class GoldenSelectionStateTest : public Client::Tests::GoldenDataTest
 TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstructionUsesWorld54)
 {
     WorldState world;
+    Client::Terrain::TerrainState terrain;
     SelectionState state(world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
@@ -652,7 +655,7 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
     const std::array<CharacterEvent, 1> events{List({Entry()})};
     ASSERT_TRUE(state.Apply(events, camera, input).HasValue());
     EXPECT_EQ(input.hero.z, 987.0f);
-    const auto initialized = state.InitializeSelection(m_dataRoot, input);
+    const auto initialized = state.InitializeSelection(m_dataRoot, terrain, input);
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     ASSERT_TRUE(state.IsInitialized());
     EXPECT_EQ(state.Map(), 54);
@@ -661,7 +664,7 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
     EXPECT_EQ(input.map, 54u);
     EXPECT_EQ(input.hero.z, 987.0f);
     EXPECT_EQ(state.Slots()[0].revision, 1u);
-    ASSERT_TRUE(state.InitializeSelection(m_dataRoot / "missing", input).HasValue());
+    ASSERT_TRUE(state.InitializeSelection(m_dataRoot / "missing", terrain, input).HasValue());
     ASSERT_TRUE(state.Apply(events, camera, input).HasValue());
     EXPECT_NE(input.hero.z, 987.0f);
     EXPECT_EQ(state.Slots()[0].revision, 2u);
@@ -670,6 +673,7 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
 TEST_F(GoldenSelectionStateTest, AnEmptyListLoads54WithoutInventingHeroConstruction)
 {
     WorldState world;
+    Client::Terrain::TerrainState terrain;
     SelectionState state(world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
@@ -679,7 +683,7 @@ TEST_F(GoldenSelectionStateTest, AnEmptyListLoads54WithoutInventingHeroConstruct
     const std::array<CharacterEvent, 1> events{List({})};
     ASSERT_TRUE(state.Apply(events, camera, input).HasValue());
     EXPECT_EQ(input.cellAttribute, 0x40u);
-    const auto initialized = state.InitializeSelection(m_dataRoot, input);
+    const auto initialized = state.InitializeSelection(m_dataRoot, terrain, input);
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     EXPECT_TRUE(state.IsInitialized());
     EXPECT_EQ(input.hero.z, 9.0f);

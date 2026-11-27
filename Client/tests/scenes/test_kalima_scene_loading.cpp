@@ -17,6 +17,7 @@
 #include "World/KalimaWorld.h"
 #include "World/KalimaWaves.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/SceneDataFiles.h"
@@ -60,6 +61,7 @@ class KalimaSceneLoadingTest : public testing::Test
 {
 protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Terrain::TerrainState m_terrain;
     Client::Crt::CrtRandom m_random{1};
     std::filesystem::path m_root = Client::Tests::RepoDataDir();
     Client::Core::Expected<void, std::string> Load(std::uint8_t map, const std::filesystem::path& root)
@@ -67,6 +69,7 @@ protected:
         m_world->Runtime().map = map;
         return Client::Scenes::LoadMap(map, {.dataRoot = root,
                                              .world = *m_world,
+                                             .terrain = m_terrain,
                                              .scene = Client::Scenes::SceneId::Game,
                                              .playerKey = 5,
                                              .random = m_random});
@@ -88,7 +91,7 @@ TEST_F(KalimaSceneLoadingTest, AllSevenMapsLoadRealCpuDataAndWaterResourcesBefor
             continue;
         ASSERT_NE(m_world->Map().kalima, nullptr);
         EXPECT_EQ(m_world->Map().kalima->Map(), map);
-        EXPECT_NE(m_world->Map().terrain.attributes, nullptr);
+        EXPECT_NE(m_terrain.current.attributes, nullptr);
         EXPECT_FALSE(m_world->Map().objects.empty());
         std::vector<std::string> skipped;
         ASSERT_TRUE(tiles.Load(m_root, map, skipped).HasValue());

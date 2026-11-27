@@ -39,6 +39,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/TooltipLines.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
@@ -211,13 +212,15 @@ struct Game
                                    : static_cast<const Client::Models::IModelLibrary&>(models),
                 .items = &items,
                 .itemSetTables = &sets,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
     ActorState& Hero()
     {
         return world.Actors()[0];
     }
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
@@ -244,7 +247,7 @@ protected:
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())
-            game->world.Map().terrain = std::move(loaded).Value();
+            game->states.terrain.current = std::move(loaded).Value();
         game->world.Runtime().map = map;
         return game;
     }
@@ -628,7 +631,7 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
             const auto cell = Client::Data::Terrain::CellIndex(
                 static_cast<std::uint8_t>(static_cast<std::int32_t>(position.x * 0.01f)),
                 static_cast<std::uint8_t>(static_cast<std::int32_t>(position.y * 0.01f)));
-            each->world.Map().terrain.attributes->cells[cell] |= 1;
+            each->states.terrain.current.attributes->cells[cell] |= 1;
         }
         Client::UI::OldPortraitPart part;
         part.action = 0x7a;
@@ -651,7 +654,7 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
                                               .random = twin->cloth.random,
                                               .worldClock = 0.0f,
                                               .scene = Client::Scenes::SceneId::Game,
-                                              .terrain = nullptr,
+                                              .terrain = &twin->states.terrain.current,
                                               .logicSteps = twin->cloth.logicSteps,
                                               .cameraShake = &twin->input.shake});
         twin->world.Runtime().map = map;

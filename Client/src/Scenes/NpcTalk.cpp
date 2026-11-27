@@ -17,7 +17,6 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameText.h"
@@ -127,7 +126,7 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
         if (actorSkeleton == nullptr && context.models != nullptr)
             actorSkeleton = context.models->SkeletonOf(hero.type);
     }
-    const Terrain::WorldTerrain& terrain = context.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),
                                     .scene = SceneId::Game,
                                     .playerSkeleton = *playerSkeleton,

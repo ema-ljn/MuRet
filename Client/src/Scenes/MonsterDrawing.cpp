@@ -217,21 +217,19 @@ std::array<Actors::Drawing::ObjectOutlinePass, 2> OutlinePassesOf(const Kernel::
              {inner, Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3d8f5c29u), 0.0f, 1.0f}}}};
 }
 
-// La altura del terreno (0x5f93c0) del terreno del pase o, sin él, del mapa del mundo.
-std::optional<double> GroundHeight(const Kernel::WorldState& world, const Actors::Drawing::GameCharacterPass& pass,
-                                   float x, float y)
+// La altura del terreno (0x5f93c0) del terreno del pase o, sin él, de uno vacío.
+std::optional<double> GroundHeight(const Actors::Drawing::GameCharacterPass& pass, float x, float y)
 {
-    const Terrain::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
     if (!terrain.heights || !terrain.attributes)
         return std::nullopt;
     return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
 }
 
 // La misma altura como función para el cuerpo (MonsterBodyFrame::terrainHeight); vacía sin las alturas o los atributos.
-std::function<double(float, float)> BodyTerrainHeight(const Kernel::WorldState& world,
-                                                      const Actors::Drawing::GameCharacterPass& pass)
+std::function<double(float, float)> BodyTerrainHeight(const Actors::Drawing::GameCharacterPass& pass)
 {
-    const Terrain::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
     if (!terrain.heights || !terrain.attributes)
         return {};
     return [&terrain, fixed = pass.fixedHeight](float x, float y)
@@ -435,7 +433,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
                           .cameraShake = frame.pass.cameraShake,
                           .effects = frame.pass.effects,
                           .particles = frame.pass.particles,
-                          .terrainHeight = BodyTerrainHeight(frame.world, frame.pass),
+                          .terrainHeight = BodyTerrainHeight(frame.pass),
                           .joints = frame.originalFrame ? frame.world.DrawTail().joints : frame.pass.joints};
     return DrawMonsterBody(body);
 }
@@ -464,8 +462,7 @@ Result DrawTheFloorMark(MonsterFrame& frame)
                                     Render::ModelStateOperation::Texture2d};
     for (const Render::ModelStateOperation operation : Operations)
         frame.batch.ApplyOperation(state, operation);
-    const Terrain::WorldTerrain& terrain =
-        frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(frame.pass.terrain);
     if (!terrain.heights)
         return Core::Unexpected<std::string>("0x5fb2f0: faltan las alturas del terreno del calco del 0xe8 y el 0xe9");
     const double pulse = ClockSine(frame.worldClock, Rate, Span) + D(Base);
@@ -962,7 +959,7 @@ Result DrawTheShadow(MonsterFrame& frame)
         actor.alpha < ShadowAlpha)
         return {};
     // 0x50be15..0x50be52: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno (también con NaN).
-    const auto grounded = ShadowGroundOf(frame.world, frame.pass, actor, frame.map, 0x50be3b);
+    const auto grounded = ShadowGroundOf(frame.pass, actor, frame.map, 0x50be3b);
     if (!grounded.HasValue())
         return Core::Unexpected(grounded.Error());
     actor.position.z = grounded.Value();
@@ -1207,11 +1204,10 @@ Result DrawTheFairy(MonsterFrame& frame)
 }
 
 // Lo que leen los helpers de KalimaSiegeHelpers.h: el pase del frame y, en el 0x42a1b0, las alturas del terreno del
-// pase (sin él, las del mapa del mundo). El sonido, solo en el frame del original.
+// pase (sin él, ninguna). El sonido, solo en el frame del original.
 KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
 {
-    const Terrain::WorldTerrain& terrain =
-        frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(frame.pass.terrain);
     return {.batch = frame.batch,
             .actor = frame.actor,
             .random = frame.random,
@@ -1339,8 +1335,8 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
         if (!helped.Value())
         {
             // 0x510a42..0x510a72: 0x441400, 0x42fa30, 0x434180 y 0x4271d0.
-            // Las alturas del pase (sin él, las del mapa del mundo) para las marcas de 0x434180.
-            const Terrain::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : frame.world.Map().terrain;
+            // Las alturas del pase (sin él, ninguna) para las marcas de 0x434180.
+            const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
             MonsterHelperPass helperPass{.actor = actor,
                                          .slot = frame.slot,
                                          .world = frame.world,
@@ -1386,18 +1382,17 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     if (pass.polygon == nullptr)
         return Core::Unexpected<std::string>("0x418320: falta el trapecio del dibujo para el cuervo");
     return Actors::Drawing::DrawGameRaven(
-        actor,
-        Actors::Drawing::GameRavenPass{.batch = frame.batch,
-                                       .models = frame.items,
-                                       .polygon = *pass.polygon,
-                                       .lighting = pass.dynamicLighting,
-                                       .terrain = pass.terrain != nullptr ? *pass.terrain : frame.world.Map().terrain,
-                                       .fixedHeight = pass.fixedHeight,
-                                       .carry = pass.poseCarry,
-                                       .frameClock = pass.frameClock,
-                                       .map = frame.map,
-                                       .heroByte1a1 = frame.world.Hero().byte1a1,
-                                       .originalFrame = frame.originalFrame});
+        actor, Actors::Drawing::GameRavenPass{.batch = frame.batch,
+                                              .models = frame.items,
+                                              .polygon = *pass.polygon,
+                                              .lighting = pass.dynamicLighting,
+                                              .terrain = Terrain::TerrainOrEmpty(pass.terrain),
+                                              .fixedHeight = pass.fixedHeight,
+                                              .carry = pass.poseCarry,
+                                              .frameClock = pass.frameClock,
+                                              .map = frame.map,
+                                              .heroByte1a1 = frame.world.Hero().byte1a1,
+                                              .originalFrame = frame.originalFrame});
 }
 } // namespace
 
@@ -1463,14 +1458,13 @@ glm::vec3 HangingLightOf(const Kernel::ActorState& actor, const glm::vec3& terra
     return {F32(static_cast<double>(third) * 0.5), faint, faint};
 }
 
-Core::Expected<float, std::string> ShadowGroundOf(const Kernel::WorldState& world,
-                                                  const Actors::Drawing::GameCharacterPass& pass,
+Core::Expected<float, std::string> ShadowGroundOf(const Actors::Drawing::GameCharacterPass& pass,
                                                   const Kernel::ActorState& actor, std::int32_t map,
                                                   std::uint32_t address)
 {
     if (!IsBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
         return actor.position.z;
-    const auto ground = GroundHeight(world, pass, actor.position.x, actor.position.y);
+    const auto ground = GroundHeight(pass, actor.position.x, actor.position.y);
     if (!ground)
         return Core::Unexpected(std::format("{:#x}: falta el terreno de 0x5f93c0", address));
     // fcom [z] y `test ah, 1`: con el terreno a la altura de la z o arriba (C0 en 0, ordenados) no escribe.

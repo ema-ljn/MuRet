@@ -22,7 +22,6 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/Particles.h"
@@ -30,6 +29,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
@@ -145,7 +145,7 @@ protected:
         m_world.Runtime().hero = 0;
         m_trapezoid.everything = true;
         m_world.OwnCharacter().ClearEquipmentForEntry();
-        auto& terrain = m_world.Map().terrain;
+        auto& terrain = m_terrain.current;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         terrain.heights->cells.fill(FlatHeight);
@@ -184,6 +184,7 @@ protected:
     {
         HeroMovementContext context{
             .world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .skills = &*m_skills};
+        context.terrain = &m_terrain.current;
         context.input.leftPressed = click;
         context.input.leftDown = click;
         context.input.worldTime = static_cast<float>(m_ticks) * 40.0f;
@@ -231,6 +232,7 @@ protected:
     }
 
     Client::Kernel::WorldState m_world;
+    Client::Terrain::TerrainState m_terrain;
     Client::Crt::CrtRandom m_random{Seed};
     Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Models::Skeleton m_skeleton;
@@ -294,7 +296,7 @@ TEST_P(GameMovementMapMatrix, StraightClickPublishesD3BeforeMovingAndRetainsTheS
 
 TEST_P(GameMovementMapMatrix, AForcedCornerPreservesTheCorridorInTheStoredPath)
 {
-    auto& walls = m_world.Map().terrain.attributes->cells;
+    auto& walls = m_terrain.current.attributes->cells;
     walls.fill(Client::Pathfinding::BlockedWallBit);
     for (std::uint8_t x = 10; x <= 14; ++x)
     {
@@ -375,7 +377,7 @@ TEST_P(GameMovementMapMatrix, SafeZoneResetsRunBeforeTheChaosCastleSpeedOverride
 {
     Hero().safeZone = 0x80;
     Hero().run = 39;
-    m_world.Map().terrain.attributes->cells.fill(Client::Pathfinding::SafeZoneWallBit);
+    m_terrain.current.attributes->cells.fill(Client::Pathfinding::SafeZoneWallBit);
     const auto clicked = Click({13, 20});
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     const auto moved = Step();
@@ -388,7 +390,7 @@ TEST_P(GameMovementMapMatrix, SafeZoneResetsRunBeforeTheChaosCastleSpeedOverride
 
 TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEarlier)
 {
-    m_world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(11, 20)] =
+    m_terrain.current.attributes->cells[Client::Data::Terrain::CellIndex(11, 20)] =
         Client::Pathfinding::SafeZoneWallBit;
     const auto clicked = Click({13, 20});
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
@@ -402,6 +404,7 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     const auto stepped = Client::Actors::StepCharacters({.world = m_world,
                                                          .random = m_random,
                                                          .playerSkeleton = &m_skeleton,
+                                                         .terrain = &m_terrain.current,
                                                          .particles = particles.get(),
                                                          .trapezoid = &m_trapezoid});
     // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
@@ -431,10 +434,11 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
     {
         SCOPED_TRACE(boundary.map);
         Client::Kernel::WorldState world;
+        Client::Terrain::TerrainState terrain;
         world.Runtime().map = boundary.map;
         Client::Crt::CrtRandom random(Seed);
-        const auto loaded =
-            Client::Scenes::LoadMap(boundary.map, {m_dataRoot, world, Client::Scenes::SceneId::Game, 5, random});
+        const auto loaded = Client::Scenes::LoadMap(
+            boundary.map, {m_dataRoot, world, terrain, Client::Scenes::SceneId::Game, 5, random});
         ASSERT_FALSE(loaded.HasValue());
         EXPECT_NE(loaded.Error().find(boundary.message), std::string::npos) << loaded.Error();
     }
@@ -444,9 +448,11 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
 TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
 {
     Client::Kernel::WorldState world;
+    Client::Terrain::TerrainState terrain;
     world.Runtime().map = 32;
     Client::Crt::CrtRandom random(Seed);
-    const auto loaded = Client::Scenes::LoadMap(32, {m_dataRoot, world, Client::Scenes::SceneId::Game, 5, random});
+    const auto loaded =
+        Client::Scenes::LoadMap(32, {m_dataRoot, world, terrain, Client::Scenes::SceneId::Game, 5, random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     EXPECT_EQ(world.Runtime().map, 9);
     Client::Scenes::ArmEventMapObject(world.Runtime().map, world.Runtime());

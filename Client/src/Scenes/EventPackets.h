@@ -36,6 +36,11 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct WorldTerrain;
+} // namespace Client::Terrain
+
 // CL9 hito 11: lo que los paquetes de los eventos (Protocol::Events, 04 § Los eventos) hacen al llegar, como el
 // dispatcher 0x4e2b10 y sus handlers, sobre los globales de WorldRuntime: los avisos (0x632e30, 0x633300), los
 // mensajes (0x555190), el .att (0x7d0d348), el objeto del evento de [0x723c60], los chips (0x78abb00), Crywolf y los
@@ -78,6 +83,8 @@ struct EventPacketContext
     // servicios del inventario (el ítem del cursor y los avisos). Vacío, cerrar una de ellas corta donde manda.
     std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
     const InventoryServices* inventory = nullptr;
+    // The current map's terrain, whose .att the events mark and Crywolf reloads. Without it, those stop.
+    Terrain::WorldTerrain* terrain = nullptr;
 };
 
 // Los sonidos que pidió, en orden: 0x41ed10 (los que suenan) y 0x41ee00 (los que se apagan). El último que suena

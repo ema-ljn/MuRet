@@ -123,17 +123,15 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // Oráculo de composición: ejecuta los kernels ya contrastados de 637082/6370ea/6370ef en
 // dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
-Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world,
-                                                                   const Client::Kernel::ActorState& hero,
-                                                                   Client::World::LeafWeather weather,
-                                                                   std::int32_t heroCellLayer,
-                                                                   Client::Models::ClothWorld& reference)
+Client::Core::Expected<void, std::string>
+AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, const Client::Terrain::WorldTerrain& terrain,
+                         const Client::Kernel::ActorState& hero, Client::World::LeafWeather weather,
+                         std::int32_t heroCellLayer, Client::Models::ClothWorld& reference)
 {
     Client::World::Leaves leaves;
     Client::Scenes::FaunaState fauna;
     const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
     const float worldClock = 0.0f;
-    const auto& terrain = world.Map().terrain;
     Client::Scenes::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
                                                 hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
                                                 reference.random, worldClock};
@@ -771,8 +769,8 @@ TEST_F(WorldEntryTest, ARavenIsCreatedAt420d60AfterTheWait)
 {
     constexpr int RavenRandoms = 3 * Client::Models::SmallLogicalCloseRandoms;
     Entry tested(m_dataRoot, Seed);
-    tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.states.terrain.current.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    tested.states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     ActorState& hero = tested.DressedHero(PublishedSlot);
     hero.hands[1].model = 0x1c17;
     hero.cellX = 133;
@@ -986,6 +984,23 @@ TEST_F(WorldEntryTest, ASecondEntryReloadsAndRedrawsTheHeroSlot)
     }
 }
 
+// 0x61a560: without the terrain's state the load has nowhere to put the map, and the entry stops there.
+TEST_F(WorldEntryTest, WithoutTheTerrainsStateTheLoadStops)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    resources.states = nullptr;
+    RecordingPublisher publisher;
+
+    const auto entered =
+        ApplyWorldEntry(ReplyAt(Lorencia.map, Lorencia.firstX, Lorencia.firstY, 0), PlayerKey, resources, publisher);
+
+    ASSERT_FALSE(entered.HasValue());
+    EXPECT_NE(entered.Error().find("0x61a560"), std::string::npos) << entered.Error();
+}
+
 // La segunda respuesta en el otro mapa de referencia, de Lorencia a Devias y al revés: el terreno, los
 // objetos (en Devias, los especiales 0x201 y 0x202 primero) y la cámara son los del mapa nuevo, y el héroe
 // anterior sigue vivo con la posición del de antes. Los objetos del 0 y del 2 no sacan rand(): la cuenta es
@@ -1022,8 +1037,8 @@ TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePrevi
         EXPECT_EQ(tested.cameraInput.map, to.map);
         const auto terrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, to.map);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-        ASSERT_TRUE(tested.world.Map().terrain.attributes);
-        EXPECT_EQ(tested.world.Map().terrain.attributes->cells, terrain.Value().attributes->cells);
+        ASSERT_TRUE(tested.states.terrain.current.attributes);
+        EXPECT_EQ(tested.states.terrain.current.attributes->cells, terrain.Value().attributes->cells);
         ASSERT_FALSE(tested.world.Map().objects.empty());
         EXPECT_EQ(tested.world.Map().objects.front().type == 0x201, to.map == Devias.map);
         EXPECT_EQ(tested.world.Runtime().hero, secondSlot);
@@ -1235,8 +1250,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Step(Client::Input::InputState{});
 
         ASSERT_EQ(game.Failure(), std::nullopt);
-        ASSERT_TRUE(
-            AdvanceEnvironmentPrefix(tested.world, heroBefore, weatherBefore, layerBefore, reference).HasValue());
+        ASSERT_TRUE(AdvanceEnvironmentPrefix(tested.world, tested.states.terrain.current, heroBefore, weatherBefore,
+                                             layerBefore, reference)
+                        .HasValue());
         const int body = OwnRecordClose + 1;
         // 57cfc0 cierra own (3.848) y Skill.bmd (60); los dos Arrival vivos aportan uno cada uno.
         reference.random = Advanced(

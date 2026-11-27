@@ -5,6 +5,7 @@
 #include "Session/CharacterEvent.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionHandlers.h"
+#include "Session/ModuleStates.h"
 #include "App/SessionState.h"
 #include "Session/WorldEvent.h"
 #include "Core/ILogSink.h"
@@ -71,12 +72,14 @@ struct Applier
                                                       .cameraInput = input,
                                                       .models = models,
                                                       .log = log,
-                                                      .scene = [this] { return scene; }})
+                                                      .scene = [this] { return scene; },
+                                                      .states = &states})
     {
         models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;

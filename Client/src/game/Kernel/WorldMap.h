@@ -5,22 +5,20 @@
 #include "World/KalimaWorld.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
-#include "Terrain/WorldTerrain.h"
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
-// What 0x61a560 leaves of the loaded map on the CPU, in the original's globals: the terrain tables, the grass shift,
-// the objects and the effects with a model. The GPU part (the textures and the models) is each scene's. Contract:
-// Client/docs/research/06-render-escenas-y-ui.md, "La carga del mapa".
+// What 0x61a560 leaves of the loaded map on the CPU, in the original's globals: the grass shift, the objects and the
+// effects with a model. The terrain is Terrain::TerrainState::current, and the GPU part (the textures and the models)
+// is each scene's. Contract: Client/docs/research/06-render-escenas-y-ui.md, "La carga del mapa".
 namespace Client::Kernel
 {
 struct WorldMap
 {
     // Internal invalidation per LoadMap attempt; neither a counter nor a native rand.
     std::uint64_t loadRevision = 0;
-    Terrain::WorldTerrain terrain;
     // 0x723c48: replaced only on reaching 0x4377a0, after the files.
     std::unique_ptr<World::KalimaWorld> kalima;
     // 0x7b0cca4: the 65,536 (rand() % 4) · 0.25 that 0x5f8300 fills (Q-C146).

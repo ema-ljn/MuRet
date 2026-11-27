@@ -447,13 +447,15 @@ private:
     // 0x5f8710 (OR) y 0x5f8730 (AND con el complemento) sobre el WORD (y << 8) + x de 0x7d0d348.
     Applied MarkTheCell(std::int32_t x, std::int32_t y, std::uint8_t attribute, bool add, std::string_view where)
     {
-        return Terrain::MarkTheTerrainCell(m_world.Map().terrain.attributes.get(), x, y, attribute, add, where);
+        return Terrain::MarkTheTerrainCell(Terrain::TerrainOrEmpty(m_context.terrain).attributes.get(), x, y, attribute,
+                                           add, where);
     }
 
     // 0x5f8750(x, y, ancho, alto, atributo, agregar).
     Applied MarkTheArea(const Terrain::TerrainArea& area, std::uint8_t attribute, bool add, std::string_view where)
     {
-        return Terrain::MarkTheTerrainArea(m_world.Map().terrain.attributes.get(), area, attribute, add, where);
+        return Terrain::MarkTheTerrainArea(Terrain::TerrainOrEmpty(m_context.terrain).attributes.get(), area, attribute,
+                                           add, where);
     }
 
     // 0x5111a0(acción): cada uno de los 400 primeros vivo que es un jugador (0x20a) con los ángulos en (0, 0, 180) y
@@ -1254,7 +1256,9 @@ private:
         static constexpr std::array<std::string_view, 3> LightNames{"TerrainLight", "TerrainLight1", "TerrainLight2"};
         const std::int32_t map = m_runtime.map;
         const std::string folder = std::format("World{}", map + 1);
-        Terrain::WorldTerrain& terrain = m_world.Map().terrain;
+        if (m_context.terrain == nullptr)
+            return Core::Unexpected(std::format("0x42ff81: no hay terreno para la luz y el .att de World{}", map + 1));
+        Terrain::WorldTerrain& terrain = *m_context.terrain;
         std::optional<std::string>& fatal = m_runtime.fatalDataMessage;
         if (auto light = Terrain::ReloadWorldTerrainLight(m_context.dataRoot, folder, LightNames[state],
                                                           static_cast<std::uint8_t>(map), terrain, fatal);
@@ -1449,7 +1453,7 @@ private:
 
     Applied FireworkAt(std::int32_t cellX, std::int32_t cellY)
     {
-        const auto& terrain = m_world.Map().terrain;
+        const auto& terrain = Terrain::TerrainOrEmpty(m_context.terrain);
         if (!terrain.heights || !terrain.attributes)
             return Core::Unexpected(std::string("0x4d9fb1/0x4da0e4: el fuego artificial sin el terreno"));
         glm::vec3 position{static_cast<float>((static_cast<double>(cellX) + 0.5) * 100.0),

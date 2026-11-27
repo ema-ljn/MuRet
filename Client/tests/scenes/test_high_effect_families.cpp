@@ -29,6 +29,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "World/WizardModelEffects.h"
 #include "World/WorldObjectStepServices.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/SyntheticModels.h"
 
@@ -2011,12 +2012,12 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoCallsFireAroundTheHero)
     const glm::vec3 point{static_cast<float>(dx + 1202.0), static_cast<float>(dy + 1602.0), 100.0f};
     const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(replay.Next() % 10 * 20)};
     auto twin = std::make_unique<WorldState>();
+    const Client::Terrain::WorldTerrain twinTerrain;
     const auto fire = Client::World::CreateWizardModelEffect(
         twin->Map().effects, Client::Scenes::WizardArguments(0xc2, point, angles, glm::vec3(1.0f), 0, nullptr, 0),
         replay,
         Client::Scenes::WizardEffectServicesOf(
-            *twin, replay,
-            {.particles = &twin->Particles(), .worldClock = tested.clock, .terrain = &twin->Map().terrain}));
+            *twin, replay, {.particles = &twin->Particles(), .worldClock = tested.clock, .terrain = &twinTerrain}));
     ASSERT_TRUE(fire.HasValue()) << fire.Error();
     EXPECT_EQ(std::bit_cast<std::uint32_t>(shake), Shakes[static_cast<std::size_t>(replay.Next() % 8)]);
     EXPECT_EQ(tested.random.State(), replay.State());

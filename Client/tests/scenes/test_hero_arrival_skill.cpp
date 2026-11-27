@@ -18,9 +18,9 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/Skill55cbc0.h"
 #include "Scenes/Skill55faa0.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -96,7 +96,7 @@ struct ArrivingHero
     {
         auto& runtime = world.Runtime();
         runtime.map = map;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
         hero.type = Client::Tables::PlayerSkeletonModel;
@@ -138,7 +138,7 @@ struct ArrivingHero
     }
     Client::Scenes::HeroArrivalContext Arrival()
     {
-        return {.combat = {.world = world, .random = random, .playerSkeleton = &skeleton},
+        return {.combat = {.world = world, .random = random, .playerSkeleton = &skeleton, .terrain = &terrain},
                 .skills = &skills,
                 .tickCount = [this] { return ticks; },
                 .sendSkill = [this](Client::Protocol::Outgoing outgoing) { Send(std::move(outgoing)); }};
@@ -151,7 +151,8 @@ struct ArrivingHero
                 .skills = &skills,
                 .playerSkeleton = &skeleton,
                 .tickCount = [this] { return ticks; },
-                .send = [this](Client::Protocol::Outgoing outgoing) { Send(std::move(outgoing)); }};
+                .send = [this](Client::Protocol::Outgoing outgoing) { Send(std::move(outgoing)); },
+                .terrain = &terrain};
     }
     Client::Core::Expected<void, std::string> Arrive()
     {
@@ -163,6 +164,7 @@ struct ArrivingHero
     }
 
     Client::Kernel::WorldState world;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
@@ -259,7 +261,7 @@ TEST(HeroArrivalSkillTest, TheSecondGroupGoesTo55b6f0WithoutLookingAtTheWalls)
     }
     // Una pared entre los dos no cambia nada.
     ExpectTheDirectCall(0x13, 0, SkillDraws, AtTheTarget,
-                        [](ArrivingHero& hero) { hero.world.Map().terrain.attributes->cells[(116u << 8) + 183u] = 4; });
+                        [](ArrivingHero& hero) { hero.terrain.attributes->cells[(116u << 8) + 183u] = 4; });
     ExpectTheDirectCall(0x2f, 2, SkillDraws, AtTheTarget,
                         [](ArrivingHero& hero) { hero.Hero().pet.model = UniriaModel; });
     // La 0x13: el D3, la acción, el brillo y el 19 con la clave del blanco.
@@ -340,7 +342,7 @@ TEST(HeroArrivalSkillTest, TheEarlyExitsDoNothing)
         EXPECT_EQ(tested->Movement().targetX, 0u);
 
         tested->Target().dying = 0;
-        tested->world.Map().terrain.attributes->cells[(116u << 8) + 183u] = 4;
+        tested->terrain.attributes->cells[(116u << 8) + 183u] = 4;
         expected = Advanced(expected, SkillDraws + HeroCellDraws);
         ASSERT_TRUE(tested->Arrive().HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
@@ -377,7 +379,7 @@ TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
             ASSERT_TRUE(tested->Arrive().HasValue());
             EXPECT_EQ(tested->random.State(), expected.State());
             EXPECT_TRUE(tested->sent.empty());
-            const auto path = Client::Pathfinding::PathFinder(tested->world.Map().terrain.attributes->cells)
+            const auto path = Client::Pathfinding::PathFinder(tested->terrain.attributes->cells)
                                   .Find({182, 115}, {192, 115}, false, probe.distance);
             ASSERT_TRUE(path.has_value());
             EXPECT_EQ(tested->Hero().movement, 1);
@@ -390,7 +392,7 @@ TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
         }
     }
     const auto walls = Arriving(0x1, 0);
-    auto& cells = walls->world.Map().terrain.attributes->cells;
+    auto& cells = walls->terrain.attributes->cells;
     const auto near = Client::Pathfinding::PathFinder(cells).Find({182, 115}, {192, 115}, false, 5.0f);
     const auto far = Client::Pathfinding::PathFinder(cells).Find({182, 115}, {192, 115}, false, 6.0f);
     ASSERT_TRUE(near && far);
@@ -446,7 +448,7 @@ TEST(HeroArrivalSkillTest, InTheSafeZoneTheHeroWalksInstead)
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_TRUE(tested->sent.empty());
         const float distance = skill == 0x13 ? 4.8f : 4.0f;
-        const auto path = Client::Pathfinding::PathFinder(tested->world.Map().terrain.attributes->cells)
+        const auto path = Client::Pathfinding::PathFinder(tested->terrain.attributes->cells)
                               .Find({182, 115}, {184, 117}, false, distance);
         EXPECT_FALSE(path.has_value());
         EXPECT_EQ(tested->Hero().movement, 0);

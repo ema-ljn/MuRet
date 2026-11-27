@@ -91,8 +91,8 @@ protected:
         const auto models = m_models->Load(m_dataRoot, m_textures, m_online.log);
         ASSERT_TRUE(models.HasValue()) << models.Error();
         m_world->Runtime().map = 0;
-        const auto map =
-            Client::Scenes::LoadMap(0, {m_dataRoot, *m_world, Client::Scenes::SceneId::Game, 0, m_cloth.random});
+        const auto map = Client::Scenes::LoadMap(
+            0, {m_dataRoot, *m_world, m_states->terrain, Client::Scenes::SceneId::Game, 0, m_cloth.random});
         ASSERT_TRUE(map.HasValue()) << map.Error();
         m_world->Actors()[0].position = {13550.0f, 12550.0f, 0.0f};
         m_world->OwnCharacter().ClearEquipmentForEntry();

@@ -62,6 +62,8 @@
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/DynamicWorldLight.h"
+#include "Terrain/TerrainState.h"
+#include "Session/ModuleStates.h"
 #include <memory>
 #include "World/WorldObjects.h"
 #include "Assets/WorldModels.h"
@@ -708,6 +710,7 @@ TEST_F(GoldenLoginWorld, LoginClearsTheSharedParticlePoolWithoutResettingWind)
 TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Terrain::TerrainState terrain;
     Client::Scenes::SelectionState selection(*world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
@@ -736,12 +739,12 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     EXPECT_FALSE(effects[0].hasOwner);
     EXPECT_EQ(effects[0].ownerContext, nullptr);
     selection.BeginSelection();
-    ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, input).HasValue());
+    ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, terrain, input).HasValue());
     EXPECT_TRUE(effects[0].alive) << "sin lista no corre la carga del mapa54";
     const std::array<Client::App::CharacterEvent, 1> list{
         Client::App::CharacterListReceived{.list = {.characters = {}}}};
     ASSERT_TRUE(selection.Apply(list, camera, input).HasValue());
-    ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, input).HasValue());
+    ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, terrain, input).HasValue());
     EXPECT_FALSE(effects[0].alive);
     EXPECT_TRUE(effects[0].seen);
     ASSERT_EQ(world->Map().effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f), 0u);
@@ -858,11 +861,16 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
 {
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth;
     const auto before = cloth.random;
-    LoginScene scene(
-        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
-        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                  .textures = m_store,
+                                  .log = m_log,
+                                  .cloth = &cloth,
+                                  .world = &world,
+                                  .states = &states},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
 
     ASSERT_TRUE(scene.Enter().HasValue());
 
@@ -892,7 +900,7 @@ TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
     EXPECT_FALSE(scene.Failure().has_value());
     EXPECT_TRUE(actor.seen);
     EXPECT_GT(actor.animation.frame, 0.0f);
-    EXPECT_FALSE(world.Map().terrain.attributes) << "las paredes son del LoadedWorld de la escena";
+    EXPECT_FALSE(states.terrain.current.attributes) << "las paredes son del LoadedWorld de la escena";
 }
 
 TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
@@ -2035,6 +2043,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     const auto ownedWorld = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& worldState = *ownedWorld;
     Client::Scenes::SelectionState state(worldState);
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
@@ -2042,7 +2051,8 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
                                .cloth = &cloth,
                                .camera = &camera,
                                .cameraInput = &cameraInput,
-                               .selection = &state};
+                               .selection = &state,
+                               .states = &states};
     {
         LoginScene login(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
         ASSERT_TRUE(login.Enter().HasValue());

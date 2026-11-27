@@ -358,7 +358,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
-    const Actors::ActorConstructionContext construction{world.Map().terrain, runtime.map, Terrain::CullingScene::Game,
+    const Actors::ActorConstructionContext construction{TerrainOf(resources), runtime.map, Terrain::CullingScene::Game,
                                                         resources.camera.fixedHeight};
     const auto created = Actors::CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
                                              construction, resources.cloth);

@@ -132,7 +132,7 @@ Core::Expected<void, std::string> WrapInIce(Kernel::ActorState& actor, const Sce
     const World::WizardEffectServices services =
         Scenes::WizardEffectServicesOf(world, resources.cloth.random,
                                        Scenes::WizardSceneParts{.particles = &world.Particles(),
-                                                                .terrain = &world.Map().terrain,
+                                                                .terrain = &Scenes::TerrainOf(resources),
                                                                 .fixedHeight = resources.camera.fixedHeight});
     glm::vec3 angles = actor.angles;
     for (const std::int32_t subtype : {FirstIce, SecondIce})

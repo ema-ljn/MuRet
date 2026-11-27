@@ -33,6 +33,7 @@
 #include "Scenes/SocialRequests.h"
 #include "Scenes/SocialState.h"
 #include "Actors/ViewportPlayers.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -217,9 +218,11 @@ struct Game
                 .models = models,
                 .items = &items,
                 .itemSetTables = &sets,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
@@ -243,7 +246,7 @@ protected:
         const std::uint8_t map = GetParam();
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        game->world.Map().terrain = std::move(loaded).Value();
+        game->states.terrain.current = std::move(loaded).Value();
         game->world.Runtime().map = map;
         TheOtherArrives();
         sprites.Begin(Screen640);
@@ -252,7 +255,7 @@ protected:
     // La primera fila libre de dos celdas desde (100, 100).
     [[nodiscard]] std::array<std::uint8_t, 2> FreeRow() const
     {
-        const auto& cells = game->world.Map().terrain.attributes->cells;
+        const auto& cells = game->states.terrain.current.attributes->cells;
         for (int y = 100; y < 200; ++y)
             for (int x = 100; x < 200; ++x)
                 if (cells[Client::Data::Terrain::CellIndex(Byte(x), Byte(y))] == 0 &&

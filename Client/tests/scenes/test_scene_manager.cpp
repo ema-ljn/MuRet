@@ -1074,8 +1074,8 @@ TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
 // Su mapa0 con pool vacío aisla el gate del dibujo; el caso inicial54 real vive en test_game_scene_wait.
 struct ManagerGameResources
 {
-    Expected<void, std::string> Load(Client::Kernel::WorldState& world, Client::Models::ClothWorld& cloth,
-                                     FakeTextureStore& textures, Log& log)
+    Expected<void, std::string> Load(Client::Kernel::WorldState& world, Client::Terrain::TerrainState& terrain,
+                                     Client::Models::ClothWorld& cloth, FakeTextureStore& textures, Log& log)
     {
         auto loadedData = Client::Tables::LoadGameData(dataRoot);
         if (!loadedData.HasValue())
@@ -1084,7 +1084,7 @@ struct ManagerGameResources
         if (auto loadedModels = models.Load(dataRoot, textures, log); !loadedModels.HasValue())
             return loadedModels;
         world.Runtime().map = 0; // El caller escribe el mundo antes de 61a560, que conserva el observado.
-        return Client::Scenes::LoadMap(0, {dataRoot, world, SceneId::Game, 0, cloth.random});
+        return Client::Scenes::LoadMap(0, {dataRoot, world, terrain, SceneId::Game, 0, cloth.random});
     }
     std::filesystem::path dataRoot = Client::Tests::GoldenDir();
     Client::Tables::GameData data;
@@ -1113,7 +1113,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     ManagerGameResources gameResources;
-    const auto loaded = gameResources.Load(world, cloth, textures, log);
+    const auto loaded = gameResources.Load(world, states.terrain, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     // 0x633f30: la selección ya marcó el mundo cargado.
     world.Runtime().drawingEnabled = true;
@@ -1313,7 +1313,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     ManagerGameResources gameResources;
-    const auto loaded = gameResources.Load(world, cloth, textures, log);
+    const auto loaded = gameResources.Load(world, states.terrain, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     // 0x633f30: la selección ya marcó el mundo cargado.
     world.Runtime().drawingEnabled = true;
@@ -1339,7 +1339,8 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
                                                         .itemSetTables = &*gameResources.data.itemSets,
                                                         .log = log,
                                                         .textMeasure = &letters,
-                                                        .texts = &*gameResources.data.text};
+                                                        .texts = &*gameResources.data.text,
+                                                        .states = &states};
     RecordingFrameTarget target({800, 600});
     bool returning = false;
     bool choose = false;

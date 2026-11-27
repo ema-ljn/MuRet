@@ -297,8 +297,7 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
     {
         if ((helper.horse.effectCount & 1) != 0)
         {
-            const Terrain::WorldTerrain& terrain =
-                context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+            const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
             const glm::vec3 reach(0.0f, F32(static_cast<double>(helper.horse.effectCount >> 1) * StoneRingStep), 0.0f);
             glm::vec3 turn(0.0f, 0.0f, static_cast<float>(context.random.Next() % StoneDegrees));
             for (int stone = 0; stone < StoneCount; ++stone)

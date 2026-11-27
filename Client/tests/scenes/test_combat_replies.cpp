@@ -28,6 +28,7 @@
 #include "UI/MessageArea.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
@@ -145,7 +146,8 @@ protected:
                                   .random = m_random,
                                   .playerSkeleton = &m_playerSkeleton,
                                   .models = &m_models,
-                                  .items = &m_items};
+                                  .items = &m_items,
+                                  .terrain = &m_terrain};
     }
     // Con la tabla de sonidos `sounds` para el modelo Monster (la de 0x612c80) y ninguna para los demás.
     [[nodiscard]] ActorCombatContext CombatWithSounds(const Client::Sound::ModelSounds& sounds)
@@ -166,11 +168,11 @@ protected:
     }
     void UseTerrain()
     {
-        m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     }
     std::uint16_t& Wall(std::uint8_t x, std::uint8_t y)
     {
-        return m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
+        return m_terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
     [[nodiscard]] static std::uint32_t After(std::uint32_t count)
     {
@@ -189,6 +191,7 @@ protected:
     static constexpr std::size_t HeroIndex = 5;
     static constexpr std::uint16_t HeroKey = 0x2a;
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
+    Client::Terrain::WorldTerrain m_terrain;
     CrtRandom m_random{Seed};
     Client::Models::Skeleton m_playerSkeleton = Client::Tests::PlayerActionsSkeleton();
     CombatModels m_models;

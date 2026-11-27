@@ -28,6 +28,7 @@
 #include "Scenes/SelectionInventory.h"
 #include "Scenes/SelectionState.h"
 #include "Session/SessionEventApplier.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Session/WorldTransitionSupport.h"
 #include "support/LetterMeasure.h"
@@ -79,8 +80,8 @@ struct Transition
         world.Runtime().hero = 7;
         world.Runtime().heroSlot = 7;
         world.Runtime().map = 0;
-        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        states.terrain.current.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         Hero() = Client::Tests::UnarmedPlayer();
         world.OwnCharacter().ClearEquipmentForEntry();
         Hero().alive = true;
@@ -105,7 +106,8 @@ struct Transition
                 .itemSetTables = &itemSets,
                 .log = log,
                 .textMeasure = &letters,
-                .texts = &texts};
+                .texts = &texts,
+                .states = &states};
     }
     static constexpr std::uint16_t PlayerKey = 33;
     // El renglón de bienvenida del F3 03 (0x4c4b60) de los tests que entran por la sesión.
@@ -113,6 +115,7 @@ struct Transition
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;

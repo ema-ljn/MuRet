@@ -30,6 +30,7 @@
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainState.h"
 
 #include <array>
 #include <cstddef>
@@ -83,16 +84,16 @@ std::vector<Data::Terrain::TerrainObject> SpecialObjectsOf(std::int32_t map)
 }
 
 // Las tablas de atributos y luz cruda sólo sobreviven si Crywolf reutiliza las rutas de carga (Q-C181).
-void ForgetThePreviousTerrain(Kernel::WorldMap& loaded, bool retainTerrainTables)
+void ForgetThePreviousTerrain(Kernel::WorldMap& loaded, Terrain::WorldTerrain& current, bool retainTerrainTables)
 {
     loaded.grassOffsets.clear();
     Terrain::WorldTerrain terrain;
     if (retainTerrainTables)
     {
-        terrain.attributes = std::move(loaded.terrain.attributes);
-        terrain.rawLight = std::move(loaded.terrain.rawLight);
+        terrain.attributes = std::move(current.attributes);
+        terrain.rawLight = std::move(current.rawLight);
     }
-    loaded.terrain = std::move(terrain);
+    current = std::move(terrain);
 }
 
 std::string DescribeCreationError(World::WorldObjectCreationError error)
@@ -202,7 +203,7 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Ke
 {
     const auto folderMap = static_cast<std::uint8_t>(map);
     auto& fatalMessage = context.world.Runtime().fatalDataMessage;
-    auto terrain = Terrain::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage,
+    auto terrain = Terrain::LoadWorldTerrainLayout(context.dataRoot, folderMap, context.terrain.current, fatalMessage,
                                                    names.attributesNumber, names.reusePreviousPaths);
     if (!terrain.HasValue())
     {
@@ -217,8 +218,8 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Ke
     if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context);
         !created.HasValue())
         return created;
-    return Terrain::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage, names.lightName,
-                                            names.reusePreviousPaths);
+    return Terrain::LoadWorldTerrainSurface(context.dataRoot, folderMap, context.terrain.current, fatalMessage,
+                                            names.lightName, names.reusePreviousPaths);
 }
 } // namespace
 
@@ -289,7 +290,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     ++loaded.loadRevision;
     ReleaseTheMapObjects(loaded);
     ClearWorldTransientPools(context.world);
-    ForgetThePreviousTerrain(loaded, reusePreviousPaths);
+    ForgetThePreviousTerrain(loaded, context.terrain.current, reusePreviousPaths);
     if (context.scene != SceneId::CharacterSelect)
     {
         // El DWORD 0x57678bc lleva la clave sin signo.

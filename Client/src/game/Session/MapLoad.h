@@ -20,6 +20,11 @@ struct WorldMap;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct TerrainState;
+}
+
 // La carga del mapa en la CPU: 0x61a560 (con 0x510f70, que mata a los personajes de otra clave) y
 // 0x447d70, los objetos de los mapas de evento. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
 // "La carga del mapa" y la tabla de 0x4c3940.
@@ -32,6 +37,8 @@ struct MapLoadContext
     const std::filesystem::path& dataRoot;
     // El mundo en curso (DAT_006c9dd0), el pool de personajes y el mapa cargado (WorldState::Map).
     Kernel::WorldState& world;
+    // The terrain's state: the load replaces its current terrain and leaves the ground marks (Q-C228).
+    Terrain::TerrainState& terrain;
     // DAT_006d5dc8: en la selección (4) no corre 0x510f70.
     SceneId scene;
     // DAT_057678bc, la clave del jugador que dio el F1 00.

@@ -33,6 +33,7 @@
 #include "Kernel/OwnInventory.h"
 #include "Session/ReturnToSelection.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
@@ -178,7 +179,7 @@ struct Stage
         Client::Kernel::ActorState& hero = world.Actors()[HeroSlot];
         hero = Client::Tests::UnarmedPlayer();
         hero.alive = true;
-        auto& terrain = world.Map().terrain;
+        auto& terrain = states.terrain.current;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         terrain.heights->cells.fill(Ground);
@@ -198,7 +199,8 @@ struct Stage
                                    .log = log,
                                    .textMeasure = &text,
                                    .screen = [] { return Client::Core::PixelSize{640, 480}; },
-                                   .texts = &texts};
+                                   .texts = &texts,
+                                   .states = &states};
     }
 
     [[nodiscard]] Scenes::InventoryMoveContext Moves()
@@ -212,6 +214,7 @@ struct Stage
     }
 
     WorldState world;
+    Client::Session::ModuleStates states;
     Scenes::SelectionState selection;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
@@ -484,11 +487,15 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
         runtime.movement.targetX = 10;
         runtime.movement.targetY = 20;
 
-        ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {1300.0f, 2050.0f, 0.0f}, 1200.0f).HasValue());
+        ASSERT_TRUE(
+            Scenes::PickUpTheFloorItem(stage->Moves(), {1300.0f, 2050.0f, 0.0f}, stage->states.terrain.current, 1200.0f)
+                .HasValue());
         EXPECT_TRUE(sent.empty());
 
         const CrtRandom expected = Advanced(stage->cloth.random, SendRandoms);
-        ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, 1200.0f).HasValue());
+        ASSERT_TRUE(
+            Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, stage->states.terrain.current, 1200.0f)
+                .HasValue());
         EXPECT_EQ(stage->cloth.random.State(), expected.State());
         ASSERT_EQ(sent.size(), 1u);
         const auto packet = Client::Protocol::Items::WritePickUp(sent.front());
@@ -497,7 +504,9 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
         EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
 
         runtime.floor.chosen = 5;
-        ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, 1200.0f).HasValue());
+        ASSERT_TRUE(
+            Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, stage->states.terrain.current, 1200.0f)
+                .HasValue());
         EXPECT_EQ(sent.size(), 1u);
     }
 }
@@ -522,7 +531,7 @@ TEST(FloorItemsSceneTest, WithoutRoomTheItemJumpsAndWarns)
     runtime.floor.chosen = 0;
     runtime.floor.fromSpace = 1;
     const auto before = stage->cloth.random.State();
-    ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {}, 1200.0f).HasValue());
+    ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {}, stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_EQ(stage->cloth.random.State(), before);
     EXPECT_EQ(lines, std::vector<std::string>{"no hay lugar"});
     EXPECT_FLOAT_EQ(stage->Item(0).position.z, Ground + 3.0f);
@@ -546,11 +555,11 @@ TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
     Client::Kernel::ActorState& hero = stage->world.Actors()[HeroSlot];
     hero.position = {1050.0f, 2050.0f + 299.0f, Ground};
     stage->Item(7).seen = false;
-    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), 1200.0f).HasValue());
+    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_TRUE(sent.empty());
 
     stage->Item(7).seen = true;
-    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), 1200.0f).HasValue());
+    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_EQ(sent, std::vector<std::uint16_t>{7});
     EXPECT_EQ(stage->world.Runtime().floor.chosen, 7);
     EXPECT_EQ(stage->world.Runtime().floor.fromSpace, 0);
@@ -558,7 +567,7 @@ TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
 
     stage->world.Runtime().floor.pendingPickUp = -1;
     hero.position.y = 2050.0f + 300.0f;
-    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), 1200.0f).HasValue());
+    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_EQ(sent.size(), 1u);
 }
 

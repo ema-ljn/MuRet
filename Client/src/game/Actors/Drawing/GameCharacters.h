@@ -102,7 +102,7 @@ struct GameCharacterPass
     // for the terrain height under its shadow (0x5f93c0).
     const Terrain::TerrainPolygon* polygon = nullptr;
     float fixedHeight = 1200.0f;
-    // The terrain of that height; without it, the world's map's (WorldState::Map). The selection has its own.
+    // The terrain of that height and of the gates' TerrainWall; without it, an empty one. The selection has its own.
     const Terrain::WorldTerrain* terrain = nullptr;
     // The guild marks (0x5f16a0) 0x50d533 draws on the players with a guild; without them, one with the mark stops.
     Scenes::IGuildMarks* guildMarks = nullptr;

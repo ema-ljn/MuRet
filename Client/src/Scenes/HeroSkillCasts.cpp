@@ -32,7 +32,6 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Scenes/SkillDelays.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
@@ -189,7 +188,8 @@ Core::Expected<void, std::string> AttackWith(Kernel::ActorState& actor, const He
                                                     .random = context.random,
                                                     .playerSkeleton = context.playerSkeleton,
                                                     .models = context.models,
-                                                    .items = context.items});
+                                                    .items = context.items,
+                                                    .terrain = context.terrain});
 }
 
 // 0x563b8f..0x564f37: 0x4f4a10 sobre c; un jugador (0x20a en +2) o, en la 0x18, uno con 1 en +0x88, nada más. Si
@@ -226,6 +226,7 @@ Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std:
                                             .random = context.random,
                                             .playerSkeleton = context.playerSkeleton,
                                             .items = context.items,
+                                            .terrain = context.terrain,
                                             .soundRequest = [&world](std::int32_t sound)
                                             { world.Runtime().RequestSound(sound); },
                                             .soundAt = [&world](std::int32_t sound, const glm::vec3& origin)
@@ -455,7 +456,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
     // 0x559725..0x559822: fuera de alcance, el camino desde las celdas lógicas de c.
     const std::uint8_t y = ReadCell(caster.cellYAccesses, caster.cellY, context.random);
     const std::uint8_t x = ReadCell(caster.cellXAccesses, caster.cellX, context.random);
-    const Terrain::WorldTerrain& terrain = world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55980f: falta TerrainWall para el camino de la skill"));
     constexpr std::int32_t LastCell = 0xff;
@@ -559,7 +560,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& ca
         StepTheCellByTheRumbo(dfX, dfY, std::abs(*rumbo));
     }
     // 0x55c72d..0x55c79b: 0x5f8290 (y · 256 + x) en los atributos de TerrainWall.
-    const Terrain::WorldTerrain& terrain = world.Map().terrain;
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55c745: falta TerrainWall para la celda del DF"));
     const std::uint16_t attribute = terrain.attributes->cells[std::size_t{dfY} * 256u + dfX];

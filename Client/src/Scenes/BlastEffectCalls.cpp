@@ -9,6 +9,7 @@
 #include "Scenes/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Terrain/WorldTerrain.h"
 #include "World/BlastModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -69,7 +70,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
                                            .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                            .key = effect.disturbanceState,
                                            .extra = 0};
-            const auto hit = HitTheTargetsAround(request, world, context.random, context.send);
+            const auto hit = HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+                                                 context.random, context.send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};

@@ -58,6 +58,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
                   static_cast<float>(ticks), static_cast<std::uint32_t>(ticks), input.IsDown(Input::Key::Ctrl)},
         .fixedHeight = CameraState().fixedHeight,
         .models = m_models};
+    context.terrain = &MapTerrain();
     context.saveOptionsAndMacros = [this, &world]() -> Core::Expected<void, std::string>
     {
         std::optional<std::uint8_t> chosenSlot;
@@ -110,7 +111,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     {
         if (!m_mouseRay)
             return std::optional<glm::vec3>{};
-        const auto& terrain = world.Map().terrain;
+        const auto& terrain = MapTerrain();
         Terrain::TerrainView view;
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
@@ -149,7 +150,7 @@ Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::Gro
     if (!m_mouseRay)
         return std::optional<Pathfinding::PathCell>{};
     Kernel::WorldState& world = *m_context.world;
-    const auto& terrain = world.Map().terrain;
+    const auto& terrain = MapTerrain();
     Terrain::TerrainView view;
     view.mapping = terrain.mapping.get();
     view.heights = terrain.heights.get();
@@ -210,7 +211,12 @@ const Terrain::WorldTerrain& GameScene::StepTerrain() const
 {
     if (m_context.world->Runtime().map == 54 && m_context.selection && m_context.selection->Terrain())
         return *m_context.selection->Terrain();
-    return m_context.world->Map().terrain;
+    return MapTerrain();
+}
+
+const Terrain::WorldTerrain& GameScene::MapTerrain() const
+{
+    return m_context.states->terrain.current;
 }
 
 Core::Expected<void, std::string> GameScene::StepTheLeaves()

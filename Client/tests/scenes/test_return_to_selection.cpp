@@ -20,6 +20,7 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/HelperTable.h"
 #include "Session/IWorldEntryPublisher.h"
+#include "Session/ModuleStates.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -102,7 +103,8 @@ struct Returning
                                    .items = &items,
                                    .log = log,
                                    .textMeasure = &letters,
-                                   .texts = &texts};
+                                   .texts = &texts,
+                                   .states = &states};
     }
     // El renglón de bienvenida del F3 03 (0x4c4b60).
     Client::Tests::LetterMeasure letters;
@@ -117,6 +119,7 @@ struct Returning
 
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
@@ -214,8 +217,8 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         own.word3e = 4;
         own.word40 = 5;
         own.word42 = 6;
-        const auto* attributes = tested.world.Map().terrain.attributes.get();
-        const auto* heights = tested.world.Map().terrain.heights.get();
+        const auto* attributes = tested.states.terrain.current.attributes.get();
+        const auto* heights = tested.states.terrain.current.heights.get();
         const std::vector<float> grass = tested.world.Map().grassOffsets;
         const CrtRandom before = tested.cloth.random;
 
@@ -224,10 +227,10 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         EXPECT_TRUE(tested.world.Map().objects.empty());
         EXPECT_TRUE(tested.world.Map().objectRecords.empty());
         EXPECT_EQ(tested.AliveEffects(), 0u);
-        EXPECT_EQ(tested.world.Map().terrain.attributes.get(), attributes);
-        EXPECT_EQ(tested.world.Map().terrain.heights.get(), heights);
-        EXPECT_TRUE(tested.world.Map().terrain.mapping);
-        EXPECT_TRUE(tested.world.Map().terrain.lighting);
+        EXPECT_EQ(tested.states.terrain.current.attributes.get(), attributes);
+        EXPECT_EQ(tested.states.terrain.current.heights.get(), heights);
+        EXPECT_TRUE(tested.states.terrain.current.mapping);
+        EXPECT_TRUE(tested.states.terrain.current.lighting);
         EXPECT_EQ(tested.world.Map().grassOffsets, grass);
         EXPECT_FALSE(tested.world.Actors()[hero].alive);
         EXPECT_FALSE(tested.world.Actors()[stranger].alive);
@@ -245,7 +248,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         EXPECT_EQ(runtime.ownRecordDepth, 0);
         EXPECT_EQ(tested.cloth.random.State(), Advanced(before, OwnRecordClose).State());
         EXPECT_EQ(tested.cameraInput.hero, tested.world.Actors()[hero].position);
-        EXPECT_EQ(tested.selection.Terrain(), &tested.world.Map().terrain);
+        EXPECT_EQ(tested.selection.Terrain(), &tested.states.terrain.current);
         EXPECT_EQ(tested.selection.Map(), -1);
     }
 }

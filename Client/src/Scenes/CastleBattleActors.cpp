@@ -9,7 +9,6 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/MonsterCreation.h"
 #include "Session/WorldEntry.h"
-#include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Pathfinding/TerrainWalls.h"
@@ -51,7 +50,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, b
     {
         if (x != gate.x || y != gate.y)
             continue;
-        auto& attributes = resources.world.Map().terrain.attributes;
+        const auto& attributes = TerrainOf(resources).attributes;
         if (!attributes)
             return Core::Unexpected(std::string("0x42a110: faltan los atributos de las puertas del castillo"));
         constexpr int GateWidth = 4;

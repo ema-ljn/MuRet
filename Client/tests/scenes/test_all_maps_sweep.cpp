@@ -20,6 +20,7 @@
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
+#include "Terrain/TerrainState.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
@@ -99,16 +100,16 @@ std::string_view ExpectedError(MapSweepCut cut)
     return "corte sin inventariar";
 }
 
-void SeedThePreviousMap(WorldState& world)
+void SeedThePreviousMap(WorldState& world, Client::Terrain::WorldTerrain& terrain)
 {
     auto& loaded = world.Map();
     loaded.kalima = std::make_unique<Client::World::KalimaWorld>(24);
-    loaded.terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
-    loaded.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    loaded.terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    loaded.terrain.lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    loaded.terrain.mapping->layer1.front() = 91;
-    loaded.terrain.heights->cells.front() = -123456.0f;
+    terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
+    terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    terrain.lighting = std::make_unique<Client::Terrain::TerrainLighting>();
+    terrain.mapping->layer1.front() = 91;
+    terrain.heights->cells.front() = -123456.0f;
     loaded.grassOffsets = {-99.0f};
     loaded.objectRecords.push_back(Client::Data::Terrain::TerrainObject{.type = StaleType});
     Client::World::WorldObject stale;
@@ -178,31 +179,31 @@ void ExpectTerrain(const Client::Terrain::WorldTerrain& terrain, const MapSweepW
               static_cast<double>(expected.heightByteSum) * scale);
 }
 
-void ExpectPublishedFiles(const Client::Kernel::WorldMap& loaded, const MapSweepCase& probe,
-                          const MapSweepWorldCase& expected)
+void ExpectPublishedFiles(const Client::Kernel::WorldMap& loaded, const Client::Terrain::WorldTerrain& terrain,
+                          const MapSweepCase& probe, const MapSweepWorldCase& expected)
 {
     if (probe.cut == MapSweepCut::MissingHeight)
     {
         // 61a650..61a7e9 publica MAP/ATT y OBJ antes de cargar las alturas (Q-C180).
-        ASSERT_NE(loaded.terrain.mapping, nullptr);
-        ASSERT_NE(loaded.terrain.attributes, nullptr);
-        EXPECT_EQ(CrcOf(loaded.terrain.mapping->layer1), expected.layer1Crc);
-        EXPECT_EQ(CrcOf(loaded.terrain.mapping->layer2), expected.layer2Crc);
-        EXPECT_EQ(loaded.terrain.heights, nullptr);
-        EXPECT_EQ(loaded.terrain.lighting, nullptr);
+        ASSERT_NE(terrain.mapping, nullptr);
+        ASSERT_NE(terrain.attributes, nullptr);
+        EXPECT_EQ(CrcOf(terrain.mapping->layer1), expected.layer1Crc);
+        EXPECT_EQ(CrcOf(terrain.mapping->layer2), expected.layer2Crc);
+        EXPECT_EQ(terrain.heights, nullptr);
+        EXPECT_EQ(terrain.lighting, nullptr);
         EXPECT_EQ(loaded.objectRecords.size(), expected.records);
         return;
     }
     if (!PublishesTerrain(probe.cut))
     {
-        EXPECT_EQ(loaded.terrain.mapping, nullptr);
-        EXPECT_EQ(loaded.terrain.attributes, nullptr);
-        EXPECT_EQ(loaded.terrain.heights, nullptr);
-        EXPECT_EQ(loaded.terrain.lighting, nullptr);
+        EXPECT_EQ(terrain.mapping, nullptr);
+        EXPECT_EQ(terrain.attributes, nullptr);
+        EXPECT_EQ(terrain.heights, nullptr);
+        EXPECT_EQ(terrain.lighting, nullptr);
         EXPECT_TRUE(loaded.objectRecords.empty());
         return;
     }
-    ExpectTerrain(loaded.terrain, expected);
+    ExpectTerrain(terrain, expected);
     ASSERT_EQ(loaded.objectRecords.size(), expected.records);
     ASSERT_FALSE(loaded.objectRecords.empty());
     EXPECT_EQ(loaded.objectRecords.front().type, expected.firstType);
@@ -398,6 +399,7 @@ class MapSweep : public Client::Tests::GoldenDataTest, public ::testing::WithPar
 {
 protected:
     WorldState m_world;
+    Client::Terrain::TerrainState m_terrain;
     Client::Crt::CrtRandom m_random{Client::Tests::MapSweepSeed};
 };
 
@@ -406,15 +408,18 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     const MapSweepCase& probe = GetParam();
     const MapSweepWorldCase* expected = WorldCase(probe.folder);
     ASSERT_NE(expected, nullptr);
-    SeedThePreviousMap(m_world);
+    SeedThePreviousMap(m_world, m_terrain.current);
     SeedTheEffectPools(m_world);
     SeedTheActors(m_world);
     m_world.Runtime().map = probe.nominal;
     const SceneId scene = SceneOf(probe.nominal);
 
-    const auto loaded = Client::Scenes::LoadMap(
-        probe.nominal,
-        {.dataRoot = m_dataRoot, .world = m_world, .scene = scene, .playerKey = PlayerKey, .random = m_random});
+    const auto loaded = Client::Scenes::LoadMap(probe.nominal, {.dataRoot = m_dataRoot,
+                                                                .world = m_world,
+                                                                .terrain = m_terrain,
+                                                                .scene = scene,
+                                                                .playerKey = PlayerKey,
+                                                                .random = m_random});
 
     EXPECT_EQ(loaded.HasValue(), probe.cut == MapSweepCut::None);
     if (!loaded.HasValue())
@@ -428,7 +433,7 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     {
         EXPECT_EQ(m_world.Map().kalima->Map(), loaded.HasValue() ? probe.effective : 24);
     }
-    ExpectPublishedFiles(m_world.Map(), probe, *expected);
+    ExpectPublishedFiles(m_world.Map(), m_terrain.current, probe, *expected);
     ExpectObjectIdentities(m_world.Map(), probe);
     ExpectGrassAndRandom(m_world.Map(), probe, m_random);
     ExpectEffectCleanup(m_world, probe);

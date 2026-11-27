@@ -26,6 +26,11 @@ namespace Client::Models
 struct Skeleton;
 }
 
+namespace Client::Terrain
+{
+struct TerrainState;
+}
+
 // La selección sobre el pool durable (06, "Los personajes de la lista", y CL7.3 B): construye en los
 // cinco primeros registros de WorldState y escribe el mundo en curso en su WorldRuntime, sin otra
 // copia. main es dueño de los dos; la vista usa las revisiones, nunca la igualdad de las entradas.
@@ -63,9 +68,10 @@ public:
     void RefreshCameraAttribute(Camera::GameCameraInput& input) const;
     // 0x633f20 con la lista: el mundo cargado, el 54 como mundo en curso (0x633f44) y 0x61a560(54), la carga
     // de LoadMap en la escena 4 (los objetos del .obj con sus casos de la selección, 0x606660, y el pasto
-    // con sus 65.536 rand()). El terreno queda en WorldState::Map y este estado lo presta. `random` es el
-    // rand() de la CRT; sin él, el local de las pruebas.
+    // con sus 65.536 rand()). El terreno queda en `terrain.current` y este estado lo presta.
+    // `random` es el rand() de la CRT; sin él, el local de las pruebas.
     [[nodiscard]] Core::Expected<void, std::string> InitializeSelection(const std::filesystem::path& dataRoot,
+                                                                        Terrain::TerrainState& terrain,
                                                                         Camera::GameCameraInput& input,
                                                                         Crt::CrtRandom* random = nullptr);
     [[nodiscard]] Core::Expected<void, std::string> Apply(std::span<const App::CharacterEvent> events,

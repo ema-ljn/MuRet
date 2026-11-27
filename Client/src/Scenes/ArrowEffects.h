@@ -96,7 +96,7 @@ namespace Client::Scenes
 // Lo que el paso de una flecha lee y escribe afuera de su lugar: el pool de personajes, el registro propio y el
 // héroe (0x520170), las partículas (0x53fe70), los sprites del frame (0x5491e0), la luz dinámica (0x5f9780) y el
 // reloj del mundo (0x5767b88). CL9 hito 4: la altura del terreno (0x5f93c0, la flecha 0xdb/3 y /4; los atributos los
-// lee del mapa del mundo), los sonidos (0x41ed10, CL10: quedan en WorldRuntime::lastSoundId) y lo que manda el choque
+// lee de `terrain`), los sonidos (0x41ed10, CL10: quedan en WorldRuntime::lastSoundId) y lo que manda el choque
 // de las flechas de skill (0x517a20, el C1 10). Vacíos, la altura corta, el sonido no se pide y el paquete no sale
 // (sus rand() sí).
 struct ArrowStepContext
@@ -107,7 +107,7 @@ struct ArrowStepContext
     World::FrameSprites* sprites = nullptr;
     Terrain::TerrainLighting* lighting = nullptr;
     float worldClock = 0.0f;
-    // La carga del mapa (0x7d0d348); vacío, el mapa del juego.
+    // The map's load (0x7d0d348); without it, an empty one.
     const Terrain::WorldTerrain* terrain = nullptr;
     std::function<double(float, float)> terrainHeight{};
     std::function<void(std::int32_t)> soundRequest{};

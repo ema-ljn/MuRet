@@ -24,6 +24,7 @@
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/SameBytes.h"
@@ -192,6 +193,7 @@ struct ArrowWorld
         return CharacterStepContext{.world = world,
                                     .random = random,
                                     .playerSkeleton = &skeleton,
+                                    .terrain = &terrain,
                                     .particles = &particles,
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
                                     .soundAt =
@@ -211,6 +213,7 @@ struct ArrowWorld
             .sprites = &sprites,
             .lighting = lighting.get(),
             .worldClock = 0.0f,
+            .terrain = &terrain,
             .terrainHeight = terrainHeight        ? terrainHeight
                              : ground.has_value() ? std::function<double(float, float)>(
                                                         [this](float, float) { return ground.value_or(0.0); })
@@ -276,6 +279,7 @@ struct ArrowWorld
 
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::World::Particles particles;
@@ -1378,7 +1382,7 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
             ArrowWorld tested(map);
             auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
             attributes->cells.fill(probe.attribute);
-            tested.world.Map().terrain.attributes = std::move(attributes);
+            tested.terrain.attributes = std::move(attributes);
             int heights = 0;
             tested.terrainHeight = [&heights, &probe](float, float)
             {
@@ -2235,8 +2239,8 @@ TEST(ArrowEffectsTest, Attribute100StopsTheArrowAndHalvesLifeBeforeTheCommonEpil
 {
     ArrowWorld tested(0);
     tested.world.Runtime().castleSiege.siegeActive = true;
-    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    tested.world.Map().terrain.attributes->cells[513] = 0x100;
+    tested.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.terrain.attributes->cells[513] = 0x100;
     ModelEffect arrow;
     arrow.alive = true;
     arrow.type = 0xdc;

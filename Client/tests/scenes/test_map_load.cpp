@@ -149,9 +149,12 @@ protected:
     [[nodiscard]] Client::Core::Expected<void, std::string> Load(std::uint8_t map, SceneId scene = SceneId::Game)
     {
         world.Runtime().map = map;
-        return LoadMap(
-            map, MapLoadContext{
-                     .dataRoot = m_dataRoot, .world = world, .scene = scene, .playerKey = PlayerKey, .random = random});
+        return LoadMap(map, MapLoadContext{.dataRoot = m_dataRoot,
+                                           .world = world,
+                                           .terrain = terrainState,
+                                           .scene = scene,
+                                           .playerKey = PlayerKey,
+                                           .random = random});
     }
 
     WorldState world;
@@ -174,7 +177,7 @@ TEST_F(MapLoadTest, TheGrassOffsetsAreTheFirstSixtyFiveThousandRandoms)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, GrassRandoms).State());
     EXPECT_FALSE(world.Map().objects.empty());
     EXPECT_EQ(world.Map().objects.size(), world.Map().objectRecords.size());
-    EXPECT_TRUE(world.Map().terrain.attributes && world.Map().terrain.heights);
+    EXPECT_TRUE(terrainState.current.attributes && terrainState.current.heights);
 }
 
 // Q-C58: con el argumento y el mundo en curso en 32, la carga sigue como el 9, en World10.
@@ -185,8 +188,8 @@ TEST_F(MapLoadTest, MapThirtyTwoLoadsWorldTenAsNine)
     EXPECT_EQ(world.Runtime().map, 9);
     const auto worldTen = Client::Terrain::LoadWorldTerrain(m_dataRoot, 9);
     ASSERT_TRUE(worldTen.HasValue());
-    EXPECT_EQ(world.Map().terrain.attributes->cells, worldTen.Value().attributes->cells);
-    EXPECT_EQ(world.Map().terrain.heights->cells, worldTen.Value().heights->cells);
+    EXPECT_EQ(terrainState.current.attributes->cells, worldTen.Value().attributes->cells);
+    EXPECT_EQ(terrainState.current.heights->cells, worldTen.Value().heights->cells);
 }
 
 TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationKeepsIt)
@@ -216,7 +219,7 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
 
     buildCloth(world.ActorCloths()[0]);
     ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
-    const Client::Actors::ActorConstructionContext construction{world.Map().terrain, 0,
+    const Client::Actors::ActorConstructionContext construction{terrainState.current, 0,
                                                                 Client::Terrain::CullingScene::Game, 450.0f};
     Client::Models::ClothWorld actorClothWorld{.random = CrtRandom(Seed)};
 
@@ -344,6 +347,7 @@ TEST_F(MapLoadTest, AMissingTerrainHeightNamesTheFile)
 
     const auto loaded = LoadMap(0, MapLoadContext{.dataRoot = folder.Path(),
                                                   .world = world,
+                                                  .terrain = terrainState,
                                                   .scene = SceneId::Game,
                                                   .playerKey = PlayerKey,
                                                   .random = random});
@@ -400,6 +404,7 @@ TEST_F(MapLoadTest, AKeyAbove7fffKillsEvenItsOwnerAndTheSelectionKillsNobody)
     world.Runtime().map = 0;
     const auto selection = LoadMap(0, MapLoadContext{.dataRoot = m_dataRoot,
                                                      .world = world,
+                                                     .terrain = terrainState,
                                                      .scene = SceneId::CharacterSelect,
                                                      .playerKey = 0x8005,
                                                      .random = random});
@@ -407,9 +412,12 @@ TEST_F(MapLoadTest, AKeyAbove7fffKillsEvenItsOwnerAndTheSelectionKillsNobody)
     EXPECT_TRUE(actors[3].alive);
     EXPECT_TRUE(actors[4].alive);
 
-    const auto game = LoadMap(
-        0, MapLoadContext{
-               .dataRoot = m_dataRoot, .world = world, .scene = SceneId::Game, .playerKey = 0x8005, .random = random});
+    const auto game = LoadMap(0, MapLoadContext{.dataRoot = m_dataRoot,
+                                                .world = world,
+                                                .terrain = terrainState,
+                                                .scene = SceneId::Game,
+                                                .playerKey = 0x8005,
+                                                .random = random});
 
     ASSERT_TRUE(game.HasValue());
     EXPECT_FALSE(actors[3].alive);
@@ -475,6 +483,7 @@ TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
     int requests = 0;
     const auto loaded = LoadMap(30, MapLoadContext{.dataRoot = m_dataRoot,
                                                    .world = world,
+                                                   .terrain = terrainState,
                                                    .scene = SceneId::Game,
                                                    .playerKey = PlayerKey,
                                                    .random = random,
@@ -495,7 +504,7 @@ TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
         EXPECT_EQ(spearman.transform.angles, glm::vec3(0.0f));
         EXPECT_EQ(spearman.transform.scale, 1.0f);
     }
-    EXPECT_TRUE(world.Map().terrain.attributes && world.Map().terrain.heights);
+    EXPECT_TRUE(terrainState.current.attributes && terrainState.current.heights);
 }
 
 // 0x61a6ea/0x61a8af: en guerra, el ATT312 y TerrainLight2, después de los lanceros.
@@ -508,14 +517,14 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
     ASSERT_TRUE(file.has_value());
     const auto attributes = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*file)), 31);
     ASSERT_TRUE(attributes.HasValue());
-    ASSERT_NE(world.Map().terrain.attributes, nullptr);
-    EXPECT_EQ(world.Map().terrain.attributes->cells, attributes.Value()->cells);
+    ASSERT_NE(terrainState.current.attributes, nullptr);
+    EXPECT_EQ(terrainState.current.attributes->cells, attributes.Value()->cells);
     const auto light = Client::Tests::ReadFileBytes(m_dataRoot / "world31" / "TerrainLight2.OZJ");
     ASSERT_TRUE(light.has_value());
     const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
     ASSERT_TRUE(decoded.HasValue());
-    EXPECT_EQ(world.Map().terrain.lighting->cells,
-              Client::Terrain::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 30)->cells);
+    EXPECT_EQ(terrainState.current.lighting->cells,
+              Client::Terrain::ShadeTerrainLight(*decoded.Value(), *terrainState.current.heights, 30)->cells);
 }
 
 // 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
@@ -531,9 +540,9 @@ TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
     const auto other = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*first)), 35);
     ASSERT_TRUE(expected.HasValue() && other.HasValue());
     ASSERT_NE(expected.Value()->cells, other.Value()->cells);
-    ASSERT_TRUE(world.Map().terrain.attributes);
-    EXPECT_EQ(world.Map().terrain.attributes->cells, expected.Value()->cells);
-    const auto plainLight = world.Map().terrain.lighting->cells;
+    ASSERT_TRUE(terrainState.current.attributes);
+    EXPECT_EQ(terrainState.current.attributes->cells, expected.Value()->cells);
+    const auto plainLight = terrainState.current.lighting->cells;
     for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}})
     {
         SCOPED_TRACE(static_cast<int>(state));
@@ -545,15 +554,15 @@ TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
         ASSERT_TRUE(file.has_value());
         const auto attributes = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*file)), 35);
         ASSERT_TRUE(attributes.HasValue());
-        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes.Value()->cells);
+        EXPECT_EQ(terrainState.current.attributes->cells, attributes.Value()->cells);
         const auto light =
             Client::Tests::ReadFileBytes(m_dataRoot / "world35" / ("TerrainLight" + std::to_string(state) + ".OZJ"));
         ASSERT_TRUE(light.has_value());
         const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
         ASSERT_TRUE(decoded.HasValue());
-        EXPECT_EQ(world.Map().terrain.lighting->cells,
-                  Client::Terrain::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 34)->cells);
-        EXPECT_NE(world.Map().terrain.lighting->cells, plainLight);
+        EXPECT_EQ(terrainState.current.lighting->cells,
+                  Client::Terrain::ShadeTerrainLight(*decoded.Value(), *terrainState.current.heights, 34)->cells);
+        EXPECT_NE(terrainState.current.lighting->cells, plainLight);
     }
 }
 
@@ -581,9 +590,9 @@ TEST_F(MapLoadTest, CrywolfReusesTerrainTablesAfterTheAttributeReaderRejectsTheM
             ASSERT_TRUE(std::filesystem::remove(alias));
         }
         ASSERT_TRUE(Load(0).HasValue());
-        const auto* attributes = world.Map().terrain.attributes.get();
-        const auto* retainedLight = world.Map().terrain.rawLight.get();
-        const auto* oldHeights = world.Map().terrain.heights.get();
+        const auto* attributes = terrainState.current.attributes.get();
+        const auto* retainedLight = terrainState.current.rawLight.get();
+        const auto* oldHeights = terrainState.current.heights.get();
         ASSERT_NE(attributes, nullptr);
         ASSERT_NE(retainedLight, nullptr);
         ASSERT_NE(oldHeights, nullptr);
@@ -592,6 +601,7 @@ TEST_F(MapLoadTest, CrywolfReusesTerrainTablesAfterTheAttributeReaderRejectsTheM
 
         const auto loaded = LoadMap(34, MapLoadContext{.dataRoot = folder.Path(),
                                                        .world = world,
+                                                       .terrain = terrainState,
                                                        .scene = SceneId::Game,
                                                        .playerKey = PlayerKey,
                                                        .random = random});
@@ -607,7 +617,7 @@ TEST_F(MapLoadTest, CrywolfReusesTerrainTablesAfterTheAttributeReaderRejectsTheM
             EXPECT_NE(loaded.Error().find("TerrainHeight.OZJ"), std::string::npos) << loaded.Error();
             EXPECT_EQ(world.Runtime().fatalDataMessage, "Data\\World35\\TerrainHeight.OZJ - File not exist.");
         }
-        const auto& terrain = world.Map().terrain;
+        const auto& terrain = terrainState.current;
         ASSERT_NE(terrain.mapping, nullptr);
         EXPECT_FALSE(world.Map().objectRecords.empty());
         EXPECT_EQ(terrain.attributes.get(), attributes);
@@ -638,7 +648,7 @@ TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
         if (tested.frontier.empty())
         {
             ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-            EXPECT_TRUE(world.Map().terrain.attributes && world.Map().terrain.heights);
+            EXPECT_TRUE(terrainState.current.attributes && terrainState.current.heights);
             continue;
         }
         ASSERT_FALSE(loaded.HasValue());

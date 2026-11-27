@@ -32,6 +32,7 @@
 #include "Actors/MovementReplies.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -155,15 +156,21 @@ struct Game
                 .models = models,
                 .items = &items,
                 .itemSetTables = &sets,
-                .log = log};
+                .log = log,
+                .states = &states};
     }
     Client::Actors::CharacterStepContext Step()
     {
-        return {.world = world, .random = cloth.random, .playerSkeleton = &models.skeleton, .models = &models};
+        return {.world = world,
+                .random = cloth.random,
+                .playerSkeleton = &models.skeleton,
+                .models = &models,
+                .terrain = &states.terrain.current};
     }
     // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
+    Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
@@ -186,7 +193,7 @@ protected:
         game = std::make_unique<Game>();
         auto loaded = Client::Terrain::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        game->world.Map().terrain = std::move(loaded).Value();
+        game->states.terrain.current = std::move(loaded).Value();
         game->world.Runtime().map = map;
         game->dataRoot = m_dataRoot;
     }
@@ -194,7 +201,7 @@ protected:
     // Da de alta un monstruo del tipo `type` en la primera celda libre desde (100, 100) y devuelve su lugar.
     std::size_t Create(std::uint8_t type)
     {
-        const auto& cells = game->world.Map().terrain.attributes->cells;
+        const auto& cells = game->states.terrain.current.attributes->cells;
         std::uint8_t x = 100;
         std::uint8_t y = 100;
         while (cells[Client::Data::Terrain::CellIndex(x, y)] != 0)

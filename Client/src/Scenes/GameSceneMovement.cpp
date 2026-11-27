@@ -59,6 +59,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .fixedHeight = CameraState().fixedHeight,
         .models = m_models};
     context.terrain = &MapTerrain();
+    context.dynamicLighting = &DynamicLight().Lighting();
     context.saveOptionsAndMacros = [this, &world]() -> Core::Expected<void, std::string>
     {
         std::optional<std::uint8_t> chosenSlot;
@@ -116,7 +117,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
         view.attributes = terrain.attributes.get();
-        view.lighting = &world.DynamicLighting().Lighting();
+        view.lighting = &DynamicLight().Lighting();
         view.map = static_cast<std::uint8_t>(world.Runtime().map);
         view.fixedHeight = CameraState().fixedHeight;
         if (auto swept =
@@ -155,7 +156,7 @@ Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::Gro
     view.mapping = terrain.mapping.get();
     view.heights = terrain.heights.get();
     view.attributes = terrain.attributes.get();
-    view.lighting = &world.DynamicLighting().Lighting();
+    view.lighting = &DynamicLight().Lighting();
     view.map = static_cast<std::uint8_t>(world.Runtime().map);
     view.fixedHeight = CameraState().fixedHeight;
     Terrain::TerrainPickingTarget target;
@@ -185,7 +186,7 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
                              hero.animation.action,
                              hero.safeZone,
                              StepTerrain(),
-                             world.DynamicLighting().Lighting(),
+                             m_context.states->terrain.dynamicLight.Lighting(),
                              world.FaunaResources(),
                              *m_context.cloth,
                              time};
@@ -217,6 +218,11 @@ const Terrain::WorldTerrain& GameScene::StepTerrain() const
 const Terrain::WorldTerrain& GameScene::MapTerrain() const
 {
     return m_context.states->terrain.current;
+}
+
+Terrain::DynamicWorldLight& GameScene::DynamicLight() const
+{
+    return m_context.states->terrain.dynamicLight;
 }
 
 Core::Expected<void, std::string> GameScene::StepTheLeaves()

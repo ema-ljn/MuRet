@@ -19,7 +19,6 @@
 #include "Kernel/WorldMap.h"
 #include "Math/Ftol.h"
 #include "World/ModelEffects.h"
-#include "Terrain/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
@@ -99,8 +98,7 @@ Result Emit(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, st
 // 0x5f9780(x, y, color, radio, 0x7b4ccc4).
 Result Light(ModelEffectsPass& pass, std::string_view address, const glm::vec3& color, std::int32_t radius)
 {
-    return World::AddDynamicLight(&pass.world.DynamicLighting().Lighting(), pass.actor.position, color, radius,
-                                  address);
+    return World::AddDynamicLight(pass.dynamicLighting, pass.actor.position, color, radius, address);
 }
 
 // 0x530860(tipo, primero, segundo, ángulos, subtipo, 0, ancho, −1, 0, 0, −1). Con el pool lleno no crea nada.

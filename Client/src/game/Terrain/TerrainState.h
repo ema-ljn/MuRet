@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Terrain/DynamicWorldLight.h"
 #include "Terrain/GroundMarks.h"
 #include "Terrain/WorldTerrain.h"
 
@@ -17,5 +18,7 @@ struct TerrainState
     // fills them with model 0x182 (0x507486), and so does 0x52e810 (0x52e96c, Actors::LeaveTheRemains) from the body's
     // step (0x4fd5f0 → 0x4fcd00).
     GroundMarkTable groundMarks{};
+    // 0x7b4ccc4 and the last 0x5fbb00's bounds: one history for the login, the selection and the game.
+    DynamicWorldLight dynamicLight{};
 };
 } // namespace Client::Terrain

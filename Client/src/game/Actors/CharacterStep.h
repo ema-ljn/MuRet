@@ -40,6 +40,7 @@ class TextTable;
 
 namespace Client::Terrain
 {
+struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
@@ -140,6 +141,9 @@ struct CharacterStepContext
     // The global trapezoid the last 0x5fb570 left (Camera::CameraState::trapezoid): before the game's first drawing,
     // that of the selection's last drawing (Q-C216). nullptr: the .bss's zeros, as before any 0x5fb570.
     const Terrain::TerrainPolygon* trapezoid = nullptr;
+    // The dynamic light (Terrain::TerrainState::dynamicLight) the hands (0x506b50), the 0xf1's fire and the effects add
+    // to, and the body reads. nullptr: whoever adds a light stops there.
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

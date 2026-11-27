@@ -46,7 +46,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
         .particles = parts.particles,
         .worldClock = parts.worldClock,
         .sprites = parts.sprites,
-        .lighting = &world.DynamicLighting().Lighting(),
+        .lighting = parts.dynamicLighting,
         .effects = &world.Map().effects,
         .terrainHeight = terrainHeight,
         .terrainAttributes = terrain != nullptr ? terrain->attributes.get() : nullptr,
@@ -183,7 +183,8 @@ World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepCo
                                                    .sound = context.soundRequest,
                                                    .send = context.send,
                                                    .joints = context.joints,
-                                                   .models = context.models});
+                                                   .models = context.models,
+                                                   .dynamicLighting = context.dynamicLighting});
 }
 
 World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

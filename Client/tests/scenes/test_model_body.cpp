@@ -20,6 +20,7 @@
 #include "Kernel/WorldState.h"
 #include "Terrain/GroundMarks.h"
 #include "Terrain/WorldTerrain.h"
+#include "Terrain/TerrainLighting.h"
 #include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
@@ -324,7 +325,8 @@ protected:
                                                        .scene = Client::Scenes::SceneId::Game,
                                                        .terrain = &m_terrain,
                                                        .particles = &m_world->Particles(),
-                                                       .groundMarks = &m_marks});
+                                                       .groundMarks = &m_marks,
+                                                       .dynamicLighting = &m_lighting});
     }
 
     const Skeleton& Model() const
@@ -339,6 +341,7 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Terrain::WorldTerrain m_terrain;
     Client::Terrain::GroundMarkTable m_marks{};
+    Client::Terrain::TerrainLighting m_lighting;
     ActorState m_actor;
 };
 

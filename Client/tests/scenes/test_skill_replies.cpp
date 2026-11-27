@@ -31,6 +31,7 @@
 #include "Camera/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
+#include "Session/ModuleStates.h"
 
 #include "support/PlayerActors.h"
 #include "support/Bytes.h"
@@ -148,6 +149,7 @@ struct Replies
                                                       .models = models,
                                                       .log = log};
         resources.skills = skills;
+        resources.states = &states;
         return resources;
     }
     Client::Core::Expected<void, std::string> Attack(std::uint8_t skill, std::uint16_t source = CasterKey,
@@ -172,6 +174,7 @@ struct Replies
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     const Client::Tables::SkillTable* skills = nullptr;
+    Client::Session::ModuleStates states;
 };
 
 // ---------------------------------------------------------------------------------------------------------------

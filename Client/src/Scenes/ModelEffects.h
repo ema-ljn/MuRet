@@ -29,6 +29,11 @@ struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 // 0x505de0 de un personaje que no es el 0x20a, desde el rand() & 7 de 0x506cac hasta 0x50862f (06, "Los efectos de los
 // personajes (0x505de0)"): el caso de su tipo (la tabla de bytes 0x508884 sobre la de saltos 0x50880c) o, sin caso, los
 // seis helpers de 0x5085db en orden hasta el primero que devuelve 1 (0x43bdd0, 0x42de90, 0x441210, 0x42f550, 0x431470 y
@@ -54,6 +59,8 @@ struct ModelEffectsPass
     std::int32_t map = 0;
     // The ground marks the 0x182 adds to (0x507486). nullptr: it stops there.
     Terrain::GroundMarkTable* groundMarks = nullptr;
+    // The dynamic light (0x7b4ccc4) 0x5f9780 adds to. nullptr: it stops there.
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
 };
 
 [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects(ModelEffectsPass& pass);

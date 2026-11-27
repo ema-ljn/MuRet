@@ -121,22 +121,24 @@ public:
     // 0x5fbf60, después de la copia de la luz: las olas de la ventana del rango con el reloj del paso.
     void StepWaves(Core::Duration clock, const Terrain::TerrainRange& range, std::uint8_t map);
     // 0x606560 en la selección: los objetos vistos en el último dibujo, con la luz dinámica, el pool de
-    // partículas y el pedido sonoro del mundo. `terrain` is the current map's (Terrain::TerrainState::current).
+    // partículas y el pedido sonoro del mundo. `terrain` is the current map's (Terrain::TerrainState::current), and
+    // `dynamicLighting` the dynamic light (Terrain::TerrainState::dynamicLight).
     [[nodiscard]] Core::Expected<void, std::string> StepObjects(Kernel::WorldState& world,
                                                                 const Terrain::WorldTerrain& terrain,
+                                                                Terrain::TerrainLighting& dynamicLighting,
                                                                 Crt::CrtRandom& random, float worldClock);
     // 0x52d220 y 0x53c670, después de la vista previa: los efectos con modelo (la mariposa, con la altura
     // del terreno y los sprites del frame, y el calco 0x14e de los Fenrir, con timeGetTime() en `systemTime`) y las
     // juntas.
-    [[nodiscard]] Core::Expected<void, std::string> StepEffects(Kernel::WorldState& world, Models::ClothWorld& cloth,
-                                                                float worldClock,
-                                                                const std::function<double(float, float)>& height,
-                                                                std::uint32_t systemTime);
+    [[nodiscard]] Core::Expected<void, std::string>
+    StepEffects(Kernel::WorldState& world, Terrain::TerrainLighting& dynamicLighting, Models::ClothWorld& cloth,
+                float worldClock, const std::function<double(float, float)>& height, std::uint32_t systemTime);
 
     // Al empezar un dibujo: con cero frames copia lo que el dibujo cambia (la luz dinámica, el rand(), las
     // partículas, los efectos, los objetos, la cola, los globales de los ítems y las mallas sin luz); con frames,
     // presta los del mundo. Los personajes de la lista (0x50ba30) usan los mismos.
-    void BeginFrame(Kernel::WorldState& world, Models::ClothWorld& cloth, int frames);
+    void BeginFrame(Kernel::WorldState& world, Terrain::TerrainLighting& dynamicLighting, Models::ClothWorld& cloth,
+                    int frames);
     [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
     [[nodiscard]] Crt::CrtRandom& FrameRandom();
     [[nodiscard]] Models::ClothWorld& FrameCloth();
@@ -183,6 +185,7 @@ private:
     std::unique_ptr<Projection> m_projection;
     bool m_projecting = false;
     Kernel::WorldState* m_world = nullptr;
+    Terrain::TerrainLighting* m_dynamicLighting = nullptr;
     Models::ClothWorld* m_cloth = nullptr;
 };
 } // namespace Client::Scenes

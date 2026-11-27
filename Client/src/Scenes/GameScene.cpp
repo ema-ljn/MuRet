@@ -405,11 +405,11 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     }
     if (stepTerrain->lighting != nullptr)
     {
-        m_context.world->DynamicLighting().Update(*stepTerrain->lighting);
+        DynamicLight().Update(*stepTerrain->lighting);
     }
     if (m_context.clock != nullptr)
     {
-        Terrain::UpdateWaves(m_water, m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
+        Terrain::UpdateWaves(m_water, m_context.clock->Now(), DynamicLight().Range(),
                              static_cast<std::uint8_t>(runtime.map));
     }
     // 0x636ded..0x63705b: la UI del paso, que corre en cada paso desde el primero, también en la espera.
@@ -527,7 +527,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         icarus.emplace(IcarusObjectServices{
             .random = m_context.cloth->random,
             .heroPosition = hero.position,
-            .lighting = &world.DynamicLighting().Lighting(),
+            .lighting = &DynamicLight().Lighting(),
             .effects = &world.Map().effects,
             .sprites = &m_sprites,
             .createJoint = [&world, this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
@@ -647,7 +647,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const World::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
         .worldClock = worldClock,
-        .dynamicLighting = &world.DynamicLighting().Lighting(),
+        .dynamicLighting = &DynamicLight().Lighting(),
         .particles = &world.Particles(),
         .heroPosition = &hero.position,
         .sound = [&](std::int32_t id) { world.Runtime().RequestSound(id); },
@@ -816,7 +816,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     m_frustum = Terrain::SphereFrustumOf(view, camera, widthFactor);
     m_terrainRange = Terrain::TerrainRangeOf(view, camera, widthFactor);
     if (frames > 0)
-        m_context.world->DynamicLighting().PublishRange(m_terrainRange);
+        DynamicLight().PublishRange(m_terrainRange);
     const auto polygon = PolygonOfTheFrame(camera, target, worldWidth, frames);
     if (!polygon.HasValue())
     {

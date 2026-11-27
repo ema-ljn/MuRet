@@ -666,22 +666,27 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
 TEST_F(GoldenLoginWorld, LoginUpdatesTheSharedLightBeforeItsDrawPublishesANewRange)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Session::ModuleStates states;
     Client::Tests::FakeClock clock;
     clock.Advance(std::chrono::milliseconds{40});
     const auto base = Client::Terrain::LoadTerrainLighting(m_dataRoot, 55);
     ASSERT_TRUE(base.HasValue()) << base.Error();
-    world->DynamicLighting().Lighting().cells[1000][0] = -77.0f;
-    LoginScene scene(
-        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .clock = &clock, .world = world.get()},
-        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    states.terrain.dynamicLight.Lighting().cells[1000][0] = -77.0f;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                  .textures = m_store,
+                                  .log = m_log,
+                                  .clock = &clock,
+                                  .world = world.get(),
+                                  .states = &states},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    EXPECT_EQ(world->DynamicLighting().Range().lastX, 255) << "cargar no ejecuta 0x5fbb00";
+    EXPECT_EQ(states.terrain.dynamicLight.Range().lastX, 255) << "cargar no ejecuta 0x5fbb00";
     scene.Step(Client::Input::InputState{});
     ASSERT_FALSE(scene.Failure().has_value());
-    EXPECT_EQ(world->DynamicLighting().Lighting().cells[1000][0], base.Value()->cells[1000][0]);
+    EXPECT_EQ(states.terrain.dynamicLight.Lighting().cells[1000][0], base.Value()->cells[1000][0]);
     RecordingFrameTarget target;
     scene.Render(target.BeginFrame(clock.Now()), 0.0f);
-    const auto& range = world->DynamicLighting().Range();
+    const auto& range = states.terrain.dynamicLight.Range();
     EXPECT_EQ(range.firstX, 0);
     EXPECT_EQ(range.lastX, 128);
     EXPECT_EQ(range.firstY, 120);

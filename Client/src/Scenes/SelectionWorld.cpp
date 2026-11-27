@@ -16,7 +16,6 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Terrain/DynamicWorldLight.h"
 #include "Scenes/ObjectCollapse.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -195,6 +194,7 @@ void SelectionWorld::StepWaves(Core::Duration clock, const Terrain::TerrainRange
 
 Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState& world,
                                                               const Terrain::WorldTerrain& terrain,
+                                                              Terrain::TerrainLighting& dynamicLighting,
                                                               Crt::CrtRandom& random, float worldClock)
 {
     std::span<World::WorldObject> objects = world.Map().objects;
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
     const World::ObjectStepGlobals globals{.heroCellLayer = world.Runtime().heroCellLayer,
                                            .worldClock = worldClock,
-                                           .dynamicLighting = &world.DynamicLighting().Lighting(),
+                                           .dynamicLighting = &dynamicLighting,
                                            .particles = &world.Particles(),
                                            .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
                                            .modelState = &world.Runtime().objectModelState};
@@ -234,8 +234,9 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
     return {};
 }
 
-Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState& world, Models::ClothWorld& cloth,
-                                                              float worldClock,
+Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState& world,
+                                                              Terrain::TerrainLighting& dynamicLighting,
+                                                              Models::ClothWorld& cloth, float worldClock,
                                                               const std::function<double(float, float)>& height,
                                                               std::uint32_t systemTime)
 {
@@ -243,7 +244,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
         .terrainHeight = height,
         .sprites = &m_sprites,
         .effects = &world.Map().effects,
-        .lighting = &world.DynamicLighting().Lighting(),
+        .lighting = &dynamicLighting,
         .systemTime = [systemTime]() { return systemTime; },
         .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
         .joint = [&world, &cloth](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
@@ -283,9 +284,9 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
     const std::size_t heroSlot = world.Runtime().hero;
     const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
     if (auto stepped = StepJoints(
-            world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites,
-            &world.DynamicLighting().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
-            height, actors, {}, &world.Map().effects, hero, &world);
+            world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites, &dynamicLighting,
+            [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, height, actors, {}, &world.Map().effects,
+            hero, &world);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en la selección (0x53c670)");
@@ -293,9 +294,11 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
     return {};
 }
 
-void SelectionWorld::BeginFrame(Kernel::WorldState& world, Models::ClothWorld& cloth, int frames)
+void SelectionWorld::BeginFrame(Kernel::WorldState& world, Terrain::TerrainLighting& dynamicLighting,
+                                Models::ClothWorld& cloth, int frames)
 {
     m_world = &world;
+    m_dynamicLighting = &dynamicLighting;
     m_cloth = &cloth;
     m_projecting = frames == 0;
     if (!m_projecting)
@@ -306,7 +309,7 @@ void SelectionWorld::BeginFrame(Kernel::WorldState& world, Models::ClothWorld& c
     {
         m_projection = std::make_unique<Projection>();
     }
-    m_projection->lighting = world.DynamicLighting().Lighting();
+    m_projection->lighting = dynamicLighting;
     m_projection->cloth = cloth;
     m_projection->particles = world.Particles();
     m_projection->effects = world.Map().effects;
@@ -320,7 +323,7 @@ void SelectionWorld::BeginFrame(Kernel::WorldState& world, Models::ClothWorld& c
 
 Terrain::TerrainLighting& SelectionWorld::FrameLighting()
 {
-    return m_projecting ? m_projection->lighting : m_world->DynamicLighting().Lighting();
+    return m_projecting ? m_projection->lighting : *m_dynamicLighting;
 }
 
 Crt::CrtRandom& SelectionWorld::FrameRandom()

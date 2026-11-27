@@ -7373,7 +7373,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x636da3` | el estado `0x3d` pone `0x7d3a101 = 1` (`0x636dac`) | si no, y `0x7d3a101` está en 0, sale (`0x636dbc`) | sí (`GameScene::StepWorld`) |
 | `0x636dc2..0x636ddb` | el temblor `0x7d325c8` · 0,2 | [La cámara del juego](#la-cámara-del-juego) | sí (`GameScene::StepWorld`) |
 | `0x636dd4` | `0x652940`, si el héroe tiene `+0x371 == 'C'` (siempre: lo pone `0x511290`) | lo del asedio y del gremio (`0x4294b0`) | no hace falta: sin asedio no hace nada ([08](08-pendientes.md) P-C41 c) |
-| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | `DynamicWorldLight::Update` copia el RGB con el rango compartido de `WorldState::DynamicLighting()`; `LoadedWorld::Step` y `GameScene::StepWorld` actualizan las olas con ese rango, pero sus buffers siguen siendo de cada escena ([08](08-pendientes.md) P-C41 b) |
+| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | `DynamicWorldLight::Update` copia el RGB con el rango compartido de `Terrain::TerrainState::dynamicLight`; `LoadedWorld::Step` y `GameScene::StepWorld` actualizan las olas con ese rango, pero sus buffers siguen siendo de cada escena ([08](08-pendientes.md) P-C41 b) |
 | `0x636e11..0x63705b` | con `0x7d36899` en 0: `0x5ecdc0`, `0x46b7b0`, `0x490490`, `0x5ebca0`, `0x435bd0`, `0x5ee140`, `0x59ff10`, `0x5a7cc0`, `0x657930`, `0x659290`, `0x45a9d0` y dos por vtable | la UI, el chat y los paquetes de la interfaz | CL8, CL9 |
 | `0x63706a` | **`0x606560` → `0x604ab0`** | los objetos del mundo que vio el último dibujo ([Los objetos del juego](#los-objetos-del-juego)) | en el login, con los casos del 55; en el juego, `GameScene::StepTheObjects` con los techos y los casos que MuRet tiene del 0 y del 2, y corta en el primero que no tiene; en los demás mapas, con un objeto visto, corta en `0x606560` ([08](08-pendientes.md) P-C53) |
 | `0x637078` | `0x608880` | los ítems del piso que caen | CL9.3 |
@@ -8234,7 +8234,7 @@ lectura de la celda. Los tamaños van desde la entrada hasta el último `ret` (*
 | `0x4ea190` | 208 | la cabeza de otro modelo | corta antes, en `0x505e0b` |
 | `0x4e96f0`, `0x4e9560` | 169, 394 | la distancia entre dos ángulos y el giro | `Render::Models::AngleDistance` y `TurnAngle` (`Scenes::StepCharacterHead`) |
 | `0x53fe70`, `0x518cf0`, `0x530860` | 15.049, 27.599, 17.516 | las partículas, los efectos y los joints | aparte, para el login; acá cortan antes |
-| `0x5f9780` | 904 | la luz al buffer dinámico | `World::AddDynamicLight` sobre `WorldState::DynamicLighting` (`0x506b50`) |
+| `0x5f9780` | 904 | la luz al buffer dinámico | `World::AddDynamicLight` sobre `Terrain::TerrainState::dynamicLight` (`0x506b50`) |
 | `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; el del `0x20a` (`0x506ffc`) va a un local que nadie lee |
 | `0x5189f0` | 206 | los tres joints `0x619/8` de las `0x44` y `0x45` | `Scenes::EmitChargedSkillJoints` (`CharacterStep.cpp`), con el alta y el paso en `FaunaJointCreation.cpp` |
 | `0x548fe0` | 168 | llena una marca del suelo ([Las marcas del suelo](#las-marcas-del-suelo)) | solo el `0x182`; no se llega |
@@ -9268,7 +9268,7 @@ debajo de 0,01, que el `0x67` no baja porque no es un techo), el `+0xa8` es de o
 `WorldState::Particles`; si el modelo actual no escribió un hueso, conserva el corte de la lectura de
 pose anterior (`0x6030a5/0x603121`), con los sorteos y las gotas previos ya hechos
 ([Las partículas de la fuente en el juego](#las-partículas-de-la-fuente-en-el-juego)). Los objetos ya
-reciben `WorldState::DynamicLighting().Lighting()`, no la tabla de base; siguen pendientes en el paso
+reciben `Terrain::TerrainState::dynamicLight.Lighting()`, no la tabla de base; siguen pendientes en el paso
 los fuegos, las luces que van a ese buffer (la lámpara y la vela, después de su `rand()`) y las puertas
 del 2. Los modelos los carga `Scenes::WorldModels` la primera vez que el dibujo o el paso los piden:
 ya incluye los modelos con nombre de Lorencia y las familias de `WorldSpecialModels`, con sus archivos,
@@ -10771,7 +10771,7 @@ y `Camera::CameraState::trapezoidLevel`. Cada frame del original corre la cámar
 (`Camera::StepTheTerrainPolygon`, en la selección y el juego); un dibujo intermedio de MuRet solo calcula con
 el nivel que hay, sin escribir (`TerrainPolygonBetweenFrames`). El login escribe el trapecio del nivel 0 sin
 la transición: con el nivel pedido siempre en 0, da lo mismo ([08](08-pendientes.md) P-C41 d). El rango
-también es compartido ahora por `WorldState::DynamicLighting()`, que lo publica desde el dibujo de las
+también es compartido ahora por `Terrain::TerrainState::dynamicLight`, que lo publica desde el dibujo de las
 tres escenas y lo conserva para la copia RGB del paso posterior. Los buffers de olas siguen siendo de
 cada escena, y la historia global de los planos de `0x5fbb00` continúa pendiente (P-C46).
 

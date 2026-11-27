@@ -133,7 +133,7 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
     auto& world = resources.world;
     World::SiegeStoneStepServices services{
         .effects = &world.Map().effects,
-        .lighting = &world.DynamicLighting().Lighting(),
+        .lighting = DynamicLightingOf(resources),
         .hero = &world.Hero(),
         .cameraTarget = &resources.cameraInput.effectTarget,
         .cameraShake = &resources.cameraInput.shake,

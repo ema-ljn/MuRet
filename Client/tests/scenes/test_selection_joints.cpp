@@ -1,4 +1,5 @@
 #include "Scenes/SelectionWorld.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -39,6 +40,7 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     Client::Tests::FakeTextureStore store;
     Client::Scenes::SelectionWorld selection(store, log);
     auto world = std::make_unique<Client::Kernel::WorldState>();
+    Client::Terrain::DynamicWorldLight light;
     auto cloth = std::make_unique<Client::Models::ClothWorld>();
     ActorState& owner = world->Actors()[1];
     owner.alive = true;
@@ -62,7 +64,7 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     auto& joints = world->DrawTail().joints;
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor).HasValue());
 
-    const auto stepped = selection.StepEffects(*world, *cloth, 0.0f, {}, 0);
+    const auto stepped = selection.StepEffects(*world, light.Lighting(), *cloth, 0.0f, {}, 0);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const JointState& joint = joints[0];
@@ -98,6 +100,7 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         Client::Tests::FakeTextureStore store;
         Client::Scenes::SelectionWorld selection(store, log);
         auto world = std::make_unique<Client::Kernel::WorldState>();
+        Client::Terrain::DynamicWorldLight light;
         auto cloth = std::make_unique<Client::Models::ClothWorld>();
         constexpr std::size_t HeroSlot = 3;
         world->Runtime().hero = HeroSlot;
@@ -125,7 +128,8 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         const auto created = Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, tested.kind, &services);
         ASSERT_TRUE(created.HasValue()) << created.Error();
 
-        const auto stepped = selection.StepEffects(*world, *cloth, 0.0f, [](float, float) { return 5000.0; }, 0);
+        const auto stepped =
+            selection.StepEffects(*world, light.Lighting(), *cloth, 0.0f, [](float, float) { return 5000.0; }, 0);
 
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_TRUE(stepped.Error().starts_with(tested.cut)) << stepped.Error();

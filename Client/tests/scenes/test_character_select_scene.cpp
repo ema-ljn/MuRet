@@ -2864,7 +2864,8 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
     }
     const auto cellX = static_cast<std::uint8_t>(chosen.position.x / 100.0f);
     const auto cellY = static_cast<std::uint8_t>(chosen.position.y / 100.0f);
-    const auto& lit = world.DynamicLighting().Lighting().cells[Client::Data::Terrain::CellIndex(cellX, cellY)];
+    const auto& lit =
+        tested.states.terrain.dynamicLight.Lighting().cells[Client::Data::Terrain::CellIndex(cellX, cellY)];
     EXPECT_GT(lit[0], 0.0f);
 
     // El mismo reloj: un dibujo intermedio sobre las copias.

@@ -129,11 +129,12 @@ Core::Expected<void, std::string> WrapInIce(Kernel::ActorState& actor, const Sce
     constexpr double HalfTurn = Math::HalfTurnAsDouble; // 0x6b86bc
     Kernel::WorldState& world = resources.world;
     static_cast<void>(KillModelEffectsOf(world.Map().effects, World::IceEffect, &actor, FirstIce));
-    const World::WizardEffectServices services =
-        Scenes::WizardEffectServicesOf(world, resources.cloth.random,
-                                       Scenes::WizardSceneParts{.particles = &world.Particles(),
-                                                                .terrain = &Scenes::TerrainOf(resources),
-                                                                .fixedHeight = resources.camera.fixedHeight});
+    const World::WizardEffectServices services = Scenes::WizardEffectServicesOf(
+        world, resources.cloth.random,
+        Scenes::WizardSceneParts{.particles = &world.Particles(),
+                                 .terrain = &Scenes::TerrainOf(resources),
+                                 .fixedHeight = resources.camera.fixedHeight,
+                                 .dynamicLighting = Scenes::DynamicLightingOf(resources)});
     glm::vec3 angles = actor.angles;
     for (const std::int32_t subtype : {FirstIce, SecondIce})
     {

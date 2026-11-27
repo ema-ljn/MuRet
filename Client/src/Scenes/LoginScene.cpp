@@ -357,6 +357,7 @@ LoginScene::LoginScene(const SceneContext& context, const Tables::GameData& data
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<Kernel::WorldState>() : nullptr),
+      m_localLight(context.states == nullptr ? std::make_unique<Terrain::DynamicWorldLight>() : nullptr),
       m_localCloth{.random = Crt::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models), m_session(session),
       m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, Assets::LoginTextureSet),
       m_windowTextures(context.textures, Assets::WindowTextureSet), m_world(WorldOf(SceneId::Login)),
@@ -420,6 +421,11 @@ Terrain::TerrainPolygon& LoginScene::SharedTerrainPolygon()
 Kernel::WorldState& LoginScene::CharacterWorld() const
 {
     return m_context.world != nullptr ? *m_context.world : *m_localWorld;
+}
+
+Terrain::DynamicWorldLight& LoginScene::DynamicLight() const
+{
+    return m_context.states != nullptr ? m_context.states->terrain.dynamicLight : *m_localLight;
 }
 
 Models::ClothWorld& LoginScene::CharacterRandomWorld()
@@ -863,7 +869,8 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          .soundRequest = [this](std::int32_t sound) { CharacterWorld().Runtime().RequestSound(sound); },
          .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
          { CharacterWorld().Runtime().RequestSound(sound, origin); },
-         .trapezoid = &SharedTerrainPolygon()});
+         .trapezoid = &SharedTerrainPolygon(),
+         .dynamicLighting = &DynamicLight().Lighting()});
 }
 
 void LoginScene::StepTheWorld()
@@ -889,11 +896,11 @@ void LoginScene::StepTheWorld()
     const Terrain::TerrainLighting* base = m_terrain.Lighting() != nullptr ? m_terrain.Lighting() : m_lighting.get();
     if (base != nullptr)
     {
-        CharacterWorld().DynamicLighting().Update(*base);
+        DynamicLight().Update(*base);
     }
     if (m_context.clock != nullptr)
     {
-        m_terrain.Step(m_context.clock->Now(), CharacterWorld().DynamicLighting().Range());
+        m_terrain.Step(m_context.clock->Now(), DynamicLight().Range());
     }
     // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
     // del mundo con los casos del mapa 55, y el logo con los suyos.
@@ -999,7 +1006,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         .terrainHeight = terrainHeight,
         .sprites = &m_sprites,
         .effects = &world.Map().effects,
-        .lighting = &world.DynamicLighting().Lighting(),
+        .lighting = &DynamicLight().Lighting(),
         .terrainAttributes = terrain != nullptr ? terrain->attributes.get() : nullptr,
         .map = &world.Runtime().map,
         .cameraShake = &CameraInputState().shake,
@@ -1022,7 +1029,8 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
                                                 .terrain = terrain,
                                                 .fixedHeight = CameraState().fixedHeight,
                                                 .cameraShake = &CameraInputState().shake,
-                                                .sound = sound});
+                                                .sound = sound,
+                                                .dynamicLighting = &DynamicLight().Lighting()});
     // 0x52d222..0x52d22d: 0x44dc40(0, 0, 0) borra el desvío de la cámara antes del primer efecto.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     const LoginEffectModels models(m_worldModels, m_models);
@@ -1056,8 +1064,8 @@ Core::Expected<void, std::string> LoginScene::StepTheJoints()
     const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
     const auto stepped = StepJoints(
         world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), WorldClock(), &m_sprites,
-        &world.DynamicLighting().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
-        TerrainHeight(), actors, {}, &world.Map().effects, hero, &world);
+        &DynamicLight().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, TerrainHeight(),
+        actors, {}, &world.Map().effects, hero, &world);
     if (!stepped.HasValue())
         return Core::Unexpected(stepped.Error() + ", en el login (0x634d1d → 0x53c670)");
     return {};
@@ -1071,7 +1079,7 @@ Core::Expected<void, std::string> LoginScene::StepTheParticles()
     const auto stepped = World::StepParticlesChecked(
         world.Particles(), m_context.cloth->random, std::cref(worldClock), &world.Runtime().map, trigonometry,
         TerrainHeight(), ParticleOwnersAmong(m_objects), ParticleActorActionsAmong(world.Actors()),
-        ParticleTextureHeightsOf(m_models), &world.DynamicLighting().Lighting(),
+        ParticleTextureHeightsOf(m_models), &DynamicLight().Lighting(),
         ParticleActorHandsAmong(world.Actors(), world.Runtime().hero), ParticleOwnerBonesOf(world),
         [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, ParticleOwnerStatesOf(world), &m_sprites);
     if (!stepped.HasValue())
@@ -1575,7 +1583,7 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
     // en 0 después de 0x635ae0 y el efectivo en 0 desde la .bss, da lo mismo (08 P-C41 d). El héroe, el mapa
     // y el yaw del login son fijos: un dibujo intermedio escribe el mismo trapecio que el último frame.
     m_terrainRange = Terrain::TerrainRangeOf(pass.view, camera);
-    CharacterWorld().DynamicLighting().PublishRange(m_terrainRange);
+    DynamicLight().PublishRange(m_terrainRange);
     Terrain::TerrainPolygon& polygon = SharedTerrainPolygon();
     polygon =
         Terrain::TerrainPolygonOf(Terrain::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
@@ -1594,7 +1602,7 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
     {
         // 0x5fc260(0): el terreno, antes de los personajes.
         m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, polygon, CameraState().fixedHeight,
-                              &CharacterWorld().DynamicLighting().Lighting());
+                              &DynamicLight().Lighting());
         DrawTheModels(canvas, alpha);
     }
     canvas.flushModels();
@@ -1821,7 +1829,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
         posed.push_back(Actors::Drawing::PosedInTheBuffer{&m_models, horse});
     }
     const LoginObjectModels objects(m_worldModels, m_logo);
-    const Terrain::TerrainLighting* lighting = &CharacterWorld().DynamicLighting().Lighting();
+    const Terrain::TerrainLighting* lighting = &DynamicLight().Lighting();
     DrawWorldObjects(canvas.models, objects, m_objects, SharedTerrainPolygon(), lighting, m_world ? m_world->map : 0,
                      canvas.frameClock, alpha,
                      ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
@@ -1872,7 +1880,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
         resources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
         { return PublishFaunaPose(carry, effectModels, object, false); };
         resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(carry.meshes); };
-        resources.dynamicLighting = &CharacterWorld().DynamicLighting().Lighting();
+        resources.dynamicLighting = &DynamicLight().Lighting();
         resources.originalFrame = nativeFrames > 0;
         effects = DrawGameModelEffects(canvas.models, effectModels, table, frustum, lighting, canvas.frameClock, alpha,
                                        resources, 0);
@@ -1933,7 +1941,7 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
                                                .map = world.Runtime().map,
                                                .originalFrame = originalFrame,
                                                .glowDetail = world.Runtime().ui.glowDetail});
-        const Actors::Drawing::GameCharacterPass pass{.dynamicLighting = &world.DynamicLighting().Lighting(),
+        const Actors::Drawing::GameCharacterPass pass{.dynamicLighting = &DynamicLight().Lighting(),
                                                       .clothWorld = &cloth,
                                                       .frameClock = canvas.frameClock,
                                                       .sprites = &m_tailSprites,
@@ -2014,7 +2022,7 @@ void LoginScene::StepTheLogo(World::WorldObject& logo) const
 
 glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
 {
-    const Terrain::TerrainLighting* lighting = &CharacterWorld().DynamicLighting().Lighting();
+    const Terrain::TerrainLighting* lighting = &DynamicLight().Lighting();
     return lighting != nullptr ? Terrain::LightAt(*lighting, position.x, position.y) : glm::vec3(0.0f);
 }
 

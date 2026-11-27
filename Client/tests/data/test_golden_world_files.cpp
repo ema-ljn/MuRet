@@ -1,3 +1,4 @@
+#include "Data/Terrain/TerrainAttributesFile.h"
 #include "Data/Terrain/TerrainMappingFile.h"
 
 #include "Core/Ascii.h"
@@ -8,8 +9,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <cstddef>
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <span>
 #include <string>
@@ -19,7 +22,9 @@
 namespace
 {
 using Client::Core::EqualsIgnoringAsciiCase;
+using Client::Data::Terrain::ReadTerrainAttributesFile;
 using Client::Data::Terrain::ReadTerrainMappingFile;
+using Client::Data::Terrain::WriteTerrainAttributesFile;
 using Client::Data::Terrain::WriteTerrainMappingFile;
 using Client::Tests::HasExtension;
 using Client::Tests::ReadFileBytes;
@@ -75,5 +80,47 @@ TEST_F(GoldenWorldFiles, EveryMappingIsWrittenBackTheSame)
         ASSERT_TRUE(read.HasValue()) << name;
         EXPECT_TRUE(SameBytes(WriteTerrainMappingFile(*read.Value()), bytes)) << name;
     }
+}
+
+TEST_F(GoldenWorldFiles, EveryAttributesFileIsWrittenBackTheSame)
+{
+    const std::vector<std::filesystem::path> files = WorldFiles(m_dataRoot, "EncTerrain", ".att");
+
+    EXPECT_EQ(files.size(), 29U);
+    for (const std::filesystem::path& file : files)
+    {
+        const std::string name = file.lexically_relative(m_dataRoot).generic_string();
+        const std::vector<std::byte> bytes = FileBytes(file);
+        const auto read = ReadTerrainAttributesFile(bytes);
+        ASSERT_TRUE(read.HasValue()) << name;
+        EXPECT_TRUE(SameBytes(WriteTerrainAttributesFile(*read.Value()), bytes)) << name;
+    }
+}
+
+// Measured on 2026-11-27: five of the 16 files with two bytes per cell, in two worlds, use the high byte.
+TEST_F(GoldenWorldFiles, TheWordFilesKeepTheirHighBytes)
+{
+    const std::map<std::string, std::size_t> expected = {
+        {"world31/EncTerrain31.att", 348},      {"world31/EncTerrain312.att", 348},
+        {"world31/EncTerrainTest312.att", 348}, {"world31/EncTerraintest31.att", 348},
+        {"world56/EncTerrain56.att", 337},
+    };
+    std::size_t wordFiles = 0;
+    for (const std::filesystem::path& file : WorldFiles(m_dataRoot, "EncTerrain", ".att"))
+    {
+        const std::string name = file.lexically_relative(m_dataRoot).generic_string();
+        const auto read = ReadTerrainAttributesFile(FileBytes(file));
+        ASSERT_TRUE(read.HasValue()) << name;
+        if (!read.Value()->highBytes.has_value())
+        {
+            continue;
+        }
+        ++wordFiles;
+        const auto notZero = static_cast<std::size_t>(
+            std::ranges::count_if(*read.Value()->highBytes, [](std::uint8_t high) { return high != 0; }));
+        const auto known = expected.find(name);
+        EXPECT_EQ(notZero, known == expected.end() ? 0 : known->second) << name;
+    }
+    EXPECT_EQ(wordFiles, 16U);
 }
 } // namespace

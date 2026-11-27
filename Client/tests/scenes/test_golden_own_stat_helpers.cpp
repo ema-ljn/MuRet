@@ -19,10 +19,10 @@
 #include <utility>
 #include <vector>
 
-// 0x54ee00 con el byte +0x2d del Item.bmd real de la carpeta golden, a través de 0x5507e0, 0x550990 y
-// 0x54f9b0 (06, "Los ocho helpers de los stats propios"). Lo que se espera sale de esos bytes, leídos del
-// archivo: Small Shield (6 0) 22, Bronze Helm (7 0) 34, Wings of Elf (12 0) 200 y Skull Staff (5 0) 0. Los
-// D+0x10 y D+0x12 son los +0x28 y +0x29 del mismo registro (3 y 1, 9, 10), como los copia 0x54bf40.
+// 0x54ee00 with the golden folder's real Item.bmd byte +0x2d, through 0x5507e0, 0x550990 and 0x54f9b0 (06, "Los ocho
+// helpers de los stats propios"). The expected values come from those bytes, read from the file: Small Shield (6 0)
+// 22, Bronze Helm (7 0) 34, Wings of Elf (12 0) 200 and Skull Staff (5 0) 0. D+0x10 and D+0x12 are the same record's
+// +0x28 and +0x29 (3 and 1, 9, 10), as 0x54bf40 copies them.
 namespace
 {
 using Client::Kernel::ItemState;
@@ -82,7 +82,7 @@ protected:
     }
 };
 
-// 0x5507e0: Small Shield con 2 de 22 (0.5f) suma 3 − 1 a los 100 de A/3; con 22 de 22 (0), los 3.
+// 0x5507e0: Small Shield at 2 of 22 (0.5f) adds 3 − 1 to A/3's 100; at 22 of 22 (0), the 3.
 TEST_F(GoldenOwnStatHelpers, Word60WithTheRealSmallShield)
 {
     const auto items = LoadItems();
@@ -99,8 +99,8 @@ TEST_F(GoldenOwnStatHelpers, Word60WithTheRealSmallShield)
     EXPECT_EQ(own.word60, 103);
 }
 
-// 0x550990: a los 75 de A/4, Small Shield (2 de 22) 1 − 0, Bronze Helm (3 de 34) 9 − 4 y Wings of Elf (30
-// de 200) 10 − 5.
+// 0x550990: to A/4's 75, Small Shield (2 of 22) 1 − 0, Bronze Helm (3 of 34) 9 − 4 and Wings of Elf (30 of 200)
+// 10 − 5.
 TEST_F(GoldenOwnStatHelpers, Word62WithARealEquipment)
 {
     const auto items = LoadItems();
@@ -119,8 +119,8 @@ TEST_F(GoldenOwnStatHelpers, Word62WithARealEquipment)
     EXPECT_EQ(own.word62, 75 + 1 + 5 + 5);
 }
 
-// 0x54f9b0: Skull Staff tiene el +0x2d en 0, el máximo de 0x54ee00 queda en 0 y el factor es 0: sus 0x51
-// suman enteras.
+// 0x54f9b0: Skull Staff has +0x2d at 0, 0x54ee00's maximum stays at 0 and the factor is 0: its 0x51 options add
+// whole.
 TEST_F(GoldenOwnStatHelpers, Words5aAnd5cWithTheRealSkullStaff)
 {
     const auto items = LoadItems();

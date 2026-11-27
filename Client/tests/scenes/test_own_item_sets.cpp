@@ -28,9 +28,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes: 0x40e1b0 y lo que llama, 0x40cfa0, 0x40d010, 0x40de10 y 0x40da20 (06, "Los stats del
-// registro propio"; 07, Q-C184 y Q-C187). Las tablas son sintéticas; los valores salen del ASM cotejado
-// con el PE c32bbd5f y los rand() del modelo de la CRT, ninguno de una corrida del original.
+// Client::Player: 0x40e1b0 and what it calls, 0x40cfa0, 0x40d010, 0x40de10 and 0x40da20 (06, "Los stats del registro
+// propio"; 07, Q-C184 and Q-C187). The tables are synthetic; the values come from the ASM checked against the PE
+// c32bbd5f and the rand() calls from the CRT's model, none from a run of the original.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -51,13 +51,13 @@ using Client::Tables::ItemSetTypeTableSize;
 constexpr std::uint8_t None = 0xff;
 constexpr std::uint16_t EmptyType = 0xffff;
 
-// ItemSetType.bmd en claro: todo en 0xff, como los tipos sin conjunto del archivo real.
+// A plain ItemSetType.bmd: everything at 0xff, like the real file's types without a set.
 class SetTypes
 {
 public:
     SetTypes() : m_plain(ItemSetTypeTableSize, std::byte{None}) {}
 
-    // El byte `index` (0 a 3) del registro de `type`.
+    // Byte `index` (0 to 3) of `type`'s record.
     SetTypes& Set(std::size_t type, std::size_t index, std::uint8_t setId)
     {
         m_plain[type * ItemSetTypeRecordSize + index] = std::byte{setId};
@@ -73,13 +73,13 @@ private:
     std::vector<std::byte> m_plain;
 };
 
-// ItemSetOption.bmd en claro: los conjuntos sin usar en 0xff, como en el archivo real.
+// A plain ItemSetOption.bmd: the unused sets at 0xff, as in the real file.
 class SetOptions
 {
 public:
     SetOptions() : m_plain(ItemSetOptionTableSize, std::byte{None}) {}
 
-    // Un conjunto con nombre, +0x3c en `fullPieces` y las marcas de las clases en 0, como los reales.
+    // A named set, +0x3c at `fullPieces` and the class marks at 0, like the real ones.
     SetOptions& Named(std::size_t set, std::string_view name, std::uint8_t fullPieces)
     {
         for (std::size_t i = 0; i < name.size(); ++i)
@@ -95,7 +95,7 @@ public:
         return *this;
     }
 
-    // El par `pair` (0 a 5): sus dos opciones y sus dos valores.
+    // Pair `pair` (0 to 5): its two options and its two values.
     SetOptions& Pair(std::size_t set, std::size_t pair, std::uint8_t first, std::uint8_t firstValue,
                      std::uint8_t second = None, std::uint8_t secondValue = None)
     {
@@ -106,7 +106,7 @@ public:
         return *this;
     }
 
-    // La opción `index` (0 a 4) del conjunto completo.
+    // Option `index` (0 to 4) of the complete set.
     SetOptions& Full(std::size_t set, std::size_t index, std::uint8_t option, std::uint8_t value)
     {
         At(set, 0x3d + index) = std::byte{option};
@@ -151,8 +151,8 @@ ItemSetPieces OnePiece(std::uint8_t setId, std::uint8_t count, std::uint8_t kind
     return pieces;
 }
 
-// Una opción de la lista y su valor. Agregado y no std::pair: el constructor de pair desde int estrecha
-// dentro de <utility> (C4242 en MSVC).
+// A list option and its value. An aggregate and not std::pair: pair's constructor from int narrows inside <utility>
+// (C4242 on MSVC).
 struct ListedOption
 {
     int option = 0;
@@ -168,7 +168,7 @@ void PrintTo(const ListedOption& listed, std::ostream* out)
 
 using Listed = std::vector<ListedOption>;
 
-// La lista de opciones de `state`, en orden.
+// `state`'s option list, in order.
 Listed OptionsIn(const ItemSetState& state)
 {
     Listed listed;
@@ -181,8 +181,8 @@ Listed OptionsIn(const ItemSetState& state)
     return listed;
 }
 
-// 0x40cfa0: el byte +0x1c & 3 elige el byte 0, 1 o 2 del registro del tipo; 0 no cuenta, y los otros
-// bits del +0x1c no importan. La pieza guarda el conjunto, la cuenta y la clase de la última.
+// 0x40cfa0: byte +0x1c & 3 picks byte 0, 1 or 2 of the type's record; 0 does not count, and +0x1c's other bits do not
+// matter. The piece keeps the set, the count and the last one's kind.
 TEST(OwnItemSetsTest, APieceIsTheSetOfItsTypeByTheLowBitsOfByte1c)
 {
     SetTypes types;
@@ -203,13 +203,12 @@ TEST(OwnItemSetsTest, APieceIsTheSetOfItsTypeByTheLowBitsOfByte1c)
     EXPECT_EQ(pieces[2].setId, 9);
     EXPECT_EQ(pieces[2].count, 1);
     EXPECT_EQ(pieces[2].kind, 2);
-    // El byte 3 no lo lee nadie.
+    // Nobody reads byte 3.
     EXPECT_EQ(pieces[3].setId, 0);
 }
 
-// 0 y 0xff no son un conjunto; el mismo conjunto suma a su lugar y se queda con la clase de la última
-// pieza; con los cuatro lugares ocupados por otros, la pieza no cuenta. El tipo 8.191 está en la tabla y
-// el 8.192 no (Q-C187).
+// 0 and 0xff are not a set; the same set adds to its place and keeps the last piece's kind; with the four places taken
+// by others, the piece does not count. Type 8,191 is in the table and 8,192 is not (Q-C187).
 TEST(OwnItemSetsTest, PiecesFillFourSetsAndATypeOutsideIsAnError)
 {
     SetTypes types;
@@ -244,13 +243,13 @@ TEST(OwnItemSetsTest, PiecesFillFourSetsAndATypeOutsideIsAnError)
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("Q-C187"), std::string::npos);
     EXPECT_NE(outside.Error().find("8192"), std::string::npos);
-    // Sin conjunto (& 3 en 0) no lee la tabla.
+    // Without a set (& 3 at 0) it does not read the table.
     EXPECT_TRUE(Client::Player::AddItemSetPiece(last, tables.types, 0x2000, 4).HasValue());
 }
 
-// 0x40d010 con n = piezas − 1: los primeros min(n, 6) pares, con las dos opciones de cada uno y sin las
-// 0xff; el valor va a los dos DWORD. Con una pieza el conjunto no aplica. Las opciones de 0x18 en adelante
-// piden una marca de la clase que estos conjuntos no tienen. Con +0x3c en 0xff nunca está completo.
+// 0x40d010 with n = pieces − 1: the first min(n, 6) pairs, with each one's two options and without the 0xff ones; the
+// value goes to both DWORDs. With one piece the set does not apply. Options from 0x18 on ask for a class mark these
+// sets do not have. With +0x3c at 0xff it is never complete.
 TEST(OwnItemSetsTest, EachPieceAfterTheFirstAddsAPairOfOptions)
 {
     SetOptions options;
@@ -282,9 +281,9 @@ TEST(OwnItemSetsTest, EachPieceAfterTheFirstAddsAPairOfOptions)
     }
 }
 
-// 0x40d278..0x40d295: después de los seis pares, mientras i < n − 6, una opción de +0x38 + i con su valor
-// en +0x3a + i. Pide n de 13 en adelante, que 0x40e1b0 no da (cuenta hasta 10 piezas). Con n de 25 en
-// adelante el valor cae después del registro: error (Q-C187).
+// 0x40d278..0x40d295: after the six pairs, while i < n − 6, an option of +0x38 + i with its value at +0x3a + i. It
+// needs n from 13 on, which 0x40e1b0 does not give (it counts up to 10 pieces). With n from 25 on the value falls past
+// the record: an error (Q-C187).
 TEST(OwnItemSetsTest, TheExtraOptionsOnlyComeWithMoreThanThirteenPieces)
 {
     SetOptions options;
@@ -304,8 +303,8 @@ TEST(OwnItemSetsTest, TheExtraOptionsOnlyComeWithMoreThanThirteenPieces)
     EXPECT_NE(outside.Error().find("Q-C187"), std::string::npos);
 }
 
-// 0x40d35e..0x40d457: completo con piezas − 1 ≥ +0x3c − 2 (+0x3c es las piezas + 1), suma las opciones del
-// completo y pone el +0x358 del héroe publicado en 1. Con una menos, no.
+// 0x40d35e..0x40d457: complete with pieces − 1 ≥ +0x3c − 2 (+0x3c is the pieces + 1), it adds the complete set's
+// options and sets the published hero's +0x358 to 1. With one less, it does not.
 TEST(OwnItemSetsTest, AFullSetAddsItsOptionsAndMarksThePublishedHero)
 {
     SetOptions options;
@@ -326,7 +325,7 @@ TEST(OwnItemSetsTest, AFullSetAddsItsOptionsAndMarksThePublishedHero)
     EXPECT_EQ(state.list.setIds[0], 3);
     EXPECT_EQ(state.byte9307, 0);
 
-    // +0x3c en 0: −2, completo desde dos piezas.
+    // +0x3c at 0: −2, complete from two pieces.
     options.Byte(3, 0x3c, 0);
     const ItemSetTables anyCount = TablesOf(SetTypes{}, options);
     ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, OnePiece(3, 2), anyCount.options, hero).HasValue());
@@ -334,11 +333,10 @@ TEST(OwnItemSetsTest, AFullSetAddsItsOptionsAndMarksThePublishedHero)
     EXPECT_EQ(hero.byte358, 1);
 }
 
-// 0x40d0d0..0x40d14d y 0x40d29c..0x40d2bd, en todas las clases (+0x1d4 & 7) con y sin evolución (>> 3):
-// la marca de la clase es rec[0x47 + clase]. Una opción de 0x18 en adelante entra con la marca distinta de
-// 0 y la evolución ≥ marca − 1. La bandera de la lista es 1 en las clases 0 a 2 con la marca en 1, o en 2
-// con evolución, y en la 3 solo con 1; la 4 nunca. Las clases 5 a 7 leen la marca en el registro
-// siguiente.
+// 0x40d0d0..0x40d14d and 0x40d29c..0x40d2bd, in every class (+0x1d4 & 7) with and without evolution (>> 3): the class
+// mark is rec[0x47 + class]. An option from 0x18 on enters with the mark other than 0 and the evolution ≥ mark − 1.
+// The list's flag is 1 in classes 0 to 2 with the mark at 1, or at 2 with evolution, and in class 3 only with 1; class
+// 4 never. Classes 5 to 7 read the mark in the next record.
 TEST(OwnItemSetsTest, ClassMarksGateTheHighOptionsAndSetTheFlag)
 {
     struct Case
@@ -368,8 +366,8 @@ TEST(OwnItemSetsTest, ClassMarksGateTheHighOptionsAndSetTheFlag)
         EXPECT_EQ(state.list.entries[0][1], expected.flag);
     }
 
-    // Las clases 5 a 7 caen en los bytes 0 a 2 del registro siguiente, que acá son 1, 32 y 0: con la
-    // evolución en 31, la 5 y la 6 (31 ≥ 32 − 1) entran y la 7 no.
+    // Classes 5 to 7 fall in bytes 0 to 2 of the next record, which here are 1, 32 and 0: with the evolution at 31, 5
+    // and 6 (31 ≥ 32 − 1) enter and 7 does not.
     for (const std::uint8_t heroClass : {std::uint8_t{5}, std::uint8_t{6}, std::uint8_t{7}})
     {
         SCOPED_TRACE(int{heroClass});
@@ -389,8 +387,8 @@ TEST(OwnItemSetsTest, ClassMarksGateTheHighOptionsAndSetTheFlag)
     }
 }
 
-// Después del último conjunto, la marca de la clase 5 cae fuera de la tabla (Q-C187). Una opción de 0x18
-// en adelante la lee; las de antes, no.
+// After the last set, class 5's mark falls outside the table (Q-C187). An option from 0x18 on reads it; the ones
+// before do not.
 TEST(OwnItemSetsTest, TheMarkPastTheLastSetIsAnError)
 {
     SetOptions options;
@@ -406,9 +404,9 @@ TEST(OwnItemSetsTest, TheMarkPastTheLastSetIsAnError)
     EXPECT_EQ(state.list.count9348, 0);
 }
 
-// 0x40d16d..0x40d233: el nombre va a su clase de pieza. Otro conjunto de la misma clase va al primer
-// nombre vacío o al segundo, y deja +0x9307 en sus piezas − 1; las opciones del completo le suman 1 a
-// +0x9307 si no es 0. Las opciones de la clase 0 van primero y las de la 1 detrás.
+// 0x40d16d..0x40d233: the name goes to its piece kind. Another set of the same kind goes to the first empty name or to
+// the second, and leaves +0x9307 at its pieces − 1; the complete set's options add 1 to +0x9307 if it is not 0. Kind
+// 0's options go first and kind 1's after them.
 TEST(OwnItemSetsTest, NamesGoToTheirKindAndAnotherSetToTheSecondName)
 {
     SetOptions options;
@@ -423,22 +421,22 @@ TEST(OwnItemSetsTest, NamesGoToTheirKindAndAnotherSetToTheSecondName)
 
     ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, pieces, tables.options, hero).HasValue());
 
-    // "Cuatro" en el de la clase 1; "Uno" en el de la 0; "Dos", de la 0 con otro nombre ahí, al segundo.
+    // "Cuatro" in kind 1's; "Uno" in kind 0's; "Dos", of kind 0 with another name there, in the second.
     EXPECT_EQ(NameIn(state.names[0]), "Uno");
     EXPECT_EQ(NameIn(state.names[1]), "Dos");
-    // strcpy copia el nombre con su 0 sobre "Cuatro" y deja lo de después: "Dos\0ro\0".
+    // strcpy copies the name with its 0 over "Cuatro" and leaves what follows: "Dos\0ro\0".
     EXPECT_EQ(std::string(state.names[1].data() + 4), "ro");
     EXPECT_EQ(state.list.setIds[0], 2);
     EXPECT_EQ(state.list.setIds[1], 4);
-    // +0x9307: 2 al entrar "Dos" y + 1 por cada una de sus dos opciones del completo.
+    // +0x9307: 2 when "Dos" enters and + 1 for each of its two complete-set options.
     EXPECT_EQ(state.byte9307, 4);
-    // De la clase 0, Uno con un par y una del completo, y Dos con dos pares y dos del completo.
+    // Of kind 0, Uno with one pair and one complete-set option, and Dos with two pairs and two.
     EXPECT_EQ(state.list.count9348, 6);
     EXPECT_EQ(state.list.count9349, 1);
     EXPECT_EQ(OptionsIn(state), (Listed{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {0, 6}, {4, 7}}));
     EXPECT_EQ(hero.byte358, 1);
 
-    // El mismo conjunto otra vez se queda en su nombre y no toca +0x9307.
+    // The same set again keeps its name and does not touch +0x9307.
     const ItemSetPieces again = {ItemSetPiece{.setId = 1, .count = 2, .kind = 0}, ItemSetPiece{1, 2, 0}, ItemSetPiece{},
                                  ItemSetPiece{}};
     ASSERT_TRUE(Client::Player::ApplyItemSetOptions(state, again, tables.options, hero).HasValue());
@@ -447,9 +445,9 @@ TEST(OwnItemSetsTest, NamesGoToTheirKindAndAnotherSetToTheSecondName)
     EXPECT_EQ(state.byte9307, 0);
 }
 
-// Lo que el original lee o escribe fuera de sus tablas y listas es un error (Q-C187): un conjunto de 64
-// o más, la clase de pieza 2 (el & 3 en 3), un nombre sin 0 en sus 0x20 bytes, más de 16 opciones de una
-// clase o más de 16 entre las dos. Las cuentas quedan en 0, como las deja 0x40d010 al entrar.
+// What the original reads or writes outside its tables and lists is an error (Q-C187): a set of 64 or more, piece kind
+// 2 (& 3 at 3), a name with no 0 in its 0x20 bytes, more than 16 options of one kind or more than 16 between both. The
+// counts stay at 0, as 0x40d010 leaves them on entry.
 TEST(OwnItemSetsTest, WhatFallsOutsideTheTablesAndListsIsAnError)
 {
     SetOptions options;
@@ -474,7 +472,7 @@ TEST(OwnItemSetsTest, WhatFallsOutsideTheTablesAndListsIsAnError)
         ItemSetPieces pieces;
         std::string_view shown;
     };
-    // Con cuatro piezas, 6 opciones de los pares y 5 del completo por conjunto: 11 + 11.
+    // With four pieces, 6 pair options and 5 complete-set options per set: 11 + 11.
     const ItemSetPieces twoKinds = {ItemSetPiece{3, 4, 0}, ItemSetPiece{4, 4, 1}, ItemSetPiece{}, ItemSetPiece{}};
     for (const Case& outside :
          {Case{OnePiece(64, 2), "conjunto 64"}, Case{OnePiece(1, 2, 2), "clase de pieza 2"},
@@ -493,8 +491,8 @@ TEST(OwnItemSetsTest, WhatFallsOutsideTheTablesAndListsIsAnError)
     }
 }
 
-// 0x550d29..0x550d3f: las marcas de +0x937c en 0, y nada más de la lista. Lo que 0x40da20 (el código de
-// 0x40d690) ya sumó, después de la limpieza se puede sumar otra vez.
+// 0x550d29..0x550d3f: the marks of +0x937c at 0, and nothing else of the list. What 0x40da20 (0x40d690's code) already
+// added can be added again after the clearing.
 TEST(OwnItemSetsTest, ClearingTheMarksLetsTheOptionsAddAgain)
 {
     ItemSetState state;
@@ -519,7 +517,7 @@ TEST(OwnItemSetsTest, ClearingTheMarksLetsTheOptionsAddAgain)
     EXPECT_EQ(word, 60);
 }
 
-// Un registro propio con lo que lee 0x40e1b0: todos los lugares vacíos.
+// An own record with what 0x40e1b0 reads: every place empty.
 OwnCharacterRecord Unequipped()
 {
     OwnCharacterRecord own;
@@ -538,7 +536,7 @@ ItemState Piece(std::uint16_t type, std::uint8_t setIndex)
     return item;
 }
 
-// Lo que pide 0x40e1b0, con la cuenta de accesos y el rand() del fixture.
+// What 0x40e1b0 asks for, with the fixture's access count and rand().
 class OwnItemSetsFixture : public ::testing::Test
 {
 protected:
@@ -559,12 +557,12 @@ protected:
     CrtRandom m_random{3};
 };
 
-// 0x40de10: los doce lugares (también las alas y la mascota) con durabilidad, el tipo 1 a la fuerza, el
-// 2 a la agilidad, el 3 a la energía y el 4 a la vitalidad, 5 · valor; después las opciones 0 a 3 de la
-// lista, que quedan marcadas. Abre y cierra el registro en cada lugar: con la cuenta en 0, 12 cierres.
+// 0x40de10: the twelve places (the wings and the pet too) with durability, type 1 to the strength, 2 to the agility, 3
+// to the energy and 4 to the vitality, 5 · value; then options 0 to 3 of the list, which stay marked. It opens and
+// closes the record at each place: with the count at 0, 12 closings.
 TEST_F(OwnItemSetsFixture, StatCopiesTakeTheItemBonusesAndTheSetOptions)
 {
-    // El byte +0x44 de Item.bmd: el tipo 1 en 1, el 2 en 2, el 3 en 3 y el 4 en 4.
+    // Item.bmd's byte +0x44: type 1 at 1, 2 at 2, 3 at 3 and 4 at 4.
     std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (std::size_t type = 1; type <= 4; ++type)
     {
@@ -587,7 +585,7 @@ TEST_F(OwnItemSetsFixture, StatCopiesTakeTheItemBonusesAndTheSetOptions)
         item.durability = 1;
         item.flags1c = static_cast<std::uint8_t>(worn.value << 2);
     }
-    // Un lugar sin durabilidad no lee Item.bmd, aunque el tipo esté fuera.
+    // A place without durability does not read Item.bmd, even with its type outside.
     own.equipment[5].id = EmptyType;
     m_state.list.count9348 = 4;
     for (std::size_t index = 0; index < 4; ++index)
@@ -609,12 +607,12 @@ TEST_F(OwnItemSetsFixture, StatCopiesTakeTheItemBonusesAndTheSetOptions)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(3, 12 * OwnRecordCloseRandoms).State());
 }
 
-// Q-C184 desde 0x40de10: un lugar vaciado con durabilidad corta, con el acceso cerrado.
+// Q-C184 from 0x40de10: an emptied place with durability stops, with the access closed.
 TEST_F(OwnItemSetsFixture, AnEmptySlotWithDurabilityStopsTheStatCopies)
 {
     OwnCharacterRecord own = Unequipped();
     own.equipment[4].durability = 1;
-    own.equipment[4].flags1c = 4; // Valor 1: el byte desconocido sí puede cambiar las copias.
+    own.equipment[4].flags1c = 4; // Value 1: the unknown byte can change the copies.
     OwnStatCopies copies;
     const auto added = Client::Player::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
     ASSERT_FALSE(added.HasValue());
@@ -623,8 +621,8 @@ TEST_F(OwnItemSetsFixture, AnEmptySlotWithDurabilityStopsTheStatCopies)
     EXPECT_EQ(m_accesses, 1);
 }
 
-// 0x40e033..0x40e075: selector desconocido por valor 0 no cambia ninguna copia.
-// Cada lugar conserva su apertura/cierre, aunque no necesite conocer el selector.
+// 0x40e033..0x40e075: an unknown selector times value 0 changes no copy. Each place keeps its opening and closing,
+// though it does not need to know the selector.
 TEST_F(OwnItemSetsFixture, AnEmptySlotWithZeroBonusPreservesCopiesAndBothLogicalAccessCases)
 {
     for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})
@@ -651,8 +649,8 @@ TEST_F(OwnItemSetsFixture, AnEmptySlotWithZeroBonusPreservesCopiesAndBothLogical
     }
 }
 
-// Sin las tablas o sin el estado de [0x6eed3c], 0x40e1b0 corta antes de tocar nada: ni la lista, ni el
-// héroe, ni un acceso.
+// Without the tables or without [0x6eed3c]'s state, 0x40e1b0 stops before touching anything: not the list, the hero
+// or an access.
 TEST_F(OwnItemSetsFixture, WithoutTheTablesNothingIsTouched)
 {
     m_state.list.entries[0][0] = 0x42;
@@ -665,7 +663,7 @@ TEST_F(OwnItemSetsFixture, WithoutTheTablesNothingIsTouched)
     EXPECT_EQ(m_hero.byte358, 3);
     EXPECT_EQ(m_random.State(), CrtRandom(3).State());
 
-    // Con las tablas y sin dónde escribir, igual.
+    // With the tables and nowhere to write, the same.
     const ItemSetTables tables = TablesOf(SetTypes{}, SetOptions{});
     Client::Player::OwnStatsContext withoutState = Context(&tables);
     withoutState.itemSets = nullptr;
@@ -676,9 +674,9 @@ TEST_F(OwnItemSetsFixture, WithoutTheTablesNothingIsTouched)
     EXPECT_EQ(m_random.State(), CrtRandom(3).State());
 }
 
-// 0x40e1b0 entero, con tres conjuntos: las alas y la mascota no cuentan; el mismo ítem en las dos manos
-// o en los dos anillos cuenta una vez, y con otro conjunto, dos. Abre y cierra el registro 10 + 1 + 12 +
-// 10 veces: con la cuenta en 0, 33 cierres de 3.848 rand().
+// The whole 0x40e1b0, with three sets: the wings and the pet do not count; the same item in both hands or in both
+// rings counts once, and with another set, twice. It opens and closes the record 10 + 1 + 12 + 10 times: with the
+// count at 0, 33 closings of 3,848 rand() calls.
 TEST_F(OwnItemSetsFixture, TheTwoPassesCountEachPieceOnce)
 {
     SetTypes types;
@@ -690,18 +688,18 @@ TEST_F(OwnItemSetsFixture, TheTwoPassesCountEachPieceOnce)
     const ItemSetTables tables = TablesOf(types, options);
     OwnCharacterRecord own = Unequipped();
     own.equipment[0] = Piece(0x10, 1);
-    own.equipment[1] = Piece(0x10, 1); // el mismo que el 0: no cuenta
+    own.equipment[1] = Piece(0x10, 1); // the same as 0: does not count
     own.equipment[2] = Piece(0x11, 1);
-    own.equipment[7] = Piece(0x11, 1); // las alas no cuentan
-    own.equipment[8] = Piece(0x30, 1); // la mascota tampoco
+    own.equipment[7] = Piece(0x11, 1); // the wings do not count
+    own.equipment[8] = Piece(0x30, 1); // nor does the pet
     own.equipment[9] = Piece(0x30, 1);
     own.equipment[10] = Piece(0x20, 1);
-    own.equipment[11] = Piece(0x20, 2); // otro conjunto del mismo tipo: cuenta
+    own.equipment[11] = Piece(0x20, 2); // another set of the same type: counts
     m_accesses = 0;
 
     ASSERT_TRUE(Client::Player::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
 
-    // Uno con dos piezas (0x10 y 0x11); Dos con dos (la de la clase 1 al final); Tres con una, sin opciones.
+    // Uno with two pieces (0x10 and 0x11); Dos with two (kind 1's last); Tres with one, no options.
     EXPECT_EQ(OptionsIn(m_state), (Listed{{0, 1}, {3, 4}}));
     EXPECT_EQ(m_state.list.count9348, 1);
     EXPECT_EQ(m_state.list.count9349, 1);
@@ -712,15 +710,15 @@ TEST_F(OwnItemSetsFixture, TheTwoPassesCountEachPieceOnce)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(3, 33 * OwnRecordCloseRandoms).State());
 }
 
-// La segunda pasada salta los ítems cuyos requisitos (+0x1e la fuerza, +0x20 la agilidad, +0x22 la
-// energía; sin signo) pasan las copias, que ya llevan lo de la primera: una pieza que solo entra gracias a
-// la opción de su propio conjunto cuenta. Después del 0xff de 0x40e4bf, la lista es la de la segunda.
+// The second pass skips the items whose requirements (+0x1e the strength, +0x20 the agility, +0x22 the energy;
+// unsigned) exceed the copies, which already carry the first pass's: a piece that only fits thanks to its own set's
+// option counts. After 0x40e4bf's 0xff, the list is the second pass's.
 TEST_F(OwnItemSetsFixture, TheSecondPassChecksRequirementsAgainstTheBoostedCopies)
 {
     SetTypes types;
     types.Set(0x10, 0, 1).Set(0x11, 0, 1).Set(0x12, 0, 1);
     SetOptions options;
-    // Con dos piezas, +10 a la agilidad (la opción 1, 0x8d); con tres, +10 a la energía (la 2).
+    // With two pieces, +10 to the agility (option 1, 0x8d); with three, +10 to the energy (option 2).
     options.Named(1, "Uno", 0xff).Pair(1, 0, 1, 10).Pair(1, 1, 2, 10);
     const ItemSetTables tables = TablesOf(types, options);
     OwnCharacterRecord own = Unequipped();
@@ -729,14 +727,14 @@ TEST_F(OwnItemSetsFixture, TheSecondPassChecksRequirementsAgainstTheBoostedCopie
     own.energy = 40;
     own.equipment[2] = Piece(0x10, 1);
     own.equipment[3] = Piece(0x11, 1);
-    own.equipment[3].word20 = 30; // entra con los 10 de la opción 1
+    own.equipment[3].word20 = 30; // fits with option 1's 10
     own.equipment[4] = Piece(0x12, 1);
-    own.equipment[4].word22 = 51; // no entra: la energía llega a 50 en la primera pasada
+    own.equipment[4].word22 = 51; // does not fit: the energy reaches 50 in the first pass
 
     ASSERT_TRUE(Client::Player::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
 
     EXPECT_EQ(OptionsIn(m_state), (Listed{{1, 10}}));
-    // De la primera pasada quedan las marcas de 0x40de10; el 0xff de la segunda, en lo que no escribió.
+    // 0x40de10's marks stay from the first pass; the second's 0xff, where it did not write.
     EXPECT_EQ(m_state.list.used[0], 1);
     EXPECT_EQ(m_state.list.used[1], 1);
     EXPECT_EQ(m_state.list.entries[0][2], 0xff);
@@ -745,8 +743,8 @@ TEST_F(OwnItemSetsFixture, TheSecondPassChecksRequirementsAgainstTheBoostedCopie
     EXPECT_EQ(m_state.list.entries[5][1], 0);
 }
 
-// -0x7c y -0x60 pasan de una pasada a la otra: si el lugar 0 no da sus requisitos en la segunda, el 1 se
-// compara con el 10 de la primera, y el mismo ítem en el 1 y en el 10 cuenta una vez en lugar de dos.
+// -0x7c and -0x60 carry over from one pass to the other: if place 0 does not meet its requirements in the second, 1 is
+// compared with the first pass's 10, and the same item in 1 and in 10 counts once instead of twice.
 TEST_F(OwnItemSetsFixture, ThePairCheckKeepsTheFirstPassRingForTheHands)
 {
     SetTypes types;
@@ -757,7 +755,7 @@ TEST_F(OwnItemSetsFixture, ThePairCheckKeepsTheFirstPassRingForTheHands)
     const ItemSetTables tables = TablesOf(types, options);
     OwnCharacterRecord own = Unequipped();
     own.equipment[0] = Piece(0x20, 1);
-    // La fuerza está en 0 y la copia llega a 1 con la opción 0 de Uno: no entra en la segunda pasada.
+    // The strength is at 0 and the copy reaches 1 with Uno's option 0: it does not fit in the second pass.
     own.equipment[0].word1e = 2;
     own.equipment[1] = Piece(0x10, 1);
     own.equipment[9] = Piece(0x20, 1);
@@ -766,8 +764,8 @@ TEST_F(OwnItemSetsFixture, ThePairCheckKeepsTheFirstPassRingForTheHands)
 
     ASSERT_TRUE(Client::Player::RecalculateOwnItemSets(own, Context(&tables)).HasValue());
 
-    // Primera pasada: Uno con 2 (el 1 y el 10; el 11 repite el 10) y Dos con 2 (el 0 y el 9). Segunda:
-    // el 1 repite el 10 de la primera, así que Uno queda con 1 (el 10), y Dos con 1 (el 9).
+    // First pass: Uno with 2 (1 and 10; 11 repeats 10) and Dos with 2 (0 and 9). Second: 1 repeats the first pass's
+    // 10, so Uno is left with 1 (10), and Dos with 1 (9).
     EXPECT_EQ(OptionsIn(m_state), Listed{});
     EXPECT_EQ(m_state.list.setIds[0], 0);
 }

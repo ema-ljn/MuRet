@@ -14,20 +14,18 @@ struct ActorState;
 struct OwnCharacterRecord;
 } // namespace Client::Kernel
 
-// Las opciones de los conjuntos del registro propio: 0x40e1b0, que 0x550d10 llama primero (0x550d24),
-// con 0x40cfa0, 0x40d010 y 0x40de10, todos thiscall sobre [0x6eed3c]; 0x40da20 es el código de 0x40d690
-// (Player::AddItemSetOptionValues, en ItemSetOptionList.h). Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "Los stats del registro propio", y 07, Q-C184 y
-// Q-C187. Lo que el original lee o escribe fuera de sus tablas y listas es un error explícito, después
-// de lo que hace antes.
+// The own record's set options: 0x40e1b0, which 0x550d10 calls first (0x550d24), with 0x40cfa0, 0x40d010 and 0x40de10,
+// all thiscall on [0x6eed3c]; 0x40da20 is 0x40d690's code (Player::AddItemSetOptionValues, in ItemSetOptionList.h).
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "Los stats del registro propio", and 07, Q-C184 and Q-C187.
+// What the original reads or writes outside its tables and lists is an explicit error, after what it does before.
 namespace Client::Player
 {
 struct ItemSetOptionList;
 struct ItemSetState;
 struct OwnStatsContext;
 
-// Una entrada de la lista local de 0x40e1b0, de a 3 bytes: el conjunto, cuántas piezas suyas se
-// contaron y la clase de pieza de la última (el byte +0x1c & 3 menos 1).
+// An entry of 0x40e1b0's local list, 3 bytes each: the set, how many of its pieces were counted and the last one's
+// piece kind (byte +0x1c & 3 minus 1).
 struct ItemSetPiece
 {
     std::uint8_t setId = 0;
@@ -35,31 +33,30 @@ struct ItemSetPiece
     std::uint8_t kind = 0;
 };
 
-// El buffer de 0x40e1b0 es de 30 bytes (0x40e1bb..0x40e1d4), pero 0x40cfa0 y 0x40d010 recorren solo
-// los cuatro primeros conjuntos (hasta el offset 9, 0x40cfe0 y 0x40d467).
+// 0x40e1b0's buffer is 30 bytes (0x40e1bb..0x40e1d4), but 0x40cfa0 and 0x40d010 walk only the first four sets (up to
+// offset 9, 0x40cfe0 and 0x40d467).
 inline constexpr std::size_t ItemSetPieceSlots = 4;
 using ItemSetPieces = std::array<ItemSetPiece, ItemSetPieceSlots>;
 
-// 0x40cfa0: con el byte +0x1c & 3 del ítem en 1, 2 o 3, el byte 0, 1 o 2 del registro `type` de
-// ItemSetType.bmd es su conjunto; con 0 o 0xff, ninguno. Lo suma al conjunto igual o al primer lugar
-// libre de los cuatro; sin lugar, nada. `type` es el tipo del ítem, que quien llama ya miró que no sea
-// negativo. Con 8.192 o más, el original lee fuera de la tabla: error (Q-C187).
+// 0x40cfa0: with the item's byte +0x1c & 3 at 1, 2 or 3, byte 0, 1 or 2 of ItemSetType.bmd's record `type` is its set;
+// with 0 or 0xff, none. It adds it to the equal set or to the first free place of the four; with no place, nothing.
+// `type` is the item's type, which the caller already checked is not negative. With 8,192 or more, the original reads
+// outside the table: an error (Q-C187).
 [[nodiscard]] Core::Expected<void, std::string>
 AddItemSetPiece(ItemSetPieces& pieces, const Tables::ItemSetTypeTable& types, std::size_t type, std::uint8_t flags1c);
 
-// 0x40d010: con cada conjunto de dos piezas o más, el nombre, las opciones de ItemSetOption.bmd que da
-// la cantidad de piezas y, si está completo, las del conjunto completo; las opciones de 0x18 en
-// adelante, solo si el conjunto marca la clase del héroe publicado. Las deja en la lista de `state`,
-// primero las de la clase de pieza 0, y escribe el +0x358 del héroe.
+// 0x40d010: with each set of two pieces or more, the name, the ItemSetOption.bmd options its piece count gives and, if
+// it is complete, the complete set's; the options from 0x18 on, only if the set marks the published hero's class. It
+// leaves them in `state`'s list, piece kind 0's first, and writes the hero's +0x358.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemSetOptions(ItemSetState& state, const ItemSetPieces& pieces,
                                                                     const Tables::ItemSetOptionTable& options,
                                                                     Kernel::ActorState& publishedHero);
 
-// 0x550d29..0x550d3f: las 16 marcas de +0x937c en 0.
+// 0x550d29..0x550d3f: the 16 marks of +0x937c at 0.
 void ClearItemSetOptionMarks(ItemSetOptionList& list);
 
-// Las copias de los stats del registro que arma 0x40e1b0 (0x40e429..0x40e453) para mirar los requisitos
-// de cada ítem en la segunda pasada.
+// The copies of the record's stats that 0x40e1b0 builds (0x40e429..0x40e453) to check each item's requirements in the
+// second pass.
 struct OwnStatCopies
 {
     std::uint16_t strength = 0; // +0x18
@@ -68,16 +65,16 @@ struct OwnStatCopies
     std::uint16_t energy = 0;   // +0x1e
 };
 
-// 0x40de10: lo de 0x550d10 en sus doce lugares (0x40dc50, con 5 · valor) y 0x40da20 con 0x8c a 0x8f,
-// pero sobre las copias: el tipo 1 a la fuerza, el 2 a la agilidad, el 3 a la energía y el 4 a la
-// vitalidad. Abre y cierra el registro en cada lugar.
+// 0x40de10: what 0x550d10 does at its twelve places (0x40dc50, with 5 · value) and 0x40da20 with 0x8c to 0x8f, but on
+// the copies: type 1 to the strength, 2 to the agility, 3 to the energy and 4 to the vitality. It opens and closes the
+// record at each place.
 [[nodiscard]] Core::Expected<void, std::string>
 AddOwnBonusesToStatCopies(OwnStatCopies& copies, const Kernel::OwnCharacterRecord& own, const OwnStatsContext& context);
 
-// 0x40e1b0: dos pasadas por los lugares del equipo salvo las alas y la mascota, que cuentan las piezas
-// de cada conjunto (0x40cfa0) y aplican sus opciones (0x40d010). Entre las dos, 0x40de10 sobre las
-// copias de los stats; la segunda pasada salta los ítems cuyos requisitos no dan esas copias. Abre y
-// cierra el registro en cada lugar y una vez en el medio. Sin las tablas, error antes de tocar nada.
+// 0x40e1b0: two passes over the equipment places except the wings and the pet, which count each set's pieces
+// (0x40cfa0) and apply its options (0x40d010). Between them, 0x40de10 on the stat copies; the second pass skips the
+// items whose requirements those copies do not meet. It opens and closes the record at each place and once in between.
+// Without the tables, an error before touching anything.
 [[nodiscard]] Core::Expected<void, std::string> RecalculateOwnItemSets(const Kernel::OwnCharacterRecord& own,
                                                                        const OwnStatsContext& context);
 } // namespace Client::Player

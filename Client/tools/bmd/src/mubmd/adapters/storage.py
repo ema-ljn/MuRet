@@ -137,3 +137,13 @@ class LocalFileStore:
 
     def list_files(self, folder: Path) -> tuple[Path, ...]:
         return tuple(self._walk(folder))
+
+    def files_in(self, folder: Path) -> tuple[Path, ...]:
+        if not folder.is_dir():
+            return ()
+        return tuple(sorted(path for path in folder.iterdir() if path.is_file()))
+
+    def folders_in(self, folder: Path) -> tuple[Path, ...]:
+        if not folder.is_dir():
+            return ()
+        return tuple(sorted(path for path in folder.iterdir() if path.is_dir()))

@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
+from mubmd.core.documents.model import MODEL_MAGIC
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.formats.credit_format import CREDIT_FORMAT
 from mubmd.core.formats.dialog_format import DIALOG_FORMAT
@@ -9,6 +10,7 @@ from mubmd.core.formats.filter_format import FILTER_FORMAT, FILTER_NAME_FORMAT
 from mubmd.core.formats.gate_format import GATE_FORMAT
 from mubmd.core.formats.item_format import ITEM_FORMAT
 from mubmd.core.formats.item_set_format import ITEM_SET_OPTION_FORMAT, ITEM_SET_TYPE_FORMAT
+from mubmd.core.formats.model_format import MODEL_ENCODING, ModelFormat
 from mubmd.core.formats.monster_skill_format import MONSTER_SKILL_FORMAT
 from mubmd.core.formats.move_requirement_format import MOVE_REQUIREMENT_FORMAT
 from mubmd.core.formats.quest_format import QUEST_FORMAT
@@ -45,6 +47,9 @@ def _other_file(name: str, encoding: str | None = None) -> CatalogFile:
 def _table(codec: RecordTableFormat, *files: CatalogFile, model_folder: str | None = None) -> FormatSpec:
     return FormatSpec(codec.name, codec.file_size, files, codec, model_folder)
 
+
+MODEL_FILE_SUFFIX: Final = ".bmd"
+MODEL_SPEC: Final = FormatSpec(ModelFormat.name, None, (), ModelFormat())
 
 _FORMATS = (
     FormatSpec(
@@ -83,6 +88,7 @@ _FORMATS = (
     _table(MONSTER_SKILL_FORMAT, _client_file("MonsterSkill.bmd"), _other_file("MonsterSkilltest.bmd")),
     _table(DIALOG_FORMAT, _client_file("Dialog.bmd", "cp1252"), _other_file("Dialogtest.bmd", "cp949")),
     _table(QUEST_FORMAT, _client_file("quest.bmd", "cp1252"), _other_file("questtest.bmd", "cp949")),
+    MODEL_SPEC,
 )
 
 
@@ -98,18 +104,50 @@ def format_by_name(name: str) -> FormatSpec:
     raise MubmdError(ErrorCode.UNKNOWN_FORMAT, f"No format {name!r}; known: {known}", suggestion="mubmd formats")
 
 
-def identify(file_name: str | Path, data: bytes) -> Identified:
-    path = Path(file_name)
+def _table_named(path: Path, size: int) -> Identified | None:
     wanted = path.name.casefold()
     folder = path.parent.name.casefold()
     for spec in _FORMATS:
-        if folder == spec.model_folder and (spec.size is None or len(data) < spec.size):
+        if folder == spec.model_folder and (spec.size is None or size < spec.size):
             continue
         for file in spec.files:
             if file.name.casefold() == wanted:
                 return Identified(spec, file)
-    raise MubmdError(
+    return None
+
+
+def _model(path: Path) -> Identified:
+    return Identified(MODEL_SPEC, CatalogFile(path.name, MODEL_ENCODING, read_by_client=None))
+
+
+def _unknown(file_name: str | Path) -> MubmdError:
+    return MubmdError(
         ErrorCode.UNKNOWN_FORMAT,
         f"{file_name} is not a format this version reads",
         suggestion="mubmd formats",
     )
+
+
+def identify(file_name: str | Path, data: bytes) -> Identified:
+    path = Path(file_name)
+    table = _table_named(path, len(data))
+    if table is not None:
+        return table
+    if data.startswith(MODEL_MAGIC):
+        return _model(path)
+    raise _unknown(file_name)
+
+
+def target_of(output: Path, spec: FormatSpec) -> Identified:
+    table = _table_named(output, 0)
+    if table is None:
+        if spec is MODEL_SPEC and output.suffix.casefold() == MODEL_FILE_SUFFIX:
+            return _model(output)
+        raise _unknown(output)
+    if table.format is not spec:
+        raise MubmdError(
+            ErrorCode.INVALID_VALUE,
+            f"The view is a {spec.name} view and {output.name} is a {table.format.name} file",
+            pointer="/format",
+        )
+    return table

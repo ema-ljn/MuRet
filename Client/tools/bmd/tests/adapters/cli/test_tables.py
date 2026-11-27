@@ -27,24 +27,36 @@ def test_editing_a_skill_updates_its_checksum(cli: Cli, working_copy: Path, refe
     assert len(data) == len(source)
 
 
-def test_roundtrip_reads_every_table(cli: Cli, reference_data: Path) -> None:
+def test_roundtrip_reads_every_file(cli: Cli, reference_data: Path) -> None:
     result = cli("roundtrip", reference_data)
     assert result.code == 0, result.out
-    assert result.json["data"] == {"checked": 29, "identical": 29, "differing": [], "skipped": 1965}
+    assert result.json["data"] == {"checked": 1991, "identical": 1991, "differing": [], "skipped": 3}
 
 
 def test_the_reference_has_only_its_known_findings(cli: Cli, reference_data: Path) -> None:
-    result = cli("validate", reference_data)
+    data = cli("validate", reference_data).json["data"]
     found = {
-        Path(entry["path"]).name: [finding["code"] for finding in entry["findings"]]
-        for entry in result.json["data"]["files"]
+        Path(entry["path"]).relative_to(reference_data).as_posix(): [
+            (finding["code"], finding["pointer"]) for finding in entry["findings"]
+        ]
+        for entry in data["files"]
     }
+    assert (data["checked"], data["skipped"]) == (1991, 3)
     assert found == {
-        "Text.bmd": ["TEXT_FILLS_RECORD"],
-        "Texttest.bmd": ["TEXT_FILLS_RECORD", "TEXT_FILLS_RECORD"],
-        "TKOU.bmd": ["TEXT_HAS_TAIL"],
-        "item.bmd": ["CHECKSUM_MISMATCH"],
-        "n380.bmd": ["CHECKSUM_MISMATCH"],
+        "Local/Text.bmd": [("TEXT_FILLS_RECORD", "/texts/7")],
+        "Local/Texttest.bmd": [("TEXT_FILLS_RECORD", "/texts/7"), ("TEXT_FILLS_RECORD", "/texts/714")],
+        "Local/TKOU.bmd": [("TEXT_HAS_TAIL", "/texts/1829")],
+        "Local/item.bmd": [("CHECKSUM_MISMATCH", "/stored_checksum")],
+        "Local/n380.bmd": [("CHECKSUM_MISMATCH", "/stored_checksum")],
+        "Item/waterring.bmd": [("TEXTURE_NOT_FOUND", "/meshes/1/texture_name")],
+        "NPC/BloodCastle01.bmd": [
+            ("PARENT_AFTER_CHILD", "/bones/43/parent"),
+            ("PARENT_AFTER_CHILD", "/bones/44/parent"),
+        ],
+        "object35/Object36.bmd": [
+            ("OUT_OF_RANGE", "/meshes/1/vertices/0/bone"),
+            ("OUT_OF_RANGE", "/meshes/1/normals/0/bone"),
+        ],
     }
 
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
+from mubmd.app.checks import findings_of
 from mubmd.core.catalog import Identified, identify
 from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -14,7 +15,23 @@ from mubmd.core.leaves import leaf_text
 from mubmd.core.patch import Change, diff_views
 from mubmd.core.ports import FileStore
 
-HEADER_POINTERS: Final = frozenset({"/format_version", "/format", "/encoding", "/records_sha256", "/stored_checksum"})
+HEADER_POINTERS: Final = frozenset(
+    {"/format_version", "/format", "/encoding", "/records_sha256", "/stored_checksum", "/version"}
+)
+HEADER_SUGGESTIONS: Final = {
+    "/encoding": "--encoding reads a file in another encoding",
+    "/version": "mubmd dump <file> --output model.json, change version there, then mubmd build",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedDocument:
+    path: Path
+    identified: Identified
+    sha256: str
+    size: int
+    document: Any
+    read_only: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,22 +62,32 @@ def check_encoding(encoding: str) -> str:
     return encoding
 
 
-def open_document(store: FileStore, path: Path, *, encoding: str | None = None) -> OpenDocument:
+def decode_document(store: FileStore, path: Path, *, encoding: str | None = None) -> DecodedDocument:
     data = store.read(path)
     identified = identify(path.absolute(), data)
     if encoding is not None:
         file = dataclasses.replace(identified.file, encoding=check_encoding(encoding))
         identified = dataclasses.replace(identified, file=file)
-    codec = identified.format.codec
-    document = codec.decode(data, identified.file)
-    return OpenDocument(
+    return DecodedDocument(
         path=path,
         identified=identified,
         sha256=hashlib.sha256(data).hexdigest(),
         size=len(data),
-        document=document,
-        view=codec.to_view(document),
+        document=identified.format.codec.decode(data, identified.file),
         read_only=store.is_reference(path),
+    )
+
+
+def open_document(store: FileStore, path: Path, *, encoding: str | None = None) -> OpenDocument:
+    decoded = decode_document(store, path, encoding=encoding)
+    return OpenDocument(
+        path=decoded.path,
+        identified=decoded.identified,
+        sha256=decoded.sha256,
+        size=decoded.size,
+        document=decoded.document,
+        view=decoded.identified.format.codec.to_view(decoded.document),
+        read_only=decoded.read_only,
     )
 
 
@@ -119,11 +146,10 @@ def encode_verified(opened: Identified, view: JsonObject) -> tuple[Any, bytes, J
 def refuse_header_changes(changes: tuple[Change, ...]) -> None:
     for change in changes:
         if change.pointer in HEADER_POINTERS:
-            suggestion = "--encoding reads a file in another encoding" if change.pointer == "/encoding" else None
             raise MubmdError(
                 ErrorCode.INVALID_VALUE,
                 f"{change.pointer} describes the file and cannot be edited",
-                suggestion=suggestion,
+                suggestion=HEADER_SUGGESTIONS.get(change.pointer),
                 pointer=change.pointer,
             )
 
@@ -148,7 +174,7 @@ def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_r
     changes = tuple(change for change in diff_views(opened.view, written) if change.pointer not in HEADER_POINTERS)
     if not changes:
         return unchanged
-    findings = opened.identified.format.codec.check(document, opened.document)
+    findings = findings_of(store, opened.path, opened.identified, document, opened.document)
     warnings = tuple(finding for finding in findings if touches(finding, changes))
     if not dry_run:
         store.write(opened.path, data, expected_sha256=opened.sha256)

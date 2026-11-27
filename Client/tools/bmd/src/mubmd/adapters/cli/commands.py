@@ -125,7 +125,12 @@ EXAMPLES: Final = {
 }
 
 FileArgument = Annotated[Path, typer.Argument(help="A .bmd file", show_default=False)]
-PointerArgument = Annotated[str, typer.Argument(help="A JSON Pointer into the file's view, such as /texts/500")]
+PointerArgument = Annotated[
+    str,
+    typer.Argument(
+        help="A JSON Pointer into the file's view, such as /texts/500 in a table or /meshes/0/texture_name in a model"
+    ),
+]
 EncodingOption = Annotated[
     str | None, typer.Option("--encoding", help="Read texts in this encoding instead of the catalog's")
 ]
@@ -180,14 +185,20 @@ def edit_outcome(command: str, result: EditResult, *, limit: int | None = None, 
     return Outcome(command, data, EditData, warnings=result.warnings)
 
 
-@app.command("formats", help="List the formats this version reads, their files and whether the client reads them")
+@app.command(
+    "formats",
+    help="List the formats this version reads, their files and whether the client reads them; matches says whether "
+    "a file is known by its name (a table) or by its content (a model)",
+)
 def formats_command() -> Outcome:
     return Outcome("formats", FormatList(list_formats()), FormatList)
 
 
 @app.command("schema", help="Describe a format's fields: JSON Pointer, type, limit and research reference")
 def schema_command(
-    format_name: Annotated[str, typer.Argument(metavar="FORMAT", help="A format name from mubmd formats")],
+    format_name: Annotated[
+        str, typer.Argument(metavar="FORMAT", help="A format name from mubmd formats, such as text or model")
+    ],
 ) -> Outcome:
     return Outcome("schema", format_schema(format_name), SchemaResult)
 
@@ -224,7 +235,10 @@ def workspace_init_command(
     return Outcome("workspace init", result, WorkspaceResult)
 
 
-@app.command("info", help="Format, encoding, cipher, record counts and number of findings of one file")
+@app.command(
+    "info",
+    help="Format, encoding, cipher, a table's record counts or a model's parts, and number of findings of one file",
+)
 def info_command(file: FileArgument, encoding: EncodingOption = None, fields: FieldsOption = None) -> Outcome:
     with about(file):
         result = info(STORE, expanded(file), encoding=encoding)
@@ -377,8 +391,8 @@ def dump_command(
 
 @app.command(
     "build",
-    help="Write a .bmd from a JSON view; the file name must be one the catalog knows. total counts the changes "
-    "and changes holds --limit of them",
+    help="Write a .bmd from a JSON view: a table's view to the file name the catalog knows, a model's view to any .bmd "
+    "name. total counts the changes and changes holds --limit of them",
 )
 def build_command(
     source: Annotated[Path, typer.Argument(help="A JSON view written by mubmd dump", show_default=False)],

@@ -45,3 +45,10 @@ class FakeStore:
 
     def list_bmd(self, folder: Path) -> tuple[Path, ...]:
         return tuple(file for file in self.list_files(folder) if file.suffix.casefold() == ".bmd")
+
+    def files_in(self, folder: Path) -> tuple[Path, ...]:
+        return tuple(sorted(file for file in self.files if file.parent == folder))
+
+    def folders_in(self, folder: Path) -> tuple[Path, ...]:
+        inside = {parent for file in self.files for parent in file.parents if parent.parent == folder}
+        return tuple(sorted(inside - {folder}))

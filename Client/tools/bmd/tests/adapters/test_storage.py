@@ -204,3 +204,20 @@ def test_copy_creates_folders_and_refuses_the_reference(reference: Path, tmp_pat
     with pytest.raises(MubmdError) as caught:
         STORE.copy(source, reference / "Local" / "Copy.bmd")
     assert caught.value.code is ErrorCode.REFERENCE_READ_ONLY
+
+
+def test_files_in_and_folders_in_list_one_level(tmp_path: Path) -> None:
+    (tmp_path / "Item" / "deep").mkdir(parents=True)
+    (tmp_path / "skill").mkdir()
+    for name in ("a.OZJ", "Item/b.OZJ", "Item/deep/c.OZJ"):
+        (tmp_path / name).touch()
+    store = LocalFileStore()
+    assert store.files_in(tmp_path) == (tmp_path / "a.OZJ",)
+    assert store.files_in(tmp_path / "Item") == (tmp_path / "Item" / "b.OZJ",)
+    assert store.folders_in(tmp_path) == (tmp_path / "Item", tmp_path / "skill")
+
+
+def test_a_folder_that_is_not_there_lists_nothing(tmp_path: Path) -> None:
+    store = LocalFileStore()
+    assert store.files_in(tmp_path / "missing") == ()
+    assert store.folders_in(tmp_path / "missing") == ()

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from mubmd.app.checks import findings_of
 from mubmd.app.documents import EditResult, OpenDocument, open_document, parse_value, save_view, touches
 from mubmd.core.errors import MubmdError
 from mubmd.core.findings import Finding
@@ -63,9 +64,10 @@ class EditSession:
     def _check(self) -> tuple[Any, tuple[Finding, ...]]:
         view = self.view
         if self._checked is None or self._checked[0] is not view:
-            codec = self._opened.identified.format.codec
-            document = codec.from_view(view)
-            self._checked = (view, document, codec.check(document, self._opened.document))
+            opened = self._opened
+            document = opened.identified.format.codec.from_view(view)
+            findings = findings_of(self._store, opened.path, opened.identified, document, opened.document)
+            self._checked = (view, document, findings)
         return self._checked[1], self._checked[2]
 
     @property

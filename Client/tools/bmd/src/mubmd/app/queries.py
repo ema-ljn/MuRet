@@ -2,8 +2,10 @@ import re
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
 
-from mubmd.app.documents import open_document
+from mubmd.app.checks import findings_of
+from mubmd.app.documents import decode_document, open_document
 from mubmd.app.paging import DEFAULT_LIMIT, Page, page
 from mubmd.core.catalog import FormatSpec, all_formats, format_by_name
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -12,18 +14,25 @@ from mubmd.core.leaves import Tokens, leaf_text, leaves
 from mubmd.core.pointer import format_pointer, parse_pointer, resolve
 from mubmd.core.ports import CatalogFile, FieldInfo, FileStore
 
+MATCHES_BY_NAME: Final = "name"
+MATCHES_BY_CONTENT: Final = "content"
+
 
 @dataclass(frozen=True, slots=True)
 class InfoResult:
     path: Path
     format: str
     encoding: str | None
-    read_by_client: bool
+    read_by_client: bool | None
     read_only: bool
     size: int
     cipher: str
     records: int | None
     used_records: int | None
+    version: int | None
+    meshes: int | None
+    bones: int | None
+    actions: int | None
     findings: int
 
 
@@ -48,6 +57,7 @@ class FormatInfo:
     name: str
     size: int | None
     files: tuple[CatalogFile, ...]
+    matches: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,20 +67,23 @@ class SchemaResult:
 
 
 def info(store: FileStore, path: Path, *, encoding: str | None = None) -> InfoResult:
-    opened = open_document(store, path, encoding=encoding)
-    codec = opened.identified.format.codec
-    summary = codec.summarize(opened.document)
+    decoded = decode_document(store, path, encoding=encoding)
+    summary = decoded.identified.format.codec.summarize(decoded.document)
     return InfoResult(
         path=path,
-        format=opened.identified.format.name,
-        encoding=opened.identified.file.encoding,
-        read_by_client=opened.identified.file.read_by_client,
-        read_only=opened.read_only,
-        size=opened.size,
+        format=decoded.identified.format.name,
+        encoding=decoded.identified.file.encoding,
+        read_by_client=decoded.identified.file.read_by_client,
+        read_only=decoded.read_only,
+        size=decoded.size,
         cipher=summary.cipher,
         records=summary.records,
         used_records=summary.used_records,
-        findings=len(codec.check(opened.document, None)),
+        version=summary.version,
+        meshes=summary.meshes,
+        bones=summary.bones,
+        actions=summary.actions,
+        findings=len(findings_of(store, path, decoded.identified, decoded.document, None)),
     )
 
 
@@ -166,7 +179,10 @@ def get(
 
 
 def list_formats() -> tuple[FormatInfo, ...]:
-    return tuple(FormatInfo(spec.name, spec.size, spec.files) for spec in all_formats())
+    return tuple(
+        FormatInfo(spec.name, spec.size, spec.files, MATCHES_BY_NAME if spec.files else MATCHES_BY_CONTENT)
+        for spec in all_formats()
+    )
 
 
 def format_schema(name: str) -> SchemaResult:

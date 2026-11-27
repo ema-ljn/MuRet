@@ -17,9 +17,9 @@
 #include <string_view>
 #include <vector>
 
-// What 0x61a560 reads from a world for the terrain: the mapping, the attributes and the heights of World<N>\
-// (EncTerrain<N>.map and .att, TerrainHeight.OZB), the shaded light (TerrainLighting) and its tile table. Contract:
-// 06 § Terreno and § El terreno del login.
+// What 0x61a560 reads from a world for the terrain: the mapping, the attributes and the heights of
+// World<N>\ (EncTerrain<N>.map and .att, TerrainHeight.OZB), the shaded light (TerrainLighting) and its tile table.
+// Contract: 06 § Terreno and § El terreno del login.
 namespace Client::Terrain
 {
 struct WorldTerrain

@@ -11,7 +11,7 @@
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
 #include "Render/Frame/ITextDrawer.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "UI/GameText.h"
 #include "UI/Widget.h"
 #include "Math/Ftol.h"

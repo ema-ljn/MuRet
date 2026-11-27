@@ -1,8 +1,8 @@
-#include "World/SphereFrustum.h"
+#include "Terrain/SphereFrustum.h"
 
 #include "Core/PixelSize.h"
 #include "Render/Pass3D.h"
-#include "Scenes/SceneCameras.h"
+#include "Camera/SceneCameras.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>

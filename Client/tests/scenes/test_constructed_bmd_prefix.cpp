@@ -1,9 +1,9 @@
-#include "Scenes/ConstructedBmdPrefix.h"
+#include "Assets/ConstructedBmdPrefix.h"
 
 #include "Crt/CrtRandom.h"
 #include "Models/Skeleton.h"
 #include "Scenes/FaunaMotion.h"
-#include "Scenes/FaunaModels.h"
+#include "Assets/FaunaModels.h"
 #include "Scenes/FaunaObject.h"
 
 #include <gtest/gtest.h>

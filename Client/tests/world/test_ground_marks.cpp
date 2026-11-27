@@ -1,12 +1,12 @@
-#include "World/GroundMarks.h"
+#include "Terrain/GroundMarks.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/WorldRuntime.h"
-#include "World/TerrainDecal.h"
+#include "Kernel/WorldRuntime.h"
+#include "Terrain/TerrainDecal.h"
 
 #include <gtest/gtest.h>
 

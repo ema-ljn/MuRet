@@ -1,8 +1,8 @@
 #include "Scenes/HudItems.h"
 
 #include "Tables/ItemTable.h"
-#include "Scenes/OwnInventory.h"
-#include "World/ItemState.h"
+#include "Kernel/OwnInventory.h"
+#include "Kernel/ItemState.h"
 
 #include <gtest/gtest.h>
 

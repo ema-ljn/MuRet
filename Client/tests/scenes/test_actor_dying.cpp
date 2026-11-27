@@ -1,8 +1,8 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorDying.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorDying.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "World/Particles.h"
 

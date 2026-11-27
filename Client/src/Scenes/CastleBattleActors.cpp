@@ -5,15 +5,15 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/MonsterCreation.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldMap.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldMap.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Pathfinding/TerrainWalls.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <cstdint>
 #include <format>

@@ -6,7 +6,7 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/FaunaObject.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/JointKernels.h"
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"

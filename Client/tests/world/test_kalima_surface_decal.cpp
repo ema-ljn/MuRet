@@ -7,7 +7,7 @@
 #include "Render/TextureSlot.h"
 #include "World/KalimaWaves.h"
 #include "World/KalimaWorld.h"
-#include "World/TerrainDecal.h"
+#include "Terrain/TerrainDecal.h"
 
 #include <gtest/gtest.h>
 

@@ -1,4 +1,4 @@
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 
 #include <gtest/gtest.h>

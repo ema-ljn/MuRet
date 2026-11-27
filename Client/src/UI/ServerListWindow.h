@@ -6,7 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/UiImage.h"
 #include "Render/Frame/ITextDrawer.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "UI/Button.h"
 #include "UI/NewUi.h"
 #include "UI/ServerListModel.h"

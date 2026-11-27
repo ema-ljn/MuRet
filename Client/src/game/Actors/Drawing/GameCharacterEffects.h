@@ -1,0 +1,185 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Math/HalfLifeMath.h"
+#include "Actors/FullSetScan.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/SocialState.h"
+#include "World/ParticleOwner.h"
+
+#include <glm/ext/vector_float3.hpp>
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
+
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render
+{
+class ModelBatch;
+} // namespace Client::Render
+
+namespace Client::World
+{
+class FrameSprites;
+struct ModelEffect;
+class ModelEffects;
+class Particles;
+struct TerrainLighting;
+struct TerrainPolygon;
+struct WorldTerrain;
+} // namespace Client::World
+
+namespace Client::Models
+{
+class IModelLibrary;
+}
+
+// Los efectos de un jugador en el dibujo del juego: la cola de 0x50ba30 después de lo que cuelga, del caso
+// del 0x20a del switch de 0x50e9fa (0x50ea20) al return, y el cuervo de 0x420df0. Lo que pide un efecto,
+// un joint, una partícula o un sonido que MuRet no tiene corta con su dirección, y sólo cuando la rama de
+// verdad correría. Contrato: 06 § El dibujo del juego, "Los efectos del jugador".
+namespace Client::Scenes
+{
+class WorldState;
+struct ActorState;
+struct FaunaDrawCarry;
+
+struct GameCharacterEffectsPass
+{
+    // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
+    std::span<const Math::BoneTransform> body;
+    // El rand() global de 0x69fd70.
+    Crt::CrtRandom& random;
+    // La tabla de sprites del frame (0x5491e0). Hace falta sólo si una rama pone sprites.
+    World::FrameSprites* sprites = nullptr;
+    // Las partículas (0x53fe70), los joints (0x530860) y los efectos con modelo (0x518cf0) del frame, para lo que
+    // crea el conjunto completo. Hacen falta sólo si una rama crea, en un frame del original.
+    World::Particles* particles = nullptr;
+    std::span<JointState> joints{};
+    World::ModelEffects* effects = nullptr;
+    // El mundo, para las altas de 0x518cf0 de las acciones 0x51 y 0x5b del Dark Lord (el 0x621/2 de 0x50f9b3 y los
+    // 0x117/2 de 0x50fb64, por CreateHighModelEffect) y su sonido 0x1cc. Sin él, esas ventanas cortan.
+    WorldState* world = nullptr;
+    // El lugar del personaje en el pool: la identidad del dueño (+0x40) de la órbita 60f/0.
+    std::size_t slot = 0;
+    // Lo que devolvió 0x505820 en este dibujo (0x50c904) y lo que dejó en [0x743a178].
+    FullSetScan scan;
+    // Los lugares de la party hasta su cuenta (PartyMembers): las acciones 0x51, 0x5b y 0x94 del Dark Lord los leen
+    // con el frame por debajo de 2 (0x50f9c9).
+    std::span<const PartySlot> party{};
+    // Los 400 personajes (0x743a16c): los miembros de la party a los que van los joints 0x618 de esas acciones
+    // (0x50fa25). Sin ellos, cortan.
+    std::span<const ActorState> actors{};
+    // DAT_05767b88: el reloj del mundo en ms, en float.
+    float worldClock = 0.0f;
+    std::int32_t map = 0;        // 0x6c9dd0
+    std::int32_t logicSteps = 0; // 0x7d3a0f0
+    // 0x510a80: la escena (0x6d5dc8) es la 5. En el login y en la selección, 0x510ef0 no corre.
+    bool gameScene = true;
+    // En un frame del original corren los contadores y lo que nace en las tablas durables; entre frames,
+    // sólo los sprites, sobre una copia del personaje y del rand().
+    bool originalFrame = true;
+    // +0x6c..+0x74 del 0x20a ([ebp−0x14] de 0x50ba30): la posición que 0x6001b0 le copió en 0x50bbf7, antes de las
+    // guardas y del suelo de la sombra de Blood Castle (0x50bcaf). Con ella traslada 0x4ec110 los puntos de los huesos
+    // (0x50eab0, 0x50f89b, 0x50fb16, 0x50fc37.., 0x50fe4c.., 0x510071.. y el 0x51e121 del gremio); los joints y los
+    // efectos que nacen en el personaje van desde la del objeto (+0x10), ya en el suelo. Sin ella, la del personaje.
+    std::optional<glm::vec3> modelOrigin{};
+};
+
+// 0x50ea20..0x510ab6 sobre un 0x20a con lo que cuelga ya dibujado, en el orden del ASM: los sprites de la
+// piel especial del mago (0x50ea38, que deja el corrimiento (−4, 11, 0) para las manos, Q-C350), los de la
+// acción 0x94 fuera del Dark Lord y los efectos de las ventanas de las acciones 0x94, 0x51 y 0x5b (0x50f828; con
+// el frame por debajo de 2, party y el personaje fuera de ella, 0x50f9f8 salta a 0x510a7a), los de las banderas +0x78 &
+// 4 o 0x2000000 (0x50fba4); fuera de Chaos Castle, el contador de +0x35c con +0x358 (0x50fd74, con el efecto 0x5ac/3 de
+// cada 100) y, con el conjunto completo de 0x505820, los sprites 0x5ac de las manos, las partículas 0x6f1/3 de las
+// botas de 0x182f a 0x1833 y, por encima de +9, la órbita 0x60f/0 y los joints 0x60f/0, 0x60f/0x12 y 0x610/7 (0x50fddb,
+// con sus rand() en orden); y al final, sólo en la escena 5 (0x510a80), 0x510ef0 con +0x369. No hay otra puerta de
+// escena: lo llaman el juego, el login y la selección. Entre frames, los sprites, el contador y los rand() que eligen
+// sobre la copia del personaje y del rand() que da el caller; lo que nace en las tablas durables, sólo en un frame del
+// original.
+[[nodiscard]] Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor,
+                                                                         const GameCharacterEffectsPass& pass);
+
+// 0x5208a0 sobre el 0x5ac/3 del conjunto completo (0x52a9ad): el rand() de la luz de todo efecto vivo (0x5208c5), +0xd8
+// un paso más y, con la vida múltiplo de 15 y dueño, el giro z 180 más; la posición a 50 del personaje dueño (+0x108,
+// leído en vivo) con el seno del giro sin redondear y el coseno del giro guardado (Q-C380), 20 más arriba, y el joint
+// 619/9 ahí. Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos.
+[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect,
+                                                                 std::span<JointState> joints, Crt::CrtRandom& random);
+
+// 0x5208a0 sobre el calco 0x61e/0 del level-up, /1 de la mascota y /3 de invocar. El /0 sólo consume el rand() común
+// y descuenta vida (0x52b984 → 0x52bb29). El /1 (0x52b9a6 → 0x518900): el rand() de la luz de todo efecto vivo
+// (0x5208c5) y tres joints 619/1 de ancho 5, cada uno con su giro (rand() % 90, 0, rand() % 360), nacido donde ese giro
+// lleva (0, −200, 0) restado de la posición del efecto, con 120 más de z; la posición del efecto de segundo punto, el
+// dueño del efecto (el héroe), key −1 y sin skill ni objetivo. El /3 de la 0x1c y de las invocaciones hace lo mismo con
+// joints 619/3 (0x5189cc), con el personaje del calco de dueño. El /2, el /5 y los de 0xb en
+// adelante van también a 0x518900, con joints 619 del mismo subtipo salvo el /5, que los pide 619/0xb (0x51898b). Los
+// negativos, como el /0. Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Los /4 y /6 a
+// /0xa son de Scenes/HighModelEffects (StepsAsPetSummon los deja afuera).
+[[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
+[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+                                                              Crt::CrtRandom& random);
+
+// 0x5208a0 sobre los 0x5ac/1 y /2 de las skills que llegan (0x52a7b7 y 0x52a8a7, Scenes/SkillReplies): el rand() de la
+// luz de todo efecto vivo (0x5208c5) y la vida en 10 con el dueño (+0x108) vivo (+0x0 en 1) y su bandera de +0x78 (0x10
+// el /1, 0x400 el /2), si no en 0. Con 0x4000 en +0x78 del dueño, nada más. Si no, el /1 saca rand() % 7 y crea
+// sus dos partículas 5ac/4 (0x52a866/0x52a89a) con `particleOwner`, la identidad del dueño en el pool; el /2 sube +0xd8
+// en 1 y, con su ftol múltiplo de 50, gira 50 más en z, se pone a 80 del dueño con el seno del giro sin redondear y el
+// coseno del giro guardado (Q-C380), 50 más arriba, y suelta el joint 619/9 de ancho 15 ahí (con la tabla de joints
+// llena, ninguno). Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Sin dueño, el original
+// lee +0x78 de 0: MuRet corta.
+[[nodiscard]] Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
+                                                               Crt::CrtRandom& random,
+                                                               World::Particles* particles = nullptr,
+                                                               World::ParticleOwner particleOwner = {});
+
+// Lo que lee el cuervo del juego (0x420df0 → 0x4182f0) fuera de su dueño.
+struct GameRavenPass
+{
+    Render::ModelBatch& batch;
+    const Models::IModelLibrary& models;
+    // El trapecio de este dibujo (0x5fba90) y el buffer dinámico de la luz del terreno (0x5ffce0).
+    const World::TerrainPolygon& polygon;
+    const World::TerrainLighting* lighting = nullptr;
+    // Las alturas del terreno de 0x5f93c0, para la sombra, con la altura fija de la cámara.
+    const World::WorldTerrain& terrain;
+    float fixedHeight = 0.0f;
+    // El buffer global de la pose (0x68b181c), donde 0x5ffdf0 deja la del cuervo. Opcional.
+    FaunaDrawCarry* carry = nullptr;
+    Core::Duration frameClock{};
+    std::int32_t map = 0;
+    // +0x1a1 del héroe, que 0x5ffdf0 lee en los mapas 18 a 23.
+    std::uint8_t heroByte1a1 = 0;
+    bool originalFrame = true;
+    // El rand() de la CRT, para 0x418920 (los estados 5 y 6). Sin él, esos estados cortan.
+    Crt::CrtRandom* random = nullptr;
+    // Las partículas del mundo (0x743a198) y su reloj (DAT_05767b88), para las 0x5ac/6 del grito (0x418a26). Sin ellas,
+    // el grito corta en su primera partícula.
+    World::Particles* particles = nullptr;
+    float worldClock = 0.0f;
+    // Las tablas del mundo para el estado 5 (0x418aab..0x418c0a: los joints 0x5ac/1 de 0x530860 y los efectos 0x117/3
+    // y 0x113/0 de 0x518cf0) y para el final del grito (0x418a8c: los joints 0x613/0xd hacia el personaje de +0x3b0,
+    // uno de sus 400). Sin ellas, cortan en la primera alta.
+    WorldState* world = nullptr;
+};
+
+// 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),
+// MissTheView. Si lo pasa, 0x602e90: 0x5ffdf0 (el alpha de Chaos Castle y, por encima de 0,01, la pose con
+// la luz del terreno) y 0x6002e0 (las mallas 3 y 2, y la sombra salvo en los mapas 10, 24 a 29 y 36); con
+// +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y va por 0x60033c: DrawChromeShell, sin la sombra ni la altura del
+// terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
+// el pool). Después, en los frames del original, 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el
+// A8): el 5 suelta los joints 0x5ac/1, el 0x117/3 y el 0x113/0 en las tablas de `world`, el grito del 6 las partículas
+// 0x5ac/6 de sus huesos (DrawTheRavenAttack), y su final, los joints 0x613/0xd de los vértices de su malla 1 (0x4ee770,
+// EndTheShout). Se dibuja como lo dejó el paso, como el personaje. En un frame del original le quedan los huesos de la
+// pose para la chispa del paso.
+[[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
+} // namespace Client::Scenes

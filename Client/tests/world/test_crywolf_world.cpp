@@ -14,8 +14,8 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
-#include "World/TerrainCells.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
 
 #include "support/ParticleDrawRecorder.h"

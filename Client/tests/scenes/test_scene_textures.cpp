@@ -1,4 +1,4 @@
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"

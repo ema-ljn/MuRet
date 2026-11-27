@@ -7,7 +7,7 @@
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
@@ -19,7 +19,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
-#include "World/TerrainAttributeQuery.h"
+#include "Terrain/TerrainAttributeQuery.h"
 #include "World/WizardModelEffects.h"
 #include "World/WorldObjectStepServices.h"
 

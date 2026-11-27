@@ -2,17 +2,17 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Models/Cloth.h"
 #include "Models/Animation.h"
-#include "Scenes/ActorActions.h"
-#include "Scenes/ActorConstruction.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorActions.h"
+#include "Actors/ActorConstruction.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneId.h"
-#include "World/TerrainHeight.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/TerrainHeight.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
 

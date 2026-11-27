@@ -6,7 +6,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/IModelLibrary.h"
 #include "Models/Skinning.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

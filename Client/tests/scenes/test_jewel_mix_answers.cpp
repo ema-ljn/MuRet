@@ -10,8 +10,8 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/NpcWindowState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/MessageArea.h"
 
 #include "support/Bytes.h"

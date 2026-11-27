@@ -7,9 +7,9 @@
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "Models/RayPicking.h"
-#include "Scenes/ModelPoseCallbacks.h"
+#include "Actors/Drawing/ModelPoseCallbacks.h"
 #include "World/ModelEffects.h"
-#include "World/SphereFrustum.h"
+#include "Terrain/SphereFrustum.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int2.hpp>

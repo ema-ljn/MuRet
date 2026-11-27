@@ -5,7 +5,7 @@
 #include "Maps/ClothWind.h"
 #include "Models/Cloth.h"
 #include "Models/Skinning.h"
-#include "Scenes/ClothCarry.h"
+#include "Actors/Drawing/ClothCarry.h"
 
 #include <glm/ext/vector_float3.hpp>
 

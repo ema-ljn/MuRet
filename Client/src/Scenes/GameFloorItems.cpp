@@ -5,7 +5,7 @@
 #include "Math/OriginalRotation.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Particles.h"
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainHeight.h"
 
 #include <glm/ext/vector_float3.hpp>
 

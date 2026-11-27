@@ -9,7 +9,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "UI/ServerListModel.h"
 #include "UI/Widget.h"
 #include "support/RecordingTextDrawer.h"

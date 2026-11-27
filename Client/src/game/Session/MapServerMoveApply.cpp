@@ -9,8 +9,8 @@
 #include "Session/MapLoad.h"
 #include "Session/ReturnToSelection.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/MacroFile.h"
 
 #include <cstdint>

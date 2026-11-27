@@ -7,14 +7,14 @@
 #include "Math/X87.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/HelperTable.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "World/Particles.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
 

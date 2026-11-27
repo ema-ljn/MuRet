@@ -1,4 +1,4 @@
-#include "Scenes/WorldModels.h"
+#include "Assets/WorldModels.h"
 
 #include "Core/Log.h"
 #include "Core/ILogSink.h"
@@ -9,9 +9,9 @@
 #include "Render/ModelBatch.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
-#include "Scenes/GameModels.h"
-#include "Scenes/ModelTextureTable.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Assets/GameModels.h"
+#include "Assets/ModelTextureTable.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"

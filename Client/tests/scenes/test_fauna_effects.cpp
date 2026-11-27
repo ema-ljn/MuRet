@@ -6,7 +6,7 @@
 #include "World/Particles.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/Sprites.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include <memory>
 
 namespace

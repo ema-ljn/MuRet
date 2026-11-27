@@ -3,9 +3,9 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include "Crt/CrtRandom.h"
-#include "Scenes/CharacterDrawing.h"
-#include "Scenes/GameItemGlowEffects.h"
-#include "Scenes/GameItemSpecialDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Actors/Drawing/GameItemGlowEffects.h"
+#include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Math/OriginalRetainedMath.h"

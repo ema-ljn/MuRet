@@ -10,8 +10,8 @@
 #include "Scenes/FaunaStep.h"
 #include "Math/Ftol.h"
 #include "World/ObjectAlpha.h"
-#include "World/TerrainHeight.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/TerrainHeight.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <algorithm>
 #include <cmath>

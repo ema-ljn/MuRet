@@ -5,11 +5,11 @@
 #include "Models/LogicalAccess.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/NpcWindowState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/OwnInventory.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
-#include "World/ItemState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/OwnInventory.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Kernel/ItemState.h"
 
 #include "support/TableFiles.h"
 

@@ -1,9 +1,9 @@
-#include "Scenes/ActorCreation.h"
+#include "Actors/ActorCreation.h"
 
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/HelperTable.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -8,7 +8,7 @@
 #include "Protocol/Events/Events.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"

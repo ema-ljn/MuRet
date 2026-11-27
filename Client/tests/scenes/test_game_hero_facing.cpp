@@ -1,7 +1,7 @@
 #include "Scenes/GameHeroFacing.h"
 
 #include "Core/Expected.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameMovementState.h"
 
 #include <gtest/gtest.h>

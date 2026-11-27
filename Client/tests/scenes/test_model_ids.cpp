@@ -3,7 +3,7 @@
 #include "Data/Models/ModelFiles.h"
 #include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
-#include "Scenes/WorldSpecialModels.h"
+#include "Assets/WorldSpecialModels.h"
 
 #include <gtest/gtest.h>
 

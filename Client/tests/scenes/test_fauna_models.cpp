@@ -1,7 +1,7 @@
-#include "Scenes/FaunaModels.h"
+#include "Assets/FaunaModels.h"
 #include "Audio/Playback.h"
 #include "Scenes/MonsterKinds.h"
-#include "Scenes/MonsterModelTable.h"
+#include "Assets/MonsterModelTable.h"
 #include "Sound/MonsterSounds.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -28,7 +28,7 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-#include "Scenes/WorldModels.h"
+#include "Assets/WorldModels.h"
 #include "support/GoldenDir.h"
 #include <cstdint>
 

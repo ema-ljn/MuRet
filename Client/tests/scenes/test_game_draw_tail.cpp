@@ -9,7 +9,7 @@
 #include "Render/TextureSlot.h"
 #include "Render/Pass3D.h"
 #include "World/IFishStepServices.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameParticles.h"
@@ -26,8 +26,8 @@
 #include "Models/Skeleton.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
-#include "World/GroundEffectDrawing.h"
-#include "World/SphereFrustum.h"
+#include "Terrain/GroundEffectDrawing.h"
+#include "Terrain/SphereFrustum.h"
 #include "World/WorldObjects.h"
 
 #include <gtest/gtest.h>

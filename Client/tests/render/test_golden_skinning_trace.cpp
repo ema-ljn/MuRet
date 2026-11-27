@@ -2,7 +2,7 @@
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
 #include "Tables/PlayerModels.h"
-#include "Models/Attachment.h"
+#include "Actors/Attachment.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Models/Shine.h"

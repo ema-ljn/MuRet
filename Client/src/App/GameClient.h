@@ -20,7 +20,7 @@
 #include "Render/Frame/SceneCanvas.h"
 #include "Render/ITextureStore.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/GameModels.h"
+#include "Assets/GameModels.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -30,8 +30,8 @@
 #include "Session/SessionEventApplier.h"
 #include "Scenes/WinMainLoop.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldState.h"
-#include "World/GameCamera.h"
+#include "Kernel/WorldState.h"
+#include "Camera/GameCamera.h"
 
 #include <cstdint>
 #include <filesystem>

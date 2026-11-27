@@ -6,7 +6,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
 #include "World/GameModelEffects.h"

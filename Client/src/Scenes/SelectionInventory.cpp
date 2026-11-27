@@ -2,13 +2,13 @@
 
 #include "Crt/CrtRandom.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/OwnInventory.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/OwnInventory.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/JewelMix.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
-#include "World/ItemState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Kernel/ItemState.h"
 
 #include <span>
 

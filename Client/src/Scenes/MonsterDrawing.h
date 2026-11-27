@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

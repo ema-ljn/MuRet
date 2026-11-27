@@ -8,14 +8,14 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GameProjection.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/ShopSigns.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

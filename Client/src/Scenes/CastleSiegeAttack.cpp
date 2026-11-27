@@ -1,7 +1,7 @@
 #include "Scenes/CastleSiegeAttack.h"
 #include "Crt/CrtRandom.h"
 #include "Core/Expected.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "World/ModelEffects.h"
 #include <glm/ext/vector_float3.hpp>
 #include <cstdint>

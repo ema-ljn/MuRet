@@ -2,7 +2,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Models/Cloth.h"
-#include "Scenes/FaunaModels.h"
+#include "Assets/FaunaModels.h"
 #include "Scenes/FaunaStep.h"
 #include <cstddef>
 #include <glm/ext/vector_float3.hpp>

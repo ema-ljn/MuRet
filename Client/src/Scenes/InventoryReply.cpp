@@ -5,12 +5,12 @@
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/HelperTable.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/OwnInventory.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <cstddef>
 #include <format>

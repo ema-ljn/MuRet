@@ -6,7 +6,7 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/GroundEffectDrawing.h"
+#include "Terrain/GroundEffectDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 #include "World/KalimaWaves.h"

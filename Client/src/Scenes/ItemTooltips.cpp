@@ -16,12 +16,12 @@
 #include "Scenes/PetTooltip.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldState.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Kernel/WorldRuntime.h"
 #include "Scenes/ZenText.h"
 #include "UI/PanelRegistry.h"
 #include "Math/Ftol.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <array>
 #include <cstddef>

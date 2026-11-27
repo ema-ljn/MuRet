@@ -20,7 +20,7 @@
 #include "World/PortableParticleTrigonometry.h"
 #include "World/SmokeParticleKernels.h"
 #include "World/Sprites.h"
-#include "World/TerrainAttributeQuery.h"
+#include "Terrain/TerrainAttributeQuery.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>

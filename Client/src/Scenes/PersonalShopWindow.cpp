@@ -16,8 +16,8 @@
 #include "Scenes/NpcWindowSteps.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/SocialState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Scenes/ZenText.h"
 #include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
@@ -29,7 +29,7 @@
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "World/Particles.h"
-#include "World/TerrainCells.h"
+#include "Terrain/TerrainCells.h"
 
 #include <glm/ext/vector_float3.hpp>
 

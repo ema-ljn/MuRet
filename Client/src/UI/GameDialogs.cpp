@@ -7,7 +7,7 @@
 #include "UI/GameText.h"
 #include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

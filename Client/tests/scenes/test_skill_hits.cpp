@@ -1,16 +1,16 @@
 #include "Scenes/SkillHits.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/WorldTerrain.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include "support/SameBytes.h"
 

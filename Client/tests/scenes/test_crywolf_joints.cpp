@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"

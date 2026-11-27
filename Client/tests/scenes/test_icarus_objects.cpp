@@ -17,7 +17,7 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 

@@ -7,13 +7,13 @@
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/TextureSets.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Assets/TextureSets.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include <array>
 #include <cstdint>

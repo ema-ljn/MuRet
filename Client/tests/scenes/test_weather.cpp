@@ -10,8 +10,8 @@
 #include "Models/Cloth.h"
 #include "Scenes/SelectionState.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "World/LeafWeather.h"
 
 #include "support/BareWorld.h"

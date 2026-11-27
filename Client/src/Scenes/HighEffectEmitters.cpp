@@ -5,7 +5,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"

@@ -5,9 +5,9 @@
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "Scenes/BlastEffectCalls.h"
-#include "Scenes/CharacterStep.h"
+#include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 

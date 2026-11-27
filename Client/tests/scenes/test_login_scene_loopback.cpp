@@ -19,7 +19,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
-#include "Scenes/TextureSets.h"
+#include "Assets/TextureSets.h"
 #include "support/AppPrinters.h"
 #include "support/FakeClock.h"
 #include "support/IdleScene.h"

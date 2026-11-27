@@ -3,15 +3,15 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/ItemTooltipParts.h"
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Scenes/ZenText.h"
 #include "UI/GameUiState.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <cstddef>
 #include <cstdint>

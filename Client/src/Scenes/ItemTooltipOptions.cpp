@@ -4,13 +4,13 @@
 #include "Tables/ItemTable.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
-#include "Scenes/ItemSetOptionList.h"
-#include "Scenes/ItemSetState.h"
+#include "Player/ItemSetOptionList.h"
+#include "Player/ItemSetState.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldState.h"
-#include "World/ItemState.h"
+#include "Kernel/WorldState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

@@ -4,11 +4,11 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Models/Cloth.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "World/IFishStepServices.h"
 
 #include "support/FakeTextureStore.h"

@@ -2,11 +2,11 @@
 #include "Models/LogicalAccess.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/ItemTooltipParts.h"
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldState.h"
-#include "World/ItemState.h"
+#include "Kernel/WorldState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

@@ -2,7 +2,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
 #include "Math/X87.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Scenes/FaunaJointCreation.h"

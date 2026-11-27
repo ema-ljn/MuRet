@@ -1,6 +1,6 @@
 #include "Scenes/LoadingScene.h"
 
-#include "Scenes/GameModels.h"
+#include "Assets/GameModels.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -17,7 +17,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
-#include "Scenes/TextureSets.h"
+#include "Assets/TextureSets.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"

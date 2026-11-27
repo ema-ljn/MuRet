@@ -2,10 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
-#include "Scenes/WorldMap.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
-#include "World/WorldTerrain.h"
+#include "Kernel/WorldMap.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <cstdint>
 #include <filesystem>

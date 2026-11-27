@@ -6,7 +6,7 @@
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"

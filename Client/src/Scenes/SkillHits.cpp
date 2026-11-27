@@ -7,14 +7,14 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorName.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Actors/ActorName.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
-#include "World/TerrainAttributeQuery.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/TerrainAttributeQuery.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <array>
 #include <cmath>

@@ -9,14 +9,14 @@
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Sprites.h"
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include <limits>
 #include <cmath>
 #include "World/WorldObjects.h"

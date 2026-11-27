@@ -1,4 +1,4 @@
-#include "World/FaceNormal.h"
+#include "Terrain/FaceNormal.h"
 
 #include <gtest/gtest.h>
 

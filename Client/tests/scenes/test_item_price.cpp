@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/TableFiles.h"

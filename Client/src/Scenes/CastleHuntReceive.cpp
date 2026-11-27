@@ -5,8 +5,8 @@
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 

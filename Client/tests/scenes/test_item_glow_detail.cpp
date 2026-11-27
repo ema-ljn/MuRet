@@ -1,4 +1,4 @@
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"

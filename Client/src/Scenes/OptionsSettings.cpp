@@ -1,6 +1,6 @@
 #include "Scenes/OptionsSettings.h"
 
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "UI/OptionsWindow.h"
 
 namespace Client::Scenes

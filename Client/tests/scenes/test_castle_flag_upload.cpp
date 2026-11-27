@@ -4,7 +4,7 @@
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ModelTextureTable.h"
+#include "Assets/ModelTextureTable.h"
 
 #include "support/FakeTextureStore.h"
 

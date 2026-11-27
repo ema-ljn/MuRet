@@ -1,10 +1,10 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Tables/PlayerModels.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Models/Cloth.h"

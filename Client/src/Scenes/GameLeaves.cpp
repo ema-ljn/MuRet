@@ -9,12 +9,12 @@
 #include "Math/OriginalRotation.h"
 #include "Scenes/GameLeafClouds.h"
 #include "World/ILeafWaveEvaluator.h"
-#include "World/ITerrainAttributeQuerySource.h"
+#include "Terrain/ITerrainAttributeQuerySource.h"
 #include "World/LeafWeather.h"
 #include "World/Leaves.h"
 #include "World/Particles.h"
-#include "World/TerrainAttributeQuery.h"
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainAttributeQuery.h"
+#include "Terrain/TerrainHeight.h"
 
 #include <glm/ext/vector_float3.hpp>
 

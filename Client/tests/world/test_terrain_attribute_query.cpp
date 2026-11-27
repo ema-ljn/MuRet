@@ -1,8 +1,8 @@
-#include "World/TerrainAttributeQuery.h"
+#include "Terrain/TerrainAttributeQuery.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "World/ITerrainAttributeQuerySource.h"
+#include "Terrain/ITerrainAttributeQuerySource.h"
 
 #include <gtest/gtest.h>
 

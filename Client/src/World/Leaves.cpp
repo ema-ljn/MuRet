@@ -4,7 +4,7 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "World/TerrainHeight.h"
+#include "Terrain/TerrainHeight.h"
 
 #include <glm/ext/vector_float3.hpp>
 

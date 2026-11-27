@@ -1,13 +1,13 @@
-#include "World/TerrainPicking.h"
+#include "Terrain/TerrainPicking.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "World/TerrainCells.h"
-#include "World/TerrainCulling.h"
-#include "World/TerrainPickingSegment.h"
-#include "World/TerrainPickingState.h"
-#include "World/TerrainPickingTarget.h"
+#include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainPickingSegment.h"
+#include "Terrain/TerrainPickingState.h"
+#include "Terrain/TerrainPickingTarget.h"
 
 #include <gtest/gtest.h>
 

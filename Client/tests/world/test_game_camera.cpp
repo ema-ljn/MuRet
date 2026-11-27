@@ -1,7 +1,7 @@
-#include "World/GameCamera.h"
+#include "Camera/GameCamera.h"
 
 #include "Render/Pass3D.h"
-#include "World/TerrainCulling.h"
+#include "Terrain/TerrainCulling.h"
 #include "support/HexFloatFixture.h"
 #include "support/WorldObjectVectors.h"
 

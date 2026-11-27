@@ -1,4 +1,4 @@
-#include "Scenes/GameItemGlowEffects.h"
+#include "Actors/Drawing/GameItemGlowEffects.h"
 
 #include "Models/Shine.h"
 

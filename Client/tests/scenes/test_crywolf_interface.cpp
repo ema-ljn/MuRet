@@ -9,10 +9,10 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/Widget.h"
 
 #include "support/RecordingTextDrawer.h"

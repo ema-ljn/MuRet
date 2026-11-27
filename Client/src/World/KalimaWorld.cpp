@@ -9,7 +9,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/FaceNormal.h"
+#include "Terrain/FaceNormal.h"
 #include "Math/Ftol.h"
 
 #include <glm/ext/vector_float2.hpp>

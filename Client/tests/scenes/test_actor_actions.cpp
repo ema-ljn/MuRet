@@ -1,4 +1,4 @@
-#include "Scenes/ActorActions.h"
+#include "Actors/ActorActions.h"
 
 #include "Audio/Playback.h"
 #include "Core/Expected.h"
@@ -7,10 +7,10 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActionSend.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActionSend.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "support/PlayerActors.h"
 #include "support/SentActions.h"
 

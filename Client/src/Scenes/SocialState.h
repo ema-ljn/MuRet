@@ -1,6 +1,6 @@
 #pragma once
 
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <array>
 #include <cstddef>

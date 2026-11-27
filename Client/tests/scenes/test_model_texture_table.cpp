@@ -1,6 +1,6 @@
 #include "Data/Textures/OztTexture.h"
 #include "Data/Textures/TextureSet.h"
-#include "Scenes/ModelTextureTable.h"
+#include "Assets/ModelTextureTable.h"
 #include "Data/Models/Model.h"
 #include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"

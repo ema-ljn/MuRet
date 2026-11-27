@@ -1,6 +1,6 @@
 #include "Scenes/CrywolfDeathSpiritEffects.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/GameCharacterEffects.h"
+#include "Kernel/ActorState.h"
+#include "Actors/Drawing/GameCharacterEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Sprites.h"

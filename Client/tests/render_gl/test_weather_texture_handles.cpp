@@ -1,4 +1,4 @@
-#include "Scenes/TerrainTiles.h"
+#include "Assets/TerrainTiles.h"
 
 #include "Render/Gl/GlTexture.h"
 #include "Render/Gl/TextureTable.h"

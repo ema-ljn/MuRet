@@ -5,7 +5,7 @@
 #include "Scenes/DarkSpirit.h"
 
 #include "Data/Textures/Sampling.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "support/FixedRandom.h"

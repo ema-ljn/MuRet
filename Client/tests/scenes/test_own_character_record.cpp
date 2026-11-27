@@ -1,9 +1,9 @@
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 #include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>

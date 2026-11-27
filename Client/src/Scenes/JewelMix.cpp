@@ -9,15 +9,15 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/JewelBundleList.h"
 #include "Scenes/NpcWindowState.h"
-#include "Scenes/OwnInventory.h"
+#include "Kernel/OwnInventory.h"
 #include "Scenes/SocialState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <array>
 #include <cstddef>

@@ -4,7 +4,7 @@
 #include "Data/Models/Model.h"
 #include "Models/Cloth.h"
 #include "Models/Skinning.h"
-#include "Scenes/ClothCarry.h"
+#include "Actors/Drawing/ClothCarry.h"
 
 #include <cstdint>
 #include <optional>

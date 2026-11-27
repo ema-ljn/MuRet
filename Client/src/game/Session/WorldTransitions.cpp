@@ -7,8 +7,8 @@
 #include "Protocol/Movement/World.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ActorConstruction.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorConstruction.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HelperTable.h"
@@ -17,13 +17,13 @@
 #include "Session/MapLoad.h"
 #include "Scenes/InventoryMoves.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "Session/WorldTransitionSupport.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
-#include "World/GameCamera.h"
-#include "World/TerrainCulling.h"
+#include "Camera/GameCamera.h"
+#include "Terrain/TerrainCulling.h"
 
 #include <chrono>
 #include <cstddef>

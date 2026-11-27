@@ -1,11 +1,11 @@
-#include "Scenes/ActorConstruction.h"
+#include "Actors/ActorConstruction.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Models/Cloth.h"
-#include "Scenes/ActorState.h"
-#include "World/TerrainCulling.h"
-#include "World/WorldTerrain.h"
+#include "Kernel/ActorState.h"
+#include "Terrain/TerrainCulling.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <gtest/gtest.h>
 

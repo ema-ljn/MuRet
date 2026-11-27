@@ -3,7 +3,7 @@
 #include "Math/OriginalRotation.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"
 #include <glm/ext/vector_float2.hpp>

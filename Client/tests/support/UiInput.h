@@ -4,7 +4,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "UI/Widget.h"
 
 #include <cstdint>

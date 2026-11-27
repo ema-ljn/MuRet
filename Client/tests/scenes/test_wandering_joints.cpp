@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Models/Cloth.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"

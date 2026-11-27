@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include <cstdint>
 #include <filesystem>

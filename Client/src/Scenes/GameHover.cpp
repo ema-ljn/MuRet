@@ -5,8 +5,8 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/ActorName.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorName.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/FloorItemNames.h"
 #include "Scenes/GameDrawTail.h"
@@ -15,8 +15,8 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/HudText.h"
 #include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 

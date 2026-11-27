@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Scenes/ActionSend.h"
+#include "Actors/ActionSend.h"
 
 #include <cstdint>
 #include <ostream>

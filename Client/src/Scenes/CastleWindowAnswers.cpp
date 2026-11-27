@@ -7,8 +7,8 @@
 #include "Core/StderrSink.h"
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Scenes/CastleSeniorAnswers.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/PanelDialog.h"
 
 #include <cstdint>

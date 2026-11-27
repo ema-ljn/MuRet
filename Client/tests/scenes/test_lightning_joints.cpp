@@ -8,13 +8,13 @@
 #include "Math/OriginalRotation.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
 

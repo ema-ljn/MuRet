@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <cstddef>
 #include <cstdint>

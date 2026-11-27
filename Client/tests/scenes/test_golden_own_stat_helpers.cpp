@@ -1,12 +1,12 @@
-#include "Scenes/OwnStatHelpers.h"
+#include "Player/OwnStatHelpers.h"
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
-#include "Scenes/FullSetScan.h"
-#include "Scenes/ItemSetOptionList.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "World/ItemState.h"
+#include "Actors/FullSetScan.h"
+#include "Player/ItemSetOptionList.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/ItemState.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 

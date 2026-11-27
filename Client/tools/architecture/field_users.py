@@ -9,7 +9,7 @@ also uses each field it names bare. A file's module comes from the module map, a
 out.
 
     python3 -I Client/tools/architecture/field_users.py --src Client/src --modules Client/modules.tsv \\
-        --map <module-map.tsv> --header Scenes/WorldRuntime.h --struct WorldRuntime [--accessor Runtime] [--single]
+        --map <module-map.tsv> --header game/Kernel/WorldRuntime.h --struct WorldRuntime [--accessor Runtime] [--single]
 """
 import argparse
 import pathlib

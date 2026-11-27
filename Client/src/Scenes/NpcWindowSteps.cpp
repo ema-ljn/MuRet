@@ -16,11 +16,11 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/NpcWindowState.h"
-#include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/OwnInventory.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/OwnInventory.h"
 #include "Scenes/SocialState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
@@ -28,7 +28,7 @@
 #include "Crt/SprintfFormat.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <array>
 #include <cstddef>

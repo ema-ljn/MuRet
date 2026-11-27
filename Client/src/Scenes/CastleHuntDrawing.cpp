@@ -8,7 +8,7 @@
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "Scenes/ZenText.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/OldWindowDrawParts.h"

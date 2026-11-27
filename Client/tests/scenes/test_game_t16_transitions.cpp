@@ -5,8 +5,8 @@
 #include "Data/Terrain/TerrainHeights.h"
 
 #include "Network/Packet.h"
-#include "Scenes/ActorState.h"
-#include "Scenes/WorldMap.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/WorldMap.h"
 #include "World/KalimaWorld.h"
 
 #include <gtest/gtest.h>

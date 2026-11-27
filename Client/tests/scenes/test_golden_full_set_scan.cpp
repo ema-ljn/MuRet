@@ -1,9 +1,9 @@
-#include "Scenes/FullSetScan.h"
+#include "Actors/FullSetScan.h"
 
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 

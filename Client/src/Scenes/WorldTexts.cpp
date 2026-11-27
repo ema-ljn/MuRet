@@ -7,7 +7,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/HudText.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 
 #include <glm/ext/vector_float3.hpp>
 

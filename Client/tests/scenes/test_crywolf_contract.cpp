@@ -4,10 +4,10 @@
 #include "Core/Expected.h"
 #include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameMovementState.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"

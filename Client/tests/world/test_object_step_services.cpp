@@ -1,7 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "World/Particles.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>

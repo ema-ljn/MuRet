@@ -9,8 +9,8 @@
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GamePanels.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/CastleBattleState.h"
 #include "UI/CastleSiegeState.h"
 

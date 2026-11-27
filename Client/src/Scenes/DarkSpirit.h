@@ -2,7 +2,7 @@
 
 #include "Kernel/ActorSpirit.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>
 

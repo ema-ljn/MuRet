@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "World/Particles.h"
 #include <array>
 #include <cmath>

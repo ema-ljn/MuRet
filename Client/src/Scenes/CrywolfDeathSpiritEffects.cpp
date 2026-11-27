@@ -4,7 +4,7 @@
 #include "Math/X87.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"

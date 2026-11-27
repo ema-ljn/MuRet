@@ -1,5 +1,5 @@
-#include "Scenes/TerrainTiles.h"
-#include "World/WorldTerrain.h"
+#include "Assets/TerrainTiles.h"
+#include "Terrain/WorldTerrain.h"
 #include "Data/Textures/Sampling.h"
 #include "Render/TextureSlot.h"
 #include "support/FakeTextureStore.h"

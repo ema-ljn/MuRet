@@ -11,7 +11,7 @@
 #include "Scenes/GuildWindow.h"
 #include "Scenes/InventoryMoves.h"
 #include "Session/MapLoad.h"
-#include "Scenes/OwnCharacterRecord.h"
+#include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetStats.h"
 #include "Scenes/PetTrainer.h"
@@ -23,10 +23,10 @@
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/SelectionState.h"
 #include "Session/WorldEntry.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
 #include "UI/WhisperSenders.h"
-#include "World/GameCamera.h"
+#include "Camera/GameCamera.h"
 
 #include <cstdint>
 #include <string>

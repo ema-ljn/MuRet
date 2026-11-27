@@ -7,10 +7,10 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/MonsterBodyChain.h"
 #include "Scenes/MonsterBodyPasses.h"
-#include "Scenes/VertexEffects.h"
+#include "Actors/Drawing/VertexEffects.h"
 #include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>

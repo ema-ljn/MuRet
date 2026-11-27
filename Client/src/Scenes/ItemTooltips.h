@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include <cstdint>
 #include <string>

@@ -3,7 +3,7 @@
 #include "Network/Packet.h"
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameGates.h"
 
 #include <gtest/gtest.h>

@@ -4,9 +4,9 @@
 #include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameProjection.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "UI/HudPrimitives.h"
 
 #include <glm/ext/vector_float3.hpp>

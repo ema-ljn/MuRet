@@ -1,7 +1,7 @@
 #include "Scenes/DamageNumbers.h"
 
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

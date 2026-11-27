@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 
 #include <array>
 #include <cstdint>

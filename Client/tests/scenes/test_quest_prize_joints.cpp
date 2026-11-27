@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 

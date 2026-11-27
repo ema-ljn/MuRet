@@ -1,4 +1,4 @@
-#include "Scenes/WorldModels.h"
+#include "Assets/WorldModels.h"
 
 #include "Core/Log.h"
 #include "Core/ILogSink.h"

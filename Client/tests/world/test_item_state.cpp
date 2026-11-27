@@ -1,4 +1,4 @@
-#include "World/ItemState.h"
+#include "Kernel/ItemState.h"
 
 #include "Tables/ItemTable.h"
 #include "Tables/GameData.h"

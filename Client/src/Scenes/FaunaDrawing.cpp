@@ -17,17 +17,17 @@
 #include "Models/Shine.h"
 #include "Models/Skinning.h"
 #include "Render/SpriteVertex.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
 #include "World/Birds.h"
 #include "Math/Ftol.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
-#include "World/TerrainCulling.h"
-#include "World/TerrainHeight.h"
-#include "World/TerrainLighting.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainHeight.h"
+#include "Terrain/TerrainLighting.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

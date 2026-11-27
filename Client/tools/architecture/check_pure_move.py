@@ -3,8 +3,9 @@
 For each file git sees as renamed between two commits (-M50%), the old and the new file must have the same lines, as a
 multiset, once #include lines and blank lines are left out: a moved file may change its includes and nothing else.
 A library's export macro (ENGINE_API, from cmake/AddLibrary.cmake) is left out too, so a file that moves out of a shared
-library may drop it. Renamed CMakeLists.txt, *.cmake, *.md and *.tsv files may change. Exits with 1 and lists each
-difference.
+library may drop it, and a file whose code reads the same once whitespace is collapsed passes, so clang-format may
+rewrap the line the macro left. Renamed CMakeLists.txt, *.cmake, *.md and *.tsv files may change. Exits with 1 and
+lists each difference.
 
     python3 -I Client/tools/architecture/check_pure_move.py --base origin/refactor/client --head HEAD
 """
@@ -43,6 +44,11 @@ def lines_of(text: str) -> collections.Counter:
     return collections.Counter(line for line in kept if line.strip())
 
 
+def tokens_of(text: str) -> list[str]:
+    kept = (EXPORT_MACRO.sub('', line) for line in text.splitlines() if not INCLUDE_LINE.match(line))
+    return ' '.join(kept).split()
+
+
 def differences(repo: str, base: str, head: str) -> tuple[int, list[tuple[str, str, collections.Counter,
                                                                            collections.Counter]]]:
     moved = renames(repo, base, head)
@@ -50,9 +56,9 @@ def differences(repo: str, base: str, head: str) -> tuple[int, list[tuple[str, s
     for old, new in moved:
         if new.endswith(MAY_CHANGE):
             continue
-        before = lines_of(git(repo, 'show', f'{base}:{old}'))
-        after = lines_of(git(repo, 'show', f'{head}:{new}'))
-        if before != after:
+        old_text, new_text = git(repo, 'show', f'{base}:{old}'), git(repo, 'show', f'{head}:{new}')
+        before, after = lines_of(old_text), lines_of(new_text)
+        if before != after and tokens_of(old_text) != tokens_of(new_text):
             found.append((old, new, before - after, after - before))
     return len(moved), found
 

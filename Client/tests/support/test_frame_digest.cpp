@@ -1,6 +1,6 @@
 #include "support/FrameDigest.h"
 
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "UI/ChatLog.h"
 #include "support/Fnv1a.h"
 #include "support/RecordingFrameTarget.h"

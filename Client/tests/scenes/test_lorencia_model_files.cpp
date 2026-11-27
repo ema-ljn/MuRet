@@ -1,4 +1,4 @@
-#include "Scenes/LorenciaModelFiles.h"
+#include "Assets/LorenciaModelFiles.h"
 
 #include "Data/Models/ModelFiles.h"
 

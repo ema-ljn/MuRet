@@ -46,7 +46,7 @@ TEST(FaunaStateTest, ViewsBorrowCanonicalStorageAndKeepEffectIdentity)
 }
 } // namespace
 
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 namespace
 {
 TEST(FaunaStateTest, PoseScratchBelongsToTheDurableWorldAndSurvivesFaunaClear)

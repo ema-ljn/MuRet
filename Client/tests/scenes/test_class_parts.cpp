@@ -1,12 +1,12 @@
-#include "Scenes/ClassParts.h"
+#include "Actors/ClassParts.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorActions.h"
-#include "Scenes/ActorState.h"
+#include "Actors/ActorActions.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 
 #include "support/PlayerActors.h"
 

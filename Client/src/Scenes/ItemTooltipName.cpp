@@ -6,9 +6,9 @@
 #include "Scenes/NpcNames.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
-#include "World/ItemState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Kernel/ItemState.h"
 
 #include <algorithm>
 #include <array>

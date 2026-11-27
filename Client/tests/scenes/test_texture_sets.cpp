@@ -1,9 +1,9 @@
-#include "Scenes/TextureSets.h"
+#include "Assets/TextureSets.h"
 
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/SceneTextures.h"
+#include "Assets/SceneTextures.h"
 #include "support/FakeTextureStore.h"
 
 #include <gtest/gtest.h>

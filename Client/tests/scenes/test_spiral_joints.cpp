@@ -5,9 +5,9 @@
 #include "Math/X87.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/WorldState.h"
+#include "Kernel/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 

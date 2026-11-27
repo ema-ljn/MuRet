@@ -5,7 +5,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"

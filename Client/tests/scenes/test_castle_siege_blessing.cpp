@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/CastleSiegeBlessing.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "World/Particles.h"
 #include <gtest/gtest.h>
 #include <limits>

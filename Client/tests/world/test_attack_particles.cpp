@@ -5,7 +5,7 @@
 #include "Math/OriginalRotation.h"
 #include "Math/Ftol.h"
 #include "World/PortableParticleTrigonometry.h"
-#include "World/TerrainLighting.h"
+#include "Terrain/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 
 #include "support/ParticleDrawRecorder.h"

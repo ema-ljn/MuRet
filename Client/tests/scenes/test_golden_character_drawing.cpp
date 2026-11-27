@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 
 #include "Assets/PlayerSkeleton.h"
 #include "Core/PixelSize.h"
@@ -7,14 +7,14 @@
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
 #include "Tables/PlayerModels.h"
-#include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/SceneCameras.h"
+#include "Camera/SceneCameras.h"
 
 #include "support/GlTrace.h"
 #include "support/GoldenDir.h"

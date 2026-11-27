@@ -9,18 +9,18 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaMotion.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
-#include "Scenes/WorldRuntime.h"
+#include "Kernel/WorldRuntime.h"
 #include "World/Birds.h"
 #include "World/Fish.h"
 #include "Math/Ftol.h"
 #include "World/IBirdStepServices.h"
 #include "World/IFishStepServices.h"
-#include "World/TerrainLighting.h"
-#include "World/WorldTerrain.h"
+#include "Terrain/TerrainLighting.h"
+#include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
 

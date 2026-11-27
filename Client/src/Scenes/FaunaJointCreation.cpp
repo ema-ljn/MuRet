@@ -18,7 +18,7 @@
 #include "World/Sprites.h"
 #include <cmath>
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/ActorState.h"
+#include "Kernel/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/HelperTable.h"

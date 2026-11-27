@@ -128,14 +128,29 @@ its files (`client-research/mu-golden/servidor-en-uso-vm2003/`: `Terrain1.att`, 
   `monster map radius x y direction`, and the monsters' sections spread a count over an area. The original client's
   editor mode wrote a `MonsterSetBase2.txt` (`0x517570`).
 - `gate.txt` on the server and `Gate.bmd` in the client: the gates.
-- `Monster.txt`: the monster types (read only, for names and to check spawns). The research repo does not have it,
-  nor the server's `.att` of maps 1 to 34; they come from the server's folder.
+- `Monster.txt`: the monster types (read only, for names and to check spawns).
+
+Two copies of the server's folder are known: the research sample above, from the server in use on the VM2003, and a
+clean copy of the repack's `data` folder Emanuel sent on 2026-11-27, which has every server `.att` of maps 0 to 34,
+`Monster.txt`, `MonsterSetBase.txt` (made with a third-party tool, "MonsterFacil", with a comment after many rows)
+and `gate.txt`. They differ from each other (319 bytes of `Terrain1.att`, and the other two files in size).
 
 **The client and the server already disagree, on purpose.** The research measured it
 (`client-research/analysis/mainexe/evidence/s31-assets/divergencias-cliente-servidor.md`): the server's
 `Terrain1.att` differs from the client's `EncTerrain1.att` in 70 cells of Lorencia's square, 51 gates exist only on
 the server and 5 only in the client, 36 shared gates ask for another level, and rows 108 to 128 are reassigned. The
-research calls them the server's customizations. The editor keeps both copies as they are (see "Two copies").
+research calls them the server's customizations. The clean copy differs from the client too. Measured on
+2026-11-27, server `Terrain<N>.att` against the client's `EncTerrain<N>.att` (one byte per cell, the low byte where
+the client has two):
+
+| Worlds | Cells that differ |
+| --- | --- |
+| 2, 4, 6, 8, 9, 10, 11, 25 | none |
+| 1, 3, 5, 7, 12, 19, 34 | 249, 45, 10, 88, 121, 714, 55 |
+| 31, 32, 35 | 43,182, 50,263, 17,464: bit for bit, not by area (World31: the client's `0x0C` is the server's `0x08` in 37,523 cells) |
+
+So the server does not keep the client's bits as they are in every world. The editor keeps both copies as they are
+(see "Two copies"), and stage 2 measures which bits the GameServer reads in each world before a stroke writes both.
 
 **What this means for stage A:**
 
@@ -248,8 +263,8 @@ The attributes and the gates live twice, and the copies differ today on purpose 
 `Document` holds both:
 
 - A cell nobody painted keeps each copy's own value, so the server's customizations survive an export.
-- A stroke of the attribute brush writes the client's and the server's copies by default; the brush can be set to
-  one side only.
+- A stroke of the attribute brush writes the client's and the server's copies by default, each in its own bits (the
+  mapping stage 2 measures); the brush can be set to one side only.
 - The attribute overlay can show the client's copy, the server's, or where they differ.
 - Gates are listed by number with both rows side by side. Editing a gate changes the rows it has; a gate that exists
   on one side only is marked so, and a new gate goes to both.
@@ -262,8 +277,9 @@ Two promises, each with its tests:
 
 1. **Round trip.** Reading and writing a file with no edit gives the same bytes, for every world in
    `Client/assets/Data` (all of `EncTerrain*.map/.att/.obj`, `TerrainHeight.OZB`, `TerrainLight.OZJ`) and for the
-   server sample. A file whose bytes carry something the reader drops (the 4 leading bytes of the OZB, the BMP header
-   the original copies and ignores, the 24 bytes before the OZJ's JPEG) keeps it in the document.
+   server's files (`Client/assets/ServerData`). A file whose bytes carry something the reader drops (the 4 leading
+   bytes of the OZB, the BMP header the original copies and ignores, the 24 bytes before the OZJ's JPEG, the comments
+   of the server's text files) keeps it in the document.
 2. **Edits follow the original's writer.** A changed file is written as the original's saver writes it (`0x5f8960`,
    `0x5f8690`, `0x5f92b0`, `0x63b280`): sizes, headers, the world byte, the encryption. Where the original's writer is
    not located (`.obj`), the layout is the reader's, and the plan says so. The original's `.att` saver writes one
@@ -391,7 +407,8 @@ like `muret-bmd` teaches an agent to use it, with its recipes run as tests.
 
 ### Tests
 
-- Round trip of every world file in `Client/assets/Data` and of the server sample (byte-exact, "Byte-exact" above).
+- Round trip of every world file in `Client/assets/Data` and every file in `Client/assets/ServerData` (byte-exact,
+  "Byte-exact" above).
 - Each writer against the original's saver: a small edit, then the bytes the original's writer would produce at the
   edited offsets.
 - `Document`: every command applies and reverts to the same bytes; a stroke's undo restores exactly its rectangle.
@@ -422,7 +439,10 @@ One PR or a milestone block each, each with its plan in `docs/superpowers/plans/
 1. **Write the world's client files:** writers beside the readers, `EncryptK16`, and the round trip of every world in
    `Client/assets/Data`. No editor yet.
 2. **The server's files:** `editor/ServerData` (`Terrain<N>.att`, `MonsterSetBase.txt`, `gate.txt`, `Monster.txt`),
-   the `Gate.bmd` writer, and their round trip on the server sample.
+   the `Gate.bmd` writer, the map of the client's attribute bits to the server's, and their round trip. The clean
+   copy's map files (those four kinds, nothing else of the folder: it also holds addresses and configuration) go into
+   the repo as `Client/assets/ServerData/` with a SHA-256 manifest, as `Client/assets/Data` did in #112 (my call:
+   Emanuel sent it "clean" for this). Tests also run on the research sample when it is there.
 3. **The editing core and `muworld`:** `Project`, `Document`, commands and undo, `Tools`, `Checks`, the CLI and its
    skill.
 4. **The Qt window:** the vcpkg feature, `MU_BUILD_EDITOR`, the CI workflow, the main window with its docks, the
@@ -438,9 +458,6 @@ One PR or a milestone block each, each with its plan in `docs/superpowers/plans/
   research repo.
 - Where exactly the GL table and its loader go if they leave `Platform/Sdl` (its own PR, with Emanuel's yes).
 - The extraction of "draw a world without a session" from `GameScene`, agreed with the AR4/AR5 plans.
-- The server's files the research repo lacks (`Monster.txt`, the server's `.att` of maps 1 to 34): asked to Emanuel
-  with the spec; until they arrive, stage 2 tests what the sample has and the monster browser and spawn checks read
-  `Monster.txt` only when the project's server folder has it.
 - `MonsterSetBase.txt`'s sections and their row shapes, keeping every comment and blank line of the file.
 - The exact Qt features per platform, once vcpkg builds them on both CI runners.
 - The checks' codes and messages, the brushes' falloff curves, the keyboard shortcuts.

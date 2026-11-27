@@ -26,7 +26,7 @@ local con three.js") is the Claude Doc "mubmd: editor visual de modelos". Previo
 - The web writes nothing: no file of any folder changes while `mubmd web` runs. `Client/assets/Data` is never written,
   and tests copy what they need or only read it.
 - `mubmd roundtrip Client/assets/Data` and `mubmd validate Client/assets/Data` give what they gave after stage 4
-  (1,991 identical and 3 skipped; the same ten findings).
+  (1,991 identical and 3 skipped; the same eleven findings, in eight files).
 - `core/` imports only the standard library. `app/` imports no adapter and no UI or web library. Only `adapters/web`
   imports `nicegui`, `fastapi`, `starlette` or `uvicorn`, and the CLI imports `adapters/web` only inside the `web`
   command, so every other command starts as fast as today (`tests/test_layers.py`).
@@ -135,10 +135,11 @@ WebGL), 2026-11-27. The prototype was 213 lines of Python and 128 of JavaScript,
 | Prototype, `Monster01` ready in the browser | 0.5 s (request 60 to 120 ms, building the meshes 6 to 11 ms) |
 
 Checked on the prototype and on throwaway probes: `ui.run` called from a function leaves stdout clean with
-`show_welcome_message=False` and returns after Ctrl+C; `TrustedHostMiddleware` answers 400 to another `Host`;
-NiceGUI's test user reaches the routes and the page without a browser, and a tree selection can be triggered; `mypy
---strict` passes over code that imports NiceGUI; `pip` resolves NiceGUI beside stage 4's pins; Playwright for Python
-drives the cloud container's Chromium when given its path.
+`show_welcome_message=False` (the probe also saw it return after Ctrl+C, but its process ignored the signal: on a real
+Ctrl+C it ends in a `KeyboardInterrupt`, which Task 8's test found and `serve` now takes); `TrustedHostMiddleware`
+answers 400 to another `Host`; NiceGUI's test user reaches the routes and the page without a browser, and a tree
+selection can be triggered; `mypy --strict` passes over code that imports NiceGUI; `pip` resolves NiceGUI beside stage
+4's pins; Playwright for Python drives the cloud container's Chromium when given its path.
 
 **Not checked:** Windows (Emanuel's machine: the first thing to try), a real GPU, and WebGL in the Chromium of
 GitHub's runner (the browser job's first run says; the tests launch it with `--enable-unsafe-swiftshader`, which is
@@ -767,7 +768,7 @@ def load_web() -> Callable[..., str]  # imports adapters/web and gives `serve`; 
   link to this plan, and "Left to the builder" loses the braille renderer.
 - [ ] **Step 3: The whole check**, from `Client/tools/bmd`: `ruff check . && ruff format --check . && mypy src tests
   && pytest`, then `MUBMD_CHROMIUM=/opt/pw-browsers/chromium pytest -m browser`, then `mubmd roundtrip
-  ../../assets/Data` (1,991 identical, 3 skipped) and `mubmd validate ../../assets/Data` (the ten findings).
+  ../../assets/Data` (1,991 identical, 3 skipped) and `mubmd validate ../../assets/Data` (the eleven findings).
 - [ ] **Step 4:** `git diff --name-only origin/main...HEAD` against `ci.yml`'s `case` list: every path is under
   `Client/tools/`, `docs/`, is a `*.md`, or is `.github/workflows/bmd-tool.yml`.
 - [ ] **Step 5: Commit** `docs(tools): describe the web viewer`, push, and open the PR `feat(tools): view models in

@@ -93,6 +93,7 @@ Client/tools/bmd/
       json_codec.py         document <-> JSON
       cli/                  Typer
       tui/                  Textual
+      web/                  NiceGUI and three.js
   tests/                    mirrors src/
 ```
 
@@ -114,9 +115,11 @@ the C++ build in CI, so a tool PR runs only its own checks.
   a JSON Pointer into the document and a severity.
 - **Use cases** (`app/`): plain functions that take ports and return result dataclasses. The CLI and the TUI call the
   same ones; neither has logic of its own.
-- **Adapters**: the file system, JSON, the CLI and the TUI. Only adapters import Typer, Textual or Rich. A test reads
-  the imports of every module (`ast`) and fails if `core` imports `app` or `adapters`, or anything outside the
-  standard library.
+- **Adapters**: the file system, JSON, the CLI, the TUI and the web viewer. Only adapters import Typer, Textual or
+  Rich, and only `adapters/web` imports the web libraries (NiceGUI, FastAPI, Starlette, uvicorn); the CLI imports
+  `adapters/web` only inside the `web` command, so every other command starts as fast as before. A test reads the
+  imports of every module (`ast`) and fails if `core` imports `app` or `adapters`, or anything outside the standard
+  library.
 
 Patterns used where they fit, not for their own sake: Strategy (one codec per format behind one protocol), Registry
 (the catalog), Command (edits as values, undoable), Facade (the use cases).
@@ -348,12 +351,62 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
   meshes, actions and bones with their counts and names, each bone under its parent, and the fields of the selected
   part below; names, texture names, a mesh's texture and a bone's parent are editable there, the rest through JSON.
   Search and the row filter are for tables.
-- **The surprise:** a model's wireframe in the terminal, drawn with braille characters and slowly turning, posed with
-  the first key of its first action (Half-Life's angle-to-quaternion order, as research 05 describes). Character parts
-  borrow `player/Player.bmd`'s skeleton. It is a preview in float64, not the client's x87 math.
+- **A model is drawn in the browser**, not in the terminal: see [The web viewer](#the-web-viewer).
 - **Saving** opens a diff of what changed and where it will be written; nothing is written before that confirmation.
 - **The command palette** (`ctrl+p`) lists every action; the footer shows the keys.
 - `textual serve` can show the same app in a browser, with nothing extra in the code.
+
+### The web viewer
+
+`mubmd web ~/mu/Data` serves one page from the same machine and opens it in the browser. It shows any model with its
+textures, plays its actions, draws its skeleton and lists its parts, facts and findings. Emanuel chose it on
+2026-11-27 ("Web local con three.js") over the wireframe in braille characters that this design had as its surprise.
+Its plan, with every decision and what was measured on the real files, is
+[`2026-11-27-bmd-editor-web-viewer.md`](../plans/2026-11-27-bmd-editor-web-viewer.md).
+
+```text
+┌ ◆ mubmd ─ ~/mu/Data ────────────────────────────────────────────────────────────────────────┐
+│ ┌ filter ───────────┐ ┌ Monster/Monster01.bmd ───────────────────────┐ ┌ parts ────────────┐ │
+│ │ ▸ Item (246)      │ │ ▶ ❙❙  key ───●────── 7 / 20   8 keys/s ▾     │ │ ▾ meshes (14)     │ │
+│ │ ▾ Monster (115)   │ │ ☐ skeleton  ☐ additive                       │ │   0 helmat_01.jpg │ │
+│ │   Monster01.bmd ● │ │                                              │ │ ▾ actions (7)     │ │
+│ │   Monster02.bmd   │ │              (the model, three.js)           │ │   0 20 keys       │ │
+│ │ ▸ NPC (57)        │ │                                              │ │ ▸ bones (45)      │ │
+│ │ ▸ player (228)    │ │                                              │ ├ mesh 0 ───────────┤ │
+│ └───────────────────┘ └──────────────────────────────────────────────┘ │ triangles 26 …    │ │
+│                                                                        ├ findings (0) ─────┤ │
+└────────────────────────────────────────────────────────────────────────┴───────────────────┘
+```
+
+- **Left:** the served folder's models, one node per folder that has any, with a filter. Tables are not listed.
+- **Middle:** the scene, with orbit controls and a grid, and the camera placed so the model's box is in view. Above
+  it: play and pause, the key slider, the speed (the file does not say how fast an action plays) and the switches for
+  the skeleton and for additive drawing.
+- **Right:** the parts tree the console UI shows, the facts and fields of the chosen part, read-only, and the model's
+  findings. Choosing a mesh tints it in the scene, choosing an action plays it, and choosing a bone turns the skeleton
+  on and marks that bone. Choosing a finding chooses its part.
+- **It views; it does not edit.** With no write, the reference folder can be opened as it is. Editing from the browser
+  is a later stage and brings its own protection (a token, so that another page open in the browser cannot ask this
+  server to write).
+- **Local only.** The server listens on 127.0.0.1, with no flag to change that, and refuses a request whose `Host` is
+  not `127.0.0.1` or `localhost`, so a site on the internet cannot reach it through a DNS name that points at
+  127.0.0.1. A file outside the served folder is refused.
+- **It is a viewer, not the client's renderer.** Textures are read as the client reads them (an OZJ is a JPEG after 24
+  bytes; an OZT is 32-bit BGRA rows stored bottom first, no side over 512) and drawn unlit, on both sides, with alpha
+  test. There is no lighting, none of the client's blend rules per model and no x87 math. A texture that no folder
+  has, or that the client refuses, leaves its mesh in a flat color, and the mesh's facts say why.
+- **Character parts can be shown on the player's skeleton.** A model of `player/` whose vertices hang from bones that
+  the `Player.bmd` of its folder has at the same index, with the same name and parent (219 of the other 227), gets a
+  switch, and with it on the part moves with `Player.bmd`'s 205 actions.
+- **The server sends what a renderer needs, not the view:** per mesh, one position, one UV and one bone per triangle
+  corner; the bones; and the poses of one action per request, already as quaternions (Half-Life's angle order,
+  0x5fcd20, computed in Python so that it is tested without a browser). The page is NiceGUI, and the model is a
+  three.js `SkinnedMesh` built by one JavaScript file of ours. three.js comes inside NiceGUI's wheel: no third-party
+  JavaScript enters the repo.
+- **The page's requests are private to the page**, outside the CLI contract. `mubmd web` itself is under it: one line
+  on stderr when it is ready, the usual JSON object when `Ctrl+C` stops it, `USAGE` without the `web` extra and
+  `IO_ERROR` for a port in use. NiceGUI is an optional extra, `mubmd[web]`, that the CLI and the console UI do not
+  need.
 
 ### AI friendliness
 
@@ -402,9 +455,13 @@ ranked below the repo's rules):
 - The skill's recipes, run as tests (see [AI friendliness](#ai-friendliness)).
 - The TUI with `run_test` and `Pilot` (open, edit, undo, save to a temporary folder) and SVG snapshots
   (`pytest-textual-snapshot`) of the main screens.
+- The web viewer's page and its requests through NiceGUI's test user, with no browser. Its JavaScript runs only in a
+  browser, so a few tests marked `browser` drive a headless Chromium with Playwright against a real `mubmd web`
+  (`pytest -m browser`); `pytest` alone leaves them out.
 - `ruff check`, `ruff format --check` and `mypy --strict` over `src` and `tests`.
 - A workflow of its own, `.github/workflows/bmd-tool.yml`, on changes under `Client/tools/bmd/**`: Python 3.13,
-  `pip install -e ".[dev]"` with exact pins, then the checks above.
+  `pip install -e ".[dev]"` with exact pins, then the checks above. A second job, in parallel, installs Chromium and
+  runs the browser tests.
 
 ### Stages (one PR each)
 
@@ -421,7 +478,9 @@ leaves its own checks green, and the workflow lands with the first code PR.
    [`2026-11-26-bmd-editor-tables.md`](../plans/2026-11-26-bmd-editor-tables.md).
 4. **Models:** the lossless model codec with K16, validation, the model view in the TUI. Its plan, with the decisions
    the 1,962 real files forced, is [`2026-11-27-bmd-editor-models.md`](../plans/2026-11-27-bmd-editor-models.md).
-5. **The wireframe preview.**
+5. **The web viewer of models:** `mubmd web`, a page served from the same machine that shows a model with its
+   textures, actions and skeleton. It took the place of the wireframe preview. Its plan is
+   [`2026-11-27-bmd-editor-web-viewer.md`](../plans/2026-11-27-bmd-editor-web-viewer.md).
 
 Each stage ends with the round trip over its files passing.
 
@@ -429,4 +488,4 @@ Each stage ends with the round trip over its files passing.
 
 - Module and function names, beyond the layout above.
 - How each record schema is written (a tuple of field specs per table is the expected shape).
-- The exact palette values of the "Lorencia" theme and the braille renderer's details.
+- The exact palette values of the "Lorencia" theme.

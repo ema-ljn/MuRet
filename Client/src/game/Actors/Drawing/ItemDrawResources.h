@@ -24,19 +24,18 @@ namespace Client::Scenes
 struct FaunaDrawCarry;
 } // namespace Client::Scenes
 
-// Lo que 0x60b3d0 y 0x609640 leen de los globales para dibujar un ítem, en cualquier escena que dibuje un
-// jugador con 0x50ba30: el reloj, el pulso del brillo (0x7d36ba8, que escribe 0x639482 antes de cada frame),
-// el de 0x6c9de4/0x6c9de8, la elección del brillo ancient de cada BMD, las mallas sin luz, el rand() global,
-// los sprites del frame, el buffer global de la pose, los joints y los efectos con modelo. Contrato: 06 § El
-// dibujo del juego, "Lo que cuelga en el juego".
+// What 0x60b3d0 and 0x609640 read from the globals to draw an item, in any scene that draws a player with 0x50ba30: the
+// clock, the glow's pulse (0x7d36ba8, which 0x639482 writes before each frame), that of 0x6c9de4/0x6c9de8, each BMD's
+// ancient glow choice, the unlit meshes, the global rand(), the frame's sprites, the global pose buffer, the joints and
+// the model effects. Contract: 06 § El dibujo del juego, "Lo que cuelga en el juego".
 namespace Client::Actors::Drawing
 {
 struct GameItemRenderState;
 struct ItemDrawContext;
 struct ItemSpecialDrawContext;
 
-// Las tablas del frame del dueño del dibujo: las del mundo en un frame del original y las proyectadas entre
-// frames. Tienen que vivir mientras se use el contexto.
+// The tables of the draw's frame owner: the world's in an original frame and the projected ones between frames. They
+// must live as long as the context is used.
 struct ItemDrawResources
 {
     Core::Duration frameClock{};
@@ -52,8 +51,8 @@ struct ItemDrawResources
     std::uint8_t glowDetail = Models::DefaultGlowDetail;
 };
 
-// Arma `special` y `item` sobre `resources`: los joints de los ítems sólo los 613/4 y 614/14 de Helper07 con su
-// dueño opaco, y los efectos con modelo sólo el rayo c2/3 y el dragón, la llegada y el teletransporte con
-// subtipo 0. Lo demás corta con 0x530860 o 0x518cf0. `item.special` apunta a `special`.
+// Sets up `special` and `item` on `resources`: of the items' joints, only Helper07's 0x613/4 and 0x614/14 with their
+// opaque owner, and of the model effects, only the lightning 0xc2/3 and the dragon, the arrival and the teleport with
+// subtype 0. The rest stops with 0x530860 or 0x518cf0. `item.special` points to `special`.
 void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, const ItemDrawResources& resources);
 } // namespace Client::Actors::Drawing

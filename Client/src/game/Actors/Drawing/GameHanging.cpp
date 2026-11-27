@@ -51,8 +51,7 @@ namespace
 using Math::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 
-// Las texturas de los sprites (0x61ccb0): flare01, Impack03 de Object9, Spark02, Spark03, lightning2,
-// Shiny02 y Shiny03.
+// The sprites' textures (0x61ccb0): flare01, Object9's Impack03, Spark02, Spark03, lightning2, Shiny02 and Shiny03.
 constexpr std::uint16_t Flare = 0x5ac;
 constexpr std::uint16_t Impact = 0x5ad;
 constexpr std::uint16_t SecondSpark = 0x5c5;
@@ -61,7 +60,7 @@ constexpr std::uint16_t Lightning = 0x5d5;
 constexpr std::uint16_t Shiny = 0x5fd;
 constexpr std::uint16_t ThirdShiny = 0x5fe;
 
-constexpr std::int32_t NoItem = -1; // el 0xffff de un ítem, con signo (MOVSX)
+constexpr std::int32_t NoItem = -1; // an item's 0xffff, signed (MOVSX)
 constexpr std::int32_t Bolts = 0xa19;
 constexpr std::int32_t Arrows = 0xa21;
 constexpr std::int32_t Helper02 = 0x1c13;
@@ -69,37 +68,37 @@ constexpr std::int32_t Helper06 = 0x1c17;
 constexpr std::uint8_t RedPk = 6;
 constexpr std::uint32_t HiddenAttachmentFlag = 0x4000;
 constexpr std::uint32_t FrozenAnimationFlag = 0x1000;
-// Un rand() por cada byte de +0x38e al cerrarse (0x5098e5 y el lazo de 0x50e298).
+// One rand() for each byte of +0x38e when it closes (0x5098e5 and the loop of 0x50e298).
 constexpr std::uint16_t Byte38eCloseRandoms = 1;
 constexpr std::uint8_t WingsBone = 0x2f;
-// 0x5096ac: el modelo al que 0x509340 le corre el origen y le gira la z (BossHead01, del mapa 5).
+// 0x5096ac: the model whose origin 0x509340 shifts and whose z it turns (BossHead01, from map 5).
 constexpr std::int32_t CarriedHead = 0xef;
-// 0x743a160..0x743a168: lo que 0x5096ac suma al origen del 0xef. Ningún código los escribe y están en la .bss (la
-// imagen inicializada termina en 0x6e6000): 0 (*inferido*, P-C353).
+// 0x743a160..0x743a168: what 0x5096ac adds to the origin of 0xef. No code writes them and they are in the .bss (the
+// initialized image ends at 0x6e6000): 0 (*inferred*, P-C353).
 constexpr glm::vec3 CarriedHeadShift{0.0f, 0.0f, 0.0f};
 constexpr std::uint8_t PetBone = 0x22;
-// 0x6b8a44: en la acción 0x3e la mano derecha no cuelga nada hasta pasar el frame 4.
+// 0x6b8a44: in action 0x3e the right hand hangs nothing until frame 4 passes.
 constexpr float LateSwingFrame = 4.0f;
-// 0x50de63: Blood Castle, donde +0x360 del 1 al 3 cuelga el arma del evento.
+// 0x50de63: Blood Castle, where +0x360 from 1 to 3 hangs the event's weapon.
 constexpr std::int32_t FirstBloodCastle = 11;
 constexpr std::int32_t LastBloodCastle = 17;
-// 0x6b88d4 (0,01f): el alpha más bajo que 0x414470 y 0x5ffdf0 dibujan.
+// 0x6b88d4 (0.01f): the lowest alpha 0x414470 and 0x5ffdf0 draw.
 constexpr float DrawnLayerAlpha = std::bit_cast<float>(0x3c23d70au);
-// 0x413fe0: los GM llevan la capa 5; 0x41407c crea las del 5 al 13.
+// 0x413fe0: GMs wear layer 5; 0x41407c creates those from 5 to 13.
 constexpr std::uint8_t GameMasterLayerKind = 5;
 constexpr std::uint8_t LastLayerKind = 13;
 constexpr std::uint32_t GameMasterFlag = 0x1000000;
 constexpr std::uint8_t GameMasterControlCode = 0x20;
 constexpr std::uint8_t SecondGameMasterControlCode = 8;
-// 0x4140ab..0x4140c4: 0x414370(0x12a, 0x14, 1, 70, −5, 0, 0, 0, 45): Skill\MuSign.bmd en el hueso 20 del
-// dueño, corrido (70, −5, 0), con los ángulos fijos (0, 0, 45) (+0x93 en 1: no copia los del dueño).
+// 0x4140ab..0x4140c4: 0x414370(0x12a, 0x14, 1, 70, −5, 0, 0, 0, 45): Skill\MuSign.bmd on the owner's bone 20, shifted
+// (70, −5, 0), with the fixed angles (0, 0, 45) (+0x93 at 1: it does not copy the owner's).
 constexpr std::uint16_t MuSign = 0x12a;
 constexpr std::uint8_t MuSignBone = 0x14;
 constexpr glm::vec3 MuSignOffset{70.0f, -5.0f, 0.0f};
 constexpr glm::vec3 MuSignAngles{0.0f, 0.0f, 45.0f};
-// +0xdc: 0x414370 pone 0,5, lo que 0x414470 le pasa a 0x4ec200.
+// +0xdc: 0x414370 sets 0.5, which 0x414470 passes to 0x4ec200.
 constexpr float MuSignSpeed = 0.5f;
-// 0x6002e0 con el 0x12a: RenderBody(2) con la luz en 1 y RenderBody(0x44) con (1; 0,5; 0).
+// 0x6002e0 with 0x12a: RenderBody(2) with the light at 1 and RenderBody(0x44) with (1, 0.5, 0).
 constexpr std::uint32_t BasePass = 2;
 constexpr std::uint32_t ChromePass = 0x44;
 constexpr glm::vec3 MuSignChromeLight{1.0f, 0.5f, 0.0f};
@@ -107,14 +106,14 @@ constexpr glm::vec3 MuSignChromeLight{1.0f, 0.5f, 0.0f};
 using Math::D;
 using Math::F32;
 
-// rand() % n como el IDIV del original: rand() no es negativo.
+// rand() % n like the original's IDIV: rand() is not negative.
 int Mod(Crt::CrtRandom& random, int n)
 {
     return random.Next() % n;
 }
 
-// FSIN de `argument` por el float `factor`, un solo R53, y FSIN más `addend` (el FADD de un float), un
-// solo R53. DrawGameHanging valida antes el reloj: con él, los dos dan siempre un valor.
+// FSIN of `argument` times the float `factor`, a single R53, and FSIN plus `addend` (the FADD of a float), a single
+// R53. DrawGameHanging checks the clock first: with it, both always give a value.
 double SineTimes(double argument, float factor)
 {
     return Math::Detail::SineProductPC53(argument, factor).value_or(0.0);
@@ -125,55 +124,55 @@ double SinePlus(double argument, double addend)
     return Math::Detail::SineSumPC53(argument, addend).value_or(0.0);
 }
 
-// El estado del lugar que cuelga y de su modelo de un frame de 0x50ba30.
+// The state of the hanging slot and of its model in one frame of 0x50ba30.
 struct Frame
 {
     Kernel::ActorState& actor;
     const GameHangingPass& pass;
-    // [ebp+0xc] de 0x50ba30: (rand() % 30 + 70) · 0,01 del rand de 0x50db57.
+    // [ebp+0xc] of 0x50ba30: (rand() % 30 + 70) · 0.01 of the rand of 0x50db57.
     float lum = 0.0f;
-    // +0x68 del modelo del tipo del personaje, con que 0x4ec190 escala el desplazamiento: la escala con que se posó el
-    // cuerpo, aunque quien llama a 0x509340 haya cambiado la del personaje (0x50c7dd).
+    // +0x68 of the model of the character's type, with which 0x4ec190 scales the offset: the scale the body was posed
+    // with, even if the caller of 0x509340 changed the character's (0x50c7dd).
     float bodyScale = 0.0f;
 
-    // +0x6c..+0x74 del modelo del tipo (GameHangingPass::modelOrigin): la del registro, no la del objeto.
+    // +0x6c..+0x74 of the type's model (GameHangingPass::modelOrigin): the record's, not the object's.
     [[nodiscard]] glm::vec3 ModelOrigin() const
     {
         return pass.modelOrigin.value_or(actor.position);
     }
 
-    // 0x4ec110 con el modelo del tipo (la escala del personaje y ModelOrigin) sobre el hueso `bone` de su pose propia.
-    // DrawGameHanging comprueba antes que los huesos de las partes existen.
+    // 0x4ec110 with the type's model (the character's scale and ModelOrigin) on bone `bone` of its own pose.
+    // DrawGameHanging checks first that the parts' bones exist.
     [[nodiscard]] glm::vec3 BodyPoint(std::uint8_t bone, const glm::vec3& offset) const
     {
         return Math::OriginalTransformPosition(Math::OriginalMatrixOf(pass.body[bone]), offset, actor.scale,
                                                ModelOrigin());
     }
 
-    // 0x4ec110 sobre el hueso `bone` del buffer global, con la escala del personaje y `origin`. Un hueso
-    // que ninguna pose escribió todavía es el de la .bss: todo en 0.
+    // 0x4ec110 on bone `bone` of the global buffer, with the character's scale and `origin`. A bone no pose has written
+    // yet is the .bss one: all at 0.
     [[nodiscard]] glm::vec3 GlobalPoint(std::size_t bone, const glm::vec3& offset, const glm::vec3& origin) const
     {
         const BoneTransform matrix = bone < pass.carry->bones.size() ? pass.carry->bones[bone] : BoneTransform(0.0f);
         return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, origin);
     }
 
-    // 0x5491e0: el sprite aditivo; el dueño no se guarda.
+    // 0x5491e0: the additive sprite; the owner is not stored.
     void Sprite(std::uint16_t texture, const glm::vec3& point, float scale, const glm::vec3& light,
                 float rotation = 0.0f) const
     {
         static_cast<void>(pass.sprites->Create(texture, point, scale, light, rotation, 0));
     }
 
-    // 0x5092d0: el sprite en el hueso `bone` del buffer global, con la escala del personaje y el origen `origin` del
-    // modelo que recibe.
+    // 0x5092d0: the sprite on bone `bone` of the global buffer, with the character's scale and the origin `origin` of
+    // the model it receives.
     void BoneSprite(std::uint16_t texture, std::size_t bone, float scale, const glm::vec3& light,
                     const glm::vec3& origin) const
     {
         Sprite(texture, GlobalPoint(bone, {}, origin), scale, light);
     }
 
-    // 0x530860 en `address`, sobre los joints del frame. Con el pool lleno no crea ni saca rand().
+    // 0x530860 at `address`, on the frame's joints. With the pool full it neither creates nor draws rand().
     [[nodiscard]] Result Joint(const World::FishEffectRequest& request, std::string_view address) const
     {
         if (pass.joints.empty())
@@ -184,7 +183,7 @@ struct Frame
         return {};
     }
 
-    // 0x53fe70 en `address` con el dueño en 0, sobre las partículas del frame y el reloj del mundo.
+    // 0x53fe70 at `address` with the owner at 0, on the frame's particles and the world clock.
     [[nodiscard]] Result Particle(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                   const glm::vec3& light, std::int32_t subtype, float scale,
                                   std::string_view address) const
@@ -200,12 +199,12 @@ struct Frame
     }
 };
 
-// El lugar de lo que cuelga por el camino de la bandera (0x5093d2..0x5095e2). El 0 de los ángulos es el de 0x6b86a0.
+// The place of what hangs through the flag's path (0x5093d2..0x5095e2). The angles' 0 is that of 0x6b86a0.
 Core::Expected<Actors::HangingPlacement, std::string> PlacementOf(const Kernel::ActorState& actor, std::int32_t model)
 {
-    // 0x5093f3..0x50947c: con el +0x376 de 0x84 a 0x86 (las estatuas de Blood Castle, 0x50c83b), el 0xc1c y el 0x225
-    // en (90, 0, 90) y (0, 80, 120), y el 0xa24 en (10, 0, 0) y (0, 110, 80). Con otro modelo (0x5095e0), la matriz
-    // del lugar queda como estaba en la pila: 0x50ba30 solo les cuelga esos tres, y ningún alta le da ese +0x376 a un
+    // 0x5093f3..0x50947c: with +0x376 from 0x84 to 0x86 (Blood Castle's statues, 0x50c83b), 0xc1c and 0x225 at (90, 0,
+    // 90) and (0, 80, 120), and 0xa24 at (10, 0, 0) and (0, 110, 80). With another model (0x5095e0), the place's matrix
+    // stays as it was on the stack: 0x50ba30 only hangs those three on them, and no addition gives that +0x376 to a
     // 0x20a.
     if (actor.word376 >= 0x84 && actor.word376 <= 0x86)
     {
@@ -229,7 +228,7 @@ Core::Expected<Actors::HangingPlacement, std::string> PlacementOf(const Kernel::
     return Actors::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-20.0f, 5.0f, 40.0f}};
 }
 
-// 0x4ec190 y 0x50966b: el origen de lo que cuelga sin la bandera, con la escala `scale` del modelo del tipo.
+// 0x4ec190 and 0x50966b: the origin of what hangs without the flag, with the scale `scale` of the type's model.
 glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const Kernel::ActorState& actor, float scale)
 {
     const glm::vec3 turned = Math::OriginalVectorRotate(offset, Math::OriginalMatrixOf(parent));
@@ -239,20 +238,20 @@ glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const K
     return origin;
 }
 
-// 0x509a92..0x50b801: los sprites por el modelo, después de dibujarlo, con su pose en el buffer global.
+// 0x509a92..0x50b801: the sprites by model, after drawing it, with its pose in the global buffer.
 Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& origin)
 {
     Kernel::ActorState& actor = frame.actor;
     Crt::CrtRandom& random = frame.pass.random;
     const double clock = D(frame.pass.worldClock);
-    // [ebp+0x28]: (rand() % 30 + 70) · 0,005, aun en los modelos sin caso.
+    // [ebp+0x28]: (rand() % 30 + 70) · 0.005, even in the models without a case.
     const float l = F32(D(static_cast<float>(Mod(random, 30) + 70)) * D(0.005f));
     const auto at = [&](std::size_t bone, const glm::vec3& offset) { return frame.GlobalPoint(bone, offset, origin); };
     switch (model)
     {
     case 0x228:
     {
-        // 0x509ad9: dos Impack03 a los costados de la guarda.
+        // 0x509ad9: two Impack03 at the sides of the guard.
         const double x = SineTimes(clock * D(0.4f), 0.25f) + D(0.7f);
         const glm::vec3 light{F32(x), F32(x - D(0.5f)), F32(x - D(0.5f))};
         const glm::vec3 left = at(0, glm::vec3(5.0f, -22.0f, -10.0f));
@@ -291,7 +290,7 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
                 frame.Sprite(Shiny, point, 0.6f, glm::vec3(0.4f), static_cast<float>(Mod(random, 360)));
             frame.Sprite(Flare, point, 2.0f, light);
         }
-        // 0x509ea8: fuera de las acciones 0x0d a 0x21 y 0x38 a 0x3c, un rand() y dos puntos que nadie usa.
+        // 0x509ea8: outside actions 0x0d to 0x21 and 0x38 to 0x3c, one rand() and two points nobody uses.
         const std::uint8_t action = actor.animation.action;
         if (!(action >= 0x0d && action <= 0x21) && !(action >= 0x38 && action <= 0x3c))
             static_cast<void>(random.Next());
@@ -299,8 +298,8 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
     case 0x226:
     {
-        // 0x509f17..0x509ff8: EDI de 0x68b184c a 0x68b18ac, los huesos 1 y 2; en cada uno, los dos flare01 en el
-        // mismo punto, el del latido y el gris (0,3).
+        // 0x509f17..0x509ff8: EDI from 0x68b184c to 0x68b18ac, bones 1 and 2; on each, the two flare01 at the same
+        // point, the pulsing one and the gray one (0.3).
         for (std::size_t bone = 1; bone <= 2; ++bone)
         {
             const double x = SineTimes(clock * D(0.002f), 0.35f) + D(0.65f);
@@ -314,9 +313,9 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     case 0x227:
     case 0x231:
     {
-        // 0x50a005..0x50a138: en la acción 0x8c, fuera del mapa 10 y con la mitad de los rand(), el hueso 1 corrido
-        // (rand() % 30 − 15; rand() % 30 − 15; +20) suelta cuatro veces el joint 0x617/0 (escala 10, sin dueño) y
-        // la partícula 0x5c5/0 con la luz blanca, cada par con los ángulos (rand() % 60 + 150; 0; z del personaje).
+        // 0x50a005..0x50a138: in action 0x8c, outside map 10 and with half of the rand() calls, bone 1 shifted (rand()
+        // % 30 − 15, rand() % 30 − 15, +20) releases four times the 0x617/0 joint (scale 10, no owner) and the 0x5c5/0
+        // particle with the white light, each pair with the angles (rand() % 60 + 150, 0, the character's z).
         if (actor.animation.action != 0x8c || frame.pass.map == 10 || (random.Next() & 1) != 0)
             return {};
         glm::vec3 point = at(1, glm::vec3{});
@@ -359,8 +358,8 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
     case 0x61b:
     {
-        // 0x50a683..0x50a75f: ESI de 1 a 4 sobre 0x68b184c + ESI · 0x30, los huesos 2 a 5; con ESI en 3 (el
-        // hueso 4), el Shiny02.
+        // 0x50a683..0x50a75f: ESI from 1 to 4 over 0x68b184c + ESI · 0x30, bones 2 to 5; with ESI at 3 (bone 4), the
+        // Shiny02.
         for (std::size_t bone = 2; bone <= 5; ++bone)
         {
             const double x = SineTimes(clock * D(0.002f), 0.35f) + D(0.65f);
@@ -491,8 +490,8 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
     case 0xa27:
     {
-        // 0x50af03..0x50afac: con la mitad de los rand(), la chispa 0x5c6/0xb de 0,8 en el hueso 4 y en el 12, con
-        // la luz (0,8; 0,8; 0,2) y los ángulos del personaje.
+        // 0x50af03..0x50afac: with half of the rand() calls, the 0x5c6/0xb spark of 0.8 on bone 4 and on bone 12, with
+        // the light (0.8, 0.8, 0.2) and the character's angles.
         if ((random.Next() & 1) == 1)
         {
             const glm::vec3 light{0.8f, 0.8f, 0.2f};
@@ -546,9 +545,9 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
     case 0xc1e:
     {
-        // 0x50b411..0x50b4e7: Spark03 en (0; p − 170; p) del hueso 0, con p = rand() % 60 · 0,05f − 1,5f y la escala
-        // rand() % 15 · 0,05f + 1,8f. El punto queda en +0x40 del personaje, y el joint 0x618/0x11 (escala 30, con el
-        // personaje como dueño) nace ahí.
+        // 0x50b411..0x50b4e7: Spark03 at (0, p − 170, p) of bone 0, with p = rand() % 60 · 0.05f − 1.5f and the scale
+        // rand() % 15 · 0.05f + 1.8f. The point stays in the character's +0x40, and the 0x618/0x11 joint (scale 30,
+        // with the character as owner) is born there.
         const float p = F32(D(static_cast<float>(Mod(random, 60))) * D(0.05f) - D(1.5f));
         const float s = F32(D(static_cast<float>(Mod(random, 15))) * D(0.05f) + D(1.8f));
         glm::vec3 point = at(0, glm::vec3(0.0f, F32(D(p) - D(170.0f)), p));
@@ -558,9 +557,9 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
         if (auto created = frame.Joint({0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1}, "0x50b4e7");
             !created.HasValue())
             return created;
-        // 0x50b4ef..0x50b5d8: otra p (Q-C362), que corre el desplazamiento sin volver a 0x4ec110, y la escala t =
-        // rand() % 15 · 0,05f + 1. En el mismo punto, con la luz (1; 0,4; 1): un destello de t, Shiny02 de t y de t −
-        // 0,3f girado 90 y la chispa 0x5c6/0xb de 2 con los ángulos del personaje.
+        // 0x50b4ef..0x50b5d8: another p (Q-C362), which shifts the offset without going back to 0x4ec110, and the scale
+        // t = rand() % 15 · 0.05f + 1. At the same point, with the light (1, 0.4, 1): a flash of t, Shiny02 of t and of
+        // t − 0.3f turned 90 and the 0x5c6/0xb spark of 2 with the character's angles.
         static_cast<void>(Mod(random, 60));
         const float t = F32(D(static_cast<float>(Mod(random, 15))) * D(0.05f) + D(1.0f));
         const glm::vec3 violet{1.0f, 0.4f, 1.0f};
@@ -571,9 +570,9 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
                 frame.Particle(ThirdSpark, point, actor.angles, violet, World::WeaponSparkSubtype, 2.0f, "0x50b5d8");
             !created.HasValue())
             return created;
-        // 0x50b5dd..0x50b763: con la luz (a; 0,1; a), a = sin(reloj · 0,7f) · 0,2f + 0,5f − 0,1f, y el giro g =
-        // reloj · 0,0006f · 360: Shiny02 de 1,5 y 1,2 en (0; 10; 0) del hueso 2, de 1 y 0,7 en (−40; −10; 0) del hueso
-        // 1 y de 1,2 y 1 en (−160; −5; 0) del hueso 1, girados g y g + 90.
+        // 0x50b5dd..0x50b763: with the light (a, 0.1, a), a = sin(clock · 0.7f) · 0.2f + 0.5f − 0.1f, and the turn g =
+        // clock · 0.0006f · 360: Shiny02 of 1.5 and 1.2 at (0, 10, 0) of bone 2, of 1 and 0.7 at (−40, −10, 0) of bone
+        // 1 and of 1.2 and 1 at (−160, −5, 0) of bone 1, turned g and g + 90.
         const float a = F32(SineTimes(clock * D(0.7f), 0.2f) + D(0.5f) - D(0.1f));
         const glm::vec3 light{a, 0.1f, a};
         const float rotation = F32(clock * D(0.0006f) * D(360.0f));
@@ -604,7 +603,7 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
 }
 
-// 0x509340: lo que cuelga de `part`, con el modelo `model`, desde su hueso del cuerpo.
+// 0x509340: what hangs from `part`, with the model `model`, from its body bone.
 Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPart& part, std::int32_t model,
                 std::uint8_t level, std::uint8_t excellent, bool placed)
 {
@@ -614,7 +613,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
         (actor.flags78 & HiddenAttachmentFlag) == HiddenAttachmentFlag)
         return {};
     const auto type = static_cast<std::uint16_t>(model);
-    // 0x5093bb: 0x607b60 arma el objeto con el tipo del ítem.
+    // 0x5093bb: 0x607b60 builds the object with the item's type.
     Models::ObjectRandoms randoms{};
     for (std::size_t index = 0; index < HangingRandomCount(type); ++index)
         randoms[index] = pass.random.Next();
@@ -636,11 +635,11 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
     {
         origin = OriginOf(parent, offset, actor, frame.bodyScale);
     }
-    // 0x50968c..0x5096f1: los ángulos del objeto en 0; el 0xef (solo lo cuelga el +0x376 0x2a, 0x50c79a) suma
-    // 0x743a160..0x743a168 al origen, pone en 0 el hueso de la cabeza de su modelo (+0x54) y lleva a la z los bits del
-    // reloj del mundo (0x5767b88). Los ángulos van a +0x78 del modelo (0x4eb860), y la pose no los lee: su raíz es la
-    // de 0x68c4a1c. La cabeza resta los ángulos x e y del objeto, que son 0, y deja el cuaternión de la key: sin
-    // efecto, el +0x54 no se guarda.
+    // 0x50968c..0x5096f1: the object's angles at 0; 0xef (only +0x376 at 0x2a hangs it, 0x50c79a) adds
+    // 0x743a160..0x743a168 to the origin, sets its model's head bone (+0x54) to 0 and takes the world clock's bits
+    // (0x5767b88) to z. The angles go to the model's +0x78 (0x4eb860), and the pose does not read them: its root is
+    // that of 0x68c4a1c. The head subtracts the object's x and y angles, which are 0, and leaves the key's quaternion:
+    // no effect, +0x54 is not stored.
     glm::vec3 angles{};
     if (model == CarriedHead)
     {
@@ -653,27 +652,28 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
         const Models::LogicalAccess access(actor.byte38eAccesses, pass.random, Byte38eCloseRandoms);
         value = actor.byte38e;
     }
-    // 0x509926: con '4', un jugador entre las acciones 0x22 y 0x97 y del frame 5 al 10.
+    // 0x509926: with '4', a player between actions 0x22 and 0x97 and from frame 5 to 10.
     if (value == 0x34 && actor.type == Tables::PlayerSkeletonModel && actor.animation.action >= 0x22 &&
         actor.animation.action <= 0x97 && actor.animation.frame >= 5.0f && actor.animation.frame <= 10.0f)
     {
         part.animation.previousKey = 2;
         part.animation.frame = 3.2f;
     }
-    // Q-C102: un modelo que el original no carga es una entrada de la tabla en cero, y 0x509340 no la mira:
-    // 0x4ec200 y 0x4eb860 no hacen nada sin acciones (+0x26), 0x4ebc80 no tiene mallas que recorrer (+0x24) y
-    // 0x60b3d0 tampoco (su rand() es del set, que 0x509340 pasa en 0). La luz de 0x509a92 y el caso del modelo
-    // corren igual. Así, la mano de un tipo que no es un ítem (0xff0 da 0x1202) no dibuja nada. Sin portar:
-    // los efectos por nivel de 0x60b3d0 (0x530860, 0x5491e0) sobre un modelo así.
+    // Q-C102: a model the original does not load is a zeroed table entry, and 0x509340 does not look at it: 0x4ec200
+    // and 0x4eb860 do nothing without actions (+0x26), 0x4ebc80 has no meshes to walk (+0x24) and neither does 0x60b3d0
+    // (its rand() belongs to the set, which 0x509340 passes at 0). The light of 0x509a92 and the model's case run the
+    // same. So the hand of a type that is not an item (0xff0 gives 0x1202) draws nothing. Not ported: the per-level
+    // effects of 0x60b3d0 (0x530860, 0x5491e0) on such a model.
     const Models::Skeleton* skeleton = pass.models.SkeletonOf(type);
     if (pass.models.Find(type) == nullptr || skeleton == nullptr)
         return ItemSprites(frame, model, origin);
-    // 0x5093a3 y 0x50997e: la acción del modelo es la de la parte, salvo 0x1a18 en la zona segura (con el
-    // modelo de la parte, no con el que dibuja).
+    // 0x5093a3 and 0x50997e: the model's action is the part's, except 0x1a18 in the safe zone (with the part's model,
+    // not the one that draws).
     const std::uint8_t action = part.model == 0x1a18 && actor.safeZone != 0 ? 1 : part.animation.action;
-    // 0x5099a2..0x5099ed: 0x4ec200 avanza la animación salvo con la bandera en un arma de 0xa12 a 0xc11 o con
-    // +0x78 & 0x1000, y sin acciones (+0x26) no hace nada. Lee la acción de +0xa0 sin mirar cuántas tiene el modelo:
-    // con una de más, lee el heap después de su arreglo (Q-C1119), y corta. 0x4eb860 la lleva a la 0 (ChooseKeys).
+    // 0x5099a2..0x5099ed: 0x4ec200 advances the animation except with the flag on a weapon from 0xa12 to 0xc11 or with
+    // +0x78 & 0x1000, and without actions (+0x26) it does nothing. It reads the action of +0xa0 without looking at how
+    // many the model has: with one too many, it reads the heap after its array (Q-C1119), and it stops. 0x4eb860 takes
+    // it to 0 (ChooseKeys).
     const bool still = placed && model >= 0xa12 && model < 0xc12;
     const bool advances =
         !still && (actor.flags78 & FrozenAnimationFlag) != FrozenAnimationFlag && !skeleton->actions.empty();
@@ -691,7 +691,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
         part.animation.previousAction = animation.previousAction;
         part.animation.previousKey = animation.previousKey;
     }
-    // 0x509a1a: 0x4eb860 en el buffer global con la raíz de 0x68c4a1c; los dummy quedan como estaban.
+    // 0x509a1a: 0x4eb860 in the global buffer with the root of 0x68c4a1c; the dummies stay as they were.
     Scenes::FaunaDrawCarry& carry = *pass.carry;
     if (carry.bones.size() < skeleton->bones.size())
         carry.bones.resize(skeleton->bones.size(), BoneTransform(0.0f));
@@ -708,7 +708,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
     if (auto published = Scenes::PublishFaunaPoseRaw(carry, pass.models, type, bones, object.transform, false, true);
         !published.HasValue())
         return published;
-    // 0x509a8a: 0x60b3d0 con el nivel · 8, el excelente, sin set, y 2 (0x102 con +0x376 en 0x43 o 0x89).
+    // 0x509a8a: 0x60b3d0 with the level · 8, the excellent, no set, and 2 (0x102 with +0x376 at 0x43 or 0x89).
     ItemDrawContext resources = pass.itemContext != nullptr ? *pass.itemContext : ItemDrawContext{};
     ItemSpecialDrawContext special = resources.special != nullptr ? *resources.special : ItemSpecialDrawContext{};
     glm::vec3 objectLight{};
@@ -729,8 +729,8 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
     return ItemSprites(frame, model, origin);
 }
 
-// 0x50dcda..0x50dd70: con la espalda, el arma de BackHandOf; sin ella, las saetas de la izquierda o las
-// flechas de la derecha.
+// 0x50dcda..0x50dd70: with the back, the weapon of BackHandOf; without it, the bolts of the left or the arrows of the
+// right.
 struct BackItem
 {
     bool selected = false;
@@ -761,7 +761,7 @@ float PlayerActionSpeed(const GameHangingPass& pass, std::size_t action)
     return player != nullptr && action < player->actions.size() ? player->actions[action].speed : 0.0f;
 }
 
-// 0x50ddde..0x50de60: el arma o el carcaj a la espalda, del lugar de las alas.
+// 0x50ddde..0x50de60: the weapon or the quiver on the back, from the wings' slot.
 Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -770,7 +770,7 @@ Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
     std::int32_t model = static_cast<std::int16_t>(hand.model);
     std::uint8_t level = hand.level;
     petExcellent = hand.flags1b;
-    // 0x50dd8f: con +0x88 en 4 en Lorencia, los subtipos 0xd1 a 0xd3 llevan Bow+8 (0xa1b).
+    // 0x50dd8f: with +0x88 at 4 in Lorencia, subtypes 0xd1 to 0xd3 carry Bow+8 (0xa1b).
     const bool guard = actor.byte88 == 4 && frame.pass.map == 0 && actor.subtype >= 0xd1 && actor.subtype <= 0xd3;
     if (guard)
     {
@@ -790,16 +790,16 @@ Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
         wings.speed = PlayerActionSpeed(frame.pass, 1);
     if (auto hung = HangItem(frame, {0.0f, 0.0f, 15.0f}, wings, model, level, hand.flags1b, placed); !hung.HasValue())
         return hung;
-    // 0x50de5a: vuelve solo el frame; la acción y la key anteriores quedan como las dejó el arma (Q-C296).
+    // 0x50de5a: only the frame comes back; the previous action and key stay as the weapon left them (Q-C296).
     wings.animation.frame = savedFrame;
     return {};
 }
 
-// 0x50de84..0x50defd: en Blood Castle con +0x360, el arma del evento a la espalda, del lugar de las alas:
-// 0x509340(0, 0, 15, c, +0x2f8, modelo, 0, 0, 1, 1, 0). El modelo es 0xc1c, 0x225 o 0xa24 con +0x360 del 1 al 3
-// y, con otro valor (el 5 de los GM), el que quedó en [ebp-0x18]: el del lugar que eligió la espalda (0x50dd97),
-// aunque no colgara. No pisa el paso con el de Player.bmd (0x50de23) ni vuelve el frame (0x50de5a), y 0x50de8a
-// pone en 0 el excelente que después lleva Helper02 ([ebp-0x24], Q-C1331).
+// 0x50de84..0x50defd: in Blood Castle with +0x360, the event's weapon on the back, from the wings' slot: 0x509340(0, 0,
+// 15, c, +0x2f8, model, 0, 0, 1, 1, 0). The model is 0xc1c, 0x225 or 0xa24 with +0x360 from 1 to 3 and, with another
+// value (the GMs' 5), the one left in [ebp-0x18]: that of the slot the back chose (0x50dd97), even if it did not hang.
+// It does not overwrite the step with Player.bmd's (0x50de23) or bring the frame back (0x50de5a), and 0x50de8a sets to
+// 0 the excellent Helper02 then carries ([ebp-0x24], Q-C1331).
 Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
 {
     constexpr std::array<std::int32_t, 3> EventWeapons{0xc1c, 0x225, 0xa24};
@@ -812,8 +812,8 @@ Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
     const auto weapon = static_cast<std::size_t>(actor.byte360);
     if (weapon >= 1 && weapon <= EventWeapons.size())
         model = EventWeapons[weapon - 1];
-    // Q-C1332: con el lugar vacío (−1, un GM sin arma), 0x50934f toma la entrada −1 de [0x5769ad8] y escribe
-    // en los 0xe0 bytes de antes de la tabla de modelos.
+    // Q-C1332: with the slot empty (−1, a GM without a weapon), 0x50934f takes entry −1 of [0x5769ad8] and writes in
+    // the 0xe0 bytes before the model table.
     if (model < 0)
         return Core::Unexpected(std::format("0x50def8: el arma del evento de Blood Castle con +0x360 en {} cuelga el "
                                             "modelo {} y 0x509340 escribe antes de la tabla de modelos (Q-C1332)",
@@ -821,7 +821,7 @@ Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
     return HangItem(frame, {0.0f, 0.0f, 15.0f}, wings, model, 0, 0, true);
 }
 
-// 0x50df22..0x50e05d: las alas y Helper02 con su chispa.
+// 0x50df22..0x50e05d: the wings and Helper02 with its spark.
 Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -840,7 +840,7 @@ Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
         return {};
     pet.bone = PetBone;
     pet.speed = Models::PetKeysPerOriginalFrame;
-    // 0x50dfa9: el excelente es el del arma de la espalda (Q-C297).
+    // 0x50dfa9: the excellent is that of the weapon on the back (Q-C297).
     if (auto hung = HangItem(frame, {20.0f, 0.0f, 0.0f}, pet, Helper02, pet.level, petExcellent, false);
         !hung.HasValue())
         return hung;
@@ -849,7 +849,7 @@ Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
     return {};
 }
 
-// 0x50e76e..0x50e86a: la acción y lo que avanza el arma de la mano, por la acción del personaje.
+// 0x50e76e..0x50e86a: the action and how much the hand's weapon advances, by the character's action.
 void SetTheHandPace(const Frame& frame, Kernel::ActorItemPart& part, std::int32_t model)
 {
     const std::uint8_t action = frame.actor.animation.action;
@@ -889,7 +889,7 @@ void SetTheHandPace(const Frame& frame, Kernel::ActorItemPart& part, std::int32_
     }
 }
 
-// 0x50e896..0x50e908: la luz de los sprites del arma por su nivel.
+// 0x50e896..0x50e908: the light of the weapon's sprites by its level.
 glm::vec3 LevelLight(float lum, std::uint8_t level)
 {
     if (level >= 7)
@@ -901,13 +901,13 @@ glm::vec3 LevelLight(float lum, std::uint8_t level)
     return glm::vec3(lum * 0.3f);
 }
 
-// 0x50e921..0x50f828: los sprites de las armas en la mano, con el cuerpo y el buffer global.
+// 0x50e921..0x50f828: the sprites of the weapons in the hand, with the body and the global buffer.
 Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::vec3 light)
 {
     const double clock = D(frame.pass.worldClock);
     const float lum = frame.lum;
     Crt::CrtRandom& random = frame.pass.random;
-    // 0x50f195 y 0x50f3f9: 0x5092d0 con [ebp−0x14], el modelo del tipo.
+    // 0x50f195 and 0x50f3f9: 0x5092d0 with [ebp−0x14], the type's model.
     const glm::vec3 position = frame.ModelOrigin();
     const auto at = [&](const glm::vec3& offset) { return frame.BodyPoint(part.bone, offset); };
     const auto blade = [&](const glm::vec3& offset) -> Result
@@ -936,8 +936,9 @@ Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::v
         return blade({0.0f, -160.0f, 0.0f});
     case 0x223:
     {
-        // 0x50eb43..0x50ecf0: el ancho sin(reloj · 0,004f) · 10 + 20 y dos joints 0x610/4 con el personaje como dueño
-        // y sus ángulos, de (0; −20; −40) a (0; −160; −10) y de (0; −10; 28) a (0; −145; 18) de la mano. Sin sprites.
+        // 0x50eb43..0x50ecf0: the width sin(clock · 0.004f) · 10 + 20 and two 0x610/4 joints with the character as
+        // owner and its angles, from (0, −20, −40) to (0, −160, −10) and from (0, −10, 28) to (0, −145, 18) of the
+        // hand. No sprites.
         const float width = F32(SineTimes(clock * D(0.004f), 10.0f) + D(20.0f));
         glm::vec3 angles = frame.actor.angles;
         constexpr std::array<std::tuple<glm::vec3, glm::vec3, std::string_view>, 2> Edges{{
@@ -961,8 +962,8 @@ Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::v
         const double x = SinePlus(clock * D(0.004f), D(1.0f)) * D(0.3f);
         const float v = F32(x);
         frame.Sprite(Shiny, point, F32(D(v) + D(1.0f)), {F32(x * D(0.2f)), F32(x * D(0.2f)), v});
-        // 0x50eda0..0x50ee6e: tres joints 0x614/10 sin dueño desde ese punto hasta (0; −133; 7) de la mano, con los
-        // ángulos del personaje y el ancho v · 20 + 20.
+        // 0x50eda0..0x50ee6e: three 0x614/10 joints without an owner from that point to (0, −133, 7) of the hand, with
+        // the character's angles and the width v · 20 + 20.
         glm::vec3 first = point;
         glm::vec3 second = at(glm::vec3(0.0f, -133.0f, 7.0f));
         glm::vec3 angles = frame.actor.angles;
@@ -1045,8 +1046,8 @@ Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::v
         light = {lum, lum * 0.6f, lum * 0.4f};
         frame.Sprite(SecondSpark, point, 3.0f, light);
         frame.Sprite(ThirdShiny, point, 1.5f, light);
-        // 0x50f4fd..0x50f5b1: cuatro chispas 0x5c5/1 de la mano, corridas (rand() % 20 − 10; rand() % 20 − 10 − 90;
-        // rand() % 20 − 10), con los ángulos del personaje y la misma luz.
+        // 0x50f4fd..0x50f5b1: four 0x5c5/1 sparks of the hand, shifted (rand() % 20 − 10, rand() % 20 − 10 − 90, rand()
+        // % 20 − 10), with the character's angles and the same light.
         for (int spark = 0; spark < 4; ++spark)
         {
             const auto x = static_cast<float>(Mod(random, 20) - 10);
@@ -1057,8 +1058,8 @@ Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::v
                 !created.HasValue())
                 return created;
         }
-        // 0x50f5b7..0x50f676: de 0 a −180, de a 20, con tres de cada cuatro rand() un destello de 1 en (0; y + 60; 0)
-        // con la luz (l; l · 0,2; l · 0,1).
+        // 0x50f5b7..0x50f676: from 0 to −180, in steps of 20, with three of every four rand() calls a flash of 1 at (0,
+        // y + 60, 0) with the light (l, l · 0.2, l · 0.1).
         light = {lum, lum * 0.2f, lum * 0.1f};
         for (int y = 0; y > -200; y -= 20)
         {
@@ -1098,7 +1099,7 @@ Result HandSprites(const Frame& frame, const Kernel::ActorItemPart& part, glm::v
     }
 }
 
-// 0x50e298..0x50e9ea: una mano, con +0x38e abierto y cerrado antes de mirarla.
+// 0x50e298..0x50e9ea: one hand, with +0x38e opened and closed before looking at it.
 Result HangTheHand(Frame& frame, std::size_t index)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -1121,7 +1122,7 @@ Result HangTheHand(Frame& frame, std::size_t index)
     if (auto hung = HangItem(frame, {}, part, model, part.level, part.flags1b, false); !hung.HasValue())
         return hung;
     const glm::vec3 light = LevelLight(frame.lum, part.level);
-    // 0x50e902: los rojos y el nivel 4 del personaje (+0x1d6) no llevan los sprites.
+    // 0x50e902: the reds and the character's level 4 (+0x1d6) do not carry the sprites.
     if (actor.pk >= RedPk || actor.level == 4)
         return {};
     return HandSprites(frame, part, light);
@@ -1145,19 +1146,18 @@ bool WeaponsOnTheBack(const Kernel::ActorState& actor, std::int32_t map)
                       (actor.animation.action >= FirstBackAction && actor.animation.action <= LastBackAction));
 }
 
-// 0x413fe0: 0x576960 busca "webzen" (0x6c64ac) en el nombre de +0x1d9.
+// 0x413fe0: 0x576960 looks for "webzen" (0x6c64ac) in the name of +0x1d9.
 bool NamedLikeAGameMaster(const Kernel::ActorState& actor)
 {
     return ActorNameContains(actor, "webzen");
 }
 
-// 0x413fe0: un GM ("webzen" en el nombre, +0x78 & 0x1000000 o el CtlCode en 0x20 u 8) suelta una capa que
-// no sea la 5 y pone +0x360 en 5. Después, sin capa y con +0x360 del 5 al 13, la crea: con +0x360 en 5, la
-// de MuSign (0x414370); las del 6 al 13 usan el atlas0x637 (0x4147c0). Del 6 al 13 lo escriben solo
-// los paquetes: el 0x12 (0x4c89e1, ViewportPlayers.h) y 0x40c140 (CL9.5) copian un byte, y 0x42ab40
-// (ApplyCastleSiegeFlags), 0x42ad50 y 0x42ae60 (CL9.5) lo eligen por las banderas 0x40000, 0x80000, 0x400000 y
-// 0x800000 de +0x78 (0x42ab40, en el mapa 30); el dibujo de esas capas (0x414820) lee +0x360 y +0x368. +0x360 no lo
-// vuelve a 0 nadie más que 0x414340: el 5 queda en el registro.
+// 0x413fe0: a GM ("webzen" in the name, +0x78 & 0x1000000 or the CtlCode at 0x20 or 8) drops a layer other than 5 and
+// sets +0x360 to 5. Then, with no layer and with +0x360 from 5 to 13, it creates it: with +0x360 at 5, MuSign's
+// (0x414370); those from 6 to 13 use the 0x637 atlas (0x4147c0). From 6 to 13 only packets write it: the 0x12
+// (0x4c89e1, ViewportPlayers.h) and 0x40c140 copy a byte, and 0x42ab40 (ApplyCastleSiegeFlags), 0x42ad50 and 0x42ae60
+// choose it by the flags 0x40000, 0x80000, 0x400000 and 0x800000 of +0x78 (0x42ab40, in map 30); the drawing of those
+// layers (0x414820) reads +0x360 and +0x368. Nobody but 0x414340 sets +0x360 back to 0: the 5 stays in the record.
 Result StepTheLayer(Kernel::ActorState& actor)
 {
     const bool gameMaster = NamedLikeAGameMaster(actor) || (actor.flags78 & GameMasterFlag) == GameMasterFlag ||
@@ -1174,17 +1174,17 @@ Result StepTheLayer(Kernel::ActorState& actor)
     actor.layer = Kernel::GameMasterLayer{};
     if (actor.byte360 != GameMasterLayerKind)
     {
-        // El objeto de4147c0 no tiene animación: su +8 es la variante0..7. Se comparte el byte de acción del
-        // estado alternativo MuSign; el tipo de capa del dueño decide cuál de los dos layouts se lee.
+        // The object of 0x4147c0 has no animation: its +8 is the variant 0..7. It shares the action byte of MuSign's
+        // alternate state; the owner's layer type decides which of the two layouts is read.
         constexpr std::uint8_t FirstSiegeRole = 6;
         actor.layer->animation.action = static_cast<std::uint8_t>(actor.byte360 - FirstSiegeRole);
     }
     return {};
 }
 
-// 0x414470, el dibujo de la capa 5: MuSign en el hueso 20 del dueño, con 0x4ec200 a 0,5 y 0x602e90(objeto, 1,
-// 0, 0). Con el alpha de la capa (+0x178) por debajo de 0,01 (o sin orden) no hace nada (0x414496); 0x414370 lo
-// deja en 1 y solo 0x5ffdf0 lo baja, en Chaos Castle con +0x1a1 del héroe.
+// 0x414470, the drawing of layer 5: MuSign on the owner's bone 20, with 0x4ec200 at 0.5 and 0x602e90(object, 1, 0, 0).
+// With the layer's alpha (+0x178) below 0.01 (or unordered) it does nothing (0x414496); 0x414370 leaves it at 1 and
+// only 0x5ffdf0 lowers it, in Chaos Castle with the hero's +0x1a1.
 Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
 {
     const GameHangingPass& pass = frame.pass;
@@ -1200,28 +1200,28 @@ Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
         return Core::Unexpected(std::string("0x414470: falta Skill\\MuSign.bmd (0x12a) de la capa de los GM"));
     DrawnObject object;
     object.model = MuSign;
-    // 0x4144d6: 0x4ec110 con el modelo del dueño sobre su hueso 20, trasladado; +0x93 en 1 deja los ángulos.
+    // 0x4144d6: 0x4ec110 with the owner's model on its bone 20, translated; +0x93 at 1 keeps the angles.
     object.transform = {.position = frame.BodyPoint(MuSignBone, MuSignOffset), .angles = MuSignAngles, .scale = 1.0f};
-    // 0x414555: 0x4ec200 sobre la acción de +0x115 (0). Sin acciones o con una key no hace nada; entre frames
-    // del original, la dibuja como quedó.
+    // 0x414555: 0x4ec200 on the action of +0x115 (0). Without actions or with one key it does nothing; between original
+    // frames, it draws it as it was left.
     if (pass.originalFrame && layer.animation.action < skeleton->actions.size())
         static_cast<void>(Models::AdvanceAnimation(layer.animation, skeleton->actions[layer.animation.action],
                                                    MuSignSpeed, Models::AnimationScene::Other));
     object.animation = layer.animation;
-    // 0x414370: el blendMesh (+0x68) y la malla oculta (+0x5c) en −1, la luz del blendMesh en 1, la luz por
-    // vértice (+0xec) prendida y el alpha en 1. 0x5ffce0 suma la luz del terreno, que 0x6002e0 pisa. La U, la V
-    // y el +0x78 que 0x6002e0 compara con 0x80 quedan sin inicializar (Q-C302): acá, en 0 y distinto de 0x80.
+    // 0x414370: the blendMesh (+0x68) and the hidden mesh (+0x5c) at −1, the blendMesh's light at 1, the per-vertex
+    // light (+0xec) on and the alpha at 1. 0x5ffce0 adds the terrain's light, which 0x6002e0 overwrites. The U, the V
+    // and the +0x78 that 0x6002e0 compares with 0x80 stay uninitialized (Q-C302): here, at 0 and other than 0x80.
     object.state = {};
     object.color = glm::vec3(1.0f);
     object.vertexLight = true;
-    // 0x5ffdff..0x5ffe3b: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado (una vez
-    // por frame del original); por debajo de 0,01, 0x5ffdf0 sale sin posar y 0x602e90 no llama a 0x6002e0.
+    // 0x5ffdff..0x5ffe3b: in maps 18 to 23, with the hero's +0x1a1, the alpha drops by 0.15f and stays stored (once per
+    // original frame); below 0.01, 0x5ffdf0 returns without posing and 0x602e90 does not call 0x6002e0.
     if (pass.originalFrame)
         layer.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, layer.alpha);
     if (!(layer.alpha >= DrawnLayerAlpha))
         return {};
     object.alpha = layer.alpha;
-    // 0x5ffdf0 con el segundo argumento en 1: la pose en el buffer global, sin llevar los huesos al mundo.
+    // 0x5ffdf0 with the second argument at 1: the pose in the global buffer, without taking the bones to the world.
     Scenes::FaunaDrawCarry& carry = *pass.carry;
     if (auto posed = Scenes::PublishFaunaPose(carry, pass.models, object, false); !posed.HasValue())
         return posed;
@@ -1233,7 +1233,7 @@ Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
     return DrawItemMeshPass(pass.batch, pass.models, chrome, pass.frameClock, carry.meshes, -1, ChromePass);
 }
 
-// 414820: XY del dueño, Z del hueso20 con desplazamiento(120,0,0), atlas637 sin rand ni animación.
+// 0x414820: the owner's x and y, z from bone 20 with the offset (120, 0, 0), the 0x637 atlas without rand or animation.
 Result DrawTheSiegeLayer(const Frame& frame)
 {
     constexpr glm::vec3 Offset{120.0f, 0.0f, 0.0f};
@@ -1264,8 +1264,8 @@ Result DrawTheSiegeLayer(const Frame& frame)
     return {};
 }
 
-// 0x4142f0: con capa y sin +0x78 & 0x4000, la dibuja; con +0x360 del 6 al 13, solo si 0x4294b0 (el byte del
-// asedio): sin él no dibuja nada.
+// 0x4142f0: with a layer and without +0x78 & 0x4000, it draws it; with +0x360 from 6 to 13, only if 0x4294b0 (the siege
+// byte): without it, it draws nothing.
 Result DrawTheLayer(const Frame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -1280,8 +1280,8 @@ Result DrawTheLayer(const Frame& frame)
     return DrawMuSign(frame, *actor.layer);
 }
 
-// 0x50dcce..0x50e05d, solo con un 0x20a: la espalda, el arma del evento de Blood Castle, la capa de los GM y, fuera de
-// Chaos Castle, las alas y Helper02.
+// 0x50dcce..0x50e05d, only with a 0x20a: the back, Blood Castle's event weapon, the GMs' layer and, outside Chaos
+// Castle, the wings and Helper02.
 Result HangThePlayer(Frame& frame, bool back)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -1289,14 +1289,14 @@ Result HangThePlayer(Frame& frame, bool back)
     std::uint8_t petExcellent = 0;
     if (auto hung = HangTheBack(frame, back, petExcellent); !hung.HasValue())
         return hung;
-    // 0x50de63: en Blood Castle (11 a 17) con +0x360, el arma del evento (CL9 hito 11). +0x360 lo escriben el 9B
-    // (0x511150, del 1 al 3) y 0x413fe0 (el 5 de los GM, que queda en el registro desde su primer dibujo).
+    // 0x50de63: in Blood Castle (11 to 17) with +0x360, the event's weapon. +0x360 is written by the 9B (0x511150, from
+    // 1 to 3) and 0x413fe0 (the GMs' 5, which stays in the record from their first draw).
     if (pass.map >= FirstBloodCastle && pass.map <= LastBloodCastle && actor.byte360 != 0)
     {
         if (auto hung = HangTheEventWeapon(frame, back, petExcellent); !hung.HasValue())
             return hung;
     }
-    // 0x50df01 y 0x50df07: la capa de los GM, antes de las alas.
+    // 0x50df01 and 0x50df07: the GMs' layer, before the wings.
     if (auto layer = StepTheLayer(actor); !layer.HasValue())
         return layer;
     if (auto drawn = DrawTheLayer(frame); !drawn.HasValue())
@@ -1312,20 +1312,20 @@ Result HangThePlayer(Frame& frame, bool back)
 
 Core::Expected<void, std::string> DrawGameHanging(Kernel::ActorState& actor, const GameHangingPass& pass)
 {
-    // 0x50db57: el rand() de la luz de lo que cuelga, aun sin ningún ítem.
+    // 0x50db57: the rand() of the light of what hangs, even without any item.
     Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f)), actor.scale};
-    // 0x50dcc2: lo que no es un jugador 0x20a salta a 0x50e060, sin la espalda, el arma del evento, la capa ni las
-    // alas.
+    // 0x50dcc2: what is not a 0x20a player jumps to 0x50e060, without the back, the event's weapon, the layer or the
+    // wings.
     const bool player = actor.type == Tables::PlayerSkeletonModel;
     if (SomethingHangs(actor) && (pass.carry == nullptr || pass.sprites == nullptr))
         return Core::Unexpected<std::string>(
             "0x509340: faltan el buffer global de la pose (0x68b181c) o la tabla de sprites (0x5491e0)");
     if (!std::isfinite(pass.worldClock) || std::abs(pass.worldClock) >= 0x1p40f)
         return Core::Unexpected<std::string>("0x5767b88: el reloj del mundo está fuera del dominio de FSIN");
-    // Los huesos del cuerpo de donde cuelgan las partes y salen sus sprites (BodyPoint no los mira).
+    // The body bones the parts hang from and their sprites come out of (BodyPoint does not look at them).
     if (SomethingHangs(actor))
     {
-        // Lo que no es un 0x20a no cuelga alas ni mascota: solo miran sus manos.
+        // What is not a 0x20a hangs no wings or pet: only its hands are looked at.
         const std::array<std::uint8_t, 4> bones{actor.hands[0].bone, actor.hands[1].bone,
                                                 player ? WingsBone : actor.hands[0].bone,
                                                 player ? PetBone : actor.hands[0].bone};
@@ -1344,7 +1344,7 @@ Core::Expected<void, std::string> DrawGameHanging(Kernel::ActorState& actor, con
     }
     if (back)
         return {};
-    // 0x50e060..0x50e0c0: antes de las manos, salvo espalda y +0x4000, un efecto de un 0x20a cada 30 pasos.
+    // 0x50e060..0x50e0c0: before the hands, except the back and +0x4000, an effect of a 0x20a every 30 steps.
     if (player && pass.originalFrame && (actor.flags78 & 0x4800u) == 0x800u && actor.byte88 == 1 &&
         pass.logicSteps % 30 == 0)
         return Core::Unexpected<std::string>(
@@ -1366,8 +1366,8 @@ Core::Expected<void, std::string> HangFromTheWingsSlot(Kernel::ActorState& actor
     if (!std::isfinite(pass.worldClock) || std::abs(pass.worldClock) >= 0x1p40f)
         return Core::Unexpected<std::string>("0x5767b88: el reloj del mundo está fuera del dominio de FSIN");
     const Frame frame{actor, pass, 0.0f, bodyScale};
-    // 0x50c7e4 y 0x50c8a2: el modelo es el del lugar, con signo (MOVSX); 0x509340 con el nivel, el excelente y el
-    // undécimo argumento en 0 y el décimo en 1, como en las otras llamadas de 0x50ba30.
+    // 0x50c7e4 and 0x50c8a2: the model is the slot's, signed (MOVSX); 0x509340 with the level, the excellent and the
+    // eleventh argument at 0 and the tenth at 1, as in the other calls of 0x50ba30.
     return HangItem(frame, offset, actor.wings, static_cast<std::int16_t>(actor.wings.model), 0, 0, placed);
 }
 } // namespace Client::Actors::Drawing

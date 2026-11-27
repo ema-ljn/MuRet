@@ -22,8 +22,8 @@ struct ActorState;
 namespace Client::Actors::Drawing
 {
 
-// 4fcee0, productor común hasta4fd5bb: usa el modelo publicado antes del cuerpo y conserva el
-// scratch global de pose. La continuación de los cuatro helpers pertenece al caller.
+// 0x4fcee0, the common producer up to 0x4fd5bb: it uses the model published before the body and keeps the global pose
+// scratch. The continuation of the four helpers belongs to the caller.
 [[nodiscard]] Core::Expected<void, std::string>
 EmitWeaponTrail(Kernel::ActorState& actor, const Models::Skeleton* skeleton, const CharacterStepContext& context);
 } // namespace Client::Actors::Drawing

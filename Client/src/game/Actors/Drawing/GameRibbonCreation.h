@@ -27,9 +27,9 @@ struct RibbonCreateRequest
     std::int32_t key = 0;
 };
 
-// 52e470→52e3b0: búsqueda por dueño/key, alta y desplazamiento; no consume CRT.
+// 0x52e470 → 0x52e3b0: lookup by owner and key, addition and shift; it does not consume the CRT.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateRibbon(std::span<Scenes::RibbonState> ribbons, const RibbonCreateRequest& request);
-// 5091d0→52e500: envejece y duplica el primer par antes de la posible segunda resta de count.
+// 0x5091d0 → 0x52e500: ages and duplicates the first pair before the possible second subtraction of count.
 [[nodiscard]] Core::Expected<void, std::string> StepRibbons(std::span<Scenes::RibbonState> ribbons);
 } // namespace Client::Actors::Drawing

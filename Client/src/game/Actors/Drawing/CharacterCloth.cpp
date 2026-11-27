@@ -20,8 +20,8 @@
 #include <optional>
 #include <vector>
 
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4" (§ Las telas en
-// 0x50ba30); cada frame, contra el código real del main.exe emulado (tests/vectors/cloth).
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4" (§ Las telas en 0x50ba30); each
+// frame, against the real code of the emulated main.exe (tests/vectors/cloth).
 namespace Client::Actors::Drawing
 {
 namespace
@@ -35,14 +35,14 @@ constexpr std::uint16_t LordsCape = 0x1c30;
 constexpr std::uint16_t ClothMonster = 0x37;
 constexpr std::uint32_t Hidden = 0x4000;
 constexpr std::uint32_t Still = 0x1000;
-// 0x3ba3d70a, el dt de 0x50ba30.
+// 0x3ba3d70a, the dt of 0x50ba30.
 constexpr float StepTime = 0.005f;
 constexpr int StepsPerFrame = 5;
-// Los mapas 0x12 a 0x17, donde no hay tela.
+// Maps 0x12 to 0x17, where there is no cloth.
 constexpr std::uint8_t FirstClothlessMap = 0x12;
 constexpr std::uint8_t LastClothlessMap = 0x17;
 
-// Las esferas de las telas del Dark Lord: las de las capas 0x256 (hueso 17) y las de la tercera.
+// The spheres of the Dark Lord's cloths: those of the 0x256 capes (bone 17) and those of the third one.
 struct Sphere
 {
     glm::vec3 local;
@@ -58,7 +58,7 @@ constexpr Sphere FourthSphere{{0.0f, -15.0f, -20.0f}, 30.0f, 2};
 constexpr std::array<Sphere, 3> MonsterSpheres{
     {{{-10.0f, -10.0f, -10.0f}, 35.0f, 17}, {{10.0f, -10.0f, -10.0f}, 35.0f, 17}, {{0.0f, -10.0f, -40.0f}, 50.0f, 19}}};
 
-// Los argumentos de cada init, como los empuja 0x50ba30 (los números de los PUSH).
+// The arguments of each init, as 0x50ba30 pushes them (the PUSH numbers).
 constexpr ClothShape LordsFrontCloth{.bone = 20,
                                      .anchor = {0.0f, 0.0f, 20.0f},
                                      .columns = 6,
@@ -86,8 +86,7 @@ constexpr ClothShape LordsCapeCloth{.bone = 19,
                                     .front = TextureSlot{0x257},
                                     .back = TextureSlot{0x257},
                                     .flags = 0x1005};
-// La cuarta: armada con el arreglo (y = 10, 0x1406) y vuelta a armar encima en los frames que siguen
-// (y = 8, 0x1407).
+// The fourth: built with the array (y = 10, 0x1406) and built again on top in the following frames (y = 8, 0x1407).
 constexpr ClothShape LordsFourthCloth{.bone = 18,
                                       .anchor = {0.0f, 10.0f, -5.0f},
                                       .columns = 5,
@@ -125,7 +124,7 @@ constexpr ClothShape RobeCloth{.bone = 19,
                                .back = TextureSlot{0x251},
                                .flags = 0x405};
 
-// 0x50c2ca..0x50c313, el +0x376 0x4d (el tipo 0x189), y 0x50c5fa..0x50c629, el 0x47, el 0x4a y el 0x12d.
+// 0x50c2ca..0x50c313, +0x376 at 0x4d (type 0x189), and 0x50c5fa..0x50c629, 0x47, 0x4a and 0x12d.
 constexpr std::uint16_t PhoenixMonster = 0x4d;
 constexpr ClothShape PhoenixCloth{.bone = 10,
                                   .anchor = {0.0f, -10.0f, 0.0f},
@@ -146,7 +145,7 @@ constexpr ClothShape BannerCloth{.bone = 0x13,
                                  .front = TextureSlot{0x255},
                                  .back = TextureSlot{0x255},
                                  .flags = 0x1100};
-// 0x50c5ad..0x50c5bb: SUB 0x47, NEG, SBB y AND 2 sobre 0x253: el 0x47 con la 0x253, los otros con la 0x255.
+// 0x50c5ad..0x50c5bb: SUB 0x47, NEG, SBB and AND 2 on 0x253: 0x47 with 0x253, the others with 0x255.
 constexpr TextureSlot FirstBannerTexture{0x253};
 
 template <std::size_t N> void AddSpheres(Cloth& cloth, const std::array<Sphere, N>& spheres)
@@ -198,7 +197,7 @@ void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16
     m_flares.clear();
     if (m_cloths.empty())
     {
-        // 0x50c291..0x50c31e y 0x50c5ad..0x50c632: new(0x64) de una, armada con su forma, y +0x18c en 1.
+        // 0x50c291..0x50c31e and 0x50c5ad..0x50c632: new(0x64) of one, built with its shape, and +0x18c at 1.
         m_cloths.assign(1, Cloth{});
         if (monster == PhoenixMonster)
         {
@@ -215,10 +214,10 @@ void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16
         m_count = 1;
     }
     m_simulatedBody = SimulatedBodyOf(body);
-    // 0x50c337 y 0x50c648: 0x455190(0,005f, 5) sobre la primera, con el dt fijo.
+    // 0x50c337 and 0x50c648: 0x455190(0.005f, 5) on the first, with the fixed dt.
     if (!m_cloths[0].Simulate(StepTime, StepsPerFrame, body, world, Maps::ClothWindForMap(map)))
     {
-        // 0x4fb1a0(personaje, objeto, 0): las suelta; el frame siguiente, con +0x190 en 0, la vuelve a armar.
+        // 0x4fb1a0(character, object, 0): releases them; the next frame, with +0x190 at 0, builds it again.
         for (Cloth& released : m_cloths)
             released.Release();
         m_cloths.clear();
@@ -226,7 +225,7 @@ void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16
         m_simulatedBody.reset();
         return;
     }
-    // 0x50c35c y 0x50c669: el +0x18 con (0, 0).
+    // 0x50c35c and 0x50c669: the +0x18 with (0, 0).
     Draw(batch, m_cloths[0], PlainClothColor, worldTime);
 }
 
@@ -258,7 +257,7 @@ void CharacterCloth::Build(const ClothWearer& wearer, const Models::ClothBody& b
 {
     if (Kernel::BaseClassOf(wearer.characterClass) == Kernel::CharacterClass::DarkLord)
     {
-        // 0x50d5b9: el arreglo de cuatro, tres armadas y la cuarta solo con ArmorClass05; +0x18c en 3.
+        // 0x50d5b9: the array of four, three built and the fourth only with ArmorClass05; +0x18c at 3.
         m_cloths.assign(4, Cloth{});
         m_cloths[0].Build(LordsFrontCloth, body);
         m_cloths[0].SetWindBytes(10, 50);
@@ -276,7 +275,7 @@ void CharacterCloth::Build(const ClothWearer& wearer, const Models::ClothBody& b
         m_count = 3;
         return;
     }
-    // 0x50d812: una sola, la del monstruo 0x37 o la de la clase 3.
+    // 0x50d812: a single one, that of monster 0x37 or that of class 3.
     m_cloths.assign(1, Cloth{});
     if (wearer.monster == ClothMonster)
     {
@@ -355,8 +354,8 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
         return;
     }
     const bool darkLord = Kernel::BaseClassOf(wearer.characterClass) == Kernel::CharacterClass::DarkLord;
-    // El arreglo es de cuatro con la clase 4 y de una con las demás. Si la clase cambió sobre la misma
-    // tela, el original leería fuera del arreglo: MuRet las suelta y las vuelve a armar.
+    // The array holds four with class 4 and one with the others. If the class changed on the same cloth, the original
+    // would read outside the array: MuRet releases them and builds them again.
     if (!m_cloths.empty() && m_cloths.size() != (darkLord ? 4u : 1u))
     {
         for (Cloth& released : m_cloths)
@@ -373,8 +372,8 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     }
     else if (darkLord)
     {
-        // 0x50d998..0x50da67: la cuarta se arma encima, sin soltarla (la esfera queda dos veces y las
-        // banderas en 0x1406 | 0x1407), o se suelta con otra armadura.
+        // 0x50d998..0x50da67: the fourth is built on top, without releasing it (the sphere stays twice and the flags at
+        // 0x1406 | 0x1407), or released with another armor.
         if (wearer.armor == ArmorClass05)
         {
             if (m_count == 3)
@@ -392,17 +391,17 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     }
     if ((wearer.objectFlags & Hidden) != 0)
     {
-        // Armadas sobre este cuerpo y sin simular: un dibujo intermedio las lleva desde él, no desde el de
-        // una simulación anterior.
+        // Built on this body and not simulated: an intermediate draw carries them from it, not from the body of an
+        // earlier simulation.
         if (built)
             m_simulatedBody = SimulatedBodyOf(body);
         return;
     }
-    // El cuerpo de esta simulación, del que un dibujo intermedio lleva cada tela (#307).
+    // The body of this simulation, from which an intermediate draw carries each cloth.
     m_simulatedBody = SimulatedBodyOf(body);
     const auto fallbackWind = Maps::ClothWindForMap(map);
-    // 0x50da67..0x50db57: cada tela, sus cinco pasos y su dibujo; la tercera del Dark Lord, solo con la
-    // capa o con el color de un duelo.
+    // 0x50da67..0x50db57: each cloth, its five steps and its draw; the Dark Lord's third, only with the cape or with a
+    // duel's color.
     for (std::size_t index = 0; index < m_count; ++index)
     {
         const bool withoutTheCape = darkLord && index == 2 && wearer.wings != LordsCape && color == PlainClothColor;
@@ -414,7 +413,7 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
         Cloth& cloth = m_cloths[index];
         if (!cloth.Simulate(dt, StepsPerFrame, body, world, fallbackWind))
         {
-            // 0x4fb1a0: las suelta todas; el frame siguiente, con +0x190 en 0, las vuelve a armar.
+            // 0x4fb1a0: releases them all; the next frame, with +0x190 at 0, builds them again.
             for (Cloth& released : m_cloths)
             {
                 released.Release();
@@ -430,8 +429,8 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     }
 }
 
-// 0x455930: la mezcla, el color (el de 0x50ba30, o el del brillo) y las dos caras de cuadrados, cada
-// uno en dos triángulos. Con `carry`, las partículas y los destellos van llevados (#307).
+// 0x455930: the blend, the color (that of 0x50ba30, or the glow's) and the two faces of squares, each in two triangles.
+// With `carry`, the particles and the flares are carried.
 void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const glm::vec3& color, float worldTime,
                           const std::optional<ClothCarry>& carry)
 {

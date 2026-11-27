@@ -36,7 +36,7 @@ namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 
-// Los argumentos y globales públicos que lee 609640; pulse conserva 6c9de4/6c9de8.
+// The arguments and public globals 0x609640 reads; pulse keeps 0x6c9de4/0x6c9de8.
 struct ItemSpecialDrawContext
 {
     std::uint32_t flags = 2;
@@ -45,15 +45,15 @@ struct ItemSpecialDrawContext
     glm::vec2* pulse = nullptr;
     std::uint32_t objectFlags = 0;
     std::function<Core::Expected<glm::vec3, std::string>(std::size_t)> bonePoint{};
-    // object+120 prestado a4ec110 con posición0 yTranslate1; no es la pose global.
+    // object+0x120 lent to 0x4ec110 with position 0 and Translate 1; it is not the global pose.
     std::function<Core::Expected<glm::vec3, std::string>()> privateBoneOrigin{};
     World::FrameSprites* sprites = nullptr;
     glm::vec3* objectLight = nullptr;
-    // Recibe cada store antes de dibujar: conserva también el prefijo si después falta un recurso.
+    // Receives each store before drawing: it also keeps the prefix if a resource is missing later.
     DrawnObject* publishedObject = nullptr;
 };
 
-// 609640 completo, incluido RenderBody del default, sobre la pose retenida del caller.
+// 0x609640 in full, including the default's RenderBody, on the caller's retained pose.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawSpecialItemMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
